@@ -279,5 +279,5 @@ dist/
 package-lock.json
 \.vscode
 
-VirtoCommerce.PageBuilderModule/Content/builder/
-VirtoCommerce.PageBuilderModule/Content/store/
+builder/
+store/

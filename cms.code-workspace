@@ -1,10 +1,10 @@
 {
 	"folders": [
         {
-            "path": "cms-designer"
+            "path": "src/cms-designer"
         },
         {
-            "path": "store"
+            "path": "src/store"
         }
     ],
     "settings": {

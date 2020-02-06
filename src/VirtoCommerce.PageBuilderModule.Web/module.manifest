@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<module>
+  <id>VirtoCommerce.PageBuilderModule</id>
+  <version>3.0.0</version>
+  <platformVersion>3.0.0</platformVersion>
+  <dependencies>
+    <dependency id="VirtoCommerce.Core" version="3.0.0" />
+    <dependency id="VirtoCommerce.Content" version="3.0.0" />
+  </dependencies>
+  
+  <assemblyFile>VirtoCommerce.PageBuilderModule.Web.dll</assemblyFile>
+  <moduleType>VirtoCommerce.PageBuilderModule.Web.Module, VirtoCommerce.PageBuilderModule.Web</moduleType>
+  
+  <title>CMS Page Builder</title>
+  <description>Compose pages in visual page builder.</description>
+  <authors>
+    <author>Virto Commerce</author>
+  </authors>
+  <owners>
+    <owner>Virto Commerce</owner>
+  </owners>
+  
+  <copyright>Copyright © 2011-2019 Virto Commerce. All rights reserved</copyright>
+  <tags>cms content pagebuilder</tags>
+
+  <settings>
+    <group name="CMS Content|General">
+      <setting>
+        <name>VirtoCommerce.PageBuilderModule.General.StoreUrl</name>
+        <valueType>string</valueType>
+        <defaultValue></defaultValue>
+        <title>Store URL</title>
+        <description></description>
+      </setting>
+      <setting>
+        <name>VirtoCommerce.PageBuilderModule.General.StorePreviewPath</name>
+        <valueType>string</valueType>
+        <defaultValue>/designer-preview</defaultValue>
+        <title>Store preview path</title>
+        <description>Relative path for preview page</description>
+      </setting>
+      <setting>
+        <name>VirtoCommerce.PageBuilderModule.General.TokenUrl</name>
+        <valueType>string</valueType>
+        <defaultValue>/token</defaultValue>
+        <title>AuthToken url</title>
+        <description></description>
+      </setting>
+      <setting>
+        <name>VirtoCommerce.PageBuilderModule.General.AssetsPath</name>
+        <valueType>string</valueType>
+        <defaultValue>assets/pages</defaultValue>
+        <title>Assets relative path</title>
+        <description></description>
+      </setting>
+    </group>
+  </settings>
+</module>

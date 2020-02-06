@@ -1,9 +1,15 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28307.645
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29728.190
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VirtoCommerce.PageBuilderModule", "VirtoCommerce.PageBuilderModule\VirtoCommerce.PageBuilderModule.csproj", "{9ECFBA8A-569A-42C7-A75A-E5AD85273526}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{6E3252B4-5DFC-4DB3-A00E-B74077B7B237}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{27754F54-95DC-4955-96D7-3121BC768AF8}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VirtoCommerce.PageBuilderModule.Web", "src\VirtoCommerce.PageBuilderModule.Web\VirtoCommerce.PageBuilderModule.Web.csproj", "{000D7371-F733-42B7-846B-8170D5F9D684}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VirtoCommerce.PageBuilderModule.Tests", "tests\VirtoCommerce.PageBuilderModule.Tests\VirtoCommerce.PageBuilderModule.Tests.csproj", "{209024D3-2094-4919-A0A0-64D463F77FF0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -11,13 +17,21 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{9ECFBA8A-569A-42C7-A75A-E5AD85273526}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{9ECFBA8A-569A-42C7-A75A-E5AD85273526}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{9ECFBA8A-569A-42C7-A75A-E5AD85273526}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{9ECFBA8A-569A-42C7-A75A-E5AD85273526}.Release|Any CPU.Build.0 = Release|Any CPU
+		{000D7371-F733-42B7-846B-8170D5F9D684}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{000D7371-F733-42B7-846B-8170D5F9D684}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{000D7371-F733-42B7-846B-8170D5F9D684}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{000D7371-F733-42B7-846B-8170D5F9D684}.Release|Any CPU.Build.0 = Release|Any CPU
+		{209024D3-2094-4919-A0A0-64D463F77FF0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{209024D3-2094-4919-A0A0-64D463F77FF0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{209024D3-2094-4919-A0A0-64D463F77FF0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{209024D3-2094-4919-A0A0-64D463F77FF0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{000D7371-F733-42B7-846B-8170D5F9D684} = {6E3252B4-5DFC-4DB3-A00E-B74077B7B237}
+		{209024D3-2094-4919-A0A0-64D463F77FF0} = {27754F54-95DC-4955-96D7-3121BC768AF8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {A855B472-948E-4956-B4FD-FFC53C09D85E}

@@ -1,0 +1,72 @@
+﻿{
+  "pageBuilder": {
+    "blades": {
+      "edit-page": {
+        "title": "Edit '{{name}}'",
+        "subtitle": "Page edit",
+        "title-new": "New page",
+        "subtitle-new": "Create new page",
+        "subtitle-post": "Blogpost edit",
+        "title-new-post": "New post",
+        "subtitle-new-post": "Create new blogpost",
+        "labels": {
+          "name": "Name",
+          "language": "Language",
+          "drag-note": "Drag and drop file here",
+          "progress": "Progress",
+          "markdown": "Markdown",
+          "metadata": "Metadata"
+        },
+        "placeholders": {
+          "name": "Enter name",
+          "language": "Select...",
+          "metadata": "Enter metadata"
+        },
+        "validations": {
+          "pageName-invalid": "Page name can contain alphanumeric, \"_\", \"-\" and \".\" characters only."
+        }
+      },
+      "add-page": {
+        "title": "New",
+        "subtitle": "Choose what page you want to create",
+        "menu": {
+          "design-page": {
+            "title": "Design Page",
+            "description": "Use designer to create a new page."
+          },
+          "html-page": {
+            "title": "Html Page",
+            "description": "Use markdown or html to create a new page."
+          }
+        }
+      }
+    },
+    "commands": {
+      "open-designer": "Open in Designer"
+    }
+  },
+  "settings": {
+    "VirtoCommerce": {
+      "PageBuilderModule": {
+        "General": {
+          "StoreUrl": {
+            "description": "Store Url with Page builder preview handler",
+            "title": "Store URL"
+          },
+          "StorePreviewPath": {
+            "description": "Relative path for preview page",
+            "title": "Store preview path"
+          },
+          "TokenUrl": {
+            "description": "",
+            "title": "AuthToken url"
+          },
+          "AssetsPath": {
+            "description": "",
+            "title": "Assets relative path"
+          }
+        }
+      }
+    }
+  }
+}
