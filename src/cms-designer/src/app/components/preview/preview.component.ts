@@ -11,8 +11,8 @@ export class PreviewComponent implements OnInit {
     @Input() error: boolean;
     @Input() mode: string;
     @Input() loading: boolean;
-    @Output() preivewLoaded = new EventEmitter<string>();
-    @Output() preivewLoadingError = new EventEmitter<any>();
+    @Output() previewLoaded = new EventEmitter<string>();
+    @Output() previewLoadingError = new EventEmitter<any>();
     @Output() reloadClick = new EventEmitter<any>();
     @ViewChild('preview1') preview1: ElementRef<any>;
     @ViewChild('preview2') preview2: ElementRef<any>;
@@ -32,10 +32,10 @@ export class PreviewComponent implements OnInit {
             // console.log(this.preview1.nativeElement.contentWindow.document);
             const url = this.sanitizer.sanitize(SecurityContext.RESOURCE_URL, this.storeUrl);
             if (this.preview1.nativeElement.src === url) {
-                this.preivewLoaded.emit('preview1');
+                this.previewLoaded.emit('preview1');
             }
         } catch (error) {
-            this.onErrorOccured(error);
+            this.onErrorOccurred(error);
         }
     }
 
@@ -47,10 +47,10 @@ export class PreviewComponent implements OnInit {
             // console.log(this.preview2.nativeElement.contentWindow.document);
             const url = this.sanitizer.sanitize(SecurityContext.RESOURCE_URL, this.storeUrl);
             if (this.preview2.nativeElement.src === url) {
-                this.preivewLoaded.emit('preview2');
+                this.previewLoaded.emit('preview2');
             }
         } catch (error) {
-            this.onErrorOccured(error);
+            this.onErrorOccurred(error);
         }
     }
 
@@ -65,10 +65,10 @@ export class PreviewComponent implements OnInit {
         this.isFullScreen = !this.isFullScreen;
     }
 
-    onErrorOccured(error) {
+    onErrorOccurred(error) {
         // this.error = true;
         // this.loading = false;
         // this.hideUrl = true;
-        this.preivewLoadingError.emit(error);
+        this.previewLoadingError.emit(error);
     }
 }
