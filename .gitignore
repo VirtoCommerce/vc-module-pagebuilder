@@ -271,13 +271,9 @@ __pycache__/
 # tools/
 /VirtoCommerce.Storefront/wwwroot/cms-content
 
-store/package-lock\.json
-
-store/dist/designer\.bundle\.js\.map
-
 dist/
 package-lock.json
 \.vscode
 
 builder/
-content/store/
+src/VirtoCommerce.PageBuilderModule.Web/Content/store/
