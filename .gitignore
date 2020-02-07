@@ -280,4 +280,4 @@ package-lock.json
 \.vscode
 
 builder/
-store/
+content/store/
