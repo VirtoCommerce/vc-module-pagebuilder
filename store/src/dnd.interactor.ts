@@ -97,7 +97,7 @@ export class DndInteractor {
         // if drag happens
         // replace placeholder with source element
         // restore height of other elements
-        // 'select' should be occured automatically
+        // 'select' should be occurred automatically
 
         if (this.dragStarted) {
             console.log('release drag', this.model);
@@ -121,7 +121,7 @@ export class DndInteractor {
         this.oldStyle.top = this.model.element.style.top;
         this.oldStyle.width = this.model.element.style.width;
         this.oldStyle.height = this.model.element.style.height;
-        this.oldStyle.postion = this.model.element.style.position;
+        this.oldStyle.position = this.model.element.style.position;
         this.oldStyle.backgroundColor = this.model.element.style.backgroundColor;
         this.oldStyle.border = this.model.element.style.border;
         this.oldStyle.opacity = this.model.element.style.opacity;
