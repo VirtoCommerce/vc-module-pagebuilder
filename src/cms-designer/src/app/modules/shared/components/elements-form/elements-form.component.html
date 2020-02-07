@@ -7,14 +7,14 @@
             [group]="group" [context]="context" [formControlName]="control.id"></app-control-holder>
         <!-- complext control (collection) -->
         <div *ngIf="displayCollection(control) && inTab(control)" class="form-group">
-            <div *ngIf="!editableItem">
+            <div *ngIf="!editableItem || editableItemDescriptor.id !== control.id">
                 <div cdkDropList (cdkDropListDropped)="sortItems(control, $event)" class="list list--collection">
                     <div class="list__item" cdkDragBoundary=".list--collection" cdkDragLockAxis="y" cdkDrag
                         *ngFor="let item of getControls(control); let i = index; trackBy: trackByFn">
                         <div class="list__name">{{ getTitle(item, control, i + 1) }}</div>
                         <div class="list__actions">
                             <a class="list__actions-item list__actions-item--edit"
-                                (click)="editCollectionItem(item)"></a>
+                                (click)="editCollectionItem(item, control)"></a>
                             <a class="list__actions-item list__actions-item--remove"
                                 (click)="removeElement(control, i)"></a>
                             <div cdkDragHandle class="list__actions-item list__actions-item--drag"></div>
@@ -26,7 +26,7 @@
                     </div>
                 </div>
             </div>
-            <div *ngIf="editableItem" class="collection-item" [formGroup]="editableItem">
+            <div *ngIf="editableItem && editableItemDescriptor.id === control.id" class="collection-item" [formGroup]="editableItem">
                 <div class="collection-item__body">
                     <app-elements-form [group]="editableItem" [descriptors]="getElementDescriptors(control)">
                     </app-elements-form>
