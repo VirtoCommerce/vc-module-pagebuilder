@@ -100,7 +100,7 @@ const editorReducers = createReducer(
     on(Actions.setEditorMode, (state, { mode }) => ({ ...state, editorMode: mode })),
     on(Actions.updatePageItem, (state, { block }) => {
         const content = state.page.content;
-        const element = content.find(x => x.Id === state.currentSectionItem);
+        const element = content.find(x => x.id === state.currentSectionItem);
         const index = content.indexOf(element);
         const type = state.blocksSchema[element.type].static ? 'settings' : element.type;
         const page = {
