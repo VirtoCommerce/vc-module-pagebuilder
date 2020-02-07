@@ -15,6 +15,7 @@ export class ElementsFormComponent implements OnInit {
 
     private savedItem: any;
     editableItem: FormGroup;
+    editableItemDescriptor: ControlDescriptor;
 
     constructor(private formHelper: FormHelper) { }
 
@@ -96,19 +97,24 @@ export class ElementsFormComponent implements OnInit {
         return item.id;
     }
 
-    editCollectionItem(item) {
+    editCollectionItem(item: FormGroup, controlDescriptor: ControlDescriptor) {
         this.editableItem = item;
+        this.editableItemDescriptor = controlDescriptor;
         this.savedItem = item.value;
     }
 
     cancelEditCollectionItem() {
         this.editableItem.reset(this.savedItem);
-        this.editableItem = null;
-        this.savedItem = null;
+        this.closeCollectionItemEditor();
     }
 
     saveEditCollectionItem() {
+        this.closeCollectionItemEditor();
+    }
+
+    private closeCollectionItemEditor() {
         this.editableItem = null;
+        this.editableItemDescriptor = null;
         this.savedItem = null;
     }
 
