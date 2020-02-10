@@ -57,7 +57,7 @@ export class BlockFormComponent implements OnInit, OnDestroy {
     }
 
     ngOnDestroy() {
-        if (this.subscription != null) {
+        if (this.subscription !== null) {
             this.subscription.unsubscribe();
             this.subscription = null;
         }
@@ -68,7 +68,7 @@ export class BlockFormComponent implements OnInit, OnDestroy {
         if (m && this.schema) {
             const s = m.type ? this.schema[m.type] : this.schema;
             if (s && (!m.type || m.type === s.type)) {
-                if (this.subscription != null) {
+                if (this.subscription !== null) {
                     this.subscription.unsubscribe();
                     this.subscription = null;
                 }

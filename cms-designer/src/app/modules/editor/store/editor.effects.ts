@@ -1,15 +1,14 @@
 import { Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
+import { of } from 'rxjs';
 import { map, switchMapTo, tap } from 'rxjs/operators';
-// import { CatalogService } from './../services/catalog.service';
 import {
     catchError,
     mergeMap,
     switchMap,
     withLatestFrom
 } from 'rxjs/operators';
-import { Action, Store } from '@ngrx/store';
-import { Actions, Effect, ofType } from '@ngrx/effects';
+import { Store } from '@ngrx/store';
+import { Actions, ofType, createEffect } from '@ngrx/effects';
 
 import { MessageService } from '@shared/services';
 import { BlockValuesModel } from '@shared/models';
@@ -29,138 +28,115 @@ export class EditorEffects {
         private messages: MessageService,
         private actions$: Actions, private store$: Store<fromEditor.State>) { }
 
-    @Effect()
-    convertPageTypeToPreviewSection$ = this.actions$.pipe(
-        ofType<editorActions.PreviewPageItemOfType>(editorActions.EditorActionTypes.PreviewPageItemOfType),
-        map(action => action.payload),
-        map(blockSchema => {
-            if (!!blockSchema) {
+    convertPageTypeToPreviewSection$ = createEffect(() => this.actions$.pipe(
+        ofType(editorActions.previewPageItemOfType),
+        map(action => {
+            if (!!action.blockSchema) {
                 const result = <BlockValuesModel>{};
-                blockSchema.settings.forEach(x => result[x.id] = x['preview'] || x['default'] || null);
-                result.type = blockSchema.type;
+                const schema = action.blockSchema;
+                schema.settings.forEach(x => result[x.id] = x['preview'] || x['default'] || null);
+                result.type = action.blockSchema.type;
                 return result;
             }
             return null;
         }),
         mergeMap(item =>
-            of(new editorActions.PreviewPageItem(item))
+            of(editorActions.previewPageItem({ block: item }))
         )
-    );
+    ));
 
-    @Effect()
-    closeEditors$ = this.actions$.pipe(
-        ofType(editorActions.EditorActionTypes.CloseEditors),
+    closeEditors$ = createEffect(() => this.actions$.pipe(
+        ofType(editorActions.closeEditors),
         switchMapTo([
-            new editorActions.CompleteEditPageItem(),
-            new editorActions.PreviewPageItemOfType(null),
-            new editorActions.ToggleNewBlockPane(false)
+            editorActions.completeEditPageItem(),
+            editorActions.previewPageItemOfType({ blockSchema: null }),
+            editorActions.toggleNewBlockPane({ display: false })
         ])
-    );
+    ));
 
-    @Effect()
-    copyBlock$ = this.actions$.pipe(
-        ofType<editorActions.CopyPageItem>(editorActions.EditorActionTypes.CopyPageItem),
+    copyBlock$ = createEffect(() => this.actions$.pipe(
+        ofType(editorActions.copyPageItem),
         withLatestFrom(this.store$.select(fromEditor.getPage)),
         map(([action, page]) => {
-            const block = { ...action.payload };
+            const block = { ...action.sourceBlock };
             block.id = page.content.reduce((v: number, b: BlockValuesModel) => Math.max(b.id, v), 0) + 1;
-            return new editorActions.ClonePageItem({ oldBlock: action.payload, newBlock: block });
+            return editorActions.clonePageItem({ originalBlock: action.sourceBlock, newBlock: block });
         })
-    );
+    ));
 
-    @Effect()
-    createPageItemModelByType$ = this.actions$.pipe(
-        ofType(editorActions.EditorActionTypes.CreatePageItem),
-        map((action: editorActions.CreatePageItem) => action.payload),
+    createPageItemModelByType$ = createEffect(() => this.actions$.pipe(
+        ofType(editorActions.createPageItem),
         withLatestFrom(this.store$.select(fromEditor.getPage)),
-        map(([blockSchema, page]) => {
+        map(([action, page]) => {
             const block = <BlockValuesModel>{
                 id: page.content.length ? Math.max(...page.content.map(v => v.id || 0)) + 1 : 1,
-                type: blockSchema.type
+                type: action.newItemSchema.type
             };
-            blockSchema.settings.forEach(x => block[x.id] = x['default'] || null);
+            action.newItemSchema.settings.forEach(x => block[x.id] = x['default'] || null);
             return block;
         }),
         mergeMap(item =>
-            of(new editorActions.AddPageItem(item))
+            of(editorActions.addPageItem({ block: item }))
         )
-    );
+    ));
 
-    @Effect()
-    loadBlockTypes$: Observable<Action> = this.actions$.pipe(
-        ofType(editorActions.EditorActionTypes.LoadBlocksSchema),
+    loadBlockTypes$ = createEffect(() => this.actions$.pipe(
+        ofType(editorActions.loadBlocksSchema),
         switchMap(() =>
             this.blocks.load().pipe(
-                map(result => new editorActions.BlocksSchemaLoaded(result)),
-                catchError(error => of(new editorActions.BlocksSchemaFail(error)))
+                map(result => editorActions.blocksSchemaLoaded({ schema: result })),
+                catchError(error => of(editorActions.blocksSchemaFail({ error })))
             )
         )
-    );
+    ));
 
-    @Effect()
-    loadPage$: Observable<Action> = this.actions$.pipe(
-        ofType<editorActions.LoadPage>(editorActions.EditorActionTypes.LoadPage),
+    loadPage$ = createEffect(() => this.actions$.pipe(
+        ofType(editorActions.loadPage),
         switchMap(() =>
             this.pages.downloadPage().pipe(
-                map(data => new editorActions.LoadPageSuccess(data)),
-                catchError(error => of(new editorActions.LoadPageFail(error)))
+                map(page => editorActions.loadPageSuccess({ page })),
+                catchError(error => of(editorActions.loadPageFail({ error })))
             )
         )
-    );
+    ));
 
-    @Effect()
-    savePage$: Observable<Action> = this.actions$.pipe(
-        ofType<editorActions.SavePage>(editorActions.EditorActionTypes.SavePage),
-        map(() => new editorActions.ReLoadPage())
-    );
+    savePage$ = createEffect(() => this.actions$.pipe(
+        ofType(editorActions.savePage),
+        map(() => editorActions.reloadPage())
+    ));
 
-    @Effect()
-    reloadPage$: Observable<Action> = this.actions$.pipe(
-        ofType<editorActions.ReLoadPage>(editorActions.EditorActionTypes.ReLoadPage),
+    reloadPage$ = createEffect(() => this.actions$.pipe(
+        ofType(editorActions.reloadPage),
         switchMap(() => this.pages.downloadPage().pipe(
-            map(data => new editorActions.ReLoadPageSuccess(data)),
-            catchError(error => of(new editorActions.ReLoadPageFail(error)))
+            map(page => editorActions.reloadPageSuccess({ page })),
+            catchError(error => of(editorActions.reloadPageFail({ error })))
         ))
-    );
+    ));
 
-    @Effect()
-    uploadPage$: Observable<Action> = this.actions$.pipe(
-        ofType(editorActions.EditorActionTypes.ReLoadPageFail, editorActions.EditorActionTypes.ReLoadPageSuccess),
+    uploadPage$ = createEffect(() => this.actions$.pipe(
+        ofType(editorActions.reloadPageFail, editorActions.reloadPageSuccess),
         withLatestFrom(this.store$.select(fromEditor.getPage)),
         switchMap(([action, page]: [any, PageModel]) => {
             const settings = action.payload.settings || page.settings;
             const data = [settings, ...page.content];
             return this.pages.uploadPage(data).pipe(
-                map(() => new editorActions.SavePageSuccess()),
-                catchError(err => of(new editorActions.SavePageFail(err)))
+                map(() => editorActions.savePageSuccess()),
+                catchError(error => of(editorActions.savePageFail({ error })))
             );
         })
-    );
+    ));
 
-    @Effect({ dispatch: false })
-    pageSaved$ = this.actions$.pipe(
-        ofType<editorActions.SavePageSuccess>(editorActions.EditorActionTypes.SavePageSuccess),
+    pageSaved$ = createEffect(() => this.actions$.pipe(
+        ofType(editorActions.savePageSuccess),
         tap(() => {
             this.messages.displayMessage('Page saved successfully');
         })
-    );
+    ), { dispatch: true });
 
-    @Effect({ dispatch: false })
-    pageSaveFailed$ = this.actions$.pipe(
-        ofType<editorActions.SavePageFail>(editorActions.EditorActionTypes.SavePageFail),
+    pageSaveFailed$ = createEffect(() => this.actions$.pipe(
+        ofType(editorActions.savePageFail),
         tap((action) => {
-            this.messages.displayError('Couldn\'t save page', action.payload);
+            this.messages.displayError('Couldn\'t save page', action.error);
         })
-    );
-
-    // @Effect()
-    // loadCategories$: Observable<Action> = this.actions$.pipe(
-    //     ofType<editorActions.LoadCategories>(editorActions.EditorActionTypes.LoadCategories),
-    //     switchMap(_ =>
-    //         this.catalog.getCategories().pipe(
-    //             map(x => new editorActions.LoadCategoriesSuccess(x)),
-    //             catchError(err => of(new editorActions.LoadPageFail(err)))
-    //         )
-    //     )
-    // );
+    ), { dispatch: false });
 }

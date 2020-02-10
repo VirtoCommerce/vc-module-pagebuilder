@@ -10,7 +10,7 @@ import { WindowRef } from '@app/services';
 })
 export class StringItemComponent extends BaseControlComponent<StringControlDescriptor> {
 
-    @ViewChild('control') control: ElementRef;
+    @ViewChild('control', {static: false}) control: ElementRef;
 
     constructor(private windowRef: WindowRef) {
         super();

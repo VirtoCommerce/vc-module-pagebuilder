@@ -14,8 +14,8 @@ export class PreviewComponent implements OnInit {
     @Output() preivewLoaded = new EventEmitter<string>();
     @Output() preivewLoadingError = new EventEmitter<any>();
     @Output() reloadClick = new EventEmitter<any>();
-    @ViewChild('preview1') preview1: ElementRef<any>;
-    @ViewChild('preview2') preview2: ElementRef<any>;
+    @ViewChild('preview1', {static: false}) preview1: ElementRef<any>;
+    @ViewChild('preview2', {static: false}) preview2: ElementRef<any>;
 
     hideUrl = false;
     isFullScreen = false;

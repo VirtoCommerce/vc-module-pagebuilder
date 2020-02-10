@@ -79,23 +79,23 @@ export class AppComponent implements OnInit {
         private sanitizer: DomSanitizer) { }
 
     ngOnInit(): void {
-        this.store.dispatch(new rootActions.LoadData());
+        this.store.dispatch(rootActions.loadData());
     }
 
     onPreviewLoaded(source: string) {
-        this.store.dispatch(new rootActions.PreviewReady(source));
+        this.store.dispatch(rootActions.previewReady({ frameId: source }));
     }
 
     onPreviewError(error) {
-        this.store.dispatch(new rootActions.PreviewError(error));
+        this.store.dispatch(rootActions.previewError({ error }));
     }
 
     reloadPreview() {
-        this.store.dispatch(new rootActions.ReloadPreview());
+        this.store.dispatch(rootActions.reloadPreview());
     }
 
     back() {
-        this.store.dispatch(new rootActions.CloseEditors());
+        this.store.dispatch(rootActions.closeEditors());
     }
 
     // onThemeActionSelected(type: string) {
@@ -103,12 +103,12 @@ export class AppComponent implements OnInit {
     //     console.log(type);
     // }
 
-    onTabChanged(index) {
-        this.store.dispatch(new rootActions.TabIndexChanged(index));
+    onTabChanged(tabIndex) {
+        this.store.dispatch(rootActions.tabIndexChanged({ tabIndex }));
     }
 
     onSave() {
-        this.store.dispatch(new rootActions.SaveData());
+        this.store.dispatch(rootActions.saveData());
     }
 
     // undo() {
@@ -121,95 +121,95 @@ export class AppComponent implements OnInit {
 
     // editor tab events
 
-    mouseOverItem(item) {
-        this.store.dispatch(new editorActions.HighlightInPreview(item));
+    mouseOverItem(block) {
+        this.store.dispatch(editorActions.highlightInPreview({ block }));
     }
 
     selectPageItem(item: BlockValuesModel) {
-        this.store.dispatch(new editorActions.SelectPageItem(item.id));
+        this.store.dispatch(editorActions.selectPageItem({ blockId: item.id }));
     }
 
     reloadEditorData() {
-        this.store.dispatch(new rootActions.LoadData());
+        this.store.dispatch(rootActions.loadData());
     }
 
     onOrderChanged(event: CdkDragSortEvent<BlockValuesModel>) {
-        this.store.dispatch(new editorActions.SwapBlocks(event));
-        this.store.dispatch(new editorActions.OrderChanged(event));
+        this.store.dispatch(editorActions.swapBlocks(event));
+        this.store.dispatch(editorActions.orderChanged(event));
     }
 
     // block editor pane events
 
-    updateBlockPreview(item: BlockValuesModel) {
-        this.store.dispatch(new editorActions.UpdatePageItem(item));
-        this.store.dispatch(new editorActions.UpdateBlockPreview(item));
+    updateBlockPreview(block: BlockValuesModel) {
+        this.store.dispatch(editorActions.updatePageItem({ block }));
+        this.store.dispatch(editorActions.updateBlockPreview({ block }));
     }
 
     changeEditorMode(mode: string) {
-        this.store.dispatch(new editorActions.SetEditorMode(mode));
+        this.store.dispatch(editorActions.setEditorMode({ mode }));
     }
 
-    removeBlock(item: BlockValuesModel) {
-        this.store.dispatch(new editorActions.RemovePageItem(item));
+    removeBlock(block: BlockValuesModel) {
+        this.store.dispatch(editorActions.removePageItem({ block }));
     }
 
-    copyBlock(item: BlockValuesModel) {
-        this.store.dispatch(new editorActions.CopyPageItem(item));
+    copyBlock(sourceBlock: BlockValuesModel) {
+        this.store.dispatch(editorActions.copyPageItem({ sourceBlock }));
     }
 
-    toggleVisibility(item: BlockValuesModel) {
-        this.store.dispatch(new editorActions.ToggleItemVisibility(item));
+    toggleVisibility(block: BlockValuesModel) {
+        this.store.dispatch(editorActions.toggleItemVisibility({ block }));
     }
 
     // add new block pane events
 
     setNewBlockMode() {
-        this.store.dispatch(new editorActions.ToggleNewBlockPane(true));
+        this.store.dispatch(editorActions.toggleNewBlockPane({ display: true }));
     }
 
-    previewBlockType(type: BlockSchema) {
-        this.store.dispatch(new editorActions.PreviewPageItemOfType(type));
+    previewBlockType(blockSchema: BlockSchema) {
+        this.store.dispatch(editorActions.previewPageItemOfType({ blockSchema }));
     }
 
-    selectBlockType(item: BlockSchema) {
-        this.store.dispatch(new editorActions.CreatePageItem(item));
+    selectBlockType(newItemSchema: BlockSchema) {
+        this.store.dispatch(editorActions.createPageItem({ newItemSchema }));
     }
 
     // theme tab events
 
     turnOnPresets() {
-        this.store.dispatch(new themeActions.ShowPresetsPane());
+        this.store.dispatch(themeActions.showPresetsPane());
     }
 
     reloadThemeData() {
-        this.store.dispatch(new rootActions.LoadData());
+        this.store.dispatch(rootActions.loadData());
     }
 
     selectSchemaItem(item: BlockSchema) {
-        this.store.dispatch(new themeActions.SelectSchemaItem(item));
+        this.store.dispatch(themeActions.selectSchemaItem({ item }));
     }
 
     // presets pane events
 
-    onSavePreset(name: string) {
-        this.store.dispatch(new themeActions.CreatePreset(name));
+    onSavePreset(preset: string) {
+        this.store.dispatch(themeActions.createPreset({ preset }));
     }
 
-    onSelectPreset(name: string) {
-        this.store.dispatch(new themeActions.SelectPreset(name));
+    onSelectPreset(preset: string) {
+        this.store.dispatch(themeActions.selectPreset({ preset }));
     }
 
-    applyPresetAsTheme(name: string) {
-        this.store.dispatch(new themeActions.ApplyPreset(name));
+    applyPresetAsTheme(preset: string) {
+        this.store.dispatch(themeActions.applyPreset({ preset }));
     }
 
-    onRemovePreset(name: string) {
-        this.store.dispatch(new themeActions.RemovePreset(name));
+    onRemovePreset(preset: string) {
+        this.store.dispatch(themeActions.removePreset({ preset }));
     }
 
     // theme editor pane events
 
-    liveUpdateTheme(themeValues: { [key: string]: string | number | boolean }) {
-        this.store.dispatch(new themeActions.UpdateTheme(themeValues));
+    liveUpdateTheme(values: { [key: string]: string | number | boolean }) {
+        this.store.dispatch(themeActions.updateTheme({ values }));
     }
 }

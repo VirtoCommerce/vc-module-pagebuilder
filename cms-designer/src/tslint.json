@@ -12,6 +12,7 @@
             "element",
             "app",
             "kebab-case"
-        ]
+        ],
+        "rxjs-no-unsafe-takeuntil": true
     }
 }

@@ -68,7 +68,7 @@ export class PageEditorComponent implements OnInit {
                 }
             }
         }
-        const unknownBlock = <any>item;
+        const unknownBlock = item;
         result = result || unknownBlock.name || unknownBlock.title || unknownBlock.type || '<unnamed block>';
         if (result.length > 15) {
             result = result.substring(0, 15) + '…';

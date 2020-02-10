@@ -10,7 +10,7 @@ import { FileItemControlDescriptor } from '@shared/models';
 })
 export class FileItemComponent extends BaseControlComponent<FileItemControlDescriptor> {
 
-    @ViewChild('control') control: ElementRef;
+    @ViewChild('control', {static: false}) control: ElementRef;
 
     constructor(private files: FilesService) {
         super();
