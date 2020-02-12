@@ -272,7 +272,6 @@ __pycache__/
 /VirtoCommerce.Storefront/wwwroot/cms-content
 
 dist/
-package-lock.json
 \.vscode
 
 builder/
