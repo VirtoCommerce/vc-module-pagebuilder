@@ -99,6 +99,7 @@ export class ElementsFormComponent implements OnInit {
 
     editCollectionItem(item: FormGroup, controlDescriptor: ControlDescriptor) {
         this.editableItem = item;
+        this.editableItemDescriptor = controlDescriptor;
         this.savedItem = item.value;
     }
 

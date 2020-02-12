@@ -8,7 +8,7 @@ export interface State {
     root: fromRoot.RootState;
 }
 
-const getRootFeatureState = createFeatureSelector<fromRoot.RootState>('root');
+const selectRootState = (state: State) => state.root;
 
 export const getIsLoading = createSelector(
     fromEditor.getPageLoading,
@@ -27,7 +27,7 @@ export const getIsTabVisible = createSelector(
 );
 
 export const getActiveTabIndex = createSelector(
-    getRootFeatureState,
+    selectRootState,
     state => state.activeTabIndex
 );
 
@@ -41,12 +41,12 @@ export const getIsEditMode = createSelector(
 );
 
 export const getPrimaryFrameId = createSelector(
-    getRootFeatureState,
+    selectRootState,
     state => state.primaryFrameId
 );
 
 export const getSecondaryFrameId = createSelector(
-    getRootFeatureState,
+    selectRootState,
     state => state.secondaryFrameId
 );
 
@@ -68,26 +68,26 @@ export const getIsDirty = createSelector(
 );
 
 export const getPreviewLoading = createSelector(
-    getRootFeatureState,
+    selectRootState,
     state => state.previewLoading
 );
 
 export const getPreviewUrl = createSelector(
-    getRootFeatureState,
+    selectRootState,
     state => state.previewUrl
 );
 
 export const getPreviewError = createSelector(
-    getRootFeatureState,
+    selectRootState,
     state => state.previewError
 );
 
 export const getPrimaryIsLoaded = createSelector(
-    getRootFeatureState,
+    selectRootState,
     state => state.primaryLoaded
 );
 
 export const getSecondaryIsLoaded = createSelector(
-    getRootFeatureState,
+    selectRootState,
     state => state.secondaryLoaded
 );

@@ -2,16 +2,16 @@ import { HttpErrorResponse } from '@angular/common/http';
 import * as themeActions from './theme.actions';
 
 describe('Theme actions', () => {
-    describe('LoadThemes', () => {
+    describe('loadThemes', () => {
         it('should create an action', () => {
-            const action = new themeActions.LoadThemes();
-            expect({ ...action }).toEqual({ type: themeActions.ThemeActionTypes.LoadThemes });
+            const action = themeActions.loadThemes();
+            expect({ ...action }).toEqual({ type: '[Theme] Load Themes' });
         });
     });
 
-    describe('LoadThemesSuccess', () => {
+    describe('loadThemesSuccess', () => {
         it('should create an action with given payload', () => {
-            const payload = {
+            const presets = {
                 current: 'key',
                 presets: {
                     key: {
@@ -19,51 +19,52 @@ describe('Theme actions', () => {
                     }
                 }
             };
-            const action = new themeActions.LoadThemesSuccess(payload);
-            expect({ ...action }).toEqual({ type: themeActions.ThemeActionTypes.LoadThemesSuccess, payload: payload });
+            const action = themeActions.loadThemesSuccess({ presets });
+            expect({ ...action }).toEqual({ type: '[Theme] Load Themes Success', presets: { ...presets } });
         });
     });
 
-    describe('LoadThemesFail', () => {
+    describe('loadThemesFail', () => {
         it('should create an action with given payload', () => {
             const payload = 'something went wrong';
-            const action = new themeActions.LoadThemesFail(new HttpErrorResponse({ error: payload }));
-            expect({ ...action }).toEqual({ type: themeActions.ThemeActionTypes.LoadThemesFail, payload: payload });
+            const error = new HttpErrorResponse({ error: payload });
+            const action = themeActions.loadThemesFail({ error });
+            expect({ ...action }).toEqual({ type: '[Theme] Load Themes Fail', error });
         });
     });
 
-    describe('SaveTheme', () => {
+    describe('saveTheme', () => {
         it('should create an action', () => {
-            const action = new themeActions.SaveTheme();
-            expect({ ...action }).toEqual({ type: themeActions.ThemeActionTypes.SaveTheme });
+            const action = themeActions.saveTheme();
+            expect({ ...action }).toEqual({ type: '[Theme] Save Theme' });
         });
     });
 
-    describe('SaveThemeSuccess', () => {
+    describe('saveThemeSuccess', () => {
         it('should create an action', () => {
-            const action = new themeActions.SaveThemeSuccess();
-            expect({ ...action }).toEqual({ type: themeActions.ThemeActionTypes.SaveThemeSuccess });
+            const action = themeActions.saveThemeSuccess();
+            expect({ ...action }).toEqual({ type: '[Theme] Save Theme Success' });
         });
     });
 
-    describe('SaveThemeFail', () => {
+    describe('saveThemeFail', () => {
         it('should create an action with given payload', () => {
-            const payload = 'something went wrong';
-            const action = new themeActions.SaveThemeFail(payload);
-            expect({ ...action }).toEqual({ type: themeActions.ThemeActionTypes.SaveThemeFail, payload: payload });
+            const error = 'something went wrong';
+            const action = themeActions.saveThemeFail({ error });
+            expect({ ...action }).toEqual({ type: '[Theme] Save Theme Fail', error });
         });
     });
 
-    describe('LoadSchema', () => {
+    describe('loadSchema', () => {
         it('should create an action', () => {
-            const action = new themeActions.LoadSchema();
-            expect({ ...action }).toEqual({ type: themeActions.ThemeActionTypes.LoadSchema });
+            const action = themeActions.loadSchema();
+            expect({ ...action }).toEqual({ type: '[Theme] Load Schema' });
         });
     });
 
-    describe('LoadSchemaSuccess', () => {
+    describe('loadSchemaSuccess', () => {
         it('should create an action with given payload', () => {
-            const payload = [
+            const schema = [
                 {
                     name: 'payload name',
                     icon: 'default',
@@ -74,22 +75,23 @@ describe('Theme actions', () => {
                     ]
                 }
             ];
-            const action = new themeActions.LoadSchemaSuccess(payload);
-            expect({ ...action }).toEqual({ type: themeActions.ThemeActionTypes.LoadSchemaSuccess, payload: payload });
+            const action = themeActions.loadSchemaSuccess({ schema });
+            expect({ ...action }).toEqual({ type: '[Theme] Load Schema Success', schema: [...schema] });
         });
     });
 
-    describe('LoadSchemaFail', () => {
+    describe('loadSchemaFail', () => {
         it('should create an action with given payload', () => {
             const payload = 'something went wrong';
-            const action = new themeActions.LoadSchemaFail(new HttpErrorResponse({ error: payload }));
-            expect({ ...action }).toEqual({ type: themeActions.ThemeActionTypes.LoadSchemaFail, payload: payload });
+            const error = new HttpErrorResponse({ error: payload });
+            const action = themeActions.loadSchemaFail({ error });
+            expect({ ...action }).toEqual({ type: '[Theme] Load Schema Fail', error });
         });
     });
 
-    describe('SelectSchemaItem', () => {
+    describe('selectSchemaItem', () => {
         it('should create an action with given payload', () => {
-            const payload = {
+            const item = {
                 name: 'test purposes',
                 icon: 'default',
                 settings: [
@@ -98,73 +100,98 @@ describe('Theme actions', () => {
                     }
                 ]
             };
-            const action = new themeActions.SelectSchemaItem(payload);
-            expect({ ...action }).toEqual({ type: themeActions.ThemeActionTypes.SelectSchemaItem, payload: payload });
+            const action = themeActions.selectSchemaItem({ item });
+            expect({ ...action }).toEqual({ type: '[Theme] Select Schema Item', item: { ...item } });
         });
     });
 
-    describe('ShowPresetsPane', () => {
+    describe('showPresetsPane', () => {
         it('should create an action', () => {
-            const action = new themeActions.ShowPresetsPane();
-            expect({ ...action }).toEqual({ type: themeActions.ThemeActionTypes.ShowPresetsPane });
+            const action = themeActions.showPresetsPane();
+            expect({ ...action }).toEqual({ type: '[Theme] Show Presets Pane' });
         });
     });
 
-    describe('CancelPreset', () => {
+    describe('cancelPreset', () => {
         it('should create an action', () => {
-            const action = new themeActions.CancelPreset();
-            expect({ ...action }).toEqual({ type: themeActions.ThemeActionTypes.CancelPreset });
+            const action = themeActions.cancelPreset();
+            expect({ ...action }).toEqual({ type: '[Theme] Cancel preset' });
         });
     });
 
-    describe('ApplyPreset', () => {
+    describe('applyPreset', () => {
         it('should create an action with given payload', () => {
-            const payload = 'preset-name';
-            const action = new themeActions.ApplyPreset(payload);
-            expect({ ...action }).toEqual({ type: themeActions.ThemeActionTypes.ApplyPreset, payload: payload });
+            const preset = 'preset-name';
+            const action = themeActions.applyPreset({ preset });
+            expect({ ...action }).toEqual({ type: '[Theme] Apply preset', preset });
         });
     });
 
-    describe('UpdateTheme', () => {
+    describe('updateTheme', () => {
         it('should create an action with given payload', () => {
             const payload = {
                 color: 'red',
                 width: 100,
                 active: true
             };
-            const action = new themeActions.UpdateTheme(payload);
-            expect({ ...action }).toEqual({ type: themeActions.ThemeActionTypes.UpdateTheme, payload: payload });
+            const action = themeActions.updateTheme({ values: payload });
+            expect({ ...action }).toEqual({ type: '[Theme] Update Theme', values: { ...payload } });
         });
     });
 
-    describe('ClearThemeChanges', () => {
+    describe('clearThemeChanges', () => {
         it('should create an action', () => {
-            const action = new themeActions.ClearThemeChanges();
-            expect({ ...action }).toEqual({ type: themeActions.ThemeActionTypes.ClearThemeChanges });
+            const action = themeActions.clearThemeChanges();
+            expect({ ...action }).toEqual({ type: '[Theme] Clear Theme Changes' });
         });
     });
 
-    describe('RemovePreset', () => {
+    describe('removePreset', () => {
         it('should create an action with given payload', () => {
-            const payload = 'preset-to-remove';
-            const action = new themeActions.RemovePreset(payload);
-            expect({ ...action }).toEqual({ type: themeActions.ThemeActionTypes.RemovePreset, payload: payload });
+            const preset = 'preset-to-remove';
+            const action = themeActions.removePreset({preset});
+            expect({ ...action }).toEqual({ type: '[Theme] Remove Preset', preset });
         });
     });
 
-    describe('CreatePreset', () => {
+    describe('createPreset', () => {
         it('should create an action with given payload', () => {
-            const payload = 'name-for-new-preset';
-            const action = new themeActions.CreatePreset(payload);
-            expect({ ...action }).toEqual({ type: themeActions.ThemeActionTypes.CreatePreset, payload: payload });
+            const preset = 'name-for-new-preset';
+            const action = themeActions.createPreset({preset});
+            expect({ ...action }).toEqual({ type: '[Theme] Create Preset', preset });
         });
     });
 
-    describe('SelectPreset', () => {
+    describe('selectPreset', () => {
         it('should create an action with given payload', () => {
-            const payload = 'selected-preset';
-            const action = new themeActions.SelectPreset(payload);
-            expect({ ...action }).toEqual({ type: themeActions.ThemeActionTypes.SelectPreset, payload: payload });
+            const preset = 'selected-preset';
+            const action = themeActions.selectPreset({ preset });
+            expect({ ...action }).toEqual({ type: '[Theme] Select Preset', preset });
+        });
+    });
+    describe('updateDraft', () => {
+        it('should create an action with given payload', () => {
+            const action = themeActions.updateDraft();
+            expect({ ...action }).toEqual({ type: '[Theme] Update Draft' });
+        });
+    });
+    describe('updateDraftSuccess', () => {
+        it('should create an action with given payload', () => {
+            const action = themeActions.updateDraftSuccess();
+            expect({ ...action }).toEqual({ type: '[Theme] Update Draft Success' });
+        });
+    });
+    describe('updateDraftFail', () => {
+        it('should create an action with given payload', () => {
+            const error = 'something went wrong';
+            const action = themeActions.updateDraftFail({ error });
+            expect({ ...action }).toEqual({ type: '[Theme] Update Draft Fail', error });
+        });
+    });
+    describe('closeEditors', () => {
+        it('should create an action with given payload', () => {
+            const action = themeActions.closeEditors();
+            expect({ ...action }).toEqual({ type: '[Theme] Close Editors' });
         });
     });
 });

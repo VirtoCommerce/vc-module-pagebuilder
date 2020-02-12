@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Action, Store } from '@ngrx/store';
-import { Actions, Effect, ofType } from '@ngrx/effects';
+import { Actions, Effect, ofType, createEffect } from '@ngrx/effects';
 import { Observable, of } from 'rxjs';
 import {
     mergeMap,
@@ -27,31 +27,28 @@ export class ThemeEffects {
         private messages: MessageService,
         private store$: Store<fromTheme.State>) { }
 
-    @Effect()
-    loadPresets$: Observable<Action> = this.actions$.pipe(
-        ofType<themeActions.LoadThemes>(themeActions.ThemeActionTypes.LoadThemes),
+    loadPresets$ = createEffect(() => this.actions$.pipe(
+        ofType(themeActions.loadThemes),
         switchMap(() =>
             this.themeService.loadPresets().pipe(
-                map(data => new themeActions.LoadThemesSuccess(data)),
-                catchError(error => of(new themeActions.LoadThemesFail(error)))
+                map(presets => themeActions.loadThemesSuccess({ presets })),
+                catchError(error => of(themeActions.loadThemesFail({ error })))
             )
         )
-    );
+    ));
 
-    @Effect()
-    loadSchema$: Observable<Action> = this.actions$.pipe(
-        ofType<themeActions.LoadSchema>(themeActions.ThemeActionTypes.LoadSchema),
+    loadSchema$ = createEffect(() => this.actions$.pipe(
+        ofType(themeActions.loadSchema),
         switchMap(() =>
             this.themeService.loadSchema().pipe(
-                map(data => new themeActions.LoadSchemaSuccess(data)),
-                catchError(error => of(new themeActions.LoadSchemaFail(error)))
+                map(schema => themeActions.loadSchemaSuccess({ schema })),
+                catchError(error => of(themeActions.loadSchemaFail({ error })))
             )
         )
-    );
+    ));
 
-    @Effect()
-    uploadPresets$: Observable<Action> = this.actions$.pipe(
-        ofType<themeActions.SaveTheme>(themeActions.ThemeActionTypes.SaveTheme),
+    uploadPresets$ = createEffect(() => this.actions$.pipe(
+        ofType(themeActions.saveTheme),
         withLatestFrom(
             this.store$.select(fromTheme.getPresets),
             this.store$.select(fromTheme.getPresetsNotLoaded)
@@ -59,29 +56,27 @@ export class ThemeEffects {
         filter(([, , themeNotLoaded]) => !themeNotLoaded),
         switchMap(([, theme]) =>
             this.themeService.uploadPresets(theme).pipe(
-                map(() => new themeActions.SaveThemeSuccess()),
-                catchError(err => of(new themeActions.SaveThemeFail(err)))
+                map(() => themeActions.saveThemeSuccess()),
+                catchError(error => of(themeActions.saveThemeFail({ error })))
             )
         )
-    );
+    ));
 
-    @Effect()
-    uploadPreviewPreset$: Observable<Action> = this.actions$.pipe(
+    uploadPreviewPreset$ = createEffect(() => this.actions$.pipe(
         ofType(
-            themeActions.ThemeActionTypes.UpdateTheme,
-            themeActions.ThemeActionTypes.SelectPreset,
-            themeActions.ThemeActionTypes.LoadThemesSuccess,
-            themeActions.ThemeActionTypes.ClearThemeChanges,
-            themeActions.ThemeActionTypes.CancelPreset,
-            themeActions.ThemeActionTypes.ApplyPreset),
+            themeActions.updateTheme,
+            themeActions.selectPreset,
+            themeActions.loadThemesSuccess,
+            themeActions.clearThemeChanges,
+            themeActions.cancelPreset,
+            themeActions.applyPreset),
         debounceTime(2000),
         distinctUntilChanged(),
-        switchMapTo([new themeActions.UpdateDraft()])
-    );
+        switchMapTo([themeActions.updateDraft()])
+    ));
 
-    @Effect()
-    updateDraft$: Observable<Action> = this.actions$.pipe(
-        ofType(themeActions.ThemeActionTypes.UpdateDraft),
+    updateDraft$ = createEffect(() => this.actions$.pipe(
+        ofType(themeActions.updateDraft),
         withLatestFrom(
             this.store$.select(fromTheme.getPresets),
             this.store$.select(fromTheme.getPresetsNotLoaded)
@@ -89,33 +84,30 @@ export class ThemeEffects {
         filter(([, , themeNotLoaded]) => !themeNotLoaded),
         switchMap(([, theme]) =>
             this.themeService.uploadDraft(theme).pipe(
-                map(() => new themeActions.UpdateDraftSuccess()),
-                catchError(error => of(new themeActions.UpdateDraftFail(error)))
+                map(() => themeActions.updateDraftSuccess()),
+                catchError(error => of(themeActions.updateDraftFail({ error })))
             )
         )
-    );
+    ));
 
-    @Effect({dispatch: false})
-    uploadError$: Observable<Action> = this.actions$.pipe(
-        ofType<themeActions.SaveThemeFail>(themeActions.ThemeActionTypes.SaveThemeFail),
-        tap((action: themeActions.SaveThemeFail) => {
-            this.messages.displayError('Couldn\'t save theme', action.payload);
+    uploadError$ = createEffect(() => this.actions$.pipe(
+        ofType(themeActions.saveThemeFail),
+        tap((action) => {
+            this.messages.displayError('Couldn\'t save theme', action.error);
         })
-    );
+    ), { dispatch: false });
 
-    @Effect({dispatch: false})
-    uploadDraftError$: Observable<Action> = this.actions$.pipe(
-        ofType<themeActions.UpdateDraftFail>(themeActions.ThemeActionTypes.UpdateDraftFail),
-        tap((action: themeActions.UpdateDraftFail) => {
-            this.messages.displayError('Couldn\'t connect server', action.payload);
+    uploadDraftError$ = createEffect(() => this.actions$.pipe(
+        ofType(themeActions.updateDraftFail),
+        tap((action) => {
+            this.messages.displayError('Couldn\'t connect server', action.error);
         })
-    );
+    ), { dispatch: false });
 
-    @Effect({ dispatch: false })
-    uploadDraftSuccess$: Observable<Action> = this.actions$.pipe(
-        ofType<themeActions.UpdateDraftSuccess>(themeActions.ThemeActionTypes.SaveThemeSuccess),
-        tap((action: themeActions.UpdateDraftSuccess) => {
+    uploadDraftSuccess$ = createEffect(() => this.actions$.pipe(
+        ofType(themeActions.saveThemeSuccess),
+        tap(() => {
             this.messages.displayMessage('Theme saved successfully');
         })
-    );
+    ), { dispatch: false });
 }

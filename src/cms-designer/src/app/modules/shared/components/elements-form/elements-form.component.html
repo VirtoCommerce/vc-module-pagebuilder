@@ -5,7 +5,7 @@
         <!-- Simple control -->
         <app-control-holder *ngIf="displaySimpleControl(control) && inTab(control)" [descriptor]="control"
             [group]="group" [context]="context" [formControlName]="control.id"></app-control-holder>
-        <!-- complext control (collection) -->
+        <!-- complex control (collection) -->
         <div *ngIf="displayCollection(control) && inTab(control)" class="form-group">
             <div *ngIf="!editableItem || editableItemDescriptor.id !== control.id">
                 <div cdkDropList (cdkDropListDropped)="sortItems(control, $event)" class="list list--collection">
@@ -21,8 +21,7 @@
                         </div>
                     </div>
                     <div>
-                        <button class="btn btn--blue btn--block"
-                            (click)="addElement(control)">{{ getAddButtonTitle(control) }}</button>
+                        <button class="btn btn--blue btn--block" (click)="addElement(control)">{{ getAddButtonTitle(control) }}</button>
                     </div>
                 </div>
             </div>

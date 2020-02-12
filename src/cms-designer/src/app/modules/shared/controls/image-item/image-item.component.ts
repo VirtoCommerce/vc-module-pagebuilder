@@ -11,7 +11,7 @@ import { ImageControlDescriptor, ImageDescriptor } from '@shared/models';
 })
 export class ImageItemComponent extends BaseControlComponent<ImageControlDescriptor> {
 
-    @ViewChild('fileInput', { read: ElementRef }) fileInput: ElementRef;
+    @ViewChild('fileInput', { static: false, read: ElementRef }) fileInput: ElementRef;
 
     constructor(private files: FilesService, private urls: ApiUrlsService) {
         super();

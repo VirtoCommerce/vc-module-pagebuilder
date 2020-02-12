@@ -52,9 +52,13 @@ export class UrlItemComponent extends BaseControlComponent<UrlControlDescriptor>
         this.isOpen = !this.isOpen;
     }
 
+    toggleCheckbox() {
+        this.onValueChange({ openInNewTab: !this.value.openInNewTab });
+    }
+
     setValue(value: any) {
         if (!value) {
-            value = { url: null, urlText: null, style: null };
+            value = { url: null, urlText: null, style: null, openInNewTab: false };
         }
         const result = { ...this.value, ...value };
         this.valueInSelect = this.descriptor.styles && this.descriptor.styles.length

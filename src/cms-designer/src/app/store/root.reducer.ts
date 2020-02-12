@@ -1,4 +1,5 @@
-import { RootActionTypes, RootActions } from './root.actions';
+import { createReducer, on, Action } from '@ngrx/store';
+import * as Actions from './root.actions';
 
 export interface RootState {
     previewLoading: boolean;
@@ -22,77 +23,39 @@ const initialState: RootState = {
     previewError: false
 };
 
-export function reducer(state = initialState, action: RootActions): RootState {
-    switch (action.type) {
-        case RootActionTypes.PreviewLoading:
-            return {
-                ...state,
-                previewLoading: action.payload,
-                previewError: false
-            };
-        case RootActionTypes.PreviewError: {
-            return {
-                ...state,
-                primaryLoaded: false,
-                secondaryLoaded: false,
-                previewError: true,
-                primaryFrameId: null,
-                secondaryFrameId: null
-            };
+const rootReducers = createReducer(
+    initialState,
+    on(Actions.previewLoading, (state, { isLoading }) => ({ ...state, previewLoading: isLoading, previewError: false })),
+    on(Actions.previewError, state => ({ ...state,
+        primaryLoaded: false, secondaryLoaded: false, previewError: true, primaryFrameId: null, secondaryFrameId: null })),
+    on(Actions.reloadPreview, state => ({...state,
+        primaryLoaded: false, secondaryLoaded: false, previewError: false, previewLoading: true,
+        primaryFrameId: null, secondaryFrameId: null})),
+    on(Actions.previewReady, (state, {frameId}) => {
+        if (!frameId) {
+            return state;
         }
-        case RootActionTypes.ReloadPreview: {
-            return {
-                ...state,
-                primaryLoaded: false,
-                secondaryLoaded: false,
-                previewError: false,
-                previewLoading: true,
-                primaryFrameId: null,
-                secondaryFrameId: null
-            };
+        const newValues: Partial<RootState> = {};
+        if (!state.primaryFrameId) {
+            newValues.primaryFrameId = frameId;
+            newValues.primaryLoaded = true;
+        } else if (!state.secondaryFrameId) {
+            newValues.secondaryFrameId = frameId;
+            newValues.secondaryLoaded = true;
         }
-        case RootActionTypes.PreviewReady: {
-            // occurs when each iframe is loaded
-            if (!action.payload) {
-                return state;
-            }
-            const newValues: Partial<RootState> = {};
-            if (!state.primaryFrameId) {
-                newValues.primaryFrameId = action.payload;
-                newValues.primaryLoaded = true;
-            } else if (!state.secondaryFrameId) {
-                newValues.secondaryFrameId = action.payload;
-                newValues.secondaryLoaded = true;
-            }
-            return {
-                ...state,
-                ...newValues,
-                previewError: false
-            };
-        }
-        case RootActionTypes.ToggleFrames: {
-            // occurs when page in preview rendered
-            const newValues: Partial<RootState> = {};
-            newValues.primaryFrameId = state.secondaryFrameId;
-            newValues.secondaryFrameId = state.primaryFrameId;
-            console.log('toggle', newValues.primaryFrameId, 'is primary now');
-            return {
-                ...state,
-                ...newValues
-            };
-        }
-        case RootActionTypes.TabIndexChanged: {
-            return {
-                ...state,
-                activeTabIndex: action.payload
-            };
-        }
-        case RootActionTypes.SetPreviewUrl: {
-            return {
-                ...state,
-                previewUrl: action.payload
-            };
-        }
-    }
-    return state;
+        return { ...state, ...newValues, previewError: false };
+    }),
+    on(Actions.toggleFrames, state => {
+        const newValues: Partial<RootState> = {};
+        newValues.primaryFrameId = state.secondaryFrameId;
+        newValues.secondaryFrameId = state.primaryFrameId;
+        console.log('toggle', newValues.primaryFrameId, 'is primary now');
+        return {...state, ...newValues};
+    }),
+    on(Actions.tabIndexChanged, (state, {tabIndex}) => ({ ...state, activeTabIndex: tabIndex })),
+    on(Actions.setPreviewUrl, (state, { url }) => ({ ...state, previewUrl: url }))
+);
+
+export function reducer(state: RootState, action: Action) {
+    return rootReducers(state, action);
 }

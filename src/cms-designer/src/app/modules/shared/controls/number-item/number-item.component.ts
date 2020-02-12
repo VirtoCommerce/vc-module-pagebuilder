@@ -8,7 +8,7 @@ import { NumberControlDescriptor } from '@shared/models';
 })
 export class NumberItemComponent extends BaseControlComponent<NumberControlDescriptor> {
 
-    @ViewChild('control') control: ElementRef<HTMLInputElement>;
+    @ViewChild('control', {static: false}) control: ElementRef<HTMLInputElement>;
 
     constructor() {
         super();

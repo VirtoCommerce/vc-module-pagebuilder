@@ -1,96 +1,15 @@
-import { Action } from '@ngrx/store';
+import { Action, createAction, props } from '@ngrx/store';
 
-export enum RootActionTypes {
-    EmptyAction = '[Root] Empty Action',
-    ResetData = '[Root] Reset Data',
-    SaveData = '[Root] Save Data',
-    LoadData = '[Root] Load Data',
-    PreviewLoading = '[Root] Preview Loading',
-    PreviewReady = '[Root] Preview is Ready',
-    PreviewError = '[Root] Preview in Error mode',
-    ReloadPreview = '[Root] Reload Preview',
-    CheckPreviewLoadedOrError = '[Root] Check Preview Loaded Or Error',
-    ToggleFrames = '[Root] Toggle Frames',
-    CloseEditors = '[Root] Close editors',
-    TabIndexChanged = '[Root] Tab Index Changed',
-    SetPreviewUrl = '[Root] Set Preview Url'
-}
-
-export class EmptyAction implements Action {
-    readonly type = RootActionTypes.EmptyAction;
-}
-
-export class ResetData implements Action {
-    readonly type = RootActionTypes.ResetData;
-}
-
-export class SaveData implements Action {
-    readonly type = RootActionTypes.SaveData;
-}
-
-export class LoadData implements Action {
-    readonly type = RootActionTypes.LoadData;
-}
-
-export class PreviewLoading implements Action {
-    readonly type = RootActionTypes.PreviewLoading;
-
-    constructor(public payload: boolean, public source: string) { }
-}
-
-export class PreviewReady implements Action {
-    readonly type = RootActionTypes.PreviewReady;
-
-    constructor(public payload: string) { }
-}
-
-export class PreviewError implements Action {
-    readonly type = RootActionTypes.PreviewError;
-
-    constructor (public payload: any) { }
-}
-
-export class ReloadPreview implements Action {
-    readonly type = RootActionTypes.ReloadPreview;
-}
-
-export class CheckPreviewLoadedOrError implements Action {
-    readonly type = RootActionTypes.CheckPreviewLoadedOrError;
-}
-
-export class ToggleFrames implements Action {
-    readonly type = RootActionTypes.ToggleFrames;
-
-    // payload is an id of frame which was loaded and should be displayed
-    constructor (public payload: string) { }
-}
-
-export class CloseEditors implements Action {
-    readonly type = RootActionTypes.CloseEditors;
-}
-
-export class TabIndexChanged implements Action {
-    readonly type = RootActionTypes.TabIndexChanged;
-
-    constructor(public payload: number) { }
-}
-
-export class SetPreviewUrl implements Action {
-    readonly type = RootActionTypes.SetPreviewUrl;
-
-    constructor(public payload: string) { }
-}
-
-export type RootActions = EmptyAction
-    | ResetData
-    | SaveData
-    | LoadData
-    | PreviewLoading
-    | PreviewReady
-    | PreviewError
-    | ReloadPreview
-    | CheckPreviewLoadedOrError
-    | ToggleFrames
-    | CloseEditors
-    | TabIndexChanged
-    | SetPreviewUrl;
+export const emptyAction = createAction('[Root] Empty Action');
+export const resetData = createAction('[Root] Reset Data');
+export const saveData = createAction('[Root] Save Data');
+export const loadData = createAction('[Root] Load Data');
+export const previewLoading = createAction('[Root] Preview Loading', props<{isLoading: boolean, msg: string}>());
+export const previewReady = createAction('[Root] Preview is Ready', props<{frameId: string}>());
+export const previewError = createAction('[Root] Preview in Error mode', props<{error: any}>());
+export const reloadPreview = createAction('[Root] Reload Preview');
+export const checkPreviewLoadedOrError = createAction('[Root] Check Preview Loaded Or Error');
+export const toggleFrames = createAction('[Root] Toggle Frames', props<{frameId: string}>());
+export const closeEditors = createAction('[Root] Close editors');
+export const tabIndexChanged = createAction('[Root] Tab Index Changed', props<{tabIndex: number}>());
+export const setPreviewUrl = createAction('[Root] Set Preview Url', props<{url: string}>());

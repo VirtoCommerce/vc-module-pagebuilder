@@ -45,15 +45,7 @@ import { AppSettings } from './services/app.settings';
         StoreDevtoolsModule.instrument({
             name: 'CMS',
             maxAge: 25,
-            logOnly: environment.production,
-            // actionSanitizer: (action: { type: string; payload?: any }, id: number): Action => {
-            //             if (action.type === EditorActionTypes.PreviewReady) {
-            //                 return { type: EditorActionTypes.PreviewReady };
-            //             }
-            //             return action;
-            //         },
-            // stateSanitizer: (state: any, id: number): any => {
-            // }
+            logOnly: environment.production
         }),
         EffectsModule.forRoot([RootEffects, ErrorsEffects]),
         BsDropdownModule.forRoot(),

@@ -31,7 +31,7 @@ export class ControlHolderComponent implements OnInit, ControlValueAccessor {
     private component: BaseControlComponent<BaseDescriptor>;
     private _context: any;
 
-    @ViewChild(ControlHostDirective) host: ControlHostDirective;
+    @ViewChild(ControlHostDirective, {static: true}) host: ControlHostDirective;
     @Input() descriptor: ControlDescriptor;
     @Input() group: FormGroup;
     @Input() get context(): any {
