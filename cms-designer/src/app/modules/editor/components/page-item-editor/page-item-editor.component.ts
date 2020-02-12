@@ -91,7 +91,7 @@ export class PageItemEditorComponent implements OnInit {
                     : result,
                 []
             ).sort();
-            this.activeTab = this.tabs[0];
+            this.activeTab = this.activeTab || this.tabs[0];
         }
     }
 

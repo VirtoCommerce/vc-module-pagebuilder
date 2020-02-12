@@ -4,7 +4,7 @@
     </div>
     <div class="collection-item__body" *ngIf="isOpen">
         <div class="form-group">
-            <label>{{descriptor.label}}</label>
+            <label>{{descriptor.urlLabel || descriptor.label}}</label>
             <input #control type="text" class="form-control" [value]="value.url"
                 (keyup)="onValueChange({url: $event.target.value })">
         </div>
@@ -12,6 +12,12 @@
             <label>{{descriptor.textLabel}}</label>
             <input #control type="textLabel" class="form-control" [value]="value.urlText"
                 (keyup)="onValueChange({urlText: $event.target.value })">
+        </div>
+        <div class="form-group">
+            <div class="form-checkbox">
+                <input type="checkbox" class="form-checkbox__input" [checked]="value.openInNewTab" (click)="onValueChange({ openInNewTab: $event.target.checked })">
+                <label (click)="toggleCheckbox()" class="form-checkbox__label">{{ descriptor.openInNewTabLabel || 'Open in new tab' }}</label>
+            </div>
         </div>
         <div class="form-group">
             <label *ngIf="descriptor.styleLabel">{{descriptor.styleLabel}}</label>

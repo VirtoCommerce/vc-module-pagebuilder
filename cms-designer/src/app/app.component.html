@@ -84,8 +84,8 @@
         <!-- Content -->
         <app-preview class="content" [error]="(pageNotLoaded$|async) || (previewError$|async) || (schemaNotLoaded$|async)"
             [loading]="previewLoading$ | async" [storeUrl]="storeUrl$ | async" mode="desktop"
-            (preivewLoadingError)="onPreviewError($event)" (reloadClick)="reloadPreview()"
-            (preivewLoaded)="onPreviewLoaded($event)"></app-preview>
+            (previewLoadingError)="onPreviewError($event)" (reloadClick)="reloadPreview()"
+            (previewLoaded)="onPreviewLoaded($event)"></app-preview>
         <!-- End Content -->
 
     </main>

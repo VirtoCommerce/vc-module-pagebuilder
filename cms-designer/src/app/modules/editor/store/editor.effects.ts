@@ -114,10 +114,10 @@ export class EditorEffects {
     ));
 
     uploadPage$ = createEffect(() => this.actions$.pipe(
-        ofType(editorActions.reloadPageFail, editorActions.reloadPageSuccess),
+        ofType(editorActions.reloadPageSuccess),
         withLatestFrom(this.store$.select(fromEditor.getPage)),
         switchMap(([action, page]: [any, PageModel]) => {
-            const settings = action.payload.settings || page.settings;
+            const settings = action.page.settings || page.settings;
             const data = [settings, ...page.content];
             return this.pages.uploadPage(data).pipe(
                 map(() => editorActions.savePageSuccess()),
@@ -131,7 +131,7 @@ export class EditorEffects {
         tap(() => {
             this.messages.displayMessage('Page saved successfully');
         })
-    ), { dispatch: true });
+    ), { dispatch: false });
 
     pageSaveFailed$ = createEffect(() => this.actions$.pipe(
         ofType(editorActions.savePageFail),
