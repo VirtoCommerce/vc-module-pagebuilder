@@ -2,7 +2,7 @@
 <module>
   <id>VirtoCommerce.PageBuilderModule</id>
   <version>3.0.0</version>
-  <platformVersion>3.0.0</platformVersion>
+  <platformVersion>3.0.0-rc1</platformVersion>
   <dependencies>
     <dependency id="VirtoCommerce.Core" version="3.0.0" />
     <dependency id="VirtoCommerce.Content" version="3.0.0" />
