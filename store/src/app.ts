@@ -40,10 +40,13 @@ export class App {
             var styleSheet = nodes[i];
             if (styleSheet.href && styleSheet.href.startsWith(document.location.origin) && styleSheet.href.endsWith(".css")) {
                 var url = styleSheet.href + suffix;
-                var newlink = generateLinkNode(url);
-                const parent = styleSheet.parentNode;
-                if (!!parent) {
-                    parent.replaceChild(newlink, styleSheet);
+                var newLink = generateLinkNode(url);
+                var parent = styleSheet.parentElement;
+                try {
+                    parent.appendChild(newLink);
+                    styleSheet.remove();
+                } catch (error) {
+                    console.error('couldn\'t replace styles', error)
                 }
             }
         }

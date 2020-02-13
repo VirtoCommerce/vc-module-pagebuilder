@@ -14,21 +14,21 @@ export class ErrorsEffects {
 
     loadBlocksSchemaFail$ = createEffect(() => this.actions$.pipe(
         ofType(editorActions.blocksSchemaFail),
-        map((action: any) => <HttpErrorResponse>action.payload),
+        map((action: any) => <HttpErrorResponse>action.error),
         filter(response => response.status >= 400),
         tap(response => this.errors.displayError('Couldn\'t load blocks schema', response))
     ), { dispatch: false });
 
     loadPageFail$ = createEffect(() => this.actions$.pipe(
         ofType(editorActions.loadPageFail),
-        map((action: any) => <HttpErrorResponse>action.payload),
+        map((action: any) => <HttpErrorResponse>action.error),
         filter(response => response.status >= 400),
         tap(response => this.errors.displayError('Couldn\'t load page', response))
     ), { dispatch: false });
 
     loadThemesFail$ = createEffect(() => this.actions$.pipe(
         ofType(themeActions.loadThemesFail),
-        map((action: any) => <HttpErrorResponse>action.payload),
+        map((action: any) => <HttpErrorResponse>action.error),
         filter(response => response.status >= 400),
         tap(response => this.errors.displayError('Couldn\'t load theme settings', response))
     ), { dispatch: false });

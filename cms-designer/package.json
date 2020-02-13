@@ -19,7 +19,6 @@
     "@angular/compiler": "^8.2.14",
     "@angular/core": "^8.2.14",
     "@angular/forms": "^8.2.14",
-    "@angular/http": "^7.2.16",
     "@angular/material": "^8.2.3",
     "@angular/platform-browser": "^8.2.14",
     "@angular/platform-browser-dynamic": "^8.2.14",
@@ -34,7 +33,7 @@
     "ngx-cookie-service": "^2.3.0",
     "ngx-toastr": "^11.2.1",
     "rxjs": "^6.5.4",
-    "zone.js": "~0.10.2"
+    "zone.js": "~0.9.1"
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "~0.803.22",

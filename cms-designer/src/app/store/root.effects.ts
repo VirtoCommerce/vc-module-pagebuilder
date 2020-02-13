@@ -252,10 +252,10 @@ export class RootEffects {
         ),
         filter(([action, page, primaryLoaded, secondaryLoaded, secondaryFrameId, draftUploaded, themeNotLoaded]) =>
             primaryLoaded && secondaryLoaded
-            && action.payload === secondaryFrameId
+            && action.frameId === secondaryFrameId
             && (draftUploaded || themeNotLoaded) && page != null),
         switchMap(([action, page]) => {
-            this.preview.page(page.content, action.payload);
+            this.preview.page(page.content, action.frameId);
             return of(rootActions.previewLoading({ isLoading: true, msg: 'preview ready' }));
         })
     ));

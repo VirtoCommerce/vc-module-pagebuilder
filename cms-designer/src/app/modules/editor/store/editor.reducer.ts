@@ -85,7 +85,11 @@ const editorReducers = createReducer(
     on(Actions.savePage, state => ({ ...state, pageLoading: true })),
     on(Actions.savePageFail, state => ({ ...state, pageLoading: false })),
     on(Actions.savePageSuccess, state => ({ ...state, pageLoading: false, dirty: false, initialPage: JSON.stringify(state.page) })),
-    on(Actions.selectPageItem, (state, { blockId }) => ({ ...state, currentSectionItem: blockId, showNewBlockSelector: blockId > 0 })),
+    on(Actions.selectPageItem, (state, { blockId }) => ({
+        ...state,
+        currentSectionItem: blockId,
+        showNewBlockSelector: !!blockId ? false : state.showNewBlockSelector
+    })),
     on(Actions.toggleNewBlockPane, (state, { display }) => ({ ...state, showNewBlockSelector: display })),
     on(Actions.toggleItemVisibility, (state, { block }) => {
         const content = [...state.page.content];
