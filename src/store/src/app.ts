@@ -24,7 +24,7 @@ export class App {
     private reloadResources() {
         var urlParams = new URLSearchParams(window.location.search);
         var prefix = urlParams.get('preview_mode');
-        var suffix = "?preview_mode=" + prefix + "&v=" + (new Date().getTime());
+        var suffix = "preview_mode=" + prefix + "&v=" + (new Date().getTime());
 
         var nodes = document.getElementsByTagName("link");
 
@@ -38,8 +38,8 @@ export class App {
 
         for (var i = 0; i < nodes.length; i++) {
             var styleSheet = nodes[i];
-            if (styleSheet.href && styleSheet.href.startsWith(document.location.origin) && styleSheet.href.endsWith(".css")) {
-                var url = styleSheet.href + suffix;
+            if (this.isLocalStylesheet(styleSheet.href)) {
+                var url = `${styleSheet.href}${styleSheet.href.indexOf('?') != -1 ? '&' : '?'}${suffix}`;
                 var newLink = generateLinkNode(url);
                 var parent = styleSheet.parentElement;
                 try {
@@ -50,5 +50,10 @@ export class App {
                 }
             }
         }
+    }
+
+    private isLocalStylesheet(href: string): boolean {
+        var result = href && href.startsWith(document.location.origin) && href.indexOf(".css?") != -1;
+        return result;
     }
 }
