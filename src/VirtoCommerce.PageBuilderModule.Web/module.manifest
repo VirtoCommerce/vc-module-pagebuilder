@@ -3,7 +3,7 @@
   <id>VirtoCommerce.PageBuilderModule</id>
   <version>3.0.0</version>
   <platformVersion>3.0.0</platformVersion>
-  <version-tag>rc.2</version-tag>
+  <version-tag>rc.3</version-tag>
   <dependencies>
     <dependency id="VirtoCommerce.Core" version="3.0.0" />
     <dependency id="VirtoCommerce.Content" version="3.0.0" />
@@ -34,6 +34,13 @@
         <description></description>
       </setting>
       <setting>
+        <name>VirtoCommerce.PageBuilderModule.General.StorageName</name>
+        <valueType>string</valueType>
+        <defaultValue>cms</defaultValue>
+        <title>Blob storage name</title>
+        <description></description>
+      </setting>
+      <setting>
         <name>VirtoCommerce.PageBuilderModule.General.StorePreviewPath</name>
         <valueType>string</valueType>
         <defaultValue>/designer-preview</defaultValue>
@@ -43,7 +50,7 @@
       <setting>
         <name>VirtoCommerce.PageBuilderModule.General.TokenUrl</name>
         <valueType>string</valueType>
-        <defaultValue>/token</defaultValue>
+        <defaultValue>/connect/token</defaultValue>
         <title>AuthToken url</title>
         <description></description>
       </setting>

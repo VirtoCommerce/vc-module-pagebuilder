@@ -32,8 +32,12 @@ export class ApiUrlsService {
     }
 
     generateDownloadUrl(contentType: string, filepath: string): string {
-        const path = encodeURIComponent(filepath || this.params.path);
-        const url = this.combine(this.params.platformUrl, '/api/content/', contentType || this.params.contentType, this.params.storeId)
+        const targetContentType = contentType || this.params.contentType;
+        const encodedFilepath = encodeURIComponent(filepath || this.params.path);
+        const path = AppSettings.storageName
+            ? this.combine('/', AppSettings.storageName, targetContentType, this.params.storeId, encodedFilepath)
+            : encodedFilepath;
+        const url = this.combine(this.params.platformUrl, '/api/content/', targetContentType, this.params.storeId)
             + `?relativeUrl=${path}`;
         return url;
     }
@@ -84,11 +88,11 @@ export class ApiUrlsService {
         return givenFilename || this.params.filename;
     }
 
-    getStoresEndPoint(): string {
-        // /admin/api/stores/{Electronics}
-        const url = this.combine(this.params.platformUrl, '/api/stores/', this.params.storeId);
-        return url;
-    }
+    // getStoresEndPoint(): string {
+    //     // /admin/api/stores/{Electronics}
+    //     const url = this.combine(this.params.platformUrl, '/api/stores/', this.params.storeId);
+    //     return url;
+    // }
 
     getTokenUrl(): string {
         const url = `${this.params.platformUrl}${AppSettings.tokenUrl}`;
