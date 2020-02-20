@@ -51,9 +51,15 @@ export class ApiUrlsService {
     }
 
     generateUploadUrl(contentType: string = null, pathToUpload: string = null): string {
-        const path = encodeURIComponent(pathToUpload || this.params.uploadPath);
-        const url = this.combine(this.params.platformUrl, '/api/content/', contentType || this.params.contentType, this.params.storeId)
-            + `?folderUrl=${path}`;
+        // const path = encodeURIComponent(pathToUpload || this.params.uploadPath);
+        const targetContentType = contentType || this.params.contentType;
+        const file = pathToUpload || this.params.uploadPath;
+        const path = AppSettings.storageName
+            ? this.combine('/', AppSettings.storageName, targetContentType, this.params.storeId, file)
+            : file;
+        const encodedPath = encodeURIComponent(path);
+        const url = this.combine(this.params.platformUrl, '/api/content/', targetContentType, this.params.storeId)
+            + `?folderUrl=${encodedPath}`;
         return url;
     }
 
