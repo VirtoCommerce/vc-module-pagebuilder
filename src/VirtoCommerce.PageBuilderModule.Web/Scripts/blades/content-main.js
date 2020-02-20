@@ -200,7 +200,7 @@
             blade.openTheme = function (data) {
                 var newBlade = {
                     id: 'themeAssetListBlade',
-                    contentType: 'themes',
+                    contentType: 'Themes',
                     storeId: data.storeId,
                     currentEntity: { name: data.activeThemeName, url: data.activeThemeURL },
                     subtitle: 'content.blades.asset-list.subtitle',

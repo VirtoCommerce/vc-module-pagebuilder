@@ -24,43 +24,4 @@
   <copyright>Copyright © 2011-2019 Virto Commerce. All rights reserved</copyright>
   <tags>cms content pagebuilder</tags>
 
-  <settings>
-    <group name="CMS Content|General">
-      <setting>
-        <name>VirtoCommerce.PageBuilderModule.General.StoreUrl</name>
-        <valueType>string</valueType>
-        <defaultValue></defaultValue>
-        <title>Store URL</title>
-        <description></description>
-      </setting>
-      <setting>
-        <name>VirtoCommerce.PageBuilderModule.General.StorageName</name>
-        <valueType>string</valueType>
-        <defaultValue>cms</defaultValue>
-        <title>Blob storage name</title>
-        <description></description>
-      </setting>
-      <setting>
-        <name>VirtoCommerce.PageBuilderModule.General.StorePreviewPath</name>
-        <valueType>string</valueType>
-        <defaultValue>/designer-preview</defaultValue>
-        <title>Store preview path</title>
-        <description>Relative path for preview page</description>
-      </setting>
-      <setting>
-        <name>VirtoCommerce.PageBuilderModule.General.TokenUrl</name>
-        <valueType>string</valueType>
-        <defaultValue>/connect/token</defaultValue>
-        <title>AuthToken url</title>
-        <description></description>
-      </setting>
-      <setting>
-        <name>VirtoCommerce.PageBuilderModule.General.AssetsPath</name>
-        <valueType>string</valueType>
-        <defaultValue>assets/pages</defaultValue>
-        <title>Assets relative path</title>
-        <description></description>
-      </setting>
-    </group>
-  </settings>
 </module>

@@ -58,6 +58,15 @@ namespace VirtoCommerce.PageBuilderModule.Web
                     DefaultValue = "assets/pages"
                 };
 
+                public static SettingDescriptor StorageName = new SettingDescriptor
+                {
+                    Name = "VirtoCommerce.PageBuilderModule.General.StorageName",
+                    GroupName = "CMS Content|General",
+                    ValueType = SettingValueType.ShortText,
+                    DefaultValue = "assets/pages"
+                };
+
+                
                 public static IEnumerable<SettingDescriptor> AllSettings
                 {
                     get
@@ -67,7 +76,8 @@ namespace VirtoCommerce.PageBuilderModule.Web
                             StoreUrl,
                             StorePreviewPath,
                             TokenUrl,
-                            AssetsPath
+                            AssetsPath,
+                            StorageName
                         };
                     }
                 }
