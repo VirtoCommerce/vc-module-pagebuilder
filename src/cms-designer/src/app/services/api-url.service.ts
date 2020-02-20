@@ -33,12 +33,13 @@ export class ApiUrlsService {
 
     generateDownloadUrl(contentType: string, filepath: string): string {
         const targetContentType = contentType || this.params.contentType;
-        const encodedFilepath = encodeURIComponent(filepath || this.params.path);
+        const file = filepath || this.params.path;
         const path = AppSettings.storageName
-            ? this.combine('/', AppSettings.storageName, targetContentType, this.params.storeId, encodedFilepath)
-            : encodedFilepath;
+            ? this.combine('/', AppSettings.storageName, targetContentType, this.params.storeId, file)
+            : file;
+        const encodedPath = encodeURIComponent(path);
         const url = this.combine(this.params.platformUrl, '/api/content/', targetContentType, this.params.storeId)
-            + `?relativeUrl=${path}`;
+            + `?relativeUrl=${encodedPath}`;
         return url;
     }
 

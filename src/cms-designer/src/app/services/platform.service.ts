@@ -17,15 +17,15 @@ export class PlatformService {
     constructor(private http: HttpClient, private urls: ApiUrlsService) { }
 
     downloadPreset<T>(filename: string): Observable<T> {
-        return this.downloadModel<T>('themes', `/default/config/${filename}`);
+        return this.downloadModel<T>('Themes', `/default/config/${filename}`);
     }
 
     uploadPreset(model: PresetsModel): Observable<any> {
-        return this.uploadModel<PresetsModel>(model, 'themes', '/default/config', 'settings_data.json');
+        return this.uploadModel<PresetsModel>(model, 'Themes', '/default/config', 'settings_data.json');
     }
 
     uploadDraftPreset(model: PresetsModel): Observable<any> {
-        return this.uploadModel<PresetsModel>(model, 'themes', '/default/config/drafts', this.generateDraftPresetName());
+        return this.uploadModel<PresetsModel>(model, 'Themes', '/default/config/drafts', this.generateDraftPresetName());
     }
 
     downloadPage(): Observable<BlockValuesModel[]> {
@@ -37,7 +37,7 @@ export class PlatformService {
     }
 
     donwloadBlocksSchema(): Observable<BlocksSchema> {
-        return this.downloadModel<BlocksSchema>('themes', '/default/config/blocks_schema.json');
+        return this.downloadModel<BlocksSchema>('Themes', '/default/config/blocks_schema.json');
     }
 
     initSettings(): Promise<any> {
