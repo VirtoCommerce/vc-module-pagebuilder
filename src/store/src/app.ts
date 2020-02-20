@@ -24,7 +24,7 @@ export class App {
     private reloadResources() {
         var urlParams = new URLSearchParams(window.location.search);
         var prefix = urlParams.get('preview_mode');
-        var suffix = "preview_mode=" + prefix + "&v=" + (new Date().getTime());
+        var suffix = "preview_mode=" + prefix + "&t=" + (new Date().getTime());
 
         var nodes = document.getElementsByTagName("link");
 
@@ -36,24 +36,32 @@ export class App {
             return result;
         }
 
+        const itemsToAdd = [];
+
         for (var i = 0; i < nodes.length; i++) {
             var styleSheet = nodes[i];
             if (this.isLocalStylesheet(styleSheet.href)) {
                 var url = `${styleSheet.href}${styleSheet.href.indexOf('?') != -1 ? '&' : '?'}${suffix}`;
                 var newLink = generateLinkNode(url);
-                var parent = styleSheet.parentElement;
-                try {
-                    parent.appendChild(newLink);
-                    styleSheet.remove();
-                } catch (error) {
-                    console.error('couldn\'t replace styles', error)
-                }
+                itemsToAdd.push({ styleSheet, newLink });
             }
+        }
+
+        for (let i = 0; i < itemsToAdd.length; i++) {
+            const node = itemsToAdd[i];
+            var parent = node.styleSheet.parentElement;
+            try {
+                parent.appendChild(node.newLink);
+                node.styleSheet.remove();
+            } catch (error) {
+                console.error('couldn\'t replace styles', error)
+            }
+
         }
     }
 
     private isLocalStylesheet(href: string): boolean {
-        var result = href && href.startsWith(document.location.origin) && href.indexOf(".css?") != -1;
+        var result = href && href.startsWith(document.location.origin) && href.indexOf(".css?") != -1 && href.indexOf('preview_mode') == -1;
         return result;
     }
 }

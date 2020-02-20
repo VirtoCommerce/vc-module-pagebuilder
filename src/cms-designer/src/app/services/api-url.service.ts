@@ -34,7 +34,7 @@ export class ApiUrlsService {
     generateDownloadUrl(contentType: string, filepath: string): string {
         const targetContentType = contentType || this.params.contentType;
         const file = filepath || this.params.path;
-        const path = AppSettings.storageName
+        const path = AppSettings.storageName && targetContentType !== 'Pages'
             ? this.combine('/', AppSettings.storageName, targetContentType, this.params.storeId, file)
             : file;
         const encodedPath = encodeURIComponent(path);
@@ -54,7 +54,7 @@ export class ApiUrlsService {
         // const path = encodeURIComponent(pathToUpload || this.params.uploadPath);
         const targetContentType = contentType || this.params.contentType;
         const file = pathToUpload || this.params.uploadPath;
-        const path = AppSettings.storageName
+        const path = AppSettings.storageName && targetContentType !== 'Pages'
             ? this.combine('/', AppSettings.storageName, targetContentType, this.params.storeId, file)
             : file;
         const encodedPath = encodeURIComponent(path);

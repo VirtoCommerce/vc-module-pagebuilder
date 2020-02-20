@@ -82,7 +82,7 @@
             blade.openPages = function (data) {
                 var newBlade = {
                     id: 'pagesList',
-                    contentType: 'pages',
+                    contentType: 'Pages',
                     storeId: data.storeId,
                     storeUrl: data.store.url,
                     languages: data.store.languages,
@@ -140,7 +140,7 @@
             blade.addNewPage = function (data) {
                 var newBlade = {
                     id: 'addPage',
-                    contentType: 'pages',
+                    contentType: 'Pages',
                     storeId: data.storeId,
                     languages: data.store.languages,
                     currentEntity: {},
