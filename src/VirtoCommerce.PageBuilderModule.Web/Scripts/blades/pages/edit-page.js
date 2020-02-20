@@ -127,7 +127,7 @@ angular.module('virtoCommerce.pageBuilderModule')
             function generatePath() {
                 // need to return path relative to the root folder
                 return blade.currentEntity.settings.permalink
-                    ? '/pages/' + blade.currentEntity.settings.permalink
+                    ? '/Pages/' + blade.currentEntity.settings.permalink
                     : blade.currentEntity.relativeUrl;
             }
 
