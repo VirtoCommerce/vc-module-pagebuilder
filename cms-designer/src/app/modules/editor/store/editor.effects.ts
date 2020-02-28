@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { of } from 'rxjs';
-import { map, switchMapTo, tap } from 'rxjs/operators';
+import { map, switchMapTo, tap, filter } from 'rxjs/operators';
 import {
     catchError,
     mergeMap,
@@ -10,7 +10,7 @@ import {
 import { Store } from '@ngrx/store';
 import { Actions, ofType, createEffect } from '@ngrx/effects';
 
-import { MessageService } from '@shared/services';
+import { MessageService, ClipboardService } from '@shared/services';
 import { BlockValuesModel } from '@shared/models';
 import { PageModel } from '@editor/models';
 import { BlocksService, PagesService } from '@editor/services';
@@ -26,6 +26,7 @@ export class EditorEffects {
         // private catalog: CatalogService,
         private blocks: BlocksService,
         private messages: MessageService,
+        private clipboard: ClipboardService,
         private actions$: Actions, private store$: Store<fromEditor.State>) { }
 
     convertPageTypeToPreviewSection$ = createEffect(() => this.actions$.pipe(
@@ -139,4 +140,22 @@ export class EditorEffects {
             this.messages.displayError('Couldn\'t save page', action.error);
         })
     ), { dispatch: false });
+
+    copyToClipboard$ = createEffect(() => this.actions$.pipe(
+        ofType(editorActions.copyToClipboard),
+        tap(({ block }) => {
+            this.clipboard.copyTo(block);
+        })
+    ), { dispatch: false });
+
+    pasteFromClipboard$ = createEffect(() => this.actions$.pipe(
+        ofType(editorActions.tryPasteFromClipboard),
+        switchMap(() => this.clipboard.pasteFrom()),
+        filter(block => block != null),
+        withLatestFrom(this.store$.select(fromEditor.getPage)),
+        map(([block, page]) => {
+            block.id = page.content.reduce((v: number, b: BlockValuesModel) => Math.max(b.id, v), 0) + 1;
+            return editorActions.addPageItem({ block });
+        })
+    ));
 }

@@ -15,7 +15,9 @@ enum ContentType {
     themes = 'themes'
 }
 
-@Injectable()
+@Injectable({
+    providedIn: 'root'
+})
 export class PlatformService {
 
     constructor(private http: HttpClient, private urls: ApiUrlsService) { }

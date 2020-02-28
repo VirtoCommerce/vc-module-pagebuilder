@@ -4,7 +4,6 @@ import { createAction, props } from '@ngrx/store';
 import { PageModel } from '../models/page.model';
 import { BlockSchema, BlocksSchema } from 'src/app/modules/shared/models';
 import { HttpErrorResponse } from '@angular/common/http';
-import { CdkDragSortEvent } from '@angular/cdk/drag-drop';
 
 export const addPageItem = createAction('[Page] Add Page Item', props<{ block: BlockValuesModel }>());
 export const blocksSchemaFail = createAction('[Page] Blocks Schema Fail', props<{error: HttpErrorResponse}>());
@@ -34,6 +33,8 @@ export const savePageFail = createAction('[Page] Save Page Fail', props<{ error:
 export const savePageSuccess = createAction('[Page] Save Page Success');
 export const selectPageItem = createAction('[Page] Select Page Item', props<{ blockId: number }>());
 export const toggleNewBlockPane = createAction('[Page] Toggle New Block Pane', props<{ display: boolean }>());
+export const copyToClipboard = createAction('[Page] Copy To Clipboard', props<{ block: BlockValuesModel }>());
+export const tryPasteFromClipboard = createAction('[Page] Try Paste From Clipboard');
 export const updateBlockPreview = createAction('[Page] Update Block Preview', props<{ block: BlockValuesModel }>());
 export const updatePageItem = createAction('[Page] Update Page Item', props<{ block: BlockValuesModel }>());
 export const toggleItemVisibility = createAction('[Page] Toggle Item Visibility', props<{ block: BlockValuesModel }>());

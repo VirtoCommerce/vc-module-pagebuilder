@@ -122,6 +122,14 @@ export class AppComponent implements OnInit {
 
     // editor tab events
 
+    tryPasteFromClipboard() {
+        this.store.dispatch(editorActions.tryPasteFromClipboard());
+    }
+
+    copyBlockToClipboard(block) {
+        this.store.dispatch(editorActions.copyToClipboard({ block }));
+    }
+
     mouseOverItem(block) {
         this.store.dispatch(editorActions.highlightInPreview({ block }));
     }

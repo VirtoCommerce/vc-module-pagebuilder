@@ -13,7 +13,7 @@
                 </a>
             </ng-container>
         </ng-container>
-        <div *ngIf="types.items.length" style="height: 10px; background: #eaedf3;"></div>
+        <div *ngIf="types.items.length && types.groups.length" style="height: 10px; background: #eaedf3;"></div>
         <a *ngFor="let item of types.items" class="list-group-item" [class.under-preview]="item.type == selectedItem"
                 (click)="previewItem(item)">
             <div class="list-group-icon" [attr.data-name]="item.icon"></div>
