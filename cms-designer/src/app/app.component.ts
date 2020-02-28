@@ -50,6 +50,7 @@ export class AppComponent implements OnInit {
     currentBlockName$ = this.store.select(fromEditor.getCurrentBlockName);
     editorLoading$ = this.store.select(fromEditor.getIsLoading);
     editorMode$ = this.store.select(fromEditor.getEditorMode);
+    itemsForCreate$ = this.store.select(fromEditor.getItemsForCreate);
 
     // theme editor states
     presets$ = this.store.select(fromTheme.getPresets);
