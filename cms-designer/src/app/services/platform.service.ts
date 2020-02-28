@@ -11,21 +11,26 @@ import { PlatformSetting, StoreSettings } from '@app/models';
 import { AppSettings } from './app.settings';
 import { environment } from 'src/environments/environment';
 
+enum ContentType {
+    themes = 'themes'
+}
+
 @Injectable()
 export class PlatformService {
 
     constructor(private http: HttpClient, private urls: ApiUrlsService) { }
 
     downloadPreset<T>(filename: string): Observable<T> {
-        return this.downloadModel<T>('themes', `/default/config/${filename}`);
+        return this.downloadModel<T>(ContentType.themes, `/${AppSettings.themeName}/config/${filename}`);
     }
 
     uploadPreset(model: PresetsModel): Observable<any> {
-        return this.uploadModel<PresetsModel>(model, 'themes', '/default/config', 'settings_data.json');
+        return this.uploadModel<PresetsModel>(model, ContentType.themes, `/${AppSettings.themeName}/config`, 'settings_data.json');
     }
 
     uploadDraftPreset(model: PresetsModel): Observable<any> {
-        return this.uploadModel<PresetsModel>(model, 'themes', '/default/config/drafts', this.generateDraftPresetName());
+        return this.uploadModel<PresetsModel>(model, ContentType.themes,
+            `/${AppSettings.themeName}/config/drafts`, this.generateDraftPresetName());
     }
 
     downloadPage(): Observable<BlockValuesModel[]> {
@@ -37,7 +42,7 @@ export class PlatformService {
     }
 
     donwloadBlocksSchema(): Observable<BlocksSchema> {
-        return this.downloadModel<BlocksSchema>('themes', '/default/config/blocks_schema.json');
+        return this.downloadModel<BlocksSchema>(ContentType.themes, `/${AppSettings.themeName}/config/blocks_schema.json`);
     }
 
     initSettings(): Promise<any> {
@@ -52,9 +57,24 @@ export class PlatformService {
                     AppSettings[parameters[key]] = x.value || x.defaultValue;
                 });
                 AppSettings.storeBaseUrl = storeSettings.secureUrl || storeSettings.url;
+                AppSettings.themeName = this.getThemeName(storeSettings);
                 environment.version = version;
             })
         ).toPromise();
+    }
+
+    private getThemeName(storeSettings: any): string {
+        let result = 'default';
+
+        if (!!storeSettings && !!storeSettings.dynamicProperties) {
+            const properties: Array<any> = storeSettings.dynamicProperties;
+            const property = properties.find(x => x.name === 'DefaultThemeName');
+            if (!!property && property.values.length > 0 && !!property.values[0].value) {
+                result = property.values[0].value;
+            }
+        }
+
+        return result;
     }
 
     private moduleVersion(): Observable<string> {

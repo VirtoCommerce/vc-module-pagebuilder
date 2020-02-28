@@ -69,7 +69,7 @@
             (changeEditorModeEvent)="changeEditorMode($event)"
             (valueChangedEvent)="updateBlockPreview($event)" (removeBlockEvent)="removeBlock($event)"
             (copyBlockEvent)="copyBlock($event)"></app-page-item-editor>
-        <app-select-type class="left-panel" *ngIf="addNewSectionMode$ | async" [schema]="blocksSchema$ | async"
+        <app-select-type class="left-panel" *ngIf="addNewSectionMode$ | async" [types]="itemsForCreate$ | async"
             (previewBlockEvent)="previewBlockType($event)" (selectBlockEvent)="selectBlockType($event)">
         </app-select-type>
         <app-presets-editor class="left-panel" *ngIf="showPresets$|async" [data]="presets$|async"

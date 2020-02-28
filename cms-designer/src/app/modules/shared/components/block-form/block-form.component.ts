@@ -65,7 +65,7 @@ export class BlockFormComponent implements OnInit, OnDestroy {
 
     private createForm() {
         const m = this.model;
-        if (m && this.schema) {
+        if (m && this.schema && !this.form) {
             const s = m.type ? this.schema[m.type] : this.schema;
             if (s && (!m.type || m.type === s.type)) {
                 if (this.subscription !== null) {

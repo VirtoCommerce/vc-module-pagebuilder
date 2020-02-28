@@ -18,7 +18,6 @@ export class HttpService {
             xhr.setRequestHeader('Cache-Control', 'no-cache');
             xhr.setRequestHeader('Content-Type', 'application/json');
             xhr.setRequestHeader('X-XSRF-TOKEN', this.getToken());
-            xhr.send(JSON.stringify(model));
             // xhr.timeout = timeout;
             xhr.onload = evt => {
                 // const result = {
@@ -31,12 +30,14 @@ export class HttpService {
                 resolve(xhr.responseText.trim());
                 // this.blocks.push(model); or replace
             };
-            // xhr.onerror = evt => {
-            //   resolve(errorResponse(xhr, 'Failed to make request.'));
-            // };
+            xhr.onerror = evt => {
+                console.log(evt);
+                document.location.reload();
+            };
             // xhr.ontimeout = evt => {
             //   resolve(errorResponse(xhr, 'Request took longer than expected.'));
             // };
+            xhr.send(JSON.stringify(model));
         });
     }
 

@@ -9,7 +9,7 @@ angular.module('virtoCommerce.pageBuilderModule')
             blade.initialize = function () {
                 blade.designerUrl = window.location.origin +
                     (window.location.pathname === '/' ? '' : window.location.pathname) +
-                    '/Modules/VirtoCommerce.PageBuilderModule/Content/builder/';
+                    '/Modules/$(VirtoCommerce.PageBuilderModule)/Content/builder/index.html';
                 if (blade.isNew) {
                     blade.isLoading = false;
 
@@ -132,7 +132,7 @@ angular.module('virtoCommerce.pageBuilderModule')
 
             function runDesigner() {
                 if (blade.designerUrl) {
-                    // /Modules/VirtoCommerce.PageBuilderModule/Content/builder/
+                    // /Modules/$(VirtoCommerce.PageBuilderModule)/Content/builder/
                     var path = blade.currentEntity.relativeUrl;
                     window.open(blade.designerUrl + '?path=' + path + '&storeId=' + blade.storeId + '&contentType=' + blade.contentType, '_blank');
                 } else {

@@ -1,3 +1,5 @@
+import { BlockSchema } from '@shared/models';
+import { CreateBlockModel } from '@editor/models';
 import { createFeatureSelector, createSelector } from '@ngrx/store';
 
 import * as fromRoot from 'src/app/store';
@@ -102,4 +104,28 @@ export const getCurrentBlockName = createSelector(
 export const getEditorMode = createSelector(
     getEditorFeatureState,
     state => state.editorMode
+);
+
+export const getItemsForCreate = createSelector(
+    getBlocksSchema,
+    (schema) => {
+        const result: CreateBlockModel = {
+            items: [],
+            groups: []
+        };
+        const groups: { [key: string]: BlockSchema[] } = {};
+        Object.keys(schema).filter(x => !schema[x].static && !schema[x].hide).forEach(x => {
+            const category = schema[x].category;
+            if (!category) {
+                result.items.push(schema[x]);
+            } else {
+                if (!groups[category]) {
+                    groups[category] = [];
+                }
+                groups[category].push(schema[x]);
+            }
+        });
+        Object.keys(groups).forEach(x => result.groups.push({ name: x, items: groups[x] }));
+        return result;
+    }
 );
