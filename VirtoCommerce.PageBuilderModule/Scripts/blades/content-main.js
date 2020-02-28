@@ -155,7 +155,7 @@
 
             blade.customizeTheme = function(data) {
                 if (data.store.url) {
-                    // /Modules/VirtoCommerce.PageBuilderModule/Content/builder/
+                    // /Modules/$(VirtoCommerce.PageBuilderModule)/Content/builder/
                     console.log(data);
                     // data.activeThemeName
                     //window.open(blade.designerUrl + '?path=' + path + '&storeId=' + blade.storeId + '&contentType=' + blade.contentType, '_blank');
