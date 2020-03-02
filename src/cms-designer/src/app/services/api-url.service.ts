@@ -32,14 +32,9 @@ export class ApiUrlsService {
     }
 
     generateDownloadUrl(contentType: string, filepath: string): string {
-        const targetContentType = contentType || this.params.contentType;
-        const file = filepath || this.params.path;
-        const path = AppSettings.storageName && targetContentType !== 'Pages'
-            ? this.combine('/', AppSettings.storageName, targetContentType, this.params.storeId, file)
-            : file;
-        const encodedPath = encodeURIComponent(path);
-        const url = this.combine(this.params.platformUrl, '/api/content/', targetContentType, this.params.storeId)
-            + `?relativeUrl=${encodedPath}`;
+        const path = encodeURIComponent(filepath || this.params.path);
+        const url = this.combine(this.params.platformUrl, '/api/content/', contentType || this.params.contentType, this.params.storeId)
+            + `?relativeUrl=${path}`;
         return url;
     }
 
@@ -51,15 +46,9 @@ export class ApiUrlsService {
     }
 
     generateUploadUrl(contentType: string = null, pathToUpload: string = null): string {
-        // const path = encodeURIComponent(pathToUpload || this.params.uploadPath);
-        const targetContentType = contentType || this.params.contentType;
-        const file = pathToUpload || this.params.uploadPath;
-        const path = AppSettings.storageName && targetContentType !== 'Pages'
-            ? this.combine('/', AppSettings.storageName, targetContentType, this.params.storeId, file)
-            : file;
-        const encodedPath = encodeURIComponent(path);
-        const url = this.combine(this.params.platformUrl, '/api/content/', targetContentType, this.params.storeId)
-            + `?folderUrl=${encodedPath}`;
+        const path = encodeURIComponent(pathToUpload || this.params.uploadPath);
+        const url = this.combine(this.params.platformUrl, '/api/content/', contentType || this.params.contentType, this.params.storeId)
+            + `?folderUrl=${path}`;
         return url;
     }
 
@@ -95,11 +84,11 @@ export class ApiUrlsService {
         return givenFilename || this.params.filename;
     }
 
-    // getStoresEndPoint(): string {
-    //     // /admin/api/stores/{Electronics}
-    //     const url = this.combine(this.params.platformUrl, '/api/stores/', this.params.storeId);
-    //     return url;
-    // }
+    getStoresEndPoint(): string {
+        // /admin/api/stores/{Electronics}
+        const url = this.combine(this.params.platformUrl, '/api/stores/', this.params.storeId);
+        return url;
+    }
 
     getTokenUrl(): string {
         const url = `${this.params.platformUrl}${AppSettings.tokenUrl}`;

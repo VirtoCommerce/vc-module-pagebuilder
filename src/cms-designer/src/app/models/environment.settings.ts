@@ -1,8 +1,8 @@
 export interface EnvironmentSettings {
     storeBaseUrl: string;
     storePreviewPath: string;
+    themeName: string;
     contentCssPath: string;
-    storageName: string;
     baseUrl: string;
     tokenUrl: string;
     previewTimeout: number;

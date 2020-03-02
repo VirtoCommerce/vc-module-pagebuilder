@@ -47,7 +47,7 @@ namespace VirtoCommerce.PageBuilderModule.Web
                     Name = "VirtoCommerce.PageBuilderModule.General.TokenUrl",
                     ValueType = SettingValueType.ShortText,
                     GroupName = "CMS Content|General",
-                    DefaultValue = "/token"
+                    DefaultValue = "/connect/token"
                 };
 
                 public static SettingDescriptor AssetsPath = new SettingDescriptor
@@ -58,15 +58,6 @@ namespace VirtoCommerce.PageBuilderModule.Web
                     DefaultValue = "assets/pages"
                 };
 
-                public static SettingDescriptor StorageName = new SettingDescriptor
-                {
-                    Name = "VirtoCommerce.PageBuilderModule.General.StorageName",
-                    GroupName = "CMS Content|General",
-                    ValueType = SettingValueType.ShortText,
-                    DefaultValue = "assets/pages"
-                };
-
-                
                 public static IEnumerable<SettingDescriptor> AllSettings
                 {
                     get
@@ -76,8 +67,7 @@ namespace VirtoCommerce.PageBuilderModule.Web
                             StoreUrl,
                             StorePreviewPath,
                             TokenUrl,
-                            AssetsPath,
-                            StorageName
+                            AssetsPath
                         };
                     }
                 }

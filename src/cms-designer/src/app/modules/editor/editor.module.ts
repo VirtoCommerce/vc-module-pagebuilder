@@ -13,7 +13,6 @@ import {
     PageItemEditorComponent,
     SelectTypeComponent
 } from './components';
-import { CreatableBlocksPipe } from '@editor/services';
 
 import { reducer } from './store/editor.reducer';
 import { EditorEffects } from './store/editor.effects';
@@ -26,8 +25,7 @@ const COMPONENTS = [
 
 @NgModule({
     declarations: [
-        ...COMPONENTS,
-        CreatableBlocksPipe
+        ...COMPONENTS
     ],
     exports: COMPONENTS,
     imports: [

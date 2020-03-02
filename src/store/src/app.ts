@@ -61,7 +61,7 @@ export class App {
     }
 
     private isLocalStylesheet(href: string): boolean {
-        var result = href && href.startsWith(document.location.origin) && href.indexOf(".css?") != -1 && href.indexOf('preview_mode') == -1;
+        var result = href && href.startsWith(document.location.origin) && href.indexOf(".css?") != -1;
         return result;
     }
 }

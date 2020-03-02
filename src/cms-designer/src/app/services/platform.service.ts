@@ -11,21 +11,28 @@ import { PlatformSetting, StoreSettings } from '@app/models';
 import { AppSettings } from './app.settings';
 import { environment } from 'src/environments/environment';
 
-@Injectable()
+enum ContentType {
+    themes = 'themes'
+}
+
+@Injectable({
+    providedIn: 'root'
+})
 export class PlatformService {
 
     constructor(private http: HttpClient, private urls: ApiUrlsService) { }
 
     downloadPreset<T>(filename: string): Observable<T> {
-        return this.downloadModel<T>('Themes', `/default/config/${filename}`);
+        return this.downloadModel<T>(ContentType.themes, `/${AppSettings.themeName}/config/${filename}`);
     }
 
     uploadPreset(model: PresetsModel): Observable<any> {
-        return this.uploadModel<PresetsModel>(model, 'Themes', '/default/config', 'settings_data.json');
+        return this.uploadModel<PresetsModel>(model, ContentType.themes, `/${AppSettings.themeName}/config`, 'settings_data.json');
     }
 
     uploadDraftPreset(model: PresetsModel): Observable<any> {
-        return this.uploadModel<PresetsModel>(model, 'Themes', '/default/config/drafts', this.generateDraftPresetName());
+        return this.uploadModel<PresetsModel>(model, ContentType.themes,
+            `/${AppSettings.themeName}/config/drafts`, this.generateDraftPresetName());
     }
 
     downloadPage(): Observable<BlockValuesModel[]> {
@@ -37,7 +44,7 @@ export class PlatformService {
     }
 
     donwloadBlocksSchema(): Observable<BlocksSchema> {
-        return this.downloadModel<BlocksSchema>('Themes', '/default/config/blocks_schema.json');
+        return this.downloadModel<BlocksSchema>(ContentType.themes, `/${AppSettings.themeName}/config/blocks_schema.json`);
     }
 
     initSettings(): Promise<any> {
@@ -46,17 +53,31 @@ export class PlatformService {
         parameters['TokenUrl'] = 'tokenUrl';
         parameters['AssetsPath'] = 'assetsPath';
         parameters['StoreUrl'] = 'storeBaseUrl';
-        parameters['StorageName'] = 'storageName';
-        return combineLatest([this.moduleSettings(), /*this.storeSettings(),*/ this.moduleVersion()]).pipe(
-            tap(([moduleSettings, /*storeSettings,*/ version]) => {
+        return combineLatest([this.moduleSettings(), this.storeSettings(), this.moduleVersion()]).pipe(
+            tap(([moduleSettings, storeSettings, version]) => {
                 moduleSettings.forEach(x => {
                     const key = x.name.replace('VirtoCommerce.PageBuilderModule.General.', '');
                     AppSettings[parameters[key]] = x.value || x.defaultValue;
                 });
                 // AppSettings.storeBaseUrl = storeSettings.secureUrl || storeSettings.url;
+                AppSettings.themeName = this.getThemeName(storeSettings);
                 environment.version = version;
             })
         ).toPromise();
+    }
+
+    private getThemeName(storeSettings: any): string {
+        let result = 'default';
+
+        if (!!storeSettings && !!storeSettings.dynamicProperties) {
+            const properties: Array<any> = storeSettings.dynamicProperties;
+            const property = properties.find(x => x.name === 'DefaultThemeName');
+            if (!!property && property.values.length > 0 && !!property.values[0].value) {
+                result = property.values[0].value;
+            }
+        }
+
+        return result;
     }
 
     private moduleVersion(): Observable<string> {
@@ -72,10 +93,10 @@ export class PlatformService {
         return this.http.get<PlatformSetting[]>(url);
     }
 
-    // private storeSettings(): Observable<StoreSettings> {
-    //     const url = this.urls.generateStoreSettingsUrl();
-    //     return this.http.get<StoreSettings>(url);
-    // }
+    private storeSettings(): Observable<StoreSettings> {
+        const url = this.urls.generateStoreSettingsUrl();
+        return this.http.get<StoreSettings>(url);
+    }
 
     private downloadModel<T>(contentType: string = null, filepath: string = null): Observable<T> {
         const url = this.urls.generateDownloadUrl(contentType, filepath);

@@ -124,6 +124,22 @@
             width: 1.25rem;
         }
 
+        &--copy-clipboard
+        {
+            background-image: url(../i/copy.png);
+            background-size: cover;
+            height: 1.25rem;
+            width: 1.25rem;
+        }
+
+        &--paste-clipboard
+        {
+            background-image: url(../i/paste.png);
+            background-size: cover;
+            height: 1.25rem;
+            width: 1.25rem;
+        }
+
         & ~ .btn__text
         {
             margin-left: .625rem;

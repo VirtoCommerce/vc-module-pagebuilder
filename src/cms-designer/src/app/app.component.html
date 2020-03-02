@@ -7,6 +7,11 @@
                 (buttonClick)="back()"></app-header-aside>
         </div>
         <div class="header-nav">
+            <div class="header-actions" style="left: 0.3125rem; right: auto;">
+                <button class="btn btn--outline btn--small" (click)="tryPasteFromClipboard()">
+                    <span class="btn__icon btn__icon--paste-clipboard"></span>
+                </button>
+            </div>
             <!-- TODO: move active button to state -->
             <app-toolbar [buttons]="['desktop', 'mobile', 'tablet', 'full']" [activeButton]="viewMode"
                 (buttonClick)="viewMode = $event"></app-toolbar>
@@ -66,10 +71,10 @@
         <app-page-item-editor class="left-panel" *ngIf="currentSectionItem$|async as currentSectionItem"
             [model]="currentSectionItem" [schema]="blocksSchema$ | async"
             [mode]="editorMode$|async" [blockName]="currentBlockName$|async"
-            (changeEditorModeEvent)="changeEditorMode($event)"
+            (changeEditorModeEvent)="changeEditorMode($event)" (copyToClipboardEvent)="copyBlockToClipboard($event)"
             (valueChangedEvent)="updateBlockPreview($event)" (removeBlockEvent)="removeBlock($event)"
             (copyBlockEvent)="copyBlock($event)"></app-page-item-editor>
-        <app-select-type class="left-panel" *ngIf="addNewSectionMode$ | async" [schema]="blocksSchema$ | async"
+        <app-select-type class="left-panel" *ngIf="addNewSectionMode$ | async" [types]="itemsForCreate$ | async"
             (previewBlockEvent)="previewBlockType($event)" (selectBlockEvent)="selectBlockType($event)">
         </app-select-type>
         <app-presets-editor class="left-panel" *ngIf="showPresets$|async" [data]="presets$|async"
