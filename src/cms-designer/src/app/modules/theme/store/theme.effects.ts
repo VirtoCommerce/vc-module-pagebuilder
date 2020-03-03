@@ -27,12 +27,12 @@ export class ThemeEffects {
         private messages: MessageService,
         private store$: Store<fromTheme.State>) { }
 
-    loadPresets$ = createEffect(() => this.actions$.pipe(
-        ofType(themeActions.loadThemes),
+    loadDefaultThemes$ = createEffect(() => this.actions$.pipe(
+        ofType(themeActions.loadDefaultThemes),
         switchMap(() =>
             this.themeService.loadPresets().pipe(
-                map(presets => themeActions.loadThemesSuccess({ presets })),
-                catchError(error => of(themeActions.loadThemesFail({ error })))
+                map(presets => themeActions.loadDefaultThemesSuccess({ presets })),
+                catchError(error => of(themeActions.loadDefaultThemesFail({ error })))
             )
         )
     ));

@@ -2,11 +2,13 @@ import { Action, createAction, props } from '@ngrx/store';
 import { HttpErrorResponse } from '@angular/common/http';
 
 import { PresetsModel } from '@themes/models';
-import { BlockSchema } from '@shared/models';
+import { BlockSchema, ValueType } from '@shared/models';
 
-export const loadThemes = createAction('[Theme] Load Themes');
-export const loadThemesSuccess = createAction('[Theme] Load Themes Success', props<{ presets: PresetsModel }>());
-export const loadThemesFail = createAction('[Theme] Load Themes Fail', props<{ error: HttpErrorResponse }>());
+export const loadDefaultThemes = createAction('[Theme] Load Default Themes');
+export const loadDefaultThemesSuccess = createAction('[Theme] Load Default Themes Success', props<{ presets: PresetsModel }>());
+export const loadDefaultThemesFail = createAction('[Theme] Load Default Themes Fail', props<{ error: HttpErrorResponse }>());
+export const loadEffectiveThemeValues = createAction('[Theme] Load Effective Theme Values',
+    props<{ values: { [key: string]: ValueType } }>());
 export const saveTheme = createAction('[Theme] Save Theme');
 export const saveThemeSuccess = createAction('[Theme] Save Theme Success');
 export const saveThemeFail = createAction('[Theme] Save Theme Fail', props<{ error: any }>());

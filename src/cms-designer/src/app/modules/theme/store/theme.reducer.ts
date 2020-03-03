@@ -17,7 +17,6 @@ export interface ThemeState {
     selectedSchemaItem: BlockSchema; // this section corresponds to section from schema
     editableTheme: { [key: string]: ValueType }; // the current theme
     presets: PresetsModel; // the whole presets file which used as transport for preview
-    initialPresets: string; // initial file with presets and theme as string
     schema: BlockSchema[]; // the settings schema
     dirty: boolean;
 }
@@ -34,7 +33,6 @@ export const initialState: ThemeState = {
     selectedSchemaItem: null,
     editableTheme: null,
     presets: null,
-    initialPresets: null,
     schema: null,
     dirty: false
 };
@@ -46,22 +44,17 @@ const themesReducer = createReducer(
     on(Actions.loadSchemaFail, (state) => ({ ...state, schemaLoading: false, schemaNotLoaded: true, schema: null })),
     on(Actions.saveTheme, state => ({ ...state, presets: { ...state.presets, current: { ...state.editableTheme } } })),
     on(Actions.saveThemeSuccess, state => ({ ...state, initialPresets: JSON.stringify(state.presets), dirty: false })),
-    on(Actions.loadThemes, state => ({ ...state, presetsLoading: true })),
-    on(Actions.loadThemesSuccess, (state, { presets }) => {
-        const newPresets = { ...presets };
-        if (typeof presets.current === 'string') {
-            newPresets.current = { ...presets.presets[presets.current] };
-        }
+    on(Actions.loadDefaultThemes, state => ({ ...state, presetsLoading: true })),
+    on(Actions.loadDefaultThemesSuccess, (state, { presets }) => {
         return {
             ...state,
-            editableTheme: { ...<any>newPresets.current },
-            initialPresets: JSON.stringify(presets),
-            presets: newPresets,
+            editableTheme: typeof presets.current === 'string' ? presets[presets.current] : presets.current,
+            presets: presets,
             presetsLoading: false,
             presetsNotLoaded: false
         };
     }),
-    on(Actions.loadThemesFail, state => ({ ...state, presetsLoading: false, presetsNotLoaded: true })),
+    on(Actions.loadDefaultThemesFail, state => ({ ...state, presetsLoading: false, presetsNotLoaded: true })),
     on(Actions.selectSchemaItem, (state, { item }) => ({ ...state, selectedSchemaItem: item })),
     on(Actions.showPresetsPane, state => ({ ...state, showPresetsEditor: true })),
     on(Actions.closeEditors, Actions.cancelPreset, state => ({

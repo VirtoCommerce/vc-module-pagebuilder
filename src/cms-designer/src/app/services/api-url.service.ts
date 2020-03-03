@@ -21,10 +21,6 @@ export class ApiUrlsService {
         return url;
     }
 
-    generateStoreDownloadUrl(): string {
-        return this.combine(AppSettings.storeBaseUrl, 'themes/settings.json');
-    }
-
     generateModulesUrl(): string {
         const url = this.combine(this.params.platformUrl, '/api/platform/modules');
         return url;

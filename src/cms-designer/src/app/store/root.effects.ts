@@ -71,7 +71,7 @@ export class RootEffects {
             this.themeStore$.select(fromTheme.getPresetsNotLoaded)
         ),
         filter(([, presets, presetsNotLoaded]) => !presets || presetsNotLoaded),
-        mapTo(themeActions.loadThemes())
+        mapTo(themeActions.loadDefaultThemes())
     ));
 
     switchToLoadThemeSchema$ = createEffect(() => this.actions$.pipe(
@@ -336,6 +336,11 @@ export class RootEffects {
     receiveHoverElementMessage$ = createEffect(() => fromEvent(window, 'message').pipe(
         filter((event: MessageEvent) => event.data.type === 'hover'),
         map(event => editorActions.markSectionHoveredInPreview({ blockId: event.data.id }))
+    ));
+
+    settingsFromStorefront$ = createEffect(() => fromEvent(window, 'message').pipe(
+        filter((event: MessageEvent) => event.data.type === 'settings'),
+        map(event => themeActions.loadEffectiveThemeValues({ values: event.data.model }))
     ));
 
     sendCloneToPreview$ = createEffect(() => this.actions$.pipe(

@@ -42,6 +42,10 @@ export class PreviewService {
         this.send('swap', { currentIndex, newIndex }, frameId);
     }
 
+    requestSettings(frameId) {
+        this.send('settings', {}, frameId);
+    }
+
     page(page: BlockValuesModel[], frameId: string) {
         const settings = page.find(x => x.type === 'settings');
         if (!!settings) {

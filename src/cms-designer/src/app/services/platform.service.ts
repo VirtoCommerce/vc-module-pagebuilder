@@ -24,8 +24,7 @@ export class PlatformService {
     constructor(private http: HttpClient, private urls: ApiUrlsService) { }
 
     downloadSettingsData(): Observable<PresetsModel> {
-        const url = this.urls.generateStoreDownloadUrl();
-        return this.download<PresetsModel>(url);
+        return this.downloadModel<PresetsModel>(ContentType.themes, '/default/config/settings_data.json');
     }
 
     downloadSettingsSchema(): Observable<BlockSchema[]> {
