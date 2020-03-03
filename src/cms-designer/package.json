@@ -27,6 +27,7 @@
     "@ngrx/store": "^8.6.0",
     "@ngrx/store-devtools": "^8.6.0",
     "ckeditor4-angular": "^1.0.1",
+    "clipboard-polyfill": "^2.8.6",
     "core-js": "^3.6.2",
     "ngx-bootstrap": "^5.2.0",
     "ngx-color-picker": "^8.2.0",

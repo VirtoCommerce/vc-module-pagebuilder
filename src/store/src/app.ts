@@ -14,7 +14,14 @@ export class App {
                 handler.execute(msg, this.list);
             };
         this.dispatcher.run();
+        this.passSettings();
         // ServiceLocator.getMessages().ping();
+    }
+
+    private passSettings() {
+        ServiceLocator.getHttp().get('/themes/settings.json').then(response => {
+            console.log(response);
+        });
     }
 
     public getList(): BlockViewModel[] {

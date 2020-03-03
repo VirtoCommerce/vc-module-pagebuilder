@@ -13,11 +13,11 @@ export class ThemeService {
     constructor(private platform: PlatformService) { }
 
     loadPresets(): Observable<PresetsModel> {
-        return this.platform.downloadPreset<PresetsModel>('settings_data.json');
+        return this.platform.downloadSettingsData();
     }
 
     loadSchema(): Observable<BlockSchema[]> {
-        return this.platform.downloadPreset<BlockSchema[]>('settings_schema.json');
+        return this.platform.downloadSettingsSchema();
     }
 
     uploadPresets(model: PresetsModel): Observable<any> {

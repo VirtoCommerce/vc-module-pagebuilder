@@ -1,3 +1,4 @@
+import { BlockSchema } from './../modules/shared/models/block.schema';
 import { ModuleSettings } from './../models/environment.settings';
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
@@ -22,8 +23,13 @@ export class PlatformService {
 
     constructor(private http: HttpClient, private urls: ApiUrlsService) { }
 
-    downloadPreset<T>(filename: string): Observable<T> {
-        return this.downloadModel<T>(ContentType.themes, `/${AppSettings.themeName}/config/${filename}`);
+    downloadSettingsData(): Observable<PresetsModel> {
+        const url = this.urls.generateStoreDownloadUrl();
+        return this.download<PresetsModel>(url);
+    }
+
+    downloadSettingsSchema(): Observable<BlockSchema[]> {
+        return this.downloadModel<BlockSchema[]>(ContentType.themes, '/default/config/settings_schema.json');
     }
 
     uploadPreset(model: PresetsModel): Observable<any> {
@@ -44,7 +50,7 @@ export class PlatformService {
     }
 
     donwloadBlocksSchema(): Observable<BlocksSchema> {
-        return this.downloadModel<BlocksSchema>(ContentType.themes, `/${AppSettings.themeName}/config/blocks_schema.json`);
+        return this.downloadModel<BlocksSchema>(ContentType.themes, '/default/config/blocks_schema.json');
     }
 
     initSettings(): Promise<any> {
@@ -100,6 +106,10 @@ export class PlatformService {
 
     private downloadModel<T>(contentType: string = null, filepath: string = null): Observable<T> {
         const url = this.urls.generateDownloadUrl(contentType, filepath);
+        return this.download<T>(url);
+    }
+
+    private download<T>(url: string): Observable<T> {
         return this.http.get<T>(url);
     }
 

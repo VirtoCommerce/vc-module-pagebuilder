@@ -24,6 +24,10 @@ export class MessagesService {
         this.send('ping', null);
     }
 
+    settings(model) {
+        this.send('settings', { model });
+    }
+
     private send(message: string, model) {
         const msg = { type: message, ...model };
         console.log('send to designer', msg);
