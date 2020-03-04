@@ -137,6 +137,27 @@ export class RootEffects {
         })
     ));
 
+    settingsFromStorefront$ = createEffect(() => fromEvent(window, 'message').pipe(
+        filter((event: MessageEvent) => event.data.type === 'settings'),
+        map(event => themeActions.loadEffectiveThemeValuesSuccess({ values: event.data.model }))
+    ));
+
+    loadEffectiveThemeValues$ = createEffect(() => this.actions$.pipe(
+        ofType(themeActions.loadEffectiveThemeValues, rootActions.previewReady),
+        withLatestFrom(
+            this.themeStore$.select(fromTheme.getEditableTheme),
+            this.themeStore$.select(fromTheme.getCurrentThemeValuesRequested),
+            this.rootStore$.select(fromRoot.getPrimaryFrameId),
+            this.rootStore$.select(fromRoot.getSecondaryFrameId)
+        ),
+        filter(([, editableTheme, themeRequested, primaryFrameId, secondaryFrameId]) => 
+            !themeRequested && !!editableTheme && (!!primaryFrameId || !!secondaryFrameId)),
+        map(([, , , primaryFrameId, secondaryFrameId]) => {
+            this.preview.requestSettings(primaryFrameId || secondaryFrameId);
+            return themeActions.loadEffectiveThemeValuesRequested();
+        })
+    ));
+
     // editor
 
     sendHoverToPreview$ = createEffect(() => this.actions$.pipe(
@@ -246,14 +267,12 @@ export class RootEffects {
             this.editorStore$.select(fromEditor.getPageForEdit),
             this.rootStore$.select(fromRoot.getPrimaryIsLoaded),
             this.rootStore$.select(fromRoot.getSecondaryIsLoaded),
-            this.rootStore$.select(fromRoot.getSecondaryFrameId),
-            this.themeStore$.select(fromTheme.getDraftUploaded),
-            this.themeStore$.select(fromTheme.getPresetsNotLoaded)
+            this.rootStore$.select(fromRoot.getSecondaryFrameId)
         ),
-        filter(([action, page, primaryLoaded, secondaryLoaded, secondaryFrameId, draftUploaded, themeNotLoaded]) =>
+        filter(([action, page, primaryLoaded, secondaryLoaded, secondaryFrameId]) =>
             primaryLoaded && secondaryLoaded
             && action.frameId === secondaryFrameId
-            && (draftUploaded || themeNotLoaded) && page != null),
+            && page != null),
         switchMap(([action, page]) => {
             this.preview.page(page.content, action.frameId);
             return of(rootActions.previewLoading({ isLoading: true, msg: 'preview ready' }));
@@ -336,11 +355,6 @@ export class RootEffects {
     receiveHoverElementMessage$ = createEffect(() => fromEvent(window, 'message').pipe(
         filter((event: MessageEvent) => event.data.type === 'hover'),
         map(event => editorActions.markSectionHoveredInPreview({ blockId: event.data.id }))
-    ));
-
-    settingsFromStorefront$ = createEffect(() => fromEvent(window, 'message').pipe(
-        filter((event: MessageEvent) => event.data.type === 'settings'),
-        map(event => themeActions.loadEffectiveThemeValues({ values: event.data.model }))
     ));
 
     sendCloneToPreview$ = createEffect(() => this.actions$.pipe(

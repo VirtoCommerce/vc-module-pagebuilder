@@ -53,6 +53,35 @@ export const getEditableTheme = createSelector(
     state => state.editableTheme
 );
 
+export const getCurrentThemeValuesRequested = createSelector(
+    getThemeFeatureState,
+    state => state.currentThemeValuesRequested
+);
+
+export const getEffectiveValues = createSelector(
+    getThemeFeatureState,
+    getPresets,
+    getEditableTheme,
+    (state, presets, editableTheme) => {
+        if (presets && editableTheme) {
+            const defaultValues = typeof presets.current === 'string' ? presets.presets[presets.current] : presets.current;
+            const result = {};
+            Object.keys(defaultValues).forEach(key => {
+                if (defaultValues[key] !== editableTheme[key]) {
+                    result[key] = editableTheme[key];
+                }
+            });
+            Object.keys(editableTheme).forEach(key => {
+                if (typeof defaultValues[key] === 'undefined') {
+                    result[key] = editableTheme[key];
+                }
+            });
+            return result;
+        }
+        return {};
+    }
+);
+
 export const getPresetsNotLoaded = createSelector(
     getThemeFeatureState,
     state => state.presetsNotLoaded

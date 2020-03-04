@@ -6,7 +6,7 @@ import { Observable, combineLatest } from 'rxjs';
 import { tap, map } from 'rxjs/operators';
 import { ApiUrlsService } from './api-url.service';
 import { PresetsModel } from '@themes/models';
-import { BlockValuesModel, BlocksSchema } from '@shared/models';
+import { BlockValuesModel, BlocksSchema, ValueType } from '@shared/models';
 import { PlatformSetting, StoreSettings } from '@app/models';
 
 import { AppSettings } from './app.settings';
@@ -31,12 +31,12 @@ export class PlatformService {
         return this.downloadModel<BlockSchema[]>(ContentType.themes, '/default/config/settings_schema.json');
     }
 
-    uploadPreset(model: PresetsModel): Observable<any> {
-        return this.uploadModel<PresetsModel>(model, ContentType.themes, `/${AppSettings.themeName}/config`, 'settings_data.json');
+    uploadPreset(model: { [key: string]: ValueType }): Observable<any> {
+        return this.uploadModel<{ [key: string]: ValueType }>(model, ContentType.themes, `/${AppSettings.themeName}/config`, 'settings_data.json');
     }
 
-    uploadDraftPreset(model: PresetsModel): Observable<any> {
-        return this.uploadModel<PresetsModel>(model, ContentType.themes,
+    uploadDraftPreset(model: { [key: string]: ValueType }): Observable<any> {
+        return this.uploadModel<{ [key: string]: ValueType }>(model, ContentType.themes,
             `/${AppSettings.themeName}/config/drafts`, this.generateDraftPresetName());
     }
 
