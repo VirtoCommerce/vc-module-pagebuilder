@@ -8,9 +8,9 @@
     </div>
     <p>Changing your theme's style will affect both the settings and look and feel of your store.</p>
     <p>Some settings will be lost when you change your style, but you will not lose any content from your store.</p>
-    <button class="btn btn--green btn--block">
+    <!-- <button class="btn btn--green btn--block">
         <span class="btn__text">Save current as new presset</span>
-    </button>
+    </button> -->
 </div>
 <div class="left-panel-footer">
     <button class="btn btn--blue btn--block">
@@ -20,67 +20,3 @@
         <span class="btn__text">Cancel</span>
     </button>
 </div>
-<!-- --------------------------------------------------------------------- -->
-<!-- --------------------------------------------------------------------- -->
-<!-- --------------------------------------------------------------------- -->
-<!-- --------------------------------------------------------------------- -->
-<!--
-<div class="pane-section __selected" *ngIf="data">
-    <div class="pane-head">
-        <div class="pane-t">
-            <i class="pane-ico fa fa-wrench"></i>
-            Presets
-        </div>
-    </div>
-    <div class="pane-cnt">
-
-        <ul class="list pressets-list">
-            <li class="list-item" *ngFor="let item of data.presets | keyvalue">
-                <div class="list-thumbnail" [class.super-active]="item.key == current" [ngStyle]="{'background-image': getThemeThumb(item.key)}"
-                    (click)="selectPreset(item.key)">
-                    <span>{{item.key}}</span>
-                </div>
-                <div class="list-actions">
-                    <a class="list-name" (click)="removePreset(item.key)">
-                        {{item.key}}
-                        <i class="list-ico fa fa-trash-o"></i>
-                    </a>
-                </div>
-            </li>
-            <li class="list-item" *ngIf="savingPreset">
-                <div class="list-thumbnail">{{newPresetName}}</div>
-                <div class="list-actions">
-                    <a class="list-name">
-                        {{newPresetName}}
-                        <i class="list-ico fa fa-trash-o"></i>
-                    </a>
-                </div>
-            </li>
-        </ul>
-
-
-        <div class="new-pressets-foot" *ngIf="savingPreset" [formGroup]="form">
-            <label class="form-label new-preset-label">Preset name</label>
-            <div class="form-input new-preset-input">
-                <input type="text" formControlName="name" />
-            </div>
-            <div class="sidebar-foot">
-                <button class="btn" (click)="savingPreset = false">Cancel</button>
-                <button class="btn" [disabled]="form.invalid" (click)="savePreset()">Save</button>
-            </div>
-        </div>
-
-        <div class="pressets-foot" *ngIf="!savingPreset">
-            <button (click)="savingPreset = true" class="btn">Save current as new presset</button>
-        </div>
-
-        <p class="pane-settings">Changing your theme's style will affect both the settings and look and feel of your store.</p>
-        <p class="pane-settings">Some settings will be lost when you change your style, but you will not lose any content from your store.</p>
-
-        <div class="sidebar-foot" *ngIf="!savingPreset">
-            <button class="btn">Cancel</button>
-            <button class="btn" [disabled]="!current" (click)="applyPreset()">Apply preset</button>
-        </div>
-    </div>
-</div>
--->

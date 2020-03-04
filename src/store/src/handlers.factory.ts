@@ -13,7 +13,8 @@ export class HandlersFactory {
         new handlers.SwapHandler(),
         new handlers.ReloadHandler(),
         new handlers.PageHandler(),
-        new handlers.HoverHandler()
+        new handlers.HoverHandler(),
+        new handlers.RequestSettingsHandler()
     ];
 
     get(key: string): handlers.MessageHandler {

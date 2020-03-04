@@ -27,14 +27,19 @@ export class ThemeEffects {
         private messages: MessageService,
         private store$: Store<fromTheme.State>) { }
 
-    loadPresets$ = createEffect(() => this.actions$.pipe(
-        ofType(themeActions.loadThemes),
+    loadDefaultThemes$ = createEffect(() => this.actions$.pipe(
+        ofType(themeActions.loadDefaultThemes),
         switchMap(() =>
             this.themeService.loadPresets().pipe(
-                map(presets => themeActions.loadThemesSuccess({ presets })),
-                catchError(error => of(themeActions.loadThemesFail({ error })))
+                map(presets => themeActions.loadDefaultThemesSuccess({ presets })),
+                catchError(error => of(themeActions.loadDefaultThemesFail({ error })))
             )
         )
+    ));
+
+    initLoadingEffectiveThemeValues$ = createEffect(() => this.actions$.pipe(
+        ofType(themeActions.loadDefaultThemesSuccess),
+        map(() => themeActions.loadEffectiveThemeValues())
     ));
 
     loadSchema$ = createEffect(() => this.actions$.pipe(
@@ -50,13 +55,13 @@ export class ThemeEffects {
     uploadPresets$ = createEffect(() => this.actions$.pipe(
         ofType(themeActions.saveTheme),
         withLatestFrom(
-            this.store$.select(fromTheme.getPresets),
+            this.store$.select(fromTheme.getEffectiveValues),
             this.store$.select(fromTheme.getPresetsNotLoaded)
         ),
         filter(([, , themeNotLoaded]) => !themeNotLoaded),
-        switchMap(([, theme]) =>
-            this.themeService.uploadPresets(theme).pipe(
-                map(() => themeActions.saveThemeSuccess()),
+        switchMap(([, values]) =>
+            this.themeService.uploadPresets(values).pipe(
+                map(() => themeActions.saveThemeSuccess({ values })),
                 catchError(error => of(themeActions.saveThemeFail({ error })))
             )
         )
@@ -66,7 +71,7 @@ export class ThemeEffects {
         ofType(
             themeActions.updateTheme,
             themeActions.selectPreset,
-            themeActions.loadThemesSuccess,
+            themeActions.loadEffectiveThemeValuesSuccess,
             themeActions.clearThemeChanges,
             themeActions.cancelPreset,
             themeActions.applyPreset),
@@ -78,7 +83,7 @@ export class ThemeEffects {
     updateDraft$ = createEffect(() => this.actions$.pipe(
         ofType(themeActions.updateDraft),
         withLatestFrom(
-            this.store$.select(fromTheme.getPresets),
+            this.store$.select(fromTheme.getEditableTheme),
             this.store$.select(fromTheme.getPresetsNotLoaded)
         ),
         filter(([, , themeNotLoaded]) => !themeNotLoaded),

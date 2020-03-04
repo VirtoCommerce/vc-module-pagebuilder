@@ -13,3 +13,4 @@ export * from './update.handler';
 
 export * from './reload.handler';
 export * from './page.handler';
+export * from './request-settings.handler';
