@@ -45,6 +45,7 @@ export class PageItemEditorComponent implements OnInit {
     @Output() valueChangedEvent = new EventEmitter<BlockValuesModel>();
     @Output() removeBlockEvent = new EventEmitter<BlockValuesModel>();
     @Output() copyBlockEvent = new EventEmitter<BlockValuesModel>();
+    @Output() copyToClipboardEvent = new EventEmitter<BlockValuesModel>();
     @Output() changeEditorModeEvent = new EventEmitter<string>();
 
     tabs: string[];
@@ -81,6 +82,10 @@ export class PageItemEditorComponent implements OnInit {
 
     copyBlock() {
         this.copyBlockEvent.emit(this.model);
+    }
+
+    copyToClipboard() {
+        this.copyToClipboardEvent.emit(this.model);
     }
 
     private updateTabs() {

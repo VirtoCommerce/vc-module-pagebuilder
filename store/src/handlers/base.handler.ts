@@ -22,7 +22,10 @@ export abstract class BaseHandler implements MessageHandler {
     protected executeInternal(msg: BaseMessage, list: BlockViewModel[], vm: BlockViewModel) { }
 
     protected reloadBlock(model: any): Promise<string> {
-        return ServiceLocator.getHttp().post(model);
+        return ServiceLocator.getHttp().post(model).catch((result) => {
+            ServiceLocator.getMessages().sendMessage(result);
+            return null;
+        });
     }
 
     protected generateId(id: number) {

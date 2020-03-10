@@ -338,6 +338,19 @@ export class RootEffects {
         map(event => editorActions.markSectionHoveredInPreview({ blockId: event.data.id }))
     ));
 
+    receiveRefreshFrameMessage$ = createEffect(() => fromEvent(window, 'message').pipe(
+        filter((event: MessageEvent) => event.data.type === 'refresh'),
+        withLatestFrom(this.rootStore$.select(fromRoot.getSecondaryFrameId)),
+        tap(([, frameId]) => {
+            this.preview.reload(frameId);
+        })
+    ), { dispatch: false });
+
+    receiveShowErrorFrameMessage$ = createEffect(() => fromEvent(window, 'message').pipe(
+        filter((event: MessageEvent) => event.data.type === 'info'),
+        map(event => rootActions.displayError({ error: event.data.msg }))
+    ));
+
     sendCloneToPreview$ = createEffect(() => this.actions$.pipe(
         ofType(editorActions.clonePageItem),
         withLatestFrom(this.rootStore$.select(fromRoot.getPrimaryFrameId)),
