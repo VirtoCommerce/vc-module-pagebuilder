@@ -7,6 +7,7 @@ import { MessageService } from '@shared/services';
 
 import * as themeActions from '@themes/store/theme.actions';
 import * as editorActions from '@editor/store/editor.actions';
+import * as rootActions from '@app/store/root.actions';
 
 @Injectable()
 export class ErrorsEffects {
@@ -38,5 +39,10 @@ export class ErrorsEffects {
         map((action: any) => <HttpErrorResponse>action.error),
         filter(response => response.status >= 400),
         tap(response => this.errors.displayError('Couldn\'t load theme schema', response))
+    ), { dispatch: false });
+
+    displayError$ = createEffect(() => this.actions$.pipe(
+        ofType(rootActions.displayError),
+        tap(({ error }) => this.errors.displayError(error, {}))
     ), { dispatch: false });
 }

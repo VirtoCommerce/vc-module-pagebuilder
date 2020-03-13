@@ -20,6 +20,10 @@ export class MessagesService {
         this.send('select', model ? { id: model.id } : null);
     }
 
+    sendMessage(model) {
+        this.send(model.type, model);
+    }
+
     ping() {
         this.send('ping', null);
     }

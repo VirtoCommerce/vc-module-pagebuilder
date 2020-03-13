@@ -8,9 +8,11 @@ export class UpdateHandler extends BaseHandler {
     protected executeInternal(msg: BaseMessage, list: BlockViewModel[], vm: BlockViewModel) {
         vm.source = msg.content;
         this.reloadBlock(vm.source).then((result: string) => {
-            vm.htmlString = result;
-            this.renderer.update(vm);
-            this.renderer.select(vm);
+            if (result) {
+                vm.htmlString = result;
+                this.renderer.update(vm);
+                this.renderer.select(vm);
+            }
             // var $: any = window['jQuery'];
             // $(".carousel-block").carousel();
         });

@@ -33,7 +33,6 @@ export class HttpService {
             //   resolve(errorResponse(xhr, 'Request took longer than expected.'));
             // };
         });
-
     }
 
     postTo(endpoint: string, model: any) {
@@ -46,7 +45,6 @@ export class HttpService {
             xhr.setRequestHeader('Cache-Control', 'no-cache');
             xhr.setRequestHeader('Content-Type', 'application/json');
             xhr.setRequestHeader('X-XSRF-TOKEN', this.getToken());
-            xhr.send(JSON.stringify(model));
             // xhr.timeout = timeout;
             xhr.onload = evt => {
                 // const result = {
@@ -56,20 +54,38 @@ export class HttpService {
                 //     headers: xhr.getAllResponseHeaders(),
                 //     data: xhr.responseText
                 // };
-                resolve(xhr.responseText.trim());
-                // this.blocks.push(model); or replace
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    // everything is allright
+                    resolve(xhr.responseText.trim());
+                } else if (xhr.status >= 400 && xhr.status < 500) {
+                    reject({
+                        type: 'refresh'
+                    });
+                } else if (xhr.status >= 500) {
+                    this.showMessage(reject, xhr.statusText)
+                }
             };
-            // xhr.onerror = evt => {
-            //   resolve(errorResponse(xhr, 'Failed to make request.'));
-            // };
+            xhr.onerror = evt => {
+                this.showMessage(reject, xhr.statusText)
+            };
             // xhr.ontimeout = evt => {
             //   resolve(errorResponse(xhr, 'Request took longer than expected.'));
             // };
+            xhr.send(JSON.stringify(model));
         });
     }
 
     post(model: any): Promise<string> {
         return this.postTo(this.endpoint, model);
+    }
+
+    private showMessage(func, msg) {
+        if (!!func) {
+            func({
+                type: 'info',
+                msg: msg
+            });
+        }
     }
 
     private getToken(): string {

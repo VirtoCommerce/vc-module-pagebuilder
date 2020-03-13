@@ -1,4 +1,3 @@
-import { BlockSchema } from './../modules/shared/models/block.schema';
 import { ModuleSettings } from './../models/environment.settings';
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
@@ -6,7 +5,7 @@ import { Observable, combineLatest } from 'rxjs';
 import { tap, map } from 'rxjs/operators';
 import { ApiUrlsService } from './api-url.service';
 import { PresetsModel } from '@themes/models';
-import { BlockValuesModel, BlocksSchema, ValueType } from '@shared/models';
+import { BlockValuesModel, BlocksSchema, BlockSchema, ValueType } from '@shared/models';
 import { PlatformSetting, StoreSettings } from '@app/models';
 
 import { AppSettings } from './app.settings';
