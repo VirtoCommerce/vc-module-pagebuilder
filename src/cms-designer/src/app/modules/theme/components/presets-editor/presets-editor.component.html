@@ -1,7 +1,7 @@
 <div class="left-panel-content">
     <div class="preset-list">
         <div *ngFor="let item of data.presets|keyvalue"
-            class="preset-list__item" [class.preset-list__item--active]="item.key == current"
+            class="preset-list__item" [class.preset-list__item--active]="item.key == selected"
             [ngStyle]="{ 'background-image': getThemeThumb(item.key), border: '1px solid black', display: 'flex'}" (click)="selectPreset(item.key)">
             <div style="font-size: 3rem; vertical-align: middle;">{{ item.key }}</div>
         </div>
@@ -17,7 +17,7 @@
         <span class="btn__text" (click)="applyPreset()">Apply preset</span>
     </button>
     <button class="btn btn--outline btn--block">
-        <span class="btn__text">Cancel</span>
+        <span class="btn__text" (click)="cancel()">Cancel</span>
     </button>
 </div>
 <!-- --------------------------------------------------------------------- -->

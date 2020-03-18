@@ -7,7 +7,7 @@ export class RequestSettingsHandler extends BaseHandler {
     readonly key = 'settings';
 
     execute(msg: BaseMessage, list: BlockViewModel[]) {
-        ServiceLocator.getHttp().get('/themes/settings.json').then(response => {
+        ServiceLocator.getHttp().get('/themes/settings.json?preview_mode=').then(response => {
             const settings = JSON.parse(response);
             ServiceLocator.getMessages().settings(settings);
         }).catch(error => {

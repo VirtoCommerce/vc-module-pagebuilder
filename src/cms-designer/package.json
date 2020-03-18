@@ -31,7 +31,7 @@
     "core-js": "^3.6.2",
     "ngx-bootstrap": "^5.2.0",
     "ngx-color-picker": "^8.2.0",
-    "ngx-cookie-service": "^2.3.0",
+    "ngx-cookie-service": "^3.0.2",
     "ngx-toastr": "^11.2.1",
     "rxjs": "^6.5.4",
     "zone.js": "~0.9.1"

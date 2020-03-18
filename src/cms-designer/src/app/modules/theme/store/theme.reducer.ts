@@ -5,7 +5,7 @@ import { BlockSchema, ValueType } from '@shared/models';
 
 import * as Actions from './theme.actions';
 
-export interface ThemeState {
+export interface PresetsState {
     schemaLoading: boolean;
     schemaNotLoaded: boolean;
     presetsLoading: boolean;
@@ -14,16 +14,17 @@ export interface ThemeState {
     draftUploaded: boolean;
     uploadDraftFail: boolean;
 
+    presetUnderPreview: string;
     showPresetsEditor: boolean;
     selectedSchemaItem: BlockSchema; // this section corresponds to section from schema
-    editableTheme: { [key: string]: ValueType }; // the current theme
-    initialValues: { [key: string]: ValueType }; // the effective theme values
+    editablePreset: { [key: string]: ValueType }; // the current preset under editing
+    initialValues: { [key: string]: ValueType }; // initial values of current preset
     presets: PresetsModel; // the whole presets file which used as transport for preview
     schema: BlockSchema[]; // the settings schema
     dirty: boolean;
 }
 
-export const initialState: ThemeState = {
+export const initialState: PresetsState = {
     schemaLoading: false,
     schemaNotLoaded: false,
     presetsLoading: false,
@@ -32,9 +33,10 @@ export const initialState: ThemeState = {
     draftUploaded: false,
     uploadDraftFail: false,
 
+    presetUnderPreview: null,
     showPresetsEditor: false,
     selectedSchemaItem: null,
-    editableTheme: null,
+    editablePreset: null,
     initialValues: {},
     presets: null,
     schema: null,
@@ -49,18 +51,20 @@ const themesReducer = createReducer(
     on(Actions.saveThemeSuccess, (state, { values }) => ({ ...state, initialValues: values, dirty: false })),
     on(Actions.loadDefaultThemes, state => ({ ...state, presetsLoading: true })),
     on(Actions.loadDefaultThemesSuccess, (state, { presets }) => {
+        const currentPreset = typeof presets.current === 'string' ? presets.presets[presets.current] : presets.current;
         return {
             ...state,
-            editableTheme: typeof presets.current === 'string' ? { ...presets.presets[presets.current] } : { ...presets.current },
+            editablePreset: { ...currentPreset },
+            initialValues: { ...currentPreset },
             presets: presets
         };
     }),
     on(Actions.loadEffectiveThemeValuesRequested, state => ({ ...state, currentThemeValuesRequested: true })),
     on(Actions.loadEffectiveThemeValuesSuccess, (state, { values }) => {
-        const currentValues = { ...state.editableTheme, ...values };
+        const currentValues = { ...state.editablePreset, ...values };
         return {
             ...state,
-            editableTheme: currentValues,
+            editablePreset: currentValues,
             initialValues: values,
             presetsLoading: false,
             presetsNotLoaded: false
@@ -72,25 +76,24 @@ const themesReducer = createReducer(
     on(Actions.closeEditors, Actions.cancelPreset, state => ({
         ...state,
         showPresetsEditor: false,
-        selectedSchemaItem: null
+        selectedSchemaItem: null,
+        presetUnderPreview: null
     })),
-    // on(Actions.applyPreset, (state, { preset }) => {
-    //     const newTheme = { ...state.presets.presets[preset] };
-    //     return {
-    //         ...state,
-    //         editableTheme: newTheme,
-    //         presets: {
-    //             ...state.presets,
-    //             current: newTheme
-    //         },
-    //         showPresetsEditor: false,
-    //         dirty: true
-    //     };
-    // }),
+    on(Actions.cancelPreset, state => ({ ...state, presetUnderPreview: null })),
+    on(Actions.previewPreset, (state, { preset }) => ({ ...state, presetUnderPreview: preset })),
+    on(Actions.applyPreset, (state, { preset }) => {
+        const newPreset = { current: preset, ...state.presets.presets[preset] };
+        return {
+            ...state,
+            editablePreset: newPreset,
+            showPresetsEditor: false,
+            dirty: true
+        };
+    }),
     on(Actions.updateTheme, (state, { values }) => {
         return {
             ...state,
-            editableTheme: { ...state.editableTheme, ...values },
+            editablePreset: { ...state.editablePreset, ...values },
             dirty: true
         };
     }),
@@ -102,7 +105,7 @@ const themesReducer = createReducer(
     //     return {
     //         ...state,
     //         presets: newPresets,
-    //         editableTheme: { ...newPresets.current },
+    //         editablePreset: { ...newPresets.current },
     //         dirty: false,
     //         draftUploaded: false
     //     };
@@ -118,18 +121,17 @@ const themesReducer = createReducer(
     // }),
     // on(Actions.createPreset, (state, { preset }) => {
     //     const newPresets = { ...state.presets };
-    //     newPresets.presets[preset] = { ...state.editableTheme };
-    //     newPresets.current = { ...state.editableTheme };
+    //     newPresets.presets[preset] = { ...state.editablePreset };
+    //     newPresets.current = { ...state.editablePreset };
     //     return {
     //         ...state,
     //         presets: newPresets,
     //         dirty: true
     //     };
     // }),
-    on(Actions.selectPreset, (state, { preset }) => ({ ...state, editableTheme: { ...state.presets[preset] } })),
     on(Actions.updateDraftSuccess, state => ({ ...state, draftUploaded: true }))
 );
 
-export function reducer(state = initialState, action: Action): ThemeState {
+export function reducer(state = initialState, action: Action): PresetsState {
     return themesReducer(state, action);
 }

@@ -1,12 +1,13 @@
 import { createFeatureSelector, createSelector } from '@ngrx/store';
 import * as fromRoot from 'src/app/store';
 import * as fromTheme from './theme.reducer';
+import { AppSettings } from '@app/services';
 
 export interface State extends fromRoot.State {
-    theme: fromTheme.ThemeState;
+    theme: fromTheme.PresetsState;
 }
 
-const getThemeFeatureState = createFeatureSelector<fromTheme.ThemeState>('theme');
+const getThemeFeatureState = createFeatureSelector<fromTheme.PresetsState>('theme');
 
 export const getDraftUploaded = createSelector(
     getThemeFeatureState,
@@ -16,6 +17,11 @@ export const getDraftUploaded = createSelector(
 export const getIsDirty = createSelector(
     getThemeFeatureState,
     state => state.dirty
+);
+
+export const getPresetUnderPreview = createSelector(
+    getThemeFeatureState,
+    state => state.presetUnderPreview
 );
 
 export const getCurrentThemeSchemaItem = createSelector(
@@ -48,9 +54,9 @@ export const getSchema = createSelector(
     state => state.schema
 );
 
-export const getEditableTheme = createSelector(
+export const getEditablePreset = createSelector(
     getThemeFeatureState,
-    state => state.editableTheme
+    state => state.editablePreset
 );
 
 export const getCurrentThemeValuesRequested = createSelector(
@@ -58,24 +64,36 @@ export const getCurrentThemeValuesRequested = createSelector(
     state => state.currentThemeValuesRequested
 );
 
-export const getEffectiveValues = createSelector(
+export const getValuesToSave = createSelector(
     getThemeFeatureState,
     getPresets,
-    getEditableTheme,
-    (state, presets, editableTheme) => {
-        if (presets && editableTheme) {
-            const defaultValues = typeof presets.current === 'string' ? presets.presets[presets.current] : presets.current;
-            const result = {};
+    getEditablePreset,
+    (state, presets, editablePreset) => {
+        const actualPreset = state.presetUnderPreview ? presets.presets[state.presetUnderPreview] : editablePreset;
+        if (AppSettings.defaultThemeName === AppSettings.themeName) {
+            return {
+                ...presets,
+                current: actualPreset,
+            };
+        }
+        if (state.presetUnderPreview) {
+            return { current: state.presetUnderPreview };
+        }
+        if (presets && editablePreset) {
+            const presetName = !!editablePreset.current ? editablePreset.current : presets.current;
+            const defaultValues = typeof presetName === 'string' ? presets.presets[presetName] : presets.current;
+            const result: any = {};
             Object.keys(defaultValues).forEach(key => {
-                if (defaultValues[key] !== editableTheme[key]) {
-                    result[key] = editableTheme[key];
+                if (defaultValues[key] !== editablePreset[key]) {
+                    result[key] = editablePreset[key];
                 }
             });
-            Object.keys(editableTheme).forEach(key => {
+            Object.keys(editablePreset).forEach(key => {
                 if (typeof defaultValues[key] === 'undefined') {
-                    result[key] = editableTheme[key];
+                    result[key] = editablePreset[key];
                 }
             });
+            result.current = editablePreset.current;
             return result;
         }
         return {};

@@ -23,11 +23,11 @@ export class PlatformService {
     constructor(private http: HttpClient, private urls: ApiUrlsService) { }
 
     downloadSettingsData(): Observable<PresetsModel> {
-        return this.downloadModel<PresetsModel>(ContentType.themes, '/default/config/settings_data.json');
+        return this.downloadModel<PresetsModel>(ContentType.themes, `/${AppSettings.defaultThemeName}/config/settings_data.json`);
     }
 
     downloadSettingsSchema(): Observable<BlockSchema[]> {
-        return this.downloadModel<BlockSchema[]>(ContentType.themes, '/default/config/settings_schema.json');
+        return this.downloadModel<BlockSchema[]>(ContentType.themes, `/${AppSettings.defaultThemeName}/config/settings_schema.json`);
     }
 
     uploadPreset(model: { [key: string]: ValueType }): Observable<any> {
@@ -48,7 +48,7 @@ export class PlatformService {
     }
 
     donwloadBlocksSchema(): Observable<BlocksSchema> {
-        return this.downloadModel<BlocksSchema>(ContentType.themes, '/default/config/blocks_schema.json');
+        return this.downloadModel<BlocksSchema>(ContentType.themes, `/${AppSettings.defaultThemeName}/config/blocks_schema.json`);
     }
 
     initSettings(): Promise<any> {
@@ -71,7 +71,7 @@ export class PlatformService {
     }
 
     private getThemeName(storeSettings: any): string {
-        let result = 'default';
+        let result = AppSettings.defaultThemeName;
 
         if (!!storeSettings && !!storeSettings.dynamicProperties) {
             const properties: Array<any> = storeSettings.dynamicProperties;

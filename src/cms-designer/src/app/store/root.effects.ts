@@ -1,3 +1,4 @@
+import { loadEffectiveThemeValues } from './../modules/theme/store/theme.actions';
 import { AppSettings } from './../services/app.settings';
 import { Injectable } from '@angular/core';
 import { Actions, Effect, ofType, createEffect } from '@ngrx/effects';
@@ -145,17 +146,24 @@ export class RootEffects {
     loadEffectiveThemeValues$ = createEffect(() => this.actions$.pipe(
         ofType(themeActions.loadEffectiveThemeValues, rootActions.previewReady),
         withLatestFrom(
-            this.themeStore$.select(fromTheme.getEditableTheme),
+            this.themeStore$.select(fromTheme.getEditablePreset),
             this.themeStore$.select(fromTheme.getCurrentThemeValuesRequested),
             this.rootStore$.select(fromRoot.getPrimaryFrameId),
             this.rootStore$.select(fromRoot.getSecondaryFrameId)
         ),
-        filter(([, editableTheme, themeRequested, primaryFrameId, secondaryFrameId]) => 
+        filter(([, editableTheme, themeRequested, primaryFrameId, secondaryFrameId]) =>
             !themeRequested && !!editableTheme && (!!primaryFrameId || !!secondaryFrameId)),
         map(([, , , primaryFrameId, secondaryFrameId]) => {
             this.preview.requestSettings(primaryFrameId || secondaryFrameId);
             return themeActions.loadEffectiveThemeValuesRequested();
         })
+    ));
+
+    loadEffectiveThemeValuesRequested$ = createEffect(() => this.actions$.pipe(
+        ofType(themeActions.loadEffectiveThemeValuesRequested),
+        switchMap(() => timer(AppSettings.previewTimeout).pipe(
+            map(() => themeActions.loadEffectiveThemeValuesSkippedByTimeout())
+        )),
     ));
 
     // editor
