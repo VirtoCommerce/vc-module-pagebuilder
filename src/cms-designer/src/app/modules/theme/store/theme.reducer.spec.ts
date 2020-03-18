@@ -372,7 +372,7 @@ describe('Theme reducer', () => {
             const { initialState } = fromTheme;
             const currentState = {
                 ...initialState,
-                initialValues: presets,
+                presets,
                 dirty: true
             };
             const action = themeActions.clearThemeChanges();
@@ -497,7 +497,7 @@ describe('Theme reducer', () => {
         };
         const { initialState } = fromTheme;
         const currentState = { ...initialState, editablePreset, presets, dirty: false };
-        const action = themeActions.selectPreset({ preset: 'top' });
+        const action = themeActions.previewPreset({ preset: 'top' });
         const state = fromTheme.reducer(currentState, action);
         it('should set the current theme to given preset', () => {
             expect(state.presets.current).toEqual(presets.presets.top);
