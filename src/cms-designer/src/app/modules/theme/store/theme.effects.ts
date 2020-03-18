@@ -52,10 +52,32 @@ export class ThemeEffects {
         )
     ));
 
+    uploadPreviewPreset$ = createEffect(() => this.actions$.pipe(
+        ofType(
+            themeActions.previewPreset,
+            // themeActions.applyPreset,
+            themeActions.updateTheme,
+            themeActions.loadEffectiveThemeValuesSuccess,
+            themeActions.loadEffectiveThemeValuesSkippedByTimeout,
+            themeActions.clearThemeChanges
+        ),
+        debounceTime(2000),
+        distinctUntilChanged(),
+        switchMapTo([themeActions.updateDraft()])
+    ));
+
+    cancelPresetEditing$ = createEffect(() => this.actions$.pipe(
+        ofType(
+            themeActions.cancelPreset,
+            themeActions.closeEditors
+        ),
+        switchMapTo([themeActions.updateDraft()])
+    ));
+
     uploadPresets$ = createEffect(() => this.actions$.pipe(
         ofType(themeActions.saveTheme),
         withLatestFrom(
-            this.store$.select(fromTheme.getEffectiveValues),
+            this.store$.select(fromTheme.getValuesToSave),
             this.store$.select(fromTheme.getPresetsNotLoaded)
         ),
         filter(([, , themeNotLoaded]) => !themeNotLoaded),
@@ -67,28 +89,15 @@ export class ThemeEffects {
         )
     ));
 
-    uploadPreviewPreset$ = createEffect(() => this.actions$.pipe(
-        ofType(
-            themeActions.updateTheme,
-            themeActions.selectPreset,
-            themeActions.loadEffectiveThemeValuesSuccess,
-            themeActions.clearThemeChanges,
-            themeActions.cancelPreset,
-            themeActions.applyPreset),
-        debounceTime(2000),
-        distinctUntilChanged(),
-        switchMapTo([themeActions.updateDraft()])
-    ));
-
     updateDraft$ = createEffect(() => this.actions$.pipe(
         ofType(themeActions.updateDraft),
         withLatestFrom(
-            this.store$.select(fromTheme.getEditableTheme),
+            this.store$.select(fromTheme.getValuesToSave),
             this.store$.select(fromTheme.getPresetsNotLoaded)
         ),
         filter(([, , themeNotLoaded]) => !themeNotLoaded),
-        switchMap(([, theme]) =>
-            this.themeService.uploadDraft(theme).pipe(
+        switchMap(([, values]) =>
+            this.themeService.uploadDraft(values).pipe(
                 map(() => themeActions.updateDraftSuccess()),
                 catchError(error => of(themeActions.updateDraftFail({ error })))
             )

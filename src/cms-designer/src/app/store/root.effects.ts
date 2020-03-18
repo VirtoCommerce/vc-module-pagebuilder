@@ -1,3 +1,4 @@
+import { loadEffectiveThemeValues } from './../modules/theme/store/theme.actions';
 import { AppSettings } from './../services/app.settings';
 import { Injectable } from '@angular/core';
 import { Actions, Effect, ofType, createEffect } from '@ngrx/effects';
@@ -145,17 +146,24 @@ export class RootEffects {
     loadEffectiveThemeValues$ = createEffect(() => this.actions$.pipe(
         ofType(themeActions.loadEffectiveThemeValues, rootActions.previewReady),
         withLatestFrom(
-            this.themeStore$.select(fromTheme.getEditableTheme),
+            this.themeStore$.select(fromTheme.getEditablePreset),
             this.themeStore$.select(fromTheme.getCurrentThemeValuesRequested),
             this.rootStore$.select(fromRoot.getPrimaryFrameId),
             this.rootStore$.select(fromRoot.getSecondaryFrameId)
         ),
-        filter(([, editableTheme, themeRequested, primaryFrameId, secondaryFrameId]) => 
+        filter(([, editableTheme, themeRequested, primaryFrameId, secondaryFrameId]) =>
             !themeRequested && !!editableTheme && (!!primaryFrameId || !!secondaryFrameId)),
         map(([, , , primaryFrameId, secondaryFrameId]) => {
             this.preview.requestSettings(primaryFrameId || secondaryFrameId);
             return themeActions.loadEffectiveThemeValuesRequested();
         })
+    ));
+
+    loadEffectiveThemeValuesRequested$ = createEffect(() => this.actions$.pipe(
+        ofType(themeActions.loadEffectiveThemeValuesRequested),
+        switchMap(() => timer(AppSettings.previewTimeout).pipe(
+            map(() => themeActions.loadEffectiveThemeValuesSkippedByTimeout())
+        )),
     ));
 
     // editor
@@ -267,12 +275,14 @@ export class RootEffects {
             this.editorStore$.select(fromEditor.getPageForEdit),
             this.rootStore$.select(fromRoot.getPrimaryIsLoaded),
             this.rootStore$.select(fromRoot.getSecondaryIsLoaded),
-            this.rootStore$.select(fromRoot.getSecondaryFrameId)
+            this.rootStore$.select(fromRoot.getSecondaryFrameId),
+            this.themeStore$.select(fromTheme.getDraftUploaded),
+            this.themeStore$.select(fromTheme.getPresetsNotLoaded)
         ),
-        filter(([action, page, primaryLoaded, secondaryLoaded, secondaryFrameId]) =>
+        filter(([action, page, primaryLoaded, secondaryLoaded, secondaryFrameId, draftUploaded, themeNotLoaded]) =>
             primaryLoaded && secondaryLoaded
             && action.frameId === secondaryFrameId
-            && page != null),
+            && (draftUploaded || themeNotLoaded) && page != null),
         switchMap(([action, page]) => {
             this.preview.page(page.content, action.frameId);
             return of(rootActions.previewLoading({ isLoading: true, msg: 'preview ready' }));
@@ -355,6 +365,19 @@ export class RootEffects {
     receiveHoverElementMessage$ = createEffect(() => fromEvent(window, 'message').pipe(
         filter((event: MessageEvent) => event.data.type === 'hover'),
         map(event => editorActions.markSectionHoveredInPreview({ blockId: event.data.id }))
+    ));
+
+    receiveRefreshFrameMessage$ = createEffect(() => fromEvent(window, 'message').pipe(
+        filter((event: MessageEvent) => event.data.type === 'refresh'),
+        withLatestFrom(this.rootStore$.select(fromRoot.getSecondaryFrameId)),
+        tap(([, frameId]) => {
+            this.preview.reload(frameId);
+        })
+    ), { dispatch: false });
+
+    receiveShowErrorFrameMessage$ = createEffect(() => fromEvent(window, 'message').pipe(
+        filter((event: MessageEvent) => event.data.type === 'info'),
+        map(event => rootActions.displayError({ error: event.data.msg }))
     ));
 
     sendCloneToPreview$ = createEffect(() => this.actions$.pipe(

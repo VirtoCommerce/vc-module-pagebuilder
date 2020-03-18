@@ -29,11 +29,10 @@ import { LoadingComponent } from './components/loading/loading.component';
 import { RefreshTokenInterceptor } from './services/refresh-token.interceptor';
 import { AppSettings } from './services/app.settings';
 
-
-export function debug(reducer: ActionReducer<any>): ActionReducer<any> {
+export function debug(actionReducer: ActionReducer<any>): ActionReducer<any> {
     return function (state, action) {
         console.log(state, action);
-        return reducer(state, action);
+        return actionReducer(state, action);
     };
 }
 
