@@ -12,6 +12,7 @@ import { ReturnStatement } from '@angular/compiler';
 export class BlockFormComponent implements OnInit, OnDestroy {
     private _model: BlockValuesModel;
     private _schema: BlocksSchema | BlockSchema;
+    private _currentBlockId?: number = null;
 
     @Input() context: any;
 
@@ -21,7 +22,6 @@ export class BlockFormComponent implements OnInit, OnDestroy {
     set model(value: BlockValuesModel) {
         if (this._model !== value) {
             this._model = value;
-            console.log('model');
             this.createForm();
         }
     }
@@ -39,7 +39,6 @@ export class BlockFormComponent implements OnInit, OnDestroy {
     set schema(value: BlocksSchema | BlockSchema) {
         if (this._schema !== value) {
             this._schema = value;
-            console.log('schema');
             this.createForm();
         }
     }
@@ -65,7 +64,8 @@ export class BlockFormComponent implements OnInit, OnDestroy {
 
     private createForm() {
         const m = this.model;
-        if (m && this.schema && !this.form) {
+        if (m && this.schema && (!this.form || (m.id !== this._currentBlockId))) {
+            this._currentBlockId = m.id;
             const s = m.type ? this.schema[m.type] : this.schema;
             if (s && (!m.type || m.type === s.type)) {
                 if (this.subscription !== null) {

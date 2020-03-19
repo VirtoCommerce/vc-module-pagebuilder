@@ -27,12 +27,19 @@ export class HttpService {
                 //     headers: xhr.getAllResponseHeaders(),
                 //     data: xhr.responseText
                 // };
-                resolve(xhr.responseText.trim());
-                // this.blocks.push(model); or replace
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    // everything is allright
+                    resolve(xhr.responseText.trim());
+                } else if (xhr.status >= 400 && xhr.status < 500) {
+                    reject({
+                        type: 'refresh'
+                    });
+                } else if (xhr.status >= 500) {
+                    this.showMessage(reject, xhr.statusText)
+                }
             };
             xhr.onerror = evt => {
-                console.log(evt);
-                document.location.reload();
+                this.showMessage(reject, xhr.statusText)
             };
             // xhr.ontimeout = evt => {
             //   resolve(errorResponse(xhr, 'Request took longer than expected.'));
@@ -43,6 +50,15 @@ export class HttpService {
 
     post(model: any): Promise<string> {
         return this.postTo(this.endpoint, model);
+    }
+
+    private showMessage(func, msg) {
+        if (!!func) {
+            func({
+                type: 'info',
+                msg: msg
+            });
+        }
     }
 
     private getToken(): string {

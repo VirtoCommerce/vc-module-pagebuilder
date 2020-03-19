@@ -13,3 +13,4 @@ export const toggleFrames = createAction('[Root] Toggle Frames', props<{frameId:
 export const closeEditors = createAction('[Root] Close editors');
 export const tabIndexChanged = createAction('[Root] Tab Index Changed', props<{tabIndex: number}>());
 export const setPreviewUrl = createAction('[Root] Set Preview Url', props<{url: string}>());
+export const displayError = createAction('[Root] Display Error', props<{error: string}>());
