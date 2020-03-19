@@ -4,8 +4,38 @@ export class HttpService {
 
     constructor(private endpoint: string) { }
 
-    get() {
+    get(url: string) {
+        return new Promise<string>((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('get', url);
 
+            xhr.setRequestHeader('Accept', 'application/json, text/javascript, text/plain')
+            xhr.setRequestHeader('Cache-Control', 'no-cache');
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.setRequestHeader('X-XSRF-TOKEN', this.getToken());
+            xhr.send();
+            // xhr.timeout = timeout;
+            xhr.onload = evt => {
+                // const result = {
+                //     ok: xhr.status >= 200 && xhr.status < 300,
+                //     status: xhr.status,
+                //     statusText: xhr.statusText,
+                //     headers: xhr.getAllResponseHeaders(),
+                //     data: xhr.responseText
+                // };
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    // everything is allright
+                    resolve(xhr.responseText.trim());
+                }
+                // this.blocks.push(model); or replace
+            };
+            // xhr.onerror = evt => {
+            //   resolve(errorResponse(xhr, 'Failed to make request.'));
+            // };
+            // xhr.ontimeout = evt => {
+            //   resolve(errorResponse(xhr, 'Request took longer than expected.'));
+            // };
+        });
     }
 
     postTo(endpoint: string, model: any) {
