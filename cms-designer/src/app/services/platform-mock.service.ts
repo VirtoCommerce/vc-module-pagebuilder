@@ -33,7 +33,7 @@ export class MockPlatformService {
         return of({});
     }
 
-    downloadBlocksSchema(): Observable<BlocksSchema> {
+    donwloadBlocksSchema(): Observable<BlocksSchema> {
         return this.http.get<BlocksSchema>('data/blocks_schema.json');
     }
 

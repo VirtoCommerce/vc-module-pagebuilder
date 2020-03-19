@@ -87,7 +87,7 @@ describe('Theme reducer', () => {
     });
 
     describe('SaveTheme action', () => {
-        const editableTheme = {
+        const editablePreset = {
             property1: 'value 1',
             property2: 'value 2',
             property3: 'value 3'
@@ -108,19 +108,19 @@ describe('Theme reducer', () => {
             }
         };
         const themeToSave = {
-            current: editableTheme,
+            current: editablePreset,
             presets: presets.presets
         };
         const { initialState } = fromTheme;
-        const currentState = { ...initialState, editableTheme, presets };
+        const currentState = { ...initialState, editablePreset, presets };
         const action = themeActions.saveTheme();
         const state = fromTheme.reducer(currentState, action);
 
-        it('should set current theme from editableTheme', () => {
+        it('should set current theme from editablePreset', () => {
             expect(state.presets).toEqual(themeToSave);
         });
         it('should create new theme object', () => {
-            expect(state.presets.current).not.toBe(editableTheme);
+            expect(state.presets.current).not.toBe(editablePreset);
             expect(state.presets).not.toBe(presets);
         });
     });
@@ -143,11 +143,11 @@ describe('Theme reducer', () => {
         };
         const { initialState } = fromTheme;
         const currentState = { ...initialState, presets, dirty: true };
-        const action = themeActions.saveThemeSuccess();
+        const valueToSave = presets[presets.current];
+        const action = themeActions.saveThemeSuccess(valueToSave);
         const state = fromTheme.reducer(currentState, action);
-        it('should serialize current themes to initialPresets', () => {
-            const serializedPresets = JSON.stringify(presets);
-            expect(state.initialPresets).toEqual(serializedPresets);
+        it('should current themes data to initialPresets', () => {
+            expect(state.initialValues).toEqual(presets);
         });
         it('should reset dirty flag', () => {
             expect(state.dirty).toEqual(false);
@@ -156,7 +156,7 @@ describe('Theme reducer', () => {
 
     describe('LoadThemes action', () => {
         const { initialState } = fromTheme;
-        const action = themeActions.loadThemes();
+        const action = themeActions.loadDefaultThemes();
         const state = fromTheme.reducer(initialState, action);
         it('should set theme loading to true', () => {
             expect(state.presetsLoading).toEqual(true);
@@ -176,22 +176,21 @@ describe('Theme reducer', () => {
             };
             const { initialState } = fromTheme;
             const currentState = { ...initialState, presetsLoading: true };
-            const action = themeActions.loadThemesSuccess({ presets });
+            const action = themeActions.loadDefaultThemesSuccess({ presets });
             const state = fromTheme.reducer(currentState, action);
-            it('should set editableTheme to correct presets in other object', () => {
-                expect(state.editableTheme).toEqual(presets.presets.top);
-                expect(state.editableTheme).not.toBe(presets.presets.top);
+            it('should set editablePreset to correct presets in other object', () => {
+                expect(state.editablePreset).toEqual(presets.presets.top);
+                expect(state.editablePreset).not.toBe(presets.presets.top);
             });
             it('should set presets current property to current preset', () => {
                 const workingPresets = { ...presets, current: presets.presets.top };
                 expect(state.presets).toEqual(workingPresets);
                 expect(state.presets.current).toEqual(presets.presets.top);
                 expect(state.presets.current).not.toBe(presets.presets.top);
-                expect(state.presets.current).not.toBe(state.editableTheme);
+                expect(state.presets.current).not.toBe(state.editablePreset);
             });
             it('should store presets for restoring', () => {
-                const serialized = JSON.stringify(presets);
-                expect(state.initialPresets).toEqual(serialized);
+                expect(state.initialValues).toEqual(presets);
             });
             it('should reset loading flag', () => {
                 expect(state.presetsLoading).toEqual(false);
@@ -212,18 +211,17 @@ describe('Theme reducer', () => {
             };
             const { initialState } = fromTheme;
             const currentState = { ...initialState, presetsLoading: true };
-            const action = themeActions.loadThemesSuccess({ presets });
+            const action = themeActions.loadDefaultThemesSuccess({ presets });
             const state = fromTheme.reducer(currentState, action);
             it('should set editable object from given current theme', () => {
-                expect(state.editableTheme).toEqual(presets.current);
-                expect(state.editableTheme).not.toBe(presets.current);
+                expect(state.editablePreset).toEqual(presets.current);
+                expect(state.editablePreset).not.toBe(presets.current);
             });
             it('should not change a given presets', () => {
                 expect(state.presets).toEqual(presets);
             });
             it('should store presets for restoring', () => {
-                const serialized = JSON.stringify(presets);
-                expect(state.initialPresets).toEqual(serialized);
+                expect(state.initialValues).toEqual(presets);
             });
             it('should reset loading flag', () => {
                 expect(state.presetsLoading).toEqual(false);
@@ -234,7 +232,7 @@ describe('Theme reducer', () => {
         const { initialState } = fromTheme;
         const currentState = { ...initialState, presetsLoading: true };
         const message = 'something went wrong';
-        const action = themeActions.loadThemesFail({ error: new HttpErrorResponse({ error: message }) });
+        const action = themeActions.loadDefaultThemesFail({ error: new HttpErrorResponse({ error: message }) });
         const state = fromTheme.reducer(currentState, action);
         it('should reset loading flag and set correct error value', () => {
             expect(state.presetsLoading).toEqual(false);
@@ -267,17 +265,17 @@ describe('Theme reducer', () => {
                 }
             }
         };
-        const editableTheme = {
+        const editablePreset = {
             property1: 'current value 1',
             property2: 'current value 2'
         };
         presets.current = presets.presets.top;
         const { initialState } = fromTheme;
-        const currentState = { ...initialState, editableTheme, presets, showPresetsEditor: true };
+        const currentState = { ...initialState, editablePreset, presets, showPresetsEditor: true };
         const action = themeActions.cancelPreset();
         const state = fromTheme.reducer(currentState, action);
         it('should revert presets.current', () => {
-            expect(state.presets.current).toEqual(editableTheme);
+            expect(state.presets.current).toEqual(editablePreset);
             expect(state.presets).not.toBe(presets);
         });
         it('should hide presets editor', () => {
@@ -294,19 +292,19 @@ describe('Theme reducer', () => {
                 }
             }
         };
-        const editableTheme = {
+        const editablePreset = {
             property1: 'current value 1',
             property2: 'current value 2'
         };
-        presets.current = { ...editableTheme };
+        presets.current = { ...editablePreset };
         const { initialState } = fromTheme;
-        const currentState = { ...initialState, editableTheme, presets, showPresetsEditor: true, dirty: false };
+        const currentState = { ...initialState, editablePreset, presets, showPresetsEditor: true, dirty: false };
         const action = themeActions.applyPreset({ preset: 'top' });
         const state = fromTheme.reducer(currentState, action);
-        it('should apply previewed preset to editableTheme', () => {
-            expect(state.editableTheme).toEqual(presets.presets.top);
-            expect(state.editableTheme).not.toBe(presets.presets.top);
-            expect(state.editableTheme).not.toBe(presets.current);
+        it('should apply previewed preset to editablePreset', () => {
+            expect(state.editablePreset).toEqual(presets.presets.top);
+            expect(state.editablePreset).not.toBe(presets.presets.top);
+            expect(state.editablePreset).not.toBe(presets.current);
         });
         it('should set presets.current to given preset', () => {
             expect(state.presets.current).toEqual(presets.presets.top);
@@ -329,29 +327,29 @@ describe('Theme reducer', () => {
                 }
             }
         };
-        const editableTheme = {
+        const editablePreset = {
             property1: 'current value 1',
             property2: 'current value 2'
         };
-        presets.current = { ...editableTheme };
+        presets.current = { ...editablePreset };
         const updatePart = {
             newProperty1: 'new property 1',
             newProperty2: 'new property 2'
         };
         const { initialState } = fromTheme;
-        const currentState = { ...initialState, editableTheme, presets, dirty: false };
+        const currentState = { ...initialState, editablePreset, presets, dirty: false };
         const action = themeActions.updateTheme({ values: updatePart });
         const state = fromTheme.reducer(currentState, action);
         it('should update the editable theme', () => {
-            const newValue = { ...editableTheme, ...updatePart };
-            expect(state.editableTheme).toEqual(newValue);
-            expect(state.editableTheme).not.toBe(editableTheme);
+            const newValue = { ...editablePreset, ...updatePart };
+            expect(state.editablePreset).toEqual(newValue);
+            expect(state.editablePreset).not.toBe(editablePreset);
         });
         it('should update the preset\'s current property', () => {
-            const newValue = { ...editableTheme, ...updatePart };
+            const newValue = { ...editablePreset, ...updatePart };
             expect(state.presets.current).toEqual(newValue);
             expect(state.presets).not.toBe(presets);
-            expect(state.presets.current).not.toBe(state.editableTheme);
+            expect(state.presets.current).not.toBe(state.editablePreset);
         });
         it('should set dirty property to true', () => {
             expect(state.dirty).toEqual(true);
@@ -374,7 +372,7 @@ describe('Theme reducer', () => {
             const { initialState } = fromTheme;
             const currentState = {
                 ...initialState,
-                initialPresets: JSON.stringify(presets),
+                presets,
                 dirty: true
             };
             const action = themeActions.clearThemeChanges();
@@ -382,9 +380,9 @@ describe('Theme reducer', () => {
             it('should set presets as initial', () => {
                 expect(state.presets).toEqual(presets);
             });
-            it('should set editableTheme as presets.current', () => {
-                expect(state.editableTheme).toEqual(<any>state.presets.current);
-                expect(state.editableTheme).not.toBe(<any>state.presets.current);
+            it('should set editablePreset as presets.current', () => {
+                expect(state.editablePreset).toEqual(<any>state.presets.current);
+                expect(state.editablePreset).not.toBe(<any>state.presets.current);
             });
             it('should reset dirty flag', () => {
                 expect(state.dirty).toEqual(false);
@@ -412,9 +410,9 @@ describe('Theme reducer', () => {
                 const preparedPresets = { ...presets, current: presets.presets[presets.current] };
                 expect(state.presets).toEqual(preparedPresets);
             });
-            it('should set editableTheme as presets.current', () => {
-                expect(state.editableTheme).toEqual(<any>state.presets.current);
-                expect(state.editableTheme).not.toBe(<any>state.presets.current);
+            it('should set editablePreset as presets.current', () => {
+                expect(state.editablePreset).toEqual(<any>state.presets.current);
+                expect(state.editablePreset).not.toBe(<any>state.presets.current);
             });
             it('should reset dirty flag', () => {
                 expect(state.dirty).toEqual(false);
@@ -463,17 +461,17 @@ describe('Theme reducer', () => {
                 }
             }
         };
-        const editableTheme = {
+        const editablePreset = {
             property1: 'new value 1',
             property2: 'new value 2'
         };
         const { initialState } = fromTheme;
-        const currentState = { ...initialState, editableTheme, presets, dirty: false };
+        const currentState = { ...initialState, editablePreset, presets, dirty: false };
         const action = themeActions.createPreset({ preset: 'other' });
         const state = fromTheme.reducer(currentState, action);
         it('should create the \'other\' preset', () => {
-            expect(state.presets.presets.other).toEqual(editableTheme);
-            expect(state.editableTheme).not.toBe(state.presets.presets.other);
+            expect(state.presets.presets.other).toEqual(editablePreset);
+            expect(state.editablePreset).not.toBe(state.presets.presets.other);
             expect(state.presets).not.toBe(presets);
         });
         it('should set dirty to true', () => {
@@ -493,20 +491,20 @@ describe('Theme reducer', () => {
                 }
             }
         };
-        const editableTheme = {
+        const editablePreset = {
             property1: 'new value 1',
             property2: 'new value 2'
         };
         const { initialState } = fromTheme;
-        const currentState = { ...initialState, editableTheme, presets, dirty: false };
-        const action = themeActions.selectPreset({ preset: 'top' });
+        const currentState = { ...initialState, editablePreset, presets, dirty: false };
+        const action = themeActions.previewPreset({ preset: 'top' });
         const state = fromTheme.reducer(currentState, action);
         it('should set the current theme to given preset', () => {
             expect(state.presets.current).toEqual(presets.presets.top);
             expect(state.presets).not.toBe(presets);
         });
         it('should not change theme under edit', () => {
-            expect(state.editableTheme).toEqual(editableTheme);
+            expect(state.editablePreset).toEqual(editablePreset);
         });
         it('should not touch the dirty flag', () => {
             expect(state.dirty).toEqual(false);

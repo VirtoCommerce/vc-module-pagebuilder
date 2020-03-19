@@ -5,7 +5,7 @@ import { Observable, combineLatest } from 'rxjs';
 import { tap, map } from 'rxjs/operators';
 import { ApiUrlsService } from './api-url.service';
 import { PresetsModel } from '@themes/models';
-import { BlockValuesModel, BlocksSchema } from '@shared/models';
+import { BlockValuesModel, BlocksSchema, BlockSchema, ValueType } from '@shared/models';
 import { PlatformSetting, StoreSettings } from '@app/models';
 
 import { AppSettings } from './app.settings';
@@ -22,16 +22,20 @@ export class PlatformService {
 
     constructor(private http: HttpClient, private urls: ApiUrlsService) { }
 
-    downloadPreset<T>(filename: string): Observable<T> {
-        return this.downloadModel<T>(ContentType.themes, `/${AppSettings.themeName}/config/${filename}`);
+    downloadSettingsData(): Observable<PresetsModel> {
+        return this.downloadModel<PresetsModel>(ContentType.themes, `/${AppSettings.defaultThemeName}/config/settings_data.json`);
     }
 
-    uploadPreset(model: PresetsModel): Observable<any> {
-        return this.uploadModel<PresetsModel>(model, ContentType.themes, `/${AppSettings.themeName}/config`, 'settings_data.json');
+    downloadSettingsSchema(): Observable<BlockSchema[]> {
+        return this.downloadModel<BlockSchema[]>(ContentType.themes, `/${AppSettings.defaultThemeName}/config/settings_schema.json`);
     }
 
-    uploadDraftPreset(model: PresetsModel): Observable<any> {
-        return this.uploadModel<PresetsModel>(model, ContentType.themes,
+    uploadPreset(model: { [key: string]: ValueType }): Observable<any> {
+        return this.uploadModel<{ [key: string]: ValueType }>(model, ContentType.themes, `/${AppSettings.themeName}/config`, 'settings_data.json');
+    }
+
+    uploadDraftPreset(model: { [key: string]: ValueType }): Observable<any> {
+        return this.uploadModel<{ [key: string]: ValueType }>(model, ContentType.themes,
             `/${AppSettings.themeName}/config/drafts`, this.generateDraftPresetName());
     }
 
@@ -43,8 +47,8 @@ export class PlatformService {
         return this.uploadModel<BlockValuesModel[]>(model);
     }
 
-    downloadBlocksSchema(): Observable<BlocksSchema> {
-        return this.downloadModel<BlocksSchema>(ContentType.themes, `/${AppSettings.themeName}/config/blocks_schema.json`);
+    donwloadBlocksSchema(): Observable<BlocksSchema> {
+        return this.downloadModel<BlocksSchema>(ContentType.themes, `/${AppSettings.defaultThemeName}/config/blocks_schema.json`);
     }
 
     initSettings(): Promise<any> {
@@ -58,7 +62,7 @@ export class PlatformService {
                     const key = x.name.replace('VirtoCommerce.PageBuilderModule.General.', '');
                     AppSettings[parameters[key]] = x.value || x.defaultValue;
                 });
-                AppSettings.storeBaseUrl = storeSettings.secureUrl || storeSettings.url;
+                // AppSettings.storeBaseUrl = storeSettings.secureUrl || storeSettings.url;
                 AppSettings.themeName = this.getThemeName(storeSettings);
                 environment.version = version;
             })
@@ -66,7 +70,7 @@ export class PlatformService {
     }
 
     private getThemeName(storeSettings: any): string {
-        let result = 'default';
+        let result = AppSettings.defaultThemeName;
 
         if (!!storeSettings && !!storeSettings.dynamicProperties) {
             const properties: Array<any> = storeSettings.dynamicProperties;
@@ -99,6 +103,10 @@ export class PlatformService {
 
     private downloadModel<T>(contentType: string = null, filepath: string = null): Observable<T> {
         const url = this.urls.generateDownloadUrl(contentType, filepath);
+        return this.download<T>(url);
+    }
+
+    private download<T>(url: string): Observable<T> {
         return this.http.get<T>(url);
     }
 

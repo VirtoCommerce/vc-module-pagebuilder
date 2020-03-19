@@ -5,36 +5,40 @@ import { BlockSchema, ValueType } from '@shared/models';
 
 import * as Actions from './theme.actions';
 
-export interface ThemeState {
+export interface PresetsState {
     schemaLoading: boolean;
     schemaNotLoaded: boolean;
     presetsLoading: boolean;
     presetsNotLoaded: boolean;
+    currentThemeValuesRequested: boolean;
     draftUploaded: boolean;
     uploadDraftFail: boolean;
 
+    presetUnderPreview: string;
     showPresetsEditor: boolean;
     selectedSchemaItem: BlockSchema; // this section corresponds to section from schema
-    editableTheme: { [key: string]: ValueType }; // the current theme
+    editablePreset: { [key: string]: ValueType }; // the current preset under editing
+    initialValues: { [key: string]: ValueType }; // initial values of current preset
     presets: PresetsModel; // the whole presets file which used as transport for preview
-    initialPresets: string; // initial file with presets and theme as string
     schema: BlockSchema[]; // the settings schema
     dirty: boolean;
 }
 
-export const initialState: ThemeState = {
+export const initialState: PresetsState = {
     schemaLoading: false,
     schemaNotLoaded: false,
     presetsLoading: false,
     presetsNotLoaded: false,
+    currentThemeValuesRequested: false,
     draftUploaded: false,
     uploadDraftFail: false,
 
+    presetUnderPreview: null,
     showPresetsEditor: false,
     selectedSchemaItem: null,
-    editableTheme: null,
+    editablePreset: null,
+    initialValues: {},
     presets: null,
-    initialPresets: null,
     schema: null,
     dirty: false
 };
@@ -43,103 +47,91 @@ const themesReducer = createReducer(
     initialState,
     on(Actions.loadSchema, state => ({ ...state, schemaLoading: true })),
     on(Actions.loadSchemaSuccess, (state, { schema }) => ({ ...state, schema, schemaLoading: false, schemaNotLoaded: false })),
-    on(Actions.loadSchemaFail, (state) => ({ ...state, schemaLoading: false, schemaNotLoaded: true, schema: null })),
-    on(Actions.saveTheme, state => ({ ...state, presets: { ...state.presets, current: { ...state.editableTheme } } })),
-    on(Actions.saveThemeSuccess, state => ({ ...state, initialPresets: JSON.stringify(state.presets), dirty: false })),
-    on(Actions.loadThemes, state => ({ ...state, presetsLoading: true })),
-    on(Actions.loadThemesSuccess, (state, { presets }) => {
-        const newPresets = { ...presets };
-        if (typeof presets.current === 'string') {
-            newPresets.current = { ...presets.presets[presets.current] };
-        }
+    on(Actions.loadSchemaFail, state => ({ ...state, schemaLoading: false, schemaNotLoaded: true, schema: null })),
+    on(Actions.saveThemeSuccess, (state, { values }) => ({ ...state, initialValues: values, dirty: false })),
+    on(Actions.loadDefaultThemes, state => ({ ...state, presetsLoading: true })),
+    on(Actions.loadDefaultThemesSuccess, (state, { presets }) => {
+        const currentPreset = typeof presets.current === 'string' ? presets.presets[presets.current] : presets.current;
         return {
             ...state,
-            editableTheme: { ...<any>newPresets.current },
-            initialPresets: JSON.stringify(presets),
-            presets: newPresets,
+            editablePreset: { ...currentPreset },
+            initialValues: { ...currentPreset },
+            presets: presets
+        };
+    }),
+    on(Actions.loadEffectiveThemeValuesRequested, state => ({ ...state, currentThemeValuesRequested: true })),
+    on(Actions.loadEffectiveThemeValuesSuccess, (state, { values }) => {
+        const currentValues = { ...state.editablePreset, ...values };
+        return {
+            ...state,
+            editablePreset: currentValues,
+            initialValues: values,
             presetsLoading: false,
             presetsNotLoaded: false
         };
     }),
-    on(Actions.loadThemesFail, state => ({ ...state, presetsLoading: false, presetsNotLoaded: true })),
+    on(Actions.loadDefaultThemesFail, state => ({ ...state, presetsLoading: false, presetsNotLoaded: true })),
     on(Actions.selectSchemaItem, (state, { item }) => ({ ...state, selectedSchemaItem: item })),
     on(Actions.showPresetsPane, state => ({ ...state, showPresetsEditor: true })),
     on(Actions.closeEditors, Actions.cancelPreset, state => ({
         ...state,
-        presets: {
-            ...state.presets,
-            current: { ...state.editableTheme }
-        },
         showPresetsEditor: false,
-        selectedSchemaItem: null
+        selectedSchemaItem: null,
+        presetUnderPreview: null
     })),
+    on(Actions.cancelPreset, state => ({ ...state, presetUnderPreview: null })),
+    on(Actions.previewPreset, (state, { preset }) => ({ ...state, presetUnderPreview: preset })),
     on(Actions.applyPreset, (state, { preset }) => {
-        const newTheme = { ...state.presets.presets[preset] };
+        const newPreset = { current: preset, ...state.presets.presets[preset] };
         return {
             ...state,
-            editableTheme: newTheme,
-            presets: {
-                ...state.presets,
-                current: newTheme
-            },
+            editablePreset: newPreset,
             showPresetsEditor: false,
             dirty: true
         };
     }),
     on(Actions.updateTheme, (state, { values }) => {
-        const currentTheme = { ...state.editableTheme, ...values };
-        const newPresets = { ...state.presets };
-        newPresets.current = { ...currentTheme };
         return {
             ...state,
-            editableTheme: currentTheme,
-            presets: newPresets,
+            editablePreset: { ...state.editablePreset, ...values },
             dirty: true
         };
     }),
-    on(Actions.clearThemeChanges, state => {
-        const newPresets = JSON.parse(state.initialPresets);
-        if (typeof newPresets.current === 'string') {
-            newPresets.current = { ...newPresets.presets[newPresets.current] };
-        }
-        return {
-            ...state,
-            presets: newPresets,
-            editableTheme: { ...newPresets.current },
-            dirty: false,
-            draftUploaded: false
-        };
-    }),
-    on(Actions.removePreset, (state, { preset }) => {
-        const newPresets = { ...state.presets };
-        delete newPresets.presets[preset];
-        return {
-            ...state,
-            presets: newPresets,
-            dirty: true
-        };
-    }),
-    on(Actions.createPreset, (state, { preset }) => {
-        const newPresets = { ...state.presets };
-        newPresets.presets[preset] = { ...state.editableTheme };
-        newPresets.current = { ...state.editableTheme };
-        return {
-            ...state,
-            presets: newPresets,
-            dirty: true
-        };
-    }),
-    on(Actions.selectPreset, (state, { preset }) => {
-        const newPresets = { ...state.presets };
-        newPresets.current = { ...newPresets.presets[preset] };
-        return {
-            ...state,
-            presets: newPresets
-        };
-    }),
+    // on(Actions.clearThemeChanges, state => {
+    //     const newPresets = JSON.parse(state.initialPresets);
+    //     if (typeof newPresets.current === 'string') {
+    //         newPresets.current = { ...newPresets.presets[newPresets.current] };
+    //     }
+    //     return {
+    //         ...state,
+    //         presets: newPresets,
+    //         editablePreset: { ...newPresets.current },
+    //         dirty: false,
+    //         draftUploaded: false
+    //     };
+    // }),
+    // on(Actions.removePreset, (state, { preset }) => {
+    //     const newPresets = { ...state.presets };
+    //     delete newPresets.presets[preset];
+    //     return {
+    //         ...state,
+    //         presets: newPresets,
+    //         dirty: true
+    //     };
+    // }),
+    // on(Actions.createPreset, (state, { preset }) => {
+    //     const newPresets = { ...state.presets };
+    //     newPresets.presets[preset] = { ...state.editablePreset };
+    //     newPresets.current = { ...state.editablePreset };
+    //     return {
+    //         ...state,
+    //         presets: newPresets,
+    //         dirty: true
+    //     };
+    // }),
     on(Actions.updateDraftSuccess, state => ({ ...state, draftUploaded: true }))
 );
 
-export function reducer(state = initialState, action: Action): ThemeState {
+export function reducer(state = initialState, action: Action): PresetsState {
     return themesReducer(state, action);
 }

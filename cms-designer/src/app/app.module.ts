@@ -1,6 +1,6 @@
 import { BrowserModule } from '@angular/platform-browser';
 import { NgModule, APP_INITIALIZER } from '@angular/core';
-import { StoreModule } from '@ngrx/store';
+import { StoreModule, ActionReducer, MetaReducer } from '@ngrx/store';
 import { StoreDevtoolsModule } from '@ngrx/store-devtools';
 import { EffectsModule } from '@ngrx/effects';
 import { BsDropdownModule } from 'ngx-bootstrap';
@@ -29,6 +29,15 @@ import { LoadingComponent } from './components/loading/loading.component';
 import { RefreshTokenInterceptor } from './services/refresh-token.interceptor';
 import { AppSettings } from './services/app.settings';
 
+export function debug(actionReducer: ActionReducer<any>): ActionReducer<any> {
+    return function (state, action) {
+        console.log(state, action);
+        return actionReducer(state, action);
+    };
+}
+
+export const metaReducers: MetaReducer<any>[] = [debug];
+
 @NgModule({
     declarations: [
         AppComponent,
@@ -39,7 +48,7 @@ import { AppSettings } from './services/app.settings';
         BrowserModule,
         StoreModule.forRoot({
             'root': reducer
-        }),
+        }, { metaReducers }),
         StoreDevtoolsModule.instrument({
             name: 'CMS',
             maxAge: 25,
@@ -68,14 +77,14 @@ import { AppSettings } from './services/app.settings';
             useFactory: (http: HttpClient, urls: ApiUrlsService) => {
                 return new PlatformService(http, urls);
             },
-            deps: [ HttpClient, ApiUrlsService ]
+            deps: [HttpClient, ApiUrlsService]
         },
         {
             provide: PreviewService,
             useFactory: () => {
                 return new PreviewService();
             },
-            deps: [ ]
+            deps: []
         },
         {
             provide: APP_BASE_HREF,
@@ -83,7 +92,7 @@ import { AppSettings } from './services/app.settings';
                 console.log(windowRef.nativeWindow.location);
                 console.log(AppSettings);
             },
-            deps: [ WindowRef ]
+            deps: [WindowRef]
         }
     ],
     bootstrap: [AppComponent]
