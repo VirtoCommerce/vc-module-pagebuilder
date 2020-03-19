@@ -47,7 +47,7 @@ export class PlatformService {
         return this.uploadModel<BlockValuesModel[]>(model);
     }
 
-    donwloadBlocksSchema(): Observable<BlocksSchema> {
+    downloadBlocksSchema(): Observable<BlocksSchema> {
         return this.downloadModel<BlocksSchema>(ContentType.themes, `/${AppSettings.defaultThemeName}/config/blocks_schema.json`);
     }
 
