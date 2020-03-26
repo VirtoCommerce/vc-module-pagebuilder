@@ -16,17 +16,17 @@ export class ApiUrlsService {
 
     constructor(private cookies: CookieService, private windowRef: WindowRef) { }
 
-    generateSettingsUrl() {
+    generateSettingsUrl(): string {
         const url = this.combine(this.params.platformUrl, '/api/platform/settings/modules/VirtoCommerce.PageBuilderModule');
         return url;
     }
 
-    generateModulesUrl() {
+    generateModulesUrl(): string {
         const url = this.combine(this.params.platformUrl, '/api/platform/modules');
         return url;
     }
 
-    generateStoreSettingsUrl() {
+    generateStoreSettingsUrl(): string {
         const url = this.combine(this.params.platformUrl, '/api/stores/', this.params.storeId);
         return url;
     }

@@ -1,6 +1,6 @@
 import { AppSettings } from './../services/app.settings';
 import { Injectable } from '@angular/core';
-import { Actions, Effect, ofType, createEffect } from '@ngrx/effects';
+import { Actions, ofType, createEffect } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
 import { of, fromEvent, timer } from 'rxjs';
 import {
@@ -71,7 +71,7 @@ export class RootEffects {
             this.themeStore$.select(fromTheme.getPresetsNotLoaded)
         ),
         filter(([, presets, presetsNotLoaded]) => !presets || presetsNotLoaded),
-        mapTo(themeActions.loadThemes())
+        mapTo(themeActions.loadDefaultThemes())
     ));
 
     switchToLoadThemeSchema$ = createEffect(() => this.actions$.pipe(
@@ -135,6 +135,34 @@ export class RootEffects {
             }
             return of(rootActions.previewLoading({ isLoading: true, msg: 'update draft success' }));
         })
+    ));
+
+    settingsFromStorefront$ = createEffect(() => fromEvent(window, 'message').pipe(
+        filter((event: MessageEvent) => event.data.type === 'settings'),
+        map(event => themeActions.loadEffectiveThemeValuesSuccess({ values: event.data.model }))
+    ));
+
+    loadEffectiveThemeValues$ = createEffect(() => this.actions$.pipe(
+        ofType(themeActions.loadEffectiveThemeValues, rootActions.previewReady),
+        withLatestFrom(
+            this.themeStore$.select(fromTheme.getEditablePreset),
+            this.themeStore$.select(fromTheme.getCurrentThemeValuesRequested),
+            this.rootStore$.select(fromRoot.getPrimaryFrameId),
+            this.rootStore$.select(fromRoot.getSecondaryFrameId)
+        ),
+        filter(([, editableTheme, themeRequested, primaryFrameId, secondaryFrameId]) =>
+            !themeRequested && !!editableTheme && (!!primaryFrameId || !!secondaryFrameId)),
+        map(([, , , primaryFrameId, secondaryFrameId]) => {
+            this.preview.requestSettings(primaryFrameId || secondaryFrameId);
+            return themeActions.loadEffectiveThemeValuesRequested();
+        })
+    ));
+
+    loadEffectiveThemeValuesRequested$ = createEffect(() => this.actions$.pipe(
+        ofType(themeActions.loadEffectiveThemeValuesRequested),
+        switchMap(() => timer(AppSettings.previewTimeout).pipe(
+            map(() => themeActions.loadEffectiveThemeValuesSkippedByTimeout())
+        )),
     ));
 
     // editor
