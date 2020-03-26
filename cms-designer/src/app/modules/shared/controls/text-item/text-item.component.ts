@@ -14,8 +14,9 @@ export class TextItemComponent extends BaseControlComponent<TextControlDescripto
         toolbar: [
             {
                 name: 'basicstyles',
-                items: ['Bold', 'Italic', 'Underline', 'Strike', 'Subscript', 'Superscript']
+                items: ['Bold', 'Italic', 'Underline', 'Strike']
             },
+            { name: 'colors', items: ['TextColor'] },
             { name: 'align', items: ['JustifyLeft', 'JustifyCenter', 'JustifyRight'] },
             { name: 'lists', items: ['NumberedList', 'BulletedList', 'Outdent', 'Indent'] },
             { name: 'insert', items: ['Anchor'] },
@@ -24,7 +25,7 @@ export class TextItemComponent extends BaseControlComponent<TextControlDescripto
             { name: 'tools', items: ['Maximize'] },
             { name: 'document', items: ['Source'] }
         ],
-        extraPlugins: 'stylescombo,justify',
+        extraPlugins: 'stylescombo,justify,colorbutton,colordialog',
         removeButtons: '',
         format_tags: 'p;h2;h3;h4',
         // contentsCss: AppSettings.contentCssPath,
@@ -32,7 +33,8 @@ export class TextItemComponent extends BaseControlComponent<TextControlDescripto
             { name: 'Normal', element: 'span', attributes: { class: 'section__descr--normal' } },
             { name: 'Medium size text', element: 'span', attributes: { class: 'section__descr--medium' } },
             { name: 'Gray color text', element: 'span', attributes: { class: 'section__descr--gray' } }
-        ]
+        ],
+        colorButton_enableMore: true
     };
 
     constructor() {

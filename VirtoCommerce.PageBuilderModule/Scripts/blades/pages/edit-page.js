@@ -1,6 +1,9 @@
 angular.module('virtoCommerce.pageBuilderModule')
-    .controller('virtoCommerce.pageBuilderModule.editPageController', ['$rootScope', '$scope', 'platformWebApp.validators', 'virtoCommerce.contentModule.contentApi', 'virtoCommerce.pageBuilderModule.contentApi', 'platformWebApp.bladeNavigationService', 'platformWebApp.dialogService', 'platformWebApp.dynamicProperties.dictionaryItemsApi', 'platformWebApp.settings',
-        function ($rootScope, $scope, validators, contentApi, pageBuilderApi, bladeNavigationService, dialogService, dictionaryItemsApi, settings) {
+    .controller('virtoCommerce.pageBuilderModule.editPageController', ['$rootScope', '$scope',
+        'platformWebApp.validators', 'virtoCommerce.contentModule.contentApi',
+        'virtoCommerce.pageBuilderModule.contentApi', 'platformWebApp.bladeNavigationService', 'platformWebApp.dialogService',
+        'platformWebApp.dynamicProperties.dictionaryItemsApi', 'platformWebApp.settings', 'virtoCommerce.pageBuilderModule.resourceNameService',
+        function ($rootScope, $scope, validators, contentApi, pageBuilderApi, bladeNavigationService, dialogService, dictionaryItemsApi, settings, nameHelper) {
             var blade = $scope.blade;
             blade.updatePermission = 'content:update';
             blade.designerUrl = null;
@@ -169,8 +172,9 @@ angular.module('virtoCommerce.pageBuilderModule')
 
             function savePage(newFileName, originFileName) {
                 $scope.blade.currentEntity.name = originFileName || newFileName;
-                $scope.blade.currentEntity.relativeUrl =
-                    ($scope.blade.parentBlade.currentEntity.relativeUrl || '') + '/' + newFileName;
+                $scope.blade.currentEntity.relativeUrl = ($scope.blade.parentBlade.currentEntity.relativeUrl || '') + '/' + newFileName;
+                $scope.blade.currentEntity.relativeUrl = nameHelper.prepareRelativeUrl($scope.blade.currentEntity);
+
                 $scope.blade.currentEntity.content = JSON.stringify($scope.blade.currentEntity.blocks, null, 4);
                 pageBuilderApi.savePage({
                         contentType: blade.contentType,

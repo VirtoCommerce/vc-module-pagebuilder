@@ -55,11 +55,12 @@ export class AppComponent implements OnInit {
     // theme editor states
     presets$ = this.store.select(fromTheme.getPresets);
     themeSchema$ = this.store.select(fromTheme.getSchema);
-    theme$ = this.store.select(fromTheme.getEditableTheme);
+    theme$ = this.store.select(fromTheme.getEditablePreset);
     currentThemeSchemaItem$ = this.store.select(fromTheme.getCurrentThemeSchemaItem);
     showPresets$ = this.store.select(fromTheme.getShowPresetsEditor);
     presetsNotLoaded$ = this.store.select(fromTheme.getPresetsNotLoaded);
     themeSchemaNotLoaded$ = this.store.select(fromTheme.getSchemaNotLoaded);
+    presetUnderPreview$ = this.store.select(fromTheme.getPresetUnderPreview);
 
     // combined & common states
     primaryId$ = this.store.select(fromRoot.getPrimaryFrameId);
@@ -200,16 +201,20 @@ export class AppComponent implements OnInit {
 
     // presets pane events
 
-    onSavePreset(preset: string) {
-        this.store.dispatch(themeActions.createPreset({ preset }));
-    }
-
     onSelectPreset(preset: string) {
-        this.store.dispatch(themeActions.selectPreset({ preset }));
+        this.store.dispatch(themeActions.previewPreset({ preset }));
     }
 
     applyPresetAsTheme(preset: string) {
         this.store.dispatch(themeActions.applyPreset({ preset }));
+    }
+
+    onSavePreset(preset: string) {
+        this.store.dispatch(themeActions.createPreset({ preset }));
+    }
+
+    onCancelPreset() {
+        this.store.dispatch(themeActions.cancelPreset());
     }
 
     onRemovePreset(preset: string) {

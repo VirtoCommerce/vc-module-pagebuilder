@@ -1,9 +1,8 @@
 import { Injectable } from '@angular/core';
-import { Action, Store } from '@ngrx/store';
-import { Actions, Effect, ofType, createEffect } from '@ngrx/effects';
-import { Observable, of } from 'rxjs';
+import { Store } from '@ngrx/store';
+import { Actions, ofType, createEffect } from '@ngrx/effects';
+import { of } from 'rxjs';
 import {
-    mergeMap,
     map,
     catchError,
     withLatestFrom,
@@ -15,6 +14,7 @@ import {
     filter
 } from 'rxjs/operators';
 
+import { AppSettings } from '@app/services';
 import { MessageService } from '@shared/services';
 import { ThemeService } from '@themes/services';
 import * as themeActions from './theme.actions';
@@ -27,14 +27,26 @@ export class ThemeEffects {
         private messages: MessageService,
         private store$: Store<fromTheme.State>) { }
 
-    loadPresets$ = createEffect(() => this.actions$.pipe(
-        ofType(themeActions.loadThemes),
+    loadDefaultThemes$ = createEffect(() => this.actions$.pipe(
+        ofType(themeActions.loadDefaultThemes),
         switchMap(() =>
             this.themeService.loadPresets().pipe(
-                map(presets => themeActions.loadThemesSuccess({ presets })),
-                catchError(error => of(themeActions.loadThemesFail({ error })))
+                map(presets => themeActions.loadDefaultThemesSuccess({ presets })),
+                catchError(error => of(themeActions.loadDefaultThemesFail({ error })))
             )
         )
+    ));
+
+    initLoadingEffectiveThemeValues$ = createEffect(() => this.actions$.pipe(
+        ofType(themeActions.loadDefaultThemesSuccess),
+        filter(x => AppSettings.defaultThemeName !== AppSettings.themeName),
+        map(() => themeActions.loadEffectiveThemeValues())
+    ));
+
+    skipLoadingEffectiveThemeValues$ = createEffect(() => this.actions$.pipe(
+        ofType(themeActions.loadDefaultThemesSuccess),
+        filter(x => AppSettings.defaultThemeName === AppSettings.themeName),
+        map(() => themeActions.loadEffectiveThemeValuesSkipped())
     ));
 
     loadSchema$ = createEffect(() => this.actions$.pipe(
@@ -47,43 +59,53 @@ export class ThemeEffects {
         )
     ));
 
-    uploadPresets$ = createEffect(() => this.actions$.pipe(
-        ofType(themeActions.saveTheme),
-        withLatestFrom(
-            this.store$.select(fromTheme.getPresets),
-            this.store$.select(fromTheme.getPresetsNotLoaded)
-        ),
-        filter(([, , themeNotLoaded]) => !themeNotLoaded),
-        switchMap(([, theme]) =>
-            this.themeService.uploadPresets(theme).pipe(
-                map(() => themeActions.saveThemeSuccess()),
-                catchError(error => of(themeActions.saveThemeFail({ error })))
-            )
-        )
-    ));
-
     uploadPreviewPreset$ = createEffect(() => this.actions$.pipe(
         ofType(
+            themeActions.previewPreset,
+            // themeActions.applyPreset,
             themeActions.updateTheme,
-            themeActions.selectPreset,
-            themeActions.loadThemesSuccess,
-            themeActions.clearThemeChanges,
-            themeActions.cancelPreset,
-            themeActions.applyPreset),
+            themeActions.loadEffectiveThemeValuesSuccess,
+            themeActions.loadEffectiveThemeValuesSkipped,
+            themeActions.loadEffectiveThemeValuesSkippedByTimeout,
+            themeActions.clearThemeChanges
+        ),
         debounceTime(2000),
         distinctUntilChanged(),
         switchMapTo([themeActions.updateDraft()])
     ));
 
-    updateDraft$ = createEffect(() => this.actions$.pipe(
-        ofType(themeActions.updateDraft),
+    cancelPresetEditing$ = createEffect(() => this.actions$.pipe(
+        ofType(
+            themeActions.cancelPreset,
+            themeActions.closeEditors
+        ),
+        switchMapTo([themeActions.updateDraft()])
+    ));
+
+    uploadPresets$ = createEffect(() => this.actions$.pipe(
+        ofType(themeActions.saveTheme),
         withLatestFrom(
-            this.store$.select(fromTheme.getPresets),
+            this.store$.select(fromTheme.getValuesToSave),
             this.store$.select(fromTheme.getPresetsNotLoaded)
         ),
         filter(([, , themeNotLoaded]) => !themeNotLoaded),
-        switchMap(([, theme]) =>
-            this.themeService.uploadDraft(theme).pipe(
+        switchMap(([, values]) =>
+            this.themeService.uploadPresets(values).pipe(
+                map(() => themeActions.saveThemeSuccess({ values })),
+                catchError(error => of(themeActions.saveThemeFail({ error })))
+            )
+        )
+    ));
+
+    updateDraft$ = createEffect(() => this.actions$.pipe(
+        ofType(themeActions.updateDraft),
+        withLatestFrom(
+            this.store$.select(fromTheme.getValuesToSave),
+            this.store$.select(fromTheme.getPresetsNotLoaded)
+        ),
+        filter(([, , themeNotLoaded]) => !themeNotLoaded),
+        switchMap(([, values]) =>
+            this.themeService.uploadDraft(values).pipe(
                 map(() => themeActions.updateDraftSuccess()),
                 catchError(error => of(themeActions.updateDraftFail({ error })))
             )
