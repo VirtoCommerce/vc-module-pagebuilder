@@ -1,5 +1,7 @@
 ﻿angular.module('virtoCommerce.contentModule')
-    .controller('virtoCommerce.contentModule.contentMainController', ['$scope', '$state', '$stateParams', 'virtoCommerce.contentModule.menus', 'virtoCommerce.contentModule.contentApi', 'virtoCommerce.storeModule.stores', 'platformWebApp.bladeNavigationService', 'platformWebApp.dialogService', 'platformWebApp.widgetService',
+    .controller('virtoCommerce.contentModule.contentMainController', ['$scope', '$state', '$stateParams', 'virtoCommerce.contentModule.menus',
+        'virtoCommerce.contentModule.contentApi', 'virtoCommerce.storeModule.stores', 'platformWebApp.bladeNavigationService',
+        'platformWebApp.dialogService', 'platformWebApp.widgetService',
         function ($scope, $state, $stateParams, menus, contentApi, stores, bladeNavigationService, dialogService, widgetService) {
             var blade = $scope.blade;
 
@@ -82,7 +84,7 @@
             blade.openPages = function (data) {
                 var newBlade = {
                     id: 'pagesList',
-                    contentType: 'Pages',
+                    contentType: 'pages',
                     storeId: data.storeId,
                     storeUrl: data.store.url,
                     languages: data.store.languages,
@@ -140,7 +142,7 @@
             blade.addNewPage = function (data) {
                 var newBlade = {
                     id: 'addPage',
-                    contentType: 'Pages',
+                    contentType: 'pages',
                     storeId: data.storeId,
                     languages: data.store.languages,
                     currentEntity: {},
@@ -155,7 +157,7 @@
 
             blade.customizeTheme = function(data) {
                 if (data.store.url) {
-                    // /Modules/VirtoCommerce.PageBuilderModule/Content/builder/
+                    // /Modules/$(VirtoCommerce.PageBuilderModule)/Content/builder/
                     console.log(data);
                     // data.activeThemeName
                     //window.open(blade.designerUrl + '?path=' + path + '&storeId=' + blade.storeId + '&contentType=' + blade.contentType, '_blank');
@@ -200,7 +202,7 @@
             blade.openTheme = function (data) {
                 var newBlade = {
                     id: 'themeAssetListBlade',
-                    contentType: 'Themes',
+                    contentType: 'themes',
                     storeId: data.storeId,
                     currentEntity: { name: data.activeThemeName, url: data.activeThemeURL },
                     subtitle: 'content.blades.asset-list.subtitle',

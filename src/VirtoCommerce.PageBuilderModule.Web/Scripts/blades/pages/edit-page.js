@@ -1,6 +1,9 @@
 angular.module('virtoCommerce.pageBuilderModule')
-    .controller('virtoCommerce.pageBuilderModule.editPageController', ['$rootScope', '$scope', 'platformWebApp.validators', 'virtoCommerce.contentModule.contentApi', 'virtoCommerce.pageBuilderModule.contentApi', 'platformWebApp.bladeNavigationService', 'platformWebApp.dialogService', 'platformWebApp.dynamicProperties.dictionaryItemsApi', 'platformWebApp.settings',
-        function ($rootScope, $scope, validators, contentApi, pageBuilderApi, bladeNavigationService, dialogService, dictionaryItemsApi, settings) {
+    .controller('virtoCommerce.pageBuilderModule.editPageController', ['$rootScope', '$scope',
+        'platformWebApp.validators', 'virtoCommerce.contentModule.contentApi',
+        'virtoCommerce.pageBuilderModule.contentApi', 'platformWebApp.bladeNavigationService', 'platformWebApp.dialogService',
+        'platformWebApp.dynamicProperties.dictionaryItemsApi', 'platformWebApp.settings', 'virtoCommerce.pageBuilderModule.resourceNameService',
+        function ($rootScope, $scope, validators, contentApi, pageBuilderApi, bladeNavigationService, dialogService, dictionaryItemsApi, settings, nameHelper) {
             var blade = $scope.blade;
             blade.updatePermission = 'content:update';
             blade.designerUrl = null;
@@ -76,19 +79,18 @@ angular.module('virtoCommerce.pageBuilderModule')
                     {
                         name: "content.commands.preview-page", icon: 'fa fa-eye',
                         executeMethod: function () {
-                            var storeUrl$ = settings.getValues({ id: 'VirtoCommerce.PageBuilderModule.General.StoreUrl' }).$promise;
-                            storeUrl$.then(function (values) {
+                            if (blade.storeUrl) {
                                 var path = generatePath();
-                                window.open(values[0] + path, '_blank');
-                            }, function (reason) {
-                                console.log(reason);
+                                window.open(blade.storeUrl + path, '_blank');
+                            }
+                            else {
                                 var dialog = {
                                     id: "noUrlInStore",
                                     title: "content.dialogs.set-store-url.title",
                                     message: "content.dialogs.set-store-url.message"
                                 };
                                 dialogService.showNotificationDialog(dialog);
-                            });
+                            }
                         },
                         canExecuteMethod: function () { return true; }
                     },
@@ -127,13 +129,13 @@ angular.module('virtoCommerce.pageBuilderModule')
             function generatePath() {
                 // need to return path relative to the root folder
                 return blade.currentEntity.settings.permalink
-                    ? '/Pages/' + blade.currentEntity.settings.permalink
+                    ? '/pages/' + blade.currentEntity.settings.permalink
                     : blade.currentEntity.relativeUrl;
             }
 
             function runDesigner() {
                 if (blade.designerUrl) {
-                    // /Modules/VirtoCommerce.PageBuilderModule/Content/builder/
+                    // /Modules/$(VirtoCommerce.PageBuilderModule)/Content/builder/
                     var path = blade.currentEntity.relativeUrl;
                     window.open(blade.designerUrl + '?path=' + path + '&storeId=' + blade.storeId + '&contentType=' + blade.contentType, '_blank');
                 } else {
@@ -170,8 +172,9 @@ angular.module('virtoCommerce.pageBuilderModule')
 
             function savePage(newFileName, originFileName) {
                 $scope.blade.currentEntity.name = originFileName || newFileName;
-                $scope.blade.currentEntity.relativeUrl =
-                    ($scope.blade.parentBlade.currentEntity.relativeUrl || '') + '/' + newFileName;
+                $scope.blade.currentEntity.relativeUrl = ($scope.blade.parentBlade.currentEntity.relativeUrl || '') + '/' + newFileName;
+                $scope.blade.currentEntity.relativeUrl = nameHelper.prepareRelativeUrl($scope.blade.currentEntity);
+
                 $scope.blade.currentEntity.content = JSON.stringify($scope.blade.currentEntity.blocks, null, 4);
                 pageBuilderApi.savePage({
                         contentType: blade.contentType,
