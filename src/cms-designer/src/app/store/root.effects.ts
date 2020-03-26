@@ -1,7 +1,6 @@
-import { loadEffectiveThemeValues } from './../modules/theme/store/theme.actions';
 import { AppSettings } from './../services/app.settings';
 import { Injectable } from '@angular/core';
-import { Actions, Effect, ofType, createEffect } from '@ngrx/effects';
+import { Actions, ofType, createEffect } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
 import { of, fromEvent, timer } from 'rxjs';
 import {

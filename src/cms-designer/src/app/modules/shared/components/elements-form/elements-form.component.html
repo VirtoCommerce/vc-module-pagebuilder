@@ -7,6 +7,7 @@
             [group]="group" [context]="context" [formControlName]="control.id"></app-control-holder>
         <!-- complex control (collection) -->
         <div *ngIf="displayCollection(control) && inTab(control)" class="form-group">
+            <label class="form-label">{{control.label}}</label>
             <div *ngIf="!editableItem || editableItemDescriptor.id !== control.id">
                 <div cdkDropList (cdkDropListDropped)="sortItems(control, $event)" class="list list--collection">
                     <div class="list__item" cdkDragBoundary=".list--collection" cdkDragLockAxis="y" cdkDrag

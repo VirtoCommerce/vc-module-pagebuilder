@@ -10,13 +10,13 @@
         "build:stage": "webpack --config webpack.config.js --mode development --env.mode=staging"
     },
     "dependencies": {
-        "ts-loader": "^5.3.3",
-        "tslint": "^5.12.1",
-        "typescript": "^3.3.1",
-        "webpack": "^4.29.0",
-        "webpack-cli": "^3.2.1"
+        "ts-loader": "^6.2.2",
+        "tslint": "^6.1.0",
+        "typescript": "^3.8.3",
+        "webpack": "^4.42.1",
+        "webpack-cli": "^3.3.11"
     },
     "devDependencies": {
-        "@types/jquery": "^3.3.29"
+        "@types/jquery": "^3.3.33"
     }
 }

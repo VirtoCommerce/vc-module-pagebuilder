@@ -11,9 +11,9 @@ export class BlocksService {
     constructor(private platform: PlatformService) { }
 
     load(): Observable<BlocksSchema> {
-        return this.platform.donwloadBlocksSchema().pipe(
+        return this.platform.downloadBlocksSchema().pipe(
             tap(schema => {
-                Object.keys(schema).map(key => {
+                Object.keys(schema).forEach(key => {
                     schema[key].type = key;
                 });
             })

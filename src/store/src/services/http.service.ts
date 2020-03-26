@@ -23,7 +23,10 @@ export class HttpService {
                 //     headers: xhr.getAllResponseHeaders(),
                 //     data: xhr.responseText
                 // };
-                resolve(xhr.responseText.trim());
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    // everything is allright
+                    resolve(xhr.responseText.trim());
+                }
                 // this.blocks.push(model); or replace
             };
             // xhr.onerror = evt => {

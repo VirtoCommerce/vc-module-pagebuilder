@@ -47,7 +47,7 @@ export class PlatformService {
         return this.uploadModel<BlockValuesModel[]>(model);
     }
 
-    donwloadBlocksSchema(): Observable<BlocksSchema> {
+    downloadBlocksSchema(): Observable<BlocksSchema> {
         return this.downloadModel<BlocksSchema>(ContentType.themes, `/${AppSettings.defaultThemeName}/config/blocks_schema.json`);
     }
 
@@ -63,7 +63,9 @@ export class PlatformService {
                     const key = x.name.replace('VirtoCommerce.PageBuilderModule.General.', '');
                     AppSettings[parameters[key]] = x.value || x.defaultValue;
                 });
-                // AppSettings.storeBaseUrl = storeSettings.secureUrl || storeSettings.url;
+                if (!AppSettings.storeBaseUrl) {
+                    AppSettings.storeBaseUrl = storeSettings.secureUrl || storeSettings.url;
+                }
                 AppSettings.themeName = this.getThemeName(storeSettings);
                 environment.version = version;
             })

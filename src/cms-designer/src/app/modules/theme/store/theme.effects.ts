@@ -1,9 +1,8 @@
 import { Injectable } from '@angular/core';
-import { Action, Store } from '@ngrx/store';
-import { Actions, Effect, ofType, createEffect } from '@ngrx/effects';
-import { Observable, of } from 'rxjs';
+import { Store } from '@ngrx/store';
+import { Actions, ofType, createEffect } from '@ngrx/effects';
+import { of } from 'rxjs';
 import {
-    mergeMap,
     map,
     catchError,
     withLatestFrom,
@@ -15,6 +14,7 @@ import {
     filter
 } from 'rxjs/operators';
 
+import { AppSettings } from '@app/services';
 import { MessageService } from '@shared/services';
 import { ThemeService } from '@themes/services';
 import * as themeActions from './theme.actions';
@@ -39,7 +39,14 @@ export class ThemeEffects {
 
     initLoadingEffectiveThemeValues$ = createEffect(() => this.actions$.pipe(
         ofType(themeActions.loadDefaultThemesSuccess),
+        filter(x => AppSettings.defaultThemeName !== AppSettings.themeName),
         map(() => themeActions.loadEffectiveThemeValues())
+    ));
+
+    skipLoadingEffectiveThemeValues$ = createEffect(() => this.actions$.pipe(
+        ofType(themeActions.loadDefaultThemesSuccess),
+        filter(x => AppSettings.defaultThemeName === AppSettings.themeName),
+        map(() => themeActions.loadEffectiveThemeValuesSkipped())
     ));
 
     loadSchema$ = createEffect(() => this.actions$.pipe(
@@ -58,6 +65,7 @@ export class ThemeEffects {
             // themeActions.applyPreset,
             themeActions.updateTheme,
             themeActions.loadEffectiveThemeValuesSuccess,
+            themeActions.loadEffectiveThemeValuesSkipped,
             themeActions.loadEffectiveThemeValuesSkippedByTimeout,
             themeActions.clearThemeChanges
         ),

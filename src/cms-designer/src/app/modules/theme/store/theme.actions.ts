@@ -9,6 +9,7 @@ export const loadDefaultThemesSuccess = createAction('[Theme] Load Default Theme
 export const loadDefaultThemesFail = createAction('[Theme] Load Default Themes Fail', props<{ error: HttpErrorResponse }>());
 export const loadEffectiveThemeValues = createAction('[Theme] Load Effective Theme Values');
 export const loadEffectiveThemeValuesRequested = createAction('[Theme] Load Effective Theme Values Requested');
+export const loadEffectiveThemeValuesSkipped = createAction('[Theme] Load Effective Theme Values Skipped');
 export const loadEffectiveThemeValuesSkippedByTimeout = createAction('[Theme] Load Effective Theme Values Skipped by Timeout');
 export const loadEffectiveThemeValuesSuccess = createAction('[Theme] Load Effective Theme Values Success',
     props<{ values: { [key: string]: ValueType } }>());
