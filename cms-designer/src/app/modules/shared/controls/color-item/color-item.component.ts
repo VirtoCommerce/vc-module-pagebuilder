@@ -19,4 +19,8 @@ export class ColorItemComponent extends BaseControlComponent<ColorControlDescrip
             fn(value);
         };
     }
+
+    onClear($event) {
+        this.onChange('');
+    }
 }

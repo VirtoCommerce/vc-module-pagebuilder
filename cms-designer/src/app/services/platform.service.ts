@@ -56,13 +56,16 @@ export class PlatformService {
         parameters['StorePreviewPath'] = 'storePreviewPath';
         parameters['TokenUrl'] = 'tokenUrl';
         parameters['AssetsPath'] = 'assetsPath';
+        parameters['StoreUrl'] = 'storeBaseUrl';
         return combineLatest([this.moduleSettings(), this.storeSettings(), this.moduleVersion()]).pipe(
             tap(([moduleSettings, storeSettings, version]) => {
                 moduleSettings.forEach(x => {
                     const key = x.name.replace('VirtoCommerce.PageBuilderModule.General.', '');
                     AppSettings[parameters[key]] = x.value || x.defaultValue;
                 });
-                // AppSettings.storeBaseUrl = storeSettings.secureUrl || storeSettings.url;
+                if (!AppSettings.storeBaseUrl) {
+                    AppSettings.storeBaseUrl = storeSettings.secureUrl || storeSettings.url;
+                }
                 AppSettings.themeName = this.getThemeName(storeSettings);
                 environment.version = version;
             })
