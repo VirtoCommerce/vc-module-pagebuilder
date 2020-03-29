@@ -38,10 +38,17 @@ export class RootEffects {
 
     closeEditors$ = createEffect(() => this.actions$.pipe(
         ofType(rootActions.closeEditors),
-        switchMapTo([
-            editorActions.closeEditors(),
-            themeActions.closeEditors()
-        ])
+        withLatestFrom(this.themeStore$.select(fromTheme.getShowPresetsEditor)),
+        switchMap(([, isPresetEditor]) => {
+            const result: any[] = [
+                editorActions.closeEditors(),
+                themeActions.closeEditors()
+            ];
+            if (isPresetEditor) {
+                result.push(themeActions.updateDraft());
+            }
+            return result;
+        })
     ));
 
     switchToLoadPage$ = createEffect(() => this.actions$.pipe(

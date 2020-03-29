@@ -75,10 +75,7 @@ export class ThemeEffects {
     ));
 
     cancelPresetEditing$ = createEffect(() => this.actions$.pipe(
-        ofType(
-            themeActions.cancelPreset,
-            themeActions.closeEditors
-        ),
+        ofType(themeActions.cancelPreset),
         switchMapTo([themeActions.updateDraft()])
     ));
 

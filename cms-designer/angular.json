@@ -53,7 +53,8 @@
                         ],
                         "styles": [
                             "src/assets/sass/main.scss",
-                            "node_modules/ngx-toastr/toastr.css"
+                            "node_modules/ngx-toastr/toastr.css",
+                            "node_modules/@angular/material/prebuilt-themes/indigo-pink.css"
                         ],
                         "scripts": [
                             "src/assets/js/jquery.min.js",

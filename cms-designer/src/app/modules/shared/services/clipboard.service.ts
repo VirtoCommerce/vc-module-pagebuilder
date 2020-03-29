@@ -1,6 +1,8 @@
+import { MatDialog } from '@angular/material/dialog';
 import { Injectable } from '@angular/core';
 import { Observable, from } from 'rxjs';
-import { BlockValuesModel } from '@shared/models';
+import { BlockValuesModel, PasteResultModel } from '@shared/models';
+import { PastePopupComponent } from '@shared/components/paste-popup/paste-popup.component';
 
 import * as clipboard from 'clipboard-polyfill';
 
@@ -8,6 +10,8 @@ import * as clipboard from 'clipboard-polyfill';
     providedIn: 'root'
 })
 export class ClipboardService {
+
+    constructor(private dialog: MatDialog) { }
 
     copyTo(block: BlockValuesModel) {
         const blockToCopy = { ...block };
@@ -18,21 +22,31 @@ export class ClipboardService {
         });
     }
 
-    pasteFrom(): Observable<BlockValuesModel> {
-        const result: Promise<BlockValuesModel> = clipboard.readText()
+    pasteFrom(): Observable<PasteResultModel> {
+        const result: Promise<PasteResultModel> = clipboard.readText()
             .then(text => {
-                let block: BlockValuesModel = null;
-                try {
-                    block = JSON.parse(text);
-                } catch (error) {
-                    console.log(error);
-                }
-                return block;
+                return {
+                    success: !!text,
+                    data: text,
+                    error: null
+                };
             })
             .catch(error => {
                 console.log(error);
-                return null;
+                return {
+                    error: error,
+                    success: false,
+                    data: null
+                };
             });
         return from(result);
+    }
+
+    pasteThroughPopup(): Observable<PasteResultModel> {
+        const dialogRef = this.dialog.open(PastePopupComponent, {
+            width: '680px',
+            height: '370px'
+        });
+        return dialogRef.afterClosed();
     }
 }
