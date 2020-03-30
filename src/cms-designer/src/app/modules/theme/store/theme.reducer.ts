@@ -16,6 +16,7 @@ export interface PresetsState {
 
     presetUnderPreview: string;
     showPresetsEditor: boolean;
+    presetChanged: boolean;
     selectedSchemaItem: BlockSchema; // this section corresponds to section from schema
     editablePreset: { [key: string]: ValueType }; // the current preset under editing
     initialValues: { [key: string]: ValueType }; // initial values of current preset
@@ -35,6 +36,7 @@ export const initialState: PresetsState = {
 
     presetUnderPreview: null,
     showPresetsEditor: false,
+    presetChanged: false,
     selectedSchemaItem: null,
     editablePreset: null,
     initialValues: {},
@@ -81,14 +83,15 @@ const themesReducer = createReducer(
         selectedSchemaItem: null,
         presetUnderPreview: null
     })),
-    on(Actions.cancelPreset, state => ({ ...state, presetUnderPreview: null })),
-    on(Actions.previewPreset, (state, { preset }) => ({ ...state, presetUnderPreview: preset })),
+    on(Actions.cancelPresetComplete, state => ({ ...state, presetChanged: false })),
+    on(Actions.previewPreset, (state, { preset }) => ({ ...state, presetUnderPreview: preset, presetChanged: true })),
     on(Actions.applyPreset, (state, { preset }) => {
         const newPreset = { current: preset, ...state.presets.presets[preset] };
         return {
             ...state,
             editablePreset: newPreset,
             showPresetsEditor: false,
+            presetChanged: false,
             dirty: true
         };
     }),
