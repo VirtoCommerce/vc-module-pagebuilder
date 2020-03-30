@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { of } from 'rxjs';
-import { map, switchMapTo, tap, filter } from 'rxjs/operators';
+import { map, switchMapTo, tap, filter, exhaustMap } from 'rxjs/operators';
 import {
     catchError,
     mergeMap,
@@ -17,6 +17,7 @@ import { BlocksService, PagesService } from '@editor/services';
 
 import * as editorActions from './editor.actions';
 import * as fromEditor from '.';
+import * as rootActions from '@app/store/root.actions';
 
 // import { CategoryModel } from '../models';
 
@@ -151,11 +152,46 @@ export class EditorEffects {
     pasteFromClipboard$ = createEffect(() => this.actions$.pipe(
         ofType(editorActions.tryPasteFromClipboard),
         switchMap(() => this.clipboard.pasteFrom()),
-        filter(block => block != null),
-        withLatestFrom(this.store$.select(fromEditor.getPage)),
-        map(([block, page]) => {
-            block.id = page.content.reduce((v: number, b: BlockValuesModel) => Math.max(b.id, v), 0) + 1;
-            return editorActions.addPageItem({ block });
+        map(pasteResult => {
+            if (pasteResult.success) {
+                return editorActions.tryPasteFromString({ value: pasteResult.data });
+            } else {
+                return editorActions.showPastePopup();
+            }
+        })
+    ));
+
+    showPastePopup$ = createEffect(() => this.actions$.pipe(
+        ofType(editorActions.showPastePopup),
+        exhaustMap(() => {
+            return this.clipboard.pasteThroughPopup();
+        }),
+        filter(result => result.success),
+        map(result => editorActions.tryPasteFromString({ value: result.data }))
+    ));
+
+    tryPasteFromString$ = createEffect(() => this.actions$.pipe(
+        ofType(editorActions.tryPasteFromString),
+        withLatestFrom(
+            this.store$.select(fromEditor.getPage),
+            this.store$.select(fromEditor.getBlocksSchema)
+        ),
+        map(([{ value }, page, schema]) => {
+            if (!value) {
+                return rootActions.emptyAction();
+            }
+            try {
+                const block = JSON.parse(value);
+                if (!schema[block.type] || schema[block.type].static) {
+                    this.messages.displayError('Unknown or unsupported block type', {});
+                    return editorActions.showPastePopup();
+                }
+                block.id = page.content.reduce((v: number, b: BlockValuesModel) => Math.max(b.id, v), 0) + 1;
+                return editorActions.addPageItem({ block });
+            } catch (error) {
+                this.messages.displayError('Parse data error', error);
+                return editorActions.showPastePopup();
+            }
         })
     ));
 }

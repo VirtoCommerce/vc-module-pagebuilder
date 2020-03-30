@@ -62,7 +62,6 @@ export class ThemeEffects {
     uploadPreviewPreset$ = createEffect(() => this.actions$.pipe(
         ofType(
             themeActions.previewPreset,
-            // themeActions.applyPreset,
             themeActions.updateTheme,
             themeActions.loadEffectiveThemeValuesSuccess,
             themeActions.loadEffectiveThemeValuesSkipped,
@@ -79,7 +78,12 @@ export class ThemeEffects {
             themeActions.cancelPreset,
             themeActions.closeEditors
         ),
-        switchMapTo([themeActions.updateDraft()])
+        withLatestFrom(this.store$.select(fromTheme.getPresetChanged)),
+        filter(([, changed]) => changed),
+        switchMapTo([
+            themeActions.updateDraft(),
+            themeActions.cancelPresetComplete()
+        ])
     ));
 
     uploadPresets$ = createEffect(() => this.actions$.pipe(

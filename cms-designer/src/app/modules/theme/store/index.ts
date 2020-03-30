@@ -19,6 +19,11 @@ export const getIsDirty = createSelector(
     state => state.dirty
 );
 
+export const getPresetChanged = createSelector(
+    getThemeFeatureState,
+    state => state.presetChanged
+);
+
 export const getPresetUnderPreview = createSelector(
     getThemeFeatureState,
     state => state.presetUnderPreview
