@@ -1,6 +1,6 @@
 import { Component, ViewChild, ElementRef } from '@angular/core';
 import { FilesService } from '@shared/services';
-import { BaseControlComponent } from '../base-control.component';
+import { BaseControlDirective } from '../base-control.component';
 import { FileItemControlDescriptor } from '@shared/models';
 
 @Component({
@@ -8,9 +8,9 @@ import { FileItemControlDescriptor } from '@shared/models';
     templateUrl: './file-item.component.html',
     styleUrls: ['./file-item.component.scss']
 })
-export class FileItemComponent extends BaseControlComponent<FileItemControlDescriptor> {
+export class FileItemComponent extends BaseControlDirective<FileItemControlDescriptor> {
 
-    @ViewChild('control', {static: false}) control: ElementRef;
+    @ViewChild('control') control: ElementRef;
 
     constructor(private files: FilesService) {
         super();

@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { BaseControlComponent } from '../base-control.component';
+import { BaseControlDirective } from '../base-control.component';
 import { UrlControlDescriptor, OptionModel } from '@shared/models';
 import { DomSanitizer } from '@angular/platform-browser';
 
@@ -8,7 +8,7 @@ import { DomSanitizer } from '@angular/platform-browser';
     templateUrl: './url-item.component.html',
     styleUrls: ['./url-item.component.scss']
 })
-export class UrlItemComponent extends BaseControlComponent<UrlControlDescriptor> {
+export class UrlItemComponent extends BaseControlDirective<UrlControlDescriptor> {
     isOpenSelect: boolean;
     isOpen: boolean;
     valueInSelect: OptionModel;

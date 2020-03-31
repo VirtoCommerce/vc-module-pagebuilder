@@ -1,5 +1,5 @@
 import { Component, ViewChild, ElementRef } from '@angular/core';
-import { BaseControlComponent } from '../base-control.component';
+import { BaseControlDirective } from '../base-control.component';
 import { StringControlDescriptor } from '@shared/models';
 import { WindowRef } from '@app/services';
 
@@ -8,9 +8,9 @@ import { WindowRef } from '@app/services';
     templateUrl: './string-item.component.html',
     styleUrls: ['./string-item.component.scss']
 })
-export class StringItemComponent extends BaseControlComponent<StringControlDescriptor> {
+export class StringItemComponent extends BaseControlDirective<StringControlDescriptor> {
 
-    @ViewChild('control', {static: false}) control: ElementRef;
+    @ViewChild('control') control: ElementRef;
 
     constructor(private windowRef: WindowRef) {
         super();

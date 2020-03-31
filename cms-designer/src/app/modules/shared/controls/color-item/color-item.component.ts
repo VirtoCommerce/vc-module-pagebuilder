@@ -1,13 +1,13 @@
 import { Component, OnInit, HostBinding, ViewContainerRef } from '@angular/core';
 import { ColorControlDescriptor } from '@shared/models';
-import { BaseControlComponent } from './../base-control.component';
+import { BaseControlDirective } from './../base-control.component';
 
 @Component({
     selector: 'app-color-item',
     templateUrl: './color-item.component.html',
     styleUrls: ['./color-item.component.scss']
 })
-export class ColorItemComponent extends BaseControlComponent<ColorControlDescriptor> {
+export class ColorItemComponent extends BaseControlDirective<ColorControlDescriptor> {
 
     @HostBinding('class') css = 'form-color';
 

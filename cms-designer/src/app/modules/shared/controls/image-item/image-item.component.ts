@@ -1,7 +1,7 @@
 import { Component, ViewChild, ElementRef } from '@angular/core';
 import { ApiUrlsService } from '@app/services';
 import { FilesService } from '@shared/services';
-import { BaseControlComponent } from '../base-control.component';
+import { BaseControlDirective } from '../base-control.component';
 import { ImageControlDescriptor, ImageDescriptor } from '@shared/models';
 
 @Component({
@@ -9,9 +9,9 @@ import { ImageControlDescriptor, ImageDescriptor } from '@shared/models';
     templateUrl: './image-item.component.html',
     styleUrls: ['./image-item.component.scss']
 })
-export class ImageItemComponent extends BaseControlComponent<ImageControlDescriptor> {
+export class ImageItemComponent extends BaseControlDirective<ImageControlDescriptor> {
 
-    @ViewChild('fileInput', { static: false, read: ElementRef }) fileInput: ElementRef;
+    @ViewChild('fileInput', { read: ElementRef }) fileInput: ElementRef;
 
     constructor(private files: FilesService, private urls: ApiUrlsService) {
         super();
