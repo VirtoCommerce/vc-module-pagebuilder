@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
-import { BaseControlComponent } from '../base-control.component';
+import { BaseControlDirective } from '../base-control.component';
 import { OptionModel, SelectControlDescriptor } from '@shared/models';
 
 @Component({
@@ -8,7 +8,7 @@ import { OptionModel, SelectControlDescriptor } from '@shared/models';
     templateUrl: './select-item.component.html',
     styleUrls: ['./select-item.component.scss']
 })
-export class SelectItemComponent extends BaseControlComponent<SelectControlDescriptor> {
+export class SelectItemComponent extends BaseControlDirective<SelectControlDescriptor> {
 
     groupItems = false;
     groups: { [key: string]: { label: string; value: string; }[] };

@@ -3,9 +3,9 @@
     <app-loading *ngIf="loading && !error"></app-loading>
     <!-- End Loader -->
 
-    <iframe #preview1 *ngIf="storeUrl && !error" frameborder="0" id="preview1" [src]="storeUrl" scrolling="yes"
+    <iframe #preview1 *ngIf="storeUrl && !error" id="preview1" [src]="storeUrl" title=""
         style="display: none;" (load)="preview1Loaded()" (error)="onErrorOccurred($event)"></iframe>
-    <iframe #preview2 *ngIf="storeUrl && !error" frameborder="0" id="preview2" [src]="storeUrl" scrolling="yes"
+    <iframe #preview2 *ngIf="storeUrl && !error" id="preview2" [src]="storeUrl" title=""
         style="display: none;" (load)="preview2Loaded()" (error)="onErrorOccurred($event)"></iframe>
 
     <div class="error-page" *ngIf="error">

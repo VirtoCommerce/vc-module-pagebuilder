@@ -30,7 +30,7 @@ export class RefreshTokenInterceptor implements HttpInterceptor {
             .pipe(
                 catchError(err => {
                     if (err instanceof HttpErrorResponse) {
-                        switch ((<HttpErrorResponse>err).status) {
+                        switch (err.status) {
                             case 401:
                                 return this.handle401Error(request, next);
                             // case 400:
