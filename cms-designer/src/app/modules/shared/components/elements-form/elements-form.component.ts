@@ -6,7 +6,8 @@ import { FormHelper } from '@shared/services';
 
 @Component({
     selector: 'app-elements-form',
-    templateUrl: './elements-form.component.html'
+    templateUrl: './elements-form.component.html',
+    styleUrls: ['./elements-form.component.scss']
 })
 export class ElementsFormComponent implements OnInit {
     @Input() group: FormGroup;
