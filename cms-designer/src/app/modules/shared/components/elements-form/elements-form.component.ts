@@ -49,7 +49,7 @@ export class ElementsFormComponent implements OnInit {
 
     sortItems(control: CollectionControlDescriptor, event: CdkDragSortEvent<any>) {
         const controls = this.getFormArray(control);
-        const value = controls.value;
+        const value = [...controls.value];
         const current = value.splice(event.previousIndex, 1);
         value.splice(event.currentIndex, 0, ...current);
         controls.patchValue(value);
