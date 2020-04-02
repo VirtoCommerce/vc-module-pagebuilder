@@ -18,7 +18,7 @@ export class FormsHelper {
         }
         keys.forEach(x => {
             const m = model[x];
-            if (isArray(m)) {
+            if (Array.isArray(m)) {
                 const groups = m.map(b => this.fillFormRecursively(b));
                 form.addControl(x, this.fb.array(groups));
             } else {

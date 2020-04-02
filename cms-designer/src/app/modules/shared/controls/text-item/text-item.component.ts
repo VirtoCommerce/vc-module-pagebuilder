@@ -1,5 +1,5 @@
 import { Component, OnInit, Input } from '@angular/core';
-import { BaseControlComponent } from '../base-control.component';
+import { BaseControlDirective } from '../base-control.component';
 import { TextControlDescriptor } from '@shared/models';
 import { AppSettings } from '@app/services';
 
@@ -8,7 +8,7 @@ import { AppSettings } from '@app/services';
     templateUrl: './text-item.component.html',
     styleUrls: ['./text-item.component.scss']
 })
-export class TextItemComponent extends BaseControlComponent<TextControlDescriptor> {
+export class TextItemComponent extends BaseControlDirective<TextControlDescriptor> {
 
     config = {
         toolbar: [

@@ -19,7 +19,7 @@
                 <label (click)="toggleCheckbox()" class="form-checkbox__label">{{ descriptor.openInNewTabLabel || 'Open in new tab' }}</label>
             </div>
         </div>
-        <div class="form-group">
+        <div class="form-group" *ngIf="descriptor.styles != undefined && descriptor.styles.length > 0">
             <label *ngIf="descriptor.styleLabel">{{descriptor.styleLabel}}</label>
             <div class="dropdown" [class.dropdown--show]="isOpenSelect">
                 <div class="dropdown__toggle" (click)="toggleSelect()">{{ getTitle() }}</div>

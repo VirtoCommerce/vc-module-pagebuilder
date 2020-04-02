@@ -1,14 +1,14 @@
 import { Component, OnInit, ViewChild, AfterContentInit, ElementRef } from '@angular/core';
-import { BaseControlComponent } from './../base-control.component';
+import { BaseControlDirective } from './../base-control.component';
 import { NumberControlDescriptor } from '@shared/models';
 
 @Component({
     selector: 'app-number-item',
     templateUrl: './number-item.component.html'
 })
-export class NumberItemComponent extends BaseControlComponent<NumberControlDescriptor> {
+export class NumberItemComponent extends BaseControlDirective<NumberControlDescriptor> {
 
-    @ViewChild('control', {static: false}) control: ElementRef<HTMLInputElement>;
+    @ViewChild('control') control: ElementRef<HTMLInputElement>;
 
     constructor() {
         super();

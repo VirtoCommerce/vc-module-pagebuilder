@@ -1,7 +1,7 @@
 import { Component, OnInit, Output, EventEmitter, Input } from '@angular/core';
+import { CdkDragSortEvent } from '@angular/cdk/drag-drop';
 import { BlockValuesModel, BlocksSchema } from '@shared/models';
 import { PageModel } from '@editor/models';
-import { CdkDragSortEvent } from '@angular/cdk/drag-drop';
 
 @Component({
     selector: 'app-page-editor',

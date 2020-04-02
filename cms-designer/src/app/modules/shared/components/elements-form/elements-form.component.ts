@@ -6,7 +6,8 @@ import { FormHelper } from '@shared/services';
 
 @Component({
     selector: 'app-elements-form',
-    templateUrl: './elements-form.component.html'
+    templateUrl: './elements-form.component.html',
+    styleUrls: ['./elements-form.component.scss']
 })
 export class ElementsFormComponent implements OnInit {
     @Input() group: FormGroup;
@@ -48,7 +49,7 @@ export class ElementsFormComponent implements OnInit {
 
     sortItems(control: CollectionControlDescriptor, event: CdkDragSortEvent<any>) {
         const controls = this.getFormArray(control);
-        const value = controls.value;
+        const value = [...controls.value];
         const current = value.splice(event.previousIndex, 1);
         value.splice(event.currentIndex, 0, ...current);
         controls.patchValue(value);
