@@ -1,6 +1,6 @@
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormGroup } from '@angular/forms';
 
-import { BaseControlComponent } from '../controls/base-control.component';
+import { BaseControlDirective } from '../controls/base-control.component';
 import { ControlsFactory } from '../controls/controls.factory';
 import {
     Component,
@@ -28,7 +28,7 @@ import { ControlDescriptor, BaseDescriptor } from '../models';
 })
 export class ControlHolderComponent implements OnInit, ControlValueAccessor {
 
-    private component: BaseControlComponent<BaseDescriptor>;
+    private component: BaseControlDirective<BaseDescriptor>;
     private _context: any;
 
     @ViewChild(ControlHostDirective, {static: true}) host: ControlHostDirective;
