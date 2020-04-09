@@ -15,6 +15,7 @@ export interface PresetsState {
     uploadDraftFail: boolean;
 
     presetUnderPreview: string;
+    effectiveValuesSkipped: boolean;
     showPresetsEditor: boolean;
     presetChanged: boolean;
     selectedSchemaItem: BlockSchema; // this section corresponds to section from schema
@@ -35,6 +36,7 @@ export const initialState: PresetsState = {
     uploadDraftFail: false,
 
     presetUnderPreview: null,
+    effectiveValuesSkipped: false,
     showPresetsEditor: false,
     presetChanged: false,
     selectedSchemaItem: null,
@@ -62,8 +64,8 @@ const themesReducer = createReducer(
         };
     }),
     on(Actions.loadEffectiveThemeValuesRequested, state => ({ ...state, currentThemeValuesRequested: true })),
-    on(Actions.loadEffectiveThemeValuesSkipped, state => ({ ...state, presetsLoading: false })),
-    on(Actions.loadEffectiveThemeValuesSkippedByTimeout, state => ({ ...state, presetsLoading: false })),
+    on(Actions.loadEffectiveThemeValuesSkipped, state => ({ ...state, presetsLoading: false, effectiveValuesSkipped: true })),
+    on(Actions.loadEffectiveThemeValuesSkippedByTimeout, state => ({ ...state, presetsLoading: false, effectiveValuesSkipped: true })),
     on(Actions.loadEffectiveThemeValuesSuccess, (state, { values }) => {
         const currentValues = { ...state.editablePreset, ...values };
         return {

@@ -19,6 +19,11 @@ export const getIsDirty = createSelector(
     state => state.dirty
 );
 
+export const getIsEffectiveValuesSkipped = createSelector(
+    getThemeFeatureState,
+    state => state.effectiveValuesSkipped
+);
+
 export const getPresetChanged = createSelector(
     getThemeFeatureState,
     state => state.presetChanged

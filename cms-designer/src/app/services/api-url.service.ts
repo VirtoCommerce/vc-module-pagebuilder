@@ -38,8 +38,18 @@ export class ApiUrlsService {
         return url;
     }
 
+    generateUniqueSafeFileName(name: string): string {
+        const parts = name.split('.');
+        const extension = parts.pop();
+        const uniqueName = `${parts.join('.')}_${this.generateUniqueString(10)}.${extension}`;
+        const safeName = encodeURIComponent(uniqueName);
+        return safeName;
+    }
+
     generateUploadAssetUrl(name: string): string {
-        const assetEndpoint = `api/content/${this.params.contentType}/${this.params.storeId}`;
+        const assetEndpoint = AppSettings.useGlobalAssets
+            ? 'api/platform/assets'
+            : `api/content/${this.params.contentType}/${this.params.storeId}`;
         const url = this.combine(this.params.platformUrl, assetEndpoint) +
                 `?folderUrl=${encodeURIComponent(AppSettings.assetsPath)}&name=${name}`;
         return url;
@@ -52,8 +62,10 @@ export class ApiUrlsService {
         return url;
     }
 
-    getAssetsUrl(relativeUrl: string): string {
-        const url = this.combine(AppSettings.storeBaseUrl, relativeUrl);
+    getAssetsUrl(absoluteOrRelativeUrl: string): string {
+        const url = (absoluteOrRelativeUrl.startsWith('http://') || absoluteOrRelativeUrl.startsWith('https://'))
+            ? absoluteOrRelativeUrl
+            : this.combine(AppSettings.storeBaseUrl, absoluteOrRelativeUrl);
         return url;
     }
 
@@ -96,10 +108,15 @@ export class ApiUrlsService {
     }
 
     private generatePrefixAndSetCookie(): string {
-        const characters = '0123456789ABCDEFGHIJKLMNOPQRSTUVabcdefghijklmnopqrstuv_-';
-        const randomChar = () => characters[Math.floor(Math.random() * characters.length)];
-        const result = Array.from({ length: 10 }, randomChar).join('');
+        const result = this.generateUniqueString(10);
         this.cookies.set(this.SESSION_ID, result);
+        return result;
+    }
+
+    private generateUniqueString(length: number) {
+        const characters = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_-';
+        const randomChar = () => characters[Math.floor(Math.random() * characters.length)];
+        const result = Array.from({ length }, randomChar).join('');
         return result;
     }
 

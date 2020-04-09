@@ -56,6 +56,13 @@
         <title>Assets relative path</title>
         <description></description>
       </setting>
+	  <setting>
+        <name>VirtoCommerce.PageBuilderModule.General.UseGlobalAssets</name>
+        <valueType>boolean</valueType>
+        <defaultValue>false</defaultValue>
+        <title>Use shared assets</title>
+        <description>Will be used full url for assets</description>
+      </setting>
     </group>
   </settings>
   <!--<permissions>
