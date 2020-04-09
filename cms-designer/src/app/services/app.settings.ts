@@ -9,5 +9,6 @@ export let AppSettings: EnvironmentSettings = {
     baseUrl: null,
     tokenUrl: null,
     assetsPath: null,
+    useGlobalAssets: false,
     previewTimeout: 120000
 };

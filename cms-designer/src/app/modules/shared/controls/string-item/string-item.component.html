@@ -1,2 +1,7 @@
 <label>{{descriptor.label}}</label>
-<input #control type="text" class="form-control" [value]="value" (paste)="onPaste($event)" (keyup)="onChange($event.target.value)">
+<input *ngIf="!descriptor.multiline" #control type="text" class="form-control"
+    [value]="value"
+    (paste)="onPaste($event)" (keyup)="onChange($event.target.value)" />
+<textarea *ngIf="descriptor.multiline" #textarea class="form-control"
+    [value]="value"
+    (paste)="onPaste($event)" (keyup)="onChange($event.target.value)"></textarea>

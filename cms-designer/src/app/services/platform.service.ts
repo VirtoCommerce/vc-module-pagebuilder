@@ -57,6 +57,7 @@ export class PlatformService {
         parameters['TokenUrl'] = 'tokenUrl';
         parameters['AssetsPath'] = 'assetsPath';
         parameters['StoreUrl'] = 'storeBaseUrl';
+        parameters['UseGlobalAssets'] = 'useGlobalAssets';
         return combineLatest([this.moduleSettings(), this.storeSettings(), this.moduleVersion()]).pipe(
             tap(([moduleSettings, storeSettings, version]) => {
                 moduleSettings.forEach(x => {
