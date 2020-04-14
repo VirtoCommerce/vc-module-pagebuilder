@@ -16,7 +16,7 @@ export const getDraftUploaded = createSelector(
 
 export const getIsDirty = createSelector(
     getThemeFeatureState,
-    state => state.dirty
+    state => !state.schemaNotLoaded && state.dirty
 );
 
 export const getIsEffectiveValuesSkipped = createSelector(

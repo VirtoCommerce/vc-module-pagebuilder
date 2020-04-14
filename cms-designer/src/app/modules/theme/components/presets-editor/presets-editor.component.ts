@@ -32,6 +32,10 @@ export class PresetsEditorComponent implements OnInit {
 
     getThemeThumb(key: string): string {
         // /en-US/themes/assets/thumb_dark.png
+        const result = <string>this.data.presets[key].previewImage;
+        if (!!result) {
+            return result;
+        }
         return `url(${AppSettings.storeBaseUrl}themes/assets/thumb_${key.replace(' ', '_')}.jpg)`;
     }
 

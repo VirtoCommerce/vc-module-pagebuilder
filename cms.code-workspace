@@ -12,6 +12,8 @@
             ".sonarlint": true,
             ".vs": true,
             ".vscode": true
-        }
-    }
+        },
+        "editor.fontFamily": "'Fira Code', Consolas, 'Courier New', monospace",
+        "editor.fontLigatures": true
+    },
 }

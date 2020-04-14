@@ -64,8 +64,10 @@ const themesReducer = createReducer(
         };
     }),
     on(Actions.loadEffectiveThemeValuesRequested, state => ({ ...state, currentThemeValuesRequested: true })),
-    on(Actions.loadEffectiveThemeValuesSkipped, state => ({ ...state, presetsLoading: false, effectiveValuesSkipped: true })),
-    on(Actions.loadEffectiveThemeValuesSkippedByTimeout, state => ({ ...state, presetsLoading: false, effectiveValuesSkipped: true })),
+    on(Actions.loadEffectiveThemeValuesSkipped, state => 
+        ({ ...state, presetsLoading: false, effectiveValuesSkipped: true, presetsNotLoaded: false })),
+    on(Actions.loadEffectiveThemeValuesSkippedByTimeout, state => 
+        ({ ...state, presetsLoading: false, effectiveValuesSkipped: true, presetsNotLoaded: false })),
     on(Actions.loadEffectiveThemeValuesSuccess, (state, { values }) => {
         const currentValues = { ...state.editablePreset, ...values };
         return {

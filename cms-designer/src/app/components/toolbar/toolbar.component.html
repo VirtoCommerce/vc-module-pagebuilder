@@ -1,6 +1,6 @@
 <div class="tabs tabs--large">
     <div class="tabs__buttons">
-        <a *ngFor="let btn of buttons" class="tabs__item" [class.tabs__item--active]="btn === activeButton"
+        <a *ngFor="let btn of buttons" [title]="'Set view mode as ' + btn" class="tabs__item" [class.tabs__item--active]="btn === activeButton"
             (click)="onButtonClick(btn)">
             <div class="tabs__icon tabs__icon--{{ btn }}"></div>
         </a>
