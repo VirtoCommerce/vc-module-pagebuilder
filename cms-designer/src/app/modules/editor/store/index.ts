@@ -13,7 +13,7 @@ const getEditorFeatureState = createFeatureSelector<fromEditor.EditorState>('edi
 
 export const getIsDirty = createSelector(
     getEditorFeatureState,
-    state => state.dirty
+    state => !state.pageNotLoaded && state.dirty
 );
 
 // export const getCategories = createSelector(

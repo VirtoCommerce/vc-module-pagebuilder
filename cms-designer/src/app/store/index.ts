@@ -64,7 +64,8 @@ export const getHeaderIcon = createSelector(
 export const getIsDirty = createSelector(
     fromTheme.getIsDirty,
     fromEditor.getIsDirty,
-    (themeDirty, editorDirty) => themeDirty || editorDirty
+    getIsLoading,
+    (themeDirty, editorDirty, isLoading) => !isLoading && (themeDirty || editorDirty)
 );
 
 export const getPreviewLoading = createSelector(

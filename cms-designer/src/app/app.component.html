@@ -8,7 +8,7 @@
         </div>
         <div class="header-nav">
             <div class="header-actions" style="left: 0.3125rem; right: auto;">
-                <button class="btn btn--outline btn--small" (click)="tryPasteFromClipboard()">
+                <button title="Paste from clipboard" class="btn btn--outline btn--small" (click)="tryPasteFromClipboard()">
                     <span class="btn__icon btn__icon--paste-clipboard"></span>
                 </button>
             </div>
@@ -19,7 +19,7 @@
                 <button class="btn btn--outline" [disabled]="true" *ngIf="false">
                     <span class="btn__text">Publish</span>
                 </button>
-                <button class="btn btn--blue" [disabled]="(pageNotLoaded$|async) || (schemaNotLoaded$|async) || (isLoading$|async)" (click)="onSave()">
+                <button title="Save changes" class="btn btn--blue" [disabled]="!(isDirty$|async)" (click)="onSave()">
                     <span class="btn__text">Save</span>
                 </button>
             </div>
