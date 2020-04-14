@@ -11,7 +11,7 @@
 
                 if ($stateParams.storeId) {
                     stores.get({ id: $stateParams.storeId }, blade.openThemes);
-                };
+                }
 
                 stores.query(null, function (storesResult) {
                     var loadCounter = storesResult.length * 2;
@@ -45,12 +45,12 @@
 
                 switch (requestType) {
                     case 'menus':
-                        return menus.get({ storeId: storeId }, function (data) {
-                            entity.listLinksCount = data.length;
+                        return menus.get({ storeId: storeId }, function (listLinks) {
+                            entity.listLinksCount = listLinks.length;
                         }, function (error) { bladeNavigationService.setError('Error ' + error.status, blade); }).$promise;
                     case 'stats':
-                        return contentApi.getStatistics({ storeId: storeId }, function (data) {
-                            angular.extend(entity, data);
+                        return contentApi.getStatistics({ storeId: storeId }, function (stats) {
+                            angular.extend(entity, listLinks);
                         }, function (error) { bladeNavigationService.setError('Error ' + error.status, blade); }).$promise;
                     case 'defaultTheme':
                         entity.activeThemeName = data;
