@@ -58,6 +58,14 @@ namespace VirtoCommerce.PageBuilderModule.Web
                     DefaultValue = "assets/pages"
                 };
 
+                public static SettingDescriptor UseGlobalAssets = new SettingDescriptor
+                {
+                    Name = "VirtoCommerce.PageBuilderModule.General.UseGlobalAssets",
+                    GroupName = "CMS Content|General",
+                    ValueType = SettingValueType.Boolean,
+                    DefaultValue = false
+                };
+
                 public static IEnumerable<SettingDescriptor> AllSettings
                 {
                     get

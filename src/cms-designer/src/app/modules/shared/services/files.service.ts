@@ -13,11 +13,12 @@ export class FilesService {
     constructor(private http: HttpClient, private urls: ApiUrlsService) { }
 
     uploadFile(file: File, name: string): Observable<string> {
-        const url = this.urls.generateUploadAssetUrl(name);
+        const safeName = this.urls.generateUniqueSafeFileName(name);
+        const url = this.urls.generateUploadAssetUrl(safeName);
         const form = new FormData();
-        form.append('uploadedFile', file, name);
+        form.append('uploadedFile', file, safeName);
         return this.http.post<FileDescriptor[]>(url, form).pipe(
-            map(x => this.urls.getAssetsRelativeUrl(name))
+            map(x => AppSettings.useGlobalAssets ? x[0].url : this.urls.getAssetsRelativeUrl(safeName))
         );
     }
 

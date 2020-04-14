@@ -144,8 +144,8 @@ export class AppComponent implements OnInit {
     }
 
     onOrderChanged(event: CdkDragSortEvent<BlockValuesModel>) {
-        this.store.dispatch(editorActions.swapBlocks(event));
-        this.store.dispatch(editorActions.orderChanged(event));
+        this.store.dispatch(editorActions.swapBlocks({ previousIndex: event.previousIndex, currentIndex: event.currentIndex }));
+        this.store.dispatch(editorActions.orderChanged({ previousIndex: event.previousIndex, currentIndex: event.currentIndex }));
     }
 
     // block editor pane events

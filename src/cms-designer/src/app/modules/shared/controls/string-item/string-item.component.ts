@@ -11,6 +11,7 @@ import { WindowRef } from '@app/services';
 export class StringItemComponent extends BaseControlDirective<StringControlDescriptor> {
 
     @ViewChild('control') control: ElementRef;
+    @ViewChild('textarea') textarea: ElementRef;
 
     constructor(private windowRef: WindowRef) {
         super();
@@ -22,6 +23,6 @@ export class StringItemComponent extends BaseControlDirective<StringControlDescr
     }
 
     getFocusableControl(): ElementRef {
-        return this.control;
+        return this.descriptor.multiline ? this.textarea : this.control;
     }
 }
