@@ -72,9 +72,9 @@ const editorReducers = createReducer(
         const shift = previousIndex >= currentIndex ? 0 : 1;
         content.splice(currentIndex - shift, 0, ...element);
         const page = { ...state.page, content };
-        return { ...state, page };
+        return { ...state, page, dirty: true };
     }),
-    on(Actions.orderChanged, state => ({ ...state, dirty: true })),
+    // on(Actions.orderChanged, state => ({ ...state, dirty: true })),
     on(Actions.removePageItem, (state, { block }) => {
         const content = [...state.page.content];
         const index = content.indexOf(block);

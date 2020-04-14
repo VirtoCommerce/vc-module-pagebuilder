@@ -1,4 +1,11 @@
-.button-area {
-    display: flex;
-    justify-content: space-between;
+.color-picker {
+    .button-area {
+        display: flex;
+        justify-content: space-between;
+
+        button {
+            min-width: auto;
+            flex-grow: 1;
+        }
+    }
 }
