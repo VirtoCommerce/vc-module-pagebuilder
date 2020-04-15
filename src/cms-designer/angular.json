@@ -78,7 +78,7 @@
               "aot": true,
               "extractLicenses": true,
               "vendorChunk": false,
-              "outputPath": "../VirtoCommerce.PageBuilderModule/Content/builder/",
+              "outputPath": "../VirtoCommerce.PageBuilderModule.Web/Content/builder/",
               "resourcesOutputPath": "assets",
               "buildOptimizer": true
             },
@@ -98,7 +98,7 @@
               "extractLicenses": true,
               "vendorChunk": false,
               "buildOptimizer": false,
-              "outputPath": "../VirtoCommerce.PageBuilderModule/Content/builder/",
+              "outputPath": "../VirtoCommerce.PageBuilderModule.Web/Content/builder/",
               "resourcesOutputPath": "assets",
               "watch": true
             },
@@ -118,7 +118,7 @@
               "extractLicenses": true,
               "vendorChunk": false,
               "buildOptimizer": false,
-              "outputPath": "../VirtoCommerce.PageBuilderModule/Content/builder/",
+              "outputPath": "../VirtoCommerce.PageBuilderModule.Web/Content/builder/",
               "resourcesOutputPath": "assets"
             }
           }
