@@ -50,7 +50,7 @@
                         }, function (error) { bladeNavigationService.setError('Error ' + error.status, blade); }).$promise;
                     case 'stats':
                         return contentApi.getStatistics({ storeId: storeId }, function (stats) {
-                            angular.extend(entity, listLinks);
+                            angular.extend(entity, stats);
                         }, function (error) { bladeNavigationService.setError('Error ' + error.status, blade); }).$promise;
                     case 'defaultTheme':
                         entity.activeThemeName = data;
