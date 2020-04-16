@@ -1,17 +1,15 @@
-<?xml version="1.0" encoding="utf-8" ?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <module>
   <id>VirtoCommerce.PageBuilderModule</id>
   <version>3.0.0</version>
   <platformVersion>3.0.0</platformVersion>
-  <version-tag>rc.4</version-tag>
+  <version-tag>rc.5$</version-tag>
   <dependencies>
     <dependency id="VirtoCommerce.Core" version="3.0.0" />
     <dependency id="VirtoCommerce.Content" version="3.0.0" />
   </dependencies>
-  
   <assemblyFile>VirtoCommerce.PageBuilderModule.Web.dll</assemblyFile>
   <moduleType>VirtoCommerce.PageBuilderModule.Web.Module, VirtoCommerce.PageBuilderModule.Web</moduleType>
-  
   <title>CMS Page Builder</title>
   <description>Compose pages in visual page builder.</description>
   <authors>
@@ -20,8 +18,6 @@
   <owners>
     <owner>Virto Commerce</owner>
   </owners>
-  
-  <copyright>Copyright © 2011-2019 Virto Commerce. All rights reserved</copyright>
+  <copyright>Copyright В© 2011-2019 Virto Commerce. All rights reserved</copyright>
   <tags>cms content pagebuilder</tags>
-
 </module>
