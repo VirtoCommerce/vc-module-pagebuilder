@@ -52,7 +52,7 @@ angular.module(moduleTemplateName)
                     title: 'pageBuilder.blades.edit-page.title-new-post',
                     subtitle: 'pageBuilder.blades.edit-page.subtitle-new-post'
                 });
-            };
+            }
 
             bladeNavigationService.showBlade(newBlade, $scope.blade.parentBlade);
         };
