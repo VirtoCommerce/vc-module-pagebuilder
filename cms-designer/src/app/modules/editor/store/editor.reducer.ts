@@ -58,7 +58,7 @@ const editorReducers = createReducer(
         const element = content.splice(previousIndex, 1);
         content.splice(currentIndex, 0, ...element);
         const page = { ...state.page, content };
-        return { ...state, page };
+        return { ...state, page, dirty: true };
     }),
     on(Actions.completeEditPageItem, state => ({ ...state, currentSectionItem: null })),
     on(Actions.loadPage, state => ({ ...state, pageLoading: true })),
