@@ -19,7 +19,7 @@ export class PageEditorComponent implements OnInit {
     @Input() hoveredId: number;
     @Input() set model(value: PageModel) {
         this._model = value;
-        this.updateLItems();
+        this.updateItems();
     }
     get model(): PageModel {
         return this._model;
@@ -90,7 +90,7 @@ export class PageEditorComponent implements OnInit {
         this.mouseOver.emit(item);
     }
 
-    private updateLItems() {
+    private updateItems() {
         if (!!this._model && !!this._schema) {
             this.topItems = this.getItemsByStaticKey('top');
             this.bottomItems = this.getItemsByStaticKey('bottom');
