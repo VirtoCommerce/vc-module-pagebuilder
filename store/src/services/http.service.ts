@@ -13,7 +13,6 @@ export class HttpService {
             xhr.setRequestHeader('Cache-Control', 'no-cache');
             xhr.setRequestHeader('Content-Type', 'application/json');
             xhr.setRequestHeader('X-XSRF-TOKEN', this.getToken());
-            xhr.send();
             // xhr.timeout = timeout;
             xhr.onload = evt => {
                 // const result = {
@@ -26,15 +25,20 @@ export class HttpService {
                 if (xhr.status >= 200 && xhr.status < 300) {
                     // everything is allright
                     resolve(xhr.responseText.trim());
+                } else if (xhr.status >= 400 && xhr.status < 500) {
+                    reject();
+                } else if (xhr.status >= 500) {
+                    reject();
                 }
                 // this.blocks.push(model); or replace
             };
-            // xhr.onerror = evt => {
-            //   resolve(errorResponse(xhr, 'Failed to make request.'));
-            // };
-            // xhr.ontimeout = evt => {
-            //   resolve(errorResponse(xhr, 'Request took longer than expected.'));
-            // };
+            xhr.onerror = evt => {
+                reject();
+            };
+            xhr.ontimeout = evt => {
+                reject();
+            };
+            xhr.send();
         });
     }
 
@@ -92,13 +96,13 @@ export class HttpService {
     }
 
     private getToken(): string {
-        if (!this.token){
+        if (!this.token) {
             var all = document.cookie;
             var parts = all.split(';');
             var xsrf = null;
             for (var i = 0; i < parts.length; i++) {
                 var part = parts[i];
-                if (part.startsWith(' XSRF-TOKEN') || part.startsWith('XSRF-TOKEN')){
+                if (part.startsWith(' XSRF-TOKEN') || part.startsWith('XSRF-TOKEN')) {
                     xsrf = part.substr(part.indexOf('XSRF-TOKEN=') + 11)
                     break;
                 }
@@ -108,12 +112,12 @@ export class HttpService {
         return this.token;
     }
 
-/*
-
-
-
-
-*/
+    /*
+    
+    
+    
+    
+    */
 
 
 
