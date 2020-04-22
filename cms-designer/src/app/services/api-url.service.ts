@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { CookieService } from 'ngx-cookie-service';
 
-import { PageDescriptor } from '@shared/models';
+import { PageBuilderContext } from '@shared/models';
 import { AppSettings } from './app.settings';
 import { WindowRef } from './window-ref';
 import { environment } from 'src/environments/environment';
@@ -12,7 +12,7 @@ import { environment } from 'src/environments/environment';
 export class ApiUrlsService {
 
     private readonly SESSION_ID = 'sessionId';
-    private _params: PageDescriptor = null;
+    private _params: PageBuilderContext = null;
 
     constructor(private cookies: CookieService, private windowRef: WindowRef) { }
 
@@ -107,20 +107,7 @@ export class ApiUrlsService {
         return url;
     }
 
-    private generatePrefixAndSetCookie(): string {
-        const result = this.generateUniqueString(10);
-        this.cookies.set(this.SESSION_ID, result);
-        return result;
-    }
-
-    private generateUniqueString(length: number) {
-        const characters = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_-';
-        const randomChar = () => characters[Math.floor(Math.random() * characters.length)];
-        const result = Array.from({ length }, randomChar).join('');
-        return result;
-    }
-
-    private get params(): PageDescriptor {
+    get params(): PageBuilderContext {
         if (!this._params) {
             const win = this.windowRef.nativeWindow;
             const urlParams = new URLSearchParams(win.location.search);
@@ -139,6 +126,19 @@ export class ApiUrlsService {
             }
         }
         return this._params;
+    }
+
+    private generatePrefixAndSetCookie(): string {
+        const result = this.generateUniqueString(10);
+        this.cookies.set(this.SESSION_ID, result);
+        return result;
+    }
+
+    private generateUniqueString(length: number) {
+        const characters = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_-';
+        const randomChar = () => characters[Math.floor(Math.random() * characters.length)];
+        const result = Array.from({ length }, randomChar).join('');
+        return result;
     }
 
     private getPlatformUrl(): string {

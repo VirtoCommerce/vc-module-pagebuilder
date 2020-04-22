@@ -1,4 +1,4 @@
-export interface PageDescriptor {
+export interface PageBuilderContext {
     storeId: string;
     path: string;
     contentType: string;
