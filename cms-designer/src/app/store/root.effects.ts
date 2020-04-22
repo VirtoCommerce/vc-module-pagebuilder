@@ -51,7 +51,7 @@ export class RootEffects {
             this.editorStore$.select(fromEditor.getPageNotLoaded)
         ),
         filter(([, page, pageNotLoaded]) => !page || pageNotLoaded),
-        mapTo(editorActions.loadPage())
+        mapTo(editorActions.loadBlocks())
     ));
 
     switchToLoadBlocks$ = createEffect(() => this.actions$.pipe(
@@ -87,16 +87,16 @@ export class RootEffects {
     saveData$ = createEffect(() => this.actions$.pipe(
         ofType(rootActions.saveData),
         switchMapTo([
-            editorActions.savePage(),
+            editorActions.saveBlocks(),
             themeActions.saveTheme()
         ])
     ));
 
     setPreviewUrl = createEffect(() => createEffect(() => this.actions$.pipe(
-        ofType(editorActions.loadPageSuccess),
+        ofType(editorActions.loadBlocksSuccess),
         switchMap(action => {
-            if (!!action.page) {
-                const result = this.urls.getStoreUrl(<string>action.page['layout']);
+            if (!!action.blocks) {
+                const result = this.urls.getStoreUrl(<string>action.blocks['layout']);
                 return [rootActions.setPreviewUrl({ url: result }), rootActions.reloadPreview()];
             }
             return [rootActions.setPreviewUrl({ url: null })];
@@ -218,9 +218,10 @@ export class RootEffects {
         withLatestFrom(
             this.rootStore$.select(fromRoot.getPrimaryFrameId),
             this.rootStore$.select(fromRoot.getPrimaryIsLoaded),
-            this.editorStore$.select(fromEditor.getCurrentSectionItem)
+            this.editorStore$.select(fromEditor.getCurrentSectionItem),
+            this.editorStore$.select(fromEditor.getBlocksSchema)
         ),
-        filter(([, , previewReady]) => previewReady),
+        filter(([, , previewReady, currentItem, schema]) => previewReady && !schema[currentItem.type].static),
         map(([action, frameId, , currentItem]): [BlockValuesModel, string] => [
             <BlockValuesModel>{ ...currentItem, ...action.block },
             frameId
@@ -247,9 +248,13 @@ export class RootEffects {
 
     toggleItemVisibility$ = createEffect(() => this.actions$.pipe(
         ofType(editorActions.toggleItemVisibility),
-        withLatestFrom(this.rootStore$.select(fromRoot.getPrimaryFrameId)),
-        tap(([action, frameId]) => {
-            if (action.block.hidden) {
+        withLatestFrom(
+            this.rootStore$.select(fromRoot.getPrimaryFrameId),
+            this.editorStore$.select(fromEditor.getPage)
+        ),
+        tap(([action, frameId, page]) => {
+            const block = page.content.find(x => x.id === action.block.id);
+            if (block.hidden) {
                 this.preview.hide(action.block, frameId);
             } else {
                 this.preview.show(action.block, frameId);
@@ -258,7 +263,7 @@ export class RootEffects {
     ), { dispatch: false });
 
     reloadPageInBackground$ = createEffect(() => this.actions$.pipe(
-        ofType(editorActions.loadPageSuccess),
+        ofType(editorActions.loadBlocksSuccess),
         withLatestFrom(this.rootStore$.select(fromRoot.getSecondaryFrameId)),
         switchMap(([, frameId]) => of(rootActions.previewReady({ frameId })))
     ));

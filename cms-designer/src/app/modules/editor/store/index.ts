@@ -48,7 +48,17 @@ export const getPageForEdit = createSelector(
 export const getCurrentSectionItem = createSelector(
     getEditorFeatureState,
     getPage,
-    (state, page) => page && page.content.find(x => x.id === state.currentSectionItem)
+    getBlocksSchema,
+    (state, page, schema) => {
+        if (page && schema && state.currentSectionItem) {
+            if (typeof (state.currentSectionItem) !== 'string') {
+                return page.content.find(x => x.id === state.currentSectionItem)
+            } else {
+                return { ...page.settings, type: state.currentSectionItem };
+            }
+        }
+        return null;
+    }
 );
 
 export const getIsLoading = createSelector(
