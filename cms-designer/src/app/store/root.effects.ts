@@ -162,7 +162,7 @@ export class RootEffects {
         ofType(themeActions.loadEffectiveThemeValuesRequested),
         switchMap(() => timer(AppSettings.previewTimeout).pipe(
             withLatestFrom(this.themeStore$.select(fromTheme.getIsEffectiveValuesSkipped)),
-            filter(([skipped]) => !skipped),
+            filter(([, skipped]) => !skipped),
             map(() => themeActions.loadEffectiveThemeValuesSkippedByTimeout())
         )),
     ));
