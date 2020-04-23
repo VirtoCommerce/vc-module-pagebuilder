@@ -1,10 +1,11 @@
-export class BlockValuesModel {
+export interface BlockValuesModel {
     id?: number;
     type: string;
     icon?: string;
     title?: string; // for page in settings
     name?: string; // for block in list
     hidden?: boolean;
+    static?: boolean;
     [key: string]: ValueType | ValueType[];
 }
 

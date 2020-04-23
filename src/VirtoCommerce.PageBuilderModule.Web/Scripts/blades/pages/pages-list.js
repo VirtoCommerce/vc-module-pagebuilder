@@ -108,6 +108,12 @@
                     controller: 'virtoCommerce.contentModule.pageDetailController',
                     template: 'Modules/$(VirtoCommerce.Content)/Scripts/blades/pages/page-detail.tpl.html'
                 };
+                if (isNew) {
+                    angular.extend(newBlade, {
+                        controller: 'virtoCommerce.pageBuilderModule.pageAddController',
+                        template: 'Modules/$(VirtoCommerce.PageBuilderModule)/Scripts/blades/pages/page-add.tpl.html'
+                    });
+                }
 
                 if (listItem.isDesignPage) {
                     openJsonDetailsBlade(listItem, isNew);

@@ -1,5 +1,6 @@
 import { Type, Injectable } from '@angular/core';
 import {
+    CalendarItemComponent,
     CheckboxItemComponent,
     ColorItemComponent,
     FileItemComponent,
@@ -18,6 +19,7 @@ export class ControlsFactory {
     private controls: { [key: string]: Type<any> } = {};
 
     constructor() {
+        this.controls['calendar'] = CalendarItemComponent;
         this.controls['checkbox'] = CheckboxItemComponent;
         this.controls['color'] = ColorItemComponent;
         this.controls['file'] = FileItemComponent;

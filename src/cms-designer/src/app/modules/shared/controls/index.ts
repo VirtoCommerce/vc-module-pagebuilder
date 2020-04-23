@@ -1,3 +1,4 @@
+export * from './calendar-item/calendar-item.component';
 export * from './checkbox-item/checkbox-item.component';
 export * from './color-item/color-item.component';
 export * from './image-item/image-item.component';
@@ -8,6 +9,7 @@ export * from './number-item/number-item.component';
 export * from './url-item/url-item.component';
 export * from './file-item/file-item.component';
 
+import { CalendarItemComponent } from './calendar-item/calendar-item.component';
 import { CheckboxItemComponent } from './checkbox-item/checkbox-item.component';
 import { ColorItemComponent } from './color-item/color-item.component';
 import { ImageItemComponent } from './image-item/image-item.component';
@@ -19,6 +21,7 @@ import { UrlItemComponent } from './url-item/url-item.component';
 import { FileItemComponent } from './file-item/file-item.component';
 
 export const CONTROLS = [
+    CalendarItemComponent,
     CheckboxItemComponent,
     ColorItemComponent,
     ImageItemComponent,

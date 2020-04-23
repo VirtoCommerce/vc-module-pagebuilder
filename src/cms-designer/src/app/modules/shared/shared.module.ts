@@ -8,6 +8,8 @@ import { ColorPickerModule } from 'ngx-color-picker';
 import { CKEditorModule } from 'ckeditor4-angular';
 import { ToastrModule } from 'ngx-toastr';
 import { MatDialogModule } from '@angular/material/dialog';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatMomentDateModule, MAT_MOMENT_DATE_ADAPTER_OPTIONS } from '@angular/material-moment-adapter';
 
 import { COMPONENTS } from './components';
 import { CONTROLS } from './controls';
@@ -32,8 +34,13 @@ import { PastePopupComponent } from './components/paste-popup/paste-popup.compon
         ColorPickerModule,
         CKEditorModule,
         MatDialogModule,
+        MatDatepickerModule,
+        MatMomentDateModule,
         ToastrModule.forRoot()
     ],
-    exports: [...COMPONENTS, ...LAYOUT_COMPONENTS, OverlayModule, MatDialogModule]
+    providers: [
+        { provide: MAT_MOMENT_DATE_ADAPTER_OPTIONS, useValue: { useUtc: true } }
+    ],
+    exports: [...COMPONENTS, ...LAYOUT_COMPONENTS, OverlayModule, MatDialogModule, MatDatepickerModule, MatMomentDateModule]
 })
 export class SharedModule { }

@@ -139,6 +139,10 @@ export class AppComponent implements OnInit {
         this.store.dispatch(editorActions.selectPageItem({ blockId: item.id }));
     }
 
+    selectPageSettingsItem(item: BlockValuesModel) {
+        this.store.dispatch(editorActions.selectSettingsPageItem({ key: item.type }));
+    }
+
     reloadEditorData() {
         this.store.dispatch(rootActions.loadData());
     }

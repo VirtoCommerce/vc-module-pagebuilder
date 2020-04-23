@@ -53,7 +53,7 @@
                             [schema]="blocksSchema$ | async" (selectEvent)="selectPageItem($event)"
                             [hoveredId]="hoveredId$|async" (mouseOver)="mouseOverItem($event)"
                             (visibilityChanged)="toggleVisibility($event)" (orderChangedEvent)="onOrderChanged($event)"
-                            (addNewBlockEvent)="setNewBlockMode()">
+                            (addNewBlockEvent)="setNewBlockMode()" (selectSettingsEvent)="selectPageSettingsItem($event)">
                         </app-page-editor>
                     </ng-container>
                 </app-tab>

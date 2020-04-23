@@ -13,11 +13,14 @@
                     </div>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Page layout name</label>
+                    <label class="form-label">Page layout name ({{ blade.currentEntity.settings.layout }})</label>
                     <div class="form-input">
-                        <select focus-on="" class="form-control" ng-model="blade.currentEntity.settings.layout" placeholder="Layout name" name="layout">
-                            <option ng-repeat="item in options" value="{{ item.value }}">{{ item.label }}</option>
-                        </select>
+                        <ui-select ng-model="blade.currentEntity.settings.layout">
+                            <ui-select-match placeholder="Layout name">{{$select.selected.label}}</ui-select-match>
+                            <ui-select-choices repeat="item.value as item in options">
+                                <span ng-bind="item.label"></span>
+                            </ui-select-choices>
+                        </ui-select>
                     </div>
                 </div>
                 <div class="form-group">

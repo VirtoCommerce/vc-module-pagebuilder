@@ -16,7 +16,7 @@ export class BlockFormComponent implements OnInit, OnDestroy {
 
     @Input() context: any;
 
-    @Input() get model(): BlockValuesModel { // модель используется при создании формы, для получения значений
+    @Input() get model(): BlockValuesModel {
         return this._model;
     }
     set model(value: BlockValuesModel) {
