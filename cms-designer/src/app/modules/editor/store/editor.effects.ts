@@ -92,51 +92,73 @@ export class EditorEffects {
         )
     ));
 
-    loadPage$ = createEffect(() => this.actions$.pipe(
-        ofType(editorActions.loadPage),
+    loadBlocks$ = createEffect(() => this.actions$.pipe(
+        ofType(editorActions.loadBlocks),
         switchMap(() =>
             this.pages.downloadPage().pipe(
-                map(page => editorActions.loadPageSuccess({ page })),
-                catchError(error => of(editorActions.loadPageFail({ error })))
+                map(blocks => editorActions.loadBlocksSuccess({ blocks })),
+                catchError(error => of(editorActions.loadBlocksFail({ error })))
             )
         )
     ));
 
-    savePage$ = createEffect(() => this.actions$.pipe(
-        ofType(editorActions.savePage),
-        map(() => editorActions.reloadPage())
+    // saveBlocks$ = createEffect(() => this.actions$.pipe(
+    //     ofType(editorActions.saveBlocks),
+    //     withLatestFrom(this.store$.select(fromEditor.getPage)),
+    //     switchMap(([, page]: [any, PageModel]) => {
+    //         const data = [page.settings, ...page.content];
+    //         return this.pages.uploadPage(data).pipe(
+    //             map(() => editorActions.saveBlocksSuccess()),
+    //             catchError(error => of(editorActions.saveBlocksFail({ error })))
+    //         );
+    //     })
+    // ));
+
+    saveBlocks$ = createEffect(() => this.actions$.pipe(
+        ofType(editorActions.saveBlocks),
+        map(() => editorActions.reloadBlocks())
     ));
 
-    reloadPage$ = createEffect(() => this.actions$.pipe(
-        ofType(editorActions.reloadPage),
+    reloadBlocks$ = createEffect(() => this.actions$.pipe(
+        ofType(editorActions.reloadBlocks),
         switchMap(() => this.pages.downloadPage().pipe(
-            map(page => editorActions.reloadPageSuccess({ page })),
-            catchError(error => of(editorActions.reloadPageFail({ error })))
+            map(blocks => editorActions.reloadBlocksSuccess({ blocks })),
+            catchError(error => of(editorActions.reloadBlocksFail({ error })))
         ))
     ));
 
     uploadPage$ = createEffect(() => this.actions$.pipe(
-        ofType(editorActions.reloadPageSuccess),
-        withLatestFrom(this.store$.select(fromEditor.getPage)),
-        switchMap(([action, page]: [any, PageModel]) => {
-            const settings = action.page.settings || page.settings;
+        ofType(editorActions.reloadBlocksSuccess),
+        withLatestFrom(
+            this.store$.select(fromEditor.getPage),
+            this.store$.select(fromEditor.getBlocksSchema)
+        ),
+        switchMap(([{ blocks }, page, schema]) => {
+            const settings = { ...(blocks.find(x => x.type === 'settings') || page.settings) };
+            Object.keys(schema)
+                .filter(key => schema[key].static && (typeof schema[key].static === 'string'))
+                .forEach(key => {
+                    schema[key].settings.forEach(s => {
+                        settings[s.id] = page.settings[s.id];
+                    });
+                })
             const data = [settings, ...page.content];
             return this.pages.uploadPage(data).pipe(
-                map(() => editorActions.savePageSuccess()),
-                catchError(error => of(editorActions.savePageFail({ error })))
+                map(() => editorActions.saveBlocksSuccess()),
+                catchError(error => of(editorActions.saveBlocksFail({ error })))
             );
         })
     ));
 
     pageSaved$ = createEffect(() => this.actions$.pipe(
-        ofType(editorActions.savePageSuccess),
+        ofType(editorActions.saveBlocksSuccess),
         tap(() => {
             this.messages.displayMessage('Page saved successfully');
         })
     ), { dispatch: false });
 
     pageSaveFailed$ = createEffect(() => this.actions$.pipe(
-        ofType(editorActions.savePageFail),
+        ofType(editorActions.saveBlocksFail),
         tap((action) => {
             this.messages.displayError('Couldn\'t save page', action.error);
         })

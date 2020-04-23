@@ -2,6 +2,7 @@ import { createReducer, on, Action } from '@ngrx/store';
 import { BlocksSchema } from '@shared/models';
 import { PageModel } from '@editor/models';
 import * as Actions from './editor.actions';
+import { StaticReflector } from '@angular/compiler';
 
 export interface EditorState {
     pageLoading: boolean;
@@ -10,7 +11,7 @@ export interface EditorState {
     schemaNotLoaded: boolean;
 
     showNewBlockSelector: boolean;
-    currentSectionItem: number;
+    currentSectionItem: number | string;
     initialPage: string;
     page: PageModel;
     blocksSchema: BlocksSchema;
@@ -61,11 +62,19 @@ const editorReducers = createReducer(
         return { ...state, page, dirty: true };
     }),
     on(Actions.completeEditPageItem, state => ({ ...state, currentSectionItem: null })),
-    on(Actions.loadPage, state => ({ ...state, pageLoading: true })),
-    on(Actions.loadPageFail, state => ({ ...state, pageNotLoaded: true, pageLoading: false })),
-    on(Actions.loadPageSuccess, (state, { page }) => ({
-        ...state, page, initialPage: JSON.stringify(page), pageLoading: false, pageNotLoaded: false, dirty: false
-    })),
+    on(Actions.loadBlocks, state => ({ ...state, pageLoading: true })),
+    on(Actions.loadBlocksFail, state => ({ ...state, pageNotLoaded: true, pageLoading: false })),
+    on(Actions.loadBlocksSuccess, (state, { blocks }) => {
+        const settings = blocks.find(x => x.type === 'settings');
+        const content = blocks.filter(x => x.type !== 'settings').map((x, index) => ({ ...x, id: index + 1 }));
+        const page = <PageModel>{
+            settings: settings,
+            content: content
+        };
+        return {
+            ...state, page, initialPage: JSON.stringify(page), pageLoading: false, pageNotLoaded: false, dirty: false
+        };
+    }),
     on(Actions.moveBlock, (state, { previousIndex, currentIndex }) => {
         const content = [...state.page.content];
         const element = content.splice(previousIndex, 1);
@@ -82,13 +91,18 @@ const editorReducers = createReducer(
         const page = { ...state.page, content };
         return { ...state, page, currentSectionItem: null, dirty: true };
     }),
-    on(Actions.savePage, state => ({ ...state, pageLoading: true })),
-    on(Actions.savePageFail, state => ({ ...state, pageLoading: false })),
-    on(Actions.savePageSuccess, state => ({ ...state, pageLoading: false, dirty: false, initialPage: JSON.stringify(state.page) })),
+    on(Actions.saveBlocks, state => ({ ...state, pageLoading: true })),
+    on(Actions.saveBlocksFail, state => ({ ...state, pageLoading: false })),
+    on(Actions.saveBlocksSuccess, state => ({ ...state, pageLoading: false, dirty: false, initialPage: JSON.stringify(state.page) })),
     on(Actions.selectPageItem, (state, { blockId }) => ({
         ...state,
         currentSectionItem: blockId,
         showNewBlockSelector: !!blockId ? false : state.showNewBlockSelector
+    })),
+    on(Actions.selectSettingsPageItem, (state, { key }) => ({
+        ...state,
+        currentSectionItem: key,
+        showNewBlockSelector: false
     })),
     on(Actions.toggleNewBlockPane, (state, { display }) => ({ ...state, showNewBlockSelector: display })),
     on(Actions.toggleItemVisibility, (state, { block }) => {
@@ -103,13 +117,35 @@ const editorReducers = createReducer(
     on(Actions.markSectionHoveredInPreview, (state, { blockId }) => ({ ...state, hoveredInPreviewId: blockId })),
     on(Actions.setEditorMode, (state, { mode }) => ({ ...state, editorMode: mode })),
     on(Actions.updatePageItem, (state, { block }) => {
-        const content = state.page.content;
-        const element = content.find(x => x.id === state.currentSectionItem);
-        const index = content.indexOf(element);
-        const type = state.blocksSchema[element.type].static ? 'settings' : element.type;
+        if (typeof state.currentSectionItem === 'string') {
+            return {
+                ...state,
+                dirty: true,
+                page: {
+                    content: state.page.content,
+                    settings: {
+                        ...state.page.settings,
+                        ...block
+                    }
+                }
+            }
+        } else {
+            const content = state.page.content;
+            const element = content.find(x => x.id === state.currentSectionItem);
+            const index = content.indexOf(element);
+            const type = state.blocksSchema[element.type].static ? 'settings' : element.type;
+            const page = {
+                ...state.page,
+                content: [...content.slice(0, index), { ...element, ...block, type }, ...content.slice(index + 1)]
+            };
+            return { ...state, dirty: true, page };
+        }
+    }),
+    on(Actions.updatePageSettings, (state, { settings }) => {
+        const currentSettings = state.page.settings;
         const page = {
             ...state.page,
-            content: [...content.slice(0, index), { ...element, ...block, type }, ...content.slice(index + 1)]
+            settings: { ...currentSettings, settings }
         };
         return { ...state, dirty: true, page };
     })

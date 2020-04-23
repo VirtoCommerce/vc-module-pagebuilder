@@ -7,4 +7,5 @@ export interface ImageControlDescriptor extends BaseControlDescriptor {
     maxHeight?: number;
     allowSetSize?: boolean;
     acceptTypes?: string;
+    inline: boolean;
 }

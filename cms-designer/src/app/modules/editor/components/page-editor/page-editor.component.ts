@@ -19,7 +19,7 @@ export class PageEditorComponent implements OnInit {
     @Input() hoveredId: number;
     @Input() set model(value: PageModel) {
         this._model = value;
-        this.updateLItems();
+        this.updateItems();
     }
     get model(): PageModel {
         return this._model;
@@ -27,13 +27,14 @@ export class PageEditorComponent implements OnInit {
 
     @Input() set schema(value: BlocksSchema) {
         this._schema = value;
-        this.updateLItems();
+        this.updateItems();
     }
     get schema(): BlocksSchema {
         return this._schema;
     }
 
     @Output() selectEvent = new EventEmitter<BlockValuesModel>();
+    @Output() selectSettingsEvent = new EventEmitter<BlockValuesModel>();
     @Output() addNewBlockEvent = new EventEmitter<any>();
     @Output() orderChangedEvent = new EventEmitter<CdkDragSortEvent<BlockValuesModel>>();
     @Output() visibilityChanged = new EventEmitter<BlockValuesModel>();
@@ -45,6 +46,10 @@ export class PageEditorComponent implements OnInit {
 
     selectItem(item: BlockValuesModel) {
         this.selectEvent.emit(item);
+    }
+
+    selectSettingsItem(item: BlockValuesModel) {
+        this.selectSettingsEvent.emit(item);
     }
 
     addNewBlock() {
@@ -90,7 +95,7 @@ export class PageEditorComponent implements OnInit {
         this.mouseOver.emit(item);
     }
 
-    private updateLItems() {
+    private updateItems() {
         if (!!this._model && !!this._schema) {
             this.topItems = this.getItemsByStaticKey('top');
             this.bottomItems = this.getItemsByStaticKey('bottom');
