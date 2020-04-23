@@ -54,6 +54,7 @@ export const getCurrentSectionItem = createSelector(
             if (typeof (state.currentSectionItem) !== 'string') {
                 return page.content.find(x => x.id === state.currentSectionItem)
             } else {
+                // todo: is it correct to returns new object from state?
                 return { ...page.settings, type: state.currentSectionItem };
             }
         }

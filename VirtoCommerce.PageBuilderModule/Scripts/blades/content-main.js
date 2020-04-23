@@ -8,7 +8,7 @@
             blade.initialize = function () {
                 blade.isLoading = true;
                 blade.currentEntities = [];
-
+                blade.currentEntity = { relativeUrl: '' }
                 if ($stateParams.storeId) {
                     stores.get({ id: $stateParams.storeId }, blade.openThemes);
                 }
@@ -143,9 +143,9 @@
                 var newBlade = {
                     id: 'addPage',
                     contentType: 'pages',
-                    storeId: data.storeId,
+                    storeId: data.store.id,
                     languages: data.store.languages,
-                    currentEntity: {},
+                    currentEntity: { },
                     isNew: true,
                     title: 'pageBuilder.blades.add-page.title',
                     subtitle: 'pageBuilder.blades.add-page.subtitle',
