@@ -59,7 +59,8 @@
             "scripts": [
               "src/assets/js/jquery.min.js",
               "src/assets/js/jquery-ui.js",
-              "src/assets/js/main.js"
+              "src/assets/js/main.js",
+              "node_modules/moment/moment.js"
             ]
           },
           "configurations": {
