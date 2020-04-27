@@ -1,4 +1,4 @@
-<div class="form-color__bg bg--dark" [colorPicker]="value" (colorPickerChange)="onChange($event)" [cpOKButton]="true"
+<div class="form-color__bg bg--dark" [colorPicker]="value" cpOutputFormat="rgba" (colorPickerChange)="onChange($event)" [cpOKButton]="true"
     [cpCancelButton]="true" cpCancelButtonText="Clear" cpCancelButtonClass="btn" (colorPickerCancel)="onClear($event)"
     cpPosition="bottom" cpWidth="202" cpOKButtonClass="btn btn--blue" [style.backgroundColor]="value"></div>
 <div class="form-color__text">{{ descriptor.label }}</div>
