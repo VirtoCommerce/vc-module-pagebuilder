@@ -64,7 +64,11 @@
           "AssetsPath": {
             "description": "",
             "title": "Assets relative path"
-          }
+          },
+		  "UseGlobalAssets": {
+			"description": "",
+			"title": "Use global assets folder"
+		  }
         }
       }
     }
