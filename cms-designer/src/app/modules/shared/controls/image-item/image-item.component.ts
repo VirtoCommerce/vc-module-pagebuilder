@@ -37,6 +37,7 @@ export class ImageItemComponent extends BaseControlDirective<ImageControlDescrip
     }
 
     getAssetUrl(): string {
+        if (!this.value || !this.value.url) return null;
         if (typeof this.value === 'string') {
             return this.urls.getAssetsUrl(this.value);
         } else {
