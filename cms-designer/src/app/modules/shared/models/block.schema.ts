@@ -1,6 +1,11 @@
 import { ControlDescriptor } from '.';
 
-export interface BlockSchema {
+interface BaseBlockSchema {
+    contentType?: string;
+    settings: ControlDescriptor[];
+}
+
+export interface BlockSchema extends BaseBlockSchema {
     name: string;
     icon: string;
     category?: string;
@@ -8,9 +13,18 @@ export interface BlockSchema {
     static?: string;
     hide?: boolean;
     displayField?: string;
-    settings: ControlDescriptor[];
+    excludeShared?: boolean | string[];
+    includeShared?: string | string[];
 }
 
-export interface BlocksSchema {
+export interface SharedBlockSchema extends BaseBlockSchema {
+    namedSettings: { [key: string]: ControlDescriptor[]; }
+}
+
+interface BlocksSchemaUnderlay {
     [key: string]: BlockSchema;
+}
+
+export type BlocksSchema = BlocksSchemaUnderlay & {
+    shared?: SharedBlockSchema;
 }

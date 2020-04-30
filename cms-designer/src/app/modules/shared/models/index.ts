@@ -12,7 +12,7 @@ export * from './select-control.descriptor';
 export * from './string-control.descriptor';
 export * from './text-control.descriptor';
 export * from './control.descriptor';
-export * from './page.descriptor';
+export * from './page-builder.context';
 export * from './block-values.model';
 export * from './url-control.descriptor';
 export * from './file-item-control.descriptor';

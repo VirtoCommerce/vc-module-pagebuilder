@@ -24,7 +24,6 @@ export class ImageItemComponent extends BaseControlDirective<ImageControlDescrip
     registerOnChange(fn: any): void {
         this.onChange = (event) => {
             if (!event || !event.target) {
-                console.log(this.value);
                 fn(this.value);
             } else {
                 const file = event.target.files[0];
@@ -38,7 +37,12 @@ export class ImageItemComponent extends BaseControlDirective<ImageControlDescrip
     }
 
     getAssetUrl(): string {
-        return this.urls.getAssetsUrl(this.value.url);
+        if (!this.value || !this.value.url) return null;
+        if (typeof this.value === 'string') {
+            return this.urls.getAssetsUrl(this.value);
+        } else {
+            return this.urls.getAssetsUrl(this.value.url);
+        }
     }
 
     changeAlt(value: string) {
@@ -61,11 +65,18 @@ export class ImageItemComponent extends BaseControlDirective<ImageControlDescrip
         this.onChange(this.value);
     }
 
-    setValue(value: ImageDescriptor) {
-        const result = { ...this.value, ...value };
-        if (!result.altText) {
-            result.altText = null;
+    setValue(value: ImageDescriptor | string) {
+        if (typeof value === 'string') {
+            value = { url: value };
         }
-        super.setValue(result);
+        if (this.descriptor.inline) {
+            super.setValue(value.url);
+        } else {
+            const result = { ...this.value, ...value };
+            if (!result.altText) {
+                result.altText = null;
+            }
+            super.setValue(result);
+        }
     }
 }

@@ -21,7 +21,6 @@ angular.module('virtoCommerce.pageBuilderModule')
                     $scope.blade.currentEntity.blocks = [{ type: 'settings', title: '', permalink: '', layout: $scope.options[0].value }];
                     $scope.blade.currentEntity.settings = $scope.blade.currentEntity.blocks[0];
                     $scope.blade.currentEntity.content = JSON.stringify($scope.blade.currentEntity.blocks);
-                    $scope.blade.currentEntity.language = $scope.blade.currentEntity.language;
                 } else {
                     contentApi.get({
                         contentType: blade.contentType,
@@ -29,12 +28,12 @@ angular.module('virtoCommerce.pageBuilderModule')
                         relativeUrl: blade.currentEntity.relativeUrl
                     }, function (data) {
                         blade.isLoading = false;
-                        blade.currentEntity.content = JSON.parse(data.data);
+                        var content = JSON.parse(data.data);
+                        var entity = $scope.blade.currentEntity;
+                        entity.settings = content[0];
+                        entity.blocks = content;
+                        entity.content = data.data;
                         fillMetadata();
-                        $scope.blade.currentEntity.blocks = blade.currentEntity.content;
-                        $scope.blade.currentEntity.settings = $scope.blade.currentEntity.blocks[0];
-                        $scope.blade.currentEntity.content = JSON.stringify($scope.blade.currentEntity.blocks);
-
                         blade.origEntity = angular.copy(blade.currentEntity);
                     }, function (error) {
                         bladeNavigationService.setError('Error ' + error.status, $scope.blade);
@@ -177,12 +176,12 @@ angular.module('virtoCommerce.pageBuilderModule')
 
                 $scope.blade.currentEntity.content = JSON.stringify($scope.blade.currentEntity.blocks, null, 4);
                 pageBuilderApi.savePage({
-                        contentType: blade.contentType,
-                        storeId: blade.storeId,
-                        folderUrl: blade.folderUrl || ''
-                    },
+                    contentType: blade.contentType,
+                    storeId: blade.storeId,
+                    folderUrl: blade.folderUrl || ''
+                },
                     $scope.blade.currentEntity,
-                    function() {
+                    function () {
                         blade.isLoading = false;
 
                         if (newFileName !== originFileName && !!originFileName) {
@@ -230,12 +229,7 @@ angular.module('virtoCommerce.pageBuilderModule')
             };
 
             $scope.languages = settings.getValues({ id: 'VirtoCommerce.Core.General.Languages' });
-
-            $scope.options = [
-                { label: "Theme", value: "theme" },
-                { label: "Empty", value: "empty" },
-                { label: "Glossary", value: "glossary" }
-            ];
+            $scope.options = [{ label: "Theme", value: "theme" }, { label: "Empty", value: "empty" }, { label: "Glossary", value: "glossary" }];
 
             blade.headIcon = 'fa-inbox';
 

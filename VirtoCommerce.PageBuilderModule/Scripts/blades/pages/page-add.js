@@ -6,9 +6,9 @@ angular.module(moduleTemplateName)
             var newBlade = {
                 id: 'designPage',
                 contentType: $scope.blade.contentType,
-                storeId: $scope.blade.parentBlade.storeId,
+                storeId: $scope.blade.storeId || $scope.blade.parentBlade.storeId,
                 storeUrl: $scope.blade.storeUrl,
-                folderUrl: $scope.blade.currentEntity.url,
+                folderUrl: $scope.blade.folderUrl,
                 currentEntity: {},
                 isNew: true,
                 title: 'pageBuilder.blades.edit-page.title-new',
@@ -27,7 +27,7 @@ angular.module(moduleTemplateName)
                 storeId: $scope.blade.storeId,
                 storeUrl: $scope.blade.storeUrl,
                 languages: $scope.blade.languages,
-                folderUrl: $scope.blade.currentEntity.url,
+                folderUrl: $scope.blade.folderUrl,
                 currentEntity: {},
                 isNew: true,
                 title: null,
@@ -52,7 +52,7 @@ angular.module(moduleTemplateName)
                     title: 'pageBuilder.blades.edit-page.title-new-post',
                     subtitle: 'pageBuilder.blades.edit-page.subtitle-new-post'
                 });
-            };
+            }
 
             bladeNavigationService.showBlade(newBlade, $scope.blade.parentBlade);
         };

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <module>
   <id>VirtoCommerce.PageBuilderModule</id>
-  <version>1.0.23</version>
+  <version>1.0.25</version>
   <platformVersion>2.13.20</platformVersion>
   <dependencies>
     <dependency id="VirtoCommerce.Core" version="2.24.6" />
@@ -22,7 +22,7 @@
   <releaseNotes>First version.</releaseNotes>
   
   -->
-  <copyright>Copyright © 2011-2019 Virto Commerce. All rights reserved</copyright>
+  <copyright>Copyright © 2011-2020 Virto Commerce. All rights reserved</copyright>
   <tags>cms content pagebuilder</tags>
 
   <!--<assemblyFile>VirtoCommerce.PageBuilderModule.dll</assemblyFile>

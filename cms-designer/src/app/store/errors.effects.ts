@@ -21,7 +21,7 @@ export class ErrorsEffects {
     ), { dispatch: false });
 
     loadPageFail$ = createEffect(() => this.actions$.pipe(
-        ofType(editorActions.loadPageFail),
+        ofType(editorActions.loadBlocksFail),
         map((action: any) => <HttpErrorResponse>action.error),
         filter(response => response.status >= 400),
         tap(response => this.errors.displayError('Couldn\'t load page', response))

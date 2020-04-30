@@ -49,5 +49,22 @@ export class TextItemComponent extends BaseControlDirective<TextControlDescripto
         };
     }
 
+    getConfig(): any {
+        if (this.descriptor.settings && this.descriptor.settings.length > 0) {
+            let config: any = {};
+            config.toolbar = [this.descriptor.settings];
+            config.extraPlugins = this.config.extraPlugins;
+
+            if (this.descriptor.settings.indexOf('Format') > -1) {
+                config.format_tags = 'normal;medium;large';
+                config.format_normal = { name: 'Normal', element: 'div', attributes: { class: 'block__descr--normal' } };
+                config.format_medium = { name: 'Medium', element: 'div', attributes: { class: 'block__descr--medium' } };
+                config.format_large = { name: 'Large', element: 'div', attributes: { class: 'block__descr--large' } };
+            }
+            return config;
+        }
+        return this.config;
+    }
+
     onReady(event) { }
 }
