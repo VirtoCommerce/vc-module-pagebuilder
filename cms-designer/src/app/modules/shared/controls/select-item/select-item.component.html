@@ -1,4 +1,4 @@
-<label *ngIf="descriptor.label">{{descriptor.label}}</label>
+<label *ngIf="descriptor.label && !hideLabel">{{descriptor.label}}</label>
 <div class="dropdown" [class.dropdown--show]="isOpen">
     <div class="dropdown__toggle" (click)="toggle()">{{ getTitle() }}</div>
     <div class="dropdown__menu" *ngIf="!groupItems">

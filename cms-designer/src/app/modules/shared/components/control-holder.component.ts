@@ -34,6 +34,7 @@ export class ControlHolderComponent implements OnInit, ControlValueAccessor {
     @ViewChild(ControlHostDirective, {static: true}) host: ControlHostDirective;
     @Input() descriptor: ControlDescriptor;
     @Input() group: FormGroup;
+    @Input() hideLabel: boolean;
     @Input() get context(): any {
         return this._context;
     }
@@ -64,6 +65,7 @@ export class ControlHolderComponent implements OnInit, ControlValueAccessor {
             this.component = container.createComponent(factory).instance;
             this.component.descriptor = this.descriptor;
             this.component.group = this.group;
+            this.component.hideLabel = this.hideLabel;
             this.component.context = this.context;
             this.css = this.component.parentClass;
         }

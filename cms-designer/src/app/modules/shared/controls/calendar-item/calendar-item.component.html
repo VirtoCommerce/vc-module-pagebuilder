@@ -1,4 +1,4 @@
-<label>{{descriptor.label}}</label>
+<label *ngIf="!hideLabel">{{descriptor.label}}</label>
 <input readonly="true" matInput [matDatepicker]="picker" [value]="value" (dateChange)="onDateChange($event)">
 <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
 <mat-datepicker #picker></mat-datepicker>

@@ -5,14 +5,16 @@
             [accept]="descriptor.acceptTypes">
         <label class="form-file__label">Choose file</label>
     </div>
-    <div class="form-text">{{ value.url }}</div>
-    <div *ngIf="getAssetUrl() as url" class="form-file__uploaded"><img class="form-file__pic" [src]="url" alt="" />
+    <div *ngIf="getAssetUrl() as url">
+        <div class="form-text">{{ url }}</div>
+        <div class="form-file__uploaded"><img class="form-file__pic" [src]="url" alt="" />
+    </div>
         <span (click)="removeImage($event)" class="form-file__remove"></span></div>
-    <div *ngIf="!descriptor.inline">
+    <div *ngIf="!descriptor.inline && value">
         <label>Alternative text</label>
         <input type="text" class="form-control" [value]="value.altText" (keyup)="changeAlt($event.target.value)">
     </div>
-    <div *ngIf="descriptor.allowSetSize && !descriptor.inline">
+    <div *ngIf="descriptor.allowSetSize && !descriptor.inline && value">
         <label>Sizes</label>
         <div class="sizes">
             <span>W:</span>

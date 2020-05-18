@@ -44,7 +44,7 @@ export class TextItemComponent extends BaseControlDirective<TextControlDescripto
     registerOnChange(fn: any): void {
         this.onChange = (newValue) => {
             if (this.value !== newValue) {
-                newValue = newValue.replace(new RegExp('<li>', 'g'), '<li><div>').replace(new RegExp('</li>', 'g'), '</div></li>');
+                // newValue = newValue.replace(new RegExp('<li>', 'g'), '<li><div>').replace(new RegExp('</li>', 'g'), '</div></li>');
                 fn(newValue);
             }
         };
