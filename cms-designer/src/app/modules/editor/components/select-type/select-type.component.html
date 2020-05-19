@@ -1,6 +1,6 @@
 <div class="left-panel-content">
-    <input type="string" [(ngModel)]="searchQuery" class="form-control" placeholder="Search" (paste)="onSearch($event)"
-        (keyup)="onSearch($event)" />
+    <input type="string" [(ngModel)]="searchQuery" class="form-control" placeholder="Search" (paste)="onSearch()"
+        (keyup)="onSearch()" />
     <div *ngIf="!searchQuery" class="list-group">
         <ng-container *ngFor="let group of types.groups">
             <div class="list-group-item" (click)="toggleGroup(group)">
