@@ -1,4 +1,4 @@
-<label>{{descriptor.label}}</label>
+<label *ngIf="!hideLabel">{{descriptor.label}}</label>
 <input *ngIf="!descriptor.multiline" #control type="text" class="form-control"
     [value]="value"
     (paste)="onPaste($event)" (keyup)="onChange($event.target.value)" />

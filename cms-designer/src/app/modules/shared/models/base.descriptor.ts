@@ -6,4 +6,5 @@ export interface BaseDescriptor {
     placeholder?: string;
     autofocus?: boolean;
     tab?: string;
+    default?: any;
 }

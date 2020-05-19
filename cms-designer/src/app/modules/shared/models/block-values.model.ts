@@ -1,4 +1,5 @@
 export interface BlockValuesModel {
+    __id?: string;
     id?: number;
     type: string;
     icon?: string;

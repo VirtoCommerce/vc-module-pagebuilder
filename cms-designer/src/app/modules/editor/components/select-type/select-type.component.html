@@ -1,12 +1,14 @@
 <div class="left-panel-content">
-    <div class="list-group">
+    <input type="string" [(ngModel)]="searchQuery" class="form-control" placeholder="Search" (paste)="onSearch($event)"
+        (keyup)="onSearch($event)" />
+    <div *ngIf="!searchQuery" class="list-group">
         <ng-container *ngFor="let group of types.groups">
             <div class="list-group-item" (click)="toggleGroup(group)">
                 <div class="list-group-text" style="font-size: medium;">{{ group.name }}</div>
             </div>
             <ng-container *ngIf="group.name == selectedGroup">
-                <a *ngFor="let item of group.items" class="list-group-item" [class.under-preview]="item.type == selectedItem"
-                        (click)="previewItem(item)">
+                <a *ngFor="let item of group.items" class="list-group-item"
+                    [class.under-preview]="item.type == selectedItem" (click)="previewItem(item)">
                     <div class="list-group-icon" [attr.data-name]="item.icon"></div>
                     <div class="list-group-text">{{ item.name }}</div>
                     <span class="list-group-add" (click)="selectItem(item)"></span>
@@ -15,7 +17,15 @@
         </ng-container>
         <div *ngIf="types.items.length && types.groups.length" style="height: 10px; background: #eaedf3;"></div>
         <a *ngFor="let item of types.items" class="list-group-item" [class.under-preview]="item.type == selectedItem"
-                (click)="previewItem(item)">
+            (click)="previewItem(item)">
+            <div class="list-group-icon" [attr.data-name]="item.icon"></div>
+            <div class="list-group-text">{{ item.name }}</div>
+            <span class="list-group-add" (click)="selectItem(item)"></span>
+        </a>
+    </div>
+    <div *ngIf="searchQuery" class="list-group">
+        <a *ngFor="let item of filteredItems" class="list-group-item" [class.under-preview]="item.type == selectedItem"
+            (click)="previewItem(item)">
             <div class="list-group-icon" [attr.data-name]="item.icon"></div>
             <div class="list-group-text">{{ item.name }}</div>
             <span class="list-group-add" (click)="selectItem(item)"></span>

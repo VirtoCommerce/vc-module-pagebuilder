@@ -1,4 +1,4 @@
-<label class="form-label">{{ descriptor.label }}</label>
+<label class="form-label" *ngIf="!hideLabel">{{ descriptor.label }}</label>
 <div class="form-input">
     <ckeditor [data]="value" editorUrl="external/ckeditor/ckeditor.js" type="divarea"
         (dataChange)="onChange($event)" (ready)="onReady($event)" [config]="getConfig()"></ckeditor>

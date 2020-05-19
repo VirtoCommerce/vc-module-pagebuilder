@@ -7,6 +7,7 @@ export class BaseControlDirective<T extends BaseDescriptor> implements OnInit, A
     @Input() descriptor: T;
     @Input() group: FormGroup;
     @Input() context: any;
+    @Input() hideLabel: boolean;
 
     parentClass = 'form-group';
     @Input() value: any;
