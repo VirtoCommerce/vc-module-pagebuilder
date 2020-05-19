@@ -50,13 +50,6 @@
         <description></description>
       </setting>
       <setting>
-        <name>VirtoCommerce.PageBuilderModule.General.AssetsPath</name>
-        <valueType>string</valueType>
-        <defaultValue>assets/pages</defaultValue>
-        <title>Assets relative path</title>
-        <description></description>
-      </setting>
-	  <setting>
         <name>VirtoCommerce.PageBuilderModule.General.UseGlobalAssets</name>
         <valueType>boolean</valueType>
         <defaultValue>false</defaultValue>

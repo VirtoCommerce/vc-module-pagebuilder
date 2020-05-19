@@ -9,7 +9,11 @@
     </div>
     <div class="left-panel-content">
         <div class="form">
-            <h2 class="form-t">Edit {{ blockName }}</h2>
+            <h2 class="form-t">
+                Edit {{ blockName }}
+                <span class="info">Type: {{model.type }}</span>
+                <span class="info" *ngIf="model.__id">ID: {{model.__id }}</span>
+            </h2>
             <app-block-form *ngIf="model && schema" [model]="model" [schema]="schema"
                 [context]="{ filter: activeTab, mode: mode }" (modelChange)="modelChanged($event)"></app-block-form>
             <div *ngIf="!schema && model">

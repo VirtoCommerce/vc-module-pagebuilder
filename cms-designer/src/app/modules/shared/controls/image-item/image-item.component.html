@@ -7,9 +7,11 @@
     </div>
     <div *ngIf="getAssetUrl() as url">
         <div class="form-text">{{ url }}</div>
-        <div class="form-file__uploaded"><img class="form-file__pic" [src]="url" alt="" />
+        <div class="form-file__uploaded">
+            <img class="form-file__pic" [src]="url" alt="" />
+            <span (click)="removeImage($event)" class="form-file__remove"></span>
+        </div>
     </div>
-        <span (click)="removeImage($event)" class="form-file__remove"></span></div>
     <div *ngIf="!descriptor.inline && value">
         <label>Alternative text</label>
         <input type="text" class="form-control" [value]="value.altText" (keyup)="changeAlt($event.target.value)">
@@ -18,9 +20,11 @@
         <label>Sizes</label>
         <div class="sizes">
             <span>W:</span>
-            <input class="form-row-control" placeholder="auto" type="number" min="0" [value]="value.width" (change)="changeWidth($event.target.valueAsNumber)" />
+            <input class="form-row-control" placeholder="auto" type="number" min="0" [value]="value.width"
+                (change)="changeWidth($event.target.valueAsNumber)" />
             <span>H:</span>
-            <input class="form-row-control" placeholder="auto" type="number" min="0" [value]="value.height" (change)="changeHeight($event.target.valueAsNumber)" />
+            <input class="form-row-control" placeholder="auto" type="number" min="0" [value]="value.height"
+                (change)="changeHeight($event.target.valueAsNumber)" />
         </div>
     </div>
     <div class="form-text">{{ descriptor.info }}</div>

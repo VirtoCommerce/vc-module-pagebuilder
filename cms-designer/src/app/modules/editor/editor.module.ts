@@ -1,6 +1,6 @@
 import { BrowserModule } from '@angular/platform-browser';
 import { NgModule } from '@angular/core';
-import { ReactiveFormsModule } from '@angular/forms';
+import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
 import { DragDropModule } from '@angular/cdk/drag-drop';
 import { StoreModule } from '@ngrx/store';
@@ -32,6 +32,7 @@ const COMPONENTS = [
         BrowserModule,
         HttpClientModule,
         ReactiveFormsModule,
+        FormsModule,
         SharedModule,
         DragDropModule,
         StoreModule.forFeature('editor', reducer),

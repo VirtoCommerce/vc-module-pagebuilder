@@ -55,7 +55,6 @@ export class PlatformService {
         const parameters = {};
         parameters['StorePreviewPath'] = 'storePreviewPath';
         parameters['TokenUrl'] = 'tokenUrl';
-        parameters['AssetsPath'] = 'assetsPath';
         parameters['StoreUrl'] = 'storeBaseUrl';
         parameters['UseGlobalAssets'] = 'useGlobalAssets';
         return combineLatest([this.moduleSettings(), this.storeSettings(), this.moduleVersion()]).pipe(

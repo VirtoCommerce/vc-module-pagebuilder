@@ -37,6 +37,7 @@ export class PopupContentComponent implements OnInit {
     sortItems(event: CdkDragSortEvent<any>) {
         const current = this.items.controls.splice(event.previousIndex, 1);
         this.items.controls.splice(event.currentIndex, 0, ...current);
+        this.items.updateValueAndValidity();
     }
 
     onCancelClick() {
