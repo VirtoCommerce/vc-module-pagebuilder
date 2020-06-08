@@ -66,7 +66,18 @@ export const getSchema = createSelector(
 
 export const getEditablePreset = createSelector(
     getThemeFeatureState,
-    state => state.editablePreset
+    getCurrentThemeSchemaItem,
+    (state, schema) => {
+        const result = { ...state.editablePreset };
+        if (schema) {
+            schema.settings.forEach(x => {
+                if (!result[x.id] && !!x.default) {
+                    result[x.id] = x.default;
+                }
+            });
+        }
+        return result;
+    }
 );
 
 export const getCurrentThemeValuesRequested = createSelector(
@@ -78,21 +89,22 @@ export const getValuesToSave = createSelector(
     getThemeFeatureState,
     getPresets,
     getEditablePreset,
-    (state, presets, editablePreset) => {
+    getSchema,
+    (state, presets, editablePreset, schema) => {
+        let result: any = {}
         const actualPreset = state.presetUnderPreview ? presets.presets[state.presetUnderPreview] : editablePreset;
         if (AppSettings.defaultThemeName === AppSettings.themeName) {
-            return {
+            result = {
                 ...presets,
-                current: actualPreset,
+                current: { ...actualPreset },
             };
         }
-        if (state.presetUnderPreview) {
-            return { current: state.presetUnderPreview };
+        else if (state.presetUnderPreview) {
+            result = { current: state.presetUnderPreview };
         }
-        if (presets && editablePreset) {
+        else if (presets && editablePreset) {
             const presetName = !!editablePreset.current ? editablePreset.current : presets.current;
             const defaultValues = typeof presetName === 'string' ? presets.presets[presetName] : presets.current;
-            const result: any = {};
             Object.keys(defaultValues).forEach(key => {
                 if (defaultValues[key] !== editablePreset[key]) {
                     result[key] = editablePreset[key];
@@ -104,9 +116,17 @@ export const getValuesToSave = createSelector(
                 }
             });
             result.current = editablePreset.current;
-            return result;
         }
-        return {};
+
+        if (schema) {
+            schema.forEach(s => s.settings.forEach(x => {
+                if (typeof result.current[x.id] !== 'undefined' && result.current[x.id] === x.default) {
+                    delete result.current[x.id];
+                }
+            }));
+        }
+
+        return result;
     }
 );
 

@@ -11,7 +11,7 @@
             <div *ngIf="!editableItem || editableItemDescriptor.id !== control.id">
                 <div cdkDropList (cdkDropListDropped)="sortItems(control, $event)" class="list list--collection">
                     <div class="list__item" cdkDragBoundary=".list--collection" cdkDragLockAxis="y" cdkDrag
-                        *ngFor="let item of getControls(control); let i = index; trackBy: trackByFn">
+                        *ngFor="let item of getControls(control); let i = index;">
                         <div class="list__name">{{ getTitle(item, control, i + 1) }}</div>
                         <div class="list__actions">
                             <a class="list__actions-item list__actions-item--edit"

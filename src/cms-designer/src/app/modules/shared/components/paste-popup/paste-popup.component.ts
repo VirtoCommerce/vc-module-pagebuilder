@@ -11,7 +11,7 @@ export class PastePopupComponent implements OnInit {
 
     public form: FormGroup;
 
-    constructor(private fb: FormBuilder,
+    constructor(fb: FormBuilder,
         private dialogRef: MatDialogRef<PastePopupComponent>,
         @Inject(MAT_DIALOG_DATA) public model: PasteResultModel) {
         this.form = fb.group({

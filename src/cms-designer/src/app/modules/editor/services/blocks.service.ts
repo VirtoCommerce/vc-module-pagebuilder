@@ -3,6 +3,7 @@ import { Observable } from 'rxjs';
 import { tap, map } from 'rxjs/operators';
 import { PlatformService, ApiUrlsService } from '@app/services';
 import { BlocksSchema, BlockSchema, SharedBlockSchema, ControlDescriptor } from '@shared/models';
+import { isArray } from 'util';
 
 @Injectable({
     providedIn: 'root'
@@ -14,15 +15,19 @@ export class BlocksService {
         return this.platform.downloadBlocksSchema().pipe(
             tap(schema => {
                 const shared = <SharedBlockSchema>schema.shared;
-                Object.keys(schema).forEach(key => {
-                    if (!!schema[key].contentType && schema[key].contentType !== this.urls.params.contentType) {
-                        delete schema[key];
-                    } else {
-                        const currentBlock = schema[key];
-                        currentBlock.type = key;
-                        this.mergeSettings(currentBlock, shared);
-                    }
-                });
+                if (!!shared) {
+                    Object.keys(schema).forEach(key => {
+                        const contentType = schema[key].contentType;
+                        if (!contentType || (typeof contentType === 'string' && contentType === this.urls.params.contentType) ||
+                            (isArray(contentType) && (<string[]>contentType).some(x => x === this.urls.params.contentType))) {
+                            const currentBlock = schema[key];
+                            currentBlock.type = key;
+                            this.mergeSettings(currentBlock, shared);
+                        } else {
+                            delete schema[key];
+                        }
+                    });
+                }
             })
         );
     }
@@ -46,7 +51,7 @@ export class BlocksService {
             });
         };
         // block.includeShared contains name or array of names named settings in shared block
-        if (block.includeShared) {
+        if (block.includeShared && shared.namedSettings) {
             if (typeof block.includeShared === 'string') {
                 const sharedSettings = shared.namedSettings[block.includeShared];
                 addSetting(sharedSettings);

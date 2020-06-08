@@ -37,11 +37,13 @@ export class ImageItemComponent extends BaseControlDirective<ImageControlDescrip
     }
 
     getAssetUrl(): string {
+        if (!this.value) return null;
         if (typeof this.value === 'string') {
             return this.urls.getAssetsUrl(this.value);
-        } else {
+        } else if (this.value.url) {
             return this.urls.getAssetsUrl(this.value.url);
         }
+        return null;
     }
 
     changeAlt(value: string) {
@@ -65,17 +67,21 @@ export class ImageItemComponent extends BaseControlDirective<ImageControlDescrip
     }
 
     setValue(value: ImageDescriptor | string) {
-        if (typeof value === 'string') {
-            value = { url: value };
-        }
-        if (this.descriptor.inline) {
-            super.setValue(value.url);
+        if (value == null) {
+            super.setValue(value);
         } else {
-            const result = { ...this.value, ...value };
-            if (!result.altText) {
-                result.altText = null;
+            if (typeof value === 'string') {
+                value = { url: value };
             }
-            super.setValue(result);
+            if (this.descriptor.inline) {
+                super.setValue(value.url);
+            } else {
+                const result = { ...this.value, ...value };
+                if (!result.altText) {
+                    result.altText = null;
+                }
+                super.setValue(result);
+            }
         }
     }
 }

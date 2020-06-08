@@ -94,10 +94,6 @@ export class ElementsFormComponent implements OnInit {
         // return this.group.get(name) as FormArray;
     }
 
-    trackByFn(index, item) {
-        return item.id;
-    }
-
     editCollectionItem(item: FormGroup, controlDescriptor: ControlDescriptor) {
         this.editableItem = item;
         this.editableItemDescriptor = controlDescriptor;

@@ -5,6 +5,7 @@ import { PageBuilderContext } from '@shared/models';
 import { AppSettings } from './app.settings';
 import { WindowRef } from './window-ref';
 import { environment } from 'src/environments/environment';
+import { generateUniqueString } from './utils';
 
 @Injectable({
     providedIn: 'root'
@@ -41,7 +42,7 @@ export class ApiUrlsService {
     generateUniqueSafeFileName(name: string): string {
         const parts = name.split('.');
         const extension = parts.pop();
-        const uniqueName = `${parts.join('.')}_${this.generateUniqueString(10)}.${extension}`;
+        const uniqueName = `${parts.join('.')}_${generateUniqueString(10)}.${extension}`;
         const safeName = encodeURIComponent(uniqueName);
         return safeName;
     }
@@ -51,7 +52,7 @@ export class ApiUrlsService {
             ? 'api/platform/assets'
             : `api/content/${this.params.contentType}/${this.params.storeId}`;
         const url = this.combine(this.params.platformUrl, assetEndpoint) +
-                `?folderUrl=${encodeURIComponent(AppSettings.assetsPath)}&name=${name}`;
+                `?folderUrl=${encodeURIComponent(this.params.contentType)}&name=${name}`;
         return url;
     }
 
@@ -70,10 +71,7 @@ export class ApiUrlsService {
     }
 
     getAssetsRelativeUrl(filename: string): string {
-        if (AppSettings.assetsPath.startsWith('/assets') || AppSettings.assetsPath.startsWith('assets')) {
-            return this.combine('/', AppSettings.assetsPath, filename);
-        }
-        return this.combine('/assets/', AppSettings.assetsPath, filename);
+        return this.combine('/assets/', this.params.contentType, filename);
     }
 
     getStoreUrl(layout: string): string {
@@ -129,15 +127,8 @@ export class ApiUrlsService {
     }
 
     private generatePrefixAndSetCookie(): string {
-        const result = this.generateUniqueString(10);
+        const result = generateUniqueString(10);
         this.cookies.set(this.SESSION_ID, result);
-        return result;
-    }
-
-    private generateUniqueString(length: number) {
-        const characters = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_-';
-        const randomChar = () => characters[Math.floor(Math.random() * characters.length)];
-        const result = Array.from({ length }, randomChar).join('');
         return result;
     }
 
