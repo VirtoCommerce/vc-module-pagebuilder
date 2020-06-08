@@ -68,7 +68,8 @@ export class PlatformService {
                 }
                 AppSettings.themeName = this.getThemeName(storeSettings);
                 environment.version = version;
-            })
+            }),
+            tap(() => console.log(AppSettings))
         ).toPromise();
     }
 
