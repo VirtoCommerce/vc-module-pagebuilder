@@ -19,3 +19,5 @@ export * from './file-item-control.descriptor';
 export * from './image.descriptor';
 export * from './popup-control.descriptor';
 export * from './paste-result.model';
+export * from './options.request';
+export * from './value-descriptor.model';

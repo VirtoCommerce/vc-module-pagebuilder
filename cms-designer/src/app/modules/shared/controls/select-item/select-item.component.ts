@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
 import { BaseControlDirective } from '../base-control.component';
 import { OptionModel, SelectControlDescriptor } from '@shared/models';
+import { SelectItemService } from '../../services/select-item.service';
 
 @Component({
     selector: 'app-select-item',
@@ -10,12 +11,13 @@ import { OptionModel, SelectControlDescriptor } from '@shared/models';
 })
 export class SelectItemComponent extends BaseControlDirective<SelectControlDescriptor> {
 
-    groupItems = false;
-    groups: { [key: string]: { label: string; value: string; }[] };
+    private groupItems = false;
+    private groups: { [key: string]: { label: string; value: string; }[] };
+    options: OptionModel[];
     value: OptionModel;
     isOpen: boolean;
 
-    constructor(private sanitizer: DomSanitizer) {
+    constructor(private sanitizer: DomSanitizer, private readonly selectItemService: SelectItemService) {
         super();
     }
 
@@ -33,8 +35,12 @@ export class SelectItemComponent extends BaseControlDirective<SelectControlDescr
     }
 
     setValue(value: any) {
-        const v = !value && this.descriptor.default ? this.descriptor.default : value;
-        this.value = this.descriptor.options.find(x => x.value === v);
+        this.selectItemService.getRequestedOptions(this.descriptor).subscribe(items => {
+            this.options = this.descriptor.options.concat(items);
+            const v = !value && this.descriptor.default ? this.descriptor.default : value;
+            this.value = this.options?.find(x => JSON.stringify(x?.value) === JSON.stringify(v));
+            this.onChange(this.value);
+        });
     }
 
     getTitle(): string {
@@ -42,7 +48,7 @@ export class SelectItemComponent extends BaseControlDirective<SelectControlDescr
     }
 
     getDisplayValue(option: OptionModel) {
-        return this.sanitizer.bypassSecurityTrustHtml(option.label);
+        return this.sanitizer.bypassSecurityTrustHtml(option?.label);
     }
 
     getTrackValue(option: OptionModel) {
@@ -52,7 +58,7 @@ export class SelectItemComponent extends BaseControlDirective<SelectControlDescr
     selectValue(option: OptionModel) {
         this.value = option;
         this.isOpen = false;
-        this.onChange(option.value);
+        this.onChange(option?.value);
     }
 
     toggle() {

@@ -2,7 +2,7 @@
 <div class="dropdown" [class.dropdown--show]="isOpen">
     <div class="dropdown__toggle" (click)="toggle()">{{ getTitle() }}</div>
     <div class="dropdown__menu" *ngIf="!groupItems">
-        <a class="dropdown__menu-item" *ngFor="let option of descriptor.options; trackBy: getTrackValue"
+        <a class="dropdown__menu-item" *ngFor="let option of options; trackBy: getTrackValue"
             [class.dropdown__menu-item--selected]="option == value" (click)="selectValue(option)">
             <span class="dropdown__menu-item-text" [innerHTML]="getDisplayValue(option)"></span>
         </a>

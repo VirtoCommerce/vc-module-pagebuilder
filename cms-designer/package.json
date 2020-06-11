@@ -30,6 +30,7 @@
     "ckeditor4-angular": "^1.1.0",
     "clipboard-polyfill": "^2.8.6",
     "core-js": "^3.6.4",
+    "jsonpath": "^1.0.2",
     "moment": "^2.24.0",
     "ngx-bootstrap": "^5.5.0",
     "ngx-color-picker": "^9.0.0",
