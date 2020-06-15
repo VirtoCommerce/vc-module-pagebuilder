@@ -2,8 +2,9 @@ import { ValueDescriptorModel } from './value-descriptor.model';
 
 export interface OptionsRequest {
     url: string;
-    type: string;
+    method: string;
     params: any;
-    labelDescriptor: string;
-    valueDescriptor: string | (string | ValueDescriptorModel)[];
+    group: string;
+    label: string;
+    value: string | (string | ValueDescriptorModel)[];
 }

@@ -64,8 +64,8 @@ export class BlocksService {
         }
         // block can skip shared settings or some of them
         const skipShared = block.excludeShared;
-        if (!skipShared || Array.isArray(skipShared)) {
-            const exclude = Array.isArray(skipShared) ? (v: string) => skipShared.indexOf(v) !== -1 : () => false;
+        if (!skipShared || isArray(skipShared)) {
+            const exclude = isArray(skipShared) ? (v: string) => skipShared.indexOf(v) !== -1 : () => false;
             const sharedSettings = shared.settings;
             addSetting(sharedSettings, exclude);
         }

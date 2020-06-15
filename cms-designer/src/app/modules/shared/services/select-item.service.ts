@@ -1,61 +1,67 @@
+import { PlatformService } from 'src/app/services/platform.service';
 import { Injectable } from '@angular/core';
-import { OptionModel, SelectControlDescriptor } from '@shared/models';
+import { OptionsRequest, OptionModel, SelectControlDescriptor, ValueDescriptorModel } from '@shared/models';
 import { HttpClient } from '@angular/common/http';
 import * as jp from 'jsonpath';
-import { map } from 'rxjs/operators';
+import { map, tap } from 'rxjs/operators';
 import { Observable, of } from 'rxjs';
 import { ApiUrlsService } from '@app/services';
+import { isArray } from 'util';
 
 @Injectable({
-  providedIn: 'root'
+    providedIn: 'root'
 })
 export class SelectItemService {
 
-  private descriptor: SelectControlDescriptor;
+    private cache: { [url: string]: OptionModel[] };
 
-  constructor(private readonly http: HttpClient, private readonly urlService: ApiUrlsService) { }
+    constructor(private readonly platform: PlatformService) { }
 
-  public getRequestedOptions(descriptor: SelectControlDescriptor): Observable<OptionModel[]> {
-    this.descriptor = descriptor;
-    if (!this.descriptor.request) {
-      return of([]);
-    }
-
-    const url = this.urlService.params.platformUrl + this.descriptor.request.url;
-    switch (this.descriptor.request.type) {
-      case 'get': return this.http.get<any>(url, { params: this.descriptor.request.params })
-        .pipe(map((data: any) => this.parseOptions(data)));
-      case 'post': return this.http.post<any>(url, this.descriptor.request.params)
-        .pipe(map((data: any) => this.parseOptions(data)));
-    }
-  }
-
-  private parseOptions(data: any): OptionModel[] {
-    return data.results
-      .map(c => {
-        return {
-          label: c[this.descriptor.request.labelDescriptor], value: this.valueParse(c)
-        } as OptionModel;
-      });
-  }
-
-  private valueParse(value: any): any {
-    let result: any = {};
-
-    if (this.descriptor.request.valueDescriptor instanceof Array) {
-      this.descriptor.request.valueDescriptor.forEach(c => {
-
-        if (typeof c === 'string') {
-          result[c] = value[c];
-        } else {
-          const currentResult = jp.query(value, c.query);
-          result[c.key] = c.isArray ? currentResult : currentResult[0];
+    public getRequestedOptions(descriptor: SelectControlDescriptor): Observable<OptionModel[]> {
+        if (!descriptor.request) {
+            return of([]);
         }
-      });
-    } else {
-      result = value[this.descriptor.request.valueDescriptor];
+
+        const cacheKey = this.getCacheKey(descriptor.request);
+        if (!this.cache[cacheKey]) {
+            const { url, params, method } = descriptor.request;
+            const { group, label, value } = descriptor.request;
+            return this.platform.loadData<{results: any[]}>(url, params, method).pipe(
+                map(({ results }) => results.map<OptionModel>(x => <OptionModel>{
+                        label: x[label],
+                        group: x[group],
+                        value: this.getValue(x, value)
+                    })
+                ),
+                tap(result => {
+                    this.cache[cacheKey] = result;
+                })
+            );
+        }
+
+        return of(this.cache[cacheKey]);
     }
 
-    return result;
-  }
+    private getCacheKey(request: OptionsRequest): string {
+        const params = JSON.stringify(request.params);
+        return `${request.method} ${request.url} ${params}`;
+    }
+
+    private getValue(item: any, valueDescriptor: string | (string | ValueDescriptorModel)[]): any {
+        if (isArray(valueDescriptor)) {
+            const result = {};
+            const properties = <(string | ValueDescriptorModel)[]>valueDescriptor;
+            properties.forEach(x => {
+                if (typeof x === 'string') {
+                    result[x] = item[x];
+                } else {
+                    const value = jp.query(item, x.query);
+                    result[x.key] = x.isArray ? value : value[0]; // ???
+                }
+            });
+        } else {
+            const property = <string>valueDescriptor;
+            return item[property];
+        }
+    }    
 }

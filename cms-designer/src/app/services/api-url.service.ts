@@ -126,6 +126,11 @@ export class ApiUrlsService {
         return this._params;
     }
 
+    generateFullPlatformUrl(relativeUrl: string): string {
+        const url = this.combine(this.params.platformUrl, relativeUrl);
+        return url;
+    }
+
     private generatePrefixAndSetCookie(): string {
         const result = generateUniqueString(10);
         this.cookies.set(this.SESSION_ID, result);
