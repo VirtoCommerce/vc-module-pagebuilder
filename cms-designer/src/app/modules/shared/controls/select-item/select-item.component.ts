@@ -12,12 +12,13 @@ import { TypeaheadOptions } from 'ngx-bootstrap';
 })
 export class SelectItemComponent extends BaseControlDirective<SelectControlDescriptor> {
 
-    private _options: OptionModel[];
+    private _options: OptionModel[] = [];
 
     groupItems = false;
     groups: { [key: string]: { label: string; value: string; }[] };
-    value: OptionModel;
+    value: any;
     isOpen: boolean;
+    title: string;
 
     get options(): OptionModel[] {
         return this._options;
@@ -55,17 +56,23 @@ export class SelectItemComponent extends BaseControlDirective<SelectControlDescr
 
     private refreshValue(value: any = null) {
         const v = value || this.value;
-        const newValue = this.options?.find(x => this.isEqual(x.value, v, this.descriptor.equalKey)) || value;
+        const newValue = this.options.map(x => x.value).find(x => this.isEqual(x, v, this.descriptor.equalKey)) || value;
         this.value = newValue;
+        this.setTitle();
         this.onChange(this.value);
     }
 
-    private isEqual(x, y, key) {
-        return !key ? x === y : x[key] === y[key];
+    isEqual(x, y, key) {
+        return !key ? x === y : (!x && !y) || ((x && y) && (x[key] === y[key]));
     }
 
-    getTitle(): string {
-        return !!this.value ? this.value.label : this.descriptor.placeholder;
+    setTitle() {
+        if (!this.value) {
+            this.title = this.descriptor.placeholder;
+        } else {        
+            const option = this.options.find(x => this.isEqual(x.value, this.value, this.descriptor.equalKey));
+            this.title = !!option ? option.label : this.descriptor.placeholder;
+        }
     }
 
     getDisplayValue(option: OptionModel) {
@@ -76,10 +83,10 @@ export class SelectItemComponent extends BaseControlDirective<SelectControlDescr
         return option.value;
     }
 
-    selectValue(option: OptionModel) {
-        this.value = option;
+    selectValue(value: any) {
+        this.value = value;
         this.isOpen = false;
-        this.onChange(option?.value);
+        this.refreshValue();
     }
 
     toggle() {

@@ -13,7 +13,7 @@ import { isArray } from 'util';
 })
 export class SelectItemService {
 
-    private cache: { [url: string]: OptionModel[] };
+    private cache: { [url: string]: OptionModel[] } = { };
 
     constructor(private readonly platform: PlatformService) { }
 
@@ -44,7 +44,7 @@ export class SelectItemService {
 
     private getCacheKey(request: OptionsRequest): string {
         const params = JSON.stringify(request.params);
-        return `${request.method} ${request.url} ${params}`;
+        return btoa(`${request.method}${request.url}${params}`);
     }
 
     private getValue(item: any, valueDescriptor: string | (string | ValueDescriptorModel)[]): any {
@@ -59,6 +59,7 @@ export class SelectItemService {
                     result[x.key] = x.isArray ? value : value[0]; // ???
                 }
             });
+            return result;
         } else {
             const property = <string>valueDescriptor;
             return item[property];
