@@ -51,6 +51,11 @@ export class PlatformService {
         return this.tryDownloadFromTheme('/config/blocks_schema.json');
     }
 
+    loadData<T>(relativeUrl: string, params: any = null, method: string = 'get'): Observable<T> {
+        const url = this.urls.generateFullPlatformUrl(relativeUrl);
+        return this.http[method.toLowerCase()](url, params);
+    }
+
     initSettings(): Promise<any> {
         const parameters = {};
         parameters['StorePreviewPath'] = 'storePreviewPath';
