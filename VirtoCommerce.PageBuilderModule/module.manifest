@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <module>
   <id>VirtoCommerce.PageBuilderModule</id>
-  <version>1.0.25</version>
+  <version>1.0.26</version>
   <platformVersion>2.13.20</platformVersion>
   <dependencies>
     <dependency id="VirtoCommerce.Core" version="2.24.6" />

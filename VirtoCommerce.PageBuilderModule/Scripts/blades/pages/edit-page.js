@@ -18,7 +18,7 @@ angular.module('virtoCommerce.pageBuilderModule')
 
                     fillMetadata();
 
-                    $scope.blade.currentEntity.blocks = [{ type: 'settings', title: '', permalink: '', layout: $scope.options[0].value }];
+                    $scope.blade.currentEntity.blocks = [{ type: 'settings', title: '', permalink: '', layout: $scope.options[0].value, noindex: false }];
                     $scope.blade.currentEntity.settings = $scope.blade.currentEntity.blocks[0];
                     $scope.blade.currentEntity.content = JSON.stringify($scope.blade.currentEntity.blocks);
                 } else {
