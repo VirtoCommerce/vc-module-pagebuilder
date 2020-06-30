@@ -52,7 +52,7 @@ export class ApiUrlsService {
             ? 'api/platform/assets'
             : `api/content/${this.params.contentType}/${this.params.storeId}`;
         const url = this.combine(this.params.platformUrl, assetEndpoint) +
-                `?folderUrl=${encodeURIComponent(this.params.contentType)}&name=${name}`;
+                `?folderUrl=assets/${encodeURIComponent(this.params.contentType)}&name=${name}`;
         return url;
     }
 
@@ -124,6 +124,11 @@ export class ApiUrlsService {
             }
         }
         return this._params;
+    }
+
+    generateFullPlatformUrl(relativeUrl: string): string {
+        const url = this.combine(this.params.platformUrl, relativeUrl);
+        return url;
     }
 
     private generatePrefixAndSetCookie(): string {

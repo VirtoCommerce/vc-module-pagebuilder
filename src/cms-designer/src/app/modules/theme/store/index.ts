@@ -104,25 +104,21 @@ export const getValuesToSave = createSelector(
         }
         else if (presets && editablePreset) {
             const presetName = !!editablePreset.current ? editablePreset.current : presets.current;
-            if (!!presetName) {
-                const defaultValues = typeof presetName === 'string' ? presets.presets[presetName] : presets.current;
-                if (!!defaultValues) {
-                    Object.keys(defaultValues).forEach(key => {
-                        if (defaultValues[key] !== editablePreset[key]) {
-                            result[key] = editablePreset[key];
-                        }
-                    });
-                    Object.keys(editablePreset).forEach(key => {
-                        if (typeof defaultValues[key] === 'undefined') {
-                            result[key] = editablePreset[key];
-                        }
-                    });
-                    result.current = editablePreset.current;
+            const defaultValues = typeof presetName === 'string' ? presets.presets[presetName] : presets.current;
+            Object.keys(defaultValues).forEach(key => {
+                if (defaultValues[key] !== editablePreset[key]) {
+                    result[key] = editablePreset[key];
                 }
-            }
+            });
+            Object.keys(editablePreset).forEach(key => {
+                if (typeof defaultValues[key] === 'undefined') {
+                    result[key] = editablePreset[key];
+                }
+            });
+            result.current = editablePreset.current;
         }
 
-        if (schema && result && result.current) {
+        if (schema) {
             schema.forEach(s => s.settings.forEach(x => {
                 if (typeof result.current[x.id] !== 'undefined' && result.current[x.id] === x.default) {
                     delete result.current[x.id];

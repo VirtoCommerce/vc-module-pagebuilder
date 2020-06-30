@@ -51,6 +51,11 @@ export class PlatformService {
         return this.tryDownloadFromTheme('/config/blocks_schema.json');
     }
 
+    loadData<T>(relativeUrl: string, params: any = null, method: string = 'get'): Observable<T> {
+        const url = this.urls.generateFullPlatformUrl(relativeUrl);
+        return this.http[method.toLowerCase()](url, params);
+    }
+
     initSettings(): Promise<any> {
         const parameters = {};
         parameters['StorePreviewPath'] = 'storePreviewPath';
@@ -61,15 +66,23 @@ export class PlatformService {
             tap(([moduleSettings, storeSettings, version]) => {
                 moduleSettings.forEach(x => {
                     const key = x.name.replace('VirtoCommerce.PageBuilderModule.General.', '');
-                    AppSettings[parameters[key]] = x.value || x.defaultValue;
+                    let value: any = x.value || x.defaultValue;
+                    switch (x.valueType) {
+                        case 'Boolean':
+                            value = value.toLowerCase() == 'true';
+                            break;
+                        case 'Integer':
+                            value = parseInt(value);
+                            break;
+                    }
+                    AppSettings[parameters[key]] = value;
                 });
                 if (!AppSettings.storeBaseUrl) {
                     AppSettings.storeBaseUrl = storeSettings.secureUrl || storeSettings.url;
                 }
                 AppSettings.themeName = this.getThemeName(storeSettings);
                 environment.version = version;
-            }),
-            tap(() => console.log(AppSettings))
+            })
         ).toPromise();
     }
 
