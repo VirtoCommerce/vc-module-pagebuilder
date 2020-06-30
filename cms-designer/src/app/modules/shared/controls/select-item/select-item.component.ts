@@ -3,7 +3,6 @@ import { DomSanitizer } from '@angular/platform-browser';
 import { BaseControlDirective } from '../base-control.component';
 import { OptionModel, SelectControlDescriptor } from '@shared/models';
 import { SelectItemService } from '../../services/select-item.service';
-import { TypeaheadOptions } from 'ngx-bootstrap';
 
 @Component({
     selector: 'app-select-item',
