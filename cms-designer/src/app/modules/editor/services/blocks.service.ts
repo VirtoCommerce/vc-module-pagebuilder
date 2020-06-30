@@ -15,19 +15,19 @@ export class BlocksService {
         return this.platform.downloadBlocksSchema().pipe(
             tap(schema => {
                 const shared = <SharedBlockSchema>schema.shared;
-                if (!!shared) {
-                    Object.keys(schema).forEach(key => {
-                        const contentType = schema[key].contentType;
-                        if (!contentType || (typeof contentType === 'string' && contentType === this.urls.params.contentType) ||
-                            (isArray(contentType) && (<string[]>contentType).some(x => x === this.urls.params.contentType))) {
-                            const currentBlock = schema[key];
-                            currentBlock.type = key;
+                Object.keys(schema).forEach(key => {
+                    const contentType = schema[key].contentType;
+                    if (!contentType || (typeof contentType === 'string' && contentType === this.urls.params.contentType) ||
+                        (isArray(contentType) && (<string[]>contentType).some(x => x === this.urls.params.contentType))) {
+                        const currentBlock = schema[key];
+                        currentBlock.type = key;
+                        if (!shared) {
                             this.mergeSettings(currentBlock, shared);
-                        } else {
-                            delete schema[key];
                         }
-                    });
-                }
+                    } else {
+                        delete schema[key];
+                    }
+                });
             })
         );
     }
