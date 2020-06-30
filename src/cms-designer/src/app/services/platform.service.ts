@@ -69,10 +69,10 @@ export class PlatformService {
                     let value: any = x.value || x.defaultValue;
                     switch (x.valueType) {
                         case 'Boolean':
-                            value = value.toLowerCase() == 'true';
+                            value = value ? value.toLowerCase() == 'true' : false;
                             break;
                         case 'Integer':
-                            value = parseInt(value);
+                            value = parseInt(value ? value : 0);
                             break;
                     }
                     AppSettings[parameters[key]] = value;
