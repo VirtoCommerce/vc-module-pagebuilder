@@ -66,7 +66,16 @@ export class PlatformService {
             tap(([moduleSettings, storeSettings, version]) => {
                 moduleSettings.forEach(x => {
                     const key = x.name.replace('VirtoCommerce.PageBuilderModule.General.', '');
-                    AppSettings[parameters[key]] = x.value || x.defaultValue;
+                    let value: any = x.value || x.defaultValue;
+                    switch (x.valueType) {
+                        case 'Boolean':
+                            value = value.toLowerCase() == 'true';
+                            break;
+                        case 'Integer':
+                            value = parseInt(value);
+                            break;
+                    }
+                    AppSettings[parameters[key]] = value;
                 });
                 if (!AppSettings.storeBaseUrl) {
                     AppSettings.storeBaseUrl = storeSettings.secureUrl || storeSettings.url;

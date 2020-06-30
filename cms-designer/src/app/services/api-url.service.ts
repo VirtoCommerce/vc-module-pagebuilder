@@ -52,7 +52,7 @@ export class ApiUrlsService {
             ? 'api/platform/assets'
             : `api/content/${this.params.contentType}/${this.params.storeId}`;
         const url = this.combine(this.params.platformUrl, assetEndpoint) +
-                `?folderUrl=${encodeURIComponent(this.params.contentType)}&name=${name}`;
+                `?folderUrl=assets/${encodeURIComponent(this.params.contentType)}&name=${name}`;
         return url;
     }
 
