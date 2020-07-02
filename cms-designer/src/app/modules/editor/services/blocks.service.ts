@@ -21,7 +21,7 @@ export class BlocksService {
                         (isArray(contentType) && (<string[]>contentType).some(x => x === this.urls.params.contentType))) {
                         const currentBlock = schema[key];
                         currentBlock.type = key;
-                        if (!shared) {
+                        if (!!shared) {
                             this.mergeSettings(currentBlock, shared);
                         }
                     } else {
