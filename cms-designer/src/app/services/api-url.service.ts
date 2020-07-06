@@ -48,9 +48,7 @@ export class ApiUrlsService {
     }
 
     generateUploadAssetUrl(name: string): string {
-        const assetEndpoint = AppSettings.useGlobalAssets
-            ? 'api/platform/assets'
-            : `api/content/${this.params.contentType}/${this.params.storeId}`;
+        const assetEndpoint = `api/content/Pages/${this.params.storeId}`;
         const url = this.combine(this.params.platformUrl, assetEndpoint) +
                 `?folderUrl=assets/${encodeURIComponent(this.params.contentType)}&name=${name}`;
         return url;
@@ -64,7 +62,10 @@ export class ApiUrlsService {
     }
 
     getAssetsUrl(absoluteOrRelativeUrl: string): string {
-        const url = (absoluteOrRelativeUrl.startsWith('http://') || absoluteOrRelativeUrl.startsWith('https://'))
+        if (!absoluteOrRelativeUrl) {
+            return null;
+        }
+        const url = (absoluteOrRelativeUrl.startsWith('http://') || absoluteOrRelativeUrl.startsWith('https://') || absoluteOrRelativeUrl.startsWith('//'))
             ? absoluteOrRelativeUrl
             : this.combine(AppSettings.storeBaseUrl, absoluteOrRelativeUrl);
         return url;
