@@ -52,7 +52,7 @@ export class ApiUrlsService {
             ? '/api/platform/assets' // url for cdn, upload via platform endpoint
             : `api/content/Pages/${this.params.storeId}`; // url to pages storage, upload via content module endpoint
         const url = this.combine(this.params.platformUrl, assetEndpoint) +
-                `?folderUrl=assets/${encodeURIComponent(this.params.contentType)}&name=${name}`;
+                `?folderUrl=/assets/${encodeURIComponent(this.params.contentType)}&name=${name}`;
         return url;
     }
 

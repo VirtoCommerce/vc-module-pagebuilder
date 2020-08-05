@@ -24,7 +24,7 @@ export class SelectItemComponent extends BaseControlDirective<SelectControlDescr
     }
     set options(value: OptionModel[]) {
         this._options = value;
-        this.refreshValue();
+        this.refreshValue(null, false);
     }
 
     constructor(private sanitizer: DomSanitizer, private readonly selectItemService: SelectItemService) {
@@ -53,12 +53,14 @@ export class SelectItemComponent extends BaseControlDirective<SelectControlDescr
         this.refreshValue(v);
     }
 
-    private refreshValue(value: any = null) {
+    private refreshValue(value: any = null, notify: boolean = true) {
         const v = value || this.value;
         const newValue = this.options.map(x => x.value).find(x => this.isEqual(x, v, this.descriptor.equalKey)) || value;
         this.value = newValue;
         this.setTitle();
-        this.onChange(this.value);
+        if (notify) {
+            this.onChange(this.value);
+        }
     }
 
     isEqual(x, y, key) {
@@ -68,7 +70,7 @@ export class SelectItemComponent extends BaseControlDirective<SelectControlDescr
     setTitle() {
         if (!this.value) {
             this.title = this.descriptor.placeholder;
-        } else {        
+        } else {
             const option = this.options.find(x => this.isEqual(x.value, this.value, this.descriptor.equalKey));
             this.title = !!option ? option.label : this.descriptor.placeholder;
         }

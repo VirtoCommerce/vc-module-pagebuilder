@@ -1,7 +1,7 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { FormGroup, AbstractControl, FormArray } from '@angular/forms';
-import { CdkDragSortEvent } from '@angular/cdk/drag-drop';
-import { DisplayTextControlDescriptor, ControlDescriptor, CollectionControlDescriptor, BlockValuesModel } from '@shared/models';
+import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
+import { DisplayTextControlDescriptor, ControlDescriptor, CollectionControlDescriptor } from '@shared/models';
 import { FormHelper } from '@shared/services';
 
 @Component({
@@ -13,6 +13,7 @@ export class ElementsFormComponent implements OnInit {
     @Input() group: FormGroup;
     @Input() descriptors: ControlDescriptor[];
     @Input() context: any;
+    @Input() disallowCollection: boolean;
 
     private savedItem: any;
     editableItem: FormGroup;
@@ -47,13 +48,11 @@ export class ElementsFormComponent implements OnInit {
             (!descriptor.tab && (this.context.filter === 'General' || !this.context.filter));
     }
 
-    sortItems(control: CollectionControlDescriptor, event: CdkDragSortEvent<any>) {
-        const controls = this.getFormArray(control);
-        const value = [...controls.value];
-        const current = value.splice(event.previousIndex, 1);
-        value.splice(event.currentIndex, 0, ...current);
-        controls.patchValue(value);
-        // this.group.updateValueAndValidity({ emitEvent: true });
+    sortItems(control: CollectionControlDescriptor, event: CdkDragDrop<any>) {
+        const form = this.getFormArray(control);
+        const item = form.get([event.previousIndex]);
+        form.removeAt(event.previousIndex);
+        form.insert(event.currentIndex, item);
     }
 
     getTitle(item: FormGroup, control: CollectionControlDescriptor, index: number): string {
