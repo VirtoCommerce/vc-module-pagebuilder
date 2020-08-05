@@ -55,7 +55,7 @@ export const metaReducers: MetaReducer<any>[] = [debug];
             logOnly: environment.production
         }),
         EffectsModule.forRoot([RootEffects, ErrorsEffects]),
-        BsDropdownModule.forRoot(),
+        BsDropdownModule.forRoot({}),
 
         EditorModule,
         SharedModule,

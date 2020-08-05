@@ -27,7 +27,7 @@
 
         &::after
         {
-            background: url(../i/carret.svg) no-repeat;
+            background: url(../../i/carret.svg) no-repeat;
             content: ' ';
             height: .4375rem;
             position: absolute;
@@ -77,17 +77,17 @@
 
                 &--html
                 {
-                    background-image: url(../i/theme_actions_edit_html.svg);
+                    background-image: url(../../i/theme_actions_edit_html.svg);
                 }
 
                 &--lang
                 {
-                    background-image: url(../i/theme_actions_edit_lang.svg);
+                    background-image: url(../../i/theme_actions_edit_lang.svg);
                 }
 
                 &--nav
                 {
-                    background-image: url(../i/theme_actions_edit_nav.svg);
+                    background-image: url(../../i/theme_actions_edit_nav.svg);
                 }
             }
         }

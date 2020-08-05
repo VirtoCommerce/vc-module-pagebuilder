@@ -94,104 +94,104 @@
 
     &[data-name="header"]
     {
-        background-image: url(../i/header.svg);
+        background-image: url(../../i/header.svg);
     }
 
     &[data-name="footer"]
     {
-        background-image: url(../i/footer.svg);
+        background-image: url(../../i/footer.svg);
     }
 
     &[data-name="image"]
     {
-        background-image: url(../i/image.svg);
+        background-image: url(../../i/image.svg);
     }
 
     &[data-name="image-text"]
     {
-        background-image: url(../i/image_with_text.svg);
+        background-image: url(../../i/image_with_text.svg);
         height: 1.1875rem;
     }
 
     &[data-name="image-carousel"]
     {
-        background-image: url(../i/image_carousel.svg);
+        background-image: url(../../i/image_carousel.svg);
     }
 
     &[data-name="text"]
     {
-        background-image: url(../i/text.svg);
+        background-image: url(../../i/text.svg);
     }
 
     &[data-name="text-columns"]
     {
-        background-image: url(../i/text_columns.svg);
+        background-image: url(../../i/text_columns.svg);
         height: 1.1875rem;
     }
 
     &[data-name="category"]
     {
-        background-image: url(../i/category.svg);
+        background-image: url(../../i/category.svg);
     }
 
     &[data-name="add"]
     {
-        background-image: url(../i/add.svg);
+        background-image: url(../../i/add.svg);
     }
 
     &[data-name="presets"]
     {
-        background-image: url(../i/presets.svg);
+        background-image: url(../../i/presets.svg);
     }
 
     &[data-name="colors"]
     {
-        background-image: url(../i/colors.svg);
+        background-image: url(../../i/colors.svg);
         width: 1.0625rem;
     }
 
     &[data-name="typography"]
     {
-        background-image: url(../i/typography.svg);
+        background-image: url(../../i/typography.svg);
     }
 
     &[data-name="homepage"]
     {
-        background-image: url(../i/homepage.svg);
+        background-image: url(../../i/homepage.svg);
     }
 
     &[data-name="homepage-slideshow"]
     {
-        background-image: url(../i/image_carousel.svg);
+        background-image: url(../../i/image_carousel.svg);
     }
 
     &[data-name="homepage-featured-content"],
     &[data-name="homepage-featured-product"]
     {
-        background-image: url(../i/featured.svg);
+        background-image: url(../../i/featured.svg);
     }
 
     &[data-name="homepage-subscribe"]
     {
-        background-image: url(../i/subscribe.svg);
+        background-image: url(../../i/subscribe.svg);
         height: 1.125rem;
     }
 
     &[data-name="collection-page"],
     &[data-name="product-page"]
     {
-        background-image: url(../i/copy.svg);
+        background-image: url(../../i/copy.svg);
     }
 
     &[data-name="cart-page"]
     {
-        background-image: url(../i/cart.svg);
+        background-image: url(../../i/cart.svg);
         height: 1.0625rem;
     }
 
     &[data-name="social-media"]
     {
-        background-image: url(../i/social.svg);
+        background-image: url(../../i/social.svg);
     }
 }
 
@@ -220,20 +220,20 @@
 
 .list-group-visible
 {
-    background: url(../i/visible.svg) no-repeat;
+    background: url(../../i/visible.svg) no-repeat;
     height: .75rem;
     width: 1rem;
 
     &.hidden
     {
-        background-image: url(../i/hidden.svg);
+        background-image: url(../../i/hidden.svg);
         height: .875rem;
     }
 }
 
 .list-group-drag
 {
-    background: url(../i/drag.svg) no-repeat;
+    background: url(../../i/drag.svg) no-repeat;
     cursor: move;
     height: .75rem;
     width: .4375rem;
@@ -241,7 +241,7 @@
 
 .list-group-add
 {
-    background: url(../i/add.svg) no-repeat;
+    background: url(../../i/add.svg) no-repeat;
     height: 1.25rem;
     left: -.25rem;
     margin-left: auto;
