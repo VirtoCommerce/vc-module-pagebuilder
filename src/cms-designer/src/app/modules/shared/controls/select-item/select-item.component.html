@@ -1,9 +1,9 @@
-<label *ngIf="descriptor.label">{{descriptor.label}}</label>
+<label *ngIf="descriptor.label && !hideLabel">{{descriptor.label}}</label>
 <div class="dropdown" [class.dropdown--show]="isOpen">
-    <div class="dropdown__toggle" (click)="toggle()">{{ getTitle() }}</div>
+    <div class="dropdown__toggle" (click)="toggle()">{{ title }}</div>
     <div class="dropdown__menu" *ngIf="!groupItems">
-        <a class="dropdown__menu-item" *ngFor="let option of descriptor.options; trackBy: getTrackValue"
-            [class.dropdown__menu-item--selected]="option == value" (click)="selectValue(option)">
+        <a class="dropdown__menu-item" *ngFor="let option of options; trackBy: getTrackValue"
+            [class.dropdown__menu-item--selected]="isEqual(option.value, value, descriptor.equalKey)" (click)="selectValue(option.value)">
             <span class="dropdown__menu-item-text" [innerHTML]="getDisplayValue(option)"></span>
         </a>
     </div>
@@ -11,7 +11,7 @@
         <ng-container *ngFor="let g of groups | keyvalue">
             <span class="dropdown__menu_group">{{ g.key }}</span>
             <a class="dropdown__menu-item" *ngFor="let option of g.value; trackBy: getTrackValue"
-                [class.dropdown__menu-item--selected]="option == value" (click)="selectValue(option)">
+                [class.dropdown__menu-item--selected]="isEqual(option.value, value, descriptor.equalKey)" (click)="selectValue(option.value)">
                 <span class="dropdown__menu-item-text" [innerHTML]="getDisplayValue(option)"></span>
             </a>
         </ng-container>

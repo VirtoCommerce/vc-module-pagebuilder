@@ -5,6 +5,7 @@ import { PageBuilderContext } from '@shared/models';
 import { AppSettings } from './app.settings';
 import { WindowRef } from './window-ref';
 import { environment } from 'src/environments/environment';
+import { generateUniqueString } from './utils';
 
 @Injectable({
     providedIn: 'root'
@@ -41,17 +42,17 @@ export class ApiUrlsService {
     generateUniqueSafeFileName(name: string): string {
         const parts = name.split('.');
         const extension = parts.pop();
-        const uniqueName = `${parts.join('.')}_${this.generateUniqueString(10)}.${extension}`;
+        const uniqueName = `${parts.join('.')}_${generateUniqueString(10)}.${extension}`;
         const safeName = encodeURIComponent(uniqueName);
         return safeName;
     }
 
     generateUploadAssetUrl(name: string): string {
         const assetEndpoint = AppSettings.useGlobalAssets
-            ? 'api/platform/assets'
-            : `api/content/${this.params.contentType}/${this.params.storeId}`;
+            ? '/api/platform/assets' // url for cdn, upload via platform endpoint
+            : `api/content/Pages/${this.params.storeId}`; // url to pages storage, upload via content module endpoint
         const url = this.combine(this.params.platformUrl, assetEndpoint) +
-                `?folderUrl=${encodeURIComponent(AppSettings.assetsPath)}&name=${name}`;
+                `?folderUrl=/assets/${encodeURIComponent(this.params.contentType)}&name=${name}`;
         return url;
     }
 
@@ -63,17 +64,17 @@ export class ApiUrlsService {
     }
 
     getAssetsUrl(absoluteOrRelativeUrl: string): string {
-        const url = (absoluteOrRelativeUrl.startsWith('http://') || absoluteOrRelativeUrl.startsWith('https://'))
+        if (!absoluteOrRelativeUrl) {
+            return null;
+        }
+        const url = ['http://', 'https://', '//'].find(x => absoluteOrRelativeUrl.startsWith(x))
             ? absoluteOrRelativeUrl
             : this.combine(AppSettings.storeBaseUrl, absoluteOrRelativeUrl);
         return url;
     }
 
     getAssetsRelativeUrl(filename: string): string {
-        if (AppSettings.assetsPath.startsWith('/assets') || AppSettings.assetsPath.startsWith('assets')) {
-            return this.combine('/', AppSettings.assetsPath, filename);
-        }
-        return this.combine('/assets/', AppSettings.assetsPath, filename);
+        return this.combine('/assets/', this.params.contentType, filename);
     }
 
     getStoreUrl(layout: string): string {
@@ -128,16 +129,14 @@ export class ApiUrlsService {
         return this._params;
     }
 
-    private generatePrefixAndSetCookie(): string {
-        const result = this.generateUniqueString(10);
-        this.cookies.set(this.SESSION_ID, result);
-        return result;
+    generateFullPlatformUrl(relativeUrl: string): string {
+        const url = this.combine(this.params.platformUrl, relativeUrl);
+        return url;
     }
 
-    private generateUniqueString(length: number) {
-        const characters = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_-';
-        const randomChar = () => characters[Math.floor(Math.random() * characters.length)];
-        const result = Array.from({ length }, randomChar).join('');
+    private generatePrefixAndSetCookie(): string {
+        const result = generateUniqueString(10);
+        this.cookies.set(this.SESSION_ID, result);
         return result;
     }
 

@@ -7,7 +7,6 @@ export interface EnvironmentSettings {
     baseUrl: string;
     tokenUrl: string;
     previewTimeout: number;
-    assetsPath: string;
     useGlobalAssets: boolean;
 }
 

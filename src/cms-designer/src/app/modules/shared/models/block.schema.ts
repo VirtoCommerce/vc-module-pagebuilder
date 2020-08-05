@@ -1,7 +1,7 @@
 import { ControlDescriptor } from '.';
 
 interface BaseBlockSchema {
-    contentType?: string;
+    contentType?: string | string[];
     settings: ControlDescriptor[];
 }
 

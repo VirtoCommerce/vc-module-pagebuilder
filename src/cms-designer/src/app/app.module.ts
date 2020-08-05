@@ -3,7 +3,7 @@ import { NgModule, APP_INITIALIZER } from '@angular/core';
 import { StoreModule, ActionReducer, MetaReducer } from '@ngrx/store';
 import { StoreDevtoolsModule } from '@ngrx/store-devtools';
 import { EffectsModule } from '@ngrx/effects';
-import { BsDropdownModule } from 'ngx-bootstrap';
+import { BsDropdownModule } from 'ngx-bootstrap/dropdown';
 
 import { CookieService } from 'ngx-cookie-service';
 
@@ -55,7 +55,7 @@ export const metaReducers: MetaReducer<any>[] = [debug];
             logOnly: environment.production
         }),
         EffectsModule.forRoot([RootEffects, ErrorsEffects]),
-        BsDropdownModule.forRoot(),
+        BsDropdownModule.forRoot({}),
 
         EditorModule,
         SharedModule,

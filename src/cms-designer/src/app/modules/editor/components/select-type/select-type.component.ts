@@ -9,6 +9,8 @@ import { CreateBlockModel } from '@editor/models';
 })
 export class SelectTypeComponent implements OnInit {
 
+    private allItems: BlockSchema[] = [];
+
     @Input() types: CreateBlockModel;
     @Output() previewBlockEvent = new EventEmitter<BlockSchema>();
     @Output() selectBlockEvent = new EventEmitter<BlockSchema>();
@@ -16,9 +18,23 @@ export class SelectTypeComponent implements OnInit {
     selectedGroup: string;
     selectedItem: string;
 
+    searchQuery: string;
+    filteredItems: BlockSchema[] = [];
+
     constructor() { }
 
-    ngOnInit() { }
+    ngOnInit() {
+        this.allItems = this.types.groups.reduce((acc, group) => [...acc, ...group.items], []);
+    }
+
+    onSearch() {
+        const q = this.searchQuery.toLowerCase();
+        if (this.searchQuery) {
+            this.filteredItems = this.allItems.filter(x => x.name.toLowerCase().indexOf(q) !== -1 || x.type.indexOf(q) !== -1)
+        } else {
+            this.filteredItems = [];
+        }        
+    }
 
     previewItem(item: BlockSchema) {
         this.selectedItem = item.type;

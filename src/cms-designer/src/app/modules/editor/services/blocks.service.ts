@@ -15,12 +15,16 @@ export class BlocksService {
             tap(schema => {
                 const shared = <SharedBlockSchema>schema.shared;
                 Object.keys(schema).forEach(key => {
-                    if (!!schema[key].contentType && schema[key].contentType !== this.urls.params.contentType) {
-                        delete schema[key];
-                    } else {
+                    const contentType = schema[key].contentType;
+                    if (!contentType || (typeof contentType === 'string' && contentType === this.urls.params.contentType) ||
+                        (Array.isArray(contentType) && (<string[]>contentType).some(x => x === this.urls.params.contentType))) {
                         const currentBlock = schema[key];
                         currentBlock.type = key;
-                        this.mergeSettings(currentBlock, shared);
+                        if (!!shared) {
+                            this.mergeSettings(currentBlock, shared);
+                        }
+                    } else {
+                        delete schema[key];
                     }
                 });
             })
@@ -46,7 +50,7 @@ export class BlocksService {
             });
         };
         // block.includeShared contains name or array of names named settings in shared block
-        if (block.includeShared) {
+        if (block.includeShared && shared.namedSettings) {
             if (typeof block.includeShared === 'string') {
                 const sharedSettings = shared.namedSettings[block.includeShared];
                 addSetting(sharedSettings);
@@ -60,7 +64,7 @@ export class BlocksService {
         // block can skip shared settings or some of them
         const skipShared = block.excludeShared;
         if (!skipShared || Array.isArray(skipShared)) {
-            const exclude = Array.isArray(skipShared) ? (v: string) => skipShared.indexOf(v) !== -1 : () => false;
+            const exclude = Array.isArray(skipShared) ? (v: string) => (<string[]>skipShared).indexOf(v) !== -1 : () => false;
             const sharedSettings = shared.settings;
             addSetting(sharedSettings, exclude);
         }

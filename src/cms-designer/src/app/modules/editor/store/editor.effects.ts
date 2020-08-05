@@ -18,6 +18,7 @@ import { BlocksService, PagesService } from '@editor/services';
 import * as editorActions from './editor.actions';
 import * as fromEditor from '.';
 import * as rootActions from '@app/store/root.actions';
+import { generateUniqueString, onlyLettersAndDigits } from '@app/services/utils';
 
 // import { CategoryModel } from '../models';
 
@@ -74,6 +75,7 @@ export class EditorEffects {
                 id: page.content.length ? Math.max(...page.content.map(v => v.id || 0)) + 1 : 1,
                 type: action.newItemSchema.type
             };
+            block.__id = this.generateBlockId(block);
             action.newItemSchema.settings.forEach(x => block[x.id] = x['default'] || null);
             return block;
         }),
@@ -96,6 +98,9 @@ export class EditorEffects {
         ofType(editorActions.loadBlocks),
         switchMap(() =>
             this.pages.downloadPage().pipe(
+                tap(blocks => blocks.forEach(b => {
+                    b.__id = this.generateBlockId(b);
+                })),
                 map(blocks => editorActions.loadBlocksSuccess({ blocks })),
                 catchError(error => of(editorActions.loadBlocksFail({ error })))
             )
@@ -167,7 +172,8 @@ export class EditorEffects {
     copyToClipboard$ = createEffect(() => this.actions$.pipe(
         ofType(editorActions.copyToClipboard),
         tap(({ block }) => {
-            this.clipboard.copyTo(block);
+            const value = {...block, __id: null};
+            this.clipboard.copyTo(value);
         })
     ), { dispatch: false });
 
@@ -209,6 +215,8 @@ export class EditorEffects {
                     return editorActions.showPastePopup();
                 }
                 block.id = page.content.reduce((v: number, b: BlockValuesModel) => Math.max(b.id, v), 0) + 1;
+                block.__id = null;
+                block.__id = this.generateBlockId(block);
                 return editorActions.addPageItem({ block });
             } catch (error) {
                 this.messages.displayError('Parse data error', error);
@@ -216,4 +224,11 @@ export class EditorEffects {
             }
         })
     ));
+
+    private generateBlockId(block: BlockValuesModel): string {
+        if (block.__id) {
+            return block.__id;
+        }
+        return onlyLettersAndDigits(`${block.type}${generateUniqueString(4)}`);
+    }
 }

@@ -2,7 +2,7 @@ import { ModuleSettings } from './../models/environment.settings';
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, combineLatest } from 'rxjs';
-import { tap, map } from 'rxjs/operators';
+import { tap, map, catchError } from 'rxjs/operators';
 import { ApiUrlsService } from './api-url.service';
 import { PresetsModel } from '@themes/models';
 import { BlockValuesModel, BlocksSchema, BlockSchema, ValueType } from '@shared/models';
@@ -23,11 +23,11 @@ export class PlatformService {
     constructor(private http: HttpClient, private urls: ApiUrlsService) { }
 
     downloadSettingsData(): Observable<PresetsModel> {
-        return this.downloadModel<PresetsModel>(ContentType.themes, `/${AppSettings.defaultThemeName}/config/settings_data.json`);
+        return this.tryDownloadFromTheme('/config/settings_data.json');
     }
 
     downloadSettingsSchema(): Observable<BlockSchema[]> {
-        return this.downloadModel<BlockSchema[]>(ContentType.themes, `/${AppSettings.defaultThemeName}/config/settings_schema.json`);
+        return this.tryDownloadFromTheme('/config/settings_schema.json');
     }
 
     uploadPreset(model: { [key: string]: ValueType }): Observable<any> {
@@ -48,21 +48,34 @@ export class PlatformService {
     }
 
     downloadBlocksSchema(): Observable<BlocksSchema> {
-        return this.downloadModel<BlocksSchema>(ContentType.themes, `/${AppSettings.defaultThemeName}/config/blocks_schema.json`);
+        return this.tryDownloadFromTheme('/config/blocks_schema.json');
+    }
+
+    loadData<T>(relativeUrl: string, params: any = null, method: string = 'get'): Observable<T> {
+        const url = this.urls.generateFullPlatformUrl(relativeUrl);
+        return this.http[method.toLowerCase()](url, params);
     }
 
     initSettings(): Promise<any> {
         const parameters = {};
         parameters['StorePreviewPath'] = 'storePreviewPath';
         parameters['TokenUrl'] = 'tokenUrl';
-        parameters['AssetsPath'] = 'assetsPath';
         parameters['StoreUrl'] = 'storeBaseUrl';
         parameters['UseGlobalAssets'] = 'useGlobalAssets';
         return combineLatest([this.moduleSettings(), this.storeSettings(), this.moduleVersion()]).pipe(
             tap(([moduleSettings, storeSettings, version]) => {
                 moduleSettings.forEach(x => {
                     const key = x.name.replace('VirtoCommerce.PageBuilderModule.General.', '');
-                    AppSettings[parameters[key]] = x.value || x.defaultValue;
+                    let value: any = x.value || x.defaultValue;
+                    switch (x.valueType) {
+                        case 'Boolean':
+                            value = value ? value.toString().toLowerCase() == 'true' : false;
+                            break;
+                        case 'Integer':
+                            value = value ? parseInt(value.toString()) : 0;
+                            break;
+                    }
+                    AppSettings[parameters[key]] = value;
                 });
                 if (!AppSettings.storeBaseUrl) {
                     AppSettings.storeBaseUrl = storeSettings.secureUrl || storeSettings.url;
@@ -71,6 +84,17 @@ export class PlatformService {
                 environment.version = version;
             })
         ).toPromise();
+    }
+
+    private tryDownloadFromTheme<T>(path: string): Observable<T> {
+        if (AppSettings.themeName === AppSettings.defaultThemeName) {
+            return this.downloadModel<T>(ContentType.themes, `/${AppSettings.themeName}${path}`);
+        }
+        return this.downloadModel<T>(ContentType.themes, `/${AppSettings.themeName}${path}`).pipe(
+            catchError(() => {
+                return this.downloadModel<T>(ContentType.themes, `/${AppSettings.defaultThemeName}${path}`)
+            })
+        );
     }
 
     private getThemeName(storeSettings: any): string {
