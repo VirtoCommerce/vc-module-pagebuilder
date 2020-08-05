@@ -3,7 +3,6 @@ import { Observable } from 'rxjs';
 import { tap, map } from 'rxjs/operators';
 import { PlatformService, ApiUrlsService } from '@app/services';
 import { BlocksSchema, BlockSchema, SharedBlockSchema, ControlDescriptor } from '@shared/models';
-import { isArray } from 'util';
 
 @Injectable({
     providedIn: 'root'
@@ -18,7 +17,7 @@ export class BlocksService {
                 Object.keys(schema).forEach(key => {
                     const contentType = schema[key].contentType;
                     if (!contentType || (typeof contentType === 'string' && contentType === this.urls.params.contentType) ||
-                        (isArray(contentType) && (<string[]>contentType).some(x => x === this.urls.params.contentType))) {
+                        (Array.isArray(contentType) && (<string[]>contentType).some(x => x === this.urls.params.contentType))) {
                         const currentBlock = schema[key];
                         currentBlock.type = key;
                         if (!!shared) {
@@ -64,8 +63,8 @@ export class BlocksService {
         }
         // block can skip shared settings or some of them
         const skipShared = block.excludeShared;
-        if (!skipShared || isArray(skipShared)) {
-            const exclude = isArray(skipShared) ? (v: string) => (<string[]>skipShared).indexOf(v) !== -1 : () => false;
+        if (!skipShared || Array.isArray(skipShared)) {
+            const exclude = Array.isArray(skipShared) ? (v: string) => (<string[]>skipShared).indexOf(v) !== -1 : () => false;
             const sharedSettings = shared.settings;
             addSetting(sharedSettings, exclude);
         }

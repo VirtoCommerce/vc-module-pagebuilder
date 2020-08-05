@@ -141,7 +141,7 @@ label
 
     &::after
     {
-        background: url(../i/remove_sections.svg) no-repeat;
+        background: url(../../i/remove_sections.svg) no-repeat;
         content: ' ';
         height: 1.0625rem;
         left: 50%;
@@ -192,7 +192,7 @@ label
 
         &:checked ~ .form-checkbox__label::after
         {
-            background: url(../i/checkbox.svg) no-repeat scroll 50% 50%;
+            background: url(../../i/checkbox.svg) no-repeat scroll 50% 50%;
             background-size: .625rem .5rem;
             content: ' ';
             height: 1.5rem;
