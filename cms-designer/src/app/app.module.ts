@@ -1,9 +1,10 @@
 import { BrowserModule } from '@angular/platform-browser';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { NgModule, APP_INITIALIZER } from '@angular/core';
 import { StoreModule, ActionReducer, MetaReducer } from '@ngrx/store';
 import { StoreDevtoolsModule } from '@ngrx/store-devtools';
 import { EffectsModule } from '@ngrx/effects';
-import { BsDropdownModule } from 'ngx-bootstrap/dropdown';
+import { BsDropdownModule } from "ngx-bootstrap/dropdown";
 
 import { CookieService } from 'ngx-cookie-service';
 
@@ -46,6 +47,7 @@ export const metaReducers: MetaReducer<any>[] = [debug];
     ],
     imports: [
         BrowserModule,
+        BrowserAnimationsModule,
         StoreModule.forRoot({
             'root': reducer
         }, { metaReducers }),
