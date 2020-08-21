@@ -7,7 +7,7 @@ export let AppSettings: EnvironmentSettings = {
     storePreviewPath: null,
     contentCssPath: null,
     baseUrl: null,
-    tokenUrl: null,
+    tokenUrl: '/connect/token',
     useGlobalAssets: false,
     previewTimeout: 120000
 };
