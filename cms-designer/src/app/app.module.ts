@@ -36,7 +36,7 @@ export function debug(actionReducer: ActionReducer<any>): ActionReducer<any> {
     };
 }
 
-export const metaReducers: MetaReducer<any>[] = [debug];
+export const metaReducers: MetaReducer<any>[] = environment.production ? [debug] : [];
 
 @NgModule({
     declarations: [
@@ -47,7 +47,7 @@ export const metaReducers: MetaReducer<any>[] = [debug];
     imports: [
         BrowserModule,
         StoreModule.forRoot({
-            'root': reducer
+            root: reducer
         }, { metaReducers }),
         StoreDevtoolsModule.instrument({
             name: 'CMS',

@@ -104,7 +104,7 @@ export class ApiUrlsService {
     }
 
     getTokenUrl(): string {
-        const url = `${this.params.platformUrl}${AppSettings.tokenUrl}`;
+        const url = this.combine(this.params.platformUrl, AppSettings.tokenUrl);
         return url;
     }
 

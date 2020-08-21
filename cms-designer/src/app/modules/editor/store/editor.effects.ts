@@ -107,18 +107,6 @@ export class EditorEffects {
         )
     ));
 
-    // saveBlocks$ = createEffect(() => this.actions$.pipe(
-    //     ofType(editorActions.saveBlocks),
-    //     withLatestFrom(this.store$.select(fromEditor.getPage)),
-    //     switchMap(([, page]: [any, PageModel]) => {
-    //         const data = [page.settings, ...page.content];
-    //         return this.pages.uploadPage(data).pipe(
-    //             map(() => editorActions.saveBlocksSuccess()),
-    //             catchError(error => of(editorActions.saveBlocksFail({ error })))
-    //         );
-    //     })
-    // ));
-
     saveBlocks$ = createEffect(() => this.actions$.pipe(
         ofType(editorActions.saveBlocks),
         map(() => editorActions.reloadBlocks())
