@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectorRef } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
 import { BaseControlDirective } from '../base-control.component';
 import { OptionModel, SelectControlDescriptor } from '@shared/models';
@@ -17,7 +17,17 @@ export class SelectItemComponent extends BaseControlDirective<SelectControlDescr
     groups: { [key: string]: { label: string; value: string; }[] };
     value: any;
     isOpen: boolean;
-    title: string;
+    get option(): OptionModel {
+        if (!this.value) {
+            return null;
+        } else {
+            const option = this.options.find(x => this.isEqual(x.value, this.value, this.descriptor.equalKey));
+            return option;
+        }
+    }
+    get title(): string {
+        return this.option?.label || this.descriptor.placeholder;
+    }
 
     get options(): OptionModel[] {
         return this._options;
@@ -27,7 +37,7 @@ export class SelectItemComponent extends BaseControlDirective<SelectControlDescr
         this.refreshValue(null, false);
     }
 
-    constructor(private sanitizer: DomSanitizer, private readonly selectItemService: SelectItemService) {
+    constructor(private sanitizer: DomSanitizer, private readonly selectItemService: SelectItemService, private cdk: ChangeDetectorRef) {
         super();
     }
 
@@ -45,6 +55,7 @@ export class SelectItemComponent extends BaseControlDirective<SelectControlDescr
                     this.groups[x.group].push(x);
                 });
             }
+            this.cdk.detectChanges();
         });
     }
 
@@ -57,7 +68,6 @@ export class SelectItemComponent extends BaseControlDirective<SelectControlDescr
         const v = value || this.value;
         const newValue = this.options.map(x => x.value).find(x => this.isEqual(x, v, this.descriptor.equalKey)) || value;
         this.value = newValue;
-        this.setTitle();
         if (notify) {
             this.onChange(this.value);
         }
@@ -65,15 +75,6 @@ export class SelectItemComponent extends BaseControlDirective<SelectControlDescr
 
     isEqual(x, y, key) {
         return !key ? x === y : (!x && !y) || ((x && y) && (x[key] === y[key]));
-    }
-
-    setTitle() {
-        if (!this.value) {
-            this.title = this.descriptor.placeholder;
-        } else {
-            const option = this.options.find(x => this.isEqual(x.value, this.value, this.descriptor.equalKey));
-            this.title = !!option ? option.label : this.descriptor.placeholder;
-        }
     }
 
     getDisplayValue(option: OptionModel) {
