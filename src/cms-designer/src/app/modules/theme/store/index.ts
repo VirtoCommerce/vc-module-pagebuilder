@@ -80,55 +80,60 @@ export const getEditablePreset = createSelector(
     }
 );
 
-export const getCurrentThemeValuesRequested = createSelector(
+export const getBasePresets = createSelector(
     getThemeFeatureState,
-    state => state.currentThemeValuesRequested
+    state => state.basePresets
 );
 
-export const getValuesToSave = createSelector(
-    getThemeFeatureState,
-    getPresets,
-    getEditablePreset,
-    getSchema,
-    (state, presets, editablePreset, schema) => {
-        let result: any = {}
-        const actualPreset = state.presetUnderPreview ? presets.presets[state.presetUnderPreview] : editablePreset;
-        if (AppSettings.defaultThemeName === AppSettings.themeName) {
-            result = {
-                ...presets,
-                current: { ...actualPreset },
-            };
-        }
-        else if (state.presetUnderPreview) {
-            result = { current: state.presetUnderPreview };
-        }
-        else if (presets && editablePreset) {
-            const presetName = !!editablePreset.current ? editablePreset.current : presets.current;
-            const defaultValues = typeof presetName === 'string' ? presets.presets[presetName] : presets.current;
-            Object.keys(defaultValues).forEach(key => {
-                if (defaultValues[key] !== editablePreset[key]) {
-                    result[key] = editablePreset[key];
-                }
-            });
-            Object.keys(editablePreset).forEach(key => {
-                if (typeof defaultValues[key] === 'undefined') {
-                    result[key] = editablePreset[key];
-                }
-            });
-            result.current = editablePreset.current;
-        }
+// export const getCurrentThemeValuesRequested = createSelector(
+//     getThemeFeatureState,
+//     state => state.currentThemeValuesRequested
+// );
 
-        if (schema) {
-            schema.forEach(s => s.settings.forEach(x => {
-                if (typeof result.current[x.id] !== 'undefined' && result.current[x.id] === x.default) {
-                    delete result.current[x.id];
-                }
-            }));
-        }
+// export const getValuesToSave = createSelector(
+//     getThemeFeatureState,
+//     (state, presets, editablePreset, schema) => {
 
-        return result;
-    }
-);
+// // error!;
+
+//         let result: any = {}
+//         const actualPreset = state.presetUnderPreview ? presets.presets[state.presetUnderPreview] : editablePreset;
+//         if (AppSettings.defaultThemeName === AppSettings.themeName) {
+//             result = {
+//                 ...presets,
+//                 current: { ...actualPreset },
+//             };
+//         }
+//         else if (state.presetUnderPreview) {
+//             result = { current: state.presetUnderPreview };
+//         }
+//         else if (presets && editablePreset) {
+//             const presetName = !!editablePreset.current ? editablePreset.current : presets.current;
+//             const defaultValues = typeof presetName === 'string' ? presets.presets[presetName] : presets.current;
+//             Object.keys(defaultValues).forEach(key => {
+//                 if (defaultValues[key] !== editablePreset[key]) {
+//                     result[key] = editablePreset[key];
+//                 }
+//             });
+//             Object.keys(editablePreset).forEach(key => {
+//                 if (typeof defaultValues[key] === 'undefined') {
+//                     result[key] = editablePreset[key];
+//                 }
+//             });
+//             result.current = editablePreset.current;
+//         }
+
+//         if (schema) {
+//             schema.forEach(s => s.settings.forEach(x => {
+//                 if (typeof result.current[x.id] !== 'undefined' && result.current[x.id] === x.default) {
+//                     delete result.current[x.id];
+//                 }
+//             }));
+//         }
+
+//         return result;
+//     }
+// );
 
 export const getPresetsNotLoaded = createSelector(
     getThemeFeatureState,

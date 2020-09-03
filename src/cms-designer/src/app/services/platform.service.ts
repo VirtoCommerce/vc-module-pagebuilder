@@ -1,12 +1,13 @@
 import { ModuleSettings } from './../models/environment.settings';
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, combineLatest } from 'rxjs';
+import { Observable, combineLatest, from } from 'rxjs';
 import { tap, map, catchError } from 'rxjs/operators';
 import { ApiUrlsService } from './api-url.service';
 import { PresetsModel } from '@themes/models';
 import { BlockValuesModel, BlocksSchema, BlockSchema, ValueType } from '@shared/models';
 import { PlatformSetting, StoreSettings } from '@app/models';
+import { TransformSettingsService } from './transform-settings.service';
 
 import { AppSettings } from './app.settings';
 import { environment } from 'src/environments/environment';
@@ -20,18 +21,21 @@ enum ContentType {
 })
 export class PlatformService {
 
-    constructor(private http: HttpClient, private urls: ApiUrlsService) { }
+    constructor(private http: HttpClient, private urls: ApiUrlsService, private transformSettings: TransformSettingsService) { }
 
-    downloadSettingsData(): Observable<PresetsModel> {
-        return this.tryDownloadFromTheme('/config/settings_data.json');
+    downloadSettingsData(): Observable<{ presets: PresetsModel, basePresets: PresetsModel}> {
+        return from(this.downloadSettingsAsync()).pipe(
+            map(response => this.transformSettings.transform(response))
+        );
     }
-
+    
     downloadSettingsSchema(): Observable<BlockSchema[]> {
         return this.tryDownloadFromTheme('/config/settings_schema.json');
     }
 
-    uploadPreset(model: { [key: string]: ValueType }): Observable<any> {
-        return this.uploadModel<{ [key: string]: ValueType }>(model, ContentType.themes, `/${AppSettings.themeName}/config`, 'settings_data.json');
+    uploadPreset(model: { [key: string]: ValueType }, presets: PresetsModel, basePresets: PresetsModel, schema: BlockSchema[]): Observable<any> {
+        const result = this.transformSettings.cleanSettings(model, presets, basePresets, schema);        
+        return this.uploadModel<PresetsModel>(result, ContentType.themes, `/${AppSettings.themeName}/config`, 'settings_data.json');
     }
 
     uploadDraftPreset(model: { [key: string]: ValueType }): Observable<any> {
@@ -80,29 +84,40 @@ export class PlatformService {
                 if (!AppSettings.storeBaseUrl) {
                     AppSettings.storeBaseUrl = storeSettings.secureUrl || storeSettings.url;
                 }
-                AppSettings.themeName = this.getThemeName(storeSettings);
+                AppSettings.themeName = this.getThemeName(storeSettings, 'defaultThemeName', 'DefaultThemeName');
+                AppSettings.baseThemePath = this.getThemeName(storeSettings, 'baseThemePath', 'BaseThemePath');
                 environment.version = version;
             })
         ).toPromise();
     }
 
     private tryDownloadFromTheme<T>(path: string): Observable<T> {
-        if (AppSettings.themeName === AppSettings.defaultThemeName) {
-            return this.downloadModel<T>(ContentType.themes, `/${AppSettings.themeName}${path}`);
-        }
         return this.downloadModel<T>(ContentType.themes, `/${AppSettings.themeName}${path}`).pipe(
-            catchError(() => {
-                return this.downloadModel<T>(ContentType.themes, `/${AppSettings.defaultThemeName}${path}`)
+            catchError((error) => {
+                if (!!AppSettings.baseThemePath) {
+                    return this.downloadModel<T>(ContentType.themes, `/${AppSettings.baseThemePath}${path}`).pipe(
+                        catchError((error) => {
+                            if (AppSettings.themeName === AppSettings.defaultThemeName) {
+                                throw error;
+                            }
+                            return this.downloadModel<T>(ContentType.themes, `/${AppSettings.defaultThemeName}${path}`);
+                        })
+                    );
+                }
+                if (AppSettings.themeName !== AppSettings.defaultThemeName) {
+                    return this.downloadModel<T>(ContentType.themes, `/${AppSettings.defaultThemeName}${path}`);
+                }
+                throw error;
             })
         );
     }
 
-    private getThemeName(storeSettings: any): string {
-        let result = AppSettings.defaultThemeName;
+    private getThemeName(storeSettings: any, settingsName: string, propertyName: string): string {
+        let result = AppSettings[settingsName];
 
         if (!!storeSettings && !!storeSettings.dynamicProperties) {
             const properties: Array<any> = storeSettings.dynamicProperties;
-            const property = properties.find(x => x.name === 'DefaultThemeName');
+            const property = properties.find(x => x.name === propertyName);
             if (!!property && property.values.length > 0 && !!property.values[0].value) {
                 result = property.values[0].value;
             }
@@ -150,4 +165,16 @@ export class PlatformService {
         return `${prefix}_settings_data.json`;
     }
 
+    private async downloadSettingsAsync(): Promise<{ presets: PresetsModel, basePresets: PresetsModel}> {
+        const path = '/config/settings_data.json';
+        const result = {
+            presets: null,
+            basePresets: null
+        };
+        result.presets = await this.tryDownloadFromTheme(path).toPromise();
+        if (!!AppSettings.baseThemePath) {
+            result.basePresets = await this.tryDownloadFromTheme(`${AppSettings.baseThemePath}${path}`).toPromise();
+        }
+        return result;
+    }
 }

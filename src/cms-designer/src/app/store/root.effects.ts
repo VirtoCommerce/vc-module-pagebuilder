@@ -71,7 +71,7 @@ export class RootEffects {
             this.themeStore$.select(fromTheme.getPresetsNotLoaded)
         ),
         filter(([, presets, presetsNotLoaded]) => !presets || presetsNotLoaded),
-        mapTo(themeActions.loadDefaultThemes())
+        mapTo(themeActions.loadPresets())
     ));
 
     switchToLoadThemeSchema$ = createEffect(() => this.actions$.pipe(
@@ -92,18 +92,35 @@ export class RootEffects {
         ])
     ));
 
-    setPreviewUrl = createEffect(() => createEffect(() => this.actions$.pipe(
-        ofType(editorActions.loadBlocksSuccess),
-        switchMap(action => {
-            if (!!action.blocks) {
-                const result = this.urls.getStoreUrl(<string>action.blocks['layout']);
-                return [rootActions.setPreviewUrl({ url: result }), rootActions.reloadPreview()];
-            }
-            return [rootActions.setPreviewUrl({ url: null })];
+    setPreviewUrl$ = createEffect(() => this.actions$.pipe(
+        ofType(themeActions.updateDraftSuccess, editorActions.loadBlocksSuccess),
+        withLatestFrom(
+            this.store$.select(fromRoot.getPreviewUrl),
+            this.store$.select(fromEditor.getPageNotLoaded),
+            this.store$.select(fromTheme.getPresetsNotLoaded),
+            this.store$.select(fromEditor.getPageLayout)
+        ),
+        filter(([, url, pageNotLoaded, presetsNotLoaded]) => !!AppSettings.storeBaseUrl && !url && !pageNotLoaded && !presetsNotLoaded),
+        switchMap(([, , , , layout]) => {
+            const result = this.urls.getStoreUrl(layout);
+            return [rootActions.setPreviewUrl({ url: result }), rootActions.reloadPreview()];
         })
-    )));
+        // switchMap(action => {
+        //     if (!!action.blocks) {
+        //         const result = this.urls.getStoreUrl(<string>action.blocks['layout']);
+        //         return [rootActions.setPreviewUrl({ url: result }), rootActions.reloadPreview()];
+        //     }
+        //     return [rootActions.setPreviewUrl({ url: null })];
+        // })
+    ));
 
-    previewFailed = createEffect(() => this.actions$.pipe(
+    noPreviewUrl$ = createEffect(() => this.actions$.pipe(
+        ofType(editorActions.loadBlocksSuccess),
+        filter(() => !AppSettings.storeBaseUrl),
+        map(() => rootActions.displayError({ error: 'StoreUrl isn\'t set in settings' }))
+    ));
+
+    previewFailed$ = createEffect(() => this.actions$.pipe(
         ofType(rootActions.previewError),
         tap(action => {
             console.log(action.error);
@@ -137,35 +154,35 @@ export class RootEffects {
         })
     ));
 
-    settingsFromStorefront$ = createEffect(() => fromEvent(window, 'message').pipe(
-        filter((event: MessageEvent) => event.data.type === 'settings'),
-        map(event => themeActions.loadEffectiveThemeValuesSuccess({ values: event.data.model }))
-    ));
+    // settingsFromStorefront$ = createEffect(() => fromEvent(window, 'message').pipe(
+    //     filter((event: MessageEvent) => event.data.type === 'settings'),
+    //     map(event => themeActions.loadEffectiveThemeValuesSuccess({ values: event.data.model }))
+    // ));
 
-    loadEffectiveThemeValues$ = createEffect(() => this.actions$.pipe(
-        ofType(themeActions.loadEffectiveThemeValues, rootActions.previewReady),
-        withLatestFrom(
-            this.themeStore$.select(fromTheme.getEditablePreset),
-            this.themeStore$.select(fromTheme.getCurrentThemeValuesRequested),
-            this.rootStore$.select(fromRoot.getPrimaryFrameId),
-            this.rootStore$.select(fromRoot.getSecondaryFrameId)
-        ),
-        filter(([, editableTheme, themeRequested, primaryFrameId, secondaryFrameId]) =>
-            !themeRequested && !!editableTheme && (!!primaryFrameId || !!secondaryFrameId)),
-        map(([, , , primaryFrameId, secondaryFrameId]) => {
-            this.preview.requestSettings(primaryFrameId || secondaryFrameId);
-            return themeActions.loadEffectiveThemeValuesRequested();
-        })
-    ));
+    // loadEffectiveThemeValues$ = createEffect(() => this.actions$.pipe(
+    //     ofType(themeActions.loadEffectiveThemeValues, rootActions.previewReady),
+    //     withLatestFrom(
+    //         this.store$.select(fromTheme.getEditablePreset),
+    //         this.store$.select(fromTheme.getCurrentThemeValuesRequested),
+    //         this.store$.select(fromRoot.getPrimaryFrameId),
+    //         this.store$.select(fromRoot.getSecondaryFrameId)
+    //     ),
+    //     filter(([, editableTheme, themeRequested, primaryFrameId, secondaryFrameId]) =>
+    //         !themeRequested && !!editableTheme && (!!primaryFrameId || !!secondaryFrameId)),
+    //     map(([, , , primaryFrameId, secondaryFrameId]) => {
+    //         this.preview.requestSettings(primaryFrameId || secondaryFrameId);
+    //         return themeActions.loadEffectiveThemeValuesRequested();
+    //     })
+    // ));
 
-    loadEffectiveThemeValuesRequested$ = createEffect(() => this.actions$.pipe(
-        ofType(themeActions.loadEffectiveThemeValuesRequested),
-        switchMap(() => timer(AppSettings.previewTimeout).pipe(
-            withLatestFrom(this.themeStore$.select(fromTheme.getIsEffectiveValuesSkipped)),
-            filter(([, skipped]) => !skipped),
-            map(() => themeActions.loadEffectiveThemeValuesSkippedByTimeout())
-        )),
-    ));
+    // loadEffectiveThemeValuesRequested$ = createEffect(() => this.actions$.pipe(
+    //     ofType(themeActions.loadEffectiveThemeValuesRequested),
+    //     switchMap(() => timer(AppSettings.previewTimeout).pipe(
+    //         withLatestFrom(this.store$.select(fromTheme.getIsEffectiveValuesSkipped)),
+    //         filter(([, skipped]) => !skipped),
+    //         map(() => themeActions.loadEffectiveThemeValuesSkippedByTimeout())
+    //     )),
+    // ));
 
     // editor
 

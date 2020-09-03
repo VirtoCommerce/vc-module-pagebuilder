@@ -1,6 +1,7 @@
 export interface EnvironmentSettings {
     storeBaseUrl: string;
     storePreviewPath: string;
+    baseThemePath: string;
     defaultThemeName: string;
     themeName: string;
     contentCssPath: string;

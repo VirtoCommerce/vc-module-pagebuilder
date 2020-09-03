@@ -10,7 +10,6 @@ export interface PresetsState {
     schemaNotLoaded: boolean;
     presetsLoading: boolean;
     presetsNotLoaded: boolean;
-    currentThemeValuesRequested: boolean;
     draftUploaded: boolean;
     uploadDraftFail: boolean;
 
@@ -19,9 +18,10 @@ export interface PresetsState {
     showPresetsEditor: boolean;
     presetChanged: boolean;
     selectedSchemaItem: BlockSchema; // this section corresponds to section from schema
-    editablePreset: { [key: string]: ValueType }; // the current preset under editing
+    editablePreset: { [key: string]: ValueType }; // the preset under editing
     initialValues: { [key: string]: ValueType }; // initial values of current preset
     presets: PresetsModel; // the whole presets file which used as transport for preview
+    basePresets: PresetsModel; // base settings
     schema: BlockSchema[]; // the settings schema
     dirty: boolean;
 }
@@ -31,7 +31,6 @@ export const initialState: PresetsState = {
     schemaNotLoaded: false,
     presetsLoading: false,
     presetsNotLoaded: false,
-    currentThemeValuesRequested: false,
     draftUploaded: false,
     uploadDraftFail: false,
 
@@ -43,6 +42,7 @@ export const initialState: PresetsState = {
     editablePreset: null,
     initialValues: {},
     presets: null,
+    basePresets: null,
     schema: null,
     dirty: false
 };
@@ -53,32 +53,20 @@ const themesReducer = createReducer(
     on(Actions.loadSchemaSuccess, (state, { schema }) => ({ ...state, schema, schemaLoading: false, schemaNotLoaded: false })),
     on(Actions.loadSchemaFail, state => ({ ...state, schemaLoading: false, schemaNotLoaded: true, schema: null })),
     on(Actions.saveThemeSuccess, (state, { values }) => ({ ...state, initialValues: values, dirty: false })),
-    on(Actions.loadDefaultThemes, state => ({ ...state, presetsLoading: true })),
-    on(Actions.loadDefaultThemesSuccess, (state, { presets }) => {
-        const currentPreset = typeof presets.current === 'string' ? presets.presets[presets.current] : presets.current;
+    on(Actions.loadPresets, state => ({ ...state, presetsLoading: true })),
+    on(Actions.loadPresetsSuccess, (state, themes) => {
+        const currentPreset = <any>themes.presets.current;
         return {
             ...state,
             editablePreset: { ...currentPreset },
             initialValues: { ...currentPreset },
-            presets: presets
+            presets: themes.presets,
+            basePresets: themes.basePresets,
+            presetsNotLoaded: false,
+            presetsLoading: false
         };
     }),
-    on(Actions.loadEffectiveThemeValuesRequested, state => ({ ...state, currentThemeValuesRequested: true })),
-    on(Actions.loadEffectiveThemeValuesSkipped, state => 
-        ({ ...state, presetsLoading: false, effectiveValuesSkipped: true, presetsNotLoaded: false })),
-    on(Actions.loadEffectiveThemeValuesSkippedByTimeout, state => 
-        ({ ...state, presetsLoading: false, effectiveValuesSkipped: true, presetsNotLoaded: false })),
-    on(Actions.loadEffectiveThemeValuesSuccess, (state, { values }) => {
-        const currentValues = { ...state.editablePreset, ...values };
-        return {
-            ...state,
-            editablePreset: currentValues,
-            initialValues: values,
-            presetsLoading: false,
-            presetsNotLoaded: false
-        };
-    }),
-    on(Actions.loadDefaultThemesFail, state => ({ ...state, presetsLoading: false, presetsNotLoaded: true })),
+    on(Actions.loadPresetsFail, state => ({ ...state, presetsLoading: false, presetsNotLoaded: true })),
     on(Actions.selectSchemaItem, (state, { item }) => ({ ...state, selectedSchemaItem: item })),
     on(Actions.showPresetsPane, state => ({ ...state, showPresetsEditor: true })),
     on(Actions.closeEditors, Actions.cancelPreset, state => ({

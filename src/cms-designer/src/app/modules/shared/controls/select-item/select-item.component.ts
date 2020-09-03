@@ -17,7 +17,12 @@ export class SelectItemComponent extends BaseControlDirective<SelectControlDescr
     groups: { [key: string]: { label: string; value: string; }[] };
     value: any;
     isOpen: boolean;
-    title: string;
+    get option(): OptionModel {
+        return this.options.find(x => this.isEqual(x.value, this.value, this.descriptor.equalKey));
+    }
+    get title(): string {
+        return this.option?.label || this.descriptor.placeholder;
+    }
 
     get options(): OptionModel[] {
         return this._options;

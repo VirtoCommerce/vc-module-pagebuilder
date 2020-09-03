@@ -72,20 +72,20 @@ export const metaReducers: MetaReducer<any>[] = [debug];
             deps: [PlatformService],
             multi: true
         },
-        {
-            provide: PlatformService,
-            useFactory: (http: HttpClient, urls: ApiUrlsService) => {
-                return new PlatformService(http, urls);
-            },
-            deps: [HttpClient, ApiUrlsService]
-        },
-        {
-            provide: PreviewService,
-            useFactory: () => {
-                return new PreviewService();
-            },
-            deps: []
-        },
+        // {
+        //     provide: PlatformService,
+        //     useFactory: (http: HttpClient, urls: ApiUrlsService) => {
+        //         return new PlatformService(http, urls);
+        //     },
+        //     deps: [HttpClient, ApiUrlsService]
+        // },
+        // {
+        //     provide: PreviewService,
+        //     useFactory: () => {
+        //         return new PreviewService();
+        //     },
+        //     deps: []
+        // },
         {
             provide: APP_BASE_HREF,
             useFactory: (windowRef: WindowRef) => {

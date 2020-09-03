@@ -28,7 +28,7 @@ export class ErrorsEffects {
     ), { dispatch: false });
 
     loadThemesFail$ = createEffect(() => this.actions$.pipe(
-        ofType(themeActions.loadDefaultThemesFail),
+        ofType(themeActions.loadPresetsFail),
         map((action: any) => <HttpErrorResponse>action.error),
         filter(response => response.status >= 400),
         tap(response => this.errors.displayError('Couldn\'t load theme settings', response))

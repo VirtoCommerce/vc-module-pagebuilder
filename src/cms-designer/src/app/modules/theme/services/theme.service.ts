@@ -12,7 +12,7 @@ export class ThemeService {
 
     constructor(private platform: PlatformService) { }
 
-    loadPresets(): Observable<PresetsModel> {
+    loadPresets(): Observable<{ presets: PresetsModel, basePresets: PresetsModel}> {
         return this.platform.downloadSettingsData();
     }
 
@@ -20,8 +20,8 @@ export class ThemeService {
         return this.platform.downloadSettingsSchema();
     }
 
-    uploadPresets(model: { [key: string]: ValueType }): Observable<any> {
-        return this.platform.uploadPreset(model);
+    uploadPresets(model: { [key: string]: ValueType }, presets: PresetsModel, basePresets: PresetsModel, schema: BlockSchema[]): Observable<any> {
+        return this.platform.uploadPreset(model, presets, basePresets, schema);
     }
 
     uploadDraft(model: { [key: string]: ValueType }): Observable<any> {

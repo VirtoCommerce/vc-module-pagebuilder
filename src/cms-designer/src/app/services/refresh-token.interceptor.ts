@@ -42,7 +42,13 @@ export class RefreshTokenInterceptor implements HttpInterceptor {
     }
 
     private addTokenToRequest(request: HttpRequest<any>, token: string): HttpRequest<any> {
-        return request.clone({ setHeaders: { Authorization: `Bearer ${token}` } });
+        if (this.isRefreshingToken) {
+            return request;
+        }
+        if (!!token) {
+            return request.clone({ setHeaders: { Authorization: `Bearer ${token}` } });
+        }
+        return request;
     }
 
     private handle401Error(request: HttpRequest<any>, next: HttpHandler) {

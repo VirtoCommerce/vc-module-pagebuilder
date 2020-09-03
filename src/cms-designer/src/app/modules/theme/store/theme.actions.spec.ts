@@ -2,14 +2,14 @@ import { HttpErrorResponse } from '@angular/common/http';
 import * as themeActions from './theme.actions';
 
 describe('Theme actions', () => {
-    describe('loadDefaultThemes', () => {
+    describe('loadPresets', () => {
         it('should create an action', () => {
-            const action = themeActions.loadDefaultThemes();
-            expect({ ...action }).toEqual({ type: '[Theme] Load Default Themes' });
+            const action = themeActions.loadPresets();
+            expect({ ...action }).toEqual({ type: '[Theme] Load Presets' });
         });
     });
 
-    describe('loadDefaultThemesSuccess', () => {
+    describe('loadPresetsSuccess', () => {
         it('should create an action with given payload', () => {
             const presets = {
                 current: 'key',
@@ -19,17 +19,17 @@ describe('Theme actions', () => {
                     }
                 }
             };
-            const action = themeActions.loadDefaultThemesSuccess({ presets });
-            expect({ ...action }).toEqual({ type: '[Theme] Load Default Themes Success', presets: { ...presets } });
+            const action = themeActions.loadPresetsSuccess({ presets, basePresets: null });
+            expect({ ...action }).toEqual({ type: '[Theme] Load Presets Success', presets: { ...presets } });
         });
     });
 
-    describe('loadDefaultThemesFail', () => {
+    describe('loadPresetsFail', () => {
         it('should create an action with given payload', () => {
             const payload = 'something went wrong';
             const error = new HttpErrorResponse({ error: payload });
-            const action = themeActions.loadDefaultThemesFail({ error });
-            expect({ ...action }).toEqual({ type: '[Theme] Load Default Themes Fail', error });
+            const action = themeActions.loadPresetsFail({ error });
+            expect({ ...action }).toEqual({ type: '[Theme] Load Presets Fail', error });
         });
     });
 

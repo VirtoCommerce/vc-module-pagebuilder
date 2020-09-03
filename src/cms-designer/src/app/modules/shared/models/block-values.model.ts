@@ -7,7 +7,7 @@ export interface BlockValuesModel {
     name?: string; // for block in list
     hidden?: boolean;
     static?: boolean;
-    [key: string]: ValueType | ValueType[];
+    [key: string]: ValueType;
 }
 
-export type ValueType = string | number | boolean;
+export type ValueType = string | number | boolean | string[] | number[];
