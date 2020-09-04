@@ -90,14 +90,19 @@ export class RootEffects {
         ])
     ));
 
-    setPreviewUrl$ = createEffect(() => this.actions$.pipe(
-        ofType(editorActions.loadBlocksSuccess),
-        switchMap(action => {
-            if (!!action.blocks) {
-                const result = this.urls.getStoreUrl(<string>action.blocks['layout']);
-                return [rootActions.setPreviewUrl({ url: result }), rootActions.reloadPreview()];
-            }
-            return [rootActions.setPreviewUrl({ url: null })];
+    setPreviewUrl = createEffect(() => this.actions$.pipe(
+        ofType(themeActions.updateDraftSuccess, editorActions.loadBlocksSuccess),
+        withLatestFrom(
+            this.store$.select(fromRoot.getPreviewUrl),
+            this.store$.select(fromEditor.getPageNotLoaded),
+            this.store$.select(fromEditor.getPageLayout),
+            this.store$.select(fromTheme.getPresetsNotLoaded),
+            this.store$.select(fromTheme.getDraftUploaded)
+        ),
+        filter(([, url, pageNotLoaded, , presetsNotLoaded, draftUploaded]) => !!AppSettings.storeBaseUrl && !url && !pageNotLoaded && !presetsNotLoaded && draftUploaded),
+        switchMap(([, , , layout]) => {
+            const result = this.urls.getStoreUrl(layout);
+            return [rootActions.setPreviewUrl({ url: result }), rootActions.reloadPreview()];
         })
     ));
 

@@ -102,6 +102,11 @@ export const getPageTitle = createSelector(
     }
 );
 
+export const getPageLayout = createSelector(
+    getPage,
+    page => page != null && page.settings ? <string>page.settings['layout'] : null
+);
+
 export const getCurrentBlockName = createSelector(
     getCurrentSectionItem,
     section => {

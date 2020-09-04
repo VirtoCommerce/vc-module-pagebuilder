@@ -30,6 +30,7 @@ export const clearThemeChanges = createAction('[Theme] Clear Theme Changes');
 export const removePreset = createAction('[Theme] Remove Preset', props<{ preset: string }>());
 export const createPreset = createAction('[Theme] Create Preset', props<{ preset: string }>());
 export const previewPreset = createAction('[Theme] Preview Preset', props<{ preset: string }>());
+export const preUpdateDraft = createAction('[Theme] Pre Update Draft');
 export const updateDraft = createAction('[Theme] Update Draft');
 export const updateDraftSuccess = createAction('[Theme] Update Draft Success');
 export const updateDraftFail = createAction('[Theme] Update Draft Fail', props<{ error: any }>());

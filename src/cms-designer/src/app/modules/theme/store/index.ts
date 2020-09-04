@@ -130,6 +130,21 @@ export const getValuesToSave = createSelector(
     }
 );
 
+export const getAllValuesToSave = createSelector(
+    getThemeFeatureState,
+    getPresets,
+    getEditablePreset,
+    (state, presets, editablePreset) => {
+        let result: any = {}
+        const actualPreset = state.presetUnderPreview ? presets.presets[state.presetUnderPreview] : editablePreset;
+            result = {
+                ...presets,
+                current: { ...actualPreset },
+            };
+        return result;
+    }
+);
+
 export const getPresetsNotLoaded = createSelector(
     getThemeFeatureState,
     state => state.presetsNotLoaded
