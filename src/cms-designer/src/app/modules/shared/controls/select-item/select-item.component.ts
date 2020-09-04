@@ -50,7 +50,6 @@ export class SelectItemComponent extends BaseControlDirective<SelectControlDescr
                     this.groups[x.group].push(x);
                 });
             }
-            this.cdk.detectChanges();
         });
     }
 
