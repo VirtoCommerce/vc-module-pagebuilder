@@ -148,7 +148,7 @@ export class ApiUrlsService {
 
     private combine(...parts: string[]): string {
         const result = parts.reduce((acc, part, index) => {
-            if (part === null || part === '') {
+            if (!part) {
                 return acc;
             }
             if (index === 0) {

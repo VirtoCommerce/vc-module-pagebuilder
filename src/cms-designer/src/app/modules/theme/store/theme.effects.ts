@@ -4,6 +4,7 @@ import { Actions, ofType, createEffect } from '@ngrx/effects';
 import { of } from 'rxjs';
 import {
     map,
+    mapTo,
     catchError,
     withLatestFrom,
     switchMap,
@@ -25,7 +26,7 @@ export class ThemeEffects {
     constructor(private themeService: ThemeService,
         private actions$: Actions,
         private messages: MessageService,
-        private store$: Store<fromTheme.State>) { }
+        private store$: Store) { }
 
     loadDefaultThemes$ = createEffect(() => this.actions$.pipe(
         ofType(themeActions.loadDefaultThemes),
@@ -40,7 +41,12 @@ export class ThemeEffects {
     initLoadingEffectiveThemeValues$ = createEffect(() => this.actions$.pipe(
         ofType(themeActions.loadDefaultThemesSuccess),
         filter(x => AppSettings.defaultThemeName !== AppSettings.themeName),
-        map(() => themeActions.loadEffectiveThemeValues())
+        switchMap(() => [ themeActions.preUpdateDraft(), themeActions.loadEffectiveThemeValues()])
+    ));
+
+    preUpdateDraft$ = createEffect(() => this.actions$.pipe(
+        ofType(themeActions.preUpdateDraft),
+        mapTo(themeActions.updateDraft())
     ));
 
     skipLoadingEffectiveThemeValues$ = createEffect(() => this.actions$.pipe(
@@ -104,7 +110,7 @@ export class ThemeEffects {
     updateDraft$ = createEffect(() => this.actions$.pipe(
         ofType(themeActions.updateDraft),
         withLatestFrom(
-            this.store$.select(fromTheme.getValuesToSave),
+            this.store$.select(fromTheme.getAllValuesToSave),
             this.store$.select(fromTheme.getPresetsNotLoaded)
         ),
         filter(([, , themeNotLoaded]) => !themeNotLoaded),

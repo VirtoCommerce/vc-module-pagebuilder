@@ -18,12 +18,7 @@ export class SelectItemComponent extends BaseControlDirective<SelectControlDescr
     value: any;
     isOpen: boolean;
     get option(): OptionModel {
-        if (!this.value) {
-            return null;
-        } else {
-            const option = this.options.find(x => this.isEqual(x.value, this.value, this.descriptor.equalKey));
-            return option;
-        }
+        return this.options.find(x => this.isEqual(x.value, this.value, this.descriptor.equalKey));
     }
     get title(): string {
         return this.option?.label || this.descriptor.placeholder;
@@ -37,7 +32,7 @@ export class SelectItemComponent extends BaseControlDirective<SelectControlDescr
         this.refreshValue(null, false);
     }
 
-    constructor(private sanitizer: DomSanitizer, private readonly selectItemService: SelectItemService, private cdk: ChangeDetectorRef) {
+    constructor(private sanitizer: DomSanitizer, private selectItemService: SelectItemService) {
         super();
     }
 
