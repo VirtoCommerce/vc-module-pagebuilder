@@ -42,6 +42,9 @@ export class RefreshTokenInterceptor implements HttpInterceptor {
     }
 
     private addTokenToRequest(request: HttpRequest<any>, token: string): HttpRequest<any> {
+        if (this.isRefreshingToken) {
+            return request;
+        }
         return request.clone({ setHeaders: { Authorization: `Bearer ${token}` } });
     }
 
