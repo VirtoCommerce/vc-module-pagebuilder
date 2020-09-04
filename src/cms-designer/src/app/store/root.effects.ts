@@ -24,9 +24,7 @@ export class RootEffects {
     constructor(private actions$: Actions,
         private preview: PreviewService,
         private urls: ApiUrlsService,
-        private rootStore$: Store<fromRoot.State>,
-        private themeStore$: Store<fromTheme.State>,
-        private editorStore$: Store<fromEditor.State>) { }
+        private store$: Store) { }
 
     resetData$ = createEffect(() => this.actions$.pipe(
         ofType(rootActions.resetData),
@@ -47,8 +45,8 @@ export class RootEffects {
     switchToLoadPage$ = createEffect(() => this.actions$.pipe(
         ofType(rootActions.loadData),
         withLatestFrom(
-            this.editorStore$.select(fromEditor.getPage),
-            this.editorStore$.select(fromEditor.getPageNotLoaded)
+            this.store$.select(fromEditor.getPage),
+            this.store$.select(fromEditor.getPageNotLoaded)
         ),
         filter(([, page, pageNotLoaded]) => !page || pageNotLoaded),
         mapTo(editorActions.loadBlocks())
@@ -57,8 +55,8 @@ export class RootEffects {
     switchToLoadBlocks$ = createEffect(() => this.actions$.pipe(
         ofType(rootActions.loadData),
         withLatestFrom(
-            this.editorStore$.select(fromEditor.getBlocksSchema),
-            this.editorStore$.select(fromEditor.getSchemaNotLoaded)
+            this.store$.select(fromEditor.getBlocksSchema),
+            this.store$.select(fromEditor.getSchemaNotLoaded)
         ),
         filter(([, blocksSchema, schemaNotLoaded]) => !blocksSchema || schemaNotLoaded),
         mapTo(editorActions.loadBlocksSchema())
@@ -67,8 +65,8 @@ export class RootEffects {
     switchToLoadThemes$ = createEffect(() => this.actions$.pipe(
         ofType(rootActions.loadData),
         withLatestFrom(
-            this.themeStore$.select(fromTheme.getPresets),
-            this.themeStore$.select(fromTheme.getPresetsNotLoaded)
+            this.store$.select(fromTheme.getPresets),
+            this.store$.select(fromTheme.getPresetsNotLoaded)
         ),
         filter(([, presets, presetsNotLoaded]) => !presets || presetsNotLoaded),
         mapTo(themeActions.loadDefaultThemes())
@@ -77,8 +75,8 @@ export class RootEffects {
     switchToLoadThemeSchema$ = createEffect(() => this.actions$.pipe(
         ofType(rootActions.loadData),
         withLatestFrom(
-            this.themeStore$.select(fromTheme.getSchema),
-            this.themeStore$.select(fromTheme.getSchemaNotLoaded)
+            this.store$.select(fromTheme.getSchema),
+            this.store$.select(fromTheme.getSchemaNotLoaded)
         ),
         filter(([, schema, schemaNotLoaded]) => !schema || schemaNotLoaded),
         mapTo(themeActions.loadSchema())
@@ -92,16 +90,21 @@ export class RootEffects {
         ])
     ));
 
-    setPreviewUrl = createEffect(() => createEffect(() => this.actions$.pipe(
-        ofType(editorActions.loadBlocksSuccess),
-        switchMap(action => {
-            if (!!action.blocks) {
-                const result = this.urls.getStoreUrl(<string>action.blocks['layout']);
-                return [rootActions.setPreviewUrl({ url: result }), rootActions.reloadPreview()];
-            }
-            return [rootActions.setPreviewUrl({ url: null })];
+    setPreviewUrl = createEffect(() => this.actions$.pipe(
+        ofType(themeActions.updateDraftSuccess, editorActions.loadBlocksSuccess),
+        withLatestFrom(
+            this.store$.select(fromRoot.getPreviewUrl),
+            this.store$.select(fromEditor.getPageNotLoaded),
+            this.store$.select(fromEditor.getPageLayout),
+            this.store$.select(fromTheme.getPresetsNotLoaded),
+            this.store$.select(fromTheme.getDraftUploaded)
+        ),
+        filter(([, url, pageNotLoaded, , presetsNotLoaded, draftUploaded]) => !!AppSettings.storeBaseUrl && !url && !pageNotLoaded && !presetsNotLoaded && draftUploaded),
+        switchMap(([, , , layout]) => {
+            const result = this.urls.getStoreUrl(layout);
+            return [rootActions.setPreviewUrl({ url: result }), rootActions.reloadPreview()];
         })
-    )));
+    ));
 
     previewFailed = createEffect(() => this.actions$.pipe(
         ofType(rootActions.previewError),
@@ -113,9 +116,9 @@ export class RootEffects {
     previewFailedByTimeout$ = createEffect(() => this.actions$.pipe(
         ofType(rootActions.checkPreviewLoadedOrError),
         withLatestFrom(
-            this.rootStore$.select(fromRoot.getPrimaryIsLoaded),
-            this.rootStore$.select(fromRoot.getSecondaryIsLoaded),
-            this.rootStore$.select(fromRoot.getPreviewLoading)
+            this.store$.select(fromRoot.getPrimaryIsLoaded),
+            this.store$.select(fromRoot.getSecondaryIsLoaded),
+            this.store$.select(fromRoot.getPreviewLoading)
         ),
         filter(([, primaryLoaded, secondaryLoaded, isLoadingStill]) => (!primaryLoaded && !secondaryLoaded) || isLoadingStill),
         map(() => rootActions.previewError({ error: 'timeoutError' }))
@@ -126,8 +129,8 @@ export class RootEffects {
     uploadPreviewPreset$ = createEffect(() => this.actions$.pipe(
         ofType(themeActions.updateDraftSuccess),
         withLatestFrom(
-            this.rootStore$.select(fromRoot.getSecondaryFrameId),
-            this.rootStore$.select(fromRoot.getSecondaryIsLoaded)
+            this.store$.select(fromRoot.getSecondaryFrameId),
+            this.store$.select(fromRoot.getSecondaryIsLoaded)
         ),
         switchMap(([, frameId, previewReady]) => {
             if (previewReady) {
@@ -145,10 +148,10 @@ export class RootEffects {
     loadEffectiveThemeValues$ = createEffect(() => this.actions$.pipe(
         ofType(themeActions.loadEffectiveThemeValues, rootActions.previewReady),
         withLatestFrom(
-            this.themeStore$.select(fromTheme.getEditablePreset),
-            this.themeStore$.select(fromTheme.getCurrentThemeValuesRequested),
-            this.rootStore$.select(fromRoot.getPrimaryFrameId),
-            this.rootStore$.select(fromRoot.getSecondaryFrameId)
+            this.store$.select(fromTheme.getEditablePreset),
+            this.store$.select(fromTheme.getCurrentThemeValuesRequested),
+            this.store$.select(fromRoot.getPrimaryFrameId),
+            this.store$.select(fromRoot.getSecondaryFrameId)
         ),
         filter(([, editableTheme, themeRequested, primaryFrameId, secondaryFrameId]) =>
             !themeRequested && !!editableTheme && (!!primaryFrameId || !!secondaryFrameId)),
@@ -161,7 +164,7 @@ export class RootEffects {
     loadEffectiveThemeValuesRequested$ = createEffect(() => this.actions$.pipe(
         ofType(themeActions.loadEffectiveThemeValuesRequested),
         switchMap(() => timer(AppSettings.previewTimeout).pipe(
-            withLatestFrom(this.themeStore$.select(fromTheme.getIsEffectiveValuesSkipped)),
+            withLatestFrom(this.store$.select(fromTheme.getIsEffectiveValuesSkipped)),
             filter(([, skipped]) => !skipped),
             map(() => themeActions.loadEffectiveThemeValuesSkippedByTimeout())
         )),
@@ -172,8 +175,8 @@ export class RootEffects {
     sendHoverToPreview$ = createEffect(() => this.actions$.pipe(
         ofType(editorActions.highlightInPreview),
         withLatestFrom(
-            this.rootStore$.select(fromRoot.getPrimaryFrameId),
-            this.rootStore$.select(fromRoot.getPrimaryIsLoaded)
+            this.store$.select(fromRoot.getPrimaryFrameId),
+            this.store$.select(fromRoot.getPrimaryIsLoaded)
         ),
         tap(([action, frameId, previewReady]) => previewReady && this.preview.hover(action.block, frameId))
     ), { dispatch: false });
@@ -181,8 +184,8 @@ export class RootEffects {
     sendPreviewPageItem$ = createEffect(() => this.actions$.pipe(
         ofType(editorActions.previewPageItem),
         withLatestFrom(
-            this.rootStore$.select(fromRoot.getPrimaryFrameId),
-            this.rootStore$.select(fromRoot.getPrimaryIsLoaded)
+            this.store$.select(fromRoot.getPrimaryFrameId),
+            this.store$.select(fromRoot.getPrimaryIsLoaded)
         ),
         tap(([action, frameId, previewReady]) => previewReady && this.preview.preview(action.block, frameId))
     ), { dispatch: false });
@@ -190,8 +193,8 @@ export class RootEffects {
     sendNewBlockToStoreLoaded$ = createEffect(() => this.actions$.pipe(
         ofType(editorActions.addPageItem),
         withLatestFrom(
-            this.rootStore$.select(fromRoot.getPrimaryFrameId),
-            this.rootStore$.select(fromRoot.getPrimaryIsLoaded)
+            this.store$.select(fromRoot.getPrimaryFrameId),
+            this.store$.select(fromRoot.getPrimaryIsLoaded)
         ),
         tap(([action, frameId, previewReady]) => previewReady && this.preview.add(action.block, frameId))
     ), { dispatch: false });
@@ -199,7 +202,7 @@ export class RootEffects {
     scrollPreviewToObject$ = createEffect(() => this.actions$.pipe(
         ofType(editorActions.selectPageItem),
         filter(action => !!action.blockId),
-        withLatestFrom(this.rootStore$.select(fromRoot.getPrimaryFrameId)),
+        withLatestFrom(this.store$.select(fromRoot.getPrimaryFrameId)),
         tap(([action, frameId]) => {
             this.preview.selectBlock(action.blockId, frameId);
         })
@@ -207,7 +210,7 @@ export class RootEffects {
 
     deselectObject$ = createEffect(() => this.actions$.pipe(
         ofType(editorActions.completeEditPageItem),
-        withLatestFrom(this.rootStore$.select(fromRoot.getPrimaryFrameId)),
+        withLatestFrom(this.store$.select(fromRoot.getPrimaryFrameId)),
         tap(([, frameId]) => {
             this.preview.selectBlock(0, frameId);
         })
@@ -216,10 +219,10 @@ export class RootEffects {
     sendUpdatedBlockToStoreLoaded$ = createEffect(() => this.actions$.pipe(
         ofType(editorActions.updateBlockPreview),
         withLatestFrom(
-            this.rootStore$.select(fromRoot.getPrimaryFrameId),
-            this.rootStore$.select(fromRoot.getPrimaryIsLoaded),
-            this.editorStore$.select(fromEditor.getCurrentSectionItem),
-            this.editorStore$.select(fromEditor.getBlocksSchema)
+            this.store$.select(fromRoot.getPrimaryFrameId),
+            this.store$.select(fromRoot.getPrimaryIsLoaded),
+            this.store$.select(fromEditor.getCurrentSectionItem),
+            this.store$.select(fromEditor.getBlocksSchema)
         ),
         filter(([, , previewReady, currentItem, schema]) => previewReady && !schema[currentItem.type].static),
         map(([action, frameId, , currentItem]): [BlockValuesModel, string] => [
@@ -234,7 +237,7 @@ export class RootEffects {
 
     sendBlocksOrderChanged$ = createEffect(() => this.actions$.pipe(
         ofType(editorActions.orderChanged),
-        withLatestFrom(this.rootStore$.select(fromRoot.getPrimaryFrameId)),
+        withLatestFrom(this.store$.select(fromRoot.getPrimaryFrameId)),
         tap(([action, frameId]) =>
             this.preview.changeOrder(action.previousIndex, action.currentIndex, frameId))
     ), { dispatch: false });
@@ -242,15 +245,15 @@ export class RootEffects {
     sendRemoveBlockToStoreLoaded$ = createEffect(() => this.actions$.pipe(
         ofType(editorActions.removePageItem),
         filter(action => action.block.type !== 'settings'),
-        withLatestFrom(this.rootStore$.select(fromRoot.getPrimaryFrameId)),
+        withLatestFrom(this.store$.select(fromRoot.getPrimaryFrameId)),
         tap(([action, frameId]) => this.preview.removeBlock(action.block, frameId))
     ), { dispatch: false });
 
     toggleItemVisibility$ = createEffect(() => this.actions$.pipe(
         ofType(editorActions.toggleItemVisibility),
         withLatestFrom(
-            this.rootStore$.select(fromRoot.getPrimaryFrameId),
-            this.editorStore$.select(fromEditor.getPage)
+            this.store$.select(fromRoot.getPrimaryFrameId),
+            this.store$.select(fromEditor.getPage)
         ),
         tap(([action, frameId, page]) => {
             const block = page.content.find(x => x.id === action.block.id);
@@ -264,7 +267,7 @@ export class RootEffects {
 
     reloadPageInBackground$ = createEffect(() => this.actions$.pipe(
         ofType(editorActions.loadBlocksSuccess),
-        withLatestFrom(this.rootStore$.select(fromRoot.getSecondaryFrameId)),
+        withLatestFrom(this.store$.select(fromRoot.getSecondaryFrameId)),
         switchMap(([, frameId]) => of(rootActions.previewReady({ frameId })))
     ));
 
@@ -278,12 +281,12 @@ export class RootEffects {
     sendPageToStore$ = createEffect(() => this.actions$.pipe(
         ofType(rootActions.previewReady),
         withLatestFrom(
-            this.editorStore$.select(fromEditor.getPageForEdit),
-            this.rootStore$.select(fromRoot.getPrimaryIsLoaded),
-            this.rootStore$.select(fromRoot.getSecondaryIsLoaded),
-            this.rootStore$.select(fromRoot.getSecondaryFrameId),
-            this.themeStore$.select(fromTheme.getDraftUploaded),
-            this.themeStore$.select(fromTheme.getPresetsNotLoaded)
+            this.store$.select(fromEditor.getPageForEdit),
+            this.store$.select(fromRoot.getPrimaryIsLoaded),
+            this.store$.select(fromRoot.getSecondaryIsLoaded),
+            this.store$.select(fromRoot.getSecondaryFrameId),
+            this.store$.select(fromTheme.getDraftUploaded),
+            this.store$.select(fromTheme.getPresetsNotLoaded)
         ),
         filter(([action, page, primaryLoaded, secondaryLoaded, secondaryFrameId, draftUploaded, themeNotLoaded]) =>
             primaryLoaded && secondaryLoaded
@@ -298,8 +301,8 @@ export class RootEffects {
     toggleFrames$ = createEffect(() => this.actions$.pipe(
         ofType(rootActions.toggleFrames),
         withLatestFrom(
-            this.rootStore$.select(fromRoot.getPrimaryFrameId),
-            this.rootStore$.select(fromRoot.getSecondaryFrameId),
+            this.store$.select(fromRoot.getPrimaryFrameId),
+            this.store$.select(fromRoot.getSecondaryFrameId),
         ),
         map(([, primaryFrameId, secondaryFrameId]): [string, string] => [
             secondaryFrameId || primaryFrameId,
@@ -312,8 +315,8 @@ export class RootEffects {
         map((event: MessageEvent) => event.data),
         filter(data => data.type === 'select'),
         withLatestFrom(
-            this.themeStore$.select(fromTheme.getCurrentThemeSchemaItem),
-            this.themeStore$.select(fromTheme.getShowPresetsEditor)
+            this.store$.select(fromTheme.getCurrentThemeSchemaItem),
+            this.store$.select(fromTheme.getShowPresetsEditor)
         ),
         filter(([, schemaItem, showPresets]) => !schemaItem && !showPresets),
         switchMap(([data]) => {
@@ -325,9 +328,9 @@ export class RootEffects {
         map((event: MessageEvent) => event.data),
         filter(data => data.type === 'select'),
         withLatestFrom(
-            this.rootStore$.select(fromRoot.getPrimaryFrameId),
-            this.themeStore$.select(fromTheme.getCurrentThemeSchemaItem),
-            this.themeStore$.select(fromTheme.getShowPresetsEditor)
+            this.store$.select(fromRoot.getPrimaryFrameId),
+            this.store$.select(fromTheme.getCurrentThemeSchemaItem),
+            this.store$.select(fromTheme.getShowPresetsEditor)
         ),
         filter(([, , schemaItem, showPresets]) => !!schemaItem || !!showPresets),
         tap(([, frameId]) => this.preview.selectBlock(0, frameId))
@@ -344,8 +347,8 @@ export class RootEffects {
     receiveSwapFrameMessage$ = createEffect(() => fromEvent(window, 'message').pipe(
         filter((event: MessageEvent) => event.data.type === 'render-complete'),
         withLatestFrom(
-            this.rootStore$.select(fromRoot.getPrimaryFrameId),
-            this.rootStore$.select(fromRoot.getSecondaryFrameId)
+            this.store$.select(fromRoot.getPrimaryFrameId),
+            this.store$.select(fromRoot.getSecondaryFrameId)
         ),
         map(([event, primaryFrameId, secondaryFrameId]): [Window, Window, string, string] => [
             (<HTMLIFrameElement>document.getElementById(primaryFrameId)).contentWindow,
@@ -375,7 +378,7 @@ export class RootEffects {
 
     receiveRefreshFrameMessage$ = createEffect(() => fromEvent(window, 'message').pipe(
         filter((event: MessageEvent) => event.data.type === 'refresh'),
-        withLatestFrom(this.rootStore$.select(fromRoot.getSecondaryFrameId)),
+        withLatestFrom(this.store$.select(fromRoot.getSecondaryFrameId)),
         tap(([, frameId]) => {
             this.preview.reload(frameId);
         })
@@ -388,7 +391,7 @@ export class RootEffects {
 
     sendCloneToPreview$ = createEffect(() => this.actions$.pipe(
         ofType(editorActions.clonePageItem),
-        withLatestFrom(this.rootStore$.select(fromRoot.getPrimaryFrameId)),
+        withLatestFrom(this.store$.select(fromRoot.getPrimaryFrameId)),
         tap(([action, primaryFrameId]) => {
             this.preview.cloneBlock(action.originalBlock.id, action.newBlock.id, primaryFrameId);
         })
