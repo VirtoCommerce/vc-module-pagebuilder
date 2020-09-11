@@ -356,7 +356,6 @@ export class RootEffects {
             primaryFrameId, secondaryFrameId
         ]),
         map(([primary, source, primaryFrameId, secondaryFrameId]) => primary === source ? primaryFrameId : secondaryFrameId),
-        tap(x => console.log('toggle frames', x)),
         switchMap(loadedFrameId => [
             rootActions.toggleFrames({ frameId: loadedFrameId }),
             rootActions.previewLoading({ isLoading: false, msg: 'swap frames' })

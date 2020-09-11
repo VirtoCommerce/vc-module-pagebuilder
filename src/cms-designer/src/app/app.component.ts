@@ -100,11 +100,6 @@ export class AppComponent implements OnInit {
         this.store.dispatch(rootActions.closeEditors());
     }
 
-    // onThemeActionSelected(type: string) {
-    //     // TODO:
-    //     console.log(type);
-    // }
-
     onTabChanged(tabIndex) {
         this.store.dispatch(rootActions.tabIndexChanged({ tabIndex }));
     }
@@ -112,14 +107,6 @@ export class AppComponent implements OnInit {
     onSave() {
         this.store.dispatch(rootActions.saveData());
     }
-
-    // undo() {
-    //     console.log('undo');
-    // }
-
-    // redo() {
-    //     console.log('redo');
-    // }
 
     // editor tab events
 

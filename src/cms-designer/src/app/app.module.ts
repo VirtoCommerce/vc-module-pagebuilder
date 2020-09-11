@@ -37,6 +37,8 @@ export function debug(actionReducer: ActionReducer<any>): ActionReducer<any> {
     };
 }
 
+import * as editorActions from '@editor/store/editor.actions';
+
 export const metaReducers: MetaReducer<any>[] = environment.production ? [debug] : [];
 
 @NgModule({
@@ -54,7 +56,10 @@ export const metaReducers: MetaReducer<any>[] = environment.production ? [debug]
         StoreDevtoolsModule.instrument({
             name: 'CMS',
             maxAge: 25,
-            logOnly: environment.production
+            logOnly: environment.production,
+            actionsBlocklist: [
+                editorActions.highlightInPreview.type
+            ]
         }),
         EffectsModule.forRoot([RootEffects, ErrorsEffects]),
         BsDropdownModule.forRoot({}),
@@ -87,14 +92,6 @@ export const metaReducers: MetaReducer<any>[] = environment.production ? [debug]
                 return new PreviewService();
             },
             deps: []
-        },
-        {
-            provide: APP_BASE_HREF,
-            useFactory: (windowRef: WindowRef) => {
-                console.log(windowRef.nativeWindow.location);
-                console.log(AppSettings);
-            },
-            deps: [WindowRef]
         }
     ],
     bootstrap: [AppComponent]

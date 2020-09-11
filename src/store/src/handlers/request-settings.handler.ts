@@ -11,7 +11,6 @@ export class RequestSettingsHandler extends BaseHandler {
             const settings = JSON.parse(response);
             ServiceLocator.getMessages().settings(settings);
         }).catch(error => {
-            console.log(error);
             ServiceLocator.getMessages().settings({});
         });
     }

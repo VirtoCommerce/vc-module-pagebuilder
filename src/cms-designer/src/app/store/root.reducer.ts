@@ -49,7 +49,6 @@ const rootReducers = createReducer(
         const newValues: Partial<RootState> = {};
         newValues.primaryFrameId = state.secondaryFrameId;
         newValues.secondaryFrameId = state.primaryFrameId;
-        console.log('toggle', newValues.primaryFrameId, 'is primary now');
         return {...state, ...newValues};
     }),
     on(Actions.tabIndexChanged, (state, {tabIndex}) => ({ ...state, activeTabIndex: tabIndex })),
