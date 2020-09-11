@@ -222,13 +222,26 @@ export class AppComponent implements OnInit {
         this.store.dispatch(themeActions.updateTheme({ values }));
     }
 
-    displayDebugInfo() {
-        this.dialog.open(DebugInfoPopupComponent, {
-            width: '680px',
-            height: '370px',
-            data: {
-                data: JSON.stringify(debugInfo)
-            }
-        });
+    displayDebugInfo(showDialog: boolean) {
+        if (showDialog) {
+            this.dialog.open(DebugInfoPopupComponent, {
+                width: '680px',
+                height: '370px',
+                data: {
+                    data: JSON.stringify(debugInfo)
+                }
+            });
+        } else {
+            var element = document.createElement('a');
+            element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(JSON.stringify(debugInfo)));
+            element.setAttribute('download', 'page-builder.debug.log');
+
+            element.style.display = 'none';
+            document.body.appendChild(element);
+
+            element.click();
+
+            document.body.removeChild(element);
+        }
     }
 }
