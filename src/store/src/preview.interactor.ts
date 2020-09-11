@@ -26,6 +26,12 @@ export class PreviewInteractor {
         this.dnd.onDragFinished = () => {
             this.inactive = false;
         }
+
+        setInterval(() => {
+            if (this.selectedViewModel) {
+                this.select(this.selectedViewModel);
+            }
+        }, 400);
     }
 
     hover(vm: BlockViewModel) {
