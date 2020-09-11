@@ -96,9 +96,10 @@ export class ThemeEffects {
         ofType(themeActions.saveTheme),
         withLatestFrom(
             this.store$.select(fromTheme.getValuesToSave),
-            this.store$.select(fromTheme.getPresetsNotLoaded)
+            this.store$.select(fromTheme.getPresetsNotLoaded),
+            this.store$.select(fromTheme.getIsDirty)
         ),
-        filter(([, , themeNotLoaded]) => !themeNotLoaded),
+        filter(([, , themeNotLoaded, dirty]) => !themeNotLoaded && dirty),
         switchMap(([, values]) =>
             this.themeService.uploadPresets(values).pipe(
                 map(() => themeActions.saveThemeSuccess({ values })),

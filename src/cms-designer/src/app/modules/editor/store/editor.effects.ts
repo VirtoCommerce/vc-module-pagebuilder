@@ -109,6 +109,8 @@ export class EditorEffects {
 
     saveBlocks$ = createEffect(() => this.actions$.pipe(
         ofType(editorActions.saveBlocks),
+        withLatestFrom(this.store$.select(fromEditor.getIsDirty)),
+        filter(([, dirty]) => dirty),
         map(() => editorActions.reloadBlocks())
     ));
 
