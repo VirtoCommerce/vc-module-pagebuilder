@@ -17,6 +17,9 @@ import * as themeActions from '@themes/store/theme.actions';
 import { BlockValuesModel, BlockSchema } from '@shared/models';
 import { map } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
+import { MatDialog } from '@angular/material/dialog';
+import { DebugInfoPopupComponent } from '@shared/components';
+import { debugInfo } from './debug';
 
 @Component({
     selector: 'app-root',
@@ -78,7 +81,8 @@ export class AppComponent implements OnInit {
     hasRedo$ = of(false);
 
     constructor(private store: Store<fromRoot.State>,
-        private sanitizer: DomSanitizer) { }
+        private sanitizer: DomSanitizer,
+        private dialog: MatDialog) { }
 
     ngOnInit(): void {
         this.store.dispatch(rootActions.loadData());
@@ -216,5 +220,15 @@ export class AppComponent implements OnInit {
 
     liveUpdateTheme(values: { [key: string]: string | number | boolean }) {
         this.store.dispatch(themeActions.updateTheme({ values }));
+    }
+
+    displayDebugInfo() {
+        this.dialog.open(DebugInfoPopupComponent, {
+            width: '680px',
+            height: '370px',
+            data: {
+                data: JSON.stringify(debugInfo)
+            }
+        });
     }
 }

@@ -1,7 +1,7 @@
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { NgModule, APP_INITIALIZER } from '@angular/core';
-import { StoreModule, ActionReducer, MetaReducer } from '@ngrx/store';
+import { StoreModule } from '@ngrx/store';
 import { StoreDevtoolsModule } from '@ngrx/store-devtools';
 import { EffectsModule } from '@ngrx/effects';
 import { BsDropdownModule } from "ngx-bootstrap/dropdown";
@@ -24,22 +24,11 @@ import { RootEffects } from './store/root.effects';
 import { reducer } from './store/root.reducer';
 import { environment } from '../environments/environment';
 import { HTTP_INTERCEPTORS, HttpClient } from '@angular/common/http';
-import { APP_BASE_HREF } from '@angular/common';
-import { ApiUrlsService, PreviewService, WindowRef } from '@app/services';
+import { ApiUrlsService, PreviewService } from '@app/services';
 import { LoadingComponent } from './components/loading/loading.component';
 import { RefreshTokenInterceptor } from './services/refresh-token.interceptor';
-import { AppSettings } from './services/app.settings';
 
-export function debug(actionReducer: ActionReducer<any>): ActionReducer<any> {
-    return function (state, action) {
-        console.log(state, action);
-        return actionReducer(state, action);
-    };
-}
-
-import * as editorActions from '@editor/store/editor.actions';
-
-export const metaReducers: MetaReducer<any>[] = environment.production ? [debug] : [];
+import { metaReducers, actionsToIgonre } from './debug';
 
 @NgModule({
     declarations: [
@@ -54,11 +43,11 @@ export const metaReducers: MetaReducer<any>[] = environment.production ? [debug]
             root: reducer
         }, { metaReducers }),
         StoreDevtoolsModule.instrument({
-            name: 'CMS',
+            name: 'PageBuilder',
             maxAge: 25,
             logOnly: environment.production,
             actionsBlocklist: [
-                editorActions.highlightInPreview.type
+                ...actionsToIgonre
             ]
         }),
         EffectsModule.forRoot([RootEffects, ErrorsEffects]),

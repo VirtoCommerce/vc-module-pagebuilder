@@ -11,20 +11,19 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatMomentDateModule, MAT_MOMENT_DATE_ADAPTER_OPTIONS } from '@angular/material-moment-adapter';
 
-import { COMPONENTS } from './components';
+import { COMPONENTS, POPUPS } from './components';
 import { CONTROLS } from './controls';
 
 import { LAYOUT_COMPONENTS } from './layouts';
-import { PastePopupComponent } from './components/paste-popup/paste-popup.component';
 
 @NgModule({
     declarations: [
         ...COMPONENTS,
         ...CONTROLS,
-
+        ...POPUPS,
         ...LAYOUT_COMPONENTS
     ],
-    entryComponents: [...CONTROLS, PastePopupComponent],
+    entryComponents: [...CONTROLS, ...POPUPS],
     imports: [
         BrowserModule,
         BrowserAnimationsModule,
