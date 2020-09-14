@@ -1,8 +1,23 @@
 {
+    "defaultThemeName": "default",
+    "themeName": null,
+    "previewTimeout": 12000,
+    "useGlobalAssets": true,
+
+    "version": "",
+
+    "storeId": null,
+    "path": null,
+    "contentType": null,
+    "filename": null,
+    "uploadPath": null,
+
     "storeBaseUrl": "/",
     "storePreviewPath": "/",
     "contentCssPath": "/themes/assets/style.min.css",
     "baseUrl": "/",
     "platformUrl": "/",
-    "tokenUrl": "/"
+    "tokenUrl": "/",
+    "moduleLocation": "/Modules/$(VirtoCommerce.PageBuilderModule)/Content/builder/"
+
 }

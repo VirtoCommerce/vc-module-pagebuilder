@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { tap, map } from 'rxjs/operators';
-import { PlatformService, ApiUrlsService } from '@app/services';
+import { PlatformService, ApiUrlsService, AppSettings } from '@app/services';
 import { BlocksSchema, BlockSchema, SharedBlockSchema, ControlDescriptor } from '@shared/models';
 
 @Injectable({
@@ -16,8 +16,8 @@ export class BlocksService {
                 const shared = <SharedBlockSchema>schema.shared;
                 Object.keys(schema).forEach(key => {
                     const contentType = schema[key].contentType;
-                    if (!contentType || (typeof contentType === 'string' && contentType === this.urls.params.contentType) ||
-                        (Array.isArray(contentType) && (<string[]>contentType).some(x => x === this.urls.params.contentType))) {
+                    if (!contentType || (typeof contentType === 'string' && contentType === AppSettings.contentType) ||
+                        (Array.isArray(contentType) && (<string[]>contentType).some(x => x === AppSettings.contentType))) {
                         const currentBlock = schema[key];
                         currentBlock.type = key;
                         if (!!shared) {

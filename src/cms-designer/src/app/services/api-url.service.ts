@@ -1,10 +1,8 @@
 import { Injectable } from '@angular/core';
 import { CookieService } from 'ngx-cookie-service';
 
-import { PageBuilderContext } from '@shared/models';
 import { AppSettings } from './app.settings';
 import { WindowRef } from './window-ref';
-import { environment } from 'src/environments/environment';
 import { generateUniqueString } from './utils';
 
 @Injectable({
@@ -13,28 +11,27 @@ import { generateUniqueString } from './utils';
 export class ApiUrlsService {
 
     private readonly SESSION_ID = 'sessionId';
-    private _params: PageBuilderContext = null;
 
     constructor(private cookies: CookieService, private windowRef: WindowRef) { }
 
     generateSettingsUrl(): string {
-        const url = this.combine(this.params.platformUrl, '/api/platform/settings/modules/VirtoCommerce.PageBuilderModule');
+        const url = this.combine(AppSettings.platformUrl, '/api/platform/settings/modules/VirtoCommerce.PageBuilderModule');
         return url;
     }
 
     generateModulesUrl(): string {
-        const url = this.combine(this.params.platformUrl, '/api/platform/modules');
+        const url = this.combine(AppSettings.platformUrl, '/api/platform/modules');
         return url;
     }
 
     generateStoreSettingsUrl(): string {
-        const url = this.combine(this.params.platformUrl, '/api/stores/', this.params.storeId);
+        const url = this.combine(AppSettings.platformUrl, '/api/stores/', AppSettings.storeId);
         return url;
     }
 
     generateDownloadUrl(contentType: string, filepath: string): string {
-        const path = encodeURIComponent(filepath || this.params.path);
-        const url = this.combine(this.params.platformUrl, '/api/content/', contentType || this.params.contentType, this.params.storeId)
+        const path = encodeURIComponent(filepath || AppSettings.path);
+        const url = this.combine(AppSettings.platformUrl, '/api/content/', contentType || AppSettings.contentType, AppSettings.storeId)
             + `?relativeUrl=${path}`;
         return url;
     }
@@ -50,15 +47,15 @@ export class ApiUrlsService {
     generateUploadAssetUrl(name: string): string {
         const assetEndpoint = AppSettings.useGlobalAssets
             ? '/api/platform/assets' // url for cdn, upload via platform endpoint
-            : `api/content/Pages/${this.params.storeId}`; // url to pages storage, upload via content module endpoint
-        const url = this.combine(this.params.platformUrl, assetEndpoint) +
-                `?folderUrl=/assets/${encodeURIComponent(this.params.contentType)}&name=${name}`;
+            : `api/content/Pages/${AppSettings.storeId}`; // url to pages storage, upload via content module endpoint
+        const url = this.combine(AppSettings.platformUrl, assetEndpoint) +
+            `?folderUrl=/assets/${encodeURIComponent(AppSettings.contentType)}&name=${name}`;
         return url;
     }
 
     generateUploadUrl(contentType: string = null, pathToUpload: string = null): string {
-        const path = encodeURIComponent(pathToUpload || this.params.uploadPath);
-        const url = this.combine(this.params.platformUrl, '/api/content/', contentType || this.params.contentType, this.params.storeId)
+        const path = encodeURIComponent(pathToUpload || AppSettings.uploadPath);
+        const url = this.combine(AppSettings.platformUrl, '/api/content/', contentType || AppSettings.contentType, AppSettings.storeId)
             + `?folderUrl=${path}`;
         return url;
     }
@@ -74,14 +71,14 @@ export class ApiUrlsService {
     }
 
     getAssetsRelativeUrl(filename: string): string {
-        return this.combine('/assets/', this.params.contentType, filename);
+        return this.combine('/assets/', AppSettings.contentType, filename);
     }
 
     getStoreUrl(layout: string): string {
         // preview_mode used for key in preview theme
         // layout for choose base layout
         // ep is endpoint for platform
-        const query = `?preview_mode=${this.getCurrentSessionId()}${!!layout ? '&layout=' + layout : ''}&ep=${this.params.platformUrl}`;
+        const query = `?preview_mode=${this.getCurrentSessionId()}${!!layout ? '&layout=' + layout : ''}&ep=${AppSettings.platformUrl}`;
         const url = this.combine(AppSettings.storeBaseUrl, AppSettings.storePreviewPath) + query;
         return url;
     }
@@ -94,43 +91,26 @@ export class ApiUrlsService {
     }
 
     chooseFilename(givenFilename: string): string {
-        return givenFilename || this.params.filename;
+        return givenFilename || AppSettings.filename;
     }
 
     getStoresEndPoint(): string {
         // /admin/api/stores/{Electronics}
-        const url = this.combine(this.params.platformUrl, '/api/stores/', this.params.storeId);
+        const url = this.combine(AppSettings.platformUrl, '/api/stores/', AppSettings.storeId);
         return url;
     }
 
     getTokenUrl(): string {
-        const url = this.combine(this.params.platformUrl, AppSettings.tokenUrl);
+        const url = this.combine(AppSettings.platformUrl, AppSettings.tokenUrl);
         return url;
     }
 
-    get params(): PageBuilderContext {
-        if (!this._params) {
-            const win = this.windowRef.nativeWindow;
-            const urlParams = new URLSearchParams(win.location.search);
-
-            this._params = {
-                storeId: urlParams.get('storeId'),
-                path: urlParams.get('path'),
-                contentType: urlParams.get('contentType'),
-                platformUrl: urlParams.get('platform') || this.getPlatformUrl()
-            };
-            const index = this._params.path.lastIndexOf('/');
-            this._params.filename = index !== -1 ? this._params.path.substr(index + 1) : this._params.path;
-            this._params.uploadPath = index === -1 ? '' : this._params.path.substr(0, index);
-            if (!this._params.platformUrl) {
-                this._params.platformUrl = this.windowRef.nativeWindow.location.origin;
-            }
-        }
-        return this._params;
+    getLocalConfigUrl(): string {
+        return 'data/settings.json';
     }
 
     generateFullPlatformUrl(relativeUrl: string): string {
-        const url = this.combine(this.params.platformUrl, relativeUrl);
+        const url = this.combine(AppSettings.platformUrl, relativeUrl);
         return url;
     }
 
@@ -140,11 +120,7 @@ export class ApiUrlsService {
         return result;
     }
 
-    private getPlatformUrl(): string {
-        const url = this.windowRef.nativeWindow.location.href;
-        const result = url.substr(0, url.indexOf(environment.moduleLocation));
-        return result;
-    }
+
 
     private combine(...parts: string[]): string {
         const result = parts.reduce((acc, part, index) => {

@@ -1,6 +1,5 @@
 import { Component, OnInit } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
-import { Subscription, of } from 'rxjs';
 import { Store } from '@ngrx/store';
 
 import { CdkDragSortEvent } from '@angular/cdk/drag-drop';
@@ -14,12 +13,13 @@ import * as editorActions from '@editor/store/editor.actions';
 import * as fromTheme from '@themes/store';
 import * as themeActions from '@themes/store/theme.actions';
 
+import { AppSettings } from '@app/services';
 import { BlockValuesModel, BlockSchema } from '@shared/models';
 import { map } from 'rxjs/operators';
-import { environment } from 'src/environments/environment';
 import { MatDialog } from '@angular/material/dialog';
 import { DebugInfoPopupComponent } from '@shared/components';
 import { debugInfo } from './debug';
+import { of } from 'rxjs';
 
 @Component({
     selector: 'app-root',
@@ -36,7 +36,7 @@ export class AppComponent implements OnInit {
         { title: 'Edit navigation', icon: 'nav', type: 'nav' }
     ];
 
-    version = environment.version;
+    version = AppSettings.version;
 
     storeUrl$ = this.store.select(fromRoot.getPreviewUrl).pipe(
         map(x => !!x ? this.sanitizer.bypassSecurityTrustResourceUrl(x) : null)
@@ -223,17 +223,21 @@ export class AppComponent implements OnInit {
     }
 
     displayDebugInfo(showDialog: boolean) {
+        const info = {
+            settings: AppSettings,
+            states: debugInfo
+        };
         if (showDialog) {
             this.dialog.open(DebugInfoPopupComponent, {
                 width: '680px',
                 height: '370px',
                 data: {
-                    data: JSON.stringify(debugInfo)
+                    data: JSON.stringify(info)
                 }
             });
         } else {
             var element = document.createElement('a');
-            element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(JSON.stringify(debugInfo)));
+            element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(JSON.stringify(info)));
             element.setAttribute('download', 'page-builder.debug.log');
 
             element.style.display = 'none';

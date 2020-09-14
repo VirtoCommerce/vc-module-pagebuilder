@@ -8,6 +8,16 @@ export interface EnvironmentSettings {
     tokenUrl: string;
     previewTimeout: number;
     useGlobalAssets: boolean;
+
+    moduleLocation: string;
+    version: string;
+
+    storeId: string;
+    path: string;
+    contentType: string;
+    filename?: string;
+    uploadPath?: string;
+    platformUrl?: string;
 }
 
 export interface PlatformSetting {

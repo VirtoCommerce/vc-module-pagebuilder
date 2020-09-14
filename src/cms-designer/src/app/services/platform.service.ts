@@ -1,3 +1,4 @@
+import { WindowRef } from './window-ref';
 import { ModuleSettings } from './../models/environment.settings';
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
@@ -6,10 +7,9 @@ import { tap, map, catchError } from 'rxjs/operators';
 import { ApiUrlsService } from './api-url.service';
 import { PresetsModel } from '@themes/models';
 import { BlockValuesModel, BlocksSchema, BlockSchema, ValueType } from '@shared/models';
-import { PlatformSetting, StoreSettings } from '@app/models';
+import { PlatformSetting, StoreSettings, EnvironmentSettings } from '@app/models';
 
 import { AppSettings } from './app.settings';
-import { environment } from 'src/environments/environment';
 
 enum ContentType {
     themes = 'themes'
@@ -20,7 +20,7 @@ enum ContentType {
 })
 export class PlatformService {
 
-    constructor(private http: HttpClient, private urls: ApiUrlsService) { }
+    constructor(private http: HttpClient, private urls: ApiUrlsService, private windowRef: WindowRef) { }
 
     downloadSettingsData(): Observable<PresetsModel> {
         return this.tryDownloadFromTheme('/config/settings_data.json');
@@ -57,13 +57,25 @@ export class PlatformService {
     }
 
     initSettings(): Promise<any> {
-        const parameters = {};
-        parameters['StorePreviewPath'] = 'storePreviewPath';
-        parameters['TokenUrl'] = 'tokenUrl';
-        parameters['StoreUrl'] = 'storeBaseUrl';
-        parameters['UseGlobalAssets'] = 'useGlobalAssets';
-        return combineLatest([this.moduleSettings(), this.storeSettings(), this.moduleVersion()]).pipe(
-            tap(([moduleSettings, storeSettings, version]) => {
+        return combineLatest([this.loadModuleConfig(), this.moduleSettings(), this.storeSettings(), this.moduleVersion()]).pipe(
+            tap(([appSettings, moduleSettings, storeSettings, version]) => {
+
+                const win = this.windowRef.nativeWindow;
+                const urlParams = new URLSearchParams(win.location.search);
+        
+                Object.assign(AppSettings, appSettings);
+
+                AppSettings.storeId = urlParams.get('storeId');
+                AppSettings.path = urlParams.get('path'),
+                AppSettings.contentType = urlParams.get('contentType'),
+                AppSettings.platformUrl = urlParams.get('platform') || this.getPlatformUrl()
+                const index = AppSettings.path.lastIndexOf('/');
+                AppSettings.filename = index !== -1 ? AppSettings.path.substr(index + 1) : AppSettings.path;
+                AppSettings.uploadPath = index === -1 ? '' : AppSettings.path.substr(0, index);
+                if (!AppSettings.platformUrl) {
+                    AppSettings.platformUrl = this.windowRef.nativeWindow.location.origin;
+                }
+
                 moduleSettings.forEach(x => {
                     const key = x.name.replace('VirtoCommerce.PageBuilderModule.General.', '');
                     let value: any = x.value || x.defaultValue;
@@ -75,15 +87,26 @@ export class PlatformService {
                             value = value ? parseInt(value.toString()) : 0;
                             break;
                     }
-                    AppSettings[parameters[key]] = value;
+                    AppSettings[`${key[0].toLowerCase()}${key.substring(1)}`] = value;
                 });
                 if (!AppSettings.storeBaseUrl) {
                     AppSettings.storeBaseUrl = storeSettings.secureUrl || storeSettings.url;
                 }
                 AppSettings.themeName = this.getThemeName(storeSettings);
-                environment.version = version;
+                AppSettings.version = version;
             })
         ).toPromise();
+    }
+
+    private loadModuleConfig(): Observable<EnvironmentSettings> {
+        const url = this.urls.getLocalConfigUrl();
+        return this.http.get<EnvironmentSettings>(url);
+    }
+
+    private getPlatformUrl(): string {
+        const url = this.windowRef.nativeWindow.location.href;
+        const result = url.substr(0, url.indexOf(AppSettings.moduleLocation));
+        return result;
     }
 
     private tryDownloadFromTheme<T>(path: string): Observable<T> {

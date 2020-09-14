@@ -14,8 +14,6 @@ import { ThemeModule } from '@themes/theme.module';
 
 import { AppComponent } from './app.component';
 import { COMPONENTS } from './components';
-// import { PreviewComponent } from './components/preview/preview.component';
-// import { ToolbarComponent } from './components/toolbar/toolbar.component';
 
 import { PlatformService } from 'src/app/services/platform.service';
 
@@ -23,8 +21,7 @@ import { ErrorsEffects } from './store/errors.effects';
 import { RootEffects } from './store/root.effects';
 import { reducer } from './store/root.reducer';
 import { environment } from '../environments/environment';
-import { HTTP_INTERCEPTORS, HttpClient } from '@angular/common/http';
-import { ApiUrlsService, PreviewService } from '@app/services';
+import { HTTP_INTERCEPTORS } from '@angular/common/http';
 import { LoadingComponent } from './components/loading/loading.component';
 import { RefreshTokenInterceptor } from './services/refresh-token.interceptor';
 
@@ -59,28 +56,16 @@ import { metaReducers, actionsToIgonre } from './debug';
     ],
     providers: [
         CookieService,
-        // { provide: HTTP_INTERCEPTORS, useClass: AppHttpInterceptor, multi: true },
-        { provide: HTTP_INTERCEPTORS, useClass: RefreshTokenInterceptor, multi: true },
+        {
+            provide: HTTP_INTERCEPTORS,
+            useClass: RefreshTokenInterceptor, multi: true
+        },
         {
             provide: APP_INITIALIZER,
             useFactory: (platform: PlatformService) =>
                 () => platform.initSettings(),
             deps: [PlatformService],
             multi: true
-        },
-        {
-            provide: PlatformService,
-            useFactory: (http: HttpClient, urls: ApiUrlsService) => {
-                return new PlatformService(http, urls);
-            },
-            deps: [HttpClient, ApiUrlsService]
-        },
-        {
-            provide: PreviewService,
-            useFactory: () => {
-                return new PreviewService();
-            },
-            deps: []
         }
     ],
     bootstrap: [AppComponent]
