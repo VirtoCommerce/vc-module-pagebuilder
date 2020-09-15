@@ -1,13 +1,17 @@
-* add possibility to download state to debug
-* add to ignore hover events
+* <del>add to ignore hover events</del>
 * display message about wrong files formats
-* pages for preview theme changes
-* diagnostic tools to run
-* separate page builder and theme customize
+* add possibility to download state to debug
 * save only changed data
+* designer preview script calculate wrong block height
+
 * errors in blocks with forms
+* redirect to login
+
+* diagnostic tools to run
+
+* pages for preview theme changes
+* separate page builder and theme customize
 * object editor
 * layouts
 * group properties in page editor
-* designer preview script calculate wrong block height
-* redirect to login
+* data sources for selects

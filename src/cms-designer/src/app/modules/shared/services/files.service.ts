@@ -10,7 +10,7 @@ import { AppSettings } from '@app/services';
 })
 export class FilesService {
 
-    constructor(private http: HttpClient, private urls: ApiUrlsService) { }
+    constructor(private http: HttpClient, private urls: ApiUrlsService, private appSettings: AppSettings) { }
 
     uploadFile(file: File, name: string): Observable<string> {
         const safeName = this.urls.generateUniqueSafeFileName(name);
@@ -18,7 +18,7 @@ export class FilesService {
         const form = new FormData();
         form.append('uploadedFile', file, safeName);
         return this.http.post<FileDescriptor[]>(url, form).pipe(
-            map(x => AppSettings.useGlobalAssets ? x[0].url : this.urls.getAssetsRelativeUrl(safeName))
+            map(x => this.appSettings.useGlobalAssets ? x[0].url : this.urls.getAssetsRelativeUrl(safeName))
         );
     }
 

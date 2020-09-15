@@ -22,7 +22,7 @@ export class PresetsEditorComponent implements OnInit {
     savingPreset = false;
     newPresetName = 'Preset name';
 
-    constructor(private fb: FormBuilder) { }
+    constructor(private fb: FormBuilder, private appSettings: AppSettings) { }
 
     ngOnInit() {
         this.form = this.fb.group({
@@ -36,7 +36,7 @@ export class PresetsEditorComponent implements OnInit {
         if (!!result) {
             return result;
         }
-        return `url(${AppSettings.storeBaseUrl}themes/assets/thumb_${key.replace(' ', '_')}.jpg)`;
+        return `url(${this.appSettings.storeBaseUrl}themes/assets/thumb_${key.replace(' ', '_')}.jpg)`;
     }
 
     selectPreset(name: string) {

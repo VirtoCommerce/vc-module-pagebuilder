@@ -26,6 +26,7 @@ export class ThemeEffects {
     constructor(private themeService: ThemeService,
         private actions$: Actions,
         private messages: MessageService,
+        private appSettings: AppSettings,
         private store$: Store) { }
 
     loadDefaultThemes$ = createEffect(() => this.actions$.pipe(
@@ -40,7 +41,7 @@ export class ThemeEffects {
 
     initLoadingEffectiveThemeValues$ = createEffect(() => this.actions$.pipe(
         ofType(themeActions.loadDefaultThemesSuccess),
-        filter(x => AppSettings.defaultThemeName !== AppSettings.themeName),
+        filter(x => this.appSettings.defaultThemeName !== this.appSettings.themeName),
         switchMap(() => [ themeActions.preUpdateDraft(), themeActions.loadEffectiveThemeValues()])
     ));
 
@@ -51,7 +52,7 @@ export class ThemeEffects {
 
     skipLoadingEffectiveThemeValues$ = createEffect(() => this.actions$.pipe(
         ofType(themeActions.loadDefaultThemesSuccess),
-        filter(x => AppSettings.defaultThemeName === AppSettings.themeName),
+        filter(x => this.appSettings.defaultThemeName === this.appSettings.themeName),
         map(() => themeActions.loadEffectiveThemeValuesSkipped())
     ));
 
@@ -95,7 +96,7 @@ export class ThemeEffects {
     uploadPresets$ = createEffect(() => this.actions$.pipe(
         ofType(themeActions.saveTheme),
         withLatestFrom(
-            this.store$.select(fromTheme.getValuesToSave),
+            this.store$.select(fromTheme.getValuesToSave(this.appSettings.defaultThemeName !== this.appSettings.themeName)),
             this.store$.select(fromTheme.getPresetsNotLoaded),
             this.store$.select(fromTheme.getIsDirty)
         ),

@@ -8,7 +8,7 @@ import { BlocksSchema, BlockSchema, SharedBlockSchema, ControlDescriptor } from 
     providedIn: 'root'
 })
 export class BlocksService {
-    constructor(private platform: PlatformService, private urls: ApiUrlsService) { }
+    constructor(private platform: PlatformService, private appSettings: AppSettings) { }
 
     load(): Observable<BlocksSchema> {
         return this.platform.downloadBlocksSchema().pipe(
@@ -16,8 +16,8 @@ export class BlocksService {
                 const shared = <SharedBlockSchema>schema.shared;
                 Object.keys(schema).forEach(key => {
                     const contentType = schema[key].contentType;
-                    if (!contentType || (typeof contentType === 'string' && contentType === AppSettings.contentType) ||
-                        (Array.isArray(contentType) && (<string[]>contentType).some(x => x === AppSettings.contentType))) {
+                    if (!contentType || (typeof contentType === 'string' && contentType === this.appSettings.contentType) ||
+                        (Array.isArray(contentType) && (<string[]>contentType).some(x => x === this.appSettings.contentType))) {
                         const currentBlock = schema[key];
                         currentBlock.type = key;
                         if (!!shared) {

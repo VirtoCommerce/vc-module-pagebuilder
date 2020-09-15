@@ -36,7 +36,7 @@ export class AppComponent implements OnInit {
         { title: 'Edit navigation', icon: 'nav', type: 'nav' }
     ];
 
-    version = AppSettings.version;
+    version = this.appSettings.version;
 
     storeUrl$ = this.store.select(fromRoot.getPreviewUrl).pipe(
         map(x => !!x ? this.sanitizer.bypassSecurityTrustResourceUrl(x) : null)
@@ -82,6 +82,7 @@ export class AppComponent implements OnInit {
 
     constructor(private store: Store<fromRoot.State>,
         private sanitizer: DomSanitizer,
+        private appSettings: AppSettings,
         private dialog: MatDialog) { }
 
     ngOnInit(): void {

@@ -23,10 +23,23 @@ export class SelectItemService {
         if (!this.cache[cacheKey]) {
             const { url, params, method } = descriptor.request;
             const { group, label, value } = descriptor.request;
-            return this.platform.loadData<{results: any[]}>(url, params, method).pipe(
-                map(({ results }) => results.map<OptionModel>(x => <OptionModel>{
+            return this.platform.loadData<any>(url, params, method).pipe(
+                map(results => {
+                    if (!!descriptor.request.resultField) {
+                        return results[descriptor.request.resultField];
+                    }
+                    if (Array.isArray(results)) {
+                        return results;
+                    }
+                    const res = results['results'];
+                    if (res && Array.isArray(res)) {
+                        return res;
+                    }
+                    return results;
+                }),
+                map((results: any[]) => results.map<OptionModel>(x => <OptionModel>{
                         label: x[label],
-                        group: x[group],
+                        group: group ? x[group] : null,
                         value: this.getValue(x, value)
                     })
                 ),

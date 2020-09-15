@@ -20,7 +20,7 @@ enum ContentType {
 })
 export class PlatformService {
 
-    constructor(private http: HttpClient, private urls: ApiUrlsService, private windowRef: WindowRef) { }
+    constructor(private http: HttpClient, private urls: ApiUrlsService, private windowRef: WindowRef, private appSettings: AppSettings) { }
 
     downloadSettingsData(): Observable<PresetsModel> {
         return this.tryDownloadFromTheme('/config/settings_data.json');
@@ -31,12 +31,12 @@ export class PlatformService {
     }
 
     uploadPreset(model: { [key: string]: ValueType }): Observable<any> {
-        return this.uploadModel<{ [key: string]: ValueType }>(model, ContentType.themes, `/${AppSettings.themeName}/config`, 'settings_data.json');
+        return this.uploadModel<{ [key: string]: ValueType }>(model, ContentType.themes, `/${this.appSettings.themeName}/config`, 'settings_data.json');
     }
 
     uploadDraftPreset(model: { [key: string]: ValueType }): Observable<any> {
         return this.uploadModel<{ [key: string]: ValueType }>(model, ContentType.themes,
-            `/${AppSettings.themeName}/config/drafts`, this.generateDraftPresetName());
+            `/${this.appSettings.themeName}/config/drafts`, this.generateDraftPresetName());
     }
 
     downloadPage(): Observable<BlockValuesModel[]> {
@@ -57,25 +57,19 @@ export class PlatformService {
     }
 
     initSettings(): Promise<any> {
+        const win = this.windowRef.nativeWindow;
+        const urlParams = new URLSearchParams(win.location.search);
+        this.appSettings.storeId = urlParams.get('storeId');
+        this.appSettings.path = urlParams.get('path'),
+        this.appSettings.contentType = urlParams.get('contentType'),
+        this.appSettings.platformUrl = urlParams.get('platform') || this.getPlatformUrl()
+        const index = this.appSettings.path.lastIndexOf('/');
+        this.appSettings.filename = index !== -1 ? this.appSettings.path.substr(index + 1) : this.appSettings.path;
+        this.appSettings.uploadPath = index === -1 ? '' : this.appSettings.path.substr(0, index);
+        
         return combineLatest([this.loadModuleConfig(), this.moduleSettings(), this.storeSettings(), this.moduleVersion()]).pipe(
             tap(([appSettings, moduleSettings, storeSettings, version]) => {
-
-                const win = this.windowRef.nativeWindow;
-                const urlParams = new URLSearchParams(win.location.search);
-        
-                Object.assign(AppSettings, appSettings);
-
-                AppSettings.storeId = urlParams.get('storeId');
-                AppSettings.path = urlParams.get('path'),
-                AppSettings.contentType = urlParams.get('contentType'),
-                AppSettings.platformUrl = urlParams.get('platform') || this.getPlatformUrl()
-                const index = AppSettings.path.lastIndexOf('/');
-                AppSettings.filename = index !== -1 ? AppSettings.path.substr(index + 1) : AppSettings.path;
-                AppSettings.uploadPath = index === -1 ? '' : AppSettings.path.substr(0, index);
-                if (!AppSettings.platformUrl) {
-                    AppSettings.platformUrl = this.windowRef.nativeWindow.location.origin;
-                }
-
+                Object.assign(this.appSettings, appSettings);
                 moduleSettings.forEach(x => {
                     const key = x.name.replace('VirtoCommerce.PageBuilderModule.General.', '');
                     let value: any = x.value || x.defaultValue;
@@ -87,13 +81,18 @@ export class PlatformService {
                             value = value ? parseInt(value.toString()) : 0;
                             break;
                     }
-                    AppSettings[`${key[0].toLowerCase()}${key.substring(1)}`] = value;
+                    this.appSettings[`${key[0].toLowerCase()}${key.substring(1)}`] = value;
                 });
-                if (!AppSettings.storeBaseUrl) {
-                    AppSettings.storeBaseUrl = storeSettings.secureUrl || storeSettings.url;
+                                
+                if (!this.appSettings.platformUrl) {
+                    this.appSettings.platformUrl = this.windowRef.nativeWindow.location.origin;
                 }
-                AppSettings.themeName = this.getThemeName(storeSettings);
-                AppSettings.version = version;
+        
+                if (!this.appSettings.storeBaseUrl) {
+                    this.appSettings.storeBaseUrl = storeSettings.secureUrl || storeSettings.url;
+                }
+                this.appSettings.themeName = this.getThemeName(storeSettings);
+                this.appSettings.version = version;
             })
         ).toPromise();
     }
@@ -105,23 +104,23 @@ export class PlatformService {
 
     private getPlatformUrl(): string {
         const url = this.windowRef.nativeWindow.location.href;
-        const result = url.substr(0, url.indexOf(AppSettings.moduleLocation));
+        const result = url.substr(0, url.indexOf(this.appSettings.moduleLocation));
         return result;
     }
 
     private tryDownloadFromTheme<T>(path: string): Observable<T> {
-        if (AppSettings.themeName === AppSettings.defaultThemeName) {
-            return this.downloadModel<T>(ContentType.themes, `/${AppSettings.themeName}${path}`);
+        if (this.appSettings.themeName === this.appSettings.defaultThemeName) {
+            return this.downloadModel<T>(ContentType.themes, `/${this.appSettings.themeName}${path}`);
         }
-        return this.downloadModel<T>(ContentType.themes, `/${AppSettings.themeName}${path}`).pipe(
+        return this.downloadModel<T>(ContentType.themes, `/${this.appSettings.themeName}${path}`).pipe(
             catchError(() => {
-                return this.downloadModel<T>(ContentType.themes, `/${AppSettings.defaultThemeName}${path}`)
+                return this.downloadModel<T>(ContentType.themes, `/${this.appSettings.defaultThemeName}${path}`)
             })
         );
     }
 
     private getThemeName(storeSettings: any): string {
-        let result = AppSettings.defaultThemeName;
+        let result = this.appSettings.defaultThemeName;
 
         if (!!storeSettings && !!storeSettings.dynamicProperties) {
             const properties: Array<any> = storeSettings.dynamicProperties;

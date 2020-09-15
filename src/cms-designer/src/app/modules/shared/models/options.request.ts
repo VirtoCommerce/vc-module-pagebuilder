@@ -6,5 +6,6 @@ export interface OptionsRequest {
     params: any;
     group: string;
     label: string;
+    resultField: string;
     value: string | (string | ValueDescriptorModel)[];
 }

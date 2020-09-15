@@ -8,7 +8,7 @@ import { AppSettings } from './app.settings';
 })
 export class PreviewService {
 
-    constructor() { }
+    constructor(private appSettings: AppSettings) { }
 
     add(block: BlockValuesModel, frameId: string) {
         this.send('add', block, frameId);
@@ -91,7 +91,7 @@ export class PreviewService {
             if (!!target) {
                 const message = { type: type, content: model };
                 try {
-                    target.postMessage(message, AppSettings.storeBaseUrl + AppSettings.storePreviewPath);
+                    target.postMessage(message, this.appSettings.storeBaseUrl + this.appSettings.storePreviewPath);
                 } catch (error) {
                     console.error('Preview unavailable. Reason: ', error);
                 }
