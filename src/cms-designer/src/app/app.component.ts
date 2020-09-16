@@ -37,6 +37,7 @@ export class AppComponent implements OnInit {
     ];
 
     version = this.appSettings.version;
+    hasPage = !!this.appSettings.path;
 
     storeUrl$ = this.store.select(fromRoot.getPreviewUrl).pipe(
         map(x => !!x ? this.sanitizer.bypassSecurityTrustResourceUrl(x) : null)

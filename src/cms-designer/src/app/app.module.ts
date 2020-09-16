@@ -14,6 +14,7 @@ import { ThemeModule } from '@themes/theme.module';
 
 import { AppComponent } from './app.component';
 import { COMPONENTS } from './components';
+import { LoginComponent } from '@app/components';
 
 import { PlatformService } from 'src/app/services/platform.service';
 
@@ -54,6 +55,7 @@ import { metaReducers, actionsToIgonre } from './debug';
         SharedModule,
         ThemeModule
     ],
+    entryComponents: [LoginComponent],
     providers: [
         CookieService,
         {

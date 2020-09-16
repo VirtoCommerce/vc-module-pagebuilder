@@ -32,7 +32,7 @@ export class SelectItemComponent extends BaseControlDirective<SelectControlDescr
         this.refreshValue(null, false);
     }
 
-    constructor(private sanitizer: DomSanitizer, private selectItemService: SelectItemService) {
+    constructor(private sanitizer: DomSanitizer, private selectItemService: SelectItemService, private cdk: ChangeDetectorRef) {
         super();
     }
 
@@ -50,6 +50,7 @@ export class SelectItemComponent extends BaseControlDirective<SelectControlDescr
                     this.groups[x.group].push(x);
                 });
             }
+            this.cdk.detectChanges();
         });
     }
 

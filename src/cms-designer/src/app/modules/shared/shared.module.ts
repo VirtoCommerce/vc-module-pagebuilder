@@ -40,6 +40,6 @@ import { LAYOUT_COMPONENTS } from './layouts';
     providers: [
         { provide: MAT_MOMENT_DATE_ADAPTER_OPTIONS, useValue: { useUtc: true } }
     ],
-    exports: [...COMPONENTS, ...LAYOUT_COMPONENTS, OverlayModule, MatDialogModule, MatDatepickerModule, MatMomentDateModule]
+    exports: [...COMPONENTS, ...LAYOUT_COMPONENTS, OverlayModule, MatDialogModule, MatDatepickerModule, MatMomentDateModule, ReactiveFormsModule]
 })
 export class SharedModule { }

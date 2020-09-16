@@ -60,13 +60,15 @@ export class PlatformService {
         const win = this.windowRef.nativeWindow;
         const urlParams = new URLSearchParams(win.location.search);
         this.appSettings.storeId = urlParams.get('storeId');
-        this.appSettings.path = urlParams.get('path'),
-        this.appSettings.contentType = urlParams.get('contentType'),
-        this.appSettings.platformUrl = urlParams.get('platform') || this.getPlatformUrl()
-        const index = this.appSettings.path.lastIndexOf('/');
-        this.appSettings.filename = index !== -1 ? this.appSettings.path.substr(index + 1) : this.appSettings.path;
-        this.appSettings.uploadPath = index === -1 ? '' : this.appSettings.path.substr(0, index);
-        
+        this.appSettings.path = urlParams.get('path');
+        this.appSettings.contentType = urlParams.get('contentType');
+        this.appSettings.platformUrl = urlParams.get('platform') || this.getPlatformUrl();
+        if (!!this.appSettings.path) {
+            const index = this.appSettings.path.lastIndexOf('/');
+            this.appSettings.filename = index !== -1 ? this.appSettings.path.substr(index + 1) : this.appSettings.path;
+            this.appSettings.uploadPath = index === -1 ? '' : this.appSettings.path.substr(0, index);
+        }
+
         return combineLatest([this.loadModuleConfig(), this.moduleSettings(), this.storeSettings(), this.moduleVersion()]).pipe(
             tap(([appSettings, moduleSettings, storeSettings, version]) => {
                 Object.assign(this.appSettings, appSettings);
@@ -83,11 +85,11 @@ export class PlatformService {
                     }
                     this.appSettings[`${key[0].toLowerCase()}${key.substring(1)}`] = value;
                 });
-                                
+
                 if (!this.appSettings.platformUrl) {
                     this.appSettings.platformUrl = this.windowRef.nativeWindow.location.origin;
                 }
-        
+
                 if (!this.appSettings.storeBaseUrl) {
                     this.appSettings.storeBaseUrl = storeSettings.secureUrl || storeSettings.url;
                 }
