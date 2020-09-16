@@ -1,4 +1,3 @@
-import { AppSettings } from './../services/app.settings';
 import { Injectable } from '@angular/core';
 import { Actions, ofType, createEffect } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
@@ -7,7 +6,7 @@ import {
     switchMapTo, debounceTime, distinctUntilChanged,
     withLatestFrom, tap, filter, map, switchMap, mapTo
 } from 'rxjs/operators';
-import { PreviewService, ApiUrlsService } from '@app/services';
+import { PreviewService, ApiUrlsService, AppSettings } from '@app/services';
 import { BlockValuesModel } from '@shared/models';
 
 import * as rootActions from './root.actions';
@@ -24,6 +23,7 @@ export class RootEffects {
     constructor(private actions$: Actions,
         private preview: PreviewService,
         private urls: ApiUrlsService,
+        private appSettings: AppSettings,
         private store$: Store) { }
 
     resetData$ = createEffect(() => this.actions$.pipe(
@@ -99,7 +99,7 @@ export class RootEffects {
             this.store$.select(fromTheme.getPresetsNotLoaded),
             this.store$.select(fromTheme.getDraftUploaded)
         ),
-        filter(([, url, pageNotLoaded, , presetsNotLoaded, draftUploaded]) => !!AppSettings.storeBaseUrl && !url && !pageNotLoaded && !presetsNotLoaded && draftUploaded),
+        filter(([, url, pageNotLoaded, , presetsNotLoaded, draftUploaded]) => !!this.appSettings.storeBaseUrl && !url && !pageNotLoaded && !presetsNotLoaded && draftUploaded),
         switchMap(([, , , layout]) => {
             const result = this.urls.getStoreUrl(layout);
             return [rootActions.setPreviewUrl({ url: result }), rootActions.reloadPreview()];
@@ -163,7 +163,7 @@ export class RootEffects {
 
     loadEffectiveThemeValuesRequested$ = createEffect(() => this.actions$.pipe(
         ofType(themeActions.loadEffectiveThemeValuesRequested),
-        switchMap(() => timer(AppSettings.previewTimeout).pipe(
+        switchMap(() => timer(this.appSettings.previewTimeout).pipe(
             withLatestFrom(this.store$.select(fromTheme.getIsEffectiveValuesSkipped)),
             filter(([, skipped]) => !skipped),
             map(() => themeActions.loadEffectiveThemeValuesSkippedByTimeout())
@@ -273,7 +273,7 @@ export class RootEffects {
 
     timeoutToError$ = createEffect(() => this.actions$.pipe(
         ofType(rootActions.reloadPreview),
-        switchMap(() => timer(AppSettings.previewTimeout).pipe(
+        switchMap(() => timer(this.appSettings.previewTimeout).pipe(
             map(() => rootActions.checkPreviewLoadedOrError())
         )),
     ));
@@ -356,7 +356,6 @@ export class RootEffects {
             primaryFrameId, secondaryFrameId
         ]),
         map(([primary, source, primaryFrameId, secondaryFrameId]) => primary === source ? primaryFrameId : secondaryFrameId),
-        tap(x => console.log('toggle frames', x)),
         switchMap(loadedFrameId => [
             rootActions.toggleFrames({ frameId: loadedFrameId }),
             rootActions.previewLoading({ isLoading: false, msg: 'swap frames' })

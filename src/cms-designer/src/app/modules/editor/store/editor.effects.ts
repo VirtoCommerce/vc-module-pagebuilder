@@ -12,13 +12,13 @@ import { Actions, ofType, createEffect } from '@ngrx/effects';
 
 import { MessageService, ClipboardService } from '@shared/services';
 import { BlockValuesModel } from '@shared/models';
-import { PageModel } from '@editor/models';
 import { BlocksService, PagesService } from '@editor/services';
 
 import * as editorActions from './editor.actions';
 import * as fromEditor from '.';
 import * as rootActions from '@app/store/root.actions';
 import { generateUniqueString, onlyLettersAndDigits } from '@app/services/utils';
+import { AppSettings } from '@app/services';
 
 // import { CategoryModel } from '../models';
 
@@ -29,6 +29,7 @@ export class EditorEffects {
         private blocks: BlocksService,
         private messages: MessageService,
         private clipboard: ClipboardService,
+        private appSettings: AppSettings,
         private actions$: Actions, private store$: Store<fromEditor.State>) { }
 
     convertPageTypeToPreviewSection$ = createEffect(() => this.actions$.pipe(
@@ -86,6 +87,7 @@ export class EditorEffects {
 
     loadBlockTypes$ = createEffect(() => this.actions$.pipe(
         ofType(editorActions.loadBlocksSchema),
+        filter(() => !!this.appSettings.path),
         switchMap(() =>
             this.blocks.load().pipe(
                 map(result => editorActions.blocksSchemaLoaded({ schema: result })),
@@ -96,6 +98,7 @@ export class EditorEffects {
 
     loadBlocks$ = createEffect(() => this.actions$.pipe(
         ofType(editorActions.loadBlocks),
+        filter(() => !!this.appSettings.path),
         switchMap(() =>
             this.pages.downloadPage().pipe(
                 tap(blocks => blocks.forEach(b => {
@@ -109,6 +112,8 @@ export class EditorEffects {
 
     saveBlocks$ = createEffect(() => this.actions$.pipe(
         ofType(editorActions.saveBlocks),
+        withLatestFrom(this.store$.select(fromEditor.getIsDirty)),
+        filter(([, dirty]) => dirty),
         map(() => editorActions.reloadBlocks())
     ));
 

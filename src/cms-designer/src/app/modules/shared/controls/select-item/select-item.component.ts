@@ -32,24 +32,25 @@ export class SelectItemComponent extends BaseControlDirective<SelectControlDescr
         this.refreshValue(null, false);
     }
 
-    constructor(private sanitizer: DomSanitizer, private selectItemService: SelectItemService) {
+    constructor(private sanitizer: DomSanitizer, private selectItemService: SelectItemService, private cdk: ChangeDetectorRef) {
         super();
     }
 
     initContent() {
         this.selectItemService.getRequestedOptions(this.descriptor).subscribe(result => {
-            this.options = this.descriptor.options.concat(result);
+            this.options = this.descriptor.options ? this.descriptor.options.concat(result) : result;
 
-            this.groupItems = this.descriptor.options.some(x => !!x.group);
+            this.groupItems = this.options.some(x => !!x.group);
             if (this.groupItems) {
                 this.groups = {};
-                this.descriptor.options.forEach(x => {
+                this.options.forEach(x => {
                     if (!this.groups[x.group]) {
                         this.groups[x.group] = [];
                     }
                     this.groups[x.group].push(x);
                 });
             }
+            this.cdk.detectChanges();
         });
     }
 

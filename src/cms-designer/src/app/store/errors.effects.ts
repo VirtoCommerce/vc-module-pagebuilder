@@ -16,28 +16,24 @@ export class ErrorsEffects {
     loadBlocksSchemaFail$ = createEffect(() => this.actions$.pipe(
         ofType(editorActions.blocksSchemaFail),
         map((action: any) => <HttpErrorResponse>action.error),
-        filter(response => response.status >= 400),
         tap(response => this.errors.displayError('Couldn\'t load blocks schema', response))
     ), { dispatch: false });
 
     loadPageFail$ = createEffect(() => this.actions$.pipe(
         ofType(editorActions.loadBlocksFail),
         map((action: any) => <HttpErrorResponse>action.error),
-        filter(response => response.status >= 400),
         tap(response => this.errors.displayError('Couldn\'t load page', response))
     ), { dispatch: false });
 
     loadThemesFail$ = createEffect(() => this.actions$.pipe(
         ofType(themeActions.loadDefaultThemesFail),
         map((action: any) => <HttpErrorResponse>action.error),
-        filter(response => response.status >= 400),
         tap(response => this.errors.displayError('Couldn\'t load theme settings', response))
     ), { dispatch: false });
 
     loadThemeSchemaFail$ = createEffect(() => this.actions$.pipe(
         ofType(themeActions.loadSchemaFail),
         map((action: any) => <HttpErrorResponse>action.error),
-        filter(response => response.status >= 400),
         tap(response => this.errors.displayError('Couldn\'t load theme schema', response))
     ), { dispatch: false });
 

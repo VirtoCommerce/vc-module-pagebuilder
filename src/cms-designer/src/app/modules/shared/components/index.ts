@@ -7,7 +7,7 @@ export * from './tabs/tabs.component';
 export * from './tabs/tab.component';
 export * from './control-holder.component';
 export * from './control-host.directive';
-// export * from './paste-popup/paste-popup.component';
+export * from './debug-info/debug-info.popup';
 
 import { AccordeonComponent } from './accordion/accordion.component';
 import { AccItemComponent } from './accordion/acc-item.component';
@@ -19,6 +19,7 @@ import { TabComponent } from './tabs/tab.component';
 import { ControlHolderComponent } from './control-holder.component';
 import { ControlHostDirective } from './control-host.directive';
 import { PastePopupComponent } from './paste-popup/paste-popup.component';
+import { DebugInfoPopupComponent } from './debug-info/debug-info.popup';
 
 export const COMPONENTS = [
     TabsComponent,
@@ -29,6 +30,10 @@ export const COMPONENTS = [
     BlockFormComponent,
     ControlHolderComponent,
     ControlHostDirective,
-    ElementsFormComponent,
-    PastePopupComponent
+    ElementsFormComponent
+];
+
+export const POPUPS = [    
+    PastePopupComponent,
+    DebugInfoPopupComponent
 ];
