@@ -1,15 +1,15 @@
+import { WindowRef } from './window-ref';
 import { ModuleSettings } from './../models/environment.settings';
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, combineLatest } from 'rxjs';
+import { Observable, combineLatest, of } from 'rxjs';
 import { tap, map, catchError } from 'rxjs/operators';
 import { ApiUrlsService } from './api-url.service';
 import { PresetsModel } from '@themes/models';
 import { BlockValuesModel, BlocksSchema, BlockSchema, ValueType } from '@shared/models';
-import { PlatformSetting, StoreSettings } from '@app/models';
+import { PlatformSetting, StoreSettings, EnvironmentSettings } from '@app/models';
 
 import { AppSettings } from './app.settings';
-import { environment } from 'src/environments/environment';
 
 enum ContentType {
     themes = 'themes'
@@ -20,7 +20,7 @@ enum ContentType {
 })
 export class PlatformService {
 
-    constructor(private http: HttpClient, private urls: ApiUrlsService) { }
+    constructor(private http: HttpClient, private urls: ApiUrlsService, private windowRef: WindowRef, private appSettings: AppSettings) { }
 
     downloadSettingsData(): Observable<PresetsModel> {
         return this.tryDownloadFromTheme('/config/settings_data.json');
@@ -31,12 +31,12 @@ export class PlatformService {
     }
 
     uploadPreset(model: { [key: string]: ValueType }): Observable<any> {
-        return this.uploadModel<{ [key: string]: ValueType }>(model, ContentType.themes, `/${AppSettings.themeName}/config`, 'settings_data.json');
+        return this.uploadModel<{ [key: string]: ValueType }>(model, ContentType.themes, `/${this.appSettings.themeName}/config`, 'settings_data.json');
     }
 
     uploadDraftPreset(model: { [key: string]: ValueType }): Observable<any> {
         return this.uploadModel<{ [key: string]: ValueType }>(model, ContentType.themes,
-            `/${AppSettings.themeName}/config/drafts`, this.generateDraftPresetName());
+            `/${this.appSettings.themeName}/config/drafts`, this.generateDraftPresetName());
     }
 
     downloadPage(): Observable<BlockValuesModel[]> {
@@ -57,13 +57,21 @@ export class PlatformService {
     }
 
     initSettings(): Promise<any> {
-        const parameters = {};
-        parameters['StorePreviewPath'] = 'storePreviewPath';
-        parameters['TokenUrl'] = 'tokenUrl';
-        parameters['StoreUrl'] = 'storeBaseUrl';
-        parameters['UseGlobalAssets'] = 'useGlobalAssets';
-        return combineLatest([this.moduleSettings(), this.storeSettings(), this.moduleVersion()]).pipe(
-            tap(([moduleSettings, storeSettings, version]) => {
+        const win = this.windowRef.nativeWindow;
+        const urlParams = new URLSearchParams(win.location.search);
+        this.appSettings.storeId = urlParams.get('storeId');
+        this.appSettings.path = urlParams.get('path');
+        this.appSettings.contentType = urlParams.get('contentType');
+        this.appSettings.platformUrl = urlParams.get('platform') || this.getPlatformUrl();
+        if (!!this.appSettings.path) {
+            const index = this.appSettings.path.lastIndexOf('/');
+            this.appSettings.filename = index !== -1 ? this.appSettings.path.substr(index + 1) : this.appSettings.path;
+            this.appSettings.uploadPath = index === -1 ? '' : this.appSettings.path.substr(0, index);
+        }
+
+        return combineLatest([this.loadModuleConfig(), this.moduleSettings(), this.storeSettings(), this.moduleVersion()]).pipe(
+            tap(([appSettings, moduleSettings, storeSettings, version]) => {
+                Object.assign(this.appSettings, appSettings);
                 moduleSettings.forEach(x => {
                     const key = x.name.replace('VirtoCommerce.PageBuilderModule.General.', '');
                     let value: any = x.value || x.defaultValue;
@@ -75,30 +83,46 @@ export class PlatformService {
                             value = value ? parseInt(value.toString()) : 0;
                             break;
                     }
-                    AppSettings[parameters[key]] = value;
+                    this.appSettings[`${key[0].toLowerCase()}${key.substring(1)}`] = value;
                 });
-                if (!AppSettings.storeBaseUrl) {
-                    AppSettings.storeBaseUrl = storeSettings.secureUrl || storeSettings.url;
+
+                if (!this.appSettings.platformUrl) {
+                    this.appSettings.platformUrl = this.windowRef.nativeWindow.location.origin;
                 }
-                AppSettings.themeName = this.getThemeName(storeSettings);
-                environment.version = version;
+
+                if (!this.appSettings.storeBaseUrl) {
+                    this.appSettings.storeBaseUrl = storeSettings.secureUrl || storeSettings.url;
+                }
+                this.appSettings.themeName = this.getThemeName(storeSettings);
+                this.appSettings.version = version;
             })
         ).toPromise();
     }
 
+    private loadModuleConfig(): Observable<EnvironmentSettings> {
+        const url = this.urls.getLocalConfigUrl();
+        return this.http.get<EnvironmentSettings>(url);
+    }
+
+    private getPlatformUrl(): string {
+        const url = this.windowRef.nativeWindow.location.href;
+        const result = url.substr(0, url.indexOf(this.appSettings.moduleLocation));
+        return result;
+    }
+
     private tryDownloadFromTheme<T>(path: string): Observable<T> {
-        if (AppSettings.themeName === AppSettings.defaultThemeName) {
-            return this.downloadModel<T>(ContentType.themes, `/${AppSettings.themeName}${path}`);
+        if (this.appSettings.themeName === this.appSettings.defaultThemeName) {
+            return this.downloadModel<T>(ContentType.themes, `/${this.appSettings.themeName}${path}`);
         }
-        return this.downloadModel<T>(ContentType.themes, `/${AppSettings.themeName}${path}`).pipe(
+        return this.downloadModel<T>(ContentType.themes, `/${this.appSettings.themeName}${path}`).pipe(
             catchError(() => {
-                return this.downloadModel<T>(ContentType.themes, `/${AppSettings.defaultThemeName}${path}`)
+                return this.downloadModel<T>(ContentType.themes, `/${this.appSettings.defaultThemeName}${path}`)
             })
         );
     }
 
     private getThemeName(storeSettings: any): string {
-        let result = AppSettings.defaultThemeName;
+        let result = this.appSettings.defaultThemeName;
 
         if (!!storeSettings && !!storeSettings.dynamicProperties) {
             const properties: Array<any> = storeSettings.dynamicProperties;

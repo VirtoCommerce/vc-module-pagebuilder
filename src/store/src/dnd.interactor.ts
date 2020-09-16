@@ -78,13 +78,11 @@ export class DndInteractor {
         const middleY = (this.rects[to].top + this.rects[to].height / 2);
         const needSwap = (from > to && mouseY <= middleY) || (from <= to && mouseY > middleY);
         if (needSwap) {
-            console.log(from, to, mouseY, this.rects[to]);
             this.container.removeChild(this.placeholder);
             const beforeElement = this.container.children.item(to);
             this.container.insertBefore(this.placeholder, beforeElement);
             const msg = { content: { id: this.model.id, currentIndex: from, newIndex: to } };
             EventsBus.Current.publish('dnd.swap-blocks', msg, this);
-            console.log('swapped');
             // debugger;
         }
         // get new coords
@@ -100,7 +98,6 @@ export class DndInteractor {
         // 'select' should be occurred automatically
 
         if (this.dragStarted) {
-            console.log('release drag', this.model);
             document.body.removeChild(this.model.element);
             this.restoreStyles();
             this.container.replaceChild(this.model.element, this.placeholder);

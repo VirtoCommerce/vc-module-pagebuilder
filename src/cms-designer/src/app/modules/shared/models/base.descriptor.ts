@@ -7,4 +7,5 @@ export interface BaseDescriptor {
     autofocus?: boolean;
     tab?: string;
     default?: any;
+    group?: string;
 }

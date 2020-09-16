@@ -12,13 +12,15 @@ import {
     HttpErrorResponse
 } from '@angular/common/http';
 import { BehaviorSubject, Observable, throwError, of } from 'rxjs';
+import { MatDialog } from '@angular/material/dialog';
+import { LoginComponent } from '@app/components';
 import { AuthService } from './auth.service';
-import { catchError, switchMap, finalize, filter, take } from 'rxjs/operators';
+import { catchError, switchMap, finalize, take, exhaustMap } from 'rxjs/operators';
 
 @Injectable()
 export class RefreshTokenInterceptor implements HttpInterceptor {
 
-    constructor(private authService: AuthService, private jwt: JwtStorageService) { }
+    constructor(private authService: AuthService, private jwt: JwtStorageService, private dialog: MatDialog) { }
 
     isRefreshingToken = false;
     tokenSubject: BehaviorSubject<string> = new BehaviorSubject<string>(null);
@@ -61,12 +63,11 @@ export class RefreshTokenInterceptor implements HttpInterceptor {
                 .pipe(
                     switchMap((info: any) => {
                         if (info) {
-                            this.jwt.save(info);
                             this.tokenSubject.next(info.token);
                             return next.handle(this.addTokenToRequest(request, info.token));
                         }
 
-                        return of(null);
+                        return this.login(request, next);
                     }),
                     catchError(err => {
                         return of(null);
@@ -79,12 +80,43 @@ export class RefreshTokenInterceptor implements HttpInterceptor {
             this.isRefreshingToken = false;
 
             return this.tokenSubject
-                .pipe(filter(token => token != null),
-                    take(1),
+                .pipe(take(1),
                     switchMap(token => {
-                        return next.handle(this.addTokenToRequest(request, token));
+                        if (!token) {
+                            return this.login(request, next);
+                        } else {
+                            return next.handle(this.addTokenToRequest(request, token));
+                        }
                     })
                 );
         }
+    }
+
+    private login(request: HttpRequest<any>, next: HttpHandler): Observable<any> {
+        return this.authService.loginIfSaved().pipe(
+            exhaustMap(authInfo => {
+                if (!authInfo) {
+                    const dialogRef = this.dialog.open(LoginComponent, {
+                        width: '680px',
+                        height: '350px',
+                        disableClose: true,
+                        data: {
+                            save: this.authService.hasSavedInfo()
+                        }
+                    });
+                    return dialogRef.afterClosed().pipe(
+                        switchMap(x =>
+                            this.authService.login(x.data.username, x.data.password, x.data.save).pipe(
+                                switchMap(response => {
+                                    return next.handle(this.addTokenToRequest(request, response.token));
+                                })
+                            )
+                        )
+                    );
+                } else {
+                    return next.handle(this.addTokenToRequest(request, authInfo.token));
+                }
+            })
+        );
     }
 }
