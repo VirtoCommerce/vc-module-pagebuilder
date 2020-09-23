@@ -1,13 +1,25 @@
 <label *ngIf="descriptor.label && !hideLabel">{{descriptor.label}}</label>
 <div class="dropdown" [class.dropdown--show]="isOpen">
-    <div class="dropdown__toggle" (click)="toggle()">{{ title }}</div>
+    <div class="dropdown__toggle" (click)="toggle()"><span class="dropdown__menu-item-text">{{ title }}</span></div>
     <div class="dropdown__menu" *ngIf="!groupItems">
+        <div *ngIf="descriptor.filterList" class="dropdown__menu-item">
+            <input type="search" class="form-control"
+                [value]="searchPhrase"
+                (search)="onSearch($event)"
+                (keyup)="onSearch($event)" />
+        </div>
         <a class="dropdown__menu-item" *ngFor="let option of options; trackBy: getTrackValue"
             [class.dropdown__menu-item--selected]="isEqual(option.value, value, descriptor.equalKey)" (click)="selectValue(option.value)">
             <span class="dropdown__menu-item-text" [innerHTML]="getDisplayValue(option)"></span>
         </a>
     </div>
     <div class="dropdown__menu" *ngIf="groupItems">
+        <div *ngIf="descriptor.filterList" class="dropdown__menu-item">
+            <input type="search" class="form-control"
+                [value]="searchPhrase" 
+                (search)="onSearch($event)"
+                (keyup)="onSearch($event)" />
+        </div>
         <ng-container *ngFor="let g of groups | keyvalue">
             <span class="dropdown__menu_group">{{ g.key }}</span>
             <a class="dropdown__menu-item" *ngFor="let option of g.value; trackBy: getTrackValue"
