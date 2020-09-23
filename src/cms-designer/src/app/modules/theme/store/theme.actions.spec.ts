@@ -115,7 +115,7 @@ describe('Theme actions', () => {
     describe('cancelPreset', () => {
         it('should create an action', () => {
             const action = themeActions.cancelPreset();
-            expect({ ...action }).toEqual({ type: '[Theme] Cancel preset' });
+            expect({ ...action }).toEqual({ type: '[Theme] Cancel Preset' });
         });
     });
 
