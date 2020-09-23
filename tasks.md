@@ -1,11 +1,7 @@
-* <del>add to ignore hover events</del>
-* display message about wrong files formats
-* add possibility to download state to debug
-* save only changed data
-* designer preview script calculate wrong block height
 
-* errors in blocks with forms
 * redirect to login
+	* [bug] there is a situation when login window is shown 3 times on start
+* [feature] data sources for selects
 
 * diagnostic tools to run
 
@@ -14,4 +10,4 @@
 * object editor
 * layouts
 * group properties in page editor
-* data sources for selects
+

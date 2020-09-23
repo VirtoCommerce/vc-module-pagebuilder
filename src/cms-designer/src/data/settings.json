@@ -3,7 +3,7 @@
     "previewTimeout": 12000,
     "useGlobalAssets": true,
 
-    "storeBaseUrl": "http://localhost:2082",
+    "storeBaseUrl": null,
     "contentCssPath": "/themes/assets/style.min.css",
     "baseUrl": "/",
     "moduleLocation": "/Modules/$(VirtoCommerce.PageBuilderModule)/Content/builder/"
