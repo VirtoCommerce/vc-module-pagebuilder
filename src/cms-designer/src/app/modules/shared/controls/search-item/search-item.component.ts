@@ -47,6 +47,7 @@ export class SearchItemComponent extends BaseControlDirective<SearchControlDescr
             map(items => Array.isArray(items) && items.length ? items[0] : { __nodata: true })
         ).subscribe(result => {
             result['__searchQuery'] = query;
+            this.setValue(result);
             this.onChange(result);
         });
     }

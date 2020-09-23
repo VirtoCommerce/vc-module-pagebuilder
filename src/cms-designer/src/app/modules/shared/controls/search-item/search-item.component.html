@@ -2,7 +2,8 @@
 <input #control type="text" class="form-control"
     [value]="searchQuery"
     (paste)="onPaste($event)" (keyup)="onTextChange($event.target.value)" />
-<div *ngIf="!!value.__nodata; else modelInfo">
+
+<div *ngIf="!!value.__nodata; else modelInfo" class="no-data-label">
     {{ descriptor.nodataText }}
 </div>
 <ng-template #modelInfo>
