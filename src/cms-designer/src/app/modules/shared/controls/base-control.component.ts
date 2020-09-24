@@ -19,7 +19,7 @@ export class BaseControlDirective<T extends BaseDescriptor> implements OnInit, A
     }
 
     setValue(value: any) {
-        if (!value) {
+        if (!value && value !== 0) {
             value = null;
         }
         this.value = value;

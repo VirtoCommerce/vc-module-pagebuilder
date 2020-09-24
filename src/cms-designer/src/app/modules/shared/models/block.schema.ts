@@ -13,8 +13,8 @@ export interface BlockSchema extends BaseBlockSchema {
     static?: string;
     hide?: boolean;
     displayField?: string;
-    excludeShared?: boolean | string[];
-    includeShared?: string | string[];
+    excludeShared?: boolean | string[]; // false - not use shared settings, string[] - list of settings id to exclude from result shared list
+    includeShared?: string | string[]; // name or list of names to add settings from namedSettingsList
 }
 
 export interface SharedBlockSchema extends BaseBlockSchema {

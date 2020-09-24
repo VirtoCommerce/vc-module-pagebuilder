@@ -1,0 +1,17 @@
+<label *ngIf="!hideLabel">{{descriptor.label}}</label>
+<input #control type="text" class="form-control"
+    [value]="searchQuery"
+    (paste)="onPaste($event)" (keyup)="onTextChange($event.target.value)" />
+
+<div *ngIf="!!value.__nodata; else modelInfo" class="no-data-label">
+    {{ descriptor.nodataText }}
+</div>
+<ng-template #modelInfo>
+    <div style="margin-top: 1.25rem;" *ngFor="let field of descriptor.displayInfo">
+        <label>{{ field.label }}</label>
+        <div [ngSwitch]="field.type">
+            <img class="form-file__pic" *ngSwitchCase="'image'" [src]="value[field.key]" />
+            <ng-container *ngSwitchDefault>{{ value[field.key] }}</ng-container>
+        </div>
+    </div>
+</ng-template>
