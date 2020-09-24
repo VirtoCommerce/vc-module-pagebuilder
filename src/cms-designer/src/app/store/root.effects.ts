@@ -99,10 +99,13 @@ export class RootEffects {
             this.store$.select(fromTheme.getPresetsNotLoaded),
             this.store$.select(fromTheme.getDraftUploaded)
         ),
-        filter(([, url, pageNotLoaded, , presetsNotLoaded, draftUploaded]) => !!this.appSettings.storeBaseUrl && !url && !pageNotLoaded && !presetsNotLoaded && draftUploaded),
+        filter(([, url, pageNotLoaded, , presetsNotLoaded, draftUploaded]) => !url && !pageNotLoaded && !presetsNotLoaded && draftUploaded),
         switchMap(([, , , layout]) => {
-            const result = this.urls.getStoreUrl(layout);
-            return [rootActions.setPreviewUrl({ url: result }), rootActions.reloadPreview()];
+            if (!!this.appSettings.storeBaseUrl) {
+                const result = this.urls.getStoreUrl(layout);
+                return [rootActions.setPreviewUrl({ url: result }), rootActions.reloadPreview()];
+            }
+            return [rootActions.displayError({ error: 'Store url is not defined' })];
         })
     ));
 

@@ -10,6 +10,7 @@ export * from './url-item/url-item.component';
 export * from './file-item/file-item.component';
 export * from './popup-item/popup-item.component';
 export * from './popup-item/popup-content.component';
+export * from './search-item/search-item.component';
 
 import { CalendarItemComponent } from './calendar-item/calendar-item.component';
 import { CheckboxItemComponent } from './checkbox-item/checkbox-item.component';
@@ -23,6 +24,7 @@ import { UrlItemComponent } from './url-item/url-item.component';
 import { FileItemComponent } from './file-item/file-item.component';
 import { PopupListItemComponent } from './popup-item/popup-item.component';
 import { PopupContentComponent } from './popup-item/popup-content.component';
+import { SearchItemComponent } from './search-item/search-item.component';
 
 export const CONTROLS = [
     CalendarItemComponent,
@@ -36,5 +38,6 @@ export const CONTROLS = [
     UrlItemComponent,
     FileItemComponent,
     PopupListItemComponent,
-    PopupContentComponent
+    PopupContentComponent,
+    SearchItemComponent
 ];
