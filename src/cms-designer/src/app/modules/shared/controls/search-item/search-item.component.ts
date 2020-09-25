@@ -44,7 +44,7 @@ export class SearchItemComponent extends BaseControlDirective<SearchControlDescr
 
     private searchModel(query: string) {
         this.requestItemsService.doSearchRequest(this.descriptor.request, query).pipe(
-            map(items => Array.isArray(items) && items.length ? items[0] : { __nodata: true })
+            map(items => Array.isArray(items) && items.length ? this.requestItemsService.getValue(items[0], this.descriptor.request?.value) : { __nodata: true })
         ).subscribe(result => {
             result['__searchQuery'] = query;
             this.setValue(result);

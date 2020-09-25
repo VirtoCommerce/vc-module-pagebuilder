@@ -24,7 +24,7 @@ export class SelectItemComponent extends BaseControlDirective<SelectControlDescr
         return this.options.find(x => this.isEqual(x.value, this.value, this.descriptor.equalKey));
     }
     get title(): string {
-        return this.option?.label || (this.value ? this.value[this.descriptor.label] : null) || this.descriptor.placeholder;
+        return this.option?.label || this.descriptor.placeholder;
     }
 
     get options(): OptionModel[] {
@@ -53,7 +53,7 @@ export class SelectItemComponent extends BaseControlDirective<SelectControlDescr
             map(items => items.map<OptionModel>(x => <OptionModel>{
                 label: x[this.descriptor.request.label],
                 group: this.descriptor.request.group ? x[this.descriptor.request.group] : null,
-                value: x
+                value: this.requestItemsService.getValue(x, this.descriptor.request?.value)
             }))
         ).subscribe(result => {
             this.options = this.descriptor.options ? this.descriptor.options.concat(result) : result;

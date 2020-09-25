@@ -39,8 +39,7 @@ export class RequestItemsService {
                     return res;
                 }
                 return results;
-            }),
-            map(items => items.map(item => this.getValue(item, value)))
+            })
         );
     }
 
@@ -68,7 +67,10 @@ export class RequestItemsService {
         return btoa(`${request.method}${request.url}${params}${query}`);
     }
 
-    private getValue(item: any, valueDescriptor: string | (string | ValueDescriptorModel)[]): any {
+    getValue(item: any, valueDescriptor: string | (string | ValueDescriptorModel)[]): any {
+        if (!valueDescriptor) {
+            return item;
+        }
         if (Array.isArray(valueDescriptor)) {
             const result = {};
             const properties = <(string | ValueDescriptorModel)[]>valueDescriptor;
