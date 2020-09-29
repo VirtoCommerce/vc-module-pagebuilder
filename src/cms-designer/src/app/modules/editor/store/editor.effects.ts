@@ -77,7 +77,7 @@ export class EditorEffects {
                 type: action.newItemSchema.type
             };
             block.__id = this.generateBlockId(block);
-            action.newItemSchema.settings.forEach(x => block[x.id] = x['default'] || null);
+            action.newItemSchema.settings.forEach(x => block[x.id] = typeof x['default'] === 'undefined' ? null : x['default']);
             return block;
         }),
         mergeMap(item =>
