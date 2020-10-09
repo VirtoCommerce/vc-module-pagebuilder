@@ -27,6 +27,7 @@
     "@ngrx/effects": "^10.0.0",
     "@ngrx/store": "^10.0.0",
     "@ngrx/store-devtools": "^10.0.0",
+    "ckeditor": "^4.12.1",
     "ckeditor4-angular": "^1.2.2",
     "clipboard-polyfill": "^3.0.1",
     "core-js": "^3.6.5",
