@@ -1,7 +1,6 @@
-import { Component, OnInit, Input } from '@angular/core';
+import { Component } from '@angular/core';
 import { BaseControlDirective } from '../base-control.component';
 import { TextControlDescriptor } from '@shared/models';
-import { AppSettings } from '@app/services';
 
 @Component({
     selector: 'app-text-item',
