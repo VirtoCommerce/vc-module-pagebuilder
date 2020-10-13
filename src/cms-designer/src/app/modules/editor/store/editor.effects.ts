@@ -14,6 +14,7 @@ import { MessageService, ClipboardService } from '@shared/services';
 import { BlockValuesModel } from '@shared/models';
 import { BlocksService, PagesService } from '@editor/services';
 
+import { cloneDeep } from 'lodash-es';
 import * as editorActions from './editor.actions';
 import * as fromEditor from '.';
 import * as rootActions from '@app/store/root.actions';
@@ -62,8 +63,9 @@ export class EditorEffects {
         ofType(editorActions.copyPageItem),
         withLatestFrom(this.store$.select(fromEditor.getPage)),
         map(([action, page]) => {
-            const block = { ...action.sourceBlock };
+            const block = cloneDeep(action.sourceBlock);
             block.id = page.content.reduce((v: number, b: BlockValuesModel) => Math.max(b.id, v), 0) + 1;
+            block.__id = this.generateBlockId(block, true);
             return editorActions.clonePageItem({ originalBlock: action.sourceBlock, newBlock: block });
         })
     ));
@@ -218,8 +220,8 @@ export class EditorEffects {
         })
     ));
 
-    private generateBlockId(block: BlockValuesModel): string {
-        if (block.__id) {
+    private generateBlockId(block: BlockValuesModel, force: boolean = false): string {
+        if (block.__id && !force) {
             return block.__id;
         }
         return onlyLettersAndDigits(`${block.type}${generateUniqueString(4)}`);
