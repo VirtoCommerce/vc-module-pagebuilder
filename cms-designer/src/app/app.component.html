@@ -35,7 +35,7 @@
 
             <!-- Tabs -->
             <app-tabs class="tabs tabs--full tabs--shadow" (tabSelected)="onTabChanged($event)">
-                <app-tab class="tabs__content" tabTitle="Sections" [active]="(activeTabIndex$|async) === 0">
+                <app-tab *ngIf="hasPage" class="tabs__content" tabTitle="Sections" [active]="(activeTabIndex$|async) === 0">
 
                     <app-loading *ngIf="editorLoading$|async"></app-loading>
 
@@ -97,5 +97,5 @@
     </main>
     <!-- End Main -->
 
-    <div id="version">Ver: {{ version }}</div>
+    <div id="version" (dblclick)="displayDebugInfo(viewMode === 'full')">Ver: {{ version }}</div>
 </div>

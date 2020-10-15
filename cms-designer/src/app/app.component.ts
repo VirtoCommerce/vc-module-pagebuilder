@@ -1,6 +1,5 @@
 import { Component, OnInit } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
-import { Subscription, of } from 'rxjs';
 import { Store } from '@ngrx/store';
 
 import { CdkDragSortEvent } from '@angular/cdk/drag-drop';
@@ -14,9 +13,13 @@ import * as editorActions from '@editor/store/editor.actions';
 import * as fromTheme from '@themes/store';
 import * as themeActions from '@themes/store/theme.actions';
 
+import { AppSettings } from '@app/services';
 import { BlockValuesModel, BlockSchema } from '@shared/models';
 import { map } from 'rxjs/operators';
-import { environment } from 'src/environments/environment';
+import { MatDialog } from '@angular/material/dialog';
+import { DebugInfoPopupComponent } from '@shared/components';
+import { debugInfo } from './debug';
+import { of } from 'rxjs';
 
 @Component({
     selector: 'app-root',
@@ -33,7 +36,8 @@ export class AppComponent implements OnInit {
         { title: 'Edit navigation', icon: 'nav', type: 'nav' }
     ];
 
-    version = environment.version;
+    version = this.appSettings.version;
+    hasPage = !!this.appSettings.path;
 
     storeUrl$ = this.store.select(fromRoot.getPreviewUrl).pipe(
         map(x => !!x ? this.sanitizer.bypassSecurityTrustResourceUrl(x) : null)
@@ -78,7 +82,9 @@ export class AppComponent implements OnInit {
     hasRedo$ = of(false);
 
     constructor(private store: Store<fromRoot.State>,
-        private sanitizer: DomSanitizer) { }
+        private sanitizer: DomSanitizer,
+        private appSettings: AppSettings,
+        private dialog: MatDialog) { }
 
     ngOnInit(): void {
         this.store.dispatch(rootActions.loadData());
@@ -100,11 +106,6 @@ export class AppComponent implements OnInit {
         this.store.dispatch(rootActions.closeEditors());
     }
 
-    // onThemeActionSelected(type: string) {
-    //     // TODO:
-    //     console.log(type);
-    // }
-
     onTabChanged(tabIndex) {
         this.store.dispatch(rootActions.tabIndexChanged({ tabIndex }));
     }
@@ -112,14 +113,6 @@ export class AppComponent implements OnInit {
     onSave() {
         this.store.dispatch(rootActions.saveData());
     }
-
-    // undo() {
-    //     console.log('undo');
-    // }
-
-    // redo() {
-    //     console.log('redo');
-    // }
 
     // editor tab events
 
@@ -229,5 +222,32 @@ export class AppComponent implements OnInit {
 
     liveUpdateTheme(values: { [key: string]: string | number | boolean }) {
         this.store.dispatch(themeActions.updateTheme({ values }));
+    }
+
+    displayDebugInfo(showDialog: boolean) {
+        const info = {
+            settings: AppSettings,
+            states: debugInfo
+        };
+        if (showDialog) {
+            this.dialog.open(DebugInfoPopupComponent, {
+                width: '680px',
+                height: '370px',
+                data: {
+                    data: JSON.stringify(info)
+                }
+            });
+        } else {
+            var element = document.createElement('a');
+            element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(JSON.stringify(info)));
+            element.setAttribute('download', 'page-builder.debug.log');
+
+            element.style.display = 'none';
+            document.body.appendChild(element);
+
+            element.click();
+
+            document.body.removeChild(element);
+        }
     }
 }

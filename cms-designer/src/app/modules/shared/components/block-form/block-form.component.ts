@@ -1,9 +1,8 @@
-import { Component, OnInit, Input, Output, EventEmitter, ChangeDetectorRef, OnDestroy, AfterViewChecked } from '@angular/core';
+import { Component, OnInit, Input, Output, EventEmitter, ChangeDetectorRef, OnDestroy, NgZone } from '@angular/core';
 import { FormGroup } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { BlockSchema, BlockValuesModel, BlocksSchema } from '@shared/models';
 import { FormHelper } from '@shared/services';
-import { ReturnStatement } from '@angular/compiler';
 
 @Component({
     selector: 'app-block-form',
@@ -49,7 +48,7 @@ export class BlockFormComponent implements OnInit, OnDestroy {
 
     private subscription: Subscription = null;
 
-    constructor(private formHelper: FormHelper, private changeDetector: ChangeDetectorRef) { }
+    constructor(private formHelper: FormHelper, private changeDetector: ChangeDetectorRef, private zone: NgZone) { }
 
     ngOnInit() {
         this.createForm();
@@ -68,13 +67,20 @@ export class BlockFormComponent implements OnInit, OnDestroy {
             this._currentBlockId = m.id;
             const s = m.type ? this.schema[m.type] : this.schema;
             if (s && (!m.type || m.type === s.type)) {
+                this.form = null;
                 if (this.subscription !== null) {
                     this.subscription.unsubscribe();
                     this.subscription = null;
                 }
-                this.form = this.formHelper.generateForm(m, s.settings);
-                this.subscription = this.form.valueChanges.subscribe(value => {
-                    this.modelChange.emit(value);
+                setTimeout(() => {
+                    const form = this.formHelper.generateForm(m, s.settings);
+                    const subscription = form.valueChanges.subscribe(value => {
+                        this.modelChange.emit(value);
+                    });
+                    this.zone.run(() => {
+                        this.form = form;
+                        this.subscription = subscription;
+                    });
                 });
                 this.changeDetector.detectChanges();
             }

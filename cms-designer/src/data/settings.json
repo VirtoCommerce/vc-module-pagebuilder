@@ -1,8 +1,10 @@
 {
-    "storeBaseUrl": "/",
-    "storePreviewPath": "/",
+    "defaultThemeName": "default",
+    "previewTimeout": 12000,
+    "useGlobalAssets": true,
+
+    "storeBaseUrl": null,
     "contentCssPath": "/themes/assets/style.min.css",
     "baseUrl": "/",
-    "platformUrl": "/",
-    "tokenUrl": "/"
+    "moduleLocation": "/Modules/$(VirtoCommerce.PageBuilderModule)/Content/builder/"
 }

@@ -52,7 +52,7 @@ const editorReducers = createReducer(
         const content = state.page.content;
         const index = content.indexOf(originalBlock) + 1;
         const page = { ...state.page, content: [...content.slice(0, index), newBlock, ...content.slice(index)] };
-        return { ...state, dirty: true, page };
+        return { ...state, dirty: true, page, currentSectionItem: newBlock.id };
     }),
     on(Actions.swapBlocks, (state, { previousIndex, currentIndex }) => {
         const content = [...state.page.content];

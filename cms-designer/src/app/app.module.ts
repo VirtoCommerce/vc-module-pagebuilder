@@ -1,9 +1,10 @@
 import { BrowserModule } from '@angular/platform-browser';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { NgModule, APP_INITIALIZER } from '@angular/core';
-import { StoreModule, ActionReducer, MetaReducer } from '@ngrx/store';
+import { StoreModule } from '@ngrx/store';
 import { StoreDevtoolsModule } from '@ngrx/store-devtools';
 import { EffectsModule } from '@ngrx/effects';
-import { BsDropdownModule } from 'ngx-bootstrap/dropdown';
+import { BsDropdownModule } from "ngx-bootstrap/dropdown";
 
 import { CookieService } from 'ngx-cookie-service';
 
@@ -13,8 +14,7 @@ import { ThemeModule } from '@themes/theme.module';
 
 import { AppComponent } from './app.component';
 import { COMPONENTS } from './components';
-// import { PreviewComponent } from './components/preview/preview.component';
-// import { ToolbarComponent } from './components/toolbar/toolbar.component';
+import { LoginComponent } from '@app/components';
 
 import { PlatformService } from 'src/app/services/platform.service';
 
@@ -22,21 +22,11 @@ import { ErrorsEffects } from './store/errors.effects';
 import { RootEffects } from './store/root.effects';
 import { reducer } from './store/root.reducer';
 import { environment } from '../environments/environment';
-import { HTTP_INTERCEPTORS, HttpClient } from '@angular/common/http';
-import { APP_BASE_HREF } from '@angular/common';
-import { ApiUrlsService, PreviewService, WindowRef } from '@app/services';
+import { HTTP_INTERCEPTORS } from '@angular/common/http';
 import { LoadingComponent } from './components/loading/loading.component';
 import { RefreshTokenInterceptor } from './services/refresh-token.interceptor';
-import { AppSettings } from './services/app.settings';
 
-export function debug(actionReducer: ActionReducer<any>): ActionReducer<any> {
-    return function (state, action) {
-        console.log(state, action);
-        return actionReducer(state, action);
-    };
-}
-
-export const metaReducers: MetaReducer<any>[] = environment.production ? [debug] : [];
+import { metaReducers, actionsToIgonre } from './debug';
 
 @NgModule({
     declarations: [
@@ -46,13 +36,17 @@ export const metaReducers: MetaReducer<any>[] = environment.production ? [debug]
     ],
     imports: [
         BrowserModule,
+        BrowserAnimationsModule,
         StoreModule.forRoot({
             root: reducer
         }, { metaReducers }),
         StoreDevtoolsModule.instrument({
-            name: 'CMS',
+            name: 'PageBuilder',
             maxAge: 25,
-            logOnly: environment.production
+            logOnly: environment.production,
+            actionsBlocklist: [
+                ...actionsToIgonre
+            ]
         }),
         EffectsModule.forRoot([RootEffects, ErrorsEffects]),
         BsDropdownModule.forRoot({}),
@@ -61,38 +55,19 @@ export const metaReducers: MetaReducer<any>[] = environment.production ? [debug]
         SharedModule,
         ThemeModule
     ],
+    entryComponents: [LoginComponent],
     providers: [
         CookieService,
-        // { provide: HTTP_INTERCEPTORS, useClass: AppHttpInterceptor, multi: true },
-        { provide: HTTP_INTERCEPTORS, useClass: RefreshTokenInterceptor, multi: true },
+        {
+            provide: HTTP_INTERCEPTORS,
+            useClass: RefreshTokenInterceptor, multi: true
+        },
         {
             provide: APP_INITIALIZER,
             useFactory: (platform: PlatformService) =>
                 () => platform.initSettings(),
             deps: [PlatformService],
             multi: true
-        },
-        {
-            provide: PlatformService,
-            useFactory: (http: HttpClient, urls: ApiUrlsService) => {
-                return new PlatformService(http, urls);
-            },
-            deps: [HttpClient, ApiUrlsService]
-        },
-        {
-            provide: PreviewService,
-            useFactory: () => {
-                return new PreviewService();
-            },
-            deps: []
-        },
-        {
-            provide: APP_BASE_HREF,
-            useFactory: (windowRef: WindowRef) => {
-                console.log(windowRef.nativeWindow.location);
-                console.log(AppSettings);
-            },
-            deps: [WindowRef]
         }
     ],
     bootstrap: [AppComponent]
