@@ -2,7 +2,9 @@ import { Component, ChangeDetectorRef } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
 import { BaseControlDirective } from '../base-control.component';
 import { OptionModel, SelectControlDescriptor } from '@shared/models';
-import { SelectItemService } from '../../services/select-item.service';
+import { RequestItemsService } from '../../services/request-items.service';
+import { Subject } from 'rxjs';
+import { debounceTime, map } from 'rxjs/operators';
 
 @Component({
     selector: 'app-select-item',
@@ -13,6 +15,7 @@ export class SelectItemComponent extends BaseControlDirective<SelectControlDescr
 
     private _options: OptionModel[] = [];
 
+    searchPhrase: string = null;
     groupItems = false;
     groups: { [key: string]: { label: string; value: string; }[] };
     value: any;
@@ -21,7 +24,7 @@ export class SelectItemComponent extends BaseControlDirective<SelectControlDescr
         return this.options.find(x => this.isEqual(x.value, this.value, this.descriptor.equalKey));
     }
     get title(): string {
-        return this.option?.label || this.descriptor.placeholder;
+        return this.option?.label || (this.value ? this.value[this.descriptor.label] : null) || this.descriptor.placeholder;
     }
 
     get options(): OptionModel[] {
@@ -32,18 +35,33 @@ export class SelectItemComponent extends BaseControlDirective<SelectControlDescr
         this.refreshValue(null, false);
     }
 
-    constructor(private sanitizer: DomSanitizer, private readonly selectItemService: SelectItemService, private cdk: ChangeDetectorRef) {
+    constructor(private sanitizer: DomSanitizer, private requestItemsService: RequestItemsService, private cdk: ChangeDetectorRef) {
         super();
+
+        this.searchEvent$.pipe(
+            debounceTime(1000)
+        ).subscribe(searchQuery => {
+            this.searchPhrase = searchQuery;
+            this.initContent();
+        });
     }
 
-    initContent() {
-        this.selectItemService.getRequestedOptions(this.descriptor).subscribe(result => {
-            this.options = this.descriptor.options.concat(result);
+    private searchEvent$ = new Subject<string>();
 
-            this.groupItems = this.descriptor.options.some(x => !!x.group);
+    initContent() {
+        this.requestItemsService.getRequestedOptions(this.descriptor.request, this.descriptor.cacheRequest, this.searchPhrase).pipe(
+            map(items => items.map<OptionModel>(x => <OptionModel>{
+                label: x[this.descriptor.request.label],
+                group: this.descriptor.request.group ? x[this.descriptor.request.group] : null,
+                value: x
+            }))
+        ).subscribe(result => {
+            this.options = this.descriptor.options ? this.descriptor.options.concat(result) : result;
+
+            this.groupItems = this.options.some(x => !!x.group);
             if (this.groupItems) {
                 this.groups = {};
-                this.descriptor.options.forEach(x => {
+                this.options.forEach(x => {
                     if (!this.groups[x.group]) {
                         this.groups[x.group] = [];
                     }
@@ -56,7 +74,7 @@ export class SelectItemComponent extends BaseControlDirective<SelectControlDescr
 
     setValue(value: any) {
         const v = !value && this.descriptor.default ? this.descriptor.default : value;
-        this.refreshValue(v);
+        this.refreshValue(v, false);
     }
 
     private refreshValue(value: any = null, notify: boolean = true) {
@@ -88,5 +106,11 @@ export class SelectItemComponent extends BaseControlDirective<SelectControlDescr
 
     toggle() {
         this.isOpen = !this.isOpen;
+    }
+
+    onSearch(event) {
+        if (!!this.descriptor.request.searchField) {
+            this.searchEvent$.next(event.target.value);
+        }
     }
 }

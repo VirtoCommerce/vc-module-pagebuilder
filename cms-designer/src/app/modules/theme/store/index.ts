@@ -85,7 +85,7 @@ export const getCurrentThemeValuesRequested = createSelector(
     state => state.currentThemeValuesRequested
 );
 
-export const getValuesToSave = createSelector(
+export const getValuesAndPresetsToSave = createSelector(
     getThemeFeatureState,
     getPresets,
     getEditablePreset,
@@ -93,13 +93,30 @@ export const getValuesToSave = createSelector(
     (state, presets, editablePreset, schema) => {
         let result: any = {}
         const actualPreset = state.presetUnderPreview ? presets.presets[state.presetUnderPreview] : editablePreset;
-        if (AppSettings.defaultThemeName === AppSettings.themeName) {
-            result = {
-                ...presets,
-                current: { ...actualPreset },
-            };
+        result = {
+            ...presets,
+            current: { ...actualPreset },
+        };
+        if (schema) {
+            schema.forEach(s => s.settings.forEach(x => {
+                if (typeof result.current[x.id] !== 'undefined' && result.current[x.id] === x.default) {
+                    delete result.current[x.id];
+                }
+            }));
         }
-        else if (state.presetUnderPreview) {
+
+        return result;
+    }
+);
+
+export const getOnlyValuesToSave = createSelector(
+    getThemeFeatureState,
+    getPresets,
+    getEditablePreset,
+    getSchema,
+    (state, presets, editablePreset, schema) => {
+        let result: any = {}
+        if (state.presetUnderPreview) {
             result = { current: state.presetUnderPreview };
         }
         else if (presets && editablePreset) {
@@ -126,6 +143,28 @@ export const getValuesToSave = createSelector(
             }));
         }
 
+        return result;
+    }
+);
+
+export function getValuesToSave(hasBaseTheme: boolean) {
+    if (hasBaseTheme) {
+        return getOnlyValuesToSave;
+    }
+    return getValuesAndPresetsToSave;
+}
+
+export const getAllValuesToSave = createSelector(
+    getThemeFeatureState,
+    getPresets,
+    getEditablePreset,
+    (state, presets, editablePreset) => {
+        let result: any = {}
+        const actualPreset = state.presetUnderPreview ? presets.presets[state.presetUnderPreview] : editablePreset;
+            result = {
+                ...presets,
+                current: { ...actualPreset },
+            };
         return result;
     }
 );

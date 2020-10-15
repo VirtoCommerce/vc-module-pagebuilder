@@ -29,7 +29,6 @@ export class PreviewComponent implements OnInit {
             return;
         }
         try {
-            // console.log(this.preview1.nativeElement.contentWindow.document);
             const url = this.sanitizer.sanitize(SecurityContext.RESOURCE_URL, this.storeUrl);
             if (this.preview1.nativeElement.src === url) {
                 this.previewLoaded.emit('preview1');
@@ -44,7 +43,6 @@ export class PreviewComponent implements OnInit {
             return;
         }
         try {
-            // console.log(this.preview2.nativeElement.contentWindow.document);
             const url = this.sanitizer.sanitize(SecurityContext.RESOURCE_URL, this.storeUrl);
             if (this.preview2.nativeElement.src === url) {
                 this.previewLoaded.emit('preview2');

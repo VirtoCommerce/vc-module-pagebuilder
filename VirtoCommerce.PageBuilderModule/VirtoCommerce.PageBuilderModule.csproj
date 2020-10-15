@@ -171,10 +171,10 @@
   </Target>
   <Import Project="..\packages\VirtoCommerce.Module.0.18.0\build\VirtoCommerce.Module.targets" Condition="Exists('..\packages\VirtoCommerce.Module.0.18.0\build\VirtoCommerce.Module.targets')" />
   <PropertyGroup>
-    <PreBuildEvent>cd $(ProjectDir)\..\cms-designer
+    <PreBuildEvent>cd $(ProjectDir)..\cms-designer
 call npm i 
 call npm run build
-cd $(ProjectDir)\..\store
+cd $(ProjectDir)..\store
 call npm i
 call npm run build:prod</PreBuildEvent>
   </PropertyGroup>

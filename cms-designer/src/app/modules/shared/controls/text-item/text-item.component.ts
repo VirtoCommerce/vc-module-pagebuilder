@@ -1,7 +1,6 @@
-import { Component, OnInit, Input } from '@angular/core';
+import { Component } from '@angular/core';
 import { BaseControlDirective } from '../base-control.component';
 import { TextControlDescriptor } from '@shared/models';
-import { AppSettings } from '@app/services';
 
 @Component({
     selector: 'app-text-item',
@@ -11,8 +10,6 @@ import { AppSettings } from '@app/services';
 export class TextItemComponent extends BaseControlDirective<TextControlDescriptor> {
 
     config = {
-        defaultLanguage: 'en',
-        language: '',
         toolbar: [
             {
                 name: 'basicstyles',
@@ -27,7 +24,7 @@ export class TextItemComponent extends BaseControlDirective<TextControlDescripto
             { name: 'tools', items: ['Maximize'] },
             { name: 'document', items: ['Source'] }
         ],
-        extraPlugins: 'stylescombo,justify,colorbutton,colordialog,font',
+        extraPlugins: 'stylescombo,justify,colorbutton,colordialog',
         removeButtons: '',
         format_tags: 'p;h2;h3;h4',
         // contentsCss: AppSettings.contentCssPath,
