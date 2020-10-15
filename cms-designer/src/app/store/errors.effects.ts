@@ -16,33 +16,36 @@ export class ErrorsEffects {
     loadBlocksSchemaFail$ = createEffect(() => this.actions$.pipe(
         ofType(editorActions.blocksSchemaFail),
         map((action: any) => <HttpErrorResponse>action.error),
-        filter(response => response.status >= 400),
-        tap(response => this.errors.displayError('Couldn\'t load blocks schema', response))
+        tap(response => this.errors.displayError(this.checkResponse('Couldn\'t load blocks schema.', response), response))
     ), { dispatch: false });
 
     loadPageFail$ = createEffect(() => this.actions$.pipe(
         ofType(editorActions.loadBlocksFail),
         map((action: any) => <HttpErrorResponse>action.error),
-        filter(response => response.status >= 400),
-        tap(response => this.errors.displayError('Couldn\'t load page', response))
+        tap(response => this.errors.displayError(this.checkResponse('Couldn\'t load page.', response), response))
     ), { dispatch: false });
 
     loadThemesFail$ = createEffect(() => this.actions$.pipe(
         ofType(themeActions.loadDefaultThemesFail),
         map((action: any) => <HttpErrorResponse>action.error),
-        filter(response => response.status >= 400),
-        tap(response => this.errors.displayError('Couldn\'t load theme settings', response))
+        tap(response => this.errors.displayError(this.checkResponse('Couldn\'t load theme settings.', response), response))
     ), { dispatch: false });
 
     loadThemeSchemaFail$ = createEffect(() => this.actions$.pipe(
         ofType(themeActions.loadSchemaFail),
         map((action: any) => <HttpErrorResponse>action.error),
-        filter(response => response.status >= 400),
-        tap(response => this.errors.displayError('Couldn\'t load theme schema', response))
+        tap(response => this.errors.displayError(this.checkResponse('Couldn\'t load theme schema.', response), response))
     ), { dispatch: false });
 
     displayError$ = createEffect(() => this.actions$.pipe(
         ofType(rootActions.displayError),
         tap(({ error }) => this.errors.displayError(error, {}))
     ), { dispatch: false });
+
+    private checkResponse(error: string, response: HttpErrorResponse): string {
+        if (response.status < 400) {
+            return error + ' May be file has a wrong format.'
+        }
+        return error;
+    }
 }

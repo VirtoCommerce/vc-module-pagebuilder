@@ -8,7 +8,7 @@ import { AppSettings } from './app.settings';
 })
 export class PreviewService {
 
-    constructor() { }
+    constructor(private appSettings: AppSettings) { }
 
     add(block: BlockValuesModel, frameId: string) {
         this.send('add', block, frameId);
@@ -72,7 +72,6 @@ export class PreviewService {
      * @param secondaryId
      */
     toggleFrames(primaryId: string, secondaryId: string) {
-        console.log('toggle', secondaryId, 'is primary now');
         if (!!primaryId) {
             const primary = document.getElementById(primaryId);
             primary.style.zIndex = '0';
@@ -92,10 +91,7 @@ export class PreviewService {
             if (!!target) {
                 const message = { type: type, content: model };
                 try {
-                    if (type !== 'hover') {
-                        console.log(frameId, message);
-                    }
-                    target.postMessage(message, AppSettings.storeBaseUrl + AppSettings.storePreviewPath);
+                    target.postMessage(message, this.appSettings.storeBaseUrl + this.appSettings.storePreviewPath);
                 } catch (error) {
                     console.error('Preview unavailable. Reason: ', error);
                 }

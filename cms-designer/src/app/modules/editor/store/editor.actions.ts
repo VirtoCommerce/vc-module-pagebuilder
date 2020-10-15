@@ -1,9 +1,11 @@
 import { BlockValuesModel } from '@shared/models';
 import { createAction, props } from '@ngrx/store';
 
-import { PageModel } from '../models/page.model';
 import { BlockSchema, BlocksSchema } from 'src/app/modules/shared/models';
 import { HttpErrorResponse } from '@angular/common/http';
+
+export const highlightInPreviewActionName = '[Page] Highlight In Preview';
+export const markSectionHoveredInPreviewActionName = '[Page] Mark Section Hovered In Preview';
 
 export const addPageItem = createAction('[Page] Add Page Item', props<{ block: BlockValuesModel }>());
 export const blocksSchemaFail = createAction('[Page] Blocks Schema Fail', props<{error: HttpErrorResponse}>());
@@ -42,6 +44,6 @@ export const updateBlockPreview = createAction('[Page] Update Block Preview', pr
 export const updatePageItem = createAction('[Page] Update Page Item', props<{ block: BlockValuesModel }>());
 export const updatePageSettings = createAction('[Page] Update Page Settings', props<{ settings: BlockValuesModel }>());
 export const toggleItemVisibility = createAction('[Page] Toggle Item Visibility', props<{ block: BlockValuesModel }>());
-export const markSectionHoveredInPreview = createAction('[Page] Mark Section Hovered In Preview', props<{ blockId: number }>());
-export const highlightInPreview = createAction('[Page] Highlight In Preview', props<{ block: BlockValuesModel }>());
+export const markSectionHoveredInPreview = createAction(markSectionHoveredInPreviewActionName, props<{ blockId: number }>());
+export const highlightInPreview = createAction(highlightInPreviewActionName, props<{ block: BlockValuesModel }>());
 export const setEditorMode = createAction('[Page] Set Editor Mode', props<{ mode: string }>());

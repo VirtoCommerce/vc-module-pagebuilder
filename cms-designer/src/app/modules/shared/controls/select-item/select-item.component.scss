@@ -1,0 +1,10 @@
+.dropdown__menu-item-text, .dropdown__toggle {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dropdown__menu {
+    overflow-y: auto;
+    max-height: 500px;
+}

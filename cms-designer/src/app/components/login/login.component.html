@@ -1,0 +1,22 @@
+<h2 mat-dialog-title>Your session has been expired</h2>
+<mat-dialog-content>
+    <form [formGroup]="form">
+        <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" class="form-control" id="username" formControlName="username" />
+            <div *ngIf="form.get('username').touched && form.get('username').hasError('required')">Required</div>
+        </div>
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" class="form-control" id="password" formControlName="password" />
+            <div *ngIf="form.get('password').touched && form.get('password').hasError('required')">Required</div>
+        </div>
+        <div class="form-group" style="position: relative;height: 1.5rem; display: flex;">
+            <input formControlName="save" type="checkbox" class="form-checkbox__input" id="saveSession">
+            <label class="form-checkbox__label" for="saveSession">Save session</label>
+        </div>
+    </form>
+</mat-dialog-content>
+<mat-dialog-actions>
+    <button [disabled]="!form.valid" class="btn btn--blue" (click)="onClose()">Login</button>
+</mat-dialog-actions>

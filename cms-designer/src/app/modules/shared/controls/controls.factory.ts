@@ -10,7 +10,8 @@ import {
     StringItemComponent,
     TextItemComponent,
     UrlItemComponent,
-    PopupListItemComponent
+    PopupListItemComponent,
+    SearchItemComponent
 } from '.';
 
 @Injectable({
@@ -31,6 +32,7 @@ export class ControlsFactory {
         this.controls['text'] = TextItemComponent;
         this.controls['url'] = UrlItemComponent;
         this.controls['popup-list'] = PopupListItemComponent;
+        this.controls['search'] = SearchItemComponent;
     }
 
     resolve(type: string): Type<any> {

@@ -19,7 +19,6 @@ export class FileItemComponent extends BaseControlDirective<FileItemControlDescr
     registerOnChange(fn: any): void {
         this.onChange = (event) => {
             if (!event || !event.target) {
-                console.log(this.value);
                 fn(this.value);
             } else {
                 const file = event.target.files[0];
