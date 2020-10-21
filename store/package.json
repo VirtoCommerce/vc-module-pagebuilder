@@ -18,5 +18,11 @@
     },
     "devDependencies": {
         "@types/jquery": "^3.5.3"
+    },
+    "optionalDependencies": {
+        "serialize-javascript": ">=3.1.0",
+        "elliptic": ">=6.5.3",
+        "minimist": ">=1.2.5",
+        "yargs-parser": ">=13.1.2"
     }
 }

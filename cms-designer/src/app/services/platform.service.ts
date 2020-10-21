@@ -104,7 +104,7 @@ export class PlatformService {
         // return this.http.get<EnvironmentSettings>(url);
         return of({
             defaultThemeName: "default",
-            previewTimeout: 12000,
+            previewTimeout: 120000,
             useGlobalAssets: true,
             storeBaseUrl: null,
             contentCssPath: "/themes/assets/style.min.css",
