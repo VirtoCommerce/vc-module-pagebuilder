@@ -18,7 +18,7 @@ import { cloneDeep } from 'lodash-es';
 import * as editorActions from './editor.actions';
 import * as fromEditor from '.';
 import * as rootActions from '@app/store/root.actions';
-import { generateUniqueString, onlyLettersAndDigits } from '@app/services/utils';
+import { generateUniqueString, onlyLettersAndDigits, getValueOrDefault } from '@app/services/utils';
 import { AppSettings } from '@app/services';
 
 // import { CategoryModel } from '../models';
@@ -39,7 +39,10 @@ export class EditorEffects {
             if (!!action.blockSchema) {
                 const result = <BlockValuesModel>{};
                 const schema = action.blockSchema;
-                schema.settings.forEach(x => result[x.id] = x['preview'] || x['default'] || null);
+                schema.settings.forEach(x => {
+                    result[x.id] = getValueOrDefault(x['preview'], getValueOrDefault(x['default']));
+                });
+                result.__id = 'preview-block';
                 result.type = action.blockSchema.type;
                 return result;
             }
@@ -79,7 +82,7 @@ export class EditorEffects {
                 type: action.newItemSchema.type
             };
             block.__id = this.generateBlockId(block);
-            action.newItemSchema.settings.forEach(x => block[x.id] = x['default'] || null);
+            action.newItemSchema.settings.forEach(x => block[x.id] = getValueOrDefault(x['default']));
             return block;
         }),
         mergeMap(item =>
@@ -167,7 +170,7 @@ export class EditorEffects {
     copyToClipboard$ = createEffect(() => this.actions$.pipe(
         ofType(editorActions.copyToClipboard),
         tap(({ block }) => {
-            const value = {...block, __id: null};
+            const value = { ...block, __id: null };
             this.clipboard.copyTo(value);
         })
     ), { dispatch: false });

@@ -70,7 +70,9 @@
 
         <app-page-item-editor class="left-panel" *ngIf="currentSectionItem$|async as currentSectionItem"
             [model]="currentSectionItem" [schema]="blocksSchema$ | async"
+            [tabs]="pageItemEditorTabs$|async" [activeTab]="pageItemActiveTab$|async" [context]="pageEditItemContext$|async"
             [mode]="editorMode$|async" [blockName]="currentBlockName$|async"
+            (changeCurrentTabEvent)="changeCurrentTab($event)"
             (changeEditorModeEvent)="changeEditorMode($event)" (copyToClipboardEvent)="copyBlockToClipboard($event)"
             (valueChangedEvent)="updateBlockPreview($event)" (removeBlockEvent)="removeBlock($event)"
             (copyBlockEvent)="copyBlock($event)"></app-page-item-editor>

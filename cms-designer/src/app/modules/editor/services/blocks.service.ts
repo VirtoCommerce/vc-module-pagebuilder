@@ -68,55 +68,30 @@ export class BlocksService {
                 return x;
             }
         });
-        sharedSettings.forEach(shared => {
-            const blockSettings = block.settings.find(x => x.id == shared.id);
-            if (!!blockSettings) {
+        // sharedSettings.forEach(shared => {
+        //     const blockSettings = block.settings.find(x => x.id == shared.id);
+        //     if (!!blockSettings) {
                 
-            }
-        });
+        //     }
+        // });
 
         // 5. order items
+        const getSortValue = block => (typeof block.sort === "number") ? block.sort : Number.MAX_VALUE;
         const settings = [...blockSettings, ...sharedSettings.filter(x => !blockSettings.find(b => b.id === x.id))];
-        settings.sort((x, y) => x.sort - y.sort);
+        settings.sort((x, y) => getSortValue(x) - getSortValue(y));
         block.settings = settings;
 
-
-        // const blockSettings = block.settings;
-        // // finction to add setting to block settings collection
-        // const addSetting = (sharedSettings: ControlDescriptor[], excludePredicate: (string) => boolean = () => false) => {
-        //     if (!sharedSettings) return;
-        //     sharedSettings.forEach(item => {
-        //         if (!excludePredicate(item.id)) {
-        //             const settingIndex = blockSettings.findIndex(b => b.id === item.id);
-        //             if (settingIndex === -1) {
-        //                 blockSettings.push(item);
-        //             } else {
-        //                 // some of properties can be overriden
-        //                 const overrides = blockSettings[settingIndex];
-        //                 blockSettings[settingIndex] = { ...item, ...overrides };
-        //             }
-        //         }
-        //     });
-        // };
-        // // block.includeShared contains name or array of names named settings in shared block
-        // if (block.includeShared && shared.namedSettings) {
-        //     if (typeof block.includeShared === 'string') {
-        //         const sharedSettings = shared.namedSettings[block.includeShared];
-        //         addSetting(sharedSettings);
-        //     } else {
-        //         block.includeShared.forEach(name => {
-        //             const sharedSettings = shared.namedSettings[name];
-        //             addSetting(sharedSettings);
-        //         });
-        //     }
-        // }
-        // // block can skip shared settings or some of them
-        // const skipShared = block.excludeShared;
-        // if (!skipShared || Array.isArray(skipShared)) {
-        //     const exclude = Array.isArray(skipShared) ? (v: string) => (<string[]>skipShared).indexOf(v) !== -1 : () => false;
-        //     const sharedSettings = shared.settings;
-        //     addSetting(sharedSettings, exclude);
-        // }
-        // block.settings = [...block.settings.sort(b => b.sort)];
+        // 6. apply default values
+        if (!!block.default) {
+            block.settings = block.settings.map(s => {
+                s.default = block.default[s.id] || s.default;
+                return s;
+            });
+            // Object.keys(block.default).forEach(key => {
+            //     block.settings.filter(x => x.id === key).forEach(x => {
+            //         x.default = block.default[key];
+            //     });
+            // });
+        }
     }
 }

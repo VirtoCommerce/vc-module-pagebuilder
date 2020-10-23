@@ -55,6 +55,9 @@ export class AppComponent implements OnInit {
     editorLoading$ = this.store.select(fromEditor.getIsLoading);
     editorMode$ = this.store.select(fromEditor.getEditorMode);
     itemsForCreate$ = this.store.select(fromEditor.getItemsForCreate);
+    pageItemEditorTabs$ = this.store.select(fromEditor.getTabs);
+    pageItemActiveTab$ = this.store.select(fromEditor.getCurrentTab);
+    pageEditItemContext$ = this.store.select(fromEditor.getEditItemContext);
 
     // theme editor states
     presets$ = this.store.select(fromTheme.getPresets);
@@ -166,6 +169,10 @@ export class AppComponent implements OnInit {
 
     toggleVisibility(block: BlockValuesModel) {
         this.store.dispatch(editorActions.toggleItemVisibility({ block }));
+    }
+
+    changeCurrentTab(tabName: string) {
+        this.store.dispatch(editorActions.changeEditTab({ tabName }));
     }
 
     // add new block pane events

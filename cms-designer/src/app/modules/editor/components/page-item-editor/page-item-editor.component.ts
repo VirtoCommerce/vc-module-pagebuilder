@@ -1,5 +1,5 @@
 import { Component, OnInit, Input, Output, EventEmitter, AfterContentInit, OnDestroy } from '@angular/core';
-import { BlockSchema, BlockValuesModel, BlocksSchema } from '@shared/models';
+import { BlockSchema, BlockValuesModel, BlocksSchema, ComponentContext } from '@shared/models';
 import { Subject, combineLatest, Observable, fromEvent, Subscription } from 'rxjs';
 import { map, withLatestFrom } from 'rxjs/operators';
 import { WindowRef } from '@app/services';
@@ -12,27 +12,13 @@ import { WindowRef } from '@app/services';
 export class PageItemEditorComponent implements OnInit {
 
     private _mode: string;
-    private _model: BlockValuesModel;
-    private _schema: BlocksSchema;
 
-    @Input() get model(): BlockValuesModel {
-        return this._model;
-    }
-
-    set model(value: BlockValuesModel) {
-        this._model = value;
-        this.updateTabs();
-    }
-
-    @Input() get schema(): BlocksSchema {
-        return this._schema;
-    }
-    set schema(value: BlocksSchema) {
-        this._schema = value;
-        this.updateTabs();
-    }
-
+    @Input() model: BlockValuesModel;
+    @Input() schema: BlocksSchema;
     @Input() blockName: string;
+    @Input() tabs: string[];
+    @Input() activeTab: string;
+    @Input() context: ComponentContext;
     @Input() get mode(): string {
         return this._mode;
     }
@@ -47,10 +33,9 @@ export class PageItemEditorComponent implements OnInit {
     @Output() copyBlockEvent = new EventEmitter<BlockValuesModel>();
     @Output() copyToClipboardEvent = new EventEmitter<BlockValuesModel>();
     @Output() changeEditorModeEvent = new EventEmitter<string>();
+    @Output() changeCurrentTabEvent = new EventEmitter<string>();
 
-    tabs: string[];
     openedWidthStyle: number;
-    activeTab: string;
 
     private editedModel: BlockValuesModel;
 
@@ -65,7 +50,7 @@ export class PageItemEditorComponent implements OnInit {
     }
 
     setActiveTab(tabName: string) {
-        this.activeTab = tabName;
+        this.changeCurrentTabEvent.emit(tabName);
     }
 
     modelChanged(model) {
@@ -86,21 +71,6 @@ export class PageItemEditorComponent implements OnInit {
 
     copyToClipboard() {
         this.copyToClipboardEvent.emit(this.model);
-    }
-
-    private updateTabs() {
-        if (this.model && this.schema) {
-            this.tabs = this.schema[this.model.type].settings.reduce(
-                (result, list) => result.indexOf(list.tab || 'General') === -1
-                    ? result.concat(list.tab || 'General')
-                    : result,
-                []
-            ).sort();
-            this.activeTab = this.activeTab || this.tabs[0];
-            if (!this.tabs.some(x => x == this.activeTab)) {
-                this.activeTab = this.tabs[0];
-            }
-        }
     }
 
     private adjustPanelWidth() {

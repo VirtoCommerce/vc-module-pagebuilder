@@ -15,7 +15,7 @@
                 <span class="info" *ngIf="model.__id">ID: {{model.__id }}</span>
             </h2>
             <app-block-form *ngIf="model && schema" [model]="model" [schema]="schema"
-                [context]="{ filter: activeTab, mode: mode }" (modelChange)="modelChanged($event)"></app-block-form>
+                [context]="context" (modelChange)="modelChanged($event)"></app-block-form>
             <div *ngIf="!schema && model">
                 <p>There are no descriptors for this block type: {{ model.type }}</p>
             </div>
