@@ -1,6 +1,6 @@
 import { OnInit, Component, Inject } from '@angular/core';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { PasteResultModel, PopupListControlDescriptor } from '@shared/models';
+import { ComponentContext, PasteResultModel, PopupListControlDescriptor } from '@shared/models';
 import { FormGroup, FormBuilder, FormArray } from '@angular/forms';
 import { FormHelper } from '../../services';
 import { CdkDragSortEvent } from '@angular/cdk/drag-drop';
@@ -18,7 +18,7 @@ export class PopupContentComponent implements OnInit {
     constructor(fb: FormBuilder,
         private formHelper: FormHelper,
         private dialogRef: MatDialogRef<PopupContentComponent>,
-        @Inject(MAT_DIALOG_DATA) public data: { model: any[], descriptor: PopupListControlDescriptor }) {
+        @Inject(MAT_DIALOG_DATA) public data: { model: any[], descriptor: PopupListControlDescriptor, context: ComponentContext }) {
         const model = [...data.model||[]];
         this.items = fb.array(model.map(item => formHelper.generateForm(item, data.descriptor.element)));
         this.form = fb.group({ items: this.items });

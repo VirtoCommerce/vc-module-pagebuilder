@@ -1,3 +1,4 @@
+import { getValueOrDefault } from '@app/services/utils';
 import { WindowRef } from './window-ref';
 import { ModuleSettings } from './../models/environment.settings';
 import { Injectable } from '@angular/core';
@@ -51,9 +52,13 @@ export class PlatformService {
         return this.tryDownloadFromTheme('/config/blocks_schema.json');
     }
 
-    loadData<T>(relativeUrl: string, params: any = null, method: string = 'get'): Observable<T> {
+    loadData<T>(relativeUrl: string, body: any = null, method: string = 'get'): Observable<T> {
         const url = this.urls.generateFullPlatformUrl(relativeUrl);
-        return this.http[method.toLowerCase()](url, params);
+        if (method === 'get') {
+            return this.http.get<T>(url);
+        } else {
+            return this.http.post<T>(url, body);
+        }
     }
 
     initSettings(): Promise<any> {
@@ -74,7 +79,7 @@ export class PlatformService {
                 Object.assign(this.appSettings, appSettings);
                 moduleSettings.forEach(x => {
                     const key = x.name.replace('VirtoCommerce.PageBuilderModule.General.', '');
-                    let value: any = x.value || x.defaultValue;
+                    let value: any = getValueOrDefault(x.value, x.defaultValue);
                     switch (x.valueType) {
                         case 'Boolean':
                             value = value ? value.toString().toLowerCase() == 'true' : false;
