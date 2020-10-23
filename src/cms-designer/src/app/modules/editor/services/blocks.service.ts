@@ -33,44 +33,27 @@ export class BlocksService {
 
     private mergeSettings(block: BlockSchema, shared: SharedBlockSchema) {
 
-        if (!block.static && shared) {
+        if (block.static || !shared)
+            return;
 
-            // 1. take all included shared settings
-            const sharedSettings = block.excludeShared === true ? [] : (!shared.settings ? [] : [...shared.settings]);
+        // 1. take all included shared settings
+        const sharedSettings = block.excludeShared === true ? [] : (!shared.settings ? [] : [...shared.settings]);
 
-            // 2. add included named shared
-            if (!!block.includeShared && shared.namedSettings) {
-                const sharedNames = typeof block.includeShared === 'string' ? [block.includeShared] : block.includeShared;
-                const sharedNamesSettings = sharedNames.filter(x => !!shared.namedSettings[x]).reduce((acc, name) => ([...acc, ...shared.namedSettings[name]]), []);
-                sharedSettings.push(...sharedNamesSettings);
-            }
+        // 2. add included named shared
+        if (!!block.includeShared && shared.namedSettings) {
+            const sharedNames = typeof block.includeShared === 'string' ? [ block.includeShared ] : block.includeShared;
+            const sharedNamesSettings = sharedNames.filter(x => !!shared.namedSettings[x]).reduce((acc, name) => ([...acc, ...shared.namedSettings[name]]), []);
+            sharedSettings.push(...sharedNamesSettings);
+        }
 
-            // 3. remove items from excluded list
-            if (Array.isArray(block.excludeShared)) {
-                block.excludeShared.forEach(id => {
-                    const index = sharedSettings.findIndex(b => b.id === id);
-                    if (index !== -1) {
-                        sharedSettings.splice(index, 1);
-                    }
-                });
-            }
-
-            // 4. override shared settings by block settings
-            if (!block.settings) {
-                block.settings = [];
-            }
-            const blockSettings = block.settings.map(x => {
-                const settings = sharedSettings.find(shared => shared.id == x.id);
-                if (!!settings) {
-                    return { ...settings, ...x };
-                } else {
-                    return x;
+        // 3. remove items from excluded list
+        if (Array.isArray(block.excludeShared)) {
+            block.excludeShared.forEach(id => {
+                const index = sharedSettings.findIndex(b => b.id === id);
+                if (index !== -1) {
+                    sharedSettings.splice(index, 1);
                 }
             });
-
-            // 5. apply items
-            const settings = [...blockSettings, ...sharedSettings.filter(x => !blockSettings.find(b => b.id === x.id))];
-            block.settings = settings;
         }
         
         // 4. override shared settings by block settings
