@@ -2,7 +2,6 @@ import { createReducer, on, Action } from '@ngrx/store';
 import { BlocksSchema } from '@shared/models';
 import { PageModel } from '@editor/models';
 import * as Actions from './editor.actions';
-import { StaticReflector } from '@angular/compiler';
 
 export interface EditorState {
     pageLoading: boolean;
@@ -18,6 +17,7 @@ export interface EditorState {
     dirty: boolean;
     hoveredInPreviewId: number;
     editorMode: string;
+    currentEditorTab: string;
 }
 
 const initialState: EditorState = {
@@ -33,7 +33,8 @@ const initialState: EditorState = {
     blocksSchema: null,
     dirty: true,
     hoveredInPreviewId: 0,
-    editorMode: 'normal'
+    editorMode: 'normal',
+    currentEditorTab: null
 };
 
 const editorReducers = createReducer(
@@ -61,6 +62,7 @@ const editorReducers = createReducer(
         const page = { ...state.page, content };
         return { ...state, page, dirty: true };
     }),
+    on(Actions.changeEditTab, (state, { tabName }) => ({ ...state, currentEditorTab: tabName })),
     on(Actions.completeEditPageItem, state => ({ ...state, currentSectionItem: null })),
     on(Actions.loadBlocks, state => ({ ...state, pageLoading: true })),
     on(Actions.loadBlocksFail, state => ({ ...state, pageNotLoaded: true, pageLoading: false })),

@@ -1,7 +1,7 @@
-import { ServerRequest } from './server.request';
+import { ServerRequestDescriptor } from './server.request';
 import { ValueDescriptorModel } from './value-descriptor.model';
 
-export interface OptionsRequest extends ServerRequest {
+export interface OptionsRequest extends ServerRequestDescriptor {
     group: string;
     label: string;
 }

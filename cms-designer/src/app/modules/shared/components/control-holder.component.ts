@@ -14,7 +14,7 @@ import {
     ChangeDetectorRef
 } from '@angular/core';
 import { ControlHostDirective } from './control-host.directive';
-import { ControlDescriptor, BaseDescriptor } from '../models';
+import { ControlDescriptor, BaseDescriptor, BlockValuesModel, ComponentContext } from '../models';
 
 @Component({
     selector: 'app-control-holder',
@@ -29,16 +29,16 @@ import { ControlDescriptor, BaseDescriptor } from '../models';
 export class ControlHolderComponent implements OnInit, ControlValueAccessor {
 
     private component: BaseControlDirective<BaseDescriptor>;
-    private _context: any;
+    private _context: ComponentContext;
 
     @ViewChild(ControlHostDirective, {static: true}) host: ControlHostDirective;
     @Input() descriptor: ControlDescriptor;
     @Input() group: FormGroup;
     @Input() hideLabel: boolean;
-    @Input() get context(): any {
+    @Input() get context(): ComponentContext {
         return this._context;
     }
-    set context(value: any) {
+    set context(value: ComponentContext) {
         this._context = value;
         if (this.component) {
             this.component.context = value;
@@ -56,7 +56,9 @@ export class ControlHolderComponent implements OnInit, ControlValueAccessor {
     ngOnInit(): void {
         const type = this.controlsFactory.resolve(this.descriptor.type);
         if (!type) {
-            console.log('unknown component type:', this.descriptor);
+            if (this.descriptor.type !== 'hidden') {
+                console.log('unknown component type:', this.descriptor);
+            }
         } else {
             const factory = this.componentFactoryResolver.resolveComponentFactory(type);
             const container = this.host.viewContainerRef;
