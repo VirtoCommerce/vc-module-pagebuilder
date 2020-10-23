@@ -1,4 +1,4 @@
-<label>{{ descriptor.label }}</label>
+<label [attr.title]="descriptor.hint">{{ descriptor.label }}</label>
 <div class="form-file" data-name="file-input">
     <div class="form-file__control">
         <input type="file" #fileInput class="form-file__input" (change)="onChange($event)"

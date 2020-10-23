@@ -1,7 +1,7 @@
 import { Component, OnInit, Input, Output, EventEmitter, ChangeDetectorRef, OnDestroy, NgZone } from '@angular/core';
 import { FormGroup } from '@angular/forms';
 import { Subscription } from 'rxjs';
-import { BlockSchema, BlockValuesModel, BlocksSchema } from '@shared/models';
+import { BlockSchema, BlockValuesModel, BlocksSchema, ComponentContext } from '@shared/models';
 import { FormHelper } from '@shared/services';
 
 @Component({
@@ -13,7 +13,7 @@ export class BlockFormComponent implements OnInit, OnDestroy {
     private _schema: BlocksSchema | BlockSchema;
     private _currentBlockId?: number = null;
 
-    @Input() context: any;
+    @Input() context: ComponentContext;
 
     @Input() get model(): BlockValuesModel {
         return this._model;

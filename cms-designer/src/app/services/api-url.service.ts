@@ -105,7 +105,7 @@ export class ApiUrlsService {
     }
 
     getLocalConfigUrl(): string {
-        return 'data/settings.json';
+        return 'data/settings.html';
     }
 
     generateFullPlatformUrl(relativeUrl: string): string {

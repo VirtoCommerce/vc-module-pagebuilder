@@ -1,6 +1,6 @@
 <div class="list list--collection">
     <div class="list__item">
-        <a href="#" (click)="toggleControl($event)" class="list__name">{{ descriptor.label }}</a>
+        <a [attr.title]="descriptor.hint" href="#" (click)="toggleControl($event)" class="list__name">{{ descriptor.label }}</a>
     </div>
     <div class="collection-item__body" *ngIf="isOpen">
         <div class="form-group">

@@ -22,3 +22,4 @@ export * from './options.request';
 export * from './value-descriptor.model';
 export * from './search-control.descriptor';
 export * from './server.request';
+export * from './component-context.model';

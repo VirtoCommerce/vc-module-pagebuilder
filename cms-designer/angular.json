@@ -29,7 +29,7 @@
                 "ignore": ["**/samples/**/*", "**/kama/**/*", "**/moono/**/*", "bower.json", "CHANGES.md", "composer.json", "LICENSE.md", "package.json", "README.md"]
               },
               {
-                "glob": "settings.json",
+                "glob": "settings.html",
                 "input": "src/data/",
                 "output": "data/"
               }

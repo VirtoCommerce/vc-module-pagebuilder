@@ -1,3 +1,4 @@
+import { getValueOrDefault } from '@app/services/utils';
 import { Injectable } from '@angular/core';
 import { FormGroup, FormArray, FormControl } from '@angular/forms';
 import { ControlDescriptor, CollectionControlDescriptor } from '@shared/models';
@@ -10,10 +11,7 @@ export class FormHelper {
     generateForm(model: any, keys: ControlDescriptor[]): FormGroup {
         const result = new FormGroup({});
         keys.filter(x => !!x.id).forEach(descriptor => {
-            let value = model[descriptor.id];
-            if (typeof value === 'undefined') {
-                value = descriptor.default;
-            }
+            let value = getValueOrDefault(model[descriptor.id], descriptor.default);
             if (descriptor.type === 'list') {
                 const arrayDescriptor = <CollectionControlDescriptor>descriptor;
                 // value is array here, so item is array element.
