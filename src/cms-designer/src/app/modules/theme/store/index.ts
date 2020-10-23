@@ -1,3 +1,4 @@
+import { getValueOrDefault } from '@app/services/utils';
 import { createFeatureSelector, createSelector } from '@ngrx/store';
 import * as fromRoot from 'src/app/store';
 import * as fromTheme from './theme.reducer';
@@ -71,9 +72,7 @@ export const getEditablePreset = createSelector(
         const result = { ...state.editablePreset };
         if (schema) {
             schema.settings.forEach(x => {
-                if (!result[x.id] && !!x.default) {
-                    result[x.id] = x.default;
-                }
+                result[x.id] = getValueOrDefault(result[x.id], x.default);
             });
         }
         return result;

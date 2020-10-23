@@ -1,12 +1,12 @@
 import { Input, OnInit, AfterContentInit, ElementRef, Directive } from '@angular/core';
 import { FormGroup } from '@angular/forms';
-import { BaseDescriptor, BlockSchema } from '@shared/models';
+import { BaseDescriptor, BlockSchema, BlockValuesModel, ComponentContext } from '@shared/models';
 
 @Directive()
 export class BaseControlDirective<T extends BaseDescriptor> implements OnInit, AfterContentInit {
     @Input() descriptor: T;
     @Input() group: FormGroup;
-    @Input() context: any;
+    @Input() context: ComponentContext;
     @Input() hideLabel: boolean;
 
     parentClass = 'form-group';

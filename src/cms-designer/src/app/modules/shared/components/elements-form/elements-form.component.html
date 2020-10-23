@@ -10,7 +10,7 @@
             Inner collections forbidden, please use popup editor!
         </p>
         <div *ngIf="!disallowCollection && displayCollection(control) && inTab(control)" class="form-group">
-            <label class="form-label">{{ control.label }}</label>
+            <label [attr.title]="control.hint" class="form-label">{{ control.label }}</label>
             <div *ngIf="!editableItem || editableItemDescriptor.id !== control.id">
                 <div cdkDropList (cdkDropListDropped)="sortItems(control, $event)" [cdkDropListData]="getControls(control)" class="list list--collection">
                     <div class="list__item" cdkDragBoundary=".list--collection" cdkDragLockAxis="y" cdkDrag [cdkDragData]="item"
@@ -31,7 +31,7 @@
             </div>
             <div *ngIf="editableItem && editableItemDescriptor.id === control.id" class="collection-item" [formGroup]="editableItem">
                 <div class="collection-item__body">
-                    <app-elements-form [group]="editableItem" [descriptors]="getElementDescriptors(control)" [disallowCollection]="true">
+                    <app-elements-form [group]="editableItem" [context]="context" [descriptors]="getElementDescriptors(control)" [disallowCollection]="true">
                     </app-elements-form>
                 </div>
                 <div class="collection-item__footer">

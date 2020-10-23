@@ -22,8 +22,12 @@
             "assets": [
               "src/favicon.ico",
               "src/assets",
-              "src/external",
-              "src/data/settings.json",
+              {
+                "glob": "**/*",
+                "input": "./node_modules/ckeditor4/",
+                "output": "external/ckeditor/"
+              },
+              "src/data/settings.html",
               "src/data/page_data.page",
               "src/data/settings_data.json",
               "src/data/settings_schema.json",
