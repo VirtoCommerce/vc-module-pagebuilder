@@ -15,5 +15,12 @@
     "webpack": "4.32.2",
     "webpack-cli": "3.3.2"
   },
-  "dependencies": {}
+  "dependencies": {},
+  "optionalDependencies": {
+    "serialize-javascript": ">=3.1.0",
+    "elliptic": ">=6.5.3",
+    "lodash": ">=4.17.20",
+    "minimist": ">=1.2.5",
+    "yargs-parser": ">=13.1.2"
+  }
 }
