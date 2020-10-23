@@ -151,14 +151,15 @@ export class RootEffects {
     loadEffectiveThemeValues$ = createEffect(() => this.actions$.pipe(
         ofType(themeActions.loadEffectiveThemeValues, rootActions.previewReady),
         withLatestFrom(
+            this.store$.select(fromTheme.getIsEffectiveValuesSkipped),
             this.store$.select(fromTheme.getEditablePreset),
             this.store$.select(fromTheme.getCurrentThemeValuesRequested),
             this.store$.select(fromRoot.getPrimaryFrameId),
             this.store$.select(fromRoot.getSecondaryFrameId)
         ),
-        filter(([, editableTheme, themeRequested, primaryFrameId, secondaryFrameId]) =>
-            !themeRequested && !!editableTheme && (!!primaryFrameId || !!secondaryFrameId)),
-        map(([, , , primaryFrameId, secondaryFrameId]) => {
+        filter(([, skip, editableTheme, themeRequested, primaryFrameId, secondaryFrameId]) =>
+            !skip && !themeRequested && !!editableTheme && (!!primaryFrameId || !!secondaryFrameId)),
+        map(([, , , , primaryFrameId, secondaryFrameId]) => {
             this.preview.requestSettings(primaryFrameId || secondaryFrameId);
             return themeActions.loadEffectiveThemeValuesRequested();
         })

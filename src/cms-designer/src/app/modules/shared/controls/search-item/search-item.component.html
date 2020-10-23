@@ -1,4 +1,4 @@
-<label *ngIf="!hideLabel">{{descriptor.label}}</label>
+<label [attr.title]="descriptor.hint" *ngIf="!hideLabel">{{descriptor.label}}</label>
 <input #control type="text" class="form-control"
     [value]="searchQuery"
     (paste)="onPaste($event)" (keyup)="onTextChange($event.target.value)" />

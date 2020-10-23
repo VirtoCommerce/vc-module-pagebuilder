@@ -21,6 +21,7 @@ export class PopupListItemComponent extends BaseControlDirective<PopupListContro
             ...this.descriptor.options,
             data: {
                 model: this.value,
+                context: this.context,
                 descriptor: this.descriptor
             },
         };

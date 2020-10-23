@@ -1,18 +1,19 @@
-import { ChangeDetectorRef, Component, ElementRef, ViewChild } from '@angular/core';
-import { DomSanitizer } from '@angular/platform-browser';
+import { Component, ElementRef, ViewChild, OnDestroy } from '@angular/core';
 import { WindowRef } from '@app/services';
 import { SearchControlDescriptor } from '@shared/models';
 import { RequestItemsService } from '@shared/services';
-import { Subject } from 'rxjs';
+import { Subject, Subscription } from 'rxjs';
 import { debounceTime, map } from 'rxjs/operators';
 import { BaseControlDirective } from '../base-control.component';
+
+import { cloneDeep } from 'lodash-es';
 
 @Component({
     selector: 'app-search-item',
     templateUrl: './search-item.component.html',
     styleUrls: ['./search-item.component.scss']
 })
-export class SearchItemComponent extends BaseControlDirective<SearchControlDescriptor> {
+export class SearchItemComponent extends BaseControlDirective<SearchControlDescriptor> implements OnDestroy {
 
     private searchEvent$ = new Subject<string>();
 
@@ -27,13 +28,22 @@ export class SearchItemComponent extends BaseControlDirective<SearchControlDescr
         super.setValue(value);
     }
 
-    constructor(private windowRef: WindowRef, private sanitizer: DomSanitizer, private requestItemsService: RequestItemsService, private cdk: ChangeDetectorRef) {
+    private subscription: Subscription = null;
+
+    constructor(private windowRef: WindowRef, private requestItemsService: RequestItemsService) {
         super();
-        this.searchEvent$.pipe(
+        this.subscription = this.searchEvent$.pipe(
             debounceTime(1000)
         ).subscribe(searchQuery => {
             this.searchModel(searchQuery);
         });
+    }
+
+    ngOnDestroy(): void {
+        if (this.subscription && !this.subscription.closed) {
+            this.subscription.unsubscribe();
+            this.subscription = null;
+        }
     }
 
     initContent() {
@@ -43,8 +53,10 @@ export class SearchItemComponent extends BaseControlDirective<SearchControlDescr
     }
 
     private searchModel(query: string) {
-        this.requestItemsService.doSearchRequest(this.descriptor.request, query).pipe(
-            map(items => Array.isArray(items) && items.length ? this.requestItemsService.getValue(items[0], this.descriptor.request?.value) : { __nodata: true })
+        const context = cloneDeep(this.context);
+        context.__searchQuery = query;
+        this.requestItemsService.doSearchRequest(this.descriptor.request, context).pipe(
+            map(item => item || { __nodata: true })
         ).subscribe(result => {
             result['__searchQuery'] = query;
             this.setValue(result);

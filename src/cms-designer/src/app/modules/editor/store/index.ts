@@ -1,4 +1,4 @@
-import { BlockSchema } from '@shared/models';
+import { BlockSchema, ComponentContext } from '@shared/models';
 import { CreateBlockModel } from '@editor/models';
 import { createFeatureSelector, createSelector } from '@ngrx/store';
 
@@ -59,6 +59,34 @@ export const getCurrentSectionItem = createSelector(
             }
         }
         return null;
+    }
+);
+
+export const getTabs = createSelector(
+    getCurrentSectionItem,
+    getBlocksSchema,
+    (block, schema) => {
+        if (block && schema) {
+            const tabs = schema[block.type].settings.reduce(
+                (result, list) => result.indexOf(list.tab || 'General') === -1
+                    ? result.concat(list.tab || 'General')
+                    : result,
+                []
+            ).sort();
+            return tabs;
+        }
+        return [];
+    }
+);
+
+export const getCurrentTab = createSelector(
+    getEditorFeatureState,
+    getTabs,
+    (state, tabs) => {
+        if (!!state.currentEditorTab && tabs.indexOf(state.currentEditorTab) !== -1) {
+            return state.currentEditorTab;
+        }
+        return tabs[0];
     }
 );
 
@@ -144,4 +172,10 @@ export const getItemsForCreate = createSelector(
         Object.keys(groups).forEach(x => result.groups.push({ name: x, items: groups[x] }));
         return result;
     }
+);
+
+export const getEditItemContext = createSelector(
+    getEditorFeatureState,
+    getCurrentSectionItem,
+    (state, block) => (<ComponentContext>{ page: state.page.content, settings: state.page.settings, block, filter: state.currentEditorTab, mode: state.editorMode })
 );

@@ -8,14 +8,18 @@ export const actionsToIgonre: string[] = [
     markSectionHoveredInPreviewActionName
 ];
 
-export const debugInfo = [];
+export const debugInfo = {
+    source: window.location.toString(),
+    store: [],
+    errors: []
+};
 
 export function debug(actionReducer: ActionReducer<any>): ActionReducer<any> {
     return function (state, action) {
         if (actionsToIgonre.indexOf(action.type) === -1) {
-            debugInfo.push({ state, action })
-            if (debugInfo.length > 10) {
-                debugInfo.splice(0, 1);
+            debugInfo.store.push({ state, action })
+            if (debugInfo.store.length > 10) {
+                debugInfo.store.splice(0, 1);
             }
         }
         return actionReducer(state, action);

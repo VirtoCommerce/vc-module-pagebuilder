@@ -47,3 +47,4 @@ export const toggleItemVisibility = createAction('[Page] Toggle Item Visibility'
 export const markSectionHoveredInPreview = createAction(markSectionHoveredInPreviewActionName, props<{ blockId: number }>());
 export const highlightInPreview = createAction(highlightInPreviewActionName, props<{ block: BlockValuesModel }>());
 export const setEditorMode = createAction('[Page] Set Editor Mode', props<{ mode: string }>());
+export const changeEditTab = createAction('[Page] Change Edit Tab', props<{ tabName: string }>());

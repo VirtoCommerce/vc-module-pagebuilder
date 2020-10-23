@@ -1,7 +1,7 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { FormGroup, AbstractControl, FormArray } from '@angular/forms';
-import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
-import { DisplayTextControlDescriptor, ControlDescriptor, CollectionControlDescriptor } from '@shared/models';
+import { CdkDragDrop } from '@angular/cdk/drag-drop';
+import { DisplayTextControlDescriptor, ControlDescriptor, CollectionControlDescriptor, BlockValuesModel, ComponentContext } from '@shared/models';
 import { FormHelper } from '@shared/services';
 
 @Component({
@@ -12,8 +12,9 @@ import { FormHelper } from '@shared/services';
 export class ElementsFormComponent implements OnInit {
     @Input() group: FormGroup;
     @Input() descriptors: ControlDescriptor[];
-    @Input() context: any;
+    @Input() context: ComponentContext;
     @Input() disallowCollection: boolean;
+    @Input() block: BlockValuesModel;
 
     private savedItem: any;
     editableItem: FormGroup;

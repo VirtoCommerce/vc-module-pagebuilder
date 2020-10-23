@@ -72,8 +72,43 @@ export class BlocksService {
             const settings = [...blockSettings, ...sharedSettings.filter(x => !blockSettings.find(b => b.id === x.id))];
             block.settings = settings;
         }
+        
+        // 4. override shared settings by block settings
+        if (!block.settings) {
+            block.settings = [];
+        }
+        const blockSettings = block.settings.map(x => {
+            const settings = sharedSettings.find(shared => shared.id == x.id);
+            if (!!settings) {
+                return {...settings, ...x};
+            } else {
+                return x;
+            }
+        });
+        // sharedSettings.forEach(shared => {
+        //     const blockSettings = block.settings.find(x => x.id == shared.id);
+        //     if (!!blockSettings) {
+                
+        //     }
+        // });
 
-        // 6. order items
-        block.settings.sort((x, y) => (x.sort || 0) - (y.sort || 0));
+        // 5. order items
+        const getSortValue = block => (typeof block.sort === "number") ? block.sort : Number.MAX_VALUE;
+        const settings = [...blockSettings, ...sharedSettings.filter(x => !blockSettings.find(b => b.id === x.id))];
+        settings.sort((x, y) => getSortValue(x) - getSortValue(y));
+        block.settings = settings;
+
+        // 6. apply default values
+        if (!!block.default) {
+            block.settings = block.settings.map(s => {
+                s.default = block.default[s.id] || s.default;
+                return s;
+            });
+            // Object.keys(block.default).forEach(key => {
+            //     block.settings.filter(x => x.id === key).forEach(x => {
+            //         x.default = block.default[key];
+            //     });
+            // });
+        }
     }
 }

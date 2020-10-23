@@ -6,6 +6,9 @@ import { RequestItemsService } from '../../services/request-items.service';
 import { Subject } from 'rxjs';
 import { debounceTime, map } from 'rxjs/operators';
 
+import { cloneDeep } from 'lodash-es';
+import { getValueOrDefault } from '@app/services/utils';
+
 @Component({
     selector: 'app-select-item',
     templateUrl: './select-item.component.html',
@@ -49,7 +52,9 @@ export class SelectItemComponent extends BaseControlDirective<SelectControlDescr
     private searchEvent$ = new Subject<string>();
 
     initContent() {
-        this.requestItemsService.getRequestedOptions(this.descriptor.request, this.descriptor.cacheRequest, this.searchPhrase).pipe(
+        const context = cloneDeep(this.context);
+        context.__searchQuery = this.searchPhrase;
+        this.requestItemsService.getRequestedOptions(this.descriptor.request, context).pipe(
             map(items => items.map<OptionModel>(x => <OptionModel>{
                 label: x[this.descriptor.request.label],
                 group: this.descriptor.request.group ? x[this.descriptor.request.group] : null,
@@ -73,7 +78,7 @@ export class SelectItemComponent extends BaseControlDirective<SelectControlDescr
     }
 
     setValue(value: any) {
-        const v = !value && this.descriptor.default ? this.descriptor.default : value;
+        const v = getValueOrDefault(value, this.descriptor.default);
         this.refreshValue(v, false);
     }
 
@@ -109,8 +114,6 @@ export class SelectItemComponent extends BaseControlDirective<SelectControlDescr
     }
 
     onSearch(event) {
-        if (!!this.descriptor.request.searchField) {
-            this.searchEvent$.next(event.target.value);
-        }
+        this.searchEvent$.next(event.target.value);
     }
 }
