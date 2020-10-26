@@ -36,3 +36,9 @@ export function logger(actionReducer: ActionReducer<any>): ActionReducer<any> {
 }
 
 export const metaReducers: MetaReducer<any>[] = environment.production ? [debug, logger] : [debug];
+
+export function debugLog(...args) {
+    if (window.location.href.indexOf('debug=true') !== -1) {
+        console.log(...args);
+    }
+}
