@@ -6,7 +6,6 @@ import * as jp from 'jsonpath';
 import { map, tap } from 'rxjs/operators';
 import { Observable, of } from 'rxjs';
 import { ApiUrlsService } from '@app/services';
-import { isArray } from 'util';
 
 @Injectable({
     providedIn: 'root'
@@ -48,7 +47,7 @@ export class SelectItemService {
     }
 
     private getValue(item: any, valueDescriptor: string | (string | ValueDescriptorModel)[]): any {
-        if (isArray(valueDescriptor)) {
+        if (Array.isArray(valueDescriptor)) {
             const result = {};
             const properties = <(string | ValueDescriptorModel)[]>valueDescriptor;
             properties.forEach(x => {

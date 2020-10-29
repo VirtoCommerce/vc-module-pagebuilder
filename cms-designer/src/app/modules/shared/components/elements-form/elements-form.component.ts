@@ -13,7 +13,7 @@ export class ElementsFormComponent implements OnInit {
     @Input() group: FormGroup;
     @Input() descriptors: ControlDescriptor[];
     @Input() context: ComponentContext;
-    @Input() disallowCollection: boolean;
+    @Input() inCollectionItem: boolean;
     @Input() block: BlockValuesModel;
 
     private savedItem: any;
