@@ -177,5 +177,7 @@ export const getItemsForCreate = createSelector(
 export const getEditItemContext = createSelector(
     getEditorFeatureState,
     getCurrentSectionItem,
-    (state, block) => (<ComponentContext>{ page: state.page.content, settings: state.page.settings, block, filter: state.currentEditorTab, mode: state.editorMode })
+    getCurrentTab,
+    getEditorMode,
+    (state, block, tab, mode) => (<ComponentContext>{ page: state.page.content, settings: state.page.settings, block, filter: tab, mode })
 );
