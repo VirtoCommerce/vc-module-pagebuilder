@@ -11,7 +11,7 @@ export class FormHelper {
     generateForm(model: any, keys: ControlDescriptor[]): FormGroup {
         const result = new FormGroup({});
         keys.filter(x => !!x.id).forEach(descriptor => {
-            let value = getValueOrDefault(model[descriptor.id], descriptor.default);
+            let value = getValueOrDefault(model[descriptor.id]);
             if (descriptor.type === 'list') {
                 const arrayDescriptor = <CollectionControlDescriptor>descriptor;
                 // value is array here, so item is array element.
