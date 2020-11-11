@@ -78,18 +78,28 @@ angular.module('virtoCommerce.pageBuilderModule')
                     {
                         name: "content.commands.preview-page", icon: 'fa fa-eye',
                         executeMethod: function () {
-                            if (blade.storeUrl) {
-                                var path = generatePath();
-                                window.open(blade.storeUrl + path, '_blank');
-                            }
-                            else {
-                                var dialog = {
-                                    id: "noUrlInStore",
-                                    title: "content.dialogs.set-store-url.title",
-                                    message: "content.dialogs.set-store-url.message"
-                                };
-                                dialogService.showNotificationDialog(dialog);
-                            }
+                            blade.isLoading = true;
+                            var setStoreUrl = function(storeUrl) {
+                                if (storeUrl || blade.storeUrl) {
+                                    var path = generatePath();
+                                    window.open((storeUrl || blade.storeUrl) + path, '_blank');
+                                } else {
+                                    var dialog = {
+                                        id: "noUrlInStore",
+                                        title: "content.dialogs.set-store-url.title",
+                                        message: "content.dialogs.set-store-url.message"
+                                    };
+                                    dialogService.showNotificationDialog(dialog);
+                                }
+                            };
+                            pageBuilderApi.getStoreUrl({ storeId: blade.storeId }, function(response) {
+                                blade.isLoading = false;
+                                var storeUrl = response.data;
+                                setStoreUrl(storeUrl);
+                            }, function (error) {
+                                bladeNavigationService.setError('Error ' + error.status, $scope.blade);
+                                blade.isLoading = false;
+                            });
                         },
                         canExecuteMethod: function () { return true; }
                     },
