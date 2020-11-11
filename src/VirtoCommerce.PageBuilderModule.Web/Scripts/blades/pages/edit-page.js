@@ -79,7 +79,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                         name: "content.commands.preview-page", icon: 'fa fa-eye',
                         executeMethod: function () {
                             blade.isLoading = true;
-                            var setStoreUrl = function(storeUrl) {
+                            var showPreview = function(storeUrl) {
                                 if (storeUrl || blade.storeUrl) {
                                     var path = generatePath();
                                     window.open((storeUrl || blade.storeUrl) + path, '_blank');
@@ -95,7 +95,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                             pageBuilderApi.getStoreUrl({ storeId: blade.storeId }, function(response) {
                                 blade.isLoading = false;
                                 var storeUrl = response.data;
-                                setStoreUrl(storeUrl);
+                                showPreview(storeUrl);
                             }, function (error) {
                                 bladeNavigationService.setError('Error ' + error.status, $scope.blade);
                                 blade.isLoading = false;
