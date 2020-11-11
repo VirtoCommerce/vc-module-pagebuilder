@@ -80,9 +80,10 @@ angular.module('virtoCommerce.pageBuilderModule')
                         executeMethod: function () {
                             blade.isLoading = true;
                             var showPreview = function(storeUrl) {
-                                if (storeUrl || blade.storeUrl) {
+                                storeUrl = (storeUrl || blade.storeUrl).replace(/\/$/, '');
+                                if (storeUrl) {
                                     var path = generatePath();
-                                    window.open((storeUrl || blade.storeUrl) + path, '_blank');
+                                    window.open(storeUrl + path, '_blank');
                                 } else {
                                     var dialog = {
                                         id: "noUrlInStore",
