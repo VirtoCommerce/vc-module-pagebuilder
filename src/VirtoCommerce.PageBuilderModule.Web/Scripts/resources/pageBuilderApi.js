@@ -2,6 +2,8 @@
     .config(['$httpProvider', function ($httpProvider) {
         $httpProvider.interceptors.push('virtoCommerce.pageBuilderModule.contentApiInterceptor');
     }])
+    // This interceptor is required because API exists only in Demo Solution Features Module
+    // If it's not installed, then just return null and work as earlier
     .factory('virtoCommerce.pageBuilderModule.contentApiInterceptor', ['$q', function ($q) {
         return {
             responseError: function(response) {
