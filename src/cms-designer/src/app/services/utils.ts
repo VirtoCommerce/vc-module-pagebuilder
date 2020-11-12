@@ -37,7 +37,7 @@ export function template(value: string, ...args: any) {
 }
 
 export function getValueOrDefault(value: any, defaultValue: any = null) {
-    if (value === 0 || value === null) {
+    if (value === 0 || value === null || value === false) {
         return value;
     }
     return value || defaultValue;

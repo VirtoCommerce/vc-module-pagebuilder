@@ -10,6 +10,8 @@ import { TextControlDescriptor } from '@shared/models';
 export class TextItemComponent extends BaseControlDirective<TextControlDescriptor> {
 
     config = {
+        defaultLanguage: 'en',
+        language: '',
         toolbar: [
             {
                 name: 'basicstyles',
@@ -24,7 +26,7 @@ export class TextItemComponent extends BaseControlDirective<TextControlDescripto
             { name: 'tools', items: ['Maximize'] },
             { name: 'document', items: ['Source'] }
         ],
-        extraPlugins: 'stylescombo,justify,colorbutton,colordialog',
+        extraPlugins: 'stylescombo,justify,colorbutton,colordialog,font',
         removeButtons: '',
         format_tags: 'p;h2;h3;h4',
         // contentsCss: AppSettings.contentCssPath,

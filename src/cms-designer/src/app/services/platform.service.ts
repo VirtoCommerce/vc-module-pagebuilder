@@ -74,9 +74,12 @@ export class PlatformService {
             this.appSettings.uploadPath = index === -1 ? '' : this.appSettings.path.substr(0, index);
         }
 
-        return combineLatest([this.loadModuleConfig(), this.moduleSettings(), this.storeSettings(), this.moduleVersion()]).pipe(
-            tap(([appSettings, moduleSettings, storeSettings, version]) => {
+        return combineLatest([this.loadModuleConfig(), this.moduleSettings(), this.storeSettings(), this.moduleVersion(), this.getStoreUrl()]).pipe(
+            tap(([appSettings, moduleSettings, storeSettings, version, storeUrl]) => {
                 Object.assign(this.appSettings, appSettings);
+                if (!!storeUrl) {
+                    this.appSettings.storeBaseUrl = storeUrl;
+                }
                 moduleSettings.forEach(x => {
                     const key = x.name.replace('VirtoCommerce.PageBuilderModule.General.', '');
                     let value: any = getValueOrDefault(x.value, x.defaultValue);
@@ -88,7 +91,11 @@ export class PlatformService {
                             value = value ? parseInt(value.toString()) : 0;
                             break;
                     }
-                    this.appSettings[`${key[0].toLowerCase()}${key.substring(1)}`] = value;
+                    let targetKey = `${key[0].toLowerCase()}${key.substring(1)}`;
+                    if (targetKey === 'storeUrl') targetKey = 'storeBaseUrl';
+                    if (targetKey !== 'storeBaseUrl' || !storeUrl) {
+                        this.appSettings[targetKey] = value;
+                    }
                 });
 
                 if (!this.appSettings.platformUrl) {
@@ -102,6 +109,13 @@ export class PlatformService {
                 this.appSettings.version = version;
             })
         ).toPromise();
+    }
+
+    private getStoreUrl() {
+        const url = this.urls.getStoreUrl(this.appSettings.storeId);
+        return this.http.get<string>(url).pipe(
+            catchError(error => of(null))
+        );
     }
 
     private loadModuleConfig(): Observable<EnvironmentSettings> {

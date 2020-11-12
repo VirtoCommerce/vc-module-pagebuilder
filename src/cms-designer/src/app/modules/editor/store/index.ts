@@ -41,7 +41,7 @@ export const getPageForEdit = createSelector(
     getBlocksSchema,
     (state, schema) => state.page && schema ? <any>{
         ...state.page,
-        content: state.page.content.filter(x => schema[x.type])
+        content: state.page.content //.filter(x => schema[x.type])
     } : null
 );
 
@@ -67,13 +67,13 @@ export const getTabs = createSelector(
     getBlocksSchema,
     (block, schema) => {
         if (block && schema) {
-            const tabs = schema[block.type].settings.reduce(
+            const tabs = schema[block.type]?.settings.reduce(
                 (result, list) => result.indexOf(list.tab || 'General') === -1
                     ? result.concat(list.tab || 'General')
                     : result,
                 []
             ).sort();
-            return tabs;
+            return tabs || [];
         }
         return [];
     }
