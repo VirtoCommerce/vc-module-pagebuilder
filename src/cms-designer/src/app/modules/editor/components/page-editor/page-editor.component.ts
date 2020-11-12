@@ -57,7 +57,7 @@ export class PageEditorComponent implements OnInit {
     }
 
     getBlockIcon(item): string {
-        return this.schema[item.type].icon;
+        return this.schema[item.type]?.icon;
     }
 
     getBlockName(item): string {
