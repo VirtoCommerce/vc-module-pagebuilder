@@ -112,7 +112,7 @@ export class PlatformService {
     }
 
     private getStoreUrl() {
-        const url = this.urls.getStoreUrl(this.appSettings.storeId);
+        const url = this.urls.getStoreUrlEndpoint(this.appSettings.storeId);
         return this.http.get<string>(url).pipe(
             catchError(error => of(null))
         );
