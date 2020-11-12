@@ -16,7 +16,7 @@
             </h2>
             <app-block-form *ngIf="model && schema" [model]="model" [schema]="schema"
                 [context]="context" (modelChange)="modelChanged($event)"></app-block-form>
-            <div *ngIf="!schema && model">
+            <div *ngIf="model && !schema[model.type]">
                 <p>There are no descriptors for this block type: {{ model.type }}</p>
             </div>
             <div *ngIf="!model">
@@ -24,7 +24,7 @@
             </div>
         </div>
     </div>
-    <div class="left-panel-footer" *ngIf="model.type !== 'settings' && !schema[model.type].static">
+    <div class="left-panel-footer" *ngIf="model && model.type !== 'settings' && !schema[model.type]?.static">
         <button class="btn btn--outline" (click)="removeBlock()">
             <span class="btn__icon btn__icon--remove"></span>
             <span class="btn__text">Remove section</span>
