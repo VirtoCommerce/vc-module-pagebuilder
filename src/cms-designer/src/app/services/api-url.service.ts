@@ -28,6 +28,11 @@ export class ApiUrlsService {
         return url;
     }
 
+    getStoreUrlEndpoint(storeId: string): string {
+        const url = this.combine(this.appSettings.platformUrl, 'api/stores/url/', storeId);
+        return url;
+    }
+
     generateDownloadUrl(contentType: string, filepath: string): string {
         const path = encodeURIComponent(filepath || this.appSettings.path);
         const url = this.combine(this.appSettings.platformUrl, '/api/content/', contentType || this.appSettings.contentType, this.appSettings.storeId)
