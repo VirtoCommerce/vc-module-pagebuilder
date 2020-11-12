@@ -3,7 +3,7 @@ import { WindowRef } from './window-ref';
 import { ModuleSettings } from './../models/environment.settings';
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, combineLatest, of } from 'rxjs';
+import { Observable, of, forkJoin } from 'rxjs';
 import { tap, map, catchError } from 'rxjs/operators';
 import { ApiUrlsService } from './api-url.service';
 import { PresetsModel } from '@themes/models';
@@ -74,7 +74,7 @@ export class PlatformService {
             this.appSettings.uploadPath = index === -1 ? '' : this.appSettings.path.substr(0, index);
         }
 
-        return combineLatest([this.loadModuleConfig(), this.moduleSettings(), this.storeSettings(), this.moduleVersion(), this.getStoreUrl()]).pipe(
+        return forkJoin([this.loadModuleConfig(), this.moduleSettings(), this.storeSettings(), this.moduleVersion(), this.getStoreUrl()]).pipe(
             tap(([appSettings, moduleSettings, storeSettings, version, storeUrl]) => {
                 Object.assign(this.appSettings, appSettings);
                 if (!!storeUrl) {
