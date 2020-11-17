@@ -8,6 +8,7 @@ export interface EnvironmentSettings {
     tokenUrl: string;
     previewTimeout: number;
     useGlobalAssets: boolean;
+    assetsPath: string;
 
     moduleLocation: string;
     version: string;

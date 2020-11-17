@@ -53,7 +53,8 @@ export class ApiUrlsService {
             ? '/api/platform/assets' // url for cdn, upload via platform endpoint
             : `api/content/Pages/${this.appSettings.storeId}`; // url to pages storage, upload via content module endpoint
         const url = this.combine(this.appSettings.platformUrl, assetEndpoint) +
-            `?folderUrl=/assets/${encodeURIComponent(this.appSettings.contentType)}&name=${name}`;
+            `?folderUrl=${encodeURIComponent(this.appSettings.assetsPath)}&name=${name}`;
+            // `?folderUrl=/assets/${encodeURIComponent(this.appSettings.contentType)}&name=${name}`;
         return url;
     }
 
