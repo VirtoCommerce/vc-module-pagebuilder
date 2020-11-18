@@ -10,7 +10,18 @@ import { FormHelper } from '@shared/services';
     styleUrls: ['./elements-form.component.scss']
 })
 export class ElementsFormComponent implements OnInit {
-    @Input() group: FormGroup;
+
+    private _group: FormGroup;
+
+    @Input() get group(): FormGroup {
+        return this._group;
+    }
+    set group(value: FormGroup) {
+        if (this._group !== value) {
+            this._group = value;
+            this.closeCollectionItemEditor();
+        }
+    }
     @Input() descriptors: ControlDescriptor[];
     @Input() context: ComponentContext;
     @Input() inCollectionItem: boolean;
