@@ -2,8 +2,8 @@ import { getValueOrDefault } from '@app/services/utils';
 import { WindowRef } from './window-ref';
 import { ModuleSettings } from './../models/environment.settings';
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable, combineLatest, of } from 'rxjs';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Observable, of, forkJoin } from 'rxjs';
 import { tap, map, catchError } from 'rxjs/operators';
 import { ApiUrlsService } from './api-url.service';
 import { PresetsModel } from '@themes/models';
@@ -74,9 +74,13 @@ export class PlatformService {
             this.appSettings.uploadPath = index === -1 ? '' : this.appSettings.path.substr(0, index);
         }
 
-        return combineLatest([this.loadModuleConfig(), this.moduleSettings(), this.storeSettings(), this.moduleVersion()]).pipe(
-            tap(([appSettings, moduleSettings, storeSettings, version]) => {
+        return forkJoin([this.loadModuleConfig(), this.moduleSettings(), this.storeSettings(), this.moduleVersion(), this.getStoreUrl()]).pipe(
+            tap(([appSettings, moduleSettings, storeSettings, version, storeUrl]) => {
+                // console.log(appSettings, moduleSettings, storeSettings, version, storeUrl);
                 Object.assign(this.appSettings, appSettings);
+                if (!!storeUrl) {
+                    this.appSettings.storeBaseUrl = storeUrl;
+                }
                 moduleSettings.forEach(x => {
                     const key = x.name.replace('VirtoCommerce.PageBuilderModule.General.', '');
                     let value: any = getValueOrDefault(x.value, x.defaultValue);
@@ -88,7 +92,11 @@ export class PlatformService {
                             value = value ? parseInt(value.toString()) : 0;
                             break;
                     }
-                    this.appSettings[`${key[0].toLowerCase()}${key.substring(1)}`] = value;
+                    let targetKey = `${key[0].toLowerCase()}${key.substring(1)}`;
+                    if (targetKey === 'storeUrl') targetKey = 'storeBaseUrl';
+                    if (targetKey !== 'storeBaseUrl' || !storeUrl) {
+                        this.appSettings[targetKey] = value;
+                    }
                 });
 
                 if (!this.appSettings.platformUrl) {
@@ -102,6 +110,17 @@ export class PlatformService {
                 this.appSettings.version = version;
             })
         ).toPromise();
+    }
+
+    private getStoreUrl() {
+        const url = this.urls.getStoreUrlEndpoint(this.appSettings.storeId);
+        const headers = new HttpHeaders().set('Content-Type', 'text/plain; charset=utf-8');
+        return this.http.get<string>(url, { headers: headers, responseType: <any>'text' }).pipe(
+            catchError(error => {
+                console.log(error)
+                return of(null);
+            })
+        );
     }
 
     private loadModuleConfig(): Observable<EnvironmentSettings> {

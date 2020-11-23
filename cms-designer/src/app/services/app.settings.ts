@@ -14,6 +14,7 @@ export class AppSettings implements EnvironmentSettings {
     tokenUrl = '/connect/token';
     useGlobalAssets = false;
     previewTimeout = 120000;
+    assetsPath = 'assets/pages';
 
     moduleLocation = null;
     version = null;

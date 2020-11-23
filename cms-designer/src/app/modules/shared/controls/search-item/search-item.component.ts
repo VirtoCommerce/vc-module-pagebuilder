@@ -1,5 +1,5 @@
 import { Component, ElementRef, ViewChild, OnDestroy } from '@angular/core';
-import { WindowRef } from '@app/services';
+import { ApiUrlsService, WindowRef } from '@app/services';
 import { SearchControlDescriptor } from '@shared/models';
 import { RequestItemsService } from '@shared/services';
 import { Subject, Subscription } from 'rxjs';
@@ -30,7 +30,10 @@ export class SearchItemComponent extends BaseControlDirective<SearchControlDescr
 
     private subscription: Subscription = null;
 
-    constructor(private windowRef: WindowRef, private requestItemsService: RequestItemsService) {
+    constructor(
+        private windowRef: WindowRef,
+        private requestItemsService: RequestItemsService,
+        private urls: ApiUrlsService) {
         super();
         this.subscription = this.searchEvent$.pipe(
             debounceTime(1000)
@@ -50,6 +53,16 @@ export class SearchItemComponent extends BaseControlDirective<SearchControlDescr
         if (this.value) {
             this.searchQuery = this.value.__searchQuery;
         }
+    }
+
+    getAssetUrl(value): string {
+        if (!value) return null;
+        if (typeof value === 'string') {
+            return this.urls.getAssetsUrl(value);
+        } else if (value.url) {
+            return this.urls.getAssetsUrl(value.url);
+        }
+        return null;
     }
 
     private searchModel(query: string) {

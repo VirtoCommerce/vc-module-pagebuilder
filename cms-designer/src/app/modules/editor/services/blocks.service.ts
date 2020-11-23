@@ -4,6 +4,8 @@ import { tap, map } from 'rxjs/operators';
 import { PlatformService, ApiUrlsService, AppSettings } from '@app/services';
 import { BlocksSchema, BlockSchema, SharedBlockSchema, ControlDescriptor } from '@shared/models';
 
+import { cloneDeep } from 'lodash-es';
+
 @Injectable({
     providedIn: 'root'
 })
@@ -65,7 +67,7 @@ export class BlocksService {
             if (!!settings) {
                 return {...settings, ...x};
             } else {
-                return x;
+                return { ...x };
             }
         });
         // sharedSettings.forEach(shared => {
@@ -77,7 +79,7 @@ export class BlocksService {
 
         // 5. order items
         const getSortValue = block => (typeof block.sort === "number") ? block.sort : Number.MAX_VALUE;
-        const settings = [...blockSettings, ...sharedSettings.filter(x => !blockSettings.find(b => b.id === x.id))];
+        const settings = cloneDeep([...blockSettings, ...sharedSettings.filter(x => !blockSettings.find(b => b.id === x.id))]);
         settings.sort((x, y) => getSortValue(x) - getSortValue(y));
         block.settings = settings;
 
