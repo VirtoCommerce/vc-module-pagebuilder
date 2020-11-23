@@ -8,5 +8,5 @@ export interface BaseDescriptor {
     tab?: string;
     default?: any;
     group?: string;
-    hint: string;
+    hint?: string;
 }

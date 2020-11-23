@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { BlockValuesModel } from '@shared/models';
 
 import { AppSettings } from './app.settings';
+import { debugLog } from '@app/debug';
 
 @Injectable({
     providedIn: 'root'
@@ -72,6 +73,7 @@ export class PreviewService {
      * @param secondaryId
      */
     toggleFrames(primaryId: string, secondaryId: string) {
+        debugLog('toggle frames', primaryId, secondaryId)
         if (!!primaryId) {
             const primary = document.getElementById(primaryId);
             primary.style.zIndex = '0';
@@ -85,6 +87,7 @@ export class PreviewService {
     }
 
     private send(type: string, model: any, frameId: string) {
+        debugLog('send message', type, model, frameId);
         const element = document.getElementById(frameId);
         if (element != null) {
             const target = (<HTMLIFrameElement>element).contentWindow;

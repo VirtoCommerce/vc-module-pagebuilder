@@ -28,6 +28,11 @@ export class ApiUrlsService {
         return url;
     }
 
+    getStoreUrlEndpoint(storeId: string): string {
+        const url = this.combine(this.appSettings.platformUrl, 'api/stores/url/', storeId);
+        return url;
+    }
+
     generateDownloadUrl(contentType: string, filepath: string): string {
         const path = encodeURIComponent(filepath || this.appSettings.path);
         const url = this.combine(this.appSettings.platformUrl, '/api/content/', contentType || this.appSettings.contentType, this.appSettings.storeId)
@@ -48,7 +53,8 @@ export class ApiUrlsService {
             ? '/api/platform/assets' // url for cdn, upload via platform endpoint
             : `api/content/Pages/${this.appSettings.storeId}`; // url to pages storage, upload via content module endpoint
         const url = this.combine(this.appSettings.platformUrl, assetEndpoint) +
-            `?folderUrl=/assets/${encodeURIComponent(this.appSettings.contentType)}&name=${name}`;
+            `?folderUrl=${encodeURIComponent(this.appSettings.assetsPath)}&name=${name}`;
+            // `?folderUrl=/assets/${encodeURIComponent(this.appSettings.contentType)}&name=${name}`;
         return url;
     }
 
