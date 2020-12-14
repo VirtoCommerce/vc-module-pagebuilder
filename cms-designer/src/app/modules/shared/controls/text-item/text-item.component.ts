@@ -51,18 +51,31 @@ export class TextItemComponent extends BaseControlDirective<TextControlDescripto
         };
     }
 
+    private checkDescriptorForSetting(name: string): boolean {
+        return this.descriptor.settings.indexOf(name) > -1;
+    }
+
     getConfig(): any {
         if (this.descriptor.settings && this.descriptor.settings.length > 0) {
             let config: any = {};
             config.toolbar = [this.descriptor.settings];
             config.extraPlugins = this.config.extraPlugins;
 
-            if (this.descriptor.settings.indexOf('Format') > -1) {
+            if (this.checkDescriptorForSetting('Format')) {
                 config.format_tags = 'normal;medium;large';
                 config.format_normal = { name: 'Normal', element: 'div', attributes: { class: 'block__descr--normal' } };
                 config.format_medium = { name: 'Medium', element: 'div', attributes: { class: 'block__descr--medium' } };
                 config.format_large = { name: 'Large', element: 'div', attributes: { class: 'block__descr--large' } };
             }
+
+            if (this.checkDescriptorForSetting('EnterModeBr')) {
+                config.enterMode = 2;
+            }
+
+            if (this.checkDescriptorForSetting('EnterModeDiv')) {
+                config.enterMode = 3;
+            }
+
             return config;
         }
         return this.config;
