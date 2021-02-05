@@ -56,6 +56,10 @@ export class UrlItemComponent extends BaseControlDirective<UrlControlDescriptor>
         this.onValueChange({ openInNewTab: !this.value.openInNewTab });
     }
 
+    toggleNoFollow() {
+        this.onValueChange({ noFollow: !this.value.noFollow });
+    }
+
     setValue(value: any) {
         if (!value) {
             value = { url: null, urlText: null, style: null, openInNewTab: false };
