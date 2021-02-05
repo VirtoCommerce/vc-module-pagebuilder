@@ -16,7 +16,7 @@ export class AppSettings implements EnvironmentSettings {
     previewTimeout = 120000;
     assetsPath = 'assets/pages';
 
-    moduleLocation = null;
+    moduleLocation = '/Modules/$(VirtoCommerce.PageBuilderModule)/Content/builder/';
     version = null;
 
     storeId = null;
