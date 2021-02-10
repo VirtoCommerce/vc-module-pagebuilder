@@ -242,7 +242,7 @@ angular.module('virtoCommerce.pageBuilderModule')
             $scope.languages = settings.getValues({ id: 'VirtoCommerce.Core.General.Languages' });
             $scope.options = [{ label: "Theme", value: "theme" }, { label: "Empty", value: "empty" }, { label: "Glossary", value: "glossary" }];
 
-            blade.headIcon = 'fa-inbox';
+            blade.headIcon = 'fa fa-inbox';
 
             blade.initialize();
         }]);
