@@ -81,7 +81,7 @@ In order to add a new page, the user should go through the following steps:
 ![Edit theme](media/screen-edit-theme.png)
 
 ### Add and Edit Page Demo
-![page builder image demo](https://github.com/VirtoCommerce/vc-module-pagebuilder/blob/dev/page-builder-demo.gif?raw=true)
+![page builder image demo](media/page-builder-demo.gif?raw=true)
 
 ### Page Preview
 
