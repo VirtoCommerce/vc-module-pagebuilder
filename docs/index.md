@@ -41,7 +41,7 @@ In order to add a new page, the user should go through the following steps:
 1. Go to More > Content module > select a Store and click on Pages widget;
 1. On 'Pages list' blade select 'Add' to add a new page;
 1. Choose 'Design page' on the new blade;
-![Design page](docs/media/screen-add-page.png)
+![Design page](media/screen-add-page.png)
 1. Fill out the following fields to create a new page:
 
    1. Name- required field;
@@ -51,7 +51,7 @@ In order to add a new page, the user should go through the following steps:
    1. Permalink;
    1. Page metatitle (optional);
    1. Page meta description (optional)
- ![Filled fields](docs/media/screen-fields-filled.png)
+ ![Filled fields](media/screen-fields-filled.png)
 
 1. Click 'Create' button;
 1. The new page will be created.
@@ -72,10 +72,10 @@ In order to add a new page, the user should go through the following steps:
 ![Edit page](media/screen-preview-edit-page.png)
 1. Clicking on the '+' icon of the selected block will result in adding the block to the file;
 1. Clicking on the block in the 'Preview' area opens the block editor;
-![Edit block](docs/media/screen-edit-block.png)
+![Edit block](media/screen-edit-block.png)
 1. Once the blocs are edited, click the 'Save' button to save the changes made;
 1. Click on the icons above the blocks in the 'Preview' area to view different screen resolutions;
-![Screen Resolutions](docs/media/screen-resolutions.png)
+![Screen Resolutions](media/screen-resolutions.png)
 1. Select the 'Theme' section in the Editor to edit different theme parameters.
 
 ![Edit theme](media/screen-edit-theme.png)
