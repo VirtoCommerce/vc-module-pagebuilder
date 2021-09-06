@@ -1,6 +1,0 @@
-<label [attr.title]="descriptor.hint" *ngIf="!hideLabel" class="form-label">{{descriptor.label}}</label>
-<div class="form-input">
-    <input #control type="number" [min]="descriptor.min" [max]="descriptor.max" [value]="value" class="form-control"
-        (keyup)="onChange($event.target.value)" (change)="onChange($event.target.value)"
-        (blur)="onTouched($event.target.value)">
-</div>
