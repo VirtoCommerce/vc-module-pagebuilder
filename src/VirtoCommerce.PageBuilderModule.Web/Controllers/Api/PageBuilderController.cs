@@ -53,50 +53,36 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         }
 
         [HttpPost]
+        [Route("save-template-draft")]
+        public async Task<ActionResult> SaveTemplateDraft(string storeId, [FromBody]TemplatesModel model)
+        {
+            await SaveFilesTo(storeId, model, "/default/config/drafts");
+            return Ok();
+        }
+
+        [HttpPost]
         [Route("save")]
         public async Task<ActionResult> SaveTemplates(string storeId, [FromBody] TemplatesModel model)
         {
+            await SaveFilesTo(storeId, model, "/default/templates");
+            return Ok();
+        }
+
+        private async Task SaveFilesTo(string storeId, TemplatesModel model, string path)
+        {
             var templates = JsonConvert.DeserializeObject<JObject>(model.Templates).ToObject<Dictionary<string, JObject>>();
             var storageProvider = _blobContentStorageProviderFactory.CreateProvider(GetContentBasePath(storeId));
-            var settings = new JsonSerializerSettings {Formatting = Formatting.Indented};
+            var settings = new JsonSerializerSettings { Formatting = Formatting.Indented };
 
             foreach (var templateName in templates.Keys)
             {
-                var filepath = $"/default/templates/{templateName}";
+                var filepath = $"{path}/{templateName}";
                 var content = templates[templateName];
                 await using var targetStream = await storageProvider.OpenWriteAsync(filepath);
                 await using var writer = new StreamWriter(targetStream);
                 var stringContent = JsonConvert.SerializeObject(content, settings);
                 await writer.WriteAsync(stringContent);
             }
-
-            //var boundary = MultipartRequestHelper.GetBoundary(MediaTypeHeaderValue.Parse(Request.ContentType), _defaultFormOptions.MultipartBoundaryLengthLimit);
-            //var reader = new MultipartReader(boundary, HttpContext.Request.Body);
-
-            //var section = await reader.ReadNextSectionAsync();
-            //if (section != null)
-            //{
-            //    var hasContentDispositionHeader = ContentDispositionHeaderValue.TryParse(section.ContentDisposition, out var contentDisposition);
-
-            //    if (hasContentDispositionHeader)
-            //    {
-            //        var fileName = Path.GetFileName(contentDisposition.FileName.Value ?? contentDisposition.Name.Value.Replace("\"", string.Empty));
-
-            //        var targetFilePath = folderUrl + "/" + fileName;
-
-            //        using (var targetStream = storageProvider.OpenWrite(targetFilePath))
-            //        {
-            //            await section.Body.CopyToAsync(targetStream);
-            //        }
-
-            //        var contentFile = AbstractTypeFactory<ContentFile>.TryCreateInstance();
-            //        contentFile.Name = fileName;
-            //        contentFile.Url = storageProvider.GetAbsoluteUrl(targetFilePath);
-            //        retVal.Add(contentFile);
-            //    }
-            //}
-
-            return Ok();
         }
 
         private async Task<string> GetFilesFromFolder(string storeId, string folder)
