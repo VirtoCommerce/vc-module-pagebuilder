@@ -78,6 +78,24 @@ jobs:
       - name: SonarCloud Begin
         uses: VirtoCommerce/vc-github-actions/sonar-scanner-begin@master
 
+      - name: Clone page-builder
+        run: |
+            git clone https://github.com/VirtoCommerce/page-builder.git --branch main
+            cd ./page-builder/src/page-builder
+            npm i
+            npm run build
+            cd ../vanilla-preview
+            npm i
+            npm run build:prod
+            cd ../../../
+            mkdir ./src/VirtoCommerce.PageBuilderModule.Web/Content/
+            mkdir ./src/VirtoCommerce.PageBuilderModule.Web/Content/builder/
+            mkdir ./src/VirtoCommerce.PageBuilderModule.Web/Content/store/
+            cp -R ./page-builder/src/page-builder/dist/page-builder/* ./src/VirtoCommerce.PageBuilderModule.Web/Content/builder/
+            cp -R ./page-builder/src/vanilla-preview/dist/* ./src/VirtoCommerce.PageBuilderModule.Web/Content/store/
+            mkdir ./src/VirtoCommerce.PageBuilderModule.Web/Content/builder/data/
+            cp ./src/VirtoCommerce.PageBuilderModule.Web/settings.json ./src/VirtoCommerce.PageBuilderModule.Web/Content/builder/data/settings.json
+            
       - name: Build
         run: vc-build Compile
 
