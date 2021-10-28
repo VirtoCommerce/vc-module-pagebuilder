@@ -73,6 +73,12 @@ jobs:
       - name: SonarCloud Begin
         uses: VirtoCommerce/vc-github-actions/sonar-scanner-begin@master
 
+      - name: Setup Git Credentials
+        if: ${{ (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/master') && github.event_name != 'workflow_dispatch' }}
+        uses: VirtoCommerce/vc-github-actions/setup-git-credentials-github@master
+        with: 
+          githubToken: ${{ secrets.REPO_TOKEN }}
+
       - name: Clone page-builder
         run: |
             git clone https://github.com/VirtoCommerce/page-builder.git --branch main
@@ -124,12 +130,6 @@ jobs:
         with:
           changelog: ${{ steps.changelog.outputs.changelog }}
         uses: VirtoCommerce/vc-github-actions/publish-github-release@master
-
-      - name: Setup Git Credentials
-        if: ${{ (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/master') && github.event_name != 'workflow_dispatch' }}
-        uses: VirtoCommerce/vc-github-actions/setup-git-credentials-github@master
-        with: 
-          githubToken: ${{ secrets.REPO_TOKEN }}
         
       - name: Publish Manifest
         if: ${{ (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/master') && github.event_name != 'workflow_dispatch' }}
