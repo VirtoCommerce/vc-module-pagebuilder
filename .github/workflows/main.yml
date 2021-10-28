@@ -114,16 +114,16 @@ jobs:
       - name: Packaging
         run: vc-build Compress -skip Clean+Restore+Compile+Test
       
-      - name: Publish Nuget
-        if: ${{ (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/master') && github.event_name != 'workflow_dispatch' }}
-        uses: VirtoCommerce/vc-github-actions/publish-nuget@master
+      # - name: Publish Nuget
+      #   if: ${{ (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/master') && github.event_name != 'workflow_dispatch' }}
+      #   uses: VirtoCommerce/vc-github-actions/publish-nuget@master
 
-      - name: Publish to Blob
-        if: ${{ github.ref == 'refs/heads/dev' || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/master') }}
-        id: blobRelease
-        uses: VirtoCommerce/vc-github-actions/publish-blob-release@master
-        with:
-          blobSAS: ${{ secrets.BLOB_TOKEN }}
+      # - name: Publish to Blob
+      #   if: ${{ github.ref == 'refs/heads/dev' || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/master') }}
+      #   id: blobRelease
+      #   uses: VirtoCommerce/vc-github-actions/publish-blob-release@master
+      #   with:
+      #     blobSAS: ${{ secrets.BLOB_TOKEN }}
         
       - name: Publish Github Release
         if: ${{ github.ref == 'refs/heads/master' }}
@@ -131,8 +131,8 @@ jobs:
           changelog: ${{ steps.changelog.outputs.changelog }}
         uses: VirtoCommerce/vc-github-actions/publish-github-release@master
         
-      - name: Publish Manifest
-        if: ${{ (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/master') && github.event_name != 'workflow_dispatch' }}
-        uses: VirtoCommerce/vc-github-actions/publish-manifest@master
-        with:
-          packageUrl: ${{ steps.blobRelease.outputs.packageUrl }}
+      # - name: Publish Manifest
+      #   if: ${{ (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/master') && github.event_name != 'workflow_dispatch' }}
+      #   uses: VirtoCommerce/vc-github-actions/publish-manifest@master
+      #   with:
+      #     packageUrl: ${{ steps.blobRelease.outputs.packageUrl }}
