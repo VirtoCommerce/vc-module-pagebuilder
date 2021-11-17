@@ -92,7 +92,7 @@
                     title: data.store.name,
                     subtitle: 'content.blades.pages-list.subtitle-pages',
                     controller: 'virtoCommerce.contentModule.pagesListController',
-                    template: '$(Platform)/Scripts/app/assets/blades/asset-list.tpl.html'
+                    template: 'Modules/$(VirtoCommerce.Assets)/Scripts/blades/asset-list.tpl.html'
                 };
                 bladeNavigationService.showBlade(newBlade, blade);
             };
@@ -121,7 +121,7 @@
                     title: data.store.name,
                     subtitle: 'content.blades.pages-list.subtitle-blogs',
                     controller: 'virtoCommerce.contentModule.pagesListController',
-                    template: '$(Platform)/Scripts/app/assets/blades/asset-list.tpl.html'
+                    template: 'Modules/$(VirtoCommerce.Assets)/Scripts/blades/asset-list.tpl.html'
                 };
                 bladeNavigationService.showBlade(newBlade, blade);
             };
@@ -207,7 +207,7 @@
                     currentEntity: { name: data.activeThemeName, url: data.activeThemeURL },
                     subtitle: 'content.blades.asset-list.subtitle',
                     controller: 'virtoCommerce.contentModule.assetListController',
-                    template: '$(Platform)/Scripts/app/assets/blades/asset-list.tpl.html'
+                    template: 'Modules/$(VirtoCommerce.Assets)/Scripts/blades/asset-list.tpl.html'
                 };
                 bladeNavigationService.showBlade(newBlade, blade);
             };
