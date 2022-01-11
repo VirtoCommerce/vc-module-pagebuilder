@@ -30,13 +30,14 @@
                     return fd;
                 },
                 isArray: true
-            },
-            getStoreUrl: {
-                url: 'api/stores/url/:storeId',
-                method: 'GET',
-                transformResponse: function(rawData) {
-                    return { data: rawData };
-                }
             }
+			// ,
+            // getStoreUrl: {
+            //    url: 'api/stores/url/:storeId',
+            //    method: 'GET',
+            //    transformResponse: function(rawData) {
+            //        return { data: rawData };
+            //    }
+            // }
     });
 }]);
