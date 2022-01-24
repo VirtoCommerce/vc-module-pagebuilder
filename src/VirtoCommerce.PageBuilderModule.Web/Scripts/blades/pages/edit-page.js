@@ -78,7 +78,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                     {
                         name: "content.commands.preview-page", icon: 'fa fa-eye',
                         executeMethod: function () {
-                            blade.isLoading = true;
+                            // blade.isLoading = true;
                             var showPreview = function(storeUrl) {
                                 storeUrl = (storeUrl || blade.storeUrl).replace(/\/$/, '');
                                 if (storeUrl) {
@@ -154,7 +154,7 @@ angular.module('virtoCommerce.pageBuilderModule')
             function runDesigner() {
                 if (blade.designerUrl) {
                     // /Modules/$(VirtoCommerce.PageBuilderModule)/Content/builder/
-                    var path = blade.currentEntity.relativeUrl;
+                    var path = blade.currentEntity.relativeUrl.replace("//", "/");
                     window.open(blade.designerUrl + '?path=' + path + '&storeId=' + blade.storeId + '&contentType=' + blade.contentType, '_blank');
                 } else {
                     var dialog = {
