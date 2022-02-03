@@ -11,10 +11,10 @@ on:
       - 'README.md'
       - 'LICENSE'
     branches:
-      [master, dev]
+      [master, dev, template-module]
   pull_request:
     branches:
-      [master, dev]
+      [master, dev, template-module]
     paths-ignore:
       - 'docs/**'
       - 'build/**'
@@ -33,11 +33,6 @@ jobs:
 
     steps:
 
-      - name: Set up JDK 11 for dotnet-sonarscanner #Sonar stop accepting Java versions less than 11
-        uses: actions/setup-java@v1
-        with:
-          java-version: 1.11
-
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
@@ -47,35 +42,17 @@ jobs:
           dotnet-version: '6.0.x'
 
       - name: Install VirtoCommerce.GlobalTool
-        run: dotnet tool install --global VirtoCommerce.GlobalTool --version 2.1.0-alpha.17
-
-      - name: Install dotnet-sonarscanner
-        run: dotnet tool install --global dotnet-sonarscanner
-
-    #  - name: Get changelog
-    #    id: changelog
-    #    uses: VirtoCommerce/vc-github-actions/changelog-generator@master
+        run: dotnet tool install --global VirtoCommerce.GlobalTool
 
       - name: Get Image Version
         uses: VirtoCommerce/vc-github-actions/get-image-version@master
         id: image
 
-      - name: Set VERSION_SUFFIX variable
-        run: |
-          if [ '${{ github.event_name }}' = 'workflow_dispatch' ]; then
-            echo "VERSION_SUFFIX=${{ steps.image.outputs.fullSuffix }}" >> $GITHUB_ENV
-          else
-            echo "VERSION_SUFFIX=${{ steps.image.outputs.suffix }}" >> $GITHUB_ENV
-          fi;
-
       - name: Add version suffix
-        if: ${{ github.ref != 'refs/heads/master' }}
-        uses: VirtoCommerce/vc-github-actions/add-version-suffix@master
+        if: ${{ github.ref == 'refs/heads/template-module' }}
+        uses: VirtoCommerce/vc-github-actions/add-version-suffix@template-module
         with:
-          versionSuffix: ${{ env.VERSION_SUFFIX }}
-
-      - name: SonarCloud Begin
-        uses: VirtoCommerce/vc-github-actions/sonar-scanner-begin@master
+          versionSuffix: ${{ steps.image.outputs.tag }}
 
       - name: Setup Git Credentials
         if: ${{ github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/master' }}
@@ -84,6 +61,7 @@ jobs:
           githubToken: ${{ secrets.REPO_TOKEN }}
 
       - name: Clone page-builder
+        if: ${{ github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/master' }}
         run: |
             git clone https://github.com/VirtoCommerce/page-builder.git --branch main
             cd ./page-builder/src/page-builder
@@ -101,42 +79,33 @@ jobs:
             mkdir ./src/VirtoCommerce.PageBuilderModule.Web/Content/builder/data/
             cp ./src/VirtoCommerce.PageBuilderModule.Web/settings.json ./src/VirtoCommerce.PageBuilderModule.Web/Content/builder/data/settings.json
             
-      - name: Build
-        run: vc-build Compile
 
-    #  - name: Unit Tests
-    #    run: vc-build Test -skip
-
-      - name: SonarCloud End
-        uses: VirtoCommerce/vc-github-actions/sonar-scanner-end@master
-
-      - name: Quality Gate
-        uses: VirtoCommerce/vc-github-actions/sonar-quality-gate@master
-        with:
-          login: ${{secrets.SONAR_TOKEN}}
+      - name: Clone template-builder
+        if: ${{ github.ref == 'refs/heads/template-module' }}
+        run: |
+            git clone https://github.com/VirtoCommerce/template-builder.git --branch main
+            cd ./template-builder/src/builder
+            npm i
+            npm run build
+            cd ../../../
+            mkdir ./src/VirtoCommerce.PageBuilderModule.Web/Content/
+            mkdir ./src/VirtoCommerce.PageBuilderModule.Web/Content/builder/
+            cp -R ./template-builder/src/builder/dist/template-builder/* ./src/VirtoCommerce.PageBuilderModule.Web/Content/builder/
+            mkdir ./src/VirtoCommerce.PageBuilderModule.Web/Content/builder/data/
+            cp ./src/VirtoCommerce.PageBuilderModule.Web/settings.prod.json ./src/VirtoCommerce.PageBuilderModule.Web/Content/builder/data/settings.json
 
       - name: Packaging
-        run: vc-build Compress -skip Clean+Restore+Compile+Test
-      
-      # - name: Publish Nuget
-      #   if: ${{ (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/master') && github.event_name != 'workflow_dispatch' }}
-      #   uses: VirtoCommerce/vc-github-actions/publish-nuget@master
+        run: vc-build Compress -skip Test
 
-      # - name: Publish to Blob
-      #   if: ${{ github.ref == 'refs/heads/dev' || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/master') }}
-      #   id: blobRelease
-      #   uses: VirtoCommerce/vc-github-actions/publish-blob-release@master
-      #   with:
-      #     blobSAS: ${{ secrets.BLOB_TOKEN }}
+      - name: Publish to Blob
+        if: ${{ github.ref == 'refs/heads/template-module' }}
+        id: blobRelease
+        uses: VirtoCommerce/vc-github-actions/publish-blob-release@master
+        with:
+          blobSAS: ${{ secrets.BLOB_TOKEN }}
         
       - name: Publish Github Release
         if: ${{ github.ref == 'refs/heads/master' }}
         with:
           changelog: ${{ steps.changelog.outputs.changelog }}
         uses: VirtoCommerce/vc-github-actions/publish-github-release@master
-        
-      # - name: Publish Manifest
-      #   if: ${{ (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/master') && github.event_name != 'workflow_dispatch' }}
-      #   uses: VirtoCommerce/vc-github-actions/publish-manifest@master
-      #   with:
-      #     packageUrl: ${{ steps.blobRelease.outputs.packageUrl }}
