@@ -50,7 +50,7 @@ jobs:
 
       - name: Add version suffix
         if: ${{ github.ref == 'refs/heads/template-module' }}
-        uses: VirtoCommerce/vc-github-actions/add-version-suffix@template-module
+        uses: VirtoCommerce/vc-github-actions/add-version-suffix@master
         with:
           versionSuffix: ${{ steps.image.outputs.tag }}
 
