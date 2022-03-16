@@ -1,9 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <module xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <id>VirtoCommerce.PageBuilderModule</id>
-  <version>3.11.0</version>
+  <version>3.201.0</version>
   <version-tag />
-  <platformVersion>3.0.0</platformVersion>
+  <platformVersion>3.200.0</platformVersion>
   <title>CMS Page Builder</title>
   <description>Compose pages in visual page builder.</description>
   <authors>
@@ -18,9 +18,9 @@
   <assemblyFile>VirtoCommerce.PageBuilderModule.Web.dll</assemblyFile>
   <moduleType>VirtoCommerce.PageBuilderModule.Web.Module, VirtoCommerce.PageBuilderModule.Web</moduleType>
   <dependencies>
-    <dependency id="VirtoCommerce.Core" version="3.0.0" />
-    <dependency id="VirtoCommerce.Content" version="3.0.0" />
-    <dependency id="VirtoCommerce.Store" version="3.0.1" />
+    <dependency id="VirtoCommerce.Core" version="3.200.0" />
+    <dependency id="VirtoCommerce.Content" version="3.200.0" />
+    <dependency id="VirtoCommerce.Store" version="3.200.0" />
   </dependencies>
   <useFullTypeNameInSwagger>false</useFullTypeNameInSwagger>
 </module>

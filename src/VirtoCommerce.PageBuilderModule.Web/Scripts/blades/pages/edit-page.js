@@ -78,7 +78,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                     {
                         name: "content.commands.preview-page", icon: 'fa fa-eye',
                         executeMethod: function () {
-                            blade.isLoading = true;
+                            // blade.isLoading = true;
                             var showPreview = function(storeUrl) {
                                 storeUrl = (storeUrl || blade.storeUrl).replace(/\/$/, '');
                                 if (storeUrl) {
@@ -93,14 +93,22 @@ angular.module('virtoCommerce.pageBuilderModule')
                                     dialogService.showNotificationDialog(dialog);
                                 }
                             };
-                            pageBuilderApi.getStoreUrl({ storeId: blade.storeId }, function(response) {
-                                blade.isLoading = false;
-                                var storeUrl = response.data;
-                                showPreview(storeUrl);
-                            }, function (error) {
-                                bladeNavigationService.setError('Error ' + error.status, $scope.blade);
-                                blade.isLoading = false;
-                            });
+
+							// this api was removed once time
+							
+                            // pageBuilderApi.getStoreUrl({ storeId: blade.storeId }, function(response) {
+                            //     blade.isLoading = false;
+                            //     var storeUrl = response.data;
+                            //     showPreview(storeUrl);
+                            // }, function (error) {
+                            //     bladeNavigationService.setError('Error ' + error.status, $scope.blade);
+                            //     blade.isLoading = false;
+                            // });
+							
+							// therefore open with default store url (that exists in the current blade)
+							
+							showPreview();
+						
                         },
                         canExecuteMethod: function () { return true; }
                     },
@@ -139,14 +147,14 @@ angular.module('virtoCommerce.pageBuilderModule')
             function generatePath() {
                 // need to return path relative to the root folder
                 return blade.currentEntity.settings.permalink
-                    ? '/pages/' + blade.currentEntity.settings.permalink
+                    ? '/' + blade.currentEntity.settings.permalink
                     : blade.currentEntity.relativeUrl;
             }
 
             function runDesigner() {
                 if (blade.designerUrl) {
                     // /Modules/$(VirtoCommerce.PageBuilderModule)/Content/builder/
-                    var path = blade.currentEntity.relativeUrl;
+                    var path = blade.currentEntity.relativeUrl.replace("//", "/");
                     window.open(blade.designerUrl + '?path=' + path + '&storeId=' + blade.storeId + '&contentType=' + blade.contentType, '_blank');
                 } else {
                     var dialog = {
