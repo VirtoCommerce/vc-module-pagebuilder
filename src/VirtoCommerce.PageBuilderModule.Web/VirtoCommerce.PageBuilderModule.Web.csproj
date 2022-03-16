@@ -6,15 +6,9 @@
     <OutputType>Library</OutputType>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Remove="dist\**" />
-    <PackageReference Include="VirtoCommerce.Platform.Core" Version="3.200.0" />
-    <EmbeddedResource Remove="dist\**" />
-    <EmbeddedResource Remove="node_modules\**" />
-    <None Remove="dist\**" />
-    <None Remove="node_modules\**" />
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="VirtoCommerce.ContentModule.Core" Version="3.12.0" />
-    <PackageReference Include="VirtoCommerce.Platform.Core" Version="3.76.0" />
+	  <PackageReference Include="Microsoft.AspNetCore.App" />
+	  <PackageReference Include="VirtoCommerce.Platform.Core" Version="3.200.0" />
+	  <PackageReference Include="VirtoCommerce.ContentModule.Core" Version="3.200.0" />
+	  <PackageReference Include="VirtoCommerce.AssetsModule.Core" Version="3.200.0" />
   </ItemGroup>
 </Project>
