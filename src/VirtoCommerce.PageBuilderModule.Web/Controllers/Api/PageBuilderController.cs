@@ -46,6 +46,12 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             var basePath = GetContentBasePath(storeId, type);
             var storageProvider = _blobContentStorageProviderFactory.CreateProvider(basePath);
 
+            // todo: it's a problem to check for type
+            if (type == _themes)
+            {
+                path = "/default/" + (path.StartsWith("/") ? path.Substring(1) : path);
+            }
+
             if ((await storageProvider.GetBlobInfoAsync(path)) != null)
             {
                 var stream = await storageProvider.OpenReadAsync(path);
@@ -61,25 +67,26 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("templates")]
         public async Task<ActionResult> GetTemplates(string storeId)
         {
-            var result = await GetFilesFromFolder(storeId, "templates", "Themes");
+            var result = await GetFilesFromFolder(storeId, "templates", _themes);
             return Content(result, "application/json");
+        }
+        
+        [HttpGet]
+        [Route("objects")]
+        public async Task<ActionResult> GetObjects(string storeId)
+        {
+            var result = await GetFilesFromFolder(storeId, "objects", _themes);
+            return Ok(result);
         }
 
         [HttpGet]
         [Route("sections")]
         public async Task<ActionResult> GetSectionsSettings(string storeId)
         {
-            var sections = await GetFilesFromFolder(storeId, "sections", "Themes");
-            var blocks = await GetFilesFromFolder(storeId, "blocks", "Themes");
-            return Content($"{{ \"sections\": {sections}, \"blocks\": {blocks} }}", "application/json");
-        }
-
-        [HttpGet]
-        [Route("objects")]
-        public async Task<ActionResult> GetObjects(string storeId)
-        {
-            var result = await GetFilesFromFolder(storeId, "objects", "Themes");
-            return Ok(result);
+            var sections = await GetFilesFromFolder(storeId, "sections", _themes);
+            var blocks = await GetFilesFromFolder(storeId, "blocks", _themes);
+            var objects = await GetFilesFromFolder(storeId, "objects", _themes);
+            return Content($"{{ \"sections\": {sections}, \"blocks\": {blocks}, \"objects\": {objects} }}", "application/json");
         }
 
         //[HttpPost]
@@ -107,10 +114,11 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             var settings = new JsonSerializerSettings { Formatting = Formatting.Indented };
             foreach (var file in files)
             {
-                var storageProvider = providers.ContainsKey(file.Type)
-                    ? providers[file.Type]
-                    : (providers[file.Type] = _blobContentStorageProviderFactory.CreateProvider(GetContentBasePath(storeId, file.Type)));
-                var filepath = file.Path;
+                var type = file.Type.ToLowerInvariant();
+                var storageProvider = providers.ContainsKey(type)
+                    ? providers[type]
+                    : (providers[type] = _blobContentStorageProviderFactory.CreateProvider(GetContentBasePath(storeId, type)));
+                var filepath = "/default/" + (file.Path.StartsWith("/") ? file.Path.Substring(1) : file.Path);
                 var content = file.Content;
                 await using var targetStream = await storageProvider.OpenWriteAsync(filepath);
                 await using var writer = new StreamWriter(targetStream);
@@ -144,11 +152,11 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         {
             //var result = $"{type}/{storeId}";
             //return result;
-            if (_options.TypeMappings != null && _options.TypeMappings.Count() > 0 && _options.TypeMappings.ContainsKey(contentType))
-            {
-                var mapping = _options.TypeMappings[contentType];
-                return string.Join('/', mapping.Select(x => x == "_storeId" ? storeId : x));
-            }
+            //if (_options.TypeMappings != null && _options.TypeMappings.Count() > 0 && _options.TypeMappings.ContainsKey(contentType))
+            //{
+            //    var mapping = _options.TypeMappings[contentType];
+            //    return string.Join('/', mapping.Select(x => x == "_storeId" ? storeId : x));
+            //}
 
             var retVal = string.Empty;
             if (contentType.EqualsInvariant(_themes))
