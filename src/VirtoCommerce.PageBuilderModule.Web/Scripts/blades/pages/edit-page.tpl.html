@@ -13,13 +13,14 @@
                     </div>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Page layout name ({{ blade.currentEntity.settings.layout }})</label>
+                    <label class="form-label">{{ 'content.blades.edit-page.labels.layout' | translate }}</label>
                     <div class="form-input">
                         <ui-select ng-model="blade.currentEntity.settings.layout">
                             <ui-select-match placeholder="Layout name">{{$select.selected.label}}</ui-select-match>
                             <ui-select-choices repeat="item.value as item in options">
                                 <span ng-bind="item.label"></span>
                             </ui-select-choices>
+                            <div ng-if="optionsError">{{ optionsError }}</div>
                         </ui-select>
                     </div>
                 </div>

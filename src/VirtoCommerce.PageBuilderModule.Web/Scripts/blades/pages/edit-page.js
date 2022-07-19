@@ -18,7 +18,7 @@ angular.module('virtoCommerce.pageBuilderModule')
 
                     fillMetadata();
 
-                    $scope.blade.currentEntity.blocks = [{ type: 'settings', title: '', permalink: '', layout: $scope.options[0].value, noindex: false }];
+                    $scope.blade.currentEntity.blocks = [{ type: 'settings', title: '', permalink: '', layout: null, noindex: false }];
                     $scope.blade.currentEntity.settings = $scope.blade.currentEntity.blocks[0];
                     $scope.blade.currentEntity.content = JSON.stringify($scope.blade.currentEntity.blocks);
                 } else {
@@ -248,7 +248,15 @@ angular.module('virtoCommerce.pageBuilderModule')
             };
 
             $scope.languages = settings.getValues({ id: 'VirtoCommerce.Core.General.Languages' });
-            $scope.options = [{ label: "Theme", value: "theme" }, { label: "Empty", value: "empty" }, { label: "Glossary", value: "glossary" }];
+            $scope.options = [];
+            settings.getValues({ id: 'VirtoCommerce.PageBuilderModule.General.Layouts' }).$promise.then(function (value) {
+                try {
+                    $scope.options = JSON.parse(value[0]);
+                } catch (error) {
+                    console.log(error);
+                    $scope.optionsError = error.message;
+                }
+            });
 
             blade.headIcon = 'fa fa-inbox';
 
