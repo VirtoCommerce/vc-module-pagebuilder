@@ -11,8 +11,10 @@ using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Serialization;
 using VirtoCommerce.AssetsModule.Core.Assets;
 using VirtoCommerce.ContentModule.Core.Services;
+using VirtoCommerce.PageBuilderModule.Web.Models;
 using VirtoCommerce.Platform.Core.Common;
 
 //using VirtoCommerce.PageBuilderModule.Web.Models;
@@ -57,9 +59,10 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 var stream = await storageProvider.OpenReadAsync(path);
                 return File(stream, MimeTypeResolver.ResolveContentType(path));
             }
-            return NotFound(new 
+            return NotFound(new
             {
-                basePath = basePath, templatePath = path
+                basePath = basePath,
+                templatePath = path
             });
         }
 
@@ -70,7 +73,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             var result = await GetFilesFromFolder(storeId, "templates", _themes);
             return Content(result, "application/json");
         }
-        
+
         [HttpGet]
         [Route("objects")]
         public async Task<ActionResult> GetObjects(string storeId)
@@ -87,6 +90,35 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             var blocks = await GetFilesFromFolder(storeId, "blocks", _themes);
             var objects = await GetFilesFromFolder(storeId, "objects", _themes);
             return Content($"{{ \"sections\": {sections}, \"blocks\": {blocks}, \"objects\": {objects} }}", "application/json");
+        }
+
+        // todo: create model for files and descriptors (template entry)
+        [HttpGet]
+        [Route("search")]
+        public async Task<string> Search(string storeId, string query, string folder, string type)
+        {
+            var templatesFolder = $"/default/content/{folder}";
+            var basePath = GetContentBasePath(storeId, type);
+            var storageProvider = _blobContentStorageProviderFactory.CreateProvider(basePath);
+            var searchPattern = $"{query}.(json|page|template)";
+            var files = (await storageProvider.SearchAsync(templatesFolder, query)).Results.Where(x => x.Type != "folder").Take(10);
+            var fileInfoes = new Dictionary<string, string>();
+            var jsonSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
+            foreach (var file in files)
+            {
+                var key = GetKey(file);
+                if (!fileInfoes.ContainsKey(key))
+                {
+                    var pageContent = GetPageContent(file, storageProvider);
+                    if (pageContent != null)
+                    {
+                        var content = JsonConvert.SerializeObject(pageContent, jsonSettings);
+                        fileInfoes.Add(key, content);
+                    }
+                }
+            }
+            var result = $"{{{string.Join(", ", fileInfoes.Keys.Select(x => $"\"{x}\": {fileInfoes[x]}"))}}}";
+            return result;
         }
 
         //[HttpPost]
@@ -139,7 +171,29 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
         private string GetKey(BlobEntry entry)
         {
+            // todo: can be situation when files have the same name in different folders. can be source of problem
             return Path.GetFileNameWithoutExtension(entry.Name);
+        }
+
+        private ContentModel GetPageContent(BlobEntry entry, IBlobContentStorageProvider provider)
+        {
+            try
+            {
+                using var reader = new StreamReader(provider.OpenRead(entry.Url));
+                var content = reader.ReadToEnd();
+                dynamic json = JsonConvert.DeserializeObject(content);
+                var result = new ContentModel
+                {
+                    Name = json.settings.name.ToString(),
+                    PreviewUrl = json.settings.permalink.ToString(),
+                    Path = entry.RelativeUrl
+                };
+                return result;
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         private string GetContent(BlobEntry entry, IBlobContentStorageProvider provider)
