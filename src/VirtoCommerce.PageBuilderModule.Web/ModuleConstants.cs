@@ -48,6 +48,14 @@ namespace VirtoCommerce.PageBuilderModule.Web
                     DefaultValue = false
                 };
 
+                public static SettingDescriptor Layouts => new SettingDescriptor
+                {
+                    Name = "VirtoCommerce.PageBuilderModule.General.Layouts",
+                    GroupName = "CMS Content|General",
+                    ValueType = SettingValueType.Json,
+                    DefaultValue = "[{ \"label\": \"Theme\", \"value\": \"theme\" }, { \"label\": \"Empty\", \"value\": \"empty\" }]"
+                };
+
                 public static IEnumerable<SettingDescriptor> AllSettings =>
                     new List<SettingDescriptor>
                     {
@@ -55,7 +63,8 @@ namespace VirtoCommerce.PageBuilderModule.Web
                         StorePreviewPath,
                         TokenUrl,
                         AssetsPath,
-                        UseGlobalAssets
+                        UseGlobalAssets,
+                        Layouts
                     };
             }
 
