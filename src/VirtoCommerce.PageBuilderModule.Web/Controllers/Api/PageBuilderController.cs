@@ -17,6 +17,10 @@ using VirtoCommerce.ContentModule.Core.Model;
 using VirtoCommerce.ContentModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Web.Models;
 using VirtoCommerce.Platform.Core.Common;
+using VirtoCommerce.Platform.Core.GenericCrud;
+using VirtoCommerce.StoreModule.Core.Model;
+using VirtoCommerce.StoreModule.Core.Services;
+using static System.Formats.Asn1.AsnWriter;
 
 namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 {
@@ -24,6 +28,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
     [Authorize]
     public class PageBuilderController : Controller
     {
+        private readonly ICrudService<Store> _storeService;
         private readonly IBlobContentStorageProviderFactory _blobContentStorageProviderFactory;
         private readonly ContentOptions _options;
 
@@ -33,9 +38,11 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         private const string _defaultTheme = "default";
 
         public PageBuilderController(
+            IStoreService storeService,
             IBlobContentStorageProviderFactory blobContentStorageProviderFactory,
             IOptions<ContentOptions> options)
         {
+            _storeService = (ICrudService<Store>)storeService;
             _blobContentStorageProviderFactory = blobContentStorageProviderFactory;
             _options = options.Value;
         }
@@ -137,7 +144,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             var providers = new Dictionary<string, IBlobContentStorageProvider>();
 
             var settings = new JsonSerializerSettings { Formatting = Formatting.Indented };
-            var themeName = string.IsNullOrEmpty(theme) ? _defaultTheme : theme;
+            var themeName = GetCurrentThemeName(storeId, theme);
             foreach (var file in files)
             {
                 var type = file.Type.ToLowerInvariant();
@@ -154,8 +161,9 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
         private async Task<string> GetSettingsFilesFromFolder(string storeId, string theme, string folder)
         {
-            var templatesFolder = $"/config/schemas/{folder}";
-            var basePath = GetContentBasePath(storeId, _themes, theme);
+            var themeName = GetCurrentThemeName(storeId, theme);
+            var templatesFolder = $"{themeName}/config/schemas/{folder}";
+            var basePath = GetContentBasePath(storeId, _themes, themeName);
             var storageProvider = _blobContentStorageProviderFactory.CreateProvider(basePath);
             var files = await storageProvider.SearchAsync(templatesFolder, "*.json");
             var result = $"{{{string.Join(", ", files.Results.Select(file => $"\"{GetKey(file)}\": {GetContent(file, storageProvider)}"))}}}";
@@ -166,6 +174,17 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         {
             // todo: can be situation when files have the same name in different folders. can be source of problem
             return Path.GetFileNameWithoutExtension(entry.Name);
+        }
+
+        private string GetCurrentThemeName(string storeId, string givenTheme)
+        {
+            if (!string.IsNullOrEmpty(givenTheme))
+            {
+                return givenTheme;
+            }
+            var store = _storeService.GetByIdAsync(storeId, StoreResponseGroup.DynamicProperties.ToString()).Result;
+            var themeName = store.DynamicProperties.FirstOrDefault(x => x.Name == "DefaultThemeName")?.Values?.FirstOrDefault()?.Value.ToString() ?? _defaultTheme;
+            return themeName;
         }
 
         private ContentModel GetPageContent(BlobEntry entry, IBlobContentStorageProvider provider)
@@ -199,20 +218,19 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         {
             if (_options.PathMappings != null && _options.PathMappings.Count() > 0 && _options.PathMappings.ContainsKey(contentType))
             {
-                var themeName = string.IsNullOrEmpty(theme) ? _defaultTheme : theme;
-                var mapping = _options.PathMappings[contentType];
-                var result = string.Join('/', mapping.Select(x => x switch
+                var themeName = GetCurrentThemeName(storeId, theme);
+                if (_options.PathMappings.ContainsKey(contentType))
                 {
-                    "_storeId" => storeId,
-                    "_theme" => themeName,
-                    "_blog" => _blogsFolderName,
-                    _ => x,
-                }));
-                if (contentType.EqualsInvariant(_themes))
-                {
-                    return result + "/" + themeName;
+                    var mapping = _options.PathMappings[contentType];
+                    var result = string.Join('/', mapping.Select(x => x switch
+                    {
+                        "_storeId" => storeId,
+                        "_theme" => themeName,
+                        "_blog" => _blogsFolderName,
+                        _ => x,
+                    }));
+                    return result;
                 }
-                return result;
             }
 
             var retVal = string.Empty;
