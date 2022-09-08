@@ -40,31 +40,13 @@ namespace VirtoCommerce.PageBuilderModule.Web
                     DefaultValue = "assets/pages"
                 };
 
-                public static SettingDescriptor UseGlobalAssets => new SettingDescriptor
-                {
-                    Name = "VirtoCommerce.PageBuilderModule.General.UseGlobalAssets",
-                    GroupName = "CMS Content|General",
-                    ValueType = SettingValueType.Boolean,
-                    DefaultValue = false
-                };
-
-                public static SettingDescriptor Layouts => new SettingDescriptor
-                {
-                    Name = "VirtoCommerce.PageBuilderModule.General.Layouts",
-                    GroupName = "CMS Content|General",
-                    ValueType = SettingValueType.Json,
-                    DefaultValue = "[{ \"label\": \"Theme\", \"value\": \"theme\" }, { \"label\": \"Empty\", \"value\": \"empty\" }]"
-                };
-
                 public static IEnumerable<SettingDescriptor> AllSettings =>
                     new List<SettingDescriptor>
                     {
                         StoreUrl,
                         StorePreviewPath,
                         TokenUrl,
-                        AssetsPath,
-                        UseGlobalAssets,
-                        Layouts
+                        AssetsPath
                     };
             }
 
