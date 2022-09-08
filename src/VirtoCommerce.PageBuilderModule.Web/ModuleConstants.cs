@@ -24,29 +24,11 @@ namespace VirtoCommerce.PageBuilderModule.Web
                     DefaultValue = "/designer-preview"
                 };
 
-                public static SettingDescriptor TokenUrl => new SettingDescriptor
-                {
-                    Name = "VirtoCommerce.PageBuilderModule.General.TokenUrl",
-                    ValueType = SettingValueType.ShortText,
-                    GroupName = "CMS Content|General",
-                    DefaultValue = "/connect/token"
-                };
-
-                public static SettingDescriptor AssetsPath => new SettingDescriptor
-                {
-                    Name = "VirtoCommerce.PageBuilderModule.General.AssetsPath",
-                    GroupName = "CMS Content|General",
-                    ValueType = SettingValueType.ShortText,
-                    DefaultValue = "assets/pages"
-                };
-
                 public static IEnumerable<SettingDescriptor> AllSettings =>
                     new List<SettingDescriptor>
                     {
                         StoreUrl,
-                        StorePreviewPath,
-                        TokenUrl,
-                        AssetsPath
+                        StorePreviewPath
                     };
             }
 

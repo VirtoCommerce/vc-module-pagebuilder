@@ -59,10 +59,6 @@
           "StorePreviewPath": {
             "description": "Relative path for preview page",
             "title": "Store preview path"
-          },
-          "TokenUrl": {
-            "description": "",
-            "title": "AuthToken url"
           }
         }
       }
