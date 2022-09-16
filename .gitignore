@@ -276,5 +276,6 @@ dist/
 
 builder/
 src/VirtoCommerce.PageBuilderModule.Web/Content/store/
+src/VirtoCommerce.PageBuilderModule.Web/Content/
 /src/VirtoCommerce.PageBuilderModule.Web/Content/builder
 /src/VirtoCommerce.PageBuilderModule.Web/Content/store
