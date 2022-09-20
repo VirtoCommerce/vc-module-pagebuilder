@@ -217,31 +217,26 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         {
             if (_options.PathMappings != null && _options.PathMappings.Any() && _options.PathMappings.ContainsKey(contentType))
             {
-                var themeName = GetCurrentThemeName(storeId, theme);
+                var themeName = _defaultTheme;
                 var mapping = _options.PathMappings[contentType];
-                var result = string.Join('/', mapping.Select(x => x switch
+                var parts = mapping.Select(x => x switch
                 {
                     "_storeId" => storeId,
                     "_theme" => themeName,
                     "_blog" => _blogsFolderName,
                     _ => x,
-                }));
+                });
+                var result = string.Join('/', parts);
                 return result;
             }
 
-            var retVal = string.Empty;
-            if (contentType.EqualsInvariant(_themes))
+            var retVal = contentType switch
             {
-                retVal = "Themes/" + storeId;
-            }
-            else if (contentType.EqualsInvariant(_pages))
-            {
-                retVal = "Pages/" + storeId;
-            }
-            else if (contentType.EqualsInvariant(_blogsFolderName))
-            {
-                retVal = "Pages/" + storeId + $"/{_blogsFolderName}";
-            }
+                var x when x.EqualsInvariant(_themes) => $"Themes/{storeId}",
+                var x when x.EqualsInvariant(_pages) => $"Pages/{storeId}",
+                var x when x.EqualsInvariant(_blogsFolderName) => $"Pages/{storeId}/{_blogsFolderName}",
+                var x => string.Empty
+            };
 
             return retVal;
 
