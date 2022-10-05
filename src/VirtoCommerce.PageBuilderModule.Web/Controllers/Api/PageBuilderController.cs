@@ -15,8 +15,10 @@ using Newtonsoft.Json.Serialization;
 using VirtoCommerce.AssetsModule.Core.Assets;
 using VirtoCommerce.ContentModule.Core.Model;
 using VirtoCommerce.ContentModule.Core.Services;
+using VirtoCommerce.PageBuilderModule.Web.Events;
 using VirtoCommerce.PageBuilderModule.Web.Models;
 using VirtoCommerce.Platform.Core.Common;
+using VirtoCommerce.Platform.Core.Events;
 using VirtoCommerce.Platform.Core.GenericCrud;
 using VirtoCommerce.StoreModule.Core.Model;
 using VirtoCommerce.StoreModule.Core.Services;
@@ -30,6 +32,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         private readonly ICrudService<Store> _storeService;
         private readonly IBlobContentStorageProviderFactory _blobContentStorageProviderFactory;
         private readonly ContentOptions _options;
+        private readonly IEventPublisher _eventPublisher;
 
         private const string _blogsFolderName = "blogs";
         private const string _pages = "pages";
@@ -39,11 +42,13 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         public PageBuilderController(
             IStoreService storeService,
             IBlobContentStorageProviderFactory blobContentStorageProviderFactory,
-            IOptions<ContentOptions> options)
+            IOptions<ContentOptions> options,
+            IEventPublisher eventPublisher)
         {
             _storeService = (ICrudService<Store>)storeService;
             _blobContentStorageProviderFactory = blobContentStorageProviderFactory;
             _options = options.Value;
+            _eventPublisher = eventPublisher;
         }
 
         [HttpGet]
@@ -144,6 +149,9 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
             var settings = new JsonSerializerSettings { Formatting = Formatting.Indented };
             var themeName = GetCurrentThemeName(storeId, theme);
+
+            var changedFiles = new List<GenericChangedEntry<FileEntity>>();
+
             foreach (var file in files)
             {
                 var type = file.Type.ToLowerInvariant();
@@ -155,7 +163,15 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 await using var writer = new StreamWriter(targetStream);
                 var stringContent = JsonConvert.SerializeObject(content, settings);
                 await writer.WriteAsync(stringContent);
+
+                changedFiles.Add(new GenericChangedEntry<FileEntity>(new FileEntity{ 
+                    Id = file.Path, 
+                    Path = file.Path, 
+                    Type = file.Type }, 
+                    EntryState.Modified));
             }
+
+            await _eventPublisher.Publish(new PageBuilderStaticPageSavedEvent(changedFiles));
         }
 
         private async Task<string> GetSettingsFilesFromFolder(string storeId, string theme, string folder)
