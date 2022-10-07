@@ -5,6 +5,17 @@ namespace VirtoCommerce.PageBuilderModule.Web
 {
     public static class ModuleConstants
     {
+        public static class Security
+        {
+            public static class Permissions
+            {
+                public const string Theme = "builder:theme";
+                public const string Templates = "builder:templates";
+
+                public static string[] AllPermissions = new[] { Theme, Templates };
+            }
+        }
+        
         public static class Settings
         {
             public static class General
