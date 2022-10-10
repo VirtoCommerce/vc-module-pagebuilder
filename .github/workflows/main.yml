@@ -11,10 +11,10 @@ on:
       - 'README.md'
       - 'LICENSE'
     branches:
-      [master, dev, template-module]
+      [master, dev]
   pull_request:
     branches:
-      [master, dev, template-module]
+      [master, dev]
     paths-ignore:
       - 'docs/**'
       - 'build/**'
@@ -63,26 +63,6 @@ jobs:
       - name: Clone page-builder
         if: ${{ github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/master' }}
         run: |
-            git clone https://github.com/VirtoCommerce/page-builder.git --branch main
-            cd ./page-builder/src/page-builder
-            npm i
-            npm run build
-            cd ../vanilla-preview
-            npm i
-            npm run build:prod
-            cd ../../../
-            mkdir ./src/VirtoCommerce.PageBuilderModule.Web/Content/
-            mkdir ./src/VirtoCommerce.PageBuilderModule.Web/Content/builder/
-            mkdir ./src/VirtoCommerce.PageBuilderModule.Web/Content/store/
-            cp -R ./page-builder/src/page-builder/dist/page-builder/* ./src/VirtoCommerce.PageBuilderModule.Web/Content/builder/
-            cp -R ./page-builder/src/vanilla-preview/dist/* ./src/VirtoCommerce.PageBuilderModule.Web/Content/store/
-            mkdir ./src/VirtoCommerce.PageBuilderModule.Web/Content/builder/data/
-            cp ./src/VirtoCommerce.PageBuilderModule.Web/settings.json ./src/VirtoCommerce.PageBuilderModule.Web/Content/builder/data/settings.json
-            
-
-      - name: Clone template-builder
-        if: ${{ github.ref == 'refs/heads/template-module' }}
-        run: |
             git clone https://github.com/VirtoCommerce/template-builder.git --branch main
             cd ./template-builder/src/builder
             npm i
@@ -98,7 +78,7 @@ jobs:
         run: vc-build Compress -skip Test
 
       - name: Publish to Blob
-        if: ${{ github.ref == 'refs/heads/template-module' }}
+        if: ${{ github.ref == 'refs/heads/dev' }}
         id: blobRelease
         uses: VirtoCommerce/vc-github-actions/publish-blob-release@master
         with:

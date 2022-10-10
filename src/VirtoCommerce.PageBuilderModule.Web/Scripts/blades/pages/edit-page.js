@@ -18,9 +18,8 @@ angular.module('virtoCommerce.pageBuilderModule')
 
                     fillMetadata();
 
-                    $scope.blade.currentEntity.blocks = [{ type: 'settings', title: '', permalink: '', layout: $scope.options[0].value, noindex: false }];
-                    $scope.blade.currentEntity.settings = $scope.blade.currentEntity.blocks[0];
-                    $scope.blade.currentEntity.content = JSON.stringify($scope.blade.currentEntity.blocks);
+                    $scope.blade.currentEntity.settings = { type: 'settings', permalink: '' };
+                    $scope.blade.currentEntity.content = [];
                 } else {
                     contentApi.get({
                         contentType: blade.contentType,
@@ -29,11 +28,10 @@ angular.module('virtoCommerce.pageBuilderModule')
                     }, function (data) {
                         blade.isLoading = false;
                         var content = JSON.parse(data.data);
-                        var entity = $scope.blade.currentEntity;
-                        entity.settings = content[0];
-                        entity.blocks = content;
-                        entity.content = data.data;
                         fillMetadata();
+                        blade.currentEntity.settings = content.settings;
+                        blade.currentEntity.content = content.content;
+                        blade.currentEntity.filename = blade.currentEntity.name;
                         blade.origEntity = angular.copy(blade.currentEntity);
                     }, function (error) {
                         bladeNavigationService.setError('Error ' + error.status, $scope.blade);
@@ -43,7 +41,7 @@ angular.module('virtoCommerce.pageBuilderModule')
             };
 
             $scope.saveChanges = function () {
-                var newFileName = $scope.blade.currentEntity.name;
+                var newFileName = $scope.blade.currentEntity.filename;
                 if (!newFileName.endsWith('.page')) {
                     newFileName += '.page';
                 }
@@ -51,10 +49,14 @@ angular.module('virtoCommerce.pageBuilderModule')
                 var originFileName = null;
 
                 if (!blade.isNew) {
-                    originFileName = blade.origEntity.name;
+                    originFileName = blade.origEntity.filename;
                     if (!originFileName.endsWith('.page')) {
                         originFileName += '.page';
                     }
+                }
+                if (!$scope.blade.currentEntity.settings.name) {
+                    $scope.blade.currentEntity.settings.name = newFileName.substring(0, newFileName.lastIndexOf('.page'));
+                    $scope.blade.currentEntity.settings.permalink = '/' + $scope.blade.currentEntity.settings.name;
                 }
                 reloadPageAndSave(newFileName, originFileName);
             };
@@ -146,16 +148,21 @@ angular.module('virtoCommerce.pageBuilderModule')
 
             function generatePath() {
                 // need to return path relative to the root folder
+                var prefix = blade.currentEntity.settings.permalink && blade.currentEntity.settings.permalink.startsWith('/') ? '' : '/';
                 return blade.currentEntity.settings.permalink
-                    ? '/' + blade.currentEntity.settings.permalink
+                    ? prefix + blade.currentEntity.settings.permalink
                     : blade.currentEntity.relativeUrl;
             }
 
             function runDesigner() {
                 if (blade.designerUrl) {
                     // /Modules/$(VirtoCommerce.PageBuilderModule)/Content/builder/
-                    var path = blade.currentEntity.relativeUrl.replace("//", "/");
-                    window.open(blade.designerUrl + '?path=' + path + '&storeId=' + blade.storeId + '&contentType=' + blade.contentType, '_blank');
+                    //var path = blade.currentEntity.relativeUrl.replace("//", "/");
+                    //window.open(blade.designerUrl + '?path=' + path + '&storeId=' + blade.storeId + '&contentType=' + blade.contentType, '_blank');
+                    var name = blade.currentEntity.settings.name;
+                    // will be used default store theme, therefore we don't need to pass it
+                    //window.open(blade.designerUrl + '?storeId=' + blade.storeId + '&theme=default#/pages?in=page&template=' + name, '_blank');
+                    window.open(blade.designerUrl + '?storeId=' + blade.storeId + '#/pages?in=page&template=' + name, '_blank');
                 } else {
                     var dialog = {
                         id: "noUrlInStore",
@@ -178,8 +185,9 @@ angular.module('virtoCommerce.pageBuilderModule')
                     relativeUrl: $scope.blade.currentEntity.relativeUrl
                 }, function (data) {
                     var page = JSON.parse(data.data);
-                    page[0] = $scope.blade.currentEntity.settings;
-                    $scope.blade.currentEntity.blocks = page;
+                    $scope.blade.currentEntity.settings = Object.assign({}, page.settings, $scope.blade.currentEntity.settings);
+                    $scope.blade.currentEntity.content = page.content;
+
                     savePage(newFileName, originFileName);
                 }, function (error) {
                     var dialog = { id: "errorDetails" };
@@ -193,7 +201,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                 $scope.blade.currentEntity.relativeUrl = ($scope.blade.parentBlade.currentEntity.relativeUrl || '') + '/' + newFileName;
                 $scope.blade.currentEntity.relativeUrl = nameHelper.prepareRelativeUrl($scope.blade.currentEntity);
 
-                $scope.blade.currentEntity.content = JSON.stringify($scope.blade.currentEntity.blocks, null, 4);
+                //$scope.blade.currentEntity.content = JSON.stringify($scope.blade.currentEntity.blocks, null, 4);
                 pageBuilderApi.savePage({
                     contentType: blade.contentType,
                     storeId: blade.storeId,
@@ -248,8 +256,6 @@ angular.module('virtoCommerce.pageBuilderModule')
             };
 
             $scope.languages = settings.getValues({ id: 'VirtoCommerce.Core.General.Languages' });
-            $scope.options = [{ label: "Theme", value: "theme" }, { label: "Empty", value: "empty" }, { label: "Glossary", value: "glossary" }];
-
             blade.headIcon = 'fa fa-inbox';
 
             blade.initialize();

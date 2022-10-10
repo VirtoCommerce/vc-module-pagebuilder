@@ -5,6 +5,17 @@ namespace VirtoCommerce.PageBuilderModule.Web
 {
     public static class ModuleConstants
     {
+        public static class Security
+        {
+            public static class Permissions
+            {
+                public const string Theme = "builder:theme";
+                public const string Templates = "builder:templates";
+
+                public static string[] AllPermissions = new[] { Theme, Templates };
+            }
+        }
+        
         public static class Settings
         {
             public static class General
@@ -24,38 +35,11 @@ namespace VirtoCommerce.PageBuilderModule.Web
                     DefaultValue = "/designer-preview"
                 };
 
-                public static SettingDescriptor TokenUrl => new SettingDescriptor
-                {
-                    Name = "VirtoCommerce.PageBuilderModule.General.TokenUrl",
-                    ValueType = SettingValueType.ShortText,
-                    GroupName = "CMS Content|General",
-                    DefaultValue = "/connect/token"
-                };
-
-                public static SettingDescriptor AssetsPath => new SettingDescriptor
-                {
-                    Name = "VirtoCommerce.PageBuilderModule.General.AssetsPath",
-                    GroupName = "CMS Content|General",
-                    ValueType = SettingValueType.ShortText,
-                    DefaultValue = "assets/pages"
-                };
-
-                public static SettingDescriptor UseGlobalAssets => new SettingDescriptor
-                {
-                    Name = "VirtoCommerce.PageBuilderModule.General.UseGlobalAssets",
-                    GroupName = "CMS Content|General",
-                    ValueType = SettingValueType.Boolean,
-                    DefaultValue = false
-                };
-
                 public static IEnumerable<SettingDescriptor> AllSettings =>
                     new List<SettingDescriptor>
                     {
                         StoreUrl,
-                        StorePreviewPath,
-                        TokenUrl,
-                        AssetsPath,
-                        UseGlobalAssets
+                        StorePreviewPath
                     };
             }
 
