@@ -1,24 +1,150 @@
-
+﻿
 # Overview
 
-The Pagebuilder allows creating static pages from blocks and editing them using a visual editor.
+The Page Builder allows creating ecommerce pages from blocks and editing them using a visual editor.
 
 Each page consists of several different blocks. The blocks view and settings depend on web page requirements.
 
 The page is created in the builder as a list of blocks with specific settings applied to each block. All data are saved in a Json file format.
 
+## For Business
+* Build e-commerce landing pages – simple and faster.
+* Look on the content as end customer see it.
+* Mobile-friendliness by design.
+* Ready-to-go building blocks and recommendations.
+
+## For Developers
+* Integratable into your unique design.
+* Configurable set of favorites blocks. 
+* More blocks. Less code. Create a new blocks with flexable JSON schema.
+* Can be integrated with your existing sites and apps.
+* Ready for integration with DevOps.
+* Ready for Publishing process.
+
+
 ## Key Features
 
-1. No coding required
-1. Create static pages;
-1. Edit existing pages;
-1. Extend existing content types
-1. Ability to add new blocks;
-1. Live previews.
+1. Build a new landing pages visually without developer.
+1. Theme Branding (Preview).
+1. Ecommerce pages customization (Preview).
+1. Preview content.
+1. Block library.
+1. Seo by design.
+1. Mobile-friendliness by design
+1. Block management with Drag and drop, Copy, Paste, Hide, etc.
+1. Integration with Virto Storefront.
+1. Native Extendability Framework. 
+1. Permissions.
+
+
+## Page Builder Theme Structure
+```text
+├── client-app                    // The main folder for the application.
+|   ├── shared                    // Assets needed to be precompiled during building.
+|   |   └── static-content
+|   |      └── components         // Vue Components for rendering Page Builder elements. 
+├── config                        
+|   |   └── schemas               // All Page Builder meta information are stored here.
+|   |      ├── blocks             // Block definitions.
+|   |      |   └──...
+|   |      ├── objects            // Object definitions.
+|   |      |   └──...
+|   |      ├── sections           // Sections definitions.
+|   |      |   └──...
+|   |      ├── shared             // Global settings folder.
+|   |      |   └── _blocks.json   // Global settings for blocks.
+|   |      |   └── _sections.json // Global settings for sections.
+|   |      └── templates          
+|   |          └── page.json      // Page Builder configuration for static pages.
+|   └── settings_schema.json      // Theme settings schema file. Page Builder uses it for Theme and Preset editor.
+|   └── settings_data.json        // Theme config file.
+```
+
+## Getting started
+
+### Prerequisites
+1. Virto Commerce 3.253+ (`vc-platform`)  [Quick start](https://docs.virtocommerce.org/vc-quickstart/)
+1. Virto Storefront 6.5+ (`vc-storefront`).  [Deploy Storefront](https://docs.virtocommerce.org/getting-started/connect-storefront-to-platform-v3/)
+1. Vue B2B Theme 1.10+ (`vc-theme-b2b-vue`). 
+1. Page Builder Module 3.201+. [Download and Install](https://github.com/VirtoCommerce/vc-module-pagebuilder/releases). 
+
+### Setup Storefront and Content Module
+Check Platform and Storefront configuration to ensure that both use shared Content folder. 
+
+### Setup Content Module
+1. Content configuration should be extended with PathMappings section.
+
+```json
+    "Content": {
+        ...
+        "PathMappings:{
+            "pages": [
+                "Themes",
+                "_storeId",
+                "_theme",
+                "content/pages",
+            ],
+            "themes": [
+                "Themes",
+                "_storeId"
+            ]
+        }
+        ...
+    }, 
+```
+
+```yaml
+      Content__PathMappings__pages__0: "Themes"
+      Content__PathMappings__pages__1: "_storeId"
+      Content__PathMappings__pages__2: "_theme"
+      Content__PathMappings__pages__3: "content/pages"
+      Content__PathMappings__themes__0: "Themes"
+      Content__PathMappings__themes__1: "_storeId"
+```
+
+### Setup Store
+Public Store URL should be configure.
+
+1. Open Virto Commerce Admin UI.
+1. Select `Stores`, Select Current Store.
+1. Setup Store URL if it's empty
+1. Click Save button to apply 
+
+
+### Purge Cache
+You can purge static page from storefront cache by event. Otherwise, you will need to wait for cache expiration.
+
+Virto Storefront has `/storefrontapi/content/reset-cache` end point for static page invalidation.
+
+1. Install `vc-module-webhooks` module.
+1. Open Virto Commerce Admin UI.
+1. Select Webhooks module.
+1. Click `Add` button in toolbar to create a new webhook subscription.
+1. Enter webhook subscription name.
+1. Select `Page Builder Static Page Saved Event` event in Events drop-down.
+1. Select `Path` in additional fields.
+1. Turn on `Activate` checkbox.
+1. Enter Storefront end point in URL. Ex: https://www.mypublic-domain.com/storefrontapi/content/reset-cache
+1. Save webhook subscription.
+
+
+### Run
+1. Open Virto Commerce Admin UI.
+1. Select Content module.
+1. Find Store and Select Pages widget.
+1. Click `Add` button in toolbar. 
+1. Select 'Design page'.
+1. Provide page file name, public name and permalink. Ex: 'black-friday-2022', 'Black Friday 2022' and `blackfriday-2022`.
+1. Click `Create` button
+
+Now, you should be redirected to page builder designer and you can create a first page.
+
+Later, you can open and edit page builde pages, directly from content module.
+
 
 ## Documentation
 
-* [Pagebuilder Document](/docs/index.md)
+* [Pagebuilder Module Documentation](/docs/index.md)
 
 * [View on GitHub](https://github.com/VirtoCommerce/vc-module-pagebuilder/tree/dev)
 
@@ -39,3 +165,4 @@ Licensed under the Virto Commerce Open Software License (the "License"); you may
 http://virtocommerce.com/opensourcelicense
 
 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+
