@@ -150,7 +150,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             var settings = new JsonSerializerSettings { Formatting = Formatting.Indented };
             var themeName = GetCurrentThemeName(storeId, theme);
 
-            var changedFiles = new List<GenericChangedEntry<FileEntity>>();
+            var changedFiles = new Dictionary<string, List<GenericChangedEntry<FileEntity>>>();
 
             foreach (var file in files)
             {
@@ -164,14 +164,23 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 var stringContent = JsonConvert.SerializeObject(content, settings);
                 await writer.WriteAsync(stringContent);
 
-                changedFiles.Add(new GenericChangedEntry<FileEntity>(new FileEntity{ 
-                    Id = file.Path, 
-                    Path = file.Path, 
-                    Type = file.Type }, 
-                    EntryState.Modified));
+                if (!changedFiles.ContainsKey(type))
+                {
+                    changedFiles.Add(type, new List<GenericChangedEntry<FileEntity>>());
+                }
+
+                changedFiles[type].Add(new GenericChangedEntry<FileEntity>(new FileEntity
+                {
+                    Id = file.Path,
+                    Path = file.Path,
+                    Type = file.Type
+                }, EntryState.Modified));
             }
 
-            await _eventPublisher.Publish(new PageBuilderStaticPageSavedEvent(changedFiles));
+            changedFiles.Keys.ToList().ForEach(async x =>
+            {
+                await _eventPublisher.Publish(new PageBuilderContentChangedEvent(x, changedFiles[x]));
+            });
         }
 
         private async Task<string> GetSettingsFilesFromFolder(string storeId, string theme, string folder)
@@ -180,8 +189,10 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             var templatesFolder = $"{themeName}/config/schemas/{folder}";
             var basePath = GetContentBasePath(storeId, _themes, themeName);
             var storageProvider = _blobContentStorageProviderFactory.CreateProvider(basePath);
-            var files = await storageProvider.SearchAsync(templatesFolder, "*.json");
-            var result = $"{{{string.Join(", ", files.Results.Select(file => $"\"{GetKey(file)}\": {GetContent(file, storageProvider)}"))}}}";
+            var allFiles = await storageProvider.SearchAsync(templatesFolder, null);
+            var files = allFiles.Results.Where(x => x.Name.EndsWith(".json", StringComparison.OrdinalIgnoreCase));
+            var response = string.Join(", ", files.Select(file => $"\"{GetKey(file)}\": {GetContent(file, storageProvider)}"));
+            var result = $"{{{response}}}";
             return result;
         }
 
