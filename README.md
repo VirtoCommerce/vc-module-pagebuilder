@@ -44,7 +44,7 @@ The page is created in the builder as a list of blocks with specific settings ap
 1. Vue B2B Theme 1.10+ (`vc-theme-b2b-vue`). 
 1. Page Builder Module 3.201+. [Download and Install](https://github.com/VirtoCommerce/vc-module-pagebuilder/releases). 
 
-### Sync Content 
+### Setup Content 
 Check that Virto Commerce Platform and Storefront use same Shared Content folder.
 
 ### Setup Content Module
@@ -54,7 +54,7 @@ appsettings.json
 ```json
     "Content": {
         ...
-        "PathMappings:{
+        "PathMappings":{
             "pages": [
                 "Themes",
                 "_storeId",
