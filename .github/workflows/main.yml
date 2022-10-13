@@ -47,12 +47,16 @@ jobs:
       - name: Get Image Version
         uses: VirtoCommerce/vc-github-actions/get-image-version@master
         id: image
-
+        
+      - name: Set VERSION_SUFFIX variable
+        run: |
+            echo "VERSION_SUFFIX=${{ steps.image.outputs.suffix }}" >> $GITHUB_ENV
+ 
       - name: Add version suffix
-        if: ${{ github.ref == 'refs/heads/template-module' }}
+        if: ${{ github.ref != 'refs/heads/master' }}
         uses: VirtoCommerce/vc-github-actions/add-version-suffix@master
         with:
-          versionSuffix: ${{ steps.image.outputs.tag }}
+          versionSuffix: ${{ env.VERSION_SUFFIX }}
 
       - name: Setup Git Credentials
         if: ${{ github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/master' }}
@@ -63,7 +67,7 @@ jobs:
       - name: Clone page-builder
         if: ${{ github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/master' }}
         run: |
-            git clone https://github.com/VirtoCommerce/template-builder.git --branch main
+            git clone https://github.com/VirtoCommerce/template-builder.git --branch dev
             cd ./template-builder/src/builder
             npm i
             npm run build
