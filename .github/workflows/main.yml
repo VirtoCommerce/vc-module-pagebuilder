@@ -79,7 +79,7 @@ jobs:
             mkdir ./src/VirtoCommerce.PageBuilderModule.Web/Content/builder/
             mkdir ./src/VirtoCommerce.PageBuilderModule.Web/Content/bridge/
             cp -R ./template-builder/src/builder/dist/template-builder/* ./src/VirtoCommerce.PageBuilderModule.Web/Content/builder/
-            cp -R ./page-builder/src/bridge/dist/* ./src/VirtoCommerce.PageBuilderModule.Web/Content/bridge/
+            cp -R ./template-builder/src/bridge/dist/* ./src/VirtoCommerce.PageBuilderModule.Web/Content/bridge/
 
       - name: Packaging
         run: vc-build Compress -skip Test
