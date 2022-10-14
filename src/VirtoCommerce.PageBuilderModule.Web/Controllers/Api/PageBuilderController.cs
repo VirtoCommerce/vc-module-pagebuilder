@@ -101,7 +101,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         // todo: create model for files and descriptors (template entry)
         [HttpGet]
         [Route("search")]
-        public async Task<string> Search(string storeId, string pattern, string keyword, string theme, string folder, string type)
+        public async Task<string> Search(string storeId, string theme, string type, string folder, string pattern = null, string keyword = null)
         {
             var basePath = GetContentBasePath(storeId, type, theme);
             var storageProvider = _blobContentStorageProviderFactory.CreateProvider(basePath);
