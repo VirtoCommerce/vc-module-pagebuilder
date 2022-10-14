@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection.Metadata;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -100,26 +101,31 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         // todo: create model for files and descriptors (template entry)
         [HttpGet]
         [Route("search")]
-        public async Task<string> Search(string storeId, string query, string theme, string folder, string type)
+        public async Task<string> Search(string storeId, string pattern, string keyword, string theme, string folder, string type)
         {
             var basePath = GetContentBasePath(storeId, type, theme);
             var storageProvider = _blobContentStorageProviderFactory.CreateProvider(basePath);
             //var searchPattern = $"{query}.(json|page|template)"; // todo: use pattern correctly (search by filename? search by name from settings? elastic?)
-            var files = (await storageProvider.SearchAsync(folder, query)).Results.Where(x => x.Type != "folder").Take(10);
+            var regexp = new Regex(pattern);
+            var files = (await storageProvider.SearchAsync(folder, keyword)).Results.Where(x => x.Type != "folder" && regexp.IsMatch(x.Name)).Take(10);
             var fileInfoes = new Dictionary<string, string>();
             var jsonSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
             foreach (var file in files)
             {
-                var key = GetKey(file);
-                if (!fileInfoes.ContainsKey(key))
+                try
                 {
-                    var pageContent = GetPageContent(file, storageProvider);
-                    if (pageContent != null)
+                    var key = GetKey(file);
+                    if (!fileInfoes.ContainsKey(key))
                     {
-                        var content = JsonConvert.SerializeObject(pageContent, jsonSettings);
-                        fileInfoes.Add(key, content);
+                        var pageContent = GetPageContent(file, storageProvider);
+                        if (pageContent != null)
+                        {
+                            var content = JsonConvert.SerializeObject(pageContent, jsonSettings);
+                            fileInfoes.Add(key, content);
+                        }
                     }
                 }
+                catch { }
             }
             var result = $"{{{string.Join(", ", fileInfoes.Keys.Select(x => $"\"{x}\": {fileInfoes[x]}"))}}}";
             return result;
