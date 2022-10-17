@@ -31,19 +31,40 @@ Page Builder reads meta-data from theme. Developers can extend or customize page
 ## Type of Json Files
 TODO:
 
-### Blocks
+### Templates
 TODO:
 
-### Objects
-TODO:
+Каждый файл &ndash; это дескриптор страницы, либо группы страниц.
+По содержимому этих файлов формируется выпадающее меню в билдере.
+формат файла
+
+| property | type | nullable | description |
+|--|--|--|--|
+| `name` | `string` | `false` | Название страницы |
+| `alias` | `string` | `false` | |
+| `previewUrl` | `string` | `false` | |
+| `path` | `string` | `true` | Путь к странице относительно корня хранилища |
+| `type` | `string?` | `true` | |
+| `request` | `ServerRequestDescriptor` \| `ServerRequestDescriptor[]` \| `string` \| `string[]` | `true` | |
+| `sort` | `number` | `true` | |
+| `isDefault` | `boolean` | `true` | |
+| `sections` | `string[]` | `true` | |
+| `settings` | `SectionPropertyDescriptor[]` | `true` | |
+| `children` | `TemplateEntryList` | `true` | |
+| `hasChildren` | `boolean` | `true` | |
+| `previewMessage` | `any` | `true` | данные, отправляемые в превью при переходе на шаблон |
+
 
 ### Sections
+TODO:
+
+### Blocks
 TODO:
 
 ### Shared
 TODO:
 
-### Templates
+### Objects
 TODO:
 
 ## Elements
