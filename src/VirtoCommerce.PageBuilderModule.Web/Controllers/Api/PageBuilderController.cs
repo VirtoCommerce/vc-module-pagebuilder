@@ -106,8 +106,9 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             var basePath = GetContentBasePath(storeId, type, theme);
             var storageProvider = _blobContentStorageProviderFactory.CreateProvider(basePath);
             //var searchPattern = $"{query}.(json|page|template)"; // todo: use pattern correctly (search by filename? search by name from settings? elastic?)
-            var regexp = new Regex(pattern);
-            var files = (await storageProvider.SearchAsync(folder, keyword)).Results.Where(x => x.Type != "folder" && regexp.IsMatch(x.Name)).Take(10);
+            var regexp = pattern == null ? null : new Regex(pattern);
+            var files = (await storageProvider.SearchAsync(folder, keyword))
+                .Results.Where(x => x.Type != "folder" && (regexp?.IsMatch(x.Name) ?? true));
             var fileInfoes = new Dictionary<string, string>();
             var jsonSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
             foreach (var file in files)
