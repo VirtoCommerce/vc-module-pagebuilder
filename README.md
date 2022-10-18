@@ -94,7 +94,7 @@ Public Store URL should be configured.
 ### Purge Cache
 You can purge static page from storefront cache by event. Otherwise, you will need to wait for cache expiration.
 
-Virto Storefront has `/storefrontapi/content/reset-cache` end point for static page invalidation.
+Virto Storefront has `/storefrontapi/content/reset-cache/pages` end point for static page invalidation.
 
 We recommend using Webhooks module.
 
@@ -103,13 +103,13 @@ We recommend using Webhooks module.
 1. Select Webhooks module.
 1. Click `Add` button in toolbar to create a new webhook subscription.
 1. Enter webhook subscription name.
-1. Select `Page Builder Static Page Saved Event` event in Events drop-down.
+1. Select `Page Builder Content Changed Event` event in Events drop-down.
 1. Select `Path` in additional fields.
 1. Turn on `Activate` checkbox.
-1. Enter Storefront end point in URL. Ex: https://www.mypublic-domain.com/storefrontapi/content/reset-cache
+1. Enter Storefront end point in URL. Ex: https://www.mypublic-domain.com/storefrontapi/content/reset-cache/pages
 1. Save webhook subscription.
 
-![image](https://user-images.githubusercontent.com/7639413/195313163-534c4bbe-a10b-480f-9dd3-a12d7a35600d.png)
+![image](docs/media/screen-webhook-settings.png)
 
 ### Run
 1. Open Virto Commerce Admin UI.
