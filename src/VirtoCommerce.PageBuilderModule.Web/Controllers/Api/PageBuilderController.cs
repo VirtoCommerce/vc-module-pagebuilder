@@ -59,16 +59,37 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             var basePath = GetContentBasePath(storeId, type, theme);
             var storageProvider = _blobContentStorageProviderFactory.CreateProvider(basePath);
 
-            if ((await storageProvider.GetBlobInfoAsync(path)) != null)
+            var blobInfo = await storageProvider.GetBlobInfoAsync(path);
+
+            if (blobInfo != null)
             {
-                var stream = await storageProvider.OpenReadAsync(path);
-                return File(stream, MimeTypeResolver.ResolveContentType(path));
+                var stream = await storageProvider.OpenReadAsync(blobInfo.RelativeUrl);
+                return File(stream, MimeTypeResolver.ResolveContentType(blobInfo.Name));
             }
             return NotFound(new
             {
                 basePath = basePath,
                 templatePath = path
             });
+        }
+
+        [HttpGet]
+        [Route("settings")]
+        public async Task<ActionResult> GetSettings(string storeId, string theme)
+        {
+            var themeName = GetCurrentThemeName(storeId, theme);
+            var filePath = $"{themeName}/config/builder_settings.json";
+            var basePath = GetContentBasePath(storeId, _themes, themeName);
+            var storageProvider = _blobContentStorageProviderFactory.CreateProvider(basePath);
+
+            var blobInfo = await storageProvider.GetBlobInfoAsync(filePath);
+
+            if (blobInfo != null)
+            {
+                var stream = await storageProvider.OpenReadAsync(blobInfo.RelativeUrl);
+                return File(stream, MimeTypeResolver.ResolveContentType(blobInfo.Name));
+            }
+            return Content("{}");
         }
 
         [HttpGet]
