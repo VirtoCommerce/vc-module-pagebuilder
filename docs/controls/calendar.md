@@ -1,10 +1,16 @@
 # calendar control descriptor
 
-Нет дополнительных настроек.
+[datetime-picker](https://h2qutc.github.io/angular-material-components) is used for this control.
 
-Котрол использует [MatDatepickerModule](https://material.angular.io/components/datepicker/overview) из Material Angular. В качестве адаптера используется [moment.js](https://momentjs.com/).
+| Property | Type | Description |
+| - | - | - |
+| `mode` | `date` \| `datetime` \| `time` \| `month` \| `year` | Mode of the calendar |
+| `minDate` | `Date` | The minimum available date |
+| `maxDate` | `Date` | The maximum available date |
+| `inline` | `boolean` | Calendar will be displayed inline, not popup. |
 
-## Пример:
+
+## Example:
 
 ```json
 ...
@@ -21,8 +27,9 @@
     ]
 ...
 ```
-
-Результат
+<!--
+Result (todo: renew images)
 
 ![Calendar control example](images/calendar-control.png "Calendar control example")
 ![Calendar control example in open state](images/calendar-control-opened.png "Calendar control example in open state")
+-->

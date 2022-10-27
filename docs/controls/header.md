@@ -1,12 +1,12 @@
 # header control descriptor
 
-| Property  | Description                                                                |
-| --------- | -------------------------------------------------------------------------- |
-| `content` | строка статического текста, используется для вывода информации в редакторе |
+| Property  | Description |
+| - | - |
+| `content` | Text to display in editor panel. |
 
-Этот контрол нужен для информации, он не добавляет свойств конечному блоку
+This control display custom text information.
 
-## Пример:
+## Example
 
 ```json
 ...
@@ -20,6 +20,8 @@
 ...
 ```
 
-Эта настройка отобразит текст в редакторе
+<!--
+Result (todo: renew images)
 
 ![Header control example](images/header-control.png "Header control example")
+-->

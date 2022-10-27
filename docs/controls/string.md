@@ -1,13 +1,10 @@
 # string control descriptor
 
-| Property      | Type      | Description                                                                |
-| ------------- | --------- | -------------------------------------------------------------------------- |
-| `placeholder` | `string`  | placeholder для контрола |
-| `multiline`   | `boolean` | позволяет ввод текста в несколько строк |
+| Property | Type | Description |
+| - | - | - |
+| `multiline`   | `boolean` | Allow to enter text in multiple rows |
 
-Для однострочной строки используется `<input type="text" />`, для многострочной &ndash; `textarea`.
-
-## Пример:
+## Example:
 
 ```json
 ...
@@ -30,6 +27,8 @@
 ...
 ```
 
-Результат
+<!--
+Result (todo: renew images)
 
 ![String control example](images/string-control.png "String control example")
+-->

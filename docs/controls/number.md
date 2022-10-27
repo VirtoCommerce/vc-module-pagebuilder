@@ -1,12 +1,13 @@
 # number control descriptor
 
-|Property|Type|Description|
-|-|-|-|
-| `min` | `number` | минимальное значение |
-| `max` | `number` | максимальное значение |
-| `step` | `number` | шаг |
+| Property | Type | Description |
+| - | - | - |
+| `min` | `number` | Minimum value |
+| `max` | `number` | Maximum value |
+| `step` | `number` | Value change step |
+| `thumb` | `boolean` | Display value in thumb of slider |
 
-## Пример
+## Example
 
 ```json
 ...
@@ -24,7 +25,9 @@
 ...
 ```
 
-Результат
+<!--
+Result (todo: renew images)
 
 ![Number control example](images/number-control.png "NUmber control example")
 
+-->

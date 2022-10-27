@@ -1,5 +1,7 @@
 # search control descriptor
 
+still not realized
+
 Этот контрол предназначен для выполнения запроса/запросов для введённых данных. Возвращает результат, который сохраняется в блоке.
 
 | Property | Type | Description |

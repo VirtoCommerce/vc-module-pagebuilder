@@ -1,13 +1,16 @@
 # color control descriptor
 
-Для редактора используется библиотека [ngx-color-picker](https://www.npmjs.com/package/ngx-color-picker).
+The [color picker](https://ngx-color.vercel.app/) is used for this editor. The [npm-package](https://www.npmjs.com/package/ngx-color) is available too.
 
-| Property        | Type      | Description |
-| --------------- | --------- | ----------- |
-| `outputFormat`  | `string`  | формат результата. `auto`, `hex`, `rgba`, `hsla` |
-| `emptyValue` | `string` | значение при нажатии на кнопку `Clear` |
+| Property | Type | Description |
+| - | - | - |
+| `colorMode` | `color` \| `presets` | Sketch picker is used for `color` mode. Twitter picker is used for `presets`. |
+| `disableAlpha` | `boolean` | Remove alpha slider and options from picker. |
+| `clearValue` | `string` | Value for clear button. |
+| `inline` | `boolean` | Display picker inline. |
+| `presets` | `string[]` | List of values for presets mode. |
 
-## Пример:
+## Example:
 
 ```json
 ...
@@ -22,9 +25,10 @@
     ]
 ...
 ```
-
-Результат
+<!--
+Result (todo: renew images)
 
 ![Color control example](images/color-control.png "Color control example")
 
 ![Color control example in open state](images/color-control-opened.png "Color control example in open state")
+-->

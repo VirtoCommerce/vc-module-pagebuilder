@@ -1,17 +1,15 @@
 # collection control descriptor
 
 |Property|Type|Description|
-|-|-|-|
-| `addText` | `string` | текст на кнопке добавления элемента в список, по умолчанию `Add item` |
-| `displayField` | `string` | Свойство, которое будет отображаться как название элемента |
-| `element` | `ControlDescriptor[]` | описание контролов для элемента списка |
+| - | - | - |
+| `addText` | `string` | Add element button text. Default is `Add item` |
+| `displayField` | `string` | Property name that is used to display collection item in list. |
+| `skipRemoveConfirmation` | `boolean` | Ask user to confirm file removing. |
+| `removeMessage` | `string` | Message for the file removing confirmation. |
+| `elementDescriptor` | `string` | Name of object in `objects` folder. |
+| `element` | `ControlDescriptor[]` | Descriptors for collection item. |
 
-
-Название элемента усекается до 14ти символов и добавляется многоточие. Если же название оказалось пустым, то вместо него пишется порядковый номер элемента в массиве и добавляется `<no title>`.
-
-При добавлении элемента в список, его свойства заполняются из свойства `default` дескрипторов `element`.
-
-## Пример
+## Example
 
 ```json
 ...
@@ -45,21 +43,33 @@
                 }
             ],
             "default": [
-                { "fieldType": "text", "fieldName": "fullname", "labelText": "Full name" },
-                { "fieldType": "text", "fieldName": "email", "labelText": "Email" },
-                { "fieldType": "checkbox", "fieldName": "accept", "labelText": "By clicking \"Submit\" I understand that I consent to opt-in to the Terms and Policy" }
+                {
+                    "fieldType": "text",
+                    "fieldName": "fullname", "labelText": "Full name"
+                },
+                {
+                    "fieldType": "text",
+                    "fieldName": "email",
+                    "labelText": "Email"
+                },
+                {
+                    "fieldType": "checkbox",
+                    "fieldName": "accept",
+                    "labelText": "By clicking \"Submit\" I understand that I consent to opt-in to the Terms and Policy"
+                }
             ]
         },
         ...
     ]
 ...
 ```
-
-Результат
+<!--
+Result (todo: renew images)
 
 ![List control example](images/list-control.png "List control example")
 
-В режиме редактирования элемента
+Edit element mode
 
 ![List control edit mode example](images/list-control-edit.png "List control edit mode example")
 
+-->

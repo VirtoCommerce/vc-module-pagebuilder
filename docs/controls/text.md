@@ -1,10 +1,13 @@
 # text control descriptor
 
-нет дополнительных настроек
+Wysiwyg-editor. [ckeditor-angular](https://www.npmjs.com/package/ckeditor4-angular) is used.
 
-Wysiwyg-редактор. Используется CKEditor версии 4.16.0
+| Property | Type | Description |
+| - | - | - |
+| `config`   | `object` | Config for underlay editor. |
 
-## Пример:
+
+## Example:
 
 ```json
 ...
@@ -19,7 +22,8 @@ Wysiwyg-редактор. Используется CKEditor версии 4.16.0
     ]
 ...
 ```
-
-Результат
+<!--
+Result (todo: renew images)
 
 ![Text control example](images/text-control.png "Text control example")
+-->

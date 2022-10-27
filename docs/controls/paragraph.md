@@ -1,12 +1,10 @@
 # paragraph control descriptor
 
-| Property  | Description                                                                |
-| --------- | -------------------------------------------------------------------------- |
-| `content` | строка статического текста, используется для вывода информации в редакторе |
+| Property  | Description |
+| - | - |
+| `content` | Text to display in editor panel. |
 
-Этот контрол нужен для информации, он не добавляет свойств конечному блоку
-
-## Пример:
+## Example:
 
 ```json
 ...
@@ -19,7 +17,8 @@
     ]
 ...
 ```
-
-Эта настройка отобразит текст в редакторе
+<!--
+Result (todo: renew images)
 
 ![Paragraph control example](images/paragraph-control.png "Paragraph control example")
+-->

@@ -1,6 +1,6 @@
 # checkbox control descriptor
 
-Нет дополнительных настроек.
+No additional settings
 
 ## Пример:
 
@@ -17,7 +17,8 @@
     ]
 ...
 ```
-
-Результат
+<!--
+Result (todo: renew images)
 
 ![Checkbox control example](images/checkbox-control.png "Checkbox control example")
+-->
