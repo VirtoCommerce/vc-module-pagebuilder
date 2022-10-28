@@ -68,14 +68,14 @@ Products block read actual information from Catalog API. So, Page Builder can gu
 1. Select Products block and click **Add** button to add block into the page.
 1. Type Title, Subtitle, Search query and Count of the products.
 
-![Black Friday 2022 - Step 2 - Products])(media/bfdemo-step-3-products.png)
+![Black Friday 2022 - Step 2 - Products](media/bfdemo-step-3-products.png)
 
 ## Step 4. Publish Page
 
 1. Select Save button to save page 
 1. Open the page on the public site by permalink.
 
-![Black Friday 2022 - Step 4 - Complete Page])(media/bfdemo-final-page.png)
+![Black Friday 2022 - Step 4 - Complete Page](media/bfdemo-final-page.png)
 
 ## Step 5. Adjust Products
 We added actual products on the landing but if a marketer wants to adjust the result.
