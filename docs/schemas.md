@@ -1,8 +1,5 @@
 ﻿# Schemas
 
-## Overview
-TODO:
-
 ## Theme Structure
 Page Builder reads meta-data from theme. Developers can extend or customize page builder behaviour by theme repository.
 
