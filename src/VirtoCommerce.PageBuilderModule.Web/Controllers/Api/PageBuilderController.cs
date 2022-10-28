@@ -152,15 +152,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             var result = $"{{{string.Join(", ", fileInfoes.Keys.Select(x => $"\"{x}\": {fileInfoes[x]}"))}}}";
             return result;
         }
-
-        //[HttpPost]
-        //[Route("save-template-draft")]
-        //public async Task<ActionResult> SaveTemplateDraft(string storeId, [FromBody] SaveFilesModel value)
-        //{
-        //    await SaveFilesTo(storeId, value, "/default/config/drafts");
-        //    return Ok();
-        //}
-
+        
         [HttpPost]
         [Route("save")]
         public async Task<ActionResult> SaveTemplates(string storeId, string theme, [FromBody] SaveFilesModel value)
