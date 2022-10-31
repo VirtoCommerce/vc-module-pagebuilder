@@ -196,7 +196,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                     Type = file.Type
                 }, EntryState.Modified));
             }
-
             changedFiles.Keys.ToList().ForEach(async x =>
             {
                 await _eventPublisher.Publish(new PageBuilderContentChangedEvent(x, changedFiles[x]));
