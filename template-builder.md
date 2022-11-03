@@ -1,1 +1,1 @@
-https://github.com/VirtoCommerce/template-builder/commit/e6afde31ade1df0344eb72a21ae09aac705cdfcb
+https://github.com/VirtoCommerce/template-builder/commit/3021ec4f1f471ae7266a67c34213d669b9b7f692
