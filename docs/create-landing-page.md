@@ -10,7 +10,7 @@ Second, In digital marketing, a landing page is a standalone web page, created s
 
 In this quickstart, you'll see how to create first an ecommerce landing page for Black Friday 2022.
 
-## Step 1. Create Page
+## Create Page
 
 1. Sign in to the Virto Commerece Admin Portal with your account.
 1. Find **Content**, select your store, select **Pages** to open list of the current pages.
@@ -44,7 +44,7 @@ In this quickstart, you'll see how to create first an ecommerce landing page for
 
 	![Black Friday 2022 - Step 1 - Demo](media/bfdemo-step-1-demo.png)
 
-## Step 2. Add Content Blocks
+## Add Content Blocks
 
 1. Select **Add block** button to open **Block Library**.
 	![Black Friday 2022 - Block Library](media/bfdemo-step-2-block-library.png)
@@ -58,7 +58,7 @@ Both actions are redirecting customer to Catalog.
 
 ![Black Friday 2022 - Step 2 - Demo](media/bfdemo-step-2-content.png)
 
-## Step 3. Add Products Block
+## Add Products Block
 
 Products block allows displaying a limited count of products with filter by keyword. In this scenario, we will use it to display promo products.
 
@@ -70,14 +70,14 @@ Products block read actual information from Catalog API. So, Page Builder can gu
 
 ![Black Friday 2022 - Step 2 - Products](media/bfdemo-step-3-products.png)
 
-## Step 4. Publish Page
+## Publish Page
 
 1. Select Save button to save page 
 1. Open the page on the public site by permalink.
 
 ![Black Friday 2022 - Step 4 - Complete Page](media/bfdemo-final-page.png)
 
-## Step 5. Adjust Products
+## Adjust Products
 We added actual products on the landing but if a marketer wants to adjust the result.
 
 Here are several options, one of the solutions, is using Elastic App Search engines which are natively integrated with Virto Commerce. 

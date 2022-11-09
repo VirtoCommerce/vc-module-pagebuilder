@@ -1,4 +1,4 @@
-# search control descriptor
+# Search Control Descriptor
 
 still not realized
 

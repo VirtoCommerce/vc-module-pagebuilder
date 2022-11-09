@@ -1,4 +1,4 @@
-# number control descriptor
+# Number Control Descriptor
 
 | Property | Type | Description |
 | - | - | - |

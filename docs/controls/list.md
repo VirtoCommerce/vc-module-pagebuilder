@@ -1,4 +1,4 @@
-# collection control descriptor
+# Collection Control Descriptor
 
 |Property|Type|Description|
 | - | - | - |

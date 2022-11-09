@@ -1,4 +1,4 @@
-# files control descriptor
+# Files Control Descriptor
 
 [file-upload](https://pivan.github.io/file-upload/) component is used for this control.
 The [npm-package](https://www.npmjs.com/package/@iplab/ngx-file-upload) is available too.

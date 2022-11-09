@@ -1,4 +1,4 @@
-# header control descriptor
+# Header Control Descriptor
 
 | Property  | Description |
 | - | - |

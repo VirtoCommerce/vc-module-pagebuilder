@@ -1,4 +1,4 @@
-# string control descriptor
+# String Control Descriptor
 
 | Property | Type | Description |
 | - | - | - |

@@ -25,7 +25,7 @@ The page is created in the builder as a list of blocks with specific settings ap
 
 ## Key Features
 * Build a new landing page visually without developer.
-* Theme Branding (Preview).
+* Theme editor.
 * Ecommerce page customization (Preview).
 * Preview content.
 * Block library.
@@ -40,7 +40,7 @@ The page is created in the builder as a list of blocks with specific settings ap
 
 ### Prerequisites
 1. Virto Commerce 3.253+ (`vc-platform`)  [Quick start](https://docs.virtocommerce.org/vc-quickstart/)
-1. Virto Storefront 6.5+ (`vc-storefront`).  [Deploy Storefront](https://docs.virtocommerce.org/getting-started/connect-storefront-to-platform-v3/)
+1. Virto Storefront 6.7+ (`vc-storefront`).  [Deploy Storefront](https://docs.virtocommerce.org/getting-started/connect-storefront-to-platform-v3/)
 1. Vue B2B Theme 1.10+ (`vc-theme-b2b-vue`). 
 1. Page Builder Module 3.201+. [Download and Install](https://github.com/VirtoCommerce/vc-module-pagebuilder/releases). 
 
@@ -94,7 +94,7 @@ Public Store URL should be configured.
 ### Purge Cache
 You can purge static page from storefront cache by event. Otherwise, you will need to wait for cache expiration.
 
-Virto Storefront has `/storefrontapi/content/reset-cache/pages` end point for static page invalidation.
+Virto Storefront has `/storefrontapi/content/reset-cache` end point for static page invalidation.
 
 We recommend using Webhooks module.
 
@@ -104,9 +104,9 @@ We recommend using Webhooks module.
 1. Click `Add` button in toolbar to create a new webhook subscription.
 1. Enter webhook subscription name.
 1. Select `Page Builder Content Changed Event` event in Events drop-down.
-1. Select `Path` in additional fields.
+1. Select `Path` and `Type` in additional fields.
 1. Turn on `Activate` checkbox.
-1. Enter Storefront end point in URL. Ex: https://www.mypublic-domain.com/storefrontapi/content/reset-cache/pages
+1. Enter Storefront end point in URL. Ex: https://www.mypublic-domain.com//storefrontapi/content/reset-cache
 1. Save webhook subscription.
 
 **!!note: change image to correct (event name was changed)**

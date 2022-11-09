@@ -1,4 +1,4 @@
-# color control descriptor
+# Color Control Descriptor
 
 The [color picker](https://ngx-color.vercel.app/) is used for this editor. The [npm-package](https://www.npmjs.com/package/ngx-color) is available too.
 

@@ -1,4 +1,4 @@
-# object control descriptor
+# Object Control Descriptor
 
 | Property | Type | Description |
 | - | - | - |

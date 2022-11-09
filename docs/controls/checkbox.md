@@ -1,4 +1,4 @@
-# checkbox control descriptor
+# Checkbox Control Descriptor
 
 No additional settings
 

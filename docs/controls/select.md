@@ -1,4 +1,4 @@
-# select control descriptor
+# Select Control Descriptor
 
 | Property | Type | Description |
 | --- | --- | --- |

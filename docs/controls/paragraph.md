@@ -1,4 +1,4 @@
-# paragraph control descriptor
+# Paragraph Control Descriptor
 
 | Property  | Description |
 | - | - |

@@ -1,4 +1,4 @@
-# calendar control descriptor
+# Calendar Control Descriptor
 
 [datetime-picker](https://h2qutc.github.io/angular-material-components) is used for this control.
 

@@ -1,4 +1,4 @@
-# text control descriptor
+# Text Control Descriptor
 
 Wysiwyg-editor. [ckeditor-angular](https://www.npmjs.com/package/ckeditor4-angular) is used.
 

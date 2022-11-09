@@ -1,4 +1,4 @@
-# images control descriptor
+# Images Control Descriptor
 
 This descriptor contains the same options as [files control](files.md). The one exception is that default value for `accept` property is `image/*`.
 
