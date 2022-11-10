@@ -70,6 +70,7 @@ jobs:
             git clone https://github.com/VirtoCommerce/template-builder.git --branch dev
             cd ./template-builder/src/builder
             npm i
+            ng build ngv-markdown
             npm run build
             cd ../bridge
             npm i
