@@ -1,0 +1,143 @@
+{
+  "settings": {
+    "type": "settings",
+    "permalink": "md-basic-syntax",
+    "name": "md-basic-syntax",
+    "header": "Markdown Basic Syntax"
+  },
+  "content": [
+    {
+      "type": "call-to-action",
+      "id": "calltoactionrLcj",
+      "title": "Overview",
+      "background": null,
+      "buttons": [
+        {
+          "label": "Markdown Guide",
+          "link": "https://www.markdownguide.org/basic-syntax/"
+        }
+      ]
+    },
+    {
+      "heading": "h2",
+      "type": "text",
+      "id": "textffBA",
+      "title": "Headings",
+      "text": {
+        "markdown": "# Heading level 1\n\n## Heading level 2\n\n### Heading level 3\n\n#### Heading level 4\n\n##### Heading level 5\n\n###### Heading level 6\n",
+        "html": "<h1 id=\"heading-level-1\">Heading level 1</h1>\n<h2 id=\"heading-level-2\">Heading level 2</h2>\n<h3 id=\"heading-level-3\">Heading level 3</h3>\n<h4 id=\"heading-level-4\">Heading level 4</h4>\n<h5 id=\"heading-level-5\">Heading level 5</h5>\n<h6 id=\"heading-level-6\">Heading level 6</h6>\n"
+      },
+      "background": null
+    },
+    {
+      "heading": "h2",
+      "type": "text",
+      "id": "text2Bdp",
+      "title": "Alternate Syntax",
+      "text": {
+        "markdown": "Heading level 1   \n===============\n\nHeading level 2  \n---------------",
+        "html": "<h1 id=\"heading-level-1\">Heading level 1   </h1>\n<h2 id=\"heading-level-2\">Heading level 2  </h2>\n"
+      },
+      "background": null
+    },
+    {
+      "heading": "h2",
+      "type": "text",
+      "id": "textnHE",
+      "title": "Paragraphs",
+      "text": {
+        "markdown": "I really like using Markdown.  \n  \nI think I'll use it to format all of my documents from now on.",
+        "html": "<p>I really like using Markdown.  </p>\n<p>I think I&#39;ll use it to format all of my documents from now on.</p>\n"
+      },
+      "background": null
+    },
+    {
+      "heading": "h2",
+      "type": "text",
+      "id": "textXzwi",
+      "title": "Emphasis",
+      "text": {
+        "markdown": "I just love **bold text**.\n\nI just love __bold text__.\n\nLove**is**bold\n\nItalicized text is the *cat's meow*.\n\nItalicized text is the _cat's meow_.\n\nA*cat*meow\n\nThis text is ***really important***.\n\nThis text is ___really important___.\n\nThis text is __*really important*__.\n\nThis text is **_really important_**.\n\nThis is really***very***important text.\n",
+        "html": "<p>I just love <strong>bold text</strong>.</p>\n<p>I just love <strong>bold text</strong>.</p>\n<p>Love<strong>is</strong>bold</p>\n<p>Italicized text is the <em>cat&#39;s meow</em>.</p>\n<p>Italicized text is the <em>cat&#39;s meow</em>.</p>\n<p>A<em>cat</em>meow</p>\n<p>This text is <em><strong>really important</strong></em>.</p>\n<p>This text is <em><strong>really important</strong></em>.</p>\n<p>This text is <strong><em>really important</em></strong>.</p>\n<p>This text is <strong><em>really important</em></strong>.</p>\n<p>This is really<em><strong>very</strong></em>important text.</p>\n"
+      },
+      "background": null
+    },
+    {
+      "heading": "h2",
+      "type": "text",
+      "id": "textMMbd",
+      "title": "Blockquotes",
+      "text": {
+        "markdown": "> Dorothy followed her through many of the beautiful rooms in her castle.\n\n> Dorothy followed her through many of the beautiful rooms in her castle.\n>\n> The Witch bade her clean the pots and kettles and sweep the floor and keep the fire fed with wood.\n\n> Dorothy followed her through many of the beautiful rooms in her castle.\n>\n>> The Witch bade her clean the pots and kettles and sweep the floor and keep the fire fed with wood.\n\n> #### The quarterly results look great!\n>\n> - Revenue was off the chart.\n> - Profits were higher than ever.\n>\n>  *Everything* is going according to **plan**.",
+        "html": "<blockquote>\n<p>Dorothy followed her through many of the beautiful rooms in her castle.</p>\n</blockquote>\n<blockquote>\n<p>Dorothy followed her through many of the beautiful rooms in her castle.</p>\n<p>The Witch bade her clean the pots and kettles and sweep the floor and keep the fire fed with wood.</p>\n</blockquote>\n<blockquote>\n<p>Dorothy followed her through many of the beautiful rooms in her castle.</p>\n<blockquote>\n<p>The Witch bade her clean the pots and kettles and sweep the floor and keep the fire fed with wood.</p>\n</blockquote>\n</blockquote>\n<blockquote>\n<h4 id=\"the-quarterly-results-look-great\">The quarterly results look great!</h4>\n<ul>\n<li>Revenue was off the chart.</li>\n<li>Profits were higher than ever.</li>\n</ul>\n<p> <em>Everything</em> is going according to <strong>plan</strong>.</p>\n</blockquote>\n"
+      },
+      "background": null
+    },
+    {
+      "heading": "h2",
+      "type": "text",
+      "id": "textHDN5",
+      "title": "Lists",
+      "text": {
+        "markdown": "1. First item\n2. Second item\n3. Third item\n4. Fourth item\n\n1. First item\n1. Second item\n1. Third item\n1. Fourth item\n\n1. First item\n8. Second item\n3. Third item\n5. Fourth item\n\n1. First item\n2. Second item\n3. Third item\n    1. Indented item\n    2. Indented item\n4. Fourth item\n\n- First item\n- Second item\n- Third item\n- Fourth item\n\n* First item\n* Second item\n* Third item\n* Fourth item\n\n+ First item\n+ Second item\n+ Third item\n+ Fourth item\n\n- First item\n- Second item\n- Third item\n    - Indented item\n    - Indented item\n- Fourth item\n\n- 1968\\. A great year!\n- I think 1969 was second best.\n\n* This is the first list item.\n* Here's the second list item.\n\n    I need to add another paragraph below the second list item.\n\n* And here's the third list item.\n\n\n* This is the first list item.\n* Here's the second list item.\n\n    > A blockquote would look great below the second list item.\n\n* And here's the third list item.\n\n",
+        "html": "<ol>\n<li><p>First item</p>\n</li>\n<li><p>Second item</p>\n</li>\n<li><p>Third item</p>\n</li>\n<li><p>Fourth item</p>\n</li>\n<li><p>First item</p>\n</li>\n<li><p>Second item</p>\n</li>\n<li><p>Third item</p>\n</li>\n<li><p>Fourth item</p>\n</li>\n<li><p>First item</p>\n</li>\n<li><p>Second item</p>\n</li>\n<li><p>Third item</p>\n</li>\n<li><p>Fourth item</p>\n</li>\n<li><p>First item</p>\n</li>\n<li><p>Second item</p>\n</li>\n<li><p>Third item</p>\n<ol>\n<li>Indented item</li>\n<li>Indented item</li>\n</ol>\n</li>\n<li><p>Fourth item</p>\n</li>\n</ol>\n<ul>\n<li>First item</li>\n<li>Second item</li>\n<li>Third item</li>\n<li>Fourth item</li>\n</ul>\n<ul>\n<li>First item</li>\n<li>Second item</li>\n<li>Third item</li>\n<li>Fourth item</li>\n</ul>\n<ul>\n<li>First item</li>\n<li>Second item</li>\n<li>Third item</li>\n<li>Fourth item</li>\n</ul>\n<ul>\n<li><p>First item</p>\n</li>\n<li><p>Second item</p>\n</li>\n<li><p>Third item</p>\n<ul>\n<li>Indented item</li>\n<li>Indented item</li>\n</ul>\n</li>\n<li><p>Fourth item</p>\n</li>\n<li><p>1968. A great year!</p>\n</li>\n<li><p>I think 1969 was second best.</p>\n</li>\n</ul>\n<ul>\n<li><p>This is the first list item.</p>\n</li>\n<li><p>Here&#39;s the second list item.</p>\n<p>  I need to add another paragraph below the second list item.</p>\n</li>\n<li><p>And here&#39;s the third list item.</p>\n</li>\n<li><p>This is the first list item.</p>\n</li>\n<li><p>Here&#39;s the second list item.</p>\n<blockquote>\n<p>A blockquote would look great below the second list item.</p>\n</blockquote>\n</li>\n<li><p>And here&#39;s the third list item.</p>\n</li>\n</ul>\n"
+      },
+      "background": null
+    },
+    {
+      "heading": "h2",
+      "type": "text",
+      "id": "textRWXp",
+      "title": "Code",
+      "text": {
+        "markdown": "At the command prompt, type `nano`.\n\n``Use `code` in your Markdown file.``\n\n```\nSnippet\n\npublic void PostInitialize(IApplicationBuilder appBuilder)\n       {\n           var settingsRegistrar = appBuilder.ApplicationServices.GetRequiredService<ISettingsRegistrar>();\n           settingsRegistrar.RegisterSettings(ModuleConstants.Settings.AllSettings, ModuleInfo.Id);\n \n           var permissionsProvider = appBuilder.ApplicationServices.GetRequiredService<IPermissionsRegistrar>();\n           permissionsProvider.RegisterPermissions(ModuleConstants.Security.Permissions.AllPermissions.Select(x =>\n               new Permission()\n               {\n                   GroupName = \"Page builder\",\n                   ModuleId = ModuleInfo.Id,\n                   Name = x\n               }\n           ).ToArray());\n       }\n```",
+        "html": "<p>At the command prompt, type <code>nano</code>.</p>\n<p><code>Use `code` in your Markdown file.</code></p>\n<pre><code>Snippet\n\npublic void PostInitialize(IApplicationBuilder appBuilder)\n       {\n           var settingsRegistrar = appBuilder.ApplicationServices.GetRequiredService&lt;ISettingsRegistrar&gt;();\n           settingsRegistrar.RegisterSettings(ModuleConstants.Settings.AllSettings, ModuleInfo.Id);\n \n           var permissionsProvider = appBuilder.ApplicationServices.GetRequiredService&lt;IPermissionsRegistrar&gt;();\n           permissionsProvider.RegisterPermissions(ModuleConstants.Security.Permissions.AllPermissions.Select(x =&gt;\n               new Permission()\n               {\n                   GroupName = &quot;Page builder&quot;,\n                   ModuleId = ModuleInfo.Id,\n                   Name = x\n               }\n           ).ToArray());\n       }\n</code></pre>\n"
+      },
+      "background": null
+    },
+    {
+      "heading": "h2",
+      "type": "text",
+      "id": "textIvPC",
+      "title": "Horizontal Rules",
+      "text": {
+        "markdown": "***\n\n---\n\n_________________",
+        "html": "<hr>\n<hr>\n<hr>\n"
+      },
+      "background": null
+    },
+    {
+      "heading": "h2",
+      "type": "text",
+      "id": "textfdsF",
+      "title": "Links",
+      "text": {
+        "markdown": "My favorite search engine is [Duck Duck Go](https://duckduckgo.com).\n\nMy favorite search engine is [Duck Duck Go](https://duckduckgo.com \"The best search engine for privacy\").\n\n<https://www.markdownguide.org>\n<fake@example.com>\n\nI love supporting the **[EFF](https://eff.org)**.\nThis is the *[Markdown Guide](https://www.markdownguide.org)*.\nSee the section on [`code`](#code).\n\nIn a hole in the ground there lived a hobbit. Not a nasty, dirty, wet hole, filled with the ends\nof worms and an oozy smell, nor yet a dry, bare, sandy hole with nothing in it to sit down on or to\neat: it was a [hobbit-hole](https://en.wikipedia.org/wiki/Hobbit#Lifestyle \"Hobbit lifestyles\"), and that means comfort.\n\n",
+        "html": "<p>My favorite search engine is <a href=\"https://duckduckgo.com\">Duck Duck Go</a>.</p>\n<p>My favorite search engine is <a href=\"https://duckduckgo.com\" title=\"The best search engine for privacy\">Duck Duck Go</a>.</p>\n<p><a href=\"https://www.markdownguide.org\">https://www.markdownguide.org</a>\n<a href=\"mailto:&#102;&#97;&#x6b;&#101;&#x40;&#101;&#x78;&#97;&#x6d;&#112;&#x6c;&#101;&#46;&#x63;&#111;&#x6d;\">&#102;&#97;&#x6b;&#101;&#x40;&#101;&#x78;&#97;&#x6d;&#112;&#x6c;&#101;&#46;&#x63;&#111;&#x6d;</a></p>\n<p>I love supporting the <strong><a href=\"https://eff.org\">EFF</a></strong>.\nThis is the <em><a href=\"https://www.markdownguide.org\">Markdown Guide</a></em>.\nSee the section on <a href=\"#code\"><code>code</code></a>.</p>\n<p>In a hole in the ground there lived a hobbit. Not a nasty, dirty, wet hole, filled with the ends\nof worms and an oozy smell, nor yet a dry, bare, sandy hole with nothing in it to sit down on or to\neat: it was a <a href=\"https://en.wikipedia.org/wiki/Hobbit#Lifestyle\" title=\"Hobbit lifestyles\">hobbit-hole</a>, and that means comfort.</p>\n"
+      },
+      "background": null
+    },
+    {
+      "heading": "h2",
+      "type": "text",
+      "id": "texty08v",
+      "title": "Images",
+      "text": {
+        "markdown": "![The San Juan Mountains are beautiful!](https://mdg.imgix.net/assets/images/san-juan-mountains.jpg?auto=format&fit=clip&q=40&w=1080 \"San Juan Mountains\")\n",
+        "html": "<p><img src=\"https://mdg.imgix.net/assets/images/san-juan-mountains.jpg?auto=format&fit=clip&q=40&w=1080\" alt=\"The San Juan Mountains are beautiful!\" title=\"San Juan Mountains\"></p>\n"
+      },
+      "background": null
+    },
+    {
+      "heading": "h2",
+      "type": "text",
+      "id": "text6Loq",
+      "title": "HTML",
+      "text": {
+        "markdown": "This **word** is bold. This <em>word</em> is italic.",
+        "html": "<p>This <strong>word</strong> is bold. This <em>word</em> is italic.</p>\n"
+      },
+      "background": null
+    }
+  ]
+}
