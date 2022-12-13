@@ -10,8 +10,10 @@
         "title-new-post": "Neue Post",
         "subtitle-new-post": "Neuen Blogpost erstellen",
         "labels": {
+          "filename": "File name",
           "name": "Name",
           "language": "Sprache",
+          "permalink": "Permalink",
           "drag-note": "Die Datei hier ziehen und loslassen",
           "progress": "Fortschritt",
           "markdown": "Markdown",

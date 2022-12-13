@@ -26,10 +26,15 @@
                 transformRequest: function (currentEntity) {
                     var blobname = helper.prepareFilename(currentEntity);
                     var fd = new FormData();
-                    fd.append(blobname, currentEntity.content);
+                    fd.append(blobname, JSON.stringify({ settings: currentEntity.settings, content: currentEntity.content }));
                     return fd;
                 },
                 isArray: true
+            },
+            get: {
+                // using transformResponse to:
+                // 1. avoid automatic response result string converting to array;
+                transformResponse: function (rawData) { return { data: rawData }; }
             }
 			// ,
             // getStoreUrl: {

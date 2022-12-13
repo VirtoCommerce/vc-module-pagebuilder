@@ -10,8 +10,10 @@
         "title-new-post": "Новый пост",
         "subtitle-new-post": "Создать новый пост",
         "labels": {
+          "filename": "Имя файла",
           "name": "Название",
           "language": "Язык",
+          "permalink": "Ссылка",
           "drag-note": "Перетащите файлы сюда",
           "progress": "Прогресс",
           "markdown": "Markdown",

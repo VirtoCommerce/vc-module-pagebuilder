@@ -10,17 +10,20 @@
         "title-new-post": "New post",
         "subtitle-new-post": "Create new blogpost",
         "labels": {
+          "filename": "File name",
           "name": "Name",
           "language": "Language",
+          "permalink": "Permalink",
           "drag-note": "Drag and drop file here",
           "progress": "Progress",
           "markdown": "Markdown",
           "metadata": "Metadata"
         },
         "placeholders": {
+          "filename": "Enter file name",
           "name": "Enter name",
           "language": "Select...",
-          "metadata": "Enter metadata"
+          "permalink": "Enter permalink"
         },
         "validations": {
           "pageName-invalid": "Page name can contain alphanumeric, \"_\", \"-\" and \".\" characters only."
@@ -56,21 +59,13 @@
           "StorePreviewPath": {
             "description": "Relative path for preview page",
             "title": "Store preview path"
-          },
-          "TokenUrl": {
-            "description": "",
-            "title": "AuthToken url"
-          },
-          "AssetsPath": {
-            "description": "",
-            "title": "Assets relative path"
-          },
-		  "UseGlobalAssets": {
-			"description": "",
-			"title": "Use global assets folder"
-		  }
+          }
         }
       }
     }
+  },
+  "permissions": {
+	  "builder:themes": "Allow to edit theme settings",
+	  "builder:templates": "Allow to change template during editing"
   }
 }

@@ -22,6 +22,7 @@ bld/
 [Oo]bj/
 [Ll]og/
 builder/
+Content/
 *.zip
 
 # Visual Studio 2015 cache/options directory
@@ -275,7 +276,5 @@ dist/
 \.vscode
 
 builder/
-/src/VirtoCommerce.PageBuilderModule.Web/Content/store/
-/src/VirtoCommerce.PageBuilderModule.Web/Content/builder
-/src/VirtoCommerce.PageBuilderModule.Web/Content/store
+/src/VirtoCommerce.PageBuilderModule.Web/[Cc]ontent
 /src/VirtoCommerce.PageBuilderModule.Web/Content/bridge

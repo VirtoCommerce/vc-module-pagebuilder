@@ -1,3 +1,0 @@
-{
-	"ref": "/api/content/themes/{{location.params.storeId}}?relativeUrl=%2Fdefault%2Fconfig%2Fbuilder-settings.json"
-}
