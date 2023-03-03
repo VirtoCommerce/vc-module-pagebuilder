@@ -14,7 +14,7 @@
                     contentType: blade.contentType,
                     storeId: blade.storeId,
                     keyword: blade.searchKeyword,
-                    folderUrl: blade.currentEntity.url
+                    folderUrl: blade.currentEntity.relativeUrl
                 },
                 function (data) {
                     $scope.pageSettings.totalItems = data.length;
@@ -100,7 +100,7 @@
                     storeId: blade.storeId,
                     storeUrl: blade.storeUrl,
                     languages: blade.languages,
-                    folderUrl: blade.currentEntity.url,
+                    folderUrl: blade.currentEntity.relativeUrl,
                     currentEntity: listItem,
                     isNew: isNew,
                     title: listItem.name,
@@ -206,7 +206,7 @@
                     message: "platform.dialogs.folders-delete.message",
                     callback: function (remove) {
                         if (remove) {
-                            var listEntryIds = _.pluck(selection, 'url');
+                            var listEntryIds = _.pluck(selection, 'relativeUrl');
                             contentApi.delete({
                                 contentType: blade.contentType,
                                 storeId: blade.storeId,
@@ -257,7 +257,7 @@
                         id: "assetUpload",
                         contentType: blade.contentType,
                         storeId: blade.storeId,
-                        currentEntityId: blade.currentEntity.url,
+                        currentEntityId: blade.currentEntity.relativeUrl,
                         title: 'platform.blades.asset-upload.title',
                         controller: 'virtoCommerce.contentModule.assetUploadController',
                         template: 'Modules/$(VirtoCommerce.Assets)/Scripts/blades/asset-upload.tpl.html'
