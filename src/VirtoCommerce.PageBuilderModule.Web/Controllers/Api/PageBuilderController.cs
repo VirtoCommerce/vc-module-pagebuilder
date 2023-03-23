@@ -1,15 +1,15 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using Newtonsoft.Json.Serialization;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Serialization;
 using VirtoCommerce.AssetsModule.Core.Assets;
 using VirtoCommerce.ContentModule.Core.Model;
 using VirtoCommerce.ContentModule.Core.Services;
@@ -234,7 +234,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         {
             try
             {
-                using var reader = new StreamReader(provider.OpenRead(entry.Url));
+                using var reader = new StreamReader(provider.OpenRead(entry.RelativeUrl));
                 var content = reader.ReadToEnd();
                 dynamic json = JsonConvert.DeserializeObject(content);
                 var result = new ContentModel
@@ -253,7 +253,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
         private string GetContent(BlobEntry entry, IBlobContentStorageProvider provider)
         {
-            using var reader = new StreamReader(provider.OpenRead(entry.Url));
+            using var reader = new StreamReader(provider.OpenRead(entry.RelativeUrl));
             return reader.ReadToEnd();
         }
 
