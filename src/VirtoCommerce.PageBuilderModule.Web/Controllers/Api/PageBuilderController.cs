@@ -121,7 +121,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("search")]
         public async Task<string> Search(string storeId, string theme, string type, string folder, string pattern = null, string keyword = null)
         {
-            var basePath = GetContentBasePath(storeId, type, theme);
+            var themeName = GetCurrentThemeName(storeId, theme);
+            var basePath = GetContentBasePath(storeId, type, themeName);
             var storageProvider = _blobContentStorageProviderFactory.CreateProvider(basePath);
             //var searchPattern = $"{query}.(json|page|template)"; // todo: use pattern correctly (search by filename? search by name from settings? elastic?)
             var regexp = pattern == null ? null : new Regex(pattern);
@@ -260,12 +261,11 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         {
             if (_options.PathMappings != null && _options.PathMappings.Any() && _options.PathMappings.ContainsKey(contentType))
             {
-                var themeName = GetCurrentThemeName(storeId, theme);
                 var mapping = _options.PathMappings[contentType];
                 var parts = mapping.Select(x => x switch
                 {
                     "_storeId" => storeId,
-                    "_theme" => themeName,
+                    "_theme" => theme,
                     "_blog" => _blogsFolderName,
                     _ => x,
                 });
