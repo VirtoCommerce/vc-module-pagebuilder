@@ -176,8 +176,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                     ? providers[type]
                     : (providers[type] = _blobContentStorageProviderFactory.CreateProvider(GetContentBasePath(storeId, type, themeName)));
                 var content = file.Content;
-                var fullUrl = storageProvider.GetAbsoluteUrl(file.Path); // this is a workaround
-                await using var targetStream = await storageProvider.OpenWriteAsync(fullUrl);
+                await using var targetStream = await storageProvider.OpenWriteAsync(file.Path);
                 await using var writer = new StreamWriter(targetStream);
                 var stringContent = JsonConvert.SerializeObject(content, settings);
                 await writer.WriteAsync(stringContent);
@@ -261,7 +260,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         {
             if (_options.PathMappings != null && _options.PathMappings.Any() && _options.PathMappings.ContainsKey(contentType))
             {
-                var themeName = _defaultTheme;
+                var themeName = GetCurrentThemeName(storeId, theme);
                 var mapping = _options.PathMappings[contentType];
                 var parts = mapping.Select(x => x switch
                 {
