@@ -261,12 +261,11 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         {
             if (_options.PathMappings != null && _options.PathMappings.Any() && _options.PathMappings.ContainsKey(contentType))
             {
-                var themeName = _defaultTheme;
                 var mapping = _options.PathMappings[contentType];
                 var parts = mapping.Select(x => x switch
                 {
                     "_storeId" => storeId,
-                    "_theme" => themeName,
+                    "_theme" => GetThemeName(storeId, theme),
                     "_blog" => _blogsFolderName,
                     _ => x,
                 });
@@ -284,6 +283,16 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
             return retVal;
 
+        }
+
+        private string GetThemeName(string storeId, string themeName)
+        {
+            if (!string.IsNullOrEmpty(themeName))
+            {
+                return themeName;
+            }
+            var store = _storeService.GetByIdAsync(storeId).Result;
+            return store?.DynamicProperties.FirstOrDefault(x => x.Name == "DefaultThemeName")?.Values?.FirstOrDefault()?.Value?.ToString() ?? _defaultTheme;
         }
 
         public class SaveFilesModel
