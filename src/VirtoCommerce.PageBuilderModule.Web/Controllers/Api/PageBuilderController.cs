@@ -176,8 +176,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                     ? providers[type]
                     : (providers[type] = _blobContentStorageProviderFactory.CreateProvider(GetContentBasePath(storeId, type, themeName)));
                 var content = file.Content;
-                var fullUrl = storageProvider.GetAbsoluteUrl(file.Path); // this is a workaround
-                await using var targetStream = await storageProvider.OpenWriteAsync(fullUrl);
+                await using var targetStream = await storageProvider.OpenWriteAsync(file.Path);
                 await using var writer = new StreamWriter(targetStream);
                 var stringContent = JsonConvert.SerializeObject(content, settings);
                 await writer.WriteAsync(stringContent);
