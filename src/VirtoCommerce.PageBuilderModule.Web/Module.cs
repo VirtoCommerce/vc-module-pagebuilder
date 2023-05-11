@@ -1,7 +1,10 @@
-﻿using Microsoft.AspNetCore.Builder;
+﻿using System.Linq;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using System.Linq;
+using VirtoCommerce.ContentModule.Core.Extensions;
+using VirtoCommerce.ContentModule.Core.Search;
+using VirtoCommerce.PageBuilderModule.Data.Search;
 using VirtoCommerce.Platform.Core.Modularity;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.Platform.Core.Settings;
@@ -15,6 +18,13 @@ namespace VirtoCommerce.PageBuilderModule.Web
 
         public void Initialize(IServiceCollection serviceCollection)
         {
+            var isFullTextSearchEnabled = Configuration.IsContentFullTextSearchEnabled();
+
+            if (isFullTextSearchEnabled)
+            {
+                serviceCollection.AddTransient<PageBuilderContentItemBuilder>();
+            }
+
         }
 
         public void PostInitialize(IApplicationBuilder appBuilder)
@@ -31,6 +41,14 @@ namespace VirtoCommerce.PageBuilderModule.Web
                     Name = x
                 }
             ).ToArray());
+
+            var isFullTextSearchEnabled = Configuration.IsContentFullTextSearchEnabled();
+
+            if (isFullTextSearchEnabled)
+            {
+                var contentItemTypeRegistrar = appBuilder.ApplicationServices.GetService<IContentItemTypeRegistrar>();
+                contentItemTypeRegistrar.RegisterContentItemType(".page", appBuilder.ApplicationServices.GetService<PageBuilderContentItemBuilder>);
+            }
         }
 
         public void Uninstall()
