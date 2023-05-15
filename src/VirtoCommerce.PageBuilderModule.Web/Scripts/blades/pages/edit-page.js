@@ -3,7 +3,11 @@ angular.module('virtoCommerce.pageBuilderModule')
         'platformWebApp.validators', 'virtoCommerce.contentModule.contentApi',
         'virtoCommerce.pageBuilderModule.contentApi', 'platformWebApp.bladeNavigationService', 'platformWebApp.dialogService',
         'platformWebApp.dynamicProperties.dictionaryItemsApi', 'platformWebApp.settings', 'virtoCommerce.pageBuilderModule.resourceNameService',
-        function ($rootScope, $scope, validators, contentApi, pageBuilderApi, bladeNavigationService, dialogService, dictionaryItemsApi, settings, nameHelper) {
+        'virtoCommerce.searchModule.searchIndexation', "moment",
+        function ($rootScope, $scope, validators, contentApi, pageBuilderApi, bladeNavigationService, dialogService, dictionaryItemsApi, settings, nameHelper, searchApi, moment) {
+
+            var momentFormat = "YYYYMMDDHHmmss";
+
             var blade = $scope.blade;
             blade.updatePermission = 'content:update';
             blade.designerUrl = null;
@@ -37,6 +41,8 @@ angular.module('virtoCommerce.pageBuilderModule')
                         bladeNavigationService.setError('Error ' + error.status, $scope.blade);
                         blade.isLoading = false;
                     });
+
+                    loadSearchIndex();
                 }
             };
 
@@ -138,6 +144,77 @@ angular.module('virtoCommerce.pageBuilderModule')
                 }
             }
 
+            // #region search
+
+            function addIndexToolbarButton() {
+                blade.toolbarCommands.push({
+                    name: "content.commands.preview-index",
+                    icon: 'fa fa-file-alt',
+                    executeMethod: function () {
+                        getDocumentIndex(function (data) {
+                            var doc = getSearchDocumentInfo();
+                            const searchBlade = {
+                                id: 'sesarchDetails',
+                                currentEntityId: doc.documentId,
+                                currentEntity: blade.currentEntity,
+                                data: $scope.index,
+                                indexDate: $scope.indexDate,
+                                documentType: doc.documentType,
+                                controller: 'virtoCommerce.searchModule.indexDetailController',
+                                template: 'Modules/$(VirtoCommerce.Search)/Scripts/blades/index-detail.tpl.html'
+                            };
+
+                            bladeNavigationService.showBlade(searchBlade, blade);
+                        });
+                    },
+                    canExecuteMethod: function () { return true; }
+                });
+            }
+
+            function loadSearchIndex() {
+                if (blade.isNew) {
+                    return;
+                }
+                contentApi.indexedSearchEnabled({}, function (data) {
+                    $scope.searchEnabled = data.result;
+                    getDocumentIndex(addIndexToolbarButton);
+                });
+            }
+
+            function updateIndexStatus(data, doc) {
+                if (_.any(data)) {
+                    $scope.index = data[0];
+                    $scope.indexDate = moment.utc($scope.index.indexationdate, momentFormat);
+                }
+            }
+
+            function updateSearchIndex() {
+                var doc = getSearchDocumentInfo();
+                doc.documentIds = [doc.documentId];
+
+                searchApi.index([doc], function (data) {
+                    getDocumentIndex();
+                });
+            }
+
+            function getSearchDocumentInfo() {
+                var documentId = btoa(`${blade.storeId}::${blade.contentType}::${blade.currentEntity.relativeUrl}`).replaceAll('=', '-');
+                var documentType = 'ContentFile';
+                return { documentType: documentType, documentId: documentId };
+            }
+
+            function getDocumentIndex(callback) {
+                if ($scope.searchEnabled) {
+                    var doc = getSearchDocumentInfo();
+                    searchApi.getDocIndex(doc, function (data) {
+                        updateIndexStatus(data, doc);
+                        callback && _.any(data) && callback();
+                    });
+                }
+            }
+
+            // #endregion
+
             function isDirty() {
                 return !angular.equals(blade.currentEntity, blade.origEntity) && blade.hasUpdatePermission();
             }
@@ -229,6 +306,7 @@ angular.module('virtoCommerce.pageBuilderModule')
 
             function saveSuccess() {
                 blade.origEntity = angular.copy(blade.currentEntity);
+                updateSearchIndex();
                 if (blade.isNew) {
                     $scope.bladeClose();
                     $rootScope.$broadcast("cms-statistics-changed", blade.storeId);

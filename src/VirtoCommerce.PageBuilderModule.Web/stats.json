@@ -1,0 +1,999 @@
+{
+  "children": [
+    {
+      "hash": "faf45fe60f76e6f94599",
+      "version": "5.2.0",
+      "time": 150,
+      "builtAt": 1683810698235,
+      "publicPath": "auto",
+      "outputPath": "E:\\Develops\\VirtoWay\\projects\\modules\\vc-module-pagebuilder\\src\\VirtoCommerce.PageBuilderModule.Web\\dist",
+      "assetsByChunkName": {
+        "main": [
+          "app.js"
+        ]
+      },
+      "assets": [
+        {
+          "type": "asset",
+          "name": "app.js",
+          "size": 140597,
+          "chunkNames": [
+            "main"
+          ],
+          "chunkIdHints": [],
+          "auxiliaryChunkNames": [],
+          "auxiliaryChunkIdHints": [],
+          "emitted": true,
+          "comparedForEmit": false,
+          "cached": false,
+          "info": {
+            "javascriptModule": false,
+            "size": 140597
+          },
+          "related": {},
+          "chunks": [
+            "main"
+          ],
+          "auxiliaryChunks": [],
+          "isOverSizeLimit": false
+        }
+      ],
+      "chunks": [
+        {
+          "rendered": true,
+          "initial": true,
+          "entry": true,
+          "recorded": false,
+          "size": 53787,
+          "sizes": {
+            "javascript": 53787,
+            "runtime": 0
+          },
+          "names": [
+            "main"
+          ],
+          "idHints": [],
+          "runtime": [
+            "main"
+          ],
+          "files": [
+            "app.js"
+          ],
+          "auxiliaryFiles": [],
+          "hash": "ac370026cbf1afcd18d1",
+          "childrenByOrder": {},
+          "id": "main",
+          "siblings": [],
+          "parents": [],
+          "children": [],
+          "modules": [
+            {
+              "type": "module",
+              "moduleType": "javascript/auto",
+              "identifier": "E:\\Develops\\VirtoWay\\projects\\modules\\vc-module-pagebuilder\\src\\VirtoCommerce.PageBuilderModule.Web\\Scripts\\VirtoCommerce.PageBuilderModule.js",
+              "name": "./Scripts/VirtoCommerce.PageBuilderModule.js",
+              "nameForCondition": "E:\\Develops\\VirtoWay\\projects\\modules\\vc-module-pagebuilder\\src\\VirtoCommerce.PageBuilderModule.Web\\Scripts\\VirtoCommerce.PageBuilderModule.js",
+              "index": 0,
+              "preOrderIndex": 0,
+              "index2": 0,
+              "postOrderIndex": 0,
+              "size": 2926,
+              "sizes": {
+                "javascript": 2926
+              },
+              "cacheable": true,
+              "built": true,
+              "codeGenerated": true,
+              "cached": false,
+              "optional": false,
+              "orphan": false,
+              "dependent": false,
+              "issuer": null,
+              "issuerName": null,
+              "issuerPath": null,
+              "failed": false,
+              "errors": 0,
+              "warnings": 0,
+              "id": "./Scripts/VirtoCommerce.PageBuilderModule.js",
+              "issuerId": null,
+              "chunks": [
+                "main"
+              ],
+              "assets": [],
+              "reasons": [
+                {
+                  "moduleIdentifier": null,
+                  "module": null,
+                  "moduleName": null,
+                  "resolvedModuleIdentifier": null,
+                  "resolvedModule": null,
+                  "type": "entry",
+                  "active": true,
+                  "explanation": "",
+                  "userRequest": "./Scripts/VirtoCommerce.PageBuilderModule.js",
+                  "loc": "main",
+                  "moduleId": null,
+                  "resolvedModuleId": null
+                }
+              ],
+              "usedExports": null,
+              "providedExports": null,
+              "optimizationBailout": [],
+              "depth": 0
+            },
+            {
+              "type": "module",
+              "moduleType": "javascript/auto",
+              "identifier": "E:\\Develops\\VirtoWay\\projects\\modules\\vc-module-pagebuilder\\src\\VirtoCommerce.PageBuilderModule.Web\\Scripts\\blades\\content-main.js",
+              "name": "./Scripts/blades/content-main.js",
+              "nameForCondition": "E:\\Develops\\VirtoWay\\projects\\modules\\vc-module-pagebuilder\\src\\VirtoCommerce.PageBuilderModule.Web\\Scripts\\blades\\content-main.js",
+              "index": 1,
+              "preOrderIndex": 1,
+              "index2": 1,
+              "postOrderIndex": 1,
+              "size": 11291,
+              "sizes": {
+                "javascript": 11291
+              },
+              "cacheable": true,
+              "built": true,
+              "codeGenerated": true,
+              "cached": false,
+              "optional": false,
+              "orphan": false,
+              "dependent": false,
+              "issuer": null,
+              "issuerName": null,
+              "issuerPath": null,
+              "failed": false,
+              "errors": 0,
+              "warnings": 0,
+              "id": "./Scripts/blades/content-main.js",
+              "issuerId": null,
+              "chunks": [
+                "main"
+              ],
+              "assets": [],
+              "reasons": [
+                {
+                  "moduleIdentifier": null,
+                  "module": null,
+                  "moduleName": null,
+                  "resolvedModuleIdentifier": null,
+                  "resolvedModule": null,
+                  "type": "entry",
+                  "active": true,
+                  "explanation": "",
+                  "userRequest": "./Scripts/blades/content-main.js",
+                  "loc": "main",
+                  "moduleId": null,
+                  "resolvedModuleId": null
+                }
+              ],
+              "usedExports": null,
+              "providedExports": null,
+              "optimizationBailout": [],
+              "depth": 0
+            },
+            {
+              "type": "module",
+              "moduleType": "javascript/auto",
+              "identifier": "E:\\Develops\\VirtoWay\\projects\\modules\\vc-module-pagebuilder\\src\\VirtoCommerce.PageBuilderModule.Web\\Scripts\\blades\\pages\\edit-page.js",
+              "name": "./Scripts/blades/pages/edit-page.js",
+              "nameForCondition": "E:\\Develops\\VirtoWay\\projects\\modules\\vc-module-pagebuilder\\src\\VirtoCommerce.PageBuilderModule.Web\\Scripts\\blades\\pages\\edit-page.js",
+              "index": 2,
+              "preOrderIndex": 2,
+              "index2": 2,
+              "postOrderIndex": 2,
+              "size": 16394,
+              "sizes": {
+                "javascript": 16394
+              },
+              "cacheable": true,
+              "built": true,
+              "codeGenerated": true,
+              "cached": false,
+              "optional": false,
+              "orphan": false,
+              "dependent": false,
+              "issuer": null,
+              "issuerName": null,
+              "issuerPath": null,
+              "failed": false,
+              "errors": 0,
+              "warnings": 0,
+              "id": "./Scripts/blades/pages/edit-page.js",
+              "issuerId": null,
+              "chunks": [
+                "main"
+              ],
+              "assets": [],
+              "reasons": [
+                {
+                  "moduleIdentifier": null,
+                  "module": null,
+                  "moduleName": null,
+                  "resolvedModuleIdentifier": null,
+                  "resolvedModule": null,
+                  "type": "entry",
+                  "active": true,
+                  "explanation": "",
+                  "userRequest": "./Scripts/blades/pages/edit-page.js",
+                  "loc": "main",
+                  "moduleId": null,
+                  "resolvedModuleId": null
+                }
+              ],
+              "usedExports": null,
+              "providedExports": null,
+              "optimizationBailout": [],
+              "depth": 0
+            },
+            {
+              "type": "module",
+              "moduleType": "javascript/auto",
+              "identifier": "E:\\Develops\\VirtoWay\\projects\\modules\\vc-module-pagebuilder\\src\\VirtoCommerce.PageBuilderModule.Web\\Scripts\\blades\\pages\\page-add.js",
+              "name": "./Scripts/blades/pages/page-add.js",
+              "nameForCondition": "E:\\Develops\\VirtoWay\\projects\\modules\\vc-module-pagebuilder\\src\\VirtoCommerce.PageBuilderModule.Web\\Scripts\\blades\\pages\\page-add.js",
+              "index": 3,
+              "preOrderIndex": 3,
+              "index2": 3,
+              "postOrderIndex": 3,
+              "size": 3126,
+              "sizes": {
+                "javascript": 3126
+              },
+              "cacheable": true,
+              "built": true,
+              "codeGenerated": true,
+              "cached": false,
+              "optional": false,
+              "orphan": false,
+              "dependent": false,
+              "issuer": null,
+              "issuerName": null,
+              "issuerPath": null,
+              "failed": false,
+              "errors": 0,
+              "warnings": 0,
+              "id": "./Scripts/blades/pages/page-add.js",
+              "issuerId": null,
+              "chunks": [
+                "main"
+              ],
+              "assets": [],
+              "reasons": [
+                {
+                  "moduleIdentifier": null,
+                  "module": null,
+                  "moduleName": null,
+                  "resolvedModuleIdentifier": null,
+                  "resolvedModule": null,
+                  "type": "entry",
+                  "active": true,
+                  "explanation": "",
+                  "userRequest": "./Scripts/blades/pages/page-add.js",
+                  "loc": "main",
+                  "moduleId": null,
+                  "resolvedModuleId": null
+                }
+              ],
+              "usedExports": null,
+              "providedExports": null,
+              "optimizationBailout": [],
+              "depth": 0
+            },
+            {
+              "type": "module",
+              "moduleType": "javascript/auto",
+              "identifier": "E:\\Develops\\VirtoWay\\projects\\modules\\vc-module-pagebuilder\\src\\VirtoCommerce.PageBuilderModule.Web\\Scripts\\blades\\pages\\pages-list.js",
+              "name": "./Scripts/blades/pages/pages-list.js",
+              "nameForCondition": "E:\\Develops\\VirtoWay\\projects\\modules\\vc-module-pagebuilder\\src\\VirtoCommerce.PageBuilderModule.Web\\Scripts\\blades\\pages\\pages-list.js",
+              "index": 4,
+              "preOrderIndex": 4,
+              "index2": 4,
+              "postOrderIndex": 4,
+              "size": 16527,
+              "sizes": {
+                "javascript": 16527
+              },
+              "cacheable": true,
+              "built": true,
+              "codeGenerated": true,
+              "cached": false,
+              "optional": false,
+              "orphan": false,
+              "dependent": false,
+              "issuer": null,
+              "issuerName": null,
+              "issuerPath": null,
+              "failed": false,
+              "errors": 0,
+              "warnings": 0,
+              "id": "./Scripts/blades/pages/pages-list.js",
+              "issuerId": null,
+              "chunks": [
+                "main"
+              ],
+              "assets": [],
+              "reasons": [
+                {
+                  "moduleIdentifier": null,
+                  "module": null,
+                  "moduleName": null,
+                  "resolvedModuleIdentifier": null,
+                  "resolvedModule": null,
+                  "type": "entry",
+                  "active": true,
+                  "explanation": "",
+                  "userRequest": "./Scripts/blades/pages/pages-list.js",
+                  "loc": "main",
+                  "moduleId": null,
+                  "resolvedModuleId": null
+                }
+              ],
+              "usedExports": null,
+              "providedExports": null,
+              "optimizationBailout": [],
+              "depth": 0
+            },
+            {
+              "type": "module",
+              "moduleType": "javascript/auto",
+              "identifier": "E:\\Develops\\VirtoWay\\projects\\modules\\vc-module-pagebuilder\\src\\VirtoCommerce.PageBuilderModule.Web\\Scripts\\resources\\pageBuilderApi.js",
+              "name": "./Scripts/resources/pageBuilderApi.js",
+              "nameForCondition": "E:\\Develops\\VirtoWay\\projects\\modules\\vc-module-pagebuilder\\src\\VirtoCommerce.PageBuilderModule.Web\\Scripts\\resources\\pageBuilderApi.js",
+              "index": 5,
+              "preOrderIndex": 5,
+              "index2": 5,
+              "postOrderIndex": 5,
+              "size": 2236,
+              "sizes": {
+                "javascript": 2236
+              },
+              "cacheable": true,
+              "built": true,
+              "codeGenerated": true,
+              "cached": false,
+              "optional": false,
+              "orphan": false,
+              "dependent": false,
+              "issuer": null,
+              "issuerName": null,
+              "issuerPath": null,
+              "failed": false,
+              "errors": 0,
+              "warnings": 0,
+              "id": "./Scripts/resources/pageBuilderApi.js",
+              "issuerId": null,
+              "chunks": [
+                "main"
+              ],
+              "assets": [],
+              "reasons": [
+                {
+                  "moduleIdentifier": null,
+                  "module": null,
+                  "moduleName": null,
+                  "resolvedModuleIdentifier": null,
+                  "resolvedModule": null,
+                  "type": "entry",
+                  "active": true,
+                  "explanation": "",
+                  "userRequest": "./Scripts/resources/pageBuilderApi.js",
+                  "loc": "main",
+                  "moduleId": null,
+                  "resolvedModuleId": null
+                }
+              ],
+              "usedExports": null,
+              "providedExports": null,
+              "optimizationBailout": [],
+              "depth": 0
+            },
+            {
+              "type": "module",
+              "moduleType": "javascript/auto",
+              "identifier": "E:\\Develops\\VirtoWay\\projects\\modules\\vc-module-pagebuilder\\src\\VirtoCommerce.PageBuilderModule.Web\\Scripts\\resources\\resource-name-service.js",
+              "name": "./Scripts/resources/resource-name-service.js",
+              "nameForCondition": "E:\\Develops\\VirtoWay\\projects\\modules\\vc-module-pagebuilder\\src\\VirtoCommerce.PageBuilderModule.Web\\Scripts\\resources\\resource-name-service.js",
+              "index": 6,
+              "preOrderIndex": 6,
+              "index2": 6,
+              "postOrderIndex": 6,
+              "size": 1287,
+              "sizes": {
+                "javascript": 1287
+              },
+              "cacheable": true,
+              "built": true,
+              "codeGenerated": true,
+              "cached": false,
+              "optional": false,
+              "orphan": false,
+              "dependent": false,
+              "issuer": null,
+              "issuerName": null,
+              "issuerPath": null,
+              "failed": false,
+              "errors": 0,
+              "warnings": 0,
+              "id": "./Scripts/resources/resource-name-service.js",
+              "issuerId": null,
+              "chunks": [
+                "main"
+              ],
+              "assets": [],
+              "reasons": [
+                {
+                  "moduleIdentifier": null,
+                  "module": null,
+                  "moduleName": null,
+                  "resolvedModuleIdentifier": null,
+                  "resolvedModule": null,
+                  "type": "entry",
+                  "active": true,
+                  "explanation": "",
+                  "userRequest": "./Scripts/resources/resource-name-service.js",
+                  "loc": "main",
+                  "moduleId": null,
+                  "resolvedModuleId": null
+                }
+              ],
+              "usedExports": null,
+              "providedExports": null,
+              "optimizationBailout": [],
+              "depth": 0
+            },
+            {
+              "type": "module",
+              "moduleType": "runtime",
+              "identifier": "webpack/runtime/compat",
+              "name": "webpack/runtime/compat",
+              "nameForCondition": null,
+              "index": null,
+              "preOrderIndex": null,
+              "index2": null,
+              "postOrderIndex": null,
+              "size": 0,
+              "sizes": {
+                "runtime": 0
+              },
+              "built": false,
+              "codeGenerated": true,
+              "cached": false,
+              "optional": false,
+              "orphan": false,
+              "dependent": false,
+              "failed": false,
+              "errors": 0,
+              "warnings": 0,
+              "id": "",
+              "chunks": [
+                "main"
+              ],
+              "assets": [],
+              "reasons": [],
+              "usedExports": null,
+              "providedExports": [],
+              "optimizationBailout": [],
+              "depth": null
+            }
+          ],
+          "origins": [
+            {
+              "module": "",
+              "moduleIdentifier": "",
+              "moduleName": "",
+              "loc": "main",
+              "request": "./Scripts/VirtoCommerce.PageBuilderModule.js"
+            },
+            {
+              "module": "",
+              "moduleIdentifier": "",
+              "moduleName": "",
+              "loc": "main",
+              "request": "./Scripts/blades/content-main.js"
+            },
+            {
+              "module": "",
+              "moduleIdentifier": "",
+              "moduleName": "",
+              "loc": "main",
+              "request": "./Scripts/blades/pages/edit-page.js"
+            },
+            {
+              "module": "",
+              "moduleIdentifier": "",
+              "moduleName": "",
+              "loc": "main",
+              "request": "./Scripts/blades/pages/page-add.js"
+            },
+            {
+              "module": "",
+              "moduleIdentifier": "",
+              "moduleName": "",
+              "loc": "main",
+              "request": "./Scripts/blades/pages/pages-list.js"
+            },
+            {
+              "module": "",
+              "moduleIdentifier": "",
+              "moduleName": "",
+              "loc": "main",
+              "request": "./Scripts/resources/pageBuilderApi.js"
+            },
+            {
+              "module": "",
+              "moduleIdentifier": "",
+              "moduleName": "",
+              "loc": "main",
+              "request": "./Scripts/resources/resource-name-service.js"
+            }
+          ]
+        }
+      ],
+      "modules": [
+        {
+          "type": "module",
+          "moduleType": "javascript/auto",
+          "identifier": "E:\\Develops\\VirtoWay\\projects\\modules\\vc-module-pagebuilder\\src\\VirtoCommerce.PageBuilderModule.Web\\Scripts\\VirtoCommerce.PageBuilderModule.js",
+          "name": "./Scripts/VirtoCommerce.PageBuilderModule.js",
+          "nameForCondition": "E:\\Develops\\VirtoWay\\projects\\modules\\vc-module-pagebuilder\\src\\VirtoCommerce.PageBuilderModule.Web\\Scripts\\VirtoCommerce.PageBuilderModule.js",
+          "index": 0,
+          "preOrderIndex": 0,
+          "index2": 0,
+          "postOrderIndex": 0,
+          "size": 2926,
+          "sizes": {
+            "javascript": 2926
+          },
+          "cacheable": true,
+          "built": true,
+          "codeGenerated": true,
+          "cached": false,
+          "optional": false,
+          "orphan": false,
+          "issuer": null,
+          "issuerName": null,
+          "issuerPath": null,
+          "failed": false,
+          "errors": 0,
+          "warnings": 0,
+          "id": "./Scripts/VirtoCommerce.PageBuilderModule.js",
+          "issuerId": null,
+          "chunks": [
+            "main"
+          ],
+          "assets": [],
+          "reasons": [
+            {
+              "moduleIdentifier": null,
+              "module": null,
+              "moduleName": null,
+              "resolvedModuleIdentifier": null,
+              "resolvedModule": null,
+              "type": "entry",
+              "active": true,
+              "explanation": "",
+              "userRequest": "./Scripts/VirtoCommerce.PageBuilderModule.js",
+              "loc": "main",
+              "moduleId": null,
+              "resolvedModuleId": null
+            }
+          ],
+          "usedExports": null,
+          "providedExports": null,
+          "optimizationBailout": [],
+          "depth": 0
+        },
+        {
+          "type": "module",
+          "moduleType": "javascript/auto",
+          "identifier": "E:\\Develops\\VirtoWay\\projects\\modules\\vc-module-pagebuilder\\src\\VirtoCommerce.PageBuilderModule.Web\\Scripts\\blades\\content-main.js",
+          "name": "./Scripts/blades/content-main.js",
+          "nameForCondition": "E:\\Develops\\VirtoWay\\projects\\modules\\vc-module-pagebuilder\\src\\VirtoCommerce.PageBuilderModule.Web\\Scripts\\blades\\content-main.js",
+          "index": 1,
+          "preOrderIndex": 1,
+          "index2": 1,
+          "postOrderIndex": 1,
+          "size": 11291,
+          "sizes": {
+            "javascript": 11291
+          },
+          "cacheable": true,
+          "built": true,
+          "codeGenerated": true,
+          "cached": false,
+          "optional": false,
+          "orphan": false,
+          "issuer": null,
+          "issuerName": null,
+          "issuerPath": null,
+          "failed": false,
+          "errors": 0,
+          "warnings": 0,
+          "id": "./Scripts/blades/content-main.js",
+          "issuerId": null,
+          "chunks": [
+            "main"
+          ],
+          "assets": [],
+          "reasons": [
+            {
+              "moduleIdentifier": null,
+              "module": null,
+              "moduleName": null,
+              "resolvedModuleIdentifier": null,
+              "resolvedModule": null,
+              "type": "entry",
+              "active": true,
+              "explanation": "",
+              "userRequest": "./Scripts/blades/content-main.js",
+              "loc": "main",
+              "moduleId": null,
+              "resolvedModuleId": null
+            }
+          ],
+          "usedExports": null,
+          "providedExports": null,
+          "optimizationBailout": [],
+          "depth": 0
+        },
+        {
+          "type": "module",
+          "moduleType": "javascript/auto",
+          "identifier": "E:\\Develops\\VirtoWay\\projects\\modules\\vc-module-pagebuilder\\src\\VirtoCommerce.PageBuilderModule.Web\\Scripts\\blades\\pages\\edit-page.js",
+          "name": "./Scripts/blades/pages/edit-page.js",
+          "nameForCondition": "E:\\Develops\\VirtoWay\\projects\\modules\\vc-module-pagebuilder\\src\\VirtoCommerce.PageBuilderModule.Web\\Scripts\\blades\\pages\\edit-page.js",
+          "index": 2,
+          "preOrderIndex": 2,
+          "index2": 2,
+          "postOrderIndex": 2,
+          "size": 16394,
+          "sizes": {
+            "javascript": 16394
+          },
+          "cacheable": true,
+          "built": true,
+          "codeGenerated": true,
+          "cached": false,
+          "optional": false,
+          "orphan": false,
+          "issuer": null,
+          "issuerName": null,
+          "issuerPath": null,
+          "failed": false,
+          "errors": 0,
+          "warnings": 0,
+          "id": "./Scripts/blades/pages/edit-page.js",
+          "issuerId": null,
+          "chunks": [
+            "main"
+          ],
+          "assets": [],
+          "reasons": [
+            {
+              "moduleIdentifier": null,
+              "module": null,
+              "moduleName": null,
+              "resolvedModuleIdentifier": null,
+              "resolvedModule": null,
+              "type": "entry",
+              "active": true,
+              "explanation": "",
+              "userRequest": "./Scripts/blades/pages/edit-page.js",
+              "loc": "main",
+              "moduleId": null,
+              "resolvedModuleId": null
+            }
+          ],
+          "usedExports": null,
+          "providedExports": null,
+          "optimizationBailout": [],
+          "depth": 0
+        },
+        {
+          "type": "module",
+          "moduleType": "javascript/auto",
+          "identifier": "E:\\Develops\\VirtoWay\\projects\\modules\\vc-module-pagebuilder\\src\\VirtoCommerce.PageBuilderModule.Web\\Scripts\\blades\\pages\\page-add.js",
+          "name": "./Scripts/blades/pages/page-add.js",
+          "nameForCondition": "E:\\Develops\\VirtoWay\\projects\\modules\\vc-module-pagebuilder\\src\\VirtoCommerce.PageBuilderModule.Web\\Scripts\\blades\\pages\\page-add.js",
+          "index": 3,
+          "preOrderIndex": 3,
+          "index2": 3,
+          "postOrderIndex": 3,
+          "size": 3126,
+          "sizes": {
+            "javascript": 3126
+          },
+          "cacheable": true,
+          "built": true,
+          "codeGenerated": true,
+          "cached": false,
+          "optional": false,
+          "orphan": false,
+          "issuer": null,
+          "issuerName": null,
+          "issuerPath": null,
+          "failed": false,
+          "errors": 0,
+          "warnings": 0,
+          "id": "./Scripts/blades/pages/page-add.js",
+          "issuerId": null,
+          "chunks": [
+            "main"
+          ],
+          "assets": [],
+          "reasons": [
+            {
+              "moduleIdentifier": null,
+              "module": null,
+              "moduleName": null,
+              "resolvedModuleIdentifier": null,
+              "resolvedModule": null,
+              "type": "entry",
+              "active": true,
+              "explanation": "",
+              "userRequest": "./Scripts/blades/pages/page-add.js",
+              "loc": "main",
+              "moduleId": null,
+              "resolvedModuleId": null
+            }
+          ],
+          "usedExports": null,
+          "providedExports": null,
+          "optimizationBailout": [],
+          "depth": 0
+        },
+        {
+          "type": "module",
+          "moduleType": "javascript/auto",
+          "identifier": "E:\\Develops\\VirtoWay\\projects\\modules\\vc-module-pagebuilder\\src\\VirtoCommerce.PageBuilderModule.Web\\Scripts\\blades\\pages\\pages-list.js",
+          "name": "./Scripts/blades/pages/pages-list.js",
+          "nameForCondition": "E:\\Develops\\VirtoWay\\projects\\modules\\vc-module-pagebuilder\\src\\VirtoCommerce.PageBuilderModule.Web\\Scripts\\blades\\pages\\pages-list.js",
+          "index": 4,
+          "preOrderIndex": 4,
+          "index2": 4,
+          "postOrderIndex": 4,
+          "size": 16527,
+          "sizes": {
+            "javascript": 16527
+          },
+          "cacheable": true,
+          "built": true,
+          "codeGenerated": true,
+          "cached": false,
+          "optional": false,
+          "orphan": false,
+          "issuer": null,
+          "issuerName": null,
+          "issuerPath": null,
+          "failed": false,
+          "errors": 0,
+          "warnings": 0,
+          "id": "./Scripts/blades/pages/pages-list.js",
+          "issuerId": null,
+          "chunks": [
+            "main"
+          ],
+          "assets": [],
+          "reasons": [
+            {
+              "moduleIdentifier": null,
+              "module": null,
+              "moduleName": null,
+              "resolvedModuleIdentifier": null,
+              "resolvedModule": null,
+              "type": "entry",
+              "active": true,
+              "explanation": "",
+              "userRequest": "./Scripts/blades/pages/pages-list.js",
+              "loc": "main",
+              "moduleId": null,
+              "resolvedModuleId": null
+            }
+          ],
+          "usedExports": null,
+          "providedExports": null,
+          "optimizationBailout": [],
+          "depth": 0
+        },
+        {
+          "type": "module",
+          "moduleType": "javascript/auto",
+          "identifier": "E:\\Develops\\VirtoWay\\projects\\modules\\vc-module-pagebuilder\\src\\VirtoCommerce.PageBuilderModule.Web\\Scripts\\resources\\pageBuilderApi.js",
+          "name": "./Scripts/resources/pageBuilderApi.js",
+          "nameForCondition": "E:\\Develops\\VirtoWay\\projects\\modules\\vc-module-pagebuilder\\src\\VirtoCommerce.PageBuilderModule.Web\\Scripts\\resources\\pageBuilderApi.js",
+          "index": 5,
+          "preOrderIndex": 5,
+          "index2": 5,
+          "postOrderIndex": 5,
+          "size": 2236,
+          "sizes": {
+            "javascript": 2236
+          },
+          "cacheable": true,
+          "built": true,
+          "codeGenerated": true,
+          "cached": false,
+          "optional": false,
+          "orphan": false,
+          "issuer": null,
+          "issuerName": null,
+          "issuerPath": null,
+          "failed": false,
+          "errors": 0,
+          "warnings": 0,
+          "id": "./Scripts/resources/pageBuilderApi.js",
+          "issuerId": null,
+          "chunks": [
+            "main"
+          ],
+          "assets": [],
+          "reasons": [
+            {
+              "moduleIdentifier": null,
+              "module": null,
+              "moduleName": null,
+              "resolvedModuleIdentifier": null,
+              "resolvedModule": null,
+              "type": "entry",
+              "active": true,
+              "explanation": "",
+              "userRequest": "./Scripts/resources/pageBuilderApi.js",
+              "loc": "main",
+              "moduleId": null,
+              "resolvedModuleId": null
+            }
+          ],
+          "usedExports": null,
+          "providedExports": null,
+          "optimizationBailout": [],
+          "depth": 0
+        },
+        {
+          "type": "module",
+          "moduleType": "javascript/auto",
+          "identifier": "E:\\Develops\\VirtoWay\\projects\\modules\\vc-module-pagebuilder\\src\\VirtoCommerce.PageBuilderModule.Web\\Scripts\\resources\\resource-name-service.js",
+          "name": "./Scripts/resources/resource-name-service.js",
+          "nameForCondition": "E:\\Develops\\VirtoWay\\projects\\modules\\vc-module-pagebuilder\\src\\VirtoCommerce.PageBuilderModule.Web\\Scripts\\resources\\resource-name-service.js",
+          "index": 6,
+          "preOrderIndex": 6,
+          "index2": 6,
+          "postOrderIndex": 6,
+          "size": 1287,
+          "sizes": {
+            "javascript": 1287
+          },
+          "cacheable": true,
+          "built": true,
+          "codeGenerated": true,
+          "cached": false,
+          "optional": false,
+          "orphan": false,
+          "issuer": null,
+          "issuerName": null,
+          "issuerPath": null,
+          "failed": false,
+          "errors": 0,
+          "warnings": 0,
+          "id": "./Scripts/resources/resource-name-service.js",
+          "issuerId": null,
+          "chunks": [
+            "main"
+          ],
+          "assets": [],
+          "reasons": [
+            {
+              "moduleIdentifier": null,
+              "module": null,
+              "moduleName": null,
+              "resolvedModuleIdentifier": null,
+              "resolvedModule": null,
+              "type": "entry",
+              "active": true,
+              "explanation": "",
+              "userRequest": "./Scripts/resources/resource-name-service.js",
+              "loc": "main",
+              "moduleId": null,
+              "resolvedModuleId": null
+            }
+          ],
+          "usedExports": null,
+          "providedExports": null,
+          "optimizationBailout": [],
+          "depth": 0
+        },
+        {
+          "type": "module",
+          "moduleType": "runtime",
+          "identifier": "webpack/runtime/compat",
+          "name": "webpack/runtime/compat",
+          "nameForCondition": null,
+          "index": null,
+          "preOrderIndex": null,
+          "index2": null,
+          "postOrderIndex": null,
+          "size": 0,
+          "sizes": {
+            "runtime": 0
+          },
+          "built": false,
+          "codeGenerated": true,
+          "cached": false,
+          "optional": false,
+          "orphan": false,
+          "failed": false,
+          "errors": 0,
+          "warnings": 0,
+          "id": "",
+          "chunks": [
+            "main"
+          ],
+          "assets": [],
+          "reasons": [],
+          "usedExports": null,
+          "providedExports": [],
+          "optimizationBailout": [],
+          "depth": null
+        }
+      ],
+      "entrypoints": {
+        "main": {
+          "name": "main",
+          "chunks": [
+            "main"
+          ],
+          "assets": [
+            {
+              "name": "app.js",
+              "size": 140597
+            }
+          ],
+          "filteredAssets": 0,
+          "assetsSize": 140597,
+          "auxiliaryAssets": [],
+          "filteredAuxiliaryAssets": 0,
+          "auxiliaryAssetsSize": 0,
+          "children": {},
+          "childAssets": {},
+          "isOverSizeLimit": false
+        }
+      },
+      "namedChunkGroups": {
+        "main": {
+          "name": "main",
+          "chunks": [
+            "main"
+          ],
+          "assets": [
+            {
+              "name": "app.js",
+              "size": 140597
+            }
+          ],
+          "filteredAssets": 0,
+          "assetsSize": 140597,
+          "auxiliaryAssets": [],
+          "filteredAuxiliaryAssets": 0,
+          "auxiliaryAssetsSize": 0,
+          "children": {},
+          "childAssets": {},
+          "isOverSizeLimit": false
+        }
+      },
+      "errors": [],
+      "errorsCount": 0,
+      "warnings": [],
+      "warningsCount": 0,
+      "children": []
+    }
+  ],
+  "version": "5.2.0",
+  "hash": "faf45fe60f76e6f94599",
+  "errors": [],
+  "warnings": [],
+  "errorsCount": 0,
+  "warningsCount": 0
+}
