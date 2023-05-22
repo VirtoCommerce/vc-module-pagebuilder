@@ -66,7 +66,15 @@
         };
 
         $scope.downloadUrl = function (data) {
-            window.open(data.url, '_blank');
+            setTimeout(function () {
+                const link = document.createElement('a');
+                link.setAttribute('href', data.url);
+                link.setAttribute('download', "");
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
         };
 
         $scope.selectNode = function (listItem) {

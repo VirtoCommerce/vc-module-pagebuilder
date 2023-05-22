@@ -154,7 +154,7 @@ angular.module('virtoCommerce.pageBuilderModule')
             function runDesigner() {
                 if (blade.designerUrl) {
                     // /Modules/$(VirtoCommerce.PageBuilderModule)/Content/builder/
-                    var path = blade.currentEntity.relativeUrl.replace("//", "/");
+                    var path = blade.currentEntity.relativeUrl.replace(/(?<=[^:])(\/\/)/, "/");
                     window.open(blade.designerUrl + '?path=' + path + '&storeId=' + blade.storeId + '&contentType=' + blade.contentType, '_blank');
                 } else {
                     var dialog = {
