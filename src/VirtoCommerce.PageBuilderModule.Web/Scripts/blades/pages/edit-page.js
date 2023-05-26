@@ -236,10 +236,10 @@ angular.module('virtoCommerce.pageBuilderModule')
                     // /Modules/$(VirtoCommerce.PageBuilderModule)/Content/builder/
                     //var path = blade.currentEntity.relativeUrl.replace("//", "/");
                     //window.open(blade.designerUrl + '?path=' + path + '&storeId=' + blade.storeId + '&contentType=' + blade.contentType, '_blank');
-                    var name = blade.currentEntity.settings.name;
+                    var name = blade.currentEntity.relativeUrl;
                     // will be used default store theme, therefore we don't need to pass it
                     //window.open(blade.designerUrl + '?storeId=' + blade.storeId + '&theme=default#/pages?in=page&template=' + name, '_blank');
-                    window.open(blade.designerUrl + '?storeId=' + blade.storeId + '#/pages?in=page&template=' + name, '_blank');
+                    window.open(blade.designerUrl + '?storeId=' + blade.storeId + '&path=' + name + '#/pages?template=' + blade.contentType, '_blank');
                 } else {
                     var dialog = {
                         id: "noUrlInStore",
