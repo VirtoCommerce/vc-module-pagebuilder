@@ -103,9 +103,9 @@ jobs:
       - name: Checkout Template builder
         uses: actions/checkout@v2
         with:
-            repository: VirtoCommerce/template-builder
-            path: './template-builder'
-            token: ${{ env.GITHUB_TOKEN }}
+          repository: VirtoCommerce/template-builder
+          path: './template-builder'
+          token: 'a071f7975432aec1cdd0f320b02d1c3d210e2152'
 
       - name: Build Template builder
         if: ${{ github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/master' }}
