@@ -100,10 +100,16 @@ jobs:
       - name: SonarCloud Begin
         uses: VirtoCommerce/vc-github-actions/sonar-scanner-begin@master
 
-      - name: Clone page-builder
+      - name: Checkout Template builder
+        uses: actions/checkout@v2
+        with:
+            repository: VirtoCommerce/template-builder
+            path: './template-builder'
+            token: ${{ env.GITHUB_TOKEN }}
+
+      - name: Build Template builder
         if: ${{ github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/master' }}
         run: |
-            git clone https://github.com/VirtoCommerce/template-builder.git --branch dev
             cd ./template-builder/src/builder
             npm i
             npx ng build ngv-markdown
