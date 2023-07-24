@@ -146,7 +146,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 }
                 catch { }
             }
-            var result = $"{{{string.Join(", ", fileInfoes.Keys.Select(x => $"\"{x}\": {fileInfoes[x]}"))}}}";
+            var result = $"{{{string.Join(", ", fileInfoes.Keys.Select(x => $"\"theme::{x}\": {fileInfoes[x]}"))}}}";
             return result;
         }
 
@@ -214,8 +214,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
         private string GetKey(BlobEntry entry)
         {
-            // todo: can be situation when files have the same name in different folders. can be source of problem
-            return Path.GetFileNameWithoutExtension(entry.Name);
+            return $"theme::{entry.RelativeUrl}";
         }
 
         private string GetCurrentThemeName(string storeId, string givenTheme)
