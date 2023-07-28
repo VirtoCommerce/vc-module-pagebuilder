@@ -24,6 +24,11 @@ angular.module('virtoCommerce.pageBuilderModule')
 
                     $scope.blade.currentEntity.settings = { type: 'settings', permalink: '' };
                     $scope.blade.currentEntity.content = [];
+                    $scope.blade.currentEntity.metadata = { // todo: load from settings
+                        contentType: blade.contentType,
+                        parent: 'page',
+                        template: 'page'
+                    };
                 } else {
                     contentApi.get({
                         contentType: blade.contentType,
@@ -239,7 +244,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                     var relativeUrl = blade.currentEntity.relativeUrl;
                     // will be used default store theme, therefore we don't need to pass it
                     //window.open(blade.designerUrl + '?storeId=' + blade.storeId + '&theme=default#/pages?in=page&template=' + name, '_blank');
-                    window.open(blade.designerUrl + '?storeId=' + blade.storeId + '#/pages?contentType=' + blade.contentType + '&relativeUrl=' + relativeUrl, '_blank');
+                    window.open(blade.designerUrl + '?storeId=' + blade.storeId + '#/pages?type=' + blade.contentType + '&path=' + relativeUrl, '_blank');
                 } else {
                     var dialog = {
                         id: "noUrlInStore",
