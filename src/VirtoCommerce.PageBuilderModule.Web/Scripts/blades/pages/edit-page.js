@@ -278,9 +278,19 @@ angular.module('virtoCommerce.pageBuilderModule')
                 });
             }
 
+            function joinPath(path1, path2) {
+                if (!path1) {
+                    return '/' + path2;
+                }
+                if (path1.endsWith('/')) {
+                    return path1 + path2;
+                }
+                return path1 + '/' + path2;
+            }
+
             function savePage(newFileName, originFileName) {
                 $scope.blade.currentEntity.name = originFileName || newFileName;
-                $scope.blade.currentEntity.relativeUrl = ($scope.blade.parentBlade.currentEntity.relativeUrl || '') + '/' + newFileName;
+                $scope.blade.currentEntity.relativeUrl = joinPath($scope.blade.parentBlade.currentEntity.relativeUrl, newFileName);
                 $scope.blade.currentEntity.relativeUrl = nameHelper.prepareRelativeUrl($scope.blade.currentEntity);
 
                 //$scope.blade.currentEntity.content = JSON.stringify($scope.blade.currentEntity.blocks, null, 4);
