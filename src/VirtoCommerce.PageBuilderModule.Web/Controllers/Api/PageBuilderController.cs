@@ -17,7 +17,6 @@ using VirtoCommerce.PageBuilderModule.Web.Events;
 using VirtoCommerce.PageBuilderModule.Web.Models;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Events;
-using VirtoCommerce.Platform.Core.GenericCrud;
 using VirtoCommerce.StoreModule.Core.Model;
 using VirtoCommerce.StoreModule.Core.Services;
 
@@ -27,7 +26,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
     [Authorize]
     public class PageBuilderController : Controller
     {
-        private readonly ICrudService<Store> _storeService;
+        private readonly IStoreService _storeService;
         private readonly IBlobContentStorageProviderFactory _blobContentStorageProviderFactory;
         private readonly ContentOptions _options;
         private readonly IEventPublisher _eventPublisher;
@@ -43,7 +42,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             IOptions<ContentOptions> options,
             IEventPublisher eventPublisher)
         {
-            _storeService = (ICrudService<Store>)storeService;
+            _storeService = storeService;
             _blobContentStorageProviderFactory = blobContentStorageProviderFactory;
             _options = options.Value;
             _eventPublisher = eventPublisher;
