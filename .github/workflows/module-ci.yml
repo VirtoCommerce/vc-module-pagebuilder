@@ -108,7 +108,6 @@ jobs:
           token: ${{ env.GITHUB_TOKEN }}
 
       - name: Build Template builder
-        if: ${{ github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/master' }}
         run: |
             cd ./template-builder/src/builder
             npm i
