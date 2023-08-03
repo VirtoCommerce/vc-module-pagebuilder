@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -217,17 +217,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             return Path.GetFileNameWithoutExtension(entry.Name);
         }
 
-        private string GetCurrentThemeName(string storeId, string givenTheme)
-        {
-            if (!string.IsNullOrEmpty(givenTheme))
-            {
-                return givenTheme;
-            }
-            var store = _storeService.GetByIdAsync(storeId, StoreResponseGroup.DynamicProperties.ToString()).Result;
-            var themeName = store.DynamicProperties.FirstOrDefault(x => x.Name == "DefaultThemeName")?.Values?.FirstOrDefault()?.Value.ToString() ?? _defaultTheme;
-            return themeName;
-        }
-
         private ContentModel GetPageContent(BlobEntry entry, IBlobContentStorageProvider provider)
         {
             try
@@ -263,7 +252,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 var parts = mapping.Select(x => x switch
                 {
                     "_storeId" => storeId,
-                    "_theme" => GetThemeName(storeId, theme),
+                    "_theme" => GetCurrentThemeName(storeId, theme),
                     "_blog" => _blogsFolderName,
                     _ => x,
                 });
@@ -283,13 +272,13 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
         }
 
-        private string GetThemeName(string storeId, string themeName)
+        private string GetCurrentThemeName(string storeId, string themeName)
         {
             if (!string.IsNullOrEmpty(themeName))
             {
                 return themeName;
             }
-            var store = _storeService.GetByIdAsync(storeId).Result;
+            var store = _storeService.GetNoCloneAsync(storeId, StoreResponseGroup.DynamicProperties.ToString()).Result;
             return store?.DynamicProperties.FirstOrDefault(x => x.Name == "DefaultThemeName")?.Values?.FirstOrDefault()?.Value?.ToString() ?? _defaultTheme;
         }
 
