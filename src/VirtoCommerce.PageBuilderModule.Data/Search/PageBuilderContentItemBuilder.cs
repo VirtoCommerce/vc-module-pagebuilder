@@ -1,8 +1,8 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using VirtoCommerce.ContentModule.Core.Model;
 using VirtoCommerce.ContentModule.Data.Search;
-using VirtoCommerce.SearchModule.Core.Extenstions;
+using VirtoCommerce.SearchModule.Core.Extensions;
 using VirtoCommerce.SearchModule.Core.Model;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Search
@@ -12,13 +12,13 @@ namespace VirtoCommerce.PageBuilderModule.Data.Search
         protected override IndexDocument BuildIndexDocumentInternal(string documentId, string storeId, IndexableContentFile file)
         {
             var result = new IndexDocument(documentId);
-            result.AddFilterableAndSearchableValue("StoreId", storeId);
+            result.AddFilterableStringAndContentString("StoreId", storeId);
 
             var page = JsonConvert.DeserializeObject<JObject>(file.Content);
 
             AddMetadata(result, (JObject)page["settings"]);
 
-            result.AddSearchableValue(page["content"].ToString());
+            result.AddContentString(page["content"]?.ToString());
 
             return result;
         }
@@ -27,7 +27,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Search
         {
             settings.Properties().ToList().ForEach(x =>
             {
-                result.AddFilterableAndSearchableValue(x.Name, x.Value.ToString());
+                result.AddFilterableStringAndContentString(x.Name, x.Value.ToString());
             });
         }
     }

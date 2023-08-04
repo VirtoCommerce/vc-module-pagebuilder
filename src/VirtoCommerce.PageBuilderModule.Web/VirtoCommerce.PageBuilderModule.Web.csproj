@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk.Web">
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <noWarn>1591</noWarn>
@@ -6,11 +6,10 @@
     <OutputType>Library</OutputType>
   </PropertyGroup>
   <ItemGroup>
-	  <PackageReference Include="Microsoft.AspNetCore.App" />
-	  <PackageReference Include="VirtoCommerce.ContentModule.Core" Version="3.221.0" />
-	  <PackageReference Include="VirtoCommerce.Platform.Core" Version="3.200.0" />
-	  <PackageReference Include="VirtoCommerce.AssetsModule.Core" Version="3.200.0" />
-	  <PackageReference Include="VirtoCommerce.StoreModule.Core" Version="3.200.0" />
+    <PackageReference Include="VirtoCommerce.AssetsModule.Core" Version="3.400.0" />
+    <PackageReference Include="VirtoCommerce.ContentModule.Core" Version="3.401.0" />
+    <PackageReference Include="VirtoCommerce.Platform.Core" Version="3.400.0" />
+    <PackageReference Include="VirtoCommerce.StoreModule.Core" Version="3.400.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\VirtoCommerce.PageBuilderModule.Data\VirtoCommerce.PageBuilderModule.Data.csproj" />

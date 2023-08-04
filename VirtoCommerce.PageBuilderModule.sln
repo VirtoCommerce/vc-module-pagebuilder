@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.29728.190
+# Visual Studio Version 17
+VisualStudioVersion = 17.6.33829.357
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{6E3252B4-5DFC-4DB3-A00E-B74077B7B237}"
 EndProject
@@ -10,6 +10,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VirtoCommerce.PageBuilderModule.Tests", "tests\VirtoCommerce.PageBuilderModule.Tests\VirtoCommerce.PageBuilderModule.Tests.csproj", "{209024D3-2094-4919-A0A0-64D463F77FF0}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VirtoCommerce.PageBuilderModule.Web", "src\VirtoCommerce.PageBuilderModule.Web\VirtoCommerce.PageBuilderModule.Web.csproj", "{D0E7546E-FA66-49B4-AD11-7A2BE6ABCB56}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VirtoCommerce.PageBuilderModule.Data", "src\VirtoCommerce.PageBuilderModule.Data\VirtoCommerce.PageBuilderModule.Data.csproj", "{200E17F0-08BD-4F23-ACDE-EC30AE670E79}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -25,6 +27,10 @@ Global
 		{D0E7546E-FA66-49B4-AD11-7A2BE6ABCB56}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D0E7546E-FA66-49B4-AD11-7A2BE6ABCB56}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D0E7546E-FA66-49B4-AD11-7A2BE6ABCB56}.Release|Any CPU.Build.0 = Release|Any CPU
+		{200E17F0-08BD-4F23-ACDE-EC30AE670E79}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{200E17F0-08BD-4F23-ACDE-EC30AE670E79}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{200E17F0-08BD-4F23-ACDE-EC30AE670E79}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{200E17F0-08BD-4F23-ACDE-EC30AE670E79}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -32,6 +38,7 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{209024D3-2094-4919-A0A0-64D463F77FF0} = {27754F54-95DC-4955-96D7-3121BC768AF8}
 		{D0E7546E-FA66-49B4-AD11-7A2BE6ABCB56} = {6E3252B4-5DFC-4DB3-A00E-B74077B7B237}
+		{200E17F0-08BD-4F23-ACDE-EC30AE670E79} = {6E3252B4-5DFC-4DB3-A00E-B74077B7B237}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {A855B472-948E-4956-B4FD-FFC53C09D85E}

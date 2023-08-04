@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -17,7 +17,6 @@ using VirtoCommerce.PageBuilderModule.Web.Events;
 using VirtoCommerce.PageBuilderModule.Web.Models;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Events;
-using VirtoCommerce.Platform.Core.GenericCrud;
 using VirtoCommerce.StoreModule.Core.Model;
 using VirtoCommerce.StoreModule.Core.Services;
 
@@ -27,7 +26,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
     [Authorize]
     public class PageBuilderController : Controller
     {
-        private readonly ICrudService<Store> _storeService;
+        private readonly IStoreService _storeService;
         private readonly IBlobContentStorageProviderFactory _blobContentStorageProviderFactory;
         private readonly ContentOptions _options;
         private readonly IEventPublisher _eventPublisher;
@@ -43,7 +42,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             IOptions<ContentOptions> options,
             IEventPublisher eventPublisher)
         {
-            _storeService = (ICrudService<Store>)storeService;
+            _storeService = storeService;
             _blobContentStorageProviderFactory = blobContentStorageProviderFactory;
             _options = options.Value;
             _eventPublisher = eventPublisher;
@@ -219,17 +218,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             return $"{type}::{entry.RelativeUrl}";
         }
 
-        private string GetCurrentThemeName(string storeId, string givenTheme)
-        {
-            if (!string.IsNullOrEmpty(givenTheme))
-            {
-                return givenTheme;
-            }
-            var store = _storeService.GetByIdAsync(storeId, StoreResponseGroup.DynamicProperties.ToString()).Result;
-            var themeName = store.DynamicProperties.FirstOrDefault(x => x.Name == "DefaultThemeName")?.Values?.FirstOrDefault()?.Value.ToString() ?? _defaultTheme;
-            return themeName;
-        }
-
         private ContentModel GetPageContent(BlobEntry entry, IBlobContentStorageProvider provider)
         {
             try
@@ -265,7 +253,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 var parts = mapping.Select(x => x switch
                 {
                     "_storeId" => storeId,
-                    "_theme" => GetThemeName(storeId, theme),
+                    "_theme" => GetCurrentThemeName(storeId, theme),
                     "_blog" => _blogsFolderName,
                     _ => x,
                 });
@@ -285,13 +273,13 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
         }
 
-        private string GetThemeName(string storeId, string themeName)
+        private string GetCurrentThemeName(string storeId, string themeName)
         {
             if (!string.IsNullOrEmpty(themeName))
             {
                 return themeName;
             }
-            var store = _storeService.GetByIdAsync(storeId).Result;
+            var store = _storeService.GetNoCloneAsync(storeId, StoreResponseGroup.DynamicProperties.ToString()).Result;
             return store?.DynamicProperties.FirstOrDefault(x => x.Name == "DefaultThemeName")?.Values?.FirstOrDefault()?.Value?.ToString() ?? _defaultTheme;
         }
 

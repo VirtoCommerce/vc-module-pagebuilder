@@ -1,4 +1,3 @@
-﻿using System.Linq;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,7 +23,6 @@ namespace VirtoCommerce.PageBuilderModule.Web
             {
                 serviceCollection.AddTransient<PageBuilderContentItemBuilder>();
             }
-
         }
 
         public void PostInitialize(IApplicationBuilder appBuilder)
@@ -33,14 +31,7 @@ namespace VirtoCommerce.PageBuilderModule.Web
             settingsRegistrar.RegisterSettings(ModuleConstants.Settings.AllSettings, ModuleInfo.Id);
 
             var permissionsProvider = appBuilder.ApplicationServices.GetRequiredService<IPermissionsRegistrar>();
-            permissionsProvider.RegisterPermissions(ModuleConstants.Security.Permissions.AllPermissions.Select(x =>
-                new Permission()
-                {
-                    GroupName = "Page builder",
-                    ModuleId = ModuleInfo.Id,
-                    Name = x
-                }
-            ).ToArray());
+            permissionsProvider.RegisterPermissions(ModuleInfo.Id, "Page builder", ModuleConstants.Security.Permissions.AllPermissions);
 
             var isFullTextSearchEnabled = Configuration.IsContentFullTextSearchEnabled();
 
