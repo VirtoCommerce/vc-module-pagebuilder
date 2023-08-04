@@ -24,6 +24,11 @@ angular.module('virtoCommerce.pageBuilderModule')
 
                     $scope.blade.currentEntity.settings = { type: 'settings', permalink: '' };
                     $scope.blade.currentEntity.content = [];
+                    $scope.blade.currentEntity.metadata = { // todo: load from settings
+                        contentType: blade.contentType,
+                        parent: 'page',
+                        template: 'page'
+                    };
                 } else {
                     contentApi.get({
                         contentType: blade.contentType,
@@ -236,10 +241,10 @@ angular.module('virtoCommerce.pageBuilderModule')
                     // /Modules/$(VirtoCommerce.PageBuilderModule)/Content/builder/
                     //var path = blade.currentEntity.relativeUrl.replace("//", "/");
                     //window.open(blade.designerUrl + '?path=' + path + '&storeId=' + blade.storeId + '&contentType=' + blade.contentType, '_blank');
-                    var name = blade.currentEntity.relativeUrl;
+                    var relativeUrl = blade.currentEntity.relativeUrl;
                     // will be used default store theme, therefore we don't need to pass it
                     //window.open(blade.designerUrl + '?storeId=' + blade.storeId + '&theme=default#/pages?in=page&template=' + name, '_blank');
-                    window.open(blade.designerUrl + '?storeId=' + blade.storeId + '&path=' + name + '#/pages?template=' + blade.contentType, '_blank');
+                    window.open(blade.designerUrl + '?storeId=' + blade.storeId + '#/pages?type=' + blade.contentType + '&path=' + relativeUrl, '_blank');
                 } else {
                     var dialog = {
                         id: "noUrlInStore",
@@ -273,9 +278,19 @@ angular.module('virtoCommerce.pageBuilderModule')
                 });
             }
 
+            function joinPath(path1, path2) {
+                if (!path1) {
+                    return '/' + path2;
+                }
+                if (path1.endsWith('/')) {
+                    return path1 + path2;
+                }
+                return path1 + '/' + path2;
+            }
+
             function savePage(newFileName, originFileName) {
                 $scope.blade.currentEntity.name = originFileName || newFileName;
-                $scope.blade.currentEntity.relativeUrl = ($scope.blade.parentBlade.currentEntity.relativeUrl || '') + '/' + newFileName;
+                $scope.blade.currentEntity.relativeUrl = joinPath($scope.blade.parentBlade.currentEntity.relativeUrl, newFileName);
                 $scope.blade.currentEntity.relativeUrl = nameHelper.prepareRelativeUrl($scope.blade.currentEntity);
 
                 //$scope.blade.currentEntity.content = JSON.stringify($scope.blade.currentEntity.blocks, null, 4);

@@ -133,7 +133,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             {
                 try
                 {
-                    var key = GetKey(file);
+                    var key = GetKey(type, file);
                     if (!fileInfoes.ContainsKey(key))
                     {
                         var pageContent = GetPageContent(file, storageProvider);
@@ -207,15 +207,16 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             var storageProvider = _blobContentStorageProviderFactory.CreateProvider(basePath);
             var allFiles = await storageProvider.SearchAsync(templatesFolder, null);
             var files = allFiles.Results.Where(x => x.Name.EndsWith(".json", StringComparison.OrdinalIgnoreCase));
-            var response = string.Join(", ", files.Select(file => $"\"{GetKey(file)}\": {GetContent(file, storageProvider)}"));
+            var response = string.Join(", ", files.Select(file => $"\"{GetKey(null, file)}\": {GetContent(file, storageProvider)}"));
             var result = $"{{{response}}}";
             return result;
         }
 
-        private string GetKey(BlobEntry entry)
+        private string GetKey(string type, BlobEntry entry)
         {
-            // todo: can be situation when files have the same name in different folders. can be source of problem
-            return Path.GetFileNameWithoutExtension(entry.Name);
+            if (type == null)
+                return Path.GetFileNameWithoutExtension(entry.Name);
+            return $"{type}::{entry.RelativeUrl}";
         }
 
         private string GetCurrentThemeName(string storeId, string givenTheme)
