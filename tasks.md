@@ -5,9 +5,4 @@
 
 * diagnostic tools to run
 
-* pages for preview theme changes
-* separate page builder and theme customize
-* object editor
-* layouts
-* group properties in page editor
 
