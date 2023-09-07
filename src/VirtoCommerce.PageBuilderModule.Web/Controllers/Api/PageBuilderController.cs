@@ -250,7 +250,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
         private string GetContentBasePath(string storeId, string contentType, string theme)
         {
-            var retVal = _pathResolver.GetContentBasePath(storeId, contentType, theme);
+            var retVal = _pathResolver.GetContentBasePath(contentType, storeId, theme);
             return retVal;
         }
 
