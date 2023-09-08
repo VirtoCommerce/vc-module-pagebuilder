@@ -27,6 +27,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
     public class PageBuilderController : Controller
     {
         private readonly IStoreService _storeService;
+        private readonly IContentPathResolver _pathResolver;
         private readonly IBlobContentStorageProviderFactory _blobContentStorageProviderFactory;
         private readonly ContentOptions _options;
         private readonly IEventPublisher _eventPublisher;
@@ -38,11 +39,13 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
         public PageBuilderController(
             IStoreService storeService,
+            IContentPathResolver pathResolver,
             IBlobContentStorageProviderFactory blobContentStorageProviderFactory,
             IOptions<ContentOptions> options,
             IEventPublisher eventPublisher)
         {
             _storeService = storeService;
+            _pathResolver = pathResolver;
             _blobContentStorageProviderFactory = blobContentStorageProviderFactory;
             _options = options.Value;
             _eventPublisher = eventPublisher;
@@ -247,30 +250,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
         private string GetContentBasePath(string storeId, string contentType, string theme)
         {
-            if (_options.PathMappings != null && _options.PathMappings.Any() && _options.PathMappings.ContainsKey(contentType))
-            {
-                var mapping = _options.PathMappings[contentType];
-                var parts = mapping.Select(x => x switch
-                {
-                    "_storeId" => storeId,
-                    "_theme" => GetCurrentThemeName(storeId, theme),
-                    "_blog" => _blogsFolderName,
-                    _ => x,
-                });
-                var result = string.Join('/', parts);
-                return result;
-            }
-
-            var retVal = contentType switch
-            {
-                var x when x.EqualsInvariant(_themes) => $"Themes/{storeId}",
-                var x when x.EqualsInvariant(_pages) => $"Pages/{storeId}",
-                var x when x.EqualsInvariant(_blogsFolderName) => $"Pages/{storeId}/{_blogsFolderName}",
-                var x => string.Empty
-            };
-
+            var retVal = _pathResolver.GetContentBasePath(contentType, storeId, theme);
             return retVal;
-
         }
 
         private string GetCurrentThemeName(string storeId, string themeName)
