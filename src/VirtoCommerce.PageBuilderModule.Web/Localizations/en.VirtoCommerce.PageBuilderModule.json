@@ -42,7 +42,9 @@
       }
     },
     "commands": {
-      "open-designer": "Open in Designer"
+      "open-designer": "Open in Designer",
+      "publish": "Publish",
+      "unpublish": "Unpublish"
     }
   },
   "settings": {

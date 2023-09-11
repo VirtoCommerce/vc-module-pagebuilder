@@ -21,7 +21,7 @@
                     $scope.pageSettings.totalItems = data.length;
                     _.each(data, function (x) {
                         x.isImage = x.mimeType && x.mimeType.startsWith('image/');
-                        x.isDesignPage = /.+\.page$/g.test(x.name);
+                        x.isDesignPage = /.+\.page(\-draft){0,1}$/g.test(x.name);
                         x.isOpenable = x.mimeType && (x.mimeType.startsWith('application/j') || x.mimeType.startsWith('text/'))
                             || x.isDesignPage;
                     });
