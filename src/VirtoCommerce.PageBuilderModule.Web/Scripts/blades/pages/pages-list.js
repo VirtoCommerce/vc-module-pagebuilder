@@ -10,8 +10,8 @@
 
         blade.refresh = function () {
             blade.isLoading = true;
-            contentApi.query(
-                {
+            var query = blade.searchKeyword ? contentApi.search : contentApi.query;
+            query({
                     contentType: blade.contentType,
                     storeId: blade.storeId,
                     keyword: blade.searchKeyword,

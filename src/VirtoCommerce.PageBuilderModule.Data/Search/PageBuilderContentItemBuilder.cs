@@ -1,8 +1,8 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using VirtoCommerce.ContentModule.Core.Extensions;
 using VirtoCommerce.ContentModule.Core.Model;
 using VirtoCommerce.ContentModule.Data.Search;
-using VirtoCommerce.SearchModule.Core.Extensions;
 using VirtoCommerce.SearchModule.Core.Model;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Search
@@ -14,11 +14,11 @@ namespace VirtoCommerce.PageBuilderModule.Data.Search
             var result = new IndexDocument(documentId);
             result.AddFilterableStringAndContentString("StoreId", storeId);
 
-            var page = JsonConvert.DeserializeObject<JObject>(file.Content);
+            var page = JsonConvert.DeserializeObject<JArray>(file.Content);
 
-            AddMetadata(result, (JObject)page["settings"]);
+            AddMetadata(result, (JObject)page[0]);
 
-            result.AddContentString(page["content"]?.ToString());
+            //result.AddContentString(page.ToString());
 
             return result;
         }

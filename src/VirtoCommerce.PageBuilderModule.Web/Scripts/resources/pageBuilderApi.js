@@ -30,6 +30,11 @@
                     return fd;
                 },
                 isArray: true
+            },
+            get: {
+                // using transformResponse to:
+                // 1. avoid automatic response result string converting to array;
+                transformResponse: function (rawData) { return { data: rawData }; }
             }
 			// ,
             // getStoreUrl: {

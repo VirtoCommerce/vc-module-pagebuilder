@@ -7,4 +7,7 @@
     <PackageReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="VirtoCommerce.Platform.Core" Version="3.200.0" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\VirtoCommerce.PageBuilderModule.Data\VirtoCommerce.PageBuilderModule.Data.csproj" />
+  </ItemGroup>
 </Project>
