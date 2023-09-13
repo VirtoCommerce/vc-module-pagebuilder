@@ -4,7 +4,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="VirtoCommerce.ContentModule.Data" Version="3.204.4-alpha.847-3.204-vccom" />
+    <PackageReference Include="VirtoCommerce.ContentModule.Data" Version="3.204.4-alpha.851-3.204-vccom" />
     <PackageReference Include="VirtoCommerce.StoreModule.Core" Version="3.206.1" />
   </ItemGroup>
 </Project>
