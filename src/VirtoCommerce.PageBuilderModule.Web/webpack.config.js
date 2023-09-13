@@ -1,7 +1,7 @@
 const glob = require("glob");
 const path = require("path");
 const webpack = require("webpack");
-const CleanWebpackPlugin = require('clean-webpack-plugin');
+const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 const rootPath = path.resolve(__dirname, 'dist');
@@ -15,8 +15,8 @@ function getEntrypoints() {
     return result;
 }
 
-module.exports = [
-    {
+module.exports = (env, argv) => {
+    return {
         entry: getEntrypoints(),
         output: {
             path: rootPath,
@@ -26,22 +26,22 @@ module.exports = [
             rules: [
                 {
                     test: /\.css$/,
-					use: [
-						{ loader: MiniCssExtractPlugin.loader },
-						{ loader: "css-loader" }
-					]
+                    use: [
+                        { loader: MiniCssExtractPlugin.loader },
+                        { loader: "css-loader" }
+                    ]
                 }
             ]
         },
         devtool: false,
         plugins: [
+            new CleanWebpackPlugin(),
             new webpack.SourceMapDevToolPlugin({
                 namespace: 'VirtoCommerce.PageBuilderModule'
             }),
-            new CleanWebpackPlugin(rootPath, { verbose: true }),
             new MiniCssExtractPlugin({
                 filename: 'style.css'
             })
         ]
-    }
-];
+    };
+}
