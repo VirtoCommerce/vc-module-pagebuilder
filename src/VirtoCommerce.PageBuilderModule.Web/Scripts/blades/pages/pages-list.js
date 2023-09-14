@@ -5,7 +5,7 @@
         function ($rootScope, $scope, contentApi, bladeNavigationService, dialogService, uiGridHelper, bladeUtils) {
         var blade = $scope.blade;
         blade.updatePermission = 'content:update';
-        console.log('new content controller');
+
         $scope.selectedNodeId = null;
 
         blade.refresh = function () {
@@ -15,7 +15,7 @@
                     contentType: blade.contentType,
                     storeId: blade.storeId,
                     keyword: blade.searchKeyword,
-                    folderUrl: blade.currentEntity.url
+                    folderUrl: blade.currentEntity.relativeUrl
                 },
                 function (data) {
                     $scope.pageSettings.totalItems = data.length;
