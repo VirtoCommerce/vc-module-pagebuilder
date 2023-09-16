@@ -33,7 +33,14 @@
                 <div class="form-group">
                     <label class="form-label">Permalink</label>
                     <div class="form-input">
-                        <input focus-on="" class="form-control" ng-model="blade.currentEntity.settings.permalink" placeholder="Permalink" name="permalink" />
+                        <input focus-on="" ui-validate-async=" 'validatePermalink($value)' " class="form-control" ng-model="blade.currentEntity.settings.permalink" placeholder="Permalink" name="permalink" />
+                    </div>
+                    <span class="comment-text" ng-if="permalinkDuplicates.length">
+                        <img src="/images/layout/warning.svg" class="comment-icon">
+                        {{ 'pageBuilder.blades.edit-page.validations.permalink-invalid' | translate }}
+                    </span>
+                    <div class="comment-text" ng-repeat="link in permalinkDuplicates">
+                        {{ link.name }}: {{ link.relativeUrl }}
                     </div>
                 </div>
                 <div class="form-group">

@@ -23,7 +23,8 @@
           "metadata": "Enter metadata"
         },
         "validations": {
-          "pageName-invalid": "Page name can contain alphanumeric, \"_\", \"-\" and \".\" characters only."
+          "pageName-invalid": "Page name can contain alphanumeric, \"_\", \"-\" and \".\" characters only.",
+          "permalink-invalid": "The other pages have the same permalink."
         }
       },
       "add-page": {

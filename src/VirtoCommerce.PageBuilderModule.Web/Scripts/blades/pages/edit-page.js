@@ -1,10 +1,10 @@
 angular.module('virtoCommerce.pageBuilderModule')
-    .controller('virtoCommerce.pageBuilderModule.editPageController', ['$rootScope', '$scope',
+    .controller('virtoCommerce.pageBuilderModule.editPageController', ['$rootScope', '$scope', "$q",
         'platformWebApp.validators', 'virtoCommerce.contentModule.contentApi',
         'virtoCommerce.pageBuilderModule.contentApi', 'platformWebApp.bladeNavigationService', 'platformWebApp.dialogService',
         'platformWebApp.dynamicProperties.dictionaryItemsApi', 'platformWebApp.settings',
         'virtoCommerce.pageBuilderModule.resourceNameService', 'virtoCommerce.searchModule.searchIndexation', "moment",
-        function ($rootScope, $scope, validators, contentApi, pageBuilderApi, bladeNavigationService, dialogService, dictionaryItemsApi, settings, nameHelper, searchApi, moment) {
+        function ($rootScope, $scope, $q, validators, contentApi, pageBuilderApi, bladeNavigationService, dialogService, dictionaryItemsApi, settings, nameHelper, searchApi, moment) {
 
             var momentFormat = "YYYYMMDDHHmmss";
 
@@ -48,6 +48,39 @@ angular.module('virtoCommerce.pageBuilderModule')
                     });
                     loadSearchIndex();
                 }
+            };
+
+            $scope.permalinkDuplicates = [];
+
+            $scope.validatePermalink = function (value) {
+                if (!value) {
+                    $scope.permalinkDuplicates = [];
+                    return $q.resolve();
+                }
+                return contentApi.search(
+                    {
+                        contentType: null,
+                        storeId: blade.storeId,
+                        keyword: value,
+                        folderUrl: null
+                    },
+                    function (data) {
+                        var permalinks = _.filter(data, function (x) {
+                            try {
+                                var permalink = JSON.parse(x.content)[0].permalink;
+                                return permalink == value && x.name != blade.currentEntity.name;
+                            } catch { }
+                            return false;
+                        });
+                        $scope.permalinkDuplicates = permalinks;
+                        if (permalinks.length > 0) {
+                            return $q.reject();
+                        }
+                        return $q.resolve();
+                    }, function (error) {
+                        $scope.permalinkDuplicates = [];
+                        return $q.resolve();
+                    });
             };
 
             $scope.saveChanges = function () {
