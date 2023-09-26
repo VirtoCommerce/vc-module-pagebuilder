@@ -14,4 +14,7 @@
   <ItemGroup>
     <ProjectReference Include="..\VirtoCommerce.PageBuilderModule.Data\VirtoCommerce.PageBuilderModule.Data.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\VirtoCommerce.PageBuilderModule.Data\VirtoCommerce.PageBuilderModule.Data.csproj" />
+  </ItemGroup>
 </Project>

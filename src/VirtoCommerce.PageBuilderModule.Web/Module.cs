@@ -1,3 +1,4 @@
+using System.Linq;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -39,6 +40,13 @@ namespace VirtoCommerce.PageBuilderModule.Web
             {
                 var contentItemTypeRegistrar = appBuilder.ApplicationServices.GetService<IContentItemTypeRegistrar>();
                 contentItemTypeRegistrar.RegisterContentItemType(".page", appBuilder.ApplicationServices.GetService<PageBuilderContentItemBuilder>);
+            }
+
+            if (isFullTextSearchEnabled)
+            {
+                var contentItemTypeRegistrar = appBuilder.ApplicationServices.GetService<IContentItemTypeRegistrar>();
+                contentItemTypeRegistrar.RegisterContentItemType(".page", appBuilder.ApplicationServices.GetService<PageBuilderContentItemBuilder>);
+                contentItemTypeRegistrar.RegisterContentItemType(".page-draft", appBuilder.ApplicationServices.GetService<PageBuilderContentItemBuilder>);
             }
         }
 

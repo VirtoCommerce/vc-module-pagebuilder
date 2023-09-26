@@ -14,11 +14,7 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">{{ 'pageBuilder.blades.edit-page.labels.name' | translate }}</label>
-                    <div class="form-input">
                         <input class="form-control" ng-model="blade.currentEntity.settings.name" placeholder="{{ 'pageBuilder.blades.edit-page.placeholders.name' | translate }}" name="displayName" />
-                    </div>
-                </div>
-                <div class="form-group">
                     <label class="form-label">{{ 'pageBuilder.blades.edit-page.labels.language' | translate }}</label>
                     <div class="form-input">
                         <ui-select ng-model="blade.currentEntity.language">
@@ -36,6 +32,14 @@
                         <input focus-on="" class="form-control" ng-model="blade.currentEntity.settings.permalink" placeholder="{{ 'pageBuilder.blades.edit-page.placeholders.permalink' | translate }}" name="permalink" />
                     </div>
                 </div>
+                        <input focus-on="" ui-validate-async=" 'validatePermalink($value)' " class="form-control" ng-model="blade.currentEntity.settings.permalink" placeholder="Permalink" name="permalink" />
+                    </div>
+                    <span class="comment-text" ng-if="permalinkDuplicates.length">
+                        <img src="/images/layout/warning.svg" class="comment-icon">
+                        {{ 'pageBuilder.blades.edit-page.validations.permalink-invalid' | translate }}
+                    </span>
+                    <div class="comment-text" ng-repeat="link in permalinkDuplicates">
+                        {{ link.name }}: {{ link.relativeUrl }}
             </form>
         </div>
     </div>
