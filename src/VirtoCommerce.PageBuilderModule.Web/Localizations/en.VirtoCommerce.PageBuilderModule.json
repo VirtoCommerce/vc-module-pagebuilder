@@ -1,4 +1,4 @@
-﻿{
+{
   "pageBuilder": {
     "blades": {
       "edit-page": {
@@ -46,7 +46,7 @@
       }
     },
     "commands": {
-      "open-designer": "Open in Designer",
+      "open-designer": "Design",
       "publish": "Publish",
       "unpublish": "Unpublish"
     }
