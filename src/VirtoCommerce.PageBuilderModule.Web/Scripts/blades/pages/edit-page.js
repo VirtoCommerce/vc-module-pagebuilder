@@ -36,13 +36,14 @@ angular.module('virtoCommerce.pageBuilderModule')
                         relativeUrl: blade.currentEntity.relativeUrl
                     }, function (data) {
                         blade.isLoading = false;
-                        var content = JSON.parse(data.data);
+                        var fileContent = JSON.parse(data.data);
+                        var entity = $scope.blade.currentEntity;
+                        entity.settings = fileContent.settings;
+                        entity.blocks = fileContent.content;
+                        entity.content = data.data;
                         $scope.blade.isDraft = entity.name.endsWith(".page-draft");
                         updateToolbarCommands();
                         fillMetadata();
-                        blade.currentEntity.settings = content.settings;
-                        blade.currentEntity.content = content.content;
-                        blade.currentEntity.filename = blade.currentEntity.name;
                         blade.origEntity = angular.copy(blade.currentEntity);
                     }, function (error) {
                         bladeNavigationService.setError('Error ' + error.status, $scope.blade);
@@ -54,7 +55,7 @@ angular.module('virtoCommerce.pageBuilderModule')
             };
 
             $scope.permalinkDuplicates = [];
-                var newFileName = $scope.blade.currentEntity.filename;
+
             $scope.validatePermalink = function (value) {
                 if (!value) {
                     $scope.permalinkDuplicates = [];
@@ -70,7 +71,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                     function (data) {
                         var permalinks = _.filter(data, function (x) {
                             try {
-                                var permalink = JSON.parse(x.content)[0].permalink;
+                                var permalink = JSON.parse(x.content).settings.permalink;
                                 return permalink == value && x.name != blade.currentEntity.name;
                             } catch { }
                             return false;
@@ -91,10 +92,12 @@ angular.module('virtoCommerce.pageBuilderModule')
                 var originFileName = null;
 
                 if (!blade.isNew) {
-                    originFileName = blade.origEntity.filename;
+                    originFileName = blade.origEntity.name;
                 }
                 if (!$scope.blade.currentEntity.settings.name) {
                     $scope.blade.currentEntity.settings.name = newFileName.substring(0, newFileName.lastIndexOf('.page'));
+                }
+                if (!$scope.blade.currentEntity.settings.permalink) {
                     $scope.blade.currentEntity.settings.permalink = '/' + $scope.blade.currentEntity.settings.name;
                 }
                 reloadPageAndSave(newFileName, originFileName);

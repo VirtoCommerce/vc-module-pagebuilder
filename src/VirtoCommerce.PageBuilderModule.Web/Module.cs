@@ -1,4 +1,3 @@
-using System.Linq;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -35,12 +34,6 @@ namespace VirtoCommerce.PageBuilderModule.Web
             permissionsProvider.RegisterPermissions(ModuleInfo.Id, "Page builder", ModuleConstants.Security.Permissions.AllPermissions);
 
             var isFullTextSearchEnabled = Configuration.IsContentFullTextSearchEnabled();
-
-            if (isFullTextSearchEnabled)
-            {
-                var contentItemTypeRegistrar = appBuilder.ApplicationServices.GetService<IContentItemTypeRegistrar>();
-                contentItemTypeRegistrar.RegisterContentItemType(".page", appBuilder.ApplicationServices.GetService<PageBuilderContentItemBuilder>);
-            }
 
             if (isFullTextSearchEnabled)
             {
