@@ -72,7 +72,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                         var permalinks = _.filter(data, function (x) {
                             try {
                                 var permalink = JSON.parse(x.content).settings.permalink;
-                                return permalink == value && x.name != blade.currentEntity.name;
+                                return permalink == value && x.relativeUrl != blade.currentEntity.relativeUrl;
                             } catch { }
                             return false;
                         });
