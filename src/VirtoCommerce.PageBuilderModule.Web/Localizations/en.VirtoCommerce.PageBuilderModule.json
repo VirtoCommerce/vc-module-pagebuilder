@@ -1,4 +1,4 @@
-﻿{
+{
   "pageBuilder": {
     "blades": {
       "edit-page": {
@@ -26,7 +26,8 @@
           "permalink": "Enter permalink"
         },
         "validations": {
-          "pageName-invalid": "Page name can contain alphanumeric, \"_\", \"-\" and \".\" characters only."
+          "pageName-invalid": "Page name can contain alphanumeric, \"_\", \"-\" and \".\" characters only.",
+          "permalink-invalid": "The other pages have the same permalink."
         }
       },
       "add-page": {
@@ -45,7 +46,9 @@
       }
     },
     "commands": {
-      "open-designer": "Open in Designer"
+      "open-designer": "Design",
+      "publish": "Publish",
+      "unpublish": "Unpublish"
     }
   },
   "settings": {

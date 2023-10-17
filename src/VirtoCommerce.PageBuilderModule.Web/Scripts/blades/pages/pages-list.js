@@ -9,8 +9,8 @@
 
         blade.refresh = function () {
             blade.isLoading = true;
-            contentApi.query(
-                {
+            var query = blade.searchKeyword ? contentApi.search : contentApi.query;
+            query({
                     contentType: blade.contentType,
                     storeId: blade.storeId,
                     keyword: blade.searchKeyword,
@@ -20,7 +20,7 @@
                     $scope.pageSettings.totalItems = data.length;
                     _.each(data, function (x) {
                         x.isImage = x.mimeType && x.mimeType.startsWith('image/');
-                        x.isDesignPage = /.+\.page$/g.test(x.name);
+                        x.isDesignPage = /.+\.page(\-draft){0,1}$/g.test(x.name);
                         x.isOpenable = x.mimeType && (x.mimeType.startsWith('application/j') || x.mimeType.startsWith('text/'))
                             || x.isDesignPage;
                     });
@@ -65,7 +65,15 @@
         };
 
         $scope.downloadUrl = function (data) {
-            window.open(data.url, '_blank');
+            setTimeout(function () {
+                const link = document.createElement('a');
+                link.setAttribute('href', data.url);
+                link.setAttribute('download', "");
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
         };
 
         $scope.selectNode = function (listItem) {

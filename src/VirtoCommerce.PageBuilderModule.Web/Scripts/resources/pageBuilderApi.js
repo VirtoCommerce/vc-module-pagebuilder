@@ -1,4 +1,4 @@
-﻿angular.module('virtoCommerce.contentModule')
+angular.module('virtoCommerce.contentModule')
     .config(['$httpProvider', function ($httpProvider) {
         $httpProvider.interceptors.push('virtoCommerce.pageBuilderModule.contentApiInterceptor');
     }])
@@ -26,7 +26,7 @@
                 transformRequest: function (currentEntity) {
                     var blobname = helper.prepareFilename(currentEntity);
                     var fd = new FormData();
-                    fd.append(blobname, JSON.stringify({ settings: currentEntity.settings, content: currentEntity.content }));
+                    fd.append(blobname, JSON.stringify({ settings: currentEntity.settings, content: currentEntity.content }, 4));
                     return fd;
                 },
                 isArray: true
