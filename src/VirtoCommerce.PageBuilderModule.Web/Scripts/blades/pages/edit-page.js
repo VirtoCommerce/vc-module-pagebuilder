@@ -83,14 +83,14 @@ angular.module('virtoCommerce.pageBuilderModule')
                     });
             };
 
-            $scope.saveChanges = function () {
+            $scope.saveChanges = function (saveSource, postAction) {
                 var newFileName = addExtension($scope.blade.currentEntity.name);
                 var originFileName = null;
 
                 if (!blade.isNew) {
                     originFileName = blade.origEntity.name;
                 }
-                reloadPageAndSave(newFileName, originFileName);
+                reloadPageAndSave(newFileName, originFileName, saveSource, postAction);
             };
 
             function addExtension(sourceName) {
@@ -170,7 +170,14 @@ angular.module('virtoCommerce.pageBuilderModule')
                     {
                         name: "pageBuilder.commands.open-designer", icon: 'fa fa-crop',
                         executeMethod: function () {
-                            runDesigner();
+                            if (!$scope.blade.isDraft) {
+                                $scope.blade.isDraft = true;
+                                $scope.saveChanges(true, function () {
+                                    runDesigner();
+                                });
+                            } else {
+                                runDesigner();
+                            }
                         },
                         canExecuteMethod: function () { return true; }
                     }
@@ -183,7 +190,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                 name: "pageBuilder.commands.publish", icon: 'fa fa-file',
                 executeMethod: function () {
                     $scope.blade.isDraft = false;
-                    $scope.saveChanges();
+                    $scope.saveChanges(true);
                 },
                 canExecuteMethod: function () { return true; }
             };
@@ -191,7 +198,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                 name: "pageBuilder.commands.unpublish", icon: 'fa fa-file-alt',
                 executeMethod: function () {
                     $scope.blade.isDraft = true;
-                    $scope.saveChanges();
+                    $scope.saveChanges(true);
                 },
                 canExecuteMethod: function () { return true; }
             };
@@ -310,11 +317,10 @@ angular.module('virtoCommerce.pageBuilderModule')
                 }
             }
 
-            function reloadPageAndSave(newFileName, originFileName) {
+            function reloadPageAndSave(newFileName, originFileName, saveSource, postAction) {
                 blade.isLoading = true;
                 if (blade.isNew) {
-                    savePage(newFileName, null);
-                    return;
+                    savePage(newFileName, null, postAction);
                 }
                 contentApi.get({
                     contentType: $scope.blade.contentType,
@@ -324,7 +330,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                     var page = JSON.parse(data.data);
                     page[0] = $scope.blade.currentEntity.settings;
                     $scope.blade.currentEntity.blocks = page;
-                    savePage(newFileName, originFileName);
+                    savePage(newFileName, originFileName, saveSource, postAction);
                 }, function (error) {
                     var dialog = { id: "errorDetails" };
                     dialog.message = error.message;
@@ -332,8 +338,8 @@ angular.module('virtoCommerce.pageBuilderModule')
                 });
             }
 
-            function savePage(newFileName, originFileName) {
-                $scope.blade.currentEntity.name = originFileName || newFileName;
+            function savePage(newFileName, originFileName, saveSource, postAction) {
+                $scope.blade.currentEntity.name = saveSource ? newFileName : (originFileName || newFileName);
                 $scope.blade.currentEntity.relativeUrl = ($scope.blade.parentBlade.currentEntity.relativeUrl || '') + '/' + newFileName;
                 $scope.blade.currentEntity.relativeUrl = nameHelper.prepareRelativeUrl($scope.blade.currentEntity);
 
@@ -347,7 +353,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                     function () {
                         blade.isLoading = false;
 
-                        if (newFileName !== originFileName && !!originFileName) {
+                        if (newFileName !== originFileName && !!originFileName && !saveSource) {
                             $scope.blade.currentEntity.name = newFileName;
                             var url = blade.currentEntity.url;
                             var newUrl = url.substring(0, url.length - originFileName.length) + newFileName;
@@ -358,16 +364,16 @@ angular.module('virtoCommerce.pageBuilderModule')
                                 newUrl: newUrl
                             }, function () {
                                 blade.currentEntity.url = newUrl;
-                                saveSuccess();
+                                saveSuccess(postAction);
                             }, saveError);
                         } else {
-                            saveSuccess();
+                            saveSuccess(postAction);
                         }
                     },
                     saveError);
             }
 
-            function saveSuccess() {
+            function saveSuccess(postAction) {
                 blade.origEntity = angular.copy(blade.currentEntity);
                 updateSearchIndex();
                 if (blade.isNew) {
@@ -376,6 +382,10 @@ angular.module('virtoCommerce.pageBuilderModule')
                 }
                 blade.parentBlade.refresh();
                 updateToolbarCommands();
+
+                if (postAction) {
+                    postAction();
+                }
 
                 if (blade.isNew) {
                     runDesigner();
