@@ -198,7 +198,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                 name: "pageBuilder.commands.unpublish", icon: 'fa fa-file-alt',
                 executeMethod: function () {
                     $scope.blade.isDraft = true;
-                    $scope.saveChanges(true);
+                    $scope.saveChanges();
                 },
                 canExecuteMethod: function () { return true; }
             };
@@ -394,10 +394,12 @@ angular.module('virtoCommerce.pageBuilderModule')
 
             function updateToolbarCommands() {
                 $scope.blade.toolbarCommands = blade.toolbarCommands.filter(x => x != publishCommand && x != unpublishCommand);
-                if ($scope.blade.isDraft) {
-                    $scope.blade.toolbarCommands.push(publishCommand);
-                } else {
-                    $scope.blade.toolbarCommands.push(unpublishCommand);
+                if (!blade.isNew) {
+                    if ($scope.blade.isDraft) {
+                        $scope.blade.toolbarCommands.push(publishCommand);
+                    } else {
+                        $scope.blade.toolbarCommands.push(unpublishCommand);
+                    }
                 }
             }
 
