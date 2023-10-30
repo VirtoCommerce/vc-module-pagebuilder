@@ -410,9 +410,9 @@ angular.module('virtoCommerce.pageBuilderModule')
             function updateToolbarCommands() {
                 $scope.blade.toolbarCommands = blade.toolbarCommands.filter(x => x != publishCommand && x != unpublishCommand);
                 if ($scope.blade.isDraft) {
-                    $scope.blade.toolbarCommands.push(publishCommand);
+                    $scope.blade.toolbarCommands.splice(4, 0, publishCommand);
                 } else {
-                    $scope.blade.toolbarCommands.push(unpublishCommand);
+                    $scope.blade.toolbarCommands.splice(4, 0, unpublishCommand);
                 }
             }
 

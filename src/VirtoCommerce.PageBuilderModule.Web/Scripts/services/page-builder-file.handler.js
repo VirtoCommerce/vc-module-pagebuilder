@@ -5,18 +5,18 @@ angular.module(moduleName)
         var handler = {
             edit: {
                 descriptor: {
-                    icon: 'list-ico fa fa-file-code-o',
-                    name: 'content.blades.add-page.menu.html-page.title',
-                    description: 'content.blades.add-page.menu.html-page.description'
+                    icon: 'list-ico fa fa-crop',
+                    name: 'pageBuilder.blades.pageBuilderEditor.edit.title',
+                    description: 'pageBuilder.blades.pageBuilderEditor.edit.description'
                 },
                 isMatch: isMatchForEdit,
                 execute: editFile
             },
             create: {
                 descriptor: {
-                    icon: 'list-ico fa fa-file-code-o',
-                    name: 'content.blades.add-page.menu.html-page.title',
-                    description: 'content.blades.add-page.menu.html-page.description'
+                    icon: 'list-ico fa fa-crop',
+                    name: 'pageBuilder.blades.pageBuilderEditor.create.title',
+                    description: 'pageBuilder.blades.pageBuilderEditor.create.description'
                 },
                 isMatch: function () { return true; },
                 execute: createFile
@@ -24,52 +24,44 @@ angular.module(moduleName)
         };
 
         function isMatchForEdit(file, operation) {
-            return file && file.name && file.name.endsWith('.page');
+            return file && file.name && (file.name.endsWith('.page') || file.name.endsWith('.page-draft'));
         }
 
         function createFile(blade, parentBlade) {
-            console.log('create page builder file', blade, parentBlade);
-            //angular.extend(blade, {
-            //    isNew: true,
-            //    controller: 'virtoCommerce.contentModule.pageDetailController',
-            //    template: 'Modules/$(VirtoCommerce.Content)/Scripts/blades/pages/page-detail.tpl.html',
-            //});
-
-            //if (blade.contentType === 'blogs') {
-            //    angular.extend(blade, {
-            //        title: 'content.blades.edit-page.title-new-post',
-            //        subtitle: 'content.blades.edit-page.subtitle-new-post'
-            //    });
-            //} else {
-            //    angular.extend(blade, {
-            //        title: 'content.blades.edit-page.title-new',
-            //        subtitle: 'content.blades.edit-page.subtitle-new',
-            //    });
-            //}
-
-            //bladeNavigationService.showBlade(blade, parentBlade);
+            var newBlade = {
+                id: 'designPage',
+                contentType: blade.contentType,
+                storeId: blade.storeId,
+                storeUrl: blade.storeUrl,
+                languages: blade.languages,
+                folderUrl: blade.folderUrl,
+                isNew: true,
+                currentEntity: {},
+                title: 'pageBuilder.blades.edit-page.title-new',
+                subtitle: 'pageBuilder.blades.edit-page.subtitle-new',
+                controller: 'virtoCommerce.pageBuilderModule.editPageController',
+                template: 'Modules/$(VirtoCommerce.PageBuilderModule)/Scripts/blades/pages/edit-page.tpl.html'
+            };
+            bladeNavigationService.showBlade(newBlade, parentBlade);
         }
 
         function editFile(blade, parentBlade) {
-            console.log('edit page builder file', blade, parentBlade);
-            //angular.extend(blade, {
-            //    isNew: false,
-            //    title: blade.currentEntity.name,
-            //    controller: 'virtoCommerce.contentModule.pageDetailController',
-            //    template: 'Modules/$(VirtoCommerce.Content)/Scripts/blades/pages/page-detail.tpl.html',
-            //});
+            var newBlade = {
+                id: 'designPage',
+                contentType: blade.contentType,
+                storeId: blade.storeId,
+                storeUrl: blade.storeUrl,
+                languages: blade.languages,
+                folderUrl: blade.folderUrl,
+                currentEntity: blade.currentEntity,
+                isNew: false,
+                title: 'pageBuilder.blades.edit-page.title-new',
+                subtitle: 'pageBuilder.blades.edit-page.subtitle-new',
+                controller: 'virtoCommerce.pageBuilderModule.editPageController',
+                template: 'Modules/$(VirtoCommerce.PageBuilderModule)/Scripts/blades/pages/edit-page.tpl.html'
+            };
 
-            //if (blade.contentType === 'blogs') {
-            //    angular.extend(blade, {
-            //        subtitle: 'content.blades.edit-page.subtitle-post'
-            //    });
-            //} else {
-            //    angular.extend(blade, {
-            //        subtitle: 'content.blades.edit-page.subtitle',
-            //    });
-            //}
-
-            //bladeNavigationService.showBlade(blade, parentBlade);
+            bladeNavigationService.showBlade(newBlade, parentBlade);
         }
 
         return handler;
