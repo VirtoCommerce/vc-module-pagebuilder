@@ -30,18 +30,14 @@
           "permalink-invalid": "The other pages have the same permalink."
         }
       },
-      "add-page": {
-        "title": "New",
-        "subtitle": "Choose what page you want to create",
-        "menu": {
-          "design-page": {
-            "title": "Design Page",
-            "description": "Use designer to create a new page."
-          },
-          "html-page": {
-            "title": "Html Page",
-            "description": "Use markdown or html to create a new page."
-          }
+      "pageBuilderEditor": {
+        "create": {
+          "title": "Design Page",
+          "description": "Use designer to create a new page."
+        },
+        "edit": {
+          "title": "Design Page",
+          "description": "Use designer to edit the page."
         }
       }
     },
