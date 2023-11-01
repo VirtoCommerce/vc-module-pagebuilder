@@ -56,8 +56,10 @@ angular.module('virtoCommerce.pageBuilderModule')
 
             $scope.permalinkDuplicates = [];
 
+            $scope.searchEnabled = false;
+
             $scope.validatePermalink = function (value) {
-                if (!value) {
+                if (!value || !$scope.searchEnabled) {
                     $scope.permalinkDuplicates = [];
                     return $q.resolve();
                 }
@@ -435,5 +437,11 @@ angular.module('virtoCommerce.pageBuilderModule')
             blade.headIcon = 'fa fa-inbox';
 
             blade.initialize();
+
+            contentApi.indexedSearchEnabled({}, function (data) {
+                $scope.searchEnabled = data.result;
+                $scope.validatePermalink(blade.currentEntity.settings.permalink);
+            });
+
         }]);
 
