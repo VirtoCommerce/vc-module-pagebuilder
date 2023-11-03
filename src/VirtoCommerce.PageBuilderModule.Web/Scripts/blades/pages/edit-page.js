@@ -11,7 +11,9 @@ angular.module('virtoCommerce.pageBuilderModule')
             var blade = $scope.blade;
             blade.updatePermission = 'content:update';
             blade.designerUrl = null;
+            $scope.blade.currentEntity.settings = { type: 'settings', permalink: '' };
             $scope.validators = validators;
+            $scope.searchEnabled = false;
 
             blade.initialize = function () {
                 blade.designerUrl = window.location.origin +
@@ -22,7 +24,6 @@ angular.module('virtoCommerce.pageBuilderModule')
 
                     fillMetadata();
                     $scope.blade.isDraft = true;
-                    $scope.blade.currentEntity.settings = { type: 'settings', permalink: '' };
                     $scope.blade.currentEntity.content = [];
                     $scope.blade.currentEntity.metadata = { // todo: load from settings
                         contentType: blade.contentType,
@@ -56,8 +57,6 @@ angular.module('virtoCommerce.pageBuilderModule')
 
             $scope.permalinkDuplicates = [];
 
-            $scope.searchEnabled = false;
-
             $scope.validatePermalink = function (value) {
                 if (!value || !$scope.searchEnabled) {
                     $scope.permalinkDuplicates = [];
@@ -80,7 +79,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                         });
                         $scope.permalinkDuplicates = permalinks;
                         if (permalinks.length > 0) {
-                            return $q.reject();
+                            return $q.resolve();
                         }
                         return $q.resolve();
                     }, function (error) {
