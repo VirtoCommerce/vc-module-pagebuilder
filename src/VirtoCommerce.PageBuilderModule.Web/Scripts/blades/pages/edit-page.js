@@ -50,8 +50,8 @@ angular.module('virtoCommerce.pageBuilderModule')
                         blade.isLoading = false;
                     });
 
-                    loadSearchIndex();
                 }
+                loadSearchIndex();
             };
 
             $scope.permalinkDuplicates = [];
@@ -248,11 +248,12 @@ angular.module('virtoCommerce.pageBuilderModule')
             }
 
             function loadSearchIndex() {
-                if (blade.isNew) {
-                    return;
-                }
                 contentApi.indexedSearchEnabled({}, function (data) {
                     $scope.searchEnabled = data.result;
+                    if (blade.isNew) {
+                        return;
+                    }
+                    $scope.validatePermalink(blade.currentEntity.settings.permalink);
                     getDocumentIndex(addIndexToolbarButton);
                 });
             }
@@ -437,11 +438,5 @@ angular.module('virtoCommerce.pageBuilderModule')
             blade.headIcon = 'fa fa-inbox';
 
             blade.initialize();
-
-            contentApi.indexedSearchEnabled({}, function (data) {
-                $scope.searchEnabled = data.result;
-                $scope.validatePermalink(blade.currentEntity.settings.permalink);
-            });
-
         }]);
 
