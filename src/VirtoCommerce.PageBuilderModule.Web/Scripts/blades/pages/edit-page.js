@@ -40,6 +40,9 @@ angular.module('virtoCommerce.pageBuilderModule')
                         var fileContent = JSON.parse(data.data);
                         var entity = $scope.blade.currentEntity;
                         entity.settings = fileContent.settings;
+                        if (entity.settings.name && !entity.settings.displayName) {
+                            entity.settings.displayName = entity.settings.name;
+                        }
                         entity.blocks = fileContent.content;
                         entity.content = data.data;
                         $scope.blade.isDraft = entity.name.endsWith(".page-draft");
