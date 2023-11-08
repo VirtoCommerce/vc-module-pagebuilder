@@ -28,7 +28,12 @@ namespace VirtoCommerce.PageBuilderModule.Data.Search
             settings.Properties().ToList().ForEach(x =>
             {
                 result.AddFilterableStringAndContentString(x.Name, x.Value.ToString());
+
             });
+            if (settings["displayName"] == null && settings["name"] != null)
+            {
+                result.AddFilterableStringAndContentString("displayName", settings["name"].ToString());
+            }
         }
     }
 }
