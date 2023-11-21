@@ -1,9 +1,9 @@
 ﻿angular.module('virtoCommerce.pageBuilderModule')
     .factory('virtoCommerce.pageBuilderModule.resourceNameService', [function () {
 
-        function insertLang(sourceName, lang, isDraft) {
+        function insertLang(sourceName, lang) {
             var filename = sourceName;
-            var fileExtension = isDraft ? '.page-draft' : '.page';
+            var fileExtension = '.page';
             var idx = filename.lastIndexOf('.');
             if (idx >= 0) {
                 fileExtension = filename.substring(idx);
@@ -23,11 +23,11 @@
 
         return {
             prepareFilename: function (entity) {
-                var result = insertLang(entity.name, entity.language, entity.isDraft);
+                var result = insertLang(entity.name, entity.language);
                 return result;
             },
             prepareRelativeUrl: function (entity) {
-                var result = insertLang(entity.relativeUrl, entity.language, entity.isDraft);
+                var result = insertLang(entity.relativeUrl, entity.language);
                 return result;
             }
         };

@@ -23,6 +23,7 @@
             savePage: {
                 method: 'POST',
                 headers: { 'Content-Type': undefined },
+                params: { draft: true },
                 transformRequest: function (currentEntity) {
                     var blobname = helper.prepareFilename(currentEntity);
                     var fd = new FormData();
@@ -32,6 +33,7 @@
                 isArray: true
             },
             get: {
+                params: { draft: true },
                 // using transformResponse to:
                 // 1. avoid automatic response result string converting to array;
                 transformResponse: function (rawData) { return { data: rawData }; }
