@@ -37,6 +37,8 @@ angular.module('virtoCommerce.pageBuilderModule')
                         entity.settings = content[0];
                         entity.blocks = content;
                         entity.content = data.data;
+                        blade.hasChanges = entity.hasChanges;
+                        blade.published = entity.published;
                         updateToolbarCommands();
                         fillMetadata();
                         blade.origEntity = angular.copy(blade.currentEntity);
@@ -172,7 +174,8 @@ angular.module('virtoCommerce.pageBuilderModule')
                         storeId: blade.storeId,
                         relativeUrl: blade.currentEntity.relativeUrl
                     }, function () {
-                        blade.currentEntity.status = 'published';
+                        blade.hasChanges = false;
+                        blade.published = true;
                         blade.parentBlade.refresh();
                         updateToolbarCommands();
                     });
@@ -187,7 +190,8 @@ angular.module('virtoCommerce.pageBuilderModule')
                         storeId: blade.storeId,
                         relativeUrl: blade.currentEntity.relativeUrl
                     }, function () {
-                        blade.currentEntity.status = 'unpublished';
+                        blade.hasChanges = true;
+                        blade.published = false;
                         blade.parentBlade.refresh();
                         updateToolbarCommands();
                     });
@@ -344,7 +348,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                     $scope.blade.currentEntity,
                     function () {
                         blade.isLoading = false;
-
+                        blade.hasChanges = true; // file has draft version
                         if (newFileName !== originFileName && !!originFileName) {
                             $scope.blade.currentEntity.name = newFileName;
                             var url = blade.currentEntity.url;
@@ -383,7 +387,7 @@ angular.module('virtoCommerce.pageBuilderModule')
             function updateToolbarCommands() {
                 if ($scope.blade.isNew) return;
                 $scope.blade.toolbarCommands = blade.toolbarCommands.filter(x => x != publishCommand && x != unpublishCommand);
-                if ($scope.blade.currentEntity.status === 'published') {
+                if ($scope.blade.published && !$scope.blade.hasChanges) {
                     $scope.blade.toolbarCommands.splice(4, 0, unpublishCommand);
                 } else {
                     $scope.blade.toolbarCommands.splice(4, 0, publishCommand);
