@@ -1,1 +1,1 @@
-https://github.com/VirtoCommerce/page-builder
+https://github.com/VirtoCommerce/page-builder/commit/100f23a0b2eba3d9ba82084d864ad8d62db8103d
