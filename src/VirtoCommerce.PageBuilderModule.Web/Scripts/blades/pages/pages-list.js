@@ -65,6 +65,10 @@
             window.prompt("Copy to clipboard: Ctrl+C, Enter", data.url);
         };
 
+        $scope.duplicate = function (data) {
+            contentApi.copyFile({ srcFile: data.relativeUrl, contentType: blade.contentType, storeId: blade.storeId }, blade.refresh);
+        };
+
         $scope.downloadUrl = function (data) {
             setTimeout(function () {
                 const link = document.createElement('a');
