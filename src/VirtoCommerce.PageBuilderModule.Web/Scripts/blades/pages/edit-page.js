@@ -335,6 +335,7 @@ angular.module('virtoCommerce.pageBuilderModule')
             }
 
             function savePage(newFileName, originFileName) {
+                var oldRelativeUrl = $scope.blade.currentEntity.relativeUrl;
                 $scope.blade.currentEntity.name = originFileName || newFileName;
                 $scope.blade.currentEntity.relativeUrl = ($scope.blade.parentBlade.currentEntity.relativeUrl || '') + '/' + newFileName;
                 $scope.blade.currentEntity.relativeUrl = nameHelper.prepareRelativeUrl($scope.blade.currentEntity);
@@ -351,15 +352,13 @@ angular.module('virtoCommerce.pageBuilderModule')
                         blade.hasChanges = true; // file has draft version
                         if (newFileName !== originFileName && !!originFileName) {
                             $scope.blade.currentEntity.name = newFileName;
-                            var url = blade.currentEntity.url;
-                            var newUrl = url.substring(0, url.length - originFileName.length) + newFileName;
+                            var newRelativeUrl = blade.currentEntity.relativeUrl;
                             contentApi.move({
                                 contentType: blade.contentType,
                                 storeId: blade.storeId,
-                                oldUrl: url,
-                                newUrl: newUrl
+                                oldUrl: oldRelativeUrl,
+                                newUrl: newRelativeUrl
                             }, function () {
-                                blade.currentEntity.url = newUrl;
                                 saveSuccess();
                             }, saveError);
                         } else {
