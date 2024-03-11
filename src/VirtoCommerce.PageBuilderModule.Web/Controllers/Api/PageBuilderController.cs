@@ -273,7 +273,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         {
             public string Path { get; set; }
             public string Type { get; set; }
-            public JObject Content { get; set; }
+            public JContainer Content { get; set; }
         }
     }
 }

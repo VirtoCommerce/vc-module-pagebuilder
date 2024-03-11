@@ -37,8 +37,8 @@ angular.module('virtoCommerce.pageBuilderModule')
                         relativeUrl: blade.currentEntity.relativeUrl
                     }, function (data) {
                         blade.isLoading = false;
-                        var fileContent = JSON.parse(data.data);
                         var entity = $scope.blade.currentEntity;
+                        var fileContent = parseFileContent(data.data);
                         entity.settings = fileContent.settings;
                         if (entity.settings.name && !entity.settings.displayName) {
                             entity.settings.displayName = entity.settings.name;
@@ -222,6 +222,17 @@ angular.module('virtoCommerce.pageBuilderModule')
                 }
             }
 
+            function parseFileContent(fileContent) {
+                var result = JSON.parse(fileContent);
+                if (Array.isArray(result)) {
+                    return {
+                        settings: result[0],
+                        content: result.filter((x, i) => i > 0)
+                    };
+                }
+                return result;
+            }
+
             // #region search
 
             function addIndexToolbarButton() {
@@ -340,7 +351,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                     storeId: $scope.blade.storeId,
                     relativeUrl: $scope.blade.currentEntity.relativeUrl
                 }, function (data) {
-                    var page = JSON.parse(data.data);
+                    var page = parseFileContent(data.data);
                     $scope.blade.currentEntity.settings = Object.assign({}, page.settings, $scope.blade.currentEntity.settings);
                     $scope.blade.currentEntity.content = page.content;
 
