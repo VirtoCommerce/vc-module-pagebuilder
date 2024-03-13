@@ -1,6 +1,5 @@
 using System.Globalization;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
 using VirtoCommerce.ContentModule.Core.Model;
 using VirtoCommerce.ContentModule.Data.Search;
@@ -34,10 +33,14 @@ namespace VirtoCommerce.PageBuilderModule.Data.Search
 
         private static void AddMetadata(IndexDocument result, JObject settings)
         {
-            var dateConverter = new IsoDateTimeConverter { Culture = CultureInfo.InvariantCulture };
             settings.Properties().ToList().ForEach(x =>
             {
-                result.AddFilterableStringAndContentString(x.Name, x.Value.ToString(Formatting.Indented, dateConverter));
+                var value = x.Value.ToString();
+                if (x.Type == JTokenType.Date)
+                {
+                    x.Value = x.Value.ToObject<DateTime>().ToString(CultureInfo.InvariantCulture);
+                }
+                result.AddFilterableStringAndContentString(x.Name, value);
 
             });
             if (settings["displayName"] == null && settings["name"] != null)
