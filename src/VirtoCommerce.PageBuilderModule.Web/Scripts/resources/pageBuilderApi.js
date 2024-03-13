@@ -22,6 +22,7 @@ angular.module('virtoCommerce.contentModule')
         return $resource('api/content/:contentType/:storeId', null, {
             savePage: {
                 method: 'POST',
+                params: { draft: true },
                 headers: { 'Content-Type': undefined },
                 transformRequest: function (currentEntity) {
                     var blobname = helper.prepareFilename(currentEntity);
@@ -37,6 +38,7 @@ angular.module('virtoCommerce.contentModule')
                 isArray: true
             },
             get: {
+                params: { draft: true },
                 // using transformResponse to:
                 // 1. avoid automatic response result string converting to array;
                 transformResponse: function (rawData) { return { data: rawData }; }

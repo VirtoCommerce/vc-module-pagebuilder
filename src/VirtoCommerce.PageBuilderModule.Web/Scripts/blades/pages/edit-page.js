@@ -46,7 +46,8 @@ angular.module('virtoCommerce.pageBuilderModule')
                         entity.blocks = fileContent.content;
                         entity.version = fileContent.version;
                         entity.content = data.data;
-                        $scope.blade.isDraft = entity.name.endsWith(".page-draft");
+                        blade.hasChanges = entity.hasChanges;
+                        blade.published = entity.published;
                         updateToolbarCommands();
                         fillMetadata();
                         blade.origEntity = angular.copy(blade.currentEntity);
@@ -110,20 +111,9 @@ angular.module('virtoCommerce.pageBuilderModule')
 
             function addExtension(sourceName) {
                 var result = sourceName;
-                var isDraft = $scope.blade.isDraft;
-                
-                if (isDraft) {
-                    if (result.endsWith('.page')) {
-                        result += '-draft';
-                    } else if (!result.endsWith('.page-draft')) {
-                        result += '.page-draft';
-                    }
-                } else {
-                    if (result.endsWith('.page-draft')) {
-                        result = result.substring(0, result.length - '-draft'.length);
-                    } else if (!result.endsWith('.page')) {
-                        result += '.page';
-                    }
+
+                if (!result.endsWith('.page')) {
+                    result += '.page';
                 }
 
                 return result;
@@ -197,16 +187,32 @@ angular.module('virtoCommerce.pageBuilderModule')
             var publishCommand = {
                 name: "pageBuilder.commands.publish", icon: 'fa fa-file',
                 executeMethod: function () {
-                    $scope.blade.isDraft = false;
-                    $scope.saveChanges();
+                    contentApi.publish({
+                        contentType: blade.contentType,
+                        storeId: blade.storeId,
+                        relativeUrl: blade.currentEntity.relativeUrl
+                    }, function () {
+                        blade.hasChanges = false;
+                        blade.published = true;
+                        blade.parentBlade.refresh();
+                        updateToolbarCommands();
+                    });
                 },
                 canExecuteMethod: function () { return true; }
             };
             var unpublishCommand = {
                 name: "pageBuilder.commands.unpublish", icon: 'fa fa-file-alt',
                 executeMethod: function () {
-                    $scope.blade.isDraft = true;
-                    $scope.saveChanges();
+                    contentApi.unpublish({
+                        contentType: blade.contentType,
+                        storeId: blade.storeId,
+                        relativeUrl: blade.currentEntity.relativeUrl
+                    }, function () {
+                        blade.hasChanges = true;
+                        blade.published = false;
+                        blade.parentBlade.refresh();
+                        updateToolbarCommands();
+                    });
                 },
                 canExecuteMethod: function () { return true; }
             };
@@ -389,18 +395,16 @@ angular.module('virtoCommerce.pageBuilderModule')
                     $scope.blade.currentEntity,
                     function () {
                         blade.isLoading = false;
-
+                        blade.hasChanges = true; // file has draft version
                         if (newFileName !== originFileName && !!originFileName) {
                             $scope.blade.currentEntity.name = newFileName;
-                            var url = blade.currentEntity.url;
-                            var newUrl = url.substring(0, url.length - originFileName.length) + newFileName;
+                            var newRelativeUrl = blade.currentEntity.relativeUrl;
                             contentApi.move({
                                 contentType: blade.contentType,
                                 storeId: blade.storeId,
-                                oldUrl: url,
-                                newUrl: newUrl
+                                oldUrl: oldRelativeUrl,
+                                newUrl: newRelativeUrl
                             }, function () {
-                                blade.currentEntity.url = newUrl;
                                 saveSuccess();
                             }, saveError);
                         } else {
@@ -427,10 +431,10 @@ angular.module('virtoCommerce.pageBuilderModule')
 
             function updateToolbarCommands() {
                 $scope.blade.toolbarCommands = blade.toolbarCommands.filter(x => x != publishCommand && x != unpublishCommand);
-                if ($scope.blade.isDraft) {
-                    $scope.blade.toolbarCommands.splice(4, 0, publishCommand);
-                } else {
+                if ($scope.blade.published && !$scope.blade.hasChanges) {
                     $scope.blade.toolbarCommands.splice(4, 0, unpublishCommand);
+                } else {
+                    $scope.blade.toolbarCommands.splice(4, 0, publishCommand);
                 }
             }
 
