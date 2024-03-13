@@ -14,11 +14,18 @@ namespace VirtoCommerce.PageBuilderModule.Data.Search
             var result = new IndexDocument(documentId);
             result.AddFilterableStringAndContentString("StoreId", storeId);
 
-            var page = JsonConvert.DeserializeObject<JObject>(file.Content);
+            var page = JsonConvert.DeserializeObject<JContainer>(file.Content);
 
-            AddMetadata(result, (JObject)page["settings"]);
-
-            result.AddContentString(page["content"]?.ToString());
+            if (page is JArray pageAsArray)
+            {
+                AddMetadata(result, (JObject)pageAsArray.First());
+                result.AddContentString(pageAsArray.Skip(1)?.ToString());
+            }
+            else
+            {
+                AddMetadata(result, (JObject)page["settings"]);
+                result.AddContentString(page["content"]?.ToString());
+            }
 
             return result;
         }

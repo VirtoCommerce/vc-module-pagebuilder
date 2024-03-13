@@ -44,6 +44,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                             entity.settings.displayName = entity.settings.name;
                         }
                         entity.blocks = fileContent.content;
+                        entity.version = fileContent.version;
                         entity.content = data.data;
                         $scope.blade.isDraft = entity.name.endsWith(".page-draft");
                         updateToolbarCommands();
@@ -227,7 +228,8 @@ angular.module('virtoCommerce.pageBuilderModule')
                 if (Array.isArray(result)) {
                     return {
                         settings: result[0],
-                        content: result.filter((x, i) => i > 0)
+                        content: result.filter((x, i) => i > 0),
+                        version: 1
                     };
                 }
                 return result;
