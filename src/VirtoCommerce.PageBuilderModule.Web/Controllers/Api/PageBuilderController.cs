@@ -24,46 +24,46 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 {
     [Route("api/pagebuilder")]
     [Authorize]
-    public class PageBuilderController : Controller
-    {
-        private readonly IStoreService _storeService;
-        private readonly IContentPathResolver _pathResolver;
-        private readonly IBlobContentStorageProviderFactory _blobContentStorageProviderFactory;
-        private readonly ContentOptions _options;
-        private readonly IEventPublisher _eventPublisher;
-
-        private const string _blogsFolderName = "blogs";
-        private const string _pages = "pages";
-        private const string _themes = "themes";
-        private const string _defaultTheme = "default";
-
-        public PageBuilderController(
-            IStoreService storeService,
+    public class PageBuilderController(IStoreService storeService,
             IContentPathResolver pathResolver,
             IBlobContentStorageProviderFactory blobContentStorageProviderFactory,
             IOptions<ContentOptions> options,
+            IPublishingService publishingService,
             IEventPublisher eventPublisher)
-        {
-            _storeService = storeService;
-            _pathResolver = pathResolver;
-            _blobContentStorageProviderFactory = blobContentStorageProviderFactory;
-            _options = options.Value;
-            _eventPublisher = eventPublisher;
-        }
+        : Controller
+    {
+        private readonly ContentOptions _options = options.Value;
+
+        private const string BlogsFolderName = "blogs";
+        private const string Pages = "pages";
+        private const string Themes = "themes";
+        private const string DefaultTheme = "default";
 
         [HttpGet]
         [Route("template")]
-        public async Task<ActionResult> GetTemplate(string storeId, string theme, string path, string type)
+        public async Task<ActionResult> GetTemplate(string storeId, string theme, string path, string type, bool draft = false)
         {
             var basePath = GetContentBasePath(storeId, type, theme);
-            var storageProvider = _blobContentStorageProviderFactory.CreateProvider(basePath);
+            var storageProvider = blobContentStorageProviderFactory.CreateProvider(basePath);
 
-            var blobInfo = await storageProvider.GetBlobInfoAsync(path);
+            var filePath = publishingService.GetRelativeDraftUrl(path, draft);
+            var blobInfo = await storageProvider.GetBlobInfoAsync(filePath);
 
             if (blobInfo != null)
             {
                 var stream = await storageProvider.OpenReadAsync(blobInfo.RelativeUrl);
                 return File(stream, MimeTypeResolver.ResolveContentType(blobInfo.Name));
+            }
+            if (draft)
+            {
+                var originalFilePath = publishingService.GetRelativeDraftUrl(path, false);
+                var originalBlobInfo = await storageProvider.GetBlobInfoAsync(originalFilePath);
+
+                if (originalBlobInfo != null)
+                {
+                    var stream = await storageProvider.OpenReadAsync(originalBlobInfo.RelativeUrl);
+                    return File(stream, MimeTypeResolver.ResolveContentType(originalBlobInfo.Name));
+                }
             }
             return NotFound(new
             {
@@ -78,8 +78,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         {
             var themeName = GetCurrentThemeName(storeId, theme);
             var filePath = $"{themeName}/config/builder_settings.json";
-            var basePath = GetContentBasePath(storeId, _themes, themeName);
-            var storageProvider = _blobContentStorageProviderFactory.CreateProvider(basePath);
+            var basePath = GetContentBasePath(storeId, Themes, themeName);
+            var storageProvider = blobContentStorageProviderFactory.CreateProvider(basePath);
 
             var blobInfo = await storageProvider.GetBlobInfoAsync(filePath);
 
@@ -124,7 +124,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         public async Task<string> Search(string storeId, string theme, string type, string folder, string pattern = null, string keyword = null)
         {
             var basePath = GetContentBasePath(storeId, type, theme);
-            var storageProvider = _blobContentStorageProviderFactory.CreateProvider(basePath);
+            var storageProvider = blobContentStorageProviderFactory.CreateProvider(basePath);
             //var searchPattern = $"{query}.(json|page|template)"; // todo: use pattern correctly (search by filename? search by name from settings? elastic?)
             var regexp = pattern == null ? null : new Regex(pattern);
             var files = (await storageProvider.SearchAsync(folder, keyword))
@@ -154,13 +154,13 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
         [HttpPost]
         [Route("save")]
-        public async Task<ActionResult> SaveTemplates(string storeId, string theme, [FromBody] SaveFilesModel value)
+        public async Task<ActionResult> SaveTemplates(string storeId, string theme, [FromBody] SaveFilesModel value, [FromQuery] bool draft = false)
         {
-            await SaveFilesTo(storeId, theme, value);
+            await SaveFilesTo(storeId, theme, value, draft);
             return Ok();
         }
 
-        private async Task SaveFilesTo(string storeId, string theme, SaveFilesModel model)
+        private async Task SaveFilesTo(string storeId, string theme, SaveFilesModel model, bool draft)
         {
             var files = JsonConvert.DeserializeObject<IEnumerable<SaveFileModel>>(model.Files);
 
@@ -176,9 +176,10 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 var type = file.Type.ToLowerInvariant();
                 var storageProvider = providers.ContainsKey(type)
                     ? providers[type]
-                    : (providers[type] = _blobContentStorageProviderFactory.CreateProvider(GetContentBasePath(storeId, type, themeName)));
+                    : (providers[type] = blobContentStorageProviderFactory.CreateProvider(GetContentBasePath(storeId, type, themeName)));
                 var content = file.Content;
-                await using var targetStream = await storageProvider.OpenWriteAsync(file.Path);
+                var targetPath = publishingService.GetRelativeDraftUrl(file.Path, draft);
+                await using var targetStream = await storageProvider.OpenWriteAsync(targetPath);
                 await using var writer = new StreamWriter(targetStream);
                 var stringContent = JsonConvert.SerializeObject(content, settings);
                 await writer.WriteAsync(stringContent);
@@ -197,7 +198,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             }
             changedFiles.Keys.ToList().ForEach(async x =>
             {
-                await _eventPublisher.Publish(new PageBuilderContentChangedEvent(x, changedFiles[x]));
+                await eventPublisher.Publish(new PageBuilderContentChangedEvent(x, changedFiles[x]));
             });
         }
 
@@ -205,8 +206,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         {
             var themeName = GetCurrentThemeName(storeId, theme);
             var templatesFolder = $"{themeName}/config/schemas/{folder}";
-            var basePath = GetContentBasePath(storeId, _themes, themeName);
-            var storageProvider = _blobContentStorageProviderFactory.CreateProvider(basePath);
+            var basePath = GetContentBasePath(storeId, Themes, themeName);
+            var storageProvider = blobContentStorageProviderFactory.CreateProvider(basePath);
             var allFiles = await storageProvider.SearchAsync(templatesFolder, null);
             var files = allFiles.Results.Where(x => x.Name.EndsWith(".json", StringComparison.OrdinalIgnoreCase));
             var response = string.Join(", ", files.Select(file => $"\"{GetKey(null, file)}\": {GetContent(file, storageProvider)}"));
@@ -250,7 +251,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
         private string GetContentBasePath(string storeId, string contentType, string theme)
         {
-            var retVal = _pathResolver.GetContentBasePath(contentType, storeId, theme);
+            var retVal = pathResolver.GetContentBasePath(contentType, storeId, theme);
             return retVal;
         }
 
@@ -260,8 +261,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             {
                 return themeName;
             }
-            var store = _storeService.GetNoCloneAsync(storeId, StoreResponseGroup.DynamicProperties.ToString()).Result;
-            return store?.DynamicProperties.FirstOrDefault(x => x.Name == "DefaultThemeName")?.Values?.FirstOrDefault()?.Value?.ToString() ?? _defaultTheme;
+            var store = storeService.GetNoCloneAsync(storeId, StoreResponseGroup.DynamicProperties.ToString()).Result;
+            return store?.DynamicProperties.FirstOrDefault(x => x.Name == "DefaultThemeName")?.Values?.FirstOrDefault()?.Value?.ToString() ?? DefaultTheme;
         }
 
         public class SaveFilesModel

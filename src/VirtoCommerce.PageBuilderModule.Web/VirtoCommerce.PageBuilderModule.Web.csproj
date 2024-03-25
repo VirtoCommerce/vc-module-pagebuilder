@@ -7,7 +7,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="VirtoCommerce.AssetsModule.Core" Version="3.800.0" />
-    <PackageReference Include="VirtoCommerce.ContentModule.Core" Version="3.800.0" />
+    <PackageReference Include="VirtoCommerce.ContentModule.Core" Version="3.804.0-alpha.952-vccom" />
     <PackageReference Include="VirtoCommerce.Platform.Core" Version="3.800.0" />
     <PackageReference Include="VirtoCommerce.StoreModule.Core" Version="3.800.0" />
   </ItemGroup>
