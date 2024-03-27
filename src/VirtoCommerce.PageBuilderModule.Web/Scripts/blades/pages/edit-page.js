@@ -489,7 +489,8 @@ angular.module('virtoCommerce.pageBuilderModule')
             function messageListener(event) {
                 if (event.origin == window.location.origin && event.data.source === 'builder') {
                     try {
-                        if (blade.currentEntity.relativeUrl == event.data.path) {
+                        var url = getDraftFileName();
+                        if (url == event.data.path) {
                             blade.hasChanges = event.data.hasChanges;
                             blade.published = event.data.published;
                             updateToolbarCommands();
