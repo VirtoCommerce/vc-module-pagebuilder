@@ -196,6 +196,8 @@ angular.module('virtoCommerce.pageBuilderModule')
                         blade.published = true;
                         blade.parentBlade.refresh();
                         updateToolbarCommands();
+                        var templateKey = blade.contentType + '::' + getDraftFileName();
+                        window.openedWindows[templateKey]?.postMessage({ source: 'platform', published: true, hasChanges: false, templateKey: templateKey }, window.location.origin);
                     });
                 },
                 canExecuteMethod: function () { return true; }
@@ -212,6 +214,8 @@ angular.module('virtoCommerce.pageBuilderModule')
                         blade.published = false;
                         blade.parentBlade.refresh();
                         updateToolbarCommands();
+                        var templateKey = blade.contentType + '::' + getDraftFileName();
+                        window.openedWindows[templateKey]?.postMessage({ source: 'platform', published: false, hasChanges: true, templateKey: templateKey }, window.location.origin);
                     });
                 },
                 canExecuteMethod: function () { return true; }
@@ -329,21 +333,33 @@ angular.module('virtoCommerce.pageBuilderModule')
                 return blade.currentEntity.relativeUrl;
             }
 
+            function getDraftFileName() {
+                var relativeUrl = blade.currentEntity.relativeUrl;
+                // the draft page should be under editing in the designer
+
+                if (!relativeUrl.endsWith('-draft')) {
+                    relativeUrl = relativeUrl + '-draft';
+                }
+
+                return relativeUrl;
+            }
+
+            function getTemplateKey() {
+                return blade.contentType + '::' + getDraftFileName()
+            }
+
             function runDesigner() {
                 if (blade.designerUrl) {
                     // /Modules/$(VirtoCommerce.PageBuilderModule)/Content/builder/
                     //var path = blade.currentEntity.relativeUrl.replace("//", "/");
                     //window.open(blade.designerUrl + '?path=' + path + '&storeId=' + blade.storeId + '&contentType=' + blade.contentType, '_blank');
-                    var relativeUrl = blade.currentEntity.relativeUrl;
-                    // the draft page should be under editing in the designer
-
-                    if (!relativeUrl.endsWith('-draft')) {
-                        relativeUrl = relativeUrl + '-draft';
-                    }
+                    var relativeUrl = getDraftFileName();
 
                     // will be used default store theme, therefore we don't need to pass it
                     //window.open(blade.designerUrl + '?storeId=' + blade.storeId + '&theme=default#/pages?in=page&template=' + name, '_blank');
-                    window.open(blade.designerUrl + '?storeId=' + blade.storeId + '#/pages?type=' + blade.contentType + '&path=' + relativeUrl, '_blank');
+                    window.openedWindows = window.openedWindows || {};
+                    var templateKey = getTemplateKey();
+                    window.openedWindows[templateKey] = window.open(blade.designerUrl + '?storeId=' + blade.storeId + '#/pages?type=' + blade.contentType + '&path=' + relativeUrl, '_blank');
                 } else {
                     var dialog = {
                         id: "noUrlInStore",
@@ -402,6 +418,8 @@ angular.module('virtoCommerce.pageBuilderModule')
                     function () {
                         blade.isLoading = false;
                         blade.hasChanges = true; // file has draft version
+                        var templateKey = getTemplateKey();
+                        window.openedWindows[templateKey]?.postMessage({ source: 'platform', published: blade.published, hasChanges: true, templateKey: templateKey }, window.location.origin);
                         if (newFileName !== originFileName && !!originFileName) {
                             $scope.blade.currentEntity.name = newFileName;
                             var newRelativeUrl = blade.currentEntity.relativeUrl;
@@ -463,5 +481,24 @@ angular.module('virtoCommerce.pageBuilderModule')
             blade.headIcon = 'fa fa-inbox';
 
             blade.initialize();
-        }]);
+
+            window.removeEventListener('message', messageListener);
+
+            window.addEventListener('message', messageListener);
+
+            function messageListener(event) {
+                if (event.origin == window.location.origin && event.data.source === 'builder') {
+                    try {
+                        if (blade.currentEntity.relativeUrl == event.data.path) {
+                            blade.hasChanges = event.data.hasChanges;
+                            blade.published = event.data.published;
+                            updateToolbarCommands();
+                        }
+                        blade.parentBlade.refresh();
+                    }
+                    catch { }
+                }
+            }
+        }
+    ]);
 
