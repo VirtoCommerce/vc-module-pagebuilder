@@ -335,6 +335,12 @@ angular.module('virtoCommerce.pageBuilderModule')
                     //var path = blade.currentEntity.relativeUrl.replace("//", "/");
                     //window.open(blade.designerUrl + '?path=' + path + '&storeId=' + blade.storeId + '&contentType=' + blade.contentType, '_blank');
                     var relativeUrl = blade.currentEntity.relativeUrl;
+                    // the draft page should be under editing in the designer
+
+                    if (!relativeUrl.endsWith('-draft')) {
+                        relativeUrl = relativeUrl + '-draft';
+                    }
+
                     // will be used default store theme, therefore we don't need to pass it
                     //window.open(blade.designerUrl + '?storeId=' + blade.storeId + '&theme=default#/pages?in=page&template=' + name, '_blank');
                     window.open(blade.designerUrl + '?storeId=' + blade.storeId + '#/pages?type=' + blade.contentType + '&path=' + relativeUrl, '_blank');
