@@ -15,6 +15,8 @@ angular.module('virtoCommerce.pageBuilderModule')
             $scope.validators = validators;
             $scope.searchEnabled = false;
 
+            window.openedWindows = window.openedWindows || {};
+
             blade.initialize = function () {
                 blade.designerUrl = window.location.origin +
                     (window.location.pathname === '/' ? '' : window.location.pathname) +
@@ -196,8 +198,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                         blade.published = true;
                         blade.parentBlade.refresh();
                         updateToolbarCommands();
-                        var templateKey = blade.contentType + '::' + getDraftFileName();
-                        window.openedWindows[templateKey]?.postMessage({ source: 'platform', published: true, hasChanges: false, templateKey: templateKey }, window.location.origin);
+                        postMessageToPageBuilder({ source: 'platform', published: true, hasChanges: false });
                     });
                 },
                 canExecuteMethod: function () { return true; }
@@ -214,8 +215,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                         blade.published = false;
                         blade.parentBlade.refresh();
                         updateToolbarCommands();
-                        var templateKey = blade.contentType + '::' + getDraftFileName();
-                        window.openedWindows[templateKey]?.postMessage({ source: 'platform', published: false, hasChanges: true, templateKey: templateKey }, window.location.origin);
+                        postMessageToPageBuilder({ source: 'platform', published: false, hasChanges: true });
                     });
                 },
                 canExecuteMethod: function () { return true; }
@@ -357,7 +357,6 @@ angular.module('virtoCommerce.pageBuilderModule')
 
                     // will be used default store theme, therefore we don't need to pass it
                     //window.open(blade.designerUrl + '?storeId=' + blade.storeId + '&theme=default#/pages?in=page&template=' + name, '_blank');
-                    window.openedWindows = window.openedWindows || {};
                     var templateKey = getTemplateKey();
                     window.openedWindows[templateKey] = window.open(blade.designerUrl + '?storeId=' + blade.storeId + '#/pages?type=' + blade.contentType + '&path=' + relativeUrl, '_blank');
                 } else {
@@ -418,8 +417,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                     function () {
                         blade.isLoading = false;
                         blade.hasChanges = true; // file has draft version
-                        var templateKey = getTemplateKey();
-                        window.openedWindows[templateKey]?.postMessage({ source: 'platform', published: blade.published, hasChanges: true, templateKey: templateKey }, window.location.origin);
+                        postMessageToPageBuilder({ source: 'platform', published: blade.published, hasChanges: true });
                         if (newFileName !== originFileName && !!originFileName) {
                             $scope.blade.currentEntity.name = newFileName;
                             var newRelativeUrl = blade.currentEntity.relativeUrl;
@@ -498,6 +496,15 @@ angular.module('virtoCommerce.pageBuilderModule')
                         blade.parentBlade.refresh();
                     }
                     catch { }
+                }
+            }
+
+            function postMessageToPageBuilder(msg) {
+                var templateKey = blade.contentType + '::' + getDraftFileName();
+                var w = window.openedWindows[templateKey];
+                if (w) {
+                    msg.templateKey = templateKey;
+                    w.postMessage(msg, window.location.origin);
                 }
             }
         }
