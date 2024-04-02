@@ -64,36 +64,43 @@ angular.module('virtoCommerce.pageBuilderModule')
 
             $scope.permalinkDuplicates = [];
 
+            var timer = 0;
+            var request = null;
+
             $scope.validatePermalink = function (value) {
                 if (!value || !$scope.searchEnabled) {
                     $scope.permalinkDuplicates = [];
                     return $q.resolve();
                 }
-                return contentApi.search(
-                    {
-                        contentType: null,
-                        storeId: blade.storeId,
-                        keyword: value,
-                        folderUrl: null
-                    },
-                    function (data) {
-                        var permalinks = _.filter(data, function (x) {
-                            try {
-                                var content = parseFileContent(x.content);
-                                var permalink = content.settings.permalink;
-                                return permalink == value && x.relativeUrl != blade.currentEntity.relativeUrl;
-                            } catch { }
-                            return false;
-                        });
-                        $scope.permalinkDuplicates = permalinks;
-                        if (permalinks.length > 0) {
-                            return $q.resolve();
-                        }
-                        return $q.resolve();
-                    }, function (error) {
-                        $scope.permalinkDuplicates = [];
-                        return $q.resolve();
+                clearTimeout(timer);
+                timer = setTimeout(function () {
+                    if (request) {
+                        request.$cancelRequest();
+                        request = null;
+                    }
+                    request = contentApi.search(
+                        {
+                            contentType: null,
+                            storeId: blade.storeId,
+                            keyword: value,
+                            folderUrl: null
+                        },
+                        function (data) {
+                            request = null;
+                            var permalinks = _.filter(data, function (x) {
+                                try {
+                                    var content = parseFileContent(x.content);
+                                    var permalink = content.settings.permalink;
+                                    return permalink == value && x.relativeUrl != blade.currentEntity.relativeUrl;
+                                } catch { }
+                                return false;
+                            });
+                            $scope.permalinkDuplicates = permalinks;
+                        }, function (error) {
+                            $scope.permalinkDuplicates = [];
                     });
+                }, 1000);
+                return $q.resolve();
             };
 
             $scope.saveChanges = function () {
@@ -408,6 +415,8 @@ angular.module('virtoCommerce.pageBuilderModule')
                 $scope.blade.currentEntity.relativeUrl = joinPath($scope.blade.parentBlade.currentEntity.relativeUrl, newFileName);
                 $scope.blade.currentEntity.relativeUrl = nameHelper.prepareRelativeUrl($scope.blade.currentEntity);
 
+                var oldRelativeUrl = blade.origEntity.relativeUrl;
+
                 //$scope.blade.currentEntity.content = JSON.stringify($scope.blade.currentEntity.blocks, null, 4);
                 pageBuilderApi.savePage({
                     contentType: blade.contentType,
@@ -485,18 +494,23 @@ angular.module('virtoCommerce.pageBuilderModule')
 
             window.addEventListener('message', messageListener);
 
+            var messageTimer = 0;
+
             function messageListener(event) {
                 if (event.origin == window.location.origin && event.data.source === 'builder') {
-                    try {
-                        var url = getDraftFileName();
-                        if (url == event.data.path) {
-                            blade.hasChanges = event.data.hasChanges;
-                            blade.published = event.data.published;
-                            updateToolbarCommands();
+                    clearTimeout(messageTimer);
+                    messageTimer = setTimeout(function () {
+                        try {
+                            var url = getDraftFileName();
+                            if (url == event.data.path) {
+                                blade.hasChanges = event.data.hasChanges;
+                                blade.published = event.data.published;
+                                updateToolbarCommands();
+                            }
+                            blade.parentBlade.refresh();
                         }
-                        blade.parentBlade.refresh();
-                    }
-                    catch { }
+                        catch { }
+                    }, 3000)
                 }
             }
 
