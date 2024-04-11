@@ -415,7 +415,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                 $scope.blade.currentEntity.relativeUrl = joinPath($scope.blade.parentBlade.currentEntity.relativeUrl, newFileName);
                 $scope.blade.currentEntity.relativeUrl = nameHelper.prepareRelativeUrl($scope.blade.currentEntity);
 
-                var oldRelativeUrl = blade.origEntity.relativeUrl;
+                var oldRelativeUrl = blade.origEntity && blade.origEntity.relativeUrl;
 
                 //$scope.blade.currentEntity.content = JSON.stringify($scope.blade.currentEntity.blocks, null, 4);
                 pageBuilderApi.savePage({
