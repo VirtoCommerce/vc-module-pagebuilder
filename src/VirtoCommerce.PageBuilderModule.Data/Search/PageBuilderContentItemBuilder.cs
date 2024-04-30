@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using VirtoCommerce.ContentModule.Core.Model;
 using VirtoCommerce.ContentModule.Data.Search;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.SearchModule.Core.Extensions;
 using VirtoCommerce.SearchModule.Core.Model;
 
@@ -17,17 +18,23 @@ namespace VirtoCommerce.PageBuilderModule.Data.Search
 
             var page = JsonConvert.DeserializeObject<JContainer>(file.Content);
 
+            string content = null;
             if (page is JArray pageAsArray)
             {
                 AddMetadata(result, (JObject)pageAsArray.First());
-                result.AddContentString(pageAsArray.Skip(1)?.ToString());
+                content = pageAsArray.Skip(1)?.ToString();
             }
             else
             {
                 AddMetadata(result, (JObject)page["settings"]);
-                result.AddContentString(page["content"]?.ToString());
+                content = page["content"]?.ToString();
             }
 
+            if (content.IsNullOrEmpty())
+            {
+                throw new InvalidDataException($"File '{documentId}' has a wrong format");
+            }
+            result.AddContentString(content);
             return result;
         }
 
