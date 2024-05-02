@@ -284,7 +284,7 @@ angular.module('virtoCommerce.pageBuilderModule')
             function loadSearchIndex() {
                 contentApi.indexedSearchEnabled({}, function (data) {
                     $scope.searchEnabled = data.result;
-                    if (blade.isNew) {
+                    if (blade.isNew || !blade.currentEntity.published) {
                         return;
                     }
                     $scope.validatePermalink(blade.currentEntity.settings.permalink);
