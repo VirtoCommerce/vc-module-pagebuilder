@@ -449,6 +449,8 @@ angular.module('virtoCommerce.pageBuilderModule')
                                 newUrl: newRelativeUrl
                             }, function () {
                                 saveSuccess();
+                                // after rename we have to add new file into index
+                                updateSearchIndex();
                             }, saveError);
                         } else {
                             saveSuccess();
