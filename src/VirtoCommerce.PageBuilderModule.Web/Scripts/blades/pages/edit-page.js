@@ -204,7 +204,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                     }, function () {
                         blade.hasChanges = false;
                         blade.published = true;
-                        blade.parentBlade.refresh();
+                        setTimeout(blade.parentBlade.refresh, 1000);
                         updateSearchIndex();
                         updateToolbarCommands();
                         postMessageToPageBuilder({ source: 'platform', published: true, hasChanges: false });
@@ -222,7 +222,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                     }, function () {
                         blade.hasChanges = true;
                         blade.published = false;
-                        blade.parentBlade.refresh();
+                        setTimeout(blade.parentBlade.refresh, 1000);
                         updateToolbarCommands();
                         postMessageToPageBuilder({ source: 'platform', published: false, hasChanges: true });
                     });
@@ -517,7 +517,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                                 blade.published = event.data.published;
                                 updateToolbarCommands();
                             }
-                            blade.parentBlade.refresh();
+                            setTimeout(blade.parentBlade.refresh, 1000);
                         }
                         catch { }
                     }, 3000)
