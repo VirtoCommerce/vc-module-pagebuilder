@@ -463,7 +463,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                     $scope.bladeClose();
                     $rootScope.$broadcast("cms-statistics-changed", blade.storeId);
                 }
-                blade.parentBlade.refresh();
+                setTimeout(blade.parentBlade.refresh, 1000);
                 updateToolbarCommands();
 
                 if (blade.isNew) {
