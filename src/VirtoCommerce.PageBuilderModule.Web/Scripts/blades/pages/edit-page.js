@@ -205,6 +205,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                         blade.hasChanges = false;
                         blade.published = true;
                         blade.parentBlade.refresh();
+                        updateSearchIndex();
                         updateToolbarCommands();
                         postMessageToPageBuilder({ source: 'platform', published: true, hasChanges: false });
                     });
@@ -299,12 +300,14 @@ angular.module('virtoCommerce.pageBuilderModule')
             }
 
             function updateSearchIndex() {
-                var doc = getSearchDocumentInfo();
-                doc.documentIds = [doc.documentId];
+                setTimeout(function () {
+                    var doc = getSearchDocumentInfo();
+                    doc.documentIds = [doc.documentId];
 
-                searchApi.index([doc], function (data) {
-                    getDocumentIndex();
-                });
+                    searchApi.index([doc], function (data) {
+                        getDocumentIndex();
+                    });
+                }, 1000);
             }
 
             function getSearchDocumentInfo() {
@@ -448,7 +451,6 @@ angular.module('virtoCommerce.pageBuilderModule')
 
             function saveSuccess() {
                 blade.origEntity = angular.copy(blade.currentEntity);
-                updateSearchIndex();
                 if (blade.isNew) {
                     $scope.bladeClose();
                     $rootScope.$broadcast("cms-statistics-changed", blade.storeId);
