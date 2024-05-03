@@ -518,6 +518,9 @@ angular.module('virtoCommerce.pageBuilderModule')
                                 blade.hasChanges = event.data.hasChanges;
                                 blade.published = event.data.published;
                                 updateToolbarCommands();
+                                if (!blade.hasChanges && blade.published) {
+                                    updateSearchIndex();
+                                }
                             }
                             setTimeout(blade.parentBlade.refresh, 1000);
                         }
