@@ -502,10 +502,6 @@ angular.module('virtoCommerce.pageBuilderModule')
 
             blade.initialize();
 
-            window.removeEventListener('message', messageListener);
-
-            window.addEventListener('message', messageListener);
-
             var messageTimer = 0;
 
             function messageListener(event) {
@@ -513,6 +509,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                     clearTimeout(messageTimer);
                     messageTimer = setTimeout(function () {
                         try {
+                            console.log(event);
                             var url = getDraftFileName();
                             if (url == event.data.path) {
                                 blade.hasChanges = event.data.hasChanges;
@@ -527,6 +524,17 @@ angular.module('virtoCommerce.pageBuilderModule')
                         catch { }
                     }, 3000)
                 }
+            }
+
+            window.addEventListener('message', messageListener);
+
+            var defaultClose = blade.onClose;
+
+            blade.onClose = function (callback) {
+                defaultClose(function () {
+                    window.removeEventListener('message', messageListener);
+                    callback();
+                });
             }
 
             function postMessageToPageBuilder(msg) {
