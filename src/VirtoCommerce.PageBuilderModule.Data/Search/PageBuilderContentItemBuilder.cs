@@ -1,7 +1,9 @@
+using System.Globalization;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using VirtoCommerce.ContentModule.Core.Model;
 using VirtoCommerce.ContentModule.Data.Search;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.SearchModule.Core.Extensions;
 using VirtoCommerce.SearchModule.Core.Model;
 
@@ -14,12 +16,25 @@ namespace VirtoCommerce.PageBuilderModule.Data.Search
             var result = new IndexDocument(documentId);
             result.AddFilterableStringAndContentString("StoreId", storeId);
 
-            var page = JsonConvert.DeserializeObject<JObject>(file.Content);
+            var page = JsonConvert.DeserializeObject<JContainer>(file.Content);
 
-            AddMetadata(result, (JObject)page["settings"]);
+            string content = null;
+            if (page is JArray pageAsArray)
+            {
+                AddMetadata(result, (JObject)pageAsArray.First());
+                content = pageAsArray.Skip(1)?.ToString();
+            }
+            else
+            {
+                AddMetadata(result, (JObject)page["settings"]);
+                content = page["content"]?.ToString();
+            }
 
-            result.AddContentString(page["content"]?.ToString());
-
+            if (content.IsNullOrEmpty())
+            {
+                throw new InvalidDataException($"File '{documentId}' has a wrong format");
+            }
+            result.AddContentString(content);
             return result;
         }
 
@@ -27,7 +42,12 @@ namespace VirtoCommerce.PageBuilderModule.Data.Search
         {
             settings.Properties().ToList().ForEach(x =>
             {
-                result.AddFilterableStringAndContentString(x.Name, x.Value.ToString());
+                var value = x.Value.ToString();
+                if (x.Type == JTokenType.Date)
+                {
+                    x.Value = x.Value.ToObject<DateTime>().ToString(CultureInfo.InvariantCulture);
+                }
+                result.AddFilterableStringAndContentString(x.Name, value);
 
             });
             if (settings["displayName"] == null && settings["name"] != null)
