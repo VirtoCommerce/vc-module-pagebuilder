@@ -205,7 +205,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                         blade.hasChanges = false;
                         blade.published = true;
                         setTimeout(blade.parentBlade.refresh, 1000);
-                        updateSearchIndex();
+                        getDocumentIndex();
                         updateToolbarCommands();
                         postMessageToPageBuilder({ source: 'platform', published: true, hasChanges: false });
                     });
@@ -297,17 +297,6 @@ angular.module('virtoCommerce.pageBuilderModule')
                     $scope.index = data[0];
                     $scope.indexDate = moment.utc($scope.index.indexationdate, momentFormat);
                 }
-            }
-
-            function updateSearchIndex() {
-                setTimeout(function () {
-                    var doc = getSearchDocumentInfo();
-                    doc.documentIds = [doc.documentId];
-
-                    searchApi.index([doc], function (data) {
-                        getDocumentIndex();
-                    });
-                }, 1000);
             }
 
             function getSearchDocumentInfo() {
@@ -449,8 +438,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                                 newUrl: newRelativeUrl
                             }, function () {
                                 saveSuccess();
-                                // after rename we have to add new file into index
-                                updateSearchIndex();
+                                getDocumentIndex();
                             }, saveError);
                         } else {
                             saveSuccess();
@@ -515,9 +503,6 @@ angular.module('virtoCommerce.pageBuilderModule')
                                 blade.hasChanges = event.data.hasChanges;
                                 blade.published = event.data.published;
                                 updateToolbarCommands();
-                                if (!blade.hasChanges && blade.published) {
-                                    updateSearchIndex();
-                                }
                             }
                             setTimeout(blade.parentBlade.refresh, 1000);
                         }
