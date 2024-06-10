@@ -47,6 +47,10 @@ namespace VirtoCommerce.PageBuilderModule.Data.Search
                 {
                     x.Value = x.Value.ToObject<DateTime>().ToString(CultureInfo.InvariantCulture);
                 }
+                if (x.Name == "permalink" && value != null && !value.StartsWith("/"))
+                {
+                    value = "/" + value;
+                }
                 result.AddFilterableStringAndContentString(x.Name, value);
 
             });
