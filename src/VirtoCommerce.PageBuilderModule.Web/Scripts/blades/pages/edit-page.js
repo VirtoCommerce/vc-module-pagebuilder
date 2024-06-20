@@ -91,6 +91,9 @@ angular.module('virtoCommerce.pageBuilderModule')
                                 try {
                                     var content = parseFileContent(x.content);
                                     var permalink = content.settings.permalink;
+                                    if (permalink && permalink.length && permalink[0] !== '/') {
+                                        permalink = '/' + permalink;
+                                    }
                                     return permalink == value && x.relativeUrl != blade.currentEntity.relativeUrl;
                                 } catch { }
                                 return false;
