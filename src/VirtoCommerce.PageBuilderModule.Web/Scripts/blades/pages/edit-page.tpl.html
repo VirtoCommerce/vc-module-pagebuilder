@@ -4,6 +4,15 @@
   <div class="blade-inner">
     <div class="inner-block">
       <form class="form" name="formScope">
+        <div class="form-group">
+          <label class="form-label">{{ 'pageBuilder.blades.edit-page.labels.relativePath' | translate }}</label>
+          <div class="form-input">
+            <input class="form-control" value="{{ blade.origEntity.relativeUrl }}" id="relativeUrlInput" readonly="readonly" />
+            <button class="btn __ico" type="button" ng-click="copyToClipboard('relativeUrlInput')" title="{{ 'platform.commands.copy' | translate }}">
+              <i class="btn-ico fas fa-paste"></i>
+            </button>
+          </div>
+        </div>
         <div class="form-group" ng-init="setForm(formScope)">
           <label class="form-label">{{ 'pageBuilder.blades.edit-page.labels.filename' | translate }}</label>
           <div class="form-input">
