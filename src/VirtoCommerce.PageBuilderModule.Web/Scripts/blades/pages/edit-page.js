@@ -106,6 +106,13 @@ angular.module('virtoCommerce.pageBuilderModule')
                 }, 1000);
                 return $q.resolve();
             };
+            
+            $scope.copyToClipboard = function (elementId) {
+                var text = document.getElementById(elementId);
+                text.focus();
+                text.select();
+                document.execCommand('copy');
+            }
 
             $scope.saveChanges = function () {
                 var newFileName = addExtension($scope.blade.currentEntity.name);
