@@ -4,7 +4,8 @@ angular.module('virtoCommerce.pageBuilderModule')
         'virtoCommerce.pageBuilderModule.contentApi', 'platformWebApp.bladeNavigationService', 'platformWebApp.dialogService',
         'platformWebApp.dynamicProperties.dictionaryItemsApi', 'platformWebApp.settings',
         'virtoCommerce.pageBuilderModule.resourceNameService', 'virtoCommerce.searchModule.searchIndexation', "moment",
-        function ($rootScope, $scope, $q, validators, contentApi, pageBuilderApi, bladeNavigationService, dialogService, dictionaryItemsApi, settings, nameHelper, searchApi, moment) {
+        'virtoCommerce.contentModule.broadcastChannelFactory', 'virtoCommerce.contentModule.files-draft',
+        function ($rootScope, $scope, $q, validators, contentApi, pageBuilderApi, bladeNavigationService, dialogService, dictionaryItemsApi, settings, nameHelper, searchApi, moment, broadcastChannelFactory, filesDraftService) {
 
             var momentFormat = "YYYYMMDDHHmmss";
 
@@ -14,10 +15,10 @@ angular.module('virtoCommerce.pageBuilderModule')
             $scope.blade.currentEntity.settings = { type: 'settings', permalink: '' };
             $scope.validators = validators;
             $scope.searchEnabled = false;
-
-            window.openedWindows = window.openedWindows || {};
+            var channel;
 
             blade.initialize = function () {
+                channel = broadcastChannelFactory(blade);
                 blade.designerUrl = window.location.origin +
                     (window.location.pathname === '/' ? '' : window.location.pathname) +
                     '/Modules/$(VirtoCommerce.PageBuilderModule)/Content/builder/index.html';
@@ -166,20 +167,6 @@ angular.module('virtoCommerce.pageBuilderModule')
                                     dialogService.showNotificationDialog(dialog);
                                 }
                             };
-
-                            // this api was removed once time
-
-                            // pageBuilderApi.getStoreUrl({ storeId: blade.storeId }, function(response) {
-                            //     blade.isLoading = false;
-                            //     var storeUrl = response.data;
-                            //     showPreview(storeUrl);
-                            // }, function (error) {
-                            //     bladeNavigationService.setError('Error ' + error.status, $scope.blade);
-                            //     blade.isLoading = false;
-                            // });
-
-                            // therefore open with default store url (that exists in the current blade)
-
                             showPreview();
 
                         },
@@ -207,7 +194,6 @@ angular.module('virtoCommerce.pageBuilderModule')
                     }, function () {
                         blade.hasChanges = false;
                         blade.published = true;
-                        setTimeout(blade.parentBlade.refresh, 1000);
                         getDocumentIndex();
                         updateToolbarCommands();
                         postMessageToPageBuilder({ source: 'platform', published: true, hasChanges: false });
@@ -225,7 +211,6 @@ angular.module('virtoCommerce.pageBuilderModule')
                     }, function () {
                         blade.hasChanges = true;
                         blade.published = false;
-                        setTimeout(blade.parentBlade.refresh, 1000);
                         updateToolbarCommands();
                         postMessageToPageBuilder({ source: 'platform', published: false, hasChanges: true });
                     });
@@ -344,32 +329,10 @@ angular.module('virtoCommerce.pageBuilderModule')
                 return blade.currentEntity.relativeUrl;
             }
 
-            function getDraftFileName() {
-                var relativeUrl = blade.currentEntity.relativeUrl;
-                // the draft page should be under editing in the designer
-
-                if (!relativeUrl.endsWith('-draft')) {
-                    relativeUrl = relativeUrl + '-draft';
-                }
-
-                return relativeUrl;
-            }
-
-            function getTemplateKey() {
-                return blade.contentType + '::' + getDraftFileName()
-            }
-
             function runDesigner() {
                 if (blade.designerUrl) {
-                    // /Modules/$(VirtoCommerce.PageBuilderModule)/Content/builder/
-                    //var path = blade.currentEntity.relativeUrl.replace("//", "/");
-                    //window.open(blade.designerUrl + '?path=' + path + '&storeId=' + blade.storeId + '&contentType=' + blade.contentType, '_blank');
-                    var relativeUrl = getDraftFileName();
-
-                    // will be used default store theme, therefore we don't need to pass it
-                    //window.open(blade.designerUrl + '?storeId=' + blade.storeId + '&theme=default#/pages?in=page&template=' + name, '_blank');
-                    var templateKey = getTemplateKey();
-                    window.openedWindows[templateKey] = window.open(blade.designerUrl + '?storeId=' + blade.storeId + '#/pages?type=' + blade.contentType + '&path=' + relativeUrl, '_blank');
+                    var relativeUrl = filesDraftService.getDraftFileName();
+                    window.open(blade.designerUrl + '?storeId=' + blade.storeId + '#/pages?type=' + blade.contentType + '&path=' + relativeUrl, '_blank');
                 } else {
                     var dialog = {
                         id: "noUrlInStore",
@@ -440,6 +403,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                                 oldUrl: oldRelativeUrl,
                                 newUrl: newRelativeUrl
                             }, function () {
+                                setTimeout(blade.parentBlade.refresh, 1000);
                                 saveSuccess();
                                 getDocumentIndex();
                             }, saveError);
@@ -456,7 +420,6 @@ angular.module('virtoCommerce.pageBuilderModule')
                     $scope.bladeClose();
                     $rootScope.$broadcast("cms-statistics-changed", blade.storeId);
                 }
-                setTimeout(blade.parentBlade.refresh, 1000);
                 updateToolbarCommands();
 
                 if (blade.isNew) {
@@ -492,46 +455,26 @@ angular.module('virtoCommerce.pageBuilderModule')
             blade.headIcon = 'fa fa-inbox';
 
             blade.initialize();
-
-            var messageTimer = 0;
-
-            function messageListener(event) {
-                if (event.origin == window.location.origin && event.data.source === 'builder') {
-                    clearTimeout(messageTimer);
-                    messageTimer = setTimeout(function () {
-                        try {
-                            console.log(event);
-                            var url = getDraftFileName();
-                            if (url == event.data.path) {
-                                blade.hasChanges = event.data.hasChanges;
-                                blade.published = event.data.published;
-                                updateToolbarCommands();
-                            }
-                            setTimeout(blade.parentBlade.refresh, 1000);
-                        }
-                        catch { }
-                    }, 3000)
+                       
+            channel.onmessage = function (event) {
+                var contentType = event.data.contentType;
+                if (contentType === blade.contentType &&
+                    filesDraftService.undraftUrl(blade.currentEntity.relativeUrl) === filesDraftService.undraftUrl(event.data.relativeUrl)) {
+                    blade.currentEntity.hasChanges = event.data.hasChanges;
+                    blade.currentEntity.published = event.data.published;
+                    blade.hasChanges = blade.currentEntity.hasChanges;
+                    blade.published = blade.currentEntity.published;
+                    updateToolbarCommands();
+                    $scope.$apply();
                 }
-            }
-
-            window.addEventListener('message', messageListener);
-
-            var defaultClose = blade.onClose;
-
-            blade.onClose = function (callback) {
-                defaultClose(function () {
-                    window.removeEventListener('message', messageListener);
-                    callback();
-                });
-            }
+            };
 
             function postMessageToPageBuilder(msg) {
-                var templateKey = blade.contentType + '::' + getDraftFileName();
-                var w = window.openedWindows[templateKey];
-                if (w) {
-                    msg.templateKey = templateKey;
-                    w.postMessage(msg, window.location.origin);
-                }
+                msg.template = {
+                    settings: blade.currentEntity.settings,
+                    content: blade.currentEntity.blocks
+                };
+                channel.postMessage(msg);
             }
         }
     ]);
