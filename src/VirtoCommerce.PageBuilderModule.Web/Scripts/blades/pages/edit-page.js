@@ -331,7 +331,7 @@ angular.module('virtoCommerce.pageBuilderModule')
 
             function runDesigner() {
                 if (blade.designerUrl) {
-                    var relativeUrl = filesDraftService.getDraftFileName();
+                    var relativeUrl = filesDraftService.getDraftFileName(blade);
                     window.open(blade.designerUrl + '?storeId=' + blade.storeId + '#/pages?type=' + blade.contentType + '&path=' + relativeUrl, '_blank');
                 } else {
                     var dialog = {
@@ -424,6 +424,7 @@ angular.module('virtoCommerce.pageBuilderModule')
 
                 if (blade.isNew) {
                     runDesigner();
+                    blade.parentBlade.refresh();
                 }
             }
 
