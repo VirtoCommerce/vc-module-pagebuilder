@@ -389,7 +389,10 @@ angular.module('virtoCommerce.pageBuilderModule')
                 $scope.blade.currentEntity.relativeUrl = nameHelper.prepareRelativeUrl($scope.blade.currentEntity);
 
                 var oldRelativeUrl = blade.origEntity && blade.origEntity.relativeUrl;
+                var oldLanguage = $scope.blade.origEntity && $scope.blade.origEntity.language;
+                var newLanguage = $scope.blade.currentEntity.language;
 
+                $scope.blade.currentEntity.language = oldLanguage;
                 //$scope.blade.currentEntity.content = JSON.stringify($scope.blade.currentEntity.blocks, null, 4);
                 pageBuilderApi.savePage({
                     contentType: blade.contentType,
@@ -401,7 +404,9 @@ angular.module('virtoCommerce.pageBuilderModule')
                         blade.isLoading = false;
                         blade.hasChanges = true; // file has draft version
                         postMessageToPageBuilder({ source: 'platform', published: blade.published, hasChanges: true });
-                        if (newFileName !== originFileName && !!originFileName) {
+                        if ((newFileName !== originFileName && !!originFileName) ||
+                            (oldLanguage !== newLanguage)) {
+                            $scope.blade.currentEntity.language = newLanguage;
                             $scope.blade.currentEntity.name = newFileName;
                             var newRelativeUrl = blade.currentEntity.relativeUrl;
                             contentApi.move({
