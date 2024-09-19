@@ -1,5 +1,5 @@
 {
-    "artifactKey": "VirtoCommerce.ProfileExperienceApiModule",
+    "artifactKey": "VirtoCommerce.PageBuilderModule",
     "deployRepo": "vc-deploy-dev",
     "cmPath": "platform-dev/resources/deployment-cm.yaml",
     "dev": {
