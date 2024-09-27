@@ -110,11 +110,15 @@ jobs:
           repoOrg: ${{ github.repository_owner }}
           sonarOrg: ${{secrets.SONAR_ORG_KEY}}
 
+      - name: Get template builder ref
+        run: |
+            echo "TEMPLATE_REPO_REF=$(cat ./template-builder.md)" >> $GITHUB_ENV
+
       - name: Checkout Template builder
         uses: actions/checkout@v3
         with:
           repository: VirtoCommerce/template-builder
-          ref: main
+          ref: ${{ env.TEMPLATE_REPO_REF }}
           path: './template-builder'
           token: ${{ env.GITHUB_TOKEN }}
 
@@ -290,16 +294,16 @@ jobs:
       envPAT: ${{ secrets.REPO_TOKEN }}
       katalonApiKey: ${{ secrets.KATALON_API_KEY }}
 
-  deploy-cloud:
-    if: ${{ (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev') && github.event_name == 'push' }}
-    needs: ci
-    uses: VirtoCommerce/.github/.github/workflows/deploy-cloud.yml@v3.800.9
-    with:
-      releaseSource: module
-      moduleId: ${{ needs.ci.outputs.moduleId }}
-      moduleVer: ${{ needs.ci.outputs.version }}
-      moduleBlob: ${{ needs.ci.outputs.blobId }}
-      jiraKeys: ${{ needs.ci.outputs.jira-keys }}
-      argoServer: 'argo.virtocommerce.cloud'
-      matrix: '{"include":${{ needs.ci.outputs.matrix }}}'
-    secrets: inherit
+#  deploy-cloud:
+#    if: ${{ (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev') && github.event_name == 'push' }}
+#    needs: ci
+#    uses: VirtoCommerce/.github/.github/workflows/deploy-cloud.yml@v3.800.9
+#    with:
+#      releaseSource: module
+#      moduleId: ${{ needs.ci.outputs.moduleId }}
+#      moduleVer: ${{ needs.ci.outputs.version }}
+#      moduleBlob: ${{ needs.ci.outputs.blobId }}
+#      jiraKeys: ${{ needs.ci.outputs.jira-keys }}
+#      argoServer: 'argo.virtocommerce.cloud'
+#      matrix: '{"include":${{ needs.ci.outputs.matrix }}}'
+#    secrets: inherit
