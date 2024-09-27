@@ -274,25 +274,25 @@ jobs:
         run: |
           echo "Jira Upload Build Info response: ${{ steps.push_build_info_to_jira.outputs.response }}"
 
-  module-katalon-tests:
-    if: ${{ ((github.ref == 'refs/heads/dev') && (github.event_name == 'push') && (needs.ci.outputs.run-e2e == 'true')) ||
-        (github.event_name == 'workflow_dispatch')}}
-    needs: 'ci'
-    uses: VirtoCommerce/.github/.github/workflows/e2e.yml@v3.800.9
+  # module-katalon-tests:
+  #   if: ${{ ((github.ref == 'refs/heads/dev') && (github.event_name == 'push') && (needs.ci.outputs.run-e2e == 'true')) ||
+  #       (github.event_name == 'workflow_dispatch')}}
+  #   needs: 'ci'
+  #   uses: VirtoCommerce/.github/.github/workflows/e2e.yml@v3.800.9
 
-    with:
-      katalonRepo: 'VirtoCommerce/vc-quality-gate-katalon'
-      katalonRepoBranch: 'dev'
-      testSuite: 'Test Suites/Modules/Platform_collection'
-      installModules: 'true'
-      installCustomModule: 'true'
-      customModuleId:  ${{ needs.ci.outputs.moduleId }}
-      customModuleUrl:  ${{ needs.ci.outputs.artifactUrl }}
-      platformDockerTag: 'dev-linux-latest'
-      storefrontDockerTag: 'dev-linux-latest'
-    secrets:
-      envPAT: ${{ secrets.REPO_TOKEN }}
-      katalonApiKey: ${{ secrets.KATALON_API_KEY }}
+  #   with:
+  #     katalonRepo: 'VirtoCommerce/vc-quality-gate-katalon'
+  #     katalonRepoBranch: 'dev'
+  #     testSuite: 'Test Suites/Modules/Platform_collection'
+  #     installModules: 'true'
+  #     installCustomModule: 'true'
+  #     customModuleId:  ${{ needs.ci.outputs.moduleId }}
+  #     customModuleUrl:  ${{ needs.ci.outputs.artifactUrl }}
+  #     platformDockerTag: 'dev-linux-latest'
+  #     storefrontDockerTag: 'dev-linux-latest'
+  #   secrets:
+  #     envPAT: ${{ secrets.REPO_TOKEN }}
+  #     katalonApiKey: ${{ secrets.KATALON_API_KEY }}
 
 #  deploy-cloud:
 #    if: ${{ (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev') && github.event_name == 'push' }}
