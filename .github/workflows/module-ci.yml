@@ -128,25 +128,25 @@ jobs:
             npm i
             npx ng build ngv-markdown
             npm run build
-            cd ../bridge
-            npm i
-            npm run build:prod
-            cd ../vue-preview
-            npm i
-            npm run build:prod
-            cd ../vanilla-preview
-            npm i
-            npm run build:prod
-            cd ../../../
+            rem cd ../bridge
+            rem npm i
+            rem npm run build:prod
+            rem cd ../vue-preview
+            rem npm i
+            rem npm run build:prod
+            rem cd ../vanilla-preview
+            rem npm i
+            rem npm run build:prod
+            rem cd ../../../
             mkdir ./src/VirtoCommerce.PageBuilderModule.Web/Content/
             mkdir ./src/VirtoCommerce.PageBuilderModule.Web/Content/builder/
-            mkdir ./src/VirtoCommerce.PageBuilderModule.Web/Content/bridge/
-            mkdir ./src/VirtoCommerce.PageBuilderModule.Web/Content/preview/
-            mkdir ./src/VirtoCommerce.PageBuilderModule.Web/Content/store/
+            rem mkdir ./src/VirtoCommerce.PageBuilderModule.Web/Content/bridge/
+            rem mkdir ./src/VirtoCommerce.PageBuilderModule.Web/Content/preview/
+            rem mkdir ./src/VirtoCommerce.PageBuilderModule.Web/Content/store/
             cp -R ./template-builder/src/builder/dist/template-builder/* ./src/VirtoCommerce.PageBuilderModule.Web/Content/builder/
-            cp -R ./template-builder/src/bridge/dist/* ./src/VirtoCommerce.PageBuilderModule.Web/Content/bridge/
-            cp -R ./template-builder/src/vue-preview/dist/* ./src/VirtoCommerce.PageBuilderModule.Web/Content/preview/
-            cp -R ./template-builder/src/vanilla-preview/dist/* ./src/VirtoCommerce.PageBuilderModule.Web/Content/store/
+            rem cp -R ./template-builder/src/bridge/dist/* ./src/VirtoCommerce.PageBuilderModule.Web/Content/bridge/
+            rem cp -R ./template-builder/src/vue-preview/dist/* ./src/VirtoCommerce.PageBuilderModule.Web/Content/preview/
+            rem cp -R ./template-builder/src/vanilla-preview/dist/* ./src/VirtoCommerce.PageBuilderModule.Web/Content/store/
 
       - name: Build
         run: vc-build Compile
