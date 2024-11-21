@@ -1,0 +1,71 @@
+{
+  "pageBuilder": {
+    "blades": {
+      "edit-page": {
+        "title": "Editar '{{name}}'",
+        "subtitle": "Edição de página",
+        "title-new": "Nova página",
+        "subtitle-new": "Criar nova página",
+        "subtitle-post": "Editar postagem do blog",
+        "title-new-post": "Nova postagem",
+        "subtitle-new-post": "Criar nova postagem do blog",
+        "labels": {
+          "filename": "Nome do arquivo",
+          "name": "Nome",
+          "language": "Idioma",
+          "permalink": "Link permanente",
+          "drag-note": "Arraste e solte o arquivo aqui",
+          "progress": "Progresso",
+          "markdown": "Markdown",
+          "metadata": "Metadados",
+          "relativePath": "Caminho relativo"
+        },
+        "placeholders": {
+          "filename": "Digite o nome do arquivo",
+          "name": "Digite o nome",
+          "language": "Selecionar...",
+          "permalink": "Digite o link permanente"
+        },
+        "validations": {
+          "pageName-invalid": "O nome da página pode conter apenas caracteres alfanuméricos, \"_\", \"-\" e \".\"",
+          "permalink-invalid": "Outras páginas possuem o mesmo link permanente"
+        }
+      },
+      "pageBuilderEditor": {
+        "create": {
+          "title": "Design de página",
+          "description": "Use o designer para criar uma nova página"
+        },
+        "edit": {
+          "title": "Design de página",
+          "description": "Use o designer para editar a página"
+        }
+      }
+    },
+    "commands": {
+      "open-designer": "Design",
+      "publish": "Publicar",
+      "unpublish": "Despublicar"
+    }
+  },
+  "settings": {
+    "VirtoCommerce": {
+      "PageBuilderModule": {
+        "General": {
+          "StoreUrl": {
+            "description": "URL da loja com gerenciador de visualização do Page Builder",
+            "title": "URL da loja"
+          },
+          "StorePreviewPath": {
+            "description": "Caminho relativo para a página de visualização",
+            "title": "Caminho de visualização da loja"
+          }
+        }
+      }
+    }
+  },
+  "permissions": {
+    "builder:themes": "Permitir editar as configurações do tema",
+    "builder:templates": "Permitir alterar o modelo durante a edição"
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "pageBuilder": {
+    "blades": {
+      "edit-page": {
+        "title": "编辑 '{{name}}'",
+        "subtitle": "页面编辑",
+        "title-new": "新页面",
+        "subtitle-new": "创建新页面",
+        "subtitle-post": "博客文章编辑",
+        "title-new-post": "新文章",
+        "subtitle-new-post": "创建新博客文章",
+        "labels": {
+          "filename": "文件名",
+          "name": "名称",
+          "language": "语言",
+          "permalink": "永久链接",
+          "drag-note": "将文件拖放到此处",
+          "progress": "进度",
+          "markdown": "Markdown",
+          "metadata": "元数据",
+          "relativePath": "相对路径"
+        },
+        "placeholders": {
+          "filename": "输入文件名",
+          "name": "输入名称",
+          "language": "选择...",
+          "permalink": "输入永久链接"
+        },
+        "validations": {
+          "pageName-invalid": "页面名称只能包含字母、数字、\"_\", \"-\", 和 \".\" 字符",
+          "permalink-invalid": "其他页面使用了相同的永久链接"
+        }
+      },
+      "pageBuilderEditor": {
+        "create": {
+          "title": "设计页面",
+          "description": "使用设计器创建新页面"
+        },
+        "edit": {
+          "title": "设计页面",
+          "description": "使用设计器编辑页面"
+        }
+      }
+    },
+    "commands": {
+      "open-designer": "设计",
+      "publish": "发布",
+      "unpublish": "取消发布"
+    }
+  },
+  "settings": {
+    "VirtoCommerce": {
+      "PageBuilderModule": {
+        "General": {
+          "StoreUrl": {
+            "description": "带有Page Builder预览处理程序的商店URL",
+            "title": "商店URL"
+          },
+          "StorePreviewPath": {
+            "description": "预览页面的相对路径",
+            "title": "商店预览路径"
+          }
+        }
+      }
+    }
+  },
+  "permissions": {
+    "builder:themes": "允许编辑主题设置",
+    "builder:templates": "允许在编辑期间更改模板"
+  }
+}

@@ -27,18 +27,18 @@
           "permalink": "Enter permalink"
         },
         "validations": {
-          "pageName-invalid": "Page name can contain alphanumeric, \"_\", \"-\" and \".\" characters only.",
-          "permalink-invalid": "The other pages have the same permalink."
+          "pageName-invalid": "Page name can contain alphanumeric, \"_\", \"-\" and \".\" characters only",
+          "permalink-invalid": "Other pages have the same permalink"
         }
       },
       "pageBuilderEditor": {
         "create": {
-          "title": "Design Page",
-          "description": "Use designer to create a new page."
+          "title": "Design page",
+          "description": "Use designer to create a new page"
         },
         "edit": {
-          "title": "Design Page",
-          "description": "Use designer to edit the page."
+          "title": "Design page",
+          "description": "Use designer to edit page"
         }
       }
     },
@@ -53,7 +53,7 @@
       "PageBuilderModule": {
         "General": {
           "StoreUrl": {
-            "description": "Store Url with Page builder preview handler",
+            "description": "Store URL with Page Builder preview handler",
             "title": "Store URL"
           },
           "StorePreviewPath": {

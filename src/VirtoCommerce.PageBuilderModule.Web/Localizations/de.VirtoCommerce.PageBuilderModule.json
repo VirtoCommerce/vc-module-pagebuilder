@@ -2,32 +2,70 @@
   "pageBuilder": {
     "blades": {
       "edit-page": {
-        "title": "{{name}}' bearbeiten",
-        "subtitle": "Seite bearbeiten",
+        "title": "Bearbeiten '{{name}}'",
+        "subtitle": "Seitenbearbeitung",
         "title-new": "Neue Seite",
         "subtitle-new": "Neue Seite erstellen",
-        "subtitle-post": "Blogpost bearbeiten",
-        "title-new-post": "Neue Post",
-        "subtitle-new-post": "Neuen Blogpost erstellen",
+        "subtitle-post": "Blogbeitrag bearbeiten",
+        "title-new-post": "Neuer Beitrag",
+        "subtitle-new-post": "Neuen Blogbeitrag erstellen",
         "labels": {
-          "filename": "File name",
+          "filename": "Dateiname",
           "name": "Name",
           "language": "Sprache",
           "permalink": "Permalink",
-          "drag-note": "Die Datei hier ziehen und loslassen",
+          "drag-note": "Datei hierher ziehen",
           "progress": "Fortschritt",
           "markdown": "Markdown",
-          "metadata": "Metadaten"
+          "metadata": "Metadaten",
+          "relativePath": "Relativer Pfad"
         },
         "placeholders": {
-          "name": "Namen eingeben",
-          "language": "Wählen Sie aus...",
-          "metadata": "Metadaten eingeben"
+          "filename": "Dateinamen eingeben",
+          "name": "Name eingeben",
+          "language": "Auswählen...",
+          "permalink": "Permalink eingeben"
         },
         "validations": {
-          "pageName-invalid": "Die Seitenname kann alphanumerisch, '_', '-' und '.' Zeichen nur enthalten"
+          "pageName-invalid": "Der Seitenname darf nur alphanumerische Zeichen, \"_\", \"-\" und \".\" enthalten",
+          "permalink-invalid": "Andere Seiten verwenden denselben Permalink"
+        }
+      },
+      "pageBuilderEditor": {
+        "create": {
+          "title": "Seite gestalten",
+          "description": "Designer verwenden, um eine neue Seite zu erstellen"
+        },
+        "edit": {
+          "title": "Seite gestalten",
+          "description": "Designer verwenden, um die Seite zu bearbeiten"
+        }
+      }
+    },
+    "commands": {
+      "open-designer": "Gestalten",
+      "publish": "Veröffentlichen",
+      "unpublish": "Nicht veröffentlichen"
+    }
+  },
+  "settings": {
+    "VirtoCommerce": {
+      "PageBuilderModule": {
+        "General": {
+          "StoreUrl": {
+            "description": "GeschäftsURL mit Page Builder Preview Handler",
+            "title": "GeschäftsURL"
+          },
+          "StorePreviewPath": {
+            "description": "Relativer Pfad für Vorschauseite",
+            "title": "Vorschau-Pfad des Geschäfts"
+          }
         }
       }
     }
+  },
+  "permissions": {
+    "builder:themes": "Erlaubnis, Theme-Einstellungen zu bearbeiten",
+    "builder:templates": "Erlaubnis, Vorlage während der Bearbeitung zu ändern"
   }
 }

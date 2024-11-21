@@ -1,0 +1,71 @@
+{
+  "pageBuilder": {
+    "blades": {
+      "edit-page": {
+        "title": "Editar '{{name}}'",
+        "subtitle": "Edición de página",
+        "title-new": "Nueva página",
+        "subtitle-new": "Crear nueva página",
+        "subtitle-post": "Edición de entrada de blog",
+        "title-new-post": "Nueva entrada",
+        "subtitle-new-post": "Crear nueva entrada de blog",
+        "labels": {
+          "filename": "Nombre del archivo",
+          "name": "Nombre",
+          "language": "Idioma",
+          "permalink": "Enlace permanente",
+          "drag-note": "Arrastra y suelta el archivo aquí",
+          "progress": "Progreso",
+          "markdown": "Markdown",
+          "metadata": "Metadatos",
+          "relativePath": "Ruta relativa"
+        },
+        "placeholders": {
+          "filename": "Introducir nombre del archivo",
+          "name": "Introducir nombre",
+          "language": "Seleccionar...",
+          "permalink": "Introducir enlace permanente"
+        },
+        "validations": {
+          "pageName-invalid": "El nombre de la página solo puede contener caracteres alfanuméricos, \"_\", \"-\" y \".\"",
+          "permalink-invalid": "Otras páginas tienen el mismo enlace permanente"
+        }
+      },
+      "pageBuilderEditor": {
+        "create": {
+          "title": "Diseñar página",
+          "description": "Usar el diseñador para crear una nueva página"
+        },
+        "edit": {
+          "title": "Diseñar página",
+          "description": "Usar el diseñador para editar la página"
+        }
+      }
+    },
+    "commands": {
+      "open-designer": "Diseñar",
+      "publish": "Publicar",
+      "unpublish": "Despublicar"
+    }
+  },
+  "settings": {
+    "VirtoCommerce": {
+      "PageBuilderModule": {
+        "General": {
+          "StoreUrl": {
+            "description": "URL de la tienda con gestor de vista previa del Page Builder",
+            "title": "URL de la tienda"
+          },
+          "StorePreviewPath": {
+            "description": "Ruta relativa para la vista previa",
+            "title": "Ruta de vista previa de la tienda"
+          }
+        }
+      }
+    }
+  },
+  "permissions": {
+    "builder:themes": "Permitir editar la configuración del tema",
+    "builder:templates": "Permitir cambiar la plantilla durante la edición"
+  }
+}

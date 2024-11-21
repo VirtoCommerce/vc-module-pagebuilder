@@ -1,0 +1,71 @@
+{
+  "pageBuilder": {
+    "blades": {
+      "edit-page": {
+        "title": "Modifier '{{name}}'",
+        "subtitle": "Édition de la page",
+        "title-new": "Nouvelle page",
+        "subtitle-new": "Créer une nouvelle page",
+        "subtitle-post": "Édition d'un article de blog",
+        "title-new-post": "Nouvel article",
+        "subtitle-new-post": "Créer un nouvel article de blog",
+        "labels": {
+          "filename": "Nom du fichier",
+          "name": "Nom",
+          "language": "Langue",
+          "permalink": "Permalien",
+          "drag-note": "Glissez-déposez un fichier ici",
+          "progress": "Progression",
+          "markdown": "Markdown",
+          "metadata": "Métadonnées",
+          "relativePath": "Chemin relatif"
+        },
+        "placeholders": {
+          "filename": "Saisir le nom du fichier",
+          "name": "Saisir le nom",
+          "language": "Sélectionner...",
+          "permalink": "Saisir le permalien"
+        },
+        "validations": {
+          "pageName-invalid": "Le nom de la page peut contenir uniquement des caractères alphanumériques, \"_\", \"-\" et \".\"",
+          "permalink-invalid": "D'autres pages utilisent le même permalien"
+        }
+      },
+      "pageBuilderEditor": {
+        "create": {
+          "title": "Concevoir la page",
+          "description": "Utilisez le concepteur pour créer une nouvelle page"
+        },
+        "edit": {
+          "title": "Concevoir la page",
+          "description": "Utilisez le concepteur pour modifier la page"
+        }
+      }
+    },
+    "commands": {
+      "open-designer": "Concevoir",
+      "publish": "Publier",
+      "unpublish": "Dépublier"
+    }
+  },
+  "settings": {
+    "VirtoCommerce": {
+      "PageBuilderModule": {
+        "General": {
+          "StoreUrl": {
+            "description": "URL du magasin avec gestionnaire d'aperçu Page Builder",
+            "title": "URL du magasin"
+          },
+          "StorePreviewPath": {
+            "description": "Chemin relatif pour l'aperçu",
+            "title": "Chemin d'aperçu du magasin"
+          }
+        }
+      }
+    }
+  },
+  "permissions": {
+    "builder:themes": "Autoriser la modification des paramètres du thème",
+    "builder:templates": "Autoriser le changement de modèle pendant la modification"
+  }
+}
