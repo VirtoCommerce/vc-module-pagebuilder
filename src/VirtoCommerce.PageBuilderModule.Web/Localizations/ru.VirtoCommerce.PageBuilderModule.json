@@ -1,4 +1,4 @@
-﻿{
+{
   "pageBuilder": {
     "blades": {
       "edit-page": {
@@ -8,40 +8,64 @@
         "subtitle-new": "Создать новую страницу",
         "subtitle-post": "Редактирование блога",
         "title-new-post": "Новый пост",
-        "subtitle-new-post": "Создать новый пост",
+        "subtitle-new-post": "Создать новый блог",
         "labels": {
           "filename": "Имя файла",
-          "name": "Название",
+          "name": "Имя",
           "language": "Язык",
-          "permalink": "Ссылка",
-          "drag-note": "Перетащите файлы сюда",
+          "permalink": "Постоянная ссылка",
+          "drag-note": "Перетащите файл сюда",
           "progress": "Прогресс",
           "markdown": "Markdown",
-          "metadata": "Метаданные"
+          "metadata": "Метаданные",
+          "relativePath": "Относительный путь"
         },
         "placeholders": {
-          "name": "Введите название",
-          "language": "Выбрать...",
-          "metadata": "Введите метаданные"
+          "filename": "Введите имя файла",
+          "name": "Введите имя",
+          "language": "Выберите...",
+          "permalink": "Введите постоянную ссылку"
         },
         "validations": {
-          "pageName-invalid": "Название страницы может содержать буквенно-цифровые знаки, символы \"_\", \"-\" и \".\" "
+          "pageName-invalid": "Имя страницы может содержать только буквы, цифры, \"_\", \"-\" и \".\"",
+          "permalink-invalid": "Другие страницы используют ту же постоянную ссылку"
         }
       },
-      "add-page": {
-        "title": "New",
-        "subtitle": "Choose what page you want to create",
-        "menu": {
-          "design-page": {
-            "title": "Design Page",
-            "description": "Use designer to create a new page."
+      "pageBuilderEditor": {
+        "create": {
+          "title": "Дизайн страницы",
+          "description": "Используйте дизайнер для создания новой страницы"
+        },
+        "edit": {
+          "title": "Дизайн страницы",
+          "description": "Используйте дизайнер для редактирования страницы"
+        }
+      }
+    },
+    "commands": {
+      "open-designer": "Дизайн",
+      "publish": "Опубликовать",
+      "unpublish": "Снять с публикации"
+    }
+  },
+  "settings": {
+    "VirtoCommerce": {
+      "PageBuilderModule": {
+        "General": {
+          "StoreUrl": {
+            "description": "URL магазина с обработчиком предпросмотра Page Builder",
+            "title": "URL магазина"
           },
-          "html-page": {
-            "title": "Html Page",
-            "description": "Use markdown or html to create a new page."
+          "StorePreviewPath": {
+            "description": "Относительный путь к странице предпросмотра",
+            "title": "Путь предпросмотра магазина"
           }
         }
       }
     }
+  },
+  "permissions": {
+    "builder:themes": "Разрешить редактировать настройки темы",
+    "builder:templates": "Разрешить изменять шаблон во время редактирования"
   }
 }

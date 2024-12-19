@@ -1,0 +1,71 @@
+{
+  "pageBuilder": {
+    "blades": {
+      "edit-page": {
+        "title": "編集 '{{name}}'",
+        "subtitle": "ページ編集",
+        "title-new": "新しいページ",
+        "subtitle-new": "新しいページを作成",
+        "subtitle-post": "ブログ投稿編集",
+        "title-new-post": "新しい投稿",
+        "subtitle-new-post": "新しいブログ投稿を作成",
+        "labels": {
+          "filename": "ファイル名",
+          "name": "名前",
+          "language": "言語",
+          "permalink": "パーマリンク",
+          "drag-note": "ここにファイルをドラッグ＆ドロップしてください",
+          "progress": "進行状況",
+          "markdown": "マークダウン",
+          "metadata": "メタデータ",
+          "relativePath": "相対パス"
+        },
+        "placeholders": {
+          "filename": "ファイル名を入力",
+          "name": "名前を入力",
+          "language": "選択してください...",
+          "permalink": "パーマリンクを入力"
+        },
+        "validations": {
+          "pageName-invalid": "ページ名は英数字、\"_\", \"-\", \".\" のみを含むことができます",
+          "permalink-invalid": "他のページが同じパーマリンクを使用しています"
+        }
+      },
+      "pageBuilderEditor": {
+        "create": {
+          "title": "ページデザイン",
+          "description": "デザイナーを使用して新しいページを作成"
+        },
+        "edit": {
+          "title": "ページデザイン",
+          "description": "デザイナーを使用してページを編集"
+        }
+      }
+    },
+    "commands": {
+      "open-designer": "デザイン",
+      "publish": "公開",
+      "unpublish": "公開停止"
+    }
+  },
+  "settings": {
+    "VirtoCommerce": {
+      "PageBuilderModule": {
+        "General": {
+          "StoreUrl": {
+            "description": "プレビュー用Page Builderハンドラー付きストアURL",
+            "title": "ストアURL"
+          },
+          "StorePreviewPath": {
+            "description": "プレビューページの相対パス",
+            "title": "ストアプレビューパス"
+          }
+        }
+      }
+    }
+  },
+  "permissions": {
+    "builder:themes": "テーマ設定を編集する許可",
+    "builder:templates": "編集中にテンプレートを変更する許可"
+  }
+}

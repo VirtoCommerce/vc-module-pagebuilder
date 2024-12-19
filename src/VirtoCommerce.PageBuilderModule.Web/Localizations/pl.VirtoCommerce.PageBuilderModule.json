@@ -1,0 +1,71 @@
+{
+  "pageBuilder": {
+    "blades": {
+      "edit-page": {
+        "title": "Edytuj '{{name}}'",
+        "subtitle": "Edycja strony",
+        "title-new": "Nowa strona",
+        "subtitle-new": "Utwórz nową stronę",
+        "subtitle-post": "Edycja wpisu na blogu",
+        "title-new-post": "Nowy wpis",
+        "subtitle-new-post": "Utwórz nowy wpis na blogu",
+        "labels": {
+          "filename": "Nazwa pliku",
+          "name": "Nazwa",
+          "language": "Język",
+          "permalink": "Permalink",
+          "drag-note": "Przeciągnij i upuść plik tutaj",
+          "progress": "Postęp",
+          "markdown": "Markdown",
+          "metadata": "Metadane",
+          "relativePath": "Ścieżka względna"
+        },
+        "placeholders": {
+          "filename": "Wprowadź nazwę pliku",
+          "name": "Wprowadź nazwę",
+          "language": "Wybierz...",
+          "permalink": "Wprowadź permalink"
+        },
+        "validations": {
+          "pageName-invalid": "Nazwa strony może zawierać tylko znaki alfanumeryczne, \"_\", \"-\" i \".\"",
+          "permalink-invalid": "Inne strony mają ten sam permalink"
+        }
+      },
+      "pageBuilderEditor": {
+        "create": {
+          "title": "Projektowanie strony",
+          "description": "Użyj projektanta, aby stworzyć nową stronę"
+        },
+        "edit": {
+          "title": "Projektowanie strony",
+          "description": "Użyj projektanta, aby edytować stronę"
+        }
+      }
+    },
+    "commands": {
+      "open-designer": "Projektuj",
+      "publish": "Opublikuj",
+      "unpublish": "Wycofaj publikację"
+    }
+  },
+  "settings": {
+    "VirtoCommerce": {
+      "PageBuilderModule": {
+        "General": {
+          "StoreUrl": {
+            "description": "URL sklepu z obsługą podglądu Page Builder",
+            "title": "URL sklepu"
+          },
+          "StorePreviewPath": {
+            "description": "Ścieżka względna do strony podglądu",
+            "title": "Ścieżka podglądu sklepu"
+          }
+        }
+      }
+    }
+  },
+  "permissions": {
+    "builder:themes": "Zezwól na edytowanie ustawień motywu",
+    "builder:templates": "Zezwól na zmianę szablonu podczas edycji"
+  }
+}
