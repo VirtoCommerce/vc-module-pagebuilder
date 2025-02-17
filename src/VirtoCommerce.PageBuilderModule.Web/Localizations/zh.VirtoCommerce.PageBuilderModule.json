@@ -65,7 +65,7 @@
     }
   },
   "permissions": {
-    "builder:themes": "允许编辑主题设置",
+    "builder:theme": "允许编辑主题设置",
     "builder:templates": "允许在编辑期间更改模板"
   }
 }

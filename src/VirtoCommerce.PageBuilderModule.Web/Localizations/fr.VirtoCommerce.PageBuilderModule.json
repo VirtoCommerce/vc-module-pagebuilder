@@ -65,7 +65,7 @@
     }
   },
   "permissions": {
-    "builder:themes": "Autoriser la modification des paramètres du thème",
+    "builder:theme": "Autoriser la modification des paramètres du thème",
     "builder:templates": "Autoriser le changement de modèle pendant la modification"
   }
 }

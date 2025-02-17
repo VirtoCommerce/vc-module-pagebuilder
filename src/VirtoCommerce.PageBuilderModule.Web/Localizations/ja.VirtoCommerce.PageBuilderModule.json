@@ -65,7 +65,7 @@
     }
   },
   "permissions": {
-    "builder:themes": "テーマ設定を編集する許可",
+    "builder:theme": "テーマ設定を編集する許可",
     "builder:templates": "編集中にテンプレートを変更する許可"
   }
 }

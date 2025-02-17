@@ -65,7 +65,7 @@
     }
   },
   "permissions": {
-    "builder:themes": "Consenti la modifica delle impostazioni del tema",
+    "builder:theme": "Consenti la modifica delle impostazioni del tema",
     "builder:templates": "Consenti la modifica del modello durante la modifica"
   }
 }
