@@ -65,7 +65,7 @@
     }
   },
   "permissions": {
-    "builder:themes": "Permitir editar la configuración del tema",
+    "builder:theme": "Permitir editar la configuración del tema",
     "builder:templates": "Permitir cambiar la plantilla durante la edición"
   }
 }

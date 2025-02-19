@@ -65,7 +65,7 @@
     }
   },
   "permissions": {
-    "builder:themes": "Erlaubnis, Theme-Einstellungen zu bearbeiten",
+    "builder:theme": "Erlaubnis, Theme-Einstellungen zu bearbeiten",
     "builder:templates": "Erlaubnis, Vorlage während der Bearbeitung zu ändern"
   }
 }

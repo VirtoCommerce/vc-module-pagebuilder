@@ -65,7 +65,7 @@
     }
   },
   "permissions": {
-    "builder:themes": "Zezwól na edytowanie ustawień motywu",
+    "builder:theme": "Zezwól na edytowanie ustawień motywu",
     "builder:templates": "Zezwól na zmianę szablonu podczas edycji"
   }
 }
