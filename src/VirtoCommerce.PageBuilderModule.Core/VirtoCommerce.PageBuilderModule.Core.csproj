@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="VirtoCommerce.Pages.Core" Version="3.804.0" />
+    <PackageReference Include="VirtoCommerce.AssetsModule.Core" Version="3.808.0" />
+    <PackageReference Include="VirtoCommerce.Platform.Core" Version="3.853.0" />
+    <PackageReference Include="VirtoCommerce.StoreModule.Core" Version="3.809.0" />
+    <PackageReference Include="VirtoCommerce.SearchModule.Core" Version="3.804.0" />
+    <PackageReference Include="VirtoCommerce.ContentModule.Core" Version="3.824.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Services\" />
+  </ItemGroup>
+</Project>

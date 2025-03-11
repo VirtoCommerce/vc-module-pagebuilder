@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using VirtoCommerce.Platform.Core.Settings;
 
-namespace VirtoCommerce.PageBuilderModule.Web
+namespace VirtoCommerce.PageBuilderModule.Core
 {
     public static class ModuleConstants
     {
@@ -11,8 +11,22 @@ namespace VirtoCommerce.PageBuilderModule.Web
             {
                 public const string Theme = "builder:theme";
                 public const string Templates = "builder:templates";
+                public const string Access = "builder:access";
+                public const string Create = "builder:create";
+                public const string Read = "builder:read";
+                public const string Update = "builder:update";
+                public const string Delete = "builder:delete";
 
-                public static string[] AllPermissions = { Theme, Templates };
+                public static string[] AllPermissions { get; } =
+                {
+                    Theme,
+                    Templates,
+                    Access,
+                    Create,
+                    Read,
+                    Update,
+                    Delete,
+                };
             }
         }
 
