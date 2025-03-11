@@ -1,0 +1,14 @@
+{
+  "name": "api",
+  "version": "0.0.0",
+  "files": [
+    "dist",
+    "package.json"
+  ],
+  "exports": {
+    "./virtocommerce.pagebuildermodule": {
+      "import": "./dist/virtocommerce.pagebuildermodule.js",
+      "types": "./dist/types/virtocommerce.pagebuildermodule.d.ts"
+    }
+  }
+}

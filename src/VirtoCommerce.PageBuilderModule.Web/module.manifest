@@ -28,4 +28,12 @@
   <assemblyFile>VirtoCommerce.PageBuilderModule.Web.dll</assemblyFile>
   <moduleType>VirtoCommerce.PageBuilderModule.Web.Module, VirtoCommerce.PageBuilderModule.Web</moduleType>
   <useFullTypeNameInSwagger>false</useFullTypeNameInSwagger>
+
+  <apps>
+    <app id="page-builder">
+      <title>Page Builder</title>
+      <iconUrl>/apps/page-builder/img/icons/favicon-32x32.png</iconUrl>
+      <contentPath>page-builder/dist</contentPath>
+    </app>
+  </apps>
 </module>
