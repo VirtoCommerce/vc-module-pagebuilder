@@ -13,6 +13,7 @@ using Newtonsoft.Json.Serialization;
 using VirtoCommerce.AssetsModule.Core.Assets;
 using VirtoCommerce.ContentModule.Core.Model;
 using VirtoCommerce.ContentModule.Core.Services;
+using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Web.Events;
 using VirtoCommerce.PageBuilderModule.Web.Models;
 using VirtoCommerce.Platform.Core.Common;
@@ -29,7 +30,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             IBlobContentStorageProviderFactory blobContentStorageProviderFactory,
             IOptions<ContentOptions> options,
             IPublishingService publishingService,
-            IEventPublisher eventPublisher)
+            IEventPublisher eventPublisher,
+            IPageBuilderPageService pageBuilderPageService)
         : Controller
     {
         private readonly ContentOptions _options = options.Value;
@@ -40,9 +42,32 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         private const string DefaultTheme = "default";
 
         [HttpGet]
-        [Route("template")]
-        public async Task<ActionResult> GetTemplate(string storeId, string theme, string path, string type, bool draft = false)
+        [Route("page")]
+        public async Task<ActionResult> GetPage(string pageId)
         {
+            var page = await pageBuilderPageService.GetByIdAsync(pageId);
+
+            if (page != null)
+            {
+                return Ok(page);
+            }
+
+            return NotFound();
+        }
+
+        [HttpGet]
+        [Route("template")]
+        public async Task<ActionResult> GetTemplate(string storeId, string theme, string path, string type, bool draft = false, string pageId = null)
+        {
+            if (pageId != null)
+            {
+                var page = await pageBuilderPageService.GetByIdAsync(pageId);
+                if (page != null)
+                {
+                    return Ok(page);
+                }
+            }
+
             var basePath = GetContentBasePath(storeId, type, theme);
             var storageProvider = blobContentStorageProviderFactory.CreateProvider(basePath);
 

@@ -1,41 +1,78 @@
-import { computed, ref, Ref } from "vue";
+import { computed, ref, Ref, onMounted } from "vue";
 import {
   ListComposableArgs,
   ListBaseBladeScope,
   useBladeNavigation,
   useListFactory,
   type TOpenBladeArgs,
+  useApiClient,
 } from "@vc-shell/framework";
+import { useI18n } from "vue-i18n";
+
+import useUrlParams from "../useUrlParams";
+
+import {
+  PageBuilderPageClient,
+  IPageBuilderPageSearchCriteria,
+  PageBuilderPageSearchCriteria,
+  PageBuilderPage,
+} from "../../../../api_client/virtocommerce.pagebuildermodule";
+
+const { getApiClient } = useApiClient(PageBuilderPageClient);
+
+const { storeId, initUrlParams } = useUrlParams();
+
+export enum PageStatuses {
+  Draft = "Draft",
+  Published = "Published",
+  Archived = "Archived",
+}
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface DynamicItemsScope extends ListBaseBladeScope {}
 
 export default (args: ListComposableArgs) => {
-  const factory = useListFactory({
-    load: async () => {
-      return {
-        totalCount: 0,
-        results: [],
-      };
+  const listFactory = useListFactory<PageBuilderPage[], IPageBuilderPageSearchCriteria>({
+    load: async (_query) => {
+      const criteria = { ...(_query || {}) } as PageBuilderPageSearchCriteria;
+      if (storeId?.value) {
+        criteria.storeId = storeId.value;
+      }
+      return (await getApiClient()).search(criteria);
     },
-    remove: () => {
-      throw new Error("Function not implemented.");
+    remove: async (_query, customQuery) => {
+      const ids = customQuery.ids;
+      if (ids) {
+        return (await getApiClient()).delete(ids);
+      }
     },
   });
 
-  const { load, remove, items, pagination, loading, query } = factory();
+  const { load, remove, items, pagination, loading, query } = listFactory({ sort: "modifiedDate:desc", pageSize: 20 });
   const { openBlade, resolveBladeByName } = useBladeNavigation();
 
-  async function openDetailsBlade(data?: TOpenBladeArgs) {
+  async function openDetailsBlade(data?: Omit<Parameters<typeof openBlade>["0"], "blade">) {
     await openBlade({
       blade: resolveBladeByName("PageBuilderDetails"),
       ...data,
     });
   }
 
+  const { t } = useI18n({ useScope: "global" });
+
   const scope: DynamicItemsScope = {
     openDetailsBlade,
+    pageStatuses: computed(() =>
+      Object.values(PageStatuses).map((value) => ({
+        value,
+        label: t(`PAGE_BUILDER.STATUS.${value.toUpperCase()}`),
+      })),
+    ),
   };
+
+  onMounted(() => {
+    initUrlParams()
+  })
 
   return {
     items,

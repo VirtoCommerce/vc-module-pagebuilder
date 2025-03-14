@@ -5,7 +5,9 @@ using Microsoft.AspNetCore.Mvc;
 using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
+using VirtoCommerce.Platform.Core;
 using VirtoCommerce.Platform.Core.Common;
+using VirtoCommerce.Platform.Core.Settings;
 
 namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 
@@ -14,13 +16,16 @@ public class PageBuilderPageController : Controller
 {
     private readonly IPageBuilderPageService _crudService;
     private readonly IPageBuilderPageSearchService _searchService;
+    private readonly ISettingsManager _settingsManager;
 
     public PageBuilderPageController(
         IPageBuilderPageService crudService,
-        IPageBuilderPageSearchService searchService)
+        IPageBuilderPageSearchService searchService,
+        ISettingsManager settingsManager)
     {
         _crudService = crudService;
         _searchService = searchService;
+        _settingsManager = settingsManager;
     }
 
     [HttpPost("search")]
@@ -62,5 +67,13 @@ public class PageBuilderPageController : Controller
     {
         await _crudService.DeleteAsync(ids);
         return NoContent();
+    }
+
+    [HttpGet]
+    [Route("languages")]
+    public async Task<ActionResult<string[]>> GetAvailableLanguages()
+    {
+        var setting = await _settingsManager.GetObjectSettingAsync(PlatformConstants.Settings.General.Languages.Name);
+        return Ok(setting?.AllowedValues ?? []);
     }
 }

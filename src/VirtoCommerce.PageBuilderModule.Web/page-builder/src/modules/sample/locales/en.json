@@ -6,6 +6,7 @@
     "PAGES": {
       "LIST": {
         "TOOLBAR": {
+          "ADD": "Add",
           "REFRESH": "Refresh",
           "REMOVE": "Remove"
         },

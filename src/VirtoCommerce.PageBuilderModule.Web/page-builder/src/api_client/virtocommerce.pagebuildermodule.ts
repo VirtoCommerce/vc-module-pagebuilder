@@ -732,6 +732,52 @@ export class PageBuilderPageClient extends AuthApiBase {
         }
         return Promise.resolve<PageBuilderPage>(null as any);
     }
+
+    /**
+     * @return OK
+     */
+    getAvailableLanguages(): Promise<string[]> {
+        let url_ = this.baseUrl + "/api/page-builder-pages/languages";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "text/plain"
+            }
+        };
+
+        return this.transformOptions(options_).then(transformedOptions_ => {
+            return this.http.fetch(url_, transformedOptions_);
+        }).then((_response: Response) => {
+            return this.processGetAvailableLanguages(_response);
+        });
+    }
+
+    protected processGetAvailableLanguages(response: Response): Promise<string[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData200)) {
+                result200 = [] as any;
+                for (let item of resultData200)
+                    result200!.push(item);
+            }
+            else {
+                result200 = <any>null;
+            }
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<string[]>(null as any);
+    }
 }
 
 export class PageBuilderPage implements IPageBuilderPage {
@@ -811,6 +857,8 @@ export interface IPageBuilderPage {
 }
 
 export class PageBuilderPageSearchCriteria implements IPageBuilderPageSearchCriteria {
+    storeId?: string | undefined;
+    status?: string | undefined;
     responseGroup?: string | undefined;
     objectType?: string | undefined;
     objectTypes?: string[] | undefined;
@@ -834,6 +882,8 @@ export class PageBuilderPageSearchCriteria implements IPageBuilderPageSearchCrit
 
     init(_data?: any) {
         if (_data) {
+            this.storeId = _data["storeId"];
+            this.status = _data["status"];
             this.responseGroup = _data["responseGroup"];
             this.objectType = _data["objectType"];
             if (Array.isArray(_data["objectTypes"])) {
@@ -869,6 +919,8 @@ export class PageBuilderPageSearchCriteria implements IPageBuilderPageSearchCrit
 
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
+        data["storeId"] = this.storeId;
+        data["status"] = this.status;
         data["responseGroup"] = this.responseGroup;
         data["objectType"] = this.objectType;
         if (Array.isArray(this.objectTypes)) {
@@ -897,6 +949,8 @@ export class PageBuilderPageSearchCriteria implements IPageBuilderPageSearchCrit
 }
 
 export interface IPageBuilderPageSearchCriteria {
+    storeId?: string | undefined;
+    status?: string | undefined;
     responseGroup?: string | undefined;
     objectType?: string | undefined;
     objectTypes?: string[] | undefined;

@@ -1,19 +1,30 @@
 {
   "PAGE_BUILDER": {
     "MENU": {
-      "TITLE": "Page Builder"
+      "TITLE": "Pages"
     },
     "PAGES": {
       "LIST": {
         "TOOLBAR": {
-          "REFRESH": "Refresh"
+          "ADD": "Add",
+          "REFRESH": "Refresh",
+          "REMOVE": "Remove"
         },
         "SEARCH": {
           "PLACEHOLDER": "Search keywords"
         },
         "TABLE": {
           "TOTALS": "Count:",
-          "HEADER": {},
+          "HEADER": {
+            "NAME": "Name",
+            "PERMALINK": "Permalink",
+            "MODIFIED_DATE": "Modified",
+            "MODIFIED_BY": "Modified by",
+            "STATUS": "Status"
+          },
+          "FILTER": {
+            "STATUS": "Status"
+          },
           "EMPTY": {
             "TITLE": "There are no content yet",
             "ACTION": "Add content"
@@ -24,12 +35,38 @@
           }
         },
         "EMPTY": {
-          "NO_ITEMS": "There are no items yet"
+          "NO_ITEMS": "There are no pages yet"
+        }
+      },
+      "DETAILS": {
+        "TITLE": {
+          "DETAILS": " details",
+          "LOADING": "Loading..."
+        },
+        "TOOLBAR": {
+          "SAVE": "Save",
+          "DELETE": "Delete",
+          "PREVIEW": "Preview",
+          "DESIGNER": "Open designer",
+          "PUBLISH": "Publish",
+          "UNPUBLISH": "Unpublish"
+        },
+        "FIELDS": {
+          "NAME": "Name",
+          "PERMALINK": "Permalink",
+          "CONTENT": "Content",
+          "GUID": "GUID",
+          "CULTURE_NAME": "Language"
         }
       },
       "ALERTS": {
         "CLOSE_CONFIRMATION": "You have unsaved changes. Close anyway?"
       }
+    },
+    "STATUS": {
+      "DRAFT": "Draft",
+      "ARCHIVED": "Archived",
+      "PUBLISHED": "Published"
     }
   }
 }

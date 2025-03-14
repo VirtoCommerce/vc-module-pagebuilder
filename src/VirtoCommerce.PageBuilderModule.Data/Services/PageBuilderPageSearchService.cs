@@ -24,6 +24,17 @@ public class PageBuilderPageSearchService : SearchService<PageBuilderPageSearchC
     protected override IQueryable<PageBuilderPageEntity> BuildQuery(IRepository repository, PageBuilderPageSearchCriteria criteria)
     {
         var query = ((IPageBuilderModuleRepository)repository).PageBuilderPages;
+
+        if (!string.IsNullOrEmpty(criteria.StoreId))
+        {
+            query = query.Where(x => x.StoreId == criteria.StoreId);
+        }
+
+        if (!string.IsNullOrEmpty(criteria.Status))
+        {
+            query = query.Where(x => x.Status == criteria.Status);
+        }
+
         return query;
     }
 

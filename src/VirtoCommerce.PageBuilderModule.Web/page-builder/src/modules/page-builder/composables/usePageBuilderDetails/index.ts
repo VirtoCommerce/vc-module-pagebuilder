@@ -1,28 +1,143 @@
-import { computed, ref, Ref } from "vue";
-import { DetailsBaseBladeScope, IBladeToolbar, useDetailsFactory, DetailsComposableArgs } from "@vc-shell/framework";
+import { computed, ref, watch, reactive, Ref } from "vue";
+import { DetailsBaseBladeScope, IBladeToolbar, useDetailsFactory, DetailsComposableArgs, useApiClient } from "@vc-shell/framework";
+import { useI18n } from "vue-i18n";
 
-export interface DynamicItemScope extends DetailsBaseBladeScope {}
+import {
+  PageBuilderPageClient,
+  PageBuilderPage,
+} from "../../../../api_client/virtocommerce.pagebuildermodule";
 
-export default (args: DetailsComposableArgs) => {
-  const factory = useDetailsFactory({
-    load: async () => {
-      return {};
+import useCultureNames from "../useCultureNames";
+
+const { getApiClient } = useApiClient(PageBuilderPageClient);
+const { getCultureNames } = useCultureNames();
+
+export interface DynamicItemScope extends DetailsBaseBladeScope {
+  toolbarOverrides: {
+    previewPage: IBladeToolbar;
+    openPageDesigner: IBladeToolbar;
+    publishPage: IBladeToolbar;
+    unpublishPage: IBladeToolbar;
+  };
+}
+
+export default (args: DetailsComposableArgs<{ options: { sourceMessage: PageBuilderPage } }>) => {
+  let isNew = !args.props.param;
+  let newStatus: string | undefined;
+
+  const detailsFactory = useDetailsFactory({
+    load: async (page) => {
+      if (page?.id) {
+        return (await getApiClient()).get(page.id);
+      }
     },
-    saveChanges: () => {
-      throw new Error("Function not implemented.");
+    saveChanges: async (page) => {
+      const apiClient = await getApiClient();
+      if (isNew) {
+        page.status = "Draft";
+        return apiClient.create(page);
+      } else {
+        if (newStatus) {
+          page.status = newStatus;
+        }
+        return apiClient.update(page);
+      }
     },
-    remove: () => {
-      throw new Error("Function not implemented.");
+    remove: async ({ id }) => {
+      if (id) {
+        return (await getApiClient()).delete([id]);
+      }
     },
   });
 
-  const { load, saveChanges, remove, loading, item, validationState } = factory();
+  const { load, saveChanges, remove, loading, item, validationState } = detailsFactory();
 
-  const scope: DynamicItemScope = {};
+  const scope: DynamicItemScope = {
+    toolbarOverrides: {
+      previewPage: {
+        clickHandler: async () => {
+          throw new Error("Function not implemented.");
+        },
+        isVisible: computed(() => !isNew),
+        disabled: computed(() => !validationState.value.valid),
+      },
+      openPageDesigner: {
+        clickHandler: async () => {
+          // Get platform URL from env
+          const platformUrl = import.meta.env.APP_PLATFORM_URL?.replace(/\/$/, '') || window.location.origin;
+          
+          let designerUrl = platformUrl +
+            (platformUrl.endsWith('/') ? '' : '/') +
+            'Modules/$(VirtoCommerce.PageBuilderModule)/Content/builder/index.html'          
+
+          let contentType = "pages";
+          let pageId = item.value?.id;
+          let storeId = item.value?.storeId;
+          let cultureName = item.value?.cultureName;
+          let permalink = item.value?.permalink;
+          let status = item.value?.status;
+
+          if (pageId && storeId) {
+            window.open(designerUrl + '?storeId=' + storeId + '#/pages?type=' + contentType + '&pageId=' + pageId, '_blank');
+          }
+          else {
+            throw new Error("Can't open page.");
+          }
+        },
+        isVisible: computed(() => !isNew),
+        disabled: computed(() => !validationState.value.valid),
+      },
+      publishPage: {
+        clickHandler: async () => {
+          throw new Error("Function not implemented.");
+        },
+        isVisible: computed(() => !isNew && item.value?.status != "Published"),
+        disabled: computed(() => !validationState.value.valid),
+      },
+      unpublishPage: {
+        clickHandler: async () => {
+          throw new Error("Function not implemented.");
+        },
+        isVisible: computed(() => !isNew && item.value?.status == "Published"),
+        disabled: computed(() => !validationState.value.valid),
+      },
+    },
+    loadCultureNames: async() => {
+      return getCultureNames();
+    }
+  };
+
+  const { t } = useI18n({ useScope: "global" });
 
   const bladeTitle = computed(() => {
-    return "Page Builder details";
+    return isNew
+      ? item.value?.name
+        ? item.value?.name + t("PAGE_BUILDER.PAGES.DETAILS.TITLE.DETAILS")
+        : t("PAGE_BUILDER.PAGES.DETAILS.TITLE.LOADING")
+      : item.value?.name + t("PAGE_BUILDER.PAGES.DETAILS.TITLE.DETAILS");
   });
+
+  watch(
+    () => args?.mounted.value,
+    async () => {
+      if (isNew) {
+        const page = new PageBuilderPage();
+        item.value = reactive(page);
+        validationState.value.resetModified(item.value, true);
+
+        /*
+        const sourceMessage = args.props.options?.sourceMessage;
+        if (sourceMessage) {
+          message.topic = sourceMessage.topic;
+          message.shortMessage = sourceMessage.shortMessage;
+          message.memberIds = sourceMessage.memberIds;
+          message.memberQuery = sourceMessage.memberQuery;
+        }
+        */
+      }
+    },
+  );
+
 
   return {
     load,
