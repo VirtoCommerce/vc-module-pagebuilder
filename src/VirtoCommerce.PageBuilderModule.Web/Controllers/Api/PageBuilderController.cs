@@ -13,6 +13,7 @@ using Newtonsoft.Json.Serialization;
 using VirtoCommerce.AssetsModule.Core.Assets;
 using VirtoCommerce.ContentModule.Core.Model;
 using VirtoCommerce.ContentModule.Core.Services;
+using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Web.Events;
 using VirtoCommerce.PageBuilderModule.Web.Models;
@@ -198,28 +199,51 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
             foreach (var file in files)
             {
-                var type = file.Type.ToLowerInvariant();
-                var storageProvider = providers.ContainsKey(type)
-                    ? providers[type]
-                    : (providers[type] = blobContentStorageProviderFactory.CreateProvider(GetContentBasePath(storeId, type, themeName)));
-                var content = file.Content;
-                var targetPath = publishingService.GetRelativeDraftUrl(file.Path, draft);
-                await using var targetStream = await storageProvider.OpenWriteAsync(targetPath);
-                await using var writer = new StreamWriter(targetStream);
-                var stringContent = JsonConvert.SerializeObject(content, settings);
-                await writer.WriteAsync(stringContent);
-
-                if (!changedFiles.ContainsKey(type))
+                if (!string.IsNullOrEmpty(file.PageId))
                 {
-                    changedFiles.Add(type, new List<GenericChangedEntry<FileEntity>>());
+                    if (file.Content != null)
+                    {
+                        var page = file.Content.ToObject<PageModel>();
+
+                        var pageModel = new PageBuilderPage
+                        {
+                            Id = file.PageId,
+                            Name = page.Settings.Name,
+                            Permalink = page.Settings.Permalink,
+                            Status = page.Settings.Status,
+                            StoreId = page.Settings.StoreId,
+                            PageContent = JsonConvert.SerializeObject(page.Content, Formatting.Indented),
+                        };
+
+                        await pageBuilderPageService.SaveChangesAsync([pageModel]);
+                    }
                 }
-
-                changedFiles[type].Add(new GenericChangedEntry<FileEntity>(new FileEntity
+                else
                 {
-                    Id = file.Path,
-                    Path = file.Path,
-                    Type = file.Type
-                }, EntryState.Modified));
+                    var type = file.Type.ToLowerInvariant();
+
+                    var storageProvider = providers.ContainsKey(type)
+                        ? providers[type]
+                        : (providers[type] = blobContentStorageProviderFactory.CreateProvider(GetContentBasePath(storeId, type, themeName)));
+                    var content = file.Content;
+                    var targetPath = publishingService.GetRelativeDraftUrl(file.Path, draft);
+                    await using var targetStream = await storageProvider.OpenWriteAsync(targetPath);
+                    await using var writer = new StreamWriter(targetStream);
+                    var stringContent = JsonConvert.SerializeObject(content, settings);
+                    await writer.WriteAsync(stringContent);
+
+                    if (!changedFiles.ContainsKey(type))
+                    {
+                        changedFiles.Add(type, new List<GenericChangedEntry<FileEntity>>());
+                    }
+
+                    changedFiles[type].Add(new GenericChangedEntry<FileEntity>(new FileEntity
+                    {
+                        Id = string.IsNullOrEmpty(file.Path) ? file.Path : file.PageId,
+                        Path = file.Path,
+                        Type = file.Type
+                    }, EntryState.Modified));
+                }
             }
             changedFiles.Keys.ToList().ForEach(async x =>
             {
@@ -297,9 +321,29 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
         public class SaveFileModel
         {
+            public string PageId { get; set; }
             public string Path { get; set; }
             public string Type { get; set; }
             public JContainer Content { get; set; }
+        }
+
+        public class PageSettingsModel
+        {
+            public string Id { get; set; }
+            public string Name { get; set; }
+            public string DisplayName { get; set; }
+            public string Permalink { get; set; }
+            public string Status { get; set; }
+            public string StoreId { get; set; }
+        }
+
+        public class PageModel
+        {
+            [JsonProperty("settings")]
+            public PageSettingsModel Settings { get; set; }
+
+            [JsonProperty("content")]
+            public List<JObject> Content { get; set; } // Keeps content as raw JSON
         }
     }
 }
