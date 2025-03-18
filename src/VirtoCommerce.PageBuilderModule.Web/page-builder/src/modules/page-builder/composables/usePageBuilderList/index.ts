@@ -16,6 +16,7 @@ import {
   IPageBuilderPageSearchCriteria,
   PageBuilderPageSearchCriteria,
   PageBuilderPage,
+  GroupedPageBuilderPage,
 } from "../../../../api_client/virtocommerce.pagebuildermodule";
 
 const { getApiClient } = useApiClient(PageBuilderPageClient);
@@ -32,13 +33,16 @@ export enum PageStatuses {
 export interface DynamicItemsScope extends ListBaseBladeScope {}
 
 export default (args: ListComposableArgs) => {
-  const listFactory = useListFactory<PageBuilderPage[], IPageBuilderPageSearchCriteria>({
+  initUrlParams();
+
+  const listFactory = useListFactory<GroupedPageBuilderPage[], IPageBuilderPageSearchCriteria>({
     load: async (_query) => {
       const criteria = { ...(_query || {}) } as PageBuilderPageSearchCriteria;
       if (storeId?.value) {
         criteria.storeId = storeId.value;
       }
-      return (await getApiClient()).search(criteria);
+
+      return (await getApiClient()).searchGrouped(criteria);
     },
     remove: async (_query, customQuery) => {
       const ids = customQuery.ids;
@@ -55,6 +59,9 @@ export default (args: ListComposableArgs) => {
     await openBlade({
       blade: resolveBladeByName("PageBuilderDetails"),
       ...data,
+      options: {
+        storeId: storeId?.value ?? undefined,
+      },
     });
   }
 

@@ -1,10 +1,14 @@
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using VirtoCommerce.ContentModule.Core.Model;
 using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
+using VirtoCommerce.PageBuilderModule.Data.Services;
 using VirtoCommerce.Platform.Core;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Settings;
@@ -18,15 +22,122 @@ public class PageBuilderPageController : Controller
     private readonly IPageBuilderPageSearchService _searchService;
     private readonly ISettingsManager _settingsManager;
 
+    private readonly IGroupedPageService _groupedPageService;
+
     public PageBuilderPageController(
         IPageBuilderPageService crudService,
         IPageBuilderPageSearchService searchService,
-        ISettingsManager settingsManager)
+        ISettingsManager settingsManager,
+        IGroupedPageService groupedPageService)
     {
         _crudService = crudService;
         _searchService = searchService;
         _settingsManager = settingsManager;
+
+        _groupedPageService = groupedPageService;
     }
+
+    [HttpPost("grouped/search")]
+    [Authorize(ModuleConstants.Security.Permissions.Read)]
+    public async Task<ActionResult<GroupedPageBuilderPageSearchResult>> SearchGrouped([FromBody] PageBuilderPageSearchCriteria criteria)
+    {
+        var result = await _groupedPageService.SearchAsync(criteria);
+        return Ok(result);
+    }
+
+    [HttpGet("grouped")]
+    [Authorize(ModuleConstants.Security.Permissions.Read)]
+    public async Task<ActionResult<GroupedPageBuilderPage>> GetGrouped([FromQuery] string id, [FromQuery] string responseGroup = null)
+    {
+        var model = await _groupedPageService.GetGroupedAsync(id);
+        return Ok(model);
+    }
+
+    [HttpPut("grouped")]
+    [Authorize(ModuleConstants.Security.Permissions.Update)]
+    public async Task<ActionResult<GroupedPageBuilderPage>> UpdateGrouped([FromBody] GroupedPageBuilderPage model)
+    {
+        //await _crudService.SaveChangesAsync([model]);
+
+        var result = await Task.FromResult(model);
+
+        return Ok(model);
+    }
+
+    [HttpPost("grouped")]
+    [Authorize(ModuleConstants.Security.Permissions.Create)]
+    public async Task<ActionResult<GroupedPageBuilderPage>> CreateGrouped([FromBody] GroupedPageBuilderPage model)
+    {
+        var page = new PageBuilderPage
+        {
+            Id = null,
+            Name = model.Name,
+            StoreId = model.StoreId,
+            CultureName = model.CultureName,
+            Permalink = model.Permalink,
+            Status = "Draft", // always create a new page in draft status
+        };
+
+        await _crudService.SaveChangesAsync([page]);
+        return await GetGrouped(page.GroupKey);
+    }
+
+    [HttpPost]
+    [Route("grouped/publishing")]
+    public async Task<ActionResult> Publishing([FromQuery] string id, [FromQuery] bool publish)
+    {
+        var groupedPage = await _groupedPageService.GetGroupedAsync(id);
+
+        var pagesToSave = new List<PageBuilderPage>();
+        var pagesToDelete = new List<string>();
+
+        if (publish)
+        {
+            var pageToPublish = groupedPage.Pages.FirstOrDefault(x => x.Status == "Draft");
+            if (pageToPublish == null)
+            {
+                return BadRequest("Draft page not found.");
+            }
+
+            pageToPublish.Status = "Published";
+            pagesToSave.Add(pageToPublish);
+
+            pagesToDelete = groupedPage.PageIds.Except(new[] { pageToPublish.Id }).ToList();
+        }
+        else
+        {
+            var pageToUnpublish = groupedPage.Pages.FirstOrDefault(x => x.Status == "Published");
+            if (pageToUnpublish == null)
+            {
+                return BadRequest("Published page not found.");
+            }
+
+            pageToUnpublish.Status = "Draft";
+            pagesToSave.Add(pageToUnpublish);
+        }
+
+        await _crudService.SaveChangesAsync(pagesToSave.ToArray());
+        await _crudService.DeleteAsync(pagesToDelete.ToArray());
+
+        return Ok();
+    }
+
+    [HttpGet]
+    [Route("grouped/publish-status")]
+    public async Task<ActionResult<FilePublishStatus>> PublishStatus([FromQuery] string id)
+    {
+        var groupedPage = await _groupedPageService.GetGroupedAsync(id);
+
+        var result = new FilePublishStatus
+        {
+            Published = groupedPage.Status == "Published",
+            HasChanges = groupedPage.HasChanges,
+        };
+
+        return Ok(result);
+    }
+
+    //-------------------------------------------------------------------------------------
 
     [HttpPost("search")]
     [Authorize(ModuleConstants.Security.Permissions.Read)]
@@ -41,6 +152,7 @@ public class PageBuilderPageController : Controller
     public Task<ActionResult<PageBuilderPage>> Create([FromBody] PageBuilderPage model)
     {
         model.Id = null;
+        model.Status = "Draft"; // always create a new page in draft status
         return Update(model);
     }
 

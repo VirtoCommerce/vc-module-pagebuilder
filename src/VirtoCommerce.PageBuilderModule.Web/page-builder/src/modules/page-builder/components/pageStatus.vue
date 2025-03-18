@@ -12,11 +12,12 @@ import { computed, toRefs } from "vue";
 
 import {
   PageBuilderPage,
+  GroupedPageBuilderPage,
 } from "../../../api_client/virtocommerce.pagebuildermodule";
 
 export interface Props {
   context: {
-    item: PageBuilderPage;
+    item: GroupedPageBuilderPage;
   };
 }
 
@@ -37,7 +38,7 @@ const props = withDefaults(defineProps<Props>(), {
 const { context } = toRefs(props);
 const itemStatus = computed(() => getStatus(context.value.item) || "Draft");
 
-function getStatus(page: PageBuilderPage) {
+function getStatus(page: GroupedPageBuilderPage) {
   return page.status;
 }
 

@@ -42,14 +42,63 @@ export class PageBuilderClient extends AuthApiBase {
     }
 
     /**
+     * @param pageId (optional) 
+     * @return OK
+     */
+    getPage(pageId?: string | undefined): Promise<void> {
+        let url_ = this.baseUrl + "/api/pagebuilder/page?";
+        if (pageId === null)
+            throw new Error("The parameter 'pageId' cannot be null.");
+        else if (pageId !== undefined)
+            url_ += "pageId=" + encodeURIComponent("" + pageId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+            }
+        };
+
+        return this.transformOptions(options_).then(transformedOptions_ => {
+            return this.http.fetch(url_, transformedOptions_);
+        }).then((_response: Response) => {
+            return this.processGetPage(_response);
+        });
+    }
+
+    protected processGetPage(response: Response): Promise<void> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            return;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            return throwException("Unauthorized", status, _responseText, _headers);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            return throwException("Forbidden", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * @param storeId (optional) 
      * @param theme (optional) 
      * @param path (optional) 
      * @param type (optional) 
      * @param draft (optional) 
+     * @param pageId (optional) 
      * @return OK
      */
-    getTemplate(storeId?: string | undefined, theme?: string | undefined, path?: string | undefined, type?: string | undefined, draft?: boolean | undefined): Promise<void> {
+    getTemplate(storeId?: string | undefined, theme?: string | undefined, path?: string | undefined, type?: string | undefined, draft?: boolean | undefined, pageId?: string | undefined): Promise<void> {
         let url_ = this.baseUrl + "/api/pagebuilder/template?";
         if (storeId === null)
             throw new Error("The parameter 'storeId' cannot be null.");
@@ -71,6 +120,10 @@ export class PageBuilderClient extends AuthApiBase {
             throw new Error("The parameter 'draft' cannot be null.");
         else if (draft !== undefined)
             url_ += "draft=" + encodeURIComponent("" + draft) + "&";
+        if (pageId === null)
+            throw new Error("The parameter 'pageId' cannot be null.");
+        else if (pageId !== undefined)
+            url_ += "pageId=" + encodeURIComponent("" + pageId) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -478,6 +531,308 @@ export class PageBuilderPageClient extends AuthApiBase {
      * @param body (optional) 
      * @return OK
      */
+    searchGrouped(body?: PageBuilderPageSearchCriteria | undefined): Promise<GroupedPageBuilderPageSearchResult> {
+        let url_ = this.baseUrl + "/api/page-builder-pages/grouped/search";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json-patch+json",
+                "Accept": "text/plain"
+            }
+        };
+
+        return this.transformOptions(options_).then(transformedOptions_ => {
+            return this.http.fetch(url_, transformedOptions_);
+        }).then((_response: Response) => {
+            return this.processSearchGrouped(_response);
+        });
+    }
+
+    protected processSearchGrouped(response: Response): Promise<GroupedPageBuilderPageSearchResult> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GroupedPageBuilderPageSearchResult.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            return throwException("Unauthorized", status, _responseText, _headers);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            return throwException("Forbidden", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GroupedPageBuilderPageSearchResult>(null as any);
+    }
+
+    /**
+     * @param id (optional) 
+     * @param responseGroup (optional) 
+     * @return OK
+     */
+    getGrouped(id?: string | undefined, responseGroup?: string | undefined): Promise<GroupedPageBuilderPage> {
+        let url_ = this.baseUrl + "/api/page-builder-pages/grouped?";
+        if (id === null)
+            throw new Error("The parameter 'id' cannot be null.");
+        else if (id !== undefined)
+            url_ += "id=" + encodeURIComponent("" + id) + "&";
+        if (responseGroup === null)
+            throw new Error("The parameter 'responseGroup' cannot be null.");
+        else if (responseGroup !== undefined)
+            url_ += "responseGroup=" + encodeURIComponent("" + responseGroup) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "text/plain"
+            }
+        };
+
+        return this.transformOptions(options_).then(transformedOptions_ => {
+            return this.http.fetch(url_, transformedOptions_);
+        }).then((_response: Response) => {
+            return this.processGetGrouped(_response);
+        });
+    }
+
+    protected processGetGrouped(response: Response): Promise<GroupedPageBuilderPage> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GroupedPageBuilderPage.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            return throwException("Unauthorized", status, _responseText, _headers);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            return throwException("Forbidden", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GroupedPageBuilderPage>(null as any);
+    }
+
+    /**
+     * @param body (optional) 
+     * @return OK
+     */
+    updateGrouped(body?: GroupedPageBuilderPage | undefined): Promise<GroupedPageBuilderPage> {
+        let url_ = this.baseUrl + "/api/page-builder-pages/grouped";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json-patch+json",
+                "Accept": "text/plain"
+            }
+        };
+
+        return this.transformOptions(options_).then(transformedOptions_ => {
+            return this.http.fetch(url_, transformedOptions_);
+        }).then((_response: Response) => {
+            return this.processUpdateGrouped(_response);
+        });
+    }
+
+    protected processUpdateGrouped(response: Response): Promise<GroupedPageBuilderPage> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GroupedPageBuilderPage.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            return throwException("Unauthorized", status, _responseText, _headers);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            return throwException("Forbidden", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GroupedPageBuilderPage>(null as any);
+    }
+
+    /**
+     * @param body (optional) 
+     * @return OK
+     */
+    createGrouped(body?: GroupedPageBuilderPage | undefined): Promise<GroupedPageBuilderPage> {
+        let url_ = this.baseUrl + "/api/page-builder-pages/grouped";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json-patch+json",
+                "Accept": "text/plain"
+            }
+        };
+
+        return this.transformOptions(options_).then(transformedOptions_ => {
+            return this.http.fetch(url_, transformedOptions_);
+        }).then((_response: Response) => {
+            return this.processCreateGrouped(_response);
+        });
+    }
+
+    protected processCreateGrouped(response: Response): Promise<GroupedPageBuilderPage> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GroupedPageBuilderPage.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            return throwException("Unauthorized", status, _responseText, _headers);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            return throwException("Forbidden", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GroupedPageBuilderPage>(null as any);
+    }
+
+    /**
+     * @param id (optional) 
+     * @param publish (optional) 
+     * @return OK
+     */
+    publishing(id?: string | undefined, publish?: boolean | undefined): Promise<void> {
+        let url_ = this.baseUrl + "/api/page-builder-pages/grouped/publishing?";
+        if (id === null)
+            throw new Error("The parameter 'id' cannot be null.");
+        else if (id !== undefined)
+            url_ += "id=" + encodeURIComponent("" + id) + "&";
+        if (publish === null)
+            throw new Error("The parameter 'publish' cannot be null.");
+        else if (publish !== undefined)
+            url_ += "publish=" + encodeURIComponent("" + publish) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+            }
+        };
+
+        return this.transformOptions(options_).then(transformedOptions_ => {
+            return this.http.fetch(url_, transformedOptions_);
+        }).then((_response: Response) => {
+            return this.processPublishing(_response);
+        });
+    }
+
+    protected processPublishing(response: Response): Promise<void> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            return;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * @param id (optional) 
+     * @return OK
+     */
+    publishStatus(id?: string | undefined): Promise<FilePublishStatus> {
+        let url_ = this.baseUrl + "/api/page-builder-pages/grouped/publish-status?";
+        if (id === null)
+            throw new Error("The parameter 'id' cannot be null.");
+        else if (id !== undefined)
+            url_ += "id=" + encodeURIComponent("" + id) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "text/plain"
+            }
+        };
+
+        return this.transformOptions(options_).then(transformedOptions_ => {
+            return this.http.fetch(url_, transformedOptions_);
+        }).then((_response: Response) => {
+            return this.processPublishStatus(_response);
+        });
+    }
+
+    protected processPublishStatus(response: Response): Promise<FilePublishStatus> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = FilePublishStatus.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<FilePublishStatus>(null as any);
+    }
+
+    /**
+     * @param body (optional) 
+     * @return OK
+     */
     search(body?: PageBuilderPageSearchCriteria | undefined): Promise<PageBuilderPageSearchResult> {
         let url_ = this.baseUrl + "/api/page-builder-pages/search";
         url_ = url_.replace(/[?&]$/, "");
@@ -780,6 +1135,198 @@ export class PageBuilderPageClient extends AuthApiBase {
     }
 }
 
+export class FilePublishStatus implements IFilePublishStatus {
+    published?: boolean;
+    hasChanges?: boolean;
+
+    constructor(data?: IFilePublishStatus) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.published = _data["published"];
+            this.hasChanges = _data["hasChanges"];
+        }
+    }
+
+    static fromJS(data: any): FilePublishStatus {
+        data = typeof data === 'object' ? data : {};
+        let result = new FilePublishStatus();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["published"] = this.published;
+        data["hasChanges"] = this.hasChanges;
+        return data;
+    }
+}
+
+export interface IFilePublishStatus {
+    published?: boolean;
+    hasChanges?: boolean;
+}
+
+export class GroupedPageBuilderPage implements IGroupedPageBuilderPage {
+    storeId?: string | undefined;
+    cultureName?: string | undefined;
+    name?: string | undefined;
+    permalink?: string | undefined;
+    hasChanges?: boolean;
+    status?: string | undefined;
+    pageIds?: string[] | undefined;
+    pages?: PageBuilderPage[] | undefined;
+    readonly pageContent?: string | undefined;
+    createdDate?: Date;
+    modifiedDate?: Date | undefined;
+    createdBy?: string | undefined;
+    modifiedBy?: string | undefined;
+    id?: string | undefined;
+
+    constructor(data?: IGroupedPageBuilderPage) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.storeId = _data["storeId"];
+            this.cultureName = _data["cultureName"];
+            this.name = _data["name"];
+            this.permalink = _data["permalink"];
+            this.hasChanges = _data["hasChanges"];
+            this.status = _data["status"];
+            if (Array.isArray(_data["pageIds"])) {
+                this.pageIds = [] as any;
+                for (let item of _data["pageIds"])
+                    this.pageIds!.push(item);
+            }
+            if (Array.isArray(_data["pages"])) {
+                this.pages = [] as any;
+                for (let item of _data["pages"])
+                    this.pages!.push(PageBuilderPage.fromJS(item));
+            }
+            (<any>this).pageContent = _data["pageContent"];
+            this.createdDate = _data["createdDate"] ? new Date(_data["createdDate"].toString()) : <any>undefined;
+            this.modifiedDate = _data["modifiedDate"] ? new Date(_data["modifiedDate"].toString()) : <any>undefined;
+            this.createdBy = _data["createdBy"];
+            this.modifiedBy = _data["modifiedBy"];
+            this.id = _data["id"];
+        }
+    }
+
+    static fromJS(data: any): GroupedPageBuilderPage {
+        data = typeof data === 'object' ? data : {};
+        let result = new GroupedPageBuilderPage();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["storeId"] = this.storeId;
+        data["cultureName"] = this.cultureName;
+        data["name"] = this.name;
+        data["permalink"] = this.permalink;
+        data["hasChanges"] = this.hasChanges;
+        data["status"] = this.status;
+        if (Array.isArray(this.pageIds)) {
+            data["pageIds"] = [];
+            for (let item of this.pageIds)
+                data["pageIds"].push(item);
+        }
+        if (Array.isArray(this.pages)) {
+            data["pages"] = [];
+            for (let item of this.pages)
+                data["pages"].push(item.toJSON());
+        }
+        data["pageContent"] = this.pageContent;
+        data["createdDate"] = this.createdDate ? this.createdDate.toISOString() : <any>undefined;
+        data["modifiedDate"] = this.modifiedDate ? this.modifiedDate.toISOString() : <any>undefined;
+        data["createdBy"] = this.createdBy;
+        data["modifiedBy"] = this.modifiedBy;
+        data["id"] = this.id;
+        return data;
+    }
+}
+
+export interface IGroupedPageBuilderPage {
+    storeId?: string | undefined;
+    cultureName?: string | undefined;
+    name?: string | undefined;
+    permalink?: string | undefined;
+    hasChanges?: boolean;
+    status?: string | undefined;
+    pageIds?: string[] | undefined;
+    pages?: PageBuilderPage[] | undefined;
+    pageContent?: string | undefined;
+    createdDate?: Date;
+    modifiedDate?: Date | undefined;
+    createdBy?: string | undefined;
+    modifiedBy?: string | undefined;
+    id?: string | undefined;
+}
+
+export class GroupedPageBuilderPageSearchResult implements IGroupedPageBuilderPageSearchResult {
+    totalCount?: number;
+    results?: GroupedPageBuilderPage[] | undefined;
+
+    constructor(data?: IGroupedPageBuilderPageSearchResult) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.totalCount = _data["totalCount"];
+            if (Array.isArray(_data["results"])) {
+                this.results = [] as any;
+                for (let item of _data["results"])
+                    this.results!.push(GroupedPageBuilderPage.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): GroupedPageBuilderPageSearchResult {
+        data = typeof data === 'object' ? data : {};
+        let result = new GroupedPageBuilderPageSearchResult();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["totalCount"] = this.totalCount;
+        if (Array.isArray(this.results)) {
+            data["results"] = [];
+            for (let item of this.results)
+                data["results"].push(item.toJSON());
+        }
+        return data;
+    }
+}
+
+export interface IGroupedPageBuilderPageSearchResult {
+    totalCount?: number;
+    results?: GroupedPageBuilderPage[] | undefined;
+}
+
 export class PageBuilderPage implements IPageBuilderPage {
     storeId?: string | undefined;
     cultureName?: string | undefined;
@@ -787,6 +1334,7 @@ export class PageBuilderPage implements IPageBuilderPage {
     permalink?: string | undefined;
     status?: string | undefined;
     pageContent?: string | undefined;
+    readonly groupKey?: string | undefined;
     createdDate?: Date;
     modifiedDate?: Date | undefined;
     createdBy?: string | undefined;
@@ -810,6 +1358,7 @@ export class PageBuilderPage implements IPageBuilderPage {
             this.permalink = _data["permalink"];
             this.status = _data["status"];
             this.pageContent = _data["pageContent"];
+            (<any>this).groupKey = _data["groupKey"];
             this.createdDate = _data["createdDate"] ? new Date(_data["createdDate"].toString()) : <any>undefined;
             this.modifiedDate = _data["modifiedDate"] ? new Date(_data["modifiedDate"].toString()) : <any>undefined;
             this.createdBy = _data["createdBy"];
@@ -833,6 +1382,7 @@ export class PageBuilderPage implements IPageBuilderPage {
         data["permalink"] = this.permalink;
         data["status"] = this.status;
         data["pageContent"] = this.pageContent;
+        data["groupKey"] = this.groupKey;
         data["createdDate"] = this.createdDate ? this.createdDate.toISOString() : <any>undefined;
         data["modifiedDate"] = this.modifiedDate ? this.modifiedDate.toISOString() : <any>undefined;
         data["createdBy"] = this.createdBy;
@@ -849,6 +1399,7 @@ export interface IPageBuilderPage {
     permalink?: string | undefined;
     status?: string | undefined;
     pageContent?: string | undefined;
+    groupKey?: string | undefined;
     createdDate?: Date;
     modifiedDate?: Date | undefined;
     createdBy?: string | undefined;

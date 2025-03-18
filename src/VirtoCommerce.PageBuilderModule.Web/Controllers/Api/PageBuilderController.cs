@@ -15,6 +15,7 @@ using VirtoCommerce.ContentModule.Core.Model;
 using VirtoCommerce.ContentModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
+using VirtoCommerce.PageBuilderModule.Data.Services;
 using VirtoCommerce.PageBuilderModule.Web.Events;
 using VirtoCommerce.PageBuilderModule.Web.Models;
 using VirtoCommerce.Platform.Core.Common;
@@ -32,7 +33,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             IOptions<ContentOptions> options,
             IPublishingService publishingService,
             IEventPublisher eventPublisher,
-            IPageBuilderPageService pageBuilderPageService)
+            IPageBuilderPageService pageBuilderPageService,
+            IGroupedPageService groupedPageService)
         : Controller
     {
         private readonly ContentOptions _options = options.Value;
@@ -62,6 +64,12 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         {
             if (pageId != null)
             {
+                var groupedPage = await groupedPageService.GetGroupedAsync(pageId);
+                if (groupedPage != null)
+                {
+                    return Ok(groupedPage);
+                }
+
                 var page = await pageBuilderPageService.GetByIdAsync(pageId);
                 if (page != null)
                 {
@@ -203,19 +211,40 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 {
                     if (file.Content != null)
                     {
-                        var page = file.Content.ToObject<PageModel>();
-
-                        var pageModel = new PageBuilderPage
+                        var groupedPage = await groupedPageService.GetGroupedAsync(file.PageId);
+                        if (groupedPage != null)
                         {
-                            Id = file.PageId,
-                            Name = page.Settings.Name,
-                            Permalink = page.Settings.Permalink,
-                            Status = page.Settings.Status,
-                            StoreId = page.Settings.StoreId,
-                            PageContent = JsonConvert.SerializeObject(page.Content, Formatting.Indented),
-                        };
+                            var page = file.Content.ToObject<PageModel>();
 
-                        await pageBuilderPageService.SaveChangesAsync([pageModel]);
+                            var draftPage = groupedPage.Pages.FirstOrDefault(x => x.Status == "Draft");
+                            if (draftPage == null)
+                            {
+                                draftPage = new PageBuilderPage
+                                {
+                                    Name = groupedPage.Name,
+                                    Permalink = groupedPage.Permalink,
+                                    CultureName = groupedPage.CultureName,
+                                    Status = "Draft",
+                                    StoreId = groupedPage.StoreId,
+                                };
+                            }
+
+                            draftPage.PageContent = JsonConvert.SerializeObject(page.Content, Formatting.Indented);
+                            await pageBuilderPageService.SaveChangesAsync([draftPage]);
+                        }
+
+                        //var page = file.Content.ToObject<PageModel>();
+                        //var pageModel = new PageBuilderPage
+                        //{
+                        //    Id = file.PageId,
+                        //    Name = page.Settings.Name,
+                        //    Permalink = page.Settings.Permalink,
+                        //    Status = page.Settings.Status,
+                        //    StoreId = page.Settings.StoreId,
+                        //    PageContent = JsonConvert.SerializeObject(page.Content, Formatting.Indented),
+                        //};
+
+                        //await pageBuilderPageService.SaveChangesAsync([pageModel]);
                     }
                 }
                 else

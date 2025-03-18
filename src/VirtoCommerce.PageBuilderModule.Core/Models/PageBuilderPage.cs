@@ -16,6 +16,8 @@ public class PageBuilderPage : AuditableEntity, ICloneable
 
     public string PageContent { get; set; }
 
+    public string GroupKey => $"{StoreId}:{Name}:{CultureName}:{Permalink}";
+
     public object Clone()
     {
         return MemberwiseClone();

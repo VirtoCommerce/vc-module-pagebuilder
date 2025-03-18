@@ -4,13 +4,16 @@ import { useI18n } from "vue-i18n";
 
 import {
   PageBuilderPageClient,
-  PageBuilderPage,
+  //PageBuilderPage,
+  GroupedPageBuilderPage,
 } from "../../../../api_client/virtocommerce.pagebuildermodule";
 
 import useCultureNames from "../useCultureNames";
+import useUrlParams from "../useUrlParams";
 
 const { getApiClient } = useApiClient(PageBuilderPageClient);
 const { getCultureNames } = useCultureNames();
+const { storeId } = useUrlParams();
 
 export interface DynamicItemScope extends DetailsBaseBladeScope {
   toolbarOverrides: {
@@ -21,26 +24,28 @@ export interface DynamicItemScope extends DetailsBaseBladeScope {
   };
 }
 
-export default (args: DetailsComposableArgs<{ options: { sourceMessage: PageBuilderPage } }>) => {
+export default (args: DetailsComposableArgs<{ options: { sourceMessage: GroupedPageBuilderPage } }>) => {
   let isNew = !args.props.param;
+  let storeId = args.props.options.storeId;
   let newStatus: string | undefined;
 
   const detailsFactory = useDetailsFactory({
     load: async (page) => {
       if (page?.id) {
-        return (await getApiClient()).get(page.id);
+        return (await getApiClient()).getGrouped(page.id);
       }
     },
     saveChanges: async (page) => {
       const apiClient = await getApiClient();
       if (isNew) {
         page.status = "Draft";
-        return apiClient.create(page);
+        page.storeId = storeId as string | undefined;
+        return apiClient.createGrouped(page);
       } else {
         if (newStatus) {
           page.status = newStatus;
         }
-        return apiClient.update(page);
+        return apiClient.updateGrouped(page);
       }
     },
     remove: async ({ id }) => {
@@ -73,9 +78,6 @@ export default (args: DetailsComposableArgs<{ options: { sourceMessage: PageBuil
           let contentType = "pages";
           let pageId = item.value?.id;
           let storeId = item.value?.storeId;
-          let cultureName = item.value?.cultureName;
-          let permalink = item.value?.permalink;
-          let status = item.value?.status;
 
           if (pageId && storeId) {
             window.open(designerUrl + '?storeId=' + storeId + '#/pages?type=' + contentType + '&pageId=' + pageId, '_blank');
@@ -113,7 +115,7 @@ export default (args: DetailsComposableArgs<{ options: { sourceMessage: PageBuil
     return isNew
       ? item.value?.name
         ? item.value?.name + t("PAGE_BUILDER.PAGES.DETAILS.TITLE.DETAILS")
-        : t("PAGE_BUILDER.PAGES.DETAILS.TITLE.LOADING")
+        : t("PAGE_BUILDER.PAGES.DETAILS.TITLE.NEW")
       : item.value?.name + t("PAGE_BUILDER.PAGES.DETAILS.TITLE.DETAILS");
   });
 
@@ -121,7 +123,7 @@ export default (args: DetailsComposableArgs<{ options: { sourceMessage: PageBuil
     () => args?.mounted.value,
     async () => {
       if (isNew) {
-        const page = new PageBuilderPage();
+        const page = new GroupedPageBuilderPage();
         item.value = reactive(page);
         validationState.value.resetModified(item.value, true);
 
