@@ -49,19 +49,31 @@ public class PageBuilderPageController : Controller
     [Authorize(ModuleConstants.Security.Permissions.Read)]
     public async Task<ActionResult<GroupedPageBuilderPage>> GetGrouped([FromQuery] string id, [FromQuery] string responseGroup = null)
     {
-        var model = await _groupedPageService.GetGroupedAsync(id);
-        return Ok(model);
+        var groupedPage = await _groupedPageService.GetGroupedAsync(id);
+        return Ok(groupedPage);
     }
 
     [HttpPut("grouped")]
     [Authorize(ModuleConstants.Security.Permissions.Update)]
     public async Task<ActionResult<GroupedPageBuilderPage>> UpdateGrouped([FromBody] GroupedPageBuilderPage model)
     {
-        //await _crudService.SaveChangesAsync([model]);
+        // get the existing grouped page for pages Ids
+        var groupedPage = await _groupedPageService.GetGroupedAsync(model.Id);
 
-        var result = await Task.FromResult(model);
+        if (groupedPage != null)
+        {
+            foreach (var page in groupedPage.Pages)
+            {
+                page.Name = model.Name;
+                page.Permalink = model.Permalink;
+                page.Status = model.Status;
+                page.CultureName = model.CultureName;
+            }
+        }
 
-        return Ok(model);
+        await _crudService.SaveChangesAsync(groupedPage.Pages.ToArray());
+
+        return Ok(groupedPage);
     }
 
     [HttpPost("grouped")]

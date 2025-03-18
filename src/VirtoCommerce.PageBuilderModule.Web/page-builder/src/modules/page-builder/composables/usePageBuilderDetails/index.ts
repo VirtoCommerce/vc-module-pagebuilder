@@ -45,7 +45,12 @@ export default (args: DetailsComposableArgs<{ options: { sourceMessage: GroupedP
         if (newStatus) {
           page.status = newStatus;
         }
-        return apiClient.updateGrouped(page);
+
+        const clonedPage = new GroupedPageBuilderPage();
+        Object.assign(clonedPage, page);
+        // Page Id will change after update since it's a composite key so we need to preemptively update it here 
+        page.id = `${page.storeId}:${page.name}:${page.cultureName}:${page.permalink}`;
+        return apiClient.updateGrouped(clonedPage);
       }
     },
     remove: async ({ id }) => {
