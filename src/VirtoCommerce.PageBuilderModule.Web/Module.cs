@@ -61,6 +61,8 @@ namespace VirtoCommerce.PageBuilderModule.Web
             serviceCollection.AddTransient<IPageBuilderPageService, PageBuilderPageService>();
             serviceCollection.AddTransient<IPageBuilderPageSearchService, PageBuilderPageSearchService>();
 
+            serviceCollection.AddTransient<PageBuilderPageChangedEventHandler>();
+
             serviceCollection.AddTransient<IGroupedPageService, GroupedPageService>();
 
             var isFullTextSearchEnabled = Configuration.IsContentFullTextSearchEnabled();
