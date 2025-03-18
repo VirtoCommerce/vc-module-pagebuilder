@@ -9,13 +9,16 @@ using Microsoft.Extensions.FileProviders;
 using VirtoCommerce.ContentModule.Core.Extensions;
 using VirtoCommerce.ContentModule.Core.Search;
 using VirtoCommerce.PageBuilderModule.Core;
+using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.Services;
+using VirtoCommerce.PageBuilderModule.Data.Handlers;
 using VirtoCommerce.PageBuilderModule.Data.MySql;
 using VirtoCommerce.PageBuilderModule.Data.PostgreSql;
 using VirtoCommerce.PageBuilderModule.Data.Repositories;
 using VirtoCommerce.PageBuilderModule.Data.Search;
 using VirtoCommerce.PageBuilderModule.Data.Services;
 using VirtoCommerce.PageBuilderModule.Data.SqlServer;
+using VirtoCommerce.Platform.Core.Events;
 using VirtoCommerce.Platform.Core.Modularity;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.Platform.Core.Settings;
@@ -86,6 +89,8 @@ namespace VirtoCommerce.PageBuilderModule.Web
                 contentItemTypeRegistrar.RegisterContentItemType(".page", serviceProvider.GetService<PageBuilderContentItemBuilder>);
             }
 
+            appBuilder.RegisterEventHandler<PageBuilderPageChangedEvent, PageBuilderPageChangedEventHandler>();
+
             // Apply migrations
             using var serviceScope = serviceProvider.CreateScope();
             using var dbContext = serviceScope.ServiceProvider.GetRequiredService<PageBuilderModuleDbContext>();
@@ -105,7 +110,8 @@ namespace VirtoCommerce.PageBuilderModule.Web
                     FileProvider = new PhysicalFileProvider(pageBuilderAppPath),
                     RequestPath = new PathString($"/apps/page-builder")
                 });
-            };
+            }
+            ;
         }
 
         public void Uninstall()
