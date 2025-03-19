@@ -17,6 +17,8 @@ const { storeId } = useUrlParams();
 
 export interface DynamicItemScope extends DetailsBaseBladeScope {
   toolbarOverrides: {
+    saveChanges: IBladeToolbar;
+    remove: IBladeToolbar;
     previewPage: IBladeToolbar;
     openPageDesigner: IBladeToolbar;
     publishPage: IBladeToolbar;
@@ -64,6 +66,13 @@ export default (args: DetailsComposableArgs<{ options: { sourceMessage: GroupedP
 
   const scope: DynamicItemScope = {
     toolbarOverrides: {
+      saveChanges: {
+        disabled: computed(() => !isEditable()),
+      },
+      remove: {
+        isVisible: computed(() => !isNew),
+        disabled: computed(() => !isEditable()),
+      },
       previewPage: {
         clickHandler: async () => {
           throw new Error("Function not implemented.");
@@ -92,27 +101,32 @@ export default (args: DetailsComposableArgs<{ options: { sourceMessage: GroupedP
           }
         },
         isVisible: computed(() => !isNew),
-        disabled: computed(() => !validationState.value.valid),
+        disabled: computed(() => !validationState.value.valid || !isEditable()),
       },
       publishPage: {
         clickHandler: async () => {
           throw new Error("Function not implemented.");
         },
         isVisible: computed(() => !isNew && item.value?.status != "Published"),
-        disabled: computed(() => !validationState.value.valid),
+        disabled: computed(() => !validationState.value.valid || !isEditable()),
       },
       unpublishPage: {
         clickHandler: async () => {
           throw new Error("Function not implemented.");
         },
         isVisible: computed(() => !isNew && item.value?.status == "Published"),
-        disabled: computed(() => !validationState.value.valid),
+        disabled: computed(() => !validationState.value.valid || !isEditable()),
       },
     },
     loadCultureNames: async() => {
       return getCultureNames();
-    }
+    },
+    isReadOnly: () => !isEditable(),
   };
+
+  function isEditable(): boolean {
+    return item.value != null && item.value.status !== "Archived";
+  }
 
   const { t } = useI18n({ useScope: "global" });
 

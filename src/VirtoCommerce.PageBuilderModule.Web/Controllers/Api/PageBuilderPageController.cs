@@ -62,16 +62,20 @@ public class PageBuilderPageController : Controller
 
         if (groupedPage != null)
         {
+            if (groupedPage.Status == Archived)
+            {
+                return BadRequest("Archived page cannot be updated.");
+            }
+
             foreach (var page in groupedPage.Pages)
             {
                 page.Name = model.Name;
                 page.Permalink = model.Permalink;
-                page.Status = model.Status;
                 page.CultureName = model.CultureName;
             }
-        }
 
-        await _crudService.SaveChangesAsync(groupedPage.Pages.ToArray());
+            await _crudService.SaveChangesAsync(groupedPage.Pages.ToArray());
+        }
 
         return Ok(groupedPage);
     }

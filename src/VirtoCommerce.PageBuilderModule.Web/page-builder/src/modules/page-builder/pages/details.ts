@@ -59,6 +59,7 @@ export const details: DynamicDetailsSchema = {
           label: "PAGE_BUILDER.PAGES.DETAILS.FIELDS.NAME",
           rules: { required: true },
           property: "name",
+          disabled: { method: "isReadOnly" },
         },
         {
           id: "cultureName",
@@ -76,6 +77,7 @@ export const details: DynamicDetailsSchema = {
           label: "PAGE_BUILDER.PAGES.DETAILS.FIELDS.PERMALINK",
           rules: { required: false },
           property: "permalink",
+          disabled: { method: "isReadOnly" },
         },
       ],
     },
