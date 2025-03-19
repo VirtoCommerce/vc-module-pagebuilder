@@ -14,20 +14,20 @@ export const details: DynamicDetailsSchema = {
         title: "PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.SAVE",
         method: "saveChanges",
       },
-      /*
       {
         id: "delete",
         icon: "fas fa-trash",
         title: "PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.DELETE",
         method: "remove",
       },
-      */
+      /*
       {
         id: "previewPage",
         icon: "fas fa-eye",
         title: "PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.PREVIEW",
         method: "previewPage",
       },
+      */
       {
         id: "openPageDesigner",
         icon: "fas fa-crop",

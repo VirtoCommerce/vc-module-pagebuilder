@@ -1,10 +1,16 @@
-using System.Collections.Generic;
 using VirtoCommerce.Platform.Core.Settings;
 
 namespace VirtoCommerce.PageBuilderModule.Core
 {
     public static class ModuleConstants
     {
+        public static class PageStatuses
+        {
+            public const string Draft = "Draft";
+            public const string Published = "Published";
+            public const string Archived = "Archived";
+        }
+
         public static class Security
         {
             public static class Permissions

@@ -8,7 +8,7 @@
         "TOOLBAR": {
           "ADD": "Add",
           "REFRESH": "Refresh",
-          "REMOVE": "Remove"
+          "REMOVE": "Archive"
         },
         "SEARCH": {
           "PLACEHOLDER": "Search keywords"
@@ -46,7 +46,7 @@
         },
         "TOOLBAR": {
           "SAVE": "Save",
-          "DELETE": "Delete",
+          "DELETE": "Archive",
           "PREVIEW": "Preview",
           "DESIGNER": "Open designer",
           "PUBLISH": "Publish",
@@ -61,7 +61,12 @@
         }
       },
       "ALERTS": {
-        "CLOSE_CONFIRMATION": "You have unsaved changes. Close anyway?"
+        "CLOSE_CONFIRMATION": "You have unsaved changes. Close anyway?",
+        "DELETE": "Are you sure you want to archive this page?",
+        "DELETE_SELECTED_CONFIRMATION": {
+          "MESSAGE": "Are you sure you want to archive {count} selected pages?",
+          "ALL": "all {totalCount}"
+        }
       }
     },
     "STATUS": {

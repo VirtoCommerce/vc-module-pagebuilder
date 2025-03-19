@@ -3,6 +3,7 @@ using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.Pages.Core.Events;
 using VirtoCommerce.Pages.Core.Models;
 using VirtoCommerce.Platform.Core.Common;
+using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Extensions;
 
@@ -14,17 +15,14 @@ static class PagesExtensions
         {
             return PageOperation.Archive;
         }
-        switch (page.Status)
-        {
-            case "Published":
-                return PageOperation.Publish;
-            case "Archived":
-                return PageOperation.Archive;
-            case "Draft":
-                return PageOperation.Unpublish;
-        }
 
-        return PageOperation.Unknown;
+        return page.Status switch
+        {
+            Published => PageOperation.Publish,
+            Archived => PageOperation.Archive,
+            Draft => PageOperation.Unpublish,
+            _ => PageOperation.Unknown,
+        };
     }
 
     public static PageDocument ToPageDocument(this PageBuilderPage page)

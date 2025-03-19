@@ -8,15 +8,10 @@ using VirtoCommerce.Platform.Caching;
 using VirtoCommerce.Platform.Core.Caching;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Data.Infrastructure;
+using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Services
 {
-    public interface IGroupedPageService
-    {
-        Task<GroupedPageBuilderPageSearchResult> SearchAsync(PageBuilderPageSearchCriteria criteria);
-        Task<GroupedPageBuilderPage> GetGroupedAsync(string id);
-    }
-
     public class GroupedPageService : IGroupedPageService
     {
         private readonly Func<IPageBuilderModuleRepository> _repositoryFactory;
@@ -35,18 +30,23 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
 
         public async Task<GroupedPageBuilderPage> GetGroupedAsync(string id)
         {
-            GroupedPageBuilderPage result = null;
+            return (await GetGroupedAsync([id])).FirstOrDefault();
+        }
+
+        public async Task<IList<GroupedPageBuilderPage>> GetGroupedAsync(string[] id)
+        {
+            List<GroupedPageBuilderPage> result = [];
 
             using (var repository = _repositoryFactory())
             {
-                var entities = await LoadEntitiesAsync(repository, [id]);
+                var entities = await LoadEntitiesAsync(repository, id);
 
-                var entity = entities.FirstOrDefault();
-
-                if (entity != null)
+                foreach (var entity in entities)
                 {
-                    result = entity.ToModel(AbstractTypeFactory<GroupedPageBuilderPage>.TryCreateInstance());
-                    result.Pages = await _crudService.GetNoCloneAsync(entity.PagesIds);
+                    var model = entity.ToModel(AbstractTypeFactory<GroupedPageBuilderPage>.TryCreateInstance());
+                    model.Pages = await _crudService.GetNoCloneAsync(entity.PagesIds);
+
+                    result.Add(model);
                 }
             }
 
@@ -67,8 +67,8 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
                     Name = g.Key.Name,
                     CultureName = g.Key.CultureName,
                     Permalink = g.Key.Permalink,
-                    Status = g.Any(p => p.Status == "Archived") ? "Archived" : g.Any(p => p.Status == "Published") ? "Published" : "Draft",
-                    HasChanges = g.Any(p => p.Status == "Draft"), // && g.Any(p => p.Status == "Published") 
+                    Status = g.Any(p => p.Status == Archived) ? Archived : g.Any(p => p.Status == Published) ? Published : Draft,
+                    HasChanges = g.Any(p => p.Status == Draft), // && g.Any(p => p.Status == Published) 
                     PagesIds = g.Select(x => x.Id).ToList(),
                     CreatedBy = g.First().CreatedBy,
                     ModifiedBy = g.First().ModifiedBy,
@@ -129,8 +129,8 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
                     Name = g.Key.Name,
                     CultureName = g.Key.CultureName,
                     Permalink = g.Key.Permalink,
-                    Status = g.Any(p => p.Status == "Archived") ? "Archived" : g.Any(p => p.Status == "Published") ? "Published" : "Draft",
-                    HasChanges = g.Any(p => p.Status == "Published") && g.Any(p => p.Status == "Draft"),
+                    Status = g.Any(p => p.Status == Archived) ? Archived : g.Any(p => p.Status == Published) ? Published : Draft,
+                    HasChanges = g.Any(p => p.Status == Draft), // && g.Any(p => p.Status == Draft),
                     PagesIds = g.Select(x => x.Id).ToList(),
                     CreatedBy = g.First().CreatedBy,
                     ModifiedBy = g.First().ModifiedBy,

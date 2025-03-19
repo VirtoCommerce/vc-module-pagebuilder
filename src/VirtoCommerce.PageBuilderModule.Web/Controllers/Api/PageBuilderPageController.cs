@@ -8,10 +8,10 @@ using VirtoCommerce.ContentModule.Core.Model;
 using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
-using VirtoCommerce.PageBuilderModule.Data.Services;
 using VirtoCommerce.Platform.Core;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Settings;
+using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 
 namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 
@@ -87,11 +87,34 @@ public class PageBuilderPageController : Controller
             StoreId = model.StoreId,
             CultureName = model.CultureName,
             Permalink = model.Permalink,
-            Status = "Draft", // always create a new page in draft status
+            Status = Draft, // always create a new page in draft status
         };
 
         await _crudService.SaveChangesAsync([page]);
         return await GetGrouped(page.GroupKey);
+    }
+
+
+    [HttpPost("grouped/archive")]
+    [Authorize(ModuleConstants.Security.Permissions.Delete)]
+    [ProducesResponseType(typeof(void), StatusCodes.Status204NoContent)]
+    public async Task<ActionResult<GroupedPageBuilderPage>> ArchiveGrouped([FromQuery] string[] ids)
+    {
+        var groupedPages = await _groupedPageService.GetGroupedAsync(ids);
+
+        var pagesToSave = new List<PageBuilderPage>();
+        foreach (var groupedPage in groupedPages)
+        {
+            foreach (var page in groupedPage.Pages)
+            {
+                page.Status = Archived;
+                pagesToSave.Add(page);
+            }
+        }
+
+        await _crudService.SaveChangesAsync(pagesToSave.ToArray());
+
+        return NoContent();
     }
 
     [HttpPost]
@@ -105,26 +128,26 @@ public class PageBuilderPageController : Controller
 
         if (publish)
         {
-            var pageToPublish = groupedPage.Pages.FirstOrDefault(x => x.Status == "Draft");
+            var pageToPublish = groupedPage.Pages.FirstOrDefault(x => x.Status == Draft);
             if (pageToPublish == null)
             {
                 return BadRequest("Draft page not found.");
             }
 
-            pageToPublish.Status = "Published";
+            pageToPublish.Status = Published;
             pagesToSave.Add(pageToPublish);
 
             pagesToDelete = groupedPage.PageIds.Except(new[] { pageToPublish.Id }).ToList();
         }
         else
         {
-            var pageToUnpublish = groupedPage.Pages.FirstOrDefault(x => x.Status == "Published");
+            var pageToUnpublish = groupedPage.Pages.FirstOrDefault(x => x.Status == Published);
             if (pageToUnpublish == null)
             {
                 return BadRequest("Published page not found.");
             }
 
-            pageToUnpublish.Status = "Draft";
+            pageToUnpublish.Status = Draft;
             pagesToSave.Add(pageToUnpublish);
         }
 
@@ -142,7 +165,7 @@ public class PageBuilderPageController : Controller
 
         var result = new FilePublishStatus
         {
-            Published = groupedPage.Status == "Published",
+            Published = groupedPage.Status == Published,
             HasChanges = groupedPage.HasChanges,
         };
 
@@ -164,7 +187,7 @@ public class PageBuilderPageController : Controller
     public Task<ActionResult<PageBuilderPage>> Create([FromBody] PageBuilderPage model)
     {
         model.Id = null;
-        model.Status = "Draft"; // always create a new page in draft status
+        model.Status = Draft; // always create a new page in draft status
         return Update(model);
     }
 

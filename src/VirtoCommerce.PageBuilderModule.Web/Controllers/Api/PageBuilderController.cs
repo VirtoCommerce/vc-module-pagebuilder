@@ -15,13 +15,13 @@ using VirtoCommerce.ContentModule.Core.Model;
 using VirtoCommerce.ContentModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
-using VirtoCommerce.PageBuilderModule.Data.Services;
 using VirtoCommerce.PageBuilderModule.Web.Events;
 using VirtoCommerce.PageBuilderModule.Web.Models;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Events;
 using VirtoCommerce.StoreModule.Core.Model;
 using VirtoCommerce.StoreModule.Core.Services;
+using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 
 namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 {
@@ -216,7 +216,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                         {
                             var page = file.Content.ToObject<PageModel>();
 
-                            var draftPage = groupedPage.Pages.FirstOrDefault(x => x.Status == "Draft");
+                            var draftPage = groupedPage.Pages.FirstOrDefault(x => x.Status == Draft);
                             if (draftPage == null)
                             {
                                 draftPage = new PageBuilderPage
@@ -224,7 +224,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                                     Name = groupedPage.Name,
                                     Permalink = groupedPage.Permalink,
                                     CultureName = groupedPage.CultureName,
-                                    Status = "Draft",
+                                    Status = Draft,
                                     StoreId = groupedPage.StoreId,
                                 };
                             }
@@ -232,19 +232,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                             draftPage.PageContent = JsonConvert.SerializeObject(page.Content, Formatting.Indented);
                             await pageBuilderPageService.SaveChangesAsync([draftPage]);
                         }
-
-                        //var page = file.Content.ToObject<PageModel>();
-                        //var pageModel = new PageBuilderPage
-                        //{
-                        //    Id = file.PageId,
-                        //    Name = page.Settings.Name,
-                        //    Permalink = page.Settings.Permalink,
-                        //    Status = page.Settings.Status,
-                        //    StoreId = page.Settings.StoreId,
-                        //    PageContent = JsonConvert.SerializeObject(page.Content, Formatting.Indented),
-                        //};
-
-                        //await pageBuilderPageService.SaveChangesAsync([pageModel]);
                     }
                 }
                 else

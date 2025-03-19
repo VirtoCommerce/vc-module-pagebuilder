@@ -55,7 +55,7 @@ export default (args: DetailsComposableArgs<{ options: { sourceMessage: GroupedP
     },
     remove: async ({ id }) => {
       if (id) {
-        return (await getApiClient()).delete([id]);
+        return (await getApiClient()).archiveGrouped([id]);
       }
     },
   });

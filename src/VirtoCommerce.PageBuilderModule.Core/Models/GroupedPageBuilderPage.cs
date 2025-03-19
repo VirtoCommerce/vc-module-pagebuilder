@@ -1,4 +1,5 @@
 using VirtoCommerce.Platform.Core.Common;
+using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 
 namespace VirtoCommerce.PageBuilderModule.Core.Models;
 
@@ -29,7 +30,7 @@ public class GroupedPageBuilderPage : AuditableEntity, ICloneable
                 return null;
             }
 
-            var draft = Pages.FirstOrDefault(x => x.Status == "Draft");
+            var draft = Pages.FirstOrDefault(x => x.Status == Draft);
             if (draft != null)
             {
                 return draft.PageContent;
