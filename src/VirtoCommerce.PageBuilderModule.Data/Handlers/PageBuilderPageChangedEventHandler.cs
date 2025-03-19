@@ -13,8 +13,8 @@ public class PageBuilderPageChangedEventHandler(IEventPublisher eventPublisher) 
     {
         var events = message.ChangedEntries.Select(x =>
         {
-            var entry = (x.NewEntry ?? x.OldEntry);
-            var pageOperation = x.EntryState.ToPageOperation(x.NewEntry);
+            var entry = x.NewEntry ?? x.OldEntry;
+            var pageOperation = x.EntryState.ToPageOperation(entry);
 
             var pageDocument = entry.ToPageDocument();
             // todo: move to pages module

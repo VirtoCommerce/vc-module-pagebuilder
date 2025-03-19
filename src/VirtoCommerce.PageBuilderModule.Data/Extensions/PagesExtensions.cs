@@ -1,3 +1,4 @@
+using Newtonsoft.Json.Linq;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.Pages.Core.Events;
 using VirtoCommerce.Pages.Core.Models;
@@ -12,10 +13,11 @@ static class PagesExtensions
         switch (state)
         {
             case EntryState.Deleted:
-                return PageOperation.Delete;
+                return PageOperation.Archive;
             case EntryState.Added:
-                return PageOperation.Publish;
             case EntryState.Modified:
+            case EntryState.Detached:
+            case EntryState.Unchanged:
                 // todo: use constants for status
                 return page.Status == "Published" ? PageOperation.Publish : PageOperation.Unpublish;
         }
@@ -26,34 +28,48 @@ static class PagesExtensions
     public static PageDocument ToPageDocument(this PageBuilderPage page)
     {
         var pageDocument = AbstractTypeFactory<PageDocument>.TryCreateInstance();
-        pageDocument.Content = page.PageContent;
         pageDocument.Id = page.Id;
         pageDocument.OuterId = page.Id;
+        pageDocument.StoreId = page.StoreId;
+        pageDocument.CultureName = page.CultureName;
         pageDocument.Permalink = page.Permalink;
-        pageDocument.MimeType = "application/json";
-        pageDocument.Source = "page-builder";
 
         pageDocument.CreatedBy = page.CreatedBy;
         pageDocument.CreatedDate = page.CreatedDate;
         pageDocument.ModifiedBy = page.ModifiedBy;
         pageDocument.ModifiedDate = page.ModifiedDate;
 
-        // todo: implement the rest properties
-        // almost every property can be in page settings
-
-        //pageDocument.UserGroups = GetQueryProperty("groupName")
-        //     ?.Split(',', StringSplitOptions.RemoveEmptyEntries)
-        //     .Select(x => x.Trim())
-        //     .ToArray();
-        //pageDocument.Title = GetDataProperty("title");
-        //pageDocument.Description = GetDataProperty("description");
-        //pageDocument.Visibility = string.Equals(GetQueryProperty("isAuthenticated"), "true", StringComparison.InvariantCultureIgnoreCase)
-        //    ? PageDocumentVisibility.Private
-        //    : PageDocumentVisibility.Public;
-        //pageDocument.StartDate = StartDate;
-        //pageDocument.EndDate = EndDate == DateTime.MinValue ? DateTime.MaxValue : EndDate;
-
+        pageDocument.Source = "page-builder";
+        pageDocument.MimeType = "application/json";
+        pageDocument.Content = page.PageContent;
+        pageDocument.Title = page.Name; // may be overridden by settings
+        GetDataFromSettings(page.PageContent, pageDocument);
         return pageDocument;
+    }
 
+    private static void GetDataFromSettings(string contentAsString, PageDocument pageDocument)
+    {
+        try
+        {
+            var content = JObject.Parse(contentAsString.IsNullOrEmpty() ? "{}" : contentAsString);
+            var settings = content["settings"];
+            pageDocument.Title = settings?.Value<string>("title") ?? pageDocument.Title;
+            pageDocument.Visibility = (settings?.Value<bool>("visibility") ?? true)
+                ? PageDocumentVisibility.Public
+                : PageDocumentVisibility.Private;
+            pageDocument.Title = settings?.Value<string>("description") ?? pageDocument.Title;
+
+            pageDocument.UserGroups = settings?.Value<string>("groupName")
+                 ?.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                 .Select(x => x.Trim())
+                 .ToArray();
+            // todo: check the type for data in page builder. it can be string or date
+            pageDocument.StartDate = settings?.Value<DateTime>("startDate");
+            pageDocument.EndDate = settings?.Value<DateTime>("endDate");
+        }
+        catch
+        {
+            // ignored
+        }
     }
 }
