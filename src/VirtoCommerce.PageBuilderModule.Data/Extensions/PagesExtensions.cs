@@ -10,16 +10,18 @@ static class PagesExtensions
 {
     public static PageOperation ToPageOperation(this EntryState state, PageBuilderPage page)
     {
-        switch (state)
+        if (state == EntryState.Deleted)
         {
-            case EntryState.Deleted:
+            return PageOperation.Archive;
+        }
+        switch (page.Status)
+        {
+            case "Published":
+                return PageOperation.Publish;
+            case "Archived":
                 return PageOperation.Archive;
-            case EntryState.Added:
-            case EntryState.Modified:
-            case EntryState.Detached:
-            case EntryState.Unchanged:
-                // todo: use constants for status
-                return page.Status == "Published" ? PageOperation.Publish : PageOperation.Unpublish;
+            case "Draft":
+                return PageOperation.Unpublish;
         }
 
         return PageOperation.Unknown;
