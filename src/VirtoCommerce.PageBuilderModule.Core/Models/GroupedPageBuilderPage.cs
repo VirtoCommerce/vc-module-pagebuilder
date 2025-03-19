@@ -31,14 +31,9 @@ public class GroupedPageBuilderPage : AuditableEntity, ICloneable
             }
 
             var draft = Pages.FirstOrDefault(x => x.Status == Draft);
-            if (draft != null)
-            {
-                return draft.PageContent;
-            }
-            else
-            {
-                return Pages.FirstOrDefault()?.PageContent;
-            }
+            return draft != null
+                ? draft.PageContent
+                : Pages.FirstOrDefault()?.PageContent;
         }
     }
 

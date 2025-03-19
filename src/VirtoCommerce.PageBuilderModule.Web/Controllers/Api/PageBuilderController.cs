@@ -78,30 +78,35 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             }
 
             var basePath = GetContentBasePath(storeId, type, theme);
-            var storageProvider = blobContentStorageProviderFactory.CreateProvider(basePath);
-
-            var filePath = publishingService.GetRelativeDraftUrl(path, draft);
-            var blobInfo = await storageProvider.GetBlobInfoAsync(filePath);
-
-            if (blobInfo != null)
+            if (!path.IsNullOrEmpty())
             {
-                var stream = await storageProvider.OpenReadAsync(blobInfo.RelativeUrl);
-                return File(stream, MimeTypeResolver.ResolveContentType(blobInfo.Name));
-            }
-            if (draft)
-            {
-                var originalFilePath = publishingService.GetRelativeDraftUrl(path, false);
-                var originalBlobInfo = await storageProvider.GetBlobInfoAsync(originalFilePath);
+                var storageProvider = blobContentStorageProviderFactory.CreateProvider(basePath);
 
-                if (originalBlobInfo != null)
+                var filePath = publishingService.GetRelativeDraftUrl(path, draft);
+                var blobInfo = await storageProvider.GetBlobInfoAsync(filePath);
+
+                if (blobInfo != null)
                 {
-                    var stream = await storageProvider.OpenReadAsync(originalBlobInfo.RelativeUrl);
-                    return File(stream, MimeTypeResolver.ResolveContentType(originalBlobInfo.Name));
+                    var stream = await storageProvider.OpenReadAsync(blobInfo.RelativeUrl);
+                    return File(stream, MimeTypeResolver.ResolveContentType(blobInfo.Name));
+                }
+
+                if (draft)
+                {
+                    var originalFilePath = publishingService.GetRelativeDraftUrl(path, false);
+                    var originalBlobInfo = await storageProvider.GetBlobInfoAsync(originalFilePath);
+
+                    if (originalBlobInfo != null)
+                    {
+                        var stream = await storageProvider.OpenReadAsync(originalBlobInfo.RelativeUrl);
+                        return File(stream, MimeTypeResolver.ResolveContentType(originalBlobInfo.Name));
+                    }
                 }
             }
+
             return NotFound(new
             {
-                basePath = basePath,
+                basePath,
                 templatePath = path
             });
         }
@@ -215,22 +220,31 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                         if (groupedPage != null)
                         {
                             var page = file.Content.ToObject<PageModel>();
-
                             var draftPage = groupedPage.Pages.FirstOrDefault(x => x.Status == Draft);
+
                             if (draftPage == null)
                             {
                                 draftPage = new PageBuilderPage
                                 {
-                                    Name = groupedPage.Name,
-                                    Permalink = groupedPage.Permalink,
-                                    CultureName = groupedPage.CultureName,
                                     Status = Draft,
-                                    StoreId = groupedPage.StoreId,
                                 };
+                                groupedPage.Pages.Add(draftPage);
                             }
 
-                            draftPage.PageContent = JsonConvert.SerializeObject(page.Content, Formatting.Indented);
-                            await pageBuilderPageService.SaveChangesAsync([draftPage]);
+                            foreach (var p in groupedPage.Pages)
+                            {
+                                p.Name = page.Settings.Name ?? p.Name;
+                                p.Permalink = page.Settings.Permalink ?? p.Permalink;
+                                p.CultureName = page.Settings.CultureName ?? p.CultureName;
+                                p.StoreId = page.Settings.StoreId ?? p.StoreId;
+                            }
+
+                            draftPage.PageContent = JsonConvert.SerializeObject(page, new JsonSerializerSettings
+                            {
+                                Formatting = Formatting.Indented,
+                                ContractResolver = new CamelCasePropertyNamesContractResolver(),
+                            });
+                            await pageBuilderPageService.SaveChangesAsync(groupedPage.Pages);
                         }
                     }
                 }
@@ -351,6 +365,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             public string Permalink { get; set; }
             public string Status { get; set; }
             public string StoreId { get; set; }
+            public string CultureName { get; set; }
         }
 
         public class PageModel
