@@ -102,11 +102,11 @@ export default (args: DetailsComposableArgs<{ options: { sourceMessage: GroupedP
       publishPage: {
         clickHandler: async () => {
           let pageId = item.value?.id;
-          let storeId = item.value?.storeId;
 
-          
+          await (await getApiClient()).publishing(pageId, true);
 
-          throw new Error("Function not implemented.");
+          args.emit("parent:call", { method: "reload" });
+          await load({ id: item.value?.id! })   
         },
         isVisible: computed(() => !isNew && item.value?.status != "Published"),
         disabled: computed(() => !validationState.value.valid || !isEditable()),
@@ -114,9 +114,11 @@ export default (args: DetailsComposableArgs<{ options: { sourceMessage: GroupedP
       unpublishPage: {
         clickHandler: async () => {
           let pageId = item.value?.id;
-          let storeId = item.value?.storeId;
 
-          throw new Error("Function not implemented.");
+          await (await getApiClient()).publishing(pageId, false);
+
+          args.emit("parent:call", { method: "reload" }); 
+          await load({ id: item.value?.id! })
         },
         isVisible: computed(() => !isNew && item.value?.status == "Published"),
         disabled: computed(() => !validationState.value.valid || !isEditable()),
