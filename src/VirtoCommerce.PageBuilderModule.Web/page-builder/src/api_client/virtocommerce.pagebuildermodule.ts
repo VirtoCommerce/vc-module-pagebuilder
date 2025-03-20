@@ -1224,6 +1224,7 @@ export interface IFilePublishStatus {
 }
 
 export class GroupedPageBuilderPage implements IGroupedPageBuilderPage {
+    groupId?: string | undefined;
     storeId?: string | undefined;
     cultureName?: string | undefined;
     name?: string | undefined;
@@ -1250,6 +1251,7 @@ export class GroupedPageBuilderPage implements IGroupedPageBuilderPage {
 
     init(_data?: any) {
         if (_data) {
+            this.groupId = _data["groupId"];
             this.storeId = _data["storeId"];
             this.cultureName = _data["cultureName"];
             this.name = _data["name"];
@@ -1284,6 +1286,7 @@ export class GroupedPageBuilderPage implements IGroupedPageBuilderPage {
 
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
+        data["groupId"] = this.groupId;
         data["storeId"] = this.storeId;
         data["cultureName"] = this.cultureName;
         data["name"] = this.name;
@@ -1311,6 +1314,7 @@ export class GroupedPageBuilderPage implements IGroupedPageBuilderPage {
 }
 
 export interface IGroupedPageBuilderPage {
+    groupId?: string | undefined;
     storeId?: string | undefined;
     cultureName?: string | undefined;
     name?: string | undefined;
@@ -1376,13 +1380,13 @@ export interface IGroupedPageBuilderPageSearchResult {
 }
 
 export class PageBuilderPage implements IPageBuilderPage {
+    groupId?: string | undefined;
     storeId?: string | undefined;
     cultureName?: string | undefined;
     name?: string | undefined;
     permalink?: string | undefined;
     status?: string | undefined;
     pageContent?: string | undefined;
-    readonly groupKey?: string | undefined;
     createdDate?: Date;
     modifiedDate?: Date | undefined;
     createdBy?: string | undefined;
@@ -1400,13 +1404,13 @@ export class PageBuilderPage implements IPageBuilderPage {
 
     init(_data?: any) {
         if (_data) {
+            this.groupId = _data["groupId"];
             this.storeId = _data["storeId"];
             this.cultureName = _data["cultureName"];
             this.name = _data["name"];
             this.permalink = _data["permalink"];
             this.status = _data["status"];
             this.pageContent = _data["pageContent"];
-            (<any>this).groupKey = _data["groupKey"];
             this.createdDate = _data["createdDate"] ? new Date(_data["createdDate"].toString()) : <any>undefined;
             this.modifiedDate = _data["modifiedDate"] ? new Date(_data["modifiedDate"].toString()) : <any>undefined;
             this.createdBy = _data["createdBy"];
@@ -1424,13 +1428,13 @@ export class PageBuilderPage implements IPageBuilderPage {
 
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
+        data["groupId"] = this.groupId;
         data["storeId"] = this.storeId;
         data["cultureName"] = this.cultureName;
         data["name"] = this.name;
         data["permalink"] = this.permalink;
         data["status"] = this.status;
         data["pageContent"] = this.pageContent;
-        data["groupKey"] = this.groupKey;
         data["createdDate"] = this.createdDate ? this.createdDate.toISOString() : <any>undefined;
         data["modifiedDate"] = this.modifiedDate ? this.modifiedDate.toISOString() : <any>undefined;
         data["createdBy"] = this.createdBy;
@@ -1441,13 +1445,13 @@ export class PageBuilderPage implements IPageBuilderPage {
 }
 
 export interface IPageBuilderPage {
+    groupId?: string | undefined;
     storeId?: string | undefined;
     cultureName?: string | undefined;
     name?: string | undefined;
     permalink?: string | undefined;
     status?: string | undefined;
     pageContent?: string | undefined;
-    groupKey?: string | undefined;
     createdDate?: Date;
     modifiedDate?: Date | undefined;
     createdBy?: string | undefined;

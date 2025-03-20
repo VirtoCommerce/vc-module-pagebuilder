@@ -32,6 +32,9 @@
           "NOT_FOUND": {
             "TITLE": "No content found.",
             "ACTION": "Reset search"
+          },
+          "ACTIONS": {
+            "DELETE": "Archive"
           }
         },
         "EMPTY": {

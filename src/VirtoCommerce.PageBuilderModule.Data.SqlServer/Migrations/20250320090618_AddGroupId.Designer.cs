@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using VirtoCommerce.PageBuilderModule.Data.Repositories;
 
@@ -11,9 +12,11 @@ using VirtoCommerce.PageBuilderModule.Data.Repositories;
 namespace VirtoCommerce.PageBuilderModule.Data.SqlServer.Migrations
 {
     [DbContext(typeof(PageBuilderModuleDbContext))]
-    partial class PageBuilderModuleDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250320090618_AddGroupId")]
+    partial class AddGroupId
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

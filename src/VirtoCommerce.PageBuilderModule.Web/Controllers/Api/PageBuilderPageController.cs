@@ -70,12 +70,23 @@ public class PageBuilderPageController : Controller
                 return BadRequest("Archived page cannot be updated.");
             }
 
-            foreach (var page in groupedPage.Pages)
+            // update only draft page, create if doesn't exist
+            var draftPage = groupedPage.Pages.FirstOrDefault(x => x.Status == Draft);
+            if (draftPage == null)
             {
-                page.Name = model.Name;
-                page.Permalink = model.Permalink;
-                page.CultureName = model.CultureName;
+                draftPage = new PageBuilderPage
+                {
+                    Status = Draft,
+                    GroupId = model.Id,
+                    PageContent = groupedPage.PageContent,
+                };
+                groupedPage.Pages.Add(draftPage);
             }
+
+            draftPage.Name = model.Name;
+            draftPage.Permalink = model.Permalink;
+            draftPage.CultureName = model.CultureName;
+            draftPage.StoreId = model.StoreId;
 
             await _crudService.SaveChangesAsync(groupedPage.Pages.ToArray());
         }
@@ -92,6 +103,7 @@ public class PageBuilderPageController : Controller
             Id = null,
             Name = model.Name,
             StoreId = model.StoreId,
+            GroupId = Guid.NewGuid().ToString("N"), // generate a new group key
             CultureName = model.CultureName,
             Permalink = model.Permalink,
             PageContent = JsonConvert.SerializeObject(new { settings = model, content = Array.Empty<string>() }, new JsonSerializerSettings
@@ -103,7 +115,7 @@ public class PageBuilderPageController : Controller
         };
 
         await _crudService.SaveChangesAsync([page]);
-        return await GetGrouped(page.GroupKey);
+        return await GetGrouped(page.GroupId);
     }
 
 
@@ -199,6 +211,7 @@ public class PageBuilderPageController : Controller
     public Task<ActionResult<PageBuilderPage>> Create([FromBody] PageBuilderPage model)
     {
         model.Id = null;
+        model.GroupId = Guid.NewGuid().ToString("N"); // generate a new group key
         model.Status = Draft; // always create a new page in draft status
         return Update(model);
     }

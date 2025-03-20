@@ -58,17 +58,18 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
             var query = repository.PageBuilderPages;
 
             var groupedPages = query
-                .GroupBy(p => new { p.StoreId, p.Name, p.CultureName, p.Permalink })
-                .Where(g => groupedIds.Contains(g.Key.StoreId + ":" + g.Key.Name + ":" + g.Key.CultureName + ":" + g.Key.Permalink))
+                .GroupBy(p => p.GroupId)
+                .Where(g => groupedIds.Contains(g.Key))
                 .Select(g => new GroupedPageBuilderPageEntity
                 {
-                    Id = g.Key.StoreId + ":" + g.Key.Name + ":" + g.Key.CultureName + ":" + g.Key.Permalink,
-                    StoreId = g.Key.StoreId,
-                    Name = g.Key.Name,
-                    CultureName = g.Key.CultureName,
-                    Permalink = g.Key.Permalink,
+                    Id = g.Key,
+                    GroupId = g.Key,
+                    Name = g.Any(p => p.Status == Draft) ? g.First(x => x.Status == Draft).Name : g.First().Name,
+                    StoreId = g.Any(p => p.Status == Draft) ? g.First(x => x.Status == Draft).StoreId : g.First().StoreId,
+                    CultureName = g.Any(p => p.Status == Draft) ? g.First(x => x.Status == Draft).CultureName : g.First().CultureName,
+                    Permalink = g.Any(p => p.Status == Draft) ? g.First(x => x.Status == Draft).Permalink : g.First().Permalink,
                     Status = g.Any(p => p.Status == Archived) ? Archived : g.Any(p => p.Status == Published) ? Published : Draft,
-                    HasChanges = g.Any(p => p.Status == Draft), // && g.Any(p => p.Status == Published) 
+                    HasChanges = g.Any(p => p.Status == Draft),
                     PagesIds = g.Select(x => x.Id).ToList(),
                     CreatedBy = g.First().CreatedBy,
                     ModifiedBy = g.First().ModifiedBy,
@@ -121,16 +122,17 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
             }
 
             var groupedPages = query
-                .GroupBy(p => new { p.StoreId, p.Name, p.CultureName, p.Permalink })
+                .GroupBy(p => p.GroupId)
                 .Select(g => new GroupedPageBuilderPageEntity
                 {
-                    Id = g.Key.StoreId + ":" + g.Key.Name + ":" + g.Key.CultureName + ":" + g.Key.Permalink,
-                    StoreId = g.Key.StoreId,
-                    Name = g.Key.Name,
-                    CultureName = g.Key.CultureName,
-                    Permalink = g.Key.Permalink,
+                    Id = g.Key,
+                    GroupId = g.Key,
+                    Name = g.Any(p => p.Status == Draft) ? g.First(x => x.Status == Draft).Name : g.First().Name,
+                    StoreId = g.Any(p => p.Status == Draft) ? g.First(x => x.Status == Draft).StoreId : g.First().StoreId,
+                    CultureName = g.Any(p => p.Status == Draft) ? g.First(x => x.Status == Draft).CultureName : g.First().CultureName,
+                    Permalink = g.Any(p => p.Status == Draft) ? g.First(x => x.Status == Draft).Permalink : g.First().Permalink,
                     Status = g.Any(p => p.Status == Archived) ? Archived : g.Any(p => p.Status == Published) ? Published : Draft,
-                    HasChanges = g.Any(p => p.Status == Draft), // && g.Any(p => p.Status == Draft),
+                    HasChanges = g.Any(p => p.Status == Draft),
                     PagesIds = g.Select(x => x.Id).ToList(),
                     CreatedBy = g.First().CreatedBy,
                     ModifiedBy = g.First().ModifiedBy,

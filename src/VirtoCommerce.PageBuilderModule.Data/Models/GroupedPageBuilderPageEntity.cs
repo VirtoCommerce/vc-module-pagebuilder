@@ -6,6 +6,8 @@ namespace VirtoCommerce.PageBuilderModule.Data.Models
 {
     public class GroupedPageBuilderPageEntity : AuditableEntity, IDataEntity<GroupedPageBuilderPageEntity, GroupedPageBuilderPage>
     {
+        public string GroupId { get; set; }
+
         public string StoreId { get; set; }
 
         public string CultureName { get; set; }
@@ -28,6 +30,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Models
             model.ModifiedBy = ModifiedBy;
             model.ModifiedDate = ModifiedDate;
 
+            model.GroupId = GroupId;
             model.StoreId = StoreId;
             model.CultureName = CultureName;
             model.Name = Name;

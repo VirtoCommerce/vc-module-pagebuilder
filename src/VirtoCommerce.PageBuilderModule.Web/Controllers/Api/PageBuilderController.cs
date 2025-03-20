@@ -227,24 +227,21 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                                 draftPage = new PageBuilderPage
                                 {
                                     Status = Draft,
+                                    GroupId = file.PageId,
                                 };
-                                groupedPage.Pages.Add(draftPage);
                             }
 
-                            foreach (var p in groupedPage.Pages)
-                            {
-                                p.Name = page.Settings.Name ?? p.Name;
-                                p.Permalink = page.Settings.Permalink ?? p.Permalink;
-                                p.CultureName = page.Settings.CultureName ?? p.CultureName;
-                                p.StoreId = page.Settings.StoreId ?? p.StoreId;
-                            }
+                            draftPage.Name = page.Settings.Name ?? draftPage.Name;
+                            draftPage.Permalink = page.Settings.Permalink ?? draftPage.Permalink;
+                            draftPage.CultureName = page.Settings.CultureName ?? draftPage.CultureName;
+                            draftPage.StoreId = page.Settings.StoreId ?? draftPage.StoreId;
 
                             draftPage.PageContent = JsonConvert.SerializeObject(page, new JsonSerializerSettings
                             {
                                 Formatting = Formatting.Indented,
                                 ContractResolver = new CamelCasePropertyNamesContractResolver(),
                             });
-                            await pageBuilderPageService.SaveChangesAsync(groupedPage.Pages);
+                            await pageBuilderPageService.SaveChangesAsync([draftPage]);
                         }
                     }
                 }

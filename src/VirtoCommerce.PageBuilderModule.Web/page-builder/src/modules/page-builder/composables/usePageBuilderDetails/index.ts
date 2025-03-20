@@ -48,11 +48,7 @@ export default (args: DetailsComposableArgs<{ options: { sourceMessage: GroupedP
           page.status = newStatus;
         }
 
-        const clonedPage = new GroupedPageBuilderPage();
-        Object.assign(clonedPage, page);
-        // Page Id will change after update since it's a composite key so we need to preemptively update it here 
-        page.id = `${page.storeId}:${page.name}:${page.cultureName}:${page.permalink}`;
-        return apiClient.updateGrouped(clonedPage);
+        return apiClient.updateGrouped(page);
       }
     },
     remove: async ({ id }) => {
@@ -63,6 +59,7 @@ export default (args: DetailsComposableArgs<{ options: { sourceMessage: GroupedP
   });
 
   const { load, saveChanges, remove, loading, item, validationState } = detailsFactory();
+  const contentType = "pages";
 
   const scope: DynamicItemScope = {
     toolbarOverrides: {
@@ -89,7 +86,6 @@ export default (args: DetailsComposableArgs<{ options: { sourceMessage: GroupedP
             (platformUrl.endsWith('/') ? '' : '/') +
             'Modules/$(VirtoCommerce.PageBuilderModule)/Content/builder/index.html'          
 
-          let contentType = "pages";
           let pageId = item.value?.id;
           let storeId = item.value?.storeId;
 
@@ -105,6 +101,11 @@ export default (args: DetailsComposableArgs<{ options: { sourceMessage: GroupedP
       },
       publishPage: {
         clickHandler: async () => {
+          let pageId = item.value?.id;
+          let storeId = item.value?.storeId;
+
+          
+
           throw new Error("Function not implemented.");
         },
         isVisible: computed(() => !isNew && item.value?.status != "Published"),
@@ -112,6 +113,9 @@ export default (args: DetailsComposableArgs<{ options: { sourceMessage: GroupedP
       },
       unpublishPage: {
         clickHandler: async () => {
+          let pageId = item.value?.id;
+          let storeId = item.value?.storeId;
+
           throw new Error("Function not implemented.");
         },
         isVisible: computed(() => !isNew && item.value?.status == "Published"),

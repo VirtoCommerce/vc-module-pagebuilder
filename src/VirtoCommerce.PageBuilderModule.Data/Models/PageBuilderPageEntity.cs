@@ -8,6 +8,9 @@ namespace VirtoCommerce.PageBuilderModule.Data.Models;
 public class PageBuilderPageEntity : AuditableEntity, IDataEntity<PageBuilderPageEntity, PageBuilderPage>
 {
     [StringLength(128)]
+    public string GroupId { get; set; }
+
+    [StringLength(128)]
     public string StoreId { get; set; }
 
     [StringLength(128)]
@@ -32,6 +35,7 @@ public class PageBuilderPageEntity : AuditableEntity, IDataEntity<PageBuilderPag
         model.ModifiedBy = ModifiedBy;
         model.ModifiedDate = ModifiedDate;
 
+        model.GroupId = GroupId;
         model.StoreId = StoreId;
         model.CultureName = CultureName;
         model.Name = Name;
@@ -52,6 +56,7 @@ public class PageBuilderPageEntity : AuditableEntity, IDataEntity<PageBuilderPag
         ModifiedBy = model.ModifiedBy;
         ModifiedDate = model.ModifiedDate;
 
+        GroupId = model.GroupId;
         StoreId = model.StoreId;
         CultureName = model.CultureName;
         Name = model.Name;
@@ -64,6 +69,7 @@ public class PageBuilderPageEntity : AuditableEntity, IDataEntity<PageBuilderPag
 
     public virtual void Patch(PageBuilderPageEntity target)
     {
+        target.GroupId = GroupId;
         target.StoreId = StoreId;
         target.CultureName = CultureName;
         target.Name = Name;
