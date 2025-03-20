@@ -171,8 +171,16 @@ public class PageBuilderPageController : Controller
                 return BadRequest("Published page not found.");
             }
 
+            var hasDraft = groupedPage.Pages.Any(x => x.Status == Draft);
+            if (hasDraft)
+            {
+                return BadRequest("Can't unpublish a page that has changes.");
+            }
+
             pageToUnpublish.Status = Draft;
             pagesToSave.Add(pageToUnpublish);
+
+            pagesToDelete = groupedPage.PageIds.Except(new[] { pageToUnpublish.Id }).ToList();
         }
 
         await _crudService.SaveChangesAsync(pagesToSave.ToArray());

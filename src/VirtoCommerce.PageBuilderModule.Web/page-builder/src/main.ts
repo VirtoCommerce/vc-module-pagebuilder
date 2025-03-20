@@ -4,7 +4,6 @@ import { router } from "./router";
 import * as locales from "./locales";
 import { RouterView } from "vue-router";
 import PageBuilder from "./modules/page-builder";
-import SampleModule from "./modules/sample";
 
 // Load required CSS
 import "./styles/index.scss";
@@ -28,8 +27,6 @@ async function startApp() {
     })
     // PageBuilder module initialization
     .use(PageBuilder, { router })
-    // Sample module initialization
-    .use(SampleModule, { router })
     .use(router);
 
   Object.entries(locales).forEach(([key, message]) => {

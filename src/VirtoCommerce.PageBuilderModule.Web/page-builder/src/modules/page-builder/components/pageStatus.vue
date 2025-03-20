@@ -1,6 +1,6 @@
 <template>
   <div>
-    <VcStatus
+    <VcStatus style="width: auto;"
       v-bind="statusStyles[itemStatus]"
       >{{ $t(`PAGE_BUILDER.STATUS.${itemStatus.toUpperCase()}`) }}</VcStatus
     >

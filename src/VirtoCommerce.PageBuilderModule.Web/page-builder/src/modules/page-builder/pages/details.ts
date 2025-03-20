@@ -54,6 +54,11 @@ export const details: DynamicDetailsSchema = {
       component: "vc-form",
       children: [
         {
+          id: "status",
+          component: "vc-custom",
+          name: "PageStatus",
+        },
+        {
           id: "name",
           component: "vc-input",
           label: "PAGE_BUILDER.PAGES.DETAILS.FIELDS.NAME",

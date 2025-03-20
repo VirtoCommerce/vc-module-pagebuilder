@@ -77,6 +77,12 @@ export const grid: DynamicGridSchema = {
           sortable: true,
         },
         {
+          id: "cultureName",
+          title: "PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.CULTURE_NAME",
+          alwaysVisible: true,
+          sortable: true,
+        },
+        {
           id: "permalink",
           title: "PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.PERMALINK",
           alwaysVisible: true,

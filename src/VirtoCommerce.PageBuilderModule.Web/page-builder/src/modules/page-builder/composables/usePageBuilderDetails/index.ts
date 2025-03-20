@@ -1,4 +1,4 @@
-import { computed, ref, watch, reactive, Ref } from "vue";
+import { computed, ref, watch, reactive, Ref, onMounted } from "vue";
 import { DetailsBaseBladeScope, IBladeToolbar, useDetailsFactory, DetailsComposableArgs, useApiClient } from "@vc-shell/framework";
 import { useI18n } from "vue-i18n";
 
@@ -13,7 +13,7 @@ import useUrlParams from "../useUrlParams";
 
 const { getApiClient } = useApiClient(PageBuilderPageClient);
 const { getCultureNames } = useCultureNames();
-const { storeId } = useUrlParams();
+const { storeId, initUrlParams } = useUrlParams();
 
 export interface DynamicItemScope extends DetailsBaseBladeScope {
   toolbarOverrides: {
@@ -27,8 +27,16 @@ export interface DynamicItemScope extends DetailsBaseBladeScope {
 }
 
 export default (args: DetailsComposableArgs<{ options: { sourceMessage: GroupedPageBuilderPage } }>) => {
+  initUrlParams();
+
   let isNew = !args.props.param;
-  let storeId = args.props.options.storeId;
+  
+  let pageStoreId: string | undefined;
+  if (args.props.options && args.props.options.storeId) {
+    pageStoreId = args.props.options.storeId as string;
+  } else {
+    pageStoreId = storeId.value as string;
+  }
   let newStatus: string | undefined;
 
   const detailsFactory = useDetailsFactory({
@@ -41,7 +49,7 @@ export default (args: DetailsComposableArgs<{ options: { sourceMessage: GroupedP
       const apiClient = await getApiClient();
       if (isNew) {
         page.status = "Draft";
-        page.storeId = storeId as string | undefined;
+        page.storeId = pageStoreId as string | undefined;
         return apiClient.createGrouped(page);
       } else {
         if (newStatus) {
@@ -87,10 +95,10 @@ export default (args: DetailsComposableArgs<{ options: { sourceMessage: GroupedP
             'Modules/$(VirtoCommerce.PageBuilderModule)/Content/builder/index.html'          
 
           let pageId = item.value?.id;
-          let storeId = item.value?.storeId;
+          let pageStoreId = item.value?.storeId;
 
-          if (pageId && storeId) {
-            window.open(designerUrl + '?storeId=' + storeId + '#/pages?type=' + contentType + '&pageId=' + pageId, '_blank');
+          if (pageId && pageStoreId) {
+            window.open(designerUrl + '?storeId=' + pageStoreId + '#/pages?type=' + contentType + '&pageId=' + pageId, '_blank');
           }
           else {
             throw new Error("Can't open page.");
@@ -113,6 +121,11 @@ export default (args: DetailsComposableArgs<{ options: { sourceMessage: GroupedP
       },
       unpublishPage: {
         clickHandler: async () => {
+          // check if the page has changes
+          if (item.value?.hasChanges) {
+            throw new Error(t("PAGE_BUILDER.PAGES.ALERTS.UNPUBLISH_WITH_DRAFT"));
+          }
+
           let pageId = item.value?.id;
 
           await (await getApiClient()).publishing(pageId, false);
@@ -128,6 +141,15 @@ export default (args: DetailsComposableArgs<{ options: { sourceMessage: GroupedP
       return getCultureNames();
     },
     isReadOnly: () => !isEditable(),
+    statusText: computed(() => {
+      let result = "Draft";
+      const page = item.value;
+      if (page == null) {
+        return result;
+      }
+
+      return page.status;
+    }),
   };
 
   function isEditable(): boolean {
@@ -151,20 +173,13 @@ export default (args: DetailsComposableArgs<{ options: { sourceMessage: GroupedP
         const page = new GroupedPageBuilderPage();
         item.value = reactive(page);
         validationState.value.resetModified(item.value, true);
-
-        /*
-        const sourceMessage = args.props.options?.sourceMessage;
-        if (sourceMessage) {
-          message.topic = sourceMessage.topic;
-          message.shortMessage = sourceMessage.shortMessage;
-          message.memberIds = sourceMessage.memberIds;
-          message.memberQuery = sourceMessage.memberQuery;
-        }
-        */
       }
     },
   );
 
+  onMounted(() => {
+    initUrlParams()
+  })
 
   return {
     load,

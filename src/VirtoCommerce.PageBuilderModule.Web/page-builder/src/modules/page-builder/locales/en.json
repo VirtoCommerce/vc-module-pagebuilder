@@ -19,6 +19,7 @@
             "NAME": "Name",
             "PERMALINK": "Permalink",
             "MODIFIED_DATE": "Modified",
+            "CULTURE_NAME": "Language",
             "MODIFIED_BY": "Modified by",
             "STATUS": "Status"
           },
@@ -69,7 +70,8 @@
         "DELETE_SELECTED_CONFIRMATION": {
           "MESSAGE": "Are you sure you want to archive {count} selected pages?",
           "ALL": "all {totalCount}"
-        }
+        },
+        "UNPUBLISH_WITH_DRAFT": "Can't unpublish a page that has changes."
       }
     },
     "STATUS": {
