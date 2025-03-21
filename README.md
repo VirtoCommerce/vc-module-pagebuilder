@@ -32,17 +32,16 @@ The page is created in the builder as a list of blocks with specific settings ap
 * Seo by design.
 * Mobile-friendliness by design
 * Block management with Drag and drop, Copy, Paste, Hide, etc.
-* Integration with Virto Storefront.
-* Native Extendability Framework.
+* Integration with Virto Frontend.
+* Native Extensibility Framework.
 * Permissions.
 
 ## Getting started
 
 ### Prerequisites
-1. Virto Commerce 3.253+ (`vc-platform`)  [Quick start](https://docs.virtocommerce.org/vc-quickstart/)
-1. Virto Storefront 6.7+ (`vc-storefront`).  [Deploy Storefront](https://docs.virtocommerce.org/getting-started/connect-storefront-to-platform-v3/)
-1. Vue B2B Theme 1.10+ (`vc-theme-b2b-vue`).
-1. Page Builder Module 3.201+. [Download and Install](https://github.com/VirtoCommerce/vc-module-pagebuilder/releases).
+1. Virto Commerce (`vc-platform`)  [Quick start](https://docs.virtocommerce.org/platform/developer-guide/)
+1. Virto Frontend (`vc-frontend`).  [Deploy Frontend](https://docs.virtocommerce.org/storefront/developer-guide/deployment/)
+1. Page Builder Module (`vc-module-pagebuilder`). [Download and Install](https://github.com/VirtoCommerce/vc-module-pagebuilder/releases).
 
 ### Setup Content
 Check that Virto Commerce Platform and Storefront use same Shared Content folder.
@@ -166,15 +165,18 @@ Cross-Origin-Embedder-Policy: "credentialless"
 These headers ensure that the site can be embedded in an iframe and handle cross-origin requests appropriately.
 
 ## Documentation
-* [Pagebuilder Module Documentation](/docs/index.md)
-* [View on GitHub](https://github.com/VirtoCommerce/vc-module-pagebuilder/tree/dev)
+
+* [PageBuidler module user documentation](https://docs.virtocommerce.org/platform/user-guide/page-builder/overview/)
+* [REST API](https://virtostart-demo-admin.govirto.com/docs/index.html?urls.primaryName=VirtoCommerce.PageBuilderModule)
+* [View on GitHub](https://github.com/VirtoCommerce/vc-module-pagebuilder)
 
 ## References
-* Deploy: https://virtocommerce.com/docs/latest/developer-guide/deploy-module-from-source-code/
-* Installation: https://www.virtocommerce.com/docs/latest/user-guide/modules/
-* Home: https://virtocommerce.com
-* Community: https://www.virtocommerce.org
-* [Download Latest Release](https://github.com/VirtoCommerce/vc-module-pagebuilder/releases/)
+
+* [Deployment](https://docs.virtocommerce.org/platform/developer-guide/Tutorials-and-How-tos/Tutorials/deploy-module-from-source-code/)
+* [Installation](https://docs.virtocommerce.org/platform/user-guide/modules-installation/)
+* [Home](https://virtocommerce.com)
+* [Community](https://www.virtocommerce.org)
+* [Download latest release](https://github.com/VirtoCommerce/vc-module-pagebuilder/releases/latest)
 
 ## License
 Copyright (c) Virto Solutions LTD. All rights reserved.
