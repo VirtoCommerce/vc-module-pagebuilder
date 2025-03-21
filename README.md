@@ -16,7 +16,7 @@ The page is created in the builder as a list of blocks with specific settings ap
 * Ready-to-go building blocks and recommendations.
 
 ## For Developers
-* Integratable into your unique design.
+* Integrable into your unique design.
 * Configurable set of favourites blocks.
 * More blocks. Less code. Create new blocks with flexible JSON schema.
 * Can be integrated with your existing sites and apps.
