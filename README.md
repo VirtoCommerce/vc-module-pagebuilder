@@ -16,8 +16,8 @@ The page is created in the builder as a list of blocks with specific settings ap
 * Ready-to-go building blocks and recommendations.
 
 ## For Developers
-* Integratable into your unique design.
-* Configurable set of favourites blocks. 
+* Integrable into your unique design.
+* Configurable set of favourites blocks.
 * More blocks. Less code. Create new blocks with flexible JSON schema.
 * Can be integrated with your existing sites and apps.
 * Ready for integration with DevOps.
@@ -32,19 +32,18 @@ The page is created in the builder as a list of blocks with specific settings ap
 * Seo by design.
 * Mobile-friendliness by design
 * Block management with Drag and drop, Copy, Paste, Hide, etc.
-* Integration with Virto Storefront.
-* Native Extendability Framework. 
+* Integration with Virto Frontend.
+* Native Extensibility Framework.
 * Permissions.
 
 ## Getting started
 
 ### Prerequisites
-1. Virto Commerce 3.253+ (`vc-platform`)  [Quick start](https://docs.virtocommerce.org/vc-quickstart/)
-1. Virto Storefront 6.7+ (`vc-storefront`).  [Deploy Storefront](https://docs.virtocommerce.org/getting-started/connect-storefront-to-platform-v3/)
-1. Vue B2B Theme 1.10+ (`vc-theme-b2b-vue`). 
-1. Page Builder Module 3.201+. [Download and Install](https://github.com/VirtoCommerce/vc-module-pagebuilder/releases). 
+1. Virto Commerce (`vc-platform`)  [Quick start](https://docs.virtocommerce.org/platform/developer-guide/)
+1. Virto Frontend (`vc-frontend`).  [Deploy Frontend](https://docs.virtocommerce.org/storefront/developer-guide/deployment/)
+1. Page Builder Module (`vc-module-pagebuilder`). [Download and Install](https://github.com/VirtoCommerce/vc-module-pagebuilder/releases).
 
-### Setup Content 
+### Setup Content
 Check that Virto Commerce Platform and Storefront use same Shared Content folder.
 
 ### Setup Content Module
@@ -67,7 +66,7 @@ appsettings.json
             ]
         }
         ...
-    }, 
+    },
 ```
 
 Environment Variables
@@ -89,7 +88,7 @@ Public Store URL should be configured.
 1. Select `Stores`.
 1. Select Current Store.
 1. Setup Store URL if it's empty
-1. Click Save button to apply. 
+1. Click Save button to apply.
 
 ### Purge Cache
 You can purge static page from storefront cache by event. Otherwise, you will need to wait for cache expiration.
@@ -117,7 +116,7 @@ We recommend using Webhooks module.
 1. Open Virto Commerce Admin UI.
 1. Select Content module.
 1. Find Store and Select Pages widget.
-1. Click `Add` button in toolbar. 
+1. Click `Add` button in toolbar.
 1. Select 'Design page'.
 1. Provide page file name, public name and permalink. Ex: 'black-friday-2022', 'Black Friday 2022' and `blackfriday-2022`.
 1. Click `Create` button
@@ -133,8 +132,8 @@ Page Builder reads meta-data from theme. Developers can extend or customize page
 ├── client-app                    // The main folder for the application.
 |   ├── shared                    // Assets needed to be precompiled during building.
 |   |   └── static-content
-|   |      └── components         // Vue Components for rendering Page Builder elements. 
-├── config                        
+|   |      └── components         // Vue Components for rendering Page Builder elements.
+├── config
 |   |   └── schemas               // All Page Builder meta information are stored here.
 |   |      ├── blocks             // Block definitions.
 |   |      |   └──...
@@ -145,22 +144,39 @@ Page Builder reads meta-data from theme. Developers can extend or customize page
 |   |      ├── shared             // Global settings folder.
 |   |      |   └── _blocks.json   // Global settings for blocks.
 |   |      |   └── _sections.json // Global settings for sections.
-|   |      └── templates          
+|   |      └── templates
 |   |          └── page.json      // Page Builder configuration for static pages.
 |   └── settings_schema.json      // Theme settings schema file. Page Builder uses it for Theme and Preset editor.
 |   └── settings_data.json        // Theme config file.
 ```
 
+## Notes
+
+To enable the preview of your site within the Page Builder application, the site must allow itself to be displayed in an iframe. This can be achieved by setting the appropriate headers in your server configuration.
+
+Add the following headers to your server configuration:
+
+```http
+Content-Security-Policy: "frame-ancestors 'self' https://localhost:5001;"
+Cross-Origin-Resource-Policy: "cross-origin"
+Cross-Origin-Embedder-Policy: "credentialless"
+```
+
+These headers ensure that the site can be embedded in an iframe and handle cross-origin requests appropriately.
+
 ## Documentation
-* [Pagebuilder Module Documentation](/docs/index.md)
-* [View on GitHub](https://github.com/VirtoCommerce/vc-module-pagebuilder/tree/dev)
+
+* [PageBuidler module user documentation](https://docs.virtocommerce.org/platform/user-guide/page-builder/overview/)
+* [REST API](https://virtostart-demo-admin.govirto.com/docs/index.html?urls.primaryName=VirtoCommerce.PageBuilderModule)
+* [View on GitHub](https://github.com/VirtoCommerce/vc-module-pagebuilder)
 
 ## References
-* Deploy: https://virtocommerce.com/docs/latest/developer-guide/deploy-module-from-source-code/
-* Installation: https://www.virtocommerce.com/docs/latest/user-guide/modules/
-* Home: https://virtocommerce.com
-* Community: https://www.virtocommerce.org
-* [Download Latest Release](https://github.com/VirtoCommerce/vc-module-pagebuilder/releases/)
+
+* [Deployment](https://docs.virtocommerce.org/platform/developer-guide/Tutorials-and-How-tos/Tutorials/deploy-module-from-source-code/)
+* [Installation](https://docs.virtocommerce.org/platform/user-guide/modules-installation/)
+* [Home](https://virtocommerce.com)
+* [Community](https://www.virtocommerce.org)
+* [Download latest release](https://github.com/VirtoCommerce/vc-module-pagebuilder/releases/latest)
 
 ## License
 Copyright (c) Virto Solutions LTD. All rights reserved.
