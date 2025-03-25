@@ -64,8 +64,8 @@ static class PagesExtensions
                  .Select(x => x.Trim())
                  .ToArray();
             // todo: check the type for data in page builder. it can be string or date
-            pageDocument.StartDate = settings?.Value<DateTime>("startDate");
-            pageDocument.EndDate = settings?.Value<DateTime>("endDate");
+            pageDocument.StartDate = settings?.Value<DateTime?>("startDate");
+            pageDocument.EndDate = settings?.Value<DateTime?>("endDate");
         }
         catch
         {
