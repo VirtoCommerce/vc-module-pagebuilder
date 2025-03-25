@@ -3,7 +3,7 @@ using VirtoCommerce.Platform.Core.GenericCrud;
 
 namespace VirtoCommerce.PageBuilderModule.Core.Services
 {
-    public interface IGroupedPageService : ICrudService<GroupedPageBuilderPage>
+    public interface IGroupedPageSearchService : ISearchService<PageBuilderPageSearchCriteria, GroupedPageBuilderPageSearchResult, GroupedPageBuilderPage>
     {
     }
 }

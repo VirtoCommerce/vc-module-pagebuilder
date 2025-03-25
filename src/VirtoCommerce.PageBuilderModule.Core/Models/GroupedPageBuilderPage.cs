@@ -15,11 +15,15 @@ public class GroupedPageBuilderPage : AuditableEntity, ICloneable
 
     public string Permalink { get; set; }
 
-    public bool HasChanges { get; set; }
-
     public string Status { get; set; } // Draft | Published | Archived
 
-    public IList<string> PageIds { get; set; } = [];
+    public bool HasChanges
+    {
+        get
+        {
+            return Pages?.Any(p => p.Status == Draft) ?? false;
+        }
+    }
 
     public IList<PageBuilderPage> Pages { get; set; } = [];
 
@@ -30,6 +34,11 @@ public class GroupedPageBuilderPage : AuditableEntity, ICloneable
             if (Pages.IsNullOrEmpty())
             {
                 return null;
+            }
+
+            if (Pages.Count == 1)
+            {
+                return Pages[0].PageContent;
             }
 
             var draft = Pages.FirstOrDefault(x => x.Status == Draft);

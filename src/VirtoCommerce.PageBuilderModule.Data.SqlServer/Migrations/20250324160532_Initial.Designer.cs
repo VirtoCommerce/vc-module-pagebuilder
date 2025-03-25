@@ -12,7 +12,7 @@ using VirtoCommerce.PageBuilderModule.Data.Repositories;
 namespace VirtoCommerce.PageBuilderModule.Data.SqlServer.Migrations
 {
     [DbContext(typeof(PageBuilderModuleDbContext))]
-    [Migration("20250311101911_Initial")]
+    [Migration("20250324160532_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -24,6 +24,52 @@ namespace VirtoCommerce.PageBuilderModule.Data.SqlServer.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+
+            modelBuilder.Entity("VirtoCommerce.PageBuilderModule.Data.Models.GroupedPageBuilderPageEntity", b =>
+                {
+                    b.Property<string>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CultureName")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTime?>("ModifiedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(1024)
+                        .HasColumnType("nvarchar(1024)");
+
+                    b.Property<string>("Permalink")
+                        .HasMaxLength(2048)
+                        .HasColumnType("nvarchar(2048)");
+
+                    b.Property<string>("Status")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<string>("StoreId")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("GroupedPageBuilderPage", (string)null);
+                });
 
             modelBuilder.Entity("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderPageEntity", b =>
                 {
@@ -40,6 +86,11 @@ namespace VirtoCommerce.PageBuilderModule.Data.SqlServer.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("CultureName")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<string>("GroupId")
+                        .IsRequired()
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
 
@@ -71,7 +122,25 @@ namespace VirtoCommerce.PageBuilderModule.Data.SqlServer.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("GroupId");
+
                     b.ToTable("PageBuilderPage", (string)null);
+                });
+
+            modelBuilder.Entity("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderPageEntity", b =>
+                {
+                    b.HasOne("VirtoCommerce.PageBuilderModule.Data.Models.GroupedPageBuilderPageEntity", "Group")
+                        .WithMany("Pages")
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Group");
+                });
+
+            modelBuilder.Entity("VirtoCommerce.PageBuilderModule.Data.Models.GroupedPageBuilderPageEntity", b =>
+                {
+                    b.Navigation("Pages");
                 });
 #pragma warning restore 612, 618
         }

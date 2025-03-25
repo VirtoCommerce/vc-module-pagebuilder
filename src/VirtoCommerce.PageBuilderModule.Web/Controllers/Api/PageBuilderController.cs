@@ -33,8 +33,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             IOptions<ContentOptions> options,
             IPublishingService publishingService,
             IEventPublisher eventPublisher,
-            IPageBuilderPageService pageBuilderPageService,
-            IGroupedPageService groupedPageService)
+            IGroupedPageService groupedPageService,
+            IPageBuilderPageService pageBuilderPageService)
         : Controller
     {
         private readonly ContentOptions _options = options.Value;
@@ -44,19 +44,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         private const string Themes = "themes";
         private const string DefaultTheme = "default";
 
-        [HttpGet]
-        [Route("page")]
-        public async Task<ActionResult> GetPage(string pageId)
-        {
-            var page = await pageBuilderPageService.GetByIdAsync(pageId);
-
-            if (page != null)
-            {
-                return Ok(page);
-            }
-
-            return NotFound();
-        }
 
         [HttpGet]
         [Route("template")]
@@ -64,7 +51,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         {
             if (pageId != null)
             {
-                var groupedPage = await groupedPageService.GetGroupedAsync(pageId);
+                var groupedPage = await groupedPageService.GetNoCloneAsync(pageId);
                 if (groupedPage != null)
                 {
                     return Ok(groupedPage);
@@ -216,7 +203,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 {
                     if (file.Content != null)
                     {
-                        var groupedPage = await groupedPageService.GetGroupedAsync(file.PageId);
+                        var groupedPage = await groupedPageService.GetByIdAsync(file.PageId);
                         if (groupedPage != null)
                         {
                             var page = file.Content.ToObject<PageModel>();
@@ -231,17 +218,18 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                                 };
                             }
 
-                            draftPage.Name = page.Settings.Name ?? draftPage.Name;
-                            draftPage.Permalink = page.Settings.Permalink ?? draftPage.Permalink;
-                            draftPage.CultureName = page.Settings.CultureName ?? draftPage.CultureName;
-                            draftPage.StoreId = page.Settings.StoreId ?? draftPage.StoreId;
+                            groupedPage.Name = draftPage.Name = page.Settings.Name ?? draftPage.Name;
+                            groupedPage.Permalink = draftPage.Permalink = page.Settings.Permalink ?? draftPage.Permalink;
+                            groupedPage.CultureName = draftPage.CultureName = page.Settings.CultureName ?? draftPage.CultureName;
+                            groupedPage.StoreId = draftPage.StoreId = page.Settings.StoreId ?? draftPage.StoreId;
 
                             draftPage.PageContent = JsonConvert.SerializeObject(page, new JsonSerializerSettings
                             {
                                 Formatting = Formatting.Indented,
                                 ContractResolver = new CamelCasePropertyNamesContractResolver(),
                             });
-                            await pageBuilderPageService.SaveChangesAsync([draftPage]);
+
+                            await groupedPageService.SaveChangesAsync([groupedPage]);
                         }
                     }
                 }

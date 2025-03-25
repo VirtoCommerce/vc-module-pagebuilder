@@ -15,6 +15,8 @@ public class PageBuilderModuleRepository : DbContextRepositoryBase<PageBuilderMo
 
     public IQueryable<PageBuilderPageEntity> PageBuilderPages => DbContext.Set<PageBuilderPageEntity>();
 
+    public IQueryable<GroupedPageBuilderPageEntity> GroupedPageBuilderPages => DbContext.Set<GroupedPageBuilderPageEntity>();
+
     public virtual async Task<IList<PageBuilderPageEntity>> GetPageBuilderPagesByIdsAsync(IList<string> ids, string responseGroup)
     {
         if (ids.IsNullOrEmpty())
@@ -25,5 +27,25 @@ public class PageBuilderModuleRepository : DbContextRepositoryBase<PageBuilderMo
         return ids.Count == 1
             ? await PageBuilderPages.Where(x => x.Id == ids.First()).ToListAsync()
             : await PageBuilderPages.Where(x => ids.Contains(x.Id)).ToListAsync();
+    }
+
+    public virtual async Task<IList<GroupedPageBuilderPageEntity>> GetGroupedPageBuilderPagesByIdsAsync(IList<string> ids, string responseGroup)
+    {
+        if (ids.IsNullOrEmpty())
+        {
+            return [];
+        }
+
+        var groups = ids.Count == 1
+            ? await GroupedPageBuilderPages.Where(x => x.Id == ids.First()).ToListAsync()
+            : await GroupedPageBuilderPages.Where(x => ids.Contains(x.Id)).ToListAsync();
+
+        if (groups.Count > 0)
+        {
+            var groupIds = groups.Select(x => x.Id).ToArray();
+            await PageBuilderPages.Where(x => groupIds.Contains(x.GroupId)).LoadAsync();
+        }
+
+        return groups;
     }
 }

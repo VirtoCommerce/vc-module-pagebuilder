@@ -12,7 +12,7 @@ using VirtoCommerce.PageBuilderModule.Data.Repositories;
 namespace VirtoCommerce.PageBuilderModule.Data.PostgreSql.Migrations
 {
     [DbContext(typeof(PageBuilderModuleDbContext))]
-    [Migration("20250311101844_Initial")]
+    [Migration("20250324160425_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -24,6 +24,52 @@ namespace VirtoCommerce.PageBuilderModule.Data.PostgreSql.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("VirtoCommerce.PageBuilderModule.Data.Models.GroupedPageBuilderPageEntity", b =>
+                {
+                    b.Property<string>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CultureName")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime?>("ModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)");
+
+                    b.Property<string>("Permalink")
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)");
+
+                    b.Property<string>("Status")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("StoreId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("GroupedPageBuilderPage", (string)null);
+                });
 
             modelBuilder.Entity("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderPageEntity", b =>
                 {
@@ -40,6 +86,11 @@ namespace VirtoCommerce.PageBuilderModule.Data.PostgreSql.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("CultureName")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("GroupId")
+                        .IsRequired()
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
 
@@ -71,7 +122,25 @@ namespace VirtoCommerce.PageBuilderModule.Data.PostgreSql.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("GroupId");
+
                     b.ToTable("PageBuilderPage", (string)null);
+                });
+
+            modelBuilder.Entity("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderPageEntity", b =>
+                {
+                    b.HasOne("VirtoCommerce.PageBuilderModule.Data.Models.GroupedPageBuilderPageEntity", "Group")
+                        .WithMany("Pages")
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Group");
+                });
+
+            modelBuilder.Entity("VirtoCommerce.PageBuilderModule.Data.Models.GroupedPageBuilderPageEntity", b =>
+                {
+                    b.Navigation("Pages");
                 });
 #pragma warning restore 612, 618
         }

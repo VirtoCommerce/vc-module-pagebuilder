@@ -1,151 +1,44 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
+using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Data.Models;
 using VirtoCommerce.PageBuilderModule.Data.Repositories;
-using VirtoCommerce.Platform.Caching;
 using VirtoCommerce.Platform.Core.Caching;
 using VirtoCommerce.Platform.Core.Common;
-using VirtoCommerce.Platform.Data.Infrastructure;
+using VirtoCommerce.Platform.Core.Events;
+using VirtoCommerce.Platform.Data.GenericCrud;
 using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Services
 {
-    public class GroupedPageService : IGroupedPageService
+    public class GroupedPageService : CrudService<GroupedPageBuilderPage, GroupedPageBuilderPageEntity, GroupedPageBuilderPageChangingEvent, GroupedPageBuilderPageChangedEvent>, IGroupedPageService
     {
-        private readonly Func<IPageBuilderModuleRepository> _repositoryFactory;
-        private readonly IPlatformMemoryCache _platformMemoryCache;
-        private readonly IPageBuilderPageService _crudService;
-
         public GroupedPageService(
             Func<IPageBuilderModuleRepository> repositoryFactory,
             IPlatformMemoryCache platformMemoryCache,
-            IPageBuilderPageService crudService)
+            IEventPublisher eventPublisher)
+            : base(repositoryFactory, platformMemoryCache, eventPublisher)
         {
-            _repositoryFactory = repositoryFactory;
-            _platformMemoryCache = platformMemoryCache;
-            _crudService = crudService;
         }
 
-        public async Task<GroupedPageBuilderPage> GetGroupedAsync(string id)
+        protected override async Task BeforeSaveChanges(IList<GroupedPageBuilderPage> models)
         {
-            return (await GetGroupedAsync([id])).FirstOrDefault();
-        }
-
-        public async Task<IList<GroupedPageBuilderPage>> GetGroupedAsync(string[] id)
-        {
-            List<GroupedPageBuilderPage> result = [];
-
-            using (var repository = _repositoryFactory())
+            foreach (var model in models)
             {
-                var entities = await LoadEntitiesAsync(repository, id);
-
-                foreach (var entity in entities)
+                if (!model.Pages.IsNullOrEmpty())
                 {
-                    var model = entity.ToModel(AbstractTypeFactory<GroupedPageBuilderPage>.TryCreateInstance());
-                    model.Pages = await _crudService.GetNoCloneAsync(entity.PagesIds);
-
-                    result.Add(model);
+                    // Update status of the grouped page based on the status of the pages it contains
+                    model.Status = model.Pages.Any(p => p.Status == Archived) ? Archived : model.Pages.Any(p => p.Status == Published) ? Published : Draft;
                 }
             }
 
+            await base.BeforeSaveChanges(models);
+        }
+
+        protected override async Task<IList<GroupedPageBuilderPageEntity>> LoadEntities(IRepository repository, IList<string> ids, string responseGroup)
+        {
+            var result = await ((IPageBuilderModuleRepository)repository).GetGroupedPageBuilderPagesByIdsAsync(ids, responseGroup);
             return result;
-        }
-
-        protected async Task<IList<GroupedPageBuilderPageEntity>> LoadEntitiesAsync(IPageBuilderModuleRepository repository, IList<string> groupedIds)
-        {
-            var query = repository.PageBuilderPages;
-
-            var groupedPages = query
-                .GroupBy(p => p.GroupId)
-                .Where(g => groupedIds.Contains(g.Key))
-                .Select(g => new GroupedPageBuilderPageEntity
-                {
-                    Id = g.Key,
-                    GroupId = g.Key,
-                    Name = g.Any(p => p.Status == Draft) ? g.First(x => x.Status == Draft).Name : g.First().Name,
-                    StoreId = g.Any(p => p.Status == Draft) ? g.First(x => x.Status == Draft).StoreId : g.First().StoreId,
-                    CultureName = g.Any(p => p.Status == Draft) ? g.First(x => x.Status == Draft).CultureName : g.First().CultureName,
-                    Permalink = g.Any(p => p.Status == Draft) ? g.First(x => x.Status == Draft).Permalink : g.First().Permalink,
-                    Status = g.Any(p => p.Status == Archived) ? Archived : g.Any(p => p.Status == Published) ? Published : Draft,
-                    HasChanges = g.Any(p => p.Status == Draft),
-                    PagesIds = g.Select(x => x.Id).ToList(),
-                    CreatedBy = g.First().CreatedBy,
-                    ModifiedBy = g.First().ModifiedBy,
-                    CreatedDate = g.OrderByDescending(x => x.CreatedDate).First().CreatedDate,
-                    ModifiedDate = g.OrderByDescending(x => x.ModifiedDate).First().ModifiedDate,
-                });
-
-            return await groupedPages.ToListAsync();
-        }
-
-        public async Task<GroupedPageBuilderPageSearchResult> SearchAsync(PageBuilderPageSearchCriteria criteria)
-        {
-            var cacheKey = CacheKey.With(GetType(), nameof(SearchAsync), criteria.GetCacheKey());
-            return await _platformMemoryCache.GetOrCreateExclusiveAsync(cacheKey, async cacheEntry =>
-            {
-                cacheEntry.AddExpirationToken(GenericSearchCachingRegion<PageBuilderPage>.CreateChangeToken());
-
-                var result = AbstractTypeFactory<GroupedPageBuilderPageSearchResult>.TryCreateInstance();
-
-                using (var repository = _repositoryFactory())
-                {
-                    repository.DisableChangesTracking();
-
-                    var query = BuildQuery(repository, criteria);
-
-                    result.TotalCount = await query.CountAsync();
-
-                    query = query
-                        .Skip(criteria.Skip)
-                        .Take(criteria.Take);
-
-                    var results = await query.ToListAsync();
-
-                    result.Results = results
-                        .Select(x => x.ToModel(AbstractTypeFactory<GroupedPageBuilderPage>.TryCreateInstance()))
-                        .ToList();
-                }
-
-                return result;
-            });
-        }
-
-        protected IQueryable<GroupedPageBuilderPageEntity> BuildQuery(IPageBuilderModuleRepository repository, PageBuilderPageSearchCriteria criteria)
-        {
-            var query = repository.PageBuilderPages;
-
-            if (!string.IsNullOrEmpty(criteria.StoreId))
-            {
-                query = query.Where(x => x.StoreId == criteria.StoreId);
-            }
-
-            var groupedPages = query
-                .GroupBy(p => p.GroupId)
-                .Select(g => new GroupedPageBuilderPageEntity
-                {
-                    Id = g.Key,
-                    GroupId = g.Key,
-                    Name = g.Any(p => p.Status == Draft) ? g.First(x => x.Status == Draft).Name : g.First().Name,
-                    StoreId = g.Any(p => p.Status == Draft) ? g.First(x => x.Status == Draft).StoreId : g.First().StoreId,
-                    CultureName = g.Any(p => p.Status == Draft) ? g.First(x => x.Status == Draft).CultureName : g.First().CultureName,
-                    Permalink = g.Any(p => p.Status == Draft) ? g.First(x => x.Status == Draft).Permalink : g.First().Permalink,
-                    Status = g.Any(p => p.Status == Archived) ? Archived : g.Any(p => p.Status == Published) ? Published : Draft,
-                    HasChanges = g.Any(p => p.Status == Draft),
-                    PagesIds = g.Select(x => x.Id).ToList(),
-                    CreatedBy = g.First().CreatedBy,
-                    ModifiedBy = g.First().ModifiedBy,
-                    CreatedDate = g.OrderByDescending(x => x.CreatedDate).First().CreatedDate,
-                    ModifiedDate = g.OrderByDescending(x => x.ModifiedDate).First().ModifiedDate,
-                });
-
-            if (!string.IsNullOrEmpty(criteria.Status))
-            {
-                groupedPages = groupedPages.Where(x => x.Status == criteria.Status);
-            }
-
-            return groupedPages;
         }
     }
 }

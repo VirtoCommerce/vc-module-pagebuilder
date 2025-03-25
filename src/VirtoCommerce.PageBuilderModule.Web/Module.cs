@@ -64,6 +64,9 @@ namespace VirtoCommerce.PageBuilderModule.Web
             serviceCollection.AddTransient<PageBuilderPageChangedEventHandler>();
 
             serviceCollection.AddTransient<IGroupedPageService, GroupedPageService>();
+            serviceCollection.AddTransient<IGroupedPageSearchService, GroupedPageSearchService>();
+
+            serviceCollection.AddTransient<GroupedPageBuilderPageChangedEventHandler>();
 
             var isFullTextSearchEnabled = Configuration.IsContentFullTextSearchEnabled();
 
@@ -92,6 +95,7 @@ namespace VirtoCommerce.PageBuilderModule.Web
             }
 
             appBuilder.RegisterEventHandler<PageBuilderPageChangedEvent, PageBuilderPageChangedEventHandler>();
+            appBuilder.RegisterEventHandler<GroupedPageBuilderPageChangedEvent, GroupedPageBuilderPageChangedEventHandler>();
 
             // Apply migrations
             using var serviceScope = serviceProvider.CreateScope();

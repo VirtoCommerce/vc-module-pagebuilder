@@ -27,6 +27,8 @@ public class PageBuilderPageEntity : AuditableEntity, IDataEntity<PageBuilderPag
 
     public string PageContent { get; set; }
 
+    public GroupedPageBuilderPageEntity Group { get; set; }
+
     public virtual PageBuilderPage ToModel(PageBuilderPage model)
     {
         model.Id = Id;

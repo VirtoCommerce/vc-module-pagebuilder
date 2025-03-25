@@ -54,7 +54,7 @@ static class PagesExtensions
             var content = JObject.Parse(contentAsString.IsNullOrEmpty() ? "{}" : contentAsString);
             var settings = content["settings"];
             pageDocument.Title = settings?.Value<string>("title") ?? pageDocument.Title;
-            pageDocument.Visibility = (settings?.Value<bool>("visibility") ?? true)
+            pageDocument.Visibility = (settings?.Value<bool?>("visibility") ?? true)
                 ? PageDocumentVisibility.Public
                 : PageDocumentVisibility.Private;
             pageDocument.Title = settings?.Value<string>("description") ?? pageDocument.Title;

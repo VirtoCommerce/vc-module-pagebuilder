@@ -1,7 +1,7 @@
 using System.Reflection;
 using Microsoft.EntityFrameworkCore;
-using VirtoCommerce.Platform.Data.Infrastructure;
 using VirtoCommerce.PageBuilderModule.Data.Models;
+using VirtoCommerce.Platform.Data.Infrastructure;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Repositories;
 
@@ -21,8 +21,13 @@ public class PageBuilderModuleDbContext : DbContextBase
     {
         base.OnModelCreating(modelBuilder);
 
+        modelBuilder.Entity<GroupedPageBuilderPageEntity>().ToTable("GroupedPageBuilderPage").HasKey(x => x.Id);
+        modelBuilder.Entity<GroupedPageBuilderPageEntity>().Property(x => x.Id).HasMaxLength(IdLength).ValueGeneratedOnAdd();
+
         modelBuilder.Entity<PageBuilderPageEntity>().ToTable("PageBuilderPage").HasKey(x => x.Id);
         modelBuilder.Entity<PageBuilderPageEntity>().Property(x => x.Id).HasMaxLength(IdLength).ValueGeneratedOnAdd();
+        modelBuilder.Entity<PageBuilderPageEntity>().HasOne(x => x.Group).WithMany(x => x.Pages)
+            .HasForeignKey(x => x.GroupId).OnDelete(DeleteBehavior.Cascade).IsRequired();
 
         switch (Database.ProviderName)
         {

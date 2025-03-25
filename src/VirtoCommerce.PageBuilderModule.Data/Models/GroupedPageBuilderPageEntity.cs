@@ -1,3 +1,5 @@
+using System.Collections.ObjectModel;
+using System.ComponentModel.DataAnnotations;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Domain;
@@ -6,21 +8,22 @@ namespace VirtoCommerce.PageBuilderModule.Data.Models
 {
     public class GroupedPageBuilderPageEntity : AuditableEntity, IDataEntity<GroupedPageBuilderPageEntity, GroupedPageBuilderPage>
     {
-        public string GroupId { get; set; }
-
+        [StringLength(128)]
         public string StoreId { get; set; }
 
+        [StringLength(128)]
         public string CultureName { get; set; }
 
+        [StringLength(1024)]
         public string Name { get; set; }
 
+        [StringLength(2048)]
         public string Permalink { get; set; }
 
-        public bool HasChanges { get; set; }
-
+        [StringLength(128)]
         public string Status { get; set; } // Draft | Published | Archived
 
-        public IList<string> PagesIds { get; set; } = [];
+        public virtual ObservableCollection<PageBuilderPageEntity> Pages { get; set; } = new NullCollection<PageBuilderPageEntity>();
 
         public GroupedPageBuilderPage ToModel(GroupedPageBuilderPage model)
         {
@@ -30,26 +33,53 @@ namespace VirtoCommerce.PageBuilderModule.Data.Models
             model.ModifiedBy = ModifiedBy;
             model.ModifiedDate = ModifiedDate;
 
-            model.GroupId = GroupId;
             model.StoreId = StoreId;
             model.CultureName = CultureName;
             model.Name = Name;
             model.Permalink = Permalink;
             model.Status = Status;
-            model.HasChanges = HasChanges;
-            model.PageIds = PagesIds;
+
+            model.Pages = Pages.Select(x => x.ToModel(AbstractTypeFactory<PageBuilderPage>.TryCreateInstance())).ToList();
 
             return model;
         }
 
         public GroupedPageBuilderPageEntity FromModel(GroupedPageBuilderPage model, PrimaryKeyResolvingMap pkMap)
         {
-            throw new NotSupportedException("This entity is read-only");
+            pkMap.AddPair(model, this);
+
+            Id = model.Id;
+            CreatedBy = model.CreatedBy;
+            CreatedDate = model.CreatedDate;
+            ModifiedBy = model.ModifiedBy;
+            ModifiedDate = model.ModifiedDate;
+
+            StoreId = model.StoreId;
+            CultureName = model.CultureName;
+            Name = model.Name;
+            Permalink = model.Permalink;
+            Status = model.Status;
+
+            if (model.Pages != null)
+            {
+                Pages = new ObservableCollection<PageBuilderPageEntity>(model.Pages.Select(x => AbstractTypeFactory<PageBuilderPageEntity>.TryCreateInstance().FromModel(x, pkMap)));
+            }
+
+            return this;
         }
 
         public void Patch(GroupedPageBuilderPageEntity target)
         {
-            throw new NotSupportedException("This entity is read-only");
+            target.StoreId = StoreId;
+            target.CultureName = CultureName;
+            target.Name = Name;
+            target.Permalink = Permalink;
+            target.Status = Status;
+
+            if (!Pages.IsNullCollection())
+            {
+                Pages.Patch(target.Pages, (sourcePage, targetPage) => sourcePage.Patch(targetPage));
+            }
         }
     }
 }

@@ -24,27 +24,29 @@ public class PageBuilderPageController : Controller
     private readonly IPageBuilderPageService _crudService;
     private readonly IPageBuilderPageSearchService _searchService;
     private readonly ISettingsManager _settingsManager;
-
     private readonly IGroupedPageService _groupedPageService;
+    private readonly IGroupedPageSearchService _groupedPageSearchService;
 
     public PageBuilderPageController(
         IPageBuilderPageService crudService,
         IPageBuilderPageSearchService searchService,
         ISettingsManager settingsManager,
-        IGroupedPageService groupedPageService)
+        IGroupedPageService groupedPageService,
+        IGroupedPageSearchService groupedPageSearchService2
+        )
     {
         _crudService = crudService;
         _searchService = searchService;
         _settingsManager = settingsManager;
-
         _groupedPageService = groupedPageService;
+        _groupedPageSearchService = groupedPageSearchService2;
     }
 
     [HttpPost("grouped/search")]
     [Authorize(ModuleConstants.Security.Permissions.Read)]
     public async Task<ActionResult<GroupedPageBuilderPageSearchResult>> SearchGrouped([FromBody] PageBuilderPageSearchCriteria criteria)
     {
-        var result = await _groupedPageService.SearchAsync(criteria);
+        var result = await _groupedPageSearchService.SearchAsync(criteria);
         return Ok(result);
     }
 
@@ -52,7 +54,7 @@ public class PageBuilderPageController : Controller
     [Authorize(ModuleConstants.Security.Permissions.Read)]
     public async Task<ActionResult<GroupedPageBuilderPage>> GetGrouped([FromQuery] string id, [FromQuery] string responseGroup = null)
     {
-        var groupedPage = await _groupedPageService.GetGroupedAsync(id);
+        var groupedPage = await _groupedPageService.GetNoCloneAsync(id);
         return Ok(groupedPage);
     }
 
@@ -61,7 +63,7 @@ public class PageBuilderPageController : Controller
     public async Task<ActionResult<GroupedPageBuilderPage>> UpdateGrouped([FromBody] GroupedPageBuilderPage model)
     {
         // get the existing grouped page for pages Ids
-        var groupedPage = await _groupedPageService.GetGroupedAsync(model.Id);
+        var groupedPage = await _groupedPageService.GetByIdAsync(model.Id);
 
         if (groupedPage != null)
         {
@@ -83,12 +85,13 @@ public class PageBuilderPageController : Controller
                 groupedPage.Pages.Add(draftPage);
             }
 
-            draftPage.Name = model.Name;
-            draftPage.Permalink = model.Permalink;
-            draftPage.CultureName = model.CultureName;
-            draftPage.StoreId = model.StoreId;
+            // update draft and grouped page
+            groupedPage.Name = draftPage.Name = model.Name;
+            groupedPage.Permalink = draftPage.Permalink = model.Permalink;
+            groupedPage.CultureName = draftPage.CultureName = model.CultureName;
+            groupedPage.StoreId = draftPage.StoreId = model.StoreId;
 
-            await _crudService.SaveChangesAsync(groupedPage.Pages.ToArray());
+            await _groupedPageService.SaveChangesAsync([groupedPage]);
         }
 
         return Ok(groupedPage);
@@ -98,12 +101,21 @@ public class PageBuilderPageController : Controller
     [Authorize(ModuleConstants.Security.Permissions.Create)]
     public async Task<ActionResult<GroupedPageBuilderPage>> CreateGrouped([FromBody] GroupedPageBuilderPage model)
     {
+        var groupedPage = new GroupedPageBuilderPage
+        {
+            Id = null,
+            Name = model.Name,
+            StoreId = model.StoreId,
+            CultureName = model.CultureName,
+            Permalink = model.Permalink,
+            Status = Draft, // always create a new page in draft status
+        };
+
         var page = new PageBuilderPage
         {
             Id = null,
             Name = model.Name,
             StoreId = model.StoreId,
-            GroupId = Guid.NewGuid().ToString("N"), // generate a new group key
             CultureName = model.CultureName,
             Permalink = model.Permalink,
             PageContent = JsonConvert.SerializeObject(new { settings = model, content = Array.Empty<string>() }, new JsonSerializerSettings
@@ -114,8 +126,10 @@ public class PageBuilderPageController : Controller
             Status = Draft, // always create a new page in draft status
         };
 
-        await _crudService.SaveChangesAsync([page]);
-        return await GetGrouped(page.GroupId);
+        groupedPage.Pages.Add(page);
+
+        await _groupedPageService.SaveChangesAsync([groupedPage]);
+        return groupedPage;
     }
 
 
@@ -124,7 +138,7 @@ public class PageBuilderPageController : Controller
     [ProducesResponseType(typeof(void), StatusCodes.Status204NoContent)]
     public async Task<ActionResult<GroupedPageBuilderPage>> ArchiveGrouped([FromQuery] string[] ids)
     {
-        var groupedPages = await _groupedPageService.GetGroupedAsync(ids);
+        var groupedPages = await _groupedPageService.GetAsync(ids);
 
         var pagesToSave = new List<PageBuilderPage>();
         foreach (var groupedPage in groupedPages)
@@ -132,11 +146,10 @@ public class PageBuilderPageController : Controller
             foreach (var page in groupedPage.Pages)
             {
                 page.Status = Archived;
-                pagesToSave.Add(page);
             }
         }
 
-        await _crudService.SaveChangesAsync(pagesToSave.ToArray());
+        await _groupedPageService.SaveChangesAsync(groupedPages);
 
         return NoContent();
     }
@@ -145,7 +158,7 @@ public class PageBuilderPageController : Controller
     [Route("grouped/publishing")]
     public async Task<ActionResult> Publishing([FromQuery] string id, [FromQuery] bool publish)
     {
-        var groupedPage = await _groupedPageService.GetGroupedAsync(id);
+        var groupedPage = await _groupedPageService.GetByIdAsync(id);
 
         var pagesToSave = new List<PageBuilderPage>();
         var pagesToDelete = new List<string>();
@@ -161,7 +174,7 @@ public class PageBuilderPageController : Controller
             pageToPublish.Status = Published;
             pagesToSave.Add(pageToPublish);
 
-            pagesToDelete = groupedPage.PageIds.Except(new[] { pageToPublish.Id }).ToList();
+            pagesToDelete = groupedPage.Pages.Select(x => x.Id).Except(new[] { pageToPublish.Id }).ToList();
         }
         else
         {
@@ -180,10 +193,10 @@ public class PageBuilderPageController : Controller
             pageToUnpublish.Status = Draft;
             pagesToSave.Add(pageToUnpublish);
 
-            pagesToDelete = groupedPage.PageIds.Except(new[] { pageToUnpublish.Id }).ToList();
+            pagesToDelete = groupedPage.Pages.Select(x => x.Id).Except(new[] { pageToUnpublish.Id }).ToList();
         }
 
-        await _crudService.SaveChangesAsync(pagesToSave.ToArray());
+        await _groupedPageService.SaveChangesAsync([groupedPage]);
         await _crudService.DeleteAsync(pagesToDelete.ToArray());
 
         return Ok();
@@ -193,7 +206,7 @@ public class PageBuilderPageController : Controller
     [Route("grouped/publish-status")]
     public async Task<ActionResult<FilePublishStatus>> PublishStatus([FromQuery] string id)
     {
-        var groupedPage = await _groupedPageService.GetGroupedAsync(id);
+        var groupedPage = await _groupedPageService.GetNoCloneAsync(id);
 
         var result = new FilePublishStatus
         {
@@ -203,8 +216,6 @@ public class PageBuilderPageController : Controller
 
         return Ok(result);
     }
-
-    //-------------------------------------------------------------------------------------
 
     [HttpPost("search")]
     [Authorize(ModuleConstants.Security.Permissions.Read)]
@@ -219,7 +230,6 @@ public class PageBuilderPageController : Controller
     public Task<ActionResult<PageBuilderPage>> Create([FromBody] PageBuilderPage model)
     {
         model.Id = null;
-        model.GroupId = Guid.NewGuid().ToString("N"); // generate a new group key
         model.Status = Draft; // always create a new page in draft status
         return Update(model);
     }
