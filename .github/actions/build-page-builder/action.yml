@@ -1,0 +1,23 @@
+# v2.0.0
+name: Build PageBuilder App
+
+inputs:
+  githubToken:
+    description: "GitHub Token"
+    required: true
+
+runs:
+  using: composite
+
+  steps:
+
+    - name: Install dependencies for PageBuilder App
+      shell: bash
+      working-directory: src/VirtoCommerce.PageBuilderModule.Web/page-builder
+      run: yarn
+      
+    - name: Build PageBuilder App
+      shell: bash
+      working-directory: src/VirtoCommerce.PageBuilderModule.Web/page-builder
+      run: yarn build
+

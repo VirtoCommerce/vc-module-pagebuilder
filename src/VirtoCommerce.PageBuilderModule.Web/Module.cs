@@ -1,8 +1,11 @@
 using System;
+using System.IO;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
 using VirtoCommerce.ContentModule.Core.Extensions;
 using VirtoCommerce.ContentModule.Core.Search;
 using VirtoCommerce.PageBuilderModule.Core;
@@ -98,6 +101,22 @@ namespace VirtoCommerce.PageBuilderModule.Web
             using var serviceScope = serviceProvider.CreateScope();
             using var dbContext = serviceScope.ServiceProvider.GetRequiredService<PageBuilderModuleDbContext>();
             dbContext.Database.Migrate();
+
+            // page-builder
+            var pageBuilderAppPath = Path.Combine(ModuleInfo.FullPhysicalPath, "page-builder", "dist");
+            if (Directory.Exists(pageBuilderAppPath))
+            {
+                appBuilder.UseDefaultFiles(new DefaultFilesOptions()
+                {
+                    FileProvider = new PhysicalFileProvider(pageBuilderAppPath),
+                    RequestPath = new PathString($"/apps/page-builder")
+                });
+                appBuilder.UseStaticFiles(new StaticFileOptions()
+                {
+                    FileProvider = new PhysicalFileProvider(pageBuilderAppPath),
+                    RequestPath = new PathString($"/apps/page-builder")
+                });
+            }
         }
 
         public void Uninstall()
