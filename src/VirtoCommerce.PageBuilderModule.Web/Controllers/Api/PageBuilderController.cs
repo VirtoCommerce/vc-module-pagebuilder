@@ -216,6 +216,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                                     Status = Draft,
                                     GroupId = file.PageId,
                                 };
+                                groupedPage.Pages.Add(draftPage);
                             }
 
                             groupedPage.Name = draftPage.Name = page.Settings.Name ?? draftPage.Name;
