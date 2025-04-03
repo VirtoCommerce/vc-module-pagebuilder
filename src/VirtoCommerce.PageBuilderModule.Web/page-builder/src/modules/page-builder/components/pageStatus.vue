@@ -1,9 +1,15 @@
 <template>
-  <div>
+  <div style="display: flex; gap: 5px;">
     <VcStatus style="width: auto;"
       v-bind="statusStyles[itemStatus]"
       >{{ $t(`PAGE_BUILDER.STATUS.${itemStatus.toUpperCase()}`) }}</VcStatus
     >
+    <template v-if="hasChanges && itemStatus == 'Published'">
+      <VcStatus style="width: auto;"
+        v-bind="statusStyles['HasChanges']"
+        >{{ $t('PAGE_BUILDER.STATUS.HAS_CHANGES') }}</VcStatus
+      >
+    </template>
   </div>
 </template>
 
@@ -21,22 +27,13 @@ export interface Props {
   };
 }
 
-/*
-const props = withDefaults(defineProps<Props>(), {
-  context: () => ({
-    item: {
-      status: "Draft",
-    },
-  }),
-});
-*/
-
 const props = withDefaults(defineProps<Props>(), {
   
 });
 
 const { context } = toRefs(props);
 const itemStatus = computed(() => getStatus(context.value.item) || "Draft");
+const hasChanges = computed(() => context.value.item.hasChanges);
 
 function getStatus(page: GroupedPageBuilderPage) {
   return page.status;
@@ -55,5 +52,9 @@ const statusStyles: Omit<Record<string, Record<string, unknown>>, "Draft"> = {
     outline: true,
     variant: "success",
   },
+  HasChanges: {
+    outline: true,
+    variant: "warning",
+  }
 };
 </script>

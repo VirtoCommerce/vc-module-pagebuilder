@@ -77,7 +77,8 @@
     "STATUS": {
       "DRAFT": "Draft",
       "ARCHIVED": "Archived",
-      "PUBLISHED": "Published"
+      "PUBLISHED": "Published",
+      "HAS_CHANGES": "Has draft with changes"
     }
   }
 }
