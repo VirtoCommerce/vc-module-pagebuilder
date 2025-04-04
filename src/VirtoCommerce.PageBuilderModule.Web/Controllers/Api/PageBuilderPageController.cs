@@ -266,7 +266,7 @@ public class PageBuilderPageController : Controller
     [Route("languages")]
     public async Task<ActionResult<string[]>> GetAvailableLanguages([FromQuery] string storeId)
     {
-        var store = await _storeService.GetByIdAsync(storeId);
+        var store = await _storeService.GetNoCloneAsync(storeId);
         if (store == null)
         {
             var setting = await _settingsManager.GetObjectSettingAsync(PlatformConstants.Settings.General.Languages.Name);
