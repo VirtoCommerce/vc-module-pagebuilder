@@ -28,6 +28,11 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
         {
             var query = ((IPageBuilderModuleRepository)repository).GroupedPageBuilderPages;
 
+            if (!string.IsNullOrEmpty(criteria.Keyword))
+            {
+                query = query.Where(x => x.Name.Contains(criteria.Keyword));
+            }
+
             if (!string.IsNullOrEmpty(criteria.StoreId))
             {
                 query = query.Where(x => x.StoreId == criteria.StoreId);

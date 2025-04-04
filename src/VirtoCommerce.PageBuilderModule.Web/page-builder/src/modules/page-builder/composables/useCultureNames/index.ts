@@ -18,7 +18,7 @@ interface ICultureNameResult {
 interface IUseCultureNames {
   readonly loading: Ref<boolean>;
   readonly types: Ref<ICultureName[]>;
-  getCultureNames(): Promise<ICultureNameResult>;
+  getCultureNames(storeId: string | undefined): Promise<ICultureNameResult>;
 }
 
 const { getApiClient } = useApiClient(PageBuilderPageClient);
@@ -27,11 +27,11 @@ export default (): IUseCultureNames => {
   const loading = ref(false);
   const types = ref<ICultureName[]>([]);
 
-  async function getCultureNames(): Promise<ICultureNameResult> {
+  async function getCultureNames(storeId: string | undefined): Promise<ICultureNameResult> {
     loading.value = true;
     const client = await getApiClient();
     try {
-      const languages = await client.getAvailableLanguages();
+      const languages = await client.getAvailableLanguages(storeId);
       const result = languages.map(lang => ({ name: lang }));
       types.value = result;
       return {

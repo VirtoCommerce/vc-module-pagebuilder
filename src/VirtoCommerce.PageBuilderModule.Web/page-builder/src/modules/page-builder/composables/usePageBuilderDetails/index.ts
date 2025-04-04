@@ -72,7 +72,7 @@ export default (args: DetailsComposableArgs<{ options: { sourceMessage: GroupedP
   const scope: DynamicItemScope = {
     toolbarOverrides: {
       saveChanges: {
-        disabled: computed(() => !isEditable()),
+        disabled: computed(() => !validationState.value.modified || !validationState.value.valid),
       },
       remove: {
         isVisible: computed(() => !isNew),
@@ -116,8 +116,8 @@ export default (args: DetailsComposableArgs<{ options: { sourceMessage: GroupedP
           args.emit("parent:call", { method: "reload" });
           await load({ id: item.value?.id! })   
         },
-        isVisible: computed(() => !isNew && item.value?.status != "Published"),
-        disabled: computed(() => !validationState.value.valid || !isEditable()),
+        isVisible: computed(() => !isNew && item.value?.hasChanges == true),
+        disabled: computed(() => !validationState.value.valid || !isEditable() ),
       },
       unpublishPage: {
         clickHandler: async () => {
@@ -133,12 +133,12 @@ export default (args: DetailsComposableArgs<{ options: { sourceMessage: GroupedP
           args.emit("parent:call", { method: "reload" }); 
           await load({ id: item.value?.id! })
         },
-        isVisible: computed(() => !isNew && item.value?.status == "Published"),
+        isVisible: computed(() => !isNew && item.value?.hasChanges == false),
         disabled: computed(() => !validationState.value.valid || !isEditable()),
       },
     },
     loadCultureNames: async() => {
-      return getCultureNames();
+      return getCultureNames(pageStoreId);
     },
     isReadOnly: () => !isEditable(),
     statusText: computed(() => {

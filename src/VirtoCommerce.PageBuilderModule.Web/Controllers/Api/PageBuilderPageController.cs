@@ -14,6 +14,7 @@ using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.Platform.Core;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Settings;
+using VirtoCommerce.StoreModule.Core.Services;
 using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 
 namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
@@ -26,20 +27,22 @@ public class PageBuilderPageController : Controller
     private readonly ISettingsManager _settingsManager;
     private readonly IGroupedPageService _groupedPageService;
     private readonly IGroupedPageSearchService _groupedPageSearchService;
+    private readonly IStoreService _storeService;
 
     public PageBuilderPageController(
         IPageBuilderPageService crudService,
         IPageBuilderPageSearchService searchService,
         ISettingsManager settingsManager,
         IGroupedPageService groupedPageService,
-        IGroupedPageSearchService groupedPageSearchService2
-        )
+        IGroupedPageSearchService groupedPageSearchService,
+        IStoreService storeService)
     {
         _crudService = crudService;
         _searchService = searchService;
         _settingsManager = settingsManager;
         _groupedPageService = groupedPageService;
-        _groupedPageSearchService = groupedPageSearchService2;
+        _groupedPageSearchService = groupedPageSearchService;
+        _storeService = storeService;
     }
 
     [HttpPost("grouped/search")]
@@ -261,9 +264,15 @@ public class PageBuilderPageController : Controller
 
     [HttpGet]
     [Route("languages")]
-    public async Task<ActionResult<string[]>> GetAvailableLanguages()
+    public async Task<ActionResult<string[]>> GetAvailableLanguages([FromQuery] string storeId)
     {
-        var setting = await _settingsManager.GetObjectSettingAsync(PlatformConstants.Settings.General.Languages.Name);
-        return Ok(setting?.AllowedValues ?? []);
+        var store = await _storeService.GetByIdAsync(storeId);
+        if (store == null)
+        {
+            var setting = await _settingsManager.GetObjectSettingAsync(PlatformConstants.Settings.General.Languages.Name);
+            return Ok(setting?.AllowedValues ?? []);
+        }
+
+        return Ok(store.Languages);
     }
 }

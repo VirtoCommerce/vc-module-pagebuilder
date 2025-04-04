@@ -40,6 +40,10 @@
         },
         "EMPTY": {
           "NO_ITEMS": "There are no pages yet"
+        },
+        "NOT_FOUND": {
+          "EMPTY": "No pages found",
+          "RESET": "Reset"
         }
       },
       "DETAILS": {

@@ -42,54 +42,6 @@ export class PageBuilderClient extends AuthApiBase {
     }
 
     /**
-     * @param pageId (optional) 
-     * @return OK
-     */
-    getPage(pageId?: string | undefined): Promise<void> {
-        let url_ = this.baseUrl + "/api/pagebuilder/page?";
-        if (pageId === null)
-            throw new Error("The parameter 'pageId' cannot be null.");
-        else if (pageId !== undefined)
-            url_ += "pageId=" + encodeURIComponent("" + pageId) + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-            }
-        };
-
-        return this.transformOptions(options_).then(transformedOptions_ => {
-            return this.http.fetch(url_, transformedOptions_);
-        }).then((_response: Response) => {
-            return this.processGetPage(_response);
-        });
-    }
-
-    protected processGetPage(response: Response): Promise<void> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            return;
-            });
-        } else if (status === 401) {
-            return response.text().then((_responseText) => {
-            return throwException("Unauthorized", status, _responseText, _headers);
-            });
-        } else if (status === 403) {
-            return response.text().then((_responseText) => {
-            return throwException("Forbidden", status, _responseText, _headers);
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<void>(null as any);
-    }
-
-    /**
      * @param storeId (optional) 
      * @param theme (optional) 
      * @param path (optional) 
@@ -1137,10 +1089,15 @@ export class PageBuilderPageClient extends AuthApiBase {
     }
 
     /**
+     * @param storeId (optional) 
      * @return OK
      */
-    getAvailableLanguages(): Promise<string[]> {
-        let url_ = this.baseUrl + "/api/page-builder-pages/languages";
+    getAvailableLanguages(storeId?: string | undefined): Promise<string[]> {
+        let url_ = this.baseUrl + "/api/page-builder-pages/languages?";
+        if (storeId === null)
+            throw new Error("The parameter 'storeId' cannot be null.");
+        else if (storeId !== undefined)
+            url_ += "storeId=" + encodeURIComponent("" + storeId) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -1229,9 +1186,8 @@ export class GroupedPageBuilderPage implements IGroupedPageBuilderPage {
     cultureName?: string | undefined;
     name?: string | undefined;
     permalink?: string | undefined;
-    hasChanges?: boolean;
     status?: string | undefined;
-    pageIds?: string[] | undefined;
+    readonly hasChanges?: boolean;
     pages?: PageBuilderPage[] | undefined;
     readonly pageContent?: string | undefined;
     createdDate?: Date;
@@ -1256,13 +1212,8 @@ export class GroupedPageBuilderPage implements IGroupedPageBuilderPage {
             this.cultureName = _data["cultureName"];
             this.name = _data["name"];
             this.permalink = _data["permalink"];
-            this.hasChanges = _data["hasChanges"];
             this.status = _data["status"];
-            if (Array.isArray(_data["pageIds"])) {
-                this.pageIds = [] as any;
-                for (let item of _data["pageIds"])
-                    this.pageIds!.push(item);
-            }
+            (<any>this).hasChanges = _data["hasChanges"];
             if (Array.isArray(_data["pages"])) {
                 this.pages = [] as any;
                 for (let item of _data["pages"])
@@ -1291,13 +1242,8 @@ export class GroupedPageBuilderPage implements IGroupedPageBuilderPage {
         data["cultureName"] = this.cultureName;
         data["name"] = this.name;
         data["permalink"] = this.permalink;
-        data["hasChanges"] = this.hasChanges;
         data["status"] = this.status;
-        if (Array.isArray(this.pageIds)) {
-            data["pageIds"] = [];
-            for (let item of this.pageIds)
-                data["pageIds"].push(item);
-        }
+        data["hasChanges"] = this.hasChanges;
         if (Array.isArray(this.pages)) {
             data["pages"] = [];
             for (let item of this.pages)
@@ -1319,9 +1265,8 @@ export interface IGroupedPageBuilderPage {
     cultureName?: string | undefined;
     name?: string | undefined;
     permalink?: string | undefined;
-    hasChanges?: boolean;
     status?: string | undefined;
-    pageIds?: string[] | undefined;
+    hasChanges?: boolean;
     pages?: PageBuilderPage[] | undefined;
     pageContent?: string | undefined;
     createdDate?: Date;
