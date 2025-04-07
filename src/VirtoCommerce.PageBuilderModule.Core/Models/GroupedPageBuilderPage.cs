@@ -3,7 +3,7 @@ using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 
 namespace VirtoCommerce.PageBuilderModule.Core.Models;
 
-public class GroupedPageBuilderPage : AuditableEntity, ICloneable
+public class GroupedPageBuilderPage : AuditableEntity, IHasStoreId, ICloneable
 {
     public string GroupId { get; set; }
 

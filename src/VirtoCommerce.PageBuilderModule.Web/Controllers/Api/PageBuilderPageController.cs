@@ -11,6 +11,7 @@ using VirtoCommerce.ContentModule.Core.Model;
 using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
+using VirtoCommerce.PageBuilderModule.Data.Authorization;
 using VirtoCommerce.Platform.Core;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Settings;
@@ -20,6 +21,7 @@ using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 
 [Route("api/page-builder-pages")]
+[Authorize]
 public class PageBuilderPageController : Controller
 {
     private readonly IPageBuilderPageService _crudService;
@@ -28,6 +30,7 @@ public class PageBuilderPageController : Controller
     private readonly IGroupedPageService _groupedPageService;
     private readonly IGroupedPageSearchService _groupedPageSearchService;
     private readonly IStoreService _storeService;
+    private readonly IAuthorizationService _authorizationService;
 
     public PageBuilderPageController(
         IPageBuilderPageService crudService,
@@ -35,7 +38,8 @@ public class PageBuilderPageController : Controller
         ISettingsManager settingsManager,
         IGroupedPageService groupedPageService,
         IGroupedPageSearchService groupedPageSearchService,
-        IStoreService storeService)
+        IStoreService storeService,
+        IAuthorizationService authorizationService)
     {
         _crudService = crudService;
         _searchService = searchService;
@@ -43,12 +47,19 @@ public class PageBuilderPageController : Controller
         _groupedPageService = groupedPageService;
         _groupedPageSearchService = groupedPageSearchService;
         _storeService = storeService;
+        _authorizationService = authorizationService;
     }
 
     [HttpPost("grouped/search")]
     [Authorize(ModuleConstants.Security.Permissions.Read)]
     public async Task<ActionResult<GroupedPageBuilderPageSearchResult>> SearchGrouped([FromBody] PageBuilderPageSearchCriteria criteria)
     {
+        var authorizationResult = await _authorizationService.AuthorizeAsync(User, criteria, new PageBuilderAuthorizationRequirement());
+        if (!authorizationResult.Succeeded)
+        {
+            return Forbid();
+        }
+
         var result = await _groupedPageSearchService.SearchAsync(criteria);
         return Ok(result);
     }
@@ -58,6 +69,17 @@ public class PageBuilderPageController : Controller
     public async Task<ActionResult<GroupedPageBuilderPage>> GetGrouped([FromQuery] string id, [FromQuery] string responseGroup = null)
     {
         var groupedPage = await _groupedPageService.GetNoCloneAsync(id);
+        if (groupedPage == null)
+        {
+            return NotFound();
+        }
+
+        var authorizationResult = await _authorizationService.AuthorizeAsync(User, groupedPage, new PageBuilderAuthorizationRequirement());
+        if (!authorizationResult.Succeeded)
+        {
+            return Forbid();
+        }
+
         return Ok(groupedPage);
     }
 
@@ -65,6 +87,12 @@ public class PageBuilderPageController : Controller
     [Authorize(ModuleConstants.Security.Permissions.Update)]
     public async Task<ActionResult<GroupedPageBuilderPage>> UpdateGrouped([FromBody] GroupedPageBuilderPage model)
     {
+        var authorizationResult = await _authorizationService.AuthorizeAsync(User, model, new PageBuilderAuthorizationRequirement());
+        if (!authorizationResult.Succeeded)
+        {
+            return Forbid();
+        }
+
         // get the existing grouped page for pages Ids
         var groupedPage = await _groupedPageService.GetByIdAsync(model.Id);
 
@@ -104,6 +132,12 @@ public class PageBuilderPageController : Controller
     [Authorize(ModuleConstants.Security.Permissions.Create)]
     public async Task<ActionResult<GroupedPageBuilderPage>> CreateGrouped([FromBody] GroupedPageBuilderPage model)
     {
+        var authorizationResult = await _authorizationService.AuthorizeAsync(User, model, new PageBuilderAuthorizationRequirement());
+        if (!authorizationResult.Succeeded)
+        {
+            return Forbid();
+        }
+
         var groupedPage = new GroupedPageBuilderPage
         {
             Id = null,
@@ -143,7 +177,12 @@ public class PageBuilderPageController : Controller
     {
         var groupedPages = await _groupedPageService.GetAsync(ids);
 
-        var pagesToSave = new List<PageBuilderPage>();
+        var authorizationResult = await _authorizationService.AuthorizeAsync(User, groupedPages, new PageBuilderAuthorizationRequirement());
+        if (!authorizationResult.Succeeded)
+        {
+            return Forbid();
+        }
+
         foreach (var groupedPage in groupedPages)
         {
             foreach (var page in groupedPage.Pages)
@@ -162,6 +201,12 @@ public class PageBuilderPageController : Controller
     public async Task<ActionResult> Publishing([FromQuery] string id, [FromQuery] bool publish)
     {
         var groupedPage = await _groupedPageService.GetByIdAsync(id);
+
+        var authorizationResult = await _authorizationService.AuthorizeAsync(User, groupedPage, new PageBuilderAuthorizationRequirement());
+        if (!authorizationResult.Succeeded)
+        {
+            return Forbid();
+        }
 
         var pagesToSave = new List<PageBuilderPage>();
         var pagesToDelete = new List<string>();
@@ -211,6 +256,12 @@ public class PageBuilderPageController : Controller
     {
         var groupedPage = await _groupedPageService.GetNoCloneAsync(id);
 
+        var authorizationResult = await _authorizationService.AuthorizeAsync(User, groupedPage, new PageBuilderAuthorizationRequirement());
+        if (!authorizationResult.Succeeded)
+        {
+            return Forbid();
+        }
+
         var result = new FilePublishStatus
         {
             Published = groupedPage.Status == Published,
@@ -218,48 +269,6 @@ public class PageBuilderPageController : Controller
         };
 
         return Ok(result);
-    }
-
-    [HttpPost("search")]
-    [Authorize(ModuleConstants.Security.Permissions.Read)]
-    public async Task<ActionResult<PageBuilderPageSearchResult>> Search([FromBody] PageBuilderPageSearchCriteria criteria)
-    {
-        var result = await _searchService.SearchNoCloneAsync(criteria);
-        return Ok(result);
-    }
-
-    [HttpPost]
-    [Authorize(ModuleConstants.Security.Permissions.Create)]
-    public Task<ActionResult<PageBuilderPage>> Create([FromBody] PageBuilderPage model)
-    {
-        model.Id = null;
-        model.Status = Draft; // always create a new page in draft status
-        return Update(model);
-    }
-
-    [HttpPut]
-    [Authorize(ModuleConstants.Security.Permissions.Update)]
-    public async Task<ActionResult<PageBuilderPage>> Update([FromBody] PageBuilderPage model)
-    {
-        await _crudService.SaveChangesAsync([model]);
-        return Ok(model);
-    }
-
-    [HttpGet("{id}")]
-    [Authorize(ModuleConstants.Security.Permissions.Read)]
-    public async Task<ActionResult<PageBuilderPage>> Get([FromRoute] string id, [FromQuery] string responseGroup = null)
-    {
-        var model = await _crudService.GetNoCloneAsync(id, responseGroup);
-        return Ok(model);
-    }
-
-    [HttpDelete]
-    [Authorize(ModuleConstants.Security.Permissions.Delete)]
-    [ProducesResponseType(typeof(void), StatusCodes.Status204NoContent)]
-    public async Task<ActionResult> Delete([FromQuery] string[] ids)
-    {
-        await _crudService.DeleteAsync(ids);
-        return NoContent();
     }
 
     [HttpGet]

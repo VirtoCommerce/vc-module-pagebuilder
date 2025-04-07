@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -11,6 +12,7 @@ using VirtoCommerce.ContentModule.Core.Search;
 using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.Services;
+using VirtoCommerce.PageBuilderModule.Data.Authorization;
 using VirtoCommerce.PageBuilderModule.Data.Handlers;
 using VirtoCommerce.PageBuilderModule.Data.MySql;
 using VirtoCommerce.PageBuilderModule.Data.PostgreSql;
@@ -67,6 +69,8 @@ namespace VirtoCommerce.PageBuilderModule.Web
             serviceCollection.AddTransient<IGroupedPageSearchService, GroupedPageSearchService>();
 
             serviceCollection.AddTransient<GroupedPageBuilderPageChangedEventHandler>();
+
+            serviceCollection.AddTransient<IAuthorizationHandler, PageBuilderAuthorizationHandler>();
 
             var isFullTextSearchEnabled = Configuration.IsContentFullTextSearchEnabled();
 
