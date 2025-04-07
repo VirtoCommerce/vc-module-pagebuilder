@@ -37,10 +37,15 @@ export default (args: ListComposableArgs) => {
 
   const listFactory = useListFactory<GroupedPageBuilderPage[], IPageBuilderPageSearchCriteria>({
     load: async (_query) => {
-      const criteria = { ...(_query || {}) } as PageBuilderPageSearchCriteria;
-      if (storeId?.value) {
-        criteria.storeId = storeId.value;
+      if (!storeId?.value) {
+        return {
+          totalCount: 0,
+          results: [],
+        };
       }
+      
+      const criteria = { ...(_query || {}) } as PageBuilderPageSearchCriteria;
+      criteria.storeId = storeId.value;
 
       return (await getApiClient()).searchGrouped(criteria);
     },
