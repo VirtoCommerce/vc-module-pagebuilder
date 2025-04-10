@@ -46,6 +46,11 @@
       "open-designer": "Design",
       "publish": "Publish",
       "unpublish": "Unpublish"
+    },
+    "widgets": {
+      "pageBuilder-app": {
+        "title": "Page Builder"
+      }
     }
   },
   "settings": {

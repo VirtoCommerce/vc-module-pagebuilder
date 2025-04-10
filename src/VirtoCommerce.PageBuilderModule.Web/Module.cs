@@ -1,12 +1,32 @@
+using System;
+using System.IO;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
 using VirtoCommerce.ContentModule.Core.Extensions;
 using VirtoCommerce.ContentModule.Core.Search;
+using VirtoCommerce.PageBuilderModule.Core;
+using VirtoCommerce.PageBuilderModule.Core.Events;
+using VirtoCommerce.PageBuilderModule.Core.Services;
+using VirtoCommerce.PageBuilderModule.Data.Authorization;
+using VirtoCommerce.PageBuilderModule.Data.Handlers;
+using VirtoCommerce.PageBuilderModule.Data.MySql;
+using VirtoCommerce.PageBuilderModule.Data.PostgreSql;
+using VirtoCommerce.PageBuilderModule.Data.Repositories;
 using VirtoCommerce.PageBuilderModule.Data.Search;
+using VirtoCommerce.PageBuilderModule.Data.Services;
+using VirtoCommerce.PageBuilderModule.Data.SqlServer;
+using VirtoCommerce.Platform.Core.Events;
 using VirtoCommerce.Platform.Core.Modularity;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.Platform.Core.Settings;
+using VirtoCommerce.Platform.Data.MySql.Extensions;
+using VirtoCommerce.Platform.Data.PostgreSql.Extensions;
+using VirtoCommerce.Platform.Data.SqlServer.Extensions;
 
 namespace VirtoCommerce.PageBuilderModule.Web
 {
@@ -17,6 +37,41 @@ namespace VirtoCommerce.PageBuilderModule.Web
 
         public void Initialize(IServiceCollection serviceCollection)
         {
+            serviceCollection.AddDbContext<PageBuilderModuleDbContext>(options =>
+            {
+                var databaseProvider = Configuration.GetValue("DatabaseProvider", "SqlServer");
+                var connectionString = Configuration.GetConnectionString(ModuleInfo.Id) ?? Configuration.GetConnectionString("VirtoCommerce");
+
+                switch (databaseProvider)
+                {
+                    case "MySql":
+                        options.UseMySqlDatabase(connectionString, typeof(MySqlDataAssemblyMarker), Configuration);
+                        break;
+                    case "PostgreSql":
+                        options.UsePostgreSqlDatabase(connectionString, typeof(PostgreSqlDataAssemblyMarker), Configuration);
+                        break;
+                    default:
+                        options.UseSqlServerDatabase(connectionString, typeof(SqlServerDataAssemblyMarker), Configuration);
+                        break;
+                }
+            });
+
+            // Register services
+            serviceCollection.AddTransient<IPageBuilderModuleRepository, PageBuilderModuleRepository>();
+            serviceCollection.AddSingleton<Func<IPageBuilderModuleRepository>>(provider => () => provider.CreateScope().ServiceProvider.GetRequiredService<IPageBuilderModuleRepository>());
+
+            serviceCollection.AddTransient<IPageBuilderPageService, PageBuilderPageService>();
+            serviceCollection.AddTransient<IPageBuilderPageSearchService, PageBuilderPageSearchService>();
+
+            serviceCollection.AddTransient<PageBuilderPageChangedEventHandler>();
+
+            serviceCollection.AddTransient<IGroupedPageService, GroupedPageService>();
+            serviceCollection.AddTransient<IGroupedPageSearchService, GroupedPageSearchService>();
+
+            serviceCollection.AddTransient<GroupedPageBuilderPageChangedEventHandler>();
+
+            serviceCollection.AddTransient<IAuthorizationHandler, PageBuilderAuthorizationHandler>();
+
             var isFullTextSearchEnabled = Configuration.IsContentFullTextSearchEnabled();
 
             if (isFullTextSearchEnabled)
@@ -27,18 +82,44 @@ namespace VirtoCommerce.PageBuilderModule.Web
 
         public void PostInitialize(IApplicationBuilder appBuilder)
         {
-            var settingsRegistrar = appBuilder.ApplicationServices.GetRequiredService<ISettingsRegistrar>();
+            var serviceProvider = appBuilder.ApplicationServices;
+
+            var settingsRegistrar = serviceProvider.GetRequiredService<ISettingsRegistrar>();
             settingsRegistrar.RegisterSettings(ModuleConstants.Settings.AllSettings, ModuleInfo.Id);
 
-            var permissionsProvider = appBuilder.ApplicationServices.GetRequiredService<IPermissionsRegistrar>();
+            var permissionsProvider = serviceProvider.GetRequiredService<IPermissionsRegistrar>();
             permissionsProvider.RegisterPermissions(ModuleInfo.Id, "Page builder", ModuleConstants.Security.Permissions.AllPermissions);
 
             var isFullTextSearchEnabled = Configuration.IsContentFullTextSearchEnabled();
 
             if (isFullTextSearchEnabled)
             {
-                var contentItemTypeRegistrar = appBuilder.ApplicationServices.GetService<IContentItemTypeRegistrar>();
-                contentItemTypeRegistrar.RegisterContentItemType(".page", appBuilder.ApplicationServices.GetService<PageBuilderContentItemBuilder>);
+                var contentItemTypeRegistrar = serviceProvider.GetService<IContentItemTypeRegistrar>();
+                contentItemTypeRegistrar.RegisterContentItemType(".page", serviceProvider.GetService<PageBuilderContentItemBuilder>);
+            }
+
+            appBuilder.RegisterEventHandler<PageBuilderPageChangedEvent, PageBuilderPageChangedEventHandler>();
+            appBuilder.RegisterEventHandler<GroupedPageBuilderPageChangedEvent, GroupedPageBuilderPageChangedEventHandler>();
+
+            // Apply migrations
+            using var serviceScope = serviceProvider.CreateScope();
+            using var dbContext = serviceScope.ServiceProvider.GetRequiredService<PageBuilderModuleDbContext>();
+            dbContext.Database.Migrate();
+
+            // page-builder
+            var pageBuilderAppPath = Path.Combine(ModuleInfo.FullPhysicalPath, "page-builder", "dist");
+            if (Directory.Exists(pageBuilderAppPath))
+            {
+                appBuilder.UseDefaultFiles(new DefaultFilesOptions()
+                {
+                    FileProvider = new PhysicalFileProvider(pageBuilderAppPath),
+                    RequestPath = new PathString($"/apps/page-builder")
+                });
+                appBuilder.UseStaticFiles(new StaticFileOptions()
+                {
+                    FileProvider = new PhysicalFileProvider(pageBuilderAppPath),
+                    RequestPath = new PathString($"/apps/page-builder")
+                });
             }
         }
 

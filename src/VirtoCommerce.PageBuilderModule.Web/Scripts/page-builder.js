@@ -12,4 +12,10 @@ angular.module(moduleTemplateName, [])
                 fileHandlerProvider.addHandler('virtoCommerce.pageBuilderModule.fileHandler');
             }
         ]
-    );
+    ).run(['platformWebApp.widgetService', function (widgetService) {
+        //Register widget in store details
+        widgetService.registerWidget({
+            controller: 'virtoCommerce.pageBuilderModule.pageBuilderAppWidgetController',
+            template: 'Modules/$(VirtoCommerce.PageBuilderModule)/Scripts/widgets/pageBuilder-app-widget.html'
+        }, 'storeDetail');
+}]);
