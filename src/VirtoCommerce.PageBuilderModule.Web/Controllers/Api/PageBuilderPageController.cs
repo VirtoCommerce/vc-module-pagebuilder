@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -57,7 +58,7 @@ public class PageBuilderPageController : Controller
         var authorizationResult = await _authorizationService.AuthorizeAsync(User, criteria, new PageBuilderAuthorizationRequirement());
         if (!authorizationResult.Succeeded)
         {
-            return Forbid();
+            return Forbidden;
         }
 
         var result = await _groupedPageSearchService.SearchAsync(criteria);
@@ -77,7 +78,7 @@ public class PageBuilderPageController : Controller
         var authorizationResult = await _authorizationService.AuthorizeAsync(User, groupedPage, new PageBuilderAuthorizationRequirement());
         if (!authorizationResult.Succeeded)
         {
-            return Forbid();
+            return Forbidden;
         }
 
         return Ok(groupedPage);
@@ -90,7 +91,7 @@ public class PageBuilderPageController : Controller
         var authorizationResult = await _authorizationService.AuthorizeAsync(User, model, new PageBuilderAuthorizationRequirement());
         if (!authorizationResult.Succeeded)
         {
-            return Forbid();
+            return Forbidden;
         }
 
         // get the existing grouped page for pages Ids
@@ -135,7 +136,7 @@ public class PageBuilderPageController : Controller
         var authorizationResult = await _authorizationService.AuthorizeAsync(User, model, new PageBuilderAuthorizationRequirement());
         if (!authorizationResult.Succeeded)
         {
-            return Forbid();
+            return Forbidden;
         }
 
         var groupedPage = new GroupedPageBuilderPage
@@ -180,7 +181,7 @@ public class PageBuilderPageController : Controller
         var authorizationResult = await _authorizationService.AuthorizeAsync(User, groupedPages, new PageBuilderAuthorizationRequirement());
         if (!authorizationResult.Succeeded)
         {
-            return Forbid();
+            return Forbidden;
         }
 
         foreach (var groupedPage in groupedPages)
@@ -205,7 +206,7 @@ public class PageBuilderPageController : Controller
         var authorizationResult = await _authorizationService.AuthorizeAsync(User, groupedPage, new PageBuilderAuthorizationRequirement());
         if (!authorizationResult.Succeeded)
         {
-            return Forbid();
+            return Forbidden;
         }
 
         var pagesToSave = new List<PageBuilderPage>();
@@ -259,7 +260,7 @@ public class PageBuilderPageController : Controller
         var authorizationResult = await _authorizationService.AuthorizeAsync(User, groupedPage, new PageBuilderAuthorizationRequirement());
         if (!authorizationResult.Succeeded)
         {
-            return Forbid();
+            return Forbidden;
         }
 
         var result = new FilePublishStatus
@@ -284,4 +285,9 @@ public class PageBuilderPageController : Controller
 
         return Ok(store.Languages);
     }
+
+    private static ActionResult Forbidden => new ObjectResult(new { })
+    {
+        StatusCode = (int)HttpStatusCode.Forbidden,
+    };
 }
