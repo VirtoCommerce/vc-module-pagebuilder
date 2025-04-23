@@ -2,50 +2,61 @@
 
 | Property | Type | Description |
 | --- | --- | --- |
-| `options` | `OptionModel[]` | набор вариантов для `select` |
-| `optionsSelector` | `string` | выбор вариантов из текущего контекста [`ComponentContext`](../component-context.md) |
-| `request` | `OptionsRequest` | загрузка вариантов с помощью веб-запроса ***todo: ссылка на описание запроса*** |
-| `equalKey` | `string` | ключ сравнения вариантов |
-| `filterList` | `boolean` | можно ли фильтровать варианты |
-| `multiple` | `boolean` | возможность множественного выбора ***todo: (не реализовано)*** |
+| `options` | `OptionModel[]` | Set of options for the `select` control |
+| `optionsSelector` | `string` | Option selection from the current [`ComponentContext`](../component-context.md) |
+| `request` | `OptionsRequest` | Load options via a web request ***todo: link to request description*** |
+| `equalKey` | `string` | Key used to compare options |
+| `filterList` | `boolean` | Whether the options can be filtered |
+| `multiple` | `boolean` | Allows multiple selections ***todo: (not implemented)*** |
 
-В свойстве `options` задаётся масссив значений, которые будут доступны в выпадающем списке. Эти значения могут быть сгруппированы свойством `group`.
+The `options` property defines an array of values that will be available in the dropdown list. These values can be grouped using the `group` property.
 
-В свойстве `request` можно указать запрос, который будет выполняться для получения данных, в качестве отображаемого значения используется свойство из `label`. А в качестве значения, элемент списка. Полученные данные мерджатся со списком из свойства `options`.
+The `request` property allows specifying a request to fetch data. The `label` property from the result will be used for display, and the option's value is taken from the corresponding field. The fetched data is merged with the array from `options`.
 
-В свойстве `optionsSelector` можно указать js-скрипт, который исполняется в контексте [`ComponentContext`](../component-context.md) и должен возвращать массив.
+The `optionsSelector` property allows specifying a JavaScript snippet that is executed in the context of [`ComponentContext`](../component-context.md) and must return an array.
 
-Например:
+Example:
 
 ```js
 this.page.filter(function(x) { return x.type==='popup' }).map(function(x) { return { label: x.name || x.__id, value: x.__id }; })
 ```
 
-Этот скрипт берёт все блоки страницы, фильтрует их по типу, а затем выбирает нужные значения.
+This script filters all page blocks by type and selects the needed values.
 
-Результат также мерджится со списком из свойства `options`.
+The result is also merged with the list from the `options` property.
 
-Если контролу было передано какое-то значение, то после загрузки данных, оно ищется при помощи значения свойства `equalKey`.
+If the control has a pre-defined value, it will be searched using the `equalKey` after the data is loaded.
 
-Свойство `optionsSelector` игнорируется, если указано свойство `request`.
+The `optionsSelector` is ignored if the `request` property is defined.
 
 ## OptionsRequest
 
-наследуется от `ServerRequestDescriptor`, добавлены свойства `group` и `label`. Оба свойства типа `string`, в них указаны имена свойств, по которым берутся значения из ответа с сервера.
+Inherits from `ServerRequestDescriptor`, with added `group` and `label` properties. Both are of type `string`, indicating the names of the properties used from the server response.
 
-Более подробно формирование запроса описано на странице [`request`](../request.md).
+More details on request formation can be found on the [`request`](../request.md) page.
+
+## SelectValueDescriptor
+
+In addition to the `label` and `value` properties, there is the `selectValueDescritor` property in the `ServerResponseDescriptor` interface. This property is used to specify the value of the option in the select control. It can be a string or an object with the following properties:
+
+| Property | Type | Description |
+| --- | --- | --- |
+| `key` | `string` | Property name for the target value |
+| `query` | `string` | Query to get the value (jsonpath) |
+| `isArray` | `boolean` | Indicates if the value is an array |
+
 
 ## OptionModel
 
 | Property | Type | Description |
 | --- | --- | --- |
-| `label` | `string` | подпись |
-| `value` | `any` | значение |
-| `group` | `string` | название группы |
+| `label` | `string` | Display label |
+| `value` | `any` | Value of the option |
+| `group` | `string` | Group name |
 
-## Примеры
+## Examples
 
-### Обычный селект
+### Basic Select
 
 <details>
     <summary>Expand</summary>
@@ -70,11 +81,11 @@ this.page.filter(function(x) { return x.type==='popup' }).map(function(x) { retu
 ...
 ```
 
-Результат
+Result
 
 ![Basic select control example](images/select-control-basic.png "Basic select control example")
 
-Если указать значение по умолчанию, то оно будет автоматически выбрано.
+To set a default value:
 
 ```json
 ...
@@ -97,13 +108,13 @@ this.page.filter(function(x) { return x.type==='popup' }).map(function(x) { retu
 ...
 ```
 
-Результат
+Result
 
 ![Basic select control with default value example](images/select-control-basic-default.png "Basic select control example with default value")
 
 </details>
 
-### Запрос на сервер
+### Server Request
 
 <details>
     <summary>Expand</summary>
@@ -140,13 +151,13 @@ this.page.filter(function(x) { return x.type==='popup' }).map(function(x) { retu
 ...
 ```
 
-Результат
+Result
 
 ![Select control with request example](images/select-control-request.png "Select control with request example")
 
 </details>
 
-### Выбор из контекста
+### Context-based Selection
 
 <details>
     <summary>Expand</summary>
@@ -165,14 +176,15 @@ this.page.filter(function(x) { return x.type==='popup' }).map(function(x) { retu
 ...
 ```
 
-Результат
+Result
 
-На страницу добавлено 4 контрола, 2 из них типа `popup`.
+The page contains 4 controls, 2 of which are of type `popup`.
 
 ![Select control context page example](images/select-control-context-page.png "Select control context page example")
 
-У пользователя есть возможность выбрать нужный блок
+The user can choose the desired block
 
 ![Select control context example](images/select-control-context.png "Select control context example")
 
 </details>
+

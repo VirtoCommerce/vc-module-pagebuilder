@@ -27,9 +27,9 @@
     ]
 ...
 ```
-<!--
-Result (todo: renew images)
 
-![Calendar control example](images/calendar-control.png "Calendar control example")
-![Calendar control example in open state](images/calendar-control-opened.png "Calendar control example in open state")
--->
+![Calendar control example](images/calendar-raw.png "Calendar control example")
+![Calendar example in inline mode](images/calendar-inline.png "Calendar example in inline mode")
+![Calendar example, choose month](images/calendar-month.png "Calendar example, choose month")
+![Calendar example, choose time](images/calendar-time.png "Calendar example, choose time")
+![Calendar example, mixed mode](images/calendar-datetime.png "Calendar example, mixed mode")

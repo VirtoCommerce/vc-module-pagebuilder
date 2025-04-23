@@ -7,8 +7,8 @@ Page Builder reads meta-data from theme. Developers can extend or customize page
 ├── client-app                    // The main folder for the application.
 |   ├── shared                    // Assets needed to be precompiled during building.
 |   |   └── static-content
-|   |      └── components         // Vue Components for rendering Page Builder elements. 
-├── config                        
+|   |      └── components         // Vue Components for rendering Page Builder elements.
+├── config
 |   |   └── schemas               // All Page Builder meta information are stored here.
 |   |      ├── blocks             // Block definitions.
 |   |      |   └──...
@@ -19,7 +19,7 @@ Page Builder reads meta-data from theme. Developers can extend or customize page
 |   |      ├── shared             // Global settings folder.
 |   |      |   └── _blocks.json   // Global settings for blocks.
 |   |      |   └── _sections.json // Global settings for sections.
-|   |      └── templates          
+|   |      └── templates
 |   |          └── page.json      // Page Builder configuration for static pages.
 |   └── settings_schema.json      // Theme settings schema file. Page Builder uses it for Theme and Preset editor.
 |   └── settings_data.json        // Theme config file.
@@ -83,7 +83,9 @@ Example with a set of sections and additional settings
   ]
 }
 ```
+
 Example with descriptor for request children templates
+
 ```json
 {
   "name": "Pages",
@@ -101,8 +103,8 @@ Example with descriptor for request children templates
 
 ### Sections
 
-Each file describes a section, which can be added to the page. 
-Section editor is created based on this file.
+Each file describes a section, which can be added to the page.
+Section editor is based on this file.
 
 | property | type | description |
 | - | - | - |
@@ -148,7 +150,7 @@ The simplest example
 Example with group settings
 ```json
 {
-  "name": "Image",  
+  "name": "Image",
   "icon": "image",
   "displayField": "name",
   "group": "Media",
@@ -168,7 +170,6 @@ Example with group settings
 }
 
 ```
-
 
 ### Blocks
 

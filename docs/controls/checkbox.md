@@ -2,7 +2,7 @@
 
 No additional settings
 
-## Пример:
+## Example:
 
 ```json
 ...
@@ -11,14 +11,13 @@ No additional settings
             "id": "displayHeader",
             "label": "Display header",
             "type": "checkbox",
+            "info": "You can display additional info"
             "default": true
         },
         ...
     ]
 ...
 ```
-<!--
-Result (todo: renew images)
 
-![Checkbox control example](images/checkbox-control.png "Checkbox control example")
--->
+
+![Checkbox control example](images/checkbox.png "Checkbox control example")
