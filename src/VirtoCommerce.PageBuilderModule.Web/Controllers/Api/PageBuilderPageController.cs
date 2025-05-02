@@ -104,7 +104,7 @@ public class PageBuilderPageController : Controller
                 return BadRequest("Archived page cannot be updated.");
             }
 
-            // update only draft page, create if doesn't exist
+            // update only draft page, create if it doesn't exist
             var draftPage = groupedPage.Pages.FirstOrDefault(x => x.Status == Draft);
             if (draftPage == null)
             {
@@ -112,12 +112,12 @@ public class PageBuilderPageController : Controller
                 {
                     Status = Draft,
                     GroupId = model.Id,
-                    PageContent = groupedPage.PageContent,
                 };
                 groupedPage.Pages.Add(draftPage);
             }
 
             // update draft and grouped page
+            draftPage.PageContent = model.NewPageContent;
             groupedPage.Name = draftPage.Name = model.Name;
             groupedPage.Permalink = draftPage.Permalink = model.Permalink;
             groupedPage.CultureName = draftPage.CultureName = model.CultureName;
@@ -210,7 +210,7 @@ public class PageBuilderPageController : Controller
         }
 
         var pagesToSave = new List<PageBuilderPage>();
-        var pagesToDelete = new List<string>();
+        List<string> pagesToDelete;
 
         if (publish)
         {
@@ -222,8 +222,7 @@ public class PageBuilderPageController : Controller
 
             pageToPublish.Status = Published;
             pagesToSave.Add(pageToPublish);
-
-            pagesToDelete = groupedPage.Pages.Select(x => x.Id).Except(new[] { pageToPublish.Id }).ToList();
+            pagesToDelete = groupedPage.Pages.Select(x => x.Id).Except([pageToPublish.Id]).ToList();
         }
         else
         {
@@ -241,8 +240,7 @@ public class PageBuilderPageController : Controller
 
             pageToUnpublish.Status = Draft;
             pagesToSave.Add(pageToUnpublish);
-
-            pagesToDelete = groupedPage.Pages.Select(x => x.Id).Except(new[] { pageToUnpublish.Id }).ToList();
+            pagesToDelete = groupedPage.Pages.Select(x => x.Id).Except([pageToUnpublish.Id]).ToList();
         }
 
         await _groupedPageService.SaveChangesAsync([groupedPage]);
@@ -284,6 +282,14 @@ public class PageBuilderPageController : Controller
         }
 
         return Ok(store.Languages);
+    }
+
+    [HttpGet]
+    [Route("user-groups")]
+    public async Task<ActionResult<string[]>> GetUserGroups()
+    {
+        var setting = await _settingsManager.GetObjectSettingAsync(CustomerModule.Core.ModuleConstants.Settings.General.MemberGroups.Name);
+        return Ok(setting?.AllowedValues ?? []);
     }
 
     private static ActionResult Forbidden => new ObjectResult(new { })

@@ -57,9 +57,9 @@ static class PagesExtensions
             pageDocument.Visibility = (settings?.Value<bool?>("visibility") ?? true)
                 ? PageDocumentVisibility.Public
                 : PageDocumentVisibility.Private;
-            pageDocument.Title = settings?.Value<string>("description") ?? pageDocument.Title;
+            pageDocument.Description = settings?.Value<string>("description") ?? pageDocument.Title;
 
-            pageDocument.UserGroups = settings?.Value<string>("groupName")
+            pageDocument.UserGroups = settings?.Value<string>("userGroups")
                  ?.Split(',', StringSplitOptions.RemoveEmptyEntries)
                  .Select(x => x.Trim())
                  .ToArray();

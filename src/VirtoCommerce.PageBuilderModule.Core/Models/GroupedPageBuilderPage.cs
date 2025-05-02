@@ -27,6 +27,8 @@ public class GroupedPageBuilderPage : AuditableEntity, IHasStoreId, ICloneable
 
     public IList<PageBuilderPage> Pages { get; set; } = [];
 
+    public string NewPageContent { get; set; }
+
     public string PageContent
     {
         get
