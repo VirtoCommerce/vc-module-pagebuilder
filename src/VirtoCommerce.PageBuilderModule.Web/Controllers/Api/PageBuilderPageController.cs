@@ -209,7 +209,6 @@ public class PageBuilderPageController : Controller
             return Forbidden;
         }
 
-        var pagesToSave = new List<PageBuilderPage>();
         List<string> pagesToDelete;
 
         if (publish)
@@ -221,7 +220,6 @@ public class PageBuilderPageController : Controller
             }
 
             pageToPublish.Status = Published;
-            pagesToSave.Add(pageToPublish);
             pagesToDelete = groupedPage.Pages.Select(x => x.Id).Except([pageToPublish.Id]).ToList();
         }
         else
@@ -239,8 +237,7 @@ public class PageBuilderPageController : Controller
             }
 
             pageToUnpublish.Status = Draft;
-            pagesToSave.Add(pageToUnpublish);
-            pagesToDelete = groupedPage.Pages.Select(x => x.Id).Except([pageToUnpublish.Id]).ToList();
+            pagesToDelete = groupedPage.Pages.Where(x => x.Id != pageToUnpublish.Id).Select(x => x.Id).ToList();
         }
 
         await _groupedPageService.SaveChangesAsync([groupedPage]);
@@ -272,6 +269,7 @@ public class PageBuilderPageController : Controller
 
     [HttpGet]
     [Route("languages")]
+    [Authorize(PlatformConstants.Security.Permissions.SettingQuery)]
     public async Task<ActionResult<string[]>> GetAvailableLanguages([FromQuery] string storeId)
     {
         var store = await _storeService.GetNoCloneAsync(storeId);
@@ -286,6 +284,7 @@ public class PageBuilderPageController : Controller
 
     [HttpGet]
     [Route("user-groups")]
+    [Authorize(PlatformConstants.Security.Permissions.SettingQuery)]
     public async Task<ActionResult<string[]>> GetUserGroups()
     {
         var setting = await _settingsManager.GetObjectSettingAsync(CustomerModule.Core.ModuleConstants.Settings.General.MemberGroups.Name);
