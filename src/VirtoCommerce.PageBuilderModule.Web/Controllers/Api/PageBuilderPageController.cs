@@ -220,7 +220,7 @@ public class PageBuilderPageController : Controller
             }
 
             pageToPublish.Status = Published;
-            pagesToDelete = groupedPage.Pages.Select(x => x.Id).Except([pageToPublish.Id]).ToList();
+            pagesToDelete = groupedPage.Pages.Where(x => x.Id != pageToPublish.Id).Select(x => x.Id).ToList();
         }
         else
         {
