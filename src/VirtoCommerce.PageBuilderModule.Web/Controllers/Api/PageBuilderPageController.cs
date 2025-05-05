@@ -241,7 +241,7 @@ public class PageBuilderPageController : Controller
         }
 
         await _groupedPageService.SaveChangesAsync([groupedPage]);
-        await _crudService.DeleteAsync(pagesToDelete.ToArray());
+        await _crudService.DeleteAsync(pagesToDelete);
 
         return Ok();
     }
