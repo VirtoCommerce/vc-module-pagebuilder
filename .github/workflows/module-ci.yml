@@ -1,5 +1,5 @@
-# v3.800.9
-# https://virtocommerce.atlassian.net/browse/VCST-1260
+# v3.800.11
+# bump-ubuntu-version
 name: Module CI
 
 on:
@@ -33,7 +33,7 @@ jobs:
     if: ${{ github.actor != 'dependabot[bot]' && 
         (github.event.pull_request.head.repo.full_name == github.repository || 
         github.event.pull_request.head.repo.full_name == '') }}  # Check that PR not from forked repo and not from Dependabot
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     env:
       CLOUD_INSTANCE_BASE_URL: ${{secrets.CLOUD_INSTANCE_BASE_URL}}
       CLIENT_ID: ${{secrets.CLIENT_ID}}
@@ -85,7 +85,7 @@ jobs:
 
       - name: Get Changelog
         id: changelog
-        uses: VirtoCommerce/vc-github-actions/changelog-generator@edfd82d3da0d04f3df61fb0dc742b163134dfb56
+        uses: VirtoCommerce/vc-github-actions/changelog-generator@master
 
       - name: Get Artifact Version
         uses: VirtoCommerce/vc-github-actions/get-image-version@master
@@ -170,6 +170,7 @@ jobs:
         uses: VirtoCommerce/vc-github-actions/publish-blob-release@master
         with:
           blobSAS: ${{ secrets.BLOB_TOKEN }}
+          blobUrl: ${{ vars.BLOB_URL }}
           
       - name: Add Jira link
         if: ${{ github.event_name == 'pull_request' }}
