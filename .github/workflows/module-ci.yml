@@ -85,7 +85,7 @@ jobs:
 
       - name: Get Changelog
         id: changelog
-        uses: VirtoCommerce/vc-github-actions/changelog-generator@master
+        uses: VirtoCommerce/vc-github-actions/changelog-generator@edfd82d3da0d04f3df61fb0dc742b163134dfb56
 
       - name: Get Artifact Version
         uses: VirtoCommerce/vc-github-actions/get-image-version@master
