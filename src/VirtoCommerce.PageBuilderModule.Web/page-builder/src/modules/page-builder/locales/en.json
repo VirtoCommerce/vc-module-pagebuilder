@@ -65,7 +65,11 @@
           "PERMALINK": "Permalink",
           "CONTENT": "Content",
           "GUID": "GUID",
-          "CULTURE_NAME": "Language"
+          "CULTURE_NAME": "Language",
+          "VISIBILITY": "Visibility",
+          "START_DATE": "Start date",
+          "END_DATE": "End date",
+          "USER_GROUPS": "User groups"
         }
       },
       "ALERTS": {

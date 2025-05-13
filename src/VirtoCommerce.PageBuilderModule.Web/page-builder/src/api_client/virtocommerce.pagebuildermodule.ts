@@ -42,12 +42,12 @@ export class PageBuilderClient extends AuthApiBase {
     }
 
     /**
-     * @param storeId (optional) 
-     * @param theme (optional) 
-     * @param path (optional) 
-     * @param type (optional) 
-     * @param draft (optional) 
-     * @param pageId (optional) 
+     * @param storeId (optional)
+     * @param theme (optional)
+     * @param path (optional)
+     * @param type (optional)
+     * @param draft (optional)
+     * @param pageId (optional)
      * @return OK
      */
     getTemplate(storeId?: string | undefined, theme?: string | undefined, path?: string | undefined, type?: string | undefined, draft?: boolean | undefined, pageId?: string | undefined): Promise<void> {
@@ -115,8 +115,8 @@ export class PageBuilderClient extends AuthApiBase {
     }
 
     /**
-     * @param storeId (optional) 
-     * @param theme (optional) 
+     * @param storeId (optional)
+     * @param theme (optional)
      * @return OK
      */
     getSettings(storeId?: string | undefined, theme?: string | undefined): Promise<void> {
@@ -168,8 +168,8 @@ export class PageBuilderClient extends AuthApiBase {
     }
 
     /**
-     * @param storeId (optional) 
-     * @param theme (optional) 
+     * @param storeId (optional)
+     * @param theme (optional)
      * @return OK
      */
     getTemplates(storeId?: string | undefined, theme?: string | undefined): Promise<void> {
@@ -221,8 +221,8 @@ export class PageBuilderClient extends AuthApiBase {
     }
 
     /**
-     * @param storeId (optional) 
-     * @param theme (optional) 
+     * @param storeId (optional)
+     * @param theme (optional)
      * @return OK
      */
     getObjects(storeId?: string | undefined, theme?: string | undefined): Promise<void> {
@@ -274,8 +274,8 @@ export class PageBuilderClient extends AuthApiBase {
     }
 
     /**
-     * @param storeId (optional) 
-     * @param theme (optional) 
+     * @param storeId (optional)
+     * @param theme (optional)
      * @return OK
      */
     getSectionsSettings(storeId?: string | undefined, theme?: string | undefined): Promise<void> {
@@ -327,12 +327,12 @@ export class PageBuilderClient extends AuthApiBase {
     }
 
     /**
-     * @param storeId (optional) 
-     * @param theme (optional) 
-     * @param type (optional) 
-     * @param folder (optional) 
-     * @param pattern (optional) 
-     * @param keyword (optional) 
+     * @param storeId (optional)
+     * @param theme (optional)
+     * @param type (optional)
+     * @param folder (optional)
+     * @param pattern (optional)
+     * @param keyword (optional)
      * @return OK
      */
     search(storeId?: string | undefined, theme?: string | undefined, type?: string | undefined, folder?: string | undefined, pattern?: string | undefined, keyword?: string | undefined): Promise<string> {
@@ -385,7 +385,7 @@ export class PageBuilderClient extends AuthApiBase {
             let result200: any = null;
             let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
                 result200 = resultData200 !== undefined ? resultData200 : <any>null;
-    
+
             return result200;
             });
         } else if (status === 401) {
@@ -405,10 +405,10 @@ export class PageBuilderClient extends AuthApiBase {
     }
 
     /**
-     * @param storeId (optional) 
-     * @param theme (optional) 
-     * @param draft (optional) 
-     * @param body (optional) 
+     * @param storeId (optional)
+     * @param theme (optional)
+     * @param draft (optional)
+     * @param body (optional)
      * @return OK
      */
     saveTemplates(storeId?: string | undefined, theme?: string | undefined, draft?: boolean | undefined, body?: SaveFilesModel | undefined): Promise<void> {
@@ -480,7 +480,7 @@ export class PageBuilderPageClient extends AuthApiBase {
     }
 
     /**
-     * @param body (optional) 
+     * @param body (optional)
      * @return OK
      */
     searchGrouped(body?: PageBuilderPageSearchCriteria | undefined): Promise<GroupedPageBuilderPageSearchResult> {
@@ -532,8 +532,8 @@ export class PageBuilderPageClient extends AuthApiBase {
     }
 
     /**
-     * @param id (optional) 
-     * @param responseGroup (optional) 
+     * @param id (optional)
+     * @param responseGroup (optional)
      * @return OK
      */
     getGrouped(id?: string | undefined, responseGroup?: string | undefined): Promise<GroupedPageBuilderPage> {
@@ -589,7 +589,7 @@ export class PageBuilderPageClient extends AuthApiBase {
     }
 
     /**
-     * @param body (optional) 
+     * @param body (optional)
      * @return OK
      */
     updateGrouped(body?: GroupedPageBuilderPage | undefined): Promise<GroupedPageBuilderPage> {
@@ -641,7 +641,7 @@ export class PageBuilderPageClient extends AuthApiBase {
     }
 
     /**
-     * @param body (optional) 
+     * @param body (optional)
      * @return OK
      */
     createGrouped(body?: GroupedPageBuilderPage | undefined): Promise<GroupedPageBuilderPage> {
@@ -693,7 +693,7 @@ export class PageBuilderPageClient extends AuthApiBase {
     }
 
     /**
-     * @param ids (optional) 
+     * @param ids (optional)
      * @return No Content
      */
     archiveGrouped(ids?: string[] | undefined): Promise<void> {
@@ -741,8 +741,8 @@ export class PageBuilderPageClient extends AuthApiBase {
     }
 
     /**
-     * @param id (optional) 
-     * @param publish (optional) 
+     * @param id (optional)
+     * @param publish (optional)
      * @return OK
      */
     publishing(id?: string | undefined, publish?: boolean | undefined): Promise<void> {
@@ -794,7 +794,7 @@ export class PageBuilderPageClient extends AuthApiBase {
     }
 
     /**
-     * @param id (optional) 
+     * @param id (optional)
      * @return OK
      */
     publishStatus(id?: string | undefined): Promise<FilePublishStatus> {
@@ -846,7 +846,7 @@ export class PageBuilderPageClient extends AuthApiBase {
     }
 
     /**
-     * @param storeId (optional) 
+     * @param storeId (optional)
      * @return OK
      */
     getAvailableLanguages(storeId?: string | undefined): Promise<string[]> {
@@ -872,6 +872,60 @@ export class PageBuilderPageClient extends AuthApiBase {
     }
 
     protected processGetAvailableLanguages(response: Response): Promise<string[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData200)) {
+                result200 = [] as any;
+                for (let item of resultData200)
+                    result200!.push(item);
+            }
+            else {
+                result200 = <any>null;
+            }
+            return result200;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            return throwException("Unauthorized", status, _responseText, _headers);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            return throwException("Forbidden", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<string[]>(null as any);
+    }
+
+    /**
+     * @return OK
+     */
+    getUserGroups(): Promise<string[]> {
+        let url_ = this.baseUrl + "/api/page-builder-pages/user-groups";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "text/plain"
+            }
+        };
+
+        return this.transformOptions(options_).then(transformedOptions_ => {
+            return this.http.fetch(url_, transformedOptions_);
+        }).then((_response: Response) => {
+            return this.processGetUserGroups(_response);
+        });
+    }
+
+    protected processGetUserGroups(response: Response): Promise<string[]> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
         if (status === 200) {

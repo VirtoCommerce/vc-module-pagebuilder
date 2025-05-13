@@ -1,5 +1,11 @@
-import { computed, ref, watch, reactive, Ref, onMounted } from "vue";
-import { DetailsBaseBladeScope, IBladeToolbar, useDetailsFactory, DetailsComposableArgs, useApiClient } from "@vc-shell/framework";
+import { computed, watch, reactive, onMounted } from "vue";
+import {
+  DetailsBaseBladeScope,
+  IBladeToolbar,
+  useDetailsFactory,
+  DetailsComposableArgs,
+  useApiClient,
+} from "@vc-shell/framework";
 import { useI18n } from "vue-i18n";
 
 import {
@@ -9,10 +15,12 @@ import {
 } from "../../../../api_client/virtocommerce.pagebuildermodule";
 
 import useCultureNames from "../useCultureNames";
+import useUserGroups from "../useUserGroups";
 import useUrlParams from "../useUrlParams";
 
 const { getApiClient } = useApiClient(PageBuilderPageClient);
 const { getCultureNames } = useCultureNames();
+const { getUserGroups } = useUserGroups();
 const { storeId, initUrlParams } = useUrlParams();
 
 export interface DynamicItemScope extends DetailsBaseBladeScope {
@@ -26,11 +34,20 @@ export interface DynamicItemScope extends DetailsBaseBladeScope {
   };
 }
 
+interface ExtendedGroupedPageBuilderPage extends GroupedPageBuilderPage {
+  visibility?: boolean;
+  userGroups?: string[];
+  startDate?: Date;
+  endDate?: Date;
+  pageContent?: string;
+  newPageContent?: string;
+}
+
 export default (args: DetailsComposableArgs<{ options: { sourceMessage: GroupedPageBuilderPage } }>) => {
   initUrlParams();
 
-  let isNew = !args.props.param;
-  
+  const isNew = !args.props.param;
+
   let pageStoreId: string | undefined;
   if (args.props.options && args.props.options.storeId) {
     pageStoreId = args.props.options.storeId as string;
@@ -42,11 +59,36 @@ export default (args: DetailsComposableArgs<{ options: { sourceMessage: GroupedP
   const detailsFactory = useDetailsFactory({
     load: async (page) => {
       if (page?.id) {
-        return (await getApiClient()).getGrouped(page.id);
+        const apiClient = await getApiClient();
+        const result = (await apiClient.getGrouped(page.id)) as ExtendedGroupedPageBuilderPage;
+        console.log(result);
+        try {
+          if (result.pageContent) {
+            const model = JSON.parse(result.pageContent);
+            result.visibility = model.settings.visibility;
+            result.userGroups = model.settings.userGroups?.split(",") || [];
+            result.startDate = model.settings.startDate;
+            result.endDate = model.settings.endDate;
+          }
+        } catch (e) {
+          console.error(e);
+        }
+        return result;
       }
     },
     saveChanges: async (page) => {
       const apiClient = await getApiClient();
+      const pageContent = page.pageContent ? JSON.parse(page.pageContent) : { settings: {}, content: [] };
+      const newSettings = {
+        visibility: page.visibility,
+        userGroups: page.userGroups?.join(","),
+        startDate: page.startDate,
+        endDate: page.endDate,
+      };
+
+      pageContent.settings = { ...pageContent.settings, ...newSettings };
+      page.newPageContent = JSON.stringify(pageContent);
+
       if (isNew) {
         page.status = "Draft";
         page.storeId = pageStoreId as string | undefined;
@@ -88,19 +130,15 @@ export default (args: DetailsComposableArgs<{ options: { sourceMessage: GroupedP
       openPageDesigner: {
         clickHandler: async () => {
           // Get platform URL from env
-          const platformUrl = import.meta.env.APP_PLATFORM_URL?.replace(/\/$/, '') || window.location.origin;
-          
-          let designerUrl = platformUrl +
-            (platformUrl.endsWith('/') ? '' : '/') +
-            'Modules/$(VirtoCommerce.PageBuilderModule)/Content/builder/index.html'          
-
-          let pageId = item.value?.id;
-          let pageStoreId = item.value?.storeId;
+          const platformUrl: string = (import.meta.env.APP_PLATFORM_URL || window.location.origin).replace(/\/$/, "");
+          const designerUrl = `${platformUrl}/Modules/$(VirtoCommerce.PageBuilderModule)/Content/builder/index.html`;
+          const pageId = item.value?.id;
+          const pageStoreId = item.value?.storeId;
 
           if (pageId && pageStoreId) {
-            window.open(designerUrl + '?storeId=' + pageStoreId + '#/pages?type=' + contentType + '&pageId=' + pageId, '_blank');
-          }
-          else {
+            const url = `${designerUrl}?storeId=${pageStoreId}#/pages?type=${contentType}&pageId=${pageId}`;
+            window.open(url, "_blank");
+          } else {
             throw new Error("Can't open page.");
           }
         },
@@ -109,15 +147,18 @@ export default (args: DetailsComposableArgs<{ options: { sourceMessage: GroupedP
       },
       publishPage: {
         clickHandler: async () => {
-          let pageId = item.value?.id;
+          const pageId = item.value?.id;
+          const apiClient = await getApiClient();
 
-          await (await getApiClient()).publishing(pageId, true);
+          await apiClient.publishing(pageId, true);
 
-          args.emit("parent:call", { method: "reload" });
-          await load({ id: item.value?.id! })   
+          if (item.value) {
+            args.emit("parent:call", { method: "reload" });
+            await load({ id: item.value.id! });
+          }
         },
         isVisible: computed(() => !isNew && item.value?.hasChanges == true),
-        disabled: computed(() => !validationState.value.valid || !isEditable() ),
+        disabled: computed(() => !validationState.value.valid || !isEditable()),
       },
       unpublishPage: {
         clickHandler: async () => {
@@ -126,23 +167,29 @@ export default (args: DetailsComposableArgs<{ options: { sourceMessage: GroupedP
             throw new Error(t("PAGE_BUILDER.PAGES.ALERTS.UNPUBLISH_WITH_DRAFT"));
           }
 
-          let pageId = item.value?.id;
+          const pageId = item.value?.id;
+          const apiClient = await getApiClient();
 
-          await (await getApiClient()).publishing(pageId, false);
+          await apiClient.publishing(pageId, false);
 
-          args.emit("parent:call", { method: "reload" }); 
-          await load({ id: item.value?.id! })
+          if (item.value) {
+            args.emit("parent:call", { method: "reload" });
+            await load({ id: item.value.id! });
+          }
         },
         isVisible: computed(() => !isNew && item.value?.hasChanges == false),
         disabled: computed(() => !validationState.value.valid || !isEditable()),
       },
     },
-    loadCultureNames: async() => {
+    loadCultureNames: async () => {
       return getCultureNames(pageStoreId);
+    },
+    loadUserGroups: async () => {
+      return getUserGroups();
     },
     isReadOnly: () => !isEditable(),
     statusText: computed(() => {
-      let result = "Draft";
+      const result = "Draft";
       const page = item.value;
       if (page == null) {
         return result;
@@ -178,8 +225,8 @@ export default (args: DetailsComposableArgs<{ options: { sourceMessage: GroupedP
   );
 
   onMounted(() => {
-    initUrlParams()
-  })
+    initUrlParams();
+  });
 
   return {
     load,
