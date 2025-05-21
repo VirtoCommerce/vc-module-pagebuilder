@@ -61,7 +61,6 @@ export default (args: DetailsComposableArgs<{ options: { sourceMessage: GroupedP
       if (page?.id) {
         const apiClient = await getApiClient();
         const result = (await apiClient.getGrouped(page.id)) as ExtendedGroupedPageBuilderPage;
-        console.log(result);
         try {
           if (result.pageContent) {
             const model = JSON.parse(result.pageContent);
@@ -81,7 +80,7 @@ export default (args: DetailsComposableArgs<{ options: { sourceMessage: GroupedP
       const pageContent = page.pageContent ? JSON.parse(page.pageContent) : { settings: {}, content: [] };
       const newSettings = {
         visibility: page.visibility,
-        userGroups: page.userGroups?.join(","),
+        userGroups: page.userGroups?.filter(x => !!x).join(","),
         startDate: page.startDate,
         endDate: page.endDate,
       };
@@ -130,7 +129,7 @@ export default (args: DetailsComposableArgs<{ options: { sourceMessage: GroupedP
       openPageDesigner: {
         clickHandler: async () => {
           // Get platform URL from env
-          const platformUrl: string = (import.meta.env.APP_PLATFORM_URL || window.location.origin).replace(/\/$/, "");
+          const platformUrl: string = ((import.meta.env.DEV && import.meta.env.APP_PLATFORM_URL) || window.location.origin).replace(/\/$/, "");
           const designerUrl = `${platformUrl}/Modules/$(VirtoCommerce.PageBuilderModule)/Content/builder/index.html`;
           const pageId = item.value?.id;
           const pageStoreId = item.value?.storeId;

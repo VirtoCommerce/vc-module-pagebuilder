@@ -98,6 +98,7 @@ export const details: DynamicDetailsSchema = {
           property: "userGroups",
           optionValue: "name",
           optionLabel: "name",
+          searchable: true,
           optionsMethod: "loadUserGroups",
           multiple: true,
           disabled: { method: "isReadOnly" },
