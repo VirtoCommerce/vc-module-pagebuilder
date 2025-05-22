@@ -89,6 +89,7 @@ export const details: DynamicDetailsSchema = {
           component: "vc-switch",
           label: "PAGE_BUILDER.PAGES.DETAILS.FIELDS.VISIBILITY",
           property: "visibility",
+          tooltip: "PAGE_BUILDER.PAGES.DETAILS.TOOLTIPS.VISIBILITY",
           disabled: { method: "isReadOnly" },
         },
         {

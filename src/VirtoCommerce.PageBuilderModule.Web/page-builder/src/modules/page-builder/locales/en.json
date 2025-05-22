@@ -70,6 +70,9 @@
           "START_DATE": "Start date",
           "END_DATE": "End date",
           "USER_GROUPS": "User groups"
+        },
+        "TOOLTIPS": {
+          "VISIBILITY": "If Visibility is off the page will be available only for users with admin access."
         }
       },
       "ALERTS": {
