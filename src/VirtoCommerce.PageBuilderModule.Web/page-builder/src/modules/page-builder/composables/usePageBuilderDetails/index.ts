@@ -65,7 +65,7 @@ export default (args: DetailsComposableArgs<{ options: { sourceMessage: GroupedP
           if (result.pageContent) {
             const model = JSON.parse(result.pageContent);
             result.visibility = model.settings.visibility;
-            result.userGroups = model.settings.userGroups?.split(",") || [];
+            result.userGroups = model.settings.userGroups?.split(",").filter((x: string) => !!x) || [];
             result.startDate = model.settings.startDate;
             result.endDate = model.settings.endDate;
           }
