@@ -72,7 +72,7 @@
           "USER_GROUPS": "User groups"
         },
         "TOOLTIPS": {
-          "VISIBILITY": "If Visibility is off the page will be available only for users with admin access."
+          "VISIBILITY": "If Visibility is off the page will be available only for registered users."
         }
       },
       "ALERTS": {

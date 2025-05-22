@@ -81,8 +81,11 @@ export default (args: DetailsComposableArgs<{ options: { sourceMessage: GroupedP
       const newSettings = {
         visibility: page.visibility,
         userGroups: page.userGroups?.filter(x => !!x).join(","),
+        cultureName: page.cultureName,
         startDate: page.startDate,
         endDate: page.endDate,
+        permalink: page.permalink,
+        name: page.name,
       };
 
       pageContent.settings = { ...pageContent.settings, ...newSettings };
