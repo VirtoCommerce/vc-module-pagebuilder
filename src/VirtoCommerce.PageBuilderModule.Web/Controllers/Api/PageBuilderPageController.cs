@@ -156,11 +156,12 @@ public class PageBuilderPageController : Controller
             StoreId = model.StoreId,
             CultureName = model.CultureName,
             Permalink = model.Permalink,
-            PageContent = JsonConvert.SerializeObject(new { settings = model, content = Array.Empty<string>() }, new JsonSerializerSettings
-            {
-                Formatting = Formatting.Indented,
-                ContractResolver = new CamelCasePropertyNamesContractResolver(),
-            }),
+            PageContent = model.NewPageContent.EmptyToNull()
+                          ?? JsonConvert.SerializeObject(new { settings = model, content = Array.Empty<string>() }, new JsonSerializerSettings
+                          {
+                              Formatting = Formatting.Indented,
+                              ContractResolver = new CamelCasePropertyNamesContractResolver(),
+                          }),
             Status = Draft, // always create a new page in draft status
         };
 
