@@ -89,6 +89,7 @@ export const details: DynamicDetailsSchema = {
           component: "vc-switch",
           label: "PAGE_BUILDER.PAGES.DETAILS.FIELDS.VISIBILITY",
           property: "visibility",
+          tooltip: "PAGE_BUILDER.PAGES.DETAILS.TOOLTIPS.VISIBILITY",
           disabled: { method: "isReadOnly" },
         },
         {
@@ -98,6 +99,7 @@ export const details: DynamicDetailsSchema = {
           property: "userGroups",
           optionValue: "name",
           optionLabel: "name",
+          searchable: true,
           optionsMethod: "loadUserGroups",
           multiple: true,
           disabled: { method: "isReadOnly" },
