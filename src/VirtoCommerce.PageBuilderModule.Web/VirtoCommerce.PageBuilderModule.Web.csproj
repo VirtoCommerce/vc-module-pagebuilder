@@ -15,11 +15,9 @@
   
   <ItemGroup>
     <PageBuilderApp Include="page-builder\dist\**" />
-    <PageBuilderAppNew Include="page-builder-new\dist\**" />
   </ItemGroup>
   
   <Target Name="CopyCustomContentOnPublish" AfterTargets="Publish">
     <Copy SourceFiles="@(PageBuilderApp)" DestinationFiles="$(PublishDir)\..\%(Identity)" />
-    <Copy SourceFiles="@(PageBuilderAppNew)" DestinationFiles="$(PublishDir)\..\%(Identity)" />
   </Target>
 </Project>
