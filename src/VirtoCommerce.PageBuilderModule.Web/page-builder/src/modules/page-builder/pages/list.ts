@@ -12,26 +12,26 @@ export const grid: DynamicGridSchema = {
     toolbar: [
       {
         id: "add",
-        icon: "material-add",
+        icon: "fas fa-plus",
         title: "PAGE_BUILDER.PAGES.LIST.TOOLBAR.ADD",
         method: "openAddBlade",
       },
       {
         id: "refresh",
-        icon: "material-refresh",
+        icon: "fas fa-sync-alt",
         title: "PAGE_BUILDER.PAGES.LIST.TOOLBAR.REFRESH",
         method: "refresh",
       },
       {
         id: "remove",
-        icon: "material-delete",
+        icon: "fas fa-trash",
         title: "PAGE_BUILDER.PAGES.LIST.TOOLBAR.REMOVE",
         method: "removeItems",
       },
     ],
     menuItem: {
       title: "PAGE_BUILDER.MENU.TITLE",
-      icon: "material-article",
+      icon: "fas fa-file-alt",
       priority: 1,
     },
   },
@@ -62,9 +62,10 @@ export const grid: DynamicGridSchema = {
       actions: [
         {
           id: "delete",
-          icon: "material-delete",
+          icon: "fas fa-trash",
           title: "PAGE_BUILDER.PAGES.LIST.TABLE.ACTIONS.DELETE",
           method: "removeItems",
+          position: "left",
           type: "danger",
         },
       ],

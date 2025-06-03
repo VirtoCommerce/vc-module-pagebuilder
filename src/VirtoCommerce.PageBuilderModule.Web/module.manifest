@@ -28,5 +28,14 @@
   <assemblyFile>VirtoCommerce.PageBuilderModule.Web.dll</assemblyFile>
   <moduleType>VirtoCommerce.PageBuilderModule.Web.Module, VirtoCommerce.PageBuilderModule.Web</moduleType>
   <useFullTypeNameInSwagger>false</useFullTypeNameInSwagger>
-  
+  <apps>
+    <app id="page-builder">
+      <title>PageBuilder App</title>
+      <contentPath>page-builder/dist</contentPath>
+    </app>
+    <app id="page-builder-new">
+      <title>PageBuilder App New</title>
+      <contentPath>page-builder-new/dist</contentPath>
+    </app>
+  </apps>
 </module>

@@ -14,7 +14,6 @@
 </template>
 
 <script lang="ts" setup>
-import { useI18n } from "vue-i18n";
 import { computed, toRefs } from "vue";
 
 import {
@@ -27,8 +26,6 @@ export interface Props {
     item: GroupedPageBuilderPage;
   };
 }
-
-const { t } = useI18n();
 
 const props = withDefaults(defineProps<Props>(), {
   

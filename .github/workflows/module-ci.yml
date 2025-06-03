@@ -143,6 +143,11 @@ jobs:
         with:
           githubToken: ${{ secrets.REPO_TOKEN }}
 
+      - name: Build PageBuilder App New
+        uses: ./.github/actions/build-page-builder-new
+        with:
+          githubToken: ${{ secrets.REPO_TOKEN }}
+
       - name: Build
         run: vc-build Compile
 

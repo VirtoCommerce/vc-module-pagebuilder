@@ -10,39 +10,39 @@ export const details: DynamicDetailsSchema = {
     toolbar: [
       {
         id: "save",
-        icon: "material-save",
+        icon: "fas fa-save",
         title: "PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.SAVE",
         method: "saveChanges",
       },
       {
         id: "delete",
-        icon: "material-delete",
+        icon: "fas fa-trash",
         title: "PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.DELETE",
         method: "remove",
       },
       /*
       {
         id: "previewPage",
-        icon: "material-visibility",
+        icon: "fas fa-eye",
         title: "PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.PREVIEW",
         method: "previewPage",
       },
       */
       {
         id: "openPageDesigner",
-        icon: "material-crop",
+        icon: "fas fa-crop",
         title: "PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.DESIGNER",
         method: "openPageDesigner",
       },
       {
         id: "publishPage",
-        icon: "material-description",
+        icon: "fas fa-file",
         title: "PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.PUBLISH",
         method: "publishPage",
       },
       {
         id: "unpublishPage",
-        icon: "material-article",
+        icon: "fas fa-file-alt",
         title: "PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.UNPUBLISH",
         method: "unpublishPage",
       },

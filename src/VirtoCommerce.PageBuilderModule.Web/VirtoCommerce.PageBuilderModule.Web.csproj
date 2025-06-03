@@ -6,12 +6,6 @@
     <OutputType>Library</OutputType>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Remove="page-builder\**" />
-    <Content Remove="page-builder\**" />
-    <EmbeddedResource Remove="page-builder\**" />
-    <None Remove="page-builder\**" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\VirtoCommerce.PageBuilderModule.Core\VirtoCommerce.PageBuilderModule.Core.csproj" />
     <ProjectReference Include="..\VirtoCommerce.PageBuilderModule.Data.MySql\VirtoCommerce.PageBuilderModule.Data.MySql.csproj" />
     <ProjectReference Include="..\VirtoCommerce.PageBuilderModule.Data.PostgreSql\VirtoCommerce.PageBuilderModule.Data.PostgreSql.csproj" />
@@ -21,8 +15,11 @@
   
   <ItemGroup>
     <PageBuilderApp Include="page-builder\dist\**" />
+    <PageBuilderAppNew Include="page-builder-new\dist\**" />
   </ItemGroup>
+  
   <Target Name="CopyCustomContentOnPublish" AfterTargets="Publish">
     <Copy SourceFiles="@(PageBuilderApp)" DestinationFiles="$(PublishDir)\..\%(Identity)" />
+    <Copy SourceFiles="@(PageBuilderAppNew)" DestinationFiles="$(PublishDir)\..\%(Identity)" />
   </Target>
 </Project>
