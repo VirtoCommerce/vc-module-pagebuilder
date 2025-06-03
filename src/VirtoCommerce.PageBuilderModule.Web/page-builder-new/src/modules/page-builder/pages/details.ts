@@ -2,7 +2,7 @@ import { DynamicDetailsSchema } from "@vc-shell/framework";
 
 export const details: DynamicDetailsSchema = {
   settings: {
-    url: "/page-builder-details",
+    url: "/page-builder-details-new",
     id: "PageBuilderDetails",
     localizationPrefix: "PAGE_BUILDER",
     composable: "usePageBuilderDetails",

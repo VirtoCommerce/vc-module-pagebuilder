@@ -17,7 +17,7 @@ export const routes: RouteRecordRaw[] = [
     children: [],
     redirect: (to) => {
       if (to.name === "App") {
-        return { path: "/page-builder", params: to.params };
+        return { path: "/page-builder-new", params: to.params };
       }
       return to.path;
     },

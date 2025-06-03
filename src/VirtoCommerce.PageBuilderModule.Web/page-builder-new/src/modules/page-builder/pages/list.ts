@@ -2,7 +2,7 @@ import { DynamicGridSchema } from "@vc-shell/framework";
 
 export const grid: DynamicGridSchema = {
   settings: {
-    url: "/page-builder",
+    url: "/page-builder-new",
     id: "PageBuilderList",
     titleTemplate: "Pages list",
     localizationPrefix: "PAGE_BUILDER",
