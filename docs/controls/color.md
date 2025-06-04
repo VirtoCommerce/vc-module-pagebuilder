@@ -25,10 +25,21 @@ The [color picker](https://ngx-color.vercel.app/) is used for this editor. The [
     ]
 ...
 ```
-<!--
-Result (todo: renew images)
 
-![Color control example](images/color-control.png "Color control example")
+![Color control example](images/color-picker-popup.png "Color control example")
 
-![Color control example in open state](images/color-control-opened.png "Color control example in open state")
--->
+```json
+...
+    "settings": [
+        {
+            "id": "headerColor",
+            "label": "Header color",
+            "type": "color",
+            "inline": "true"
+        },
+        ...
+    ]
+...
+```
+
+![Inline color control example](images/color-picker-inline.png "Color control example in open state")
