@@ -26,7 +26,9 @@ The [color picker](https://ngx-color.vercel.app/) is used for this editor. The [
 ...
 ```
 
-![Color control example](images/color-picker-popup.png "Color control example")
+![Color control example](images/color-picker.png "Color control example")
+
+![Color control example in open state](images/color-picker-popup.png "Color control example in open state")
 
 ```json
 ...
@@ -42,4 +44,4 @@ The [color picker](https://ngx-color.vercel.app/) is used for this editor. The [
 ...
 ```
 
-![Inline color control example](images/color-picker-inline.png "Color control example in open state")
+![Inline color control example](images/color-picker-inline.png "Inline color control example")
