@@ -17,8 +17,7 @@
     ]
 ...
 ```
-<!--
-Result (todo: renew images)
+
+Result
 
 ![Paragraph control example](images/paragraph-control.png "Paragraph control example")
--->
