@@ -63,13 +63,8 @@
     ]
 ...
 ```
-<!--
-Result (todo: renew images)
+
+Result
 
 ![List control example](images/list-control.png "List control example")
 
-Edit element mode
-
-![List control edit mode example](images/list-control-edit.png "List control edit mode example")
-
--->
