@@ -4,7 +4,7 @@ Wysiwyg-editor. [ckeditor-angular](https://www.npmjs.com/package/ckeditor4-angul
 
 | Property | Type | Description |
 | - | - | - |
-| `config`   | `object` | Config for underlay editor. |
+| `config`   | `object` | [Config](https://ckeditor.com/docs/ckeditor4/latest/api/CKEDITOR_config.html) for underlay editor. |
 
 
 ## Example:
