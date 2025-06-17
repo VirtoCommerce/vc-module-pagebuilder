@@ -19,8 +19,6 @@ This descriptor contains the same options as [files control](files.md). The one 
     ]
 ...
 ```
-<!--
-Result (todo: renew images)
+Result
 
 ![Image control example](images/image-control.png "Image control example")
--->
