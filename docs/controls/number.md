@@ -27,7 +27,7 @@
 
 Result
 
-![Number control example](images/number-control.png "Number control example")
+![Number control example](images/number-control.gif "Number control example")
 
 
 ```json
