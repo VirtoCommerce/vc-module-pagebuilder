@@ -7,7 +7,7 @@
 | `step` | `number` | Value change step |
 | `thumb` | `boolean` | Display value in thumb of slider |
 
-## Example
+## Examples
 
 ```json
 ...
@@ -25,9 +25,29 @@
 ...
 ```
 
-<!--
-Result (todo: renew images)
+Result
 
-![Number control example](images/number-control.png "NUmber control example")
+![Number control example](images/number-control.png "Number control example")
 
--->
+
+```json
+...
+    "settings": [
+        {
+            "id": "amount",
+            "type": "slider",
+            "label": "Amount",
+            "min": 10,
+            "max": 50,
+            "step": 5,
+            "thumb": true
+        },
+        ...
+    ]
+...
+```
+
+Result
+
+![Slider control example](images/slider-control.png "Slider control example")
+
