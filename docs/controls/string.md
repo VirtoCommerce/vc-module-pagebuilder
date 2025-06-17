@@ -27,8 +27,6 @@
 ...
 ```
 
-<!--
-Result (todo: renew images)
+Result
 
 ![String control example](images/string-control.png "String control example")
--->
