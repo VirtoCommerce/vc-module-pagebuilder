@@ -20,8 +20,6 @@ This control display custom text information.
 ...
 ```
 
-<!--
-Result (todo: renew images)
+Result
 
 ![Header control example](images/header-control.png "Header control example")
--->
