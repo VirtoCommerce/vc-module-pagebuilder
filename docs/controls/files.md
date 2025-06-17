@@ -132,6 +132,7 @@ Result
 ```
 
 Result
+
 ![Files as objects control example](images/file-control-object.png "Files as objects control example")
 
 ```json
