@@ -1,16 +1,12 @@
 /* eslint-disable */
-import {CoreBladeAdditionalSettings} from "@vc-shell/framework";
-import {Ref, Plugin} from "vue";
-import {DynamicGridSchema, DynamicDetailsSchema} from "@vc-shell/framework";
-import * as vue from "vue";
-import * as vueRouter from "vue-router";
-import * as veeValidate from "vee-validate";
-import * as vueI18n from "vue-i18n";
-import moment from "moment";
-import type {Component} from "vue";
+import { CoreBladeAdditionalSettings, DynamicGridSchema, DynamicDetailsSchema } from "@vc-shell/framework";
+
+import type { Component, Ref, ComponentCustomProperties as _ComponentCustomProperties, } from "vue";
+import type { Composer } from "vue-i18n";
+
 
 declare module "*.vue" {
-  import type {DefineComponent} from "vue";
+  import type { DefineComponent } from "vue";
   const component: DefineComponent<{}, {}, any>;
   export default component;
 }
@@ -26,7 +22,7 @@ declare module "@vue/runtime-core" {
     $isTouch: boolean;
     $t: (key: string, ...args: any[]) => string;
   }
- 
+
   interface ComponentOptionsBase extends CoreBladeAdditionalSettings {}
 }
 
