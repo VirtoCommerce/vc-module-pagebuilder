@@ -1,21 +1,18 @@
 import { computed, Ref, ref } from "vue";
-import { orderBy, sortBy } from "lodash-es";
 import { useApiClient } from "@vc-shell/framework";
 
-import {
-  PageBuilderPageClient,
-} from "../../../../api_client/virtocommerce.pagebuildermodule";
+import { PageBuilderPageClient } from "../../../../api_client/virtocommerce.pagebuildermodule";
 
-interface ICultureName {
+export interface ICultureName {
   name: string;
 }
 
-interface ICultureNameResult {
+export interface ICultureNameResult {
   totalCount?: number;
   results?: ICultureName[];
 }
 
-interface IUseCultureNames {
+export interface IUseCultureNames {
   readonly loading: Ref<boolean>;
   readonly types: Ref<ICultureName[]>;
   getCultureNames(storeId: string | undefined): Promise<ICultureNameResult>;
@@ -32,7 +29,7 @@ export default (): IUseCultureNames => {
     const client = await getApiClient();
     try {
       const languages = await client.getAvailableLanguages(storeId);
-      const result = languages.map(lang => ({ name: lang }));
+      const result = languages.map((lang) => ({ name: lang }));
       types.value = result;
       return {
         totalCount: types.value.length,

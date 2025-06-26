@@ -6,7 +6,6 @@ import { RouterView } from "vue-router";
 import PageBuilder from "./modules/page-builder";
 
 // Load required CSS
-import "./styles/index.scss";
 import "@vc-shell/framework/dist/index.css";
 
 async function startApp() {

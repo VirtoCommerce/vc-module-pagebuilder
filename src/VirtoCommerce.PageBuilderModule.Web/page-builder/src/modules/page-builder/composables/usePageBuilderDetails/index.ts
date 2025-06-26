@@ -1,40 +1,18 @@
-import { computed, watch, reactive, onMounted } from "vue";
-import {
-  DetailsBaseBladeScope,
-  IBladeToolbar,
-  useDetailsFactory,
-  DetailsComposableArgs,
-  useApiClient,
-} from "@vc-shell/framework";
-import { useI18n } from "vue-i18n";
-
+import { computed, ref, reactive, Ref, ComputedRef, onMounted } from "vue";
+import { useAsync, useLoading, useApiClient, useModificationTracker } from "@vc-shell/framework";
 import {
   PageBuilderPageClient,
-  //PageBuilderPage,
   GroupedPageBuilderPage,
+  IGroupedPageBuilderPage,
 } from "../../../../api_client/virtocommerce.pagebuildermodule";
 
-import useCultureNames from "../useCultureNames";
-import useUserGroups from "../useUserGroups";
-import useUrlParams from "../useUrlParams";
+import useCultureNames, { ICultureNameResult } from "./../useCultureNames";
+import useUserGroups, { IUserGroupsResult } from "./../useUserGroups";
+import useUrlParams from "./../useUrlParams";
 
 const { getApiClient } = useApiClient(PageBuilderPageClient);
-const { getCultureNames } = useCultureNames();
-const { getUserGroups } = useUserGroups();
-const { storeId, initUrlParams } = useUrlParams();
 
-export interface DynamicItemScope extends DetailsBaseBladeScope {
-  toolbarOverrides: {
-    saveChanges: IBladeToolbar;
-    remove: IBladeToolbar;
-    previewPage: IBladeToolbar;
-    openPageDesigner: IBladeToolbar;
-    publishPage: IBladeToolbar;
-    unpublishPage: IBladeToolbar;
-  };
-}
-
-interface ExtendedGroupedPageBuilderPage extends GroupedPageBuilderPage {
+interface ExtendedGroupedPageBuilderPage extends IGroupedPageBuilderPage {
   visibility?: boolean;
   userGroups?: string[];
   startDate?: Date;
@@ -43,201 +21,189 @@ interface ExtendedGroupedPageBuilderPage extends GroupedPageBuilderPage {
   newPageContent?: string;
 }
 
-export default (args: DetailsComposableArgs<{ options: { sourceMessage: GroupedPageBuilderPage } }>) => {
-  initUrlParams();
+export interface IUsePageBuilderDetails {
+  item: Ref<ExtendedGroupedPageBuilderPage>;
+  isModified: Readonly<Ref<boolean>>;
+  loading: ComputedRef<boolean>;
+  loadPage: () => Promise<void>;
+  savePage: (status?: string) => Promise<IGroupedPageBuilderPage>;
+  deletePage: () => Promise<void>;
+  loadCultureNames: (storeId?: string) => Promise<ICultureNameResult>;
+  loadUserGroups: () => Promise<IUserGroupsResult>;
+  isReadOnly: ComputedRef<boolean>;
+  statusText: ComputedRef<string>;
+  publishPage: () => Promise<void>;
+  unpublishPage: () => Promise<void>;
+  openPageDesigner: () => void;
+}
 
-  const isNew = !args.props.param;
+export interface UsePageBuilderDetailsOptions {
+  id?: string;
+  storeId?: string;
+}
+
+export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): IUsePageBuilderDetails {
+  const { getCultureNames } = useCultureNames();
+  const { getUserGroups } = useUserGroups();
+  const { storeId, initUrlParams } = useUrlParams();
+
+  const item = ref<ExtendedGroupedPageBuilderPage>(new GroupedPageBuilderPage());
+  const isNew = ref(!options?.id);
 
   let pageStoreId: string | undefined;
-  if (args.props.options && args.props.options.storeId) {
-    pageStoreId = args.props.options.storeId as string;
+  if (options?.storeId) {
+    pageStoreId = options.storeId;
   } else {
     pageStoreId = storeId.value as string;
   }
-  let newStatus: string | undefined;
 
-  const detailsFactory = useDetailsFactory({
-    load: async (page) => {
-      if (page?.id) {
-        const apiClient = await getApiClient();
-        const result = (await apiClient.getGrouped(page.id)) as ExtendedGroupedPageBuilderPage;
-        try {
-          if (result.pageContent) {
-            const model = JSON.parse(result.pageContent);
-            result.visibility = model.settings.visibility;
-            result.userGroups = model.settings.userGroups?.split(",").filter((x: string) => !!x) || [];
-            result.startDate = model.settings.startDate;
-            result.endDate = model.settings.endDate;
-          }
-        } catch (e) {
-          console.error(e);
-        }
-        return result;
-      }
-    },
-    saveChanges: async (page) => {
+  const { currentValue, isModified, resetModificationState } = useModificationTracker(item);
+
+  const { action: loadPage, loading: loadingPage } = useAsync(async () => {
+    if (options?.id) {
       const apiClient = await getApiClient();
-      const pageContent = page.pageContent ? JSON.parse(page.pageContent) : { settings: {}, content: [] };
-      const newSettings = {
-        visibility: page.visibility,
-        userGroups: page.userGroups?.filter(x => !!x).join(","),
-        cultureName: page.cultureName,
-        startDate: page.startDate,
-        endDate: page.endDate,
-        permalink: page.permalink,
-        name: page.name,
-      };
+      const result = (await apiClient.getGrouped(options.id)) as ExtendedGroupedPageBuilderPage;
 
-      pageContent.settings = { ...pageContent.settings, ...newSettings };
-      page.newPageContent = JSON.stringify(pageContent);
-
-      if (isNew) {
-        page.status = "Draft";
-        page.storeId = pageStoreId as string | undefined;
-        return apiClient.createGrouped(page);
-      } else {
-        if (newStatus) {
-          page.status = newStatus;
+      try {
+        if (result.pageContent) {
+          const model = JSON.parse(result.pageContent);
+          result.visibility = model.settings.visibility;
+          result.userGroups = model.settings.userGroups?.split(",").filter((x: string) => !!x) || [];
+          result.startDate = model.settings.startDate;
+          result.endDate = model.settings.endDate;
         }
+      } catch (e) {
+        console.error(e);
+      }
 
-        return apiClient.updateGrouped(page);
-      }
-    },
-    remove: async ({ id }) => {
-      if (id) {
-        return (await getApiClient()).archiveGrouped([id]);
-      }
-    },
+      currentValue.value = reactive(result);
+    } else {
+      currentValue.value = reactive(new GroupedPageBuilderPage());
+    }
+    resetModificationState();
   });
 
-  const { load, saveChanges, remove, loading, item, validationState } = detailsFactory();
-  const contentType = "pages";
+  const { action: savePage, loading: savingPage } = useAsync(async (status?: string) => {
+    const apiClient = await getApiClient();
+    const page = currentValue.value as ExtendedGroupedPageBuilderPage;
+    const pageContent = page.pageContent ? JSON.parse(page.pageContent) : { settings: {}, content: [] };
 
-  const scope: DynamicItemScope = {
-    toolbarOverrides: {
-      saveChanges: {
-        disabled: computed(() => !validationState.value.modified || !validationState.value.valid),
-      },
-      remove: {
-        isVisible: computed(() => !isNew),
-        disabled: computed(() => !isEditable()),
-      },
-      previewPage: {
-        clickHandler: async () => {
-          throw new Error("Function not implemented.");
-        },
-        isVisible: computed(() => !isNew),
-        disabled: computed(() => !validationState.value.valid),
-      },
-      openPageDesigner: {
-        clickHandler: async () => {
-          // Get platform URL from env
-          const platformUrl: string = ((import.meta.env.DEV && import.meta.env.APP_PLATFORM_URL) || window.location.origin).replace(/\/$/, "");
-          const designerUrl = `${platformUrl}/Modules/$(VirtoCommerce.PageBuilderModule)/Content/builder/index.html`;
-          const pageId = item.value?.id;
-          const pageStoreId = item.value?.storeId;
+    const newSettings = {
+      visibility: page.visibility,
+      userGroups: page.userGroups?.filter((x) => !!x).join(","),
+      cultureName: page.cultureName,
+      startDate: page.startDate,
+      endDate: page.endDate,
+      permalink: page.permalink,
+      name: page.name,
+    };
 
-          if (pageId && pageStoreId) {
-            const url = `${designerUrl}?storeId=${pageStoreId}#/pages?type=${contentType}&pageId=${pageId}`;
-            window.open(url, "_blank");
-          } else {
-            throw new Error("Can't open page.");
-          }
-        },
-        isVisible: computed(() => !isNew),
-        disabled: computed(() => !validationState.value.valid || !isEditable()),
-      },
-      publishPage: {
-        clickHandler: async () => {
-          const pageId = item.value?.id;
-          const apiClient = await getApiClient();
+    pageContent.settings = { ...pageContent.settings, ...newSettings };
+    page.newPageContent = JSON.stringify(pageContent);
 
-          await apiClient.publishing(pageId, true);
+    let result: IGroupedPageBuilderPage;
 
-          if (item.value) {
-            args.emit("parent:call", { method: "reload" });
-            await load({ id: item.value.id! });
-          }
-        },
-        isVisible: computed(() => !isNew && item.value?.hasChanges == true),
-        disabled: computed(() => !validationState.value.valid || !isEditable()),
-      },
-      unpublishPage: {
-        clickHandler: async () => {
-          // check if the page has changes
-          if (item.value?.hasChanges) {
-            throw new Error(t("PAGE_BUILDER.PAGES.ALERTS.UNPUBLISH_WITH_DRAFT"));
-          }
+    if (isNew.value) {
+      page.status = "Draft";
+      page.storeId = pageStoreId;
+      result = await apiClient.createGrouped(page as GroupedPageBuilderPage);
+    } else {
+      if (status) page.status = status;
+      result = await apiClient.updateGrouped(page as GroupedPageBuilderPage);
+    }
 
-          const pageId = item.value?.id;
-          const apiClient = await getApiClient();
+    currentValue.value = reactive(result);
+    resetModificationState();
+    return result;
+  });
 
-          await apiClient.publishing(pageId, false);
+  const { action: deletePage, loading: deletingPage } = useAsync(async () => {
+    if (currentValue.value.id) {
+      const apiClient = await getApiClient();
+      await apiClient.archiveGrouped([currentValue.value.id]);
+    }
+  });
 
-          if (item.value) {
-            args.emit("parent:call", { method: "reload" });
-            await load({ id: item.value.id! });
-          }
-        },
-        isVisible: computed(() => !isNew && item.value?.hasChanges == false),
-        disabled: computed(() => !validationState.value.valid || !isEditable()),
-      },
-    },
-    loadCultureNames: async () => {
-      return getCultureNames(pageStoreId);
-    },
-    loadUserGroups: async () => {
-      return getUserGroups();
-    },
-    isReadOnly: () => !isEditable(),
-    statusText: computed(() => {
-      const result = "Draft";
-      const page = item.value;
-      if (page == null) {
-        return result;
-      }
+  const { action: publishPage, loading: publishingPage } = useAsync(async () => {
+    const pageId = currentValue.value?.id;
+    const apiClient = await getApiClient();
+    await apiClient.publishing(pageId, true);
 
-      return page.status;
-    }),
-  };
+    if (currentValue.value) {
+      await loadPage();
+    }
+  });
 
-  function isEditable(): boolean {
-    return item.value != null && item.value.status !== "Archived";
+  const { action: unpublishPage, loading: unpublishingPage } = useAsync(async () => {
+    // check if the page has changes
+    if (currentValue.value?.hasChanges) {
+      throw new Error("PAGE_BUILDER.PAGES.ALERTS.UNPUBLISH_WITH_DRAFT");
+    }
+
+    const pageId = currentValue.value?.id;
+    const apiClient = await getApiClient();
+    await apiClient.publishing(pageId, false);
+
+    if (currentValue.value) {
+      await loadPage();
+    }
+  });
+
+  function openPageDesigner() {
+    // Get platform URL from env
+    const platformUrl: string = (
+      (import.meta.env.DEV && import.meta.env.APP_PLATFORM_URL) ||
+      window.location.origin
+    ).replace(/\/$/, "");
+    const designerUrl = `${platformUrl}/Modules/$(VirtoCommerce.PageBuilderModule)/Content/builder/index.html`;
+    const pageId = currentValue.value?.id;
+    const pageStoreId = currentValue.value?.storeId;
+
+    if (pageId && pageStoreId) {
+      const url = `${designerUrl}?storeId=${pageStoreId}#/pages?type=pages&pageId=${pageId}`;
+      window.open(url, "_blank");
+    } else {
+      throw new Error("Can't open page.");
+    }
   }
 
-  const { t } = useI18n({ useScope: "global" });
+  async function loadCultureNamesAsync(storeId?: string) {
+    return getCultureNames(storeId || pageStoreId);
+  }
 
-  const bladeTitle = computed(() => {
-    return isNew
-      ? item.value?.name
-        ? item.value?.name + t("PAGE_BUILDER.PAGES.DETAILS.TITLE.DETAILS")
-        : t("PAGE_BUILDER.PAGES.DETAILS.TITLE.NEW")
-      : item.value?.name + t("PAGE_BUILDER.PAGES.DETAILS.TITLE.DETAILS");
+  async function loadUserGroupsAsync() {
+    return getUserGroups();
+  }
+
+  const isReadOnly = computed(() => {
+    return currentValue.value != null && currentValue.value.status === "Archived";
   });
 
-  watch(
-    () => args?.mounted.value,
-    async () => {
-      if (isNew) {
-        const page = new GroupedPageBuilderPage();
-        item.value = reactive(page);
-        validationState.value.resetModified(item.value, true);
-      }
-    },
-  );
+  const statusText = computed(() => {
+    const page = currentValue.value;
+    if (page == null) {
+      return "Draft";
+    }
+    return page.status || "Draft";
+  });
 
   onMounted(() => {
     initUrlParams();
   });
 
   return {
-    load,
-    saveChanges,
-    remove,
-    loading,
-    item,
-    validationState,
-    bladeTitle,
-    scope,
+    item: currentValue,
+    isModified,
+    loading: useLoading(loadingPage, savingPage, deletingPage, publishingPage, unpublishingPage),
+    loadPage,
+    savePage,
+    deletePage,
+    loadCultureNames: loadCultureNamesAsync,
+    loadUserGroups: loadUserGroupsAsync,
+    isReadOnly,
+    statusText,
+    publishPage,
+    unpublishPage,
+    openPageDesigner,
   };
-};
+}
