@@ -12,7 +12,7 @@
     @collapse="$emit('collapse:blade')"
   >
     <VcContainer>
-      <div class="tw-flex tw-flex-col tw-gap-4">
+      <VcForm class="tw-flex tw-flex-col tw-gap-4">
         <!-- Status -->
         <PageStatus
           :status="item.status"
@@ -92,7 +92,7 @@
           :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.END_DATE')"
           :disabled="isReadOnly"
         />
-      </div>
+      </VcForm>
     </VcContainer>
   </VcBlade>
 </template>

@@ -318,6 +318,14 @@ watch(
   },
 );
 
+watch(
+  () => props.param,
+  (newVal) => {
+    selectedItemId.value = newVal;
+  },
+  { immediate: true },
+);
+
 async function reload() {
   await loadPages({
     ...searchQuery.value,
