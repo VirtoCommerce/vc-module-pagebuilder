@@ -1,13 +1,13 @@
 <template>
-  <div style="display: flex; gap: 5px">
+  <div class="flex gap-1">
     <VcStatus
-      style="width: auto"
+      class="w-auto"
       v-bind="statusStyles[status]"
       >{{ $t(`PAGE_BUILDER.STATUS.${status.toUpperCase()}`) }}</VcStatus
     >
     <template v-if="hasChanges && status == 'Published'">
       <VcStatus
-        style="width: auto"
+        class="w-auto"
         v-bind="statusStyles['HasChanges']"
         >{{ $t("PAGE_BUILDER.STATUS.HAS_CHANGES") }}</VcStatus
       >
