@@ -51,11 +51,6 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
   const isNew = ref(!options?.id);
 
   let pageStoreId: string | undefined;
-  if (options?.storeId) {
-    pageStoreId = options.storeId;
-  } else {
-    pageStoreId = storeId.value as string;
-  }
 
   const { currentValue, isModified, resetModificationState } = useModificationTracker(item);
 
@@ -189,6 +184,11 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
 
   onMounted(() => {
     initUrlParams();
+    if (options?.storeId) {
+      pageStoreId = options.storeId;
+    } else {
+      pageStoreId = storeId.value as string;
+    }
   });
 
   return {

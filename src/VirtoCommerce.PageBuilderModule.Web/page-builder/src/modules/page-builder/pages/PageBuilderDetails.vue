@@ -42,7 +42,7 @@
         <VcSelect
           v-model="item.cultureName"
           :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.CULTURE_NAME')"
-          :options="loadCultureNames"
+          :options="loadCultureNamesAsync"
           option-value="name"
           option-label="name"
           :clearable="false"
@@ -219,6 +219,10 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
 ]);
 
 // Methods
+async function loadCultureNamesAsync() {
+  return await loadCultureNames(props.options?.storeId);
+}
+
 async function handleSave() {
   const page = await savePage();
 
