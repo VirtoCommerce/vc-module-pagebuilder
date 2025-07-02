@@ -1,96 +1,88 @@
-# Create a Landing Page
+# Getting Started
 
-Landing pages can help you optimize ecommerce site.
+This guide helps you set up the Page Builder for Virto Commerce Platform and Frontend, ensuring content creation works smoothly.
 
-First, Landing pages help to capture customer's specific intent based on what they are actually searching for. 
-These searches can capture any sort of intent - searches for products, services, information, and more. 
-The corresponding landing pages are able to provide specific information that answers the consumer's question in search.
+## Prerequisites
 
-Second, In digital marketing, a landing page is a standalone web page, created specifically for a marketing or advertising campaign.
+Before you begin, ensure that the following components are installed:
 
-In this quickstart, you'll see how to create first an ecommerce landing page for Black Friday 2022.
+* [Virto Commerce 3.253.0+](https://github.com/VirtoCommerce/vc-platform/releases/)  
+    ![Readmore](media/readmore.png){: width="25"} [Platform deployment guide](../../Getting-Started/Installation-Guide/windows.md)
 
-## Create Page
+* [Virto Frontend 2.2.0+](https://github.com/VirtoCommerce/vc-frontend/releases/)  
+    ![Readmore](media/readmore.png){: width="25"} [Frontend deployment guide](../../../../../storefront/developer-guide/deployment)
 
-1. Sign in to the Virto Commerece Admin Portal with your account.
-1. Find **Content**, select your store, select **Pages** to open list of the current pages.
+* [Page Builder module 3.201+](https://github.com/VirtoCommerce/vc-module-pagebuilder/releases)
 
-	![Open pages](media/screen-content-viewpages.png)
+## Setup content
 
-1. Select **Add** button in toolbar and select **Design Page** to create a new page.  
+Verify that the Virto Commerce Platform and Frontend are using the same **Shared content** folder for proper page synchronization.
 
-	![Create a new page](media/screen-add-page.png)
+## Setup store
 
-1. In the blade, type **File name**, **Name** - public page name, **Language** - optional and relative *Permalink* without domain.
+Configure the public store URL to ensure pages are accessible correctly.
 
-	![Create a new page](media/screen-add-page-details.png)
+1. Open Platform.
+1. In the main menu, select **Stores**.
+1. In the next blade, select your store.
+1. In the next blade, set up the public store URL, if it is empty.
+1. Click **Save** in the toolbar to save the changes.
 
-1.  Select **Create** button to creat a new page and open Page Builder in Design mode.
+You store URL has been set.
 
-	![Black Friday 2022 - Empty page in Page Builder](media/bfdemo-step-1-empty-page.png)
+## Run
 
-	Page Builder contains three main areas:
+Now you are ready to create and manage content pages:
 
-	1. Header - here you can find option to switch between different resolutions: Desktop, Desktop 50/50, Phone, Tablet and Fill screen.
-	1. Edit Left Panel - Page and Block editor.
-	1. Preview.
+=== "via the Content module"
 
-1. Select **Settings** and type page header (H1). 
-1. Select **Page Header** and type SEO information: Title, Meta Description and Meta Keywords.
+    1. Click **Content** in the main menu.
+    1. In the next blade, find the required store and click on the **Pages** widget.
+    1. In the next blade, click **Add** in the toolbar. 
+    1. In the next blade, select **Design page**.
 
-	![Black Friday 2022 - Add Header](media/bfdemo-step-1-add-header.png)
+        ![New page](media/new-page.png){: style="display: block; margin: 0 auto;" }
 
-1. Now, you can save page and open it on the site by permalink.
+    1. In the next blade, fill in the following fields:
 
-	![Black Friday 2022 - Step 1 - Demo](media/bfdemo-step-1-demo.png)
+        ![Fill in the fields](media/create-page-fields.png){: style="display: block; margin: 0 auto;" width="600"}
 
-## Add Content Blocks
+    1. Click **Create**. The Page Builder opens the newly created page in a new window. It contains uneditable header and footer by default.  
 
-1. Select **Add block** button to open **Block Library**.
-	![Black Friday 2022 - Block Library](media/bfdemo-step-2-block-library.png)
-1. Select block and click **Add** button to add block into the page.  
+        ![New page in Page Builder](media/new-page-opens.png){: style="display: block; margin: 0 auto;" }
 
-Content blocks on Demo landing page will contains from:
-1. Call to Action with Image.
-1. Call to Action.
+    1. Click **Save** in the top right corner. 
 
-Both actions are redirecting customer to Catalog. 
+    You can open it in the browser using the specified permalink.
 
-![Black Friday 2022 - Step 2 - Demo](media/bfdemo-step-2-content.png)
 
-## Add Products Block
+=== "via the Page Builder Office"
 
-Products block allows displaying a limited count of products with filter by keyword. In this scenario, we will use it to display promo products.
+    1. Click **Stores** in the main menu.
+    1. In the next blade, select the required store.
+    1. In the next blade, click on the **Page Builder** widget to open the Page Builder Office:
 
-Products block read actual information from Catalog API. So, Page Builder can guarantee that any customer will see actual products, prices, stocks and designs as seen on a catalog.
+        ![Office](media/page-builder-office.png){: style="display: block; margin: 0 auto;" }
 
-1. Select **Add block** button to open **Block Library**.
-1. Select Products block and click **Add** button to add block into the page.
-1. Type Title, Subtitle, Search query and Count of the products.
+    1. Click **Add** in the toolbar.
+    1. In the next blade, fill in the following fields:
 
-![Black Friday 2022 - Step 2 - Products](media/bfdemo-step-3-products.png)
+        ![Fill in the fields](media/new-page-office.png){: style="display: block; margin: 0 auto;" }
 
-## Publish Page
+    1. Click **Save** in the toolbar. 
 
-1. Select Save button to save page 
-1. Open the page on the public site by permalink.
+    Your new page appears in the list of pages.
 
-![Black Friday 2022 - Step 4 - Complete Page](media/bfdemo-final-page.png)
+![Readmore](media/readmore.png){: width="25"} [Adding content to page](../../../../user-guide/page-builder/manage-pages#add-content-to-page)
 
-## Adjust Products
-We added actual products on the landing but if a marketer wants to adjust the result.
+![Readmore](media/readmore.png){: width="25"} [Publishing and unpublishing pages](../../../../user-guide/page-builder/manage-pages#publish-or-unpublish-pages)
 
-Here are several options, one of the solutions, is using Elastic App Search engines which are natively integrated with Virto Commerce. 
 
-Elastic App Search supports Curations. Curations allow marketers to customize search results for specific queries. 
+<br>
+<br>
+********
 
-You need to create a new Curation for *black friday* keyword. Then you can use **Promoted results** to ensure that specified products always match a query and receive the highest relevance scores. 
-
-Similarly, you can use **Hidden results** to exclude particular products from results.
-
-![Black Friday 2022 - Step 5 - Curations](media/bfdemo-step-5-curations.png)
-
-## Summary
-In a few steps, we created and published Black Friday landing pages with actual product information. Then we use Curations to adjust product listing by keyword.
-
-Because product data are loaded from Catalog API by keywords. You have rich options for catalog adjustments by Virto Catalog, Personalization and Native Search Engine Options.
+<div style="display: flex; justify-content: space-between;">
+    <a href="../overview">← Page Builder overview </a>
+    <a href="../create-new-block">Creating new block →</a>
+</div>

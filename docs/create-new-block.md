@@ -1,30 +1,17 @@
-# Creating New Block: Step by Step Instructions
+# Create new block
 
-## Intro
+This tutorial will show you how to create a new block. We are going to create a simple block that displays selected products on the frontend:
 
-This tutorial will show you how to create a new block. We are going to create a simple block that will display selected products on the front end.
+![Draft block](media/draft-design.png)
 
-## Step 1: Define Block Requirements
 
-Let's say your UI designer created the following mockup:
+## Create block descriptor
 
-![block mockup](media/create-new-block/01-block-mockup.png)
+Every block starts with a descriptor file. This is a JSON file that defines the block’s structure, behavior, and settings. Descriptor files are located at the following path: **vc-frontend/blob/dev/client-app/builder-preview/schemas/sections/block-alias.json**.
 
-## Step 2: Define Property List
+Let's name our block **demo-product-list** and create a file called **demo-product-list.json**, with the following content:
 
-Here, we have three property fields:
-
-1. Block title
-1. Description text in the rich text format
-1. Product list
-
-## Step 3: Create Block Descriptor
-
-Each block has a descriptor file. It is a JSON file that contains all information about the block. The file is stored within the theme at the following path: `/config/schemas/sections/<block-alias>.json`.
-
-Let's give our block a name, say, `demo-product-list`, and create a file, `demo-product-list.json`, with the following content:
-
-```json
+```json title="demo-product-list.json"
 {
   "name": "Demo products list",
   "icon": "inventory_2",
@@ -41,21 +28,22 @@ Let's give our block a name, say, `demo-product-list`, and create a file, `demo-
       "label": "Promo text",
       "type": "markdown",
       "resultType": "markdown",
-      "default": "Here can be some promo text, or something similar to it\n\nLorem ipsum dolor sit amet, consectetur..."
+      "default": "Some text"
     }
   ]
 }
 ```
 
-At this point, we just added two fields. We will add other properties later.
+At this stage, we’ve added two settings fields. Additional properties will be added later.
 
-## Step 4: Add block to Template Descriptor
+## Add block to template descriptor
 
-There may be many types of templates within a single theme, so we have to specify which templates our block may be used in.
+Since frontend can include multiple templates, we need to specify which templates our block can be used with.
 
-This means we need to add our block to the `page` template descriptor. For that, open the file at `/config/schemas/templates/page.json` and add the block to the `sections` section:
+In this case, we’ll add the block to the page template descriptor. To do this, open the file located at
+**/vc-frontend/blob/dev/client-app/builder-preview/schemas/templates/product.json**, and include our block in the **sections** array:
 
-```json
+```json title="product.json"
 {
   ...
   "sections": [
@@ -66,75 +54,73 @@ This means we need to add our block to the `page` template descriptor. For that,
 }
 ```
 
-## Step 5: Add Block Layout
+## Add block layout
 
-Finally, you need to add block layout. The layout is a file that contains HTML markup and logic for the block. Since we use the `vc-theme-b2b-vue` theme based on the Vue.js framework, the layout must also be a Vue component.
+The layout defines the HTML structure and logic for our block. Since we use a Vue.js-based solution, the layout should be implemented as a Vue component.
 
-Open the theme and create the `/client-app/shared/static-content/components/demo-product-list.vue` file with the following content:
-<!--todo: check the layout--->
+1. Create a new **vc-frontend/blob/dev/client-app/shared/static-content/components/demo-product-list.vue** file with the following content:
 
-```vue
-<template>
-  <div class="pt-6 pb-16">
-    <div class="w-full max-w-screen-2xl mx-auto px-5 md:px-12">
-      <h2 class="text-2xl">{{ model.title }}</h2>
-      <div class="text-lg">
-        <VcMarkdownRender :src="model.content" class="text-gray-500"></VcMarkdownRender>
-      </div>
+
+    ```vue title="demo-product-list.vue"
+    <template>
+    <div class="pt-6 pb-16">
+        <div class="w-full max-w-screen-2xl mx-auto px-5 md:px-12">
+        <h2 class="text-2xl">{{ model.title }}</h2>
+        <div class="text-lg">
+            <VcMarkdownRender :src="model.content" class="text-gray-500"></VcMarkdownRender>
+        </div>
+        </div>
     </div>
-  </div>
-</template>
+    </template>
 
-<script setup lang="ts">
-defineProps({
-  model: {
-    type: Object,
-    required: true,
-  },
-});
-</script>
-```
+    <script setup lang="ts">
+    defineProps({
+    model: {
+        type: Object,
+        required: true,
+    },
+    });
+    </script>
+    ```
 
-Next, register the new block in the theme. Open the `/client-app/shared/static-content/components/index.ts` file and add the following line:
+1. Register the new block in the frontend. Open the **vc-frontend/blob/dev/client-app/shared/static-content/components/index.ts** file and add the following line:
 
-```ts
-...
-import DemoProductList from "./demo-product-list.vue";
+    ```ts title="index.ts"
+    ...
+    import DemoProductList from "./demo-product-list.vue";
 
-const templateBlocks: { [key: string]: Component } = {
-  ...
-  "demo-product-list": DemoProductList,
-};
-...
-```
+    const templateBlocks: { [key: string]: Component } = {
+    ...
+    "demo-product-list": DemoProductList,
+    };
+    ...
+    ```
 
-Now, we need to recompile the theme. Open the terminal in the theme folder and run the following command:
+1. Recompile the Frontend application by running:
 
-```bash
-yarn run build
-```
+    ```bash
+    yarn run build
+    ```
 
-## Step 6: Create New Page and Add Block to It
+## Add block to page
 
-Open the admin panel, go to the current store content, open page list, click ***Add*** on the toolbar, and select ***Design page***:
+To add the newly created block to a page:
 
-![Select design page](media/create-new-block/select-design-page.png)
+1. Create a new **products-promo** page as described [here](getting-started.md#run).
 
-Fill out the page fields and click ***Create*** on the bottom of the screen:
+1. Add your block to the page:
 
-![Add new page](media/create-new-block/create-new-page.png)
+    ![Add block](media/add-new-block.gif){: style="display: block; margin: 0 auto;" }
 
-Now, we need to add new block to the page. Click the ***Add block*** button on the left bottom part of the page builder and select the ***Demo product list*** block:
+After adding the block, it will be visible in the preview area:
 
-![Add block](media/create-new-block/add-block.png)
+![Design block](media/fill-new-block.png)
 
-The block has been added to the page, and we can see it in the preview area:
+# Add product property to block
 
-![Design block](media/create-new-block/design-block.png)
+To make the block display specific products, we need to update its settings to include a product selection field. 
 
-## Step 7: Add Property for Products to Block
-
-Now we need to add products to the block. Open the file with the block settings and add the following item to the `settings` section:
+Open the block settings file and add the following configuration to the **settings** array:
 
 ```json
 {
@@ -174,13 +160,13 @@ Now we need to add products to the block. Open the file with the block settings 
 }
 ```
 
-We now can get products in the page builder:
+We now can get select products from the list:
 
-![Get product](media/create-new-block/select-product.png)
+![Get product](media/list-of-products.png){: style="display: block; margin: 0 auto;" }
 
-## Last Step: Layout for Product List
+## Configure products list layout
 
-The last step to complete the block is the product display in the Vue component. Open the block layout file and add the following code:
+To visually display the selected products, we need to update the block layout with the following markup:
 
 ```vue
 <div class="flex flex-row justify-center space-x-4">
@@ -200,6 +186,16 @@ The last step to complete the block is the product display in the Vue component.
   </div>
 </div>
 ```
-Finaly, here is the result:
 
-![result](media/create-new-block/result.png)
+The result is as follows:
+
+![result](media/result.png)
+
+<br>
+<br>
+********
+
+<div style="display: flex; justify-content: space-between;">
+    <a href="../getting-started">← Getting started </a>
+    <a href="../server-descriptors">Server descriptors →</a>
+</div>
