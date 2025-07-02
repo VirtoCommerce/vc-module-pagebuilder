@@ -1,13 +1,18 @@
 # Number Control Descriptor
 
-| Property | Type | Description |
-| - | - | - |
-| `min` | `number` | Minimum value |
-| `max` | `number` | Maximum value |
-| `step` | `number` | Value change step |
-| `thumb` | `boolean` | Display value in thumb of slider |
+This control allows input of numeric values with optional constraints such as minimum, maximum, and step size. It can also display the current value inside the slider thumb if enabled.
 
-## Examples
+| Property | Type    | Description                                                  |
+| -------- | ------- | ------------------------------------------------------------ |
+| `min`      | number  | Minimum allowed value.                                       |
+| `max`      | number  | Maximum allowed value.                                       |
+| `step`     | number  | Increment step for value changes.                            |
+| `thumb`    | boolean | If true, displays the current value inside the slider thumb. |
+
+## Example
+### Numeric input field
+
+<div class="grid" markdown>
 
 ```json
 ...
@@ -25,10 +30,16 @@
 ...
 ```
 
-Result
 
-![Number control example](images/number-control.gif "Number control example")
+![Number control](media/number-control.gif){: style="display: block; margin: 0 auto;" }
 
+
+</div>
+
+
+### Slider control
+
+<div class="grid" markdown>
 
 ```json
 ...
@@ -47,7 +58,17 @@ Result
 ...
 ```
 
-Result
 
-![Slider control example](images/slider-control.png "Slider control example")
+![Slider control](media/slider-control.png){: style="display: block; margin: 0 auto;" }
 
+
+</div>
+
+<br>
+<br>
+********
+
+<div style="display: flex; justify-content: space-between;">
+    <a href="../markdown">← Markdown </a>
+    <a href="../object">Object →</a>
+</div>

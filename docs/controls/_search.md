@@ -1,173 +1,75 @@
 # Search Control Descriptor
 
-Этот контрол предназначен для выполнения запроса/запросов для введённых данных. Возвращает результат, который сохраняется в блоке.
+This control enables dynamic data retrieval based on user input. It's especially useful for querying product data, verifying inputs, or enriching content blocks with data fetched from external APIs.
 
-| Property | Type | Description |
-| --- | --- | --- |
-| `request` | `ServerRequestDescriptor` | Описание запроса ***todo: ссылка на описание запроса*** |
-| `requests` | `{ [key: string]: ServerRequestDescriptor }` | Используется в случаях когда необходимо выполнить несколько запросов |
-| `displayInfo` | `DisplaySearchResult[]` | Описание результата, который будет отображен в контроле |
-| `nodataText` | `string` | Текст, выводимый, если запрос вернул пустой результат |
-| `button` | `boolean \| string` | Текст на кнопке для инициации запроса, если `false`, кнопка не выводится, запрос выполняется на изменение текстового поля |
+It performs one or more backend requests and stores the result in a block's value, making it available for display or further logic.
 
-Поле для ввода строки не выводится вместе с кнопкой.
+## Configuration options
 
-`requests` игнорируется если есть свойство `request`.
+| Property      | Type                                         | Description                                                                                       |
+| ------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `request`     | ServerRequestDescriptor                    | A single [server request](server-descriptors.md#serverrequestdescriptor) to be executed.          |
+| `requests`    | { [key: string]: ServerRequestDescriptor } | Use this to define **multiple requests**, executed sequentially.<br>Ignored if **request** is present. |
+| `displayInfo` | DisplaySearchResult[]                      | Defines how the response data is displayed inside the control.                                    |
+| `nodataText`  | string                                       | Text shown if the request returns no data.                                                        |
+| `button`      | boolean <br> string                          | Button text to manually trigger the search.<br>If **false**, the search is triggered on input change.  |
 
-`requests` выполняет запросы по очереди, в порядке их описания. Результат записывается в соответствующее свойство.
 
-Результат выполнения `request` записывается в свойство `value`.
+!!! info
+    * When a `button` is present, the input field and button are shown together. When `button` is **false**, the request is triggered as the user types.<br>
+    * The result of a single `request` is saved to the `value` property of the control.<br>
+    * When using `requests`, each request's result is stored under a named key.<br>
+    * Sequential execution of `requests` allows one result to be used in the next request (e.g., pass product ID from the first to the second request).
 
-## Примеры
 
-### Пример с одним запросом
+## Single request example
 
-<details>
-    <summary>Expand</summary>
+Performs one API call to retrieve product details using a SKU.
 
-```json
-...
-    "settings": [
-        {
-            "id": "product",
-            "label": "SKU",
-            "sort": 1,
-            "type": "search",
-            "nodataText": "Search by SKU to retrieve product data here",
-            "default": {
-                "value": {
-                    "id": "9cbd8f316e254a679ba34a900fccb076",
-                    "name": "3DR Solo Quadcopter (No Gimbal)",
-                    "imgSrc": "/themes/assets/blocks/solo-quadcopter.jpg",
-                    "description": "<ul class=\"top-section-list\">&#10;<li class=\"top-section-list-item\">Capture Aerial Photos/Video with a GoPro</li>&#10;<li class=\"top-section-list-item\">Linear Tracking with Cablecam Mode</li>&#10;<li class=\"top-section-list-item\">Follow Me: Tracks Your Mobile Device</li>&#10;<li class=\"top-section-list-item\">HDMI Output on Transmitter</li>&#10;<li class=\"top-section-list-item\">Android and iOS Mobile Apps</li>&#10;<li class=\"top-section-list-item\">Video Game-Style Controls</li>&#10;<li class=\"top-section-list-item\">Return Home and &#34;Safety Net&#34; Modes</li>&#10;<li class=\"top-section-list-item\">One-Button Flying / &#34;Pause&#34; Button</li>&#10;<li class=\"top-section-list-item\">Operate GoPro Through App</li>&#10;<li class=\"top-section-list-item\">Works with Optional Solo Gimbal</li>&#10;</ul>",
-                    "price": "$995.99",
-                    "url": "3dr-solo-quadcopter-no-gimbal"
+??? Example "Single request example"
+    ```json
+    ...
+        "settings": [
+            {
+                "id": "product",
+                "label": "SKU",
+                "sort": 1,
+                "type": "search",
+                "nodataText": "Search by SKU to retrieve product data here",
+                "default": {
+                    "value": {
+                        "id": "9cbd8f316e254a679ba34a900fccb076",
+                        "name": "3DR Solo Quadcopter (No Gimbal)",
+                        "imgSrc": "/themes/assets/blocks/solo-quadcopter.jpg",
+                        "description": "<ul class=\"top-section-list\">&#10;<li class=\"top-section-list-item\">Capture Aerial Photos/Video with a GoPro</li>&#10;<li class=\"top-section-list-item\">Linear Tracking with Cablecam Mode</li>&#10;<li class=\"top-section-list-item\">Follow Me: Tracks Your Mobile Device</li>&#10;<li class=\"top-section-list-item\">HDMI Output on Transmitter</li>&#10;<li class=\"top-section-list-item\">Android and iOS Mobile Apps</li>&#10;<li class=\"top-section-list-item\">Video Game-Style Controls</li>&#10;<li class=\"top-section-list-item\">Return Home and &#34;Safety Net&#34; Modes</li>&#10;<li class=\"top-section-list-item\">One-Button Flying / &#34;Pause&#34; Button</li>&#10;<li class=\"top-section-list-item\">Operate GoPro Through App</li>&#10;<li class=\"top-section-list-item\">Works with Optional Solo Gimbal</li>&#10;</ul>",
+                        "price": "$995.99",
+                        "url": "3dr-solo-quadcopter-no-gimbal"
+                    },
+                    "__nodata": false,
+                    "__searchQuery": "3DRSOLO"
                 },
-                "__nodata": false,
-                "__searchQuery": "3DRSOLO"
-            },
-            "displayInfo": [
-                {
-                    "label": "Name",
-                    "key": "name"
-                },
-                {
-                    "label": "Image",
-                    "key": "imgSrc",
-                    "type": "image"
-                }
-            ],
-            "request": {
-                "url": "/api/reverse-proxy/{{location.params.storeId}}/virtocommerce/graphql",
-                "method": "post",
-                "isArray": false,
-                "body": {
-                    "operationName": null,
-                    "variables": {},
-                    "query": "{products(storeId:\"odt\",filter:\"sku:{{__searchQuery}}\",userId:\"\"){items{id,code,name,imgSrc,descriptions{reviewType,content}prices{currency,list{formattedAmount}}seoInfo{semanticUrl}}}}"
-                },
-                "response": {
-                    "result": "data.products.items",
-                    "isArray": false,
-                    "value": [
-                        "id",
-                        "name",
-                        "code",
-                        "imgSrc",
-                        {
-                            "key": "description",
-                            "query": "$.descriptions[?(@.reviewType=='QuickReview')].content",
-                            "isArray": false
-                        },
-                        {
-                            "key": "price",
-                            "query": "$.prices[?(@.currency=='USD')].list.formattedAmount",
-                            "isArray": false
-                        },
-                        {
-                            "key": "url",
-                            "query": "$.seoInfo.semanticUrl",
-                            "isArray": false
-                        }
-                    ]
-                }
-            }
-        },
-        ...
-    ]
-...
-```
-
-При изменении текста в поле ввода, будет выполняться запрос и может быть получен такой результат:
-
-![Search control example](images/search-control.png "Search control example")
-
-Если запрос не вернул данных, то в результате отобьразится строка из свойства `nodataText`
-
-![Empty search control example](images/search-control-empty.png "Empty search control example")
-
-</details>
-
-### Пример с несколькими запросами
-
-Может возникнуть ситуация, при которой для получения целостностного объекта необходимо сделать несколько запросов, например получить товар по его артикулу (`sku`), а затем по идентификатору полученного товара получить его цену.
-
-<details>
-    <summary>Expand</summary>
-
-```json
-...
-    "settings": [
-        {
-            "id": "product",
-            "label": "SKU",
-            "sort": 1,
-            "type": "search",
-            "nodataText": "Search by SKU to retrieve product data here",
-            "default": {
-                "product": {
-                    "id": "9cbd8f316e254a679ba34a900fccb076",
-                    "name": "3DR Solo Quadcopter (No Gimbal)",
-                    "imgSrc": "/themes/assets/blocks/solo-quadcopter.jpg",
-                    "description": "<ul class=\"top-section-list\">&#10;<li class=\"top-section-list-item\">Capture Aerial Photos/Video with a GoPro</li>&#10;<li class=\"top-section-list-item\">Linear Tracking with Cablecam Mode</li>&#10;<li class=\"top-section-list-item\">Follow Me: Tracks Your Mobile Device</li>&#10;<li class=\"top-section-list-item\">HDMI Output on Transmitter</li>&#10;<li class=\"top-section-list-item\">Android and iOS Mobile Apps</li>&#10;<li class=\"top-section-list-item\">Video Game-Style Controls</li>&#10;<li class=\"top-section-list-item\">Return Home and &#34;Safety Net&#34; Modes</li>&#10;<li class=\"top-section-list-item\">One-Button Flying / &#34;Pause&#34; Button</li>&#10;<li class=\"top-section-list-item\">Operate GoPro Through App</li>&#10;<li class=\"top-section-list-item\">Works with Optional Solo Gimbal</li>&#10;</ul>",
-                    "url": "3dr-solo-quadcopter-no-gimbal"
-                },
-                "price": {
-                    "effectiveValue": "995.99"
-                },
-                "__nodata": false,
-                "__searchQuery": "3DRSOLO"
-            },
-            "displayInfo": [
-                {
-                    "label": "Name",
-                    "path": "product.name"
-                },
-                {
-                    "label": "Price",
-                    "path": "price.effectiveValue"
-                },
-                {
-                    "label": "Image",
-                    "path": "product.imgSrc",
-                    "type": "image"
-                }
-            ],
-            "requests": {
-                "product": {
-                    "url": "/api/reverse-proxy/{{location.params.storeId}}/odt/api/catalog/search/products",
+                "displayInfo": [
+                    {
+                        "label": "Name",
+                        "key": "name"
+                    },
+                    {
+                        "label": "Image",
+                        "key": "imgSrc",
+                        "type": "image"
+                    }
+                ],
+                "request": {
+                    "url": "/api/reverse-proxy/{{location.params.storeId}}/virtocommerce/graphql",
                     "method": "post",
                     "isArray": false,
                     "body": {
-                        "objectType": "Product",
-                        "storeId": "odt",
-                        "catalogId": "4974648a41df4e6ea67ef2ad76d7bbd4",
-                        "searchPhrase": "{{__searchQuery}}",
-                        "skip": 0,
-                        "take": 1
+                        "operationName": null,
+                        "variables": {},
+                        "query": "{products(storeId:\"odt\",filter:\"sku:{{__searchQuery}}\",userId:\"\"){items{id,code,name,imgSrc,descriptions{reviewType,content}prices{currency,list{formattedAmount}}seoInfo{semanticUrl}}}}"
                     },
                     "response": {
-                        "result": "items",
+                        "result": "data.products.items",
                         "isArray": false,
                         "value": [
                             "id",
@@ -176,50 +78,145 @@
                             "imgSrc",
                             {
                                 "key": "description",
-                                "query": "$.reviews[?(@.reviewType=='QuickReview')].content",
+                                "query": "$.descriptions[?(@.reviewType=='QuickReview')].content",
+                                "isArray": false
+                            },
+                            {
+                                "key": "price",
+                                "query": "$.prices[?(@.currency=='USD')].list.formattedAmount",
                                 "isArray": false
                             },
                             {
                                 "key": "url",
-                                "query": "$.seoInfos[0].semanticUrl",
+                                "query": "$.seoInfo.semanticUrl",
                                 "isArray": false
                             }
                         ]
                     }
+                }
+            },
+            ...
+        ]
+    ...
+    ```
+<br>
+<br>
+
+
+![Search results](media/sku-found-not-found.png){: style="display: block; margin: 0 auto;" }
+
+
+## Multiple requests example
+
+Uses two API calls: one to get the product by SKU, and another to fetch its price by product ID.
+
+??? Example "Multiple request example"
+    ```json
+    ...
+        "settings": [
+            {
+                "id": "product",
+                "label": "SKU",
+                "sort": 1,
+                "type": "search",
+                "nodataText": "Search by SKU to retrieve product data here",
+                "default": {
+                    "product": {
+                        "id": "9cbd8f316e254a679ba34a900fccb076",
+                        "name": "3DR Solo Quadcopter (No Gimbal)",
+                        "imgSrc": "/themes/assets/blocks/solo-quadcopter.jpg",
+                        "description": "<ul class=\"top-section-list\">&#10;<li class=\"top-section-list-item\">Capture Aerial Photos/Video with a GoPro</li>&#10;<li class=\"top-section-list-item\">Linear Tracking with Cablecam Mode</li>&#10;<li class=\"top-section-list-item\">Follow Me: Tracks Your Mobile Device</li>&#10;<li class=\"top-section-list-item\">HDMI Output on Transmitter</li>&#10;<li class=\"top-section-list-item\">Android and iOS Mobile Apps</li>&#10;<li class=\"top-section-list-item\">Video Game-Style Controls</li>&#10;<li class=\"top-section-list-item\">Return Home and &#34;Safety Net&#34; Modes</li>&#10;<li class=\"top-section-list-item\">One-Button Flying / &#34;Pause&#34; Button</li>&#10;<li class=\"top-section-list-item\">Operate GoPro Through App</li>&#10;<li class=\"top-section-list-item\">Works with Optional Solo Gimbal</li>&#10;</ul>",
+                        "url": "3dr-solo-quadcopter-no-gimbal"
+                    },
+                    "price": {
+                        "effectiveValue": "995.99"
+                    },
+                    "__nodata": false,
+                    "__searchQuery": "3DRSOLO"
                 },
-                "price": {
-                    "url": "/api/reverse-proxy/{{location.params.storeId}}/odt/api/products/{{item.product.id}}/prices",
-                    "method": "get",
-                    "response": {
-                        "result": "$",
+                "displayInfo": [
+                    {
+                        "label": "Name",
+                        "path": "product.name"
+                    },
+                    {
+                        "label": "Price",
+                        "path": "price.effectiveValue"
+                    },
+                    {
+                        "label": "Image",
+                        "path": "product.imgSrc",
+                        "type": "image"
+                    }
+                ],
+                "requests": {
+                    "product": {
+                        "url": "/api/reverse-proxy/{{location.params.storeId}}/odt/api/catalog/search/products",
+                        "method": "post",
                         "isArray": false,
-                        "value": [
-                            "effectiveValue"
-                        ]
+                        "body": {
+                            "objectType": "Product",
+                            "storeId": "odt",
+                            "catalogId": "4974648a41df4e6ea67ef2ad76d7bbd4",
+                            "searchPhrase": "{{__searchQuery}}",
+                            "skip": 0,
+                            "take": 1
+                        },
+                        "response": {
+                            "result": "items",
+                            "isArray": false,
+                            "value": [
+                                "id",
+                                "name",
+                                "code",
+                                "imgSrc",
+                                {
+                                    "key": "description",
+                                    "query": "$.reviews[?(@.reviewType=='QuickReview')].content",
+                                    "isArray": false
+                                },
+                                {
+                                    "key": "url",
+                                    "query": "$.seoInfos[0].semanticUrl",
+                                    "isArray": false
+                                }
+                            ]
+                        }
+                    },
+                    "price": {
+                        "url": "/api/reverse-proxy/{{location.params.storeId}}/odt/api/products/{{item.product.id}}/prices",
+                        "method": "get",
+                        "response": {
+                            "result": "$",
+                            "isArray": false,
+                            "value": [
+                                "effectiveValue"
+                            ]
+                        }
                     }
                 }
-            }
-        },
-        ...
-    ]
-...
-```
+            },
+            ...
+        ]
+    ...
+    ```
 
-На что стоит обратить внимание:
-1. `displayInfo` использует свойство `path` для получения отображаемых значений. Путь строится от самого значения (см. свойство `default`).
-2. для описания запросов используется свойство `requests`.
-3. запросы могут использовать значения полученные на предыдущем шаге, для построения нового запроса (см. свойство `url` у `price`).
 
-Ниже представлен результат такой настройки контрола.
+!!! info
 
-Значение по умолчанию:
+    * `displayInfo` uses the `path` to extract nested values from the response.
+    * Each request result is stored under its key (`product`, `price`), accessible in the final display or subsequent requests.
 
-![Default multisearch control example](images/search-control-multiple-default.png "Default multisearch control example")
+![Value preview](media/default-value-preview.png){: style="display: block; margin: 0 auto;" }
 
-Если изменить артикул:
 
-![Changed multisearch control example](images/search-control-multiple-changed.png "Changed multisearch control example")
+![Readmore](media/readmore.png){: width="25"} [ServerRequestDescriptor](server-descriptors.md#serverrequestdescriptor)
 
-</details>
+<br>
+<br>
+********
 
-Более детальное описание запросов и их парсинга см. на странице [`request`](../request.md)
+<div style="display: flex; justify-content: space-between;">
+    <a href="../paragraph">← Paragraph </a>
+    <a href="../select">Select →</a>
+</div>

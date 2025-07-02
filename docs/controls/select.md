@@ -1,65 +1,76 @@
 # Select Control Descriptor
 
-| Property | Type | Description |
-| --- | --- | --- |
-| `options` | `OptionModel[]` | Set of options for the `select` control |
-| `optionsSelector` | `string` | Option selection from the current [`ComponentContext`](../component-context.md) |
-| `request` | `OptionsRequest` | Load options via a web request ***todo: link to request description*** |
-| `equalKey` | `string` | Key used to compare options |
-| `filterList` | `boolean` | Whether the options can be filtered |
-| `multiple` | `boolean` | Allows multiple selections ***todo: (not implemented)*** |
+This control presents a dropdown list of options to the user. This control supports static options, dynamic options from the current component context, or options fetched from an external server.
 
-The `options` property defines an array of values that will be available in the dropdown list. These values can be grouped using the `group` property.
+## Descriptor properties
 
-The `request` property allows specifying a request to fetch data. The `label` property from the result will be used for display, and the option's value is taken from the corresponding field. The fetched data is merged with the array from `options`.
+| Property          | Type             | Description                                                                                                                                            |
+| ----------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `options`         | OptionModel[]  | Array of static options to display in the dropdown.<br> These values can be grouped using the `group` property.                                        |
+| `optionsSelector` | string         | JavaScript snippet to dynamically generate options from the current [`ComponentContext`](component-context.md).<br>Ignored if `request` is defined.      |
+| `request`         | OptionsRequest | Configuration to fetch options via a web [request](server-descriptors.md#serverrequestdescriptor).<br>The `label` property from the result will be used for display,<br>and the option's value is taken from the corresponding field.<br>The fetched data is merged with the array from `options`.                                                                          |
+| `equalKey`        | string         | Compares values between the current value and available options.                                                                                         |
+| `filterList`      | boolean        | Enables filtering the option list in the UI.                                                                                                             |
+| `multiple`        | boolean        | Enables multi-select.                                                                                                                                    |
 
-The `optionsSelector` property allows specifying a JavaScript snippet that is executed in the context of [`ComponentContext`](../component-context.md) and must return an array.
-
-Example:
+**Example**:
 
 ```js
 this.page.filter(function(x) { return x.type==='popup' }).map(function(x) { return { label: x.name || x.__id, value: x.__id }; })
 ```
 
-This script filters all page blocks by type and selects the needed values.
+This script filters all blocks on the page by type (`popup`) and maps the results to a list of options with `label` and `value` fields.
 
-The result is also merged with the list from the `options` property.
+The resulting list is **merged with the static options** provided via the `options` property, if any.
 
-If the control has a pre-defined value, it will be searched using the `equalKey` after the data is loaded.
-
-The `optionsSelector` is ignored if the `request` property is defined.
-
-## OptionsRequest
-
-Inherits from `ServerRequestDescriptor`, with added `group` and `label` properties. Both are of type `string`, indicating the names of the properties used from the server response.
-
-More details on request formation can be found on the [`request`](../request.md) page.
-
-## SelectValueDescriptor
-
-In addition to the `label` and `value` properties, there is the `selectValueDescritor` property in the `ServerResponseDescriptor` interface. This property is used to specify the value of the option in the select control. It can be a string or an object with the following properties:
-
-| Property | Type | Description |
-| --- | --- | --- |
-| `key` | `string` | Property name for the target value |
-| `query` | `string` | Query to get the value (jsonpath) |
-| `isArray` | `boolean` | Indicates if the value is an array |
+If the control already has a pre-defined value, it will be matched **using the `equalKey`** after all data (static, selector-based, and/or fetched) is loaded.
 
 
-## OptionModel
 
-| Property | Type | Description |
-| --- | --- | --- |
-| `label` | `string` | Display label |
-| `value` | `any` | Value of the option |
-| `group` | `string` | Group name |
+## Supporting Types
+
+The following types define the structure of values used within the select control — including individual options, how options are loaded from a server, and how values are extracted from responses.
+
+### OptionModel
+
+Defines the shape of a single dropdown option:
+
+| Property | Type     | Description         |
+| -------- | -------- | ------------------- |
+| `label`  | string   | Text shown in UI    |
+| `value`  | any      | Option's value      |
+| `group`  | string   | Optional group name |
+
+
+### OptionsRequest
+
+Extends a generic request definition and adds fields to specify which parts of the server response should be used as labels and groups for the select options:
+
+| Property | Type     | Description                              |
+| -------- | -------- | ---------------------------------------- |
+| `label`  | string | Field name used for displaying the label |
+| `group`  | string | (Optional) Field name used for grouping  |
+
+See full details in the [ServerRequestDescriptor](server-descriptors.md#serverrequestdescriptor) documentation.
+
+
+### SelectValueDescriptor
+
+Extracts the actual `value` for each option from a server response. 
+
+| Property  | Type      | Description                    |
+| --------- | --------- | ------------------------------ |
+| `key`     | string  | Property name of the value field |
+| `query`   | string  | JSONPath to extract value        |
+| `isArray` | boolean | Whether the value is an array    |
+
+
 
 ## Examples
 
-### Basic Select
+### Basic select
 
-<details>
-    <summary>Expand</summary>
+<div class="grid" markdown>
 
 ```json
 ...
@@ -81,43 +92,13 @@ In addition to the `label` and `value` properties, there is the `selectValueDesc
 ...
 ```
 
-Result
+![Basic select result](media/basic-select-result.png){: style="display: block; margin: 0 auto;" }
 
-![Basic select control example](images/select-control-basic.png "Basic select control example")
+</div>
 
-To set a default value:
+### Server request
 
-```json
-...
-    "settings": [
-        {
-            "id": "theme",
-            "type": "select",
-            "label": "Theme",
-            "placeholder": "Please select theme",
-            "default": "base",
-            "options": [
-                { "label": "Base", "value": "base" },
-                { "label": "Red", "value": "red" },
-                { "label": "Green", "value": "green" },
-                { "label": "Blue", "value": "blue" }
-            ]
-        },
-        ...
-    ]
-...
-```
-
-Result
-
-![Basic select control with default value example](images/select-control-basic-default.png "Basic select control example with default value")
-
-</details>
-
-### Server Request
-
-<details>
-    <summary>Expand</summary>
+<div class="grid" markdown>
 
 ```json
 ...
@@ -151,16 +132,15 @@ Result
 ...
 ```
 
-Result
+    
+![Server request result](media/server-request-result.png){: style="display: block; margin: 0 auto;" }
 
-![Select control with request example](images/select-control-request.png "Select control with request example")
 
-</details>
+</div>
 
-### Context-based Selection
+### Context-based options
 
-<details>
-    <summary>Expand</summary>
+<div class="grid" markdown>
 
 ```json
 ...
@@ -176,15 +156,16 @@ Result
 ...
 ```
 
-Result
 
-The page contains 4 controls, 2 of which are of type `popup`.
+![Context-based select](media/select-control-context-page.png){: style="display: block; margin: 0 auto;" }
 
-![Select control context page example](images/select-control-context-page.png "Select control context page example")
+</div>
 
-The user can choose the desired block
+<br>
+<br>
+********
 
-![Select control context example](images/select-control-context.png "Select control context example")
-
-</details>
-
+<div style="display: flex; justify-content: space-between;">
+    <a href="../search">← Search </a>
+    <a href="../string">String →</a>
+</div>

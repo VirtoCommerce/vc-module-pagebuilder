@@ -1,8 +1,10 @@
 # Images Control Descriptor
 
-This descriptor contains the same options as [files control](files.md). The one exception is that default value for `accept` property is `image/*`.
+This control functions similarly to the [files control](files.md), but with a default `accept` value set to `image/*`.
 
 ## Example
+
+<div class="grid" markdown>
 
 ```json
 ...
@@ -19,6 +21,18 @@ This descriptor contains the same options as [files control](files.md). The one 
     ]
 ...
 ```
-Result
 
-![Image control example](images/image-control.png "Image control example")
+
+![Header control](media/image-control.png){: style="display: block; margin: 0 auto;" }
+
+
+</div>
+
+<br>
+<br>
+********
+
+<div style="display: flex; justify-content: space-between;">
+    <a href="../header">← Header </a>
+    <a href="../markdown">Markdown →</a>
+</div>

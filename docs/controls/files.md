@@ -1,37 +1,33 @@
 # Files Control Descriptor
 
-[file-upload](https://pivan.github.io/file-upload/) component is used for this control.
-The [npm-package](https://www.npmjs.com/package/@iplab/ngx-file-upload) is available too.
+This control uses the [file-upload](https://pivan.github.io/file-upload/) component. The corresponding [npm package](https://www.npmjs.com/package/@iplab/ngx-file-upload) is also available.
 
-| Property | Type | Description |
-| - | - | - |
-| `accept` | `string` | Acceptable files extensions or mime-types, used directly in attribute [accept](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/file#accept). |
-| `multiple` | `boolean` | Allow multiple files uploading. Default `true`. |
-| `sortable` | `boolean` | Allow sort files. Default `true`. |
-| `maxFileSize` | `number` | Maximum file size. |
-| `collapseThreshold` | `number` | Count of files after that panel with preview will be collapsed. Default is 6. |
-| `collapseCount` | `number` | Number of files that will be shown in collapsed state. Default is 4. |
-| `skipRemoveConfirmation` | `boolean` | Ask user to confirm file removing. |
-| `removeMessage` | `string` | Message for file removing confirmation. |
-| `urlField` | `string` | Name of field with `url` if item is object. |
-| `filenameField` | `string` | Name of field with `filename` if item is object. |
-| `element` | `ControlDescriptor[]` | Descriptors for other field of object. |
-| `uploadAssetsRequest` | `AssetsRequest` \| `string` \| `inline` | Custom request for upload asset. |
+| Property                 | Type                  | Description                                                                                                                            |
+| ------------------------ | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `accept`                 | string              | Comma-separated list of accepted file extensions or MIME types.<br>Used directly in [`accept`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/file#accept) attribute. |
+| `multiple`               | boolean               | Allows multiple file uploads. Default is `true`.                                                                                 |
+| `sortable`               | boolean               | Allows files to be reordered. Default is `true`.                                                               |
+| `maxFileSize`            | number                | Maximum allowed file size (in bytes).                                                                                            |
+| `collapseThreshold`      | number                | Number of files after which the preview panel collapses. Default is `6`.                                                         |
+| `collapseCount`          | number                | Number of file previews shown in collapsed state. Default is `4`.                                                                |
+| `skipRemoveConfirmation` | boolean               | Skips the confirmation prompt when removing a file.                                                                              |
+| `removeMessage`          | string              | Message shown in the remove confirmation dialog.                                                                                 |
+| `urlField`               | string              | Field name containing the file URL (if value is an object).                                                                      |
+| `filenameField`          | string              | Field name containing the filename (if value is an object).                                                                      |
+| `element`                | ControlDescriptor[] | Additional descriptors for custom fields in the file object.                                                                     |
+| `UploadAcceptRequest`    | <br> AssetsRequest<br> string <br> inline       | Custom request descriptor used to upload assets.                                                     |
 
-Value of this control is array of urls or objects if `element` property is defined.
+The value of this control is an array of URLs by default, or an array of objects if the `element` property is defined.
 
-If `uploadAssetsRequest` is `inline`, the file will be converted into `base64` and stored directly into page, without uploading to server. Such image can be used as the [data url](https://developer.mozilla.org/en-US/docs/Web/URI/Reference/Schemes/data).
+If `uploadAssetsRequest` is **inline**, the file will be converted into **base64** and stored directly into page, without uploading to server. Such image can be used as the [data URL](https://developer.mozilla.org/en-US/docs/Web/URI/Reference/Schemes/data).
 
-If `uploadAssetsRequest` is `string`, it should be property name from the [builder settings](../_builder-settings.md) object.
+If `uploadAssetsRequest` is **string**, it should be property name from the [builder settings](settings.md) object. Also it can be just [ServerRequestDescriptor](server-descriptors.md#serverrequestdescriptor) object, which will be used to upload files to server.
 
-Also it can be just [ServerRequestDescriptor](../_server-request-descriptor.md) object, which will be used to upload files to server.
+If `uploadAssetsRequest` is not defined, the default request will be used, which is defined in [builder settings](settings.md) as `uploadAssetsRequest`.
 
-If `uploadAssetsRequest` is not defined, the default request will be used, which is defined in [builder settings](../_builder-settings.md) as `uploadAssetsRequest`.
-
-
-## Example
-
+## Examples
 ### Single file
+
 
 ```json
 ...
@@ -47,9 +43,11 @@ If `uploadAssetsRequest` is not defined, the default request will be used, which
     ]
 ...
 ```
-Result
 
-![Single file control example](images/file-control-single.gif "Single file control example")
+**Result**
+<div class="grid" markdown>
+
+![Single file](media/file-control-single.gif)
 
 ```json
 ...
@@ -60,7 +58,11 @@ Result
         },
         ...
     ]
+...
 ```
+</div>
+
+
 
 ### Multiple files
 
@@ -68,9 +70,10 @@ Result
 ...
     "settings": [
         {
-            "id": "attachments",
-            "label": "Attach files",
+            "id": "attachment",
+            "label": "Attach a file",
             "type": "files",
+            "multiple": false,
             "accept": ".pdf,application/pdf"
         },
         ...
@@ -78,9 +81,11 @@ Result
 ...
 ```
 
-Result
+**Result**
 
-![Multiple files control example](images/file-control.png "Multiple files control example")
+<div class="grid" markdown>
+
+![Multiple files](media/file-control.png)
 
 ```json
 ...
@@ -96,7 +101,11 @@ Result
         },
         ...
     ]
+...
 ```
+</div>
+
+
 
 ### Files as objects
 
@@ -129,11 +138,14 @@ Result
         },
         ...
     ]
+...
 ```
 
-Result
+**Result**
 
-![Files as objects control example](images/file-control-object.png "Files as objects control example")
+<div class="grid" markdown>
+
+![Multiple files](media/file-control-object.png)
 
 ```json
 ...
@@ -156,4 +168,17 @@ Result
         },
         ...
     ]
+...
 ```
+
+
+</div>
+
+<br>
+<br>
+********
+
+<div style="display: flex; justify-content: space-between;">
+    <a href="../color">← Color </a>
+    <a href="../header">Header →</a>
+</div>

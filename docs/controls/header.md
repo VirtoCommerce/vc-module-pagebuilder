@@ -1,25 +1,37 @@
 # Header Control Descriptor
 
-| Property  | Description |
-| - | - |
-| `content` | Text to display in editor panel. |
+This control displays custom informational text inside the editor panel.
 
-This control display custom text information.
+| Property  | Description                          |
+| --------- | ------------------------------------ |
+| `content` | Text to display in the editor panel. |
 
 ## Example
+
+<div class="grid" markdown>
 
 ```json
 ...
     "settings": [
         {
             "type": "header",
-            "content": "Please upload image of reasonable size"
+            "content": "Please upload an image of reasonable size"
         },
         ...
     ]
 ...
 ```
 
-Result
+![Header control](media/header-control.png){: style="display: block; margin: 0 auto;" }
 
-![Header control example](images/header-control.png "Header control example")
+
+</div>
+
+<br>
+<br>
+********
+
+<div style="display: flex; justify-content: space-between;">
+    <a href="../files">← Files </a>
+    <a href="../images">Images →</a>
+</div>
