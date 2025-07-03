@@ -1,43 +1,29 @@
 <template>
-  <div style="display: flex; gap: 5px;">
-    <VcStatus style="width: auto;"
-      v-bind="statusStyles[itemStatus]"
-      >{{ $t(`PAGE_BUILDER.STATUS.${itemStatus.toUpperCase()}`) }}</VcStatus
+  <div class="flex gap-1">
+    <VcStatus
+      class="w-auto"
+      v-bind="statusStyles[status]"
+      >{{ $t(`PAGE_BUILDER.STATUS.${status.toUpperCase()}`) }}</VcStatus
     >
-    <template v-if="hasChanges && itemStatus == 'Published'">
-      <VcStatus style="width: auto;"
+    <template v-if="hasChanges && status == 'Published'">
+      <VcStatus
+        class="w-auto"
         v-bind="statusStyles['HasChanges']"
-        >{{ $t('PAGE_BUILDER.STATUS.HAS_CHANGES') }}</VcStatus
+        >{{ $t("PAGE_BUILDER.STATUS.HAS_CHANGES") }}</VcStatus
       >
     </template>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { computed, toRefs } from "vue";
-
-import {
-  PageBuilderPage,
-  GroupedPageBuilderPage,
-} from "../../../api_client/virtocommerce.pagebuildermodule";
-
 export interface Props {
-  context: {
-    item: GroupedPageBuilderPage;
-  };
+  status?: string;
+  hasChanges?: boolean;
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  
+withDefaults(defineProps<Props>(), {
+  status: "Draft",
 });
-
-const { context } = toRefs(props);
-const itemStatus = computed(() => getStatus(context.value.item) || "Draft");
-const hasChanges = computed(() => context.value.item.hasChanges);
-
-function getStatus(page: GroupedPageBuilderPage) {
-  return page.status;
-}
 
 const statusStyles: Omit<Record<string, Record<string, unknown>>, "Draft"> = {
   Draft: {
@@ -55,6 +41,6 @@ const statusStyles: Omit<Record<string, Record<string, unknown>>, "Draft"> = {
   HasChanges: {
     outline: true,
     variant: "warning",
-  }
+  },
 };
 </script>

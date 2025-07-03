@@ -1,27 +1,18 @@
-import { computed, ref, Ref, onMounted } from "vue";
-import {
-  ListComposableArgs,
-  ListBaseBladeScope,
-  useBladeNavigation,
-  useListFactory,
-  type TOpenBladeArgs,
-  useApiClient,
-} from "@vc-shell/framework";
+import { computed, ref, ComputedRef, onMounted } from "vue";
+import { useAsync, useLoading, useApiClient } from "@vc-shell/framework";
 import { useI18n } from "vue-i18n";
 
-import useUrlParams from "../useUrlParams";
+import useUrlParams from "./../useUrlParams";
 
 import {
   PageBuilderPageClient,
   IPageBuilderPageSearchCriteria,
   PageBuilderPageSearchCriteria,
-  PageBuilderPage,
   GroupedPageBuilderPage,
+  GroupedPageBuilderPageSearchResult,
 } from "../../../../api_client/virtocommerce.pagebuildermodule";
 
 const { getApiClient } = useApiClient(PageBuilderPageClient);
-
-const { storeId, initUrlParams } = useUrlParams();
 
 export enum PageStatuses {
   Draft = "Draft",
@@ -29,70 +20,79 @@ export enum PageStatuses {
   Archived = "Archived",
 }
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface DynamicItemsScope extends ListBaseBladeScope {}
+export interface IUsePageBuilderList {
+  items: ComputedRef<GroupedPageBuilderPage[]>;
+  totalCount: ComputedRef<number>;
+  pages: ComputedRef<number>;
+  currentPage: ComputedRef<number>;
+  searchQuery: ComputedRef<IPageBuilderPageSearchCriteria>;
+  loadPages: (query?: IPageBuilderPageSearchCriteria) => Promise<void>;
+  removePages: (query?: { ids: string[] }) => Promise<void>;
+  loading: ComputedRef<boolean>;
+  pageStatuses: ComputedRef<{ value: string; label: string }[]>;
+  storeId: ComputedRef<string | null>;
+}
 
-export default (args: ListComposableArgs) => {
-  initUrlParams();
+export interface UsePageBuilderListOptions {
+  pageSize?: number;
+  sort?: string;
+}
 
-  const listFactory = useListFactory<GroupedPageBuilderPage[], IPageBuilderPageSearchCriteria>({
-    load: async (_query) => {
-      if (!storeId?.value) {
-        return {
-          totalCount: 0,
-          results: [],
-        };
-      }
-      
-      const criteria = { ...(_query || {}) } as PageBuilderPageSearchCriteria;
-      criteria.storeId = storeId.value;
+export function usePageBuilderList(options?: UsePageBuilderListOptions): IUsePageBuilderList {
+  const { storeId, initUrlParams } = useUrlParams();
 
-      return (await getApiClient()).searchGrouped(criteria);
-    },
-    remove: async (_query, customQuery) => {
-      const ids = customQuery.ids;
-      if (ids) {
-        return (await getApiClient()).archiveGrouped(ids);
-      }
-    },
+  const pageSize = options?.pageSize || 20;
+  const searchQuery = ref<IPageBuilderPageSearchCriteria>({
+    take: pageSize,
+    sort: options?.sort,
   });
-
-  const { load, remove, items, pagination, loading, query } = listFactory({ sort: "modifiedDate:desc", pageSize: 20 });
-  const { openBlade, resolveBladeByName } = useBladeNavigation();
-
-  async function openDetailsBlade(data?: Omit<Parameters<typeof openBlade>["0"], "blade">) {
-    await openBlade({
-      blade: resolveBladeByName("PageBuilderDetails"),
-      ...data,
-      options: {
-        storeId: storeId?.value ?? undefined,
-      },
-    });
-  }
-
+  const searchResult = ref<GroupedPageBuilderPageSearchResult>();
   const { t } = useI18n({ useScope: "global" });
 
-  const scope: DynamicItemsScope = {
-    openDetailsBlade,
+  const { action: loadPages, loading: loadingPages } = useAsync<IPageBuilderPageSearchCriteria>(async (_query) => {
+    if (!storeId?.value) {
+      searchResult.value = new GroupedPageBuilderPageSearchResult({
+        totalCount: 0,
+        results: [],
+      });
+      return;
+    }
+
+    searchQuery.value = { ...searchQuery.value, ...(_query || {}) };
+    const criteria = new PageBuilderPageSearchCriteria(searchQuery.value);
+    criteria.storeId = storeId.value;
+
+    const apiClient = await getApiClient();
+    searchResult.value = await apiClient.searchGrouped(criteria);
+  });
+
+  const { action: removePages, loading: loadingRemovePages } = useAsync<{ ids: string[] }>(async (_query) => {
+    const ids = _query?.ids;
+    if (ids) {
+      const apiClient = await getApiClient();
+      await apiClient.archiveGrouped(ids);
+    }
+  });
+
+  onMounted(() => {
+    initUrlParams();
+  });
+
+  return {
+    items: computed(() => searchResult.value?.results || []),
+    totalCount: computed(() => searchResult.value?.totalCount || 0),
+    pages: computed(() => Math.ceil((searchResult.value?.totalCount || 1) / pageSize)),
+    currentPage: computed(() => Math.ceil((searchQuery.value?.skip || 0) / Math.max(1, pageSize) + 1)),
+    searchQuery: computed(() => searchQuery.value),
+    loadPages,
+    removePages,
+    loading: useLoading(loadingPages, loadingRemovePages),
     pageStatuses: computed(() =>
       Object.values(PageStatuses).map((value) => ({
         value,
         label: t(`PAGE_BUILDER.STATUS.${value.toUpperCase()}`),
       })),
     ),
+    storeId: computed(() => storeId?.value ?? null),
   };
-
-  onMounted(() => {
-    initUrlParams()
-  })
-
-  return {
-    items,
-    load,
-    remove,
-    loading,
-    pagination,
-    query,
-    scope,
-  };
-};
+}

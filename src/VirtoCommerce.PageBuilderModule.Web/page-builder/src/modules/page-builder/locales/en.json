@@ -5,6 +5,7 @@
     },
     "PAGES": {
       "LIST": {
+        "TITLE": "Pages list",
         "TOOLBAR": {
           "ADD": "Add",
           "REFRESH": "Refresh",
@@ -24,7 +25,9 @@
             "STATUS": "Status"
           },
           "FILTER": {
-            "STATUS": "Status"
+            "STATUS": "Status",
+            "APPLY": "Apply",
+            "RESET": "Reset"
           },
           "EMPTY": {
             "TITLE": "There are no content yet",

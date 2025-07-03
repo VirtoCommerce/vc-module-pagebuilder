@@ -1,20 +1,17 @@
 import { computed, Ref, ref } from "vue";
 import { useApiClient } from "@vc-shell/framework";
+import { PageBuilderPageClient } from "../../../../api_client/virtocommerce.pagebuildermodule";
 
-import {
-  PageBuilderPageClient,
-} from "../../../../api_client/virtocommerce.pagebuildermodule";
-
-interface IUserGroup {
+export interface IUserGroup {
   name: string;
 }
 
-interface IUserGroupsResult {
+export interface IUserGroupsResult {
   totalCount?: number;
   results?: IUserGroup[];
 }
 
-interface IUseUserGroups {
+export interface IUseUserGroups {
   readonly loading: Ref<boolean>;
   readonly types: Ref<IUserGroup[]>;
   getUserGroups(): Promise<IUserGroupsResult>;
@@ -31,7 +28,7 @@ export default (): IUseUserGroups => {
     const client = await getApiClient();
     try {
       const userGroups = await client.getUserGroups();
-      const result = userGroups.map(userGroup => ({ name: userGroup }));
+      const result = userGroups.map((userGroup) => ({ name: userGroup }));
       types.value = result;
       return {
         totalCount: types.value.length,

@@ -28,5 +28,4 @@
   <assemblyFile>VirtoCommerce.PageBuilderModule.Web.dll</assemblyFile>
   <moduleType>VirtoCommerce.PageBuilderModule.Web.Module, VirtoCommerce.PageBuilderModule.Web</moduleType>
   <useFullTypeNameInSwagger>false</useFullTypeNameInSwagger>
-  
 </module>
