@@ -1,55 +1,65 @@
 # Asset File
 
-описывает загруженный или прикрепленный в редакторе файл. фактически наследуется (inherits) от стандартного класса [File](https://developer.mozilla.org/en-US/docs/Web/API/File)
+The **Asset file** model in the Virto Commerce Page Builder represents a file that has been uploaded or attached using the visual editor. It is used in components such as:
 
-используется в контролах `ImagesComponent`, `FilesComponent` и `MarkdownComponent`.
+* [Images.](images.md)
+* [Files.](files.md)
+* [Markdown.](markdown.md)
 
-функция этого класса - быть моделью в запросах и ответах при сохранении файла.
+This model extends the standard JavaScript [File](https://developer.mozilla.org/en-US/docs/Web/API/File) object, adding extra fields for use in upload workflows and rendering.
 
-выбранные для загрузки файлы преобразуются к этой модели, а затем по очереди загружаются.
+The **AssetFile** object serves as the **data model** for file upload requests and responses. When a user selects files to upload, each file is converted into an **AssetFile** and uploaded sequentially.
 
+When uploading assets, each file is converted to an **AssetFile** and passed to the upload service, which is configured via the **settings.json** file.
+
+## Interface
+
+```ts
 export interface AssetFile extends File {
-    data?: any; // объект, описанные дополнительными свойства ми(из `descriptor.element`)
-    url?: string; // полный урл где файл хранится (todo: надо описать как на него можно повлиять)
-    previewUrl: string | null; // урл для превью (todo: на него можно повлиять)
-    assetName: string; // имя файла
+    data?: any;                // Optional metadata from the component's descriptor
+    url?: string;              // Full URL where the file is stored
+    previewUrl: string | null; // URL for previewing the file (e.g., image thumbnail)
+    assetName: string;         // Original or assigned name of the file
 }
-
-этот объект добавляется в контекст генерации запроса для сохранения файла на сервере
-
-примеры
-
-### default config for upload file (in settings.json)
-
-```json
-	...
-    "uploadAssetsRequest": {
-        "url": "/api/content/pages/{{location.params.storeId}}?folderUrl=/assets/pages&name={{**file.assetName**}}",
-        "method": "POST",
-        "form": {
-            "name": "uploadedFile",
-            "fileName": "{{**file.assetName**}}"
-        },
-        "response": {
-            "result": "$[0].url",
-            "isArray": false
-        }
-    },
-	...
 ```
 
-ожидается что ответ от такой загрузки будет содержать что-то такое
+
+## Example 
+
+```json title="settings.json"
+{
+  "uploadAssetsRequest": {
+    "url": "/api/content/pages/{{location.params.storeId}}?folderUrl=/assets/pages&name={{file.assetName}}",
+    "method": "POST",
+    "form": {
+      "name": "uploadedFile",
+      "fileName": "{{file.assetName}}"
+    },
+    "response": {
+      "result": "$[0].url",
+      "isArray": false
+    }
+  }
+}
+```
+
+**Expected response:**
+
+The server is expected to return a response in the following structure:
 
 ```json
 [
-	{
-		"url": "https://url.to.image",
-		...
-	}
+  {
+    "url": "https://url.to.image",
+    ...
+  }
 ]
 ```
 
-и этот ответ будет преобразован в 
+This response is then mapped to:
 
-`"https://url.to.image"`
+```ts
+"https://url.to.image"
+```
 
+which is assigned to the `url` field of the **AssetFile**.
