@@ -37,8 +37,8 @@ public class PageBuilderModuleRepository : DbContextRepositoryBase<PageBuilderMo
         }
 
         var groups = ids.Count == 1
-            ? await GroupedPageBuilderPages.Include(x => x.Pages).Where(x => x.Id == ids.First()).ToListAsync()
-            : await GroupedPageBuilderPages.Include(x => x.Pages).Where(x => ids.Contains(x.Id)).ToListAsync();
+            ? await GroupedPageBuilderPages.Where(x => x.Id == ids.First()).ToListAsync()
+            : await GroupedPageBuilderPages.Where(x => ids.Contains(x.Id)).ToListAsync();
 
         //if (groups.Count > 0)
         //{
