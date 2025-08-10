@@ -36,15 +36,17 @@ public class PageBuilderModuleRepository : DbContextRepositoryBase<PageBuilderMo
             return [];
         }
 
+        ids = ids.Where(x => x != "2f0813e2-ef57-4055-ad27-ceebeec44e14").ToArray();
+
         var groups = ids.Count == 1
             ? await GroupedPageBuilderPages.Where(x => x.Id == ids.First()).ToListAsync()
             : await GroupedPageBuilderPages.Where(x => ids.Contains(x.Id)).ToListAsync();
 
-        //if (groups.Count > 0)
-        //{
-        //    var groupIds = groups.Select(x => x.Id).ToArray();
-        //    await PageBuilderPages.Where(x => groupIds.Contains(x.GroupId)).LoadAsync();
-        //}
+        if (groups.Count > 0)
+        {
+            var groupIds = groups.Select(x => x.Id).ToArray();
+            await PageBuilderPages.Where(x => groupIds.Contains(x.GroupId)).LoadAsync();
+        }
 
         return groups;
     }
