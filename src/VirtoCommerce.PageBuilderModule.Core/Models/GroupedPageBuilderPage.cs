@@ -1,3 +1,4 @@
+using Newtonsoft.Json;
 using VirtoCommerce.Platform.Core.Common;
 using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 
@@ -25,6 +26,7 @@ public class GroupedPageBuilderPage : AuditableEntity, IHasStoreId, ICloneable
         }
     }
 
+    [JsonIgnore]
     public IList<PageBuilderPage> Pages { get; set; } = [];
 
     public string NewPageContent { get; set; }
@@ -46,7 +48,7 @@ public class GroupedPageBuilderPage : AuditableEntity, IHasStoreId, ICloneable
             var draft = Pages.FirstOrDefault(x => x.Status == Draft);
             return draft != null
                 ? draft.PageContent
-                : Pages.FirstOrDefault()?.PageContent;
+                : Pages.MaxBy(x => x.ModifiedDate)?.PageContent;
         }
     }
 
