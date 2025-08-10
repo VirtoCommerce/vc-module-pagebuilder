@@ -31,6 +31,7 @@ public class GroupedPageBuilderPage : AuditableEntity, IHasStoreId, ICloneable
 
     public string NewPageContent { get; set; }
 
+    [JsonIgnore]
     public string PageContent
     {
         get
