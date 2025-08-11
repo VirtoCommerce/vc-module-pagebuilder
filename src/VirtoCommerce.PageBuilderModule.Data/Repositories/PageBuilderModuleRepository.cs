@@ -36,7 +36,7 @@ public class PageBuilderModuleRepository : DbContextRepositoryBase<PageBuilderMo
             return [];
         }
 
-        ids = ids.Where(x => x != "2f0813e2-ef57-4055-ad27-ceebeec44e14").ToArray();
+        // ids = ids.Where(x => x != "2f0813e2-ef57-4055-ad27-ceebeec44e14").ToArray();
 
         var groups = ids.Count == 1
             ? await GroupedPageBuilderPages.Where(x => x.Id == ids.First()).ToListAsync()
