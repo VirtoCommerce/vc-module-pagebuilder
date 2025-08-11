@@ -1,4 +1,3 @@
-using Newtonsoft.Json;
 using VirtoCommerce.Platform.Core.Common;
 using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 
@@ -26,7 +25,6 @@ public class GroupedPageBuilderPage : AuditableEntity, IHasStoreId, ICloneable
         }
     }
 
-    [JsonIgnore]
     public IList<PageBuilderPage> Pages { get; set; } = [];
 
     public string NewPageContent { get; set; }
