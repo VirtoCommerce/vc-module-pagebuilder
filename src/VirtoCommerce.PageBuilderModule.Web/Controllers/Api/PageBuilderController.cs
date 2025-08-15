@@ -204,34 +204,42 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                     if (file.Content != null)
                     {
                         var groupedPage = await groupedPageService.GetByIdAsync(file.PageId);
-                        if (groupedPage != null)
+                        if (groupedPage == null)
                         {
-                            var page = file.Content.ToObject<PageModel>();
-                            var draftPage = groupedPage.Pages.FirstOrDefault(x => x.Status == Draft);
-
-                            if (draftPage == null)
+                            groupedPage = new GroupedPageBuilderPage
                             {
-                                draftPage = new PageBuilderPage
-                                {
-                                    Status = Draft,
-                                    GroupId = file.PageId,
-                                };
-                                groupedPage.Pages.Add(draftPage);
-                            }
-
-                            groupedPage.Name = draftPage.Name = page.Settings.Name ?? draftPage.Name;
-                            groupedPage.Permalink = draftPage.Permalink = page.Settings.Permalink ?? draftPage.Permalink;
-                            groupedPage.CultureName = draftPage.CultureName = page.Settings.CultureName ?? draftPage.CultureName;
-                            groupedPage.StoreId = draftPage.StoreId = page.Settings.StoreId ?? draftPage.StoreId;
-
-                            draftPage.PageContent = JsonConvert.SerializeObject(file.Content, new JsonSerializerSettings
-                            {
-                                Formatting = Formatting.Indented,
-                                ContractResolver = new CamelCasePropertyNamesContractResolver(),
-                            });
-
-                            await groupedPageService.SaveChangesAsync([groupedPage]);
+                                Id = file.PageId,
+                                GroupId = file.PageId,
+                                StoreId = file.Content["settings"]?["storeId"]?.ToString() ?? storeId,
+                                CultureName = file.Content["settings"]?["cultureName"]?.ToString(),
+                                Status = Draft,
+                            };
                         }
+                        var page = file.Content.ToObject<PageModel>();
+                        var draftPage = groupedPage.Pages.FirstOrDefault(x => x.Status == Draft);
+
+                        if (draftPage == null)
+                        {
+                            draftPage = new PageBuilderPage
+                            {
+                                Status = Draft,
+                                GroupId = file.PageId,
+                            };
+                            groupedPage.Pages.Add(draftPage);
+                        }
+
+                        groupedPage.Name = draftPage.Name = page.Settings.Name ?? draftPage.Name;
+                        groupedPage.Permalink = draftPage.Permalink = page.Settings.Permalink ?? draftPage.Permalink;
+                        groupedPage.CultureName = draftPage.CultureName = page.Settings.CultureName ?? draftPage.CultureName;
+                        groupedPage.StoreId = draftPage.StoreId = page.Settings.StoreId ?? draftPage.StoreId;
+
+                        draftPage.PageContent = JsonConvert.SerializeObject(file.Content, new JsonSerializerSettings
+                        {
+                            Formatting = Formatting.Indented,
+                            ContractResolver = new CamelCasePropertyNamesContractResolver(),
+                        });
+
+                        await groupedPageService.SaveChangesAsync([groupedPage]);
                     }
                 }
                 else
