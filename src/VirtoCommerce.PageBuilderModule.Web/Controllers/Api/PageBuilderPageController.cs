@@ -247,6 +247,25 @@ public class PageBuilderPageController : Controller
         return Ok();
     }
 
+    [HttpDelete]
+    [Authorize(ModuleConstants.Security.Permissions.Delete)]
+    [Route("grouped")]
+    [ProducesResponseType(typeof(void), StatusCodes.Status204NoContent)]
+    public async Task<ActionResult> DeleteGrouped([FromQuery] string id)
+    {
+        var groupedPages = await _groupedPageService.GetAsync([id]);
+
+        var authorizationResult = await _authorizationService.AuthorizeAsync(User, groupedPages, new PageBuilderAuthorizationRequirement());
+        if (!authorizationResult.Succeeded)
+        {
+            return Forbidden;
+        }
+
+        await _groupedPageService.DeleteAsync([id]);
+
+        return NoContent();
+    }
+
     [HttpGet]
     [Route("grouped/publish-status")]
     public async Task<ActionResult<FilePublishStatus>> PublishStatus([FromQuery] string id)
