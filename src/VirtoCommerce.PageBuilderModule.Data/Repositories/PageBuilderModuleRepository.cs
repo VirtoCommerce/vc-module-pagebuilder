@@ -43,7 +43,7 @@ public class PageBuilderModuleRepository : DbContextRepositoryBase<PageBuilderMo
         if (groups.Count > 0)
         {
             var groupIds = groups.Select(x => x.Id).ToArray();
-            await PageBuilderPages.Where(x => groupIds.Contains(x.GroupId)).LoadAsync();
+            PageBuilderPages.Where(x => groupIds.Contains(x.GroupId)).Load();
         }
 
         return groups;

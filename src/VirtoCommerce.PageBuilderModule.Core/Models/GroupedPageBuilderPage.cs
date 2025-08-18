@@ -46,7 +46,7 @@ public class GroupedPageBuilderPage : AuditableEntity, IHasStoreId, ICloneable
             var draft = Pages.FirstOrDefault(x => x.Status == Draft);
             return draft != null
                 ? draft.PageContent
-                : Pages.FirstOrDefault()?.PageContent;
+                : Pages.MaxBy(x => x.ModifiedDate)?.PageContent;
         }
     }
 

@@ -13,6 +13,7 @@ using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Data.Authorization;
+using VirtoCommerce.Pages.Core.Search;
 using VirtoCommerce.Platform.Core;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Settings;
@@ -33,6 +34,8 @@ public class PageBuilderPageController : Controller
     private readonly IStoreService _storeService;
     private readonly IAuthorizationService _authorizationService;
 
+    private readonly IPageDocumentSearchService _pageDocumentSearchService;
+
     public PageBuilderPageController(
         IPageBuilderPageService crudService,
         IPageBuilderPageSearchService searchService,
@@ -40,7 +43,8 @@ public class PageBuilderPageController : Controller
         IGroupedPageService groupedPageService,
         IGroupedPageSearchService groupedPageSearchService,
         IStoreService storeService,
-        IAuthorizationService authorizationService)
+        IAuthorizationService authorizationService,
+        IPageDocumentSearchService pageDocumentSearchService)
     {
         _crudService = crudService;
         _searchService = searchService;
@@ -49,6 +53,7 @@ public class PageBuilderPageController : Controller
         _groupedPageSearchService = groupedPageSearchService;
         _storeService = storeService;
         _authorizationService = authorizationService;
+        _pageDocumentSearchService = pageDocumentSearchService;
     }
 
     [HttpPost("grouped/search")]
@@ -245,6 +250,41 @@ public class PageBuilderPageController : Controller
         await _crudService.DeleteAsync(pagesToDelete);
 
         return Ok();
+    }
+
+    [HttpDelete]
+    [Authorize(ModuleConstants.Security.Permissions.Delete)]
+    [Route("grouped")]
+    public async Task<ActionResult> DeleteGrouped([FromQuery] string id)
+    {
+        //var groupedPages = await _groupedPageService.GetAsync([id]);
+
+        //var authorizationResult = await _authorizationService.AuthorizeAsync(User, groupedPages, new PageBuilderAuthorizationRequirement());
+        //if (!authorizationResult.Succeeded)
+        //{
+        //    return Forbidden;
+        //}
+
+        var pageDeleted = false;
+        var indexDeleted = false;
+
+        try
+        {
+            await _groupedPageService.DeleteAsync([id]);
+            pageDeleted = true;
+        }
+        catch { }
+
+        try
+        {
+            await _pageDocumentSearchService.RemoveDocuments([id]);
+            indexDeleted = true;
+        }
+        catch
+        {
+        }
+
+        return Ok(new { pageDeleted, indexDeleted });
     }
 
     [HttpGet]
