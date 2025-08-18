@@ -1,16 +1,20 @@
 # Color Control Descriptor
 
-The [color picker](https://ngx-color.vercel.app/) is used for this editor. The [npm-package](https://www.npmjs.com/package/ngx-color) is available too.
+This control uses the [ngx-color](https://ngx-color.vercel.app/) color picker. The [npm package](https://www.npmjs.com/package/ngx-color) is also available.
 
-| Property | Type | Description |
-| - | - | - |
-| `colorMode` | `color` \| `presets` | Sketch picker is used for `color` mode. Twitter picker is used for `presets`. |
-| `disableAlpha` | `boolean` | Remove alpha slider and options from picker. |
-| `clearValue` | `string` | Value for clear button. |
-| `inline` | `boolean` | Display picker inline. |
-| `presets` | `string[]` | List of values for presets mode. |
+| Property       | Type                 | Description                                                                   |
+| -------------- | -------------------- | ----------------------------------------------------------------------------- |
+| `colorMode`    | color <br> presets   | Use the Sketch picker for `color` mode, and the Twitter picker for `presets`. |
+| `disableAlpha` | boolean            | Removes the alpha (transparency) slider and options.                          |
+| `clearValue`   | string             | Text shown for the clear/reset button.                                        |
+| `inline`       | boolean            | Displays the color picker inline instead of as a popup.                       |
+| `presets`      | string[]           | List of predefined color values used in `presets` mode.                       |
 
-## Example:
+
+## Examples
+### Color picker in HSLA format
+
+<div class="grid" markdown>
 
 ```json
 ...
@@ -25,10 +29,43 @@ The [color picker](https://ngx-color.vercel.app/) is used for this editor. The [
     ]
 ...
 ```
-<!--
-Result (todo: renew images)
 
-![Color control example](images/color-control.png "Color control example")
+![Color picker in HSLA format](media/color-picker-popup.png){: style="display: block; margin: 0 auto;" }
 
-![Color control example in open state](images/color-control-opened.png "Color control example in open state")
--->
+
+</div>
+
+
+### Color picker displayed inline
+
+<div class="grid" markdown>
+
+```json
+        "settings": [
+            {
+                "id": "headerColor",
+                "label": "Header color",
+                "type": "color",
+                "inline": "true"
+            },
+            ...
+        ]
+    ```
+
+...
+```
+
+![Inline color picker](media/color-picker-inline.png){: style="display: block; margin: 0 auto;" }
+
+
+</div>
+
+
+<br>
+<br>
+********
+
+<div style="display: flex; justify-content: space-between;">
+    <a href="../collection">← Collection </a>
+    <a href="../files">Files →</a>
+</div>

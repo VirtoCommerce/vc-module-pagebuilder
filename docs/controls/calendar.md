@@ -1,16 +1,17 @@
 # Calendar Control Descriptor
 
-[datetime-picker](https://h2qutc.github.io/angular-material-components) is used for this control.
+This control allows users to select dates, times, or both, using a configurable date/time picker based on [datetime-picker](https://h2qutc.github.io/angular-material-components).
 
-| Property | Type | Description |
-| - | - | - |
-| `mode` | `date` \| `datetime` \| `time` \| `month` \| `year` | Mode of the calendar |
-| `minDate` | `Date` | The minimum available date |
-| `maxDate` | `Date` | The maximum available date |
-| `inline` | `boolean` | Calendar will be displayed inline, not popup. |
+| Property  | Type                                                | Description                                                                 |
+| --------- | --------------------------------------------------- | --------------------------------------------------------------------------- |
+| `mode`    | date <br> datetime <br> time <br> month <br> year   | Defines the mode of the calendar: full datetime, date only, time only, etc. |
+| `minDate` | date                                                | The minimum selectable date.                                                |
+| `maxDate` | date                                                | The maximum selectable date.                                                |
+| `inline`  | boolean                                             | Displays the calendar inline instead of as a popup.                         |
 
 
-## Example:
+
+## Example
 
 ```json
 ...
@@ -21,15 +22,22 @@
             "type": "calendar",
             "placeholder": "Please choose a date",
             "hint": "You can select date in calendar",
-            "info": "Calendar control returns a Javascript Date object"
+            "info": "This control returns a JavaScript Date object"
         },
         ...
     ]
 ...
 ```
-<!--
-Result (todo: renew images)
 
-![Calendar control example](images/calendar-control.png "Calendar control example")
-![Calendar control example in open state](images/calendar-control-opened.png "Calendar control example in open state")
--->
+Some of the available calendar modes are as follows:
+
+![Calendar modes](media/calendar-modes.png)
+
+<br>
+<br>
+********
+
+<div style="display: flex; justify-content: space-between;">
+    <a href="../component-context">← Component context </a>
+    <a href="../checkbox">Checkbox →</a>
+</div>

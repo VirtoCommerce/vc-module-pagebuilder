@@ -1,15 +1,20 @@
 # Collection Control Descriptor
 
-|Property|Type|Description|
-| - | - | - |
-| `addText` | `string` | Add element button text. Default is `Add item` |
-| `displayField` | `string` | Property name that is used to display collection item in list. |
-| `skipRemoveConfirmation` | `boolean` | Ask user to confirm file removing. |
-| `removeMessage` | `string` | Message for the file removing confirmation. |
-| `elementDescriptor` | `string` | Name of object in `objects` folder. |
-| `element` | `ControlDescriptor[]` | Descriptors for collection item. |
+This control allows the user to manage a list of repeatable items, each defined by its own set of nested fields.
+
+| Property                 | Type                  | Description                                                          |
+| ------------------------ | --------------------- | -------------------------------------------------------------------- |
+| `addText`                | string                | Text for the “Add item” button. Default is `Add item`.               |
+| `displayField`           | string                | Property name used to display a collection item in the list.         |
+| `skipRemoveConfirmation` | boolean               | If **true**, skips the confirmation dialog when removing an item.      |
+| `removeMessage`          | string                | Custom message for the item removal confirmation dialog.             |
+| `elementDescriptor`      | string                | Name of the object in the `objects` folder to be used as a template. |
+| `element`                | ControlDescriptor[] | Describes the structure of each collection item.                     |
 
 ## Example
+
+
+<div class="grid" markdown>
 
 ```json
 ...
@@ -34,18 +39,19 @@
                 {
                     "id": "fieldName",
                     "label": "Name",
-                    "type": "string"
+                    "type": string  
                 },
                 {
                     "id": "labelText",
                     "label": "Label",
-                    "type": "string"
+                    "type": string  
                 }
             ],
             "default": [
                 {
                     "fieldType": "text",
-                    "fieldName": "fullname", "labelText": "Full name"
+                    "fieldName": "fullname",
+                    "labelText": "Full name"
                 },
                 {
                     "fieldType": "text",
@@ -63,13 +69,18 @@
     ]
 ...
 ```
-<!--
-Result (todo: renew images)
 
-![List control example](images/list-control.png "List control example")
+![List control](media/list-control.png){: style="display: block; margin: 0 auto;" }
 
-Edit element mode
 
-![List control edit mode example](images/list-control-edit.png "List control edit mode example")
+</div>
 
--->
+
+<br>
+<br>
+********
+
+<div style="display: flex; justify-content: space-between;">
+    <a href="../checkbox">← Checkbox </a>
+    <a href="../color">Color →</a>
+</div>

@@ -1,15 +1,17 @@
 # Object Control Descriptor
 
-| Property | Type | Description |
-| - | - | - |
-| `title` | `string` | Object title |
-| `displayField` | `string` | Property name that is used to display object in collapsed state |
-| `element` | `ControlDescriptor[]` | List of descriptors that define object editor. |
-| `elementDescriptor` | `string` | Name of object in `objects` folder. |
+This control allows you to edit complex objects composed of multiple fields. You can define the object editor either inline using the `element` property or reference an external descriptor file with `elementDescriptor`. The control supports showing a collapsed summary by specifying which property to display.
+
+| Property            | Type                 | Description                                                         |
+| ------------------- | -------------------- | ------------------------------------------------------------------- |
+| `title`             | string               | Title of the object editor.                                         |
+| `displayField`      | string               | Name of the property used to display the object when collapsed.     |
+| `element`           | ControlDescriptor\[] | List of descriptors that define the object’s fields inline.         |
+| `elementDescriptor` | string               | Name of the object descriptor file located in the `objects` folder. |
 
 ## Examples
 
-### Inline settings
+### Inline settings schema
 
 ```json
 ...
@@ -49,22 +51,7 @@
 ...
 ```
 
-<!--
-Result (todo: renew images)
-
-![Collapsed object control example](images/object-control-closed.png "Collapsed object control example")
-
-Result (todo: renew images)
-
-![Expanded object control example](images/object-control-opened.png "Expanded object control example")
-
-Result (todo: renew images)
-
-![Filled object control example](images/object-control-filled.png "Filled object control example")
-
-Result in target section.
-
--->
+**Inline settings result**:
 
 ```json
 {
@@ -76,9 +63,9 @@ Result in target section.
 }
 ```
 
-### Example with elementDescriptor
+### External elementDescriptor schema
 
-File `buttonEditor` is placed in `theme/config/objects/` folder
+You can also define the object editor separately in a file (e.g., `buttonEditor.json`) inside the `theme/config/objects/` folder:
 
 ```json
 {
@@ -107,7 +94,8 @@ File `buttonEditor` is placed in `theme/config/objects/` folder
     ]
 }
 ```
-Now you can use this object in different sections.
+
+You can reference this descriptor from your main settings:
 
 ```json
 {
@@ -125,3 +113,13 @@ Now you can use this object in different sections.
     ]
 }
 ```
+
+
+<br>
+<br>
+********
+
+<div style="display: flex; justify-content: space-between;">
+    <a href="../number">← Number </a>
+    <a href="../paragraph">Paragraph →</a>
+</div>

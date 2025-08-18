@@ -1,8 +1,10 @@
 # Checkbox Control Descriptor
 
-No additional settings
+This control represents a simple toggle (checked or unchecked). No additional configuration options are required.
 
-## Пример:
+## Example
+
+<div class="grid" markdown>
 
 ```json
 ...
@@ -11,14 +13,25 @@ No additional settings
             "id": "displayHeader",
             "label": "Display header",
             "type": "checkbox",
+            "info": "You can display additional info",
             "default": true
         },
         ...
     ]
 ...
 ```
-<!--
-Result (todo: renew images)
+ 
 
-![Checkbox control example](images/checkbox-control.png "Checkbox control example")
--->
+![Checkbox control example](media/checkbox-result.png){: style="display: block; margin: 0 auto;" }
+
+</div>
+
+
+<br>
+<br>
+********
+
+<div style="display: flex; justify-content: space-between;">
+    <a href="../calendar">← Calendar </a>
+    <a href="../collection">Collection →</a>
+</div>
