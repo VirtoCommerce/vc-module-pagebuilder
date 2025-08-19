@@ -257,13 +257,13 @@ public class PageBuilderPageController : Controller
     [Route("grouped")]
     public async Task<ActionResult> DeleteGrouped([FromQuery] string id)
     {
-        //var groupedPages = await _groupedPageService.GetAsync([id]);
+        var groupedPages = await _groupedPageService.GetAsync([id]);
 
-        //var authorizationResult = await _authorizationService.AuthorizeAsync(User, groupedPages, new PageBuilderAuthorizationRequirement());
-        //if (!authorizationResult.Succeeded)
-        //{
-        //    return Forbidden;
-        //}
+        var authorizationResult = await _authorizationService.AuthorizeAsync(User, groupedPages, new PageBuilderAuthorizationRequirement());
+        if (!authorizationResult.Succeeded)
+        {
+            return Forbidden;
+        }
 
         var pageDeleted = false;
         var indexDeleted = false;
