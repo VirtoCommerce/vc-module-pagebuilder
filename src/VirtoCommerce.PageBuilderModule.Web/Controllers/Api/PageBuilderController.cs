@@ -233,11 +233,11 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                         groupedPage.CultureName = draftPage.CultureName = page.Settings.CultureName ?? draftPage.CultureName;
                         groupedPage.StoreId = draftPage.StoreId = page.Settings.StoreId ?? draftPage.StoreId;
 
-                        draftPage.PageContent = JsonConvert.SerializeObject(file.Content, new JsonSerializerSettings
-                        {
-                            Formatting = Formatting.Indented,
-                            ContractResolver = new CamelCasePropertyNamesContractResolver(),
-                        });
+                        //draftPage.PageContent = JsonConvert.SerializeObject(file.Content, new JsonSerializerSettings
+                        //{
+                        //    Formatting = Formatting.Indented,
+                        //    ContractResolver = new CamelCasePropertyNamesContractResolver(),
+                        //});
 
                         await groupedPageService.SaveChangesAsync([groupedPage]);
                     }

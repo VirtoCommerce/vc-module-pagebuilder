@@ -693,6 +693,54 @@ export class PageBuilderPageClient extends AuthApiBase {
     }
 
     /**
+     * @param id (optional) 
+     * @return OK
+     */
+    deleteGrouped(id?: string | undefined): Promise<void> {
+        let url_ = this.baseUrl + "/api/page-builder-pages/grouped?";
+        if (id === null)
+            throw new Error("The parameter 'id' cannot be null.");
+        else if (id !== undefined)
+            url_ += "id=" + encodeURIComponent("" + id) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "DELETE",
+            headers: {
+            }
+        };
+
+        return this.transformOptions(options_).then(transformedOptions_ => {
+            return this.http.fetch(url_, transformedOptions_);
+        }).then((_response: Response) => {
+            return this.processDeleteGrouped(_response);
+        });
+    }
+
+    protected processDeleteGrouped(response: Response): Promise<void> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            return;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            return throwException("Unauthorized", status, _responseText, _headers);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            return throwException("Forbidden", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * @param ids (optional) 
      * @return No Content
      */
@@ -1008,8 +1056,6 @@ export class GroupedPageBuilderPage implements IGroupedPageBuilderPage {
     status?: string | undefined;
     readonly hasChanges?: boolean;
     pages?: PageBuilderPage[] | undefined;
-    newPageContent?: string | undefined;
-    readonly pageContent?: string | undefined;
     createdDate?: Date;
     modifiedDate?: Date | undefined;
     createdBy?: string | undefined;
@@ -1039,8 +1085,6 @@ export class GroupedPageBuilderPage implements IGroupedPageBuilderPage {
                 for (let item of _data["pages"])
                     this.pages!.push(PageBuilderPage.fromJS(item));
             }
-            this.newPageContent = _data["newPageContent"];
-            (<any>this).pageContent = _data["pageContent"];
             this.createdDate = _data["createdDate"] ? new Date(_data["createdDate"].toString()) : <any>undefined;
             this.modifiedDate = _data["modifiedDate"] ? new Date(_data["modifiedDate"].toString()) : <any>undefined;
             this.createdBy = _data["createdBy"];
@@ -1070,8 +1114,6 @@ export class GroupedPageBuilderPage implements IGroupedPageBuilderPage {
             for (let item of this.pages)
                 data["pages"].push(item.toJSON());
         }
-        data["newPageContent"] = this.newPageContent;
-        data["pageContent"] = this.pageContent;
         data["createdDate"] = this.createdDate ? this.createdDate.toISOString() : <any>undefined;
         data["modifiedDate"] = this.modifiedDate ? this.modifiedDate.toISOString() : <any>undefined;
         data["createdBy"] = this.createdBy;
@@ -1090,8 +1132,6 @@ export interface IGroupedPageBuilderPage {
     status?: string | undefined;
     hasChanges?: boolean;
     pages?: PageBuilderPage[] | undefined;
-    newPageContent?: string | undefined;
-    pageContent?: string | undefined;
     createdDate?: Date;
     modifiedDate?: Date | undefined;
     createdBy?: string | undefined;
@@ -1154,7 +1194,6 @@ export class PageBuilderPage implements IPageBuilderPage {
     name?: string | undefined;
     permalink?: string | undefined;
     status?: string | undefined;
-    pageContent?: string | undefined;
     createdDate?: Date;
     modifiedDate?: Date | undefined;
     createdBy?: string | undefined;
@@ -1178,7 +1217,6 @@ export class PageBuilderPage implements IPageBuilderPage {
             this.name = _data["name"];
             this.permalink = _data["permalink"];
             this.status = _data["status"];
-            this.pageContent = _data["pageContent"];
             this.createdDate = _data["createdDate"] ? new Date(_data["createdDate"].toString()) : <any>undefined;
             this.modifiedDate = _data["modifiedDate"] ? new Date(_data["modifiedDate"].toString()) : <any>undefined;
             this.createdBy = _data["createdBy"];
@@ -1202,7 +1240,6 @@ export class PageBuilderPage implements IPageBuilderPage {
         data["name"] = this.name;
         data["permalink"] = this.permalink;
         data["status"] = this.status;
-        data["pageContent"] = this.pageContent;
         data["createdDate"] = this.createdDate ? this.createdDate.toISOString() : <any>undefined;
         data["modifiedDate"] = this.modifiedDate ? this.modifiedDate.toISOString() : <any>undefined;
         data["createdBy"] = this.createdBy;
@@ -1219,7 +1256,6 @@ export interface IPageBuilderPage {
     name?: string | undefined;
     permalink?: string | undefined;
     status?: string | undefined;
-    pageContent?: string | undefined;
     createdDate?: Date;
     modifiedDate?: Date | undefined;
     createdBy?: string | undefined;

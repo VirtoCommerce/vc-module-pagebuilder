@@ -5,5 +5,7 @@ namespace VirtoCommerce.PageBuilderModule.Core.Services
 {
     public interface IGroupedPageService : ICrudService<GroupedPageBuilderPage>
     {
+        Task LoadContentToStreamAsync(string pageId, Stream stream, CancellationToken cancellationToken = default);
+        Task SaveStreamAsContentAsync(string pageId, Stream stream, CancellationToken cancellationToken = default);
     }
 }

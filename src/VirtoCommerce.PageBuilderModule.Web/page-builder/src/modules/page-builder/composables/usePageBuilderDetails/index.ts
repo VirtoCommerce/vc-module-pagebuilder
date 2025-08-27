@@ -17,8 +17,8 @@ interface ExtendedGroupedPageBuilderPage extends IGroupedPageBuilderPage {
   userGroups?: string[];
   startDate?: Date;
   endDate?: Date;
-  pageContent?: string;
-  newPageContent?: string;
+  // pageContent?: string;
+  // newPageContent?: string;
 }
 
 export interface IUsePageBuilderDetails {
@@ -60,13 +60,13 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
       const result = (await apiClient.getGrouped(options.id)) as ExtendedGroupedPageBuilderPage;
 
       try {
-        if (result.pageContent) {
-          const model = JSON.parse(result.pageContent);
-          result.visibility = model.settings.visibility;
-          result.userGroups = model.settings.userGroups?.split(",").filter((x: string) => !!x) || [];
-          result.startDate = model.settings.startDate;
-          result.endDate = model.settings.endDate;
-        }
+        // if (result.pageContent) {
+        //   const model = JSON.parse(result.pageContent);
+        //   result.visibility = model.settings.visibility;
+        //   result.userGroups = model.settings.userGroups?.split(",").filter((x: string) => !!x) || [];
+        //   result.startDate = model.settings.startDate;
+        //   result.endDate = model.settings.endDate;
+        // }
       } catch (e) {
         console.error(e);
       }
@@ -81,20 +81,20 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
   const { action: savePage, loading: savingPage } = useAsync(async (status?: string) => {
     const apiClient = await getApiClient();
     const page = currentValue.value as ExtendedGroupedPageBuilderPage;
-    const pageContent = page.pageContent ? JSON.parse(page.pageContent) : { settings: {}, content: [] };
+    // const pageContent = page.pageContent ? JSON.parse(page.pageContent) : { settings: {}, content: [] };
 
-    const newSettings = {
-      visibility: page.visibility,
-      userGroups: page.userGroups?.filter((x) => !!x).join(","),
-      cultureName: page.cultureName,
-      startDate: page.startDate,
-      endDate: page.endDate,
-      permalink: page.permalink,
-      name: page.name,
-    };
+    // const newSettings = {
+    //   visibility: page.visibility,
+    //   userGroups: page.userGroups?.filter((x) => !!x).join(","),
+    //   cultureName: page.cultureName,
+    //   startDate: page.startDate,
+    //   endDate: page.endDate,
+    //   permalink: page.permalink,
+    //   name: page.name,
+    // };
 
-    pageContent.settings = { ...pageContent.settings, ...newSettings };
-    page.newPageContent = JSON.stringify(pageContent);
+    // pageContent.settings = { ...pageContent.settings, ...newSettings };
+    // page.newPageContent = JSON.stringify(pageContent);
 
     let result: IGroupedPageBuilderPage;
 

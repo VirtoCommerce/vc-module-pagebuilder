@@ -1,3 +1,4 @@
+using System.Text;
 using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
@@ -13,12 +14,18 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
 {
     public class GroupedPageService : CrudService<GroupedPageBuilderPage, GroupedPageBuilderPageEntity, GroupedPageBuilderPageChangingEvent, GroupedPageBuilderPageChangedEvent>, IGroupedPageService
     {
+        private readonly Func<IPageBuilderModuleRepository> _repositoryFactory;
+        private readonly Func<IContentStreamRepository> _contentStreamRepositoryFactory;
+
         public GroupedPageService(
             Func<IPageBuilderModuleRepository> repositoryFactory,
+            Func<IContentStreamRepository> contentStreamRepositoryFactory,
             IPlatformMemoryCache platformMemoryCache,
             IEventPublisher eventPublisher)
             : base(repositoryFactory, platformMemoryCache, eventPublisher)
         {
+            _repositoryFactory = repositoryFactory;
+            _contentStreamRepositoryFactory = contentStreamRepositoryFactory;
         }
 
         protected override async Task BeforeSaveChanges(IList<GroupedPageBuilderPage> models)
@@ -39,6 +46,22 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
         {
             var result = await ((IPageBuilderModuleRepository)repository).GetGroupedPageBuilderPagesByIdsAsync(ids, responseGroup);
             return result;
+        }
+
+        public async Task LoadContentToStreamAsync(string pageId, Stream stream,
+            CancellationToken cancellationToken = default)
+        {
+            var repository = _contentStreamRepositoryFactory();
+            await using var writer = new StreamWriter(stream, Encoding.UTF8, bufferSize: 8192, leaveOpen: true);
+            await repository.LoadBinaryAsync(pageId, writer, cancellationToken);
+        }
+
+        public async Task SaveStreamAsContentAsync(string pageId, Stream stream,
+            CancellationToken cancellationToken = default)
+        {
+            using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, leaveOpen: false);
+            var repository = _contentStreamRepositoryFactory();
+            await repository.SaveBinaryAsync(pageId, reader, cancellationToken);
         }
     }
 }

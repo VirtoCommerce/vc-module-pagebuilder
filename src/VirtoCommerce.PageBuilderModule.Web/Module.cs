@@ -37,9 +37,9 @@ namespace VirtoCommerce.PageBuilderModule.Web
 
         public void Initialize(IServiceCollection serviceCollection)
         {
+            var databaseProvider = Configuration.GetValue("DatabaseProvider", "SqlServer");
             serviceCollection.AddDbContext<PageBuilderModuleDbContext>(options =>
             {
-                var databaseProvider = Configuration.GetValue("DatabaseProvider", "SqlServer");
                 var connectionString = Configuration.GetConnectionString(ModuleInfo.Id) ?? Configuration.GetConnectionString("VirtoCommerce");
 
                 switch (databaseProvider)
@@ -78,6 +78,17 @@ namespace VirtoCommerce.PageBuilderModule.Web
             {
                 serviceCollection.AddTransient<PageBuilderContentItemBuilder>();
             }
+
+            serviceCollection.AddSingleton<Func<IContentStreamRepository>>(provider => () =>
+            {
+                var db = provider.CreateScope().ServiceProvider.GetRequiredService<PageBuilderModuleDbContext>();
+                return databaseProvider switch
+                {
+                    "MySql" => new MySqlContentStreamRepository(db),
+                    "PostgreSql" => new PostgreSqlContentStreamRepository(db),
+                    _ => new SqlServerContentStreamRepository(db)
+                };
+            });
         }
 
         public void PostInitialize(IApplicationBuilder appBuilder)

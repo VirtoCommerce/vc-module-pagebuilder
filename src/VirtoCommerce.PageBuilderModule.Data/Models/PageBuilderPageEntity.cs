@@ -2,18 +2,19 @@ using System.ComponentModel.DataAnnotations;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Domain;
+using static VirtoCommerce.Platform.Data.Infrastructure.DbContextBase;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Models;
 
 public class PageBuilderPageEntity : AuditableEntity, IDataEntity<PageBuilderPageEntity, PageBuilderPage>
 {
-    [StringLength(128)]
+    [StringLength(IdLength)]
     public string GroupId { get; set; }
 
-    [StringLength(128)]
+    [StringLength(IdLength)]
     public string StoreId { get; set; }
 
-    [StringLength(128)]
+    [StringLength(CultureNameLength)]
     public string CultureName { get; set; }
 
     [StringLength(1024)]
@@ -25,7 +26,8 @@ public class PageBuilderPageEntity : AuditableEntity, IDataEntity<PageBuilderPag
     [StringLength(128)]
     public string Status { get; set; } // Draft | Published | Archived
 
-    public string PageContent { get; set; }
+    // public string PageContent { get; set; }
+    public virtual PageBuilderContentEntity Content { get; set; }
 
     public GroupedPageBuilderPageEntity Group { get; set; }
 
@@ -43,7 +45,7 @@ public class PageBuilderPageEntity : AuditableEntity, IDataEntity<PageBuilderPag
         model.Name = Name;
         model.Permalink = Permalink;
         model.Status = Status;
-        model.PageContent = PageContent;
+        //model.PageContent = PageContent;
 
         return model;
     }
@@ -64,7 +66,7 @@ public class PageBuilderPageEntity : AuditableEntity, IDataEntity<PageBuilderPag
         Name = model.Name;
         Permalink = model.Permalink;
         Status = model.Status;
-        PageContent = model.PageContent;
+        //PageContent = model.PageContent;
 
         return this;
     }
@@ -77,6 +79,6 @@ public class PageBuilderPageEntity : AuditableEntity, IDataEntity<PageBuilderPag
         target.Name = Name;
         target.Permalink = Permalink;
         target.Status = Status;
-        target.PageContent = PageContent;
+        //target.PageContent = PageContent;
     }
 }

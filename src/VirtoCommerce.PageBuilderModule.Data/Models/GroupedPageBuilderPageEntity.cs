@@ -3,15 +3,16 @@ using System.ComponentModel.DataAnnotations;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Domain;
+using static VirtoCommerce.Platform.Data.Infrastructure.DbContextBase;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Models
 {
     public class GroupedPageBuilderPageEntity : AuditableEntity, IDataEntity<GroupedPageBuilderPageEntity, GroupedPageBuilderPage>
     {
-        [StringLength(128)]
+        [StringLength(IdLength)]
         public string StoreId { get; set; }
 
-        [StringLength(128)]
+        [StringLength(CultureNameLength)]
         public string CultureName { get; set; }
 
         [StringLength(1024)]

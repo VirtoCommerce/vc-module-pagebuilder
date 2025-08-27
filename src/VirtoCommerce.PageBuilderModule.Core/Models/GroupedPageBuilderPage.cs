@@ -27,28 +27,28 @@ public class GroupedPageBuilderPage : AuditableEntity, IHasStoreId, ICloneable
 
     public IList<PageBuilderPage> Pages { get; set; } = [];
 
-    public string NewPageContent { get; set; }
+    //public string NewPageContent { get; set; }
 
-    public string PageContent
-    {
-        get
-        {
-            if (Pages.IsNullOrEmpty())
-            {
-                return null;
-            }
+    //public string PageContent
+    //{
+    //    get
+    //    {
+    //        if (Pages.IsNullOrEmpty())
+    //        {
+    //            return null;
+    //        }
 
-            if (Pages.Count == 1)
-            {
-                return Pages[0].PageContent;
-            }
+    //        if (Pages.Count == 1)
+    //        {
+    //            return Pages[0].PageContent;
+    //        }
 
-            var draft = Pages.FirstOrDefault(x => x.Status == Draft);
-            return draft != null
-                ? draft.PageContent
-                : Pages.MaxBy(x => x.ModifiedDate)?.PageContent;
-        }
-    }
+    //        var draft = Pages.FirstOrDefault(x => x.Status == Draft);
+    //        return draft != null
+    //            ? draft.PageContent
+    //            : Pages.MaxBy(x => x.ModifiedDate)?.PageContent;
+    //    }
+    //}
 
     public object Clone()
     {

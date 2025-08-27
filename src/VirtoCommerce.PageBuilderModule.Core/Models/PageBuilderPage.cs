@@ -16,7 +16,7 @@ public class PageBuilderPage : AuditableEntity, IHasStoreId, ICloneable
 
     public string Status { get; set; } // Draft | Published | Archived
 
-    public string PageContent { get; set; }
+    //public string PageContent { get; set; }
 
     public object Clone()
     {

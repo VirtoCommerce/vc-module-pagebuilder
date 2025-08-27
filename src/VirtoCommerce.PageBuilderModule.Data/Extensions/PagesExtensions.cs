@@ -41,9 +41,9 @@ static class PagesExtensions
 
         pageDocument.Source = "page-builder";
         pageDocument.MimeType = "application/json";
-        pageDocument.Content = page.PageContent;
+        //pageDocument.Content = page.PageContent;
         pageDocument.Title = page.Name; // may be overridden by settings
-        GetDataFromSettings(page.PageContent, pageDocument);
+        //GetDataFromSettings(page.PageContent, pageDocument);
         return pageDocument;
     }
 

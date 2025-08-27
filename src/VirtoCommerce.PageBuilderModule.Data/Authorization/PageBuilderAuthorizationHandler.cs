@@ -7,15 +7,9 @@ using VirtoCommerce.Platform.Core.Security;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Authorization
 {
-    public sealed class PageBuilderAuthorizationHandler : AuthorizationHandler<PageBuilderAuthorizationRequirement>
+    public sealed class PageBuilderAuthorizationHandler(Func<UserManager<ApplicationUser>> userManagerFactory)
+        : AuthorizationHandler<PageBuilderAuthorizationRequirement>
     {
-        private readonly Func<UserManager<ApplicationUser>> _userManagerFactory;
-
-        public PageBuilderAuthorizationHandler(Func<UserManager<ApplicationUser>> userManagerFactory)
-        {
-            _userManagerFactory = userManagerFactory;
-        }
-
         protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, PageBuilderAuthorizationRequirement requirement)
         {
             var result = context.User.IsInRole(PlatformConstants.Security.SystemRoles.Administrator);
@@ -31,10 +25,10 @@ namespace VirtoCommerce.PageBuilderModule.Data.Authorization
                 switch (context.Resource)
                 {
                     case IHasStoreId hasStoreId:
-                        result = hasStoreId.StoreId.EqualsInvariant(user.StoreId);
+                        result = hasStoreId.StoreId.EqualsIgnoreCase(user?.StoreId);
                         break;
                     case IEnumerable<IHasStoreId> hasStoreIds:
-                        result = hasStoreIds.All(x => x.StoreId.EqualsInvariant(user.StoreId));
+                        result = hasStoreIds.All(x => x.StoreId.EqualsIgnoreCase(user?.StoreId));
                         break;
                 }
             }
@@ -53,7 +47,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Authorization
         {
             var userId = context.User.GetUserId();
 
-            using var userManager = _userManagerFactory();
+            using var userManager = userManagerFactory();
             var user = await userManager.FindByIdAsync(userId);
             return user;
         }

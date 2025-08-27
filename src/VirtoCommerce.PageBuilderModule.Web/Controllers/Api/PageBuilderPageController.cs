@@ -1,13 +1,11 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
 using VirtoCommerce.ContentModule.Core.Model;
 using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Models;
@@ -122,7 +120,7 @@ public class PageBuilderPageController : Controller
             }
 
             // update draft and grouped page
-            draftPage.PageContent = model.NewPageContent;
+            //draftPage.PageContent = model.NewPageContent;
             groupedPage.Name = draftPage.Name = model.Name;
             groupedPage.Permalink = draftPage.Permalink = model.Permalink;
             groupedPage.CultureName = draftPage.CultureName = model.CultureName;
@@ -161,12 +159,12 @@ public class PageBuilderPageController : Controller
             StoreId = model.StoreId,
             CultureName = model.CultureName,
             Permalink = model.Permalink,
-            PageContent = model.NewPageContent.EmptyToNull()
-                          ?? JsonConvert.SerializeObject(new { settings = model, content = Array.Empty<string>() }, new JsonSerializerSettings
-                          {
-                              Formatting = Formatting.Indented,
-                              ContractResolver = new CamelCasePropertyNamesContractResolver(),
-                          }),
+            //PageContent = model.NewPageContent.EmptyToNull()
+            //              ?? JsonConvert.SerializeObject(new { settings = model, content = Array.Empty<string>() }, new JsonSerializerSettings
+            //              {
+            //                  Formatting = Formatting.Indented,
+            //                  ContractResolver = new CamelCasePropertyNamesContractResolver(),
+            //              }),
             Status = Draft, // always create a new page in draft status
         };
 
@@ -175,7 +173,6 @@ public class PageBuilderPageController : Controller
         await _groupedPageService.SaveChangesAsync([groupedPage]);
         return groupedPage;
     }
-
 
     [HttpPost("grouped/archive")]
     [Authorize(ModuleConstants.Security.Permissions.Delete)]
@@ -330,6 +327,20 @@ public class PageBuilderPageController : Controller
     {
         var setting = await _settingsManager.GetObjectSettingAsync(CustomerModule.Core.ModuleConstants.Settings.General.MemberGroups.Name);
         return Ok(setting?.AllowedValues ?? []);
+    }
+
+    [HttpGet("grouped/content/{pageId}")]
+    public async Task GetPageContent([FromRoute] string pageId, CancellationToken cancellationToken)
+    {
+        Response.ContentType = "text/plain; charset=utf-8";
+        await _groupedPageService.LoadContentToStreamAsync(pageId, Response.Body, cancellationToken);
+    }
+
+    [HttpPost("grouped/content/{pageId}")]
+    public async Task<IActionResult> SavePageContent([FromRoute] string pageId, CancellationToken cancellationToken)
+    {
+        await _groupedPageService.SaveStreamAsContentAsync(pageId, Request.Body, cancellationToken);
+        return NoContent();
     }
 
     private static ActionResult Forbidden => new ObjectResult(new { })
