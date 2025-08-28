@@ -15,14 +15,23 @@ namespace VirtoCommerce.PageBuilderModule.Data.Models
         [StringLength(CultureNameLength)]
         public string CultureName { get; set; }
 
-        [StringLength(1024)]
+        [StringLength(Length1024)]
         public string Name { get; set; }
 
-        [StringLength(2048)]
+        [StringLength(Length2048)]
         public string Permalink { get; set; }
 
-        [StringLength(128)]
+        [StringLength(Length128)]
         public string Status { get; set; } // Draft | Published | Archived
+
+        public bool Visibility { get; set; }
+
+        [StringLength(Length1024)]
+        public string UserGroups { get; set; }
+
+        public DateTime? StartDate { get; set; }
+
+        public DateTime? EndDate { get; set; }
 
         public virtual ObservableCollection<PageBuilderPageEntity> Pages { get; set; } = new NullCollection<PageBuilderPageEntity>();
 
@@ -39,6 +48,11 @@ namespace VirtoCommerce.PageBuilderModule.Data.Models
             model.Name = Name;
             model.Permalink = Permalink;
             model.Status = Status;
+
+            model.Visibility = Visibility;
+            model.UserGroups = UserGroups;
+            model.StartDate = StartDate;
+            model.EndDate = EndDate;
 
             model.Pages = Pages.Select(x => x.ToModel(AbstractTypeFactory<PageBuilderPage>.TryCreateInstance())).ToList();
 
@@ -61,6 +75,11 @@ namespace VirtoCommerce.PageBuilderModule.Data.Models
             Permalink = model.Permalink;
             Status = model.Status;
 
+            Visibility = model.Visibility;
+            UserGroups = model.UserGroups;
+            StartDate = model.StartDate;
+            EndDate = model.EndDate;
+
             if (model.Pages != null)
             {
                 Pages = new ObservableCollection<PageBuilderPageEntity>(model.Pages.Select(x => AbstractTypeFactory<PageBuilderPageEntity>.TryCreateInstance().FromModel(x, pkMap)));
@@ -76,6 +95,11 @@ namespace VirtoCommerce.PageBuilderModule.Data.Models
             target.Name = Name;
             target.Permalink = Permalink;
             target.Status = Status;
+
+            target.Visibility = Visibility;
+            target.UserGroups = UserGroups;
+            target.StartDate = StartDate;
+            target.EndDate = EndDate;
 
             if (!Pages.IsNullCollection())
             {

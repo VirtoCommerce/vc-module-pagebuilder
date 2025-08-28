@@ -1,7 +1,8 @@
 {
   "PAGE_BUILDER": {
     "MENU": {
-      "TITLE": "Pages"
+      "TITLE": "Pages",
+      "ARCHIVED_TITLE": "Archived pages"
     },
     "PAGES": {
       "LIST": {

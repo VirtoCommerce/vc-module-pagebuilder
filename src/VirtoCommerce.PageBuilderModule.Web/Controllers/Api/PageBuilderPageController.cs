@@ -120,11 +120,14 @@ public class PageBuilderPageController : Controller
             }
 
             // update draft and grouped page
-            //draftPage.PageContent = model.NewPageContent;
             groupedPage.Name = draftPage.Name = model.Name;
             groupedPage.Permalink = draftPage.Permalink = model.Permalink;
             groupedPage.CultureName = draftPage.CultureName = model.CultureName;
             groupedPage.StoreId = draftPage.StoreId = model.StoreId;
+            groupedPage.Visibility = draftPage.Visibility = model.Visibility;
+            groupedPage.UserGroups = draftPage.UserGroups = model.UserGroups;
+            groupedPage.StartDate = draftPage.StartDate = model.StartDate;
+            groupedPage.EndDate = draftPage.EndDate = model.EndDate;
 
             await _groupedPageService.SaveChangesAsync([groupedPage]);
         }
@@ -149,6 +152,10 @@ public class PageBuilderPageController : Controller
             StoreId = model.StoreId,
             CultureName = model.CultureName,
             Permalink = model.Permalink,
+            Visibility = model.Visibility,
+            UserGroups = model.UserGroups,
+            StartDate = model.StartDate,
+            EndDate = model.EndDate,
             Status = Draft, // always create a new page in draft status
         };
 
@@ -159,12 +166,10 @@ public class PageBuilderPageController : Controller
             StoreId = model.StoreId,
             CultureName = model.CultureName,
             Permalink = model.Permalink,
-            //PageContent = model.NewPageContent.EmptyToNull()
-            //              ?? JsonConvert.SerializeObject(new { settings = model, content = Array.Empty<string>() }, new JsonSerializerSettings
-            //              {
-            //                  Formatting = Formatting.Indented,
-            //                  ContractResolver = new CamelCasePropertyNamesContractResolver(),
-            //              }),
+            Visibility = model.Visibility,
+            UserGroups = model.UserGroups,
+            StartDate = model.StartDate,
+            EndDate = model.EndDate,
             Status = Draft, // always create a new page in draft status
         };
 

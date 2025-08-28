@@ -12,22 +12,15 @@ using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Services
 {
-    public class GroupedPageService : CrudService<GroupedPageBuilderPage, GroupedPageBuilderPageEntity, GroupedPageBuilderPageChangingEvent, GroupedPageBuilderPageChangedEvent>, IGroupedPageService
+    public class GroupedPageService(
+        Func<IPageBuilderModuleRepository> repositoryFactory,
+        Func<IContentStreamRepository> contentStreamRepositoryFactory,
+        IPlatformMemoryCache platformMemoryCache,
+        IEventPublisher eventPublisher)
+        : CrudService<GroupedPageBuilderPage, GroupedPageBuilderPageEntity, GroupedPageBuilderPageChangingEvent,
+                GroupedPageBuilderPageChangedEvent>(repositoryFactory, platformMemoryCache, eventPublisher),
+            IGroupedPageService
     {
-        private readonly Func<IPageBuilderModuleRepository> _repositoryFactory;
-        private readonly Func<IContentStreamRepository> _contentStreamRepositoryFactory;
-
-        public GroupedPageService(
-            Func<IPageBuilderModuleRepository> repositoryFactory,
-            Func<IContentStreamRepository> contentStreamRepositoryFactory,
-            IPlatformMemoryCache platformMemoryCache,
-            IEventPublisher eventPublisher)
-            : base(repositoryFactory, platformMemoryCache, eventPublisher)
-        {
-            _repositoryFactory = repositoryFactory;
-            _contentStreamRepositoryFactory = contentStreamRepositoryFactory;
-        }
-
         protected override async Task BeforeSaveChanges(IList<GroupedPageBuilderPage> models)
         {
             foreach (var model in models)
@@ -48,19 +41,17 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
             return result;
         }
 
-        public async Task LoadContentToStreamAsync(string pageId, Stream stream,
-            CancellationToken cancellationToken = default)
+        public async Task LoadContentToStreamAsync(string pageId, Stream stream, CancellationToken cancellationToken = default)
         {
-            var repository = _contentStreamRepositoryFactory();
+            var repository = contentStreamRepositoryFactory();
             await using var writer = new StreamWriter(stream, Encoding.UTF8, bufferSize: 8192, leaveOpen: true);
             await repository.LoadBinaryAsync(pageId, writer, cancellationToken);
         }
 
-        public async Task SaveStreamAsContentAsync(string pageId, Stream stream,
-            CancellationToken cancellationToken = default)
+        public async Task SaveStreamAsContentAsync(string pageId, Stream stream, CancellationToken cancellationToken = default)
         {
             using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, leaveOpen: false);
-            var repository = _contentStreamRepositoryFactory();
+            var repository = contentStreamRepositoryFactory();
             await repository.SaveBinaryAsync(pageId, reader, cancellationToken);
         }
     }

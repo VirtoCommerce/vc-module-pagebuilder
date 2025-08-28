@@ -47,10 +47,9 @@ export class PageBuilderClient extends AuthApiBase {
      * @param path (optional) 
      * @param type (optional) 
      * @param draft (optional) 
-     * @param pageId (optional) 
      * @return OK
      */
-    getTemplate(storeId?: string | undefined, theme?: string | undefined, path?: string | undefined, type?: string | undefined, draft?: boolean | undefined, pageId?: string | undefined): Promise<void> {
+    getTemplate(storeId?: string | undefined, theme?: string | undefined, path?: string | undefined, type?: string | undefined, draft?: boolean | undefined): Promise<void> {
         let url_ = this.baseUrl + "/api/pagebuilder/template?";
         if (storeId === null)
             throw new Error("The parameter 'storeId' cannot be null.");
@@ -72,10 +71,6 @@ export class PageBuilderClient extends AuthApiBase {
             throw new Error("The parameter 'draft' cannot be null.");
         else if (draft !== undefined)
             url_ += "draft=" + encodeURIComponent("" + draft) + "&";
-        if (pageId === null)
-            throw new Error("The parameter 'pageId' cannot be null.");
-        else if (pageId !== undefined)
-            url_ += "pageId=" + encodeURIComponent("" + pageId) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -1005,6 +1000,98 @@ export class PageBuilderPageClient extends AuthApiBase {
         }
         return Promise.resolve<string[]>(null as any);
     }
+
+    /**
+     * @return OK
+     */
+    getPageContent(pageId: string): Promise<void> {
+        let url_ = this.baseUrl + "/api/page-builder-pages/grouped/content/{pageId}";
+        if (pageId === undefined || pageId === null)
+            throw new Error("The parameter 'pageId' must be defined.");
+        url_ = url_.replace("{pageId}", encodeURIComponent("" + pageId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+            }
+        };
+
+        return this.transformOptions(options_).then(transformedOptions_ => {
+            return this.http.fetch(url_, transformedOptions_);
+        }).then((_response: Response) => {
+            return this.processGetPageContent(_response);
+        });
+    }
+
+    protected processGetPageContent(response: Response): Promise<void> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            return;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            return throwException("Unauthorized", status, _responseText, _headers);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            return throwException("Forbidden", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * @return OK
+     */
+    savePageContent(pageId: string): Promise<void> {
+        let url_ = this.baseUrl + "/api/page-builder-pages/grouped/content/{pageId}";
+        if (pageId === undefined || pageId === null)
+            throw new Error("The parameter 'pageId' must be defined.");
+        url_ = url_.replace("{pageId}", encodeURIComponent("" + pageId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+            }
+        };
+
+        return this.transformOptions(options_).then(transformedOptions_ => {
+            return this.http.fetch(url_, transformedOptions_);
+        }).then((_response: Response) => {
+            return this.processSavePageContent(_response);
+        });
+    }
+
+    protected processSavePageContent(response: Response): Promise<void> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            return;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            return throwException("Unauthorized", status, _responseText, _headers);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            return throwException("Forbidden", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<void>(null as any);
+    }
 }
 
 export class FilePublishStatus implements IFilePublishStatus {
@@ -1054,8 +1141,12 @@ export class GroupedPageBuilderPage implements IGroupedPageBuilderPage {
     name?: string | undefined;
     permalink?: string | undefined;
     status?: string | undefined;
-    readonly hasChanges?: boolean;
+    visibility?: boolean;
+    userGroups?: string | undefined;
+    startDate?: Date | undefined;
+    endDate?: Date | undefined;
     pages?: PageBuilderPage[] | undefined;
+    readonly hasChanges?: boolean;
     createdDate?: Date;
     modifiedDate?: Date | undefined;
     createdBy?: string | undefined;
@@ -1079,12 +1170,16 @@ export class GroupedPageBuilderPage implements IGroupedPageBuilderPage {
             this.name = _data["name"];
             this.permalink = _data["permalink"];
             this.status = _data["status"];
-            (<any>this).hasChanges = _data["hasChanges"];
+            this.visibility = _data["visibility"];
+            this.userGroups = _data["userGroups"];
+            this.startDate = _data["startDate"] ? new Date(_data["startDate"].toString()) : <any>undefined;
+            this.endDate = _data["endDate"] ? new Date(_data["endDate"].toString()) : <any>undefined;
             if (Array.isArray(_data["pages"])) {
                 this.pages = [] as any;
                 for (let item of _data["pages"])
                     this.pages!.push(PageBuilderPage.fromJS(item));
             }
+            (<any>this).hasChanges = _data["hasChanges"];
             this.createdDate = _data["createdDate"] ? new Date(_data["createdDate"].toString()) : <any>undefined;
             this.modifiedDate = _data["modifiedDate"] ? new Date(_data["modifiedDate"].toString()) : <any>undefined;
             this.createdBy = _data["createdBy"];
@@ -1108,12 +1203,16 @@ export class GroupedPageBuilderPage implements IGroupedPageBuilderPage {
         data["name"] = this.name;
         data["permalink"] = this.permalink;
         data["status"] = this.status;
-        data["hasChanges"] = this.hasChanges;
+        data["visibility"] = this.visibility;
+        data["userGroups"] = this.userGroups;
+        data["startDate"] = this.startDate ? this.startDate.toISOString() : <any>undefined;
+        data["endDate"] = this.endDate ? this.endDate.toISOString() : <any>undefined;
         if (Array.isArray(this.pages)) {
             data["pages"] = [];
             for (let item of this.pages)
                 data["pages"].push(item.toJSON());
         }
+        data["hasChanges"] = this.hasChanges;
         data["createdDate"] = this.createdDate ? this.createdDate.toISOString() : <any>undefined;
         data["modifiedDate"] = this.modifiedDate ? this.modifiedDate.toISOString() : <any>undefined;
         data["createdBy"] = this.createdBy;
@@ -1130,8 +1229,12 @@ export interface IGroupedPageBuilderPage {
     name?: string | undefined;
     permalink?: string | undefined;
     status?: string | undefined;
-    hasChanges?: boolean;
+    visibility?: boolean;
+    userGroups?: string | undefined;
+    startDate?: Date | undefined;
+    endDate?: Date | undefined;
     pages?: PageBuilderPage[] | undefined;
+    hasChanges?: boolean;
     createdDate?: Date;
     modifiedDate?: Date | undefined;
     createdBy?: string | undefined;
@@ -1194,6 +1297,10 @@ export class PageBuilderPage implements IPageBuilderPage {
     name?: string | undefined;
     permalink?: string | undefined;
     status?: string | undefined;
+    visibility?: boolean;
+    userGroups?: string | undefined;
+    startDate?: Date | undefined;
+    endDate?: Date | undefined;
     createdDate?: Date;
     modifiedDate?: Date | undefined;
     createdBy?: string | undefined;
@@ -1217,6 +1324,10 @@ export class PageBuilderPage implements IPageBuilderPage {
             this.name = _data["name"];
             this.permalink = _data["permalink"];
             this.status = _data["status"];
+            this.visibility = _data["visibility"];
+            this.userGroups = _data["userGroups"];
+            this.startDate = _data["startDate"] ? new Date(_data["startDate"].toString()) : <any>undefined;
+            this.endDate = _data["endDate"] ? new Date(_data["endDate"].toString()) : <any>undefined;
             this.createdDate = _data["createdDate"] ? new Date(_data["createdDate"].toString()) : <any>undefined;
             this.modifiedDate = _data["modifiedDate"] ? new Date(_data["modifiedDate"].toString()) : <any>undefined;
             this.createdBy = _data["createdBy"];
@@ -1240,6 +1351,10 @@ export class PageBuilderPage implements IPageBuilderPage {
         data["name"] = this.name;
         data["permalink"] = this.permalink;
         data["status"] = this.status;
+        data["visibility"] = this.visibility;
+        data["userGroups"] = this.userGroups;
+        data["startDate"] = this.startDate ? this.startDate.toISOString() : <any>undefined;
+        data["endDate"] = this.endDate ? this.endDate.toISOString() : <any>undefined;
         data["createdDate"] = this.createdDate ? this.createdDate.toISOString() : <any>undefined;
         data["modifiedDate"] = this.modifiedDate ? this.modifiedDate.toISOString() : <any>undefined;
         data["createdBy"] = this.createdBy;
@@ -1256,6 +1371,10 @@ export interface IPageBuilderPage {
     name?: string | undefined;
     permalink?: string | undefined;
     status?: string | undefined;
+    visibility?: boolean;
+    userGroups?: string | undefined;
+    startDate?: Date | undefined;
+    endDate?: Date | undefined;
     createdDate?: Date;
     modifiedDate?: Date | undefined;
     createdBy?: string | undefined;

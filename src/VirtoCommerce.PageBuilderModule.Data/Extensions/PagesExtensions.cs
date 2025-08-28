@@ -25,7 +25,7 @@ static class PagesExtensions
         };
     }
 
-    public static PageDocument ToPageDocument(this PageBuilderPage page)
+    public static PageDocument ToPageDocument(this PageBuilderPage page, string content)
     {
         var pageDocument = AbstractTypeFactory<PageDocument>.TryCreateInstance();
         pageDocument.Id = page.Id;
@@ -41,9 +41,17 @@ static class PagesExtensions
 
         pageDocument.Source = "page-builder";
         pageDocument.MimeType = "application/json";
-        //pageDocument.Content = page.PageContent;
         pageDocument.Title = page.Name; // may be overridden by settings
-        //GetDataFromSettings(page.PageContent, pageDocument);
+        pageDocument.Visibility = page.Visibility ? PageDocumentVisibility.Public : PageDocumentVisibility.Private;
+        pageDocument.UserGroups = page.UserGroups
+            ?.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(x => x.Trim())
+            .ToArray();
+        pageDocument.StartDate = page.StartDate;
+        pageDocument.EndDate = page.EndDate;
+
+        pageDocument.Content = content;
+        GetDataFromSettings(content, pageDocument);
         return pageDocument;
     }
 
@@ -54,18 +62,7 @@ static class PagesExtensions
             var content = JObject.Parse(contentAsString.IsNullOrEmpty() ? "{}" : contentAsString);
             var settings = content["settings"];
             pageDocument.Title = settings?.Value<string>("title") ?? pageDocument.Title;
-            pageDocument.Visibility = (settings?.Value<bool?>("visibility") ?? true)
-                ? PageDocumentVisibility.Public
-                : PageDocumentVisibility.Private;
             pageDocument.Description = settings?.Value<string>("description") ?? pageDocument.Title;
-
-            pageDocument.UserGroups = settings?.Value<string>("userGroups")
-                 ?.Split(',', StringSplitOptions.RemoveEmptyEntries)
-                 .Select(x => x.Trim())
-                 .ToArray();
-            // todo: check the type for data in page builder. it can be string or date
-            pageDocument.StartDate = settings?.Value<DateTime?>("startDate");
-            pageDocument.EndDate = settings?.Value<DateTime?>("endDate");
         }
         catch
         {

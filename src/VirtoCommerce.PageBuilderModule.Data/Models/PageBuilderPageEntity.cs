@@ -26,7 +26,15 @@ public class PageBuilderPageEntity : AuditableEntity, IDataEntity<PageBuilderPag
     [StringLength(128)]
     public string Status { get; set; } // Draft | Published | Archived
 
-    // public string PageContent { get; set; }
+    public bool Visibility { get; set; }
+
+    [StringLength(Length1024)]
+    public string UserGroups { get; set; }
+
+    public DateTime? StartDate { get; set; }
+
+    public DateTime? EndDate { get; set; }
+
     public virtual PageBuilderContentEntity Content { get; set; }
 
     public GroupedPageBuilderPageEntity Group { get; set; }
@@ -45,7 +53,11 @@ public class PageBuilderPageEntity : AuditableEntity, IDataEntity<PageBuilderPag
         model.Name = Name;
         model.Permalink = Permalink;
         model.Status = Status;
-        //model.PageContent = PageContent;
+
+        model.Visibility = Visibility;
+        model.UserGroups = UserGroups;
+        model.StartDate = StartDate;
+        model.EndDate = EndDate;
 
         return model;
     }
@@ -66,7 +78,11 @@ public class PageBuilderPageEntity : AuditableEntity, IDataEntity<PageBuilderPag
         Name = model.Name;
         Permalink = model.Permalink;
         Status = model.Status;
-        //PageContent = model.PageContent;
+
+        Visibility = model.Visibility;
+        UserGroups = model.UserGroups;
+        StartDate = model.StartDate;
+        EndDate = model.EndDate;
 
         return this;
     }
@@ -79,6 +95,10 @@ public class PageBuilderPageEntity : AuditableEntity, IDataEntity<PageBuilderPag
         target.Name = Name;
         target.Permalink = Permalink;
         target.Status = Status;
-        //target.PageContent = PageContent;
+
+        target.Visibility = Visibility;
+        target.UserGroups = UserGroups;
+        target.StartDate = StartDate;
+        target.EndDate = EndDate;
     }
 }

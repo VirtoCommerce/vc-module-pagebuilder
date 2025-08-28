@@ -11,7 +11,6 @@
     <!-- @vue-generic {GroupedPageBuilderPage}-->
     <VcTable
              :expanded="expanded"
-             multiselect
              :items="items"
              :columns="columns"
              :pages="pages"
@@ -21,11 +20,8 @@
              :search-value="searchValue"
              :loading="loading"
              :sort-expression="sortExpression"
-             enable-item-actions
-             :item-action-builder="actionBuilder"
              :active-filter-count="activeFilterCount"
              @item-click="onItemClick"
-             @selection-changed="onSelectionChange"
              @search:change="onSearchList"
              @pagination-click="onPaginationClick"
              @header-click="onHeaderClick">
@@ -68,26 +64,18 @@
 import { computed, onMounted, Ref, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { debounce } from "lodash-es";
-import {
-  IActionBuilderResult,
-  IBladeToolbar,
-  IParentCallArgs,
-  ITableColumns,
-  useBladeNavigation,
-  usePopup,
-  useTableSort,
-} from "@vc-shell/framework";
+import { IBladeToolbar, IParentCallArgs, ITableColumns, useBladeNavigation, useTableSort } from "@vc-shell/framework";
 
 import { usePageBuilderList } from "../composables/usePageBuilderList";
 import { GroupedPageBuilderPage } from "../../../api_client/virtocommerce.pagebuildermodule";
 import PageStatus from "../components/pageStatus.vue";
 
 defineOptions({
-  name: "PageBuilder",
-  url: "/page-builder",
+  name: "PageBuilderArchived",
+  url: "/page-builder-archived",
   isWorkspace: true,
   menuItem: {
-    title: "PAGE_BUILDER.MENU.TITLE",
+    title: "PAGE_BUILDER.MENU.ARCHIVED_TITLE",
     icon: "material-article",
     priority: 1,
   },
@@ -116,7 +104,6 @@ const emit = defineEmits<Emits>();
 
 const { t } = useI18n({ useScope: "global" });
 const { openBlade } = useBladeNavigation();
-const { showConfirmation } = usePopup();
 
 const { sortExpression, handleSortChange: tableSortHandler } = useTableSort({
   initialDirection: "DESC",
@@ -131,10 +118,9 @@ const {
   currentPage,
   searchQuery,
   storeId,
-  loadActivePages: loadPages,
-  removePages,
+  loadArchivedPages: loadPages,
   loading,
-  pageStatuses
+  pageStatuses,
 } = usePageBuilderList({
   pageSize: 20,
   sort: sortExpression.value,
@@ -142,11 +128,8 @@ const {
 
 // State
 const selectedItemId = ref<string>();
-const selectedItems = ref<string[]>([]);
 const searchValue = ref<string>();
-
 const stagedFilters = ref({ status: undefined }) as Ref<{ status: string | undefined }>;
-
 const filtersQuery = ref();
 
 // Blade title
@@ -194,39 +177,11 @@ const columns = computed((): ITableColumns[] => [
 // Toolbar configuration
 const bladeToolbar = computed((): IBladeToolbar[] => [
   {
-    id: "add",
-    icon: "material-add",
-    title: t("PAGE_BUILDER.PAGES.LIST.TOOLBAR.ADD"),
-    clickHandler: async () => {
-      await openAddBlade();
-    },
-  },
-  {
     id: "refresh",
     icon: "material-refresh",
     title: t("PAGE_BUILDER.PAGES.LIST.TOOLBAR.REFRESH"),
     clickHandler: async () => {
       await reload();
-    },
-  },
-  {
-    id: "delete",
-    icon: "material-delete",
-    title: t("PAGE_BUILDER.PAGES.LIST.TOOLBAR.REMOVE"),
-    disabled: selectedItems.value.length === 0,
-    clickHandler: async () => {
-      if (
-        await showConfirmation(
-          t("PAGE_BUILDER.PAGES.ALERTS.DELETE_SELECTED_CONFIRMATION.MESSAGE", {
-            count: selectedItems.value.length,
-          }),
-        )
-      ) {
-        // const ids = selectedItems.value.map(x => x.id);
-        await removePages({ ids: selectedItems.value });
-        await reload();
-        selectedItems.value = [];
-      }
     },
   },
 ]);
@@ -260,10 +215,6 @@ function onItemClick(item: GroupedPageBuilderPage) {
   });
 }
 
-function onSelectionChange(selection: GroupedPageBuilderPage[]) {
-  selectedItems.value = selection.map((item) => item.id!);
-}
-
 const onSearchList = debounce(async (keyword: string | undefined) => {
   console.debug(`Page builder list search by ${keyword}`);
   searchValue.value = keyword;
@@ -279,34 +230,6 @@ async function onPaginationClick(page: number) {
     skip: (page - 1) * (searchQuery.value.take ?? 20),
   });
 }
-
-async function openAddBlade() {
-  openBlade({
-    blade: { name: "PageBuilderDetails" },
-    options: {
-      storeId: storeId?.value ?? undefined,
-    },
-  });
-}
-
-const actionBuilder = (item: GroupedPageBuilderPage) => {
-  const result: IActionBuilderResult[] = [];
-
-  if (item.status !== "Archived") {
-    result.push({
-      icon: "material-delete",
-      title: t("PAGE_BUILDER.PAGES.LIST.TABLE.ACTIONS.DELETE"),
-      type: "danger",
-      clickHandler: async () => {
-        if (item.id && (await showConfirmation(t("PAGE_BUILDER.PAGES.ALERTS.DELETE")))) {
-          removePages({ ids: [item.id] });
-        }
-      },
-    });
-  }
-
-  return result;
-};
 
 // Watchers
 watch(

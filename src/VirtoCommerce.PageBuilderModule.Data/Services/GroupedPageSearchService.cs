@@ -40,7 +40,8 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
 
             if (!string.IsNullOrEmpty(criteria.Status))
             {
-                query = query.Where(x => x.Status == criteria.Status);
+                var statuses = criteria.Status.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                query = query.Where(x => statuses.Contains(x.Status));
             }
 
             return query;

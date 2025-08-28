@@ -13,15 +13,12 @@ using Newtonsoft.Json.Serialization;
 using VirtoCommerce.AssetsModule.Core.Assets;
 using VirtoCommerce.ContentModule.Core.Model;
 using VirtoCommerce.ContentModule.Core.Services;
-using VirtoCommerce.PageBuilderModule.Core.Models;
-using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Web.Events;
 using VirtoCommerce.PageBuilderModule.Web.Models;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Events;
 using VirtoCommerce.StoreModule.Core.Model;
 using VirtoCommerce.StoreModule.Core.Services;
-using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 
 namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 {
@@ -32,9 +29,10 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             IBlobContentStorageProviderFactory blobContentStorageProviderFactory,
             IOptions<ContentOptions> options,
             IPublishingService publishingService,
-            IEventPublisher eventPublisher,
-            IGroupedPageService groupedPageService,
-            IPageBuilderPageService pageBuilderPageService)
+            IEventPublisher eventPublisher
+            //IPageBuilderPageService pageBuilderPageService,
+            //IGroupedPageService groupedPageService
+            )
         : Controller
     {
         private readonly ContentOptions _options = options.Value;
@@ -47,22 +45,22 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
         [HttpGet]
         [Route("template")]
-        public async Task<ActionResult> GetTemplate(string storeId, string theme, string path, string type, bool draft = false, string pageId = null)
+        public async Task<ActionResult> GetTemplate(string storeId, string theme, string path, string type, bool draft = false/*, string pageId = null*/)
         {
-            if (pageId != null)
-            {
-                var groupedPage = await groupedPageService.GetNoCloneAsync(pageId);
-                if (groupedPage != null)
-                {
-                    return Ok(groupedPage);
-                }
+            //if (pageId != null)
+            //{
+            //    var groupedPage = await groupedPageService.GetNoCloneAsync(pageId);
+            //    if (groupedPage != null)
+            //    {
+            //        return Ok(groupedPage);
+            //    }
 
-                var page = await pageBuilderPageService.GetByIdAsync(pageId);
-                if (page != null)
-                {
-                    return Ok(page);
-                }
-            }
+            //    var page = await pageBuilderPageService.GetByIdAsync(pageId);
+            //    if (page != null)
+            //    {
+            //        return Ok(page);
+            //    }
+            //}
 
             var basePath = GetContentBasePath(storeId, type, theme);
             if (!path.IsNullOrEmpty())
@@ -201,46 +199,46 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             {
                 if (!string.IsNullOrEmpty(file.PageId))
                 {
-                    if (file.Content != null)
-                    {
-                        var groupedPage = await groupedPageService.GetByIdAsync(file.PageId);
-                        if (groupedPage == null)
-                        {
-                            groupedPage = new GroupedPageBuilderPage
-                            {
-                                Id = file.PageId,
-                                GroupId = file.PageId,
-                                StoreId = file.Content["settings"]?["storeId"]?.ToString() ?? storeId,
-                                CultureName = file.Content["settings"]?["cultureName"]?.ToString(),
-                                Status = Draft,
-                            };
-                        }
-                        var page = file.Content.ToObject<PageModel>();
-                        var draftPage = groupedPage.Pages.FirstOrDefault(x => x.Status == Draft);
+                    //if (file.Content != null)
+                    //{
+                    //    var groupedPage = await groupedPageService.GetByIdAsync(file.PageId);
+                    //    if (groupedPage == null)
+                    //    {
+                    //        groupedPage = new GroupedPageBuilderPage
+                    //        {
+                    //            Id = file.PageId,
+                    //            GroupId = file.PageId,
+                    //            StoreId = file.Content["settings"]?["storeId"]?.ToString() ?? storeId,
+                    //            CultureName = file.Content["settings"]?["cultureName"]?.ToString(),
+                    //            Status = Draft,
+                    //        };
+                    //    }
+                    //    var page = file.Content.ToObject<PageModel>();
+                    //    var draftPage = groupedPage.Pages.FirstOrDefault(x => x.Status == Draft);
 
-                        if (draftPage == null)
-                        {
-                            draftPage = new PageBuilderPage
-                            {
-                                Status = Draft,
-                                GroupId = file.PageId,
-                            };
-                            groupedPage.Pages.Add(draftPage);
-                        }
+                    //    if (draftPage == null)
+                    //    {
+                    //        draftPage = new PageBuilderPage
+                    //        {
+                    //            Status = Draft,
+                    //            GroupId = file.PageId,
+                    //        };
+                    //        groupedPage.Pages.Add(draftPage);
+                    //    }
 
-                        groupedPage.Name = draftPage.Name = page.Settings.Name ?? draftPage.Name;
-                        groupedPage.Permalink = draftPage.Permalink = page.Settings.Permalink ?? draftPage.Permalink;
-                        groupedPage.CultureName = draftPage.CultureName = page.Settings.CultureName ?? draftPage.CultureName;
-                        groupedPage.StoreId = draftPage.StoreId = page.Settings.StoreId ?? draftPage.StoreId;
+                    //    groupedPage.Name = draftPage.Name = page.Settings.Name ?? draftPage.Name;
+                    //    groupedPage.Permalink = draftPage.Permalink = page.Settings.Permalink ?? draftPage.Permalink;
+                    //    groupedPage.CultureName = draftPage.CultureName = page.Settings.CultureName ?? draftPage.CultureName;
+                    //    groupedPage.StoreId = draftPage.StoreId = page.Settings.StoreId ?? draftPage.StoreId;
 
-                        //draftPage.PageContent = JsonConvert.SerializeObject(file.Content, new JsonSerializerSettings
-                        //{
-                        //    Formatting = Formatting.Indented,
-                        //    ContractResolver = new CamelCasePropertyNamesContractResolver(),
-                        //});
+                    //    //draftPage.PageContent = JsonConvert.SerializeObject(file.Content, new JsonSerializerSettings
+                    //    //{
+                    //    //    Formatting = Formatting.Indented,
+                    //    //    ContractResolver = new CamelCasePropertyNamesContractResolver(),
+                    //    //});
 
-                        await groupedPageService.SaveChangesAsync([groupedPage]);
-                    }
+                    //    await groupedPageService.SaveChangesAsync([groupedPage]);
+                    //}
                 }
                 else
                 {
@@ -351,24 +349,24 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             public JContainer Content { get; set; }
         }
 
-        public class PageSettingsModel
-        {
-            public string Id { get; set; }
-            public string Name { get; set; }
-            public string DisplayName { get; set; }
-            public string Permalink { get; set; }
-            public string Status { get; set; }
-            public string StoreId { get; set; }
-            public string CultureName { get; set; }
-        }
+        //public class PageSettingsModel
+        //{
+        //    public string Id { get; set; }
+        //    public string Name { get; set; }
+        //    public string DisplayName { get; set; }
+        //    public string Permalink { get; set; }
+        //    public string Status { get; set; }
+        //    public string StoreId { get; set; }
+        //    public string CultureName { get; set; }
+        //}
 
-        public class PageModel
-        {
-            [JsonProperty("settings")]
-            public PageSettingsModel Settings { get; set; }
+        //public class PageModel
+        //{
+        //    [JsonProperty("settings")]
+        //    public PageSettingsModel Settings { get; set; }
 
-            [JsonProperty("content")]
-            public List<JObject> Content { get; set; } // Keeps content as raw JSON
-        }
+        //    [JsonProperty("content")]
+        //    public List<JObject> Content { get; set; } // Keeps content as raw JSON
+        //}
     }
 }

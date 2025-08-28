@@ -1,3 +1,4 @@
+using System.Text;
 using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
@@ -10,18 +11,28 @@ using VirtoCommerce.Platform.Data.GenericCrud;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Services;
 
-public class PageBuilderPageService : CrudService<PageBuilderPage, PageBuilderPageEntity, PageBuilderPageChangingEvent, PageBuilderPageChangedEvent>, IPageBuilderPageService
+public class PageBuilderPageService(
+    Func<IPageBuilderModuleRepository> repositoryFactory,
+    Func<IContentStreamRepository> contentStreamRepositoryFactory,
+    IPlatformMemoryCache platformMemoryCache,
+    IEventPublisher eventPublisher)
+    : CrudService<PageBuilderPage, PageBuilderPageEntity, PageBuilderPageChangingEvent, PageBuilderPageChangedEvent>(
+        repositoryFactory, platformMemoryCache, eventPublisher), IPageBuilderPageService
 {
-    public PageBuilderPageService(
-        Func<IPageBuilderModuleRepository> repositoryFactory,
-        IPlatformMemoryCache platformMemoryCache,
-        IEventPublisher eventPublisher)
-        : base(repositoryFactory, platformMemoryCache, eventPublisher)
-    {
-    }
-
     protected override Task<IList<PageBuilderPageEntity>> LoadEntities(IRepository repository, IList<string> ids, string responseGroup)
     {
         return ((IPageBuilderModuleRepository)repository).GetPageBuilderPagesByIdsAsync(ids, responseGroup);
+    }
+
+    public async Task<string> GetPageContentAsync(string pageId, CancellationToken cancellationToken = default)
+    {
+        var repository = contentStreamRepositoryFactory();
+        using var stream = new MemoryStream();
+        await using var writer = new StreamWriter(stream, Encoding.UTF8, bufferSize: 8192, leaveOpen: true);
+        await repository.LoadBinaryAsync(pageId, writer, cancellationToken);
+        await writer.FlushAsync(cancellationToken);
+        stream.Position = 0;
+        using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, leaveOpen: false);
+        return await reader.ReadToEndAsync(cancellationToken);
     }
 }

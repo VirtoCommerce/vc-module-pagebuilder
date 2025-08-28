@@ -1,10 +1,6 @@
 import { computed, ref, reactive, Ref, ComputedRef, onMounted } from "vue";
 import { useAsync, useLoading, useApiClient, useModificationTracker } from "@vc-shell/framework";
-import {
-  PageBuilderPageClient,
-  GroupedPageBuilderPage,
-  IGroupedPageBuilderPage,
-} from "../../../../api_client/virtocommerce.pagebuildermodule";
+import { PageBuilderPageClient, GroupedPageBuilderPage } from "../../../../api_client/virtocommerce.pagebuildermodule";
 
 import useCultureNames, { ICultureNameResult } from "./../useCultureNames";
 import useUserGroups, { IUserGroupsResult } from "./../useUserGroups";
@@ -12,21 +8,12 @@ import useUrlParams from "./../useUrlParams";
 
 const { getApiClient } = useApiClient(PageBuilderPageClient);
 
-interface ExtendedGroupedPageBuilderPage extends IGroupedPageBuilderPage {
-  visibility?: boolean;
-  userGroups?: string[];
-  startDate?: Date;
-  endDate?: Date;
-  // pageContent?: string;
-  // newPageContent?: string;
-}
-
 export interface IUsePageBuilderDetails {
-  item: Ref<ExtendedGroupedPageBuilderPage>;
+  item: Ref<GroupedPageBuilderPage>;
   isModified: Readonly<Ref<boolean>>;
   loading: ComputedRef<boolean>;
   loadPage: () => Promise<void>;
-  savePage: (status?: string) => Promise<IGroupedPageBuilderPage>;
+  savePage: (status?: string) => Promise<GroupedPageBuilderPage>;
   deletePage: () => Promise<void>;
   loadCultureNames: (storeId?: string) => Promise<ICultureNameResult>;
   loadUserGroups: () => Promise<IUserGroupsResult>;
@@ -47,7 +34,7 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
   const { getUserGroups } = useUserGroups();
   const { storeId, initUrlParams } = useUrlParams();
 
-  const item = ref<ExtendedGroupedPageBuilderPage>(new GroupedPageBuilderPage());
+  const item = ref<GroupedPageBuilderPage>(new GroupedPageBuilderPage());
   const isNew = ref(!options?.id);
 
   let pageStoreId: string | undefined;
@@ -57,19 +44,7 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
   const { action: loadPage, loading: loadingPage } = useAsync(async () => {
     if (options?.id) {
       const apiClient = await getApiClient();
-      const result = (await apiClient.getGrouped(options.id)) as ExtendedGroupedPageBuilderPage;
-
-      try {
-        // if (result.pageContent) {
-        //   const model = JSON.parse(result.pageContent);
-        //   result.visibility = model.settings.visibility;
-        //   result.userGroups = model.settings.userGroups?.split(",").filter((x: string) => !!x) || [];
-        //   result.startDate = model.settings.startDate;
-        //   result.endDate = model.settings.endDate;
-        // }
-      } catch (e) {
-        console.error(e);
-      }
+      const result = await apiClient.getGrouped(options.id);
 
       currentValue.value = reactive(result);
     } else {
@@ -80,31 +55,16 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
 
   const { action: savePage, loading: savingPage } = useAsync(async (status?: string) => {
     const apiClient = await getApiClient();
-    const page = currentValue.value as ExtendedGroupedPageBuilderPage;
-    // const pageContent = page.pageContent ? JSON.parse(page.pageContent) : { settings: {}, content: [] };
-
-    // const newSettings = {
-    //   visibility: page.visibility,
-    //   userGroups: page.userGroups?.filter((x) => !!x).join(","),
-    //   cultureName: page.cultureName,
-    //   startDate: page.startDate,
-    //   endDate: page.endDate,
-    //   permalink: page.permalink,
-    //   name: page.name,
-    // };
-
-    // pageContent.settings = { ...pageContent.settings, ...newSettings };
-    // page.newPageContent = JSON.stringify(pageContent);
-
-    let result: IGroupedPageBuilderPage;
+    const page = currentValue.value;
+    let result: GroupedPageBuilderPage;
 
     if (isNew.value) {
       page.status = "Draft";
       page.storeId = pageStoreId;
-      result = await apiClient.createGrouped(page as GroupedPageBuilderPage);
+      result = await apiClient.createGrouped(page);
     } else {
       if (status) page.status = status;
-      result = await apiClient.updateGrouped(page as GroupedPageBuilderPage);
+      result = await apiClient.updateGrouped(page);
     }
 
     currentValue.value = reactive(result);

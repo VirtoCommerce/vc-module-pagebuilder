@@ -1,5 +1,6 @@
 using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.Models;
+using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Data.Extensions;
 using VirtoCommerce.Pages.Core.Events;
 using VirtoCommerce.Pages.Core.Extensions;
@@ -8,13 +9,15 @@ using VirtoCommerce.Platform.Core.Events;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Handlers;
 
-public abstract class PageBuilderEventHandlerBase
+public abstract class PageBuilderEventHandlerBase(IPageBuilderPageService pageBuilderPageService)
 {
-    protected static PagesDomainEvent ToPagesDomainEvent(PageBuilderPage entry, EntryState state)
+    protected async Task<PagesDomainEvent> ToPagesDomainEvent(PageBuilderPage entry, EntryState state)
     {
         var pageOperation = state.ToPageOperation(entry);
 
-        var pageDocument = entry.ToPageDocument();
+        var content = await pageBuilderPageService.GetPageContentAsync(entry.Id);
+
+        var pageDocument = entry.ToPageDocument(content);
         // todo: move to pages module
         pageDocument.Status = pageOperation.GetPageDocumentStatus();
 
@@ -32,37 +35,35 @@ public abstract class PageBuilderEventHandlerBase
     }
 }
 
-public class PageBuilderPageChangedEventHandler(IEventPublisher eventPublisher) : PageBuilderEventHandlerBase, IEventHandler<PageBuilderPageChangedEvent>
+public class PageBuilderPageChangedEventHandler(IEventPublisher eventPublisher, IPageBuilderPageService pageBuilderPageService) : PageBuilderEventHandlerBase(pageBuilderPageService), IEventHandler<PageBuilderPageChangedEvent>
 {
     public async Task Handle(PageBuilderPageChangedEvent message)
     {
-        var events = message.ChangedEntries.Select(x =>
+        var eventTasks = message.ChangedEntries.Select(x =>
         {
             var page = x.NewEntry ?? x.OldEntry;
             return ToPagesDomainEvent(page, x.EntryState);
         });
 
+        var events = await Task.WhenAll(eventTasks);
+
         await PublishPagesDomainEvents(events, eventPublisher);
     }
 }
 
-public class GroupedPageBuilderPageChangedEventHandler(IEventPublisher eventPublisher) : PageBuilderEventHandlerBase, IEventHandler<GroupedPageBuilderPageChangedEvent>
+public class GroupedPageBuilderPageChangedEventHandler(IEventPublisher eventPublisher, IPageBuilderPageService pageBuilderPageService) : PageBuilderEventHandlerBase(pageBuilderPageService), IEventHandler<GroupedPageBuilderPageChangedEvent>
 {
     public async Task Handle(GroupedPageBuilderPageChangedEvent message)
     {
-        var events = message.ChangedEntries.SelectMany(x =>
-        {
-            var groupedEntry = x.NewEntry ?? x.OldEntry;
-
-            var results = new List<PagesDomainEvent>();
-            foreach (var page in groupedEntry.Pages)
+        var eventTasks = message.ChangedEntries
+            .SelectMany(x =>
             {
-                var result = ToPagesDomainEvent(page, x.EntryState);
-                results.Add(result);
-            }
+                var groupedEntry = x.NewEntry ?? x.OldEntry;
+                return groupedEntry.Pages.Select(page => ToPagesDomainEvent(page, x.EntryState));
+            })
+            .ToArray();
 
-            return results;
-        });
+        var events = await Task.WhenAll(eventTasks);
 
         await PublishPagesDomainEvents(events, eventPublisher);
     }

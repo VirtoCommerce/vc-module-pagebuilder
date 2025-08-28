@@ -66,7 +66,7 @@
 
         <!-- User Groups -->
         <VcSelect
-          v-model="item.userGroups"
+          v-model="itemUserGroups"
           :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.USER_GROUPS')"
           :options="loadUserGroups"
           option-value="name"
@@ -164,6 +164,15 @@ const bladeTitle = computed(() => {
     : item.value?.name + t("PAGE_BUILDER.PAGES.DETAILS.TITLE.DETAILS");
 });
 
+const itemUserGroups = computed<string[]>({
+  get: () => {
+    return item.value.userGroups?.split(",") || [];
+  },
+  set: (val: string[]) => {
+    item.value.userGroups = val?.filter((x) => !!x).join(",");
+  },
+});
+
 // Toolbar
 const bladeToolbar = computed((): IBladeToolbar[] => [
   {
@@ -183,6 +192,7 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     clickHandler: async () => {
       if (await showConfirmation(t("PAGE_BUILDER.PAGES.ALERTS.DELETE"))) {
         await deletePage();
+        emit("parent:call", { method: "reload" });
         emit("close:blade");
       }
     },

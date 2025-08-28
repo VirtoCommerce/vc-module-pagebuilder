@@ -40,6 +40,9 @@ namespace VirtoCommerce.PageBuilderModule.Data.MySql.Migrations
                         .HasMaxLength(16)
                         .HasColumnType("varchar(16)");
 
+                    b.Property<DateTime?>("EndDate")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<string>("ModifiedBy")
                         .HasMaxLength(64)
                         .HasColumnType("varchar(64)");
@@ -55,6 +58,9 @@ namespace VirtoCommerce.PageBuilderModule.Data.MySql.Migrations
                         .HasMaxLength(2048)
                         .HasColumnType("varchar(2048)");
 
+                    b.Property<DateTime?>("StartDate")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<string>("Status")
                         .HasMaxLength(128)
                         .HasColumnType("varchar(128)");
@@ -62,6 +68,13 @@ namespace VirtoCommerce.PageBuilderModule.Data.MySql.Migrations
                     b.Property<string>("StoreId")
                         .HasMaxLength(128)
                         .HasColumnType("varchar(128)");
+
+                    b.Property<string>("UserGroups")
+                        .HasMaxLength(1024)
+                        .HasColumnType("varchar(1024)");
+
+                    b.Property<bool>("Visibility")
+                        .HasColumnType("tinyint(1)");
 
                     b.HasKey("Id");
 
@@ -99,6 +112,9 @@ namespace VirtoCommerce.PageBuilderModule.Data.MySql.Migrations
                         .HasMaxLength(16)
                         .HasColumnType("varchar(16)");
 
+                    b.Property<DateTime?>("EndDate")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<string>("GroupId")
                         .IsRequired()
                         .HasMaxLength(128)
@@ -119,6 +135,9 @@ namespace VirtoCommerce.PageBuilderModule.Data.MySql.Migrations
                         .HasMaxLength(2048)
                         .HasColumnType("varchar(2048)");
 
+                    b.Property<DateTime?>("StartDate")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<string>("Status")
                         .HasMaxLength(128)
                         .HasColumnType("varchar(128)");
@@ -126,6 +145,13 @@ namespace VirtoCommerce.PageBuilderModule.Data.MySql.Migrations
                     b.Property<string>("StoreId")
                         .HasMaxLength(128)
                         .HasColumnType("varchar(128)");
+
+                    b.Property<string>("UserGroups")
+                        .HasMaxLength(1024)
+                        .HasColumnType("varchar(1024)");
+
+                    b.Property<bool>("Visibility")
+                        .HasColumnType("tinyint(1)");
 
                     b.HasKey("Id");
 

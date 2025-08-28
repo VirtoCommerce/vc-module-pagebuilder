@@ -15,8 +15,10 @@ public class PageBuilderPage : AuditableEntity, IHasStoreId, ICloneable
     public string Permalink { get; set; }
 
     public string Status { get; set; } // Draft | Published | Archived
-
-    //public string PageContent { get; set; }
+    public bool Visibility { get; set; }
+    public string UserGroups { get; set; }
+    public DateTime? StartDate { get; set; }
+    public DateTime? EndDate { get; set; }
 
     public object Clone()
     {
