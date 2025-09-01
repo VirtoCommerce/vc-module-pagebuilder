@@ -7,31 +7,22 @@ using VirtoCommerce.Platform.Core.Caching;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.GenericCrud;
 using VirtoCommerce.Platform.Data.GenericCrud;
+using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Services
 {
-    public class GroupedPageSearchService : SearchService<PageBuilderPageSearchCriteria, GroupedPageBuilderPageSearchResult, GroupedPageBuilderPage, GroupedPageBuilderPageEntity>, IGroupedPageSearchService
+    public class GroupedPageSearchService(
+        Func<IPageBuilderModuleRepository> repositoryFactory,
+        IPlatformMemoryCache platformMemoryCache,
+        IGroupedPageService crudService,
+        IOptions<CrudOptions> crudOptions)
+        : SearchService<PageBuilderPageSearchCriteria, GroupedPageBuilderPageSearchResult, GroupedPageBuilderPage,
+                GroupedPageBuilderPageEntity>(repositoryFactory, platformMemoryCache, crudService, crudOptions),
+            IGroupedPageSearchService
     {
-        private Func<IPageBuilderModuleRepository> _repositoryFactory;
-
-        public GroupedPageSearchService(
-            Func<IPageBuilderModuleRepository> repositoryFactory,
-            IPlatformMemoryCache platformMemoryCache,
-            IGroupedPageService crudService,
-            IOptions<CrudOptions> crudOptions)
-            : base(repositoryFactory, platformMemoryCache, crudService, crudOptions)
-        {
-            _repositoryFactory = repositoryFactory;
-        }
-
         protected override IQueryable<GroupedPageBuilderPageEntity> BuildQuery(IRepository repository, PageBuilderPageSearchCriteria criteria)
         {
             var query = ((IPageBuilderModuleRepository)repository).GroupedPageBuilderPages;
-
-            if (!string.IsNullOrEmpty(criteria.Keyword))
-            {
-                query = query.Where(x => x.Name.Contains(criteria.Keyword));
-            }
 
             if (!string.IsNullOrEmpty(criteria.StoreId))
             {
@@ -41,7 +32,22 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
             if (!string.IsNullOrEmpty(criteria.Status))
             {
                 var statuses = criteria.Status.Split(',', StringSplitOptions.RemoveEmptyEntries);
-                query = query.Where(x => statuses.Contains(x.Status));
+
+                if (statuses.Contains(Archived))
+                {
+                    // group is archived when all pages are archived
+                    // so, we need to split the statuses and check if there are other statuses except "archived"
+                    var withoutArchive = statuses.Where(x => x != Archived).ToArray();
+                    query = query
+                        .Where(x =>
+                            x.Pages.All(p => p.Status == Archived) ||
+                            x.Pages.Any(p => withoutArchive.Contains(p.Status))
+                        );
+                }
+                else
+                {
+                    query = query.Where(x => x.Pages.Any(p => statuses.Contains(p.Status)));
+                }
             }
 
             return query;

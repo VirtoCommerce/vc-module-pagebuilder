@@ -527,16 +527,14 @@ export class PageBuilderPageClient extends AuthApiBase {
     }
 
     /**
-     * @param id (optional) 
      * @param responseGroup (optional) 
      * @return OK
      */
-    getGrouped(id?: string | undefined, responseGroup?: string | undefined): Promise<GroupedPageBuilderPage> {
-        let url_ = this.baseUrl + "/api/page-builder-pages/grouped?";
-        if (id === null)
-            throw new Error("The parameter 'id' cannot be null.");
-        else if (id !== undefined)
-            url_ += "id=" + encodeURIComponent("" + id) + "&";
+    getGrouped(id: string, responseGroup?: string | undefined): Promise<GroupedPageBuilderPage> {
+        let url_ = this.baseUrl + "/api/page-builder-pages/grouped/{id}?";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
         if (responseGroup === null)
             throw new Error("The parameter 'responseGroup' cannot be null.");
         else if (responseGroup !== undefined)
@@ -558,6 +556,61 @@ export class PageBuilderPageClient extends AuthApiBase {
     }
 
     protected processGetGrouped(response: Response): Promise<GroupedPageBuilderPage> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GroupedPageBuilderPage.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            return throwException("Unauthorized", status, _responseText, _headers);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            return throwException("Forbidden", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GroupedPageBuilderPage>(null as any);
+    }
+
+    /**
+     * @param responseGroup (optional) 
+     * @return OK
+     */
+    getPageInGroupForEdit(id: string, responseGroup?: string | undefined): Promise<GroupedPageBuilderPage> {
+        let url_ = this.baseUrl + "/api/page-builder-pages/grouped/{id}/edit?";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (responseGroup === null)
+            throw new Error("The parameter 'responseGroup' cannot be null.");
+        else if (responseGroup !== undefined)
+            url_ += "responseGroup=" + encodeURIComponent("" + responseGroup) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "text/plain"
+            }
+        };
+
+        return this.transformOptions(options_).then(transformedOptions_ => {
+            return this.http.fetch(url_, transformedOptions_);
+        }).then((_response: Response) => {
+            return this.processGetPageInGroupForEdit(_response);
+        });
+    }
+
+    protected processGetPageInGroupForEdit(response: Response): Promise<GroupedPageBuilderPage> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
         if (status === 200) {
@@ -1135,7 +1188,6 @@ export interface IFilePublishStatus {
 }
 
 export class GroupedPageBuilderPage implements IGroupedPageBuilderPage {
-    groupId?: string | undefined;
     storeId?: string | undefined;
     cultureName?: string | undefined;
     name?: string | undefined;
@@ -1164,7 +1216,6 @@ export class GroupedPageBuilderPage implements IGroupedPageBuilderPage {
 
     init(_data?: any) {
         if (_data) {
-            this.groupId = _data["groupId"];
             this.storeId = _data["storeId"];
             this.cultureName = _data["cultureName"];
             this.name = _data["name"];
@@ -1197,7 +1248,6 @@ export class GroupedPageBuilderPage implements IGroupedPageBuilderPage {
 
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
-        data["groupId"] = this.groupId;
         data["storeId"] = this.storeId;
         data["cultureName"] = this.cultureName;
         data["name"] = this.name;
@@ -1223,7 +1273,6 @@ export class GroupedPageBuilderPage implements IGroupedPageBuilderPage {
 }
 
 export interface IGroupedPageBuilderPage {
-    groupId?: string | undefined;
     storeId?: string | undefined;
     cultureName?: string | undefined;
     name?: string | undefined;

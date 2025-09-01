@@ -7,5 +7,8 @@ namespace VirtoCommerce.PageBuilderModule.Core.Services
     {
         Task LoadContentToStreamAsync(string pageId, Stream stream, CancellationToken cancellationToken = default);
         Task SaveStreamAsContentAsync(string pageId, Stream stream, CancellationToken cancellationToken = default);
+
+        Task CopyPageContentAsync(string sourcePageId, string targetPageId,
+            CancellationToken cancellationToken = default);
     }
 }

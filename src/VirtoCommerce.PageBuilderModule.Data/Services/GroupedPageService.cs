@@ -8,7 +8,6 @@ using VirtoCommerce.Platform.Core.Caching;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Events;
 using VirtoCommerce.Platform.Data.GenericCrud;
-using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Services
 {
@@ -21,20 +20,6 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
                 GroupedPageBuilderPageChangedEvent>(repositoryFactory, platformMemoryCache, eventPublisher),
             IGroupedPageService
     {
-        protected override async Task BeforeSaveChanges(IList<GroupedPageBuilderPage> models)
-        {
-            foreach (var model in models)
-            {
-                if (!model.Pages.IsNullOrEmpty())
-                {
-                    // Update status of the grouped page based on the status of the pages it contains
-                    model.Status = model.Pages.Any(p => p.Status == Archived) ? Archived : model.Pages.Any(p => p.Status == Published) ? Published : Draft;
-                }
-            }
-
-            await base.BeforeSaveChanges(models);
-        }
-
         protected override async Task<IList<GroupedPageBuilderPageEntity>> LoadEntities(IRepository repository, IList<string> ids, string responseGroup)
         {
             var result = await ((IPageBuilderModuleRepository)repository).GetGroupedPageBuilderPagesByIdsAsync(ids, responseGroup);
@@ -53,6 +38,14 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
             using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, leaveOpen: false);
             var repository = contentStreamRepositoryFactory();
             await repository.SaveBinaryAsync(pageId, reader, cancellationToken);
+        }
+
+        public async Task CopyPageContentAsync(string sourcePageId, string targetPageId, CancellationToken cancellationToken = default)
+        {
+            await using var memoryStream = new MemoryStream();
+            await LoadContentToStreamAsync(sourcePageId, memoryStream, cancellationToken);
+            memoryStream.Position = 0;
+            await SaveStreamAsContentAsync(targetPageId, memoryStream, cancellationToken);
         }
     }
 }

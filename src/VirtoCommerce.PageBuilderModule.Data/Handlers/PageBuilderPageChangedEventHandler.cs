@@ -23,6 +23,7 @@ public abstract class PageBuilderEventHandlerBase(IPageBuilderPageService pageBu
 
         var result = AbstractTypeFactory<PagesDomainEvent>.TryCreateInstance();
 
+        result.Id = pageDocument.Id;
         result.Operation = pageOperation;
         result.Page = pageDocument;
 

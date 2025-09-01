@@ -7,6 +7,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Repositories;
 
 public abstract class ContentStreamRepository(PageBuilderModuleDbContext dbContext) : IContentStreamRepository
 {
+    public const int ContentBufferSize = 8192;
     public async Task SaveBinaryAsync(string pageId, TextReader reader, CancellationToken cancellationToken = default)
     {
         var connection = dbContext.Database.GetDbConnection();
@@ -27,7 +28,7 @@ public abstract class ContentStreamRepository(PageBuilderModuleDbContext dbConte
             await init.ExecuteNonQueryAsync(cancellationToken);
         }
 
-        var buffer = new char[8192];
+        var buffer = new char[ContentBufferSize];
         int read;
         while ((read = await reader.ReadAsync(buffer, 0, buffer.Length)) > 0)
         {
@@ -71,7 +72,7 @@ public abstract class ContentStreamRepository(PageBuilderModuleDbContext dbConte
         if (await reader.ReadAsync(cancellationToken))
         {
             using var textReader = reader.GetTextReader(0);      // потоковое чтение NVARCHAR(MAX)
-            var buf = new char[8192];
+            var buf = new char[ContentBufferSize];
             int read;
             while ((read = await textReader.ReadAsync(buf, 0, buf.Length)) > 0)
             {

@@ -1,6 +1,8 @@
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -11,6 +13,7 @@ using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Data.Authorization;
+using VirtoCommerce.PageBuilderModule.Data.Extensions;
 using VirtoCommerce.Pages.Core.Search;
 using VirtoCommerce.Platform.Core;
 using VirtoCommerce.Platform.Core.Common;
@@ -68,11 +71,11 @@ public class PageBuilderPageController : Controller
         return Ok(result);
     }
 
-    [HttpGet("grouped")]
+    [HttpGet("grouped/{id}")]
     [Authorize(ModuleConstants.Security.Permissions.Read)]
-    public async Task<ActionResult<GroupedPageBuilderPage>> GetGrouped([FromQuery] string id, [FromQuery] string responseGroup = null)
+    public async Task<ActionResult<GroupedPageBuilderPage>> GetGrouped([FromRoute] string id, [FromQuery] string responseGroup = null)
     {
-        var groupedPage = await _groupedPageService.GetNoCloneAsync(id);
+        var groupedPage = await _groupedPageService.GetNoCloneAsync(id, responseGroup);
         if (groupedPage == null)
         {
             return NotFound();
@@ -87,9 +90,107 @@ public class PageBuilderPageController : Controller
         return Ok(groupedPage);
     }
 
+    [HttpGet("grouped/{id}/edit")]
+    [Authorize(ModuleConstants.Security.Permissions.Read)]
+    public async Task<ActionResult<GroupedPageBuilderPage>> GetPageInGroupForEdit([FromRoute] string id, [FromQuery] string responseGroup = null)
+    {
+        var groupedPage = await _groupedPageService.GetNoCloneAsync(id, responseGroup);
+        if (groupedPage == null)
+        {
+            return NotFound();
+        }
+
+        var authorizationResult = await _authorizationService.AuthorizeAsync(User, groupedPage, new PageBuilderAuthorizationRequirement());
+        if (!authorizationResult.Succeeded)
+        {
+            return Forbidden;
+        }
+
+        var page = groupedPage.PrepareForEdit();
+
+        return Ok(page);
+    }
+
+    //[HttpPut("grouped/page")]
+    //[Authorize(ModuleConstants.Security.Permissions.Update)]
+    //public async Task<ActionResult<PageBuilderPage>> UpdatePage([FromBody] PageBuilderPage model, CancellationToken cancellationToken = default)
+    //{
+    //    var authorizationResult = await _authorizationService.AuthorizeAsync(User, model, new PageBuilderAuthorizationRequirement());
+    //    if (!authorizationResult.Succeeded)
+    //    {
+    //        return Forbidden;
+    //    }
+
+    //    var groupedPage = await _groupedPageService.GetByIdAsync(model.GroupId);
+
+    //    if (groupedPage != null)
+    //    {
+    //        if (groupedPage.Status == Archived)
+    //        {
+    //            return BadRequest("Archived page cannot be updated.");
+    //        }
+
+    //        // update only draft page, create if it doesn't exist
+    //        var draftPage = groupedPage.Pages.FirstOrDefault(x => x.Status == Draft);
+    //        var isNew = draftPage == null;
+    //        if (isNew)
+    //        {
+    //            draftPage = new PageBuilderPage
+    //            {
+    //                Status = Draft,
+    //                GroupId = model.Id,
+    //            };
+    //            groupedPage.Pages.Add(draftPage);
+    //        }
+
+    //        // update draft and grouped page
+    //        draftPage.Name = model.Name;
+    //        draftPage.Permalink = model.Permalink;
+    //        draftPage.CultureName = model.CultureName;
+    //        draftPage.StoreId = model.StoreId;
+    //        draftPage.Visibility = model.Visibility;
+    //        draftPage.UserGroups = model.UserGroups;
+    //        draftPage.StartDate = model.StartDate;
+    //        draftPage.EndDate = model.EndDate;
+
+    //        await _groupedPageService.SaveChangesAsync([groupedPage]);
+
+    //        var savedGroup = await _groupedPageService.GetNoCloneAsync(model.Id);
+    //        if (isNew)
+    //        {
+    //            var publishedPage = savedGroup.Pages.FirstOrDefault(x => x.Status == Published);
+    //            draftPage = savedGroup.Pages.FirstOrDefault(x => x.Status == Draft);
+
+    //            if (publishedPage == null)
+    //            {
+    //                using var stream = new MemoryStream();
+    //                var writer = new StreamWriter(stream);
+    //                var defaultContent = new StringBuilder("{ \"settings\": {}, \"content\": [] }");
+    //                await writer.WriteLineAsync(defaultContent, cancellationToken);
+    //                await writer.FlushAsync(cancellationToken);
+    //                stream.Position = 0;
+    //                await _groupedPageService.SaveStreamAsContentAsync(draftPage!.Id, stream, cancellationToken);
+    //            }
+    //            else
+    //            {
+    //                await _groupedPageService.CopyPageContentAsync(publishedPage.Id, draftPage!.Id, cancellationToken);
+    //            }
+    //        }
+
+    //        groupedPage = savedGroup;
+    //    }
+
+    //    return Ok(groupedPage);
+    //}
+
+    /// <summary>
+    /// Create or update group for page with status Draft in the given group
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
     [HttpPut("grouped")]
     [Authorize(ModuleConstants.Security.Permissions.Update)]
-    public async Task<ActionResult<GroupedPageBuilderPage>> UpdateGrouped([FromBody] GroupedPageBuilderPage model)
+    public async Task<ActionResult<GroupedPageBuilderPage>> UpdateGrouped([FromBody] GroupedPageBuilderPage model, CancellationToken cancellationToken = default)
     {
         var authorizationResult = await _authorizationService.AuthorizeAsync(User, model, new PageBuilderAuthorizationRequirement());
         if (!authorizationResult.Succeeded)
@@ -109,7 +210,8 @@ public class PageBuilderPageController : Controller
 
             // update only draft page, create if it doesn't exist
             var draftPage = groupedPage.Pages.FirstOrDefault(x => x.Status == Draft);
-            if (draftPage == null)
+            var isNew = draftPage == null;
+            if (isNew)
             {
                 draftPage = new PageBuilderPage
                 {
@@ -120,16 +222,40 @@ public class PageBuilderPageController : Controller
             }
 
             // update draft and grouped page
-            groupedPage.Name = draftPage.Name = model.Name;
-            groupedPage.Permalink = draftPage.Permalink = model.Permalink;
-            groupedPage.CultureName = draftPage.CultureName = model.CultureName;
-            groupedPage.StoreId = draftPage.StoreId = model.StoreId;
-            groupedPage.Visibility = draftPage.Visibility = model.Visibility;
-            groupedPage.UserGroups = draftPage.UserGroups = model.UserGroups;
-            groupedPage.StartDate = draftPage.StartDate = model.StartDate;
-            groupedPage.EndDate = draftPage.EndDate = model.EndDate;
+            draftPage.Name = model.Name;
+            draftPage.Permalink = model.Permalink;
+            draftPage.CultureName = model.CultureName;
+            draftPage.StoreId = model.StoreId;
+            draftPage.Visibility = model.Visibility;
+            draftPage.UserGroups = model.UserGroups;
+            draftPage.StartDate = model.StartDate;
+            draftPage.EndDate = model.EndDate;
 
             await _groupedPageService.SaveChangesAsync([groupedPage]);
+
+            var savedGroup = await _groupedPageService.GetNoCloneAsync(model.Id);
+            if (isNew)
+            {
+                var publishedPage = savedGroup.Pages.FirstOrDefault(x => x.Status == Published);
+                draftPage = savedGroup.Pages.FirstOrDefault(x => x.Status == Draft);
+
+                if (publishedPage == null)
+                {
+                    using var stream = new MemoryStream();
+                    var writer = new StreamWriter(stream);
+                    var defaultContent = new StringBuilder("{ \"settings\": {}, \"content\": [] }");
+                    await writer.WriteLineAsync(defaultContent, cancellationToken);
+                    await writer.FlushAsync(cancellationToken);
+                    stream.Position = 0;
+                    await _groupedPageService.SaveStreamAsContentAsync(draftPage!.Id, stream, cancellationToken);
+                }
+                else
+                {
+                    await _groupedPageService.CopyPageContentAsync(publishedPage.Id, draftPage!.Id, cancellationToken);
+                }
+            }
+
+            groupedPage = savedGroup;
         }
 
         return Ok(groupedPage);
@@ -148,15 +274,7 @@ public class PageBuilderPageController : Controller
         var groupedPage = new GroupedPageBuilderPage
         {
             Id = null,
-            Name = model.Name,
             StoreId = model.StoreId,
-            CultureName = model.CultureName,
-            Permalink = model.Permalink,
-            Visibility = model.Visibility,
-            UserGroups = model.UserGroups,
-            StartDate = model.StartDate,
-            EndDate = model.EndDate,
-            Status = Draft, // always create a new page in draft status
         };
 
         var page = new PageBuilderPage

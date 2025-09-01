@@ -214,6 +214,7 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     disabled: isReadOnly.value,
     clickHandler: async () => {
       await publishPage();
+      emit("parent:call", { method: "reload" });
     },
   },
   {
@@ -224,6 +225,7 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     disabled: isReadOnly.value,
     clickHandler: async () => {
       await unpublishPage();
+      emit("parent:call", { method: "reload" });
     },
   },
 ]);

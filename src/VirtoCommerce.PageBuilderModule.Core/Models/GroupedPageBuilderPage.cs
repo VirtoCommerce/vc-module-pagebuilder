@@ -5,8 +5,6 @@ namespace VirtoCommerce.PageBuilderModule.Core.Models;
 
 public class GroupedPageBuilderPage : AuditableEntity, IHasStoreId, ICloneable
 {
-    public string GroupId { get; set; }
-
     public string StoreId { get; set; }
 
     public string CultureName { get; set; }

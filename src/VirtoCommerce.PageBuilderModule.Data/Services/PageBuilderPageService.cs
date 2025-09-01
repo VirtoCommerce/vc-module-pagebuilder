@@ -28,7 +28,7 @@ public class PageBuilderPageService(
     {
         var repository = contentStreamRepositoryFactory();
         using var stream = new MemoryStream();
-        await using var writer = new StreamWriter(stream, Encoding.UTF8, bufferSize: 8192, leaveOpen: true);
+        await using var writer = new StreamWriter(stream, Encoding.UTF8, bufferSize: ContentStreamRepository.ContentBufferSize, leaveOpen: true);
         await repository.LoadBinaryAsync(pageId, writer, cancellationToken);
         await writer.FlushAsync(cancellationToken);
         stream.Position = 0;

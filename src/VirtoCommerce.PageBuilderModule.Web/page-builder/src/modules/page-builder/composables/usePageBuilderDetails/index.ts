@@ -44,7 +44,7 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
   const { action: loadPage, loading: loadingPage } = useAsync(async () => {
     if (options?.id) {
       const apiClient = await getApiClient();
-      const result = await apiClient.getGrouped(options.id);
+      const result = await apiClient.getPageInGroupForEdit(options.id);
 
       currentValue.value = reactive(result);
     } else {
