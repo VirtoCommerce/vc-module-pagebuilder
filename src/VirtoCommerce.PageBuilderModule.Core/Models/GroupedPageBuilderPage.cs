@@ -7,20 +7,19 @@ public class GroupedPageBuilderPage : AuditableEntity, IHasStoreId, ICloneable
 {
     public string StoreId { get; set; }
 
-    public string CultureName { get; set; }
-
-    public string Name { get; set; }
-
-    public string Permalink { get; set; }
-
-    public string Status { get; set; } // Draft | Published | Archived
-
-    public bool Visibility { get; set; }
-    public string UserGroups { get; set; }
-    public DateTime? StartDate { get; set; }
-    public DateTime? EndDate { get; set; }
-
     public IList<PageBuilderPage> Pages { get; set; } = [];
+
+    public string GroupStatus
+    {
+        get
+        {
+            return Pages?.All(x => x.Status == Archived) ?? false
+                ? Archived
+                : Pages?.Any(x => x.Status == Published) ?? false
+                    ? Published
+                    : Draft;
+        }
+    }
 
     public bool HasChanges
     {

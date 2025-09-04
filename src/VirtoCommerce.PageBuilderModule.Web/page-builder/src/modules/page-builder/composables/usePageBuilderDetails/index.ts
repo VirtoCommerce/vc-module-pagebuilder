@@ -8,12 +8,18 @@ import useUrlParams from "./../useUrlParams";
 
 const { getApiClient } = useApiClient(PageBuilderPageClient);
 
+export class ExtGroupedPageBuilderPage extends GroupedPageBuilderPage {
+  get name() {
+    return this.pages?.find((page) => page.status == "Draft")?.name;
+  }
+}
+
 export interface IUsePageBuilderDetails {
-  item: Ref<GroupedPageBuilderPage>;
+  item: Ref<ExtGroupedPageBuilderPage>;
   isModified: Readonly<Ref<boolean>>;
   loading: ComputedRef<boolean>;
   loadPage: () => Promise<void>;
-  savePage: (status?: string) => Promise<GroupedPageBuilderPage>;
+  savePage: (status?: string) => Promise<ExtGroupedPageBuilderPage>;
   deletePage: () => Promise<void>;
   loadCultureNames: (storeId?: string) => Promise<ICultureNameResult>;
   loadUserGroups: () => Promise<IUserGroupsResult>;

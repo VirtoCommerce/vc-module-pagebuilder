@@ -9,72 +9,72 @@ namespace VirtoCommerce.PageBuilderModule.Data.Extensions;
 
 public static class PagesExtensions
 {
-    public static GroupedPageBuilderPage PrepareForEdit(this GroupedPageBuilderPage group)
-    {
-        var pages = group.Pages;
-        pages = pages.OrderByDescending(x => x.ModifiedDate).ToList();
-        var page = pages.FirstOrDefault(x => x.Status == Draft);
+    //public static GroupedPageBuilderPage PrepareForEdit(this GroupedPageBuilderPage group)
+    //{
+    //    var pages = group.Pages;
+    //    pages = pages.OrderByDescending(x => x.ModifiedDate).ToList();
+    //    var page = pages.FirstOrDefault(x => x.Status == Draft);
 
-        if (page == null)
-        {
-            page = pages.FirstOrDefault(x => x.Status == Published);
-        }
+    //    if (page == null)
+    //    {
+    //        page = pages.FirstOrDefault(x => x.Status == Published);
+    //    }
 
-        if (page == null)
-        {
-            page = pages.FirstOrDefault(x => x.Status == Archived);
-        }
+    //    if (page == null)
+    //    {
+    //        page = pages.FirstOrDefault(x => x.Status == Archived);
+    //    }
 
-        group.ApplyPageToGroup(page);
+    //    group.ApplyPageToGroup(page);
 
-        return group;
-    }
+    //    return group;
+    //}
 
-    public static GroupedPageBuilderPage ApplyForView(this GroupedPageBuilderPage group)
-    {
-        var page = group.Pages.GetPageForView();
-        group.ApplyPageToGroup(page);
-        group.Status = page.Status;
-        return group;
-    }
+    //public static GroupedPageBuilderPage ApplyForView(this GroupedPageBuilderPage group)
+    //{
+    //    var page = group.Pages.GetPageForView();
+    //    group.ApplyPageToGroup(page);
+    //    group.Status = page.Status;
+    //    return group;
+    //}
 
-    public static void ApplyPageToGroup(this GroupedPageBuilderPage group, PageBuilderPage page)
-    {
-        if (page != null)
-        {
-            group.CultureName = page.CultureName;
-            group.Name = page.Name;
-            group.Permalink = page.Permalink;
-            group.Visibility = page.Visibility;
-            group.UserGroups = page.UserGroups;
-            group.StartDate = page.StartDate;
-            group.EndDate = page.EndDate;
-        }
-        else
-        {
-            group.Status = Draft;
-        }
+    //public static void ApplyPageToGroup(this GroupedPageBuilderPage group, PageBuilderPage page)
+    //{
+    //    if (page != null)
+    //    {
+    //        group.CultureName = page.CultureName;
+    //        group.Name = page.Name;
+    //        group.Permalink = page.Permalink;
+    //        group.Visibility = page.Visibility;
+    //        group.UserGroups = page.UserGroups;
+    //        group.StartDate = page.StartDate;
+    //        group.EndDate = page.EndDate;
+    //    }
+    //    else
+    //    {
+    //        group.Status = Draft;
+    //    }
 
 
-    }
+    //}
 
-    public static PageBuilderPage GetPageForView(this IList<PageBuilderPage> pages)
-    {
-        pages = pages.OrderByDescending(x => x.ModifiedDate).ToList();
-        var page = pages.FirstOrDefault(x => x.Status == Published);
+    //public static PageBuilderPage GetPageForView(this IList<PageBuilderPage> pages)
+    //{
+    //    pages = pages.OrderByDescending(x => x.ModifiedDate).ToList();
+    //    var page = pages.FirstOrDefault(x => x.Status == Published);
 
-        if (page == null)
-        {
-            page = pages.FirstOrDefault(x => x.Status == Draft);
-        }
+    //    if (page == null)
+    //    {
+    //        page = pages.FirstOrDefault(x => x.Status == Draft);
+    //    }
 
-        if (page == null)
-        {
-            page = pages.FirstOrDefault(x => x.Status == Archived);
-        }
+    //    if (page == null)
+    //    {
+    //        page = pages.FirstOrDefault(x => x.Status == Archived);
+    //    }
 
-        return page;
-    }
+    //    return page;
+    //}
 
     public static PageOperation ToPageOperation(this EntryState state, PageBuilderPage page)
     {

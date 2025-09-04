@@ -1,7 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel.DataAnnotations;
 using VirtoCommerce.PageBuilderModule.Core.Models;
-using VirtoCommerce.PageBuilderModule.Data.Extensions;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Domain;
 using static VirtoCommerce.Platform.Data.Infrastructure.DbContextBase;
@@ -29,7 +28,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Models
 
             model.Pages = Pages.Select(x => x.ToModel(AbstractTypeFactory<PageBuilderPage>.TryCreateInstance())).ToList();
 
-            model.ApplyForView();
+            //model.ApplyForView();
 
             return model;
         }

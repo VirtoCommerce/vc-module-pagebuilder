@@ -13,7 +13,6 @@ using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Data.Authorization;
-using VirtoCommerce.PageBuilderModule.Data.Extensions;
 using VirtoCommerce.Pages.Core.Search;
 using VirtoCommerce.Platform.Core;
 using VirtoCommerce.Platform.Core.Common;
@@ -57,9 +56,9 @@ public class PageBuilderPageController : Controller
         _pageDocumentSearchService = pageDocumentSearchService;
     }
 
-    [HttpPost("grouped/search")]
+    [HttpPost("search")]
     [Authorize(ModuleConstants.Security.Permissions.Read)]
-    public async Task<ActionResult<GroupedPageBuilderPageSearchResult>> SearchGrouped([FromBody] PageBuilderPageSearchCriteria criteria)
+    public async Task<ActionResult<PageBuilderPageSearchResult>> SearchGrouped([FromBody] PageBuilderPageSearchCriteria criteria)
     {
         var authorizationResult = await _authorizationService.AuthorizeAsync(User, criteria, new PageBuilderAuthorizationRequirement());
         if (!authorizationResult.Succeeded)
@@ -92,7 +91,7 @@ public class PageBuilderPageController : Controller
 
     [HttpGet("grouped/{id}/edit")]
     [Authorize(ModuleConstants.Security.Permissions.Read)]
-    public async Task<ActionResult<GroupedPageBuilderPage>> GetPageInGroupForEdit([FromRoute] string id, [FromQuery] string responseGroup = null)
+    public async Task<ActionResult<PageBuilderPage>> GetPageInGroupForEdit([FromRoute] string id, [FromQuery] string responseGroup = null)
     {
         var groupedPage = await _groupedPageService.GetNoCloneAsync(id, responseGroup);
         if (groupedPage == null)
@@ -106,7 +105,8 @@ public class PageBuilderPageController : Controller
             return Forbidden;
         }
 
-        var page = groupedPage.PrepareForEdit();
+        var page = groupedPage.Pages.FirstOrDefault(x => x.Status == Draft)
+                   ?? groupedPage.Pages.FirstOrDefault(x => x.Status == Published);
 
         return Ok(page);
     }
@@ -190,7 +190,7 @@ public class PageBuilderPageController : Controller
     /// <returns></returns>
     [HttpPut("grouped")]
     [Authorize(ModuleConstants.Security.Permissions.Update)]
-    public async Task<ActionResult<GroupedPageBuilderPage>> UpdateGrouped([FromBody] GroupedPageBuilderPage model, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<PageBuilderPage>> UpdateGrouped([FromBody] PageBuilderPage model, CancellationToken cancellationToken = default)
     {
         var authorizationResult = await _authorizationService.AuthorizeAsync(User, model, new PageBuilderAuthorizationRequirement());
         if (!authorizationResult.Succeeded)
@@ -199,11 +199,11 @@ public class PageBuilderPageController : Controller
         }
 
         // get the existing grouped page for pages Ids
-        var groupedPage = await _groupedPageService.GetByIdAsync(model.Id);
+        var groupedPage = await _groupedPageService.GetByIdAsync(model.GroupId);
 
         if (groupedPage != null)
         {
-            if (groupedPage.Status == Archived)
+            if (groupedPage.GroupStatus == Archived)
             {
                 return BadRequest("Archived page cannot be updated.");
             }
@@ -263,7 +263,7 @@ public class PageBuilderPageController : Controller
 
     [HttpPost("grouped")]
     [Authorize(ModuleConstants.Security.Permissions.Create)]
-    public async Task<ActionResult<GroupedPageBuilderPage>> CreateGrouped([FromBody] GroupedPageBuilderPage model)
+    public async Task<ActionResult<PageBuilderPage>> CreateGrouped([FromBody] PageBuilderPage model)
     {
         var authorizationResult = await _authorizationService.AuthorizeAsync(User, model, new PageBuilderAuthorizationRequirement());
         if (!authorizationResult.Succeeded)
@@ -294,7 +294,7 @@ public class PageBuilderPageController : Controller
         groupedPage.Pages.Add(page);
 
         await _groupedPageService.SaveChangesAsync([groupedPage]);
-        return groupedPage;
+        return Ok(page);
     }
 
     [HttpPost("grouped/archive")]
@@ -421,7 +421,7 @@ public class PageBuilderPageController : Controller
 
         var result = new FilePublishStatus
         {
-            Published = groupedPage.Status == Published,
+            Published = groupedPage.GroupStatus == Published,
             HasChanges = groupedPage.HasChanges,
         };
 
