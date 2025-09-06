@@ -8,7 +8,6 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using VirtoCommerce.ContentModule.Core.Model;
 using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
@@ -58,7 +57,7 @@ public class PageBuilderPageController : Controller
 
     [HttpPost("search")]
     [Authorize(ModuleConstants.Security.Permissions.Read)]
-    public async Task<ActionResult<PageBuilderPageSearchResult>> SearchGrouped([FromBody] PageBuilderPageSearchCriteria criteria)
+    public async Task<ActionResult<GroupedPageBuilderPageSearchResult>> SearchGrouped([FromBody] PageBuilderPageSearchCriteria criteria)
     {
         var authorizationResult = await _authorizationService.AuthorizeAsync(User, criteria, new PageBuilderAuthorizationRequirement());
         if (!authorizationResult.Succeeded)
@@ -67,6 +66,12 @@ public class PageBuilderPageController : Controller
         }
 
         var result = await _groupedPageSearchService.SearchAsync(criteria);
+
+        foreach (var group in result.Results)
+        {
+            group.PrepareData();
+        }
+
         return Ok(result);
     }
 
@@ -85,6 +90,8 @@ public class PageBuilderPageController : Controller
         {
             return Forbidden;
         }
+
+        groupedPage.PrepareData();
 
         return Ok(groupedPage);
     }
@@ -105,10 +112,9 @@ public class PageBuilderPageController : Controller
             return Forbidden;
         }
 
-        var page = groupedPage.Pages.FirstOrDefault(x => x.Status == Draft)
-                   ?? groupedPage.Pages.FirstOrDefault(x => x.Status == Published);
+        groupedPage.PrepareData(true);
 
-        return Ok(page);
+        return Ok(groupedPage.CurrentPage);
     }
 
     //[HttpPut("grouped/page")]
@@ -190,7 +196,7 @@ public class PageBuilderPageController : Controller
     /// <returns></returns>
     [HttpPut("grouped")]
     [Authorize(ModuleConstants.Security.Permissions.Update)]
-    public async Task<ActionResult<PageBuilderPage>> UpdateGrouped([FromBody] PageBuilderPage model, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<PageBuilderPage>> UpdatePage([FromBody] PageBuilderPage model, CancellationToken cancellationToken = default)
     {
         var authorizationResult = await _authorizationService.AuthorizeAsync(User, model, new PageBuilderAuthorizationRequirement());
         if (!authorizationResult.Succeeded)
@@ -203,20 +209,21 @@ public class PageBuilderPageController : Controller
 
         if (groupedPage != null)
         {
-            if (groupedPage.GroupStatus == Archived)
+            groupedPage.PrepareData(true);
+            if (groupedPage.Status == Archived)
             {
                 return BadRequest("Archived page cannot be updated.");
             }
 
             // update only draft page, create if it doesn't exist
-            var draftPage = groupedPage.Pages.FirstOrDefault(x => x.Status == Draft);
+            var draftPage = groupedPage.DraftPage;
             var isNew = draftPage == null;
             if (isNew)
             {
                 draftPage = new PageBuilderPage
                 {
                     Status = Draft,
-                    GroupId = model.Id,
+                    GroupId = model.GroupId,
                 };
                 groupedPage.Pages.Add(draftPage);
             }
@@ -233,21 +240,15 @@ public class PageBuilderPageController : Controller
 
             await _groupedPageService.SaveChangesAsync([groupedPage]);
 
-            var savedGroup = await _groupedPageService.GetNoCloneAsync(model.Id);
+            var savedGroup = await _groupedPageService.GetNoCloneAsync(model.GroupId);
             if (isNew)
             {
-                var publishedPage = savedGroup.Pages.FirstOrDefault(x => x.Status == Published);
-                draftPage = savedGroup.Pages.FirstOrDefault(x => x.Status == Draft);
+                var publishedPage = savedGroup.PublishedPage;
+                draftPage = savedGroup.DraftPage;
 
                 if (publishedPage == null)
                 {
-                    using var stream = new MemoryStream();
-                    var writer = new StreamWriter(stream);
-                    var defaultContent = new StringBuilder("{ \"settings\": {}, \"content\": [] }");
-                    await writer.WriteLineAsync(defaultContent, cancellationToken);
-                    await writer.FlushAsync(cancellationToken);
-                    stream.Position = 0;
-                    await _groupedPageService.SaveStreamAsContentAsync(draftPage!.Id, stream, cancellationToken);
+                    await SetDefaultPageContent(draftPage, cancellationToken);
                 }
                 else
                 {
@@ -263,7 +264,7 @@ public class PageBuilderPageController : Controller
 
     [HttpPost("grouped")]
     [Authorize(ModuleConstants.Security.Permissions.Create)]
-    public async Task<ActionResult<PageBuilderPage>> CreateGrouped([FromBody] PageBuilderPage model)
+    public async Task<ActionResult<PageBuilderPage>> CreatePage([FromBody] PageBuilderPage model, CancellationToken cancellationToken = default)
     {
         var authorizationResult = await _authorizationService.AuthorizeAsync(User, model, new PageBuilderAuthorizationRequirement());
         if (!authorizationResult.Succeeded)
@@ -294,13 +295,18 @@ public class PageBuilderPageController : Controller
         groupedPage.Pages.Add(page);
 
         await _groupedPageService.SaveChangesAsync([groupedPage]);
+
+        var savedGroup = await _groupedPageService.GetNoCloneAsync(groupedPage.Id);
+        savedGroup.PrepareData();
+        await SetDefaultPageContent(savedGroup.DraftPage, cancellationToken);
+
         return Ok(page);
     }
 
     [HttpPost("grouped/archive")]
     [Authorize(ModuleConstants.Security.Permissions.Delete)]
     [ProducesResponseType(typeof(void), StatusCodes.Status204NoContent)]
-    public async Task<ActionResult<GroupedPageBuilderPage>> ArchiveGrouped([FromQuery] string[] ids)
+    public async Task<ActionResult> ArchiveGrouped([FromQuery] string[] ids)
     {
         var groupedPages = await _groupedPageService.GetAsync(ids);
 
@@ -329,17 +335,24 @@ public class PageBuilderPageController : Controller
     {
         var groupedPage = await _groupedPageService.GetByIdAsync(id);
 
+        if (groupedPage == null)
+        {
+            return NotFound();
+        }
+
         var authorizationResult = await _authorizationService.AuthorizeAsync(User, groupedPage, new PageBuilderAuthorizationRequirement());
         if (!authorizationResult.Succeeded)
         {
             return Forbidden;
         }
 
+        groupedPage.PrepareData();
+
         List<string> pagesToDelete;
 
         if (publish)
         {
-            var pageToPublish = groupedPage.Pages.FirstOrDefault(x => x.Status == Draft);
+            var pageToPublish = groupedPage.DraftPage;
             if (pageToPublish == null)
             {
                 return BadRequest("Draft page not found.");
@@ -350,13 +363,13 @@ public class PageBuilderPageController : Controller
         }
         else
         {
-            var pageToUnpublish = groupedPage.Pages.FirstOrDefault(x => x.Status == Published);
+            var pageToUnpublish = groupedPage.PublishedPage;
             if (pageToUnpublish == null)
             {
                 return BadRequest("Published page not found.");
             }
 
-            var hasDraft = groupedPage.Pages.Any(x => x.Status == Draft);
+            var hasDraft = groupedPage.DraftPage != null;
             if (hasDraft)
             {
                 return BadRequest("Can't unpublish a page that has changes.");
@@ -419,9 +432,12 @@ public class PageBuilderPageController : Controller
             return Forbidden;
         }
 
+        groupedPage.PrepareData();
+
         var result = new FilePublishStatus
         {
-            Published = groupedPage.GroupStatus == Published,
+            Status = groupedPage.Status,
+            Published = groupedPage.Status == Published,
             HasChanges = groupedPage.HasChanges,
         };
 
@@ -464,6 +480,18 @@ public class PageBuilderPageController : Controller
     {
         await _groupedPageService.SaveStreamAsContentAsync(pageId, Request.Body, cancellationToken);
         return NoContent();
+    }
+
+    private async Task SetDefaultPageContent(PageBuilderPage page, CancellationToken cancellationToken)
+    {
+        using var stream = new MemoryStream();
+        var writer = new StreamWriter(stream);
+        var defaultContent = new StringBuilder(ModuleConstants.DefaultPageContent);
+        await writer.WriteLineAsync(defaultContent, cancellationToken);
+        await writer.FlushAsync(cancellationToken);
+        stream.Position = 0;
+        await _groupedPageService.SaveStreamAsContentAsync(page.Id, stream, cancellationToken);
+
     }
 
     private static ActionResult Forbidden => new ObjectResult(new { })

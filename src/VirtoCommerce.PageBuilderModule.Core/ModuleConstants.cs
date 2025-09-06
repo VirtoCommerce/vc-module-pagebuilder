@@ -4,6 +4,8 @@ namespace VirtoCommerce.PageBuilderModule.Core
 {
     public static class ModuleConstants
     {
+        public const string DefaultPageContent = "{ \"settings\": {}, \"content\": [] }";
+
         public static class PageStatuses
         {
             public const string Draft = "Draft";

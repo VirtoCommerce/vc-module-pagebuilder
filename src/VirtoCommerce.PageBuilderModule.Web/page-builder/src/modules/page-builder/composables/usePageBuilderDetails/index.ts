@@ -1,6 +1,10 @@
 import { computed, ref, reactive, Ref, ComputedRef, onMounted } from "vue";
 import { useAsync, useLoading, useApiClient, useModificationTracker } from "@vc-shell/framework";
-import { PageBuilderPageClient, GroupedPageBuilderPage } from "../../../../api_client/virtocommerce.pagebuildermodule";
+import {
+  FilePublishStatus,
+  PageBuilderPageClient,
+  PageBuilderPage,
+} from "../../../../api_client/virtocommerce.pagebuildermodule";
 
 import useCultureNames, { ICultureNameResult } from "./../useCultureNames";
 import useUserGroups, { IUserGroupsResult } from "./../useUserGroups";
@@ -8,18 +12,13 @@ import useUrlParams from "./../useUrlParams";
 
 const { getApiClient } = useApiClient(PageBuilderPageClient);
 
-export class ExtGroupedPageBuilderPage extends GroupedPageBuilderPage {
-  get name() {
-    return this.pages?.find((page) => page.status == "Draft")?.name;
-  }
-}
-
 export interface IUsePageBuilderDetails {
-  item: Ref<ExtGroupedPageBuilderPage>;
+  item: Ref<PageBuilderPage>;
+  status: Ref<FilePublishStatus>;
   isModified: Readonly<Ref<boolean>>;
   loading: ComputedRef<boolean>;
   loadPage: () => Promise<void>;
-  savePage: (status?: string) => Promise<ExtGroupedPageBuilderPage>;
+  savePage: () => Promise<PageBuilderPage>;
   deletePage: () => Promise<void>;
   loadCultureNames: (storeId?: string) => Promise<ICultureNameResult>;
   loadUserGroups: () => Promise<IUserGroupsResult>;
@@ -40,8 +39,9 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
   const { getUserGroups } = useUserGroups();
   const { storeId, initUrlParams } = useUrlParams();
 
-  const item = ref<GroupedPageBuilderPage>(new GroupedPageBuilderPage());
+  const item = ref<PageBuilderPage>(new PageBuilderPage());
   const isNew = ref(!options?.id);
+  const status = ref<FilePublishStatus>(new FilePublishStatus());
 
   let pageStoreId: string | undefined;
 
@@ -51,26 +51,24 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
     if (options?.id) {
       const apiClient = await getApiClient();
       const result = await apiClient.getPageInGroupForEdit(options.id);
-
+      status.value = await apiClient.publishStatus(options.id);
       currentValue.value = reactive(result);
     } else {
-      currentValue.value = reactive(new GroupedPageBuilderPage());
+      currentValue.value = reactive(new PageBuilderPage());
     }
     resetModificationState();
   });
 
-  const { action: savePage, loading: savingPage } = useAsync(async (status?: string) => {
+  const { action: savePage, loading: savingPage } = useAsync(async () => {
     const apiClient = await getApiClient();
     const page = currentValue.value;
-    let result: GroupedPageBuilderPage;
+    let result: PageBuilderPage;
 
     if (isNew.value) {
-      page.status = "Draft";
       page.storeId = pageStoreId;
-      result = await apiClient.createGrouped(page);
+      result = await apiClient.createPage(page);
     } else {
-      if (status) page.status = status;
-      result = await apiClient.updateGrouped(page);
+      result = await apiClient.updatePage(page);
     }
 
     currentValue.value = reactive(result);
@@ -86,9 +84,9 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
   });
 
   const { action: publishPage, loading: publishingPage } = useAsync(async () => {
-    const pageId = currentValue.value?.id;
+    const groupId = currentValue.value?.groupId;
     const apiClient = await getApiClient();
-    await apiClient.publishing(pageId, true);
+    await apiClient.publishing(groupId, true);
 
     if (currentValue.value) {
       await loadPage();
@@ -97,13 +95,13 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
 
   const { action: unpublishPage, loading: unpublishingPage } = useAsync(async () => {
     // check if the page has changes
-    if (currentValue.value?.hasChanges) {
+    if (status.value?.hasChanges) {
       throw new Error("PAGE_BUILDER.PAGES.ALERTS.UNPUBLISH_WITH_DRAFT");
     }
 
-    const pageId = currentValue.value?.id;
+    const groupId = currentValue.value?.groupId;
     const apiClient = await getApiClient();
-    await apiClient.publishing(pageId, false);
+    await apiClient.publishing(groupId, false);
 
     if (currentValue.value) {
       await loadPage();
@@ -117,11 +115,11 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
       window.location.origin
     ).replace(/\/$/, "");
     const designerUrl = `${platformUrl}/Modules/$(VirtoCommerce.PageBuilderModule)/Content/builder/index.html`;
-    const pageId = currentValue.value?.id;
+    const groupId = currentValue.value?.groupId;
     const pageStoreId = currentValue.value?.storeId;
 
-    if (pageId && pageStoreId) {
-      const url = `${designerUrl}?storeId=${pageStoreId}#/pages?type=pages&pageId=${pageId}`;
+    if (groupId && pageStoreId) {
+      const url = `${designerUrl}?storeId=${pageStoreId}#/pages?type=pages&groupId=${groupId}`;
       window.open(url, "_blank");
     } else {
       throw new Error("Can't open page.");
@@ -159,6 +157,7 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
 
   return {
     item: currentValue,
+    status,
     isModified,
     loading: useLoading(loadingPage, savingPage, deletingPage, publishingPage, unpublishingPage),
     loadPage,

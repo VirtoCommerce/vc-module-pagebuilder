@@ -1,3 +1,4 @@
+using Newtonsoft.Json;
 using VirtoCommerce.Platform.Core.Common;
 using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 
@@ -7,25 +8,47 @@ public class GroupedPageBuilderPage : AuditableEntity, IHasStoreId, ICloneable
 {
     public string StoreId { get; set; }
 
+    [JsonIgnore]
     public IList<PageBuilderPage> Pages { get; set; } = [];
 
-    public string GroupStatus
-    {
-        get
-        {
-            return Pages?.All(x => x.Status == Archived) ?? false
-                ? Archived
-                : Pages?.Any(x => x.Status == Published) ?? false
-                    ? Published
-                    : Draft;
-        }
-    }
+    public string CultureName => _currentPage?.CultureName;
 
-    public bool HasChanges
+    public string Name => _currentPage?.Name;
+
+    public string Permalink => _currentPage?.Permalink;
+
+    public string Status => _publishedPage != null ? Published
+        : _draftPage != null ? Draft
+        : _currentPage != null ? Archived : null;
+
+    public bool Visibility => _currentPage?.Visibility ?? false;
+    public string UserGroups => _currentPage?.UserGroups;
+    public DateTime? StartDate => _currentPage?.StartDate;
+    public DateTime? EndDate => _currentPage?.EndDate;
+
+    [JsonIgnore]
+    public PageBuilderPage CurrentPage => _currentPage;
+    [JsonIgnore]
+    public PageBuilderPage DraftPage => _draftPage;
+    [JsonIgnore]
+    public PageBuilderPage PublishedPage => _publishedPage;
+
+    public bool HasChanges => _draftPage != null;
+
+    private PageBuilderPage _draftPage;
+    private PageBuilderPage _publishedPage;
+    private PageBuilderPage _currentPage;
+
+    public void PrepareData(bool edit = false)
     {
-        get
+        _draftPage = Pages?.FirstOrDefault(x => x.Status == Draft);
+        _publishedPage = Pages?.FirstOrDefault(x => x.Status == Published);
+        _currentPage = edit
+            ? _draftPage ?? _publishedPage
+            : _publishedPage ?? _draftPage;
+        if (_currentPage == null)
         {
-            return Pages?.Any(p => p.Status == Draft) ?? false;
+            _currentPage = Pages?.MaxBy(x => x.ModifiedDate);
         }
     }
 

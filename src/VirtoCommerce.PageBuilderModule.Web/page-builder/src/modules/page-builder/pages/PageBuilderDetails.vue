@@ -15,8 +15,8 @@
       <VcForm class="tw-flex tw-flex-col tw-gap-4">
         <!-- Status -->
         <PageStatus
-          :status="item.status"
-          :has-changes="item.hasChanges"
+          :status="status.status"
+          :has-changes="status.hasChanges"
         />
 
         <!-- Name Field -->
@@ -140,6 +140,7 @@ const { meta } = useForm({ validateOnMount: false });
 
 const {
   item,
+  status,
   isModified,
   isReadOnly,
   loading,
@@ -210,7 +211,7 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     id: "publishPage",
     icon: "material-description",
     title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.PUBLISH"),
-    isVisible: !!props.param && item.value?.hasChanges === true,
+    isVisible: !!props.param && status.value?.hasChanges === true,
     disabled: isReadOnly.value,
     clickHandler: async () => {
       await publishPage();
@@ -221,7 +222,7 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     id: "unpublishPage",
     icon: "material-article",
     title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.UNPUBLISH"),
-    isVisible: !!props.param && item.value?.hasChanges === false,
+    isVisible: !!props.param && status.value?.hasChanges === false,
     disabled: isReadOnly.value,
     clickHandler: async () => {
       await unpublishPage();

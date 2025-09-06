@@ -479,7 +479,7 @@ export class PageBuilderPageClient extends AuthApiBase {
      * @return OK
      */
     searchGrouped(body?: PageBuilderPageSearchCriteria | undefined): Promise<GroupedPageBuilderPageSearchResult> {
-        let url_ = this.baseUrl + "/api/page-builder-pages/grouped/search";
+        let url_ = this.baseUrl + "/api/page-builder-pages/search";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = JSON.stringify(body);
@@ -640,7 +640,7 @@ export class PageBuilderPageClient extends AuthApiBase {
      * @param body (optional) 
      * @return OK
      */
-    updateGrouped(body?: PageBuilderPage | undefined): Promise<PageBuilderPage> {
+    updatePage(body?: PageBuilderPage | undefined): Promise<PageBuilderPage> {
         let url_ = this.baseUrl + "/api/page-builder-pages/grouped";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -658,11 +658,11 @@ export class PageBuilderPageClient extends AuthApiBase {
         return this.transformOptions(options_).then(transformedOptions_ => {
             return this.http.fetch(url_, transformedOptions_);
         }).then((_response: Response) => {
-            return this.processUpdateGrouped(_response);
+            return this.processUpdatePage(_response);
         });
     }
 
-    protected processUpdateGrouped(response: Response): Promise<PageBuilderPage> {
+    protected processUpdatePage(response: Response): Promise<PageBuilderPage> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
         if (status === 200) {
@@ -692,7 +692,7 @@ export class PageBuilderPageClient extends AuthApiBase {
      * @param body (optional) 
      * @return OK
      */
-    createGrouped(body?: PageBuilderPage | undefined): Promise<PageBuilderPage> {
+    createPage(body?: PageBuilderPage | undefined): Promise<PageBuilderPage> {
         let url_ = this.baseUrl + "/api/page-builder-pages/grouped";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -710,11 +710,11 @@ export class PageBuilderPageClient extends AuthApiBase {
         return this.transformOptions(options_).then(transformedOptions_ => {
             return this.http.fetch(url_, transformedOptions_);
         }).then((_response: Response) => {
-            return this.processCreateGrouped(_response);
+            return this.processCreatePage(_response);
         });
     }
 
-    protected processCreateGrouped(response: Response): Promise<PageBuilderPage> {
+    protected processCreatePage(response: Response): Promise<PageBuilderPage> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
         if (status === 200) {
@@ -1148,6 +1148,7 @@ export class PageBuilderPageClient extends AuthApiBase {
 }
 
 export class FilePublishStatus implements IFilePublishStatus {
+    status?: string | undefined;
     published?: boolean;
     hasChanges?: boolean;
 
@@ -1162,6 +1163,7 @@ export class FilePublishStatus implements IFilePublishStatus {
 
     init(_data?: any) {
         if (_data) {
+            this.status = _data["status"];
             this.published = _data["published"];
             this.hasChanges = _data["hasChanges"];
         }
@@ -1176,6 +1178,7 @@ export class FilePublishStatus implements IFilePublishStatus {
 
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
+        data["status"] = this.status;
         data["published"] = this.published;
         data["hasChanges"] = this.hasChanges;
         return data;
@@ -1183,14 +1186,21 @@ export class FilePublishStatus implements IFilePublishStatus {
 }
 
 export interface IFilePublishStatus {
+    status?: string | undefined;
     published?: boolean;
     hasChanges?: boolean;
 }
 
 export class GroupedPageBuilderPage implements IGroupedPageBuilderPage {
     storeId?: string | undefined;
-    pages?: PageBuilderPage[] | undefined;
-    readonly groupStatus?: string | undefined;
+    readonly cultureName?: string | undefined;
+    readonly name?: string | undefined;
+    readonly permalink?: string | undefined;
+    readonly status?: string | undefined;
+    readonly visibility?: boolean;
+    readonly userGroups?: string | undefined;
+    readonly startDate?: Date | undefined;
+    readonly endDate?: Date | undefined;
     readonly hasChanges?: boolean;
     createdDate?: Date;
     modifiedDate?: Date | undefined;
@@ -1210,12 +1220,14 @@ export class GroupedPageBuilderPage implements IGroupedPageBuilderPage {
     init(_data?: any) {
         if (_data) {
             this.storeId = _data["storeId"];
-            if (Array.isArray(_data["pages"])) {
-                this.pages = [] as any;
-                for (let item of _data["pages"])
-                    this.pages!.push(PageBuilderPage.fromJS(item));
-            }
-            (<any>this).groupStatus = _data["groupStatus"];
+            (<any>this).cultureName = _data["cultureName"];
+            (<any>this).name = _data["name"];
+            (<any>this).permalink = _data["permalink"];
+            (<any>this).status = _data["status"];
+            (<any>this).visibility = _data["visibility"];
+            (<any>this).userGroups = _data["userGroups"];
+            (<any>this).startDate = _data["startDate"] ? new Date(_data["startDate"].toString()) : <any>undefined;
+            (<any>this).endDate = _data["endDate"] ? new Date(_data["endDate"].toString()) : <any>undefined;
             (<any>this).hasChanges = _data["hasChanges"];
             this.createdDate = _data["createdDate"] ? new Date(_data["createdDate"].toString()) : <any>undefined;
             this.modifiedDate = _data["modifiedDate"] ? new Date(_data["modifiedDate"].toString()) : <any>undefined;
@@ -1235,12 +1247,14 @@ export class GroupedPageBuilderPage implements IGroupedPageBuilderPage {
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["storeId"] = this.storeId;
-        if (Array.isArray(this.pages)) {
-            data["pages"] = [];
-            for (let item of this.pages)
-                data["pages"].push(item.toJSON());
-        }
-        data["groupStatus"] = this.groupStatus;
+        data["cultureName"] = this.cultureName;
+        data["name"] = this.name;
+        data["permalink"] = this.permalink;
+        data["status"] = this.status;
+        data["visibility"] = this.visibility;
+        data["userGroups"] = this.userGroups;
+        data["startDate"] = this.startDate ? this.startDate.toISOString() : <any>undefined;
+        data["endDate"] = this.endDate ? this.endDate.toISOString() : <any>undefined;
         data["hasChanges"] = this.hasChanges;
         data["createdDate"] = this.createdDate ? this.createdDate.toISOString() : <any>undefined;
         data["modifiedDate"] = this.modifiedDate ? this.modifiedDate.toISOString() : <any>undefined;
@@ -1253,8 +1267,14 @@ export class GroupedPageBuilderPage implements IGroupedPageBuilderPage {
 
 export interface IGroupedPageBuilderPage {
     storeId?: string | undefined;
-    pages?: PageBuilderPage[] | undefined;
-    groupStatus?: string | undefined;
+    cultureName?: string | undefined;
+    name?: string | undefined;
+    permalink?: string | undefined;
+    status?: string | undefined;
+    visibility?: boolean;
+    userGroups?: string | undefined;
+    startDate?: Date | undefined;
+    endDate?: Date | undefined;
     hasChanges?: boolean;
     createdDate?: Date;
     modifiedDate?: Date | undefined;
