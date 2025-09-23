@@ -172,6 +172,7 @@ public class PageBuilderPageController(
 
     [HttpPost]
     [Route("grouped/publishing/{groupId}")]
+    [Authorize(ModuleConstants.Security.Permissions.Publish)]
     public async Task<ActionResult> PublishGroup([FromRoute] string groupId, [FromQuery] bool publish, CancellationToken cancellationToken = default)
     {
         var groupedPage = await groupedPageService.GetByIdAsync(groupId);
@@ -245,7 +246,10 @@ public class PageBuilderPageController(
             await groupedPageService.DeleteAsync([groupId]);
             pageDeleted = true;
         }
-        catch { } // todo: what i need to do here?
+        catch
+        {
+            // ignore
+        }
 
         try
         {
@@ -253,13 +257,17 @@ public class PageBuilderPageController(
             await pageDocumentSearchService.RemoveDocuments(pagesIds);
             indexDeleted = true;
         }
-        catch { } // todo: what i need to do here?
+        catch
+        {
+            // ignore
+        }
 
         return Ok(new { pageDeleted, indexDeleted });
     }
 
     [HttpGet]
     [Route("grouped/publish-status/{groupId}")]
+    [Authorize(ModuleConstants.Security.Permissions.Read)]
     public async Task<ActionResult<FilePublishStatus>> PublishStatus([FromRoute] string groupId)
     {
         var groupedPage = await groupedPageService.GetNoCloneAsync(groupId);
@@ -304,14 +312,21 @@ public class PageBuilderPageController(
     }
 
     [HttpGet("grouped/{groupId}/content")]
+    [Authorize(ModuleConstants.Security.Permissions.Read)]
     public async Task GetPageContent([FromRoute] string groupId, [FromQuery] bool draft = true, CancellationToken cancellationToken = default)
     {
-        // todo: check auth
         Response.ContentType = "text/plain; charset=utf-8";
         var group = await groupedPageService.GetByIdAsync(groupId);
         if (group == null)
         {
             Response.StatusCode = (int)HttpStatusCode.NotFound;
+            return;
+        }
+
+        var authorizationResult = await authorizationService.AuthorizeAsync(User, group, new PageBuilderAuthorizationRequirement());
+        if (!authorizationResult.Succeeded)
+        {
+            Response.StatusCode = (int)HttpStatusCode.Forbidden;
             return;
         }
 
@@ -326,15 +341,20 @@ public class PageBuilderPageController(
     }
 
     [HttpPost("grouped/{groupId}/content")]
+    [Authorize(ModuleConstants.Security.Permissions.Update)]
     public async Task<IActionResult> SavePageContent([FromRoute] string groupId, CancellationToken cancellationToken = default)
     {
         var groupedPage = await groupedPageService.GetByIdAsync(groupId);
 
-        // todo: check auth
-
         if (groupedPage == null)
         {
             return NotFound();
+        }
+
+        var authorizationResult = await authorizationService.AuthorizeAsync(User, groupedPage, new PageBuilderAuthorizationRequirement());
+        if (!authorizationResult.Succeeded)
+        {
+            return Forbidden;
         }
 
         var draftPage = groupedPage.Pages.FirstOrDefault(x => x.Status == Draft);
@@ -348,7 +368,6 @@ public class PageBuilderPageController(
             groupedPage.Pages.Add(draftPage);
             await groupedPageService.SaveChangesAsync([groupedPage]);
 
-            // todo: how to get page id?
             groupedPage = await groupedPageService.GetByIdAsync(groupId);
             draftPage = groupedPage.Pages.FirstOrDefault(x => x.Status == Draft);
         }

@@ -48,21 +48,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("template")]
         public async Task<ActionResult> GetTemplate(string storeId, string theme, string path, string type, bool draft = false/*, string pageId = null*/)
         {
-            //if (pageId != null)
-            //{
-            //    var groupedPage = await groupedPageService.GetNoCloneAsync(pageId);
-            //    if (groupedPage != null)
-            //    {
-            //        return Ok(groupedPage);
-            //    }
-
-            //    var page = await pageBuilderPageService.GetByIdAsync(pageId);
-            //    if (page != null)
-            //    {
-            //        return Ok(page);
-            //    }
-            //}
-
             var basePath = GetContentBasePath(storeId, type, theme);
             if (!path.IsNullOrEmpty())
             {
@@ -150,7 +135,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         {
             var basePath = GetContentBasePath(storeId, type, theme);
             var storageProvider = blobContentStorageProviderFactory.CreateProvider(basePath);
-            //var searchPattern = $"{query}.(json|page|template)"; // todo: use pattern correctly (search by filename? search by name from settings? elastic?)
             var regexp = pattern == null ? null : new Regex(pattern);
             var files = (await storageProvider.SearchAsync(folder, keyword))
                 .Results.Where(x => x.Type != "folder" && (regexp?.IsMatch(x.Name) ?? true));
@@ -199,85 +183,30 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             foreach (var file in files)
             {
                 var type = file.Type.ToLowerInvariant();
-                if (!string.IsNullOrEmpty(file.GroupId))
+                var storageProvider = providers.TryGetValue(type, out var provider)
+                    ? provider
+                    : providers[type] = blobContentStorageProviderFactory.CreateProvider(GetContentBasePath(storeId, type, themeName));
+                var content = file.Content;
+                var targetPath = publishingService.GetRelativeDraftUrl(file.Path, draft);
+                await using var targetStream = await storageProvider.OpenWriteAsync(targetPath);
+                await using var writer = new StreamWriter(targetStream);
+                var stringContent = JsonConvert.SerializeObject(content, settings);
+                await writer.WriteAsync(stringContent);
+
+                if (!changedFiles.ContainsKey(type))
                 {
-                    //if (file.Content != null)
-                    //{
-                    //    var groupedPage = await groupedPageService.GetByIdAsync(file.GroupId);
-                    //    if (groupedPage != null)
-                    //    {
-                    //        groupedPage.PrepareData(true);
-
-                    //        var draftPage = groupedPage.DraftPage;
-                    //        if (draftPage == null)
-                    //        {
-                    //            draftPage = new PageBuilderPage
-                    //            {
-                    //                GroupId = file.GroupId,
-                    //                Status = Draft
-                    //            };
-
-                    //            var publishPage = groupedPage.PublishedPage;
-                    //            if (publishPage != null)
-                    //            {
-                    //                draftPage.Name = publishPage.Name;
-                    //                draftPage.Permalink = publishPage.Permalink;
-                    //                draftPage.CultureName = publishPage.CultureName;
-                    //                draftPage.StoreId = publishPage.StoreId;
-                    //                draftPage.Visibility = publishPage.Visibility;
-                    //                draftPage.UserGroups = publishPage.UserGroups;
-                    //                draftPage.StartDate = publishPage.StartDate;
-                    //                draftPage.EndDate = publishPage.EndDate;
-                    //            }
-
-                    //            groupedPage.Pages.Add(draftPage);
-                    //            await groupedPageService.SaveChangesAsync([groupedPage]);
-                    //            groupedPage = await groupedPageService.GetByIdAsync(file.GroupId);
-                    //            groupedPage.PrepareData(true);
-                    //        }
-
-                    //        draftPage = groupedPage.DraftPage;
-
-                    //        // Create a stream for file.Content
-                    //        using var contentStream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(file.Content));
-                    //        await groupedPageService.SaveStreamAsContentAsync(draftPage.Id, contentStream,
-                    //            cancellationToken);
-
-                    //        changedFiles[type].Add(new GenericChangedEntry<FileEntity>(new FileEntity
-                    //        {
-                    //            Id = draftPage.Id,
-                    //            Type = file.Type
-                    //        }, EntryState.Modified));
-                    //    }
-                    //}
+                    changedFiles.Add(type, new List<GenericChangedEntry<FileEntity>>());
                 }
-                else
+
+                changedFiles[type].Add(new GenericChangedEntry<FileEntity>(new FileEntity
                 {
-                    var storageProvider = providers.ContainsKey(type)
-                        ? providers[type]
-                        : (providers[type] = blobContentStorageProviderFactory.CreateProvider(GetContentBasePath(storeId, type, themeName)));
-                    var content = file.Content;
-                    var targetPath = publishingService.GetRelativeDraftUrl(file.Path, draft);
-                    await using var targetStream = await storageProvider.OpenWriteAsync(targetPath);
-                    await using var writer = new StreamWriter(targetStream);
-                    var stringContent = JsonConvert.SerializeObject(content, settings);
-                    await writer.WriteAsync(stringContent);
-
-                    if (!changedFiles.ContainsKey(type))
-                    {
-                        changedFiles.Add(type, new List<GenericChangedEntry<FileEntity>>());
-                    }
-
-                    changedFiles[type].Add(new GenericChangedEntry<FileEntity>(new FileEntity
-                    {
-                        Path = file.Path,
-                        Type = file.Type
-                    }, EntryState.Modified));
-                }
+                    Path = file.Path,
+                    Type = file.Type
+                }, EntryState.Modified));
             }
             changedFiles.Keys.ToList().ForEach(async x =>
             {
-                await eventPublisher.Publish(new PageBuilderContentChangedEvent(x, changedFiles[x]));
+                await eventPublisher.Publish(new PageBuilderContentChangedEvent(x, changedFiles[x]), cancellationToken);
             });
         }
 
@@ -296,9 +225,9 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
         private string GetKey(string type, BlobEntry entry)
         {
-            if (type == null)
-                return Path.GetFileNameWithoutExtension(entry.Name);
-            return $"{type}::{entry.RelativeUrl}";
+            return type == null
+                ? Path.GetFileNameWithoutExtension(entry.Name)
+                : $"{type}::{entry.RelativeUrl}";
         }
 
         private ContentModel GetPageContent(BlobEntry entry, IBlobContentStorageProvider provider)
@@ -351,30 +280,9 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
         public class SaveFileModel
         {
-            public string GroupId { get; set; }
             public string Path { get; set; }
             public string Type { get; set; }
             public string Content { get; set; }
         }
-
-        //public class PageSettingsModel
-        //{
-        //    public string Id { get; set; }
-        //    public string Name { get; set; }
-        //    public string DisplayName { get; set; }
-        //    public string Permalink { get; set; }
-        //    public string Status { get; set; }
-        //    public string StoreId { get; set; }
-        //    public string CultureName { get; set; }
-        //}
-
-        //public class PageModel
-        //{
-        //    [JsonProperty("settings")]
-        //    public PageSettingsModel Settings { get; set; }
-
-        //    [JsonProperty("content")]
-        //    public List<JObject> Content { get; set; } // Keeps content as raw JSON
-        //}
     }
 }
