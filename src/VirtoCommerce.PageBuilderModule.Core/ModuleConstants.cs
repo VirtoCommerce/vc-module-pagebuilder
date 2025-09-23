@@ -35,7 +35,7 @@ namespace VirtoCommerce.PageBuilderModule.Core
                     Read,
                     Update,
                     Delete,
-                    Publish
+                    Publish,
                 ];
             }
         }
