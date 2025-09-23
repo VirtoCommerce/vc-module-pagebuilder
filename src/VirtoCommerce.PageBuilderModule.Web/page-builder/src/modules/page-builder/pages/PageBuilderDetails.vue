@@ -15,7 +15,7 @@
       <VcForm class="tw-flex tw-flex-col tw-gap-4">
         <!-- Status -->
         <PageStatus
-          :status="status.status"
+          :status="item.status"
           :has-changes="status.hasChanges"
         />
 
@@ -144,12 +144,12 @@ const {
   isModified,
   isReadOnly,
   loading,
-  loadPage,
-  savePage,
-  deletePage,
-  publishPage,
-  unpublishPage,
-  openPageDesigner,
+  loadGroup,
+  saveGroup,
+  deleteGroup,
+  publishGroup,
+  unpublishGroup,
+  openDraftDesigner,
   loadCultureNames,
   loadUserGroups,
 } = usePageBuilderDetails({
@@ -192,7 +192,7 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     disabled: isReadOnly.value,
     clickHandler: async () => {
       if (await showConfirmation(t("PAGE_BUILDER.PAGES.ALERTS.DELETE"))) {
-        await deletePage();
+        await deleteGroup();
         emit("parent:call", { method: "reload" });
         emit("close:blade");
       }
@@ -204,7 +204,7 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.DESIGNER"),
     disabled: !props.param || isReadOnly.value,
     clickHandler: () => {
-      openPageDesigner();
+      openDraftDesigner();
     },
   },
   {
@@ -214,7 +214,7 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     isVisible: !!props.param && status.value?.hasChanges === true,
     disabled: isReadOnly.value,
     clickHandler: async () => {
-      await publishPage();
+      await publishGroup();
       emit("parent:call", { method: "reload" });
     },
   },
@@ -225,7 +225,7 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     isVisible: !!props.param && status.value?.hasChanges === false,
     disabled: isReadOnly.value,
     clickHandler: async () => {
-      await unpublishPage();
+      await unpublishGroup();
       emit("parent:call", { method: "reload" });
     },
   },
@@ -237,18 +237,18 @@ async function loadCultureNamesAsync() {
 }
 
 async function handleSave() {
-  const page = await savePage();
+  const group = await saveGroup();
 
   emit("parent:call", { method: "reload" });
 
-  if (item.value.id || page.id) {
-    emit("parent:call", { method: "onItemClick", args: page.id ? page : item.value });
+  if (item.value.id || group.id) {
+    emit("parent:call", { method: "onItemClick", args: group.id ? group : item.value });
   }
 }
 
 // Lifecycle
 onMounted(async () => {
-  await loadPage();
+  await loadGroup();
 });
 
 onBeforeClose(async () => {

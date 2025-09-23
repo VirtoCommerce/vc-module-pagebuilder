@@ -50,6 +50,11 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
                 }
             }
 
+            if (!string.IsNullOrEmpty(criteria.LanguageCode))
+            {
+                query = query.Where(x => x.CultureName == criteria.LanguageCode);
+            }
+
             return query;
         }
 

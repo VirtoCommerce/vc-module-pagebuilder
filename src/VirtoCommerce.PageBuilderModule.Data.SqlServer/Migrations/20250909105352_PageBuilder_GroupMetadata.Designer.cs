@@ -12,8 +12,8 @@ using VirtoCommerce.PageBuilderModule.Data.Repositories;
 namespace VirtoCommerce.PageBuilderModule.Data.SqlServer.Migrations
 {
     [DbContext(typeof(PageBuilderModuleDbContext))]
-    [Migration("20250828110711_PageBuilder_MetaData")]
-    partial class PageBuilder_MetaData
+    [Migration("20250909105352_PageBuilder_GroupMetadata")]
+    partial class PageBuilder_GroupMetadata
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -64,10 +64,6 @@ namespace VirtoCommerce.PageBuilderModule.Data.SqlServer.Migrations
                     b.Property<DateTime?>("StartDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("Status")
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
                     b.Property<string>("StoreId")
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
@@ -111,13 +107,6 @@ namespace VirtoCommerce.PageBuilderModule.Data.SqlServer.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("CultureName")
-                        .HasMaxLength(16)
-                        .HasColumnType("nvarchar(16)");
-
-                    b.Property<DateTime?>("EndDate")
-                        .HasColumnType("datetime2");
-
                     b.Property<string>("GroupId")
                         .IsRequired()
                         .HasMaxLength(128)
@@ -130,17 +119,6 @@ namespace VirtoCommerce.PageBuilderModule.Data.SqlServer.Migrations
                     b.Property<DateTime?>("ModifiedDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("Name")
-                        .HasMaxLength(1024)
-                        .HasColumnType("nvarchar(1024)");
-
-                    b.Property<string>("Permalink")
-                        .HasMaxLength(2048)
-                        .HasColumnType("nvarchar(2048)");
-
-                    b.Property<DateTime?>("StartDate")
-                        .HasColumnType("datetime2");
-
                     b.Property<string>("Status")
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
@@ -148,13 +126,6 @@ namespace VirtoCommerce.PageBuilderModule.Data.SqlServer.Migrations
                     b.Property<string>("StoreId")
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
-
-                    b.Property<string>("UserGroups")
-                        .HasMaxLength(1024)
-                        .HasColumnType("nvarchar(1024)");
-
-                    b.Property<bool>("Visibility")
-                        .HasColumnType("bit");
 
                     b.HasKey("Id");
 

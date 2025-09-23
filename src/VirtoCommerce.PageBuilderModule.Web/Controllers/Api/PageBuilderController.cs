@@ -3,17 +3,18 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
 using VirtoCommerce.AssetsModule.Core.Assets;
 using VirtoCommerce.ContentModule.Core.Model;
 using VirtoCommerce.ContentModule.Core.Services;
-using VirtoCommerce.PageBuilderModule.Web.Events;
+using VirtoCommerce.PageBuilderModule.Core.Events;
+using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Web.Models;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Events;
@@ -184,7 +185,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             return Ok();
         }
 
-        private async Task SaveFilesTo(string storeId, string theme, SaveFilesModel model, bool draft)
+        private async Task SaveFilesTo(string storeId, string theme, SaveFilesModel model, bool draft, CancellationToken cancellationToken = default)
         {
             var files = JsonConvert.DeserializeObject<IEnumerable<SaveFileModel>>(model.Files);
 
@@ -197,53 +198,61 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
             foreach (var file in files)
             {
-                if (!string.IsNullOrEmpty(file.PageId))
+                var type = file.Type.ToLowerInvariant();
+                if (!string.IsNullOrEmpty(file.GroupId))
                 {
                     //if (file.Content != null)
                     //{
-                    //    var groupedPage = await groupedPageService.GetByIdAsync(file.PageId);
-                    //    if (groupedPage == null)
+                    //    var groupedPage = await groupedPageService.GetByIdAsync(file.GroupId);
+                    //    if (groupedPage != null)
                     //    {
-                    //        groupedPage = new GroupedPageBuilderPage
+                    //        groupedPage.PrepareData(true);
+
+                    //        var draftPage = groupedPage.DraftPage;
+                    //        if (draftPage == null)
                     //        {
-                    //            Id = file.PageId,
-                    //            GroupId = file.PageId,
-                    //            StoreId = file.Content["settings"]?["storeId"]?.ToString() ?? storeId,
-                    //            CultureName = file.Content["settings"]?["cultureName"]?.ToString(),
-                    //            Status = Draft,
-                    //        };
-                    //    }
-                    //    var page = file.Content.ToObject<PageModel>();
-                    //    var draftPage = groupedPage.Pages.FirstOrDefault(x => x.Status == Draft);
+                    //            draftPage = new PageBuilderPage
+                    //            {
+                    //                GroupId = file.GroupId,
+                    //                Status = Draft
+                    //            };
 
-                    //    if (draftPage == null)
-                    //    {
-                    //        draftPage = new PageBuilderPage
+                    //            var publishPage = groupedPage.PublishedPage;
+                    //            if (publishPage != null)
+                    //            {
+                    //                draftPage.Name = publishPage.Name;
+                    //                draftPage.Permalink = publishPage.Permalink;
+                    //                draftPage.CultureName = publishPage.CultureName;
+                    //                draftPage.StoreId = publishPage.StoreId;
+                    //                draftPage.Visibility = publishPage.Visibility;
+                    //                draftPage.UserGroups = publishPage.UserGroups;
+                    //                draftPage.StartDate = publishPage.StartDate;
+                    //                draftPage.EndDate = publishPage.EndDate;
+                    //            }
+
+                    //            groupedPage.Pages.Add(draftPage);
+                    //            await groupedPageService.SaveChangesAsync([groupedPage]);
+                    //            groupedPage = await groupedPageService.GetByIdAsync(file.GroupId);
+                    //            groupedPage.PrepareData(true);
+                    //        }
+
+                    //        draftPage = groupedPage.DraftPage;
+
+                    //        // Create a stream for file.Content
+                    //        using var contentStream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(file.Content));
+                    //        await groupedPageService.SaveStreamAsContentAsync(draftPage.Id, contentStream,
+                    //            cancellationToken);
+
+                    //        changedFiles[type].Add(new GenericChangedEntry<FileEntity>(new FileEntity
                     //        {
-                    //            Status = Draft,
-                    //            GroupId = file.PageId,
-                    //        };
-                    //        groupedPage.Pages.Add(draftPage);
+                    //            Id = draftPage.Id,
+                    //            Type = file.Type
+                    //        }, EntryState.Modified));
                     //    }
-
-                    //    groupedPage.Name = draftPage.Name = page.Settings.Name ?? draftPage.Name;
-                    //    groupedPage.Permalink = draftPage.Permalink = page.Settings.Permalink ?? draftPage.Permalink;
-                    //    groupedPage.CultureName = draftPage.CultureName = page.Settings.CultureName ?? draftPage.CultureName;
-                    //    groupedPage.StoreId = draftPage.StoreId = page.Settings.StoreId ?? draftPage.StoreId;
-
-                    //    //draftPage.PageContent = JsonConvert.SerializeObject(file.Content, new JsonSerializerSettings
-                    //    //{
-                    //    //    Formatting = Formatting.Indented,
-                    //    //    ContractResolver = new CamelCasePropertyNamesContractResolver(),
-                    //    //});
-
-                    //    await groupedPageService.SaveChangesAsync([groupedPage]);
                     //}
                 }
                 else
                 {
-                    var type = file.Type.ToLowerInvariant();
-
                     var storageProvider = providers.ContainsKey(type)
                         ? providers[type]
                         : (providers[type] = blobContentStorageProviderFactory.CreateProvider(GetContentBasePath(storeId, type, themeName)));
@@ -261,7 +270,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
                     changedFiles[type].Add(new GenericChangedEntry<FileEntity>(new FileEntity
                     {
-                        Id = string.IsNullOrEmpty(file.Path) ? file.Path : file.PageId,
                         Path = file.Path,
                         Type = file.Type
                     }, EntryState.Modified));
@@ -343,10 +351,10 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
         public class SaveFileModel
         {
-            public string PageId { get; set; }
+            public string GroupId { get; set; }
             public string Path { get; set; }
             public string Type { get; set; }
-            public JContainer Content { get; set; }
+            public string Content { get; set; }
         }
 
         //public class PageSettingsModel

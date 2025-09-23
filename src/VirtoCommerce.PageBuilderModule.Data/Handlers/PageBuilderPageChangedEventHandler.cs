@@ -9,15 +9,19 @@ using VirtoCommerce.Platform.Core.Events;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Handlers;
 
-public abstract class PageBuilderEventHandlerBase(IPageBuilderPageService pageBuilderPageService)
+public abstract class PageBuilderEventHandlerBase(
+    IPageBuilderPageService pageBuilderPageService,
+    IGroupedPageService groupedPageService
+)
 {
     protected async Task<PagesDomainEvent> ToPagesDomainEvent(PageBuilderPage entry, EntryState state)
     {
         var pageOperation = state.ToPageOperation(entry);
 
+        var group = await groupedPageService.GetByIdAsync(entry.GroupId);
         var content = await pageBuilderPageService.GetPageContentAsync(entry.Id);
 
-        var pageDocument = entry.ToPageDocument(content);
+        var pageDocument = entry.ToPageDocument(group, content);
         // todo: move to pages module
         pageDocument.Status = pageOperation.GetPageDocumentStatus();
 
@@ -36,7 +40,11 @@ public abstract class PageBuilderEventHandlerBase(IPageBuilderPageService pageBu
     }
 }
 
-public class PageBuilderPageChangedEventHandler(IEventPublisher eventPublisher, IPageBuilderPageService pageBuilderPageService) : PageBuilderEventHandlerBase(pageBuilderPageService), IEventHandler<PageBuilderPageChangedEvent>
+public class PageBuilderPageChangedEventHandler(
+    IEventPublisher eventPublisher,
+    IPageBuilderPageService pageBuilderPageService,
+    IGroupedPageService groupedPageService
+) : PageBuilderEventHandlerBase(pageBuilderPageService, groupedPageService), IEventHandler<PageBuilderPageChangedEvent>
 {
     public async Task Handle(PageBuilderPageChangedEvent message)
     {
@@ -52,7 +60,11 @@ public class PageBuilderPageChangedEventHandler(IEventPublisher eventPublisher, 
     }
 }
 
-public class GroupedPageBuilderPageChangedEventHandler(IEventPublisher eventPublisher, IPageBuilderPageService pageBuilderPageService) : PageBuilderEventHandlerBase(pageBuilderPageService), IEventHandler<GroupedPageBuilderPageChangedEvent>
+public class GroupedPageBuilderPageChangedEventHandler(
+    IEventPublisher eventPublisher,
+    IPageBuilderPageService pageBuilderPageService,
+    IGroupedPageService groupedPageService
+) : PageBuilderEventHandlerBase(pageBuilderPageService, groupedPageService), IEventHandler<GroupedPageBuilderPageChangedEvent>
 {
     public async Task Handle(GroupedPageBuilderPageChangedEvent message)
     {

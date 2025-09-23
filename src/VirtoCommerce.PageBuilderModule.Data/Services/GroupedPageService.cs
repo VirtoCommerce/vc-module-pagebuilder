@@ -26,6 +26,21 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
             return result;
         }
 
+        public async Task<string> LoadContent(string pageId, CancellationToken cancellationToken = default)
+        {
+            await using var memoryStream = new MemoryStream();
+            await LoadContentToStreamAsync(pageId, memoryStream, cancellationToken);
+            memoryStream.Position = 0;
+            using var reader = new StreamReader(memoryStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, leaveOpen: false);
+            return await reader.ReadToEndAsync(cancellationToken);
+        }
+
+        public async Task SaveContent(string pageId, string content, CancellationToken cancellationToken = default)
+        {
+            await using var memoryStream = new MemoryStream(Encoding.UTF8.GetBytes(content));
+            await SaveStreamAsContentAsync(pageId, memoryStream, cancellationToken);
+        }
+
         public async Task LoadContentToStreamAsync(string pageId, Stream stream, CancellationToken cancellationToken = default)
         {
             var repository = contentStreamRepositoryFactory();

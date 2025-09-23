@@ -61,10 +61,6 @@ namespace VirtoCommerce.PageBuilderModule.Data.PostgreSql.Migrations
                     b.Property<DateTime?>("StartDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("Status")
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
-
                     b.Property<string>("StoreId")
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
@@ -108,13 +104,6 @@ namespace VirtoCommerce.PageBuilderModule.Data.PostgreSql.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("CultureName")
-                        .HasMaxLength(16)
-                        .HasColumnType("character varying(16)");
-
-                    b.Property<DateTime?>("EndDate")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<string>("GroupId")
                         .IsRequired()
                         .HasMaxLength(128)
@@ -127,17 +116,6 @@ namespace VirtoCommerce.PageBuilderModule.Data.PostgreSql.Migrations
                     b.Property<DateTime?>("ModifiedDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("Name")
-                        .HasMaxLength(1024)
-                        .HasColumnType("character varying(1024)");
-
-                    b.Property<string>("Permalink")
-                        .HasMaxLength(2048)
-                        .HasColumnType("character varying(2048)");
-
-                    b.Property<DateTime?>("StartDate")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<string>("Status")
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
@@ -145,13 +123,6 @@ namespace VirtoCommerce.PageBuilderModule.Data.PostgreSql.Migrations
                     b.Property<string>("StoreId")
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
-
-                    b.Property<string>("UserGroups")
-                        .HasMaxLength(1024)
-                        .HasColumnType("character varying(1024)");
-
-                    b.Property<bool>("Visibility")
-                        .HasColumnType("boolean");
 
                     b.HasKey("Id");
 

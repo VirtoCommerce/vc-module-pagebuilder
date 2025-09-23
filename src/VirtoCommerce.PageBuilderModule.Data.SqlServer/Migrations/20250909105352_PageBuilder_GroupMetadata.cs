@@ -6,36 +6,26 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace VirtoCommerce.PageBuilderModule.Data.SqlServer.Migrations
 {
     /// <inheritdoc />
-    public partial class PageBuilder_MetaData : Migration
+    public partial class PageBuilder_GroupMetadata : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<DateTime>(
-                name: "EndDate",
-                table: "PageBuilderPage",
-                type: "datetime2",
-                nullable: true);
+            migrationBuilder.DropColumn(
+                name: "CultureName",
+                table: "PageBuilderPage");
 
-            migrationBuilder.AddColumn<DateTime>(
-                name: "StartDate",
-                table: "PageBuilderPage",
-                type: "datetime2",
-                nullable: true);
+            migrationBuilder.DropColumn(
+                name: "Name",
+                table: "PageBuilderPage");
 
-            migrationBuilder.AddColumn<string>(
-                name: "UserGroups",
-                table: "PageBuilderPage",
-                type: "nvarchar(1024)",
-                maxLength: 1024,
-                nullable: true);
+            migrationBuilder.DropColumn(
+                name: "Permalink",
+                table: "PageBuilderPage");
 
-            migrationBuilder.AddColumn<bool>(
-                name: "Visibility",
-                table: "PageBuilderPage",
-                type: "bit",
-                nullable: false,
-                defaultValue: false);
+            migrationBuilder.DropColumn(
+                name: "Status",
+                table: "GroupedPageBuilderPage");
 
             migrationBuilder.AddColumn<DateTime>(
                 name: "EndDate",
@@ -69,22 +59,6 @@ namespace VirtoCommerce.PageBuilderModule.Data.SqlServer.Migrations
         {
             migrationBuilder.DropColumn(
                 name: "EndDate",
-                table: "PageBuilderPage");
-
-            migrationBuilder.DropColumn(
-                name: "StartDate",
-                table: "PageBuilderPage");
-
-            migrationBuilder.DropColumn(
-                name: "UserGroups",
-                table: "PageBuilderPage");
-
-            migrationBuilder.DropColumn(
-                name: "Visibility",
-                table: "PageBuilderPage");
-
-            migrationBuilder.DropColumn(
-                name: "EndDate",
                 table: "GroupedPageBuilderPage");
 
             migrationBuilder.DropColumn(
@@ -98,6 +72,34 @@ namespace VirtoCommerce.PageBuilderModule.Data.SqlServer.Migrations
             migrationBuilder.DropColumn(
                 name: "Visibility",
                 table: "GroupedPageBuilderPage");
+
+            migrationBuilder.AddColumn<string>(
+                name: "CultureName",
+                table: "PageBuilderPage",
+                type: "nvarchar(16)",
+                maxLength: 16,
+                nullable: true);
+
+            migrationBuilder.AddColumn<string>(
+                name: "Name",
+                table: "PageBuilderPage",
+                type: "nvarchar(1024)",
+                maxLength: 1024,
+                nullable: true);
+
+            migrationBuilder.AddColumn<string>(
+                name: "Permalink",
+                table: "PageBuilderPage",
+                type: "nvarchar(2048)",
+                maxLength: 2048,
+                nullable: true);
+
+            migrationBuilder.AddColumn<string>(
+                name: "Status",
+                table: "GroupedPageBuilderPage",
+                type: "nvarchar(128)",
+                maxLength: 128,
+                nullable: true);
         }
     }
 }

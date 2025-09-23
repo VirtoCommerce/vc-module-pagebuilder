@@ -14,26 +14,8 @@ public class PageBuilderPageEntity : AuditableEntity, IDataEntity<PageBuilderPag
     [StringLength(IdLength)]
     public string StoreId { get; set; }
 
-    [StringLength(CultureNameLength)]
-    public string CultureName { get; set; }
-
-    [StringLength(1024)]
-    public string Name { get; set; }
-
-    [StringLength(2048)]
-    public string Permalink { get; set; }
-
     [StringLength(128)]
     public string Status { get; set; } // Draft | Published | Archived
-
-    public bool Visibility { get; set; }
-
-    [StringLength(Length1024)]
-    public string UserGroups { get; set; }
-
-    public DateTime? StartDate { get; set; }
-
-    public DateTime? EndDate { get; set; }
 
     public virtual PageBuilderContentEntity Content { get; set; }
 
@@ -49,15 +31,7 @@ public class PageBuilderPageEntity : AuditableEntity, IDataEntity<PageBuilderPag
 
         model.GroupId = GroupId;
         model.StoreId = StoreId;
-        model.CultureName = CultureName;
-        model.Name = Name;
-        model.Permalink = Permalink;
         model.Status = Status;
-
-        model.Visibility = Visibility;
-        model.UserGroups = UserGroups;
-        model.StartDate = StartDate;
-        model.EndDate = EndDate;
 
         return model;
     }
@@ -74,15 +48,7 @@ public class PageBuilderPageEntity : AuditableEntity, IDataEntity<PageBuilderPag
 
         GroupId = model.GroupId;
         StoreId = model.StoreId;
-        CultureName = model.CultureName;
-        Name = model.Name;
-        Permalink = model.Permalink;
         Status = model.Status;
-
-        Visibility = model.Visibility;
-        UserGroups = model.UserGroups;
-        StartDate = model.StartDate;
-        EndDate = model.EndDate;
 
         return this;
     }
@@ -91,14 +57,6 @@ public class PageBuilderPageEntity : AuditableEntity, IDataEntity<PageBuilderPag
     {
         target.GroupId = GroupId;
         target.StoreId = StoreId;
-        target.CultureName = CultureName;
-        target.Name = Name;
-        target.Permalink = Permalink;
         target.Status = Status;
-
-        target.Visibility = Visibility;
-        target.UserGroups = UserGroups;
-        target.StartDate = StartDate;
-        target.EndDate = EndDate;
     }
 }

@@ -64,7 +64,7 @@ export function usePageBuilderList(options?: UsePageBuilderListOptions): IUsePag
     criteria.storeId = storeId.value;
 
     const apiClient = await getApiClient();
-    searchResult.value = await apiClient.searchGrouped(criteria);
+    searchResult.value = await apiClient.searchGroups(criteria);
   });
 
   function loadActivePages(query?: IPageBuilderPageSearchCriteria) {
@@ -79,7 +79,7 @@ export function usePageBuilderList(options?: UsePageBuilderListOptions): IUsePag
     const ids = _query?.ids;
     if (ids) {
       const apiClient = await getApiClient();
-      await apiClient.archiveGrouped(ids);
+      await apiClient.archiveGroups(ids);
     }
   });
 

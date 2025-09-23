@@ -27,11 +27,6 @@ public class PageBuilderPageSearchService(
             query = query.Where(x => x.StoreId == criteria.StoreId);
         }
 
-        if (!string.IsNullOrEmpty(criteria.LanguageCode))
-        {
-            query = query.Where(x => x.CultureName == criteria.LanguageCode);
-        }
-
         if (!string.IsNullOrEmpty(criteria.Status))
         {
             var statuses = criteria.Status.Split(',', StringSplitOptions.RemoveEmptyEntries);
