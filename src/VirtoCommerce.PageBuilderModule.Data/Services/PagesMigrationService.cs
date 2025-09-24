@@ -14,11 +14,11 @@ public class PagesMigrationService(
     ISettingsManager settingsManager
     ) : IPagesMigrationService
 {
-    private static readonly object _lockObject = new();
+    private static readonly object LockObject = new();
 
     public void StartMigration()
     {
-        lock (_lockObject)
+        lock (LockObject)
         {
             var migrationCompleted = settingsManager.GetValue<bool>(Settings.Migration.MigrateMetadataFromContent);
             if (!migrationCompleted)
@@ -28,7 +28,7 @@ public class PagesMigrationService(
         }
     }
 
-    private async Task MigratePages()
+    public async Task MigratePages()
     {
         try
         {
@@ -72,15 +72,30 @@ public class PagesMigrationService(
         try
         {
             var content = JObject.Parse(contentAsString.IsNullOrEmpty() ? "{}" : contentAsString);
-            var settings = content["settings"];
-            model.Visibility = (settings?.Value<bool?>("visibility") ?? true);
-            model.UserGroups = settings?.Value<string>("userGroups");
-            model.StartDate = settings?.Value<DateTime?>("startDate");
-            model.EndDate = settings?.Value<DateTime?>("endDate");
+            var settings = (JObject)content["settings"];
+            SetValue(settings, "visibility", (bool v) => model.Visibility = v);
+            SetValue(settings, "userGroups", (string v) => model.UserGroups = v);
+            SetValue(settings, "startDate", (DateTime v) => model.StartDate = v);
+            SetValue(settings, "endDate", (DateTime v) => model.EndDate = v);
         }
         catch (Exception)
         {
             // ignore errors
+        }
+    }
+
+    private static void SetValue<T>(JObject settings, string propertyName, Action<T> setter)
+    {
+        var token = settings?.GetValue(propertyName);
+        if (token == null || token.Type == JTokenType.Null)
+        {
+            return;
+        }
+
+        var value = token.ToObject<T>();
+        if (value != null)
+        {
+            setter(value);
         }
     }
 }
