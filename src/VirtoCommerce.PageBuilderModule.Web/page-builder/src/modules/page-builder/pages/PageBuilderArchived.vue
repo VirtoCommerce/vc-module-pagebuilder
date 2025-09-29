@@ -1,66 +1,32 @@
 <template>
   <VcBlade
-    :title="bladeTitle"
-    width="50%"
-    :expanded="expanded"
-    :closable="closable"
-    :toolbar-items="bladeToolbar"
-    @close="$emit('close:blade')"
-    @expand="$emit('expand:blade')"
-    @collapse="$emit('collapse:blade')"
-  >
+           :title="bladeTitle"
+           width="50%"
+           :expanded="expanded"
+           :closable="closable"
+           :toolbar-items="bladeToolbar"
+           @close="$emit('close:blade')"
+           @expand="$emit('expand:blade')"
+           @collapse="$emit('collapse:blade')">
     <!-- @vue-generic {GroupedPageBuilderPage}-->
     <VcTable
-      :expanded="expanded"
-      :items="items"
-      :columns="columns"
-      :pages="pages"
-      :current-page="currentPage"
-      :total-count="totalCount"
-      :selected-item-id="selectedItemId"
-      :search-value="searchValue"
-      :loading="loading"
-      :sort-expression="sortExpression"
-      :active-filter-count="activeFilterCount"
-      @item-click="onItemClick"
-      @search:change="onSearchList"
-      @pagination-click="onPaginationClick"
-      @header-click="onHeaderClick"
-    >
+             :expanded="expanded"
+             :items="items"
+             :columns="columns"
+             :pages="pages"
+             :current-page="currentPage"
+             :total-count="totalCount"
+             :selected-item-id="selectedItemId"
+             :search-value="searchValue"
+             :loading="loading"
+             :sort-expression="sortExpression"
+             :active-filter-count="activeFilterCount"
+             @item-click="onItemClick"
+             @search:change="onSearchList"
+             @pagination-click="onPaginationClick"
+             @header-click="onHeaderClick">
       <template #item_status="{ item }">
         <PageStatus :status="item.status" />
-      </template>
-
-      <template #filters="{ closePanel }">
-        <div class="tw-p-4">
-          <h3 class="tw-font-semibold tw-text-sm tw-mb-4">{{ $t("PAGE_BUILDER.PAGES.LIST.TABLE.FILTER.STATUS") }}</h3>
-          <div class="tw-flex tw-flex-col tw-gap-2">
-            <VcCheckbox
-              v-for="status in pageStatuses"
-              :key="status.value"
-              :model-value="stagedFilters.status === status.value"
-              @update:model-value="(checked: boolean) => toggleStatusFilter(status.value, checked)"
-            >
-              {{ status.label }}
-            </VcCheckbox>
-          </div>
-
-          <div class="tw-flex tw-gap-2 tw-mt-6">
-            <VcButton
-              :disabled="isFilterActionDisabled.apply"
-              @click="applyFilters(closePanel)"
-            >
-              {{ $t("PAGE_BUILDER.PAGES.LIST.TABLE.FILTER.APPLY") }}
-            </VcButton>
-            <VcButton
-              variant="secondary"
-              :disabled="isFilterActionDisabled.reset"
-              @click="resetFilters(closePanel)"
-            >
-              {{ $t("PAGE_BUILDER.PAGES.LIST.TABLE.FILTER.RESET") }}
-            </VcButton>
-          </div>
-        </div>
       </template>
     </VcTable>
   </VcBlade>
@@ -124,9 +90,8 @@ const {
   currentPage,
   searchQuery,
   storeId,
-  loadArchivedPages: loadPages,
+  loadPages,
   loading,
-  pageStatuses,
 } = usePageBuilderList({
   pageSize: 20,
   sort: sortExpression.value,
@@ -268,40 +233,11 @@ function onHeaderClick(item: ITableColumns) {
   tableSortHandler(item.id);
 }
 
-function toggleStatusFilter(statusValue: string, checked: boolean) {
-  if (checked) {
-    stagedFilters.value.status = statusValue;
-  } else {
-    stagedFilters.value.status = undefined;
-  }
-}
-
-async function applyFilters(closePanel: () => void) {
-  filtersQuery.value = {
-    status: stagedFilters.value.status,
-  };
-
-  await loadPages({
-    ...searchQuery.value,
-    ...filtersQuery.value,
-  });
-  closePanel();
-}
-
-async function resetFilters(closePanel: () => void) {
-  stagedFilters.value = { status: undefined };
-  filtersQuery.value = undefined;
-  await loadPages({
-    ...searchQuery.value,
-    statuses: PageStatuses.Archived,
-  });
-
-  closePanel();
-}
-
 // Lifecycle hooks
 onMounted(async () => {
-  await loadPages();
+  await loadPages({
+    statuses: PageStatuses.Archived,
+  });
 });
 
 defineExpose({

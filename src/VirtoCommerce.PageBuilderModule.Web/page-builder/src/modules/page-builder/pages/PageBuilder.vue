@@ -130,20 +130,10 @@ const { sortExpression, handleSortChange: tableSortHandler } = useTableSort({
 });
 
 // Composable
-const {
-  items,
-  totalCount,
-  pages,
-  currentPage,
-  searchQuery,
-  storeId,
-  loadActivePages: loadPages,
-  removePages,
-  loading,
-  pageStatuses,
-} = usePageBuilderList({
-  pageSize: 20,
-  sort: sortExpression.value,
+const { items, totalCount, pages, currentPage, searchQuery, storeId, loadPages, removePages, loading, pageStatuses } =
+  usePageBuilderList({
+    pageSize: 20,
+    sort: sortExpression.value,
 });
 
 // State
@@ -354,8 +344,9 @@ function toggleStatusFilter(statusValue: string, checked: boolean) {
 }
 
 async function applyFilters(closePanel: () => void) {
+  console.log(stagedFilters.value);
   filtersQuery.value = {
-    status: stagedFilters.value.status,
+    statuses: stagedFilters.value.status,
   };
 
   await loadPages({
@@ -378,7 +369,9 @@ async function resetFilters(closePanel: () => void) {
 
 // Lifecycle hooks
 onMounted(async () => {
-  await loadPages();
+  await loadPages({
+    statuses: `${PageStatuses.Draft},${PageStatuses.Published}`,
+  });
 });
 
 defineExpose({

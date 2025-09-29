@@ -26,8 +26,7 @@ export interface IUsePageBuilderList {
   pages: ComputedRef<number>;
   currentPage: ComputedRef<number>;
   searchQuery: ComputedRef<IPageBuilderPageSearchCriteria>;
-  loadActivePages: (query?: IPageBuilderPageSearchCriteria) => Promise<void>;
-  loadArchivedPages: (query?: IPageBuilderPageSearchCriteria) => Promise<void>;
+  loadPages: (query?: IPageBuilderPageSearchCriteria) => Promise<void>;
   removePages: (query?: { ids: string[] }) => Promise<void>;
   loading: ComputedRef<boolean>;
   pageStatuses: ComputedRef<{ value: string; label: string }[]>;
@@ -67,14 +66,6 @@ export function usePageBuilderList(options?: UsePageBuilderListOptions): IUsePag
     searchResult.value = await apiClient.searchGroups(criteria);
   });
 
-  function loadActivePages(query?: IPageBuilderPageSearchCriteria) {
-    return loadPages({ ...query, statuses: `${PageStatuses.Draft},${PageStatuses.Published}` });
-  }
-
-  function loadArchivedPages(query?: IPageBuilderPageSearchCriteria) {
-    return loadPages({ ...query, statuses: PageStatuses.Archived });
-  }
-
   const { action: removePages, loading: loadingRemovePages } = useAsync<{ ids: string[] }>(async (_query) => {
     const ids = _query?.ids;
     if (ids) {
@@ -93,8 +84,7 @@ export function usePageBuilderList(options?: UsePageBuilderListOptions): IUsePag
     pages: computed(() => Math.ceil((searchResult.value?.totalCount || 1) / pageSize)),
     currentPage: computed(() => Math.ceil((searchQuery.value?.skip || 0) / Math.max(1, pageSize) + 1)),
     searchQuery: computed(() => searchQuery.value),
-    loadActivePages,
-    loadArchivedPages,
+    loadPages,
     removePages,
     loading: useLoading(loadingPages, loadingRemovePages),
     pageStatuses: computed(() =>
