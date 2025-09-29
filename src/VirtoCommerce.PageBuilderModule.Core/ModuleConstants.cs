@@ -71,9 +71,9 @@ namespace VirtoCommerce.PageBuilderModule.Core
 
             public static class Migration
             {
-                public static SettingDescriptor MigrateMetadataFromContent { get; } = new()
+                public static SettingDescriptor MetadataFromContentMigrated { get; } = new()
                 {
-                    Name = "VirtoCommerce.PageBuilderModule.Migration.MigrateMetadataFromContent",
+                    Name = "VirtoCommerce.PageBuilderModule.Migration.MetadataFromContentMigrated",
                     GroupName = "CMS Content|Migration",
                     ValueType = SettingValueType.Boolean,
                     DefaultValue = false
@@ -82,7 +82,7 @@ namespace VirtoCommerce.PageBuilderModule.Core
                 {
                     get
                     {
-                        yield return MigrateMetadataFromContent;
+                        yield return MetadataFromContentMigrated;
                     }
                 }
             }

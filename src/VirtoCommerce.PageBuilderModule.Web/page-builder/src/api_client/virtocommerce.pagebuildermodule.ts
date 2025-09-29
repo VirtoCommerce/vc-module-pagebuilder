@@ -1349,7 +1349,7 @@ export interface IPageBuilderPage {
 
 export class PageBuilderPageSearchCriteria implements IPageBuilderPageSearchCriteria {
     storeId?: string | undefined;
-    status?: string | undefined;
+    statuses?: string | undefined;
     responseGroup?: string | undefined;
     objectType?: string | undefined;
     objectTypes?: string[] | undefined;
@@ -1374,7 +1374,7 @@ export class PageBuilderPageSearchCriteria implements IPageBuilderPageSearchCrit
     init(_data?: any) {
         if (_data) {
             this.storeId = _data["storeId"];
-            this.status = _data["status"];
+            this.statuses = _data["statuses"];
             this.responseGroup = _data["responseGroup"];
             this.objectType = _data["objectType"];
             if (Array.isArray(_data["objectTypes"])) {
@@ -1411,7 +1411,7 @@ export class PageBuilderPageSearchCriteria implements IPageBuilderPageSearchCrit
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["storeId"] = this.storeId;
-        data["status"] = this.status;
+        data["statuses"] = this.statuses;
         data["responseGroup"] = this.responseGroup;
         data["objectType"] = this.objectType;
         if (Array.isArray(this.objectTypes)) {
@@ -1441,7 +1441,7 @@ export class PageBuilderPageSearchCriteria implements IPageBuilderPageSearchCrit
 
 export interface IPageBuilderPageSearchCriteria {
     storeId?: string | undefined;
-    status?: string | undefined;
+    statuses?: string | undefined;
     responseGroup?: string | undefined;
     objectType?: string | undefined;
     objectTypes?: string[] | undefined;

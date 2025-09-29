@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using VirtoCommerce.ContentModule.Core.Model;
 using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Models;
@@ -30,7 +31,8 @@ public class PageBuilderPageController(
     IGroupedPageSearchService groupedPageSearchService,
     IStoreService storeService,
     IAuthorizationService authorizationService,
-    IPageDocumentSearchService pageDocumentSearchService)
+    IPageDocumentSearchService pageDocumentSearchService,
+    ILogger<PageBuilderPageController> logger)
     : Controller
 {
     [HttpPost("search")]
@@ -248,7 +250,7 @@ public class PageBuilderPageController(
         }
         catch
         {
-            // ignore
+            logger.LogDebug($"Couldn't remove group '{groupId}'");
         }
 
         try
@@ -259,7 +261,7 @@ public class PageBuilderPageController(
         }
         catch
         {
-            // ignore
+            logger.LogDebug($"Couldn't remove pages from group '{groupId}'");
         }
 
         return Ok(new { pageDeleted, indexDeleted });

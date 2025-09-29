@@ -68,11 +68,11 @@ export function usePageBuilderList(options?: UsePageBuilderListOptions): IUsePag
   });
 
   function loadActivePages(query?: IPageBuilderPageSearchCriteria) {
-    return loadPages({ ...query, status: `${PageStatuses.Draft},${PageStatuses.Published}` });
+    return loadPages({ ...query, statuses: `${PageStatuses.Draft},${PageStatuses.Published}` });
   }
 
   function loadArchivedPages(query?: IPageBuilderPageSearchCriteria) {
-    return loadPages({ ...query, status: PageStatuses.Archived });
+    return loadPages({ ...query, statuses: PageStatuses.Archived });
   }
 
   const { action: removePages, loading: loadingRemovePages } = useAsync<{ ids: string[] }>(async (_query) => {

@@ -72,7 +72,7 @@ import { useI18n } from "vue-i18n";
 import { debounce } from "lodash-es";
 import { IBladeToolbar, IParentCallArgs, ITableColumns, useBladeNavigation, useTableSort } from "@vc-shell/framework";
 
-import { usePageBuilderList } from "../composables/usePageBuilderList";
+import { PageStatuses, usePageBuilderList } from "../composables/usePageBuilderList";
 import { GroupedPageBuilderPage } from "../../../api_client/virtocommerce.pagebuildermodule";
 import PageStatus from "../components/pageStatus.vue";
 
@@ -293,7 +293,7 @@ async function resetFilters(closePanel: () => void) {
   filtersQuery.value = undefined;
   await loadPages({
     ...searchQuery.value,
-    status: undefined,
+    statuses: PageStatuses.Archived,
   });
 
   closePanel();

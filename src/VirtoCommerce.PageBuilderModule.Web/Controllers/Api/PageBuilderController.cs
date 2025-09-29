@@ -31,8 +31,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             IOptions<ContentOptions> options,
             IPublishingService publishingService,
             IEventPublisher eventPublisher
-            //IPageBuilderPageService pageBuilderPageService,
-            //IGroupedPageService groupedPageService
             )
         : Controller
     {
@@ -46,7 +44,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
         [HttpGet]
         [Route("template")]
-        public async Task<ActionResult> GetTemplate(string storeId, string theme, string path, string type, bool draft = false/*, string pageId = null*/)
+        public async Task<ActionResult> GetTemplate(string storeId, string theme, string path, string type, bool draft = false)
         {
             var basePath = GetContentBasePath(storeId, type, theme);
             if (!path.IsNullOrEmpty())

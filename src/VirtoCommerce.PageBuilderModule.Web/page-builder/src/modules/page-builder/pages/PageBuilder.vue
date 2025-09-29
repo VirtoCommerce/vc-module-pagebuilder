@@ -84,7 +84,7 @@ import {
   useTableSort,
 } from "@vc-shell/framework";
 
-import { usePageBuilderList } from "../composables/usePageBuilderList";
+import { PageStatuses, usePageBuilderList } from "../composables/usePageBuilderList";
 import { GroupedPageBuilderPage } from "../../../api_client/virtocommerce.pagebuildermodule";
 import PageStatus from "../components/pageStatus.vue";
 
@@ -370,7 +370,7 @@ async function resetFilters(closePanel: () => void) {
   filtersQuery.value = undefined;
   await loadPages({
     ...searchQuery.value,
-    status: undefined,
+    statuses: `${PageStatuses.Draft},${PageStatuses.Published}`,
   });
 
   closePanel();

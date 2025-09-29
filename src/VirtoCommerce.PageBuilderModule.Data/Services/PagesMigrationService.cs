@@ -20,7 +20,7 @@ public class PagesMigrationService(
     {
         lock (LockObject)
         {
-            var migrationCompleted = settingsManager.GetValue<bool>(Settings.Migration.MigrateMetadataFromContent);
+            var migrationCompleted = settingsManager.GetValue<bool>(Settings.Migration.MetadataFromContentMigrated);
             if (!migrationCompleted)
             {
                 BackgroundJob.Enqueue(() => MigratePages());
@@ -35,7 +35,7 @@ public class PagesMigrationService(
             const int step = 20;
             var criteria = new PageBuilderPageSearchCriteria
             {
-                Status = $"{PageStatuses.Draft},{PageStatuses.Published}",
+                Statuses = $"{PageStatuses.Draft},{PageStatuses.Published}",
                 Skip = 0,
                 Take = step,
             };
@@ -63,7 +63,7 @@ public class PagesMigrationService(
         }
         finally
         {
-            await settingsManager.SetValueAsync(Settings.Migration.MigrateMetadataFromContent.Name, true);
+            await settingsManager.SetValueAsync(Settings.Migration.MetadataFromContentMigrated.Name, true);
         }
     }
 

@@ -7,7 +7,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Repositories;
 
 public abstract class ContentStreamRepository(PageBuilderModuleDbContext dbContext) : IContentStreamRepository
 {
-    public const int ContentBufferSize = 8192;
+    protected virtual int ContentBufferSize => 8192;
     public async Task SaveBinaryAsync(string pageId, TextReader reader, CancellationToken cancellationToken = default)
     {
         var connection = dbContext.Database.GetDbConnection();

@@ -165,12 +165,18 @@ const bladeTitle = computed(() => {
     : item.value?.name + t("PAGE_BUILDER.PAGES.DETAILS.TITLE.DETAILS");
 });
 
+function parseUserGroups(str: string | undefined): string[] {
+  return str ? str.split(",").filter(x => !!x) : [];
+}
+function serializeUserGroups(groups: string[]): string {
+  return groups.filter(x => !!x).join(",");
+}
 const itemUserGroups = computed<string[]>({
   get: () => {
-    return item.value.userGroups?.split(",") || [];
+    return parseUserGroups(item.value.userGroups);
   },
   set: (val: string[]) => {
-    item.value.userGroups = val?.filter((x) => !!x).join(",");
+    item.value.userGroups = serializeUserGroups(val);
   },
 });
 

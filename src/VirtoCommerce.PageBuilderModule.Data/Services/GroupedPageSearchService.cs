@@ -29,9 +29,9 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
                 query = query.Where(x => x.StoreId == criteria.StoreId);
             }
 
-            if (!string.IsNullOrEmpty(criteria.Status))
+            if (!string.IsNullOrEmpty(criteria.Statuses))
             {
-                var statuses = criteria.Status.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                var statuses = criteria.Statuses.Split(',', StringSplitOptions.RemoveEmptyEntries);
 
                 if (statuses.Contains(Archived))
                 {
