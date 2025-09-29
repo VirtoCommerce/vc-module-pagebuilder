@@ -71,7 +71,7 @@ public abstract class ContentStreamRepository(PageBuilderModuleDbContext dbConte
 
         if (await reader.ReadAsync(cancellationToken))
         {
-            using var textReader = reader.GetTextReader(0);      // потоковое чтение NVARCHAR(MAX)
+            using var textReader = reader.GetTextReader(0);
             var buf = new char[ContentBufferSize];
             int read;
             while ((read = await textReader.ReadAsync(buf, 0, buf.Length)) > 0)
