@@ -205,9 +205,10 @@ angular.module('virtoCommerce.pageBuilderModule')
                         getDocumentIndex();
                         updateToolbarCommands();
                         postMessageToPageBuilder({ source: 'platform', published: true, hasChanges: false });
+                        blade.parentBlade.refresh();
                     });
                 },
-                canExecuteMethod: function () { return true; }
+                canExecuteMethod: function () { return !isDirty(); }
             };
             var unpublishCommand = {
                 name: "pageBuilder.commands.unpublish", icon: 'fa fa-file-alt',
@@ -221,9 +222,10 @@ angular.module('virtoCommerce.pageBuilderModule')
                         blade.published = false;
                         updateToolbarCommands();
                         postMessageToPageBuilder({ source: 'platform', published: false, hasChanges: true });
+                        blade.parentBlade.refresh();
                     });
                 },
-                canExecuteMethod: function () { return true; }
+                canExecuteMethod: function () { return !isDirty(); }
             };
 
             function fillMetadata() {
