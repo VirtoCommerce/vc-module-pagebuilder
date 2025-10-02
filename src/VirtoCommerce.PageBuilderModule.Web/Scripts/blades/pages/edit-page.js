@@ -95,7 +95,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                                     if (permalink && permalink.length && permalink[0] !== '/') {
                                         permalink = '/' + permalink;
                                     }
-                                    return permalink == value && x.relativeUrl != blade.currentEntity.relativeUrl;
+                                    return permalink == value && !compareFileNames(x.relativeUrl, blade.currentEntity.relativeUrl);
                                 } catch { }
                                 return false;
                             });
@@ -106,6 +106,17 @@ angular.module('virtoCommerce.pageBuilderModule')
                 }, 1000);
                 return $q.resolve();
             };
+
+            function undraftUrl(url) {
+                if (value && value.endsWith('-draft')) {
+                    return value.slice(0, -6);
+                }
+                return value;
+            }
+
+            function compareFileNames(file1, file2) {
+                return undraftUrl(file1) === undraftUrl(file2);
+            }
             
             $scope.copyToClipboard = function (elementId) {
                 var text = document.getElementById(elementId);
