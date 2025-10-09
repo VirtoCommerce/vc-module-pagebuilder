@@ -280,7 +280,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         {
             public string Path { get; set; }
             public string Type { get; set; }
-            public string Content { get; set; }
+            public object Content { get; set; }
         }
     }
 }
