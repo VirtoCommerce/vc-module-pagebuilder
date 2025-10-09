@@ -25,7 +25,7 @@ angular.module('virtoCommerce.contentModule')
                 params: { draft: true },
                 headers: { 'Content-Type': undefined },
                 transformRequest: function (currentEntity) {
-                    var blobname = helper.prepareFilename(currentEntity);
+                    var blobname = currentEntity.name;
                     var fd = new FormData();
                     var permalink = currentEntity.settings.permalink;
                     if (permalink && permalink.length && permalink[0] !== '/') {

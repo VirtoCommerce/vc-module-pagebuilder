@@ -95,7 +95,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                                     if (permalink && permalink.length && permalink[0] !== '/') {
                                         permalink = '/' + permalink;
                                     }
-                                    return permalink == value && x.relativeUrl != blade.currentEntity.relativeUrl;
+                                    return permalink == value && !compareFileNames(x.relativeUrl, blade.currentEntity.relativeUrl);
                                 } catch { }
                                 return false;
                             });
@@ -106,6 +106,17 @@ angular.module('virtoCommerce.pageBuilderModule')
                 }, 1000);
                 return $q.resolve();
             };
+
+            function undraftUrl(url) {
+                if (value && value.endsWith('-draft')) {
+                    return value.slice(0, -6);
+                }
+                return value;
+            }
+
+            function compareFileNames(file1, file2) {
+                return undraftUrl(file1) === undraftUrl(file2);
+            }
             
             $scope.copyToClipboard = function (elementId) {
                 var text = document.getElementById(elementId);
@@ -115,30 +126,20 @@ angular.module('virtoCommerce.pageBuilderModule')
             }
 
             $scope.saveChanges = function () {
-                var newFileName = addExtension($scope.blade.currentEntity.name);
+                var newFileName = [blade.currentEntity.pageName, blade.currentEntity.language, 'page'].filter(x => x).join('.');
                 var originFileName = null;
 
                 if (!blade.isNew) {
                     originFileName = blade.origEntity.name;
                 }
                 if (!$scope.blade.currentEntity.settings.name) {
-                    $scope.blade.currentEntity.settings.name = newFileName.substring(0, newFileName.lastIndexOf('.page'));
+                    $scope.blade.currentEntity.settings.name = blade.currentEntity.pageName;
                 }
                 if (!$scope.blade.currentEntity.settings.permalink) {
-                    $scope.blade.currentEntity.settings.permalink = '/' + $scope.blade.currentEntity.settings.name;
+                    $scope.blade.currentEntity.settings.permalink = '/' + blade.currentEntity.pageName;
                 }
                 reloadPageAndSave(newFileName, originFileName);
             };
-
-            function addExtension(sourceName) {
-                var result = sourceName;
-
-                if (!result.endsWith('.page')) {
-                    result += '.page';
-                }
-
-                return result;
-            }
 
             if (!blade.isNew) {
                 blade.toolbarCommands = [
@@ -204,9 +205,10 @@ angular.module('virtoCommerce.pageBuilderModule')
                         getDocumentIndex();
                         updateToolbarCommands();
                         postMessageToPageBuilder({ source: 'platform', published: true, hasChanges: false });
+                        blade.parentBlade.refresh();
                     });
                 },
-                canExecuteMethod: function () { return true; }
+                canExecuteMethod: function () { return !isDirty(); }
             };
             var unpublishCommand = {
                 name: "pageBuilder.commands.unpublish", icon: 'fa fa-file-alt',
@@ -220,21 +222,31 @@ angular.module('virtoCommerce.pageBuilderModule')
                         blade.published = false;
                         updateToolbarCommands();
                         postMessageToPageBuilder({ source: 'platform', published: false, hasChanges: true });
+                        blade.parentBlade.refresh();
                     });
                 },
-                canExecuteMethod: function () { return true; }
+                canExecuteMethod: function () { return !isDirty(); }
             };
 
             function fillMetadata() {
                 var blobName = blade.currentEntity.name || '';
-                var idx = blobName.lastIndexOf('.');
-                if (idx >= 0) {
-                    blobName = blobName.substring(0, idx);
-                    idx = blobName.lastIndexOf('.'); // language
-                    if (idx >= 0) {
-                        blade.currentEntity.language = blobName.substring(idx + 1);
+
+                var blobNameParts = blobName.split('.');
+                blobNameParts.length > 1 ? blobNameParts.pop() : ''; // ignore extension
+
+                if (blade.languages && blade.languages.length) {
+                    var possibleFileLanguage = blobNameParts.length > 1 ? blobNameParts[blobNameParts.length - 1] : '';
+
+                    var language = blade.languages.find(function (lang) { return lang.toLowerCase() === possibleFileLanguage.toLowerCase(); });
+
+                    if (language) {
+                        blobNameParts.pop();
+                        blade.currentEntity.language = language;
                     }
                 }
+
+                blade.currentEntity.pageName = blobNameParts.join('.');
+                blade.origEntity = angular.copy(blade.currentEntity);
             }
 
             function parseFileContent(fileContent) {
@@ -367,9 +379,7 @@ angular.module('virtoCommerce.pageBuilderModule')
 
                     savePage(newFileName, originFileName);
                 }, function (error) {
-                    var dialog = { id: "errorDetails" };
-                    dialog.message = error.message;
-                    dialogService.showDialog(dialog, '$(Platform)/Scripts/app/modularity/dialogs/errorDetails-dialog.tpl.html', 'platformWebApp.confirmDialogController');
+                    savePage(newFileName, originFileName);
                 });
             }
 
@@ -384,7 +394,7 @@ angular.module('virtoCommerce.pageBuilderModule')
             }
 
             function savePage(newFileName, originFileName) {
-                $scope.blade.currentEntity.relativeUrl = joinPath($scope.blade.parentBlade.currentEntity.relativeUrl, newFileName);
+                $scope.blade.currentEntity.relativeUrl = joinPath($scope.blade.parentBlade.currentEntity?.relativeUrl || '', newFileName);
                 $scope.blade.currentEntity.relativeUrl = nameHelper.prepareRelativeUrl($scope.blade.currentEntity);
 
                 var oldRelativeUrl = blade.origEntity && blade.origEntity.relativeUrl;
@@ -392,6 +402,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                 var newLanguage = $scope.blade.currentEntity.language;
 
                 //$scope.blade.currentEntity.content = JSON.stringify($scope.blade.currentEntity.blocks, null, 4);
+                $scope.blade.currentEntity.name = newFileName;
                 pageBuilderApi.savePage({
                     contentType: blade.contentType,
                     storeId: blade.storeId,
@@ -406,7 +417,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                             (!blade.isNew && oldLanguage !== newLanguage)) {
                             $scope.blade.currentEntity.language = newLanguage;
                             $scope.blade.currentEntity.name = newFileName;
-                            var newRelativeUrl = blade.currentEntity.relativeUrl;
+
                             contentApi.delete({
                                 contentType: blade.contentType,
                                 storeId: blade.storeId,
