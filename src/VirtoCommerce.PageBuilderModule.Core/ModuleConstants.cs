@@ -4,6 +4,8 @@ namespace VirtoCommerce.PageBuilderModule.Core
 {
     public static class ModuleConstants
     {
+        public const string DefaultPageContent = "{ \"settings\": {}, \"content\": [] }";
+
         public static class PageStatuses
         {
             public const string Draft = "Draft";
@@ -22,9 +24,10 @@ namespace VirtoCommerce.PageBuilderModule.Core
                 public const string Read = "builder:read";
                 public const string Update = "builder:update";
                 public const string Delete = "builder:delete";
+                public const string Publish = "builder:publish";
 
                 public static string[] AllPermissions { get; } =
-                {
+                [
                     Theme,
                     Templates,
                     Access,
@@ -32,7 +35,8 @@ namespace VirtoCommerce.PageBuilderModule.Core
                     Read,
                     Update,
                     Delete,
-                };
+                    Publish,
+                ];
             }
         }
 
@@ -65,7 +69,25 @@ namespace VirtoCommerce.PageBuilderModule.Core
                 }
             }
 
-            public static IEnumerable<SettingDescriptor> AllSettings => General.AllGeneralSettings;
+            public static class Migration
+            {
+                public static SettingDescriptor MetadataFromContentMigrated { get; } = new()
+                {
+                    Name = "VirtoCommerce.PageBuilderModule.Migration.MetadataFromContentMigrated",
+                    GroupName = "CMS Content|Migration",
+                    ValueType = SettingValueType.Boolean,
+                    DefaultValue = false
+                };
+                public static IEnumerable<SettingDescriptor> AllMigrationSettings
+                {
+                    get
+                    {
+                        yield return MetadataFromContentMigrated;
+                    }
+                }
+            }
+
+            public static IEnumerable<SettingDescriptor> AllSettings => General.AllGeneralSettings.Union(Migration.AllMigrationSettings);
         }
     }
 }

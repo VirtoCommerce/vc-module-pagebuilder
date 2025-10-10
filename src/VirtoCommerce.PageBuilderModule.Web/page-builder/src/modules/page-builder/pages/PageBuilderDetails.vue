@@ -16,7 +16,7 @@
         <!-- Status -->
         <PageStatus
           :status="item.status"
-          :has-changes="item.hasChanges"
+          :has-changes="status.hasChanges"
         />
 
         <!-- Name Field -->
@@ -66,7 +66,7 @@
 
         <!-- User Groups -->
         <VcSelect
-          v-model="item.userGroups"
+          v-model="itemUserGroups"
           :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.USER_GROUPS')"
           :options="loadUserGroups"
           option-value="name"
@@ -140,15 +140,16 @@ const { meta } = useForm({ validateOnMount: false });
 
 const {
   item,
+  status,
   isModified,
   isReadOnly,
   loading,
-  loadPage,
-  savePage,
-  deletePage,
-  publishPage,
-  unpublishPage,
-  openPageDesigner,
+  loadGroup,
+  saveGroup,
+  deleteGroup,
+  publishGroup,
+  unpublishGroup,
+  openDraftDesigner,
   loadCultureNames,
   loadUserGroups,
 } = usePageBuilderDetails({
@@ -162,6 +163,21 @@ const bladeTitle = computed(() => {
       ? item.value?.name + t("PAGE_BUILDER.PAGES.DETAILS.TITLE.DETAILS")
       : t("PAGE_BUILDER.PAGES.DETAILS.TITLE.NEW")
     : item.value?.name + t("PAGE_BUILDER.PAGES.DETAILS.TITLE.DETAILS");
+});
+
+function parseUserGroups(str: string | undefined): string[] {
+  return str ? str.split(",").filter(x => !!x) : [];
+}
+function serializeUserGroups(groups: string[]): string {
+  return groups.filter(x => !!x).join(",");
+}
+const itemUserGroups = computed<string[]>({
+  get: () => {
+    return parseUserGroups(item.value.userGroups);
+  },
+  set: (val: string[]) => {
+    item.value.userGroups = serializeUserGroups(val);
+  },
 });
 
 // Toolbar
@@ -182,7 +198,8 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     disabled: isReadOnly.value,
     clickHandler: async () => {
       if (await showConfirmation(t("PAGE_BUILDER.PAGES.ALERTS.DELETE"))) {
-        await deletePage();
+        await deleteGroup();
+        emit("parent:call", { method: "reload" });
         emit("close:blade");
       }
     },
@@ -193,27 +210,29 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.DESIGNER"),
     disabled: !props.param || isReadOnly.value,
     clickHandler: () => {
-      openPageDesigner();
+      openDraftDesigner();
     },
   },
   {
     id: "publishPage",
     icon: "material-description",
     title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.PUBLISH"),
-    isVisible: !!props.param && item.value?.hasChanges === true,
+    isVisible: !!props.param && status.value?.hasChanges === true,
     disabled: isReadOnly.value,
     clickHandler: async () => {
-      await publishPage();
+      await publishGroup();
+      emit("parent:call", { method: "reload" });
     },
   },
   {
     id: "unpublishPage",
     icon: "material-article",
     title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.UNPUBLISH"),
-    isVisible: !!props.param && item.value?.hasChanges === false,
+    isVisible: !!props.param && status.value?.hasChanges === false,
     disabled: isReadOnly.value,
     clickHandler: async () => {
-      await unpublishPage();
+      await unpublishGroup();
+      emit("parent:call", { method: "reload" });
     },
   },
 ]);
@@ -224,18 +243,18 @@ async function loadCultureNamesAsync() {
 }
 
 async function handleSave() {
-  const page = await savePage();
+  const group = await saveGroup();
 
   emit("parent:call", { method: "reload" });
 
-  if (item.value.id || page.id) {
-    emit("parent:call", { method: "onItemClick", args: page.id ? page : item.value });
+  if (item.value.id || group.id) {
+    emit("parent:call", { method: "onItemClick", args: group.id ? group : item.value });
   }
 }
 
 // Lifecycle
 onMounted(async () => {
-  await loadPage();
+  await loadGroup();
 });
 
 onBeforeClose(async () => {

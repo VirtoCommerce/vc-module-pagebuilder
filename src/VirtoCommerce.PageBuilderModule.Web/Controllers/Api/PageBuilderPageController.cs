@@ -2,12 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
+using Microsoft.Extensions.Logging;
 using VirtoCommerce.ContentModule.Core.Model;
 using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Models;
@@ -24,63 +24,43 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 
 [Route("api/page-builder-pages")]
 [Authorize]
-public class PageBuilderPageController : Controller
+public class PageBuilderPageController(
+    IPageBuilderPageService crudService,
+    ISettingsManager settingsManager,
+    IGroupedPageService groupedPageService,
+    IGroupedPageSearchService groupedPageSearchService,
+    IStoreService storeService,
+    IAuthorizationService authorizationService,
+    IPageDocumentSearchService pageDocumentSearchService,
+    ILogger<PageBuilderPageController> logger)
+    : Controller
 {
-    private readonly IPageBuilderPageService _crudService;
-    private readonly IPageBuilderPageSearchService _searchService;
-    private readonly ISettingsManager _settingsManager;
-    private readonly IGroupedPageService _groupedPageService;
-    private readonly IGroupedPageSearchService _groupedPageSearchService;
-    private readonly IStoreService _storeService;
-    private readonly IAuthorizationService _authorizationService;
-
-    private readonly IPageDocumentSearchService _pageDocumentSearchService;
-
-    public PageBuilderPageController(
-        IPageBuilderPageService crudService,
-        IPageBuilderPageSearchService searchService,
-        ISettingsManager settingsManager,
-        IGroupedPageService groupedPageService,
-        IGroupedPageSearchService groupedPageSearchService,
-        IStoreService storeService,
-        IAuthorizationService authorizationService,
-        IPageDocumentSearchService pageDocumentSearchService)
-    {
-        _crudService = crudService;
-        _searchService = searchService;
-        _settingsManager = settingsManager;
-        _groupedPageService = groupedPageService;
-        _groupedPageSearchService = groupedPageSearchService;
-        _storeService = storeService;
-        _authorizationService = authorizationService;
-        _pageDocumentSearchService = pageDocumentSearchService;
-    }
-
-    [HttpPost("grouped/search")]
+    [HttpPost("search")]
     [Authorize(ModuleConstants.Security.Permissions.Read)]
-    public async Task<ActionResult<GroupedPageBuilderPageSearchResult>> SearchGrouped([FromBody] PageBuilderPageSearchCriteria criteria)
+    public async Task<ActionResult<GroupedPageBuilderPageSearchResult>> SearchGroups([FromBody] PageBuilderPageSearchCriteria criteria)
     {
-        var authorizationResult = await _authorizationService.AuthorizeAsync(User, criteria, new PageBuilderAuthorizationRequirement());
+        var authorizationResult = await authorizationService.AuthorizeAsync(User, criteria, new PageBuilderAuthorizationRequirement());
         if (!authorizationResult.Succeeded)
         {
             return Forbidden;
         }
 
-        var result = await _groupedPageSearchService.SearchAsync(criteria);
+        var result = await groupedPageSearchService.SearchAsync(criteria);
+
         return Ok(result);
     }
 
-    [HttpGet("grouped")]
+    [HttpGet("grouped/{groupId}")]
     [Authorize(ModuleConstants.Security.Permissions.Read)]
-    public async Task<ActionResult<GroupedPageBuilderPage>> GetGrouped([FromQuery] string id, [FromQuery] string responseGroup = null)
+    public async Task<ActionResult<GroupedPageBuilderPage>> GetGroup([FromRoute] string groupId, [FromQuery] string responseGroup = null)
     {
-        var groupedPage = await _groupedPageService.GetNoCloneAsync(id);
+        var groupedPage = await groupedPageService.GetNoCloneAsync(groupId, responseGroup);
         if (groupedPage == null)
         {
             return NotFound();
         }
 
-        var authorizationResult = await _authorizationService.AuthorizeAsync(User, groupedPage, new PageBuilderAuthorizationRequirement());
+        var authorizationResult = await authorizationService.AuthorizeAsync(User, groupedPage, new PageBuilderAuthorizationRequirement());
         if (!authorizationResult.Succeeded)
         {
             return Forbidden;
@@ -89,46 +69,54 @@ public class PageBuilderPageController : Controller
         return Ok(groupedPage);
     }
 
+    /// <summary>
+    /// Create or update group for page with status Draft in the given group
+    /// </summary>
+    /// <param name="model">Model of page to update</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns></returns>
     [HttpPut("grouped")]
     [Authorize(ModuleConstants.Security.Permissions.Update)]
-    public async Task<ActionResult<GroupedPageBuilderPage>> UpdateGrouped([FromBody] GroupedPageBuilderPage model)
+    public async Task<ActionResult<GroupedPageBuilderPage>> UpdateGroup([FromBody] GroupedPageBuilderPage model, CancellationToken cancellationToken = default)
     {
-        var authorizationResult = await _authorizationService.AuthorizeAsync(User, model, new PageBuilderAuthorizationRequirement());
+        var authorizationResult = await authorizationService.AuthorizeAsync(User, model, new PageBuilderAuthorizationRequirement());
         if (!authorizationResult.Succeeded)
         {
             return Forbidden;
         }
 
         // get the existing grouped page for pages Ids
-        var groupedPage = await _groupedPageService.GetByIdAsync(model.Id);
+        var groupedPage = await groupedPageService.GetByIdAsync(model.Id);
 
-        if (groupedPage != null)
+        var newGroup = false;
+
+        if (groupedPage == null)
         {
-            if (groupedPage.Status == Archived)
-            {
-                return BadRequest("Archived page cannot be updated.");
-            }
+            groupedPage = AbstractTypeFactory<GroupedPageBuilderPage>.TryCreateInstance();
+            var draftPage = AbstractTypeFactory<PageBuilderPage>.TryCreateInstance();
+            draftPage.Status = Draft;
+            draftPage.StoreId = model.StoreId;
+            groupedPage.Pages.Add(draftPage);
+            newGroup = true;
+        }
+        else if (groupedPage.Status == Archived)
+        {
+            return BadRequest("Archived page cannot be updated.");
+        }
 
-            // update only draft page, create if it doesn't exist
-            var draftPage = groupedPage.Pages.FirstOrDefault(x => x.Status == Draft);
-            if (draftPage == null)
-            {
-                draftPage = new PageBuilderPage
-                {
-                    Status = Draft,
-                    GroupId = model.Id,
-                };
-                groupedPage.Pages.Add(draftPage);
-            }
+        groupedPage.Name = model.Name;
+        groupedPage.Permalink = model.Permalink;
+        groupedPage.CultureName = model.CultureName;
+        groupedPage.StoreId = model.StoreId;
+        groupedPage.Visibility = model.Visibility;
+        groupedPage.UserGroups = model.UserGroups;
+        groupedPage.StartDate = model.StartDate;
+        groupedPage.EndDate = model.EndDate;
 
-            // update draft and grouped page
-            draftPage.PageContent = model.NewPageContent;
-            groupedPage.Name = draftPage.Name = model.Name;
-            groupedPage.Permalink = draftPage.Permalink = model.Permalink;
-            groupedPage.CultureName = draftPage.CultureName = model.CultureName;
-            groupedPage.StoreId = draftPage.StoreId = model.StoreId;
-
-            await _groupedPageService.SaveChangesAsync([groupedPage]);
+        await groupedPageService.SaveChangesAsync([groupedPage]);
+        if (newGroup)
+        {
+            await WriteDefaultContent(groupedPage.Pages.First().Id, cancellationToken);
         }
 
         return Ok(groupedPage);
@@ -136,55 +124,36 @@ public class PageBuilderPageController : Controller
 
     [HttpPost("grouped")]
     [Authorize(ModuleConstants.Security.Permissions.Create)]
-    public async Task<ActionResult<GroupedPageBuilderPage>> CreateGrouped([FromBody] GroupedPageBuilderPage model)
+    public async Task<ActionResult<GroupedPageBuilderPage>> CreateGroup([FromBody] GroupedPageBuilderPage model, CancellationToken cancellationToken = default)
     {
-        var authorizationResult = await _authorizationService.AuthorizeAsync(User, model, new PageBuilderAuthorizationRequirement());
+        var authorizationResult = await authorizationService.AuthorizeAsync(User, model, new PageBuilderAuthorizationRequirement());
         if (!authorizationResult.Succeeded)
         {
             return Forbidden;
         }
 
-        var groupedPage = new GroupedPageBuilderPage
-        {
-            Id = null,
-            Name = model.Name,
-            StoreId = model.StoreId,
-            CultureName = model.CultureName,
-            Permalink = model.Permalink,
-            Status = Draft, // always create a new page in draft status
-        };
+        var draftPage = AbstractTypeFactory<PageBuilderPage>.TryCreateInstance();
 
-        var page = new PageBuilderPage
-        {
-            Id = null,
-            Name = model.Name,
-            StoreId = model.StoreId,
-            CultureName = model.CultureName,
-            Permalink = model.Permalink,
-            PageContent = model.NewPageContent.EmptyToNull()
-                          ?? JsonConvert.SerializeObject(new { settings = model, content = Array.Empty<string>() }, new JsonSerializerSettings
-                          {
-                              Formatting = Formatting.Indented,
-                              ContractResolver = new CamelCasePropertyNamesContractResolver(),
-                          }),
-            Status = Draft, // always create a new page in draft status
-        };
+        draftPage.Id = null;
+        draftPage.Status = Draft; // always create a new page in draft status
+        draftPage.StoreId = model.StoreId;
 
-        groupedPage.Pages.Add(page);
+        model.Pages.Add(draftPage);
 
-        await _groupedPageService.SaveChangesAsync([groupedPage]);
-        return groupedPage;
+        await groupedPageService.SaveChangesAsync([model]);
+        await WriteDefaultContent(draftPage.Id, cancellationToken);
+
+        return Ok(model);
     }
-
 
     [HttpPost("grouped/archive")]
     [Authorize(ModuleConstants.Security.Permissions.Delete)]
     [ProducesResponseType(typeof(void), StatusCodes.Status204NoContent)]
-    public async Task<ActionResult<GroupedPageBuilderPage>> ArchiveGrouped([FromQuery] string[] ids)
+    public async Task<ActionResult> ArchiveGroups([FromQuery] string[] ids, CancellationToken cancellationToken = default)
     {
-        var groupedPages = await _groupedPageService.GetAsync(ids);
+        var groupedPages = await groupedPageService.GetAsync(ids);
 
-        var authorizationResult = await _authorizationService.AuthorizeAsync(User, groupedPages, new PageBuilderAuthorizationRequirement());
+        var authorizationResult = await authorizationService.AuthorizeAsync(User, groupedPages, new PageBuilderAuthorizationRequirement());
         if (!authorizationResult.Succeeded)
         {
             return Forbidden;
@@ -198,18 +167,24 @@ public class PageBuilderPageController : Controller
             }
         }
 
-        await _groupedPageService.SaveChangesAsync(groupedPages);
+        await groupedPageService.SaveChangesAsync(groupedPages);
 
         return NoContent();
     }
 
     [HttpPost]
-    [Route("grouped/publishing")]
-    public async Task<ActionResult> Publishing([FromQuery] string id, [FromQuery] bool publish)
+    [Route("grouped/publishing/{groupId}")]
+    [Authorize(ModuleConstants.Security.Permissions.Publish)]
+    public async Task<ActionResult> PublishGroup([FromRoute] string groupId, [FromQuery] bool publish, CancellationToken cancellationToken = default)
     {
-        var groupedPage = await _groupedPageService.GetByIdAsync(id);
+        var groupedPage = await groupedPageService.GetByIdAsync(groupId);
 
-        var authorizationResult = await _authorizationService.AuthorizeAsync(User, groupedPage, new PageBuilderAuthorizationRequirement());
+        if (groupedPage == null)
+        {
+            return NotFound();
+        }
+
+        var authorizationResult = await authorizationService.AuthorizeAsync(User, groupedPage, new PageBuilderAuthorizationRequirement());
         if (!authorizationResult.Succeeded)
         {
             return Forbidden;
@@ -246,20 +221,20 @@ public class PageBuilderPageController : Controller
             pagesToDelete = groupedPage.Pages.Where(x => x.Id != pageToUnpublish.Id).Select(x => x.Id).ToList();
         }
 
-        await _groupedPageService.SaveChangesAsync([groupedPage]);
-        await _crudService.DeleteAsync(pagesToDelete);
+        await groupedPageService.SaveChangesAsync([groupedPage]);
+        await crudService.DeleteAsync(pagesToDelete);
 
         return Ok();
     }
 
     [HttpDelete]
     [Authorize(ModuleConstants.Security.Permissions.Delete)]
-    [Route("grouped")]
-    public async Task<ActionResult> DeleteGrouped([FromQuery] string id)
+    [Route("grouped/{groupId}")]
+    public async Task<ActionResult> DeleteGroup([FromRoute] string groupId)
     {
-        var groupedPages = await _groupedPageService.GetAsync([id]);
+        var groupedPages = await groupedPageService.GetAsync([groupId]);
 
-        var authorizationResult = await _authorizationService.AuthorizeAsync(User, groupedPages, new PageBuilderAuthorizationRequirement());
+        var authorizationResult = await authorizationService.AuthorizeAsync(User, groupedPages, new PageBuilderAuthorizationRequirement());
         if (!authorizationResult.Succeeded)
         {
             return Forbidden;
@@ -270,30 +245,36 @@ public class PageBuilderPageController : Controller
 
         try
         {
-            await _groupedPageService.DeleteAsync([id]);
+            await groupedPageService.DeleteAsync([groupId]);
             pageDeleted = true;
         }
-        catch { }
+        catch
+        {
+            logger.LogDebug($"Couldn't remove group '{groupId}'");
+        }
 
         try
         {
-            await _pageDocumentSearchService.RemoveDocuments([id]);
+            var pagesIds = groupedPages.SelectMany(x => x.Pages.Select(p => p.Id)).ToArray();
+            await pageDocumentSearchService.RemoveDocuments(pagesIds);
             indexDeleted = true;
         }
         catch
         {
+            logger.LogDebug($"Couldn't remove pages from group '{groupId}'");
         }
 
         return Ok(new { pageDeleted, indexDeleted });
     }
 
     [HttpGet]
-    [Route("grouped/publish-status")]
-    public async Task<ActionResult<FilePublishStatus>> PublishStatus([FromQuery] string id)
+    [Route("grouped/publish-status/{groupId}")]
+    [Authorize(ModuleConstants.Security.Permissions.Read)]
+    public async Task<ActionResult<FilePublishStatus>> PublishStatus([FromRoute] string groupId)
     {
-        var groupedPage = await _groupedPageService.GetNoCloneAsync(id);
+        var groupedPage = await groupedPageService.GetNoCloneAsync(groupId);
 
-        var authorizationResult = await _authorizationService.AuthorizeAsync(User, groupedPage, new PageBuilderAuthorizationRequirement());
+        var authorizationResult = await authorizationService.AuthorizeAsync(User, groupedPage, new PageBuilderAuthorizationRequirement());
         if (!authorizationResult.Succeeded)
         {
             return Forbidden;
@@ -313,10 +294,10 @@ public class PageBuilderPageController : Controller
     [Authorize(PlatformConstants.Security.Permissions.SettingQuery)]
     public async Task<ActionResult<string[]>> GetAvailableLanguages([FromQuery] string storeId)
     {
-        var store = await _storeService.GetNoCloneAsync(storeId);
+        var store = await storeService.GetNoCloneAsync(storeId);
         if (store == null)
         {
-            var setting = await _settingsManager.GetObjectSettingAsync(PlatformConstants.Settings.General.Languages.Name);
+            var setting = await settingsManager.GetObjectSettingAsync(PlatformConstants.Settings.General.Languages.Name);
             return Ok(setting?.AllowedValues ?? []);
         }
 
@@ -328,12 +309,91 @@ public class PageBuilderPageController : Controller
     [Authorize(PlatformConstants.Security.Permissions.SettingQuery)]
     public async Task<ActionResult<string[]>> GetUserGroups()
     {
-        var setting = await _settingsManager.GetObjectSettingAsync(CustomerModule.Core.ModuleConstants.Settings.General.MemberGroups.Name);
+        var setting = await settingsManager.GetObjectSettingAsync(CustomerModule.Core.ModuleConstants.Settings.General.MemberGroups.Name);
         return Ok(setting?.AllowedValues ?? []);
+    }
+
+    [HttpGet("grouped/{groupId}/content")]
+    [Authorize(ModuleConstants.Security.Permissions.Read)]
+    public async Task GetPageContent([FromRoute] string groupId, [FromQuery] bool draft = true, CancellationToken cancellationToken = default)
+    {
+        Response.ContentType = "text/plain; charset=utf-8";
+        var group = await groupedPageService.GetByIdAsync(groupId);
+        if (group == null)
+        {
+            Response.StatusCode = (int)HttpStatusCode.NotFound;
+            return;
+        }
+
+        var authorizationResult = await authorizationService.AuthorizeAsync(User, group, new PageBuilderAuthorizationRequirement());
+        if (!authorizationResult.Succeeded)
+        {
+            Response.StatusCode = (int)HttpStatusCode.Forbidden;
+            return;
+        }
+
+        var pageId = group.Pages.Where(x => (draft && x.Status == Draft) || x.Status == Published)
+            .OrderByDescending(x => x.ModifiedDate).Select(x => x.Id).FirstOrDefault();
+        if (pageId == null)
+        {
+            Response.StatusCode = (int)HttpStatusCode.NotFound;
+            return;
+        }
+        await groupedPageService.LoadContentToStreamAsync(pageId, Response.Body, cancellationToken);
+    }
+
+    [HttpPost("grouped/{groupId}/content")]
+    [Authorize(ModuleConstants.Security.Permissions.Update)]
+    public async Task<IActionResult> SavePageContent([FromRoute] string groupId, CancellationToken cancellationToken = default)
+    {
+        var groupedPage = await groupedPageService.GetByIdAsync(groupId);
+
+        if (groupedPage == null)
+        {
+            return NotFound();
+        }
+
+        var authorizationResult = await authorizationService.AuthorizeAsync(User, groupedPage, new PageBuilderAuthorizationRequirement());
+        if (!authorizationResult.Succeeded)
+        {
+            return Forbidden;
+        }
+
+        var draftPage = groupedPage.Pages.FirstOrDefault(x => x.Status == Draft);
+
+        if (draftPage == null)
+        {
+
+            draftPage = AbstractTypeFactory<PageBuilderPage>.TryCreateInstance();
+            draftPage.StoreId = groupedPage.StoreId;
+            draftPage.Status = Draft;
+            groupedPage.Pages.Add(draftPage);
+            await groupedPageService.SaveChangesAsync([groupedPage]);
+
+            groupedPage = await groupedPageService.GetByIdAsync(groupId);
+            draftPage = groupedPage.Pages.FirstOrDefault(x => x.Status == Draft);
+        }
+
+        var pageId = draftPage!.Id;
+        await groupedPageService.SaveStreamAsContentAsync(pageId, Request.Body, cancellationToken);
+
+        return NoContent();
     }
 
     private static ActionResult Forbidden => new ObjectResult(new { })
     {
         StatusCode = (int)HttpStatusCode.Forbidden,
     };
+
+    private async Task WriteDefaultContent(string pageId, CancellationToken cancellationToken)
+    {
+        using var stream = new System.IO.MemoryStream();
+        var writer = new System.IO.StreamWriter(stream);
+        await writer.WriteAsync(ModuleConstants.DefaultPageContent.AsMemory(), cancellationToken);
+        await writer.FlushAsync(cancellationToken);
+        stream.Position = 0;
+
+        await groupedPageService.SaveStreamAsContentAsync(pageId, stream, cancellationToken);
+
+    }
 }

@@ -6,13 +6,9 @@ using VirtoCommerce.Platform.Data.Infrastructure;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Repositories;
 
-public class PageBuilderModuleRepository : DbContextRepositoryBase<PageBuilderModuleDbContext>, IPageBuilderModuleRepository
+public class PageBuilderModuleRepository(PageBuilderModuleDbContext dbContext, IUnitOfWork unitOfWork = null)
+    : DbContextRepositoryBase<PageBuilderModuleDbContext>(dbContext, unitOfWork), IPageBuilderModuleRepository
 {
-    public PageBuilderModuleRepository(PageBuilderModuleDbContext dbContext, IUnitOfWork unitOfWork = null)
-        : base(dbContext, unitOfWork)
-    {
-    }
-
     public IQueryable<PageBuilderPageEntity> PageBuilderPages => DbContext.Set<PageBuilderPageEntity>();
 
     public IQueryable<GroupedPageBuilderPageEntity> GroupedPageBuilderPages => DbContext.Set<GroupedPageBuilderPageEntity>();
@@ -43,7 +39,7 @@ public class PageBuilderModuleRepository : DbContextRepositoryBase<PageBuilderMo
         if (groups.Count > 0)
         {
             var groupIds = groups.Select(x => x.Id).ToArray();
-            PageBuilderPages.Where(x => groupIds.Contains(x.GroupId)).Load();
+            await PageBuilderPages.Where(x => groupIds.Contains(x.GroupId)).LoadAsync();
         }
 
         return groups;

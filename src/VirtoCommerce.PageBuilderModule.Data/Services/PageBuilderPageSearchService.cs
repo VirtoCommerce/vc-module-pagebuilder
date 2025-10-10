@@ -10,17 +10,14 @@ using VirtoCommerce.Platform.Data.GenericCrud;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Services;
 
-public class PageBuilderPageSearchService : SearchService<PageBuilderPageSearchCriteria, PageBuilderPageSearchResult, PageBuilderPage, PageBuilderPageEntity>, IPageBuilderPageSearchService
+public class PageBuilderPageSearchService(
+    Func<IPageBuilderModuleRepository> repositoryFactory,
+    IPlatformMemoryCache platformMemoryCache,
+    IPageBuilderPageService crudService,
+    IOptions<CrudOptions> crudOptions)
+    : SearchService<PageBuilderPageSearchCriteria, PageBuilderPageSearchResult, PageBuilderPage, PageBuilderPageEntity>(
+        repositoryFactory, platformMemoryCache, crudService, crudOptions), IPageBuilderPageSearchService
 {
-    public PageBuilderPageSearchService(
-        Func<IPageBuilderModuleRepository> repositoryFactory,
-        IPlatformMemoryCache platformMemoryCache,
-        IPageBuilderPageService crudService,
-        IOptions<CrudOptions> crudOptions)
-        : base(repositoryFactory, platformMemoryCache, crudService, crudOptions)
-    {
-    }
-
     protected override IQueryable<PageBuilderPageEntity> BuildQuery(IRepository repository, PageBuilderPageSearchCriteria criteria)
     {
         var query = ((IPageBuilderModuleRepository)repository).PageBuilderPages;
@@ -30,9 +27,10 @@ public class PageBuilderPageSearchService : SearchService<PageBuilderPageSearchC
             query = query.Where(x => x.StoreId == criteria.StoreId);
         }
 
-        if (!string.IsNullOrEmpty(criteria.Status))
+        if (!string.IsNullOrEmpty(criteria.Statuses))
         {
-            query = query.Where(x => x.Status == criteria.Status);
+            var statuses = criteria.Statuses.Split(',', StringSplitOptions.RemoveEmptyEntries);
+            query = query.Where(x => statuses.Contains(x.Status));
         }
 
         return query;

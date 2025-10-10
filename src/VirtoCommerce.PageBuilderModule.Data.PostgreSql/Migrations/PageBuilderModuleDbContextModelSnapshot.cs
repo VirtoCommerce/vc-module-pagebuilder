@@ -37,8 +37,11 @@ namespace VirtoCommerce.PageBuilderModule.Data.PostgreSql.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("CultureName")
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<DateTime?>("EndDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("ModifiedBy")
                         .HasMaxLength(64)
@@ -55,17 +58,36 @@ namespace VirtoCommerce.PageBuilderModule.Data.PostgreSql.Migrations
                         .HasMaxLength(2048)
                         .HasColumnType("character varying(2048)");
 
-                    b.Property<string>("Status")
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
+                    b.Property<DateTime?>("StartDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("StoreId")
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
 
+                    b.Property<string>("UserGroups")
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)");
+
+                    b.Property<bool>("Visibility")
+                        .HasColumnType("boolean");
+
                     b.HasKey("Id");
 
                     b.ToTable("GroupedPageBuilderPage", (string)null);
+                });
+
+            modelBuilder.Entity("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderContentEntity", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("PageContent")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PageBuilderPage", (string)null);
                 });
 
             modelBuilder.Entity("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderPageEntity", b =>
@@ -82,10 +104,6 @@ namespace VirtoCommerce.PageBuilderModule.Data.PostgreSql.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("CultureName")
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
-
                     b.Property<string>("GroupId")
                         .IsRequired()
                         .HasMaxLength(128)
@@ -97,17 +115,6 @@ namespace VirtoCommerce.PageBuilderModule.Data.PostgreSql.Migrations
 
                     b.Property<DateTime?>("ModifiedDate")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Name")
-                        .HasMaxLength(1024)
-                        .HasColumnType("character varying(1024)");
-
-                    b.Property<string>("PageContent")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Permalink")
-                        .HasMaxLength(2048)
-                        .HasColumnType("character varying(2048)");
 
                     b.Property<string>("Status")
                         .HasMaxLength(128)
@@ -124,6 +131,17 @@ namespace VirtoCommerce.PageBuilderModule.Data.PostgreSql.Migrations
                     b.ToTable("PageBuilderPage", (string)null);
                 });
 
+            modelBuilder.Entity("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderContentEntity", b =>
+                {
+                    b.HasOne("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderPageEntity", "Page")
+                        .WithOne("Content")
+                        .HasForeignKey("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderContentEntity", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Page");
+                });
+
             modelBuilder.Entity("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderPageEntity", b =>
                 {
                     b.HasOne("VirtoCommerce.PageBuilderModule.Data.Models.GroupedPageBuilderPageEntity", "Group")
@@ -138,6 +156,11 @@ namespace VirtoCommerce.PageBuilderModule.Data.PostgreSql.Migrations
             modelBuilder.Entity("VirtoCommerce.PageBuilderModule.Data.Models.GroupedPageBuilderPageEntity", b =>
                 {
                     b.Navigation("Pages");
+                });
+
+            modelBuilder.Entity("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderPageEntity", b =>
+                {
+                    b.Navigation("Content");
                 });
 #pragma warning restore 612, 618
         }

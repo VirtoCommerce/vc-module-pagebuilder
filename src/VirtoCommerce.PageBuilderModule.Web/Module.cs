@@ -37,9 +37,9 @@ namespace VirtoCommerce.PageBuilderModule.Web
 
         public void Initialize(IServiceCollection serviceCollection)
         {
+            var databaseProvider = Configuration.GetValue("DatabaseProvider", "SqlServer");
             serviceCollection.AddDbContext<PageBuilderModuleDbContext>(options =>
             {
-                var databaseProvider = Configuration.GetValue("DatabaseProvider", "SqlServer");
                 var connectionString = Configuration.GetConnectionString(ModuleInfo.Id) ?? Configuration.GetConnectionString("VirtoCommerce");
 
                 switch (databaseProvider)
@@ -71,6 +71,7 @@ namespace VirtoCommerce.PageBuilderModule.Web
             serviceCollection.AddTransient<GroupedPageBuilderPageChangedEventHandler>();
 
             serviceCollection.AddTransient<IAuthorizationHandler, PageBuilderAuthorizationHandler>();
+            serviceCollection.AddTransient<IPagesMigrationService, PagesMigrationService>();
 
             var isFullTextSearchEnabled = Configuration.IsContentFullTextSearchEnabled();
 
@@ -78,6 +79,17 @@ namespace VirtoCommerce.PageBuilderModule.Web
             {
                 serviceCollection.AddTransient<PageBuilderContentItemBuilder>();
             }
+
+            serviceCollection.AddSingleton<Func<IContentStreamRepository>>(provider => () =>
+            {
+                var db = provider.CreateScope().ServiceProvider.GetRequiredService<PageBuilderModuleDbContext>();
+                return databaseProvider switch
+                {
+                    "MySql" => new MySqlContentStreamRepository(db),
+                    "PostgreSql" => new PostgreSqlContentStreamRepository(db),
+                    _ => new SqlServerContentStreamRepository(db)
+                };
+            });
         }
 
         public void PostInitialize(IApplicationBuilder appBuilder)
@@ -106,21 +118,26 @@ namespace VirtoCommerce.PageBuilderModule.Web
             using var dbContext = serviceScope.ServiceProvider.GetRequiredService<PageBuilderModuleDbContext>();
             dbContext.Database.Migrate();
 
+            // Run pages migration
+            var pagesMigrationService = serviceScope.ServiceProvider.GetRequiredService<IPagesMigrationService>();
+            pagesMigrationService.StartMigration();
+
             // page-builder
             var pageBuilderAppPath = Path.Combine(ModuleInfo.FullPhysicalPath, "page-builder", "dist");
             if (Directory.Exists(pageBuilderAppPath))
             {
-                appBuilder.UseDefaultFiles(new DefaultFilesOptions()
+                appBuilder.UseDefaultFiles(new DefaultFilesOptions
                 {
                     FileProvider = new PhysicalFileProvider(pageBuilderAppPath),
                     RequestPath = new PathString($"/apps/page-builder")
                 });
-                appBuilder.UseStaticFiles(new StaticFileOptions()
+                appBuilder.UseStaticFiles(new StaticFileOptions
                 {
                     FileProvider = new PhysicalFileProvider(pageBuilderAppPath),
                     RequestPath = new PathString($"/apps/page-builder")
                 });
             }
+
         }
 
         public void Uninstall()

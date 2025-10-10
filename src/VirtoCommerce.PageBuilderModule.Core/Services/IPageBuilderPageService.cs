@@ -1,8 +1,6 @@
-using VirtoCommerce.Platform.Core.GenericCrud;
 using VirtoCommerce.PageBuilderModule.Core.Models;
+using VirtoCommerce.Platform.Core.GenericCrud;
 
 namespace VirtoCommerce.PageBuilderModule.Core.Services;
 
-public interface IPageBuilderPageService : ICrudService<PageBuilderPage>
-{
-}
+public interface IPageBuilderPageService : ICrudService<PageBuilderPage>;

@@ -2,30 +2,22 @@ using System.ComponentModel.DataAnnotations;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Domain;
+using static VirtoCommerce.Platform.Data.Infrastructure.DbContextBase;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Models;
 
 public class PageBuilderPageEntity : AuditableEntity, IDataEntity<PageBuilderPageEntity, PageBuilderPage>
 {
-    [StringLength(128)]
+    [StringLength(IdLength)]
     public string GroupId { get; set; }
 
-    [StringLength(128)]
+    [StringLength(IdLength)]
     public string StoreId { get; set; }
-
-    [StringLength(128)]
-    public string CultureName { get; set; }
-
-    [StringLength(1024)]
-    public string Name { get; set; }
-
-    [StringLength(2048)]
-    public string Permalink { get; set; }
 
     [StringLength(128)]
     public string Status { get; set; } // Draft | Published | Archived
 
-    public string PageContent { get; set; }
+    public virtual PageBuilderContentEntity Content { get; set; }
 
     public GroupedPageBuilderPageEntity Group { get; set; }
 
@@ -39,11 +31,7 @@ public class PageBuilderPageEntity : AuditableEntity, IDataEntity<PageBuilderPag
 
         model.GroupId = GroupId;
         model.StoreId = StoreId;
-        model.CultureName = CultureName;
-        model.Name = Name;
-        model.Permalink = Permalink;
         model.Status = Status;
-        model.PageContent = PageContent;
 
         return model;
     }
@@ -60,11 +48,7 @@ public class PageBuilderPageEntity : AuditableEntity, IDataEntity<PageBuilderPag
 
         GroupId = model.GroupId;
         StoreId = model.StoreId;
-        CultureName = model.CultureName;
-        Name = model.Name;
-        Permalink = model.Permalink;
         Status = model.Status;
-        PageContent = model.PageContent;
 
         return this;
     }
@@ -73,10 +57,6 @@ public class PageBuilderPageEntity : AuditableEntity, IDataEntity<PageBuilderPag
     {
         target.GroupId = GroupId;
         target.StoreId = StoreId;
-        target.CultureName = CultureName;
-        target.Name = Name;
-        target.Permalink = Permalink;
         target.Status = Status;
-        target.PageContent = PageContent;
     }
 }

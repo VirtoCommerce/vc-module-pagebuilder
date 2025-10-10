@@ -53,8 +53,9 @@
             <VcButton
               :disabled="isFilterActionDisabled.apply"
               @click="applyFilters(closePanel)"
-              >{{ $t("PAGE_BUILDER.PAGES.LIST.TABLE.FILTER.APPLY") }}</VcButton
             >
+              {{ $t("PAGE_BUILDER.PAGES.LIST.TABLE.FILTER.APPLY") }}
+            </VcButton>
             <VcButton
               variant="secondary"
               :disabled="isFilterActionDisabled.reset"
@@ -83,7 +84,7 @@ import {
   useTableSort,
 } from "@vc-shell/framework";
 
-import { usePageBuilderList } from "../composables/usePageBuilderList";
+import { PageStatuses, usePageBuilderList } from "../composables/usePageBuilderList";
 import { GroupedPageBuilderPage } from "../../../api_client/virtocommerce.pagebuildermodule";
 import PageStatus from "../components/pageStatus.vue";
 
@@ -123,12 +124,7 @@ const { t } = useI18n({ useScope: "global" });
 const { openBlade } = useBladeNavigation();
 const { showConfirmation } = usePopup();
 
-const {
-  currentSort,
-  sortExpression,
-  handleSortChange: tableSortHandler,
-  resetSort,
-} = useTableSort({
+const { sortExpression, handleSortChange: tableSortHandler } = useTableSort({
   initialDirection: "DESC",
   initialProperty: "modifiedDate",
 });
@@ -138,7 +134,7 @@ const { items, totalCount, pages, currentPage, searchQuery, storeId, loadPages, 
   usePageBuilderList({
     pageSize: 20,
     sort: sortExpression.value,
-  });
+});
 
 // State
 const selectedItemId = ref<string>();
@@ -217,11 +213,12 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     clickHandler: async () => {
       if (
         await showConfirmation(
-          t("PAGE_BUILDER.PAGES.LIST.ALERTS.DELETE_CONFIRMATION.MESSAGE", {
+          t("PAGE_BUILDER.PAGES.ALERTS.DELETE_SELECTED_CONFIRMATION.MESSAGE", {
             count: selectedItems.value.length,
           }),
         )
       ) {
+        // const ids = selectedItems.value.map(x => x.id);
         await removePages({ ids: selectedItems.value });
         await reload();
         selectedItems.value = [];
@@ -259,8 +256,8 @@ function onItemClick(item: GroupedPageBuilderPage) {
   });
 }
 
-function onSelectionChange(selection: unknown[]) {
-  selectedItems.value = selection as string[];
+function onSelectionChange(selection: GroupedPageBuilderPage[]) {
+  selectedItems.value = selection.map((item) => item.id!);
 }
 
 const onSearchList = debounce(async (keyword: string | undefined) => {
@@ -347,8 +344,9 @@ function toggleStatusFilter(statusValue: string, checked: boolean) {
 }
 
 async function applyFilters(closePanel: () => void) {
+  console.log(stagedFilters.value);
   filtersQuery.value = {
-    status: stagedFilters.value.status,
+    statuses: stagedFilters.value.status,
   };
 
   await loadPages({
@@ -363,7 +361,7 @@ async function resetFilters(closePanel: () => void) {
   filtersQuery.value = undefined;
   await loadPages({
     ...searchQuery.value,
-    status: undefined,
+    statuses: `${PageStatuses.Draft},${PageStatuses.Published}`,
   });
 
   closePanel();
@@ -371,7 +369,9 @@ async function resetFilters(closePanel: () => void) {
 
 // Lifecycle hooks
 onMounted(async () => {
-  await loadPages();
+  await loadPages({
+    statuses: `${PageStatuses.Draft},${PageStatuses.Published}`,
+  });
 });
 
 defineExpose({

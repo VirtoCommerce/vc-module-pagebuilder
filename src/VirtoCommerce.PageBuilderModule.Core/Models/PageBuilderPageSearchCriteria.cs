@@ -9,5 +9,5 @@ public class PageBuilderPageSearchCriteria : SearchCriteriaBase, IHasStoreId
 {
     public string StoreId { get; set; }
 
-    public string Status { get; set; }
+    public string Statuses { get; set; }
 }

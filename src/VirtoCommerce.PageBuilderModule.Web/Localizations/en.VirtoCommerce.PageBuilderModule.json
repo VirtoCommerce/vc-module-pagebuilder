@@ -65,12 +65,19 @@
             "description": "Relative path for preview page",
             "title": "Store preview path"
           }
+        },
+        "Migration": {
+          "MigrateMetadataFromContent": {
+            "title": "Migrate metadata from content completed",
+            "description": "The migration metadata from content items to page builder pages has been done successfully."
+          }
         }
       }
     }
   },
   "permissions": {
-	  "builder:theme": "Allow to edit theme settings",
-	  "builder:templates": "Allow to change template during editing"
+    "builder:theme": "Allow to edit theme settings",
+    "builder:templates": "Allow to change template during editing"
   }
 }
+

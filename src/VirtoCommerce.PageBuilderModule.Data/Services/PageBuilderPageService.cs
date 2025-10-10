@@ -10,16 +10,13 @@ using VirtoCommerce.Platform.Data.GenericCrud;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Services;
 
-public class PageBuilderPageService : CrudService<PageBuilderPage, PageBuilderPageEntity, PageBuilderPageChangingEvent, PageBuilderPageChangedEvent>, IPageBuilderPageService
+public class PageBuilderPageService(
+    Func<IPageBuilderModuleRepository> repositoryFactory,
+    IPlatformMemoryCache platformMemoryCache,
+    IEventPublisher eventPublisher)
+    : CrudService<PageBuilderPage, PageBuilderPageEntity, PageBuilderPageChangingEvent, PageBuilderPageChangedEvent>(
+        repositoryFactory, platformMemoryCache, eventPublisher), IPageBuilderPageService
 {
-    public PageBuilderPageService(
-        Func<IPageBuilderModuleRepository> repositoryFactory,
-        IPlatformMemoryCache platformMemoryCache,
-        IEventPublisher eventPublisher)
-        : base(repositoryFactory, platformMemoryCache, eventPublisher)
-    {
-    }
-
     protected override Task<IList<PageBuilderPageEntity>> LoadEntities(IRepository repository, IList<string> ids, string responseGroup)
     {
         return ((IPageBuilderModuleRepository)repository).GetPageBuilderPagesByIdsAsync(ids, responseGroup);

@@ -3,15 +3,16 @@ using System.ComponentModel.DataAnnotations;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Domain;
+using static VirtoCommerce.Platform.Data.Infrastructure.DbContextBase;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Models
 {
     public class GroupedPageBuilderPageEntity : AuditableEntity, IDataEntity<GroupedPageBuilderPageEntity, GroupedPageBuilderPage>
     {
-        [StringLength(128)]
+        [StringLength(IdLength)]
         public string StoreId { get; set; }
 
-        [StringLength(128)]
+        [StringLength(CultureNameLength)]
         public string CultureName { get; set; }
 
         [StringLength(1024)]
@@ -20,8 +21,14 @@ namespace VirtoCommerce.PageBuilderModule.Data.Models
         [StringLength(2048)]
         public string Permalink { get; set; }
 
-        [StringLength(128)]
-        public string Status { get; set; } // Draft | Published | Archived
+        public bool Visibility { get; set; }
+
+        [StringLength(Length1024)]
+        public string UserGroups { get; set; }
+
+        public DateTime? StartDate { get; set; }
+
+        public DateTime? EndDate { get; set; }
 
         public virtual ObservableCollection<PageBuilderPageEntity> Pages { get; set; } = new NullCollection<PageBuilderPageEntity>();
 
@@ -32,12 +39,15 @@ namespace VirtoCommerce.PageBuilderModule.Data.Models
             model.CreatedDate = CreatedDate;
             model.ModifiedBy = ModifiedBy;
             model.ModifiedDate = ModifiedDate;
-
             model.StoreId = StoreId;
+
             model.CultureName = CultureName;
             model.Name = Name;
             model.Permalink = Permalink;
-            model.Status = Status;
+            model.Visibility = Visibility;
+            model.UserGroups = UserGroups;
+            model.StartDate = StartDate;
+            model.EndDate = EndDate;
 
             model.Pages = Pages.Select(x => x.ToModel(AbstractTypeFactory<PageBuilderPage>.TryCreateInstance())).ToList();
 
@@ -58,7 +68,11 @@ namespace VirtoCommerce.PageBuilderModule.Data.Models
             CultureName = model.CultureName;
             Name = model.Name;
             Permalink = model.Permalink;
-            Status = model.Status;
+
+            Visibility = model.Visibility;
+            UserGroups = model.UserGroups;
+            StartDate = model.StartDate;
+            EndDate = model.EndDate;
 
             if (model.Pages != null)
             {
@@ -74,7 +88,11 @@ namespace VirtoCommerce.PageBuilderModule.Data.Models
             target.CultureName = CultureName;
             target.Name = Name;
             target.Permalink = Permalink;
-            target.Status = Status;
+
+            target.Visibility = Visibility;
+            target.UserGroups = UserGroups;
+            target.StartDate = StartDate;
+            target.EndDate = EndDate;
 
             if (!Pages.IsNullCollection())
             {

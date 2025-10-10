@@ -3,25 +3,23 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
 using VirtoCommerce.AssetsModule.Core.Assets;
 using VirtoCommerce.ContentModule.Core.Model;
 using VirtoCommerce.ContentModule.Core.Services;
+using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.Models;
-using VirtoCommerce.PageBuilderModule.Core.Services;
-using VirtoCommerce.PageBuilderModule.Web.Events;
 using VirtoCommerce.PageBuilderModule.Web.Models;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Events;
 using VirtoCommerce.StoreModule.Core.Model;
 using VirtoCommerce.StoreModule.Core.Services;
-using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 
 namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 {
@@ -32,9 +30,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             IBlobContentStorageProviderFactory blobContentStorageProviderFactory,
             IOptions<ContentOptions> options,
             IPublishingService publishingService,
-            IEventPublisher eventPublisher,
-            IGroupedPageService groupedPageService,
-            IPageBuilderPageService pageBuilderPageService)
+            IEventPublisher eventPublisher
+            )
         : Controller
     {
         private readonly ContentOptions _options = options.Value;
@@ -47,23 +44,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
         [HttpGet]
         [Route("template")]
-        public async Task<ActionResult> GetTemplate(string storeId, string theme, string path, string type, bool draft = false, string pageId = null)
+        public async Task<ActionResult> GetTemplate(string storeId, string theme, string path, string type, bool draft = false)
         {
-            if (pageId != null)
-            {
-                var groupedPage = await groupedPageService.GetNoCloneAsync(pageId);
-                if (groupedPage != null)
-                {
-                    return Ok(groupedPage);
-                }
-
-                var page = await pageBuilderPageService.GetByIdAsync(pageId);
-                if (page != null)
-                {
-                    return Ok(page);
-                }
-            }
-
             var basePath = GetContentBasePath(storeId, type, theme);
             if (!path.IsNullOrEmpty())
             {
@@ -151,7 +133,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         {
             var basePath = GetContentBasePath(storeId, type, theme);
             var storageProvider = blobContentStorageProviderFactory.CreateProvider(basePath);
-            //var searchPattern = $"{query}.(json|page|template)"; // todo: use pattern correctly (search by filename? search by name from settings? elastic?)
             var regexp = pattern == null ? null : new Regex(pattern);
             var files = (await storageProvider.SearchAsync(folder, keyword))
                 .Results.Where(x => x.Type != "folder" && (regexp?.IsMatch(x.Name) ?? true));
@@ -186,7 +167,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             return Ok();
         }
 
-        private async Task SaveFilesTo(string storeId, string theme, SaveFilesModel model, bool draft)
+        private async Task SaveFilesTo(string storeId, string theme, SaveFilesModel model, bool draft, CancellationToken cancellationToken = default)
         {
             var files = JsonConvert.DeserializeObject<IEnumerable<SaveFileModel>>(model.Files);
 
@@ -199,79 +180,31 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
             foreach (var file in files)
             {
-                if (!string.IsNullOrEmpty(file.PageId))
+                var type = file.Type.ToLowerInvariant();
+                var storageProvider = providers.TryGetValue(type, out var provider)
+                    ? provider
+                    : providers[type] = blobContentStorageProviderFactory.CreateProvider(GetContentBasePath(storeId, type, themeName));
+                var content = file.Content;
+                var targetPath = publishingService.GetRelativeDraftUrl(file.Path, draft);
+                await using var targetStream = await storageProvider.OpenWriteAsync(targetPath);
+                await using var writer = new StreamWriter(targetStream);
+                var stringContent = JsonConvert.SerializeObject(content, settings);
+                await writer.WriteAsync(stringContent);
+
+                if (!changedFiles.ContainsKey(type))
                 {
-                    if (file.Content != null)
-                    {
-                        var groupedPage = await groupedPageService.GetByIdAsync(file.PageId);
-                        if (groupedPage == null)
-                        {
-                            groupedPage = new GroupedPageBuilderPage
-                            {
-                                Id = file.PageId,
-                                GroupId = file.PageId,
-                                StoreId = file.Content["settings"]?["storeId"]?.ToString() ?? storeId,
-                                CultureName = file.Content["settings"]?["cultureName"]?.ToString(),
-                                Status = Draft,
-                            };
-                        }
-                        var page = file.Content.ToObject<PageModel>();
-                        var draftPage = groupedPage.Pages.FirstOrDefault(x => x.Status == Draft);
-
-                        if (draftPage == null)
-                        {
-                            draftPage = new PageBuilderPage
-                            {
-                                Status = Draft,
-                                GroupId = file.PageId,
-                            };
-                            groupedPage.Pages.Add(draftPage);
-                        }
-
-                        groupedPage.Name = draftPage.Name = page.Settings.Name ?? draftPage.Name;
-                        groupedPage.Permalink = draftPage.Permalink = page.Settings.Permalink ?? draftPage.Permalink;
-                        groupedPage.CultureName = draftPage.CultureName = page.Settings.CultureName ?? draftPage.CultureName;
-                        groupedPage.StoreId = draftPage.StoreId = page.Settings.StoreId ?? draftPage.StoreId;
-
-                        draftPage.PageContent = JsonConvert.SerializeObject(file.Content, new JsonSerializerSettings
-                        {
-                            Formatting = Formatting.Indented,
-                            ContractResolver = new CamelCasePropertyNamesContractResolver(),
-                        });
-
-                        await groupedPageService.SaveChangesAsync([groupedPage]);
-                    }
+                    changedFiles.Add(type, new List<GenericChangedEntry<FileEntity>>());
                 }
-                else
+
+                changedFiles[type].Add(new GenericChangedEntry<FileEntity>(new FileEntity
                 {
-                    var type = file.Type.ToLowerInvariant();
-
-                    var storageProvider = providers.ContainsKey(type)
-                        ? providers[type]
-                        : (providers[type] = blobContentStorageProviderFactory.CreateProvider(GetContentBasePath(storeId, type, themeName)));
-                    var content = file.Content;
-                    var targetPath = publishingService.GetRelativeDraftUrl(file.Path, draft);
-                    await using var targetStream = await storageProvider.OpenWriteAsync(targetPath);
-                    await using var writer = new StreamWriter(targetStream);
-                    var stringContent = JsonConvert.SerializeObject(content, settings);
-                    await writer.WriteAsync(stringContent);
-
-                    if (!changedFiles.ContainsKey(type))
-                    {
-                        changedFiles.Add(type, new List<GenericChangedEntry<FileEntity>>());
-                    }
-
-                    changedFiles[type].Add(new GenericChangedEntry<FileEntity>(new FileEntity
-                    {
-                        Id = string.IsNullOrEmpty(file.Path) ? file.Path : file.PageId,
-                        Path = file.Path,
-                        Type = file.Type
-                    }, EntryState.Modified));
-                }
+                    Path = file.Path,
+                    Type = file.Type
+                }, EntryState.Modified));
             }
             changedFiles.Keys.ToList().ForEach(async x =>
             {
-                await eventPublisher.Publish(new PageBuilderContentChangedEvent(x, changedFiles[x]));
+                await eventPublisher.Publish(new PageBuilderContentChangedEvent(x, changedFiles[x]), cancellationToken);
             });
         }
 
@@ -290,9 +223,9 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
         private string GetKey(string type, BlobEntry entry)
         {
-            if (type == null)
-                return Path.GetFileNameWithoutExtension(entry.Name);
-            return $"{type}::{entry.RelativeUrl}";
+            return type == null
+                ? Path.GetFileNameWithoutExtension(entry.Name)
+                : $"{type}::{entry.RelativeUrl}";
         }
 
         private ContentModel GetPageContent(BlobEntry entry, IBlobContentStorageProvider provider)
@@ -345,30 +278,9 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
         public class SaveFileModel
         {
-            public string PageId { get; set; }
             public string Path { get; set; }
             public string Type { get; set; }
-            public JContainer Content { get; set; }
-        }
-
-        public class PageSettingsModel
-        {
-            public string Id { get; set; }
-            public string Name { get; set; }
-            public string DisplayName { get; set; }
-            public string Permalink { get; set; }
-            public string Status { get; set; }
-            public string StoreId { get; set; }
-            public string CultureName { get; set; }
-        }
-
-        public class PageModel
-        {
-            [JsonProperty("settings")]
-            public PageSettingsModel Settings { get; set; }
-
-            [JsonProperty("content")]
-            public List<JObject> Content { get; set; } // Keeps content as raw JSON
+            public object Content { get; set; }
         }
     }
 }

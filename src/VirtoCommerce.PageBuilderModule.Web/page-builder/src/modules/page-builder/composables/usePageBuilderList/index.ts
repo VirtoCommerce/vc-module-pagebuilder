@@ -63,14 +63,14 @@ export function usePageBuilderList(options?: UsePageBuilderListOptions): IUsePag
     criteria.storeId = storeId.value;
 
     const apiClient = await getApiClient();
-    searchResult.value = await apiClient.searchGrouped(criteria);
+    searchResult.value = await apiClient.searchGroups(criteria);
   });
 
   const { action: removePages, loading: loadingRemovePages } = useAsync<{ ids: string[] }>(async (_query) => {
     const ids = _query?.ids;
     if (ids) {
       const apiClient = await getApiClient();
-      await apiClient.archiveGrouped(ids);
+      await apiClient.archiveGroups(ids);
     }
   });
 
