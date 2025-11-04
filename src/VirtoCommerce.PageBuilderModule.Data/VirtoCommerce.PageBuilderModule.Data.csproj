@@ -1,16 +1,14 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="VirtoCommerce.ContentModule.Data" Version="3.831.0-alpha.1016-vcst-3816" />
     <PackageReference Include="VirtoCommerce.Platform.Data" Version="3.895.0" />
     <PackageReference Include="VirtoCommerce.Platform.Security" Version="3.895.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\VirtoCommerce.PageBuilderModule.Core\VirtoCommerce.PageBuilderModule.Core.csproj" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\..\vc-module-content\src\VirtoCommerce.ContentModule.Data\VirtoCommerce.ContentModule.Data.csproj" />
   </ItemGroup>
 </Project>
