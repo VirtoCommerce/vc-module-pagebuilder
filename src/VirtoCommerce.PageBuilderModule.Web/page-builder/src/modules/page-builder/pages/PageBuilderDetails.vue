@@ -77,6 +77,18 @@
           :disabled="isReadOnly"
         />
 
+        <!-- User Groups -->
+        <VcSelect
+          v-model="item.organizationId"
+          :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.ORGANIZATION')"
+          :options="loadOrganizations"
+          option-value="id"
+          option-label="name"
+          searchable
+          :clearable="true"
+          :disabled="isReadOnly"
+        />
+
         <!-- Start Date -->
         <VcInput
           v-model="item.startDate"
@@ -152,6 +164,7 @@ const {
   openDraftDesigner,
   loadCultureNames,
   loadUserGroups,
+  loadOrganizations,
 } = usePageBuilderDetails({
   id: props.param,
   storeId: props.options?.storeId,

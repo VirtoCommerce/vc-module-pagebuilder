@@ -14,6 +14,7 @@ public class GroupedPageBuilderPage : AuditableEntity, IHasStoreId, ICloneable
     public string Name { get; set; }
 
     public string Permalink { get; set; }
+    public string OrganizationId { get; set; }
     public bool Visibility { get; set; }
     public string UserGroups { get; set; }
     public DateTime? StartDate { get; set; }

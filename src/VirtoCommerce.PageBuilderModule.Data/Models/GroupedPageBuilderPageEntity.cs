@@ -15,6 +15,9 @@ namespace VirtoCommerce.PageBuilderModule.Data.Models
         [StringLength(CultureNameLength)]
         public string CultureName { get; set; }
 
+        [StringLength(IdLength)]
+        public string OrganizationId { get; set; }
+
         [StringLength(1024)]
         public string Name { get; set; }
 
@@ -40,6 +43,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Models
             model.ModifiedBy = ModifiedBy;
             model.ModifiedDate = ModifiedDate;
             model.StoreId = StoreId;
+            model.OrganizationId = OrganizationId;
 
             model.CultureName = CultureName;
             model.Name = Name;
@@ -68,6 +72,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Models
             CultureName = model.CultureName;
             Name = model.Name;
             Permalink = model.Permalink;
+            OrganizationId = model.OrganizationId;
 
             Visibility = model.Visibility;
             UserGroups = model.UserGroups;
@@ -93,6 +98,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Models
             target.UserGroups = UserGroups;
             target.StartDate = StartDate;
             target.EndDate = EndDate;
+            target.OrganizationId = OrganizationId;
 
             if (!Pages.IsNullCollection())
             {
