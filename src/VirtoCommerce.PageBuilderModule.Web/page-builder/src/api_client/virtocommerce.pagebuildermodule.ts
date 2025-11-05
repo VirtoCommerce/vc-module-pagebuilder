@@ -994,15 +994,20 @@ export class PageBuilderPageClient extends AuthApiBase {
     }
 
     /**
+     * @param body (optional) 
      * @return OK
      */
-    getOrganizations(): Promise<MemberSearchResult> {
+    getOrganizations(body?: MembersSearchCriteria | undefined): Promise<MemberSearchResult> {
         let url_ = this.baseUrl + "/api/page-builder-pages/organizations";
         url_ = url_.replace(/[?&]$/, "");
 
+        const content_ = JSON.stringify(body);
+
         let options_: RequestInit = {
-            method: "GET",
+            body: content_,
+            method: "POST",
             headers: {
+                "Content-Type": "application/json-patch+json",
                 "Accept": "application/json"
             }
         };
@@ -1912,6 +1917,158 @@ export class MemberSearchResult implements IMemberSearchResult {
 export interface IMemberSearchResult {
     totalCount?: number;
     results?: Member[] | undefined;
+}
+
+export class MembersSearchCriteria implements IMembersSearchCriteria {
+    memberType?: string | undefined;
+    memberTypes?: string[] | undefined;
+    group?: string | undefined;
+    groups?: string[] | undefined;
+    memberId?: string | undefined;
+    deepSearch?: boolean;
+    outerIds?: string[] | undefined;
+    responseGroup?: string | undefined;
+    objectType?: string | undefined;
+    objectTypes?: string[] | undefined;
+    objectIds?: string[] | undefined;
+    keyword?: string | undefined;
+    searchPhrase?: string | undefined;
+    languageCode?: string | undefined;
+    sort?: string | undefined;
+    readonly sortInfos?: SortInfo[] | undefined;
+    skip?: number;
+    take?: number;
+
+    constructor(data?: IMembersSearchCriteria) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.memberType = _data["memberType"];
+            if (Array.isArray(_data["memberTypes"])) {
+                this.memberTypes = [] as any;
+                for (let item of _data["memberTypes"])
+                    this.memberTypes!.push(item);
+            }
+            this.group = _data["group"];
+            if (Array.isArray(_data["groups"])) {
+                this.groups = [] as any;
+                for (let item of _data["groups"])
+                    this.groups!.push(item);
+            }
+            this.memberId = _data["memberId"];
+            this.deepSearch = _data["deepSearch"];
+            if (Array.isArray(_data["outerIds"])) {
+                this.outerIds = [] as any;
+                for (let item of _data["outerIds"])
+                    this.outerIds!.push(item);
+            }
+            this.responseGroup = _data["responseGroup"];
+            this.objectType = _data["objectType"];
+            if (Array.isArray(_data["objectTypes"])) {
+                this.objectTypes = [] as any;
+                for (let item of _data["objectTypes"])
+                    this.objectTypes!.push(item);
+            }
+            if (Array.isArray(_data["objectIds"])) {
+                this.objectIds = [] as any;
+                for (let item of _data["objectIds"])
+                    this.objectIds!.push(item);
+            }
+            this.keyword = _data["keyword"];
+            this.searchPhrase = _data["searchPhrase"];
+            this.languageCode = _data["languageCode"];
+            this.sort = _data["sort"];
+            if (Array.isArray(_data["sortInfos"])) {
+                (this as any).sortInfos = [] as any;
+                for (let item of _data["sortInfos"])
+                    (this as any).sortInfos!.push(SortInfo.fromJS(item));
+            }
+            this.skip = _data["skip"];
+            this.take = _data["take"];
+        }
+    }
+
+    static fromJS(data: any): MembersSearchCriteria {
+        data = typeof data === 'object' ? data : {};
+        let result = new MembersSearchCriteria();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["memberType"] = this.memberType;
+        if (Array.isArray(this.memberTypes)) {
+            data["memberTypes"] = [];
+            for (let item of this.memberTypes)
+                data["memberTypes"].push(item);
+        }
+        data["group"] = this.group;
+        if (Array.isArray(this.groups)) {
+            data["groups"] = [];
+            for (let item of this.groups)
+                data["groups"].push(item);
+        }
+        data["memberId"] = this.memberId;
+        data["deepSearch"] = this.deepSearch;
+        if (Array.isArray(this.outerIds)) {
+            data["outerIds"] = [];
+            for (let item of this.outerIds)
+                data["outerIds"].push(item);
+        }
+        data["responseGroup"] = this.responseGroup;
+        data["objectType"] = this.objectType;
+        if (Array.isArray(this.objectTypes)) {
+            data["objectTypes"] = [];
+            for (let item of this.objectTypes)
+                data["objectTypes"].push(item);
+        }
+        if (Array.isArray(this.objectIds)) {
+            data["objectIds"] = [];
+            for (let item of this.objectIds)
+                data["objectIds"].push(item);
+        }
+        data["keyword"] = this.keyword;
+        data["searchPhrase"] = this.searchPhrase;
+        data["languageCode"] = this.languageCode;
+        data["sort"] = this.sort;
+        if (Array.isArray(this.sortInfos)) {
+            data["sortInfos"] = [];
+            for (let item of this.sortInfos)
+                data["sortInfos"].push(item ? item.toJSON() : undefined as any);
+        }
+        data["skip"] = this.skip;
+        data["take"] = this.take;
+        return data;
+    }
+}
+
+export interface IMembersSearchCriteria {
+    memberType?: string | undefined;
+    memberTypes?: string[] | undefined;
+    group?: string | undefined;
+    groups?: string[] | undefined;
+    memberId?: string | undefined;
+    deepSearch?: boolean;
+    outerIds?: string[] | undefined;
+    responseGroup?: string | undefined;
+    objectType?: string | undefined;
+    objectTypes?: string[] | undefined;
+    objectIds?: string[] | undefined;
+    keyword?: string | undefined;
+    searchPhrase?: string | undefined;
+    languageCode?: string | undefined;
+    sort?: string | undefined;
+    sortInfos?: SortInfo[] | undefined;
+    skip?: number;
+    take?: number;
 }
 
 export class Note implements INote {

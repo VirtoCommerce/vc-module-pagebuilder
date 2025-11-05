@@ -23,7 +23,7 @@ export interface IUsePageBuilderDetails {
   deleteGroup: () => Promise<void>;
   loadCultureNames: (storeId?: string) => Promise<ICultureNameResult>;
   loadUserGroups: () => Promise<IUserGroupsResult>;
-  loadOrganizations: () => Promise<IOrganizationsResult>;
+  loadOrganizations: (keyword?: string, skip?: number, objectIds?: string[]) => Promise<IOrganizationsResult>;
   isReadOnly: ComputedRef<boolean>;
   statusText: ComputedRef<string>;
   publishGroup: () => Promise<void>;
@@ -144,8 +144,8 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
     return getUserGroups();
   }
 
-  async function loadOrganizationsAsync() {
-    return getOrganizations();
+  async function loadOrganizationsAsync(keyword?: string, skip?: number, objectIds?: string[]) {
+    return getOrganizations(keyword, skip, objectIds);
   }
 
   const isReadOnly = computed(() => {

@@ -318,18 +318,14 @@ public class PageBuilderPageController(
         return Ok(setting?.AllowedValues ?? []);
     }
 
-    [HttpGet]
+    [HttpPost]
     [Route("organizations")]
     [Authorize(CustomerModule.Core.ModuleConstants.Security.Permissions.Read)]
-    public async Task<ActionResult<MemberSearchResult>> GetOrganizations()
+    public async Task<ActionResult<MemberSearchResult>> GetOrganizations([FromBody] MembersSearchCriteria criteria)
     {
-        var searchCriteria = new MembersSearchCriteria
-        {
-            MemberType = typeof(Organization).Name,
-            DeepSearch = true,
-            Take = int.MaxValue
-        };
-        var result = await memberSearchService.SearchMembersAsync(searchCriteria);
+        criteria.MemberType = nameof(Organization);
+        criteria.DeepSearch = true;
+        var result = await memberSearchService.SearchMembersAsync(criteria);
         return Ok(result);
     }
 

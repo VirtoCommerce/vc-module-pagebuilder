@@ -1,6 +1,6 @@
 import { computed, Ref, ref } from "vue";
 import { useApiClient } from "@vc-shell/framework";
-import { PageBuilderPageClient } from "../../../../api_client/virtocommerce.pagebuildermodule";
+import { PageBuilderPageClient, MembersSearchCriteria } from "../../../../api_client/virtocommerce.pagebuildermodule";
 
 export interface IOrganization {
   name: string;
@@ -15,7 +15,7 @@ export interface IOrganizationsResult {
 export interface IUseOrganizations {
   readonly loading: Ref<boolean>;
   readonly types: Ref<IOrganization[]>;
-  getOrganizations(): Promise<IOrganizationsResult>;
+  getOrganizations(keyword?: string, skip?: number, ids?: string[]): Promise<IOrganizationsResult>;
 }
 
 const { getApiClient } = useApiClient(PageBuilderPageClient);
@@ -24,11 +24,17 @@ export default (): IUseOrganizations => {
   const loading = ref(false);
   const types = ref<IOrganization[]>([]);
 
-  async function getOrganizations(): Promise<IOrganizationsResult> {
+  async function getOrganizations(
+    keyword?: string,
+    skip?: number,
+    objectIds?: string[],
+  ): Promise<IOrganizationsResult> {
     loading.value = true;
     const client = await getApiClient();
     try {
-      const memberSearchResult = await client.getOrganizations();
+      const memberSearchResult = await client.getOrganizations(
+        new MembersSearchCriteria({ keyword, skip: skip ?? 0, objectIds }),
+      );
       const result =
         memberSearchResult.results?.map((organization) => ({
           name: organization.name ?? organization.id!,
