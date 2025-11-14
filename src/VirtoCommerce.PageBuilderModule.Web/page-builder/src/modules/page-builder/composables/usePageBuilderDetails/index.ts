@@ -8,6 +8,7 @@ import {
 
 import useCultureNames, { ICultureNameResult } from "./../useCultureNames";
 import useUserGroups, { IUserGroupsResult } from "./../useUserGroups";
+import useOrganizations, { IOrganizationsResult } from "./../useOrganizations";
 import useUrlParams from "./../useUrlParams";
 
 const { getApiClient } = useApiClient(PageBuilderPageClient);
@@ -22,6 +23,7 @@ export interface IUsePageBuilderDetails {
   deleteGroup: () => Promise<void>;
   loadCultureNames: (storeId?: string) => Promise<ICultureNameResult>;
   loadUserGroups: () => Promise<IUserGroupsResult>;
+  loadOrganizations: (keyword?: string, skip?: number, objectIds?: string[]) => Promise<IOrganizationsResult>;
   isReadOnly: ComputedRef<boolean>;
   statusText: ComputedRef<string>;
   publishGroup: () => Promise<void>;
@@ -37,6 +39,7 @@ export interface UsePageBuilderDetailsOptions {
 export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): IUsePageBuilderDetails {
   const { getCultureNames } = useCultureNames();
   const { getUserGroups } = useUserGroups();
+  const { getOrganizations } = useOrganizations();
   const { storeId, initUrlParams } = useUrlParams();
 
   const item = ref<GroupedPageBuilderPage>(new GroupedPageBuilderPage());
@@ -141,6 +144,10 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
     return getUserGroups();
   }
 
+  async function loadOrganizationsAsync(keyword?: string, skip?: number, objectIds?: string[]) {
+    return getOrganizations(keyword, skip, objectIds);
+  }
+
   const isReadOnly = computed(() => {
     return currentValue.value != null && currentValue.value.status === "Archived";
   });
@@ -172,6 +179,7 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
     deleteGroup,
     loadCultureNames: loadCultureNamesAsync,
     loadUserGroups: loadUserGroupsAsync,
+    loadOrganizations: loadOrganizationsAsync,
     isReadOnly,
     statusText,
     publishGroup,

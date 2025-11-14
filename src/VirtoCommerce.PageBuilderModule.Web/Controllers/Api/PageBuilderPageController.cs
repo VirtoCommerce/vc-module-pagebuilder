@@ -9,6 +9,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using VirtoCommerce.ContentModule.Core.Model;
+using VirtoCommerce.CustomerModule.Core.Model;
+using VirtoCommerce.CustomerModule.Core.Model.Search;
+using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
@@ -32,6 +35,7 @@ public class PageBuilderPageController(
     IStoreService storeService,
     IAuthorizationService authorizationService,
     IPageDocumentSearchService pageDocumentSearchService,
+    IMemberSearchService memberSearchService,
     ILogger<PageBuilderPageController> logger)
     : Controller
 {
@@ -112,6 +116,7 @@ public class PageBuilderPageController(
         groupedPage.UserGroups = model.UserGroups;
         groupedPage.StartDate = model.StartDate;
         groupedPage.EndDate = model.EndDate;
+        groupedPage.OrganizationId = model.OrganizationId;
 
         await groupedPageService.SaveChangesAsync([groupedPage]);
         if (newGroup)
@@ -311,6 +316,17 @@ public class PageBuilderPageController(
     {
         var setting = await settingsManager.GetObjectSettingAsync(CustomerModule.Core.ModuleConstants.Settings.General.MemberGroups.Name);
         return Ok(setting?.AllowedValues ?? []);
+    }
+
+    [HttpPost]
+    [Route("organizations")]
+    [Authorize(CustomerModule.Core.ModuleConstants.Security.Permissions.Read)]
+    public async Task<ActionResult<MemberSearchResult>> GetOrganizations([FromBody] MembersSearchCriteria criteria)
+    {
+        criteria.MemberType = nameof(Organization);
+        criteria.DeepSearch = true;
+        var result = await memberSearchService.SearchMembersAsync(criteria);
+        return Ok(result);
     }
 
     [HttpGet("grouped/{groupId}/content")]

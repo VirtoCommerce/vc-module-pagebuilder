@@ -54,6 +54,10 @@ namespace VirtoCommerce.PageBuilderModule.Data.MySql.Migrations
                         .HasMaxLength(1024)
                         .HasColumnType("varchar(1024)");
 
+                    b.Property<string>("OrganizationId")
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
+
                     b.Property<string>("Permalink")
                         .HasMaxLength(2048)
                         .HasColumnType("varchar(2048)");

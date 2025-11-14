@@ -73,7 +73,8 @@
           "VISIBILITY": "Visibility",
           "START_DATE": "Start date",
           "END_DATE": "End date",
-          "USER_GROUPS": "User groups"
+          "USER_GROUPS": "User groups",
+          "ORGANIZATION": "Organization"
         },
         "TOOLTIPS": {
           "VISIBILITY": "If Visibility is off the page will be available only for registered users."

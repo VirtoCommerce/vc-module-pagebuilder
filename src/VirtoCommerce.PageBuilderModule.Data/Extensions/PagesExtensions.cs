@@ -33,6 +33,7 @@ public static class PagesExtensions
         pageDocument.StoreId = page.StoreId;
         pageDocument.CultureName = group.CultureName;
         pageDocument.Permalink = group.Permalink;
+        pageDocument.OrganizationId = group.OrganizationId;
 
         pageDocument.CreatedBy = page.CreatedBy;
         pageDocument.CreatedDate = page.CreatedDate;
