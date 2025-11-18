@@ -1,0 +1,82 @@
+{
+  "pageBuilder": {
+    "blades": {
+      "edit-page": {
+        "title": "Muokkaa '{{name}}'",
+        "subtitle": "Sivun muokkaus",
+        "title-new": "Uusi sivu",
+        "subtitle-new": "Luo uusi sivu",
+        "subtitle-post": "Blogikirjoituksen muokkaus",
+        "title-new-post": "Uusi kirjoitus",
+        "subtitle-new-post": "Luo uusi blogikirjoitus",
+        "labels": {
+          "filename": "Tiedostonimi",
+          "name": "Nimi",
+          "language": "Kieli",
+          "permalink": "Pysyvä linkki",
+          "drag-note": "Vedä ja pudota tiedosto tähän",
+          "progress": "Edistyminen",
+          "markdown": "Markdown",
+          "metadata": "Metatiedot",
+          "relativePath": "Suhteellinen polku"
+        },
+        "placeholders": {
+          "filename": "Anna tiedostonimi",
+          "name": "Anna nimi",
+          "language": "Valitse…",
+          "permalink": "Anna pysyvä linkki"
+        },
+        "validations": {
+          "pageName-invalid": "Sivun nimi saa sisältää vain aakkosnumeerisia merkkejä sekä \"_\", \"-\" ja \".\"",
+          "permalink-invalid": "Muilla sivuilla on sama pysyvä linkki"
+        }
+      },
+      "pageBuilderEditor": {
+        "create": {
+          "title": "Suunnittele sivu",
+          "description": "Käytä suunnitteluohjelmaa uuden sivun luomiseen"
+        },
+        "edit": {
+          "title": "Suunnittele sivu",
+          "description": "Käytä suunnitteluohjelmaa sivun muokkaamiseen"
+        }
+      }
+    },
+    "commands": {
+      "open-designer": "Suunnittelu",
+      "publish": "Julkaise",
+      "unpublish": "Poista julkaisusta"
+    },
+    "widgets": {
+      "pageBuilder-app": {
+        "title": "Page Builder"
+      }
+    }
+  },
+  "settings": {
+    "VirtoCommerce": {
+      "PageBuilderModule": {
+        "General": {
+          "StoreUrl": {
+            "description": "Kaupan URL, jossa on Page Builder -esikatselu",
+            "title": "Kaupan URL"
+          },
+          "StorePreviewPath": {
+            "description": "Suhteellinen polku sivun esikatseluun",
+            "title": "Esikatselupolku"
+          }
+        },
+        "Migration": {
+          "MetadataFromContentMigrated": {
+            "title": "Metatietojen siirto sisällöstä valmis",
+            "description": "Sisältökohteista Page Builder -sivuille tehdyt metatietojen siirrot on suoritettu onnistuneesti."
+          }
+        }
+      }
+    }
+  },
+  "permissions": {
+    "builder:theme": "Salli teeman asetusten muokkaus",
+    "builder:templates": "Salli mallin vaihto muokkauksen aikana"
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "pageBuilder": {
+    "blades": {
+      "edit-page": {
+        "title": "Rediger '{{name}}'",
+        "subtitle": "Side-redigering",
+        "title-new": "Ny side",
+        "subtitle-new": "Opprett ny side",
+        "subtitle-post": "Redigering av blogginnlegg",
+        "title-new-post": "Nytt innlegg",
+        "subtitle-new-post": "Opprett nytt blogginnlegg",
+        "labels": {
+          "filename": "Filnavn",
+          "name": "Navn",
+          "language": "Språk",
+          "permalink": "Permalenke",
+          "drag-note": "Dra og slipp fil her",
+          "progress": "Fremdrift",
+          "markdown": "Markdown",
+          "metadata": "Metadata",
+          "relativePath": "Relativ sti"
+        },
+        "placeholders": {
+          "filename": "Skriv inn filnavn",
+          "name": "Skriv inn navn",
+          "language": "Velg…",
+          "permalink": "Skriv inn permalenke"
+        },
+        "validations": {
+          "pageName-invalid": "Sidenavnet kan kun inneholde alfanumeriske tegn, «_», «-» og «.»",
+          "permalink-invalid": "Andre sider har samme permalenke"
+        }
+      },
+      "pageBuilderEditor": {
+        "create": {
+          "title": "Design side",
+          "description": "Bruk designeren til å lage en ny side"
+        },
+        "edit": {
+          "title": "Design side",
+          "description": "Bruk designeren til å redigere siden"
+        }
+      }
+    },
+    "commands": {
+      "open-designer": "Design",
+      "publish": "Publiser",
+      "unpublish": "Avpubliser"
+    },
+    "widgets": {
+      "pageBuilder-app": {
+        "title": "Page Builder"
+      }
+    }
+  },
+  "settings": {
+    "VirtoCommerce": {
+      "PageBuilderModule": {
+        "General": {
+          "StoreUrl": {
+            "description": "Butikk-URL med forhåndsvisning for Page Builder",
+            "title": "Butikk-URL"
+          },
+          "StorePreviewPath": {
+            "description": "Relativ sti for forhåndsvisning av side",
+            "title": "Sti for forhåndsvisning"
+          }
+        },
+        "Migration": {
+          "MetadataFromContentMigrated": {
+            "title": "Metadata-migrering fra innhold fullført",
+            "description": "Migreringen av metadata fra innholdselementer til Page Builder-sider er fullført."
+          }
+        }
+      }
+    }
+  },
+  "permissions": {
+    "builder:theme": "Tillat redigering av temainnstillinger",
+    "builder:templates": "Tillat bytte av mal under redigering"
+  }
+}
