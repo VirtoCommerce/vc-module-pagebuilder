@@ -67,7 +67,7 @@
           }
         },
         "Migration": {
-          "MigrateMetadataFromContent": {
+          "MetadataFromContentMigrated": {
             "title": "Migrate metadata from content completed",
             "description": "The migration metadata from content items to page builder pages has been done successfully."
           }

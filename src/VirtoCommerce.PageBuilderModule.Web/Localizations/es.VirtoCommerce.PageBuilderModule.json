@@ -60,6 +60,12 @@
             "description": "Ruta relativa para la vista previa",
             "title": "Ruta de vista previa de la tienda"
           }
+        },
+        "Migration": {
+          "MetadataFromContentMigrated": {
+            "title": "Migrar metadatos de contenido completado",
+            "description": "La migración de metadatos de elementos de contenido a páginas del generador de páginas se ha realizado con éxito."
+          }
         }
       }
     }

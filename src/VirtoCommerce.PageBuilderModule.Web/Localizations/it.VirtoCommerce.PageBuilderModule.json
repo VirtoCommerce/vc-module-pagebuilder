@@ -60,6 +60,12 @@
             "description": "Percorso relativo per l'anteprima della pagina",
             "title": "Percorso di anteprima del negozio"
           }
+        },
+        "Migration": {
+          "MetadataFromContentMigrated": {
+            "title": "Migrazione dei metadati da contenuti completata",
+            "description": "La migrazione dei metadati degli elementi di contenuto verso le pagine del generatore di pagine è stata completata con successo."
+          }
         }
       }
     }

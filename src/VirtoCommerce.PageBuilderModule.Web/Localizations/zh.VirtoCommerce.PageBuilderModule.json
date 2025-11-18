@@ -60,6 +60,12 @@
             "description": "预览页面的相对路径",
             "title": "商店预览路径"
           }
+        },
+        "Migration": {
+          "MetadataFromContentMigrated": {
+            "title": "迁移内容元数据完成",
+            "description": "内容项的元数据迁移到页面构建器页面已成功完成。"
+          }
         }
       }
     }

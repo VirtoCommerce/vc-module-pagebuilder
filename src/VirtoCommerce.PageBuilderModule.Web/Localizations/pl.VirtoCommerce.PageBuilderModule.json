@@ -60,6 +60,12 @@
             "description": "Ścieżka względna do strony podglądu",
             "title": "Ścieżka podglądu sklepu"
           }
+        },
+        "Migration": {
+          "MetadataFromContentMigrated": {
+            "title": "Migracja metadanych z zawartości zakończona",
+            "description": "Migracja metadanych z elementów zawartości do stron kreatora stron została pomyślnie zakończona."
+          }
         }
       }
     }
