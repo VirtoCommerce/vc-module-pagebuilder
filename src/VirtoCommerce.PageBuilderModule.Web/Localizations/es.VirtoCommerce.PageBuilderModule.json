@@ -63,7 +63,7 @@
         },
         "Migration": {
           "MetadataFromContentMigrated": {
-            "title": "Migrar metadatos de contenido completado",
+            "title": "Migración de metadatos desde el contenido completada",
             "description": "La migración de metadatos de elementos de contenido a páginas del generador de páginas se ha realizado con éxito."
           }
         }

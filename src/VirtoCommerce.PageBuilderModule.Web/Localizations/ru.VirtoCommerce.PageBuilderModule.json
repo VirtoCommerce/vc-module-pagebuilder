@@ -64,7 +64,7 @@
         "Migration": {
           "MetadataFromContentMigrated": {
             "title": "Миграция метаданных завершена",
-            "description": "Миграция метаданных страниц PagerBuilder-а была успешно завершена."
+            "description": "Миграция метаданных страниц PagerBuilder была успешно завершена"
           }
         }
       }
