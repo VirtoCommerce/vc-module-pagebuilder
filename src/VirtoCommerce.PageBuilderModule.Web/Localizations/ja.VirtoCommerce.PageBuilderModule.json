@@ -60,6 +60,12 @@
             "description": "プレビューページの相対パス",
             "title": "ストアプレビューパス"
           }
+        },
+        "Migration": {
+          "MetadataFromContentMigrated": {
+            "title": "コンテンツからのメタデータ移行完了",
+            "description": "コンテンツアイテムからページビルダーページへのメタデータ移行が正常に完了しました。"
+          }
         }
       }
     }

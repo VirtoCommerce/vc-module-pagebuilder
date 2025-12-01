@@ -60,6 +60,12 @@
             "description": "Chemin relatif pour l'aperçu",
             "title": "Chemin d'aperçu du magasin"
           }
+        },
+        "Migration": {
+          "MetadataFromContentMigrated": {
+            "title": "Migration des métadonnées de contenu terminée",
+            "description": "La migration des métadonnées des éléments de contenu vers les pages du générateur de pages a été effectuée avec succès."
+          }
         }
       }
     }
