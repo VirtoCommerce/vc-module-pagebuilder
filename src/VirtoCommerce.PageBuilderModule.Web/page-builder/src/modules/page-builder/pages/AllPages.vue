@@ -134,7 +134,7 @@ const { items, totalCount, pages, currentPage, searchQuery, storeId, loadPages, 
   usePageBuilderList({
     pageSize: 20,
     sort: sortExpression.value,
-});
+  });
 
 // State
 const selectedItemId = ref<string>();
@@ -242,7 +242,7 @@ const activeFilterCount = computed(() => {
 // Event handlers
 function onItemClick(item: GroupedPageBuilderPage) {
   openBlade({
-    blade: { name: "PageBuilderDetails" },
+    blade: { name: "PageDetails" },
     param: item.id,
     options: {
       storeId: storeId?.value ?? undefined,

@@ -1,3 +1,3 @@
-export { default as PageBuilder } from "./PageBuilder.vue";
-export { default as PageBuilderArchived } from "./PageBuilderArchived.vue";
-export { default as PageBuilderDetails } from "./PageBuilderDetails.vue";
+export { default as AllPages } from "./AllPages.vue";
+export { default as ArchivedPages } from "./ArchivedPages.vue";
+export { default as PageDetails } from "./PageDetails.vue";

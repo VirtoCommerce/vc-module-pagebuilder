@@ -1,5 +1,5 @@
 <template>
-  <div class="flex gap-1">
+  <div class="tw-flex tw-flex-row tw-gap-1">
     <VcStatus
       class="w-auto"
       v-bind="statusStyles[status]"

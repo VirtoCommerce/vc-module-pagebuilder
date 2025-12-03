@@ -72,12 +72,25 @@
           "CULTURE_NAME": "Language",
           "VISIBILITY": "Visibility",
           "START_DATE": "Start date",
+          "START_DATE_HINT": "Page becomes visible",
           "END_DATE": "End date",
+          "END_DATE_HINT": "Page becomes hidden",
           "USER_GROUPS": "User groups",
           "ORGANIZATION": "Organization"
         },
         "TOOLTIPS": {
           "VISIBILITY": "If Visibility is off the page will be available only for registered users."
+        },
+        "SECTIONS": {
+          "PERSONALIZATION_ACCESS_CONTROL": {
+            "TITLE": "Personalization & Access control",
+            "DESCRIPTION": "Limit page visibility to specific audiences",
+            "VISIBILITY_TAG": "Visible"
+          },
+          "SCHEDULING": {
+            "TITLE": "Scheduling",
+            "DESCRIPTION": "Set when this page should be visible"
+          }
         }
       },
       "ALERTS": {
@@ -98,3 +111,4 @@
     }
   }
 }
+

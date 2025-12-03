@@ -1,30 +1,32 @@
 <template>
   <VcBlade
-           :title="bladeTitle"
-           width="50%"
-           :expanded="expanded"
-           :closable="closable"
-           :toolbar-items="bladeToolbar"
-           @close="$emit('close:blade')"
-           @expand="$emit('expand:blade')"
-           @collapse="$emit('collapse:blade')">
+    :title="bladeTitle"
+    width="50%"
+    :expanded="expanded"
+    :closable="closable"
+    :toolbar-items="bladeToolbar"
+    @close="$emit('close:blade')"
+    @expand="$emit('expand:blade')"
+    @collapse="$emit('collapse:blade')"
+  >
     <!-- @vue-generic {GroupedPageBuilderPage}-->
     <VcTable
-             :expanded="expanded"
-             :items="items"
-             :columns="columns"
-             :pages="pages"
-             :current-page="currentPage"
-             :total-count="totalCount"
-             :selected-item-id="selectedItemId"
-             :search-value="searchValue"
-             :loading="loading"
-             :sort-expression="sortExpression"
-             :active-filter-count="activeFilterCount"
-             @item-click="onItemClick"
-             @search:change="onSearchList"
-             @pagination-click="onPaginationClick"
-             @header-click="onHeaderClick">
+      :expanded="expanded"
+      :items="items"
+      :columns="columns"
+      :pages="pages"
+      :current-page="currentPage"
+      :total-count="totalCount"
+      :selected-item-id="selectedItemId"
+      :search-value="searchValue"
+      :loading="loading"
+      :sort-expression="sortExpression"
+      :active-filter-count="activeFilterCount"
+      @item-click="onItemClick"
+      @search:change="onSearchList"
+      @pagination-click="onPaginationClick"
+      @header-click="onHeaderClick"
+    >
       <template #item_status="{ item }">
         <PageStatus :status="item.status" />
       </template>
@@ -43,8 +45,8 @@ import { GroupedPageBuilderPage } from "../../../api_client/virtocommerce.pagebu
 import PageStatus from "../components/pageStatus.vue";
 
 defineOptions({
-  name: "PageBuilderArchived",
-  url: "/page-builder-archived",
+  name: "ArchivedPages",
+  url: "/all",
   isWorkspace: true,
   menuItem: {
     title: "PAGE_BUILDER.MENU.ARCHIVED_TITLE",
@@ -83,16 +85,7 @@ const { sortExpression, handleSortChange: tableSortHandler } = useTableSort({
 });
 
 // Composable
-const {
-  items,
-  totalCount,
-  pages,
-  currentPage,
-  searchQuery,
-  storeId,
-  loadPages,
-  loading,
-} = usePageBuilderList({
+const { items, totalCount, pages, currentPage, searchQuery, storeId, loadPages, loading } = usePageBuilderList({
   pageSize: 20,
   sort: sortExpression.value,
 });
@@ -172,7 +165,7 @@ const activeFilterCount = computed(() => {
 // Event handlers
 function onItemClick(item: GroupedPageBuilderPage) {
   openBlade({
-    blade: { name: "PageBuilderDetails" },
+    blade: { name: "PageDetails" },
     param: item.id,
     options: {
       storeId: storeId?.value ?? undefined,
