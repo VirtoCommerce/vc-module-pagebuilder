@@ -8,8 +8,11 @@ export function usePagesListToolbar(
   status: PageStatuses | null,
   pagesListRef: Readonly<ShallowRef<ExposedPagesList | null>>,
 ): Ref<IBladeToolbar[]> {
-
   const { t } = useI18n({ useScope: "global" });
+  const isRemoveDisabled = computed(() => {
+    const items = <string[]>(<unknown>pagesListRef.value?.selectedItems) || [];
+    return (items.length || 0) === 0;
+  });
 
   return computed(() => [
     {
@@ -32,7 +35,7 @@ export function usePagesListToolbar(
       id: "delete",
       icon: "material-delete",
       title: t("PAGE_BUILDER.PAGES.LIST.TOOLBAR.REMOVE"),
-      disabled: pagesListRef.value?.selectedItems.value?.length === 0,
+      disabled: isRemoveDisabled,
       clickHandler: async () => {
         await pagesListRef.value?.removeSelectedPages();
       },

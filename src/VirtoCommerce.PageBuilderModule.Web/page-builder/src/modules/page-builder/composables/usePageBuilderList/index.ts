@@ -2,7 +2,7 @@ import { computed, ref, ComputedRef, onMounted } from "vue";
 import { useAsync, useLoading, useApiClient } from "@vc-shell/framework";
 import { useI18n } from "vue-i18n";
 
-import useUrlParams from "./../useUrlParams";
+import useUrlParams from "../useStoreParams";
 
 import {
   PageBuilderPageClient,

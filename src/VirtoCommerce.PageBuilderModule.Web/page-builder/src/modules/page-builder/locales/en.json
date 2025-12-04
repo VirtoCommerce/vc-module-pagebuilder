@@ -1,12 +1,17 @@
 {
   "PAGE_BUILDER": {
     "MENU": {
-      "TITLE": "Pages",
-      "ARCHIVED_TITLE": "Archived pages"
+      "TITLE": "All Pages",
+      "ARCHIVED_TITLE": "Archived",
+      "DRAFT_TITLE": "Draft",
+      "PUBLISHED_TITLE": "Published"
     },
     "PAGES": {
       "LIST": {
-        "TITLE": "Pages list",
+        "TITLE": "All pages",
+        "ARCHIVED_TITLE": "Archived pages",
+        "DRAFT_TITLE": "Draft pages",
+        "PUBLISHED_TITLE": "Published pages",
         "TOOLBAR": {
           "ADD": "Add",
           "REFRESH": "Refresh",

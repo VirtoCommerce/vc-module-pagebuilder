@@ -48,7 +48,12 @@
               :disabled="isReadOnly"
             >
               <template #prepend-inner>
-                <div class="-tw-ml-2.5 tw-p-2 tw-rounded-sm tw-pl-2.5 tw-bg-gray-300">https://localhost:3000</div>
+                <div
+                  v-if="storeUrl"
+                  class="-tw-ml-2.5 tw-p-2 tw-text-sm tw-rounded-sm tw-pl-2.5 tw-bg-gray-300"
+                >
+                  {{ storeUrl }}
+                </div>
               </template>
             </VcInput>
 
@@ -130,7 +135,7 @@
               <template #header>
                 <CardHeader
                   icon="material-date_range"
-                  :tag-text="(item.startDate || item.endDate) ? 'Scheduled' : ''"
+                  :tag-text="isScheduled ? 'Scheduled' : ''"
                   :title="$t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.SCHEDULING.TITLE')"
                   :description="$t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.SCHEDULING.DESCRIPTION')"
                 />
@@ -165,11 +170,12 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { Field, useForm } from "vee-validate";
 import { IBladeToolbar, IParentCallArgs, useBladeNavigation, usePopup } from "@vc-shell/framework";
 import PageStatus from "../components/pageStatus.vue";
+import useUrlParams from "../composables/useStoreParams";
 import { usePageBuilderDetails } from "../composables/usePageBuilderDetails";
 
 defineOptions({
@@ -204,6 +210,7 @@ const { t } = useI18n({ useScope: "global" });
 const { showConfirmation } = usePopup();
 const { onBeforeClose } = useBladeNavigation();
 const { meta } = useForm({ validateOnMount: false });
+const { getStoreUrl, getLanguages } = useUrlParams();
 
 const {
   item,
@@ -217,7 +224,6 @@ const {
   publishGroup,
   unpublishGroup,
   openDraftDesigner,
-  loadCultureNames,
   loadUserGroups,
   loadOrganizations,
 } = usePageBuilderDetails({
@@ -233,11 +239,17 @@ const bladeTitle = computed(() => {
     : item.value?.name + t("PAGE_BUILDER.PAGES.DETAILS.TITLE.DETAILS");
 });
 
+const storeUrl = ref<string | null>(null);
+
+const isScheduled = computed(() => {
+  return !!item.value.startDate || !!item.value.endDate;
+});
+
 function parseUserGroups(str: string | undefined): string[] {
-  return str ? str.split(",").filter(x => !!x) : [];
+  return str ? str.split(",").filter((x) => !!x) : [];
 }
 function serializeUserGroups(groups: string[]): string {
-  return groups.filter(x => !!x).join(",");
+  return groups.filter((x) => !!x).join(",");
 }
 const itemUserGroups = computed<string[]>({
   get: () => {
@@ -307,7 +319,11 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
 
 // Methods
 async function loadCultureNamesAsync() {
-  return await loadCultureNames(props.options?.storeId);
+  const langs = await getLanguages();
+  return {
+    totalCount: langs.length,
+    results: langs.map((x) => ({ name: x })),
+  };
 }
 
 async function handleSave() {
@@ -323,6 +339,7 @@ async function handleSave() {
 // Lifecycle
 onMounted(async () => {
   await loadGroup();
+  storeUrl.value = await getStoreUrl();
 });
 
 onBeforeClose(async () => {

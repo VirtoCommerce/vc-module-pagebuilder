@@ -284,16 +284,13 @@ async function resetFilters(closePanel: () => void) {
   filtersQuery.value = undefined;
   await loadPages({
     ...searchQuery.value,
-    statuses: `${PageStatuses.Draft},${PageStatuses.Published}`,
   });
 
   closePanel();
 }
 
 onMounted(async () => {
-  await loadPages({
-    statuses: `${PageStatuses.Draft},${PageStatuses.Published}`,
-  });
+  await loadPages();
 });
 
 export interface ExposedPagesList {

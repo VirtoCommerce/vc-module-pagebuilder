@@ -11,7 +11,7 @@
   >
     <PagesList
       ref="pagesListRef"
-      :statuses="[PageStatuses.Archived]"
+      :statuses="[PageStatuses.Draft]"
     />
   </VcBlade>
 </template>
@@ -25,11 +25,11 @@ import { usePagesListToolbar } from "../composables/usePagesListToolbar";
 import { PageStatuses } from "../composables";
 
 defineOptions({
-  name: "ArchivedPagesList",
-  url: "/page-builder-archived",
+  name: "DraftPagesList",
+  url: "/page-builder-draft",
   isWorkspace: true,
   menuItem: {
-    title: "PAGE_BUILDER.MENU.ARCHIVED_TITLE",
+    title: "PAGE_BUILDER.MENU.DRAFT_TITLE",
     icon: "material-article",
     priority: 1,
   },
@@ -59,7 +59,7 @@ defineEmits<Emits>();
 const { t } = useI18n({ useScope: "global" });
 
 const pagesListRef = useTemplateRef<ExposedPagesList>("pagesListRef");
-const bladeTitle = computed(() => t("PAGE_BUILDER.PAGES.LIST.ARCHIVED_TITLE"));
+const bladeTitle = computed(() => t("PAGE_BUILDER.PAGES.LIST.DRAFT_TITLE"));
 
 const bladeToolbar = usePagesListToolbar(PageStatuses.Archived, pagesListRef);
 
