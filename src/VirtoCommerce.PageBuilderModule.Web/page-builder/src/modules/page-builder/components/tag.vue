@@ -10,7 +10,7 @@ interface Props {
 }
 defineProps<Props>();
 </script>
-<style>
+<style scoped>
 .tag-holder {
   background-color: var(--status-primary-bg-color);
   color: var(--status-primary-main-color);

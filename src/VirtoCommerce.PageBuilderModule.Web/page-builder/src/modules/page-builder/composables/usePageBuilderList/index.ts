@@ -36,6 +36,7 @@ export interface IUsePageBuilderList {
 export interface UsePageBuilderListOptions {
   pageSize?: number;
   sort?: string;
+  statuses?: PageStatuses[];
 }
 
 export function usePageBuilderList(options?: UsePageBuilderListOptions): IUsePageBuilderList {
@@ -45,6 +46,7 @@ export function usePageBuilderList(options?: UsePageBuilderListOptions): IUsePag
   const searchQuery = ref<IPageBuilderPageSearchCriteria>({
     take: pageSize,
     sort: options?.sort,
+    statuses: options?.statuses?.join(",") || undefined,
   });
   const searchResult = ref<GroupedPageBuilderPageSearchResult>();
   const { t } = useI18n({ useScope: "global" });

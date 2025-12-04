@@ -130,6 +130,7 @@
               <template #header>
                 <CardHeader
                   icon="material-date_range"
+                  :tag-text="(item.startDate || item.endDate) ? 'Scheduled' : ''"
                   :title="$t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.SCHEDULING.TITLE')"
                   :description="$t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.SCHEDULING.DESCRIPTION')"
                 />
@@ -139,6 +140,7 @@
                   v-model="item.startDate"
                   class="tw-flex-1"
                   type="datetime-local"
+                  clearable
                   :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.START_DATE')"
                   :hint="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.START_DATE_HINT')"
                   :disabled="isReadOnly"
@@ -148,6 +150,7 @@
                   v-model="item.endDate"
                   class="tw-flex-1"
                   type="datetime-local"
+                  clearable
                   :hint="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.END_DATE_HINT')"
                   :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.END_DATE')"
                   :disabled="isReadOnly"
