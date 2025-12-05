@@ -329,6 +329,20 @@ public class PageBuilderPageController(
         return Ok(result);
     }
 
+    [HttpGet]
+    [Route("organizations/{id}")]
+    [Authorize(CustomerModule.Core.ModuleConstants.Security.Permissions.Read)]
+    public async Task<ActionResult<Member>> GetOrganization([FromRoute] string id)
+    {
+        var criteria = new MembersSearchCriteria { ObjectIds = [ id ] };
+        var result = await memberSearchService.SearchMembersAsync(criteria);
+        if (result.TotalCount == 0)
+        {
+            return NotFound();
+        }
+        return Ok(result.Results.First());
+    }
+
     [HttpGet("grouped/{groupId}/content")]
     [Authorize(ModuleConstants.Security.Permissions.Read)]
     public async Task GetPageContent([FromRoute] string groupId, [FromQuery] bool draft = true, CancellationToken cancellationToken = default)

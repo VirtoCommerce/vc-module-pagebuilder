@@ -11,7 +11,7 @@
   >
     <PagesList
       ref="pagesListRef"
-      :statuses="[PageStatuses.Archived]"
+      :lifecycle="[PageLifecycleFilters.Archived]"
     />
   </VcBlade>
 </template>
@@ -22,7 +22,7 @@ import { useI18n } from "vue-i18n";
 import { IParentCallArgs } from "@vc-shell/framework";
 import { ExposedPagesList, PagesList } from "../components";
 import { usePagesListToolbar } from "../composables/usePagesListToolbar";
-import { PageStatuses } from "../composables";
+import { PageLifecycleFilters } from "../composables";
 
 defineOptions({
   name: "ArchivedPagesList",
@@ -31,7 +31,7 @@ defineOptions({
   menuItem: {
     title: "PAGE_BUILDER.MENU.ARCHIVED_TITLE",
     icon: "material-article",
-    priority: 1,
+    priority: 40,
   },
 });
 
@@ -61,7 +61,7 @@ const { t } = useI18n({ useScope: "global" });
 const pagesListRef = useTemplateRef<ExposedPagesList>("pagesListRef");
 const bladeTitle = computed(() => t("PAGE_BUILDER.PAGES.LIST.ARCHIVED_TITLE"));
 
-const bladeToolbar = usePagesListToolbar(PageStatuses.Archived, pagesListRef);
+const bladeToolbar = usePagesListToolbar(PageLifecycleFilters.Archived, pagesListRef);
 
 async function reload() {
   pagesListRef.value?.reload();
@@ -70,5 +70,6 @@ async function reload() {
 defineExpose({
   title: bladeTitle,
   reload,
+  onItemClick: pagesListRef.value?.onItemClick,
 });
 </script>

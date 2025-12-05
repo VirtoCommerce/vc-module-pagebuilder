@@ -13,10 +13,7 @@
   >
     <VcContainer>
       <VcForm class="tw-flex tw-flex-col tw-gap-4">
-        <PageStatus
-          :status="item.status"
-          :has-changes="status.hasChanges"
-        />
+        <PageStatus :item="item" />
 
         <VcCard
           header="Basic information"

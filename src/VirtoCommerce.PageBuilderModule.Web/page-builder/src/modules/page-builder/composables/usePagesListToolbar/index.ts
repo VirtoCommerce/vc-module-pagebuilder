@@ -1,11 +1,11 @@
 import { computed, Ref, ShallowRef } from "vue";
 import { useI18n } from "vue-i18n";
 import { IBladeToolbar } from "@vc-shell/framework";
-import { PageStatuses } from "../usePageBuilderList";
+import { PageLifecycleFilters } from "../usePageBuilderList";
 import { ExposedPagesList } from "../../components";
 
 export function usePagesListToolbar(
-  status: PageStatuses | null,
+  status: PageLifecycleFilters | null,
   pagesListRef: Readonly<ShallowRef<ExposedPagesList | null>>,
 ): Ref<IBladeToolbar[]> {
   const { t } = useI18n({ useScope: "global" });

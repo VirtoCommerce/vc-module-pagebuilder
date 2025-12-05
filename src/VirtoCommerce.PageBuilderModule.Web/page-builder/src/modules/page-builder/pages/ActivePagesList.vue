@@ -11,7 +11,7 @@
   >
     <PagesList
       ref="pagesListRef"
-      :statuses="[PageStatuses.Published]"
+      :lifecycle="[PageLifecycleFilters.Active]"
     />
   </VcBlade>
 </template>
@@ -22,16 +22,16 @@ import { useI18n } from "vue-i18n";
 import { IParentCallArgs } from "@vc-shell/framework";
 import { ExposedPagesList, PagesList } from "../components";
 import { usePagesListToolbar } from "../composables/usePagesListToolbar";
-import { PageStatuses } from "../composables";
+import { PageLifecycleFilters } from "../composables";
 
 defineOptions({
-  name: "PublishedPagesList",
-  url: "/page-builder-published",
+  name: "ActivePagesList",
+  url: "/page-builder-active",
   isWorkspace: true,
   menuItem: {
-    title: "PAGE_BUILDER.MENU.PUBLISHED_TITLE",
+    title: "PAGE_BUILDER.MENU.ACTIVE_TITLE",
     icon: "material-article",
-    priority: 1,
+    priority: 30,
   },
 });
 
@@ -59,9 +59,10 @@ defineEmits<Emits>();
 const { t } = useI18n({ useScope: "global" });
 
 const pagesListRef = useTemplateRef<ExposedPagesList>("pagesListRef");
-const bladeTitle = computed(() => t("PAGE_BUILDER.PAGES.LIST.PUBLISHED_TITLE"));
+const bladeTitle = computed(() => t("PAGE_BUILDER.PAGES.LIST.ACTIVE_TITLE"));
 
-const bladeToolbar = usePagesListToolbar(PageStatuses.Published, pagesListRef);
+// here should be additional filter by dates
+const bladeToolbar = usePagesListToolbar(PageLifecycleFilters.Active, pagesListRef);
 
 async function reload() {
   pagesListRef.value?.reload();
@@ -70,5 +71,6 @@ async function reload() {
 defineExpose({
   title: bladeTitle,
   reload,
+  onItemClick: pagesListRef.value?.onItemClick,
 });
 </script>

@@ -27,7 +27,7 @@ defineOptions({
   menuItem: {
     title: "PAGE_BUILDER.MENU.TITLE",
     icon: "material-article",
-    priority: 1,
+    priority: 50,
   },
 });
 
@@ -66,5 +66,6 @@ async function reload() {
 defineExpose({
   title: bladeTitle,
   reload,
+  onItemClick: pagesListRef.value?.onItemClick,
 });
 </script>

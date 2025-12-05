@@ -20,6 +20,13 @@ export enum PageStatuses {
   Archived = "Archived",
 }
 
+export enum PageLifecycleFilters {
+  Draft = "drafts",
+  Active = "active",
+  Archived = "archived",
+  Pending = "pending",
+}
+
 export interface IUsePageBuilderList {
   items: ComputedRef<GroupedPageBuilderPage[]>;
   totalCount: ComputedRef<number>;
@@ -36,7 +43,7 @@ export interface IUsePageBuilderList {
 export interface UsePageBuilderListOptions {
   pageSize?: number;
   sort?: string;
-  statuses?: PageStatuses[];
+  lifecycle?: PageLifecycleFilters[];
 }
 
 export function usePageBuilderList(options?: UsePageBuilderListOptions): IUsePageBuilderList {
@@ -46,7 +53,7 @@ export function usePageBuilderList(options?: UsePageBuilderListOptions): IUsePag
   const searchQuery = ref<IPageBuilderPageSearchCriteria>({
     take: pageSize,
     sort: options?.sort,
-    statuses: options?.statuses?.join(",") || undefined,
+    lifecycle: options?.lifecycle?.join(",") || undefined,
   });
   const searchResult = ref<GroupedPageBuilderPageSearchResult>();
   const { t } = useI18n({ useScope: "global" });

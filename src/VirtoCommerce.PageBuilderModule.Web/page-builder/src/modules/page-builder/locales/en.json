@@ -1,17 +1,19 @@
 {
   "PAGE_BUILDER": {
     "MENU": {
-      "TITLE": "All Pages",
-      "ARCHIVED_TITLE": "Archived",
       "DRAFT_TITLE": "Draft",
-      "PUBLISHED_TITLE": "Published"
+      "PENDING_TITLE": "Pending",
+      "ACTIVE_TITLE": "Active",
+      "ARCHIVED_TITLE": "Archived",
+      "TITLE": "All Pages"
     },
     "PAGES": {
       "LIST": {
-        "TITLE": "All pages",
-        "ARCHIVED_TITLE": "Archived pages",
         "DRAFT_TITLE": "Draft pages",
-        "PUBLISHED_TITLE": "Published pages",
+        "PENDING_TITLE": "Pending pages",
+        "ACTIVE_TITLE": "Active pages",
+        "ARCHIVED_TITLE": "Archived pages",
+        "TITLE": "All pages",
         "TOOLBAR": {
           "ADD": "Add",
           "REFRESH": "Refresh",
@@ -112,7 +114,9 @@
       "DRAFT": "Draft",
       "ARCHIVED": "Archived",
       "PUBLISHED": "Published",
-      "HAS_CHANGES": "Has draft with changes"
+      "HAS_CHANGES": "Has draft with changes",
+      "SCHEDULED": "Scheduled",
+      "REGISTERED_ONLY": "Registered users only"
     }
   }
 }

@@ -11,7 +11,7 @@
   >
     <PagesList
       ref="pagesListRef"
-      :lifecycle="[PageLifecycleFilters.Draft]"
+      :lifecycle="[PageLifecycleFilters.Pending]"
     />
   </VcBlade>
 </template>
@@ -25,13 +25,13 @@ import { usePagesListToolbar } from "../composables/usePagesListToolbar";
 import { PageLifecycleFilters } from "../composables";
 
 defineOptions({
-  name: "DraftPagesList",
-  url: "/page-builder-draft",
+  name: "PendingPagesList",
+  url: "/page-builder-pending",
   isWorkspace: true,
   menuItem: {
-    title: "PAGE_BUILDER.MENU.DRAFT_TITLE",
+    title: "PAGE_BUILDER.MENU.PENDING_TITLE",
     icon: "material-article",
-    priority: 10,
+    priority: 20,
   },
 });
 
@@ -59,9 +59,9 @@ defineEmits<Emits>();
 const { t } = useI18n({ useScope: "global" });
 
 const pagesListRef = useTemplateRef<ExposedPagesList>("pagesListRef");
-const bladeTitle = computed(() => t("PAGE_BUILDER.PAGES.LIST.DRAFT_TITLE"));
+const bladeTitle = computed(() => t("PAGE_BUILDER.PAGES.LIST.PENDING_TITLE"));
 
-const bladeToolbar = usePagesListToolbar(PageLifecycleFilters.Draft, pagesListRef);
+const bladeToolbar = usePagesListToolbar(PageLifecycleFilters.Pending, pagesListRef);
 
 async function reload() {
   pagesListRef.value?.reload();

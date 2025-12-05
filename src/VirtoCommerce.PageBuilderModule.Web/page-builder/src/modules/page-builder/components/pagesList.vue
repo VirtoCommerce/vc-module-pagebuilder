@@ -22,7 +22,10 @@
     @header-click="onHeaderClick"
   >
     <template #item_status="{ item }">
-      <PageStatus :status="item.status" />
+      <PageStatus
+        extended
+        :item="item"
+      />
     </template>
 
     <template #filters="{ closePanel }">
@@ -64,14 +67,14 @@ import { useI18n } from "vue-i18n";
 import { debounce } from "lodash-es";
 import { ITableColumns, useTableSort, useBladeNavigation, usePopup, IActionBuilderResult } from "@vc-shell/framework";
 import { GroupedPageBuilderPage } from "../../../api_client/virtocommerce.pagebuildermodule";
-import { PageStatuses, usePageBuilderList, useUrlParams } from "../composables";
+import { PageLifecycleFilters, usePageBuilderList, useUrlParams } from "../composables";
 
 interface Props {
   expanded?: boolean;
   closable?: boolean;
   param?: string;
   options?: Record<string, unknown>;
-  statuses?: PageStatuses[];
+  lifecycle?: PageLifecycleFilters[];
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -93,7 +96,7 @@ const { items, totalCount, pages, currentPage, searchQuery, loadPages, removePag
   usePageBuilderList({
     pageSize: 20,
     sort: sortExpression.value,
-    statuses: props.statuses,
+    lifecycle: props.lifecycle,
   });
 
 const selectedItemId = ref<string>();
