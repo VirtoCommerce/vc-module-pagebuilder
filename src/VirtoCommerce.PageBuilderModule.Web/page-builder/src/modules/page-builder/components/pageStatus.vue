@@ -48,7 +48,7 @@ export interface Props {
 const props = defineProps<Props>();
 
 const isPersonalized = computed(() => {
-  return props.item.visibility || props.item.userGroups || props.item.organizationId;
+  return !props.item.visibility || props.item.userGroups || props.item.organizationId;
 });
 
 const statusStyles: Omit<Record<string, Record<string, unknown>>, "Draft"> = {
