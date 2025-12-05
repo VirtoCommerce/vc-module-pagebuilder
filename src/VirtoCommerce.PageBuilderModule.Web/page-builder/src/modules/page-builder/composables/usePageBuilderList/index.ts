@@ -43,6 +43,7 @@ export interface IUsePageBuilderList {
 export interface UsePageBuilderListOptions {
   pageSize?: number;
   sort?: string;
+  statuses?: PageStatuses[];
   lifecycle?: PageLifecycleFilters[];
 }
 
@@ -53,6 +54,7 @@ export function usePageBuilderList(options?: UsePageBuilderListOptions): IUsePag
   const searchQuery = ref<IPageBuilderPageSearchCriteria>({
     take: pageSize,
     sort: options?.sort,
+    statuses: options?.statuses?.join(",") || undefined,
     lifecycle: options?.lifecycle?.join(",") || undefined,
   });
   const searchResult = ref<GroupedPageBuilderPageSearchResult>();

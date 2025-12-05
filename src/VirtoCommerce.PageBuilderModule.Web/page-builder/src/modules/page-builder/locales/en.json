@@ -116,7 +116,7 @@
       "PUBLISHED": "Published",
       "HAS_CHANGES": "Has draft with changes",
       "SCHEDULED": "Scheduled",
-      "REGISTERED_ONLY": "Registered users only"
+      "PERSONALIZED": "Personalized"
     }
   }
 }

@@ -23,6 +23,7 @@ import { IParentCallArgs } from "@vc-shell/framework";
 import { ExposedPagesList, PagesList } from "../components";
 import { usePagesListToolbar } from "../composables/usePagesListToolbar";
 import { PageLifecycleFilters } from "../composables";
+import { GroupedPageBuilderPage } from "src/api_client/virtocommerce.pagebuildermodule";
 
 defineOptions({
   name: "ArchivedPagesList",
@@ -70,6 +71,6 @@ async function reload() {
 defineExpose({
   title: bladeTitle,
   reload,
-  onItemClick: pagesListRef.value?.onItemClick,
+  onItemClick: (x: GroupedPageBuilderPage) => pagesListRef.value?.onItemClick?.(x),
 });
 </script>

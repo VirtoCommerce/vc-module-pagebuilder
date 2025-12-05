@@ -24,29 +24,11 @@
         >
       </template>
 
-      <template v-if="item.userGroups">
-        <VcStatus
-          v-for="value in item.userGroups.split(',')"
-          :key="value"
-          class="w-auto"
-          v-bind="statusStyles['Access']"
-          >{{ value }}</VcStatus
-        >
-      </template>
-
-      <template v-if="!item.visibility">
+      <template v-if="isPersonalized">
         <VcStatus
           class="w-auto"
           v-bind="statusStyles['Access']"
-          >{{ $t("PAGE_BUILDER.STATUS.REGISTERED_ONLY") }}</VcStatus
-        >
-      </template>
-
-      <template v-if="item.organizationId">
-        <VcStatus
-          class="w-auto"
-          v-bind="statusStyles['Access']"
-          >{{ organization }}</VcStatus
+          >{{ $t("PAGE_BUILDER.STATUS.PERSONALIZED") }}</VcStatus
         >
       </template>
     </template>
@@ -54,10 +36,9 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref } from "vue";
+import { computed } from "vue";
 import { GroupedPageBuilderPage } from "../../../api_client/virtocommerce.pagebuildermodule";
 import { PageStatuses } from "../composables";
-import useOrganizations from "../composables/useOrganizations";
 
 export interface Props {
   item: GroupedPageBuilderPage;
@@ -66,8 +47,9 @@ export interface Props {
 
 const props = defineProps<Props>();
 
-const organization = ref<string | null>(null);
-const { getOrganization } = useOrganizations();
+const isPersonalized = computed(() => {
+  return props.item.visibility || props.item.userGroups || props.item.organizationId;
+});
 
 const statusStyles: Omit<Record<string, Record<string, unknown>>, "Draft"> = {
   Draft: {
@@ -95,10 +77,4 @@ const statusStyles: Omit<Record<string, Record<string, unknown>>, "Draft"> = {
     variant: "info-dark",
   },
 };
-
-onMounted(async () => {
-  if (props.item.organizationId) {
-    organization.value = await getOrganization(props.item.organizationId);
-  }
-});
 </script>

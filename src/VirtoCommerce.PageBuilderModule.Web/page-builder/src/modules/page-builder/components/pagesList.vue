@@ -35,7 +35,7 @@
           <VcCheckbox
             v-for="status in pageStatuses"
             :key="status.value"
-            :model-value="statusFilters.status === status.value"
+            :model-value="statusFilters.statuses === status.value"
             @update:model-value="(checked: boolean) => toggleStatusFilter(status.value, checked)"
           >
             {{ status.label }}
@@ -102,7 +102,7 @@ const { items, totalCount, pages, currentPage, searchQuery, loadPages, removePag
 const selectedItemId = ref<string>();
 const selectedItems = ref<string[]>([]);
 const searchValue = ref<string>();
-const statusFilters = ref({ status: undefined }) as Ref<{ status: string | undefined }>;
+const statusFilters = ref({ statuses: undefined }) as Ref<{ statuses: string | undefined }>;
 const filtersQuery = ref();
 
 const columns = computed((): ITableColumns[] => [
@@ -200,7 +200,7 @@ const actionBuilder = (item: GroupedPageBuilderPage) => {
       type: "danger",
       clickHandler: async () => {
         if (item.id && (await showConfirmation(t("PAGE_BUILDER.PAGES.ALERTS.DELETE")))) {
-          removePages({ ids: [item.id] });
+          await removePages({ ids: [item.id] });
         }
       },
     });
@@ -264,15 +264,15 @@ function onHeaderClick(item: ITableColumns) {
 
 function toggleStatusFilter(statusValue: string, checked: boolean) {
   if (checked) {
-    statusFilters.value.status = statusValue;
+    statusFilters.value.statuses = statusValue;
   } else {
-    statusFilters.value.status = undefined;
+    statusFilters.value.statuses = undefined;
   }
 }
 
 async function applyFilters(closePanel: () => void) {
   filtersQuery.value = {
-    statuses: statusFilters.value.status,
+    statuses: statusFilters.value.statuses,
   };
 
   await loadPages({
@@ -283,10 +283,11 @@ async function applyFilters(closePanel: () => void) {
 }
 
 async function resetFilters(closePanel: () => void) {
-  statusFilters.value = { status: undefined };
+  statusFilters.value = { statuses: undefined };
   filtersQuery.value = undefined;
   await loadPages({
     ...searchQuery.value,
+    ...statusFilters.value,
   });
 
   closePanel();

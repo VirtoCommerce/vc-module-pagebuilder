@@ -7,7 +7,6 @@ using VirtoCommerce.Platform.Core.Caching;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.GenericCrud;
 using VirtoCommerce.Platform.Data.GenericCrud;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants;
 using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 
