@@ -85,7 +85,7 @@ const props = withDefaults(defineProps<Props>(), {
 const { t } = useI18n({ useScope: "global" });
 const { openBlade } = useBladeNavigation();
 const { showConfirmation } = usePopup();
-const { storeId } = useUrlParams();
+const { storeId, initUrlParams } = useUrlParams();
 
 const { sortExpression, handleSortChange: tableSortHandler } = useTableSort({
   initialDirection: "DESC",
@@ -201,6 +201,7 @@ const actionBuilder = (item: GroupedPageBuilderPage) => {
       clickHandler: async () => {
         if (item.id && (await showConfirmation(t("PAGE_BUILDER.PAGES.ALERTS.DELETE")))) {
           await removePages({ ids: [item.id] });
+          await reload();
         }
       },
     });
@@ -294,6 +295,7 @@ async function resetFilters(closePanel: () => void) {
 }
 
 onMounted(async () => {
+  initUrlParams();
   await loadPages();
 });
 
