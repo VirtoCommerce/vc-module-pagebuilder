@@ -243,6 +243,7 @@ async function reload() {
     skip: (currentPage.value - 1) * (searchQuery.value.take ?? 10),
     sort: sortExpression.value,
   });
+  selectedItems.value = [];
 }
 
 async function removeSelectedPages() {
