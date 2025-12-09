@@ -9,7 +9,12 @@
     @expand="$emit('expand:blade')"
     @collapse="$emit('collapse:blade')"
   >
-    <PagesList ref="pagesListRef" />
+    <PagesList
+      ref="pagesListRef"
+      :closable="closable"
+      :expanded="expanded"
+      :param="param"
+    />
   </VcBlade>
 </template>
 

@@ -11,6 +11,9 @@
   >
     <PagesList
       ref="pagesListRef"
+      :closable="closable"
+      :expanded="expanded"
+      :param="param"
       :lifecycle="[PageLifecycleFilters.Pending]"
     />
   </VcBlade>
