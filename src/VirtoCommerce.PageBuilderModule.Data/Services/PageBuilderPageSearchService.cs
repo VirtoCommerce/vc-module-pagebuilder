@@ -33,6 +33,11 @@ public class PageBuilderPageSearchService(
             query = query.Where(x => statuses.Contains(x.Status));
         }
 
+        if (criteria.ObjectIds is { Count: > 0 })
+        {
+            query = query.Where(x => criteria.ObjectIds.Contains(x.Id));
+        }
+
         return query;
     }
 
