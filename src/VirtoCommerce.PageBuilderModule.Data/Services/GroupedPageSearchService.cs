@@ -114,6 +114,11 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
                 }
             }
 
+            if (criteria.ObjectIds is { Count: > 0 })
+            {
+                query = query.Where(x => criteria.ObjectIds.Contains(x.Id));
+            }
+
             return query;
         }
 

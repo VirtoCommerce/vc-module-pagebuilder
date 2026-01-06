@@ -60,6 +60,12 @@
             "description": "Caminho relativo para a página de visualização",
             "title": "Caminho de visualização da loja"
           }
+        },
+        "Migration": {
+          "MetadataFromContentMigrated": {
+            "title": "Migração de metadados a partir do conteúdo concluída",
+            "description": "A migração de metadados de itens de conteúdo para páginas do construtor de páginas foi concluída com sucesso."
+          }
         }
       }
     }

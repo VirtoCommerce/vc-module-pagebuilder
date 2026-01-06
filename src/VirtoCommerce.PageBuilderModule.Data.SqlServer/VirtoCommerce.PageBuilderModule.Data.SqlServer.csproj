@@ -14,7 +14,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
-    <PackageReference Include="VirtoCommerce.Platform.Data.SqlServer" Version="3.895.0" />
+    <PackageReference Include="VirtoCommerce.Platform.Data.SqlServer" Version="3.917.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\VirtoCommerce.PageBuilderModule.Data\VirtoCommerce.PageBuilderModule.Data.csproj" />

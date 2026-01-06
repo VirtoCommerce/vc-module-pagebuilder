@@ -1,0 +1,82 @@
+{
+  "pageBuilder": {
+    "blades": {
+      "edit-page": {
+        "title": "Redigera '{{name}}'",
+        "subtitle": "Sidredigering",
+        "title-new": "Ny sida",
+        "subtitle-new": "Skapa ny sida",
+        "subtitle-post": "Redigera blogginlägg",
+        "title-new-post": "Nytt inlägg",
+        "subtitle-new-post": "Skapa nytt blogginlägg",
+        "labels": {
+          "filename": "Filnamn",
+          "name": "Namn",
+          "language": "Språk",
+          "permalink": "Permalänk",
+          "drag-note": "Dra och släpp fil här",
+          "progress": "Förlopp",
+          "markdown": "Markdown",
+          "metadata": "Metadata",
+          "relativePath": "Relativ sökväg"
+        },
+        "placeholders": {
+          "filename": "Ange filnamn",
+          "name": "Ange namn",
+          "language": "Välj…",
+          "permalink": "Ange permalänk"
+        },
+        "validations": {
+          "pageName-invalid": "Sidnamnet får endast innehålla alfanumeriska tecken, \"_\", \"-\" och \".\"",
+          "permalink-invalid": "Andra sidor har samma permalänk"
+        }
+      },
+      "pageBuilderEditor": {
+        "create": {
+          "title": "Designa sida",
+          "description": "Använd designverktyget för att skapa en ny sida"
+        },
+        "edit": {
+          "title": "Designa sida",
+          "description": "Använd designverktyget för att redigera sidan"
+        }
+      }
+    },
+    "commands": {
+      "open-designer": "Design",
+      "publish": "Publicera",
+      "unpublish": "Avpublicera"
+    },
+    "widgets": {
+      "pageBuilder-app": {
+        "title": "Page Builder"
+      }
+    }
+  },
+  "settings": {
+    "VirtoCommerce": {
+      "PageBuilderModule": {
+        "General": {
+          "StoreUrl": {
+            "description": "Butiks-URL med förhandsgranskning för Page Builder",
+            "title": "Butiks-URL"
+          },
+          "StorePreviewPath": {
+            "description": "Relativ sökväg för sidförhandsgranskning",
+            "title": "Sökväg för förhandsgranskning"
+          }
+        },
+        "Migration": {
+          "MetadataFromContentMigrated": {
+            "title": "Metadata-migrering från innehåll slutförd",
+            "description": "Migreringen av metadata från innehållsobjekt till Page Builder-sidor har genomförts utan problem."
+          }
+        }
+      }
+    }
+  },
+  "permissions": {
+    "builder:theme": "Tillåt redigering av temainställningar",
+    "builder:templates": "Tillåt byte av mall under redigering"
+  }
+}

@@ -60,6 +60,12 @@
             "description": "Relativer Pfad für Vorschauseite",
             "title": "Vorschau-Pfad des Geschäfts"
           }
+        },
+        "Migration": {
+          "MetadataFromContentMigrated": {
+            "title": "Migration der Metadaten aus Inhalten abgeschlossen",
+            "description": "Die Migration der Metadaten von Inhaltsobjekten zu Seiten im Page Builder wurde erfolgreich durchgeführt."
+          }
         }
       }
     }
