@@ -164,8 +164,8 @@ angular.module('virtoCommerce.pageBuilderModule')
                             var showPreview = function (storeUrl) {
                                 storeUrl = (storeUrl || blade.storeUrl).replace(/\/$/, '');
                                 if (storeUrl) {
-                                    var path = generatePath();
-                                    window.open(storeUrl + '/pages?path=' + path, '_blank');
+                                    var documentId = filesDraftService.getSearchDocumentId(blade);
+                                    window.open(storeUrl + '/designer-preview?pageId=' + documentId, '_blank');
                                 } else {
                                     var dialog = {
                                         id: "noUrlInStore",

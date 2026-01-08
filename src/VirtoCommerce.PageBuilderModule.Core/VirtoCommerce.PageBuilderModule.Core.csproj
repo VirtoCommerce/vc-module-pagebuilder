@@ -4,8 +4,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="VirtoCommerce.ContentModule.Core" Version="3.831.0" />
     <PackageReference Include="VirtoCommerce.AssetsModule.Core" Version="3.814.0" />
+    <PackageReference Include="VirtoCommerce.ContentModule.Core" Version="3.837.0-alpha.1032-vcst-4500" />
     <PackageReference Include="VirtoCommerce.CustomerModule.Core" Version="3.833.0" />
     <PackageReference Include="VirtoCommerce.Pages.Core" Version="3.810.0" />
     <PackageReference Include="VirtoCommerce.Platform.Core" Version="3.917.0" />
