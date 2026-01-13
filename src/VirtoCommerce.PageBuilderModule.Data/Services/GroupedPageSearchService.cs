@@ -30,6 +30,11 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
                 query = query.Where(x => x.StoreId == criteria.StoreId);
             }
 
+            if (!criteria.Keyword.IsNullOrEmpty())
+            {
+                query = query.Where(x => x.Name.Contains(criteria.Keyword) || x.Permalink.Contains(criteria.Keyword));
+            }
+
             query = ApplyStatusFilter(query, criteria);
             query = ApplyActiveOnFilter(query, criteria);
             query = ApplyLifecycleFilter(query, criteria);
