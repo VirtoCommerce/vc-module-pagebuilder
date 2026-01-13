@@ -38,21 +38,32 @@
               />
             </Field>
 
-            <VcInput
-              v-model="item.permalink"
-              required
+            <Field
+              v-slot="{ errorMessage, handleChange, errors }"
+              name="permalink"
+              :model-value="item.permalink"
               :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.PERMALINK')"
-              :disabled="isReadOnly"
+              rules="required"
             >
-              <template #prepend-inner>
-                <div
-                  v-if="storeUrl"
-                  class="-tw-ml-2.5 tw-p-2 tw-text-sm tw-rounded-sm tw-pl-2.5 tw-bg-gray-300"
-                >
-                  {{ storeUrl }}
-                </div>
-              </template>
-            </VcInput>
+              <VcInput
+                v-model="item.permalink"
+                :error="errors.length > 0"
+                :error-message="errorMessage"
+                required
+                :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.PERMALINK')"
+                :disabled="isReadOnly"
+                @update:model-value="handleChange"
+              >
+                <template #prepend-inner>
+                  <div
+                    v-if="storeUrl"
+                    class="-tw-ml-2.5 tw-p-2 tw-text-sm tw-rounded-sm tw-pl-2.5 tw-bg-gray-300"
+                  >
+                    {{ storeUrl }}
+                  </div>
+                </template>
+              </VcInput>
+            </Field>
 
             <VcSelect
               v-model="item.cultureName"
@@ -263,7 +274,7 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     id: "save",
     icon: "material-save",
     title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.SAVE"),
-    disabled: !isModified.value || !meta.value.valid,
+    disabled: !isModified.value || isReadOnly.value || !meta.value.valid,
     clickHandler: async () => {
       await handleSave();
     },
@@ -295,7 +306,7 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     icon: "material-description",
     title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.PUBLISH"),
     isVisible: !!props.param && status.value?.hasChanges === true,
-    disabled: isReadOnly.value,
+    disabled: isReadOnly.value || !meta.value.valid || isModified.value,
     clickHandler: async () => {
       await publishGroup();
       emit("parent:call", { method: "reload" });
