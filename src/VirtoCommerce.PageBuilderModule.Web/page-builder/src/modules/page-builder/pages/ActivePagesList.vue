@@ -69,7 +69,7 @@ const bladeTitle = computed(() => t("PAGE_BUILDER.PAGES.LIST.ACTIVE_TITLE"));
 const bladeToolbar = usePagesListToolbar(PageLifecycleFilters.Active, pagesListRef);
 
 async function reload() {
-  pagesListRef.value?.reload();
+  await pagesListRef.value?.reload();
 }
 
 defineExpose({
