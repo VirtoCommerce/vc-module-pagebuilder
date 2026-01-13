@@ -29,6 +29,11 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
                 query = query.Where(x => x.StoreId == criteria.StoreId);
             }
 
+            if (!criteria.Keyword.IsNullOrEmpty())
+            {
+                query = query.Where(x => x.Name.Contains(criteria.Keyword) || x.Permalink.Contains(criteria.Keyword));
+            }
+
             if (!string.IsNullOrEmpty(criteria.Statuses))
             {
                 var statuses = criteria.Statuses.Split(',', StringSplitOptions.RemoveEmptyEntries);
