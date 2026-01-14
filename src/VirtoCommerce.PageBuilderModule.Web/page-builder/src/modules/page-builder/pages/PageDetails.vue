@@ -143,7 +143,7 @@
               <template #header>
                 <CardHeader
                   icon="material-date_range"
-                  :tag-text="isScheduled ? 'Scheduled' : ''"
+                  :tag-text="isScheduled ? $t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.SCHEDULING.TAG_TEXT') : ''"
                   :title="$t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.SCHEDULING.TITLE')"
                   :description="$t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.SCHEDULING.DESCRIPTION')"
                 />

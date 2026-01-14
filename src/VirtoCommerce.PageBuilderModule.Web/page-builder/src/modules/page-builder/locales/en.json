@@ -95,6 +95,7 @@
             "VISIBILITY_TAG": "Visible"
           },
           "SCHEDULING": {
+            "TAG_TEXT": "Scheduled",
             "TITLE": "Scheduling",
             "DESCRIPTION": "Set when this page should be visible"
           }

@@ -26,7 +26,7 @@ export default () => {
   async function getLanguages(): Promise<string[]> {
     const store = await getStore();
     if (store) {
-      return store.languages;
+      return store.languages ?? [];
     }
     return [];
   }
@@ -42,10 +42,19 @@ export default () => {
       return null;
     }
     const result = await fetch(`/api/stores/${storeId.value}`);
-    const store = await result.json();
-    if (store) {
-      cache.set(storeId.value, store);
+
+    if (!result.ok) {
+      return null;
     }
+
+    const store = await result.json();
+
+    if (!store || !Array.isArray(store.languages)) {
+      console.warn("Invalid store payload", store);
+      return null;
+    }
+
+    cache.set(storeId.value, store);
     return store || null;
   }
 
