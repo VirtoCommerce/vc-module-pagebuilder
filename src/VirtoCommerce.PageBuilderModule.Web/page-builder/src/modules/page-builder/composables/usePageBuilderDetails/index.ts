@@ -6,10 +6,9 @@ import {
   GroupedPageBuilderPage,
 } from "../../../../api_client/virtocommerce.pagebuildermodule";
 
-import useCultureNames, { ICultureNameResult } from "./../useCultureNames";
 import useUserGroups, { IUserGroupsResult } from "./../useUserGroups";
 import useOrganizations, { IOrganizationsResult } from "./../useOrganizations";
-import useUrlParams from "./../useUrlParams";
+import useUrlParams from "../useStoreParams";
 
 const { getApiClient } = useApiClient(PageBuilderPageClient);
 
@@ -21,7 +20,6 @@ export interface IUsePageBuilderDetails {
   loadGroup: () => Promise<void>;
   saveGroup: () => Promise<GroupedPageBuilderPage>;
   deleteGroup: () => Promise<void>;
-  loadCultureNames: (storeId?: string) => Promise<ICultureNameResult>;
   loadUserGroups: () => Promise<IUserGroupsResult>;
   loadOrganizations: (keyword?: string, skip?: number, objectIds?: string[]) => Promise<IOrganizationsResult>;
   isReadOnly: ComputedRef<boolean>;
@@ -37,7 +35,6 @@ export interface UsePageBuilderDetailsOptions {
 }
 
 export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): IUsePageBuilderDetails {
-  const { getCultureNames } = useCultureNames();
   const { getUserGroups } = useUserGroups();
   const { getOrganizations } = useOrganizations();
   const { storeId, initUrlParams } = useUrlParams();
@@ -97,7 +94,6 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
     if (currentValue.value) {
       await loadGroup();
     }
-
   });
 
   const { action: unpublishGroup, loading: unpublishingGroup } = useAsync(async () => {
@@ -134,10 +130,6 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
     } else {
       throw new Error("Can't open page.");
     }
-  }
-
-  async function loadCultureNamesAsync(storeId?: string) {
-    return getCultureNames(storeId || groupStoreId);
   }
 
   async function loadUserGroupsAsync() {
@@ -177,7 +169,6 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
     loadGroup,
     saveGroup,
     deleteGroup,
-    loadCultureNames: loadCultureNamesAsync,
     loadUserGroups: loadUserGroupsAsync,
     loadOrganizations: loadOrganizationsAsync,
     isReadOnly,

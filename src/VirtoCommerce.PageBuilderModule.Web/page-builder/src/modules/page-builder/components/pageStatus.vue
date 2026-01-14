@@ -1,28 +1,54 @@
 <template>
-  <div class="flex gap-1">
+  <div class="tw-flex tw-flex-row tw-gap-1">
     <VcStatus
+      v-if="item.status"
       class="w-auto"
-      v-bind="statusStyles[status]"
-      >{{ $t(`PAGE_BUILDER.STATUS.${status.toUpperCase()}`) }}</VcStatus
+      v-bind="statusStyles[item.status]"
+      >{{ $t(`PAGE_BUILDER.STATUS.${item.status.toUpperCase()}`) }}</VcStatus
     >
-    <template v-if="hasChanges && status == 'Published'">
+
+    <template v-if="item.hasChanges && item.status == PageStatuses.Published">
       <VcStatus
         class="w-auto"
         v-bind="statusStyles['HasChanges']"
         >{{ $t("PAGE_BUILDER.STATUS.HAS_CHANGES") }}</VcStatus
       >
     </template>
+
+    <template v-if="extended">
+      <template v-if="item.startDate || item.endDate">
+        <VcStatus
+          class="w-auto"
+          v-bind="statusStyles['Scheduled']"
+          >{{ $t("PAGE_BUILDER.STATUS.SCHEDULED") }}</VcStatus
+        >
+      </template>
+
+      <template v-if="isPersonalized">
+        <VcStatus
+          class="w-auto"
+          v-bind="statusStyles['Access']"
+          >{{ $t("PAGE_BUILDER.STATUS.PERSONALIZED") }}</VcStatus
+        >
+      </template>
+    </template>
   </div>
 </template>
 
 <script lang="ts" setup>
+import { computed } from "vue";
+import { GroupedPageBuilderPage } from "../../../api_client/virtocommerce.pagebuildermodule";
+import { PageStatuses } from "../composables";
+
 export interface Props {
-  status?: string;
-  hasChanges?: boolean;
+  item: GroupedPageBuilderPage;
+  extended?: boolean;
 }
 
-withDefaults(defineProps<Props>(), {
-  status: "Draft",
+const props = defineProps<Props>();
+
+const isPersonalized = computed(() => {
+  return !props.item.visibility || props.item.userGroups || props.item.organizationId;
 });
 
 const statusStyles: Omit<Record<string, Record<string, unknown>>, "Draft"> = {
@@ -41,6 +67,14 @@ const statusStyles: Omit<Record<string, Record<string, unknown>>, "Draft"> = {
   HasChanges: {
     outline: true,
     variant: "warning",
+  },
+  Scheduled: {
+    outline: true,
+    variant: "light-danger",
+  },
+  Access: {
+    outline: true,
+    variant: "info-dark",
   },
 };
 </script>
