@@ -24,7 +24,7 @@
     <owner>Virto Commerce</owner>
   </owners>
   <requireLicenseAcceptance>false</requireLicenseAcceptance>
-  <copyright>Copyright © 2011-2025 Virto Commerce. All rights reserved</copyright>
+  <copyright>Copyright © 2011-2026 Virto Commerce. All rights reserved</copyright>
   <tags>cms content pagebuilder</tags>
   <assemblyFile>VirtoCommerce.PageBuilderModule.Web.dll</assemblyFile>
   <moduleType>VirtoCommerce.PageBuilderModule.Web.Module, VirtoCommerce.PageBuilderModule.Web</moduleType>
