@@ -2,7 +2,7 @@ import { computed, ref, ComputedRef, onMounted } from "vue";
 import { useAsync, useLoading, useApiClient } from "@vc-shell/framework";
 import { useI18n } from "vue-i18n";
 
-import useUrlParams from "./../useUrlParams";
+import useUrlParams from "../useStoreParams";
 
 import {
   PageBuilderPageClient,
@@ -18,6 +18,13 @@ export enum PageStatuses {
   Draft = "Draft",
   Published = "Published",
   Archived = "Archived",
+}
+
+export enum PageLifecycleFilters {
+  Draft = "drafts",
+  Active = "active",
+  Archived = "archived",
+  Pending = "pending",
 }
 
 export interface IUsePageBuilderList {
@@ -36,6 +43,8 @@ export interface IUsePageBuilderList {
 export interface UsePageBuilderListOptions {
   pageSize?: number;
   sort?: string;
+  statuses?: PageStatuses[];
+  lifecycle?: PageLifecycleFilters[];
 }
 
 export function usePageBuilderList(options?: UsePageBuilderListOptions): IUsePageBuilderList {
@@ -45,6 +54,8 @@ export function usePageBuilderList(options?: UsePageBuilderListOptions): IUsePag
   const searchQuery = ref<IPageBuilderPageSearchCriteria>({
     take: pageSize,
     sort: options?.sort,
+    statuses: options?.statuses?.join(",") || undefined,
+    lifecycle: options?.lifecycle?.join(",") || undefined,
   });
   const searchResult = ref<GroupedPageBuilderPageSearchResult>();
   const { t } = useI18n({ useScope: "global" });

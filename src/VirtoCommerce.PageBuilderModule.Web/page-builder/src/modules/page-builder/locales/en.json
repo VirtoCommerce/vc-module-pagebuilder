@@ -1,12 +1,19 @@
 {
   "PAGE_BUILDER": {
     "MENU": {
-      "TITLE": "Pages",
-      "ARCHIVED_TITLE": "Archived pages"
+      "DRAFT_TITLE": "Draft",
+      "PENDING_TITLE": "Pending",
+      "ACTIVE_TITLE": "Active",
+      "ARCHIVED_TITLE": "Archived",
+      "TITLE": "All Pages"
     },
     "PAGES": {
       "LIST": {
-        "TITLE": "Pages list",
+        "DRAFT_TITLE": "Draft pages",
+        "PENDING_TITLE": "Pending pages",
+        "ACTIVE_TITLE": "Active pages",
+        "ARCHIVED_TITLE": "Archived pages",
+        "TITLE": "All pages",
         "TOOLBAR": {
           "ADD": "Add",
           "REFRESH": "Refresh",
@@ -72,12 +79,26 @@
           "CULTURE_NAME": "Language",
           "VISIBILITY": "Visibility",
           "START_DATE": "Start date",
+          "START_DATE_HINT": "Page becomes visible",
           "END_DATE": "End date",
+          "END_DATE_HINT": "Page becomes hidden",
           "USER_GROUPS": "User groups",
           "ORGANIZATION": "Organization"
         },
         "TOOLTIPS": {
           "VISIBILITY": "If Visibility is off the page will be available only for registered users."
+        },
+        "SECTIONS": {
+          "PERSONALIZATION_ACCESS_CONTROL": {
+            "TITLE": "Personalization & Access control",
+            "DESCRIPTION": "Limit page visibility to specific audiences",
+            "VISIBILITY_TAG": "Visible"
+          },
+          "SCHEDULING": {
+            "TAG_TEXT": "Scheduled",
+            "TITLE": "Scheduling",
+            "DESCRIPTION": "Set when this page should be visible"
+          }
         }
       },
       "ALERTS": {
@@ -94,7 +115,10 @@
       "DRAFT": "Draft",
       "ARCHIVED": "Archived",
       "PUBLISHED": "Published",
-      "HAS_CHANGES": "Has draft with changes"
+      "HAS_CHANGES": "Has draft with changes",
+      "SCHEDULED": "Scheduled",
+      "PERSONALIZED": "Personalized"
     }
   }
 }
+
