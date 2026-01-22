@@ -307,8 +307,7 @@ angular.module('virtoCommerce.pageBuilderModule')
             }
 
             function getSearchDocumentInfo() {
-                var relativeUrl = undraftUrl(blade.currentEntity.relativeUrl);
-                var documentId = btoa(`${blade.storeId}::${blade.contentType}::${relativeUrl}`).replaceAll('=', '-');
+                var documentId = filesDraftService.getDocumentId(blade, false);
                 var documentType = 'ContentFile';
                 return { documentType: documentType, documentId: documentId };
             }
@@ -340,19 +339,11 @@ angular.module('virtoCommerce.pageBuilderModule')
                 return isDirty() && formScope && formScope.$valid;
             }
 
-            function generatePath() {
-                // need to return path relative to the root folder
-                //return blade.currentEntity.settings.permalink
-                //    ? '/' + blade.currentEntity.settings.permalink
-                //    : blade.currentEntity.relativeUrl;
-                return blade.currentEntity.relativeUrl;
-            }
-
             function runDesigner() {
                 if (blade.designerUrl) {
                     var relativeUrl = filesDraftService.getDraftFileName(blade);
                     var previewId = filesDraftService.getDocumentId(blade, true);
-                    window.open(`${blade.designerUrl}?storeId=${blade.storeId}#/pages?type=${blade.contentType}&path=${relativeUrl}&previewId=${previewId}`, '_blank');
+                    window.open(`${blade.designerUrl}?storeId=${blade.storeId}#/pages?type=${blade.contentType}&path=${relativeUrl}&previewId=${encodeURIComponent(previewId)}`, '_blank');
                 } else {
                     var dialog = {
                         id: "noUrlInStore",
