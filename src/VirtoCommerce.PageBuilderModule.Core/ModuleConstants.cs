@@ -13,6 +13,14 @@ namespace VirtoCommerce.PageBuilderModule.Core
             public const string Archived = "Archived";
         }
 
+        public static class PageLifecycleFilters
+        {
+            public const string Drafts = "drafts";
+            public const string Pending = "pending";
+            public const string Active = "active";
+            public const string Archived = "archived";
+        }
+
         public static class Security
         {
             public static class Permissions

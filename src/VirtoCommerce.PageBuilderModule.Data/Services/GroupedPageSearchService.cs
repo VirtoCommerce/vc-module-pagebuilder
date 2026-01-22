@@ -7,6 +7,7 @@ using VirtoCommerce.Platform.Core.Caching;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.GenericCrud;
 using VirtoCommerce.Platform.Data.GenericCrud;
+using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants;
 using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Services
@@ -29,9 +30,28 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
                 query = query.Where(x => x.StoreId == criteria.StoreId);
             }
 
+            if (!criteria.Keyword.IsNullOrEmpty())
+            {
+                query = query.Where(x => x.Name.Contains(criteria.Keyword) || x.Permalink.Contains(criteria.Keyword));
+            }
+
+            query = ApplyStatusFilter(query, criteria);
+            query = ApplyActiveOnFilter(query, criteria);
+            query = ApplyLifecycleFilter(query, criteria);
+            
+            if (!string.IsNullOrEmpty(criteria.LanguageCode))
+            {
+                query = query.Where(x => x.CultureName == criteria.LanguageCode);
+            }
+
+            return query;
+        }
+
+        protected virtual IQueryable<GroupedPageBuilderPageEntity> ApplyStatusFilter(IQueryable<GroupedPageBuilderPageEntity> query, PageBuilderPageSearchCriteria criteria)
+        {
             if (!string.IsNullOrEmpty(criteria.Statuses))
             {
-                var statuses = criteria.Statuses.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                var statuses = criteria.Statuses.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
                 if (statuses.Contains(Archived))
                 {
@@ -50,9 +70,53 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
                 }
             }
 
-            if (!string.IsNullOrEmpty(criteria.LanguageCode))
+            return query;
+        }
+
+        protected virtual IQueryable<GroupedPageBuilderPageEntity> ApplyActiveOnFilter(IQueryable<GroupedPageBuilderPageEntity> query, PageBuilderPageSearchCriteria criteria)
+        {
+            if (criteria.ActiveOn.HasValue && criteria.Lifecycle.IsNullOrEmpty())
             {
-                query = query.Where(x => x.CultureName == criteria.LanguageCode);
+                var date = criteria.ActiveOn.Value;
+                query = query.Where(x =>
+                    (x.StartDate == null || x.StartDate <= date) &&
+                    (x.EndDate == null || x.EndDate >= date));
+            }
+
+            return query;
+        }
+
+        protected virtual IQueryable<GroupedPageBuilderPageEntity> ApplyLifecycleFilter(IQueryable<GroupedPageBuilderPageEntity> query, PageBuilderPageSearchCriteria criteria)
+        {
+            if (!criteria.Lifecycle.IsNullOrEmpty())
+            {
+                var now = criteria.ActiveOn ?? DateTime.UtcNow;
+                switch (criteria.Lifecycle)
+                {
+                    case PageLifecycleFilters.Drafts:
+                        query = query.Where(g => g.Pages.Any(p => p.Status == Draft));
+                        break;
+
+                    case PageLifecycleFilters.Pending:
+                        query = query.Where(g =>
+                            g.Pages.Any(p => p.Status == Published) &&
+                            g.StartDate != null &&
+                            g.StartDate > now);
+                        break;
+
+                    case PageLifecycleFilters.Active:
+                        query = query.Where(g =>
+                            g.Pages.Any(p => p.Status == Published) &&
+                            (g.StartDate == null || g.StartDate <= now) &&
+                            (g.EndDate == null || g.EndDate >= now));
+                        break;
+
+                    case PageLifecycleFilters.Archived:
+                        query = query.Where(g =>
+                            g.Pages.All(p => p.Status == Archived) ||
+                            (g.EndDate != null && g.EndDate < now));
+                        break;
+                }
             }
 
             if (criteria.ObjectIds is { Count: > 0 })
