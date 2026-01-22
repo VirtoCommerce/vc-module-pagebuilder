@@ -351,7 +351,8 @@ angular.module('virtoCommerce.pageBuilderModule')
             function runDesigner() {
                 if (blade.designerUrl) {
                     var relativeUrl = filesDraftService.getDraftFileName(blade);
-                    window.open(blade.designerUrl + '?storeId=' + blade.storeId + '#/pages?type=' + blade.contentType + '&path=' + relativeUrl, '_blank');
+                    var previewId = filesDraftService.getDocumentId(blade, true);
+                    window.open(`${blade.designerUrl}?storeId=${blade.storeId}#/pages?type=${blade.contentType}&path=${relativeUrl}&previewId=${previewId}`, '_blank');
                 } else {
                     var dialog = {
                         id: "noUrlInStore",
