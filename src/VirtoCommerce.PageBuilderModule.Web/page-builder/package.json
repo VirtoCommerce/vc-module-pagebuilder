@@ -41,7 +41,7 @@
     "eslint-plugin-vue": "^9.19.2",
     "husky": "^8.0.3",
     "lint-staged": "^15.2.0",
-    "lodash-es": "^4.17.21",
+    "lodash-es": "^4.17.23",
     "postcss": "^8.4.32",
     "prettier": "^3.1.1",
     "sass": "^1.87.0",
