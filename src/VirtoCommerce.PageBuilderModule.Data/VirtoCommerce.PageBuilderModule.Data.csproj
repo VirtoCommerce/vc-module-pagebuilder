@@ -4,9 +4,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="VirtoCommerce.ContentModule.Data" Version="3.831.0" />
-    <PackageReference Include="VirtoCommerce.Platform.Data" Version="3.895.0" />
-    <PackageReference Include="VirtoCommerce.Platform.Security" Version="3.895.0" />
+    <PackageReference Include="VirtoCommerce.ContentModule.Data" Version="3.834.0-alpha.1112-3.834" />
+    <PackageReference Include="VirtoCommerce.Platform.Data" Version="3.917.0" />
+    <PackageReference Include="VirtoCommerce.Platform.Security" Version="3.917.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\VirtoCommerce.PageBuilderModule.Core\VirtoCommerce.PageBuilderModule.Core.csproj" />
