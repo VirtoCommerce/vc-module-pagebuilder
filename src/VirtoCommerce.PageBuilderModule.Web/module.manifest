@@ -17,6 +17,17 @@
 
   <title>CMS Page Builder</title>
   <description>Compose pages in visual page builder.</description>
+  
+  <apps>
+    <app id="page-builder-shell">
+      <title>Page Builder Shell</title>
+      <description>Page Builder Shell</description>
+      <iconUrl>/apps/page-builder-shell/assets/images/logo-only.svg</iconUrl>
+      <permission>none</permission>
+      <supportEmbeddedMode>false</supportEmbeddedMode>
+    </app>
+  </apps>
+  
   <authors>
     <author>Virto Commerce</author>
   </authors>
