@@ -6,7 +6,7 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import { Inject, Injectable, Optional, InjectionToken } from '@angular/core';
+import { inject, Injectable, InjectionToken } from '@angular/core';
 import { MAT_DATE_LOCALE } from '@angular/material/core';
 import { DateAdapter } from '../core';
 import {
@@ -84,18 +84,15 @@ function range(start: number, end: number): number[] {
 @Injectable()
 export class DateFnsAdapter extends DateAdapter<Date> {
   private _dateFnsLocale!: Locale;
+  private readonly locales = inject(MAT_DATE_FNS_LOCALES);
+  private readonly options = inject(MAT_DATE_FNS_ADAPTER_OPTIONS, { optional: true });
 
-  constructor(
-    @Optional() @Inject(MAT_DATE_LOCALE) dateLocale: string,
-    @Inject(MAT_DATE_FNS_LOCALES) private locales: Locale[],
-    @Optional()
-    @Inject(MAT_DATE_FNS_ADAPTER_OPTIONS)
-    private options?: MatDateFnsAdapterOptions
-  ) {
+  constructor() {
     super();
+    const dateLocale = inject(MAT_DATE_LOCALE, { optional: true });
 
     try {
-      this.setLocale(dateLocale || enUS);
+      this.setLocale((dateLocale as string) || enUS);
     } catch (err) {
       this.setLocale(enUS);
     }
