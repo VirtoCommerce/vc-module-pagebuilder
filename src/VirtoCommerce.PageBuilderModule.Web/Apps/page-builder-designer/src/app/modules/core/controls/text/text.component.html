@@ -1,8 +1,13 @@
 <label class="pb-label" [attr.title]="descriptor?.hint">{{ descriptor?.label }}</label>
-<ckeditor
+
+@if (descriptor?.editor === 'tiptap') {
+  <div tiptap [editor]="tiptap"></div>
+} @else {
+  <ckeditor
     editorUrl="external/ckeditor/ckeditor.js"
     [data]="controlValue()"
     [type]="editorType"
     [config]="config"
     (dataChange)="onValueChanged($event)"
-/>
+  />
+}

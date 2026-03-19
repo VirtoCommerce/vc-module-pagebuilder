@@ -48,7 +48,6 @@ export class CalendarComponent extends BaseControlDirective<CalendarDescriptor> 
 
     private parseDate(value: Date | string | undefined | null): Date | null {
         if (value && typeof value === 'string') {
-            console.log('Parsing string:', value, chrono.parse(value), chrono.casual.parse(value), chrono.parseDate(value), chrono.casual.parseDate(value));
             return chrono.parseDate(value) ?? null;
         }
         return (value as Date) ?? null;

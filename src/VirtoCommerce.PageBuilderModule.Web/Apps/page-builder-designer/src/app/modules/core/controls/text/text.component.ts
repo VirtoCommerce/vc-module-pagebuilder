@@ -1,5 +1,8 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject } from '@angular/core';
 import { CKEditor4, CKEditorModule } from 'ckeditor4-angular';
+import { NgxTiptapModule } from 'ngx-tiptap';
+import { Editor } from '@tiptap/core';
+import StarterKit from '@tiptap/starter-kit';
 import { BaseControlDirective } from '@core/controls/base-control.directive';
 import { TextDescriptor } from '@models/controls';
 
@@ -8,19 +11,19 @@ import { TextDescriptor } from '@models/controls';
     templateUrl: './text.component.html',
     styleUrls: ['./text.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [CKEditorModule]
+    imports: [CKEditorModule, NgxTiptapModule]
 })
 export class TextComponent extends BaseControlDirective<TextDescriptor> {
+    private readonly destroyRef = inject(DestroyRef);
+
+    // CKEditor
     editorType = CKEditor4.EditorType.CLASSIC;
 
     private defaultConfig = {
         defaultLanguage: 'en',
         language: 'en',
         toolbar: [
-            {
-                name: 'basicstyles',
-                items: ['Bold', 'Italic', 'Underline', 'Strike']
-            },
+            { name: 'basicstyles', items: ['Bold', 'Italic', 'Underline', 'Strike'] },
             { name: 'colors', items: ['TextColor'] },
             { name: 'align', items: ['JustifyLeft', 'JustifyCenter', 'JustifyRight'] },
             { name: 'lists', items: ['NumberedList', 'BulletedList', 'Outdent', 'Indent'] },
@@ -33,7 +36,6 @@ export class TextComponent extends BaseControlDirective<TextDescriptor> {
         extraPlugins: 'stylescombo,justify,colorbutton,colordialog,font',
         removeButtons: '',
         format_tags: 'p;h2;h3;h4',
-        // contentsCss: AppSettings.contentCssPath,
         stylesSet: [
             { name: 'Normal', element: 'span', attributes: { class: 'section__descr--normal' } },
             { name: 'Medium size text', element: 'span', attributes: { class: 'section__descr--medium' } },
@@ -45,6 +47,28 @@ export class TextComponent extends BaseControlDirective<TextDescriptor> {
     };
 
     config = this.defaultConfig;
+
+    // TipTap
+    readonly tiptap = new Editor({
+        extensions: [StarterKit],
+        onUpdate: ({ editor }) => {
+            const value = editor.isEmpty ? '' : editor.getHTML();
+            if (this.controlValue() !== value) {
+                this.onValueChanged(value);
+            }
+        }
+    });
+
+    constructor() {
+        super();
+        effect(() => {
+            const newValue = this.controlValue() ?? '';
+            if (this.tiptap.getHTML() !== newValue) {
+                this.tiptap.commands.setContent(newValue, false);
+            }
+        });
+        this.destroyRef.onDestroy(() => this.tiptap.destroy());
+    }
 
     override registerOnValueChanged(fn: (_: any) => void) {
         this.onValueChanged = (newValue) => {
