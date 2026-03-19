@@ -12,6 +12,7 @@ import {
   Component,
   DestroyRef,
   Input,
+  OnInit,
   ViewEncapsulation,
   inject,
   isDevMode,
@@ -44,7 +45,7 @@ import {DateFilterFn} from './datepicker-input-base';
     encapsulation: ViewEncapsulation.None,
     changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class MatMultiYearView<D> {
+export class MatMultiYearView<D> implements OnInit {
   private readonly _changeDetectorRef = inject(ChangeDetectorRef);
   readonly _dateAdapter = inject<DateAdapter<D>>(DateAdapter)!;
   private readonly _dir = inject(Directionality, {optional: true});
@@ -154,7 +155,9 @@ export class MatMultiYearView<D> {
     }
 
     this._activeDate = this._dateAdapter.today();
+  }
 
+  ngOnInit(): void {
     this._dateAdapter.localeChanges
       .pipe(startWith(null), takeUntilDestroyed(this._destroyRef))
       .subscribe(() => this._init());

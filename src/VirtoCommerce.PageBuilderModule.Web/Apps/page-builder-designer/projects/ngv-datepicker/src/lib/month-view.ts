@@ -13,6 +13,7 @@ import {
   Component,
   DestroyRef,
   Input,
+  OnInit,
   ViewEncapsulation,
   inject,
   isDevMode,
@@ -52,7 +53,7 @@ const DAYS_PER_WEEK = 7;
     encapsulation: ViewEncapsulation.None,
     changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class MatMonthView<D> {
+export class MatMonthView<D> implements OnInit {
   readonly _changeDetectorRef = inject(ChangeDetectorRef);
   private readonly _dateFormats = inject<MatDateFormats>(MAT_DATE_FORMATS, {optional: true})!;
   readonly _dateAdapter = inject<DateAdapter<D>>(DateAdapter)!;
@@ -207,7 +208,9 @@ export class MatMonthView<D> {
     }
 
     this._activeDate = this._dateAdapter.today();
+  }
 
+  ngOnInit(): void {
     this._dateAdapter.localeChanges
       .pipe(startWith(null), takeUntilDestroyed(this._destroyRef))
       .subscribe(() => this._init());

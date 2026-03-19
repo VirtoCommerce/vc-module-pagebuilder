@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 
 import {
     MatCalendar,
@@ -14,7 +14,7 @@ import { MatInputModule } from '@angular/material/input';
 
 import { BaseControlDirective } from '@core/controls/base-control.directive';
 import { CalendarDescriptor } from '@models/controls';
-import * as chrono from 'chrono-node';
+import * as chrono from 'chrono-node/en';
 
 /**
  * source: https://h2qutc.github.io/angular-material-components
@@ -43,8 +43,12 @@ import * as chrono from 'chrono-node';
 })
 export class CalendarComponent extends BaseControlDirective<CalendarDescriptor> {
 
+    readonly minDate = signal<Date | null>(null);
+    readonly maxDate = signal<Date | null>(null);
+
     private parseDate(value: Date | string | undefined | null): Date | null {
         if (value && typeof value === 'string') {
+            console.log('Parsing string:', value, chrono.parse(value), chrono.casual.parse(value), chrono.parseDate(value), chrono.casual.parseDate(value));
             return chrono.parseDate(value) ?? null;
         }
         return (value as Date) ?? null;
@@ -52,8 +56,8 @@ export class CalendarComponent extends BaseControlDirective<CalendarDescriptor> 
 
     protected override descriptorChanged(): void {
         if (this.descriptor) {
-            this.descriptor.minDate = this.parseDate(this.descriptor?.minDate);
-            this.descriptor.maxDate = this.parseDate(this.descriptor?.maxDate);
+            this.minDate.set(this.parseDate(this.descriptor.minDate));
+            this.maxDate.set(this.parseDate(this.descriptor.maxDate));
         }
     }
 

@@ -5,7 +5,7 @@
           [attr.colspan]="_firstRowOffset()"
           [style.paddingTop]="_cellPadding()"
           [style.paddingBottom]="_cellPadding()">
-        {{_firstRowOffset() >= labelMinRequiredCells() ? label : ''}}
+        {{_firstRowOffset() >= labelMinRequiredCells() ? label() : ''}}
       </td>
     }
     @for (item of row; track colIndex; let colIndex = $index) {

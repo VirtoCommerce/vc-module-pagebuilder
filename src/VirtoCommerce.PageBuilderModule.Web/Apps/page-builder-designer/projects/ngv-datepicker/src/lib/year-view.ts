@@ -12,6 +12,7 @@ import {
   Component,
   DestroyRef,
   Input,
+  OnInit,
   ViewEncapsulation,
   inject,
   isDevMode,
@@ -45,7 +46,7 @@ import {DateFilterFn} from './datepicker-input-base';
     encapsulation: ViewEncapsulation.None,
     changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class MatYearView<D> {
+export class MatYearView<D> implements OnInit {
   readonly _changeDetectorRef = inject(ChangeDetectorRef);
   private readonly _dateFormats = inject<MatDateFormats>(MAT_DATE_FORMATS, {optional: true})!;
   readonly _dateAdapter = inject<DateAdapter<D>>(DateAdapter)!;
@@ -152,7 +153,9 @@ export class MatYearView<D> {
     }
 
     this._activeDate = this._dateAdapter.today();
+  }
 
+  ngOnInit(): void {
     this._dateAdapter.localeChanges
       .pipe(startWith(null), takeUntilDestroyed(this._destroyRef))
       .subscribe(() => this._init());

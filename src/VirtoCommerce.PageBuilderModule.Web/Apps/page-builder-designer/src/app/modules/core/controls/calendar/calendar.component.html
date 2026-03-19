@@ -7,8 +7,8 @@
         readonly
         matInput
         [value]="controlValue()"
-        [min]="descriptor?.minDate"
-        [max]="descriptor?.maxDate"
+        [min]="minDate()"
+        [max]="maxDate()"
         [matDatepicker]="picker"
         [placeholder]="descriptor?.placeholder || ''"
         (dateChange)="raiseValueChanged($event.value)">
@@ -31,8 +31,8 @@
         <mat-calendar class="max-w-sm"
           [selected]="controlValue()"
           [type]="descriptor?.mode || 'date'"
-          [minDate]="descriptor?.minDate"
-          [maxDate]="descriptor?.maxDate"
+          [minDate]="minDate()"
+          [maxDate]="maxDate()"
           [twelveHour]="true"
         (selectedChange)="raiseValueChanged($event)" />
       </div>
