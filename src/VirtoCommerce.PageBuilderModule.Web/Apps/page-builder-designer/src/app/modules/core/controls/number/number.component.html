@@ -1,6 +1,6 @@
 <div class="flex flex-row items-center justify-between w-full">
   <label [attr.title]="descriptor?.hint" class="pb-label">{{ descriptor?.label }}</label>
-  @if (descriptor?.type === 'slider') {
+  @if (descriptor?.thumb) {
     <span>{{ controlValue() }}</span>
   }
 </div>
@@ -21,7 +21,7 @@
     />
 }
 
-@if (descriptor?.type === 'slider') {
+@if (descriptor?.thumb) {
   <mat-slider
     [min]="descriptor?.min"
     [max]="descriptor?.max"

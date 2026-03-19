@@ -15,7 +15,7 @@ import { NumberDescriptor } from '@models/controls';
 })
 export class NumberComponent extends BaseControlDirective<NumberDescriptor> {
     private readonly windowRef = inject(EnvironmentRef);
-    readonly control = viewChild.required<ElementRef<HTMLInputElement>>('control');
+    readonly control = viewChild<ElementRef<HTMLInputElement>>('control');
 
     onPaste(event: ClipboardEvent) {
         const value = (event.clipboardData || this.windowRef.nativeWindow.clipboardData).getData('text');
@@ -42,7 +42,7 @@ export class NumberComponent extends BaseControlDirective<NumberDescriptor> {
         this.onValueChanged(value);
     }
 
-    override getFocusableControl(): ElementRef {
-        return this.control();
+    override getFocusableControl(): ElementRef | null {
+        return this.control() ?? null;
     }
 }
