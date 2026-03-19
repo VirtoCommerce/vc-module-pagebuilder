@@ -110,18 +110,6 @@ jobs:
           repoOrg: ${{ github.repository_owner }}
           sonarOrg: ${{secrets.SONAR_ORG_KEY}}
 
-      - name: Get template builder ref
-        run: |
-            echo "TEMPLATE_REPO_REF=$(cat ./template-builder.md)" >> $GITHUB_ENV
-
-      - name: Checkout Template builder
-        uses: actions/checkout@v3
-        with:
-          repository: VirtoCommerce/template-builder
-          ref: ${{ env.TEMPLATE_REPO_REF }}
-          path: './template-builder'
-          token: ${{ env.GITHUB_TOKEN }}
-
       - name: Build
         run: vc-build Compile
 
