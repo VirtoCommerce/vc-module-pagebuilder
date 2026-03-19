@@ -137,6 +137,9 @@ export class MatClockView<D> implements AfterContentInit {
   /** Emits when a new date is selected. */
   readonly selectedChange = output<D | null>();
 
+  /** Emits when an hour is selected (before transitioning to minute view). */
+  readonly hourSelected = output<D>();
+
   /** Emits when any date is selected. */
   readonly _userSelection = output<MatCalendarUserEvent<D | null>>();
 
@@ -158,7 +161,7 @@ export class MatClockView<D> implements AfterContentInit {
   _size: number = 0;
 
   private mouseMoveListener: (event: any) => void;
-  private mouseUpListener: () => void;
+  private mouseUpListener: (event: MouseEvent | TouchEvent) => void;
 
   readonly inHourView = computed(() => this.currentView() === 'hour');
 
@@ -195,8 +198,8 @@ export class MatClockView<D> implements AfterContentInit {
     this.mouseMoveListener = (event: any) => {
       this._handleMousemove(event);
     };
-    this.mouseUpListener = () => {
-      this._handleMouseup();
+    this.mouseUpListener = (event: MouseEvent | TouchEvent) => {
+      this._handleMouseup(event);
     };
 
     afterNextRender(() => this.updateSize());
@@ -228,7 +231,7 @@ export class MatClockView<D> implements AfterContentInit {
     this.setTime(event);
   }
 
-  _handleMouseup() {
+  _handleMouseup(event: MouseEvent | TouchEvent) {
     this._draggingMouse = false;
     document.removeEventListener('mousemove', this.mouseMoveListener);
     document.removeEventListener('touchmove', this.mouseMoveListener);
@@ -244,6 +247,7 @@ export class MatClockView<D> implements AfterContentInit {
       // we refresh the valid minutes
       this.currentViewChange.emit('minute');
       this.selectedChange.emit(this.activeDate);
+      this.hourSelected.emit(this.activeDate);
       this._init();
     } else {
       this._userSelection.emit(<any>{ value: this.activeDate, event });

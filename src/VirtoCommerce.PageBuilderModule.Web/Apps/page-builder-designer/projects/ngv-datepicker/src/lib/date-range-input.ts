@@ -184,7 +184,7 @@ export class MatDateRangeInput<D>
     const start = this._startInput();
     const end = this._endInput();
     const wasMatchingStart = start && start._matchesFilter(start.value);
-    const wasMatchingEnd = end && end._matchesFilter(start?.value ?? null);
+    const wasMatchingEnd = end && end._matchesFilter(end.value);
     this._dateFilter = value;
 
     if (start && start._matchesFilter(start.value) !== wasMatchingStart) {
