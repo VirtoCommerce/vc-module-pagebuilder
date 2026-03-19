@@ -1,0 +1,59 @@
+<app-overlap-panel [skipTranslate]="isHalfScreen()" [expandable]="false">
+  <app-panel>
+    <div>
+      <ul class="flex flex-col">
+        @if (viewModel(); as vm) {
+          @let currentFilter = filter();
+          <li class="search-holder">
+            <input placeholder="Search in library"
+              class="search"
+              type="search"
+              [value]="currentFilter"
+              (keyup)="applySectionsFilter($event)"
+              (search)="applySectionsFilter($event)" />
+            </li>
+            @for (group of vm.groups; track group) {
+              <li class="border-b">
+                @defer (on viewport; prefetch on idle) {
+                  <app-add-section-group [group]="group"
+                    [opened]="vm.states.groups[group.name].opened"
+                    [underPreviewType]="vm.states.previewItemType"
+                    (onOpened)="onToggleGroup(group)"
+                    (onPreview)="onPreviewItem($event)"
+                    (onAdd)="onAddItem($event)">
+                  </app-add-section-group>
+                } @placeholder {
+                  <div class="h-10"></div>
+                }
+              </li>
+            }
+            @for (item of vm.items; track item) {
+              <li class="border-b">
+                @defer (on viewport; prefetch on idle) {
+                  <app-add-section-item [section]="item"
+                    [inPreview]="item.type === vm.states.previewItemType"
+                    (onPreview)="onPreviewItem(item)"
+                    (onAdd)="onAddItem(item)">
+                  </app-add-section-item>
+                } @placeholder {
+                  <div class="h-10"></div>
+                }
+              </li>
+            }
+            @if (currentFilter && !(vm.groups|keyvalue).length && !(vm.items|keyvalue).length) {
+              <li class="p-4 text-gray-300">
+                {{ !!vm.parentSection ? 'No blocks found' : 'No sections found' }}
+              </li>
+            }
+          }
+        </ul>
+      </div>
+      <ng-container title-content>
+        <div class="title">
+          <app-icon class="back-icon" [hoverable]="true" (click)="onCancelClick()" title="Cancel">chevron_left
+          </app-icon>
+          <div>{{ title() }}</div>
+        </div>
+      </ng-container>
+    </app-panel>
+  </app-overlap-panel>

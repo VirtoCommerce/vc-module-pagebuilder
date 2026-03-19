@@ -1,0 +1,40 @@
+<label class="pb-label" [attr.title]="descriptor?.hint" class="pb-label">{{ descriptor?.label }}</label>
+
+@if (!descriptor?.multiline) {
+  <input
+    #control
+    type="text"
+    class="control"
+    [value]="controlValue()"
+    [placeholder]="descriptor?.placeholder || ''"
+    (keyup)="raiseOnChange($event)" />
+  }
+
+  @if (descriptor?.multiline) {
+    <textarea
+      #textarea
+      rows="4"
+      class="control"
+      [value]="controlValue()"
+      [placeholder]="descriptor?.placeholder || ''"
+    (keyup)="raiseOnChange($event)"></textarea>
+  }
+
+  @if (descriptor?.actions) {
+    <div class="flex flex-row-reverse">
+      <div class="flex align-items-stretch py-1">
+        @for (action of descriptor?.actions|keyvalue; track action) {
+          <app-icon-button
+            (click)="onAction(action.value)"
+            [text]="action.value.label"
+            [icon]="action.value.icon"
+            skin="outline-blue"
+          />
+        }
+      </div>
+    </div>
+  }
+
+  @if (descriptor?.info) {
+    <p class="info">{{ descriptor?.info }}</p>
+  }

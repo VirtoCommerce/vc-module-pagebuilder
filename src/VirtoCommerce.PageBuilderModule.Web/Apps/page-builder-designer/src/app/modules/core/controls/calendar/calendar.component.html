@@ -1,0 +1,43 @@
+<label class="pb-label" [attr.title]="descriptor?.hint">{{ descriptor?.label }}</label>
+<ng-container>
+  @if (!descriptor?.inline) {
+    <div class="flex relative">
+      <input class="grow"
+        type="text"
+        readonly
+        matInput
+        [value]="controlValue()"
+        [min]="descriptor?.minDate"
+        [max]="descriptor?.maxDate"
+        [matDatepicker]="picker"
+        [placeholder]="descriptor?.placeholder || ''"
+        (dateChange)="raiseValueChanged($event.value)">
+        <mat-datepicker-toggle matSuffix [for]="picker" />
+        <mat-datepicker #picker
+          xPosition="end"
+          yPosition="below"
+          [type]="descriptor?.mode || 'date'">
+          <mat-datepicker-actions>
+            <div class="m-4 flex flex-row-reverse space-x-4 space-x-reverse">
+              <button matDatepickerApply>Ok</button>
+              <button matDatepickerCancel>Cancel</button>
+            </div>
+          </mat-datepicker-actions>
+        </mat-datepicker>
+      </div>
+    }
+    @if (descriptor?.inline) {
+      <div>
+        <mat-calendar class="max-w-sm"
+          [selected]="controlValue()"
+          [type]="descriptor?.mode || 'date'"
+          [minDate]="descriptor?.minDate"
+          [maxDate]="descriptor?.maxDate"
+          [twelveHour]="true"
+        (selectedChange)="raiseValueChanged($event)" />
+      </div>
+    }
+  </ng-container>
+  @if (descriptor?.info) {
+    <p class="info">{{ descriptor?.info }}</p>
+  }

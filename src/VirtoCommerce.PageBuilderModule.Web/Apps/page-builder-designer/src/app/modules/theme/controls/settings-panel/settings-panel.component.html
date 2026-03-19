@@ -1,0 +1,14 @@
+<app-overlap-panel>
+    <app-panel>
+        <app-dynamic-form [context]="context()"
+                          [descriptors]="group().settings"
+                          [sectionModel]="settings()"
+                          (modelChanged)="onSettingsChanged($event)" />
+        <ng-container title-content>
+            <div class="title pl-2">
+                <app-icon (click)="onBackClick()" title="Back">chevron_left</app-icon>
+                <div>{{ group().name }}</div>
+            </div>
+        </ng-container>
+    </app-panel>
+</app-overlap-panel>

@@ -1,0 +1,6 @@
+<button class="btn-skin-{{skin()}}" type="button" [disabled]="disabled()" (click)="raiseOnClick($event)">
+  @if (icon()) {
+    <app-icon [ngClass]="{ disabled: disabled() }">{{ icon() }}</app-icon>
+  }
+  <span class="text">{{ text() }}</span>
+</button>

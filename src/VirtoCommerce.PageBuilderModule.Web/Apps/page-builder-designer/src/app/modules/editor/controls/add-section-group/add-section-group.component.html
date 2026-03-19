@@ -1,0 +1,22 @@
+<div class="container">
+  <div class="group" (click)="raiseOnOpened()">
+    @if (group().icon) {
+      <app-icon>{{ group().icon }}</app-icon>
+    }
+    <div class="name">{{ group().name }}</div>
+    <app-chevron [opened]="opened()" [vertical]="true" />
+  </div>
+  @if (opened()) {
+    <ul>
+      @for (item of group().items; track item) {
+        <li class="border-b">
+          <app-add-section-item [section]="item"
+            [inPreview]="item.type === underPreviewType()"
+            [child]="true"
+            (onPreview)="raiseOnPreview(item)"
+            (onAdd)="raiseOnAdd(item)" />
+        </li>
+      }
+    </ul>
+  }
+</div>

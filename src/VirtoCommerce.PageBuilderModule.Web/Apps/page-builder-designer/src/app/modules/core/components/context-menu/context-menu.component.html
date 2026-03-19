@@ -1,0 +1,25 @@
+<div class="wrapper" [ngStyle]="{ opacity: isOpen || visible() ? '1' : '0' }">
+  <app-icon class="icon"
+    cdkOverlayOrigin
+    [ngClass]="{ 'opened': isOpen }"
+    (click)="gearClick($event)"
+  #trigger="cdkOverlayOrigin">tune</app-icon>
+  <ng-template cdkConnectedOverlay [cdkConnectedOverlayOrigin]="trigger"
+    [cdkConnectedOverlayPositions]="positions"
+    [cdkConnectedOverlayOpen]="isOpen"
+    (detach)="hideActions()"
+    (overlayOutsideClick)="outsideClick($event)">
+    <ul class="panel">
+      @for (action of getActionsList(); track action) {
+        <li [ngClass]="{ separator: action === '|' }">
+          @if (action !== '|') {
+            <div class="action-item" [ngClass]="{ inactive: evaluateFunction(action.inactive) }" (click)="raiseOnAction(action)">
+              <app-icon>{{ action.icon }}</app-icon>
+              <span class="whitespace-nowrap">{{ action.title }}</span>
+            </div>
+          }
+        </li>
+      }
+    </ul>
+  </ng-template>
+</div>

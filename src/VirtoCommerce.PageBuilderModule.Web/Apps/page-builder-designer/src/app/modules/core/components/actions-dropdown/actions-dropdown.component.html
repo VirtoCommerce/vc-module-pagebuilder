@@ -1,0 +1,36 @@
+<button mat-button [matMenuTriggerFor]="menu"
+  class="menu-button"
+  (menuOpened)="isOpened = true"
+  (menuClosed)="isOpened = false">
+  <span class="btn-inner">
+    @if (activeItem) {
+      @if (activeItem.icon) {
+        <app-icon>{{ activeItem.icon }}</app-icon>
+      }
+      @if (activeItem.title) {
+        <div class="text active-item-text truncate" [attr.title]="activeItem.title">{{
+        activeItem.title }}</div>
+      }
+    }
+    @if (!active() && !!defaultTitle()) {
+      <div class="text default-title-text">{{ defaultTitle() }}</div>
+    }
+    @if (displayChevron()) {
+      <app-chevron [opened]="isOpened" [vertical]="true" />
+    }
+  </span>
+</button>
+<mat-menu #menu="matMenu" [class]="'menu-panel ' + panelClass() || ''">
+  <div class="flex flex-col p-1">
+    @for (action of actions(); track action) {
+      <button mat-menu-item (click)="actionChoosed(action)">
+        <span class="item-inner">
+          @if (action.icon) {
+            <app-icon>{{ action.icon }}</app-icon>
+          }
+          <span class="text-item" [attr.title]="action.title">{{ action.title }}</span>
+        </span>
+      </button>
+    }
+  </div>
+</mat-menu>

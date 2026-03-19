@@ -1,0 +1,14 @@
+:host {
+    display: block;
+}
+
+// .controls-holder {
+//     @apply space-y-4;
+// }
+
+app-control-holder, .control-text, .control-title {
+    @apply block pb-4 mb-4;
+}
+.control-title {
+    @apply uppercase;
+}

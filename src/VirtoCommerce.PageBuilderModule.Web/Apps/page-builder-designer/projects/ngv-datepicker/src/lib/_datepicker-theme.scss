@@ -1,0 +1,394 @@
+@use 'sass:color';
+@use 'sass:map';
+@use 'sass:math';
+@use 'sass:meta';
+@use '@angular/material/core/style/private';
+@use '@angular/material/core/theming/theming';
+@use '@angular/material/core/typography/typography';
+@use '@angular/material' as mat;
+
+$selected-today-box-shadow-width: 1px;
+$selected-fade-amount: 0.6;
+$range-fade-amount: 0.2;
+$today-fade-amount: 0.2;
+$calendar-body-font-size: 13px !default;
+$calendar-weekday-table-font-size: 11px !default;
+
+$clock-min-size: 224px !default;
+$clock-font-size: 14px !default;
+$clock-cell-size: 14.1666% !default;
+
+@mixin _color($palette) {
+  .mat-custom-controls {
+    background-color: mat.m2-get-color-from-palette($palette);
+    color: mat.m2-get-color-from-palette($palette, default-contrast);
+  }
+
+  @include date-range-colors(
+    mat.m2-get-color-from-palette($palette, default, $range-fade-amount));
+
+  .mat-calendar-body-selected {
+    background-color: mat.m2-get-color-from-palette($palette);
+    color: mat.m2-get-color-from-palette($palette, default-contrast);
+  }
+
+  .mat-calendar-body-disabled > .mat-calendar-body-selected {
+    $background: mat.m2-get-color-from-palette($palette);
+
+    @if (meta.type-of($background) == color) {
+      background-color: color.adjust($background, $alpha: -$selected-fade-amount);
+    }
+    @else {
+      // If we couldn't resolve to background to a color (e.g. it's a CSS variable),
+      // fall back to fading the content out via `opacity`.
+      opacity: $today-fade-amount;
+    }
+  }
+
+  .mat-calendar-body-today.mat-calendar-body-selected {
+    box-shadow: inset 0 0 0 $selected-today-box-shadow-width
+                mat.m2-get-color-from-palette($palette, default-contrast);
+  }
+
+  .mat-calendar-body-cell:not(.mat-calendar-body-disabled):hover,
+  .cdk-keyboard-focused .mat-calendar-body-active,
+  .cdk-program-focused .mat-calendar-body-active {
+    & > .mat-calendar-body-cell-content {
+      @include _unselected-cell {
+        background-color: mat.m2-get-color-from-palette($palette, 0.3);
+      }
+    }
+  }
+}
+
+// Utility mixin to target cells that aren't selected. Used to make selector easier to follow.
+@mixin _unselected-cell {
+  &:not(.mat-calendar-body-selected):not(.mat-calendar-body-comparison-identical) {
+    @content;
+  }
+}
+
+@mixin color($config-or-theme) {
+  $config: mat.m2-get-color-config($config-or-theme);
+  $foreground: map.get($config, foreground);
+  $background: map.get($config, background);
+  $disabled-color: mat.m2-get-color-from-palette($foreground, disabled-text);
+
+  .mat-calendar-arrow {
+    border-top-color: mat.m2-get-color-from-palette($foreground, icon);
+  }
+
+  // The prev/next buttons need a bit more specificity to
+  // avoid being overwritten by the .mat-icon-button.
+  .mat-datepicker-toggle,
+  .mat-datepicker-content .mat-calendar-next-button,
+  .mat-datepicker-content .mat-calendar-previous-button {
+    color: mat.m2-get-color-from-palette($foreground, icon);
+  }
+
+  .mat-calendar-table-header {
+    color: mat.m2-get-color-from-palette($foreground, hint-text);
+  }
+
+  .mat-calendar-table-header-divider::after {
+    background: mat.m2-get-color-from-palette($foreground, divider);
+  }
+
+  .mat-calendar-body-label {
+    color: mat.m2-get-color-from-palette($foreground, secondary-text);
+  }
+
+  .mat-calendar-body-cell-content,
+  .mat-date-range-input-separator {
+    color: mat.m2-get-color-from-palette($foreground, text);
+    border-color: transparent;
+  }
+
+  .mat-calendar-body-disabled > .mat-calendar-body-cell-content {
+    @include _unselected-cell {
+      color: $disabled-color;
+    }
+  }
+
+  .mat-form-field-disabled .mat-date-range-input-separator {
+    color: $disabled-color;
+  }
+
+  .mat-calendar-body-in-preview {
+    $divider-color: mat.m2-get-color-from-palette($foreground, divider);
+
+    @if meta.type-of($divider-color) == color {
+    // Increase visibility for dashed preview range by boosting alpha.
+        $new-alpha: math.min(color.opacity($divider-color) * 2, 1);
+        color: color.change($divider-color, $alpha: $new-alpha);
+    }
+    @else {
+      color: $divider-color;
+    }
+  }
+
+  .mat-calendar-body-today {
+    @include _unselected-cell {
+      // Note: though it's not text, the border is a hint about the fact that this is today's date,
+      // so we use the hint color.
+      border-color: mat.m2-get-color-from-palette($foreground, hint-text);
+    }
+  }
+
+  .mat-calendar-body-disabled > .mat-calendar-body-today {
+    @include _unselected-cell {
+      $color: mat.m2-get-color-from-palette($foreground, hint-text);
+
+      @if (meta.type-of($color) == color) {
+        border-color: color.adjust($color, $alpha: -$today-fade-amount);
+      }
+      @else {
+        // If the color didn't resolve to a color value, but something like a CSS variable, we can't
+        // fade it out so we fall back to reducing the element opacity. Note that we don't use the
+        // $mat-datepicker-today-fade-amount, because hint text usually has some opacity applied
+        // to it already and we don't want them to stack on top of each other.
+        opacity: 0.5;
+      }
+    }
+  }
+
+  @include _color(map.get($config, primary));
+
+  .mat-datepicker-content {
+    @include private.private-theme-elevation(4, $config);
+    background-color: mat.m2-get-color-from-palette($background, card);
+    color: mat.m2-get-color-from-palette($foreground, text);
+
+    &.mat-accent {
+      @include _color(map.get($config, accent));
+    }
+
+    &.mat-warn {
+      @include _color(map.get($config, warn));
+    }
+  }
+
+  .mat-datepicker-content-touch {
+    @include private.private-theme-elevation(24, $config);
+  }
+
+  .mat-datepicker-toggle-active {
+    color: mat.m2-get-color-from-palette(map.get($config, primary), text);
+
+    &.mat-accent {
+      color: mat.m2-get-color-from-palette(map.get($config, accent), text);
+    }
+
+    &.mat-warn {
+      color: mat.m2-get-color-from-palette(map.get($config, warn), text);
+    }
+  }
+
+  .mat-date-range-input-inner[disabled] {
+    color: mat.m2-get-color-from-palette($foreground, disabled-text);
+  }
+
+  mat-clock-view {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    min-height: 236px;
+    min-width: $clock-min-size;
+    overflow: hidden;
+    font-size: $clock-font-size;
+    box-sizing: border-box;
+    user-select: none;
+  }
+
+  .mat-clock {
+    // darken(white, 6) -> color.adjust with relative lightness decrease
+        background-color: color.adjust(white, $lightness: -6%);
+    border-radius: 50%;
+    position: relative;
+  }
+
+  .mat-clock-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 2%;
+    height: 2%;
+    margin: -1%;
+    border-radius: 50%;
+    background-color: mat.m2-get-color-from-palette(map.get($config, primary), text);
+  }
+
+  .mat-clock-hand {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 1px;
+    /*height: $clock-hand-size;*/
+    margin: 0 auto;
+    background-color: mat.m2-get-color-from-palette(map.get($config, primary), text);
+    transform-origin: bottom;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: -4px;
+      left: -4px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: mat.m2-get-color-from-palette(map.get($config, primary), text);
+    }
+  }
+
+  .mat-clock-hours,
+  .mat-clock-minutes {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    visibility: hidden;
+    transition: 350ms;
+    transform: scale(1.2);
+
+    &.active {
+      opacity: 1;
+      visibility: visible;
+      transform: scale(1);
+    }
+  }
+
+  .mat-clock-minutes {
+    transform: scale(0.8);
+  }
+
+  .mat-clock-cell {
+    position: absolute;
+    display: flex;
+    width: $clock-cell-size;
+    height: $clock-cell-size;
+    color: rgba(black, 0.87);
+    justify-content: center;
+    box-sizing: border-box;
+    border-radius: 50%;
+    align-items: center;
+    cursor: pointer;
+
+    &:not(.mat-clock-cell-selected) {
+      &:not(.mat-clock-cell-disabled):hover {
+        background-color: rgba(black, 0.1);
+      }
+    }
+
+    &.mat-clock-cell-disabled {
+      color: rgba(black, 0.38);
+      pointer-events: none;
+    }
+
+    &.mat-clock-cell-selected {
+      color: white;
+    // lighten(...,5) -> color.adjust with relative lightness increase
+        background-color: color.adjust(mat.m2-get-color-from-palette(map.get($config, primary), text), $lightness: 5%);
+    }
+  }
+}
+
+@mixin typography($config-or-theme) {
+  $config: typography.private-typography-to-2014-config(
+      mat.m2-get-typography-config($config-or-theme));
+
+  .mat-calendar {
+    font-family: mat.m2-font-family($config);
+  }
+
+  .mat-calendar-body {
+    font-size: $calendar-body-font-size;
+  }
+
+  .mat-calendar-body-label,
+  .mat-calendar-period-button {
+    font: {
+      size: mat.m2-font-size($config, button);
+      weight: mat.m2-font-weight($config, button);
+    }
+  }
+
+  .mat-calendar-table-header th {
+    font: {
+      size: $calendar-weekday-table-font-size;
+      weight: mat.m2-font-weight($config, body-1);
+    }
+  }
+}
+
+@mixin date-range-colors(
+  $range-color,
+  $comparison-color: rgba(#f9ab00, $range-fade-amount),
+  $overlap-color: #a8dab5,
+  $overlap-selected-color: color.adjust($overlap-color, $lightness: -30%)) {
+
+  .mat-calendar-body-in-range::before {
+    background: $range-color;
+  }
+
+  .mat-calendar-body-comparison-identical,
+  .mat-calendar-body-in-comparison-range::before {
+    background: $comparison-color;
+  }
+
+  .mat-calendar-body-comparison-bridge-start::before,
+  [dir='rtl'] .mat-calendar-body-comparison-bridge-end::before {
+    background: linear-gradient(to right, $range-color 50%, $comparison-color 50%);
+  }
+
+  .mat-calendar-body-comparison-bridge-end::before,
+  [dir='rtl'] .mat-calendar-body-comparison-bridge-start::before {
+    background: linear-gradient(to left, $range-color 50%, $comparison-color 50%);
+  }
+
+  .mat-calendar-body-in-range > .mat-calendar-body-comparison-identical,
+  .mat-calendar-body-in-comparison-range.mat-calendar-body-in-range::after {
+    background: $overlap-color;
+  }
+
+  .mat-calendar-body-comparison-identical.mat-calendar-body-selected,
+  .mat-calendar-body-in-comparison-range > .mat-calendar-body-selected {
+    background: $overlap-selected-color;
+  }
+}
+
+@mixin _density($config-or-theme) {}
+
+// Modern theme mixin: accepts either a full Angular Material theme map
+// (with `color` key) or a legacy color config map; normalizes and applies.
+@mixin apply-theme($config) {
+// Normalize: accept either full theme map (with color key) or legacy color config map.
+    $theme: $config;
+
+    @if meta.type-of($config) != map or not map.has-key($config, color) {
+        $theme: (
+            color: $config
+        );
+}
+
+$color: mat.m2-get-color-config($theme);
+$density: mat.m2-get-density-config($theme);
+$typography: mat.m2-get-typography-config($theme);
+
+  @if $color {
+      @include color($color);
+  }
+
+  @if $density {
+      @include _density($density);
+  }
+
+  @if $typography {
+      @include typography($typography);
+  }
+}

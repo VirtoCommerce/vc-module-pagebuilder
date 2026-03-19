@@ -1,0 +1,18 @@
+<div class="form-wrapper">
+  @if (form) {
+    <div>
+      <form [formGroup]="form">
+        <app-controls-tabs [currentForm]="form"
+          [descriptors]="descriptors"
+          [context]="context()" />
+      </form>
+    </div>
+  }
+  @if (!descriptors || !descriptors.length) {
+    <div>
+      <p class="p-4">
+        No settings for current section / block
+      </p>
+    </div>
+  }
+</div>

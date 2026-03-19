@@ -1,0 +1,28 @@
+@use '../../../../../layout/variables' as *;
+
+:host {
+    @apply flex flex-col h-full;
+}
+
+.panel-title {
+    border-color: rgba(12, 12, 12, 0.08);
+    color: $heading-color;
+    box-shadow: 0px 8px 8px rgba(0, 0, 0, 0.04);
+    @apply flex flex-row items-center leading-5 text-base border-b truncate p-4;
+}
+
+.panel-body {
+    color: $controls-text-color;
+    @apply flex flex-col relative;
+    flex: 1 1 0; // scrollable
+    overflow: hidden;
+
+    ng-scrollbar {
+        height: 100%;
+    }
+}
+
+.panel-footer {
+    box-shadow: 0px -8px 8px rgba(0, 0, 0, 0.04);
+    @apply p-4 pt-1;
+}

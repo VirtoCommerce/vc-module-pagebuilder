@@ -1,0 +1,103 @@
+<app-panel>
+  <div class="p-4">
+    @if (viewModel(); as vm) {
+      @if (vm.settingsSchemas.top.length) {
+        <div class="settings-container top"
+          >
+          @for (schema of vm.settingsSchemas.top; track schema) {
+            <app-section-item class="static-item"
+              [sectionSchema]="schema!"
+              [section]="vm.settings"
+              [selectable]="false"
+              [hasContextMenu]="false"
+              (itemClick)="onSettingsClick(schema!)" />
+          }
+        </div>
+      }
+      <div cdkDropList #container class="sections-container"
+        (cdkDropListDropped)="reorderSections($event)"
+        (mousemove)="onMouseMove($event)"
+        (mouseleave)="onMouseLeave()">
+        @for (section of vm.template!.content; track section) {
+          <app-collapsible-list-item [expandable]="vm.sectionsState[section.id].canHaveChildren || false"
+            [opened]="vm.sectionsState[section.id].expanded"
+            [hovered]="hoveredSectionId() === section.id"
+            [highlight]="vm.sectionsState[section.id].selected"
+                                               [ngClass]="{
+                                                    dragging: vm.sectionsState[section.id].isDragging,
+                                                    selected: vm.sectionsState[section.id].selected
+                                               }"
+            cdkDragBoundary=".ps"
+            cdkDragLockAxis="y"
+            cdkDrag
+            (cdkDragStarted)="sectionDragStarted($event, section)"
+            (cdkDragReleased)="sectionDragCompleted($event, section)"
+            (openChanged)="toggleSection($event, section.id, vm.templateState!.key)">
+            <div item>
+              <div class="item-holder"
+                (mouseenter)="currentHoverId = section.id"
+                (mouseleave)="currentHoverId = null">
+                <app-section-item [sectionSchema]="vm.sectionsSchemas[section.type]"
+                  [section]="section"
+                  [selectable]="vm.sectionsState[section.id].selectable"
+                  [selected]="vm.sectionsState[section.id].selected"
+                  [hasContextMenu]="!vm.selectMode && vm.currentDragSection.length === 0"
+                  (itemClick)="!vm.selectMode && onSectionClick(section)"
+                  (itemHover)="onSectionHover(section)"
+                  (actionClick)="onActionClick($event, section)"
+                  (itemSelectChanged)="onItemSelectChanged($event, section, vm.templateState!.key)" />
+                <app-drag-handle cdkDragHandle
+                  [cdkDragHandleDisabled]="!((!vm.selectMode && section.id === currentHoverId) || vm.sectionsState[section.id].selected)"
+                [visible]="(!vm.selectMode && section.id === currentHoverId) || vm.sectionsState[section.id].selected" />
+              </div>
+            </div>
+            <app-section-children-list [section]="section"
+              [blocksSchemas]="vm.blocksSchemas!"
+              [states]="vm.sectionsState[section.id].blocks"
+              [selectMode]="vm.selectMode"
+              (itemClick)="!vm.selectMode && onBlockClick(section, $event)"
+              (addBlockClick)="addBlockClick(section)"
+              (reorderBlocks)="reorderBlocks($event)"
+              (executeAction)="onActionClick($event.action, section, $event.block)"
+              (checkChanged)="onBlockSelectChanged($event.selected, $event.blockId, section.id, vm.templateState!.key)" />
+            <div class="section-placeholder" *cdkDragPlaceholder></div>
+            <span class="drag-preview" *cdkDragPreview>{{ vm.selectedSectionsCount === 1 ||
+              vm.selectedSectionsCount === 0 ? '1 section' : ( vm.selectedSectionsCount + ' sections')
+            }}</span>
+          </app-collapsible-list-item>
+        }
+        @if (!vm.selectMode && vm.currentDragSection.length === 0) {
+          <div [ngStyle]="{ top: addLineTop, opacity: addButtonOpacity }" class="line"></div>
+          <div [ngStyle]="{ top: addLineTop, opacity: addButtonOpacity }" class="line right-line"></div>
+          <app-icon [ngStyle]="{ top: addButtonTop, opacity: addButtonOpacity }" class="add-button"
+          (click)="addSectionClick()">add_circle</app-icon>
+        }
+      </div>
+      @if (vm.settingsSchemas.bottom.length) {
+        <div class="settings-container bottom"
+          >
+          @for (schema of vm.settingsSchemas.bottom; track schema) {
+            <app-section-item class="static-item"
+              [sectionSchema]="schema"
+              [section]="vm.settings"
+              [selectable]="false"
+              [hasContextMenu]="false"
+              (itemClick)="onSettingsClick(schema)" />
+          }
+        </div>
+      }
+    }
+  </div>
+  <div title-content class="w-full">
+    <div class="w-full flex flex-row pl-2">
+      <div [attr.title]="templateName()" class="template-name">{{ templateName() }}</div>
+      <app-context-menu [visible]="true"
+        [getActions]="getPageActions"
+        (onAction)="onActionClick($event.action)" />
+    </div>
+  </div>
+  <div footer-content>
+    <app-icon-button icon="add" skin="blue" text="Add block"
+                     (click)="addSectionClick()" />
+  </div>
+</app-panel>

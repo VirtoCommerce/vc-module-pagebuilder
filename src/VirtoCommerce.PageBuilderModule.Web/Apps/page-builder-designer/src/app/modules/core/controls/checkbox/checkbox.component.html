@@ -1,0 +1,9 @@
+<mat-checkbox
+  [checked]="controlValue()"
+  [title]="descriptor?.hint || ''"
+  (change)="raiseValueChanged($event.checked)">
+  {{descriptor?.label}}
+</mat-checkbox>
+@if (descriptor?.info) {
+  <p class="info">{{ descriptor?.info }}</p>
+}

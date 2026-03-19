@@ -120,7 +120,7 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
       (import.meta.env.DEV && import.meta.env.APP_PLATFORM_URL) ||
       window.location.origin
     ).replace(/\/$/, "");
-    const designerUrl = `${platformUrl}/Modules/$(VirtoCommerce.PageBuilderModule)/Content/builder/index.html`;
+    const designerUrl = `${platformUrl}/Modules/$(VirtoCommerce.PageBuilderModule)/Content/page-builder-designer/index.html`;
     const groupId = currentValue.value?.id;
     const pageStoreId = currentValue.value?.storeId;
 

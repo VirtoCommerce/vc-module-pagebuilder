@@ -1,0 +1,10 @@
+<div class="item-holder" [ngClass]="{ 'hovered': hovered(), 'highlighted': highlight() }">
+  <app-chevron [ngStyle]="{ visibility: expandable() ? 'visible' : 'hidden' }"
+  (click)="onChevronClick()" [opened]="opened()" />
+  <ng-content select="[item]" />
+</div>
+@if (opened()) {
+  <div class="pl-8">
+    <ng-content />
+  </div>
+}

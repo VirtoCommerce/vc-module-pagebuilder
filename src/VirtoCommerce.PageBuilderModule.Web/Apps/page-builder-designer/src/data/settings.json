@@ -1,0 +1,151 @@
+{
+    "storefrontUrl": {
+        "init": "requests",
+        "requests": [
+            {
+                "url": "/api/stores/{{location.params.storeId}}",
+                "method": "GET",
+                "response": {
+                    "result": "$.url",
+                    "isArray": false
+                }
+            },
+            {
+                "url": "/api/platform/settings/VirtoCommerce.PageBuilderModule.General.StoreUrl",
+                "method": "GET",
+                "response": {
+                    "result": "$.value",
+                    "isArray": false
+                }
+            }
+        ]
+    },
+    "previewPath": {
+        "init": "requests",
+        "requests": [
+            {
+                "url": "/api/platform/settings/VirtoCommerce.PageBuilderModule.General.StorePreviewPath",
+                "method": "GET",
+                "cacheable": true,
+                "response": {
+                    "result": "$.value",
+                    "isArray": false
+                }
+            },
+            {
+                "url": "/api/platform/settings/VirtoCommerce.PageBuilderModule.General.StorePreviewPath",
+                "method": "GET",
+                "cacheable": true,
+                "response": {
+                    "result": "$.defaultValue",
+                    "isArray": false
+                }
+            }
+        ]
+    },
+    "fullPreviewUrl": "{{=combine(this.settings.storefrontUrl, this.settings.previewPath)}}?ep={{location.origin}}",
+    "themeName": {
+        "init": true,
+        "url": "/api/stores/{{location.params.storeId}}",
+        "method": "GET",
+        "response": {
+            "result": "$.dynamicProperties..values[?(@.propertyName=='DefaultThemeName')].value",
+            "isArray": false
+        },
+        "fallbackValue": "default"
+    },
+    "templatesListUrl": "/api/pagebuilder/templates?storeId={{location.params.storeId}}&theme={{config.themeName}}",
+    "sectionsListUrl": "/api/pagebuilder/sections?storeId={{location.params.storeId}}&theme={{config.themeName}}",
+    "templateUrl": {
+        "default": "/api/pagebuilder/template?storeId={{location.params.storeId}}&theme={{config.themeName}}&path={{path}}&type={{type}}&draft=true",
+        "pages": [
+            {
+                "url": "/api/page-builder-pages/grouped/{{location.params.groupId}}/content",
+                "method": "GET",
+                "fallbackValue": "{\"settings\":{},\"content\": []}"
+            },
+            "/api/pagebuilder/template?storeId={{location.params.storeId}}&theme={{config.themeName}}&path={{path}}&type=pages&draft=true"
+        ],
+        "blogs": "/api/pagebuilder/template?storeId={{location.params.storeId}}&theme={{config.themeName}}&path={{path}}&type=blogs&draft=true"
+    },
+    "saveTemplates": {
+        "url": "/api/pagebuilder/save?storeId={{location.params.storeId}}&theme={{config.themeName}}&draft=true",
+        "method": "POST",
+        "body": {
+            "files": "{{=JSON.stringify(this.templatesToSave.map(x => ({ path: x.entry.path, groupId: x.entry.groupId, type: x.entry.type, content: x.content })))}}"
+        }
+    },
+    "saveGroupedPage": {
+        "url": "/api/page-builder-pages/grouped/{{location.params.groupId}}/content",
+        "method": "POST",
+        "body": "{{=JSON.stringify(this.content, null, 2)}}"
+    },
+    "publish": {
+        "status": "/api/content/{{type}}/{{location.params.storeId}}/publish-status?relativeUrl={{path}}",
+        "publish": {
+            "url": "/api/content/{{type}}/{{location.params.storeId}}/publishing?relativeUrl={{path}}&publish=true",
+            "method": "POST"
+        },
+        "unpublish": {
+            "url": "/api/content/{{type}}/{{location.params.storeId}}/publishing?relativeUrl={{path}}&publish=false",
+            "method": "POST"
+        }
+    },
+    "publishPages": {
+        "status": "/api/page-builder-pages/grouped/publish-status/{{groupId}}",
+        "publish": {
+            "url": "/api/page-builder-pages/grouped/publishing/{{groupId}}?publish=true",
+            "method": "POST"
+        },
+        "unpublish": {
+            "url": "/api/page-builder-pages/grouped/publishing/{{groupId}}?publish=false",
+            "method": "POST"
+        }
+    },
+    "externalPreview": {
+        "url": "{{=combine(this.settings.storefrontUrl, '/designer-preview?pageId=' + (this.groupId || this.location.params.previewId))}}"
+    },
+    "settingsDataRequest": "/api/pagebuilder/template?storeId={{location.params.storeId}}&path={{settings.settingsPath}}&type=themes",
+    "settingsSchemaRequest": "/api/pagebuilder/template?storeId={{location.params.storeId}}&path={{config.themeName}}/config/settings_schema.json&type=themes",
+    "saveSettings": {
+        "url": "/api/pagebuilder/save?storeId={{location.params.storeId}}&theme={{config.themeName}}",
+        "method": "POST",
+        "body": {
+            "files": "[{\"path\": \"{{settings.settingsPath}}\", \"type\": \"themes\", \"content\": {{item}}}]"
+        }
+    },
+    "settingsPath": "{{config.themeName}}/config/settings_data.json",
+    "defaultPreviewUrl": "/",
+    "uploadAssetsRequest": {
+        "url": "/api/content/pages/{{location.params.storeId}}?folderUrl=/assets/pages&name={{file.assetName}}",
+        "method": "POST",
+        "form": {
+            "name": "uploadedFile",
+            "fileName": "{{file.assetName}}"
+        },
+        "response": {
+            "result": "$[0].url",
+            "isArray": false
+        }
+    },
+    "skipTheme": {
+        "init": true,
+        "url": "/api/platform/security/currentuser",
+        "method": "GET",
+        "cacheable": true,
+        "response": {
+            "selector": "this.response.permissions.indexOf('builder:theme') === -1",
+            "isArray": false
+        }
+    },
+    "skipTemplates": {
+        "init": true,
+        "url": "/api/platform/security/currentuser",
+        "method": "GET",
+        "cacheable": true,
+        "response": {
+            "selector": "this.response.permissions.indexOf('builder:templates') === -1",
+            "isArray": false
+        }
+    }
+}

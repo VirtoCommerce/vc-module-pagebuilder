@@ -1,0 +1,10 @@
+:host {
+    @apply w-96 bg-white shadow-sm relative;
+
+    &.hidden {
+        display: none;
+    }
+    &.desktop-50 {
+        width: 50%;
+    }
+}

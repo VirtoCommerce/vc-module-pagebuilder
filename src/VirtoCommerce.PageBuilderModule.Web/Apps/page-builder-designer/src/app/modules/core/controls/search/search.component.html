@@ -1,0 +1,38 @@
+<label class="pb-label" [attr.title]="descriptor?.hint">{{ descriptor?.label }}</label>
+@if (!descriptor?.button) {
+  <input #control type="text" class="control" [value]="controlValue().__searchQuery"
+    (paste)="onPaste($event)" (keyup)="onTextChange($event)" />
+}
+
+@if (descriptor?.button) {
+  <app-icon-button class="my-4" (click)="doRequest()" [text]="getButtonText()" skin="outline-blue" />
+}
+
+@if (!!controlValue().__nodata) {
+  <div class="my-4">
+    {{ descriptor?.nodataText }}
+  </div>
+} @else {
+  @if (isArrayDisplayInfo()) {
+    @for (field of descriptor?.displayInfo; track field) {
+      <div class="my-4">
+        <label>{{ field.label }}</label>
+        <div>
+          @switch (field.type) {
+            @case ('image') {
+              <img class="" alt="" [src]="getAssetUrl(field)" />
+            }
+            @default {
+              {{ getValueByKey(field) }}
+            }
+          }
+        </div>
+      </div>
+    }
+  }
+  @if (!isArrayDisplayInfo()) {
+    <div>
+      {{ controlValue().value | json }}
+    </div>
+  }
+}

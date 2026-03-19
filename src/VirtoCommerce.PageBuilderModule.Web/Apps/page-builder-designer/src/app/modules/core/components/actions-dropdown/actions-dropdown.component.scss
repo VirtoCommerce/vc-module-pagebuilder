@@ -1,0 +1,51 @@
+@use '../../../../../layout/variables' as *;
+@use '../../../../../layout/mixins' as *;
+
+:host {
+    display: block;
+}
+
+.menu-button {
+    border-radius: .25rem;
+    color: $icons-color;
+    border: 1px solid rgba(18, 18, 18, 0.08);
+    @include mdc-button-typography;
+    @apply p-2 w-full;
+
+    &:hover {
+        background: rgba(18, 18, 18, 0.04);
+    }
+}
+
+.btn-inner {
+    @apply flex flex-row items-center w-full min-w-0;
+}
+
+::ng-deep .menu-panel .mat-mdc-menu-content {
+    padding: 0 !important; // todo: move to theme redefine $vertical-padding (https://github.com/angular/components/blob/main/src/material/menu/menu.scss#L47)
+}
+
+[mat-menu-item] {
+    font-weight: 400;
+    height: 2.25rem;
+    line-height: 2.25rem;
+    border-radius: .25rem;
+    @apply px-2;
+}
+
+.item-inner {
+    @apply flex flex-row items-center w-full;
+
+    app-icon {
+        @apply mr-2;
+    }
+}
+
+.text, .text-item {
+    color: $controls-text-color;
+}
+
+.text {
+    line-height: 1.5rem;
+    @apply px-2 text-left grow align-middle;
+}

@@ -5,7 +5,7 @@ angular.module('virtoCommerce.pageBuilderModule')
             if (blade.currentEntityId) {
                 var baseUrl = window.location.origin +
                     (window.location.pathname === '/' ? '' : window.location.pathname) +
-                    '/apps/page-builder/';
+                    '/apps/page-builder-shell/';
 
                 window.open(baseUrl + '?storeId=' + blade.currentEntityId, '_blank');
 

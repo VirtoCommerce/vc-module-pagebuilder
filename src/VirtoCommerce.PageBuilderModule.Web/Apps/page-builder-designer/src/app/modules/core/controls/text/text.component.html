@@ -1,0 +1,8 @@
+<label class="pb-label" [attr.title]="descriptor?.hint">{{ descriptor?.label }}</label>
+<ckeditor
+    editorUrl="external/ckeditor/ckeditor.js"
+    [data]="controlValue()"
+    [type]="editorType"
+    [config]="config"
+    (dataChange)="onValueChanged($event)"
+/>

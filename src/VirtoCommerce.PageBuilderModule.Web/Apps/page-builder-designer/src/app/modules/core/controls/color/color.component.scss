@@ -1,0 +1,30 @@
+:host {
+    @apply max-w-xs;
+}
+
+.inline-picker {
+    margin: 0 auto;
+}
+
+.picker-holder {
+    box-shadow: 0 0 0 1px #00000026, 0 8px 16px #00000026;
+    @apply flex flex-col bg-white min-w-min;
+}
+
+.sketch-color-picker-component {
+    @apply w-64;
+}
+
+::ng-deep .inline-color-picker.sketch-picker, ::ng-deep .inline-color-picker.twitter-picker,
+::ng-deep .popup-color-picker.sketch-picker, ::ng-deep .popup-color-picker.twitter-picker {
+    box-shadow: none !important; // because component has rendered in overlay context
+}
+
+:host {
+    ::ng-deep .inline-color-picker.sketch-picker, ::ng-deep .inline-color-picker.twitter-picker {
+        padding: 10px 0 3px;
+    }
+    ::ng-deep .inline-color-picker .twitter-body {
+        padding: 0;
+    }
+}

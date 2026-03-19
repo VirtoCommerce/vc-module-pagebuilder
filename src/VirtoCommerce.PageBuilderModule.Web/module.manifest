@@ -26,6 +26,13 @@
       <permission>none</permission>
       <supportEmbeddedMode>false</supportEmbeddedMode>
     </app>
+    <app id="page-builder-designer">
+      <title>Page Builder Designer</title>
+      <description>Page Builder Designer</description>
+      <iconUrl>/apps/page-builder-designer/assets/images/logo-only.svg</iconUrl>
+      <permission>none</permission>
+      <supportEmbeddedMode>false</supportEmbeddedMode>
+    </app>
   </apps>
   
   <authors>

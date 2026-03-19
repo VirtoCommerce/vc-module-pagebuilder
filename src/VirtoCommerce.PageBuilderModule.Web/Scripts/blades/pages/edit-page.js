@@ -21,7 +21,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                 channel = broadcastChannelFactory(blade);
                 blade.designerUrl = window.location.origin +
                     (window.location.pathname === '/' ? '' : window.location.pathname) +
-                    '/Modules/$(VirtoCommerce.PageBuilderModule)/Content/builder/index.html';
+                    '/Modules/$(VirtoCommerce.PageBuilderModule)/Content/page-builder-designer/index.html';
                 if (blade.isNew) {
                     blade.isLoading = false;
 

@@ -1,0 +1,20 @@
+:host {
+    @apply flex flex-col;
+
+    // must be in the material theme
+
+    ::ng-deep .mat-mdc-slider .mdc-slider__track--active_fill {
+        border-color: #1665D8;
+    }
+    ::ng-deep .mat-mdc-slider .mdc-slider__thumb-knob {
+        background-color: #1665D8;
+        border-color: #1665D8;
+    }
+    ::ng-deep .mat-mdc-slider .mdc-slider__value-indicator {
+        background-color: #1665D8;
+    }
+}
+
+.has-thumb {
+    @apply mt-4;
+}

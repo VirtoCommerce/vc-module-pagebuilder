@@ -1,0 +1,10 @@
+@use '../../../../../layout/variables' as *;
+
+:host.visible {
+    @apply cursor-move;
+}
+
+app-icon {
+    color: $secondary-element-color;
+    transition: opacity .2s;
+}

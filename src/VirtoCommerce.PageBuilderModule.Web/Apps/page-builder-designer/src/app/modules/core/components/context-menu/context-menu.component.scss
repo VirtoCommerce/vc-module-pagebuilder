@@ -1,0 +1,51 @@
+@use '../../../../../layout/variables' as *;
+
+.wrapper {
+    transition: opacity .2s;
+    @apply flex flex-col;
+}
+
+.panel {
+    box-shadow: 0px 0px 2px rgba(0, 0, 0, 0.2), 0px 2px 10px rgba(0, 0, 0, 0.1);
+    border-radius: .5rem;
+    @apply bg-white flex flex-col w-40;
+
+    li {
+        padding: 0 1px;
+        &.separator {
+            border-color: rgba(92, 95, 98, 0.36);
+            @apply h-px border-t w-full p-0;
+        }
+    }
+}
+
+app-icon {
+    color: rgba(72, 72, 72, 1);
+}
+
+.icon {
+    &.opened {
+        color: $active-color;
+    }
+    &:hover {
+        background-color: #f6f6f6;
+        @apply rounded p-1 -m-1;
+    }
+}
+
+.action-item {
+    @apply flex flex-row w-full rounded items-center p-2 space-x-1 cursor-pointer;
+    &:hover {
+        background-color: #f6f6f6;
+        &.inactive {
+            background-color: inherit;
+        }
+    }
+    span {
+        color: $text-color;
+    }
+    &.inactive {
+        opacity: 0.5;
+        cursor: default;
+    }
+}

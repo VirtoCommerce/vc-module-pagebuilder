@@ -1,0 +1,40 @@
+<app-overlap-panel [skipTranslate]="isHalfScreen()" [expandable]="!isHalfScreen()">
+  @let vm = viewModel();
+  <app-panel>
+    @if (vm) {
+      <app-dynamic-form [context]="vm.editContext"
+        [descriptors]="vm.schema.settings"
+        [sectionModel]="vm.model"
+        (modelChanged)="onModelChanged($event)" />
+    }
+    <ng-container title-content>
+      <div class="title pl-2">
+        <app-icon class="back-icon" (click)="onBackClick()" [hoverable]="true" title="Back">chevron_left
+        </app-icon>
+        @if (vm) {
+          <div class="edit-section-title"
+            [ngClass]="{ 'invisible-section': vm.model.hidden, 'name-only': vm.isEditSettings }">
+            <div class="whitespace-normal">{{ sectionName() }}</div>
+            @if (!vm.isEditSettings) {
+              <div class="section-info">
+                <span [cdkCopyToClipboard]="vm.model.type">
+                  Type: {{ vm.schema.name || vm.schema.type || vm.model.type }}
+                  <app-icon [smallSize]="true" [inline]="true">content_copy</app-icon>
+                </span><br />
+                <span [cdkCopyToClipboard]="vm.model.id">
+                    ID: {{ vm.model.id }}
+                    <app-icon [smallSize]="true" [inline]="true">content_copy</app-icon>
+                </span>
+              </div>
+            }
+          </div>
+          @if (!vm.isEditSettings) {
+            <app-context-menu [visible]="true"
+                  [getActions]="getItemActionsFactory(vm.model, vm.schema)"
+                  (onAction)="onContextMenuAction($event, vm.section, vm.block)" />
+          }
+        }
+      </div>
+    </ng-container>
+  </app-panel>
+</app-overlap-panel>

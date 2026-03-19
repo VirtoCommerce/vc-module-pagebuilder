@@ -1,0 +1,339 @@
+{
+    "data": {
+        "products": {
+            "totalCount": 61,
+            "items": [
+                {
+                    "name": "1\" Steel Carriage Bolt, Grade 5, Chrome Plated Finish, 1/4\"-20 Dia/Thread Size, 5 PK",
+                    "id": "e9de38b73c424db19f319c9538184d03",
+                    "code": "4GVA7",
+                    "minQuantity": 0,
+                    "maxQuantity": 0,
+                    "hasVariations": false,
+                    "slug": "bolts/1-steel-carriage-bolt-grade-5-chrome-plated-finish-14-20-diathread-size-5-pk",
+                    "outline": "02fe37dcaeb2458a831011abe43fd335/4fbaca886f014767a52f3f38b9df648f/e9de38b73c424db19f319c9538184d03",
+                    "imgSrc": "https://localhost:5001/assets/catalog/7829d/4GVA7/4GVA7_AS01.jpg",
+                    "images": [
+                        {
+                            "url": "https://localhost:5001/assets/catalog/7829d/4GVA7/4GVA7_AS01.jpg"
+                        }
+                    ],
+                    "description": null,
+                    "availabilityData": {
+                        "isActive": true,
+                        "isAvailable": true,
+                        "isBuyable": true,
+                        "isInStock": true,
+                        "availableQuantity": 23
+                    },
+                    "price": {
+                        "actual": {
+                            "amount": 13.1,
+                            "formattedAmount": "13,10 $"
+                        },
+                        "discountAmount": {
+                            "amount": 0.0,
+                            "formattedAmount": "0,00 $"
+                        },
+                        "sale": {
+                            "amount": 13.1,
+                            "formattedAmount": "13,10 $"
+                        },
+                        "list": {
+                            "amount": 13.1,
+                            "formattedAmount": "13,10 $"
+                        },
+                        "discountPercent": 0.0
+                    },
+                    "properties": [
+                        {
+                            "name": "BASIC_MATERIAL",
+                            "value": "Steel",
+                            "id": "af72fb0b-3949-4737-9c0a-94c49f1d10bb"
+                        },
+                        {
+                            "name": "BRAND",
+                            "value": "FABORY",
+                            "id": "75d8f2e5-ced1-4d65-b379-305793eb5780"
+                        },
+                        {
+                            "name": "FASTENER_FINISH",
+                            "value": "Chrome Plated",
+                            "id": "709f8629-6347-4de9-9d82-3cb0c1e34348"
+                        },
+                        {
+                            "name": "FASTENER_LENGTH",
+                            "value": "1\"",
+                            "id": "1685a1ef-981a-4858-b8d3-daaed979bb9f"
+                        },
+                        {
+                            "name": "MATERIAL_GRADE",
+                            "value": "2",
+                            "id": "ef008c64-4b7a-4136-90ff-fa1156a0f70a"
+                        },
+                        {
+                            "name": "NECK_TYPE",
+                            "value": "Square",
+                            "id": "3d200485-abf8-4a32-ae41-9dac271b1a8b"
+                        },
+                        {
+                            "name": "SYSTEM_OF_MEASUREMENT",
+                            "value": "Inch",
+                            "id": "7f46e4d0-9d4e-49e5-994a-d51ff0fbd239"
+                        },
+                        {
+                            "name": "THREAD_SIZE",
+                            "value": "1/2\"-13",
+                            "id": "1baedcde-5ae6-437b-9be0-dd7396968f2e"
+                        }
+                    ]
+                },
+                {
+                    "name": "Eye Bolt,Carbon Steel 4.6,M6x70,PK25",
+                    "id": "2dcd49147dc04892892af26bb91e5530",
+                    "code": "38DJ66",
+                    "minQuantity": 0,
+                    "maxQuantity": 0,
+                    "hasVariations": false,
+                    "slug": "bolts/eye-boltcarbon-steel-46m6x70pk25",
+                    "outline": "02fe37dcaeb2458a831011abe43fd335/364e07799fa24acf95241e7dd5c33b1e/2dcd49147dc04892892af26bb91e5530",
+                    "imgSrc": "https://localhost:5001/assets/catalog/7829d/38DJ66/5ZA21_AS01.jpg",
+                    "images": [
+                        {
+                            "url": "https://localhost:5001/assets/catalog/7829d/38DJ66/5ZA21_AS01.jpg"
+                        }
+                    ],
+                    "description": null,
+                    "availabilityData": {
+                        "isActive": true,
+                        "isAvailable": true,
+                        "isBuyable": true,
+                        "isInStock": true,
+                        "availableQuantity": 32
+                    },
+                    "price": {
+                        "actual": {
+                            "amount": 57.25,
+                            "formattedAmount": "57,25 $"
+                        },
+                        "discountAmount": {
+                            "amount": 0.0,
+                            "formattedAmount": "0,00 $"
+                        },
+                        "sale": {
+                            "amount": 57.25,
+                            "formattedAmount": "57,25 $"
+                        },
+                        "list": {
+                            "amount": 57.25,
+                            "formattedAmount": "57,25 $"
+                        },
+                        "discountPercent": 0.0
+                    },
+                    "properties": [
+                        {
+                            "name": "BRAND",
+                            "value": "FABORY",
+                            "id": "75d8f2e5-ced1-4d65-b379-305793eb5780"
+                        },
+                        {
+                            "name": "EYE_INSIDE_DIA",
+                            "value": "5/16\"",
+                            "id": "c197a2b1-2464-404d-932b-cdaab8f9c16c"
+                        },
+                        {
+                            "name": "EYEBOLT_TYPE",
+                            "value": "Blank with Shoulder",
+                            "id": "1a5125c6-7393-426a-bae1-61dc330cc569"
+                        },
+                        {
+                            "name": "MATERIAL",
+                            "value": "Low Carbon Steel 4.6",
+                            "id": "2be80120-a1e7-424c-980a-fb96c6f6bd9b"
+                        },
+                        {
+                            "name": "OVERALL_LENGTH",
+                            "value": "0.31\"",
+                            "id": "59be2583-9052-4de0-8538-b79d7137a219"
+                        },
+                        {
+                            "name": "SYSTEM_OF_MEASUREMENT",
+                            "value": "Inch",
+                            "id": "7f46e4d0-9d4e-49e5-994a-d51ff0fbd239"
+                        },
+                        {
+                            "name": "THREAD_SIZE",
+                            "value": "10-24",
+                            "id": "4cbee4b2-5e36-4b5a-893f-7d59ce3cc853"
+                        }
+                    ]
+                },
+                {
+                    "name": "20mm Steel Hex Flange Bolt, Class 8.8, Zinc Plated Finish, M12-1.75 Dia/Thread Size, 300 PK",
+                    "id": "1137d81055dc47f3a391018b537ad754",
+                    "code": "156Y81",
+                    "minQuantity": 0,
+                    "maxQuantity": 0,
+                    "hasVariations": true,
+                    "slug": "bolts/20mm-steel-hex-flange-bolt-class-88-zinc-plated-finish-m12-175-diathread-size-300-pk-fastener-length-1",
+                    "outline": "02fe37dcaeb2458a831011abe43fd335/3db665f7c95e46c3890c4a208d8af73d/1137d81055dc47f3a391018b537ad754",
+                    "imgSrc": "https://localhost:5001/assets/catalog/7829d/156Y81/41MX89_AL01.jpg",
+                    "images": [
+                        {
+                            "url": "https://localhost:5001/assets/catalog/7829d/156Y81/41MX89_AL01.jpg"
+                        }
+                    ],
+                    "description": null,
+                    "availabilityData": {
+                        "isActive": true,
+                        "isAvailable": true,
+                        "isBuyable": true,
+                        "isInStock": true,
+                        "availableQuantity": 220
+                    },
+                    "price": {
+                        "actual": {
+                            "amount": 147.0,
+                            "formattedAmount": "147,00 $"
+                        },
+                        "discountAmount": {
+                            "amount": 0.0,
+                            "formattedAmount": "0,00 $"
+                        },
+                        "sale": {
+                            "amount": 147.0,
+                            "formattedAmount": "147,00 $"
+                        },
+                        "list": {
+                            "amount": 147.0,
+                            "formattedAmount": "147,00 $"
+                        },
+                        "discountPercent": 0.0
+                    },
+                    "properties": [
+                        {
+                            "name": "BRAND",
+                            "value": "FABORY",
+                            "id": "75d8f2e5-ced1-4d65-b379-305793eb5780"
+                        },
+                        {
+                            "name": "FASTENER_FINISH",
+                            "value": "Zinc Plated",
+                            "id": "87dfb508-936d-4a05-afd7-c6d69e6cd99d"
+                        },
+                        {
+                            "name": "FASTENER_LENGTH",
+                            "value": "25mm",
+                            "id": "38fc7764-f878-4a9e-891b-ffa7f0519eeb"
+                        },
+                        {
+                            "name": "FASTENER_THREAD_TYPE",
+                            "value": "Metric Coarse",
+                            "id": "248044c9-f863-495f-a4be-4581034a5e18"
+                        },
+                        {
+                            "name": "HEAD_TYPE",
+                            "value": "Hex Flange",
+                            "id": "031e5e6f-96c0-4d1a-825d-f308b559c3de"
+                        },
+                        {
+                            "name": "MATERIAL_GRADE",
+                            "value": "8.8",
+                            "id": "357cca15-67b0-4cf8-9c2d-c6c9cdf0201d"
+                        },
+                        {
+                            "name": "SYSTEM_OF_MEASUREMENT",
+                            "value": "Inch",
+                            "id": "7f46e4d0-9d4e-49e5-994a-d51ff0fbd239"
+                        }
+                    ]
+                },
+                {
+                    "name": "1\" Steel Carriage Bolt, Grade A, Hot Dipped Galvanized Finish, 1/4\"-20 Dia/Thread Size, 1300 PK",
+                    "id": "dae730451bc745bfa642870bdf22f150",
+                    "code": "164W15",
+                    "minQuantity": 1,
+                    "maxQuantity": 0,
+                    "hasVariations": true,
+                    "slug": "bolts/1-steel-carriage-bolt-grade-a-hot-dipped-galvanized-finish-14-20-diathread-size-1300-pk-fastener-length-1-thread-size-14-20",
+                    "outline": "02fe37dcaeb2458a831011abe43fd335/4fbaca886f014767a52f3f38b9df648f/dae730451bc745bfa642870bdf22f150",
+                    "imgSrc": "https://localhost:5001/assets/catalog/7829d/164W15/164W15.jpg",
+                    "images": [
+                        {
+                            "url": "https://localhost:5001/assets/catalog/7829d/164W15/164W15.jpg"
+                        }
+                    ],
+                    "description": null,
+                    "availabilityData": {
+                        "isActive": true,
+                        "isAvailable": true,
+                        "isBuyable": true,
+                        "isInStock": true,
+                        "availableQuantity": 30
+                    },
+                    "price": {
+                        "actual": {
+                            "amount": 375.6,
+                            "formattedAmount": "375,60 $"
+                        },
+                        "discountAmount": {
+                            "amount": 0.0,
+                            "formattedAmount": "0,00 $"
+                        },
+                        "sale": {
+                            "amount": 375.6,
+                            "formattedAmount": "375,60 $"
+                        },
+                        "list": {
+                            "amount": 375.6,
+                            "formattedAmount": "375,60 $"
+                        },
+                        "discountPercent": 0.0
+                    },
+                    "properties": [
+                        {
+                            "name": "BASIC_MATERIAL",
+                            "value": "Steel",
+                            "id": "af72fb0b-3949-4737-9c0a-94c49f1d10bb"
+                        },
+                        {
+                            "name": "BRAND",
+                            "value": "FABORY",
+                            "id": "75d8f2e5-ced1-4d65-b379-305793eb5780"
+                        },
+                        {
+                            "name": "FASTENER_FINISH",
+                            "value": "Hot Dipped Galvanized",
+                            "id": "709f8629-6347-4de9-9d82-3cb0c1e34348"
+                        },
+                        {
+                            "name": "FASTENER_LENGTH",
+                            "value": "1\"",
+                            "id": "1685a1ef-981a-4858-b8d3-daaed979bb9f"
+                        },
+                        {
+                            "name": "MATERIAL_GRADE",
+                            "value": "5",
+                            "id": "ef008c64-4b7a-4136-90ff-fa1156a0f70a"
+                        },
+                        {
+                            "name": "NECK_TYPE",
+                            "value": "Square",
+                            "id": "3d200485-abf8-4a32-ae41-9dac271b1a8b"
+                        },
+                        {
+                            "name": "SYSTEM_OF_MEASUREMENT",
+                            "value": "Inch",
+                            "id": "7f46e4d0-9d4e-49e5-994a-d51ff0fbd239"
+                        },
+                        {
+                            "name": "THREAD_SIZE",
+                            "value": "1/4\"-20",
+                            "id": "1baedcde-5ae6-437b-9be0-dd7396968f2e"
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+}

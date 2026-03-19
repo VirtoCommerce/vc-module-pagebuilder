@@ -1,0 +1,43 @@
+<label [attr.title]="descriptor?.hint" class="pb-label collection-title">{{ descriptor?.label }}</label>
+@if (descriptor?.info) {
+  <p class="info">{{ descriptor?.info }}</p>
+}
+@if (form) {
+<div class="collection-wrapper" [formGroup]="form" cdkDropList (cdkDropListDropped)="reorderItems($event)">
+  @for (item of collectionFormArray.controls; track item; let i = $index) {
+    <div formArrayName="list">
+      <div class="item-wrapper"
+        cdkDragBoundary=".collection-wrapper"
+        cdkDragLockAxis="y"
+        cdkDrag>
+        <div class="label-wrapper"
+          [ngClass]="{ expanded: openedItem === item }"
+          (mouseenter)="hoverItem = item"
+          (mouseleave)="hoverItem = null"
+          (click)="toggle(item)">
+        <app-chevron class="toggler" [hoverable]="false" [opened]="item === openedItem" />
+        <label [attr.title]="descriptor?.hint" class="pb-label">{{ getTitle(item) }}</label>
+        <app-context-menu [actions]="itemActions"
+                          [visible]="hoverItem === item"
+          (onAction)="onActionClick($event, item, i)" />
+          <app-drag-handle [visible]="hoverItem === item" cdkDragHandle />
+        </div>
+        @if (item === openedItem) {
+          <div class="editor-wrapper">
+            <app-controls-list [currentForm]="$any(item)"
+              [descriptors]="getDescriptors()"
+              [context]="getContext($any(item), i)" />
+          </div>
+        }
+      </div>
+    </div>
+  }
+  @if (canAddItem()) {
+    <app-icon-button class="add-button"
+      icon="add"
+      skin="blue"
+      [text]="descriptor?.addText || 'Add item'"
+      (click)="addItem()" />
+  }
+</div>
+}
