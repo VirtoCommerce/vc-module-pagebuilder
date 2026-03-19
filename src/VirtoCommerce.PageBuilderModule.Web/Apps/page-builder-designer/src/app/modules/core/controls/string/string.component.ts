@@ -26,4 +26,20 @@ export class StringComponent extends BaseControlDirective<StringDescriptor> {
         const element = <HTMLInputElement>event.target;
         this.onValueChanged(element.value);
     }
+
+    onTextareaInput(event: Event): void {
+        const el = event.target as HTMLTextAreaElement;
+        const maxRows = this.descriptor?.maxRowsCount ?? 4;
+
+        const style = getComputedStyle(el);
+        const lineHeight = parseFloat(style.lineHeight);
+        const paddingY = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+        const maxHeight = lineHeight * maxRows + paddingY;
+
+        el.style.height = 'auto';
+        el.style.height = `${Math.min(el.scrollHeight, maxHeight)}px`;
+        el.style.overflowY = el.scrollHeight > maxHeight ? 'auto' : 'hidden';
+
+        this.onValueChanged(el.value);
+    }
 }

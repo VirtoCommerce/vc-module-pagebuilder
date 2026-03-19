@@ -13,11 +13,11 @@
   @if (descriptor?.multiline) {
     <textarea
       #textarea
-      rows="4"
       class="control"
+      [rows]="descriptor?.minRowsCount ?? 1"
       [value]="controlValue()"
       [placeholder]="descriptor?.placeholder || ''"
-    (keyup)="raiseOnChange($event)"></textarea>
+      (input)="onTextareaInput($event)"></textarea>
   }
 
   @if (descriptor?.actions) {
