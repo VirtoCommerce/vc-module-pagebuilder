@@ -160,6 +160,7 @@ export class DateFnsAdapter extends DateAdapter<Date> {
   }
 
   setSeconds(date: Date, seconds: number, ms?: number): Date {
+    // ms parameter is not used in this datepicker implementation
     return setSeconds(date, seconds);
   }
 
