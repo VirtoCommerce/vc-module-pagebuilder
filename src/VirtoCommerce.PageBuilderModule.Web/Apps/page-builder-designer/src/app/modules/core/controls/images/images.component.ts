@@ -1,5 +1,5 @@
 import { AssetFile } from '@core/models';
-import { Component } from '@angular/core';
+import { Component, computed } from '@angular/core';
 import { NgClass, NgStyle } from '@angular/common';
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 import { FileUploadModule } from '@iplab/ngx-file-upload';
@@ -21,24 +21,18 @@ import { SpinnerComponent } from '../../components/spinner/spinner.component';
 })
 export class ImagesComponent extends BaseFilesComponent<ImagesDescriptor> {
 
-    getMaxListHeight(): string {
-        return this.innerValue.length <= (this.descriptor?.collapseThreshold || 4) || this.expanded || !!this.selectedFile
+    readonly maxListHeight = computed(() =>
+        this.innerValue().length <= (this.descriptor?.collapseThreshold || 4) || this.expanded() || !!this.selectedFile()
             ? 'inherit'
             : '12rem'
-    }
+    );
 
     onReorderItems(event: CdkDragDrop<any>) {
         this.reorderItems(event.previousIndex, event.currentIndex);
     }
 
-    // onBackClick() {
-    //     if (this.selectedFile !== null) {
-    //         this.selectFile(this.selectedFile);
-    //     }
-    // }
-
     getBackground(item: AssetFile) {
-        return `url('${item.previewUrl}')`;
+        return `url('${encodeURI(item.previewUrl ?? '').replace(/'/g, '%27')}')`;
     }
 
     protected override getControlOptions() {

@@ -11,33 +11,37 @@
 @tailwind utilities;
 
 ng-scrollbar {
-    --scrollbar-thumb-color: rgba(0, 0, 0, 0.2);
+  --scrollbar-thumb-color: rgba(0, 0, 0, 0.2);
     --scrollbar-thumb-hover-color: rgba(0, 0, 0, 0.35);
 }
 
 body {
-    font-family: 'Inter', sans-serif;
+  font-family: 'Inter', sans-serif;
     font-style: normal;
     font-size: $default-font-size;
     line-height: 20px;
 }
 
 .overlap-panel {
-    @apply absolute h-full bg-white inset-y-0 left-8 -right-8 flex flex-col;
+  @apply absolute h-full bg-white inset-y-0 left-8 -right-8 flex flex-col;
 }
 
 .multipage-select-panel-container {
-    @apply w-full;
+  @apply w-full;
 }
 
 .drag-handler {
-    cursor: move;
+  cursor: move;
 }
 
 .toast-top-right {
-    transform: translateY(3rem);
+  transform: translateY(3rem);
 }
 
 .ng-scroll-content {
-    @apply max-w-full;
+  @apply max-w-full;
+}
+
+.mat-mdc-progress-bar .mdc-linear-progress__bar-inner {
+  border-color: #1665d8;
 }

@@ -4,6 +4,7 @@ export interface AssetFile extends File {
     previewUrl: string | null;
     uploaded?: boolean;
     uploading?: boolean;
+    loading?: boolean;
 
     assetName: string;
     progress?: number;
