@@ -20,15 +20,26 @@ export class NumberComponent extends BaseControlDirective<NumberDescriptor> {
     onPaste(event: ClipboardEvent) {
         const value = (event.clipboardData || this.windowRef.nativeWindow.clipboardData).getData('text');
         if (!isNaN(value)) {
-            this.onValueChanged(Number(value));
+            this.onValueChanged(this.clampValue(Number(value)));
         }
     }
 
     raiseOnChange(target: EventTarget | null) {
         const element = <HTMLInputElement>target;
         if (element) {
-            this.onValueChanged(element.valueAsNumber);
+            const clamped = this.clampValue(element.valueAsNumber);
+            if (clamped !== element.valueAsNumber) {
+                element.value = String(clamped);
+            }
+            this.onValueChanged(clamped);
         }
+    }
+
+    private clampValue(value: number): number {
+        const { min, max } = this.descriptor ?? {};
+        if (min != null && value < min) return min;
+        if (max != null && value > max) return max;
+        return value;
     }
 
     raiseOnTouched(target: EventTarget | null) {
