@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal, inject } from '@angular/core';
-import { NgClass } from '@angular/common';
 import { IconComponent } from '@core/components/icon/icon.component';
 import { CheckboxComponent } from '@core/controls/checkbox/checkbox.component';
 import { ContextMenuComponent } from '@core/components/context-menu/context-menu.component';
@@ -14,7 +13,7 @@ import { ContextMenuHelper, helpers } from '@editor/helpers';
   templateUrl: './section-item.component.html',
   styleUrls: ['./section-item.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NgClass, IconComponent, CheckboxComponent, ContextMenuComponent]
+  imports: [IconComponent, CheckboxComponent, ContextMenuComponent]
 })
 export class SectionItemComponent {
 
@@ -35,17 +34,13 @@ export class SectionItemComponent {
   readonly itemSelectChanged = output<boolean>();
 
   readonly displayCheckbox = computed(() => (this.isIconHover() && this.selectable()) || this.selected());
-  readonly sectionIcon = computed(() => this.sectionSchema()?.icon || 'blur_on');
+  readonly sectionIcon = computed(() => this.sectionSchema().icon || 'blur_on');
   readonly sectionName = computed(() => helpers.getSectionName(this.section(), this.sectionSchema()));
 
   onItemClick(event: MouseEvent) {
-    if (!!this.sectionSchema()) {
+    if (this.sectionSchema()) {
       this.itemClick.emit();
     }
-  }
-
-  onCheckboxClick(event: MouseEvent) {
-    event.stopPropagation();
   }
 
   onCheckboxValueChanged(value: boolean) {
@@ -59,11 +54,15 @@ export class SectionItemComponent {
   }
 
   onItemHover() {
+    this.isHover.set(true);
     this.itemHover.emit();
   }
 
-  getItemActions: () => Promise<ContextMenuAction[]> = () => {
-    const result = this.helper.getSectionsActions(this.section(), !!this.sectionSchema()?.blocks?.length);
-    return result;
-  };
+  onItemLeave() {
+    this.isHover.set(false);
+    this.isIconHover.set(false);
+  }
+
+  readonly getItemActions = () =>
+    this.helper.getSectionsActions(this.section(), !!this.sectionSchema()?.blocks?.length);
 }
