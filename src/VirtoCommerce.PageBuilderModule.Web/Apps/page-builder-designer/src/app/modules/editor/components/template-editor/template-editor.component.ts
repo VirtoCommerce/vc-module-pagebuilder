@@ -1,7 +1,7 @@
-import { Component, ElementRef, viewChild, inject } from '@angular/core';
+import { Component, ElementRef, signal, viewChild, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NgClass, NgStyle } from '@angular/common';
-import { CdkDrag, CdkDragRelease, CdkDragSortEvent, CdkDragStart, DragDropModule } from '@angular/cdk/drag-drop';
+import { CdkDragRelease, CdkDragSortEvent, CdkDragStart, DragDropModule } from '@angular/cdk/drag-drop';
 import { Store } from '@ngrx/store';
 import { PanelComponent } from '@core/components/panel/panel.component';
 import { CollapsibleListItemComponent } from '@core/components/collapsible-list-item/collapsible-list-item.component';
@@ -12,13 +12,12 @@ import { DragHandleComponent } from '@core/components/drag-handle/drag-handle.co
 import { SectionItemComponent } from '@editor/controls/section-item/section-item.component';
 import { SectionChildrenListComponent } from '@editor/controls/section-children-list/section-children-list.component';
 
-import { ContextMenuAction, ReorderItemsModel } from '@core/models';
+import { ReorderItemsModel } from '@core/models';
 import { SectionModel, SectionSchema } from '@models/document';
 
 import { ContextMenuHelper } from '@editor/helpers';
 import { BuilderState } from '@editor/store/state';
 
-import * as fromRoute from '@shared/routing';
 import * as fromState from '@editor/store/selectors';
 import * as actions from '@editor/store/actions';
 import { BlockState } from '../../models';
@@ -42,16 +41,14 @@ export class TemplateEditorComponent {
     readonly hoveredSectionId = toSignal(this.store.select(fromState.hoveredSectionId));
     readonly templateName = toSignal(this.store.select(fromState.selectCurrentTemplateName));
 
-    addButtonTop = '0';
-    addLineTop = '0';
-    addButtonOpacity = 0;
-    currentInsertIndex = 0;
-    currentHoverId: string | null = null;
-
-    // templateKeyParameter$ = this.store.select(fromRoute.selectTemplateKeyParameter);
+    readonly addButtonTop = signal('0');
+    readonly addLineTop = signal('0');
+    readonly addButtonOpacity = signal(0);
+    readonly currentInsertIndex = signal(0);
+    readonly currentHoverId = signal<string | null>(null);
 
     addSectionClick() {
-        this.store.dispatch(actions.showBlankSections({ sectionId: null, positionIndex: this.currentInsertIndex }));
+        this.store.dispatch(actions.showBlankSections({ sectionId: null, positionIndex: this.currentInsertIndex() }));
     }
 
     onSettingsClick(schema: SectionSchema) {
@@ -66,13 +63,13 @@ export class TemplateEditorComponent {
     sectionDragStarted(event: CdkDragStart, section: SectionModel) {
         const rootElement = event.source.getRootElement();
         this._fakeElement = domHelpers.deepCloneNode(rootElement);
-        domHelpers.toggleVisibility(this._fakeElement, true, new Set('position'));
+        domHelpers.toggleVisibility(this._fakeElement, true, new Set(['position']));
         this._fakeElement.classList.add('dragging');
         event.source.dropContainer.element.nativeElement.insertBefore(this._fakeElement, event.source.getPlaceholderElement());
 
         this.store.dispatch(actions.startDragSection({ sectionId: section.id }));
     }
-    sectionDragCompleted(event: CdkDragRelease, section: SectionModel) {
+    sectionDragCompleted(_event: CdkDragRelease, section: SectionModel) {
         this._fakeElement?.remove();
         this._fakeElement = null;
 
@@ -114,10 +111,7 @@ export class TemplateEditorComponent {
         this.store.dispatch(actions.executeContextMenuAction({ action: event, source: 'list', section, block }));
     }
 
-    getPageActions: () => Promise<ContextMenuAction[]> = () => {
-        const result = this.helper.getPageActions();
-        return result;
-    };
+    readonly getPageActions = () => this.helper.getPageActions();
 
     onMouseMove(args: MouseEvent) {
         let target = this.container().nativeElement;
@@ -125,12 +119,12 @@ export class TemplateEditorComponent {
         const top = args.clientY - rect.top;
 
         const w2 = rect.width / 2.0;
-        this.addButtonOpacity = 1 - Math.abs(w2 - args.clientX - rect.left) / w2;
+        this.addButtonOpacity.set(1 - Math.abs(w2 - args.clientX - rect.left) / w2);
 
         if (top < 0) {
-            this.currentInsertIndex = 0;
-            this.addButtonTop = '-18px';
-            this.addLineTop = '-6px';
+            this.currentInsertIndex.set(0);
+            this.addButtonTop.set('-18px');
+            this.addLineTop.set('-6px');
             return;
         }
 
@@ -139,21 +133,21 @@ export class TemplateEditorComponent {
             const childTop = childRect.top - rect.top;
             const childBottom = childRect.bottom - rect.top;
             if (top >= childTop && top < childBottom + 10) {
-                this.currentInsertIndex = i + 1;
+                this.currentInsertIndex.set(i + 1);
                 const position = childBottom - 14;
-                this.addButtonTop = `${position}px`;
-                this.addLineTop = `${position + 12}px`;
+                this.addButtonTop.set(`${position}px`);
+                this.addLineTop.set(`${position + 12}px`);
                 return;
             }
         }
 
-        this.currentInsertIndex = target.children.length;
-        this.addButtonTop = `${rect.height - 14}px`;
-        this.addLineTop = `${rect.height - 2}px`;
+        this.currentInsertIndex.set(target.children.length);
+        this.addButtonTop.set(`${rect.height - 14}px`);
+        this.addLineTop.set(`${rect.height - 2}px`);
     }
 
     onMouseLeave() {
-        this.addButtonOpacity = 0;
-        this.currentInsertIndex = this.container().nativeElement.children.length;
+        this.addButtonOpacity.set(0);
+        this.currentInsertIndex.set(this.container().nativeElement.children.length);
     }
 }

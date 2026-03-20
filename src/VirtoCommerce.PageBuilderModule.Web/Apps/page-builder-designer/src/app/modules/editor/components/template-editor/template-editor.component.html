@@ -19,13 +19,13 @@
         (mousemove)="onMouseMove($event)"
         (mouseleave)="onMouseLeave()">
         @for (section of vm.template!.content; track section) {
-          <app-collapsible-list-item [expandable]="vm.sectionsState[section.id].canHaveChildren || false"
-            [opened]="vm.sectionsState[section.id].expanded"
+          <app-collapsible-list-item [expandable]="vm.sectionsState[section.id]?.canHaveChildren || false"
+            [opened]="vm.sectionsState[section.id]?.expanded || false"
             [hovered]="hoveredSectionId() === section.id"
-            [highlight]="vm.sectionsState[section.id].selected"
+            [highlight]="vm.sectionsState[section.id]?.selected || false"
                                                [ngClass]="{
-                                                    dragging: vm.sectionsState[section.id].isDragging,
-                                                    selected: vm.sectionsState[section.id].selected
+                                                    dragging: vm.sectionsState[section.id]?.isDragging,
+                                                    selected: vm.sectionsState[section.id]?.selected
                                                }"
             cdkDragBoundary=".ps"
             cdkDragLockAxis="y"
@@ -35,20 +35,21 @@
             (openChanged)="toggleSection($event, section.id, vm.templateState!.key)">
             <div item>
               <div class="item-holder"
-                (mouseenter)="currentHoverId = section.id"
-                (mouseleave)="currentHoverId = null">
+                (mouseenter)="currentHoverId.set(section.id)"
+                (mouseleave)="currentHoverId.set(null)">
                 <app-section-item [sectionSchema]="vm.sectionsSchemas[section.type]"
                   [section]="section"
-                  [selectable]="vm.sectionsState[section.id].selectable"
-                  [selected]="vm.sectionsState[section.id].selected"
+                  [selectable]="vm.sectionsState[section.id]?.selectable || false"
+                  [selected]="vm.sectionsState[section.id]?.selected || false"
                   [hasContextMenu]="!vm.selectMode && vm.currentDragSection.length === 0"
                   (itemClick)="!vm.selectMode && onSectionClick(section)"
                   (itemHover)="onSectionHover(section)"
                   (actionClick)="onActionClick($event, section)"
                   (itemSelectChanged)="onItemSelectChanged($event, section, vm.templateState!.key)" />
+                @let isDragHandleActive = (!vm.selectMode && section.id === currentHoverId()) || !!vm.sectionsState[section.id]?.selected;
                 <app-drag-handle cdkDragHandle
-                  [cdkDragHandleDisabled]="!((!vm.selectMode && section.id === currentHoverId) || vm.sectionsState[section.id].selected)"
-                [visible]="(!vm.selectMode && section.id === currentHoverId) || vm.sectionsState[section.id].selected" />
+                  [cdkDragHandleDisabled]="!isDragHandleActive"
+                  [visible]="isDragHandleActive" />
               </div>
             </div>
             <app-section-children-list [section]="section"
@@ -61,15 +62,15 @@
               (executeAction)="onActionClick($event.action, section, $event.block)"
               (checkChanged)="onBlockSelectChanged($event.selected, $event.blockId, section.id, vm.templateState!.key)" />
             <div class="section-placeholder" *cdkDragPlaceholder></div>
-            <span class="drag-preview" *cdkDragPreview>{{ vm.selectedSectionsCount === 1 ||
-              vm.selectedSectionsCount === 0 ? '1 section' : ( vm.selectedSectionsCount + ' sections')
+            <span class="drag-preview" *cdkDragPreview>{{
+              vm.selectedSectionsCount <= 1 ? '1 section' : (vm.selectedSectionsCount + ' sections')
             }}</span>
           </app-collapsible-list-item>
         }
         @if (!vm.selectMode && vm.currentDragSection.length === 0) {
-          <div [ngStyle]="{ top: addLineTop, opacity: addButtonOpacity }" class="line"></div>
-          <div [ngStyle]="{ top: addLineTop, opacity: addButtonOpacity }" class="line right-line"></div>
-          <app-icon [ngStyle]="{ top: addButtonTop, opacity: addButtonOpacity }" class="add-button"
+          <div [ngStyle]="{ top: addLineTop(), opacity: addButtonOpacity() }" class="line"></div>
+          <div [ngStyle]="{ top: addLineTop(), opacity: addButtonOpacity() }" class="line right-line"></div>
+          <app-icon [ngStyle]="{ top: addButtonTop(), opacity: addButtonOpacity() }" class="add-button"
           (click)="addSectionClick()">add_circle</app-icon>
         }
       </div>
