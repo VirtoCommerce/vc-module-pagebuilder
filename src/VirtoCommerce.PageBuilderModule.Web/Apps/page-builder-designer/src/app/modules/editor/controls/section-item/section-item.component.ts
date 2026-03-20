@@ -23,7 +23,7 @@ export class SectionItemComponent {
   readonly isIconHover = signal(false);
 
   readonly section = input.required<SectionModel>();
-  readonly sectionSchema = input.required<SectionSchema>();
+  readonly sectionSchema = input<SectionSchema | null>(null);
   readonly hasContextMenu = input(false);
   readonly selectable = input(true);
   readonly selected = input(false);
@@ -34,8 +34,11 @@ export class SectionItemComponent {
   readonly itemSelectChanged = output<boolean>();
 
   readonly displayCheckbox = computed(() => (this.isIconHover() && this.selectable()) || this.selected());
-  readonly sectionIcon = computed(() => this.sectionSchema().icon || 'blur_on');
-  readonly sectionName = computed(() => helpers.getSectionName(this.section(), this.sectionSchema()));
+  readonly sectionIcon = computed(() => this.sectionSchema()?.icon || 'blur_on');
+  readonly sectionName = computed(() => {
+    const schema = this.sectionSchema();
+    return schema ? helpers.getSectionName(this.section(), schema) : '';
+  });
 
   onItemClick(event: MouseEvent) {
     if (this.sectionSchema()) {
