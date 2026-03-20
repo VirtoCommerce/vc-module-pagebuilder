@@ -12,7 +12,7 @@ export interface SelectDescriptor extends BaseControlDescriptor {
     multiple?: boolean;
     options?: SelectOptionModel[];
     optionsSelector?: string; // js code to select options from context
-    request: OptionsRequest; // http request description to get options
+    request?: OptionsRequest; // http request description to get options
     equalKey?: string; // property name to compare options
     displayField?: string; // property name to display
     searchable?: boolean;

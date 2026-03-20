@@ -1,15 +1,13 @@
-import { NgSelectComponent, NgSelectModule } from '@ng-select/ng-select';
-import { of } from 'rxjs';
-import { DataService } from '@core/services';
-import { Component, computed, DestroyRef, signal, viewChild, inject } from '@angular/core';
+import { Component, computed, DestroyRef, linkedSignal, signal, inject } from '@angular/core';
 import { rxResource, takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Observable, Subject } from 'rxjs';
+import { FormsModule } from '@angular/forms';
+import { NgSelectModule } from '@ng-select/ng-select';
+import { Observable, Subject, of } from 'rxjs';
 import { distinctUntilChanged, map } from 'rxjs/operators';
 
-import { SelectDescriptor } from '@models/controls';
+import { DataService } from '@core/services';
 import { BaseControlDirective } from '@core/controls/base-control.directive';
-import { ReactiveFormsModule, UntypedFormControl, UntypedFormGroup } from '@angular/forms';
-
+import { SelectDescriptor } from '@models/controls';
 import { appHelpers } from '@integration/helpers';
 
 /**
@@ -21,33 +19,51 @@ import { appHelpers } from '@integration/helpers';
     selector: 'app-select',
     templateUrl: './select.component.html',
     styleUrls: ['./select.component.scss'],
-    imports: [ReactiveFormsModule, NgSelectModule]
+    imports: [FormsModule, NgSelectModule]
 })
 export class SelectComponent extends BaseControlDirective<SelectDescriptor> {
 
     private readonly destroyRef = inject(DestroyRef);
     private readonly data = inject(DataService);
 
-    form!: UntypedFormGroup;
-    searchEvent$ = new Subject<string>();
+    protected searchEvent$ = new Subject<string>();
 
     private readonly searchQuery = signal<string | null>(null);
+    private readonly isLoaded = signal(false);
+    readonly selectedValue = linkedSignal(() => this.selectControlValue);
 
     readonly optionsResource = rxResource({
-        params: () => this.searchQuery(),
-        stream: ({ params: query }) => this.doRequest(query)
+        params: () => ({ query: this.searchQuery(), load: this.isLoaded() }),
+        stream: ({ params }) => params.load ? this.doRequest(params.query) : of([])
     });
 
     readonly effectiveOptions = computed<any[]>(() => {
         if (this.descriptor?.optionsSelector) {
             return appHelpers.evalInContext(this.descriptor.optionsSelector, this.context) as any[] ?? [];
         }
+        if (!this.descriptor?.request) {
+            const options = this.descriptor?.options ?? [];
+            const query = this.searchQuery();
+            if (!query || !this.descriptor?.searchable) {
+                return options;
+            }
+            return options.filter(item =>
+                item.label.toLocaleUpperCase().indexOf(query.toLocaleUpperCase()) !== -1
+            );
+        }
         return this.optionsResource.value() as any[] ?? [];
     });
 
-    readonly select = viewChild.required(NgSelectComponent);
+    onOpen() {
+        this.isLoaded.set(true);
+    }
 
-    raiseValueChanged(_event: any) { }
+    onChange(value: any) {
+        if (value !== null || !this.optionsResource.isLoading()) {
+            this.selectedValue.set(value);
+            this.onValueChanged(value);
+        }
+    }
 
     compareWith = (itemInSelect: any, itemInSource: any) => {
         const vA = (itemInSelect.value || itemInSelect)[this.descriptor?.equalKey || 'value'] || itemInSelect.value || itemInSelect;
@@ -57,9 +73,9 @@ export class SelectComponent extends BaseControlDirective<SelectDescriptor> {
 
     override initContent() {
         super.initContent();
-        this.form = new UntypedFormGroup({
-            value: new UntypedFormControl(this.selectControlValue)
-        });
+        if (this.controlValue() != null) {
+            this.isLoaded.set(true);
+        }
 
         if (this.descriptor?.searchable) {
             this.searchEvent$.pipe(
@@ -67,38 +83,30 @@ export class SelectComponent extends BaseControlDirective<SelectDescriptor> {
                 takeUntilDestroyed(this.destroyRef)
             ).subscribe(q => this.searchQuery.set(q));
         }
-
-        this.form.valueChanges.pipe(
-            takeUntilDestroyed(this.destroyRef)
-        ).subscribe({
-            next: (v) => {
-                this.onValueChanged(v.value);
-            }
-        });
     }
 
     get selectControlValue(): any {
         if (this.controlValue() && Array.isArray(this.controlValue())) {
-            return this.controlValue().map((x: any) => this.convertItemToOption(x));
+            return this.controlValue().map((x: any) => this.convertItemToOption(x)?.value ?? null);
         }
-        return this.convertItemToOption(this.controlValue());
+        return this.convertItemToOption(this.controlValue())?.value ?? null;
     }
 
     unselect(item: any) {
-        this.form.controls['value'].setValue(
-            this.selectControlValue.filter((x: any) => !this.compareWith(x, item)),
-            { emitEvent: true }
-        );
+        const newValue = (this.selectedValue() as any[]).filter((x: any) => !this.compareWith(x, item));
+        this.selectedValue.set(newValue);
+        this.onValueChanged(newValue);
     }
 
     private convertItemToOption(item: any) {
-        if (!item) {
+        if (!item || !this.descriptor) {
             return null;
         }
+        const req = this.descriptor.request;
         return {
-            label: this.descriptor!.request?.label && item[this.descriptor!.request.label] || item,
-            group: this.descriptor!.request?.group && item[this.descriptor!.request.group] || null,
-            value: this.descriptor!.request?.value && item[this.descriptor!.request.value] || item,
+            label: req?.label ? item[req.label] : item,
+            group: req?.group ? item[req.group] : null,
+            value: req?.value ? item[req.value] : item,
         };
     }
 
