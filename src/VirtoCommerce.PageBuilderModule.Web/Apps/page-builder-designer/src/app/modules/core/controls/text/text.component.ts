@@ -1,8 +1,5 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject } from '@angular/core';
 import { CKEditor4, CKEditorModule } from 'ckeditor4-angular';
-import { NgxTiptapModule } from 'ngx-tiptap';
-import { Editor } from '@tiptap/core';
-import StarterKit from '@tiptap/starter-kit';
 import { BaseControlDirective } from '@core/controls/base-control.directive';
 import { TextDescriptor } from '@models/controls';
 
@@ -11,10 +8,9 @@ import { TextDescriptor } from '@models/controls';
     templateUrl: './text.component.html',
     styleUrls: ['./text.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [CKEditorModule, NgxTiptapModule]
+    imports: [CKEditorModule]
 })
 export class TextComponent extends BaseControlDirective<TextDescriptor> {
-    private readonly destroyRef = inject(DestroyRef);
 
     // CKEditor
     editorType = CKEditor4.EditorType.CLASSIC;
@@ -47,28 +43,6 @@ export class TextComponent extends BaseControlDirective<TextDescriptor> {
     };
 
     config = this.defaultConfig;
-
-    // TipTap
-    readonly tiptap = new Editor({
-        extensions: [StarterKit],
-        onUpdate: ({ editor }) => {
-            const value = editor.isEmpty ? '' : editor.getHTML();
-            if (this.controlValue() !== value) {
-                this.onValueChanged(value);
-            }
-        }
-    });
-
-    constructor() {
-        super();
-        effect(() => {
-            const newValue = this.controlValue() ?? '';
-            if (this.tiptap.getHTML() !== newValue) {
-                this.tiptap.commands.setContent(newValue, false);
-            }
-        });
-        this.destroyRef.onDestroy(() => this.tiptap.destroy());
-    }
 
     override registerOnValueChanged(fn: (_: any) => void) {
         this.onValueChanged = (newValue) => {
