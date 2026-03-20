@@ -21,7 +21,7 @@ export class SectionItemComponent {
     private readonly helper = inject(ContextMenuHelper);
 
     isHover: boolean = false;
-    isIconHover: boolean = false;
+    isIconHover: boolean = true;
 
     readonly section = input.required<SectionModel>();
     readonly sectionSchema = input.required<SectionSchema>();

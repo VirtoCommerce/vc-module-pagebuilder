@@ -7,3 +7,7 @@
 .name {
     @apply whitespace-nowrap truncate grow min-w-0;
 }
+
+.section-item-checkbox {
+  @apply block -m-2;
+}
