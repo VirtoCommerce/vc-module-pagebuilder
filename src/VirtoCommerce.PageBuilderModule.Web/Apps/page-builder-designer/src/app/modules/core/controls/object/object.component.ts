@@ -1,6 +1,5 @@
-import { Component, DestroyRef, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { NgClass } from '@angular/common';
 import { UntypedFormGroup } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
 
@@ -8,7 +7,7 @@ import { BaseControlDirective } from '@core/controls/base-control.directive';
 import { ControlDescriptor, ObjectDescriptor } from '@models/controls';
 
 import { ControlContext } from '@core/models';
-import { coreHelpers, formsHelpers } from '@core/helpers';
+import { formsHelpers } from '@core/helpers';
 import { ChevronComponent } from '@core/components/chevron/chevron.component';
 import { ControlsListComponent } from '@core/dynamics/controls-list/controls-list.component';
 
@@ -16,7 +15,8 @@ import { ControlsListComponent } from '@core/dynamics/controls-list/controls-lis
     selector: 'app-object',
     templateUrl: './object.component.html',
     styleUrls: ['./object.component.scss'],
-    imports: [NgClass, ChevronComponent, ControlsListComponent]
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [ChevronComponent, ControlsListComponent]
 })
 export class ObjectComponent extends BaseControlDirective<ObjectDescriptor> {
 
@@ -24,27 +24,26 @@ export class ObjectComponent extends BaseControlDirective<ObjectDescriptor> {
     private readonly formReset$ = new Subject<void>();
 
     objectForm!: UntypedFormGroup;
-    expanded = false;
+    readonly expanded = signal(false);
 
-    getTitle(): string {
-        return (!!this.descriptor?.displayField && this.controlValue()[this.descriptor.displayField]) || this.descriptor?.label || this.descriptor?.title || '[no title]';
-    }
+    readonly displayTitle = computed(() =>
+        (!!this.descriptor?.displayField && this.controlValue()?.[this.descriptor.displayField])
+        || this.descriptor?.label || this.descriptor?.title || '[no title]'
+    );
 
-    getDescriptors(): ControlDescriptor[] {
-        return this.descriptor?.element || []; // formsHelpers.mergeDescriptors(this.context.objects, this.descriptor);
-    }
+    readonly objectDescriptors = computed<ControlDescriptor[]>(() => this.descriptor?.element || []);
+
+    readonly objectContext = computed<ControlContext>(() =>
+        ({ ...this.context, item: this.controlValue(), parent: this.context })
+    );
 
     toggle() {
-        this.expanded = !this.expanded;
-    }
-
-    getContext(): ControlContext {
-        return { ...this.context, item: this.controlValue(), parent: this.context /*, filter: null */ };
+        this.expanded.update(v => !v);
     }
 
     override setControlValue(value: any) {
         if (this.controlValue() !== value || !this.objectForm) {
-            const descriptors = this.getDescriptors();
+            const descriptors = this.objectDescriptors();
             // we don't need create default value for empty object. Only when create new section or list item
             // const v = value || coreHelpers.createDefaultObject(descriptors);
             const v = value || {};
