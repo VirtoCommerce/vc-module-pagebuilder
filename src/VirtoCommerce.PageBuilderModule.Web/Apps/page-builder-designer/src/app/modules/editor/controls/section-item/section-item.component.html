@@ -2,25 +2,25 @@
   [ngClass]="{'hidden': section().hidden}"
   (click)="onItemClick($event)"
   (mouseover)="onItemHover()"
-  (mouseenter)="isHover = true"
-  (mouseleave)="isHover = false; isIconHover = false;">
-  <div class="w-6 h-6" (mouseenter)="isIconHover = true" (mouseleave)="isIconHover = false">
-    @if (!displayCheckbox) {
-      <app-icon>{{ getSectionIcon() }}</app-icon>
-    }
-    @if (displayCheckbox) {
+  (mouseenter)="isHover.set(true)"
+  (mouseleave)="isHover.set(false); isIconHover.set(false);">
+  <div class="w-6 h-6" (mouseenter)="isIconHover.set(true)" (mouseleave)="isIconHover.set(false)">
+    @if (displayCheckbox()) {
       <app-checkbox
         class="section-item-checkbox"
         [controlValue]="selected()"
         (valueChanged)="onCheckboxValueChanged($event)"
         (click)="onCheckboxClick($event)" />
     }
+    @else {
+      <app-icon>{{ sectionIcon() }}</app-icon>
+    }
   </div>
-  <div class="name" title="{{ getSectionName() }} ({{ section().id }})">{{ getSectionName() }}</div>
+  <div class="name" [title]="sectionName() + ' (' + section().id + ')'">{{ sectionName() }}</div>
   @if (hasContextMenu()) {
     <app-context-menu
-                      [getActions]="getItemActions"
-      [visible]="isHover"
+      [getActions]="getItemActions"
+      [visible]="isHover()"
       (onAction)="onActionClick($event)" />
   }
 </div>
