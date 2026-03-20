@@ -3,7 +3,7 @@
     <app-chevron [opened]="expanded()" [hoverable]="true">chevron_right</app-chevron>
     <label [attr.title]="descriptor?.hint || displayTitle()" class="pb-label">{{ displayTitle() }}</label>
   </div>
-  @if (expanded() && objectForm && descriptor?.view !== 'panel' && descriptor?.view !== 'popup') {
+  @if (expanded() && objectForm) {
     <div>
       <app-controls-list [currentForm]="objectForm"
         [descriptors]="objectDescriptors()"
