@@ -34,17 +34,25 @@ export class ControlsTabsComponent implements OnInit {
             if (!acc[key]) {
                 acc[key] = {
                     order: Object.keys(acc).length,
+                    tabOrder: undefined as number | undefined,
                     groups: {},
                     ungrouped: []
                 };
+            }
+            if (item.tabOrder != null && (acc[key].tabOrder == null || item.tabOrder < acc[key].tabOrder)) {
+                acc[key].tabOrder = item.tabOrder;
             }
             if (!!item.group) {
                 if (!acc[key].groups[item.group]) {
                     acc[key].groups[item.group] = {
                         order: Object.keys(acc[key].groups).length,
+                        groupOrder: undefined as number | undefined,
                         descriptors: []
                     };
                     this.groupsState[item.group] = { opened: false };
+                }
+                if (item.groupOrder != null && (acc[key].groups[item.group].groupOrder == null || item.groupOrder < acc[key].groups[item.group].groupOrder)) {
+                    acc[key].groups[item.group].groupOrder = item.groupOrder;
                 }
                 acc[key].groups[item.group].descriptors.push(item);
             } else {
@@ -59,9 +67,25 @@ export class ControlsTabsComponent implements OnInit {
             groups: Object.keys(tabs[x].groups).map(y => ({
                 ...tabs[x].groups[y],
                 name: y
-            })).sort((a, b) => a.order - b.order) // sort groups
+            })).sort((a, b) => {
+                const aHasOrder = a.groupOrder != null;
+                const bHasOrder = b.groupOrder != null;
+                if (aHasOrder && bHasOrder) return a.groupOrder - b.groupOrder;
+                if (aHasOrder) return -1;
+                if (bHasOrder) return 1;
+                return a.order - b.order;
+            })
         })).filter(x => x.ungrouped.length || Object.keys(x.groups).length) // hide empty tabs
-            .sort((a, b) => !a.label && -1 || a.order - b.order); // default tab is first
+            .sort((a, b) => {
+                if (!a.label) return -1; // default tab always first
+                if (!b.label) return 1;
+                const aHasOrder = a.tabOrder != null;
+                const bHasOrder = b.tabOrder != null;
+                if (aHasOrder && bHasOrder) return a.tabOrder - b.tabOrder;
+                if (aHasOrder) return -1;
+                if (bHasOrder) return 1;
+                return a.order - b.order;
+            });
 
         const keys = Object.keys(tabs);
         this.singleList = keys.length === 1 && keys[0] === '';
