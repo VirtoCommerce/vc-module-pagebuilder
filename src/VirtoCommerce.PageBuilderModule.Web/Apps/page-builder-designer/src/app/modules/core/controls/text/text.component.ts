@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { CKEditor4, CKEditorModule } from 'ckeditor4-angular';
 import { BaseControlDirective } from '@core/controls/base-control.directive';
 import { TextDescriptor } from '@models/controls';
