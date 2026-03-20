@@ -1,6 +1,6 @@
 <label class="pb-label" [attr.title]="descriptor?.hint">{{ descriptor?.label }}</label>
 @if (!descriptor?.button) {
-  <input #control type="text" class="control" [value]="controlValue().__searchQuery"
+  <input #control type="text" class="control" [value]="controlValue()?.__searchQuery ?? ''"
     (paste)="onPaste($event)" (keyup)="onTextChange($event)" />
 }
 
@@ -8,7 +8,7 @@
   <app-icon-button class="my-4" (click)="doRequest()" [text]="getButtonText()" skin="outline-blue" />
 }
 
-@if (!!controlValue().__nodata) {
+@if (!!controlValue()?.__nodata) {
   <div class="my-4">
     {{ descriptor?.nodataText }}
   </div>
@@ -32,7 +32,7 @@
   }
   @if (!isArrayDisplayInfo()) {
     <div>
-      {{ controlValue().value | json }}
+      {{ controlValue()?.value | json }}
     </div>
   }
 }
