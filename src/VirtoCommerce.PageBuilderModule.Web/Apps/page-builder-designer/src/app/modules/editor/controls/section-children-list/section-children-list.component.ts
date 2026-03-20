@@ -1,5 +1,5 @@
 import { CdkDragRelease, CdkDragSortEvent, CdkDragStart, DragDropModule } from '@angular/cdk/drag-drop';
-import { ChangeDetectionStrategy, Component, Input, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { BlockStatesList, SectionsSchemasList } from '@editor/models';
 import { ReorderItemsModel } from '@core/models';
@@ -20,20 +20,14 @@ export class SectionChildrenListComponent {
 
     private _fakeElement: HTMLElement | null = null;
 
-    currentHoverId: string | null = null;
-    selectedBlocksCount = 0;
+    readonly currentHoverId = signal<string | null>(null);
 
     readonly section = input.required<SectionModel>();
     readonly blocksSchemas = input.required<SectionsSchemasList>();
-    private _states!: BlockStatesList;
-    public get states(): BlockStatesList {
-        return this._states;
-    }
-    @Input({ required: true })
-    public set states(value: BlockStatesList) {
-        this.selectedBlocksCount = Object.values(value || {}).filter(x => x.selected).length;
-        this._states = value;
-    }
+    readonly states = input.required<BlockStatesList>();
+    readonly selectedBlocksCount = computed(() =>
+        Object.values(this.states() || {}).filter(x => x.selected).length
+    );
     readonly selectMode = input(false);
 
     readonly itemClick = output<SectionModel>();
@@ -65,7 +59,7 @@ export class SectionChildrenListComponent {
     blockDragStarted(event: CdkDragStart) {
         const rootElement = event.source.getRootElement();
         this._fakeElement = domHelpers.deepCloneNode(rootElement);
-        domHelpers.toggleVisibility(this._fakeElement, true, new Set('position'));
+        domHelpers.toggleVisibility(this._fakeElement, true, new Set(['position']));
         this._fakeElement.classList.add('dragging');
         event.source.dropContainer.element.nativeElement.insertBefore(this._fakeElement, event.source.getPlaceholderElement());
     }

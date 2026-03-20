@@ -4,27 +4,27 @@
       cdkDragBoundary=".blocks-container"
       cdkDragLockAxis="y"
       cdkDrag
-      [ngClass]="{ 'selected': states[block.id].selected }"
+      [ngClass]="{ 'selected': states()[block.id]?.selected }"
       (cdkDragStarted)="blockDragStarted($event)"
       (cdkDragReleased)="blockDragCompleted()"
-      (mouseenter)="currentHoverId = block.id"
-      (mouseleave)="currentHoverId = null">
+      (mouseenter)="currentHoverId.set(block.id)"
+      (mouseleave)="currentHoverId.set(null)">
       <app-section-item [sectionSchema]="blocksSchemas()[block.type]"
-        [selectable]="states[block.id].selectable || false"
-        [selected]="states[block.id].selected || false"
+        [selectable]="states()[block.id]?.selectable || false"
+        [selected]="states()[block.id]?.selected || false"
         [hasContextMenu]="!selectMode()"
         [section]="block"
         (itemClick)="onItemClick(block)"
         (actionClick)="onActionExecuted($event, block)"
         (itemSelectChanged)="onItemSelectChanged($event, block.id)" />
+      @let isDragHandleActive = (!selectMode() && block.id === currentHoverId()) || !!states()[block.id]?.selected;
       <app-drag-handle cdkDragHandle
-        [cdkDragHandleDisabled]="!((!selectMode() && block.id === currentHoverId) || states[block.id].selected || false)"
-      [visible]="(!selectMode() && block.id === currentHoverId) || states[block.id].selected || false" />
+        [cdkDragHandleDisabled]="!isDragHandleActive"
+        [visible]="isDragHandleActive" />
       <div class="section-placeholder" *cdkDragPlaceholder></div>
       <span class="drag-preview" *cdkDragPreview>
         {{
-        selectedBlocksCount === 1 || selectedBlocksCount === 0 ? '1 section' : ( selectedBlocksCount + '
-        sections')
+        selectedBlocksCount() <= 1 ? '1 section' : (selectedBlocksCount() + ' sections')
         }}
       </span>
     </div>
