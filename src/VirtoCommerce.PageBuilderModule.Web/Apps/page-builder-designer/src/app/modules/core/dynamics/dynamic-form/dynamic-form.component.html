@@ -1,5 +1,5 @@
 <div class="form-wrapper">
-  @if (form) {
+  @if (form(); as form) {
     <div>
       <form [formGroup]="form">
         <app-controls-tabs [currentForm]="form"

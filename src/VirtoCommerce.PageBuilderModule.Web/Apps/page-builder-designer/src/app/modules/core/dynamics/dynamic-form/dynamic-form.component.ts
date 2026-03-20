@@ -1,8 +1,8 @@
-import { Component, DestroyRef, Input, input, OnInit, output, ChangeDetectorRef, NgZone, inject } from '@angular/core';
+import { Component, DestroyRef, Input, input, output, signal, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { ReactiveFormsModule, UntypedFormGroup } from '@angular/forms';
-import { Subject } from 'rxjs';
+import { Subject, takeUntil } from 'rxjs';
 
 import { formsHelpers } from '@core/helpers';
 import { ControlContext, ModelChangedEventArgs } from '@core/models';
@@ -16,11 +16,9 @@ import { ControlsTabsComponent } from '@core/dynamics/controls-tabs/controls-tab
     styleUrls: ['./dynamic-form.component.scss'],
     imports: [ReactiveFormsModule, ControlsTabsComponent]
 })
-export class DynamicFormComponent implements OnInit {
+export class DynamicFormComponent {
 
     private readonly destroyRef = inject(DestroyRef);
-    private readonly cdr = inject(ChangeDetectorRef);
-    private readonly zone = inject(NgZone);
     private readonly formReset$ = new Subject<void>();
 
     private _sectionModel!: SectionModel;
@@ -49,21 +47,18 @@ export class DynamicFormComponent implements OnInit {
     }
     readonly modelChanged = output<ModelChangedEventArgs>();
 
-    form: UntypedFormGroup | null = null;
-
-    ngOnInit(): void {
-        this.generateForm();
-    }
+    readonly form = signal<UntypedFormGroup | null>(null);
 
     private generateForm(modelChanged: boolean = false) {
         const m = this.sectionModel;
-        if (m && !!this.descriptors && (!this.form || m.id !== this._currentSectionId)) {
+        if (m && !!this.descriptors && (!this.form() || m.id !== this._currentSectionId)) {
             this._currentSectionId = m.id;
-            this.form = null;
+            this.form.set(null);
             this.formReset$.next();
             setTimeout(() => {
                 const form = formsHelpers.generateForm(m, this.descriptors);
                 form.valueChanges.pipe(
+                    takeUntil(this.formReset$),
                     takeUntilDestroyed(this.destroyRef)
                 ).subscribe(value => {
                     this.modelChanged.emit({
@@ -71,15 +66,12 @@ export class DynamicFormComponent implements OnInit {
                         changes: { ...value }
                     });
                 });
-                this.zone.run(() => {
-                    this.form = form;
-                    this.cdr.detectChanges(); // todo: here or out of a zone cycle?
-                });
+                this.form.set(form);
             });
-        } else if (m && !!this.descriptors && this.form && modelChanged) {
+        } else if (m && !!this.descriptors && this.form() && modelChanged) {
             if (!this.equalsModels(m, this._currentSection)) {
                 this._currentSection = m;
-                this.form.patchValue(m);
+                this.form()!.patchValue(m);
             }
         }
     }
