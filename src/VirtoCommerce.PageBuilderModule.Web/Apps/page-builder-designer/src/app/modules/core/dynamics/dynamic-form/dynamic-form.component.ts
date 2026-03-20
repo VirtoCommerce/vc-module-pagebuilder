@@ -1,8 +1,7 @@
-import { Component, DestroyRef, Input, input, output, signal, inject } from '@angular/core';
+import { Component, DestroyRef, effect, input, output, signal, untracked, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { ReactiveFormsModule, UntypedFormGroup } from '@angular/forms';
-import { Subject, takeUntil } from 'rxjs';
 
 import { formsHelpers } from '@core/helpers';
 import { ControlContext, ModelChangedEventArgs } from '@core/models';
@@ -11,72 +10,54 @@ import { SectionModel } from '@models/document';
 import { ControlsTabsComponent } from '@core/dynamics/controls-tabs/controls-tabs.component';
 
 @Component({
-    selector: 'app-dynamic-form',
-    templateUrl: './dynamic-form.component.html',
-    styleUrls: ['./dynamic-form.component.scss'],
-    imports: [ReactiveFormsModule, ControlsTabsComponent]
+  selector: 'app-dynamic-form',
+  templateUrl: './dynamic-form.component.html',
+  styleUrls: ['./dynamic-form.component.scss'],
+  imports: [ReactiveFormsModule, ControlsTabsComponent]
 })
 export class DynamicFormComponent {
 
-    private readonly destroyRef = inject(DestroyRef);
-    private readonly formReset$ = new Subject<void>();
+  private readonly destroyRef = inject(DestroyRef);
+  private _currentSectionId: string | null = null;
 
-    private _sectionModel!: SectionModel;
-    private _descriptors!: BaseControlDescriptor[];
-    private _currentSectionId: string | null = null;
-    private _currentSection: object | null = null;
+  readonly sectionModel = input.required<SectionModel>();
+  readonly context = input.required<ControlContext>();
+  readonly descriptors = input.required<BaseControlDescriptor[]>();
+  readonly modelChanged = output<ModelChangedEventArgs>();
+  readonly form = signal<UntypedFormGroup | null>(null);
+  readonly formKey = signal(0);
 
-    @Input({ required: true }) get sectionModel(): SectionModel {
-        return this._sectionModel;
-    }
-    set sectionModel(value: SectionModel) {
-        if (this._sectionModel !== value) {
-            this._sectionModel = value;
-            this.generateForm(true);
-        }
-    }
-    readonly context = input.required<ControlContext>();
-    @Input({ required: true }) get descriptors(): BaseControlDescriptor[] {
-        return this._descriptors;
-    }
-    set descriptors(value: BaseControlDescriptor[]) {
-        if (this._descriptors !== value) {
-            this._descriptors = value;
-            this.generateForm();
-        }
-    }
-    readonly modelChanged = output<ModelChangedEventArgs>();
+  constructor() {
+    effect((onCleanup) => {
+      const section = this.sectionModel();
+      const descriptors = this.descriptors();
 
-    readonly form = signal<UntypedFormGroup | null>(null);
+      if (!section || !descriptors?.length) return;
 
-    private generateForm(modelChanged: boolean = false) {
-        const m = this.sectionModel;
-        if (m && !!this.descriptors && (!this.form() || m.id !== this._currentSectionId)) {
-            this._currentSectionId = m.id;
-            this.form.set(null);
-            this.formReset$.next();
-            setTimeout(() => {
-                const form = formsHelpers.generateForm(m, this.descriptors);
-                form.valueChanges.pipe(
-                    takeUntil(this.formReset$),
-                    takeUntilDestroyed(this.destroyRef)
-                ).subscribe(value => {
-                    this.modelChanged.emit({
-                        model: { ...this.sectionModel, ...value },
-                        changes: { ...value }
-                    });
-                });
-                this.form.set(form);
+      if (section.id !== this._currentSectionId) {
+        this._currentSectionId = section.id;
+
+        const newForm = formsHelpers.generateForm(section, descriptors);
+        const sub = newForm.valueChanges
+          .pipe(takeUntilDestroyed(this.destroyRef))
+          .subscribe(value => {
+            this.modelChanged.emit({
+              model: { ...this.sectionModel(), ...value },
+              changes: { ...value }
             });
-        } else if (m && !!this.descriptors && this.form() && modelChanged) {
-            if (!this.equalsModels(m, this._currentSection)) {
-                this._currentSection = m;
-                this.form()!.patchValue(m);
-            }
-        }
-    }
+          });
 
-    private equalsModels(a: any, b: any): boolean {
-        return !!a && !!b && JSON.stringify(a) === JSON.stringify(b);
-    }
+        // Both signals are set synchronously and batched into a single render.
+        // Incrementing formKey causes @for in the template to destroy and recreate
+        // the <form> DOM via track, which resets all child control components
+        // (CKEditor, color pickers, etc.) without a null intermediate state or setTimeout.
+        this.form.set(newForm);
+        this.formKey.update(k => k + 1);
+
+        onCleanup(() => sub.unsubscribe());
+      } else {
+        untracked(() => this.form())?.patchValue(section, { emitEvent: false });
+      }
+    }, { allowSignalWrites: true });
+  }
 }
