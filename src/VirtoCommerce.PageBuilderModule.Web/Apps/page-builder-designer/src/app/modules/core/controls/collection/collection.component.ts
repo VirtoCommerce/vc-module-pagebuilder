@@ -1,5 +1,5 @@
 import { ModalService } from '@core/services';
-import { Component, DestroyRef, inject } from '@angular/core';
+import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { ReactiveFormsModule } from '@angular/forms';
 import { DragDropModule } from '@angular/cdk/drag-drop';
@@ -32,8 +32,7 @@ export class CollectionComponent extends BaseControlDirective<CollectionDescript
     private readonly destroyRef = inject(DestroyRef);
     private readonly modals = inject(ModalService);
     private readonly formReset$ = new Subject<void>();
-    private titleCache = new WeakMap<object, string>();
-    private titleIndex = 1;
+    readonly titles = signal<string[]>([]);
 
     hoverItem: any | null = null;
     openedItem: any | null = null;
@@ -79,28 +78,23 @@ export class CollectionComponent extends BaseControlDirective<CollectionDescript
             this.collectionFormArray = formsHelpers.generateFormArray(value, descriptors);
             this.form = new UntypedFormGroup({ list: this.collectionFormArray });
             this.formReset$.next();
+            this.updateTitles(value);
             this.form.valueChanges.pipe(
                 takeUntil(this.formReset$),
                 takeUntilDestroyed(this.destroyRef)
             ).subscribe(x => {
                 this.onValueChanged(x.list);
+                this.updateTitles(x.list);
             });
         }
     }
 
-    getTitle(item: AbstractControl): string {
-
-        const cached = this.titleCache.get(item);
-        if (cached) return cached;
-
-        const fromField =
-            this.descriptor?.displayField
-                ? appHelpers.getValueByPath(item.value as any, this.descriptor.displayField)
-                : undefined;
-
-        const title = (fromField && String(fromField)) ?? `Item ${this.titleIndex++}`;
-        this.titleCache.set(item, title);
-        return title;
+    private updateTitles(values: any[]): void {
+        const field = this.descriptor?.displayField;
+        this.titles.set(values.map((v, i) => {
+            const fromField = field ? appHelpers.getValueByPath(v, field) : undefined;
+            return (fromField && String(fromField)) || `Item ${i + 1}`;
+        }));
     }
 
     getDescriptors(): ControlDescriptor[] {

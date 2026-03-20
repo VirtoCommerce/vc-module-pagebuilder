@@ -16,7 +16,7 @@
           (mouseleave)="hoverItem = null"
           (click)="toggle(item)">
         <app-chevron class="toggler" [hoverable]="false" [opened]="item === openedItem" />
-        <label [attr.title]="descriptor?.hint" class="pb-label">{{ getTitle(item) }}</label>
+        <label [attr.title]="descriptor?.hint" class="pb-label">{{ titles()[i] }}</label>
         <app-context-menu [actions]="itemActions"
                           [visible]="hoverItem === item"
           (onAction)="onActionClick($event, item, i)" />
