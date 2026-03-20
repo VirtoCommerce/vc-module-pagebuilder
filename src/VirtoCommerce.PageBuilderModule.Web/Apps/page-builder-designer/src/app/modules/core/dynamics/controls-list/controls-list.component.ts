@@ -1,5 +1,5 @@
-import { DisplayTextDescriptor } from '@models/controls';
 import { ChangeDetectionStrategy, Component, input } from "@angular/core";
+import { DisplayTextDescriptor } from '@models/controls';
 
 import { ReactiveFormsModule, UntypedFormGroup } from '@angular/forms';
 
@@ -21,9 +21,8 @@ export class ControlsListComponent {
     readonly context = input.required<ControlContext>();
     readonly descriptors = input.required<BaseControlDescriptor[]>(); // todo: controls order
 
-    getContent(control: BaseControlDescriptor): string {
-        const result = <DisplayTextDescriptor>control;
-        return result.content;
+    isTextBlock(control: BaseControlDescriptor): control is DisplayTextDescriptor {
+        return control.type === 'header' || control.type === 'paragraph';
     }
 
     checkVisibility(descriptor: BaseControlDescriptor): boolean {
