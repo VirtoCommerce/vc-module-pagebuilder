@@ -255,7 +255,7 @@ public class PageBuilderPageController(
         }
         catch
         {
-            logger.LogDebug($"Couldn't remove group '{groupId}'");
+            logger.LogDebug("Couldn't remove group '{GroupId}'", groupId);
         }
 
         try
@@ -266,7 +266,7 @@ public class PageBuilderPageController(
         }
         catch
         {
-            logger.LogDebug($"Couldn't remove pages from group '{groupId}'");
+            logger.LogDebug("Couldn't remove pages from group '{GroupId}'", groupId);
         }
 
         return Ok(new { pageDeleted, indexDeleted });

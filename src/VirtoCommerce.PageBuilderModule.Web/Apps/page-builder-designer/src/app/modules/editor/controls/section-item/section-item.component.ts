@@ -2,8 +2,6 @@ import { ChangeDetectionStrategy, Component, computed, input, output, signal, in
 import { IconComponent } from '@core/components/icon/icon.component';
 import { CheckboxComponent } from '@core/controls/checkbox/checkbox.component';
 import { ContextMenuComponent } from '@core/components/context-menu/context-menu.component';
-// import { trigger, state, style, animate, transition } from '@angular/animations';
-
 import { ContextMenuAction } from '@core/models';
 import { SectionModel, SectionSchema } from '@models/document';
 import { ContextMenuHelper, helpers } from '@editor/helpers';
@@ -40,7 +38,7 @@ export class SectionItemComponent {
     return schema ? helpers.getSectionName(this.section(), schema) : '';
   });
 
-  onItemClick(event: MouseEvent) {
+  onItemClick(_event: MouseEvent) {
     if (this.sectionSchema()) {
       this.itemClick.emit();
     }

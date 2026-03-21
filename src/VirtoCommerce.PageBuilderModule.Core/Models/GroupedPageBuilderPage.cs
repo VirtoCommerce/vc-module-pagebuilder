@@ -24,11 +24,17 @@ public class GroupedPageBuilderPage : AuditableEntity, IHasStoreId, ICloneable
     {
         get
         {
-            return Pages?.All(x => x.Status == Archived) ?? false
-                ? Archived
-                : Pages?.Any(x => x.Status == Published) ?? false
-                    ? Published
-                    : Draft;
+            if (Pages?.All(x => x.Status == Archived) ?? false)
+            {
+                return Archived;
+            }
+
+            if (Pages?.Any(x => x.Status == Published) ?? false)
+            {
+                return Published;
+            }
+
+            return Draft;
         }
     }
 

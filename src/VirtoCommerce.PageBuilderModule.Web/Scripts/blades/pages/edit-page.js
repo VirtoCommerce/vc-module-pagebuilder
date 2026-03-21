@@ -95,7 +95,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                                     if (permalink && permalink.length && permalink[0] !== '/') {
                                         permalink = '/' + permalink;
                                     }
-                                    return permalink == value && !compareFileNames(x.relativeUrl, blade.currentEntity.relativeUrl);
+                                    return permalink === value && !compareFileNames(x.relativeUrl, blade.currentEntity.relativeUrl);
                                 } catch { }
                                 return false;
                             });
@@ -117,7 +117,7 @@ angular.module('virtoCommerce.pageBuilderModule')
             function compareFileNames(file1, file2) {
                 return undraftUrl(file1) === undraftUrl(file2);
             }
-            
+
             $scope.copyToClipboard = function (elementId) {
                 var text = document.getElementById(elementId);
                 text.focus();
@@ -232,12 +232,16 @@ angular.module('virtoCommerce.pageBuilderModule')
                 var blobName = blade.currentEntity.name || '';
 
                 var blobNameParts = blobName.split('.');
-                blobNameParts.length > 1 ? blobNameParts.pop() : ''; // ignore extension
+                if (blobNameParts.length > 1) {
+                    blobNameParts.pop(); // ignore extension
+                }
 
                 if (blade.languages && blade.languages.length) {
                     var possibleFileLanguage = blobNameParts.length > 1 ? blobNameParts[blobNameParts.length - 1] : '';
 
-                    var language = blade.languages.find(function (lang) { return lang.toLowerCase() === possibleFileLanguage.toLowerCase(); });
+                    var language = blade.languages.find(function (lang) {
+                        return lang.toLowerCase() === possibleFileLanguage.toLowerCase();
+                    });
 
                     if (language) {
                         blobNameParts.pop();

@@ -181,9 +181,11 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             foreach (var file in files)
             {
                 var type = file.Type.ToLowerInvariant();
-                var storageProvider = providers.TryGetValue(type, out var provider)
-                    ? provider
-                    : providers[type] = blobContentStorageProviderFactory.CreateProvider(GetContentBasePath(storeId, type, themeName));
+                if (!providers.TryGetValue(type, out var storageProvider))
+                {
+                    storageProvider = blobContentStorageProviderFactory.CreateProvider(GetContentBasePath(storeId, type, themeName));
+                    providers[type] = storageProvider;
+                }
                 var content = file.Content;
                 var targetPath = publishingService.GetRelativeDraftUrl(file.Path, draft);
                 await using var targetStream = await storageProvider.OpenWriteAsync(targetPath);

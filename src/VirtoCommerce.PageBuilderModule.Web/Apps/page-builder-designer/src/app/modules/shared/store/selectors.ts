@@ -1,9 +1,9 @@
 import { TemplateEntryInfo } from './../models/template-entry-info.model';
 import { createSelector } from '@ngrx/store';
 import { TemplateEntry, TemplateEntryList, TemplateEntryState } from '@shared/models';
-import { BuilderState, SharedState } from './state';
+import { BuilderState } from './state';
 
-import { selectPathParameter, selectTypeParameter, selectParentTemplateParameter, selectTemplateKeyParameter, selectPath, selectGroupIdParameter } from '../routing';
+import { selectPathParameter, selectTypeParameter, selectParentTemplateParameter, selectTemplateKeyParameter, selectGroupIdParameter } from '../routing';
 
 export const selectSharedFeature = (state: BuilderState) => state.shared;
 
@@ -37,11 +37,11 @@ const selectUnsortedTemplatesEntriesAsList = createSelector(
             const b = y.name || y.key;
             return a.localeCompare(b);
         })
-        .sort((x, y) => x.sort === undefined
-            ? 1
-            : y.sort === undefined
-                ? -1
-                : x.sort - y.sort) || []
+        .sort((x, y) => {
+            if (x.sort === undefined) return 1;
+            if (y.sort === undefined) return -1;
+            return x.sort - y.sort;
+        }) || []
 );
 
 export const selectTemplatesEntriesAsList = createSelector(
@@ -89,15 +89,6 @@ export const selectCurrentTemplateEntry = createSelector(
     (templates, childrenTemplates, type, path, key) => searchTemplate(templates, childrenTemplates, type, path, key)
 );
 
-// export const selectCurrentTemplateState = createSelector(
-//     selectSharedFeature,
-//     selectParentTemplateParameter,
-//     selectTemplateKeyParameter,
-//     (state, parent, key) => (parent
-//         ? state.childrenTemplatesState[parent]?.states?.[key]
-//         : state.entriesStates[key])
-//         || {}
-// );
 
 export const selectTemplatesEntriesLoading = createSelector(
     selectSharedFeature,
@@ -181,8 +172,7 @@ const selectChildrenTemplatesStatesAsList = createSelector(
     selectAllChildrenTemplatesStates,
     templates => {
         const allChildren = Object.keys(templates).map(x => templates[x].states || {});
-        const result = allChildren.reduce((acc, item) => [...acc, ...(Object.keys(item).map(x => item[x]))], <TemplateEntryState[]>[]);
-        return result;
+        return allChildren.reduce((acc, item) => [...acc, ...(Object.keys(item).map(x => item[x]))], <TemplateEntryState[]>[]);
     }
 );
 
@@ -205,14 +195,12 @@ export const selectChildrenTemplatesEntries = createSelector(
 
 const selectUnfilteredChildrenTemplatesEntriesAsList = createSelector(
     selectChildrenTemplatesEntries,
-    entries => entries
-        ? (
-            entries.templates
-                ? Object.keys(entries.templates)
-                    .map(key => (<TemplateEntry>{ ...entries.templates[key], key }))
-                : []
-        )
-        : null
+    entries => {
+        if (!entries) return null;
+        return entries.templates
+            ? Object.keys(entries.templates).map(key => (<TemplateEntry>{ ...entries.templates[key], key }))
+            : [];
+    }
 );
 
 export const selectChildrenTemplatesEntriesAsList = createSelector(
@@ -274,7 +262,3 @@ export const selectCurrentTemplatesEntries = createSelector(
     (templates, children) => children?.templates ?? templates
 );
 
-// export const selectTemplatesEntriesLoaded = createSelector(
-//     selectSharedFeature,
-//     state => state.templatesEntriesLoaded
-// );

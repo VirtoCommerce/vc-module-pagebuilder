@@ -4,8 +4,6 @@ import { Location } from '@angular/common';
 import { Router } from '@angular/router';
 import { filter, tap } from 'rxjs/operators';
 import { Actions, ofType, createEffect } from '@ngrx/effects';
-import { ROUTER_NAVIGATION, routerNavigatedAction } from '@ngrx/router-store';
-
 import * as actions from './actions';
 import * as fromRoute from '.';
 import { Store } from '@ngrx/store';

@@ -1,4 +1,4 @@
-import { CdkDragRelease, CdkDragSortEvent, CdkDragStart, DragDropModule } from '@angular/cdk/drag-drop';
+import { CdkDragSortEvent, CdkDragStart, DragDropModule } from '@angular/cdk/drag-drop';
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { BlockStatesList, SectionsSchemasList } from '@editor/models';

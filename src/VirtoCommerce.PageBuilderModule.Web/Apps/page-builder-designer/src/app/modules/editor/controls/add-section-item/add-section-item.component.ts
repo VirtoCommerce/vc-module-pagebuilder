@@ -1,9 +1,8 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { cutString, stripHtmlTags } from '@app/modules/integration/helpers/utils';
-import { BaseControlDescriptor, SectionPropertyDescriptor } from '@app/modules/models';
+import { BaseControlDescriptor } from '@app/modules/models';
 import { SectionSchema } from '@models/document';
-import { isArray } from 'lodash-es';
 import { IconComponent } from '@core/components/icon/icon.component';
 
 @Component({
