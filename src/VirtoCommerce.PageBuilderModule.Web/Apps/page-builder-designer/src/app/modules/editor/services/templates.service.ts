@@ -6,7 +6,6 @@ import { Observable, map, of } from "rxjs";
 
 import { helpers } from '@editor/helpers';
 import { TemplateEntry } from '@shared/models';
-import { } from '@integration/services';
 
 @Injectable({
     providedIn: 'root'
@@ -25,11 +24,11 @@ export class TemplatesService {
 
         // get template depends of its type. If no such type, use '__template' entry
         const templateUrl = this.appConfig.getValueByEntryType('templateUrl', { item: entry, type, path, groupId }, entry.type || type);
-        const targetUrl = templateUrl; //this.getValueByEntryType(templateUrl, entry, type);
+        const targetUrl = templateUrl;
         const request = this.http.generateRequest(targetUrl, { item: entry });
         return this.http.doRequest<TemplateModel | SectionModel[] | PageModel>(request, { nullWhenError: false }, null).pipe(
-            map(template =>
-                helpers.convertTemplateIntoCorrectVersion(template)
+            map(result =>
+                helpers.convertTemplateIntoCorrectVersion(result)
             )
         );
     }
@@ -85,7 +84,4 @@ export class TemplatesService {
         return this.http.doRequest(request);
     }
 
-    // private getValueByEntryType(source: any, entry: TemplateEntry, type: string): any {
-    //     return source[entry.type || type || 'default'] || source['default'] || source;
-    // }
 }

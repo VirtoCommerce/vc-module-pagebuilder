@@ -1,10 +1,8 @@
 import { Injectable, inject } from "@angular/core";
-import { forkJoin, Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { Observable } from 'rxjs';
 
-import { AppConfig } from '@integration/services';
-import { BuilderHttpClient } from '@integration/services';
-import { SchemasList, SectionsSchemasList } from '@editor/models';
+import { AppConfig, BuilderHttpClient } from '@integration/services';
+import { SchemasList } from '@editor/models';
 
 @Injectable({
     providedIn: 'root'

@@ -195,20 +195,6 @@ export class TemplateEditorDataEffects {
         ))
     ));
 
-    // saveTemplates$ = createEffect(() => this.actions$.pipe(
-    //     ofType(actions.executeToolbarAction),
-    //     filter(({ action }) => action === 'save-new'),
-    //     withLatestFrom(
-    //         this.store$.select(fromShared.selectChangedTemplates)
-    //     ),
-    //     switchMap(([, model, entry, changedTemplates]) => {
-    //         console.log(changedTemplates);
-    //         return this.templates.saveTemplate([{ entry, content: model! }]).pipe(
-    //             map(() => actions.saveTemplateSuccess({ alias: entry!.alias })),
-    //             catchError(error => of(actions.saveTemplateFails({ error })))
-    //         );
-    //     })
-    // ));
 
     publishTemplate$ = createEffect(() => this.actions$.pipe(
         ofType(actions.executeToolbarAction),
@@ -367,11 +353,6 @@ export class TemplateEditorDataEffects {
         })
     ));
 
-    // stateChangedInPlatform$ = createEffect(() => fromEvent<MessageEvent>(window, 'message').pipe(
-    //     filter((event: MessageEvent) => event.data.source === 'platform'),
-    //     tap(event => console.log(event.data)),
-    //     map(({data}) => actions.getTemplatePublishStatusSuccess({ hasChanges: data.hasChanges, published: data.published, templateKey: data.templateKey }))
-    // ));
 
     resetTemplate$ = createEffect(() => this.actions$.pipe(
         ofType(actions.executeContextMenuAction),

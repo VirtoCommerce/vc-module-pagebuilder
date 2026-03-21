@@ -1,7 +1,7 @@
 import { Injectable, inject } from "@angular/core";
 import { Actions, createEffect, ofType } from "@ngrx/effects";
 import { Store } from "@ngrx/store";
-import { from, of } from 'rxjs';
+import { from } from 'rxjs';
 import {
     withLatestFrom,
     filter,
@@ -10,7 +10,7 @@ import {
     tap
 } from "rxjs/operators";
 
-import { ModalService, EventsBusService } from '@core/services';
+import { ModalService, EventsBusService, ClipboardService } from '@core/services';
 import { appHelpers } from "@integration/helpers";
 import * as sharedActions from "@shared/store/actions";
 import * as sharedSelectors from "@shared/store/selectors";
@@ -21,7 +21,6 @@ import { helpers as editorHelpers, clipboardHelpers } from '@editor/helpers';
 import { BuilderState } from "../state";
 import * as actions from "../actions";
 import * as selectors from "../selectors";
-import { ClipboardService } from "@core/services";
 import { EvaluatorService } from "@app/modules/integration/services";
 import { SectionModel } from "@app/modules/models";
 

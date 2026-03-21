@@ -10,11 +10,8 @@ export function pasteDataIntoTemplate(
 ): Action[] {
     const value = action.value;
     const { template, sectionsSchemas, templateKey, templateEntry } = context;
-    const direction = action.action === 'paste-after'
-        ? 1 // after
-        : action.action === 'paste-before'
-            ? 0 // before
-            : -1; // to end of list
+    const directionMap: Record<string, number> = { 'paste-after': 1, 'paste-before': 0 };
+    const direction = directionMap[action.action] ?? -1; // -1 = to end of list
     if (value.wrongData !== true) {
 
         // case when we paste block after or before section

@@ -301,9 +301,6 @@ function generateModelBySettings(settings: SectionPropertyDescriptor[], mode: 'd
 }
 
 
-// export function getTemplateName(templateSchema: TemplateSchema | null, key: string | null = null) {
-//     return templateSchema?.name || key || 'Select template';
-// }
 
 export function prepareTemplate(template: TemplateModel): TemplateModel {
     const result = {

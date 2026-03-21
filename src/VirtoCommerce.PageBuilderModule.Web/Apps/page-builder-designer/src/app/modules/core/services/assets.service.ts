@@ -1,11 +1,9 @@
-import { from, map, tap } from 'rxjs';
+import { from, map, Observable } from 'rxjs';
 import { AssetsRequest, UploadAssetDescriptor } from '@models/index';
 import { AppConfig, EvaluatorService } from '@integration/services';
 import { inject, Injectable } from '@angular/core';
-import { FilesDescriptor } from '@models/controls';
 import { AssetFile } from '../models';
 import { DataService } from './data.service';
-import { Observable, of } from 'rxjs';
 
 import { appHelpers } from '@integration/helpers';
 
@@ -19,7 +17,7 @@ export class AssetsService {
     private readonly evaluator = inject(EvaluatorService);
 
     uploadAsset(file: AssetFile, descriptor: UploadAssetDescriptor,
-        context: any, progress: (value: number) => void, overridenRequestProps: Partial<AssetsRequest> | null = null): Observable<any> {
+        context: any, _progress: (value: number) => void, overridenRequestProps: Partial<AssetsRequest> | null = null): Observable<any> {
         // todo: progress not works
         let request = this.getRequest(descriptor, { ...context, file });
         if (!request || request === 'inline') {
@@ -98,8 +96,7 @@ export class AssetsService {
         const extension = this.getExtension(name, contentType);
         const suffix = appHelpers.generateUniqueString(10);
         const uniqueName = `${filename}_${suffix}.${extension}`;
-        const safeName = encodeURIComponent(uniqueName);
-        return safeName;
+        return encodeURIComponent(uniqueName);
     }
 
     private getExtension(filename: string | null, contentType: string | null): string {

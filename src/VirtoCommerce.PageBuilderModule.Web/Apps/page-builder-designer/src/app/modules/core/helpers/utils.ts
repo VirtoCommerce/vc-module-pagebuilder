@@ -22,8 +22,7 @@ export function groupSections(list: SectionSchema[]): ItemsGroup<SectionSchema>[
             }
             return acc;
         }, <any>{});
-        const result = Object.keys(groups).map(key => groups[key]);
-        return result;
+        return Object.keys(groups).map(key => groups[key]);
     }
     return [];
 }
