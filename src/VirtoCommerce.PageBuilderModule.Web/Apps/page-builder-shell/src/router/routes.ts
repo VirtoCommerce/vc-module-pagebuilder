@@ -63,7 +63,7 @@ export const routes: RouteRecordRaw[] = [
     meta: {
       forced: true,
     },
-    props: (route) => ({
+    props: () => ({
       background: bgImage,
     }),
   },

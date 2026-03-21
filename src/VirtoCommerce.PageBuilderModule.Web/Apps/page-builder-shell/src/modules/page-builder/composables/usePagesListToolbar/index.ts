@@ -5,7 +5,7 @@ import { PageLifecycleFilters } from "../usePageBuilderList";
 import { ExposedPagesList } from "../../components";
 
 export function usePagesListToolbar(
-  status: PageLifecycleFilters | null,
+  _status: PageLifecycleFilters | null,
   pagesListRef: Readonly<ShallowRef<ExposedPagesList | null>>,
 ): Ref<IBladeToolbar[]> {
   const { t } = useI18n({ useScope: "global" });

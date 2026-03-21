@@ -11,7 +11,7 @@ release({
     const versionApplyArgs = ["version", "apply", "--all"];
     await sync("yarn", versionApplyArgs);
   },
-  generateChangelog: async (pkgName, pkgVersion, workspaceName) => {
+  generateChangelog: async (_pkgName, _pkgVersion, workspaceName) => {
     const changelogArgs = ["conventional-changelog", "-p", "angular", "-i", "CHANGELOG.md", "-s", "--commit-path", "."];
     await sync("npx", changelogArgs, { cwd: workspaceName ? `${workspaceName}` : "." });
   },

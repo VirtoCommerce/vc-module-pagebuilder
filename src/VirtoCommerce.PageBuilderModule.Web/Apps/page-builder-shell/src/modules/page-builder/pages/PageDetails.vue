@@ -240,11 +240,10 @@ const {
 });
 
 const bladeTitle = computed(() => {
-  return !props.param
-    ? item.value?.name
-      ? item.value?.name + t("PAGE_BUILDER.PAGES.DETAILS.TITLE.DETAILS")
-      : t("PAGE_BUILDER.PAGES.DETAILS.TITLE.NEW")
-    : item.value?.name + t("PAGE_BUILDER.PAGES.DETAILS.TITLE.DETAILS");
+  if (props.param || item.value?.name) {
+    return item.value?.name + t("PAGE_BUILDER.PAGES.DETAILS.TITLE.DETAILS");
+  }
+  return t("PAGE_BUILDER.PAGES.DETAILS.TITLE.NEW");
 });
 
 const storeUrl = ref<string | null>(null);

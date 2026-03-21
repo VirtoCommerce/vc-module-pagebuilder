@@ -254,7 +254,6 @@ async function removeSelectedPages() {
       }),
     )
   ) {
-    // const ids = selectedItems.value.map(x => x.id);
     await removePages({ ids: selectedItems.value });
     await reload();
   }
