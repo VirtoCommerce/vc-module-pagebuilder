@@ -51,20 +51,18 @@ export class AppConfig {
     if (!this._cachedContext) {
       const params: any = {};
       const searchParams = new URLSearchParams(this.env.nativeWindow.location.search);
-      for (const [key, value] of searchParams) {
+      searchParams.forEach((value, key) => {
         const allValues = searchParams.getAll(key);
         params[key] = allValues.length === 1 ? value : allValues;
-      }
+      });
       const { hash, href, host, protocol, pathname, origin } = this.env.nativeWindow.location;
       const hashParts = hash?.split('?');
       const hashPath = hashParts?.[0] ?? null;
       const hashParams = hashParts?.[1] ? new URLSearchParams(hashParts[1]) : null;
-      if (hashParams) {
-        for (const [key, value] of hashParams) {
-          const allValues = hashParams.getAll(key);
-          params[key] = allValues.length === 1 ? value : allValues;
-        }
-      }
+      hashParams?.forEach((value, key) => {
+        const allValues = hashParams.getAll(key);
+        params[key] = allValues.length === 1 ? value : allValues;
+      });
 
       this._cachedContext = {
         config: this.mergedConfig,
