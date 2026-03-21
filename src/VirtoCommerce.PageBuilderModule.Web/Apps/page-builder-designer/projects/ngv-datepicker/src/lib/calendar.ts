@@ -243,12 +243,7 @@ export class MatCalendarHeader<D> {
 
   /** Whether the previous period button is enabled. */
   previousEnabled(): boolean {
-    if (!this.calendar.minDate) {
-      return true;
-    }
-    return (
-      !this.calendar.minDate || !this._isSameView(this.calendar.activeDate, this.calendar.minDate)
-    );
+    return !this.calendar.minDate || !this._isSameView(this.calendar.activeDate, this.calendar.minDate);
   }
 
   /** Whether the next period button is enabled. */
