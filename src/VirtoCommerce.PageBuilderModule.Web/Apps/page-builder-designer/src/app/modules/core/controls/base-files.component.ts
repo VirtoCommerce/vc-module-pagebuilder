@@ -196,16 +196,17 @@ export abstract class BaseFilesComponent<T extends FilesDescriptor> extends Base
     if (!Array.isArray(files)) {
       files = [files];
     }
-    const result = files.map((x: any, index: number) => this.convertValueToFile(x, index));
-    return result;
+    return files.map((x: any, index: number) => this.convertValueToFile(x, index));
   }
 
   private convertValueToFile(item: any, _index: number): AssetFile {
     let result: AssetFile;
     if (typeof item === 'string') {
+      const getName = (x: string) => x.startsWith('data:') ? '[inline data]' : x.substring(x.lastIndexOf('/') + 1);
+      const name = item ? getName(item) : null;
       result = <AssetFile>{
         lastModified: 0,
-        name: item ? item.startsWith('data:') ? '[inline data]' : item.substring(item.lastIndexOf('/') + 1) : null,
+        name,
         webkitRelativePath: item,
         url: item,
       };

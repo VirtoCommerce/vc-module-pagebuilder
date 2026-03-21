@@ -191,7 +191,7 @@ export class MatRangeDateSelectionModel<D> extends MatDateSelectionModel<DateRan
     super.updateSelection(new DateRange<D>(start, end), this);
   }
 
-  queue(date: D | null) {}
+  queue(_date: D | null) { }
   processQueue() {}
 
   /** Checks whether the current selection is valid. */

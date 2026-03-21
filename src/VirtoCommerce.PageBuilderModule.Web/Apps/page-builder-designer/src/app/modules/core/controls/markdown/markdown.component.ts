@@ -1,8 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 
-import { NgvMarkdownComponent } from 'ngv-markdown';
+import { NgvMarkdownComponent, MarkdownModel } from 'ngv-markdown';
 
-import { MarkdownModel } from 'ngv-markdown';
 import { BaseControlDirective } from '@core/controls/base-control.directive';
 import { AssetsService } from '@core/services';
 import { MarkdownDescriptor } from '@models/controls';
@@ -27,13 +26,15 @@ export class MarkdownComponent extends BaseControlDirective<MarkdownDescriptor> 
         const isMixed = !isMarkdown && !isHtml;
         const isValueStringOrNull = typeof value === 'string' || value === null;
 
+        const extractField = (active: boolean, field: 'markdown' | 'html') => {
+            if (!active) return '';
+            const raw = isValueStringOrNull ? value : value?.[field];
+            return raw || '';
+        };
+
         const result = {
-            markdown: (isMarkdown || isMixed
-                ? (isValueStringOrNull ? value : value?.markdown)
-                : '') || '',
-            html: (isHtml || isMixed
-                ? (isValueStringOrNull ? value : value?.html)
-                : '') || ''
+            markdown: extractField(isMarkdown || isMixed, 'markdown'),
+            html: extractField(isHtml || isMixed, 'html')
         };
         this.controlValue.set(result);
     }

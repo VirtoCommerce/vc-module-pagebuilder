@@ -1,6 +1,4 @@
-import { Component, inject } from '@angular/core';
-import { Store } from '@ngrx/store';
-import { Router, RouterOutlet } from '@angular/router';
+import { Component } from '@angular/core';
 import { LogoComponent } from '@core/components/logo/logo.component';
 import { ToolbarPlaceholderDirective } from './toolbar-placeholder.directive';
 
@@ -11,11 +9,5 @@ import { ToolbarPlaceholderDirective } from './toolbar-placeholder.directive';
     imports: [LogoComponent, ToolbarPlaceholderDirective]
 })
 export class ToolbarComponent {
-
-    private readonly router = inject(Router);
-    private readonly store = inject(Store);
-
-    routerOutletActivated(ro: RouterOutlet) {
-    }
 
 }
