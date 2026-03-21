@@ -35,6 +35,6 @@ export const MAT_NATIVE_DATE_FORMATS: MatDateFormats = {
     monthDayA11yLabel: {month: 'long', day: 'numeric'},
     monthYearLabel: {year: 'numeric', month: 'short'},
     monthYearA11yLabel: {year: 'numeric', month: 'long'},
-    timeLabel: {hours: 'numeric', minutes: 'numeric'},
+    timeLabel: {hour: 'numeric', minute: 'numeric'},
   }
 };

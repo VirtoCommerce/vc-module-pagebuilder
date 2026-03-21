@@ -143,7 +143,7 @@ export class MatDateRangeInput<D>
   get placeholder() {
     const start = this._startInput()?._getPlaceholder() || '';
     const end = this._endInput()?._getPlaceholder() || '';
-    return start || end ? `${start} ${this.separator} ${end}` : '';
+    return start || end ? `${start} ${this.separator()} ${end}` : '';
   }
 
   /** The range picker that this input is associated with. */
