@@ -30,7 +30,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Search
                 content = page["content"]?.ToString();
             }
 
-            if (content!.IsNullOrEmpty())
+            if (content?.IsNullOrEmpty() ?? true)
             {
                 throw new InvalidDataException($"File '{documentId}' has a wrong format");
             }
