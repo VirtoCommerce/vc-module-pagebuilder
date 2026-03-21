@@ -9,18 +9,12 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using VirtoCommerce.ContentModule.Core.Model;
-using VirtoCommerce.CustomerModule.Core.Model;
-using VirtoCommerce.CustomerModule.Core.Model.Search;
-using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Data.Authorization;
 using VirtoCommerce.Pages.Core.Search;
-using VirtoCommerce.Platform.Core;
 using VirtoCommerce.Platform.Core.Common;
-using VirtoCommerce.Platform.Core.Settings;
-using VirtoCommerce.StoreModule.Core.Services;
 using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 
 namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
@@ -29,13 +23,10 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 [Authorize]
 public class PageBuilderPageController(
     IPageBuilderPageService crudService,
-    ISettingsManager settingsManager,
     IGroupedPageService groupedPageService,
     IGroupedPageSearchService groupedPageSearchService,
-    IStoreService storeService,
     IAuthorizationService authorizationService,
     IPageDocumentSearchService pageDocumentSearchService,
-    IMemberSearchService memberSearchService,
     ILogger<PageBuilderPageController> logger)
     : Controller
 {
@@ -292,55 +283,6 @@ public class PageBuilderPageController(
         };
 
         return Ok(result);
-    }
-
-    [HttpGet]
-    [Route("languages")]
-    [Authorize(PlatformConstants.Security.Permissions.SettingQuery)]
-    public async Task<ActionResult<string[]>> GetAvailableLanguages([FromQuery] string storeId)
-    {
-        var store = await storeService.GetNoCloneAsync(storeId);
-        if (store == null)
-        {
-            var setting = await settingsManager.GetObjectSettingAsync(PlatformConstants.Settings.General.Languages.Name);
-            return Ok(setting?.AllowedValues ?? []);
-        }
-
-        return Ok(store.Languages);
-    }
-
-    [HttpGet]
-    [Route("user-groups")]
-    [Authorize(PlatformConstants.Security.Permissions.SettingQuery)]
-    public async Task<ActionResult<string[]>> GetUserGroups()
-    {
-        var setting = await settingsManager.GetObjectSettingAsync(CustomerModule.Core.ModuleConstants.Settings.General.MemberGroups.Name);
-        return Ok(setting?.AllowedValues ?? []);
-    }
-
-    [HttpPost]
-    [Route("organizations")]
-    [Authorize(CustomerModule.Core.ModuleConstants.Security.Permissions.Read)]
-    public async Task<ActionResult<MemberSearchResult>> GetOrganizations([FromBody] MembersSearchCriteria criteria)
-    {
-        criteria.MemberType = nameof(Organization);
-        criteria.DeepSearch = true;
-        var result = await memberSearchService.SearchMembersAsync(criteria);
-        return Ok(result);
-    }
-
-    [HttpGet]
-    [Route("organizations/{id}")]
-    [Authorize(CustomerModule.Core.ModuleConstants.Security.Permissions.Read)]
-    public async Task<ActionResult<Member>> GetOrganization([FromRoute] string id)
-    {
-        var criteria = new MembersSearchCriteria { ObjectIds = [ id ] };
-        var result = await memberSearchService.SearchMembersAsync(criteria);
-        if (result.TotalCount == 0)
-        {
-            return NotFound();
-        }
-        return Ok(result.Results.First());
     }
 
     [HttpGet("grouped/{groupId}/content")]
