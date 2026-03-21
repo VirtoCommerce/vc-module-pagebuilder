@@ -104,7 +104,8 @@ export class MatCalendarHeader<D> {
         let hours = this._dateAdapter.getHours(activeDate);
         this._isAM = hours < 12;
         if (this.calendar.twelveHour()) {
-            hours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+            if (hours === 0) hours = 12;
+            else if (hours > 12) hours = hours - 12;
         }
         const minutes = this._dateAdapter.getMinutes(activeDate);
 
@@ -222,26 +223,20 @@ export class MatCalendarHeader<D> {
 
     /** Handles user clicks on the previous button. */
     previousClicked(): void {
-        const date =
-            this.calendar.currentView == 'month'
-                ? this._dateAdapter.addCalendarMonths(this.calendar.activeDate, -1)
-                : this._dateAdapter.addCalendarYears(
-                    this.calendar.activeDate,
-                    this.calendar.currentView == 'year' ? -1 : -this.calendar.yearsPerPage(),
-                );
+        const yearsOffset = this.calendar.currentView == 'year' ? -1 : -this.calendar.yearsPerPage();
+        const date = this.calendar.currentView == 'month'
+            ? this._dateAdapter.addCalendarMonths(this.calendar.activeDate, -1)
+            : this._dateAdapter.addCalendarYears(this.calendar.activeDate, yearsOffset);
 
         this.calendar.setDate(date);
     }
 
     /** Handles user clicks on the next button. */
     nextClicked(): void {
-        const date =
-            this.calendar.currentView == 'month'
-                ? this._dateAdapter.addCalendarMonths(this.calendar.activeDate, 1)
-                : this._dateAdapter.addCalendarYears(
-                    this.calendar.activeDate,
-                    this.calendar.currentView == 'year' ? 1 : this.calendar.yearsPerPage(),
-                );
+        const yearsOffset = this.calendar.currentView == 'year' ? 1 : this.calendar.yearsPerPage();
+        const date = this.calendar.currentView == 'month'
+            ? this._dateAdapter.addCalendarMonths(this.calendar.activeDate, 1)
+            : this._dateAdapter.addCalendarYears(this.calendar.activeDate, yearsOffset);
 
         this.calendar.setDate(date);
     }
