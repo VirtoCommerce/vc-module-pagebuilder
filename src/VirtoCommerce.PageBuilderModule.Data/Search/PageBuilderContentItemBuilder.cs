@@ -22,7 +22,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Search
             if (page is JArray pageAsArray)
             {
                 AddMetadata(result, (JObject)pageAsArray.First());
-                content = pageAsArray.Skip(1)?.ToString();
+                content = pageAsArray.Skip(1).ToString();
             }
             else
             {
