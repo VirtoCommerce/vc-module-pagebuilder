@@ -536,17 +536,17 @@ export abstract class MatDatepickerBase<
 
   /**
    * Register an input with this datepicker.
-   * @param input The datepicker input to register with this datepicker.
+   * @param control The datepicker input to register with this datepicker.
    * @returns Selection model that the input should hook itself up to.
    */
-  registerInput(input: C): MatDateSelectionModel<S, D> {
+  registerInput(control: C): MatDateSelectionModel<S, D> {
     if (this.datepickerInput && isDevMode()) {
       throw Error('A MatDatepicker can only be associated with a single input.');
     }
     this._inputStateChanges.unsubscribe();
-    this.datepickerInput = input;
+    this.datepickerInput = control;
     this.datepickerInput.type = this.type;
-    this._inputStateChanges = input.stateChanges.subscribe(() => this.stateChanges.next(undefined));
+    this._inputStateChanges = control.stateChanges.subscribe(() => this.stateChanges.next(undefined));
     return this._model;
   }
 

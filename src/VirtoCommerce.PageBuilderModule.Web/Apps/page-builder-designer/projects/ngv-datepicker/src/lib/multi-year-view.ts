@@ -33,6 +33,8 @@ import {startWith} from 'rxjs/operators';
 import {DateRange} from './date-selection-model';
 import {DateFilterFn} from './datepicker-input-base';
 
+type CalendarSelection<D> = DateRange<D> | D | null;
+
 /**
  * An internal component used to display a year selector in the datepicker.
  * @docs-private
@@ -88,10 +90,10 @@ export class MatMultiYearView<D> implements OnInit {
 
   /** The currently selected date. */
   @Input()
-  get selected(): DateRange<D> | D | null {
+  get selected(): CalendarSelection<D> {
     return this._selected;
   }
-  set selected(value: DateRange<D> | D | null) {
+  set selected(value: CalendarSelection<D>) {
     if (value instanceof DateRange) {
       this._selected = value;
     } else {
@@ -100,7 +102,7 @@ export class MatMultiYearView<D> implements OnInit {
 
     this._setSelectedYear(value);
   }
-  private _selected: DateRange<D> | D | null = null;
+  private _selected: CalendarSelection<D> = null;
 
   /** The minimum selectable date. */
   @Input()
@@ -343,7 +345,7 @@ export class MatMultiYearView<D> implements OnInit {
   }
 
   /** Sets the currently-highlighted year based on a model value. */
-  private _setSelectedYear(value: DateRange<D> | D | null) {
+  private _setSelectedYear(value: CalendarSelection<D>) {
     this._selectedYear = null;
 
     if (value instanceof DateRange) {

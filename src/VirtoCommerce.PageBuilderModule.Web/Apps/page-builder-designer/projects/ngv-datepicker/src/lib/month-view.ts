@@ -39,6 +39,8 @@ import {
 } from './date-range-selection-strategy';
 import {DateFilterFn} from './datepicker-input-base';
 
+type CalendarSelection<D> = DateRange<D> | D | null;
+
 const DAYS_PER_WEEK = 7;
 
 /**
@@ -87,10 +89,10 @@ export class MatMonthView<D> implements OnInit {
 
   /** The currently selected date. */
   @Input()
-  get selected(): DateRange<D> | D | null {
+  get selected(): CalendarSelection<D> {
     return this._selected;
   }
-  set selected(value: DateRange<D> | D | null) {
+  set selected(value: CalendarSelection<D>) {
     if (value instanceof DateRange) {
       this._selected = value;
     } else {
@@ -99,7 +101,7 @@ export class MatMonthView<D> implements OnInit {
 
     this._setRanges(this._selected);
   }
-  private _selected: DateRange<D> | D | null = null;
+  private _selected: CalendarSelection<D> = null;
 
   /** The minimum selectable date. */
   @Input()
@@ -487,7 +489,7 @@ export class MatMonthView<D> implements OnInit {
   }
 
   /** Sets the current range based on a model value. */
-  private _setRanges(selectedValue: DateRange<D> | D | null) {
+  private _setRanges(selectedValue: CalendarSelection<D>) {
     if (selectedValue instanceof DateRange) {
       this._rangeStart = this._getCellCompareValue(selectedValue.start);
       this._rangeEnd = this._getCellCompareValue(selectedValue.end);
