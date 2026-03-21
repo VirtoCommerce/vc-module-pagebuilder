@@ -127,7 +127,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         {
             var basePath = GetContentBasePath(storeId, type, theme);
             var storageProvider = blobContentStorageProviderFactory.CreateProvider(basePath);
-            var regexp = pattern == null ? null : new Regex(pattern, RegexOptions.None, TimeSpan.FromSeconds(1));
+            var regexp = pattern == null ? null : new Regex(Regex.Escape(pattern), RegexOptions.None, TimeSpan.FromSeconds(1));
             var files = (await storageProvider.SearchAsync(folder, keyword))
                 .Results.Where(x => x.Type != "folder" && (regexp?.IsMatch(x.Name) ?? true));
             var fileInfoes = new Dictionary<string, string>();
