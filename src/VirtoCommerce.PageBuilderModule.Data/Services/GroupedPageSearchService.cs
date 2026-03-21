@@ -112,16 +112,17 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
                     g.Pages.Any(p => p.Status == Published) &&
                     g.StartDate != null &&
                     g.StartDate > now),
-                PageLifecycleFilters.Active => query.Where(g =>
-                    g.Pages.Any(p => p.Status == Published) &&
-                    (g.StartDate == null || g.StartDate <= now) &&
-                    (g.EndDate == null || g.EndDate >= now)),
+                PageLifecycleFilters.Active => query
+                    .Where(g => g.Pages.Any(p => p.Status == Published))
+                    .Where(g => (g.StartDate == null || g.StartDate <= now) &&
+                                (g.EndDate == null || g.EndDate >= now)),
                 PageLifecycleFilters.Archived => query.Where(g =>
                     g.Pages.All(p => p.Status == Archived) ||
                     (g.EndDate != null && g.EndDate < now)),
                 _ => query,
             };
         }
+
 
 
         protected override IList<SortInfo> BuildSortExpression(PageBuilderPageSearchCriteria criteria)
