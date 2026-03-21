@@ -259,61 +259,71 @@ export class MatClockView<D> implements AfterContentInit {
     this._hours.length = 0;
     this._minutes.length = 0;
 
-    const hourNames = this._dateAdapter.getHourNames();
-    const minuteNames = this._dateAdapter.getMinuteNames();
     const dateFilter = this.dateFilter();
     const dateClass = this.dateClass();
 
     if (this.twelveHour()) {
-      this._anteMeridian = this._dateAdapter.getHours(this.activeDate) < 12;
-
-      for (let i = 0; i < hourNames.length / 2; i++) {
-        const radian = (i / 6) * Math.PI;
-        const radius = CLOCK_OUTER_RADIUS;
-        const date = this._dateAdapter.createDate(
-          this._dateAdapter.getYear(this.activeDate),
-          this._dateAdapter.getMonth(this.activeDate),
-          this._dateAdapter.getDate(this.activeDate),
-          this._anteMeridian ? i : i + 12,
-          0,
-          0,
-          0
-        );
-        this._hours.push({
-          value: this._anteMeridian ? i : i + 12,
-          displayValue: i === 0 ? hourNames[12] : hourNames[i],
-          enabled: !dateFilter || dateFilter(date, 'hour'),
-          cssClasses: dateClass ? dateClass(date, 'hour') : undefined,
-          top: CLOCK_RADIUS - Math.cos(radian) * radius - CLOCK_TICK_RADIUS,
-          left: CLOCK_RADIUS + Math.sin(radian) * radius - CLOCK_TICK_RADIUS,
-        });
-      }
+      this._buildTwelveHourCells(dateFilter, dateClass);
     } else {
-      for (let i = 0; i < hourNames.length; i++) {
-        const radian = (i / 6) * Math.PI;
-        const outer = i > 0 && i < 13;
-        const radius = outer ? CLOCK_OUTER_RADIUS : CLOCK_INNER_RADIUS;
-        const hour = i % 12 ? i : (i === 0 ? 12 : 0);
-        const date = this._dateAdapter.createDate(
-          this._dateAdapter.getYear(this.activeDate),
-          this._dateAdapter.getMonth(this.activeDate),
-          this._dateAdapter.getDate(this.activeDate),
-          hour,
-          0,
-          0,
-          0
-        );
-        this._hours.push({
-          value: hour,
-          displayValue: hourNames[hour],
-          enabled: !dateFilter || dateFilter(date, 'hour'),
-          cssClasses: dateClass ? dateClass(date, 'hour') : undefined,
-          top: CLOCK_RADIUS - Math.cos(radian) * radius - CLOCK_TICK_RADIUS,
-          left: CLOCK_RADIUS + Math.sin(radian) * radius - CLOCK_TICK_RADIUS,
-          fontSize: i > 0 && i < 13 ? '' : '80%',
-        });
-      }
+      this._buildTwentyFourHourCells(dateFilter, dateClass);
     }
+    this._buildMinuteCells(dateFilter, dateClass);
+
+    this._changeDetectorRef.markForCheck();
+  }
+
+  private _buildTwelveHourCells(dateFilter: DateFilterFn<D> | undefined, dateClass: MatCalendarCellClassFunction<D> | null) {
+    const hourNames = this._dateAdapter.getHourNames();
+    this._anteMeridian = this._dateAdapter.getHours(this.activeDate) < 12;
+
+    for (let i = 0; i < hourNames.length / 2; i++) {
+      const radian = (i / 6) * Math.PI;
+      const hour = this._anteMeridian ? i : i + 12;
+      const date = this._dateAdapter.createDate(
+        this._dateAdapter.getYear(this.activeDate),
+        this._dateAdapter.getMonth(this.activeDate),
+        this._dateAdapter.getDate(this.activeDate),
+        hour, 0, 0, 0
+      );
+      this._hours.push({
+        value: hour,
+        displayValue: i === 0 ? hourNames[12] : hourNames[i],
+        enabled: !dateFilter || dateFilter(date, 'hour'),
+        cssClasses: dateClass ? dateClass(date, 'hour') : undefined,
+        top: CLOCK_RADIUS - Math.cos(radian) * CLOCK_OUTER_RADIUS - CLOCK_TICK_RADIUS,
+        left: CLOCK_RADIUS + Math.sin(radian) * CLOCK_OUTER_RADIUS - CLOCK_TICK_RADIUS,
+      });
+    }
+  }
+
+  private _buildTwentyFourHourCells(dateFilter: DateFilterFn<D> | undefined, dateClass: MatCalendarCellClassFunction<D> | null) {
+    const hourNames = this._dateAdapter.getHourNames();
+
+    for (let i = 0; i < hourNames.length; i++) {
+      const radian = (i / 6) * Math.PI;
+      const outer = i > 0 && i < 13;
+      const radius = outer ? CLOCK_OUTER_RADIUS : CLOCK_INNER_RADIUS;
+      const hour = i % 12 ? i : (i === 0 ? 12 : 0);
+      const date = this._dateAdapter.createDate(
+        this._dateAdapter.getYear(this.activeDate),
+        this._dateAdapter.getMonth(this.activeDate),
+        this._dateAdapter.getDate(this.activeDate),
+        hour, 0, 0, 0
+      );
+      this._hours.push({
+        value: hour,
+        displayValue: hourNames[hour],
+        enabled: !dateFilter || dateFilter(date, 'hour'),
+        cssClasses: dateClass ? dateClass(date, 'hour') : undefined,
+        top: CLOCK_RADIUS - Math.cos(radian) * radius - CLOCK_TICK_RADIUS,
+        left: CLOCK_RADIUS + Math.sin(radian) * radius - CLOCK_TICK_RADIUS,
+        fontSize: outer ? '' : '80%',
+      });
+    }
+  }
+
+  private _buildMinuteCells(dateFilter: DateFilterFn<D> | undefined, dateClass: MatCalendarCellClassFunction<D> | null) {
+    const minuteNames = this._dateAdapter.getMinuteNames();
 
     for (let i = 0; i < minuteNames.length; i += 5) {
       const radian = (i / 30) * Math.PI;
@@ -322,27 +332,17 @@ export class MatClockView<D> implements AfterContentInit {
         this._dateAdapter.getMonth(this.activeDate),
         this._dateAdapter.getDate(this.activeDate),
         this._dateAdapter.getHours(this.activeDate),
-        i,
-        0,
-        0
+        i, 0, 0
       );
       this._minutes.push({
         value: i,
         displayValue: i === 0 ? '00' : minuteNames[i],
         enabled: !dateFilter || dateFilter(date, 'minute'),
         cssClasses: dateClass ? dateClass(date, 'minute') : undefined,
-        top:
-          CLOCK_RADIUS -
-          Math.cos(radian) * CLOCK_OUTER_RADIUS -
-          CLOCK_TICK_RADIUS,
-        left:
-          CLOCK_RADIUS +
-          Math.sin(radian) * CLOCK_OUTER_RADIUS -
-          CLOCK_TICK_RADIUS,
+        top: CLOCK_RADIUS - Math.cos(radian) * CLOCK_OUTER_RADIUS - CLOCK_TICK_RADIUS,
+        left: CLOCK_RADIUS + Math.sin(radian) * CLOCK_OUTER_RADIUS - CLOCK_TICK_RADIUS,
       });
     }
-
-    this._changeDetectorRef.markForCheck();
   }
 
   // Set Time
