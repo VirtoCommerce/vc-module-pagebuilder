@@ -1,14 +1,12 @@
 import { HttpErrorResponse } from "@angular/common/http";
 import { createAction, props } from "@ngrx/store";
 
-import { EventBusArgs } from "@core/models";
 import { TemplateEntryList } from '@shared/models';
 
 export const initShared = createAction('[shared] init');
 export const initApp = createAction('[app] init');
 export const empty = createAction('[app] empty');
 
-// todo: i think that exists the more flexible solution than next action
 export const setLivePreviewUrl = createAction('[shared] set live preview url');
 
 export const setHttpLoading = createAction('[shared] set http loading', props<{ isLoading: boolean }>());
@@ -23,7 +21,6 @@ export const templateChanged = createAction('[shared] template changed', props<{
 export const selectDefaultTemplate = createAction('[shared] select first template');
 export const changePreviewMode = createAction('[shared] change preview mode', props<{ mode: string | null }>());
 
-// export const setCurrentDirtyState = createAction('[shared] set current dirty state', props<{ dirty: boolean }>());
 export const setRootDirtyState = createAction('[shared] set root dirty state', props<{ templateKey: string, dirty: boolean }>());
 export const setDirtyState = createAction('[shared] set dirty state', props<{ templateKey: string, parentKey?: string, dirty: boolean }>());
 
