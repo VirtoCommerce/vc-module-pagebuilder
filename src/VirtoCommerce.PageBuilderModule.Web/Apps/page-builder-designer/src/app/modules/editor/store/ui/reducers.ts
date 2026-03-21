@@ -35,7 +35,7 @@ export const editorUIReducers = createReducer<EditorUIState>(
         ...state,
         dragSectionIds: [...state.dragSectionIds, sectionId]
     })),
-    on(actions.releaseDragSection, (state, { sectionId }) => ({
+    on(actions.releaseDragSection, (state, { sectionId: _sectionId }) => ({
         ...state,
         dragSectionIds: []
     })),

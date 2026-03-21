@@ -87,9 +87,9 @@ const selectCurrentTemplateAllSectionsSchemasUnsorted = createSelector(
     selectSectionsSchemas,
     fromShared.selectCurrentTemplateEntry,
     (schemas, entry) => entry?.sections
-        ? entry.sections.map(type => ({ ...schemas[type], type })).filter(x => !!x).sort()
+        ? entry.sections.map(type => ({ ...schemas[type], type })).filter(x => !!x)
         : (appHelpers.toList(schemas, 'type') as SectionSchema[])
-            .filter(x => !x.targetTemplates || x.targetTemplates.find(x => x === entry?.key))
+            .filter(x => !x.targetTemplates || x.targetTemplates.find(t => t === entry?.key))
 );
 
 function compareSchemas(a: { sort?: number, name: string, type?: string }, b: { sort?: number, name: string, type?: string }): number {
@@ -116,7 +116,7 @@ function compareSchemas(a: { sort?: number, name: string, type?: string }, b: { 
 
 const selectCurrentTemplateAllSectionsSchemas = createSelector(
     selectCurrentTemplateAllSectionsSchemasUnsorted,
-    list => list.sort(compareSchemas)
+    list => [...list].sort(compareSchemas)
 );
 
 const selectCurrentTemplateEmbeddedSettingsSchemas = createSelector(
@@ -159,9 +159,10 @@ export const selectSettingsSchemaFromRoute = createSelector(
     fromRoute.selectSettingsTypeParameter,
     selectSectionsSchemas,
     selectCurrentTemplateEmbeddedSettingsSchemas,
-    (settingsType, schemas, settingsSchema) => settingsType === null
-        ? null
-        : settingsType === '' ? settingsSchema : schemas[settingsType]
+    (settingsType, schemas, settingsSchema) => {
+        if (settingsType === null) return null;
+        return settingsType === '' ? settingsSchema : schemas[settingsType];
+    }
 );
 
 export const selectSectionModelFromRoute = createSelector(

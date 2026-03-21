@@ -23,10 +23,8 @@ export const selectAddItemTitle = createSelector(
     (section, schema) => {
         if (!section)
             return 'Add block';
-        // return 'Add section';
         const name = helpers.getSectionName(section, schema || null, 'section');
-        const result = `Add block to '${name}'`;
-        return result;
+        return `Add block to '${name}'`;
     }
 );
 
@@ -97,8 +95,8 @@ export const selectSectionsState = createSelector(
     selectCurrentDragSections,
     hasSelectedSection,
     selectKeyOfSectionWithSelectedBlock,
-    (state, model, schemas, dragSectionIds, hasSelectedSection, sectionKeyWithSelectedBlock) => {
-        const result = (schemas && model?.content.filter(x => x.type && x.id).reduce((result, section) => {
+    (state, model, schemas, dragSectionIds, isSectionSelected, sectionKeyWithSelectedBlock) => {
+        return (schemas && model?.content.filter(x => x.type && x.id).reduce((result, section) => {
             const canHaveChildren = (schemas[section.type]?.blocks?.length || 0) > 0;
             return <SectionStatesList>{
                 ...result,
@@ -113,13 +111,12 @@ export const selectSectionsState = createSelector(
                         [v.id]: {
                             isDragging: dragSectionIds.indexOf(v.id) !== -1,
                             selected: res[v.id]?.selected || false,
-                            selectable: !hasSelectedSection && (!sectionKeyWithSelectedBlock || sectionKeyWithSelectedBlock === section.id),
+                            selectable: !isSectionSelected && (!sectionKeyWithSelectedBlock || sectionKeyWithSelectedBlock === section.id),
                         }
                     }), state?.sections[section.id]?.blocks || {}) : {},
                 }
             };
         }, <SectionStatesList>{})) || <SectionStatesList>{};
-        return result;
     }
 );
 
@@ -135,7 +132,7 @@ export const editTemplateContext = createSelector(
     (template, templateState, sectionsState, sectionsSchemas, blocksSchemas, settings, settingsSchemas, currentDragSection) => {
         const selectedSectionsCount = Object.values(sectionsState).filter(x => x.selected).length;
         const selectedBlocksCount = Object.values(sectionsState).reduce((acc, value) => acc + Object.values(value.blocks || {}).filter(x => x.selected).length, 0);
-        const result = template && sectionsSchemas && blocksSchemas
+        return template && sectionsSchemas && blocksSchemas
             ? {
                 template, templateState, sectionsState, sectionsSchemas, blocksSchemas, settings, settingsSchemas,
                 selectedSectionsCount, selectedBlocksCount,
@@ -143,7 +140,6 @@ export const editTemplateContext = createSelector(
                 selectMode: selectedSectionsCount > 0 || selectedBlocksCount > 0
             }
             : null;
-        return result;
     }
 );
 
@@ -181,9 +177,8 @@ export const selectCurrentItemName = createSelector(
     fromData.selectSettingsFromRoute,
     fromData.selectCurrentSchemaForEdit,
     (block, section, settings, schema) => {
-        const defaultName = !!settings
-            ? (<string>schema?.['name'] || 'settings')
-            : (block ? 'current block' : 'current section');
+        const itemType = block ? 'current block' : 'current section';
+        const defaultName = !!settings ? (<string>schema?.['name'] || 'settings') : itemType;
         const name = helpers.getSectionName(block || section || settings || null, schema || null, defaultName);
         return 'Edit ' + name;
     }

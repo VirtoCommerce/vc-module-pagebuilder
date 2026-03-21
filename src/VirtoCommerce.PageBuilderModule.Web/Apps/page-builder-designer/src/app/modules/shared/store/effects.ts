@@ -2,12 +2,10 @@ import { ROUTER_NAVIGATED } from '@ngrx/router-store';
 import { Injectable, inject } from "@angular/core";
 import { Actions, createEffect, ofType } from "@ngrx/effects";
 import { Action, Store } from "@ngrx/store";
-import { delay } from 'rxjs/operators';
 import { catchError, switchMap, map, of, withLatestFrom, filter, tap, fromEvent } from "rxjs";
 
 import { EventsBusService, NotificationsService } from "@core/services";
-import { TemplatesService, MetaDataService, BroadcastPlatformService } from '@shared/services';
-import { AppConfig } from '@integration/services';
+import { TemplatesService, MetaDataService } from '@shared/services';
 
 import { BuilderState } from "./state";
 import * as actions from "./actions";
@@ -177,10 +175,10 @@ export class SharedEffects {
             this.store$.select(fromState.selectCurrentFilter)
         ),
         filter(([{ templateKey }]) => !!templateKey),
-        map(([{ templateKey, onInit }, entries, filter]) => ({ templateEntry: entries[templateKey], onInit, entries, filter, templateKey })),
+        map(([{ templateKey, onInit }, entries, currentFilter]) => ({ templateEntry: entries[templateKey], onInit, entries, currentFilter, templateKey })),
         filter(({ templateEntry }) => !!templateEntry),
-        switchMap(({ templateEntry, onInit, entries, filter, templateKey }) => {
-            const context = { item: templateEntry, filter, templates: entries };
+        switchMap(({ templateEntry, onInit, entries, currentFilter, templateKey }) => {
+            const context = { item: templateEntry, filter: currentFilter, templates: entries };
             return this.templatesService.getChildrenTemplates(templateEntry!, context).pipe(
                 switchMap(childrenEntries => {
                     const result: Action[] = [actions.loadChildrenTemplatesSuccess({ childrenEntries, parentTemplate: templateKey })];
