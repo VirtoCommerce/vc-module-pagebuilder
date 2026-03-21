@@ -12,7 +12,7 @@ import { EvaluatorService } from './evaluator.service';
 })
 export class AppConfig {
   private readonly SESSION_ID = 'sessionId';
-  private _context: any = null;
+  private _cachedContext: any = null;
 
   private readonly env = inject(EnvironmentRef);
   private readonly cookies = inject(CookieService);
@@ -23,7 +23,7 @@ export class AppConfig {
 
   initConfigWith(config: any) {
     Object.assign(this.mergedConfig, config);
-    this._context = null; // reset context to new values
+    this._cachedContext = null; // reset context to new values
     for (const property of Object.keys(this.mergedConfig)) {
       Object.defineProperty(this.settings, property, {
         get: () => {
@@ -62,7 +62,7 @@ export class AppConfig {
   }
 
   private get context(): any {
-    if (!this._context) {
+    if (!this._cachedContext) {
       const params: any = {};
       const searchParams = new URLSearchParams(this.env.nativeWindow.location.search);
       for (const [key, value] of searchParams) {
@@ -80,7 +80,7 @@ export class AppConfig {
         }
       }
 
-      this._context = {
+      this._cachedContext = {
         config: this.mergedConfig,
         settings: this.settings,
         location: {
@@ -89,7 +89,7 @@ export class AppConfig {
         }
       };
     }
-    return this._context;
+    return this._cachedContext;
   }
 
   getCurrentSessionId(): string {
