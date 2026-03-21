@@ -37,8 +37,6 @@ import {
   addMinutes,
   addSeconds,
 } from 'date-fns';
-// import { zonedTimeToUtc } from 'date-fns-tz/esm';
-// import { enUS } from 'date-fns/esm/locale';
 import { fromZonedTime } from 'date-fns-tz';
 import { enUS } from 'date-fns/locale';
 import { MAT_DATE_FNS_LOCALES } from './date-fns-locales';
@@ -156,7 +154,7 @@ export class DateFnsAdapter extends DateAdapter<Date> {
     return getSeconds(date);
   }
 
-  setSeconds(date: Date, seconds: number, ms?: number): Date {
+  setSeconds(date: Date, seconds: number, _ms?: number): Date {
     // ms parameter is not used in this datepicker implementation
     return setSeconds(date, seconds);
   }
@@ -321,7 +319,7 @@ export class DateFnsAdapter extends DateAdapter<Date> {
     return addMinutes(date, minutes);
   }
 
-  addCalendarSeconds(date: Date, seconds: number, ms?: number): Date {
+  addCalendarSeconds(date: Date, seconds: number, _ms?: number): Date {
     return addSeconds(date, seconds);
   }
 
