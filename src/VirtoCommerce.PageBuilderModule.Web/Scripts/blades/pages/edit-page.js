@@ -107,13 +107,6 @@ angular.module('virtoCommerce.pageBuilderModule')
                 return $q.resolve();
             };
 
-            function undraftUrl(url) {
-                if (value && value.endsWith('-draft')) {
-                    return value.slice(0, -6);
-                }
-                return value;
-            }
-
             function compareFileNames(file1, file2) {
                 return undraftUrl(file1) === undraftUrl(file2);
             }
@@ -381,12 +374,12 @@ angular.module('virtoCommerce.pageBuilderModule')
 
             function joinPath(path1, path2) {
                 if (!path1) {
-                    return '/' + path2;
+                    return `/${path2}`;
                 }
                 if (path1.endsWith('/')) {
-                    return path1 + path2;
+                    return `${path1}${path2}`;
                 }
-                return path1 + '/' + path2;
+                return `${path1}/${path2}`;
             }
 
             function savePage(newFileName, originFileName) {
@@ -445,7 +438,7 @@ angular.module('virtoCommerce.pageBuilderModule')
             }
 
             function updateToolbarCommands() {
-                $scope.blade.toolbarCommands = blade.toolbarCommands.filter(x => x != publishCommand && x != unpublishCommand);
+                $scope.blade.toolbarCommands = blade.toolbarCommands.filter(x => x !== publishCommand && x !== unpublishCommand);
                 if ($scope.blade.published && !$scope.blade.hasChanges) {
                     $scope.blade.toolbarCommands.splice(4, 0, unpublishCommand);
                 } else {

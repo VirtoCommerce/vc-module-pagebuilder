@@ -23,12 +23,10 @@ angular.module('virtoCommerce.pageBuilderModule')
 
         return {
             prepareFilename: function (entity) {
-                var result = insertLang(entity.name, entity.language);
-                return result;
+                return insertLang(entity.name, entity.language);
             },
             prepareRelativeUrl: function (entity) {
-                var result = insertLang(entity.relativeUrl, entity.language);
-                return result;
+                return insertLang(entity.relativeUrl, entity.language);
             }
         };
     }]);

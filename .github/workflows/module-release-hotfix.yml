@@ -77,6 +77,6 @@ jobs:
     - name: Increment Version
       run: |
         vc-build IncrementPatch
-        git add Directory.Build.props *module.manifest
+        git add Directory.Build.props ./*module.manifest
         git commit -m "ci: Auto IncrementPatch"
         git push

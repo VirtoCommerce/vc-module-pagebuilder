@@ -30,7 +30,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Search
                 content = page["content"]?.ToString();
             }
 
-            if (content.IsNullOrEmpty())
+            if (content!.IsNullOrEmpty())
             {
                 throw new InvalidDataException($"File '{documentId}' has a wrong format");
             }
@@ -47,7 +47,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Search
                 {
                     x.Value = x.Value.ToObject<DateTime>().ToString(CultureInfo.InvariantCulture);
                 }
-                if (x.Name == "permalink" && !value.StartsWith("/"))
+                if (x.Name == "permalink" && !value.StartsWith('/'))
                 {
                     value = "/" + value;
                 }
