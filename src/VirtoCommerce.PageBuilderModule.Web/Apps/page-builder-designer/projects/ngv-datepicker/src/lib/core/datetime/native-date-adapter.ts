@@ -123,7 +123,7 @@ export class NativeDateAdapter extends DateAdapter<Date> {
 
   setSeconds(date: Date, value: number, ms?: number): Date {
     const clone = this.clone(date);
-    clone.setSeconds(value, ms);
+    clone.setSeconds(value, ms ?? clone.getMilliseconds());
     return clone;
   }
 

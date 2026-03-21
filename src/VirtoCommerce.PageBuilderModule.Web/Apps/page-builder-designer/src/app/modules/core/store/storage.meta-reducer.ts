@@ -1,4 +1,3 @@
-import { InjectionToken } from '@angular/core';
 import { ActionReducer, Action } from '@ngrx/store';
 import { merge, pick } from 'lodash-es';
 import { LocalStorageService } from './local-storage.service';

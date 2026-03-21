@@ -23,8 +23,7 @@ export class JwtStorageService {
         try {
             const jwt = localStorage.getItem(JwtStorageService.STORAGEKEY);
             if (jwt) {
-                const info = JSON.parse(jwt);
-                return info;
+                return JSON.parse(jwt);
             }
         } catch (e) {
             console.log('wrong auth info');

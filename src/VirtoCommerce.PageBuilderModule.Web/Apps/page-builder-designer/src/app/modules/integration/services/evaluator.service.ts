@@ -19,13 +19,11 @@ export class EvaluatorService {
             return null;
         }
         if (typeof value === 'string') {
-            const result = appHelpers.template(value, context);
-            return result;
+            return appHelpers.template(value, context);
         } else {
             if (Array.isArray(value)) {
                 // todo: not tested
-                const result = value.map(v => this.evaluateObject(v, context));
-                return result;
+                return value.map(v => this.evaluateObject(v, context));
             }
             if (typeof value === 'object') {
                 const result: any = {};

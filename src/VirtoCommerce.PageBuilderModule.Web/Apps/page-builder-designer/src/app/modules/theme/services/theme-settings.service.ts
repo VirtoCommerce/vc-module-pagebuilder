@@ -1,6 +1,5 @@
 import { inject, Injectable } from "@angular/core";
-import { HttpErrorResponse } from '@angular/common/http';
-import { map, Observable, of } from 'rxjs';
+import { map, Observable } from 'rxjs';
 
 import { BuilderHttpClient, AppConfig } from '@integration/services';
 import { SettingsDataModel, SettingsSchemaModel } from '@theme/models';

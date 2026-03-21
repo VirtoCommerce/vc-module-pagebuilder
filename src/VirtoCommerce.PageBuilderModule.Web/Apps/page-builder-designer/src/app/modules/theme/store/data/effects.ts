@@ -1,6 +1,6 @@
 import { Injectable, inject } from "@angular/core";
 import { of } from "rxjs";
-import { withLatestFrom, filter, switchMapTo, map, catchError, switchMap, tap } from "rxjs/operators";
+import { withLatestFrom, filter, switchMap, map, catchError } from "rxjs/operators";
 import { Actions, createEffect, ofType } from "@ngrx/effects";
 import { Store } from "@ngrx/store";
 import { ROUTER_NAVIGATED, RouterNavigatedAction } from "@ngrx/router-store";
@@ -43,7 +43,7 @@ export class ThemeDataEffects {
             this.store$.select(selectors.selectCurrentSettings),
         ),
         filter(([, settings]) => settings === null),
-        switchMapTo([actions.loadSettingsData(), actions.loadSettingsSchema()])
+        switchMap(() => [actions.loadSettingsData(), actions.loadSettingsSchema()])
     ));
 
     loadSettingsData$ = createEffect(() => this.actions$.pipe(

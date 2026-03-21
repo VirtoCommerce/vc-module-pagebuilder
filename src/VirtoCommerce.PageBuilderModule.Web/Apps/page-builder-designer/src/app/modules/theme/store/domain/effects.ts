@@ -26,7 +26,6 @@ export class ThemeDomainEffects {
             this.store$.select(domainSelectors.selectOpenedGroups)
         ),
         map(([{ group }, groups]) => {
-            // const route = this.getAllRouteParameters(currentRoute);
             const newGroups = groups.indexOf(group.name) === -1 ? [...groups.filter(x => !!x), group.name] : [...groups.filter(g => g !== group.name)];
             return routingActions.go({ queryParams: { groups: newGroups.join(',') || undefined } })
         })

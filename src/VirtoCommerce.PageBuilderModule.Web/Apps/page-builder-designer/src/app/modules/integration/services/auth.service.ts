@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { tap, Observable } from 'rxjs';
+import { Observable } from 'rxjs';
 import { BuilderHttpClient } from './builder-http.client';
 import { HttpHeaders } from '@angular/common/http';
 
@@ -17,8 +17,7 @@ export class AuthService {
             'content-type': 'application/x-www-form-urlencoded'
         });
         const body = `grant_type=refresh_token&refresh_token=${token}`;
-        const result = this.http.post<any>(url, body, { headers });
-        return result;
+        return this.http.post<any>(url, body, { headers });
     }
 
 }

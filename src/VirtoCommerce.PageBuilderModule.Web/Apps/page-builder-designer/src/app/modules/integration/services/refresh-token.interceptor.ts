@@ -24,18 +24,7 @@ export class RefreshTokenInterceptor implements HttpInterceptor {
     intercept(request: HttpRequest<any>, next: HttpHandler): Observable<any> {
         return this.addAuthData(request).pipe(
             switchMap(req => next.handle(req).pipe(
-                catchError(err => {
-                    if (err instanceof HttpErrorResponse) {
-                        switch (err.status) {
-                            // todo: do we need to display login popup
-                            // case 401:
-                            //     return this.handle401Error(request, next);
-                            // case 400:
-                            //     return <any>this.authService.logout();
-                        }
-                    }
-                    return throwError(() => err);
-                })
+                catchError(err => throwError(() => err))
             ))
         );
     }
@@ -83,9 +72,8 @@ export class RefreshTokenInterceptor implements HttpInterceptor {
 
     private enrichRequest(request: HttpRequest<any>, token: string): HttpRequest<any> {
         // todo: we need add header to local only requests
-        const cloned = request.clone({
+        return request.clone({
             headers: request.headers.set('Authorization', 'Bearer ' + token)
         });
-        return cloned;
     }
 }

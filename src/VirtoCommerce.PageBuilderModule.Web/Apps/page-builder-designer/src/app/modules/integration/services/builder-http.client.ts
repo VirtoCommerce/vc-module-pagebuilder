@@ -128,8 +128,7 @@ export class BuilderHttpClient extends HttpClient {
         if (Array.isArray(request)) {
             return <any>request.map(x => this.generateRequestInternal(x, data, context));
         }
-        const result = this.generateRequestInternal(request, data, context);
-        return result;
+        return this.generateRequestInternal(request, data, context);
     }
 
     private generateRequestInternal(request: string | ServerRequestDescriptor | null, data: any = null, context: any = null): ServerRequestDescriptor | null {

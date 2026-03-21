@@ -1,17 +1,13 @@
 import { Injectable, inject } from "@angular/core";
 import { Actions, createEffect, ofType } from "@ngrx/effects";
 import { Store } from "@ngrx/store";
-import { withLatestFrom, filter, mapTo, map, switchMapTo } from "rxjs/operators";
+import { withLatestFrom, filter, map, switchMap } from "rxjs/operators";
 
 import * as actions from "../actions";
 import { BuilderState } from "../state";
 
-import { broadcastPreviewMessage } from '@shared/store/actions';
 import * as routingActions from '@shared/routing/actions';
 import * as routingSelectors from '@shared/routing'
-
-import * as domainSelectors from "../selectors";
-import { ActivatedRouteSnapshot } from "@angular/router";
 
 @Injectable({
     providedIn: 'root'
@@ -22,7 +18,7 @@ export class ThemeUiEffects {
 
     gotoPresets$ = createEffect(() => this.actions$.pipe(
         ofType(actions.gotoPresets),
-        mapTo(routingActions.go({ path: ['/themes/presets'] }))
+        map(() => routingActions.go({ path: ['/themes/presets'] }))
     ));
 
     gotoPreviewPreset$ = createEffect(() => this.actions$.pipe(
@@ -43,7 +39,7 @@ export class ThemeUiEffects {
 
     exitPresets$ = createEffect(() => this.actions$.pipe(
         ofType(actions.exitPresets, actions.applyPreset),
-        switchMapTo([
+        switchMap(() => [
             routingActions.go({ path: ['/themes'], queryParams: { preset: undefined } }),
             actions.updateInPreview({ settings: null })
         ])
@@ -51,7 +47,7 @@ export class ThemeUiEffects {
 
     exitSettings$ = createEffect(() => this.actions$.pipe(
         ofType(actions.exitSettings),
-        mapTo(routingActions.jump({ path: ['/pages'] }))
+        map(() => routingActions.jump({ path: ['/pages'] }))
     ));
 
     notifySettingsChanged$ = createEffect(() => this.actions$.pipe(
