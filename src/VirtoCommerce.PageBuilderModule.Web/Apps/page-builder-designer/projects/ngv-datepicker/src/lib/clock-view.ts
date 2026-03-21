@@ -303,7 +303,12 @@ export class MatClockView<D> implements AfterContentInit {
       const radian = (i / 6) * Math.PI;
       const outer = i > 0 && i < 13;
       const radius = outer ? CLOCK_OUTER_RADIUS : CLOCK_INNER_RADIUS;
-      const hour = i % 12 ? i : (i === 0 ? 12 : 0);
+      let hour: number;
+      if (i % 12) {
+        hour = i;
+      } else {
+        hour = i === 0 ? 12 : 0;
+      }
       const date = this._dateAdapter.createDate(
         this._dateAdapter.getYear(this.activeDate),
         this._dateAdapter.getMonth(this.activeDate),
@@ -351,16 +356,19 @@ export class MatClockView<D> implements AfterContentInit {
     const triggerRect = trigger.getBoundingClientRect();
     const width = trigger.offsetWidth;
     const height = trigger.offsetHeight;
-    const pageX =
-      event.pageX !== undefined ? event.pageX : event.touches[0].pageX;
-    const pageY =
-      event.pageY !== undefined ? event.pageY : event.touches[0].pageY;
+    const pageX = event.pageX !== undefined ? event.pageX : event.touches[0].pageX;
+    const pageY = event.pageY !== undefined ? event.pageY : event.touches[0].pageY;
     const x = width / 2 - (pageX - triggerRect.left - window.pageXOffset);
     const y = height / 2 - (pageY - triggerRect.top - window.pageYOffset);
     const clockStep = this.clockStep();
-    const unit =
-      Math.PI /
-      (this.inHourView() ? 6 : clockStep ? 30 / clockStep : 30);
+
+    let unitDivider: number;
+    if (this.inHourView()) {
+      unitDivider = 6;
+    } else {
+      unitDivider = clockStep ? 30 / clockStep : 30;
+    }
+    const unit = Math.PI / unitDivider;
     const z = Math.sqrt(x * x + y * y);
     const avg = (width * (CLOCK_OUTER_RADIUS / 100) + width * (CLOCK_INNER_RADIUS / 100)) / 2;
     const outer = this.inHourView() && z > avg - 16 /* button radius */;
@@ -369,27 +377,11 @@ export class MatClockView<D> implements AfterContentInit {
     if (radian < 0) {
       radian = Math.PI * 2 + radian;
     }
-    let value = Math.round(radian / unit);
+    const rawValue = Math.round(radian / unit);
 
-    let date = this._dateAdapter.clone(this.activeDate);
-
-    if (this.inHourView()) {
-      if (value === 12) {
-        value = 0;
-      }
-      value = this.twelveHour()
-        ? (this._anteMeridian ? value : value + 12)
-        : (outer ? value : value + 12);
-      date = this._dateAdapter.setHours(date, value);
-    } else {
-      if (clockStep) {
-        value *= clockStep;
-      }
-      if (value === 60) {
-        value = 0;
-      }
-      date = this._dateAdapter.setMinutes(date, value);
-    }
+    const date = this.inHourView()
+      ? this._applyHourValue(rawValue, outer)
+      : this._applyMinuteValue(rawValue, clockStep);
 
     // validate if the resulting value is disabled and do not take action
     const dateFilter = this.dateFilter();
@@ -402,7 +394,27 @@ export class MatClockView<D> implements AfterContentInit {
     this.selectedChange.emit(this.activeDate);
   }
 
-  _focusActiveCell() {}
+  private _applyHourValue(rawValue: number, outer: boolean): D {
+    let value = rawValue === 12 ? 0 : rawValue;
+    if (this.twelveHour()) {
+      value = this._anteMeridian ? value : value + 12;
+    } else {
+      value = outer ? value : value + 12;
+    }
+    return this._dateAdapter.setHours(this._dateAdapter.clone(this.activeDate), value);
+  }
+
+  private _applyMinuteValue(rawValue: number, clockStep: number): D {
+    let value = clockStep ? rawValue * clockStep : rawValue;
+    if (value === 60) {
+      value = 0;
+    }
+    return this._dateAdapter.setMinutes(this._dateAdapter.clone(this.activeDate), value);
+  }
+
+  _focusActiveCell() {
+    // duck-typing contract with calendar body, should be removed once we have a common base class for both calendar and clock
+  }
 
   /**
    * @param obj The object to check.

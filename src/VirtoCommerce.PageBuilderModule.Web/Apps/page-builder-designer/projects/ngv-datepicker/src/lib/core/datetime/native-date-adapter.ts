@@ -290,7 +290,14 @@ export class NativeDateAdapter extends DateAdapter<Date> {
     // Note: the additional + 12 % 12 ensures we end up with a positive number, since JS % doesn't
     // guarantee this.
     if (this.getMonth(newDate) != ((this.getMonth(date) + months) % 12 + 12) % 12) {
-      newDate = this._createDateWithOverflow(this.getYear(newDate), this.getMonth(newDate), 0);
+      newDate = this._createDateWithOverflow(
+        this.getYear(newDate),
+        this.getMonth(newDate),
+        0,
+        this.getHours(date),
+        this.getMinutes(date),
+        this.getSeconds(date),
+      );
     }
 
     return newDate;
