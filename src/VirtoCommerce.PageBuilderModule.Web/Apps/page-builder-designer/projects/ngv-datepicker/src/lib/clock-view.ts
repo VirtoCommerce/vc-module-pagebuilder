@@ -412,9 +412,9 @@ export class MatClockView<D> implements AfterContentInit {
     return this._dateAdapter.setMinutes(this._dateAdapter.clone(this.activeDate), value);
   }
 
-  _focusActiveCell() {
-    // duck-typing contract with calendar body, should be removed once we have a common base class for both calendar and clock
-  }
+  // No-op: clock view has no focusable cells unlike month/year views.
+  // Required to satisfy the implicit _focusActiveCell contract shared by all calendar view components.
+  _focusActiveCell() {}
 
   /**
    * @param obj The object to check.
