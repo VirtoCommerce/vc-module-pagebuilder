@@ -134,23 +134,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             var jsonSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
             foreach (var file in files)
             {
-                try
-                {
-                    var key = GetKey(type, file);
-                    if (!fileInfoes.TryGetValue(key, out _))
-                    {
-                        var pageContent = GetPageContent(file, storageProvider);
-                        if (pageContent != null)
-                        {
-                            var content = JsonConvert.SerializeObject(pageContent, jsonSettings);
-                            fileInfoes.Add(key, content);
-                        }
-                    }
-                }
-                catch
-                {
-                    // Skip files that cannot be read or parsed
-                }
+                TryAddFileContent(file, type, storageProvider, fileInfoes, jsonSettings);
             }
             var result = $"{{{string.Join(", ", fileInfoes.Keys.Select(x => $"\"{x}\": {fileInfoes[x]}"))}}}";
             return result;
@@ -219,6 +203,29 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             var response = string.Join(", ", files.Select(file => $"\"{GetKey(null, file)}\": {GetContent(file, storageProvider)}"));
             var result = $"{{{response}}}";
             return result;
+        }
+
+        private void TryAddFileContent(BlobEntry file, string type, IBlobContentStorageProvider storageProvider, Dictionary<string, string> fileInfoes, JsonSerializerSettings jsonSettings)
+        {
+            try
+            {
+                var key = GetKey(type, file);
+                if (fileInfoes.ContainsKey(key))
+                {
+                    return;
+                }
+
+                var pageContent = GetPageContent(file, storageProvider);
+                if (pageContent != null)
+                {
+                    var content = JsonConvert.SerializeObject(pageContent, jsonSettings);
+                    fileInfoes.Add(key, content);
+                }
+            }
+            catch
+            {
+                // Skip files that cannot be read or parsed
+            }
         }
 
         private static string GetKey(string type, BlobEntry entry)

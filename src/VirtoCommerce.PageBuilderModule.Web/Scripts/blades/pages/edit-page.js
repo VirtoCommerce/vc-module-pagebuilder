@@ -9,6 +9,9 @@ angular.module('virtoCommerce.pageBuilderModule')
 
             var momentFormat = "YYYYMMDDHHmmss";
 
+            var formScope;
+            $scope.setForm = function (form) { $scope.formScope = formScope = form; };
+
             var blade = $scope.blade;
             blade.updatePermission = 'content:update';
             blade.designerUrl = null;
@@ -453,9 +456,6 @@ angular.module('virtoCommerce.pageBuilderModule')
             blade.onClose = function (closeCallback) {
                 bladeNavigationService.showConfirmationIfNeeded(isDirty(), canSave(), blade, $scope.saveChanges, closeCallback, "content.dialogs.page-save.title", "content.dialogs.page-save.message");
             };
-
-            var formScope;
-            $scope.setForm = function (form) { $scope.formScope = formScope = form; };
 
             $scope.getDictionaryValues = function (property, callback) {
                 dictionaryItemsApi.query({ id: property.objectType, propertyId: property.id }, callback);

@@ -42,20 +42,7 @@ public class PagesMigrationService(
             var groups = await groupedPageSearchService.SearchAsync(criteria);
             while (groups.Results.Count > 0)
             {
-                foreach (var group in groups.Results)
-                {
-                    var page = group.Pages.FirstOrDefault(x => x.Status == PageStatuses.Draft)
-                               ?? group.Pages.FirstOrDefault(x => x.Status == PageStatuses.Published);
-
-                    if (page == null)
-                    {
-                        continue;
-                    }
-
-                    var content = await groupedPageService.LoadContent(page.Id);
-                    MigrateGroup(group, content);
-                }
-
+                await MigrateBatch(groups.Results);
                 await groupedPageService.SaveChangesAsync(groups.Results);
                 criteria.Skip += step;
                 groups = await groupedPageSearchService.SearchAsync(criteria);
@@ -64,6 +51,23 @@ public class PagesMigrationService(
         finally
         {
             await settingsManager.SetValueAsync(Settings.Migration.MetadataFromContentMigrated.Name, true);
+        }
+    }
+
+    private async Task MigrateBatch(IList<GroupedPageBuilderPage> groups)
+    {
+        foreach (var group in groups)
+        {
+            var page = group.Pages.FirstOrDefault(x => x.Status == PageStatuses.Draft)
+                       ?? group.Pages.FirstOrDefault(x => x.Status == PageStatuses.Published);
+
+            if (page == null)
+            {
+                continue;
+            }
+
+            var content = await groupedPageService.LoadContent(page.Id);
+            MigrateGroup(group, content);
         }
     }
 
