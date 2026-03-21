@@ -120,7 +120,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             return Content($"{{ \"sections\": {sections}, \"blocks\": {blocks}, \"objects\": {objects}, \"shared\": {shared} }}", "application/json");
         }
 
-        // todo: create model for files and descriptors (template entry)
         [HttpGet]
         [Route("search")]
         public async Task<string> Search(string storeId, string theme, string type, string folder, string pattern = null, string keyword = null)

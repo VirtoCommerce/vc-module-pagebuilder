@@ -5,12 +5,15 @@ angular.module('virtoCommerce.pageBuilderModule')
         'platformWebApp.dynamicProperties.dictionaryItemsApi', 'platformWebApp.settings',
         'virtoCommerce.pageBuilderModule.resourceNameService', 'virtoCommerce.searchModule.searchIndexation', "moment",
         'virtoCommerce.contentModule.broadcastChannelFactory', 'virtoCommerce.contentModule.files-draft',
-        function ($rootScope, $scope, $q, validators, contentApi, pageBuilderApi, bladeNavigationService, dialogService, dictionaryItemsApi, settings, nameHelper, searchApi, moment, broadcastChannelFactory, filesDraftService) {
+        function ($rootScope, $scope, $q, validators, contentApi, pageBuilderApi, bladeNavigationService, dialogService,
+            dictionaryItemsApi, settings, nameHelper, searchApi, moment, broadcastChannelFactory, filesDraftService) {
 
             var momentFormat = "YYYYMMDDHHmmss";
 
             var formScope;
-            $scope.setForm = function (form) { $scope.formScope = formScope = form; };
+            $scope.setForm = function (form) {
+                $scope.formScope = formScope = form;
+            };
 
             var blade = $scope.blade;
             blade.updatePermission = 'content:update';
@@ -22,16 +25,15 @@ angular.module('virtoCommerce.pageBuilderModule')
 
             blade.initialize = function () {
                 channel = broadcastChannelFactory(blade);
-                blade.designerUrl = window.location.origin +
-                    (window.location.pathname === '/' ? '' : window.location.pathname) +
-                    '/Modules/$(VirtoCommerce.PageBuilderModule)/Content/page-builder-designer/index.html';
+                var pathname = window.location.pathname === '/' ? '' : window.location.pathname;
+                blade.designerUrl = `${window.location.origin + pathname}/Modules/$(VirtoCommerce.PageBuilderModule)/Content/page-builder-designer/index.html`;
                 if (blade.isNew) {
                     blade.isLoading = false;
 
                     fillMetadata();
                     $scope.blade.isDraft = true;
                     $scope.blade.currentEntity.content = [];
-                    $scope.blade.currentEntity.metadata = { // todo: load from settings
+                    $scope.blade.currentEntity.metadata = { // debt: load from settings
                         contentType: blade.contentType,
                         parent: 'page',
                         template: 'page'
@@ -156,7 +158,6 @@ angular.module('virtoCommerce.pageBuilderModule')
                     {
                         name: "content.commands.preview-page", icon: 'fa fa-eye',
                         executeMethod: function () {
-                            // blade.isLoading = true;
                             var showPreview = function (storeUrl) {
                                 storeUrl = (storeUrl || blade.storeUrl).replace(/\/$/, '');
                                 if (storeUrl) {
@@ -343,7 +344,8 @@ angular.module('virtoCommerce.pageBuilderModule')
                 if (blade.designerUrl) {
                     var relativeUrl = filesDraftService.getDraftFileName(blade);
                     var previewId = filesDraftService.getDocumentId(blade, true);
-                    window.open(`${blade.designerUrl}?storeId=${blade.storeId}#/pages?type=${blade.contentType}&path=${relativeUrl}&previewId=${encodeURIComponent(previewId)}`, '_blank');
+                    var parameters = `storeId=${blade.storeId}#/pages?type=${blade.contentType}&path=${relativeUrl}&previewId=${encodeURIComponent(previewId)}`;
+                    window.open(`${blade.designerUrl}?${parameters}`, '_blank');
                 } else {
                     var dialog = {
                         id: "noUrlInStore",
@@ -393,7 +395,6 @@ angular.module('virtoCommerce.pageBuilderModule')
                 var oldLanguage = $scope.blade.origEntity && $scope.blade.origEntity.language;
                 var newLanguage = $scope.blade.currentEntity.language;
 
-                //$scope.blade.currentEntity.content = JSON.stringify($scope.blade.currentEntity.blocks, null, 4);
                 $scope.blade.currentEntity.name = newFileName;
                 pageBuilderApi.savePage({
                     contentType: blade.contentType,
@@ -454,7 +455,8 @@ angular.module('virtoCommerce.pageBuilderModule')
             }
 
             blade.onClose = function (closeCallback) {
-                bladeNavigationService.showConfirmationIfNeeded(isDirty(), canSave(), blade, $scope.saveChanges, closeCallback, "content.dialogs.page-save.title", "content.dialogs.page-save.message");
+                bladeNavigationService.showConfirmationIfNeeded(isDirty(), canSave(), blade,
+                    $scope.saveChanges, closeCallback, "content.dialogs.page-save.title", "content.dialogs.page-save.message");
             };
 
             $scope.getDictionaryValues = function (property, callback) {
@@ -465,7 +467,7 @@ angular.module('virtoCommerce.pageBuilderModule')
             blade.headIcon = 'fa fa-inbox';
 
             blade.initialize();
-                       
+
             channel.onmessage = function (event) {
                 var contentType = event.data.contentType;
                 if (contentType === blade.contentType &&
