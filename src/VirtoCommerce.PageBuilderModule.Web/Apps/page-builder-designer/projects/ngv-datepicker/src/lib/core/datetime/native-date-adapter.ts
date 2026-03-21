@@ -7,11 +7,10 @@
  */
 
 import {Platform} from '@angular/cdk/platform';
-import {Inject, Injectable, Optional, isDevMode} from '@angular/core';
+import {Injectable, inject, isDevMode} from '@angular/core';
 import {MAT_DATE_LOCALE} from '@angular/material/core';
 import {DateAdapter} from './date-adapter';
 
-// TODO(mmalerba): Remove when we no longer support safari 9.
 /** Whether the browser supports the Intl API. */
 let SUPPORTS_INTL_API: boolean;
 
@@ -78,25 +77,11 @@ export class NativeDateAdapter extends DateAdapter<Date> {
   /** Whether to clamp the date between 1 and 9999 to avoid IE and Edge errors. */
   private readonly _clampDate: boolean;
 
-  /**
-   * Whether to use `timeZone: 'utc'` with `Intl.DateTimeFormat` when formatting dates.
-   * Without this `Intl.DateTimeFormat` sometimes chooses the wrong timeZone, which can throw off
-   * the result. (e.g. in the en-US locale `new Date(1800, 7, 14).toLocaleDateString()`
-   * will produce `'8/13/1800'`.
-   *
-   * TODO(mmalerba): drop this variable. It's not being used in the code right now. We're now
-   * getting the string representation of a Date object from its utc representation. We're keeping
-   * it here for sometime, just for precaution, in case we decide to revert some of these changes
-   * though.
-   */
-  useUtcForDisplay: boolean = true;
-
-  constructor(@Optional() @Inject(MAT_DATE_LOCALE) matDateLocale: string, platform: Platform) {
+  constructor() {
+    const matDateLocale = inject<string>(MAT_DATE_LOCALE, { optional: true });
+    const platform = inject(Platform);
     super();
-    super.setLocale(matDateLocale);
-
-    // IE does its own time zone correction, so we disable this on IE.
-    this.useUtcForDisplay = !platform.TRIDENT;
+    super.setLocale(matDateLocale ?? '');
     this._clampDate = platform.TRIDENT || platform.EDGE;
   }
 
