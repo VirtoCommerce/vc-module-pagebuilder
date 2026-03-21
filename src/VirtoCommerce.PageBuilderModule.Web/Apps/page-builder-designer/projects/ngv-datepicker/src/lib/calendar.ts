@@ -52,6 +52,8 @@ import {
 import { MatYearView } from './year-view';
 import { MAT_SINGLE_DATE_SELECTION_MODEL_PROVIDER, DateRange } from './date-selection-model';
 
+export type CalendarSelectedValue<D> = DateRange<D> | D | null;
+
 /** Counter used to generate unique IDs. */
 let uniqueId = 0;
 
@@ -333,17 +335,17 @@ export class MatCalendar<D> implements OnChanges {
 
   /** The currently selected date. */
   @Input()
-  get selected(): DateRange<D> | D | null {
+  get selected(): CalendarSelectedValue<D> {
     return this._selected;
   }
-  set selected(value: DateRange<D> | D | null) {
+  set selected(value: CalendarSelectedValue<D>) {
     if (value instanceof DateRange) {
       this._selected = value;
     } else {
       this._selected = this._dateAdapter.getValidDateOrNull(this._dateAdapter.deserialize(value));
     }
   }
-  private _selected: DateRange<D> | D | null = null;
+  private _selected: CalendarSelectedValue<D> = null;
 
   /** The minimum selectable date. */
   @Input()
@@ -483,14 +485,17 @@ export class MatCalendar<D> implements OnChanges {
       this.activeDate = this.startAt || this._dateAdapter.today();
 
       // Assign to the private property since we don't want to move focus on init.
-      this._currentView =
-        this.type === 'year'
-          ? 'multi-year'
-          : this.type === 'month'
-            ? 'year'
-            : this.type === 'time' && !['hour', 'minute'].includes(this.startView())
-              ? 'hour'
-              : this.startView();
+      let initialView: MatCalendarView;
+      if (this.type === 'year') {
+        initialView = 'multi-year';
+      } else if (this.type === 'month') {
+        initialView = 'year';
+      } else if (this.type === 'time' && !['hour', 'minute'].includes(this.startView())) {
+        initialView = 'hour';
+      } else {
+        initialView = this.startView();
+      }
+      this._currentView = initialView;
     });
 
     afterEveryRender(() => {

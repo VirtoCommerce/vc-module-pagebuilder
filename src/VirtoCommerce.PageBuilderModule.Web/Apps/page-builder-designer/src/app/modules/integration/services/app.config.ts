@@ -27,7 +27,7 @@ export class AppConfig {
     for (const property of Object.keys(this.mergedConfig)) {
       Object.defineProperty(this.settings, property, {
         get: () => {
-          return this.evaluator.evaluateProperty(this.mergedConfig, property, this.context);
+          return this.evaluator.evaluateProperty(this.mergedConfig, property, this.getContext());
         }
       });
     }
@@ -48,20 +48,6 @@ export class AppConfig {
   }
 
   getContext(): any {
-    return this.context;
-  }
-
-  private mergeContexts(additionalContext: any) {
-    const result = { ...this.context, ...additionalContext };
-    Object.defineProperty(result, 'sessionId', {
-      get: () => {
-        return this.getCurrentSessionId();
-      }
-    });
-    return result;
-  }
-
-  private get context(): any {
     if (!this._cachedContext) {
       const params: any = {};
       const searchParams = new URLSearchParams(this.env.nativeWindow.location.search);
@@ -74,9 +60,9 @@ export class AppConfig {
       const hashPath = hashParts?.[0] ?? null;
       const hashParams = hashParts?.[1] ? new URLSearchParams(hashParts[1]) : null;
       if (hashParams) {
-        for (const p of <any>hashParams) {
-          const allValues = hashParams.getAll(p[0]);
-          params[p[0]] = allValues.length === 1 ? p[1] : allValues;
+        for (const [key, value] of hashParams) {
+          const allValues = hashParams.getAll(key);
+          params[key] = allValues.length === 1 ? value : allValues;
         }
       }
 
@@ -90,6 +76,16 @@ export class AppConfig {
       };
     }
     return this._cachedContext;
+  }
+
+  private mergeContexts(additionalContext: any) {
+    const result = { ...this.getContext(), ...additionalContext };
+    Object.defineProperty(result, 'sessionId', {
+      get: () => {
+        return this.getCurrentSessionId();
+      }
+    });
+    return result;
   }
 
   getCurrentSessionId(): string {

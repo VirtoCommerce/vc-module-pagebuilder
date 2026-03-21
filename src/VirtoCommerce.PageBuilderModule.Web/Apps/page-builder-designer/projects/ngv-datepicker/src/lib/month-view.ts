@@ -409,10 +409,10 @@ export class MatMonthView<D> implements OnInit {
     const daysInMonth = this._dateAdapter.getNumDaysInMonth(this.activeDate);
     const dateNames = this._dateAdapter.getDateNames();
     this._weeks = [[]];
-    for (let i = 0, cell = this._firstWeekOffset; i < daysInMonth; i++, cell++) {
-      if (cell == DAYS_PER_WEEK) {
+    for (let i = 0; i < daysInMonth; i++) {
+      const totalOffset = i + this._firstWeekOffset;
+      if (totalOffset > 0 && totalOffset % DAYS_PER_WEEK === 0) {
         this._weeks.push([]);
-        cell = 0;
       }
       const date = this._dateAdapter.createDate(
         this._dateAdapter.getYear(this.activeDate),
