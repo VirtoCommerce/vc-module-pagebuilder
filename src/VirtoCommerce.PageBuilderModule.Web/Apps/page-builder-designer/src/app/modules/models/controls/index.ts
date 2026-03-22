@@ -16,8 +16,6 @@ export * from './text.descriptor';
 export * from './markdown.descriptor';
 export * from './upload-asset.descriptor';
 
-// todo: list, object, search, popup (list|object), url? (maybe should be object)
-
 import { CalendarDescriptor } from './calendar.descriptor';
 import { CheckboxDescriptor } from './checkbox.descriptor';
 import { CollectionDescriptor } from './collection.descriptor';
@@ -34,18 +32,18 @@ import { TextDescriptor } from './text.descriptor';
 import { MarkdownDescriptor } from './markdown.descriptor';
 
 export type ControlDescriptor = CalendarDescriptor
-    | CheckboxDescriptor
-    | CollectionDescriptor
-    | ColorDescriptor
-    | DisplayTextDescriptor
-    | FilesDescriptor
-    | ImagesDescriptor
-    | NumberDescriptor
-    | ObjectDescriptor
-    | SearchDescriptor
-    | SelectDescriptor
-    | StringDescriptor
-    | TextDescriptor
-    | MarkdownDescriptor;
+  | CheckboxDescriptor
+  | CollectionDescriptor
+  | ColorDescriptor
+  | DisplayTextDescriptor
+  | FilesDescriptor
+  | ImagesDescriptor
+  | NumberDescriptor
+  | ObjectDescriptor
+  | SearchDescriptor
+  | SelectDescriptor
+  | StringDescriptor
+  | TextDescriptor
+  | MarkdownDescriptor;
 
 export type SectionPropertyDescriptor = ControlDescriptor;

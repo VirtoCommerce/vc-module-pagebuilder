@@ -1,7 +1,6 @@
-import { CdkConnectedOverlay, ConnectedPosition } from '@angular/cdk/overlay';
+import { CdkConnectedOverlay, CdkOverlayOrigin, ConnectedPosition } from '@angular/cdk/overlay';
 import { Component, input, output, signal, ChangeDetectionStrategy, viewChild } from '@angular/core';
 import { NgClass, NgStyle } from '@angular/common';
-import { OverlayModule } from '@angular/cdk/overlay';
 import { ContextMenuAction, ContextMenuActionType } from '@core/models';
 import { IconComponent } from '../icon/icon.component';
 
@@ -10,7 +9,7 @@ import { IconComponent } from '../icon/icon.component';
     templateUrl: './context-menu.component.html',
     styleUrls: ['./context-menu.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [NgClass, NgStyle, OverlayModule, IconComponent]
+    imports: [NgClass, NgStyle, CdkConnectedOverlay, CdkOverlayOrigin, IconComponent]
 })
 export class ContextMenuComponent {
 

@@ -12,23 +12,23 @@ import * as domain from './domain';
 export { ThemeFeatureName } from './state';
 
 export const initialState: ThemeState = {
-    ui: ui.initialState,
-    data: data.initialState,
-    domain: domain.initialState
+  ui: ui.initialState,
+  data: data.initialState,
+  domain: domain.initialState
 };
 
 const reducer: ActionReducer<ThemeState> = combineReducers<ThemeState>({
-    ui: ui.themeUIReducers,
-    data: data.themeDataReducers,
-    domain: domain.themeDomainReducers
+  ui: ui.themeUIReducers,
+  data: data.themeDataReducers,
+  domain: domain.themeDomainReducers
 });
 
 export function themeReducers(
-    state: ThemeState = initialState,
-    action: Action
+  state: ThemeState = initialState,
+  action: Action
 ): ThemeState {
-    return reducer(state, action)
-};
+  return reducer(state, action);
+}
 
 export const EFFECTS = [ThemeDataEffects, ThemeDomainEffects, ThemeUiEffects];
 

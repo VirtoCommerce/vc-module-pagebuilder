@@ -20,7 +20,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, useTemplateRef, watch } from "vue";
+import { computed, useTemplateRef } from "vue";
 import { useI18n } from "vue-i18n";
 import { IParentCallArgs } from "@vc-shell/framework";
 import { ExposedPagesList, PagesList } from "../components";

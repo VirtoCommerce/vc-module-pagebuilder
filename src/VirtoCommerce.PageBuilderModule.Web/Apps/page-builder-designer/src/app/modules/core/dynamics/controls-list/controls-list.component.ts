@@ -1,10 +1,9 @@
 import { ChangeDetectionStrategy, Component, input } from "@angular/core";
-import { DisplayTextDescriptor } from '@models/controls';
+import { BaseControlDescriptor, DisplayTextDescriptor } from '@models/controls';
 
 import { ReactiveFormsModule, UntypedFormGroup } from '@angular/forms';
 
 import { ControlContext } from '@core/models';
-import { BaseControlDescriptor } from '@models/controls';
 import { appHelpers } from '@integration/helpers';
 import { ControlHolderComponent } from '@core/dynamics/control-holder.component';
 
@@ -28,8 +27,7 @@ export class ControlsListComponent {
     checkVisibility(descriptor: BaseControlDescriptor): boolean {
         if (!!descriptor.visibility && !descriptor.hidden) {
             try {
-                const result = appHelpers.evalInContext(descriptor.visibility!, this.context());
-                return result;
+              return appHelpers.evalInContext(descriptor.visibility!, this.context());
             } catch (error) {
                 console.error(error);
             }

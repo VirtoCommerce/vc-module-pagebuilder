@@ -1,10 +1,8 @@
-import { GroupsStateModel, TabModel } from '@core/models';
 import { ChangeDetectionStrategy, Component, input, OnInit } from '@angular/core';
-
 import { ReactiveFormsModule, UntypedFormGroup } from '@angular/forms';
 import { MatTabGroup, MatTab } from '@angular/material/tabs';
 
-import { ControlContext } from '@core/models';
+import { ControlContext, GroupsStateModel, TabModel } from '@core/models';
 import { BaseControlDescriptor } from '@models/controls';
 import { ControlsTabComponent } from '@core/dynamics/controls-tab/controls-tab.component';
 

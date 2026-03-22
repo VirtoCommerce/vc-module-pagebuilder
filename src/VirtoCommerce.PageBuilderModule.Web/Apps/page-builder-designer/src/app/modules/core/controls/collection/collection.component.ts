@@ -1,10 +1,9 @@
 import { ModalService } from '@core/services';
 import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { NgClass } from '@angular/common';
-import { ReactiveFormsModule } from '@angular/forms';
-import { DragDropModule } from '@angular/cdk/drag-drop';
+import { UntypedFormArray, UntypedFormGroup, AbstractControl, ReactiveFormsModule } from '@angular/forms';
+import { DragDropModule, CdkDragDrop } from '@angular/cdk/drag-drop';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { UntypedFormArray, UntypedFormGroup, AbstractControl } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
 
 import { BaseControlDirective } from '@core/controls/base-control.directive';
@@ -12,7 +11,6 @@ import { CollectionDescriptor, ControlDescriptor } from '@models/controls';
 
 import { ContextMenuActionType, ControlContext } from '@core/models';
 import { coreHelpers, formsHelpers } from '@core/helpers';
-import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { appHelpers } from '@integration/helpers';
 
 import { ChevronComponent } from '@core/components/chevron/chevron.component';

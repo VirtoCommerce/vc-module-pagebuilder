@@ -1,8 +1,7 @@
 import { Injectable, inject } from "@angular/core";
 import { Actions, createEffect, ofType } from "@ngrx/effects";
 import { Store } from "@ngrx/store";
-import { of } from "rxjs";
-import { withLatestFrom, filter, tap, map, catchError, switchMap } from "rxjs/operators";
+import { withLatestFrom, filter, tap, map, switchMap } from "rxjs/operators";
 
 import { broadcastPreviewMessage } from '@shared/store/actions';
 import * as routingActions from '@shared/routing/actions';

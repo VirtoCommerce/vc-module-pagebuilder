@@ -166,15 +166,13 @@ export class MatClockView<D> implements AfterContentInit {
   readonly inHourView = computed(() => this.currentView() === 'hour');
 
   get _hand(): any {
-    this._selectedHour = this._dateAdapter.getHours(this.activeDate);
-    this._selectedMinute = this._dateAdapter.getMinutes(this.activeDate);
     let radius = CLOCK_OUTER_RADIUS;
     let deg = 0;
 
     if (this.inHourView()) {
-      const outer = this.twelveHour() || this._selectedHour >= 0 && this._selectedHour < 12;
+      const outer = this.twelveHour() || this._selectedHour! >= 0 && this._selectedHour! < 12;
       radius = outer ? CLOCK_OUTER_RADIUS : CLOCK_INNER_RADIUS;
-      deg = Math.round(this._selectedHour * (360 / (24 / 2)));
+      deg = Math.round(this._selectedHour! * (360 / (24 / 2)));
     } else {
       deg = Math.round(this._selectedMinute! * (360 / 60));
     }
@@ -256,6 +254,9 @@ export class MatClockView<D> implements AfterContentInit {
 
   // Initializes this clock view.
   _init() {
+    this._selectedHour = this._dateAdapter.getHours(this.activeDate);
+    this._selectedMinute = this._dateAdapter.getMinutes(this.activeDate);
+
     this._hours.length = 0;
     this._minutes.length = 0;
 

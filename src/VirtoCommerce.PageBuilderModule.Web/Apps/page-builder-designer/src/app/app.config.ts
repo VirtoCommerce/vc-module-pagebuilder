@@ -1,12 +1,9 @@
 import { ApplicationConfig, importProvidersFrom, inject, isDevMode, provideAppInitializer } from '@angular/core';
 import { provideRouter, withHashLocation } from '@angular/router';
-import { provideAnimations } from '@angular/platform-browser/animations';
-import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
-import { HTTP_INTERCEPTORS } from '@angular/common/http';
+import { provideHttpClient, withInterceptorsFromDi, HTTP_INTERCEPTORS } from '@angular/common/http';
 
-import { provideStore } from '@ngrx/store';
+import { provideStore, provideState } from '@ngrx/store';
 import { provideEffects } from '@ngrx/effects';
-import { provideState } from '@ngrx/store';
 import { provideRouterStore, routerReducer } from '@ngrx/router-store';
 import { provideStoreDevtools } from '@ngrx/store-devtools';
 
@@ -28,7 +25,6 @@ import { registerControls } from '@core/controls/controls-register';
 export const appConfig: ApplicationConfig = {
     providers: [
         provideRouter(APP_ROUTES, withHashLocation()),
-        provideAnimations(),
         provideHttpClient(withInterceptorsFromDi()),
 
         provideStore({ router: routerReducer }, {
