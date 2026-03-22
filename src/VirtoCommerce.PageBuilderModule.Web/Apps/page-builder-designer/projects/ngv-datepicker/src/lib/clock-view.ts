@@ -14,15 +14,15 @@ import {
   input,
   output,
 } from '@angular/core';
-import {MAT_DATE_FORMATS} from '@angular/material/core';
+import { MAT_DATE_FORMATS } from '@angular/material/core';
 import {
   DateAdapter,
   MatDateFormats,
 } from './core';
-import {MatCalendarCellClassFunction, MatCalendarUserEvent} from './calendar-body';
-import {createMissingDateImplError} from './datepicker-errors';
-import {DateFilterFn} from './datepicker-input-base';
-import {MatCalendarView} from './calendar.types';
+import { MatCalendarCellClassFunction, MatCalendarUserEvent } from './calendar-body';
+import { createMissingDateImplError } from './datepicker-errors';
+import { DateFilterFn } from './datepicker-input-base';
+import { MatCalendarView } from './calendar.types';
 
 export const CLOCK_RADIUS = 50;
 export const CLOCK_INNER_RADIUS = 27.5;
@@ -36,23 +36,23 @@ export type ClockView = 'hour' | 'minute';
  * @docs-private
  */
 @Component({
-    selector: 'mat-clock-view',
-    templateUrl: 'clock-view.html',
-    exportAs: 'matClockView',
-    imports: [],
-    encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    host: {
-        role: 'clock',
-        '(mousedown)': '_handleMousedown($event)'
-    },
-    preserveWhitespaces: false
+  selector: 'mat-clock-view',
+  templateUrl: 'clock-view.html',
+  exportAs: 'matClockView',
+  imports: [],
+  encapsulation: ViewEncapsulation.None,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    role: 'clock',
+    '(mousedown)': '_handleMousedown($event)'
+  },
+  preserveWhitespaces: false
 })
 export class MatClockView<D> implements AfterContentInit {
   private readonly _changeDetectorRef = inject(ChangeDetectorRef);
   private readonly _element = inject(ElementRef);
-  public readonly _dateAdapter = inject<DateAdapter<D>>(DateAdapter, {optional: true})!;
-  private readonly _dateFormats = inject<MatDateFormats>(MAT_DATE_FORMATS, {optional: true})!;
+  public readonly _dateAdapter = inject<DateAdapter<D>>(DateAdapter, { optional: true })!;
+  private readonly _dateFormats = inject<MatDateFormats>(MAT_DATE_FORMATS, { optional: true })!;
   private readonly _destroyRef = inject(DestroyRef);
 
   /**
@@ -413,9 +413,10 @@ export class MatClockView<D> implements AfterContentInit {
     return this._dateAdapter.setMinutes(this._dateAdapter.clone(this.activeDate), value);
   }
 
-  // No-op: clock view has no focusable cells unlike month/year views.
-  // Required to satisfy the implicit _focusActiveCell contract shared by all calendar view components.
-  _focusActiveCell() {}
+  _focusActiveCell() {
+    // No-op: clock view has no focusable cells unlike month/year views.
+    // Required to satisfy the implicit _focusActiveCell contract shared by all calendar view components.
+  }
 
   /**
    * @param obj The object to check.

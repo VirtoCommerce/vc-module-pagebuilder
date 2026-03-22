@@ -6,9 +6,9 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {Directive, FactoryProvider, Injectable, Optional, SkipSelf, OnDestroy} from '@angular/core';
-import {Observable, Subject} from 'rxjs';
-import {DateAdapter} from './core';
+import { Directive, FactoryProvider, Injectable, Optional, SkipSelf, OnDestroy } from '@angular/core';
+import { Observable, Subject } from 'rxjs';
+import { DateAdapter } from './core';
 
 /** A class representing a range of dates. */
 export class DateRange<D> {
@@ -17,14 +17,14 @@ export class DateRange<D> {
    * expects a `DateRange`
    */
   // tslint:disable-next-line:no-unused-variable
-//   private _disableStructuralEquivalency: never;
+  //   private _disableStructuralEquivalency: never;
 
   constructor(
     /** The start date of the range. */
     readonly start: D | null,
     /** The end date of the range. */
     readonly end: D | null,
-  ) {}
+  ) { }
 }
 
 /**
@@ -54,8 +54,7 @@ export interface DateSelectionModelChange<S> {
  */
 @Directive()
 export abstract class MatDateSelectionModel<S, D = ExtractDateTypeFromSelection<S>>
-  implements OnDestroy
-{
+  implements OnDestroy {
   private readonly _selectionChanged = new Subject<DateSelectionModelChange<S>>();
 
   /** Emits when the selection has changed. */
@@ -75,9 +74,9 @@ export abstract class MatDateSelectionModel<S, D = ExtractDateTypeFromSelection<
    * @param source Object that triggered the selection change.
    */
   updateSelection(value: S, source: unknown) {
-    const oldValue = (this as {selection: S}).selection;
-    (this as {selection: S}).selection = value;
-    this._selectionChanged.next({selection: value, source, oldValue});
+    const oldValue = (this as { selection: S }).selection;
+    (this as { selection: S }).selection = value;
+    this._selectionChanged.next({ selection: value, source, oldValue });
   }
 
   ngOnDestroy() {
@@ -177,7 +176,7 @@ export class MatRangeDateSelectionModel<D> extends MatDateSelectionModel<DateRan
    * the selection is reset so that the given date is the new `start` and the `end` is null.
    */
   add(date: D | null): void {
-    let {start, end} = this.selection;
+    let { start, end } = this.selection;
 
     if (start == null) {
       start = date;
@@ -191,12 +190,17 @@ export class MatRangeDateSelectionModel<D> extends MatDateSelectionModel<DateRan
     super.updateSelection(new DateRange<D>(start, end), this);
   }
 
-  queue(_date: D | null) { }
-  processQueue() {}
+  queue(_date: D | null) {
+    /* Range selection updates immediately on each click — no queuing needed. */
+  }
+
+  processQueue() {
+    /* Range selection updates immediately on each click — no queuing needed. */
+  }
 
   /** Checks whether the current selection is valid. */
   isValid(): boolean {
-    const {start, end} = this.selection;
+    const { start, end } = this.selection;
 
     // Empty ranges are valid.
     if (start == null && end == null) {

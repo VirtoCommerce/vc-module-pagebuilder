@@ -66,7 +66,9 @@ export class BaseControlDirective<T extends BaseControlDescriptor> implements On
     }
   }
 
-  protected applyNewValue() { }
+  protected applyNewValue() {
+    // Override in subclasses to apply the new control value to the underlying UI element.
+  }
 
   protected setFocus() {
     const control = this.getFocusableControl();
@@ -84,6 +86,11 @@ export class BaseControlDirective<T extends BaseControlDescriptor> implements On
     this.valueChanged.emit(value);
   }
 
-  protected initContent() { }
-  protected descriptorChanged() { }
+  protected initContent() {
+    // Override in subclasses to perform initialization logic after content is ready.
+  }
+
+  protected descriptorChanged() {
+    // Override in subclasses to react when the descriptor input is assigned or updated.
+  }
 }
