@@ -1,6 +1,5 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpInterceptor, HttpRequest, HttpHandler } from '@angular/common/http';
-import { Store } from '@ngrx/store';
 import { Subject, Observable, throwError, of } from 'rxjs';
 import { catchError, map, switchMap, tap } from 'rxjs/operators';
 import { JwtStorageService } from './jwt-storage.service';
