@@ -108,8 +108,6 @@ We recommend using Webhooks module.
 1. Enter Storefront end point in URL. Ex: https://www.mypublic-domain.com//storefrontapi/content/reset-cache
 1. Save webhook subscription.
 
-**!!note: change image to correct (event name was changed)**
-
 ![image](docs/media/screen-webhook-settings.png)
 
 ### Run

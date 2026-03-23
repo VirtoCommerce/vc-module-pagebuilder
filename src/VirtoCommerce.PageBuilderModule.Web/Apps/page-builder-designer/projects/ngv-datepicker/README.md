@@ -4,9 +4,9 @@ Fork of the official Material Datepicker for Angular with time picking support.
 
 Local library name in this workspace: `ngv-datepicker`.
 
-## Angular 15 Migration Notes
+## Angular 20 Notes
 
-This workspace has been upgraded to Angular 15. The datepicker theming mixins continue to work with the Angular Material v15 theming API (`@use '@angular/material' as mat;`).
+This workspace is on Angular 20. The datepicker theming mixins work with the Angular Material theming API (`@use '@angular/material' as mat;`).
 
 Highlights:
 - Legacy `@import` has been replaced by `@use` in all theme examples.

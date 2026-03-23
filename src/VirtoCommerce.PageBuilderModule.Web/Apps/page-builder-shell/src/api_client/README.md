@@ -7,7 +7,7 @@ This guide describes the process of generating an API client to access the VC Pl
 
 ## Prerequisites
 
-* .NET Core 6.0, particularly if you are using MacOS or Linux.
+* .NET 10, particularly if you are using macOS or Linux.
 
 ## Generate TypeScript API clients
 
