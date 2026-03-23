@@ -13,6 +13,7 @@ import { useUser } from "@vc-shell/framework";
 import { onMounted, ref } from "vue";
 // eslint-disable-next-line import/no-unresolved
 import logoImage from "/assets/logo.svg";
+import { refreshMenuBadges } from "../modules/page-builder/composables";
 
 const isReady = ref(false);
 const version = import.meta.env.PACKAGE_VERSION;
@@ -23,6 +24,7 @@ onMounted(async () => {
   try {
     if (isAuthenticated.value) {
       isReady.value = true;
+      refreshMenuBadges();
     }
   } catch (e) {
     console.log(e);

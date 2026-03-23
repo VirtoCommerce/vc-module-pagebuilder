@@ -3,6 +3,7 @@ import { useI18n } from "vue-i18n";
 import { IBladeToolbar } from "@vc-shell/framework";
 import { PageLifecycleFilters } from "../usePageBuilderList";
 import { ExposedPagesList } from "../../components";
+import { refreshMenuBadges } from "../usePageBuilderBadges";
 
 export function usePagesListToolbar(
   _status: PageLifecycleFilters | null,
@@ -29,6 +30,7 @@ export function usePagesListToolbar(
       title: t("PAGE_BUILDER.PAGES.LIST.TOOLBAR.REFRESH"),
       clickHandler: async () => {
         await pagesListRef.value?.reload();
+        refreshMenuBadges();
       },
     },
     {

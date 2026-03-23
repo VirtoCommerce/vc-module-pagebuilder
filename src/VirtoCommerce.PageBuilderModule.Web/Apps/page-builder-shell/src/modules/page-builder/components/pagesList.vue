@@ -67,7 +67,7 @@ import { useI18n } from "vue-i18n";
 import { debounce } from "lodash-es";
 import { ITableColumns, useTableSort, useBladeNavigation, usePopup, IActionBuilderResult } from "@vc-shell/framework";
 import { GroupedPageBuilderPage } from "../../../api_client/virtocommerce.pagebuildermodule";
-import { PageLifecycleFilters, usePageBuilderList, useUrlParams } from "../composables";
+import { PageLifecycleFilters, usePageBuilderList, useUrlParams, refreshMenuBadges } from "../composables";
 
 interface Props {
   expanded?: boolean;
@@ -244,6 +244,7 @@ async function reload() {
     sort: sortExpression.value,
   });
   selectedItems.value = [];
+  refreshMenuBadges();
 }
 
 async function removeSelectedPages() {
