@@ -278,3 +278,5 @@ dist/
 builder/
 /src/VirtoCommerce.PageBuilderModule.Web/[Cc]ontent
 /src/VirtoCommerce.PageBuilderModule.Web/Content/bridge
+
+settings.local.json
