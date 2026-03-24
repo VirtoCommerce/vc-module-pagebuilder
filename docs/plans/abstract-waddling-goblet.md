@@ -1,183 +1,112 @@
-# Plan: Angular 21 Upgrade — page-builder-designer
+# Code Review: Angular 21 Patterns — page-builder-designer
 
 ## Context
 
-Текущая версия Angular в `page-builder-designer` — **20.3.x**. Angular 21 вышел в ноябре 2025 года. Помимо механического поднятия версий пакетов, хочется пройтись по контролам приложения и внутренним библиотекам (`ngv-markdown`, `ngv-datepicker`) и устранить устаревшие паттерны, которые появились или получили альтернативы в Angular 21.
+Angular 21 upgrade is complete (dependencies installed, build passes). This plan covers the **code review** pass — finding remaining legacy patterns in the codebase and bringing them in line with Angular 21 best practices.
 
-Кодовая база уже в хорошем состоянии: standalone-компоненты, `input()`/`output()`/`viewChild()`, `@if`/`@for`, `inject()`, `takeUntilDestroyed` — всё это есть. Апгрейд будет эволюционным, без переписывания.
-
----
-
-## 1. Обновление зависимостей
-
-### 1.1 Обязательные обновления
-
-| Пакет | Текущая версия | Целевая версия | Примечание |
-|---|---|---|---|
-| `@angular/core` и все `@angular/*` | ^20.3.18 | ^21.x | Единый мажор |
-| `@angular/cdk`, `@angular/material` | ^20.2.14 | ^21.x | В паре с core |
-| `@angular/cli`, `@angular-devkit/*`, `@angular/compiler-cli` | ^20.3.x | ^21.x | |
-| `@ngrx/store`, `@ngrx/effects`, `@ngrx/router-store`, `@ngrx/store-devtools` | ^20.1.0 | ^21.x | NgRx v21 для Angular v21 |
-| `ng-packagr` | ^20.3.2 | ^21.x | Сборщик внутренних либ |
-| `typescript` | ~5.8.3 | ~5.9.x | Angular 21 требует TS ≥5.9 |
-| `@ng-select/ng-select` | ^20.7.0 | ^21.x | Версия выровнена с Angular |
-| `ngx-cookie-service` | ^20.1.1 | ^21.x | Версия выровнена с Angular |
-
-### 1.2 Зависимости, которые не следуют Angular-версионированию
-
-| Пакет | Текущая версия | Действие |
-|---|---|---|
-| `ngx-scrollbar` | ^19.1.4 | Оставить v19 — совместимо с Angular 21 |
-| `ngx-toastr` | ^19.1.0 | Поднять до ^20.x — есть OnPush + Signals улучшения |
-| `ngx-color` | ^10.1.0 | Проверить совместимость (v21.0.0 вышел для angular/ngx-color-picker) |
-| `ngx-tiptap` | ^10.0.0 | Проверить совместимость с Angular 21 peer deps |
-| `ckeditor4-angular` | ^5.2.1 | Остаётся — проверить только совместимость peer deps |
-
-### 1.3 peer dependencies в ngv-markdown и ngv-datepicker
-
-Обновить в обоих `projects/*/package.json` (поле `peerDependencies`):
-- `@angular/core`: `^20.x` → `^21.x`
-- `@angular/material`: `^20.x` → `^21.x` (ngv-datepicker)
-- `@angular/cdk`: `^20.x` → `^21.x` (ngv-datepicker)
-
-**Файлы:**
-- [projects/ngv-markdown/package.json](src/VirtoCommerce.PageBuilderModule.Web/Apps/page-builder-designer/projects/ngv-markdown/package.json)
-- [projects/ngv-datepicker/package.json](src/VirtoCommerce.PageBuilderModule.Web/Apps/page-builder-designer/projects/ngv-datepicker/package.json)
+The upgrade from Angular 20 → 21 already handled:
+- All `@HostBinding`/`@HostListener` → `host: {}` in 6 components
+- `enableProdMode()` removed from `main.ts`
+- NgModule-based providers in `ngv-datepicker` → `provide*()` functions
+- `ChangeDetectorRef` removed from `color.component.ts` and `search.component.ts`
+- NgRx `StoreConfig` import fixed
 
 ---
 
-## 2. Удаление устаревших API
+## Findings by category
 
-### 2.1 `enableProdMode()` — убрать из main.ts
+### 1. `importProvidersFrom` → standalone provider API
 
-В Angular 20+ `enableProdMode()` задепрекейчен — production-режим определяется автоматически по build-конфигурации.
-
-**Файл:** [src/main.ts](src/VirtoCommerce.PageBuilderModule.Web/Apps/page-builder-designer/src/main.ts)
+**File:** [src/app/app.config.ts](src/VirtoCommerce.PageBuilderModule.Web/Apps/page-builder-designer/src/app/app.config.ts) — line 62
 
 ```typescript
-// Удалить:
-import { enableProdMode } from '@angular/core';
-if (environment.production) {
-    enableProdMode();
-}
+// Current:
+importProvidersFrom(
+    MatDialogModule,
+    ToastrModule.forRoot()
+)
+
+// Replace ToastrModule.forRoot() with (ngx-toastr v19+):
+provideToastr()
+// Import from: ngx-toastr
+
+// MatDialogModule — leave with importProvidersFrom (no provideMatDialog() in v21)
 ```
 
-### 2.2 `@HostBinding` / `@HostListener` → `host` metadata
+### 2. Missing `ChangeDetectionStrategy.OnPush`
 
-`@HostBinding` и `@HostListener` не deprecated, но Angular-команда рекомендует переносить их в `host: {}` внутри `@Component`/`@Directive` — это более явно и не требует отдельных декораторов.
+Confirmed missing in these components:
 
-**Найдены в 6 компонентах:**
+| File | Notes |
+|---|---|
+| [overlap-panel.component.ts](src/VirtoCommerce.PageBuilderModule.Web/Apps/page-builder-designer/src/app/modules/core/components/overlap-panel/overlap-panel.component.ts) | Also needs signals + afterNextRender (see §3) |
+| [panel.component.ts](src/VirtoCommerce.PageBuilderModule.Web/Apps/page-builder-designer/src/app/modules/core/components/panel/panel.component.ts) | Also needs signal + afterNextRender (see §3) |
+| [live-preview.component.ts](src/VirtoCommerce.PageBuilderModule.Web/Apps/page-builder-designer/src/app/modules/shared/components/live-preview/live-preview.component.ts) | Also needs ngOnInit removal (see §4) |
+| [controls/select/select.component.ts](src/VirtoCommerce.PageBuilderModule.Web/Apps/page-builder-designer/src/app/modules/core/controls/select) | No state issues, just missing OnPush |
+| [controls/collection/collection.component.ts](src/VirtoCommerce.PageBuilderModule.Web/Apps/page-builder-designer/src/app/modules/core/controls/collection) | No state issues, just missing OnPush |
 
-| Файл | Текущий паттерн | Что заменить |
-|---|---|---|
-| `icon.component.ts` | `@HostBinding('class.inline')` / `'class.hoverable'` / `'class.small-size'` | `host: { '[class.inline]': 'inline()', ... }` |
-| `sidebar.component.ts` | `@HostBinding('class.hidden')` / `'class.desktop-50'` | `host: { '[class.hidden]': '...', ... }` |
-| `preview-area.component.ts` | `@HostBinding('class.desktop-50')` | `host: { '[class.desktop-50]': '...' }` |
-| `drag-handle.component.ts` | `@HostBinding('class.visible')` | `host: { '[class.visible]': 'visible()' }` |
-| `overlap-panel.component.ts` | `@HostBinding('class.inplace')` + `@HostListener('window:resize')` | `host: { '[class.inplace]': '...', '(window:resize)': 'onResize()' }` |
-| `app.component.ts` | `@HostListener('window:keyup', ['$event'])` | `host: { '(window:keyup)': 'onKeyUp($event)' }` |
+### 3. `ChangeDetectorRef` + `ngAfterViewInit` → signals + `afterNextRender`
 
----
+**`overlap-panel.component.ts`**:
+- `contentWidth: number | null = null` and `expanderPosition: number | null = null` → `signal<number | null>(null)`
+- `isOpened = false` → `signal(false)`
+- `ngAfterViewInit()` starts `setInterval(() => changeWidth(), 1000)` → move to constructor wrapped in `afterNextRender()`
+- `cdr.detectChanges()` inside `changeWidth()` → remove (signals update view automatically with OnPush)
+- Remove `ChangeDetectorRef`, `AfterViewInit`
 
-## 3. Модернизация контролов (app/modules/core/controls/)
+**`panel.component.ts`**:
+- `hasFooter = true` → `signal(true)`
+- `ngAfterViewInit()` checks DOM children count then calls `detectChanges()` → move to constructor as `afterNextRender()`
+- Remove `ChangeDetectorRef`, `AfterViewInit`
 
-Контролы уже хорошо написаны. Точечные улучшения, ставшие доступными/рекомендованными в Angular 21:
+Template note: these components use `contentWidth`, `expanderPosition`, `hasFooter`, `isOpened` in their templates — signal reads will need `()` where they don't already have it.
 
-### 3.1 `ChangeDetectorRef` → `markForCheck()` / сигналы
+### 4. `ngOnInit` → constructor
 
-В `color.component.ts` и `search.component.ts` `ChangeDetectorRef` используется для принудительного обновления после async-событий. Проверить, можно ли заменить на сигнальный стейт — тогда `cdr.detectChanges()` не нужен.
+**`live-preview.component.ts`**:
+- `ngOnInit()` subscribes to event bus, sets `url` and `previewUrl` from config
+- All dependencies injected via `inject()` — available from constructor immediately
+- Move entire body to constructor, remove `ngOnInit()` and `OnInit` interface
+- `previewUrl!: SafeResourceUrl` → `previewUrl: SafeResourceUrl` (initialized in constructor)
 
-- [color.component.ts](src/VirtoCommerce.PageBuilderModule.Web/Apps/page-builder-designer/src/app/modules/core/controls/color.component.ts) — `cdr.detectChanges()` в `applyNewValue()`
-- [search.component.ts](src/VirtoCommerce.PageBuilderModule.Web/Apps/page-builder-designer/src/app/modules/core/controls/search.component.ts) — `cdk.detectChanges()` после загрузки данных
+### 5. `@HostListener` remaining in `ngv-datepicker`
 
-### 3.2 Убрать закомментированный legacy-код
-
-В `logo.component.html` — закомментированный `*ngIf`. Удалить вместе с мёртвым кодом.
-
----
-
-## 4. Модернизация ngv-datepicker
-
-`ngv-datepicker` — самая legacy-часть проекта. В ней:
-- NgModule-based providers (`NativeDateModule`, `MatNativeDateModule`, `DateFnsModule`, `MatDateFnsModule`)
-- Constructor injection в части компонентов (`MatCalendarHeader`)
-- `@Input`/`@Output` декораторы (не signal-based) в `datepicker-input.ts`
-- `@HostBinding` в `calendar.ts`
-
-**Что делать в рамках этой задачи:**
-
-### 4.1 Перевести NgModule-провайдеры на standalone
-
-Заменить `@NgModule` в `core/datetime/index.ts` и `date-fns/index.ts` на standalone-провайдеры:
+**File:** [projects/ngv-datepicker/src/lib/clock-view.ts](src/VirtoCommerce.PageBuilderModule.Web/Apps/page-builder-designer/projects/ngv-datepicker/src/lib/clock-view.ts) — line 8, ~146
 
 ```typescript
-// Вместо:
-@NgModule({ providers: [{ provide: DateAdapter, useClass: NativeDateAdapter }] })
-export class NativeDateModule {}
-
-// Станет:
-export const NATIVE_DATE_PROVIDERS: Provider[] = [
-    { provide: DateAdapter, useClass: NativeDateAdapter },
-    ...
-];
-// + функция provide*() по аналогии с Angular Material
-export function provideNativeDateAdapter(): Provider[] { return NATIVE_DATE_PROVIDERS; }
+// Current: @HostListener('window:resize') onClockResize() { ... }
+// Migrate to host: { '(window:resize)': 'onClockResize()' }
+// Remove HostListener import
 ```
 
-**Файлы:**
-- [projects/ngv-datepicker/src/lib/core/datetime/index.ts](src/VirtoCommerce.PageBuilderModule.Web/Apps/page-builder-designer/projects/ngv-datepicker/src/lib/core/datetime/index.ts)
-- [projects/ngv-datepicker/src/lib/date-fns/index.ts](src/VirtoCommerce.PageBuilderModule.Web/Apps/page-builder-designer/projects/ngv-datepicker/src/lib/date-fns/index.ts)
+---
 
-Обновить `public-api.ts` в ngv-datepicker — экспортировать `provide*()` функции вместо NgModule-классов.
+## Leave as-is (justified)
 
-### 4.2 Constructor injection → inject() в ключевых компонентах
-
-В `calendar.ts` (MatCalendarHeader) — заменить конструктор на `inject()`.
-
-### 4.3 @HostBinding → host metadata в calendar.ts
-
-По аналогии с п. 2.2 — перенести в `host: {}`.
-
-### 4.4 `@Input`/`@Output` в datepicker-input.ts
-
-Оставить getter/setter `@Input` там, где есть side effects (это оправдано по CLAUDE.md). Простые `@Input` без логики — можно конвертировать в `input()`.
+| Pattern | Location | Reason |
+|---|---|---|
+| `@Input()` getter/setters | `control-holder.component.ts` | Side effects: propagates value to dynamic component. CLAUDE.md exception. |
+| `cdr.detectChanges()` | `control-holder.component.ts` | After `ViewContainerRef.createComponent()` — Angular requires explicit CD trigger here |
+| `ngOnInit` | `control-holder.component.ts` | Needs `descriptor()` signal value after inputs resolved |
+| `@Input()` + `ChangeDetectorRef` + lifecycle hooks | All `ngv-datepicker` internals (calendar, month-view, year-view, etc.) | Forked Angular Material component — `stateChanges` Subject and CDK form field integration require these patterns |
+| `Subject<void>` for stream coordination | `collection.component.ts`, `object.component.ts`, `base-files.component.ts` | Drive `merge()`/`switchMap()` reactive chains — appropriate use of RxJS |
+| `HTTP_INTERCEPTORS` class-based interceptor | `app.config.ts` + `refresh-token.interceptor.ts` | Migration to functional interceptors is a separate refactoring task |
 
 ---
 
-## 5. ngv-markdown — минимальные изменения
+## Execution order
 
-Компонент уже написан современно (`input()`, `output()`, `afterNextRender()`, `DestroyRef`). Только обновить peer deps.
+1. `app.config.ts` — replace `ToastrModule.forRoot()` with `provideToastr()`
+2. `overlap-panel.component.ts` — signals + `afterNextRender` + OnPush + remove CDR
+3. `panel.component.ts` — signal + `afterNextRender` + OnPush + remove CDR
+4. `live-preview.component.ts` — move `ngOnInit` body to constructor + OnPush
+5. `select.component.ts`, `collection.component.ts` — add `ChangeDetectionStrategy.OnPush`
+6. `clock-view.ts` — migrate `@HostListener` to `host: {}`
+7. `npm run build` — verify no errors
+8. `npm test` — verify all tests pass
 
----
+## Verification
 
-## 6. Опциональные улучшения (вне этого PR)
-
-Следующие вещи — отдельные задачи, не блокируют Angular 21:
-
-- **Vitest вместо Karma** — Angular 21 использует Vitest по умолчанию для новых проектов; миграция существующего — отдельная работа
-- **Zoneless** — Angular 21 создаёт новые проекты без zone.js; для текущего проекта — отдельная большая задача
-- **Signal Forms** — новый API форм в Angular 21; текущие `ReactiveFormsModule`-формы продолжают работать
-
----
-
-## Порядок выполнения
-
-1. Обновить `package.json` — поднять все Angular-пакеты до v21, TypeScript до 5.9, NgRx до v21, ng-packagr до v21, ng-select до v21, ngx-cookie-service до v21
-2. Запустить `npm install`, исправить конфликты зависимостей
-3. Обновить peer deps в `ngv-markdown/package.json` и `ngv-datepicker/package.json`
-4. Удалить `enableProdMode()` из `main.ts`
-5. Заменить `@HostBinding`/`@HostListener` на `host: {}` в 6 компонентах
-6. Провести модернизацию ngv-datepicker: NgModule → provide functions, constructor injection → inject()
-7. Проверить `ChangeDetectorRef` в controls — убрать там, где можно
-8. Удалить закомментированный мёртвый код
-9. Запустить `npm run build` — исправить ошибки компиляции
-10. Запустить `npm test` — убедиться, что тесты зелёные
-11. Запустить `npm run lint`
-
-## Верификация
-
-- `npm run build` завершается без ошибок и предупреждений
-- `npm test` — все тесты проходят
-- `npm run lint` — нет ошибок
-- В браузере: приложение загружается, controls работают (datepicker, color, markdown, select)
-- В `package.json` нет `^20.x` версий Angular-пакетов
+- `npm run build` completes without errors
+- `npm test` — all 13 main app tests pass, ngv-markdown test passes
+- In the running app: overlap-panel expand/collapse still works, panel footer detection still works, live-preview loads and receives messages, datepicker clock view still resizes correctly
