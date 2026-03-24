@@ -1,21 +1,20 @@
 import {
-    Component,
-    Input,
-    Type,
-    input,
-    OnInit,
-    viewChild,
-    forwardRef,
     ChangeDetectionStrategy,
-    // HostBinding,
-    ChangeDetectorRef,
-    inject
+    Component,
+    Type,
+    afterNextRender,
+    effect,
+    forwardRef,
+    inject,
+    input,
+    signal,
+    viewChild,
 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, UntypedFormGroup } from '@angular/forms';
 
 import { ControlHostDirective } from './control-host.directive';
-import { ControlsFactory } from '@core/controls/controls.factory'; import { BaseControlDirective } from '@core/controls/base-control.directive';
-
+import { ControlsFactory } from '@core/controls/controls.factory';
+import { BaseControlDirective } from '@core/controls/base-control.directive';
 import { ControlContext } from '@core/models';
 import { BaseControlDescriptor } from '@models/controls';
 
@@ -23,86 +22,73 @@ import { BaseControlDescriptor } from '@models/controls';
     selector: 'app-control-holder',
     template: `<ng-template appControlHost />`,
     providers: [{
-            provide: NG_VALUE_ACCESSOR,
-            useExisting: forwardRef(() => ControlHolderComponent),
-            multi: true,
-        }],
+        provide: NG_VALUE_ACCESSOR,
+        useExisting: forwardRef(() => ControlHolderComponent),
+        multi: true,
+    }],
     styleUrls: ['./control-holder.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [ControlHostDirective]
 })
-export class ControlHolderComponent implements OnInit, ControlValueAccessor {
+export class ControlHolderComponent implements ControlValueAccessor {
 
     private readonly controlsFactory = inject(ControlsFactory);
-    private readonly cdr = inject(ChangeDetectorRef);
 
+    readonly descriptor = input.required<BaseControlDescriptor>();
+    readonly currentForm = input.required<UntypedFormGroup>();
+    readonly context = input.required<ControlContext>();
 
-    private component!: BaseControlDirective<BaseControlDescriptor>;
-    private _context!: ControlContext;
-    private _currentForm!: UntypedFormGroup;
-    private _hasPendingValue = false;
+    private readonly host = viewChild.required(ControlHostDirective);
+    private readonly instance = signal<BaseControlDirective<BaseControlDescriptor> | null>(null);
+
     private _pendingValue: any = undefined;
+    private _hasPendingValue = false;
     private _pendingOnChange: ((v: any) => void) | null = null;
     private _pendingOnTouched: ((_: any) => void) | null = null;
 
-    readonly host = viewChild.required(ControlHostDirective);
+    constructor() {
+        afterNextRender(() => {
+            const descriptorType = this.descriptor().type;
+            if (this.controlsFactory.isLazy(descriptorType)) {
+                this.controlsFactory.resolveAsync(descriptorType).then(type => this.createComponent(type));
+            } else {
+                this.createComponent(this.controlsFactory.resolve(descriptorType));
+            }
+        });
 
-    readonly descriptor = input.required<BaseControlDescriptor>();
-    @Input({ required: true }) get currentForm(): UntypedFormGroup {
-        return this._currentForm;
-    }
-    set currentForm(value: UntypedFormGroup) {
-        this._currentForm = value;
-        if (this.component) {
-            this.component.currentForm = value;
-            this.cdr.detectChanges();
-        }
-    }
-
-    @Input({ required: true }) get context(): ControlContext {
-        return this._context;
-    }
-    set context(value: ControlContext) {
-        this._context = value;
-        if (this.component) {
-            this.component.context = value;
-            this.cdr.detectChanges();
-        }
-    }
-
-    ngOnInit(): void {
-        const descriptorType = this.descriptor().type;
-        if (this.controlsFactory.isLazy(descriptorType)) {
-            this.controlsFactory.resolveAsync(descriptorType).then(type => this.createComponent(type));
-        } else {
-            this.createComponent(this.controlsFactory.resolve(descriptorType));
-        }
+        effect(() => {
+            const inst = this.instance();
+            if (!inst) return;
+            inst.currentForm = this.currentForm();
+            inst.context = this.context();
+        });
     }
 
     private createComponent(type: Type<any>): void {
-        const viewContainerRef = this.host().viewContainerRef;
-        const componentRef = viewContainerRef.createComponent(type);
-        this.component = componentRef.instance;
-        this.component.descriptor = this.descriptor();
-        this.component.currentForm = this.currentForm;
-        this.component.context = this.context;
+        const ref = this.host().viewContainerRef.createComponent(type);
+        const inst = ref.instance as BaseControlDirective<BaseControlDescriptor>;
+        inst.descriptor = this.descriptor();
+        inst.currentForm = this.currentForm();
+        inst.context = this.context();
         if (this._hasPendingValue) {
-            this.component.setControlValue(this._pendingValue);
+            inst.setControlValue(this._pendingValue);
+            this._hasPendingValue = false;
         }
         if (this._pendingOnChange) {
-            this.component.registerOnValueChanged(this._pendingOnChange);
+            inst.registerOnValueChanged(this._pendingOnChange);
+            this._pendingOnChange = null;
         }
         if (this._pendingOnTouched) {
-            this.component.registerOnControlTouched(this._pendingOnTouched);
+            inst.registerOnControlTouched(this._pendingOnTouched);
+            this._pendingOnTouched = null;
         }
-        this.cdr.detectChanges();
+        this.instance.set(inst);
     }
 
-    onChange = (_: any) => { };
-
     writeValue(obj: any): void {
-        if (this.component) {
-            this.component.setControlValue(obj);
+        const inst = this.instance();
+        if (inst) {
+            inst.setControlValue(obj);
         } else {
             this._pendingValue = obj;
             this._hasPendingValue = true;
@@ -110,18 +96,18 @@ export class ControlHolderComponent implements OnInit, ControlValueAccessor {
     }
 
     registerOnChange(fn: any): void {
-        if (this.component) {
-            this.component.registerOnValueChanged((event) => {
-                fn(event);
-            });
+        const inst = this.instance();
+        if (inst) {
+            inst.registerOnValueChanged(fn);
         } else {
             this._pendingOnChange = fn;
         }
     }
 
     registerOnTouched(fn: any): void {
-        if (this.component) {
-            this.component.registerOnControlTouched(fn);
+        const inst = this.instance();
+        if (inst) {
+            inst.registerOnControlTouched(fn);
         } else {
             this._pendingOnTouched = fn;
         }

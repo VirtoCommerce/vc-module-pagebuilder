@@ -1,4 +1,4 @@
-import { AfterContentInit, Directive, ElementRef, input, linkedSignal, OnInit, output } from "@angular/core";
+import { AfterContentInit, Directive, ElementRef, Input, input, linkedSignal, OnInit, output } from "@angular/core";
 import { UntypedFormGroup } from "@angular/forms";
 import { appHelpers } from "@app/modules/integration/helpers";
 import { ControlContext } from '@core/models';
@@ -11,12 +11,12 @@ export class BaseControlDirective<T extends BaseControlDescriptor> implements On
   public get descriptor(): T | null {
     return this._descriptor;
   }
-  public set descriptor(value: T | null) {
+  @Input() set descriptor(value: T | null) {
     this._descriptor = value;
     this.descriptorChanged();
   }
-  context!: ControlContext;
-  currentForm!: UntypedFormGroup;
+  @Input() context!: ControlContext;
+  @Input() currentForm!: UntypedFormGroup;
 
   readonly _controlValueInput = input<any>(null, { alias: 'controlValue' });
   readonly controlValue = linkedSignal(() => this._controlValueInput() ?? null);
