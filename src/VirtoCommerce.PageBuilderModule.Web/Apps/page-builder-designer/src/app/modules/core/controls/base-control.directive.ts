@@ -27,7 +27,7 @@ export class BaseControlDirective<T extends BaseControlDescriptor> implements On
 
   constructor() {
     effect(() => {
-      this._controlValueInput(); // отслеживаем изменения внешнего значения
+      this._controlValueInput(); // track external value changes
       untracked(() => this.applyNewValue());
     });
   }
