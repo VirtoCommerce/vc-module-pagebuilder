@@ -51,7 +51,6 @@ import {_getFocusedElementPierceShadowDom} from '@angular/cdk/platform';
 import {DateAdapter} from './core';
 import {MatCalendar} from './calendar';
 import {MatCalendarType, MatCalendarView} from './calendar.types';
-import {matDatepickerAnimations} from './datepicker-animations';
 import {createMissingDateImplError} from './datepicker-errors';
 import {MatCalendarUserEvent, MatCalendarCellClassFunction} from './calendar-body';
 import {DateFilterFn} from './datepicker-input-base';
@@ -107,11 +106,9 @@ export const MAT_DATEPICKER_SCROLL_STRATEGY_FACTORY_PROVIDER = {
     imports: [CdkTrapFocus, CdkPortalOutlet, MatButton, MatCalendar],
     host: {
         'class': 'mat-datepicker-content',
-        '[@transformPanel]': '_animationState',
-        '(@transformPanel.done)': '_animationDone.next()',
         '[class.mat-datepicker-content-touch]': 'datepicker.touchUi',
+        '[class.mat-datepicker-content-open]': '_animationState !== "void"',
     },
-    animations: [matDatepickerAnimations.transformPanel, matDatepickerAnimations.fadeInCalendar],
     exportAs: 'matDatepickerContent',
     encapsulation: ViewEncapsulation.None,
     changeDetection: ChangeDetectionStrategy.OnPush,
@@ -218,6 +215,9 @@ export class MatDatepickerContent<S, D = ExtractDateTypeFromSelection<S>>
   _startExitAnimation() {
     this._animationState = 'void';
     this._changeDetectorRef.markForCheck();
+    // Without Angular animations the done event never fires, so emit manually
+    // after the CSS exit transition duration (100ms).
+    setTimeout(() => this._animationDone.next(), 100);
   }
 
   _getSelected() {
