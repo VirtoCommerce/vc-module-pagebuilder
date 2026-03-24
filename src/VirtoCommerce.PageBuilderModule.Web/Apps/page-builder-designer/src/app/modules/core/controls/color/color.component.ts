@@ -1,5 +1,5 @@
 import { ConnectedPosition, OverlayModule } from '@angular/cdk/overlay';
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { NgStyle } from '@angular/common';
 import { ColorSketchModule } from 'ngx-color/sketch';
 import { ColorTwitterModule } from 'ngx-color/twitter';
@@ -21,7 +21,6 @@ import { ColorEvent } from 'ngx-color';
     imports: [NgStyle, OverlayModule, ColorSketchModule, ColorTwitterModule]
 })
 export class ColorComponent extends BaseControlDirective<ColorDescriptor> {
-    private readonly cdr = inject(ChangeDetectorRef);
     isOpen = false;
 
     positions: ConnectedPosition[] = [{
@@ -64,7 +63,5 @@ export class ColorComponent extends BaseControlDirective<ColorDescriptor> {
         this.close();
     }
 
-    protected override applyNewValue(): void {
-        this.cdr.detectChanges();
-    }
+
 }

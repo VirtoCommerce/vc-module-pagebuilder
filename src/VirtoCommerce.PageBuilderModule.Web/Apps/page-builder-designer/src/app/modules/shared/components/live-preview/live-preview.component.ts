@@ -1,4 +1,4 @@
-import { Component, DestroyRef, ElementRef, OnInit, signal, viewChild, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, signal, viewChild, inject } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { Store } from '@ngrx/store';
 
@@ -14,9 +14,10 @@ import { toSignal } from '@angular/core/rxjs-interop';
   selector: 'app-live-preview',
   templateUrl: './live-preview.component.html',
   styleUrls: ['./live-preview.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [NgClass]
 })
-export class LivePreviewComponent implements OnInit {
+export class LivePreviewComponent {
 
   private readonly destroyRef = inject(DestroyRef);
   private readonly store = inject(Store<BuilderState>);
@@ -29,30 +30,14 @@ export class LivePreviewComponent implements OnInit {
   private readonly previewLoaded = signal(false);
   private readonly pendingMessages: any[] = [];
 
-
   isPresetPreviewMode = toSignal(this.store.select(fromRoute.isPresetPreviewMode), { initialValue: false });
   previewPresetName = toSignal(this.store.select(fromRoute.selectPresetParameter), { initialValue: null });
   previewMode = toSignal(this.store.select(fromRoute.selectPreviewModeParameter), { initialValue: null });
 
-  previewUrl!: SafeResourceUrl;
-  url!: string;
+  readonly previewUrl: SafeResourceUrl;
+  readonly url: string;
 
-  ngOnInit(): void {
-
-    // + page - refresh whole page
-    // + preview
-    // + select
-    // + changed - update
-    // + add
-    // + remove
-    // + hover
-    // + clone
-    // + insert
-    // + swap
-    // + reload
-    // + hide
-    // + show
-
+  constructor() {
     const sub = this.eventsBus.on(args => args.target === 'preview', msg => {
       if (msg.payload?.type === 'preview-loaded') {
         this.previewLoaded.set(true);

@@ -17,7 +17,6 @@ import {
   Component,
   DestroyRef,
   forwardRef,
-  HostBinding,
   inject,
   input,
   Input,
@@ -66,7 +65,10 @@ let uniqueId = 0;
   exportAs: 'matCalendarHeader',
   animations: [matDatepickerAnimations.controlActive],
   encapsulation: ViewEncapsulation.None,
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '[class]': 'getCssClasses',
+  },
 })
 export class MatCalendarHeader<D> {
   readonly _intl = inject(MatDatepickerIntl);
@@ -78,7 +80,6 @@ export class MatCalendarHeader<D> {
 
   _buttonDescriptionId = `mat-calendar-button-${uniqueId++}`;
 
-  @HostBinding('class')
   get getCssClasses(): string {
     const cssClasses: string[] = [`type-${this.calendar.type}`];
     return cssClasses.join(' ');
@@ -286,6 +287,7 @@ export class MatCalendarHeader<D> {
   imports: [CdkPortalOutlet, CdkMonitorFocus, MatClockView, MatMonthView, MatYearView, MatMultiYearView],
   host: {
     'class': 'mat-calendar',
+    '[class]': 'type',
   },
   exportAs: 'matCalendar',
   encapsulation: ViewEncapsulation.None,
@@ -322,7 +324,6 @@ export class MatCalendar<D> implements OnChanges {
   private _startAt: D | null = null;
 
   /** The type of value handled by the calendar. */
-  @HostBinding('class')
   @Input() type: MatCalendarType = 'date';
 
   /** Whether the calendar should be started in. */

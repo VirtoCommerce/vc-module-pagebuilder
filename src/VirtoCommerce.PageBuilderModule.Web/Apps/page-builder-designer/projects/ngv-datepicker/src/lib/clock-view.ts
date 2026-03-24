@@ -5,7 +5,6 @@ import {
   Component,
   DestroyRef,
   ElementRef,
-  HostListener,
   Input,
   ViewEncapsulation,
   afterNextRender,
@@ -44,7 +43,8 @@ export type ClockView = 'hour' | 'minute';
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     role: 'clock',
-    '(mousedown)': '_handleMousedown($event)'
+    '(mousedown)': '_handleMousedown($event)',
+    '(window:resize)': 'updateSize()',
   },
   preserveWhitespaces: false
 })
@@ -143,7 +143,6 @@ export class MatClockView<D> implements AfterContentInit {
   /** Emits when any date is selected. */
   readonly _userSelection = output<MatCalendarUserEvent<D | null>>();
 
-  @HostListener('window:resize')
   updateSize() {
     const { offsetWidth, offsetHeight } = this._element.nativeElement;
     this._size = (offsetWidth < offsetHeight ? offsetWidth : offsetHeight) * 0.9;

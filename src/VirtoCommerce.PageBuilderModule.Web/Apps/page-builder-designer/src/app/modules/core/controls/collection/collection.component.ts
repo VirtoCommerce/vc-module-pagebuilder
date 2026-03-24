@@ -1,5 +1,5 @@
 import { ModalService } from '@core/services';
-import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { UntypedFormArray, UntypedFormGroup, AbstractControl, ReactiveFormsModule } from '@angular/forms';
 import { DragDropModule, CdkDragDrop } from '@angular/cdk/drag-drop';
@@ -23,6 +23,7 @@ import { ControlsListComponent } from '@core/dynamics/controls-list/controls-lis
     selector: 'app-collection',
     templateUrl: './collection.component.html',
     styleUrls: ['./collection.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [NgClass, ReactiveFormsModule, DragDropModule, ChevronComponent, ContextMenuComponent, DragHandleComponent, IconButtonComponent, ControlsListComponent]
 })
 export class CollectionComponent extends BaseControlDirective<CollectionDescriptor> {

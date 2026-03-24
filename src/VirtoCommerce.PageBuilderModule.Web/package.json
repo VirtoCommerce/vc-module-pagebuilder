@@ -10,8 +10,8 @@
     "devDependencies": {
         "clean-webpack-plugin": "^4.0.0",
         "css-loader": "^6.5.1",
-        "mini-css-extract-plugin": "^2.5.1",
-        "webpack": "^5.68.0",
+        "mini-css-extract-plugin": "^2.10.1",
+        "webpack": "^5.105.4",
         "webpack-cli": "4.10.0"
     },
     "overrides": {

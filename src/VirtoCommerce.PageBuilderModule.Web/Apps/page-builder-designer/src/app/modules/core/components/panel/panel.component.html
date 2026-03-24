@@ -8,7 +8,7 @@
   </ng-scrollbar>
 </div>
 
-@if (hasFooter) {
+@if (hasFooter()) {
   <div class="panel-footer" #panelFooterRef>
     <ng-content select="[footer-content]" />
   </div>

@@ -1,5 +1,5 @@
 import { Store } from '@ngrx/store';
-import { ChangeDetectionStrategy, Component, HostListener, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { RouterOutlet } from '@angular/router';
 
@@ -19,7 +19,10 @@ import { FullscreenLoaderComponent } from './layout/fullscreen-loader/fullscreen
     templateUrl: './app.component.html',
     styleUrls: ['./app.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [RouterOutlet, ToolbarComponent, PreviewAreaComponent, FullscreenLoaderComponent]
+    imports: [RouterOutlet, ToolbarComponent, PreviewAreaComponent, FullscreenLoaderComponent],
+    host: {
+        '(window:keyup)': 'keyEvent($event)',
+    },
 })
 export class AppComponent {
 
@@ -29,7 +32,6 @@ export class AppComponent {
     readonly isEditorLoading = toSignal(this.store$.select(editorSelectors.isLoading), { initialValue: false });
     readonly isThemeLoading = toSignal(this.store$.select(themeSelectors.isLoading), { initialValue: false });
 
-    @HostListener('window:keyup', ['$event'])
     keyEvent(event: KeyboardEvent) {
         if (event.key === 'Escape') {
             // todo: useful feature, must be implemented

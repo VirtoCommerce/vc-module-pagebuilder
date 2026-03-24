@@ -1,4 +1,4 @@
-import { Component, computed, DestroyRef, linkedSignal, signal, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, linkedSignal, signal, inject } from '@angular/core';
 import { rxResource, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { NgSelectModule } from '@ng-select/ng-select';
@@ -19,6 +19,7 @@ import { appHelpers } from '@integration/helpers';
     selector: 'app-select',
     templateUrl: './select.component.html',
     styleUrls: ['./select.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [FormsModule, NgSelectModule]
 })
 export class SelectComponent extends BaseControlDirective<SelectDescriptor> {
