@@ -1,4 +1,4 @@
-import { AfterContentInit, Directive, ElementRef, Input, input, linkedSignal, OnInit, output } from "@angular/core";
+import { AfterContentInit, Directive, ElementRef, Input, effect, input, linkedSignal, OnInit, output, untracked } from "@angular/core";
 import { UntypedFormGroup } from "@angular/forms";
 import { appHelpers } from "@app/modules/integration/helpers";
 import { ControlContext } from '@core/models';
@@ -17,13 +17,20 @@ export class BaseControlDirective<T extends BaseControlDescriptor> implements On
   }
   @Input() context!: ControlContext;
   @Input() currentForm!: UntypedFormGroup;
+  @Input() onControlTouched = (_: any) => {};
 
   readonly _controlValueInput = input<any>(null, { alias: 'controlValue' });
   readonly controlValue = linkedSignal(() => this._controlValueInput() ?? null);
   onValueChanged = (value: any) => this.defaultValueChanged(value);
-  onControlTouched = (_: any) => { };
 
   readonly valueChanged = output<any>();
+
+  constructor() {
+    effect(() => {
+      this._controlValueInput(); // отслеживаем изменения внешнего значения
+      untracked(() => this.applyNewValue());
+    });
+  }
 
   ngOnInit(): void {
     this.initContent();
@@ -37,23 +44,12 @@ export class BaseControlDirective<T extends BaseControlDescriptor> implements On
     }
   }
 
-  setControlValue(value: any) {
+  protected setControlValue(value: any) {
     if (!value && value !== 0 && value !== BigInt(0)) {
       value = null;
     }
     this.controlValue.set(value);
     this.applyNewValue();
-  }
-
-  registerOnValueChanged(fn: (_: any) => void) {
-    this.onValueChanged = (value) => {
-      this.defaultValueChanged(value);
-      fn(value);
-    }
-  }
-
-  registerOnControlTouched(fn: (_: any) => void) {
-    this.onControlTouched = fn;
   }
 
   onAction(action: { label?: string; icon?: string; execute?: string; }) {

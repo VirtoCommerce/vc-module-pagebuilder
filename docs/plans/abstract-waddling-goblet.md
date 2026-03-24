@@ -1,49 +1,159 @@
-# Refactoring: ControlHolderComponent → NgComponentOutlet
+# Refactoring: ControlHolderComponent → чистый NgComponentOutlet
 
 ## Context
 
-`ControlHolderComponent` был написан под Angular 13 с использованием `ViewContainerRef.createComponent()` + `ControlHostDirective`. В Angular 16+ появился `ngComponentOutletInputs`, который делает `NgComponentOutlet` полноценным решением для этого паттерна. В Angular 21 это рекомендуемый способ.
+После предыдущего рефакторинга `ControlHolderComponent` использует `ViewContainerRef.createComponent()` и хранит экземпляр в `signal`. Работает хорошо, но всё ещё нуждается в прямом вызове методов на экземпляре (`setControlValue`, `registerOnValueChanged`, `registerOnControlTouched`) — то есть в знании внутреннего интерфейса компонента.
 
-**Ответ на вопрос:** да, `NgComponentOutlet` с `ngComponentOutletInputs` — именно то, для чего создан этот случай. Но есть нюанс: `ngComponentOutletInputs` работает только с полями, помеченными `@Input()` или `input()` в целевом компоненте. Сейчас `descriptor`, `currentForm`, `context` в `BaseControlDirective` — обычные публичные свойства без Angular-декораторов, поэтому потребуется небольшое изменение базового класса.
+Цель: полностью декларативный `ControlHolderComponent` — он передаёт данные только через inputs/outputs, не знает о `BaseControlDirective` вообще. Удаляем `ControlHostDirective` и прямой вызов методов.
 
----
-
-## Что меняется и почему
-
-| Было | Стало | Причина |
-|---|---|---|
-| `ControlHostDirective` + `<ng-template appControlHost />` | `NgComponentOutlet` + `<ng-container>` в шаблоне | `NgComponentOutlet` сам управляет созданием/уничтожением компонента |
-| `@Input()` getter/setters для `currentForm`, `context` | `input.required<>()` сигналы | `ngComponentOutletInputs` автоматически пробрасывает значения сигналов |
-| `ngOnInit()` + `createComponent()` | `effect()` на `descriptor` | Реактивное создание вместо lifecycle hook |
-| `ChangeDetectorRef.detectChanges()` | убирается | `NgComponentOutlet` + сигналы управляют CD сами |
-| `viewChild.required(ControlHostDirective)` | `viewChild(NgComponentOutlet)` | Для доступа к `componentRef.instance` (CVA-методы) |
-| `OnInit` interface | убирается | — |
+**Почему возможно:** `NgComponentOutlet` с `ngComponentOutletInputs` + `ngComponentOutletOutputs` (Angular 17+) покрывает всю коммуникацию. `_componentRef` не нужен вообще.
 
 ---
 
-## Ключевое ограничение: `ngComponentOutletInputs`
+## Архитектура после рефакторинга
 
-Angular передаёт значения из `ngComponentOutletInputs` только в поля, объявленные как `@Input()` или `input()` в целевом компоненте. Без этого свойства будут проигнорированы.
+```
+ControlHolderComponent
+  ├── ngComponentOutletInputs: { descriptor, currentForm, context, controlValue, onControlTouched }
+  └── ngComponentOutletOutputs: { valueChanged: fn }
+          ↕
+  BaseControlDirective
+    ├── @Input() descriptor (геттер/сеттер, вызывает descriptorChanged())
+    ├── @Input() currentForm
+    ├── @Input() context
+    ├── input() controlValue  ← уже есть
+    ├── @Input() onControlTouched  ← новый
+    ├── output() valueChanged  ← уже есть, emitвсегда через defaultValueChanged
+    └── effect() → applyNewValue() при каждом изменении _controlValueInput
+```
 
-**Изменение в `BaseControlDirective`:**
+---
+
+## Изменения по файлам
+
+### 1. `base-control.directive.ts`
+
+**Добавить:**
+- `@Input() onControlTouched = (_: any) => {};` — было обычным полем, делаем Angular-инпутом
+- `effect()` в конструкторе, вызывающий `applyNewValue()` при изменении `_controlValueInput`:
+  ```typescript
+  constructor() {
+      effect(() => {
+          this._controlValueInput(); // отслеживаем
+          untracked(() => this.applyNewValue());
+      });
+  }
+  ```
+
+**Убрать:**
+- `registerOnValueChanged(fn)` — больше не нужен (связь через `ngComponentOutletOutputs`)
+- `registerOnControlTouched(fn)` — больше не нужен (связь через input)
+
+**Оставить:**
+- `setControlValue` — используется внутри `onAction` и в переопределениях подклассов, остаётся как protected/internal метод
+
+**Файл:** [base-control.directive.ts](src/VirtoCommerce.PageBuilderModule.Web/Apps/page-builder-designer/src/app/modules/core/controls/base-control.directive.ts)
+
+---
+
+### 2. Подклассы — переход с `setControlValue` на `applyNewValue`
+
+Три компонента переопределяют `setControlValue` для синхронизации внутреннего состояния при внешнем изменении значения. Переносим логику в `applyNewValue()`.
+
+#### `markdown.component.ts`
 
 ```typescript
 // Было:
-public set descriptor(value: T | null) { this._descriptor = value; this.descriptorChanged(); }
-context!: ControlContext;
-currentForm!: UntypedFormGroup;
+override setControlValue(value: any): void {
+    // ... normalize value ...
+    this.controlValue.set(result);  // не вызывает super!
+}
 
-// Станет:
-@Input() set descriptor(value: T | null) { this._descriptor = value; this.descriptorChanged(); }
-@Input() context!: ControlContext;
-@Input() currentForm!: UntypedFormGroup;
+// Стало:
+override applyNewValue(): void {
+    const value = this._controlValueInput();  // читаем raw input
+    // ... та же нормализация ...
+    this.controlValue.set(result);
+}
 ```
 
-Геттер/сеттер `descriptor` сохраняется — в нём вызывается `descriptorChanged()`, что является side-effect'ом (исключение по CLAUDE.md). `context` и `currentForm` — простые `@Input()`.
+#### `search.component.ts`
+
+```typescript
+// Было:
+override setControlValue(value: any) {
+    if (!value) { value = { __nodata: true, __searchQuery: null }; }
+    super.setControlValue(value);
+}
+
+// Стало:
+override applyNewValue(): void {
+    if (!this.controlValue()) {
+        this.controlValue.set({ __nodata: true, __searchQuery: null });
+    }
+}
+```
+
+#### `object.component.ts`
+
+```typescript
+// Было: override setControlValue + override registerOnValueChanged
+
+// Стано:
+override applyNewValue(): void {
+    const v = this.controlValue() || {};
+    const descriptors = this.objectDescriptors();
+    this.objectForm = formsHelpers.generateForm(v, descriptors);
+    this.formReset$.next();
+    this.objectForm.valueChanges.pipe(
+        takeUntil(this.formReset$),
+        takeUntilDestroyed(this.destroyRef)
+    ).subscribe(x => {
+        this.defaultValueChanged(x);  // вместо this.onValueChanged(x)
+    });
+}
+// Удалить: override registerOnValueChanged
+```
+
+**Почему `defaultValueChanged` вместо `onValueChanged`:** `defaultValueChanged` делает `controlValue.set(x)` + `valueChanged.emit(x)`. Emit нужен, чтобы `ngComponentOutletOutputs` передал значение в CVA.
+
+**Файлы:**
+- [markdown.component.ts](src/VirtoCommerce.PageBuilderModule.Web/Apps/page-builder-designer/src/app/modules/core/controls/markdown/markdown.component.ts)
+- [search.component.ts](src/VirtoCommerce.PageBuilderModule.Web/Apps/page-builder-designer/src/app/modules/core/controls/search/search.component.ts)
+- [object.component.ts](src/VirtoCommerce.PageBuilderModule.Web/Apps/page-builder-designer/src/app/modules/core/controls/object/object.component.ts)
 
 ---
 
-## Новая реализация `ControlHolderComponent`
+### 3. `text.component.ts` — переопределение `registerOnValueChanged` → `onValueChanged`
+
+CKEditor может эмитировать событие при программной установке значения. Текущий override добавляет проверку дедупликации.
+
+```typescript
+// Было:
+override registerOnValueChanged(fn: (_: any) => void) {
+    this.onValueChanged = (newValue) => {
+        if (this.controlValue() !== newValue) {
+            fn(newValue);  // не вызывает defaultValueChanged!
+        }
+    }
+}
+
+// Стало (override свойства напрямую, без registerOnValueChanged):
+override onValueChanged = (newValue: any) => {
+    if (this.controlValue() !== newValue) {
+        this.defaultValueChanged(newValue);  // sets signal + emits valueChanged
+    }
+};
+// Удалить: override registerOnValueChanged
+```
+
+**Почему работает:** `defaultValueChanged` устанавливает `controlValue.set(newValue)`. При следующем вызове от CKEditor проверка `controlValue() !== newValue` вернёт `false` (значения равны) → цикл прерывается.
+
+**Файл:** [text.component.ts](src/VirtoCommerce.PageBuilderModule.Web/Apps/page-builder-designer/src/app/modules/core/controls/text/text.component.ts)
+
+---
+
+### 4. `control-holder.component.ts` — полная замена на NgComponentOutlet
 
 ```typescript
 @Component({
@@ -52,42 +162,40 @@ currentForm!: UntypedFormGroup;
         @if (currentType(); as type) {
             <ng-container
                 [ngComponentOutlet]="type"
-                [ngComponentOutletInputs]="componentInputs()">
+                [ngComponentOutletInputs]="componentInputs()"
+                [ngComponentOutletOutputs]="componentOutputs">
             </ng-container>
         }
     `,
-    providers: [{
-        provide: NG_VALUE_ACCESSOR,
-        useExisting: forwardRef(() => ControlHolderComponent),
-        multi: true,
-    }],
-    styleUrls: ['./control-holder.component.scss'],
+    providers: [{ provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(...), multi: true }],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [NgComponentOutlet]
+    imports: [NgComponentOutlet]  // из @angular/common
 })
 export class ControlHolderComponent implements ControlValueAccessor {
-
     private readonly controlsFactory = inject(ControlsFactory);
 
     readonly descriptor = input.required<BaseControlDescriptor>();
     readonly currentForm = input.required<UntypedFormGroup>();
     readonly context = input.required<ControlContext>();
 
-    private readonly outlet = viewChild(NgComponentOutlet);
-
     readonly currentType = signal<Type<any> | null>(null);
+
+    private readonly _controlValue = signal<any>(null);
+    private _onChange: ((v: any) => void) | null = null;
+    private readonly _onTouched = signal<((_: any) => void) | null>(null);
 
     readonly componentInputs = computed(() => ({
         descriptor: this.descriptor(),
         currentForm: this.currentForm(),
         context: this.context(),
+        controlValue: this._controlValue(),
+        onControlTouched: this._onTouched() ?? (() => {}),
     }));
 
-    // Pending CVA state — buffered while async component is loading
-    private _pendingValue: any = undefined;
-    private _hasPendingValue = false;
-    private _pendingOnChange: ((v: any) => void) | null = null;
-    private _pendingOnTouched: ((_: any) => void) | null = null;
+    // Объявляем один раз — читает _onChange при каждом вызове
+    readonly componentOutputs = {
+        valueChanged: (v: any) => this._onChange?.(v),
+    };
 
     constructor() {
         effect(() => {
@@ -98,87 +206,57 @@ export class ControlHolderComponent implements ControlValueAccessor {
                 this.currentType.set(this.controlsFactory.resolve(type));
             }
         });
-
-        effect(() => {
-            const instance = this.outlet()?.componentRef?.instance as BaseControlDirective<BaseControlDescriptor> | undefined;
-            if (!instance) return;
-            if (this._hasPendingValue) {
-                instance.setControlValue(this._pendingValue);
-                this._hasPendingValue = false;
-            }
-            if (this._pendingOnChange) {
-                instance.registerOnValueChanged(this._pendingOnChange);
-                this._pendingOnChange = null;
-            }
-            if (this._pendingOnTouched) {
-                instance.registerOnControlTouched(this._pendingOnTouched);
-                this._pendingOnTouched = null;
-            }
-        });
-    }
-
-    private get instance(): BaseControlDirective<BaseControlDescriptor> | null {
-        return this.outlet()?.componentRef?.instance ?? null;
     }
 
     writeValue(obj: any): void {
-        if (this.instance) {
-            this.instance.setControlValue(obj);
-        } else {
-            this._pendingValue = obj;
-            this._hasPendingValue = true;
-        }
+        const normalized = (!obj && obj !== 0 && obj !== BigInt(0)) ? null : obj;
+        this._controlValue.set(normalized);
     }
 
-    registerOnChange(fn: any): void {
-        if (this.instance) {
-            this.instance.registerOnValueChanged(fn);
-        } else {
-            this._pendingOnChange = fn;
-        }
-    }
-
-    registerOnTouched(fn: any): void {
-        if (this.instance) {
-            this.instance.registerOnControlTouched(fn);
-        } else {
-            this._pendingOnTouched = fn;
-        }
-    }
+    registerOnChange(fn: any): void { this._onChange = fn; }
+    registerOnTouched(fn: any): void { this._onTouched.set(fn); }
 }
 ```
 
-### Почему CVA-методы остаются ручными
+**Почему нет буферизации pending state:** Состояние хранится в сигналах (`_controlValue`, `_onTouched`). Когда `NgComponentOutlet` создаёт компонент (даже после задержки при lazy load), `componentInputs()` сразу передаёт актуальные значения. `componentOutputs.valueChanged` читает `_onChange` в момент вызова — всегда актуально.
 
-`ngComponentOutletInputs` не может передавать callback-функции (они не Angular-инпуты). `setControlValue`, `registerOnValueChanged`, `registerOnControlTouched` — методы экземпляра, не инпуты. Поэтому CVA-буферизация остаётся, но через `viewChild(NgComponentOutlet).componentRef.instance`.
+**Файл:** [control-holder.component.ts](src/VirtoCommerce.PageBuilderModule.Web/Apps/page-builder-designer/src/app/modules/core/dynamics/control-holder.component.ts)
 
 ---
 
-## Файлы для изменения
+### 5. `control-host.directive.ts` — удалить файл
 
-| Файл | Изменение |
-|---|---|
-| [base-control.directive.ts](src/VirtoCommerce.PageBuilderModule.Web/Apps/page-builder-designer/src/app/modules/core/controls/base-control.directive.ts) | Добавить `@Input()` к `descriptor` setter, `context`, `currentForm` |
-| [control-holder.component.ts](src/VirtoCommerce.PageBuilderModule.Web/Apps/page-builder-designer/src/app/modules/core/dynamics/control-holder.component.ts) | Полная замена (см. выше) |
-| [control-host.directive.ts](src/VirtoCommerce.PageBuilderModule.Web/Apps/page-builder-designer/src/app/modules/core/dynamics/control-host.directive.ts) | Удалить файл |
-| [dynamics/index.ts](src/VirtoCommerce.PageBuilderModule.Web/Apps/page-builder-designer/src/app/modules/core/dynamics) | Убрать экспорт `ControlHostDirective` |
+Больше не используется. Убрать из `dynamics/index.ts`.
 
-Шаблон и вызывающий код (`controls-list.component.html`) **не меняются** — биндинги `[descriptor]`, `[currentForm]`, `[context]` остаются теми же.
+**Файлы:**
+- [control-host.directive.ts](src/VirtoCommerce.PageBuilderModule.Web/Apps/page-builder-designer/src/app/modules/core/dynamics/control-host.directive.ts) — удалить
+- [dynamics/index.ts](src/VirtoCommerce.PageBuilderModule.Web/Apps/page-builder-designer/src/app/modules/core/dynamics) — убрать экспорт
+
+---
+
+## Что НЕ меняется
+
+- `controls-list.component.html` — биндинги `[descriptor]`, `[currentForm]`, `[context]`, `[formControlName]` остаются теми же
+- `onAction` в `BaseControlDirective` — вызывает `setControlValue` внутренне, поведение прежнее
+- `onValueChanged` в остальных подклассах (checkbox, color, string, calendar, number, files, select) — вызывают `this.onValueChanged(value)` → `defaultValueChanged` → `valueChanged.emit` — работает через `ngComponentOutletOutputs`
 
 ---
 
 ## Порядок выполнения
 
-1. `base-control.directive.ts` — добавить `@Input()` к трём свойствам
-2. `control-holder.component.ts` — переписать
-3. `control-host.directive.ts` — удалить
-4. `dynamics/index.ts` — убрать экспорт `ControlHostDirective`
-5. `npm run build` — проверить компиляцию
-6. `npm test` — убедиться, что тесты зелёные
+1. `base-control.directive.ts` — добавить `@Input() onControlTouched`, конструктор с `effect`, удалить `registerOnValueChanged`/`registerOnControlTouched`
+2. `text.component.ts` — заменить `registerOnValueChanged` на `override onValueChanged`
+3. `object.component.ts` — `setControlValue` + `registerOnValueChanged` → `applyNewValue`
+4. `markdown.component.ts` — `setControlValue` → `applyNewValue`
+5. `search.component.ts` — `setControlValue` → `applyNewValue`
+6. `control-holder.component.ts` — полная замена
+7. Удалить `control-host.directive.ts`, обновить `index.ts`
+8. `npm run build` — проверить компиляцию
+9. `npm test` — проверить тесты
 
 ## Верификация
 
 - Build без ошибок
 - 13/13 тестов проходят
-- В приложении: все контролы (datepicker, color, markdown, select, collection) отображаются и работают корректно
-- Lazy-загруженные контролы (открыть секцию с тяжёлым контролом) загружаются без задержки в UI
+- В приложении: контролы отображаются, значения читаются и сохраняются корректно
+- Особо проверить: `ObjectComponent` (дочерняя форма), `TextComponent` (CKEditor dedup), `MarkdownComponent` (трансформация значения), `SearchComponent` (нормализация null), lazy-загрузка тяжёлых контролов

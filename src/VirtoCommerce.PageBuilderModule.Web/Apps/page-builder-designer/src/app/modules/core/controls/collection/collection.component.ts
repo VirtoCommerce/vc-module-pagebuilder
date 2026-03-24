@@ -64,28 +64,22 @@ export class CollectionComponent extends BaseControlDirective<CollectionDescript
         return { ...this.context, item: this.controlValue(), index, element: item.value, parent: this.context };
     }
 
-    override setControlValue(value: any): void {
-        if (value !== this.controlValue() || !this.form) {
-            if (!value) {
-                value = [];
-            }
-            if (!Array.isArray(value)) {
-                value = [value];
-            }
-            super.setControlValue(value);
-            const descriptors = this.getDescriptors();
-            this.collectionFormArray = formsHelpers.generateFormArray(value, descriptors);
-            this.form = new UntypedFormGroup({ list: this.collectionFormArray });
-            this.formReset$.next();
-            this.updateTitles(value);
-            this.form.valueChanges.pipe(
-                takeUntil(this.formReset$),
-                takeUntilDestroyed(this.destroyRef)
-            ).subscribe(x => {
-                this.onValueChanged(x.list);
-                this.updateTitles(x.list);
-            });
-        }
+    protected override applyNewValue(): void {
+        const raw = this.controlValue();
+        const value: any[] = !raw ? [] : !Array.isArray(raw) ? [raw] : raw;
+        this.controlValue.set(value);
+        const descriptors = this.getDescriptors();
+        this.collectionFormArray = formsHelpers.generateFormArray(value, descriptors);
+        this.form = new UntypedFormGroup({ list: this.collectionFormArray });
+        this.formReset$.next();
+        this.updateTitles(value);
+        this.form.valueChanges.pipe(
+            takeUntil(this.formReset$),
+            takeUntilDestroyed(this.destroyRef)
+        ).subscribe(x => {
+            this.onValueChanged(x.list);
+            this.updateTitles(x.list);
+        });
     }
 
     private updateTitles(values: any[]): void {

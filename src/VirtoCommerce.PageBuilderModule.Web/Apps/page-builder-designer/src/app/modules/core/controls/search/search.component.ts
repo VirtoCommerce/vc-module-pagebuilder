@@ -28,11 +28,10 @@ export class SearchComponent extends BaseControlDirective<SearchDescriptor> {
 
     readonly control = viewChild.required<ElementRef>('control');
 
-    override setControlValue(value: any) {
-        if (!value) {
-            value = { __nodata: true, __searchQuery: null };
+    protected override applyNewValue(): void {
+        if (!this.controlValue()) {
+            this.controlValue.set({ __nodata: true, __searchQuery: null });
         }
-        super.setControlValue(value);
     }
 
     override initContent() {

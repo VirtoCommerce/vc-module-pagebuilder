@@ -1,6 +1,7 @@
 import {
     ChangeDetectionStrategy,
     Component,
+    ComponentRef,
     Type,
     afterNextRender,
     effect,
@@ -8,6 +9,7 @@ import {
     inject,
     input,
     signal,
+    untracked,
     viewChild,
 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, UntypedFormGroup } from '@angular/forms';
@@ -33,18 +35,16 @@ import { BaseControlDescriptor } from '@models/controls';
 export class ControlHolderComponent implements ControlValueAccessor {
 
     private readonly controlsFactory = inject(ControlsFactory);
+    private readonly host = viewChild.required(ControlHostDirective);
 
     readonly descriptor = input.required<BaseControlDescriptor>();
     readonly currentForm = input.required<UntypedFormGroup>();
     readonly context = input.required<ControlContext>();
 
-    private readonly host = viewChild.required(ControlHostDirective);
-    private readonly instance = signal<BaseControlDirective<BaseControlDescriptor> | null>(null);
-
-    private _pendingValue: any = undefined;
-    private _hasPendingValue = false;
-    private _pendingOnChange: ((v: any) => void) | null = null;
-    private _pendingOnTouched: ((_: any) => void) | null = null;
+    private readonly _componentRef = signal<ComponentRef<BaseControlDirective<BaseControlDescriptor>> | null>(null);
+    private readonly _controlValue = signal<any>(null);
+    private _onChange: ((v: any) => void) | null = null;
+    private readonly _onTouched = signal<((_: any) => void) | null>(null);
 
     constructor() {
         afterNextRender(() => {
@@ -57,59 +57,48 @@ export class ControlHolderComponent implements ControlValueAccessor {
         });
 
         effect(() => {
-            const inst = this.instance();
-            if (!inst) return;
-            inst.currentForm = this.currentForm();
-            inst.context = this.context();
+            const ref = this._componentRef();
+            if (!ref) return;
+            ref.setInput('currentForm', this.currentForm());
+            ref.setInput('context', this.context());
+        });
+
+        effect(() => {
+            const value = this._controlValue();
+            const ref = untracked(() => this._componentRef());
+            if (!ref) return;
+            ref.setInput('controlValue', value);
+        });
+
+        effect(() => {
+            const ref = this._componentRef();
+            if (!ref) return;
+            const onTouched = this._onTouched();
+            untracked(() => ref.setInput('onControlTouched', onTouched ?? ((_: any) => {})));
         });
     }
 
     private createComponent(type: Type<any>): void {
-        const ref = this.host().viewContainerRef.createComponent(type);
-        const inst = ref.instance as BaseControlDirective<BaseControlDescriptor>;
-        inst.descriptor = this.descriptor();
-        inst.currentForm = this.currentForm();
-        inst.context = this.context();
-        if (this._hasPendingValue) {
-            inst.setControlValue(this._pendingValue);
-            this._hasPendingValue = false;
-        }
-        if (this._pendingOnChange) {
-            inst.registerOnValueChanged(this._pendingOnChange);
-            this._pendingOnChange = null;
-        }
-        if (this._pendingOnTouched) {
-            inst.registerOnControlTouched(this._pendingOnTouched);
-            this._pendingOnTouched = null;
-        }
-        this.instance.set(inst);
+        const ref = this.host().viewContainerRef.createComponent(type) as ComponentRef<BaseControlDirective<BaseControlDescriptor>>;
+        ref.setInput('descriptor', this.descriptor());
+        ref.setInput('currentForm', this.currentForm());
+        ref.setInput('context', this.context());
+        ref.setInput('onControlTouched', this._onTouched() ?? ((_: any) => {}));
+        ref.setInput('controlValue', this._controlValue());
+        ref.instance.valueChanged.subscribe((v: any) => this._onChange?.(v));
+        this._componentRef.set(ref);
     }
 
     writeValue(obj: any): void {
-        const inst = this.instance();
-        if (inst) {
-            inst.setControlValue(obj);
-        } else {
-            this._pendingValue = obj;
-            this._hasPendingValue = true;
-        }
+        const normalized = (!obj && obj !== 0 && obj !== BigInt(0)) ? null : obj;
+        this._controlValue.set(normalized);
     }
 
     registerOnChange(fn: any): void {
-        const inst = this.instance();
-        if (inst) {
-            inst.registerOnValueChanged(fn);
-        } else {
-            this._pendingOnChange = fn;
-        }
+        this._onChange = fn;
     }
 
     registerOnTouched(fn: any): void {
-        const inst = this.instance();
-        if (inst) {
-            inst.registerOnControlTouched(fn);
-        } else {
-            this._pendingOnTouched = fn;
-        }
+        this._onTouched.set(fn);
     }
 }
