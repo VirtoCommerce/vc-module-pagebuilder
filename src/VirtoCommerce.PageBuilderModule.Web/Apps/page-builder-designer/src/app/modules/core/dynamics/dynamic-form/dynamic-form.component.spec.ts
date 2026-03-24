@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, input } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { DynamicFormComponent } from './dynamic-form.component';
@@ -8,7 +8,7 @@ import { DynamicFormComponent } from './dynamic-form.component';
     template: '',
 })
 class FakeControlsTabsComponent {
-    @Input() attributes!: any;
+  readonly attributes = input<any>();
 }
 
 xdescribe('DynamicFormComponent', () => {

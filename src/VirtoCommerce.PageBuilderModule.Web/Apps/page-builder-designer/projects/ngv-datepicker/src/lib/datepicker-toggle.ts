@@ -14,10 +14,13 @@ import {
     DestroyRef,
     Directive,
     HostAttributeToken,
-    Input,
     ViewEncapsulation,
+    computed,
     contentChild,
+    effect,
     inject,
+    input,
+    untracked,
     viewChild,
 } from '@angular/core';
 import {outputToObservable} from '@angular/core/rxjs-interop';
@@ -40,11 +43,11 @@ export class MatDatepickerToggleIcon {}
     host: {
         'class': 'mat-datepicker-toggle',
         '[attr.tabindex]': 'null',
-        '[class.mat-datepicker-toggle-active]': 'datepicker && datepicker.opened',
-        '[class.mat-accent]': 'datepicker && datepicker.color === "accent"',
-        '[class.mat-warn]': 'datepicker && datepicker.color === "warn"',
+        '[class.mat-datepicker-toggle-active]': 'datepicker()?.opened',
+        '[class.mat-accent]': 'datepicker()?.color === "accent"',
+        '[class.mat-warn]': 'datepicker()?.color === "warn"',
         // Used by the test harness to tie this toggle to its datepicker.
-        '[attr.data-mat-calendar]': 'datepicker ? datepicker.id : null',
+        '[attr.data-mat-calendar]': 'datepicker()?.id ?? null',
         // Bind the `click` on the host, rather than the inner `button`, so that we can call
         // `stopPropagation` on it without affecting the user's `click` handlers. We need to stop
         // it so that the input doesn't get focused automatically by the form field (See #21836).
@@ -60,39 +63,41 @@ export class MatDatepickerToggle<D> {
   private readonly _destroyRef = inject(DestroyRef);
 
   private _stateChanges = Subscription.EMPTY;
-  private _datepicker!: MatDatepickerPanel<MatDatepickerControl<any>, D>;
 
   /** Datepicker instance that the button will toggle. */
-  @Input('for')
-  get datepicker(): MatDatepickerPanel<MatDatepickerControl<any>, D> {
-    return this._datepicker;
-  }
-  set datepicker(value: MatDatepickerPanel<MatDatepickerControl<any>, D>) {
-    this._datepicker = value;
-    this._watchStateChanges();
-  }
+  readonly datepicker = input<MatDatepickerPanel<MatDatepickerControl<any>, D> | undefined>(undefined, { alias: 'for' });
 
-  /** Tabindex for the toggle. */
-  @Input() tabIndex: number | null;
+  /** Tabindex for the toggle (explicit binding). */
+  readonly tabIndex = input<number | null>(null);
+
+  /** Default tabindex from the host element attribute, read once at construction. */
+  private _hostTabIndex: number | null = null;
+
+  /** Effective tabindex: explicit binding takes priority over host attribute. */
+  readonly _effectiveTabIndex = computed(() => this.tabIndex() ?? this._hostTabIndex);
 
   /** Screenreader label for the button. */
-  @Input('aria-label') ariaLabel!: string;
+  readonly ariaLabel = input('', { alias: 'aria-label' });
 
   /** Whether the toggle button is disabled. */
-  @Input()
-  get disabled(): boolean {
-    if (this._disabled === undefined && this.datepicker) {
-      return this.datepicker.disabled;
+  protected readonly _disabledInput = input<boolean | undefined, boolean | string | undefined>(
+    undefined,
+    {
+      alias: 'disabled',
+      transform: (v): boolean | undefined => v === undefined ? undefined : coerceBooleanProperty(v),
     }
-    return !!this._disabled;
+  );
+
+  get disabled(): boolean {
+    const explicit = this._disabledInput();
+    if (explicit === undefined && this.datepicker()) {
+      return this.datepicker()!.disabled;
+    }
+    return explicit ?? false;
   }
-  set disabled(value: boolean) {
-    this._disabled = coerceBooleanProperty(value);
-  }
-  private _disabled: boolean = false;
 
   /** Whether ripples on the toggle should be disabled. */
-  @Input() disableRipple!: boolean;
+  readonly disableRipple = input(false);
 
   /** Custom icon set by the consumer. */
   readonly _customIcon = contentChild(MatDatepickerToggleIcon);
@@ -103,26 +108,33 @@ export class MatDatepickerToggle<D> {
   constructor() {
     const defaultTabIndex = inject(new HostAttributeToken('tabindex'), { optional: true });
     const parsedTabIndex = Number(defaultTabIndex);
-    this.tabIndex = parsedTabIndex || parsedTabIndex === 0 ? parsedTabIndex : null;
+    this._hostTabIndex = parsedTabIndex || parsedTabIndex === 0 ? parsedTabIndex : null;
 
     this._destroyRef.onDestroy(() => this._stateChanges.unsubscribe());
+
+    // Re-subscribe to state changes whenever the datepicker input changes.
+    effect(() => {
+      this.datepicker();
+      untracked(() => this._watchStateChanges());
+    });
   }
 
   _open(event: Event): void {
-    if (this.datepicker && !this.disabled) {
-      this.datepicker.open();
+    if (this.datepicker() && !this.disabled) {
+      this.datepicker()!.open();
       event.stopPropagation();
     }
   }
 
   private _watchStateChanges() {
-    const datepickerStateChanged = this.datepicker ? this.datepicker.stateChanges : observableOf();
+    const dp = this.datepicker();
+    const datepickerStateChanged = dp ? dp.stateChanges : observableOf();
     const inputStateChanged =
-      this.datepicker && this.datepicker.datepickerInput
-        ? this.datepicker.datepickerInput.stateChanges
+      dp && dp.datepickerInput
+        ? dp.datepickerInput.stateChanges
         : observableOf();
-    const datepickerToggled = this.datepicker
-      ? merge(outputToObservable(this.datepicker.openedStream), outputToObservable(this.datepicker.closedStream))
+    const datepickerToggled = dp
+      ? merge(outputToObservable(dp.openedStream), outputToObservable(dp.closedStream))
       : observableOf();
 
     this._stateChanges.unsubscribe();

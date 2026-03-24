@@ -1,7 +1,7 @@
 <div class="mat-custom-header">
   <div class="mat-custom-controls">
 
-    @if (calendar.type === 'year') {
+    @if (calendar.type() === 'year') {
       <div class="mat-custom-date">
         <button mat-button type="button" class="mat-custom-date-year mat-custom-control"
         (click)="switchToView('multi-year')"
@@ -12,7 +12,7 @@
       </div>
     }
 
-    @if (calendar.type === 'month') {
+    @if (calendar.type() === 'month') {
       <div class="mat-custom-date">
         <button mat-button type="button" class="mat-custom-date-month mat-custom-control"
         (click)="switchToView('year')"

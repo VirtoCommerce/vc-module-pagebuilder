@@ -28,19 +28,18 @@ import {
   DestroyRef,
   Directive,
   ElementRef,
-  Input,
+  effect,
   InjectionToken,
   NgZone,
-  OnChanges,
   OnInit,
   OutputRef,
-  SimpleChanges,
   ViewContainerRef,
   ViewEncapsulation,
   inject,
   input,
   isDevMode,
   output,
+  untracked,
   viewChild,
 } from '@angular/core';
 import {takeUntilDestroyed} from '@angular/core/rxjs-interop';
@@ -123,7 +122,7 @@ export class MatDatepickerContent<S, D = ExtractDateTypeFromSelection<S>>
     MAT_DATE_RANGE_SELECTION_STRATEGY, {optional: true});
   private readonly _destroyRef = inject(DestroyRef);
 
-  @Input() color: ThemePalette;
+  readonly color = input<ThemePalette>(undefined);
   private _model!: MatDateSelectionModel<S, D>;
 
   /** Reference to the internal calendar component. */
@@ -283,7 +282,7 @@ export abstract class MatDatepickerBase<
   C extends MatDatepickerControl<D>,
   S,
   D = ExtractDateTypeFromSelection<S>,
-> implements MatDatepickerPanel<C, S, D>, OnChanges
+> implements MatDatepickerPanel<C, S, D>
 {
   private readonly _overlay = inject(Overlay);
   private readonly _ngZone = inject(NgZone);
@@ -301,19 +300,19 @@ export abstract class MatDatepickerBase<
   readonly calendarHeaderComponent = input<ComponentType<any> | undefined>(undefined);
 
   /** The date to open the calendar to initially. */
-  @Input()
+  readonly _startAtInput = input<D | null, D | null>(null, {
+    alias: 'startAt',
+    transform: (v: D | null) => this._dateAdapter.getValidDateOrNull(this._dateAdapter.deserialize(v)),
+  });
+
   get startAt(): D | null {
-    // If an explicit startAt is set we start there, otherwise we start at whatever the currently
-    // selected value is.
-    return this._startAt || (this.datepickerInput ? this.datepickerInput.getStartValue() : null);
+    return this._startAtInput() || (this.datepickerInput ? this.datepickerInput.getStartValue() : null);
   }
-  set startAt(value: D | null) {
-    this._startAt = this._dateAdapter.getValidDateOrNull(this._dateAdapter.deserialize(value));
-  }
-  private _startAt: D | null = null;
 
   /** The type of value handled by the calendar. */
-  @Input() type: MatCalendarType = 'date';
+  readonly _typeInput = input<MatCalendarType>('date', { alias: 'type' });
+
+  get type(): MatCalendarType { return this._typeInput(); }
 
   /** The view that the calendar should start in. */
   readonly startView = input<MatCalendarView>('month');
@@ -330,68 +329,52 @@ export abstract class MatDatepickerBase<
   readonly twelveHour = input(true);
 
   /** Color palette to use on the datepicker's calendar. */
-  @Input()
+  readonly _colorInput = input<ThemePalette>(undefined, { alias: 'color' });
+
   get color(): ThemePalette {
-    return (
-      this._color || (this.datepickerInput ? this.datepickerInput.getThemePalette() : undefined)
-    );
+    return this._colorInput() || (this.datepickerInput ? this.datepickerInput.getThemePalette() : undefined);
   }
-  set color(value: ThemePalette) {
-    this._color = value;
-  }
-  _color: ThemePalette;
 
   /**
    * Whether the calendar UI is in touch mode. In touch mode the calendar opens in a dialog rather
    * than a dropdown and elements have more padding to allow for bigger touch targets.
    */
-  @Input()
-  get touchUi(): boolean {
-    return this._touchUi;
-  }
-  set touchUi(value: boolean) {
-    this._touchUi = coerceBooleanProperty(value);
-  }
-  private _touchUi = false;
+  readonly _touchUiInput = input(false, {
+    alias: 'touchUi',
+    transform: (value: BooleanInput) => coerceBooleanProperty(value),
+  });
+
+  get touchUi(): boolean { return this._touchUiInput(); }
 
   /** Whether the datepicker pop-up should be disabled. */
-  @Input()
-  get disabled(): boolean {
-    return this._disabled === undefined && this.datepickerInput
-      ? this.datepickerInput.disabled
-      : !!this._disabled;
-  }
-  set disabled(value: boolean) {
-    const newValue = coerceBooleanProperty(value);
+  readonly _disabledInput = input(false, {
+    alias: 'disabled',
+    transform: (value: BooleanInput) => coerceBooleanProperty(value),
+  });
 
-    if (newValue !== this._disabled) {
-      this._disabled = newValue;
-      this.stateChanges.next(undefined);
-    }
-  }
-  private _disabled: boolean = false;
+  get disabled(): boolean { return this._disabledInput(); }
 
   /** Preferred position of the datepicker in the X axis. */
-  @Input()
-  xPosition: DatepickerDropdownPositionX = 'start';
+  readonly _xPositionInput = input<DatepickerDropdownPositionX>('start', { alias: 'xPosition' });
+
+  get xPosition(): DatepickerDropdownPositionX { return this._xPositionInput(); }
 
   /** Preferred position of the datepicker in the Y axis. */
-  @Input()
-  yPosition: DatepickerDropdownPositionY = 'below';
+  readonly _yPositionInput = input<DatepickerDropdownPositionY>('below', { alias: 'yPosition' });
+
+  get yPosition(): DatepickerDropdownPositionY { return this._yPositionInput(); }
 
   /**
    * Whether to restore focus to the previously-focused element when the calendar is closed.
    * Note that automatic focus restoration is an accessibility feature and it is recommended that
    * you provide your own equivalent, if you decide to turn it off.
    */
-  @Input()
-  get restoreFocus(): boolean {
-    return this._restoreFocus;
-  }
-  set restoreFocus(value: boolean) {
-    this._restoreFocus = coerceBooleanProperty(value);
-  }
-  private _restoreFocus = true;
+  readonly _restoreFocusInput = input(true, {
+    alias: 'restoreFocus',
+    transform: (value: BooleanInput) => coerceBooleanProperty(value),
+  });
+
+  get restoreFocus(): boolean { return this._restoreFocusInput(); }
 
   /**
    * Emits selected year in multiyear view.
@@ -423,23 +406,20 @@ export abstract class MatDatepickerBase<
    * Classes to be passed to the date picker panel.
    * Supports string and string array values, similar to `ngClass`.
    */
-  @Input()
-  get panelClass(): string | string[] {
-    return this._panelClass;
-  }
-  set panelClass(value: string | string[]) {
-    this._panelClass = coerceStringArray(value);
-  }
-  private _panelClass!: string[];
+  readonly _panelClassInput = input<string[], string | string[]>([], {
+    alias: 'panelClass',
+    transform: (v: string | string[]) => coerceStringArray(v),
+  });
+
+  get panelClass(): string[] { return this._panelClassInput(); }
 
   /** Whether the calendar is open. */
-  @Input()
-  get opened(): boolean {
-    return this._opened;
-  }
-  set opened(value: boolean) {
-    coerceBooleanProperty(value) ? this.open() : this.close();
-  }
+  readonly _openedInput = input(false, {
+    alias: 'opened',
+    transform: (value: BooleanInput) => coerceBooleanProperty(value),
+  });
+
+  get opened(): boolean { return this._opened; }
   private _opened = false;
 
   /** The id for the datepicker calendar. */
@@ -490,28 +470,52 @@ export abstract class MatDatepickerBase<
       this._inputStateChanges.unsubscribe();
       this.stateChanges.complete();
     });
-  }
 
-  ngOnChanges(changes: SimpleChanges) {
-    const positionChange = changes['xPosition'] || changes['yPosition'];
-
-    if (positionChange && !positionChange.firstChange && this._overlayRef) {
-      const positionStrategy = this._overlayRef.getConfig().positionStrategy;
-
-      if (positionStrategy instanceof FlexibleConnectedPositionStrategy) {
-        this._setConnectedPositions(positionStrategy);
-
-        if (this.opened) {
-          this._overlayRef.updatePosition();
+    // Sync type to connected input and emit state changes when it changes
+    effect(() => {
+      const t = this._typeInput();
+      untracked(() => {
+        if (this.datepickerInput && this.datepickerInput.type !== t) {
+          this.datepickerInput.type = t;
         }
-      }
-    }
+        this.stateChanges.next(undefined);
+      });
+    });
 
-    if (this.datepickerInput.type !== this.type) {
-      this.datepickerInput.type = this.type;
-    }
+    // Update overlay position when xPosition/yPosition change
+    effect(() => {
+      this._xPositionInput();
+      this._yPositionInput();
+      untracked(() => {
+        if (this._overlayRef) {
+          const positionStrategy = this._overlayRef.getConfig().positionStrategy;
+          if (positionStrategy instanceof FlexibleConnectedPositionStrategy) {
+            this._setConnectedPositions(positionStrategy);
+            if (this.opened) {
+              this._overlayRef.updatePosition();
+            }
+          }
+        }
+        this.stateChanges.next(undefined);
+      });
+    });
 
-    this.stateChanges.next(undefined);
+    // Emit state changes for remaining inputs
+    effect(() => {
+      this._startAtInput();
+      this._colorInput();
+      this._touchUiInput();
+      this._disabledInput();
+      this._restoreFocusInput();
+      this._panelClassInput();
+      untracked(() => this.stateChanges.next(undefined));
+    });
+
+    // Open/close when the opened input changes
+    effect(() => {
+      const v = this._openedInput();
+      untracked(() => v ? this.open() : this.close());
+    });
   }
 
   /** Selects the given date */
@@ -610,7 +614,7 @@ export abstract class MatDatepickerBase<
     };
 
     if (
-      this._restoreFocus &&
+      this.restoreFocus &&
       this._focusedElementBeforeOpen &&
       typeof this._focusedElementBeforeOpen.focus === 'function'
     ) {
@@ -634,7 +638,7 @@ export abstract class MatDatepickerBase<
   /** Forwards relevant values from the datepicker to the datepicker content inside the overlay. */
   protected _forwardContentValues(instance: MatDatepickerContent<S, D>) {
     instance.datepicker = this;
-    instance.color = this.color;
+    this._componentRef!.setInput('color', this.color);
     instance._actionsPortal = this._actionsPortal;
   }
 
@@ -766,8 +770,4 @@ export abstract class MatDatepickerBase<
     );
   }
 
-  static ngAcceptInputType_disabled: BooleanInput;
-  static ngAcceptInputType_opened: BooleanInput;
-  static ngAcceptInputType_touchUi: BooleanInput;
-  static ngAcceptInputType_restoreFocus: BooleanInput;
 }
