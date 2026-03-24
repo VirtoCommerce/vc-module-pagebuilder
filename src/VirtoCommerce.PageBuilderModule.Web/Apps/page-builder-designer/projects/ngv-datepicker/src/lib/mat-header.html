@@ -5,7 +5,6 @@
       <div class="mat-custom-date">
         <button mat-button type="button" class="mat-custom-date-year mat-custom-control"
         (click)="switchToView('multi-year')"
-        [@controlActive]="isControlActive(['multi-year']) ? 'active' : ''"
         [class.mat-custom-control-active]="isControlActive(['multi-year'])"
         [attr.aria-label]="_intl.switchToMultiYearViewLabel">
           <span>{{ _yearButtonText }}</span>
@@ -17,7 +16,6 @@
       <div class="mat-custom-date">
         <button mat-button type="button" class="mat-custom-date-month mat-custom-control"
         (click)="switchToView('year')"
-        [@controlActive]="isControlActive(['year']) ? 'active' : ''"
         [class.mat-custom-control-active]="isControlActive(['year'])"
         [attr.aria-label]="_intl.switchToYearViewLabel">
           <span>{{ _monthButtonText }}</span>
@@ -25,7 +23,6 @@
 
         <button mat-button type="button" class="mat-custom-date-year mat-custom-control"
         (click)="switchToView('multi-year')"
-        [@controlActive]="isControlActive(['multi-year']) ? 'active' : ''"
         [class.mat-custom-control-active]="isControlActive(['multi-year'])"
         [attr.aria-label]="_intl.switchToMultiYearViewLabel">
           <span>{{ _yearButtonText }}</span>
@@ -37,7 +34,6 @@
       <div class="mat-custom-date">
         <button mat-button type="button" class="mat-custom-date-year mat-custom-control"
         (click)="switchToView('multi-year')"
-        [@controlActive]="isControlActive(['multi-year']) ? 'active' : ''"
         [class.mat-custom-control-active]="isControlActive(['multi-year'])"
         [attr.aria-label]="_intl.switchToMultiYearViewLabel">
           <span>{{ _yearButtonText }}</span>
@@ -45,7 +41,6 @@
 
         <button mat-button type="button" class="mat-custom-date-monthday mat-custom-control"
         (click)="monthdayClicked()"
-        [@controlActive]="isControlActive(['month', 'year']) ? 'active' : ''"
         [class.mat-custom-control-active]="isControlActive(['month', 'year'])"
         [attr.aria-label]="monthdayButtonLabel">
           <span class="mat-custom-date-year-dayname">{{ _dayButtonText }}&nbsp;</span>
@@ -59,7 +54,6 @@
         <div class="mat-custom-time-hour">
           <button mat-button type="button" class="mat-custom-time-hour mat-custom-control"
           (click)="switchToView('hour')"
-          [@controlActive]="isControlActive(['hour']) ? 'active' : ''"
           [class.mat-custom-control-active]="isControlActive(['hour'])"
           [attr.aria-label]="_intl.switchToHourViewLabel">
             <span>{{ _hourButtonText }}</span>
@@ -68,7 +62,6 @@
           <span class="mat-custom-separator">:</span>
 
           <button mat-button type="button" class="mat-custom-time-minute mat-custom-control"
-          [@controlActive]="isControlActive(['minute']) ? 'active' : ''"
           [class.mat-custom-control-active]="isControlActive(['minute'])"
           (click)="switchToView('minute')"
           [attr.aria-label]="_intl.switchToMinuteViewLabel">
@@ -78,14 +71,12 @@
         @if (calendar.twelveHour()) {
           <div class="mat-custom-time-ampm">
             <button mat-button type="button" class="mat-custom-control"
-            [@controlActive]="_isAM ? 'active' : ''"
             [class.mat-custom-control-active]="_isAM"
             [attr.aria-label]="_intl.setToAMLabel"
             (click)="toggleAmPm(true)">
               AM
             </button>
             <button mat-button type="button" class="mat-custom-control"
-            [@controlActive]="!_isAM ? 'active' : ''"
             [class.mat-custom-control-active]="!_isAM"
             [attr.aria-label]="_intl.setToPMLabel"
             (click)="toggleAmPm(false)">

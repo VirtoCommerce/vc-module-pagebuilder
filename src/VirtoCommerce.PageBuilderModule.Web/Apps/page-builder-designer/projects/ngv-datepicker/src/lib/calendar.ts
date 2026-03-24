@@ -37,7 +37,6 @@ import {
 } from './core';
 import { MatCalendarUserEvent, MatCalendarCellClassFunction } from './calendar-body';
 import { MatCalendarType, MatCalendarView } from './calendar.types';
-import { matDatepickerAnimations } from './datepicker-animations';
 import { createMissingDateImplError } from './datepicker-errors';
 import { MatDatepickerIntl } from './datepicker-intl';
 import { DateFilterFn } from './datepicker-input-base';
@@ -63,7 +62,6 @@ let uniqueId = 0;
   styleUrls: ['./mat-header.scss'],
   imports: [MatButton, MatIconButton],
   exportAs: 'matCalendarHeader',
-  animations: [matDatepickerAnimations.controlActive],
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {

@@ -43,9 +43,12 @@ export class ObjectComponent extends BaseControlDirective<ObjectDescriptor> {
 
     protected override applyNewValue(): void {
         const v = this.controlValue() || {};
+        if (this.objectForm) {
+            this.objectForm.patchValue(v, { emitEvent: false });
+            return;
+        }
         const descriptors = this.objectDescriptors();
         this.objectForm = formsHelpers.generateForm(v, descriptors);
-        this.formReset$.next();
         this.objectForm.valueChanges.pipe(
             takeUntil(this.formReset$),
             takeUntilDestroyed(this.destroyRef)
