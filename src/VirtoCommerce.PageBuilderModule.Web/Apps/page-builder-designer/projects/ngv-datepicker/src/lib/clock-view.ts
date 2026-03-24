@@ -389,9 +389,10 @@ export class MatClockView<D> implements AfterContentInit {
       return;
     }
 
-    // we don't want to re-render the clock
-    this._activeDate = date;
-    this.selectedChange.emit(this.activeDate);
+    // Emit date directly without pre-setting _activeDate. The [(activeDate)] two-way binding
+    // will call the setter with the old _activeDate still in place, so compareDate != 0 and
+    // _init() will run — updating _selectedHour/_selectedMinute and moving the hand.
+    this.selectedChange.emit(date);
   }
 
   private _applyHourValue(rawValue: number, outer: boolean): D {
