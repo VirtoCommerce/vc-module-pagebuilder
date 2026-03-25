@@ -44,13 +44,11 @@ export class TextComponent extends BaseControlDirective<TextDescriptor> {
 
     config = this.defaultConfig;
 
-    override registerOnValueChanged(fn: (_: any) => void) {
-        this.onValueChanged = (newValue) => {
-            if (this.controlValue() !== newValue) {
-                fn(newValue);
-            }
+    override onValueChanged = (newValue: any) => {
+        if (this.controlValue() !== newValue) {
+            this.defaultValueChanged(newValue);
         }
-    }
+    };
 
     protected override descriptorChanged(): void {
         this.config = { ...this.defaultConfig, ...this.descriptor?.config };

@@ -11,7 +11,7 @@
          [labelMinRequiredCells]="2"
          [numCols]="4"
          [cellAspectRatio]="4 / 7"
-         [activeCell]="_dateAdapter.getMonth(activeDate)"
+         [activeCell]="_dateAdapter.getMonth(_effectiveActiveDate())"
          (selectedValueChange)="_monthSelected($event)"
          (keyup)="_handleCalendarBodyKeyup($event)"
          (keydown)="_handleCalendarBodyKeydown($event)">

@@ -1,13 +1,13 @@
 <div class="background"></div>
-<div class="content" [style.width.px]="contentWidth">
+<div class="content" [style.width.px]="contentWidth()">
   <ng-content />
 </div>
 @if (expandable()) {
   <div
     class="expand"
-    [style.left.px]="expanderPosition"
-    [ngClass]="{ expanded: isOpened }"
+    [style.left.px]="expanderPosition()"
+    [ngClass]="{ expanded: isOpened() }"
     (click)="toggle()">
-    <app-icon [ngClass]="{ inverted: isOpened }">chevron_right</app-icon>
+    <app-icon [ngClass]="{ inverted: isOpened() }">chevron_right</app-icon>
   </div>
 }

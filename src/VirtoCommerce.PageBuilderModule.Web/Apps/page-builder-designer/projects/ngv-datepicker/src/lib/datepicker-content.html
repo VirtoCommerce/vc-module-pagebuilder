@@ -20,7 +20,6 @@
     [dateClass]="datepicker.dateClass()"
     [comparisonStart]="comparisonStart"
     [comparisonEnd]="comparisonEnd"
-    [@fadeInCalendar]="'enter'"
     (yearSelected)="datepicker._selectYear($event)"
     (monthSelected)="datepicker._selectMonth($event)"
     (viewChanged)="datepicker._viewChanged($event)"
@@ -33,7 +32,7 @@
   <button
     type="button"
     mat-raised-button
-    [color]="color || 'primary'"
+    [color]="color() || 'primary'"
     class="mat-datepicker-close-button"
     [class.cdk-visually-hidden]="!_closeButtonFocused"
     (focus)="_closeButtonFocused = true"

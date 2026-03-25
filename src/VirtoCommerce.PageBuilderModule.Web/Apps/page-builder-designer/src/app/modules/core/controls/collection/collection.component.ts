@@ -1,5 +1,5 @@
 import { ModalService } from '@core/services';
-import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { UntypedFormArray, UntypedFormGroup, AbstractControl, ReactiveFormsModule } from '@angular/forms';
 import { DragDropModule, CdkDragDrop } from '@angular/cdk/drag-drop';
@@ -23,6 +23,7 @@ import { ControlsListComponent } from '@core/dynamics/controls-list/controls-lis
     selector: 'app-collection',
     templateUrl: './collection.component.html',
     styleUrls: ['./collection.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [NgClass, ReactiveFormsModule, DragDropModule, ChevronComponent, ContextMenuComponent, DragHandleComponent, IconButtonComponent, ControlsListComponent]
 })
 export class CollectionComponent extends BaseControlDirective<CollectionDescriptor> {
@@ -63,28 +64,25 @@ export class CollectionComponent extends BaseControlDirective<CollectionDescript
         return { ...this.context, item: this.controlValue(), index, element: item.value, parent: this.context };
     }
 
-    override setControlValue(value: any): void {
-        if (value !== this.controlValue() || !this.form) {
-            if (!value) {
-                value = [];
-            }
-            if (!Array.isArray(value)) {
-                value = [value];
-            }
-            super.setControlValue(value);
-            const descriptors = this.getDescriptors();
-            this.collectionFormArray = formsHelpers.generateFormArray(value, descriptors);
-            this.form = new UntypedFormGroup({ list: this.collectionFormArray });
-            this.formReset$.next();
-            this.updateTitles(value);
-            this.form.valueChanges.pipe(
-                takeUntil(this.formReset$),
-                takeUntilDestroyed(this.destroyRef)
-            ).subscribe(x => {
-                this.onValueChanged(x.list);
-                this.updateTitles(x.list);
-            });
+    protected override applyNewValue(): void {
+        const raw = this.controlValue();
+        const value: any[] = !raw ? [] : !Array.isArray(raw) ? [raw] : raw;
+        if (value === this.controlValue() && this.form) {
+            return;
         }
+        this.controlValue.set(value);
+        const descriptors = this.getDescriptors();
+        this.collectionFormArray = formsHelpers.generateFormArray(value, descriptors);
+        this.form = new UntypedFormGroup({ list: this.collectionFormArray });
+        this.formReset$.next();
+        this.updateTitles(value);
+        this.form.valueChanges.pipe(
+            takeUntil(this.formReset$),
+            takeUntilDestroyed(this.destroyRef)
+        ).subscribe(x => {
+            this.onValueChanged(x.list);
+            this.updateTitles(x.list);
+        });
     }
 
     private updateTitles(values: any[]): void {

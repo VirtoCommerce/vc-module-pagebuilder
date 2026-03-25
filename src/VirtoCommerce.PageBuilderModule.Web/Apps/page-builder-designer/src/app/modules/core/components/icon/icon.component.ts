@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, HostBinding, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { MatIcon } from '@angular/material/icon';
 
 @Component({
@@ -6,14 +6,15 @@ import { MatIcon } from '@angular/material/icon';
     templateUrl: './icon.component.html',
     styleUrls: ['./icon.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [MatIcon]
+    imports: [MatIcon],
+    host: {
+        '[class.inline]': 'inline()',
+        '[class.hoverable]': 'hoverable()',
+        '[class.small-size]': 'smallSize()',
+    },
 })
 export class IconComponent {
     readonly inline = input<boolean>(false);
     readonly hoverable = input<boolean>(false);
     readonly smallSize = input<boolean>(false);
-
-    @HostBinding('class.inline') get inlineClass() { return this.inline(); }
-    @HostBinding('class.hoverable') get hoverableClass() { return this.hoverable(); }
-    @HostBinding('class.small-size') get smallSizeClass() { return this.smallSize(); }
 }

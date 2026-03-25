@@ -137,25 +137,69 @@ constructor() { super(inject(HttpHandler)); }
 ```
 
 ### Component Inputs / Outputs / Queries
+
+Prefer `input()` over `@Input()`. Use `@Input()` only when the setter has asymmetric semantics (see below).
+
 ```typescript
-// Signal-based inputs (simple values, no side effects)
+// Simple signal input
 readonly label = input.required<string>();
 readonly opened = input(false);
 
-// Getter/setter @Input — keep when side effects needed (e.g. generateForm)
-@Input({ required: true }) set descriptor(value: ...) { this.generateForm(value); }
+// Signal input with coercion/transform
+readonly disabled = input(false, { transform: coerceBooleanProperty });
 
-// Mutable input (externally bound AND internally mutated)
-readonly controlValue = signal<any>(null);
-@Input('controlValue') set controlValueInput(v: any) { this.controlValue.set(v ?? null); }
+// Signal input + alias + getter — preferred when side effects are needed
+// Subclasses and templates access by plain name; effect() reacts to changes
+readonly _descriptorInput = input<T | null>(null, { alias: 'descriptor' });
+get descriptor(): T | null { return this._descriptorInput(); }
+// In constructor:
+// effect(() => { this._descriptorInput(); untracked(() => this.descriptorChanged()); });
+
+// @Input() getter+setter — use when getter returns a DIFFERENT value than the raw input
+// (setter feeds internal model; getter reads back from it; third parties may set via instance.propName)
+@Input()
+get value(): D | null { return this._model?.selection ?? this._pendingValue; }
+set value(v: D | null) { this._processValue(v); }
+
+// Two-way binding: model() replaces @Input() + @Output() pair
+readonly selected = model<Date | null>(null);
+
+// Derived mutable signal: linkedSignal() resets to upstream when upstream changes
+readonly controlValue = linkedSignal(() => this._controlValueInput() ?? null);
 
 // output() replaces @Output() + EventEmitter
 readonly onAdd = output<SectionItem>();
 
 // viewChild() replaces @ViewChild
 readonly frame = viewChild<ElementRef>('frame');
-readonly host = viewChild.required(ControlHostDirective);
 ```
+
+> **CAUTION — alias+getter conflict**: if a signal input's alias matches the name of a custom getter on the same class (e.g. `input(null, { alias: 'value' })` + `get value()`), Angular throws *"Cannot set property … which has only a getter"* when a template binds `[value]="x"` to that directive. In this case, use an `@Input()` setter instead of a signal input.
+
+### ngOnChanges → effect()
+
+Replace `ngOnChanges` with one or more `effect()` calls in the constructor. Group related inputs in the same effect when they share a side effect.
+
+```typescript
+constructor() {
+  // Replaces: ngOnChanges checking SimpleChanges for 'descriptor'
+  effect(() => {
+    this._descriptorInput();           // track — runs when input changes
+    untracked(() => this.descriptorChanged());  // side effect without re-tracking
+  });
+
+  // Multiple unrelated inputs can each have their own effect
+  effect(() => {
+    this._minInput(); this._maxInput();
+    untracked(() => this._validatorOnChange());
+  });
+}
+```
+
+**Rules:**
+- Always wrap side effects in `untracked()` to avoid unintended signal reads being tracked.
+- Effects run once on construction and then on every change — guard with `if` when needed.
+- `ngOnChanges` and `implements OnChanges` can be removed entirely once all `@Input()` setters are replaced.
 
 ### Control Flow
 Use `@if` / `@for` / `@switch` — **never** `*ngIf` / `*ngFor` / `[ngSwitch]`:

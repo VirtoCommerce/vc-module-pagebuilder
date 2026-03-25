@@ -1,129 +1,73 @@
 import {
-    Component,
-    Input,
-    Type,
-    input,
-    OnInit,
-    viewChild,
-    forwardRef,
     ChangeDetectionStrategy,
-    // HostBinding,
-    ChangeDetectorRef,
-    inject
+    Component,
+    Type,
+    ViewContainerRef,
+    afterNextRender,
+    forwardRef,
+    inject,
+    input,
+    inputBinding,
+    outputBinding,
+    signal,
 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, UntypedFormGroup } from '@angular/forms';
 
-import { ControlHostDirective } from './control-host.directive';
-import { ControlsFactory } from '@core/controls/controls.factory'; import { BaseControlDirective } from '@core/controls/base-control.directive';
-
+import { ControlsFactory } from '@core/controls/controls.factory';
 import { ControlContext } from '@core/models';
 import { BaseControlDescriptor } from '@models/controls';
 
 @Component({
     selector: 'app-control-holder',
-    template: `<ng-template appControlHost />`,
+    template: ``,
     providers: [{
-            provide: NG_VALUE_ACCESSOR,
-            useExisting: forwardRef(() => ControlHolderComponent),
-            multi: true,
-        }],
-    styleUrls: ['./control-holder.component.scss'],
+        provide: NG_VALUE_ACCESSOR,
+        useExisting: forwardRef(() => ControlHolderComponent),
+        multi: true,
+    }],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [ControlHostDirective]
 })
-export class ControlHolderComponent implements OnInit, ControlValueAccessor {
+export class ControlHolderComponent implements ControlValueAccessor {
 
+    private readonly vcr = inject(ViewContainerRef);
     private readonly controlsFactory = inject(ControlsFactory);
-    private readonly cdr = inject(ChangeDetectorRef);
-
-
-    private component!: BaseControlDirective<BaseControlDescriptor>;
-    private _context!: ControlContext;
-    private _currentForm!: UntypedFormGroup;
-    private _hasPendingValue = false;
-    private _pendingValue: any = undefined;
-    private _pendingOnChange: ((v: any) => void) | null = null;
-    private _pendingOnTouched: ((_: any) => void) | null = null;
-
-    readonly host = viewChild.required(ControlHostDirective);
 
     readonly descriptor = input.required<BaseControlDescriptor>();
-    @Input({ required: true }) get currentForm(): UntypedFormGroup {
-        return this._currentForm;
-    }
-    set currentForm(value: UntypedFormGroup) {
-        this._currentForm = value;
-        if (this.component) {
-            this.component.currentForm = value;
-            this.cdr.detectChanges();
-        }
-    }
+    readonly currentForm = input.required<UntypedFormGroup>();
+    readonly context = input.required<ControlContext>();
 
-    @Input({ required: true }) get context(): ControlContext {
-        return this._context;
-    }
-    set context(value: ControlContext) {
-        this._context = value;
-        if (this.component) {
-            this.component.context = value;
-            this.cdr.detectChanges();
-        }
-    }
+    private readonly _controlValue = signal<any>(null);
+    private _onChange: ((v: any) => void) | null = null;
+    private readonly _onTouched = signal<(_: any) => void>(() => {});
 
-    ngOnInit(): void {
-        const descriptorType = this.descriptor().type;
-        if (this.controlsFactory.isLazy(descriptorType)) {
-            this.controlsFactory.resolveAsync(descriptorType).then(type => this.createComponent(type));
-        } else {
-            this.createComponent(this.controlsFactory.resolve(descriptorType));
-        }
+    constructor() {
+        afterNextRender(() => {
+            const type = this.descriptor().type;
+            const create = (t: Type<any>) => this.vcr.createComponent(t, {
+                bindings: [
+                    inputBinding('descriptor', this.descriptor),
+                    inputBinding('currentForm', this.currentForm),
+                    inputBinding('context', this.context),
+                    inputBinding('controlValue', this._controlValue),
+                    inputBinding('onControlTouched', this._onTouched),
+                    outputBinding('valueChanged', (v: any) => this._onChange?.(v)),
+                ]
+            });
+            this.controlsFactory.isLazy(type)
+                ? this.controlsFactory.resolveAsync(type).then(create)
+                : create(this.controlsFactory.resolve(type));
+        });
     }
-
-    private createComponent(type: Type<any>): void {
-        const viewContainerRef = this.host().viewContainerRef;
-        const componentRef = viewContainerRef.createComponent(type);
-        this.component = componentRef.instance;
-        this.component.descriptor = this.descriptor();
-        this.component.currentForm = this.currentForm;
-        this.component.context = this.context;
-        if (this._hasPendingValue) {
-            this.component.setControlValue(this._pendingValue);
-        }
-        if (this._pendingOnChange) {
-            this.component.registerOnValueChanged(this._pendingOnChange);
-        }
-        if (this._pendingOnTouched) {
-            this.component.registerOnControlTouched(this._pendingOnTouched);
-        }
-        this.cdr.detectChanges();
-    }
-
-    onChange = (_: any) => { };
 
     writeValue(obj: any): void {
-        if (this.component) {
-            this.component.setControlValue(obj);
-        } else {
-            this._pendingValue = obj;
-            this._hasPendingValue = true;
-        }
+        this._controlValue.set((!obj && obj !== 0 && obj !== BigInt(0)) ? null : obj);
     }
 
     registerOnChange(fn: any): void {
-        if (this.component) {
-            this.component.registerOnValueChanged((event) => {
-                fn(event);
-            });
-        } else {
-            this._pendingOnChange = fn;
-        }
+        this._onChange = fn;
     }
 
     registerOnTouched(fn: any): void {
-        if (this.component) {
-            this.component.registerOnControlTouched(fn);
-        } else {
-            this._pendingOnTouched = fn;
-        }
+        this._onTouched.set(fn);
     }
 }

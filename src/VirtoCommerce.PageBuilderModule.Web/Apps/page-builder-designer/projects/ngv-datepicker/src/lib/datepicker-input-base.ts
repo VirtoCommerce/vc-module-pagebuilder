@@ -11,12 +11,14 @@ import {
   afterNextRender,
   DestroyRef,
   Directive,
+  effect,
   ElementRef,
   inject,
   Input,
-  OnChanges,
+  input,
   output,
-  SimpleChanges,
+  signal,
+  untracked,
   isDevMode,
 } from '@angular/core';
 import {takeUntilDestroyed} from '@angular/core/rxjs-interop';
@@ -67,7 +69,7 @@ export type DateFilterFn<D> = (date: D | null, unit?: DateUnit) => boolean;
 /** Base class for datepicker inputs. */
 @Directive()
 export abstract class MatDatepickerInputBase<S, D = ExtractDateTypeFromSelection<S>>
-  implements ControlValueAccessor, OnChanges, Validator
+  implements ControlValueAccessor, Validator
 {
   protected readonly _elementRef = inject<ElementRef<HTMLInputElement>>(ElementRef);
   public readonly _dateAdapter = inject<DateAdapter<D>>(DateAdapter, {optional: true})!;
@@ -82,37 +84,24 @@ export abstract class MatDatepickerInputBase<S, D = ExtractDateTypeFromSelection
   get value(): D | null {
     return this._model ? this._getValueFromModel(this._model.selection) : this._pendingValue;
   }
-  set value(value: D | null) {
-    this._assignValueProgrammatically(value);
+  set value(v: D | null) {
+    this._assignValueProgrammatically(v);
   }
   protected _model: MatDateSelectionModel<S, D> | undefined;
 
+  /** Signal input for the externally bound disabled state. */
+  readonly _disabledInput = input(false, {
+    alias: 'disabled',
+    transform: (value: BooleanInput) => coerceBooleanProperty(value),
+  });
+
+  /** Internal signal for programmatic disable via setDisabledState. */
+  private readonly _disabledState = signal(false);
+
   /** Whether the datepicker-input is disabled. */
-  @Input()
   get disabled(): boolean {
-    return !!this._disabled || this._parentDisabled();
+    return this._disabledInput() || this._disabledState() || this._parentDisabled();
   }
-  set disabled(value: boolean) {
-    const newValue = coerceBooleanProperty(value);
-    const element = this._elementRef.nativeElement;
-
-    if (this._disabled !== newValue) {
-      this._disabled = newValue;
-      this.stateChanges.next(undefined);
-    }
-
-    // We need to null check the `blur` method, because it's undefined during SSR.
-    // In Ivy static bindings are invoked earlier, before the element is attached to the DOM.
-    // This can cause an error to be thrown in some browsers (IE/Edge) which assert that the
-    // element has been inserted.
-    if (newValue && this._isInitialized && element.blur) {
-      // Normally, native input elements automatically blur if they turn disabled. This behavior
-      // is problematic, because it would mean that it triggers another change detection cycle,
-      // which then causes a changed after checked error if the input element was focused before.
-      element.blur();
-    }
-  }
-  private _disabled: boolean = false;
 
   /** Emits when a `change` event is fired on this `<input>`. */
   readonly dateChange = output<MatDatepickerInputEvent<D, S>>();
@@ -261,12 +250,18 @@ export abstract class MatDatepickerInputBase<S, D = ExtractDateTypeFromSelection
     afterNextRender(() => {
       this._isInitialized = true;
     });
-  }
 
-  ngOnChanges(changes: SimpleChanges) {
-    if (dateInputsHaveChanged(changes, this._dateAdapter, this.getUnit())) {
-      this.stateChanges.next(undefined);
-    }
+    // Replace ngOnChanges: propagate disabled input changes with side effects
+    effect(() => {
+      const newValue = this._disabledInput();
+      untracked(() => {
+        this.stateChanges.next(undefined);
+        const element = this._elementRef.nativeElement;
+        if (newValue && this._isInitialized && element.blur) {
+          element.blur();
+        }
+      });
+    });
   }
 
   getUnit(): DateUnit {
@@ -308,7 +303,13 @@ export abstract class MatDatepickerInputBase<S, D = ExtractDateTypeFromSelection
 
   // Implemented as part of ControlValueAccessor.
   setDisabledState(isDisabled: boolean): void {
-    this.disabled = isDisabled;
+    const newValue = coerceBooleanProperty(isDisabled);
+    this._disabledState.set(newValue);
+    this.stateChanges.next(undefined);
+    const element = this._elementRef.nativeElement;
+    if (newValue && this._isInitialized && element.blur) {
+      element.blur();
+    }
   }
 
   _onKeydown(event: KeyboardEvent) {
@@ -404,34 +405,4 @@ export abstract class MatDatepickerInputBase<S, D = ExtractDateTypeFromSelection
     return !filter || filter(value);
   }
 
-  // Accept `any` to avoid conflicts with other directives on `<input>` that
-  // may accept different types.
-  static ngAcceptInputType_value: any;
-  static ngAcceptInputType_disabled: BooleanInput;
-}
-
-/**
- * Checks whether the `SimpleChanges` object from an `ngOnChanges`
- * callback has any changes, accounting for date objects.
- */
-export function dateInputsHaveChanged(
-  changes: SimpleChanges,
-  adapter: DateAdapter<unknown>,
-  unit: DateUnit = 'minute',
-): boolean {
-  const keys = Object.keys(changes);
-
-  for (let key of keys) {
-    const {previousValue, currentValue} = changes[key];
-
-    if (adapter.isDateInstance(previousValue) && adapter.isDateInstance(currentValue)) {
-      if (!adapter.sameDate(previousValue, currentValue, unit)) {
-        return true;
-      }
-    } else {
-      return true;
-    }
-  }
-
-  return false;
 }

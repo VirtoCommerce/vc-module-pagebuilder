@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, HostBinding, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { Store } from '@ngrx/store';
 import { BuilderState } from '@shared/routing';
@@ -10,13 +10,14 @@ import { LivePreviewComponent } from '@shared/components/live-preview/live-previ
     templateUrl: './preview-area.component.html',
     styleUrls: ['./preview-area.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [LivePreviewComponent]
+    imports: [LivePreviewComponent],
+    host: {
+        '[class.desktop-50]': 'desktop50()',
+    },
 })
 export class PreviewAreaComponent {
 
     private readonly store = inject(Store<BuilderState>);
 
-    private readonly desktop50$ = toSignal(this.store.select(fromRoute.isDesktop50), { initialValue: false });
-
-    @HostBinding('class.desktop-50') get desktop50() { return this.desktop50$(); }
+    readonly desktop50 = toSignal(this.store.select(fromRoute.isDesktop50), { initialValue: false });
 }

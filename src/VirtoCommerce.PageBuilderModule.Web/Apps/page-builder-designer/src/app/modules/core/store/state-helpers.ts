@@ -1,6 +1,5 @@
 import { InjectionToken } from '@angular/core';
-import { Action } from '@ngrx/store';
-import { StoreConfig } from '@ngrx/store/src/store_module';
+import { Action, StoreConfig } from '@ngrx/store';
 import { LocalStorageService } from './local-storage.service';
 import { storageMetaReducer } from './storage.meta-reducer';
 

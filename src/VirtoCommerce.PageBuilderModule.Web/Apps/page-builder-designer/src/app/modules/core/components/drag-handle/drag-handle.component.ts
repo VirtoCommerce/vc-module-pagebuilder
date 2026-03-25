@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, HostBinding, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { NgStyle } from '@angular/common';
 import { IconComponent } from '../icon/icon.component';
 
@@ -7,14 +7,15 @@ import { IconComponent } from '../icon/icon.component';
     templateUrl: './drag-handle.component.html',
     styleUrls: ['./drag-handle.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [NgStyle, IconComponent]
+    imports: [NgStyle, IconComponent],
+    host: {
+        '[class.visible]': 'visible()',
+    },
 })
 export class DragHandleComponent {
 
     readonly visible = input(false);
     readonly info = input('');
-
-    @HostBinding('class.visible') get visibleClass() { return this.visible(); }
 
     onClick(event: MouseEvent) {
         event.stopPropagation();

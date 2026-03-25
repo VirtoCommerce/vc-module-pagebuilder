@@ -2,11 +2,11 @@
   #button
   mat-icon-button
   type="button"
-  [attr.aria-haspopup]="datepicker ? 'dialog' : null"
-  [attr.aria-label]="ariaLabel || _intl.openCalendarLabel"
-  [attr.tabindex]="disabled ? -1 : tabIndex"
+  [attr.aria-haspopup]="datepicker() ? 'dialog' : null"
+  [attr.aria-label]="ariaLabel() || _intl.openCalendarLabel"
+  [attr.tabindex]="disabled ? -1 : _effectiveTabIndex()"
   [disabled]="disabled"
-  [disableRipple]="disableRipple">
+  [disableRipple]="disableRipple()">
 
   @if (!_customIcon()) {
     <svg

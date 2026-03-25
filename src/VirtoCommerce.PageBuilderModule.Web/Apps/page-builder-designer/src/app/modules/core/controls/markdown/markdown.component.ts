@@ -20,7 +20,8 @@ export class MarkdownComponent extends BaseControlDirective<MarkdownDescriptor> 
 
     uploadImage = (file: File) => this.data.uploadAsset(<AssetFile>file, this.descriptor || {}, this.context, () => { }, { randomizeAssetName: true });
 
-    override setControlValue(value: any): void {
+    protected override applyNewValue(): void {
+        const value = this._controlValueInput();
         const isMarkdown = this.descriptor?.resultType === 'markdown';
         const isHtml = this.descriptor?.resultType === 'html';
         const isMixed = !isMarkdown && !isHtml;

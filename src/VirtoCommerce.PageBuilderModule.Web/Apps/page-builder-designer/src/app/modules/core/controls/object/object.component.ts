@@ -41,29 +41,20 @@ export class ObjectComponent extends BaseControlDirective<ObjectDescriptor> {
         this.expanded.update(v => !v);
     }
 
-    override setControlValue(value: any) {
-        if (this.controlValue() !== value || !this.objectForm) {
-            const descriptors = this.objectDescriptors();
-            // we don't need create default value for empty object. Only when create new section or list item
-            // const v = value || coreHelpers.createDefaultObject(descriptors);
-            const v = value || {};
-            super.setControlValue(v);
-            this.objectForm = formsHelpers.generateForm(v, descriptors);
-            this.formReset$.next();
-            this.objectForm.valueChanges.pipe(
-                takeUntil(this.formReset$),
-                takeUntilDestroyed(this.destroyRef)
-            ).subscribe(x => {
-                this.onValueChanged(x);
-            });
+    protected override applyNewValue(): void {
+        const v = this.controlValue() || {};
+        if (this.objectForm) {
+            this.objectForm.patchValue(v, { emitEvent: false });
+            return;
         }
-    }
-
-    override registerOnValueChanged(fn: any): void {
-        this.onValueChanged = value => {
-            this.controlValue.set(value);
-            fn(value);
-        };
+        const descriptors = this.objectDescriptors();
+        this.objectForm = formsHelpers.generateForm(v, descriptors);
+        this.objectForm.valueChanges.pipe(
+            takeUntil(this.formReset$),
+            takeUntilDestroyed(this.destroyRef)
+        ).subscribe(x => {
+            this.defaultValueChanged(x);
+        });
     }
 
 }

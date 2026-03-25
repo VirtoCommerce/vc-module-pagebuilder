@@ -10,12 +10,9 @@ import {
   Component,
   ChangeDetectionStrategy,
   ViewEncapsulation,
-  Input,
   AfterContentInit,
   ChangeDetectorRef,
   ElementRef,
-  OnChanges,
-  SimpleChanges,
   DestroyRef,
   contentChild,
   effect,
@@ -40,7 +37,7 @@ import {
 } from './date-range-input-parts';
 import {MatDatepickerControl, MatDatepickerPanel} from './datepicker-base';
 import {createMissingDateImplError} from './datepicker-errors';
-import {DateFilterFn, dateInputsHaveChanged} from './datepicker-input-base';
+import {DateFilterFn} from './datepicker-input-base';
 import {MatDateRangePickerInput} from './date-range-picker';
 import {DateRange, MatDateSelectionModel} from './date-selection-model';
 
@@ -77,8 +74,7 @@ export class MatDateRangeInput<D>
     MatDatepickerControl<D>,
     MatDateRangeInputParent<D>,
     MatDateRangePickerInput<D>,
-    AfterContentInit,
-    OnChanges
+    AfterContentInit
 {
   private readonly _changeDetectorRef = inject(ChangeDetectorRef);
   private readonly _elementRef = inject<ElementRef<HTMLElement>>(ElementRef);
@@ -114,6 +110,35 @@ export class MatDateRangeInput<D>
       this.comparisonEnd();
       untracked(() => this.stateChanges.next(undefined));
     });
+
+    // Replace ngOnChanges — emit stateChanges and re-run validators when date-related inputs change
+    effect(() => {
+      this._minInput();
+      this._maxInput();
+      this._dateFilterInput();
+      this._disabledInput();
+      untracked(() => {
+        this.stateChanges.next(undefined);
+        this._revalidate();
+      });
+    });
+
+    // Register with the range picker and obtain the shared selection model
+    effect(() => {
+      const picker = this._rangePickerInput();
+      untracked(() => {
+        this._closedSubscription.unsubscribe();
+        if (picker) {
+          this._model = picker.registerInput(this);
+          this._closedSubscription = picker.closedStream.subscribe(() => {
+            this._startInput()?._onTouched();
+            this._endInput()?._onTouched();
+            this._revalidate();
+          });
+          this._registerModel(this._model);
+        }
+      });
+    });
   }
 
   /** Current value of the range input. */
@@ -147,102 +172,58 @@ export class MatDateRangeInput<D>
   }
 
   /** The range picker that this input is associated with. */
-  @Input()
-  get rangePicker() {
-    return this._rangePicker;
+  readonly _rangePickerInput = input<
+    MatDatepickerPanel<MatDatepickerControl<D>, DateRange<D>, D> | undefined
+  >(undefined, { alias: 'rangePicker' });
+
+  get rangePicker(): MatDatepickerPanel<MatDatepickerControl<D>, DateRange<D>, D> {
+    return this._rangePickerInput()!;
   }
-  set rangePicker(rangePicker: MatDatepickerPanel<MatDatepickerControl<D>, DateRange<D>, D>) {
-    if (rangePicker) {
-      this._model = rangePicker.registerInput(this);
-      this._rangePicker = rangePicker;
-      this._closedSubscription.unsubscribe();
-      this._closedSubscription = rangePicker.closedStream.subscribe(() => {
-        this._startInput()?._onTouched();
-        this._endInput()?._onTouched();
-      });
-      this._registerModel(this._model!);
-    }
-  }
-  private _rangePicker!: MatDatepickerPanel<MatDatepickerControl<D>, DateRange<D>, D>;
 
   /** Whether the input is required. */
-  @Input()
-  get required(): boolean {
-    return !!this._required;
-  }
-  set required(value: boolean) {
-    this._required = coerceBooleanProperty(value);
-  }
-  private _required: boolean = false;
+  readonly _requiredInput = input(false, {
+    alias: 'required',
+    transform: (value: boolean | string) => coerceBooleanProperty(value),
+  });
+
+  get required(): boolean { return this._requiredInput(); }
 
   /** Function that can be used to filter out dates within the date range picker. */
-  @Input()
-  get dateFilter() {
-    return this._dateFilter;
-  }
-  set dateFilter(value: DateFilterFn<D>) {
-    const start = this._startInput();
-    const end = this._endInput();
-    const wasMatchingStart = start && start._matchesFilter(start.value);
-    const wasMatchingEnd = end && end._matchesFilter(end.value);
-    this._dateFilter = value;
+  readonly _dateFilterInput = input<DateFilterFn<D> | null>(null, { alias: 'dateFilter' });
 
-    if (start && start._matchesFilter(start.value) !== wasMatchingStart) {
-      start._validatorOnChange();
-    }
-
-    if (end && end._matchesFilter(end.value) !== wasMatchingEnd) {
-      end._validatorOnChange();
-    }
+  get dateFilter(): DateFilterFn<D> {
+    return this._dateFilterInput()!;
   }
-  private _dateFilter!: DateFilterFn<D>;
 
   /** The minimum valid date. */
-  @Input()
-  get min(): D | null {
-    return this._min;
-  }
-  set min(value: D | null) {
-    const validValue = this._dateAdapter.getValidDateOrNull(this._dateAdapter.deserialize(value));
+  readonly _minInput = input<D | null, D | null>(null, {
+    alias: 'min',
+    transform: (v: D | null) => this._dateAdapter.getValidDateOrNull(this._dateAdapter.deserialize(v)),
+  });
 
-    if (!this._dateAdapter.sameDate(validValue, this._min)) {
-      this._min = validValue;
-      this._revalidate();
-    }
-  }
-  private _min: D | null = null;
+  get min(): D | null { return this._minInput(); }
 
   /** The maximum valid date. */
-  @Input()
-  get max(): D | null {
-    return this._max;
-  }
-  set max(value: D | null) {
-    const validValue = this._dateAdapter.getValidDateOrNull(this._dateAdapter.deserialize(value));
+  readonly _maxInput = input<D | null, D | null>(null, {
+    alias: 'max',
+    transform: (v: D | null) => this._dateAdapter.getValidDateOrNull(this._dateAdapter.deserialize(v)),
+  });
 
-    if (!this._dateAdapter.sameDate(validValue, this._max)) {
-      this._max = validValue;
-      this._revalidate();
-    }
-  }
-  private _max: D | null = null;
+  get max(): D | null { return this._maxInput(); }
 
   /** Whether the input is disabled. */
-  @Input()
+  readonly _disabledInput = input(false, {
+    alias: 'disabled',
+    transform: (value: BooleanInput) => coerceBooleanProperty(value),
+  });
+
   get disabled(): boolean {
     return this._startInput() && this._endInput()
       ? this._startInput()!.disabled && this._endInput()!.disabled
-      : this._groupDisabled;
+      : this._disabledInput();
   }
-  set disabled(value: boolean) {
-    const newValue = coerceBooleanProperty(value);
 
-    if (newValue !== this._groupDisabled) {
-      this._groupDisabled = newValue;
-      this.stateChanges.next(undefined);
-    }
-  }
-  _groupDisabled = false;
+  get _groupDisabled(): boolean { return this._disabledInput(); }
 
   /** Whether the input is in an error state. */
   get errorState(): boolean {
@@ -334,12 +315,6 @@ export class MatDateRangeInput<D>
     });
   }
 
-  ngOnChanges(changes: SimpleChanges) {
-    if (dateInputsHaveChanged(changes, this._dateAdapter, 'day')) {
-      this.stateChanges.next(undefined);
-    }
-  }
-
   /** Gets the date at which the calendar should start. */
   getStartValue(): D | null {
     return this.value ? this.value.start : null;
@@ -378,9 +353,7 @@ export class MatDateRangeInput<D>
 
   /** Opens the date range picker associated with the input. */
   _openDatepicker() {
-    if (this._rangePicker) {
-      this._rangePicker.open();
-    }
+    this.rangePicker?.open();
   }
 
   /** Whether the separate text should be hidden. */
@@ -426,6 +399,4 @@ export class MatDateRangeInput<D>
     }
   }
 
-  static ngAcceptInputType_required: BooleanInput;
-  static ngAcceptInputType_disabled: BooleanInput;
 }

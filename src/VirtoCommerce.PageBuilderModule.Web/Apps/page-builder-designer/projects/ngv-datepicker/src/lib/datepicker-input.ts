@@ -6,7 +6,7 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {Directive, forwardRef, inject, Input} from '@angular/core';
+import {DestroyRef, Directive, effect, forwardRef, inject, input, untracked} from '@angular/core';
 import {NG_VALIDATORS, NG_VALUE_ACCESSOR, ValidatorFn, Validators} from '@angular/forms';
 import {ThemePalette} from '@angular/material/core';
 import {MatFormField, MAT_FORM_FIELD} from '@angular/material/form-field';
@@ -63,61 +63,34 @@ export class MatDatepickerInput<D>
   private _closedSubscription: {unsubscribe(): void} = Subscription.EMPTY;
 
   /** The datepicker that this input is associated with. */
-  @Input()
-  set matDatepicker(datepicker: MatDatepickerPanel<MatDatepickerControl<D>, D | null, D>) {
-    if (datepicker) {
-      this._datepicker = datepicker;
-      this._closedSubscription.unsubscribe();
-      this._closedSubscription = datepicker.closedStream.subscribe(() => this._onTouched());
-      this._registerModel(datepicker.registerInput(this));
-    }
-  }
+  readonly _datepickerInput = input<
+    MatDatepickerPanel<MatDatepickerControl<D>, D | null, D> | undefined
+  >(undefined, { alias: 'matDatepicker' });
+
   _datepicker!: MatDatepickerPanel<MatDatepickerControl<D>, D | null, D>;
 
   /** The minimum valid date. */
-  @Input()
-  get min(): D | null {
-    return this._min;
-  }
-  set min(value: D | null) {
-    const validValue = this._dateAdapter.getValidDateOrNull(this._dateAdapter.deserialize(value));
+  readonly _minInput = input<D | null, D | null>(null, {
+    alias: 'min',
+    transform: (v: D | null) => this._dateAdapter.getValidDateOrNull(this._dateAdapter.deserialize(v)),
+  });
 
-    if (!this._dateAdapter.sameDate(validValue, this._min, this.getUnit())) {
-      this._min = validValue;
-      this._validatorOnChange();
-    }
-  }
-  private _min: D | null = null;
+  get min(): D | null { return this._minInput(); }
 
   /** The maximum valid date. */
-  @Input()
-  get max(): D | null {
-    return this._max;
-  }
-  set max(value: D | null) {
-    const validValue = this._dateAdapter.getValidDateOrNull(this._dateAdapter.deserialize(value));
+  readonly _maxInput = input<D | null, D | null>(null, {
+    alias: 'max',
+    transform: (v: D | null) => this._dateAdapter.getValidDateOrNull(this._dateAdapter.deserialize(v)),
+  });
 
-    if (!this._dateAdapter.sameDate(validValue, this._max, this.getUnit())) {
-      this._max = validValue;
-      this._validatorOnChange();
-    }
-  }
-  private _max: D | null = null;
+  get max(): D | null { return this._maxInput(); }
 
   /** Function that can be used to filter out dates within the datepicker. */
-  @Input('matDatepickerFilter')
-  get dateFilter() {
-    return this._dateFilter;
-  }
-  set dateFilter(value: DateFilterFn<D | null>) {
-    const wasMatchingValue = this._matchesFilter(this.value);
-    this._dateFilter = value;
+  readonly _dateFilterInput = input<DateFilterFn<D | null> | null>(null, {
+    alias: 'matDatepickerFilter',
+  });
 
-    if (this._matchesFilter(this.value) !== wasMatchingValue) {
-      this._validatorOnChange();
-    }
-  }
-  private _dateFilter!: DateFilterFn<D | null>;
+  get dateFilter(): DateFilterFn<D | null> { return this._dateFilterInput()!; }
 
   /** The combined form control validator for this input. */
   protected _validator: ValidatorFn | null;
@@ -125,6 +98,34 @@ export class MatDatepickerInput<D>
   constructor() {
     super();
     this._validator = Validators.compose(super._getValidators());
+
+    inject(DestroyRef).onDestroy(() => this._closedSubscription.unsubscribe());
+
+    // Register datepicker and subscribe to its closedStream
+    effect(() => {
+      const datepicker = this._datepickerInput();
+      untracked(() => {
+        this._closedSubscription.unsubscribe();
+        if (datepicker) {
+          this._datepicker = datepicker;
+          this._closedSubscription = datepicker.closedStream.subscribe(() => this._onTouched());
+          this._registerModel(datepicker.registerInput(this));
+        }
+      });
+    });
+
+    // Re-run validators when min/max change
+    effect(() => {
+      this._minInput();
+      this._maxInput();
+      untracked(() => this._validatorOnChange());
+    });
+
+    // Re-run validators when dateFilter changes
+    effect(() => {
+      this._dateFilterInput();
+      untracked(() => this._validatorOnChange());
+    });
   }
 
   /**
@@ -173,17 +174,17 @@ export class MatDatepickerInput<D>
 
   /** Gets the input's minimum date. */
   _getMinDate() {
-    return this._min;
+    return this._minInput();
   }
 
   /** Gets the input's maximum date. */
   _getMaxDate() {
-    return this._max;
+    return this._maxInput();
   }
 
   /** Gets the input's date filtering function. */
   protected _getDateFilter() {
-    return this._dateFilter;
+    return this._dateFilterInput() ?? undefined;
   }
 
   protected _shouldHandleChangeEvent(event: DateSelectionModelChange<D>) {

@@ -4,7 +4,6 @@ import { ControlsTabsComponent } from './controls-tabs/controls-tabs.component';
 import { ControlsTabComponent } from './controls-tab/controls-tab.component';
 import { ControlsGroupComponent } from './controls-group/controls-group.component';
 import { ControlHolderComponent } from './control-holder.component';
-import { ControlHostDirective } from './control-host.directive';
 
 export const DYNAMIC_COMPONENTS = [
     DynamicFormComponent,
@@ -13,5 +12,4 @@ export const DYNAMIC_COMPONENTS = [
     ControlsTabComponent,
     ControlsGroupComponent,
     ControlHolderComponent,
-    ControlHostDirective
 ];

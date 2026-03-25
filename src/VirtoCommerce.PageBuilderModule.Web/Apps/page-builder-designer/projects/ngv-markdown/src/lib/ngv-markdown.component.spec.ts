@@ -16,6 +16,7 @@ describe('NgvMarkdownComponent', () => {
     beforeEach(() => {
         fixture = TestBed.createComponent(NgvMarkdownComponent);
         component = fixture.componentInstance;
+        fixture.componentRef.setInput('value', { markdown: '', html: null });
         fixture.detectChanges();
     });
 

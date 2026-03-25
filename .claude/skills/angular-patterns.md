@@ -72,17 +72,37 @@ constructor() { super(inject(HttpHandler)); }
 
 ## Component Inputs / Outputs / Queries
 
+**Prefer `input()` over `@Input()`.** The only remaining valid use for `@Input()` is when third-party code sets the property directly on the instance (e.g. `MatInput` writing through `_inputValueAccessor.value = x`).
+
 ```typescript
-// Signal-based inputs (use for simple values — no side effects)
+// Simple signal input
 readonly label = input.required<string>();
 readonly opened = input(false);
 
-// Getter/setter @Input — keep when side effects are needed (e.g. generateForm)
-@Input({ required: true }) set descriptor(value: DescriptorType) { this.generateForm(value); }
+// Signal input with coercion/transform
+readonly disabled = input(false, { transform: coerceBooleanProperty });
 
-// Mutable input (externally bound AND internally mutated)
-readonly controlValue = signal<any>(null);
-@Input('controlValue') set controlValueInput(v: any) { this.controlValue.set(v ?? null); }
+// Signal input + alias + getter
+// Use when: subclasses or templates access property by plain name, and side effects are needed.
+// Getter makes it transparent — callers use `this.descriptor` / `descriptor?.label`, not `descriptor()`.
+readonly _descriptorInput = input<DescriptorType | null>(null, { alias: 'descriptor' });
+get descriptor(): DescriptorType | null { return this._descriptorInput(); }
+// React to changes via effect() in constructor:
+// effect(() => { this._descriptorInput(); untracked(() => this.onDescriptorChange()); });
+
+// Externally bound + internally mutated — use linkedSignal()
+// The signal resets to the incoming input value whenever it changes, but can also be written locally.
+readonly _controlValueInput = input<any>(null, { alias: 'controlValue' });
+readonly controlValue = linkedSignal(() => this._controlValueInput() ?? null);
+
+// Two-way binding — model() replaces @Input() + @Output() pair
+readonly selected = model<Date | null>(null);
+
+// @Input() getter+setter — only when third-party code writes instance.propName = x directly
+// (e.g. MatInput proxies value writes to _inputValueAccessor.value = x, bypassing Angular's input system)
+@Input()
+get value(): D | null { return this._model?.selection ?? this._pendingValue; }
+set value(v: D | null) { this._processValue(v); }
 
 // output() replaces @Output() + EventEmitter
 readonly onAdd = output<SectionItem>();
@@ -91,6 +111,29 @@ readonly onAdd = output<SectionItem>();
 readonly frame = viewChild<ElementRef>('frame');
 readonly host = viewChild.required(ControlHostDirective);
 ```
+
+> ⚠️ **signal input alias + getter conflict**: `input(null, { alias: 'foo' })` + `get foo()` (no setter) throws
+> *"Cannot set property foo … which has only a getter"* if anything writes `instance.foo = x`.
+> If writes are possible, either add a setter or switch to `@Input()` getter+setter.
+
+### ngOnChanges → effect()
+
+Replace `ngOnChanges` / `implements OnChanges` with `effect()` calls in the constructor:
+
+```typescript
+constructor() {
+  effect(() => {
+    this._descriptorInput();               // track — re-runs when input changes
+    untracked(() => this.onDescriptorChange());  // side effect, not tracked
+  });
+  effect(() => {
+    this._minInput(); this._maxInput();    // group related inputs in one effect
+    untracked(() => this._validatorOnChange());
+  });
+}
+```
+- Wrap all side-effect code in `untracked()` to avoid tracking unintended dependencies.
+- Effects fire once on construction and on every subsequent change.
 
 ## Template Control Flow
 

@@ -1,5 +1,6 @@
 import { Component, DestroyRef, effect, input, output, signal, untracked, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Subject, takeUntil } from 'rxjs';
 
 import { ReactiveFormsModule, UntypedFormGroup } from '@angular/forms';
 
@@ -18,6 +19,7 @@ import { ControlsTabsComponent } from '@core/dynamics/controls-tabs/controls-tab
 export class DynamicFormComponent {
 
   private readonly destroyRef = inject(DestroyRef);
+  private readonly formReset$ = new Subject<void>();
   private _currentSectionId: string | null = null;
 
   readonly sectionModel = input.required<SectionModel>();
@@ -28,7 +30,7 @@ export class DynamicFormComponent {
   readonly formKey = signal(0);
 
   constructor() {
-    effect((onCleanup) => {
+    effect(() => {
       const section = this.sectionModel();
       const descriptors = this.descriptors();
 
@@ -36,10 +38,11 @@ export class DynamicFormComponent {
 
       if (section.id !== this._currentSectionId) {
         this._currentSectionId = section.id;
+        this.formReset$.next();
 
         const newForm = formsHelpers.generateForm(section, descriptors);
-        const sub = newForm.valueChanges
-          .pipe(takeUntilDestroyed(this.destroyRef))
+        newForm.valueChanges
+          .pipe(takeUntil(this.formReset$), takeUntilDestroyed(this.destroyRef))
           .subscribe(value => {
             this.modelChanged.emit({
               model: { ...this.sectionModel(), ...value },
@@ -53,8 +56,6 @@ export class DynamicFormComponent {
         // (CKEditor, color pickers, etc.) without a null intermediate state or setTimeout.
         this.form.set(newForm);
         this.formKey.update(k => k + 1);
-
-        onCleanup(() => sub.unsubscribe());
       } else {
         untracked(() => this.form())?.patchValue(section, { emitEvent: false });
       }

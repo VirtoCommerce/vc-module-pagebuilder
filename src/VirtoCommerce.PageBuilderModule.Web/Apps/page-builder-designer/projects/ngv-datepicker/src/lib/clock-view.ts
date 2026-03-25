@@ -5,14 +5,14 @@ import {
   Component,
   DestroyRef,
   ElementRef,
-  HostListener,
-  Input,
   ViewEncapsulation,
   afterNextRender,
   computed,
+  effect,
   inject,
   input,
   output,
+  signal,
 } from '@angular/core';
 import { MAT_DATE_FORMATS } from '@angular/material/core';
 import {
@@ -44,7 +44,8 @@ export type ClockView = 'hour' | 'minute';
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     role: 'clock',
-    '(mousedown)': '_handleMousedown($event)'
+    '(mousedown)': '_handleMousedown($event)',
+    '(window:resize)': 'updateSize()',
   },
   preserveWhitespaces: false
 })
@@ -55,122 +56,60 @@ export class MatClockView<D> implements AfterContentInit {
   private readonly _dateFormats = inject<MatDateFormats>(MAT_DATE_FORMATS, { optional: true })!;
   private readonly _destroyRef = inject(DestroyRef);
 
-  /**
-   * The time to display in this clock view. (the rest is ignored)
-   */
-  @Input()
-  get activeDate(): D {
-    return this._activeDate;
-  }
-  set activeDate(value: D) {
-    const oldActiveDate = this._activeDate;
-    const validDate =
-      this._getValidDateOrNull(this._dateAdapter.deserialize(value)) ||
-      this._dateAdapter.today();
-    this._activeDate = this._dateAdapter.clampDate(
-      validDate,
-      this.minDate,
-      this.maxDate
-    );
+  /** The time to display in this clock view. */
+  readonly activeDate = input.required<D>();
 
-    if (
-      oldActiveDate &&
-      this._dateAdapter.compareDate(oldActiveDate, this._activeDate)
-    ) {
-      this._init();
-    }
-  }
-  private _activeDate!: D;
+  readonly selected = input<D | null, D | null>(null, {
+    transform: (v: D | null) => this._getValidDateOrNull(this._dateAdapter.deserialize(v))
+  });
 
-  readonly activeDateChange = output<D>();
+  readonly minDate = input<D | null, D | null>(null, {
+    transform: (v: D | null) => this._getValidDateOrNull(this._dateAdapter.deserialize(v))
+  });
 
-  // The currently selected date.
-  @Input()
-  get selected(): D | null {
-    return this._selected;
-  }
-  set selected(value: D | null) {
-    this._selected = this._getValidDateOrNull(
-      this._dateAdapter.deserialize(value)
-    );
-  }
-  private _selected: D | null = null;
+  readonly maxDate = input<D | null, D | null>(null, {
+    transform: (v: D | null) => this._getValidDateOrNull(this._dateAdapter.deserialize(v))
+  });
 
-  /** The minimum selectable date. */
-  @Input()
-  get minDate(): D | null {
-    return this._minDate;
-  }
-  set minDate(value: D | null) {
-    this._minDate = this._getValidDateOrNull(
-      this._dateAdapter.deserialize(value)
-    );
-  }
-  private _minDate: D | null = null;
-
-  /** The maximum selectable date. */
-  @Input()
-  get maxDate(): D | null {
-    return this._maxDate;
-  }
-  set maxDate(value: D | null) {
-    this._maxDate = this._getValidDateOrNull(
-      this._dateAdapter.deserialize(value)
-    );
-  }
-  private _maxDate: D | null = null;
-
-  // A function used to filter which dates are selectable.
-  readonly dateFilter = input<DateFilterFn<D> | undefined>(undefined);
-
-  /** Function that can be used to add custom CSS classes to dates. */
+  readonly dateFilter = input<DateFilterFn<D> | null>(null);
   readonly dateClass = input<MatCalendarCellClassFunction<D> | null>(null);
-
   readonly clockStep = input(1);
-
   readonly twelveHour = input(false);
-
   readonly currentView = input.required<MatCalendarView>();
 
   readonly currentViewChange = output<MatCalendarView>();
-
-  /** Emits when a new date is selected. */
+  readonly activeDateChange = output<D>();
   readonly selectedChange = output<D | null>();
-
-  /** Emits when an hour is selected (before transitioning to minute view). */
   readonly hourSelected = output<D>();
-
-  /** Emits when any date is selected. */
   readonly _userSelection = output<MatCalendarUserEvent<D | null>>();
 
-  @HostListener('window:resize')
-  updateSize() {
-    const { offsetWidth, offsetHeight } = this._element.nativeElement;
-    this._size = (offsetWidth < offsetHeight ? offsetWidth : offsetHeight) * 0.9;
-    this._changeDetectorRef.detectChanges();
-  }
-
-  // Hours and Minutes representing the clock view.
   _hours: any[] = [];
   _minutes: any[] = [];
-
-  _draggingMouse: boolean = false;
+  _draggingMouse = false;
   _selectedHour: number | null = null;
   _selectedMinute: number | null = null;
-  _anteMeridian: boolean = true;
-  _size: number = 0;
+  _anteMeridian = true;
+  _size = 0;
 
   private mouseMoveListener: (event: any) => void;
   private mouseUpListener: (event: MouseEvent | TouchEvent) => void;
 
   readonly inHourView = computed(() => this.currentView() === 'hour');
 
+  // Date being set by user interaction (drag/click). null = use clamped activeDate input.
+  private readonly _dragDate = signal<D | null>(null);
+
+  // Effective date for rendering: drag value takes priority over the clamped input.
+  private readonly _effectiveDate = computed(() =>
+    this._dragDate() ?? this._dateAdapter.clampDate(this.activeDate(), this.minDate(), this.maxDate())
+  );
+
   get _hand(): any {
     let radius = CLOCK_OUTER_RADIUS;
     let deg = 0;
 
     if (this.inHourView()) {
-      const outer = this.twelveHour() || this._selectedHour! >= 0 && this._selectedHour! < 12;
+      const outer = this.twelveHour() || (this._selectedHour! >= 0 && this._selectedHour! < 12);
       radius = outer ? CLOCK_OUTER_RADIUS : CLOCK_INNER_RADIUS;
       deg = Math.round(this._selectedHour! * (360 / (24 / 2)));
     } else {
@@ -193,12 +132,11 @@ export class MatClockView<D> implements AfterContentInit {
       throw createMissingDateImplError('MAT_DATE_FORMATS');
     }
 
-    this.mouseMoveListener = (event: any) => {
-      this._handleMousemove(event);
-    };
-    this.mouseUpListener = (event: MouseEvent | TouchEvent) => {
-      this._handleMouseup(event);
-    };
+    this.mouseMoveListener = (event: any) => this._handleMousemove(event);
+    this.mouseUpListener = (event: MouseEvent | TouchEvent) => this._handleMouseup(event);
+
+    // Re-initialize whenever the effective date, filter, or display inputs change.
+    effect(() => this._init());
 
     afterNextRender(() => this.updateSize());
 
@@ -214,7 +152,12 @@ export class MatClockView<D> implements AfterContentInit {
     this._init();
   }
 
-  // Handles mousedown events on the clock body.
+  updateSize() {
+    const { offsetWidth, offsetHeight } = this._element.nativeElement;
+    this._size = (offsetWidth < offsetHeight ? offsetWidth : offsetHeight) * 0.9;
+    this._changeDetectorRef.detectChanges();
+  }
+
   _handleMousedown(event: any) {
     this._draggingMouse = true;
     document.addEventListener('mousemove', this.mouseMoveListener);
@@ -237,25 +180,31 @@ export class MatClockView<D> implements AfterContentInit {
     document.removeEventListener('touchend', this.mouseUpListener);
 
     const dateFilter = this.dateFilter();
-    if (dateFilter && !dateFilter(this.activeDate, <any>this.currentView())) {
+    const activeDate = this._effectiveDate(); // capture before clearing drag state
+
+    if (dateFilter && !dateFilter(activeDate, <any>this.currentView())) {
+      this._dragDate.set(null);
       return;
     }
 
     if (this.inHourView()) {
-      // we refresh the valid minutes
-      this.currentViewChange.emit('minute');
-      this.selectedChange.emit(this.activeDate);
-      this.hourSelected.emit(this.activeDate);
+      // _init() is called before clearing _dragDate so it still uses the selected hour.
       this._init();
+      this._dragDate.set(null);
+      this.currentViewChange.emit('minute');
+      this.selectedChange.emit(activeDate);
+      this.hourSelected.emit(activeDate);
     } else {
-      this._userSelection.emit(<any>{ value: this.activeDate, event });
+      this._dragDate.set(null);
+      this._userSelection.emit(<any>{ value: activeDate, event });
     }
   }
 
-  // Initializes this clock view.
   _init() {
-    this._selectedHour = this._dateAdapter.getHours(this.activeDate);
-    this._selectedMinute = this._dateAdapter.getMinutes(this.activeDate);
+    const activeDate = this._effectiveDate();
+    if (!activeDate) return;
+    this._selectedHour = this._dateAdapter.getHours(activeDate);
+    this._selectedMinute = this._dateAdapter.getMinutes(activeDate);
 
     this._hours.length = 0;
     this._minutes.length = 0;
@@ -264,26 +213,30 @@ export class MatClockView<D> implements AfterContentInit {
     const dateClass = this.dateClass();
 
     if (this.twelveHour()) {
-      this._buildTwelveHourCells(dateFilter, dateClass);
+      this._buildTwelveHourCells(activeDate, dateFilter, dateClass);
     } else {
-      this._buildTwentyFourHourCells(dateFilter, dateClass);
+      this._buildTwentyFourHourCells(activeDate, dateFilter, dateClass);
     }
-    this._buildMinuteCells(dateFilter, dateClass);
+    this._buildMinuteCells(activeDate, dateFilter, dateClass);
 
     this._changeDetectorRef.markForCheck();
   }
 
-  private _buildTwelveHourCells(dateFilter: DateFilterFn<D> | undefined, dateClass: MatCalendarCellClassFunction<D> | null) {
+  private _buildTwelveHourCells(
+    activeDate: D,
+    dateFilter: DateFilterFn<D> | null,
+    dateClass: MatCalendarCellClassFunction<D> | null
+  ) {
     const hourNames = this._dateAdapter.getHourNames();
-    this._anteMeridian = this._dateAdapter.getHours(this.activeDate) < 12;
+    this._anteMeridian = this._dateAdapter.getHours(activeDate) < 12;
 
     for (let i = 0; i < hourNames.length / 2; i++) {
       const radian = (i / 6) * Math.PI;
       const hour = this._anteMeridian ? i : i + 12;
       const date = this._dateAdapter.createDate(
-        this._dateAdapter.getYear(this.activeDate),
-        this._dateAdapter.getMonth(this.activeDate),
-        this._dateAdapter.getDate(this.activeDate),
+        this._dateAdapter.getYear(activeDate),
+        this._dateAdapter.getMonth(activeDate),
+        this._dateAdapter.getDate(activeDate),
         hour, 0, 0, 0
       );
       this._hours.push({
@@ -297,7 +250,11 @@ export class MatClockView<D> implements AfterContentInit {
     }
   }
 
-  private _buildTwentyFourHourCells(dateFilter: DateFilterFn<D> | undefined, dateClass: MatCalendarCellClassFunction<D> | null) {
+  private _buildTwentyFourHourCells(
+    activeDate: D,
+    dateFilter: DateFilterFn<D> | null,
+    dateClass: MatCalendarCellClassFunction<D> | null
+  ) {
     const hourNames = this._dateAdapter.getHourNames();
 
     for (let i = 0; i < hourNames.length; i++) {
@@ -305,15 +262,13 @@ export class MatClockView<D> implements AfterContentInit {
       const outer = i > 0 && i < 13;
       const radius = outer ? CLOCK_OUTER_RADIUS : CLOCK_INNER_RADIUS;
       let hour: number;
-      if (i % 12) {
-        hour = i;
-      } else {
-        hour = i === 0 ? 12 : 0;
-      }
+      if (i % 12 !== 0) { hour = i; }
+      else if (i === 0) { hour = 12; }
+      else { hour = 0; }
       const date = this._dateAdapter.createDate(
-        this._dateAdapter.getYear(this.activeDate),
-        this._dateAdapter.getMonth(this.activeDate),
-        this._dateAdapter.getDate(this.activeDate),
+        this._dateAdapter.getYear(activeDate),
+        this._dateAdapter.getMonth(activeDate),
+        this._dateAdapter.getDate(activeDate),
         hour, 0, 0, 0
       );
       this._hours.push({
@@ -328,16 +283,20 @@ export class MatClockView<D> implements AfterContentInit {
     }
   }
 
-  private _buildMinuteCells(dateFilter: DateFilterFn<D> | undefined, dateClass: MatCalendarCellClassFunction<D> | null) {
+  private _buildMinuteCells(
+    activeDate: D,
+    dateFilter: DateFilterFn<D> | null,
+    dateClass: MatCalendarCellClassFunction<D> | null
+  ) {
     const minuteNames = this._dateAdapter.getMinuteNames();
 
     for (let i = 0; i < minuteNames.length; i += 5) {
       const radian = (i / 30) * Math.PI;
       const date = this._dateAdapter.createDate(
-        this._dateAdapter.getYear(this.activeDate),
-        this._dateAdapter.getMonth(this.activeDate),
-        this._dateAdapter.getDate(this.activeDate),
-        this._dateAdapter.getHours(this.activeDate),
+        this._dateAdapter.getYear(activeDate),
+        this._dateAdapter.getMonth(activeDate),
+        this._dateAdapter.getDate(activeDate),
+        this._dateAdapter.getHours(activeDate),
         i, 0, 0
       );
       this._minutes.push({
@@ -351,7 +310,6 @@ export class MatClockView<D> implements AfterContentInit {
     }
   }
 
-  // Set Time
   private setTime(event: any) {
     const trigger = this._element.nativeElement;
     const triggerRect = trigger.getBoundingClientRect();
@@ -364,11 +322,9 @@ export class MatClockView<D> implements AfterContentInit {
     const clockStep = this.clockStep();
 
     let unitDivider: number;
-    if (this.inHourView()) {
-      unitDivider = 6;
-    } else {
-      unitDivider = clockStep ? 30 / clockStep : 30;
-    }
+    if (this.inHourView()) { unitDivider = 6; }
+    else if (clockStep) { unitDivider = 30 / clockStep; }
+    else { unitDivider = 30; }
     const unit = Math.PI / unitDivider;
     const z = Math.sqrt(x * x + y * y);
     const avg = (width * (CLOCK_OUTER_RADIUS / 100) + width * (CLOCK_INNER_RADIUS / 100)) / 2;
@@ -384,15 +340,14 @@ export class MatClockView<D> implements AfterContentInit {
       ? this._applyHourValue(rawValue, outer)
       : this._applyMinuteValue(rawValue, clockStep);
 
-    // validate if the resulting value is disabled and do not take action
     const dateFilter = this.dateFilter();
     if (dateFilter && !dateFilter(date, <any>this.currentView())) {
       return;
     }
 
-    // we don't want to re-render the clock
-    this._activeDate = date;
-    this.selectedChange.emit(this.activeDate);
+    // Set drag date — _effectiveDate recomputes, effect schedules _init() to move the hand.
+    this._dragDate.set(date);
+    this.selectedChange.emit(date);
   }
 
   private _applyHourValue(rawValue: number, outer: boolean): D {
@@ -402,15 +357,13 @@ export class MatClockView<D> implements AfterContentInit {
     } else {
       value = outer ? value : value + 12;
     }
-    return this._dateAdapter.setHours(this._dateAdapter.clone(this.activeDate), value);
+    return this._dateAdapter.setHours(this._dateAdapter.clone(this._effectiveDate()), value);
   }
 
   private _applyMinuteValue(rawValue: number, clockStep: number): D {
     let value = clockStep ? rawValue * clockStep : rawValue;
-    if (value === 60) {
-      value = 0;
-    }
-    return this._dateAdapter.setMinutes(this._dateAdapter.clone(this.activeDate), value);
+    if (value === 60) value = 0;
+    return this._dateAdapter.setMinutes(this._dateAdapter.clone(this._effectiveDate()), value);
   }
 
   _focusActiveCell() {
@@ -418,10 +371,6 @@ export class MatClockView<D> implements AfterContentInit {
     // Required to satisfy the implicit _focusActiveCell contract shared by all calendar view components.
   }
 
-  /**
-   * @param obj The object to check.
-   * @returns The given object if it is both a date instance and valid, otherwise null.
-   */
   private _getValidDateOrNull(obj: any): D | null {
     return this._dateAdapter.isDateInstance(obj) && this._dateAdapter.isValid(obj) ? obj : null;
   }

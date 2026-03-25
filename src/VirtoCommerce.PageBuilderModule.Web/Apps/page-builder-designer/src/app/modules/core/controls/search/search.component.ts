@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, DestroyRef, ElementRef, viewChild, inject } from '@angular/core';
+import { Component, DestroyRef, ElementRef, viewChild, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { JsonPipe } from '@angular/common';
 import { IconButtonComponent } from '@core/components/icon-button/icon-button.component';
@@ -22,18 +22,16 @@ import { appHelpers } from '@integration/helpers';
 export class SearchComponent extends BaseControlDirective<SearchDescriptor> {
     private readonly destroyRef = inject(DestroyRef);
     private readonly environment = inject(EnvironmentRef);
-    private readonly cdk = inject(ChangeDetectorRef);
     private readonly data = inject(DataService);
     private readonly assets = inject(AssetsService);
     private searchEvent$ = new Subject<string | null>();
 
     readonly control = viewChild.required<ElementRef>('control');
 
-    override setControlValue(value: any) {
-        if (!value) {
-            value = { __nodata: true, __searchQuery: null };
+    protected override applyNewValue(): void {
+        if (!this.controlValue()) {
+            this.controlValue.set({ __nodata: true, __searchQuery: null });
         }
-        super.setControlValue(value);
     }
 
     override initContent() {
@@ -74,7 +72,6 @@ export class SearchComponent extends BaseControlDirective<SearchDescriptor> {
             complete: () => {
                 this.setControlValue(value);
                 this.onValueChanged(this.controlValue());
-                this.cdk.detectChanges();
             }
         };
         if (!!this.descriptor?.request) {

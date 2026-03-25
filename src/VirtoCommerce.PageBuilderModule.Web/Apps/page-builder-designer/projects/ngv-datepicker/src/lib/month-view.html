@@ -21,7 +21,7 @@
          [previewEnd]="_previewEnd"
          [isRange]="_isRange"
          [labelMinRequiredCells]="3"
-         [activeCell]="_dateAdapter.getDate(activeDate) - 1"
+         [activeCell]="_dateAdapter.getDate(_effectiveActiveDate()) - 1"
          (selectedValueChange)="_dateSelected($event)"
          (previewChange)="_previewChanged($event)"
          (keyup)="_handleCalendarBodyKeyup($event)"
