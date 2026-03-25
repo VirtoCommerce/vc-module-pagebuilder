@@ -1,6 +1,6 @@
 import { ApplicationConfig, importProvidersFrom, inject, isDevMode, provideAppInitializer } from '@angular/core';
 import { provideRouter, withHashLocation } from '@angular/router';
-import { provideHttpClient, withInterceptorsFromDi, HTTP_INTERCEPTORS } from '@angular/common/http';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
 
 import { provideStore, provideState } from '@ngrx/store';
 import { provideEffects } from '@ngrx/effects';
@@ -18,14 +18,14 @@ import { RouterSerializer } from '@shared/routing/serializer';
 import { SharedEffects } from '@shared/store/effects';
 import { sharedReducers } from '@shared/store/reducers';
 
-import { RefreshTokenInterceptor } from '@integration/services';
+import { refreshTokenInterceptor } from '@integration/services';
 import { AppInitializator } from '@integration/services/app.initializator';
 import { registerControls } from '@core/controls/controls-register';
 
 export const appConfig: ApplicationConfig = {
     providers: [
         provideRouter(APP_ROUTES, withHashLocation()),
-        provideHttpClient(withInterceptorsFromDi()),
+        provideHttpClient(withInterceptors([refreshTokenInterceptor])),
 
         provideStore({ router: routerReducer }, {
             initialState: { router: initialRoute }
@@ -45,11 +45,7 @@ export const appConfig: ApplicationConfig = {
         provideState('shared', sharedReducers),
         provideEffects([SharedEffects]),
 
-        {
-            provide: HTTP_INTERCEPTORS,
-            useClass: RefreshTokenInterceptor,
-            multi: true
-        },
+
         provideAppInitializer(() => {
         const initializerFn = ((config: AppInitializator) => () => config.init())(inject(AppInitializator));
         return initializerFn();
