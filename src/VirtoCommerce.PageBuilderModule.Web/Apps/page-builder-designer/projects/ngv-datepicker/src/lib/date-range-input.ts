@@ -119,6 +119,23 @@ export class MatDateRangeInput<D>
       this._disabledInput();
       untracked(() => this.stateChanges.next(undefined));
     });
+
+    // Register with the range picker and obtain the shared selection model
+    effect(() => {
+      const picker = this._rangePickerInput();
+      untracked(() => {
+        this._closedSubscription.unsubscribe();
+        if (picker) {
+          this._model = picker.registerInput(this);
+          this._closedSubscription = picker.closedStream.subscribe(() => {
+            this._startInput()?._onTouched();
+            this._endInput()?._onTouched();
+            this._revalidate();
+          });
+          this._registerModel(this._model);
+        }
+      });
+    });
   }
 
   /** Current value of the range input. */
