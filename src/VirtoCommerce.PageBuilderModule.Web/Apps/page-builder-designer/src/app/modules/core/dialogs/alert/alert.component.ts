@@ -14,7 +14,7 @@ export class AlertComponent {
     private readonly data = inject(MAT_DIALOG_DATA);
 
     readonly title: string = this.data.title;
-    readonly confirmText: string = this.data.confirmText || 'ОК';
+    readonly confirmText: string = this.data.confirmText || 'OK';
 
     confirm() {
         this.dialogRef.close();
