@@ -66,7 +66,8 @@ export class CollectionComponent extends BaseControlDirective<CollectionDescript
 
     protected override applyNewValue(): void {
         const raw = this.controlValue();
-        const value: any[] = !raw ? [] : !Array.isArray(raw) ? [raw] : raw;
+        const asArray = !Array.isArray(raw) ? [raw] : raw;
+        const value: any[] = raw ? asArray : [];
         if (value === this.controlValue() && this.form) {
             return;
         }
