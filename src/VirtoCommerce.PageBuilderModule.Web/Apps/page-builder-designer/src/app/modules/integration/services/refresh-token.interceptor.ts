@@ -18,11 +18,12 @@ function addAuthData(
 
   if (state.inProgress) {
     return new Observable(observer => {
-      state.refreshed$.subscribe(() => {
+      const sub = state.refreshed$.subscribe(() => {
         const refreshedInfo = jwt.getInfo();
         observer.next(request.clone({ setHeaders: { Authorization: `Bearer ${refreshedInfo.token}` } }));
         observer.complete();
       });
+      return () => sub.unsubscribe();
     });
   }
 

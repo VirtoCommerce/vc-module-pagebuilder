@@ -111,13 +111,16 @@ export class MatDateRangeInput<D>
       untracked(() => this.stateChanges.next(undefined));
     });
 
-    // Replace ngOnChanges — emit stateChanges when date-related inputs change
+    // Replace ngOnChanges — emit stateChanges and re-run validators when date-related inputs change
     effect(() => {
       this._minInput();
       this._maxInput();
       this._dateFilterInput();
       this._disabledInput();
-      untracked(() => this.stateChanges.next(undefined));
+      untracked(() => {
+        this.stateChanges.next(undefined);
+        this._revalidate();
+      });
     });
 
     // Register with the range picker and obtain the shared selection model

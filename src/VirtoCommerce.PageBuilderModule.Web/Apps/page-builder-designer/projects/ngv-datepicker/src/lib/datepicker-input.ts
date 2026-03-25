@@ -105,9 +105,9 @@ export class MatDatepickerInput<D>
     effect(() => {
       const datepicker = this._datepickerInput();
       untracked(() => {
+        this._closedSubscription.unsubscribe();
         if (datepicker) {
           this._datepicker = datepicker;
-          this._closedSubscription.unsubscribe();
           this._closedSubscription = datepicker.closedStream.subscribe(() => this._onTouched());
           this._registerModel(datepicker.registerInput(this));
         }
