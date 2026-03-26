@@ -11,19 +11,19 @@ export * from './calendar-body';
 export * from './datepicker';
 export {
   MAT_DATE_RANGE_SELECTION_STRATEGY,
-  MatDateRangeSelectionStrategy,
   DefaultMatCalendarRangeStrategy,
 } from './date-range-selection-strategy';
+export type {MatDateRangeSelectionStrategy} from './date-range-selection-strategy';
 export * from './datepicker-animations';
 export {
   MAT_DATEPICKER_SCROLL_STRATEGY,
   MAT_DATEPICKER_SCROLL_STRATEGY_FACTORY,
   MAT_DATEPICKER_SCROLL_STRATEGY_FACTORY_PROVIDER,
   MatDatepickerContent,
-  DatepickerDropdownPositionX,
-  DatepickerDropdownPositionY,
 } from './datepicker-base';
-export {MatDatepickerInputEvent, DateFilterFn} from './datepicker-input-base';
+export type {DatepickerDropdownPositionX, DatepickerDropdownPositionY} from './datepicker-base';
+export {MatDatepickerInputEvent} from './datepicker-input-base';
+export type {DateFilterFn} from './datepicker-input-base';
 export {
   MAT_DATEPICKER_VALUE_ACCESSOR,
   MAT_DATEPICKER_VALIDATORS,
