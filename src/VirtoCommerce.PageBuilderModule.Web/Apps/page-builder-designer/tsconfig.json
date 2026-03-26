@@ -19,7 +19,6 @@
         "moduleResolution": "bundler",
         "importHelpers": true,
         "target": "ES2022",
-        "useDefineForClassFields": false,
         "module": "ES2022",
         "lib": [
             "es2022",

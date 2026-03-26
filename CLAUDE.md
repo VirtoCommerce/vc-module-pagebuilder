@@ -9,7 +9,7 @@ A **VirtoCommerce platform module** for page builder / theme editor functionalit
 | Sub-project | Stack | Location |
 |---|---|---|
 | C# backend | .NET 10, EF Core | `src/VirtoCommerce.PageBuilderModule.*` |
-| Angular 20 designer | Angular 20, NgRx, Signals | `src/.../Apps/page-builder-designer/` |
+| Angular 21 designer | Angular 21, NgRx, Signals | `src/.../Apps/page-builder-designer/` |
 | Vue 3 shell | Vue 3, Vite, @vc-shell | `src/.../Apps/page-builder-shell/` |
 | AngularJS admin | AngularJS (legacy) | `src/.../Web/Scripts/` |
 
@@ -228,7 +228,7 @@ someStream$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(...);
 ```
 
 ### NgRx Effects — CRITICAL: inject() fields BEFORE createEffect fields
-Due to `useDefineForClassFields: false`, inject fields must come before `createEffect` fields or services will be `undefined` at init time.
+`inject()` fields must come before `createEffect` fields — `createEffect()` immediately invokes its factory function, so any injected service referenced inside must already be assigned.
 
 ### Path Aliases (`tsconfig.json`)
 | Alias | Maps to |
