@@ -8,7 +8,9 @@
         "build:datepicker:themes": "sass --load-path=node_modules --silence-deprecation=global-builtin --silence-deprecation=import --silence-deprecation=if-function projects/ngv-datepicker/src/lib/prebuilt-themes:.dist-libs/ngv-datepicker/prebuilt-themes --style=compressed",
         "ng": "ng",
         "start": "ng serve",
-        "test": "ng test",
+        "test": "ng test template-builder",
+        "test:watch": "ng test template-builder --watch",
+        "test:coverage": "ng test template-builder --coverage",
         "lint": "ng lint"
     },
     "private": true,
@@ -45,7 +47,6 @@
         "tslib": "^2.8.1"
     },
     "devDependencies": {
-        "@ngrx/store-devtools": "^21.0.1",
         "@angular-devkit/architect": "^0.2100.6",
         "@angular-devkit/build-angular": "^21.2.3",
         "@angular-devkit/core": "^21.2.3",
@@ -54,13 +55,14 @@
         "@angular-eslint/eslint-plugin-template": "^21.3.1",
         "@angular-eslint/schematics": "^21.3.1",
         "@angular-eslint/template-parser": "^21.3.1",
-        "@eslint/eslintrc": "^3.3.5",
-        "@eslint/js": "^9.39.4",
+        "@angular/build": "^21.2.3",
         "@angular/cli": "^21.2.3",
         "@angular/compiler-cli": "^21.2.5",
+        "@eslint/eslintrc": "^3.3.5",
+        "@eslint/js": "^9.39.4",
+        "@ngrx/store-devtools": "^21.0.1",
         "@tailwindcss/forms": "^0.5.11",
         "@tailwindcss/typography": "^0.5.19",
-        "@types/jasmine": "^5.1.15",
         "@types/lodash-es": "^4.17.12",
         "@types/node": "^20.19.37",
         "@types/turndown": "^5.0.6",
@@ -68,17 +70,13 @@
         "@typescript-eslint/types": "^8.57.2",
         "@typescript-eslint/utils": "^8.57.2",
         "eslint": "^9.39.4",
-        "jasmine-core": "^5.13.0",
-        "karma": "^6.4.4",
-        "karma-chrome-launcher": "^3.2.0",
-        "karma-coverage": "~2.2.1",
-        "karma-jasmine": "^5.1.0",
-        "karma-jasmine-html-reporter": "^2.2.0",
+        "jsdom": "^29.0.1",
         "ng-packagr": "^21.2.1",
         "postcss": "^8.5.8",
         "sass": "^1.98.0",
         "tailwindcss": "^3.4.19",
-        "typescript": "~5.9.3"
+        "typescript": "~5.9.3",
+        "vitest": "^4.1.1"
     },
     "packageManager": "yarn@1.22.21+sha1.1959a18351b811cdeedbd484a8f86c3cc3bbaf72"
 }
