@@ -1,5 +1,6 @@
 import { TestBed } from "@angular/core/testing";
-import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
+import { provideHttpClient } from "@angular/common/http";
+import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 
 import { CookieService } from 'ngx-cookie-service';
 
@@ -31,10 +32,9 @@ describe('app initializator', () => {
         };
 
         TestBed.configureTestingModule({
-            imports: [
-                HttpClientTestingModule
-            ],
             providers: [
+                provideHttpClient(),
+                provideHttpClientTesting(),
                 { provide: EnvironmentRef, useValue: envRef },
                 { provide: CookieService, useValue: cookies },
                 EvaluatorService,
