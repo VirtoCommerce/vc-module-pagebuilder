@@ -14,6 +14,7 @@ import {
   DoCheck,
   Signal,
   inject,
+  input,
 } from '@angular/core';
 import {
   NG_VALUE_ACCESSOR,
@@ -66,6 +67,7 @@ abstract class MatDateRangeInputPartBase<D>
 {
     readonly _rangeInput = inject(MAT_DATE_RANGE_INPUT_PARENT) as MatDateRangeInputParent<D>;
     readonly _defaultErrorStateMatcher = inject(ErrorStateMatcher);
+    readonly errorStateMatcher = input<ErrorStateMatcher | null>(null);
     private readonly _injector = inject(Injector);
     readonly _parentForm = inject(NgForm, { optional: true });
     readonly _parentFormGroup = inject(FormGroupDirective, { optional: true });
@@ -197,10 +199,6 @@ abstract class MatDateRangeInputPartBase<D>
     {provide: NG_VALUE_ACCESSOR, useExisting: MatStartDate, multi: true},
     {provide: NG_VALIDATORS, useExisting: MatStartDate, multi: true},
   ],
-  // These need to be specified explicitly, because some tooling doesn't
-  // seem to pick them up from the base class. See #20932.
-  outputs: ['dateChange', 'dateInput'],
-  inputs: ['errorStateMatcher'],
 })
 export class MatStartDate<D> extends MatDateRangeInputPartBase<D> {
   /** Validator that checks that the start date isn't after the end date. */
@@ -275,10 +273,6 @@ export class MatStartDate<D> extends MatDateRangeInputPartBase<D> {
     {provide: NG_VALUE_ACCESSOR, useExisting: MatEndDate, multi: true},
     {provide: NG_VALIDATORS, useExisting: MatEndDate, multi: true},
   ],
-  // These need to be specified explicitly, because some tooling doesn't
-  // seem to pick them up from the base class. See #20932.
-  outputs: ['dateChange', 'dateInput'],
-  inputs: ['errorStateMatcher'],
 })
 export class MatEndDate<D> extends MatDateRangeInputPartBase<D> {
   /** Validator that checks that the end date isn't before the start date. */

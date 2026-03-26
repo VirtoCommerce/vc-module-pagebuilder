@@ -6,7 +6,7 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import { Directive, FactoryProvider, Injectable, Optional, SkipSelf, OnDestroy } from '@angular/core';
+import { Directive, FactoryProvider, Injectable, Injector, Optional, SkipSelf, OnDestroy, inject, runInInjectionContext } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
 import { DateAdapter } from './core';
 
@@ -60,11 +60,11 @@ export abstract class MatDateSelectionModel<S, D = ExtractDateTypeFromSelection<
   /** Emits when the selection has changed. */
   selectionChanged: Observable<DateSelectionModelChange<S>> = this._selectionChanged;
 
-  protected constructor(
-    /** The current selection. */
-    readonly selection: S,
-    protected _adapter: DateAdapter<D>,
-  ) {
+  protected readonly _adapter = inject<DateAdapter<D>>(DateAdapter);
+  protected readonly _injector = inject(Injector);
+
+  // eslint-disable-next-line @angular-eslint/prefer-inject
+  protected constructor(readonly selection: S) {
     this.selection = selection;
   }
 
@@ -113,8 +113,8 @@ export class MatSingleDateSelectionModel<D> extends MatDateSelectionModel<D | nu
   /** Queue store */
   queuedValue!: D;
 
-  constructor(adapter: DateAdapter<D>) {
-    super(null, adapter);
+  constructor() {
+    super(null);
   }
 
   /**
@@ -151,7 +151,7 @@ export class MatSingleDateSelectionModel<D> extends MatDateSelectionModel<D | nu
 
   /** Clones the selection model. */
   clone() {
-    const clone = new MatSingleDateSelectionModel<D>(this._adapter);
+    const clone = runInInjectionContext(this._injector, () => new MatSingleDateSelectionModel<D>());
     clone.updateSelection(this.selection, this);
     if (this.queuedValue) {
       clone.queue(this.queuedValue);
@@ -166,8 +166,8 @@ export class MatSingleDateSelectionModel<D> extends MatDateSelectionModel<D | nu
  */
 @Injectable()
 export class MatRangeDateSelectionModel<D> extends MatDateSelectionModel<DateRange<D>, D> {
-  constructor(adapter: DateAdapter<D>) {
-    super(new DateRange<D>(null, null), adapter);
+  constructor() {
+    super(new DateRange<D>(null, null));
   }
 
   /**
@@ -233,7 +233,7 @@ export class MatRangeDateSelectionModel<D> extends MatDateSelectionModel<DateRan
 
   /** Clones the selection model. */
   clone() {
-    const clone = new MatRangeDateSelectionModel<D>(this._adapter);
+    const clone = runInInjectionContext(this._injector, () => new MatRangeDateSelectionModel<D>());
     clone.updateSelection(this.selection, this);
     return clone;
   }
@@ -242,9 +242,8 @@ export class MatRangeDateSelectionModel<D> extends MatDateSelectionModel<DateRan
 /** @docs-private */
 export function MAT_SINGLE_DATE_SELECTION_MODEL_FACTORY(
   parent: MatSingleDateSelectionModel<unknown>,
-  adapter: DateAdapter<unknown>,
 ) {
-  return parent || new MatSingleDateSelectionModel(adapter);
+  return parent || new MatSingleDateSelectionModel();
 }
 
 /**
@@ -253,16 +252,15 @@ export function MAT_SINGLE_DATE_SELECTION_MODEL_FACTORY(
  */
 export const MAT_SINGLE_DATE_SELECTION_MODEL_PROVIDER: FactoryProvider = {
   provide: MatDateSelectionModel,
-  deps: [[new Optional(), new SkipSelf(), MatDateSelectionModel], DateAdapter],
+  deps: [[new Optional(), new SkipSelf(), MatDateSelectionModel]],
   useFactory: MAT_SINGLE_DATE_SELECTION_MODEL_FACTORY,
 };
 
 /** @docs-private */
 export function MAT_RANGE_DATE_SELECTION_MODEL_FACTORY(
   parent: MatSingleDateSelectionModel<unknown>,
-  adapter: DateAdapter<unknown>,
 ) {
-  return parent || new MatRangeDateSelectionModel(adapter);
+  return parent || new MatRangeDateSelectionModel();
 }
 
 /**
@@ -271,6 +269,6 @@ export function MAT_RANGE_DATE_SELECTION_MODEL_FACTORY(
  */
 export const MAT_RANGE_DATE_SELECTION_MODEL_PROVIDER: FactoryProvider = {
   provide: MatDateSelectionModel,
-  deps: [[new Optional(), new SkipSelf(), MatDateSelectionModel], DateAdapter],
+  deps: [[new Optional(), new SkipSelf(), MatDateSelectionModel]],
   useFactory: MAT_RANGE_DATE_SELECTION_MODEL_FACTORY,
 };

@@ -398,9 +398,11 @@ export abstract class MatDatepickerBase<
   readonly dateClass = input<MatCalendarCellClassFunction<D> | null>(null);
 
   /** Emits when the datepicker has been opened. */
+  // eslint-disable-next-line @angular-eslint/no-output-rename
   readonly openedStream = output({alias: 'opened'});
 
   /** Emits when the datepicker has been closed. */
+  // eslint-disable-next-line @angular-eslint/no-output-rename
   readonly closedStream = output({alias: 'closed'});
 
   /**
