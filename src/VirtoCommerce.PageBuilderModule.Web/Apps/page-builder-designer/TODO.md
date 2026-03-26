@@ -59,6 +59,20 @@
 
 * theme name is always 'default' in module
 
+## Tailwind v4 migration
+
+Currently on Tailwind **v3.4**. Migration to v4 involves:
+
+* [ ] Run `npx @tailwindcss/upgrade` — official codemod handles most of the routine
+* [ ] Replace PostCSS plugin: `tailwindcss` → `@tailwindcss/postcss`, update `.postcssrc.json`
+* [ ] Replace CSS directives: `@tailwind base/components/utilities` → `@import 'tailwindcss'`
+* [ ] Migrate `tailwind.config.js` to CSS-first config (`@theme { }` block in styles) — config file is no longer needed
+* [ ] Update plugins: `@tailwindcss/forms` and `@tailwindcss/typography` have v4-compatible releases, verify import syntax
+* [ ] Audit utility class changes: some names changed in v4 (e.g. `shadow-sm` scale, color palette tokens); codemod covers most but check manually
+* [ ] Verify `@apply` usage still works as expected after migration
+
+Reference: https://tailwindcss.com/docs/upgrade-guide
+
 ## Future / Angular upgrades
 
 * [ ] **Angular 22-23**: migrate dynamic forms from `UntypedFormGroup` + `valueChanges` to Signal Forms
