@@ -1,3 +1,9 @@
+@keyframes ngv-control-active {
+  0%   { transform: scale(0.9); }
+  50%  { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
 mat-custom-header {
   * {
     box-sizing: border-box;
@@ -10,12 +16,6 @@ mat-custom-header {
   .mat-custom-control-active {
     opacity: 1;
     animation: ngv-control-active 0.4s linear;
-  }
-
-  @keyframes ngv-control-active {
-    0%   { transform: scale(0.9); }
-    50%  { transform: scale(1.1); }
-    100% { transform: scale(1); }
   }
 
   .mat-custom-controls {
