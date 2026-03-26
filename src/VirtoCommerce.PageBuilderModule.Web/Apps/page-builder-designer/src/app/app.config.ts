@@ -1,4 +1,4 @@
-import { ApplicationConfig, importProvidersFrom, inject, isDevMode, provideAppInitializer } from '@angular/core';
+import { ApplicationConfig, importProvidersFrom, inject, isDevMode, provideAppInitializer, provideZonelessChangeDetection } from '@angular/core';
 import { provideRouter, withHashLocation } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 
@@ -24,6 +24,7 @@ import { registerControls } from '@core/controls/controls-register';
 
 export const appConfig: ApplicationConfig = {
     providers: [
+        provideZonelessChangeDetection(),
         provideRouter(APP_ROUTES, withHashLocation()),
         provideHttpClient(withInterceptors([refreshTokenInterceptor])),
 
