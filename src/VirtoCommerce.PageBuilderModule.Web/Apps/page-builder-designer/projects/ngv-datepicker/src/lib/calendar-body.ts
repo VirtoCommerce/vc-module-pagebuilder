@@ -7,18 +7,18 @@
  */
 
 import {
+  afterNextRender,
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
   ElementRef,
-  NgZone,
+  Injector,
   ViewEncapsulation,
   computed,
   inject,
   input,
   output,
 } from '@angular/core';
-import {take} from 'rxjs/operators';
 import {MatCalendarView} from './calendar.types';
 
 /** Extra CSS classes that can be associated with a calendar cell. */
@@ -70,7 +70,7 @@ export interface MatCalendarUserEvent<D> {
 })
 export class MatCalendarBody {
   private readonly _elementRef = inject(ElementRef<HTMLElement>);
-  private readonly _ngZone = inject(NgZone);
+  private readonly _injector = inject(Injector);
   private readonly _destroyRef = inject(DestroyRef);
 
   /**
@@ -145,12 +145,10 @@ export class MatCalendarBody {
 
   constructor() {
     const element = this._elementRef.nativeElement;
-    this._ngZone.runOutsideAngular(() => {
-      element.addEventListener('mouseenter', this._enterHandler, true);
-      element.addEventListener('focus', this._enterHandler, true);
-      element.addEventListener('mouseleave', this._leaveHandler, true);
-      element.addEventListener('blur', this._leaveHandler, true);
-    });
+    element.addEventListener('mouseenter', this._enterHandler, true);
+    element.addEventListener('focus', this._enterHandler, true);
+    element.addEventListener('mouseleave', this._leaveHandler, true);
+    element.addEventListener('blur', this._leaveHandler, true);
 
     this._destroyRef.onDestroy(() => {
       element.removeEventListener('mouseenter', this._enterHandler, true);
@@ -184,23 +182,21 @@ export class MatCalendarBody {
     return cellNumber == this.activeCell();
   }
 
-  /** Focuses the active cell after the microtask queue is empty. */
+  /** Focuses the active cell after the next render. */
   _focusActiveCell(movePreview = true) {
-    this._ngZone.runOutsideAngular(() => {
-      this._ngZone.onStable.pipe(take(1)).subscribe(() => {
-        const activeCell: HTMLElement | null = this._elementRef.nativeElement.querySelector(
-          '.mat-calendar-body-active',
-        );
+    afterNextRender(() => {
+      const activeCell: HTMLElement | null = this._elementRef.nativeElement.querySelector(
+        '.mat-calendar-body-active',
+      );
 
-        if (activeCell) {
-          if (!movePreview) {
-            this._skipNextFocus = true;
-          }
-
-          activeCell.focus();
+      if (activeCell) {
+        if (!movePreview) {
+          this._skipNextFocus = true;
         }
-      });
-    });
+
+        activeCell.focus();
+      }
+    }, { injector: this._injector });
   }
 
   /** Gets whether a value is the start of the main range. */
@@ -311,7 +307,7 @@ export class MatCalendarBody {
       const cell = this._getCellFromElement(event.target as HTMLElement);
 
       if (cell) {
-        this._ngZone.run(() => this.previewChange.emit({value: cell.enabled ? cell : null, event}));
+        this.previewChange.emit({value: cell.enabled ? cell : null, event});
       }
     }
   };
@@ -327,7 +323,7 @@ export class MatCalendarBody {
       // we have a gap between the cells and the rows and we don't want to remove the
       // range just for it to show up again when the user moves a few pixels to the side.
       if (event.target && isTableCell(event.target as HTMLElement)) {
-        this._ngZone.run(() => this.previewChange.emit({value: null, event}));
+        this.previewChange.emit({value: null, event});
       }
     }
   };

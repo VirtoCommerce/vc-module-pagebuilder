@@ -1,7 +1,6 @@
 import {
   Component,
   ElementRef,
-  NgZone,
   DestroyRef,
   inject,
   afterNextRender,
@@ -28,7 +27,6 @@ import { MARKDOWN_DATA_SERVICE, IMarkdownDataService } from './ngv-markdown-data
 export class NgvMarkdownComponent {
 
   private readonly elementRef = inject(ElementRef);
-  private readonly ngZone = inject(NgZone);
   private readonly http = inject(HttpClient);
   private readonly dataService = inject<IMarkdownDataService>(MARKDOWN_DATA_SERVICE, { optional: true });
   private readonly destroyRef = inject(DestroyRef);
@@ -57,52 +55,50 @@ export class NgvMarkdownComponent {
 
   constructor() {
     afterNextRender(() => {
-      this.ngZone.runOutsideAngular(() => {
-        const element = document.createElement('textarea');
-        this.elementRef.nativeElement.appendChild(element);
-        this.easyMDE = new EasyMDE({
-          element,
-          status: ["lines", "words"],
-          toolbar: [
-            'bold',
-            'italic',
-            'heading',
-            '|',
-            'quote',
-            'unordered-list',
-            'ordered-list',
-            '|',
-            'link',
-            'image',
-            // '|',
-            // 'preview',
-            // 'side-by-side',
-            // 'fullscreen',
-            '|',
-            'guide',
-            // 'strikethrough',
-            // 'code',
-            // 'table',
-            // 'redo',
-            // 'undo',
-            // 'heading-bigger',
-            // 'heading-smaller',
-            // 'heading-1',
-            // 'heading-2',
-            // 'heading-3',
-            // 'clean-block',
-            // 'horizontal-rule',
-          ],
-          spellChecker: false,
-          ...this.options() || {}
-        });
-        this.setValue();
-        this.prepareEditor();
-        this.handlePasteValue();
-        this.handleChangeValue();
-        this.handleResizeElement();
-        this.prepareStyles();
+      const element = document.createElement('textarea');
+      this.elementRef.nativeElement.appendChild(element);
+      this.easyMDE = new EasyMDE({
+        element,
+        status: ["lines", "words"],
+        toolbar: [
+          'bold',
+          'italic',
+          'heading',
+          '|',
+          'quote',
+          'unordered-list',
+          'ordered-list',
+          '|',
+          'link',
+          'image',
+          // '|',
+          // 'preview',
+          // 'side-by-side',
+          // 'fullscreen',
+          '|',
+          'guide',
+          // 'strikethrough',
+          // 'code',
+          // 'table',
+          // 'redo',
+          // 'undo',
+          // 'heading-bigger',
+          // 'heading-smaller',
+          // 'heading-1',
+          // 'heading-2',
+          // 'heading-3',
+          // 'clean-block',
+          // 'horizontal-rule',
+        ],
+        spellChecker: false,
+        ...this.options() || {}
       });
+      this.setValue();
+      this.prepareEditor();
+      this.handlePasteValue();
+      this.handleChangeValue();
+      this.handleResizeElement();
+      this.prepareStyles();
     });
 
     this.destroyRef.onDestroy(() => {
@@ -153,7 +149,7 @@ export class NgvMarkdownComponent {
         const uploader = this.getUploader();
         if (!!uploader && file) {
           uploader(file).subscribe(result => {
-            this.ngZone.run(() => this.easyMDE?.codemirror.replaceSelection(`![${result.name}](${result.url})`));
+            this.easyMDE?.codemirror.replaceSelection(`![${result.name}](${result.url})`);
           });
         }
       }
@@ -173,7 +169,7 @@ export class NgvMarkdownComponent {
     this.easyMDE?.codemirror.on("change", () => {
       const markdown: string | null = this.easyMDE?.value() || null;
       const html = markdown ? marked(markdown) as unknown as string : null;
-      this.ngZone.run(() => this.valueChanged.emit({ markdown, html }));
+      this.valueChanged.emit({ markdown, html });
     });
   }
 

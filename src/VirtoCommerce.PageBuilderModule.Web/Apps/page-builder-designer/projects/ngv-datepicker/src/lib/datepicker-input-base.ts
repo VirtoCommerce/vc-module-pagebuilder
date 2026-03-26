@@ -79,7 +79,15 @@ export abstract class MatDatepickerInputBase<S, D = ExtractDateTypeFromSelection
   /** Whether the component has been initialized. */
   private _isInitialized: boolean = false;
 
-  /** The value of the input. */
+  /**
+   * The value of the input.
+   *
+   * Uses @Input() getter+setter (not signal input) because `value` is a facade over the shared
+   * MatDateSelectionModel, which is written by multiple sources: template binding, writeValue(),
+   * user typing, calendar popup clicks, and locale changes. The getter reads from _model.selection,
+   * not from the raw input — so a signal input would cause an alias+getter conflict, and an
+   * effect()-based approach would trigger spurious dateChange/dateInput events on initialization.
+   */
   @Input()
   get value(): D | null {
     return this._model ? this._getValueFromModel(this._model.selection) : this._pendingValue;

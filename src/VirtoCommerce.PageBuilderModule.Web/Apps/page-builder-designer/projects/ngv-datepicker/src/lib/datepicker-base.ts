@@ -30,7 +30,8 @@ import {
   ElementRef,
   effect,
   InjectionToken,
-  NgZone,
+  afterNextRender,
+  Injector,
   OnInit,
   OutputRef,
   ViewContainerRef,
@@ -285,7 +286,7 @@ export abstract class MatDatepickerBase<
 > implements MatDatepickerPanel<C, S, D>
 {
   private readonly _overlay = inject(Overlay);
-  private readonly _ngZone = inject(NgZone);
+  private readonly _injector = inject(Injector);
   private readonly _viewContainerRef = inject(ViewContainerRef);
   private readonly _dateAdapter = inject<DateAdapter<D>>(DateAdapter, {optional: true})!;
   private readonly _dir = inject(Directionality, {optional: true});
@@ -688,7 +689,7 @@ export abstract class MatDatepickerBase<
 
     // Update the position once the calendar has rendered. Only relevant in dropdown mode.
     if (!isDialog) {
-      this._ngZone.onStable.pipe(take(1)).subscribe(() => overlayRef.updatePosition());
+      afterNextRender(() => overlayRef.updatePosition(), { injector: this._injector });
     }
   }
 

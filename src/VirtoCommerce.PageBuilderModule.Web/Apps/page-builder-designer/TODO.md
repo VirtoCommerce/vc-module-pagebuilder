@@ -59,3 +59,10 @@
 
 * theme name is always 'default' in module
 
+## Future / Angular upgrades
+
+* [ ] **Angular 22-23**: migrate dynamic forms from `UntypedFormGroup` + `valueChanges` to Signal Forms
+  * Wait until Signal Forms is out of developer preview and supports dynamic schema-driven forms
+  * Key files: `forms.helper.ts`, `dynamic-form.component.ts`, `base-control.directive.ts`, `control-holder.component.ts`
+  * Also revisit `ControlValueAccessor` in `ngv-datepicker` once signals-compatible API is stable
+
