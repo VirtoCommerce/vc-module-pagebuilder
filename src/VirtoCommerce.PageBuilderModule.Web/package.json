@@ -15,7 +15,7 @@
         "webpack-cli": "4.10.0"
     },
     "overrides": {
-      "serialize-javascript": "^7.0.3"
+      "serialize-javascript": "^7.0.5"
     },
     "webpack": {
         "stats": "verbose"
