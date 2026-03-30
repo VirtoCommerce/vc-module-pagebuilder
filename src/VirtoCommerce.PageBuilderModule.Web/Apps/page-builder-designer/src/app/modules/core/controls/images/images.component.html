@@ -45,8 +45,8 @@
               [title]="file.name"
               (click)="selectFile(file)">{{ file.name }}</div>
             <div class="actions">
-              <app-icon class="copy-url" (click)="copyUrl(file)">content_copy</app-icon>
-              <app-icon class="remove-image" (click)="deleteFile(file)">delete</app-icon>
+              <app-icon title="Copy URL" class="copy-url" (click)="copyUrl(file)">content_copy</app-icon>
+              <app-icon title="Delete image" class="remove-image" (click)="deleteFile(file)">delete</app-icon>
               @if (sortable()) {
                 <app-drag-handle
                   [visible]="true"

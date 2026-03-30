@@ -37,7 +37,8 @@
               }
               <app-icon class="file-type">attachment</app-icon>
               <div class="file-name" [title]="file.name" (click)="selectFile($any(file))">{{ file.name }}</div>
-              <app-icon class="delete-icon" (click)="deleteFile($any(file))">delete</app-icon>
+              <app-icon title="Copy URL" class="copy-url" (click)="copyUrl(file)">content_copy</app-icon>
+              <app-icon title="Delete file" class="delete-icon" (click)="deleteFile($any(file))">delete</app-icon>
               @if (sortable()) {
                 <app-drag-handle [visible]="hoverItem() === file" cdkDragHandle (mousedown)="onStartDrag()"
                 (mouseup)="onReleaseDrag()" />
