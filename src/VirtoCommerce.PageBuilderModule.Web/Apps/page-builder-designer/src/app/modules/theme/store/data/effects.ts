@@ -65,7 +65,7 @@ export class ThemeDataEffects {
     mergeServerSettingsSchema$ = createEffect(() => this.actions$.pipe(
         ofType(actions.loadSettingsSchemaSuccess),
         withLatestFrom(this.store$.select(selectors.selectCurrentSettingsDataModel)),
-        filter(([, settingsData]) => !settingsData),
+      // filter(([, settingsData]) => !settingsData),
         map(([{ schema }]) => actions.useSettingsSchema({ schema }))
     ));
 
