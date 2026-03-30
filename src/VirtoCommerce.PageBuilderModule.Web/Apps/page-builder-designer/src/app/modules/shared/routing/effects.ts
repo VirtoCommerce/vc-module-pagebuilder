@@ -45,16 +45,18 @@ export class RoutingEffects {
       this.store$.select(fromRoute.selectTypeParameter),
       this.store$.select(fromRoute.selectPathParameter),
       this.store$.select(fromRoute.selectParentTemplateParameter),
-      this.store$.select(fromRoute.selectPreviewModeParameter)
+      this.store$.select(fromRoute.selectPreviewModeParameter),
+      this.store$.select(fromRoute.selectGroupIdParameter)
     ),
-    tap(([{ path, queryParams, extras }, type, pathParameter, parent, previewMode]) =>
+    tap(([{ path, queryParams, extras }, type, pathParameter, parent, previewMode, groupId]) =>
       this.router.navigate(path,
         {
           queryParams: {
-            type: type || undefined, // todo: should be template stored between modules?
-            path: pathParameter || undefined, // todo: should be template stored between modules?
+            type: type || undefined,
+            path: pathParameter || undefined,
             parent: parent || undefined,
             'preview-mode': previewMode || undefined,
+            groupId: groupId || undefined,
             ...queryParams
           },
           ...extras
