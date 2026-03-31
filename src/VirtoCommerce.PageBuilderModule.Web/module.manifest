@@ -17,6 +17,24 @@
 
   <title>CMS Page Builder</title>
   <description>Compose pages in visual page builder.</description>
+  
+  <apps>
+    <app id="page-builder-shell">
+      <title>Page Builder Shell</title>
+      <description>Page Builder Shell</description>
+      <iconUrl>/apps/page-builder-shell/assets/images/logo-only.svg</iconUrl>
+      <permission>none</permission>
+      <supportEmbeddedMode>false</supportEmbeddedMode>
+    </app>
+    <app id="page-builder-designer">
+      <title>Page Builder Designer</title>
+      <description>Page Builder Designer</description>
+      <iconUrl>/apps/page-builder-designer/assets/images/logo-only.svg</iconUrl>
+      <permission>none</permission>
+      <supportEmbeddedMode>false</supportEmbeddedMode>
+    </app>
+  </apps>
+  
   <authors>
     <author>Virto Commerce</author>
   </authors>
@@ -29,4 +47,7 @@
   <assemblyFile>VirtoCommerce.PageBuilderModule.Web.dll</assemblyFile>
   <moduleType>VirtoCommerce.PageBuilderModule.Web.Module, VirtoCommerce.PageBuilderModule.Web</moduleType>
   <useFullTypeNameInSwagger>false</useFullTypeNameInSwagger>
+  <groups>
+    <group>commerce</group>
+  </groups>
 </module>

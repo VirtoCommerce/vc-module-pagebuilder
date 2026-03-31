@@ -1,0 +1,61 @@
+<!-- picker on click -->
+@if (!descriptor?.inline) {
+  <div class="flex items-center justify-between"
+    (click)="togglePopover()">
+    <label class="pb-label" [attr.title]="descriptor?.hint">{{ descriptor?.label }}</label>
+    <div #trigger="cdkOverlayOrigin"
+      class="border rounded w-7 h-7 mr-2 cursor-pointer"
+      cdkOverlayOrigin
+    [ngStyle]="{ backgroundColor: controlValue() }"></div>
+  </div>
+  <ng-template cdkConnectedOverlay
+    [cdkConnectedOverlayOrigin]="trigger"
+    [cdkConnectedOverlayOpen]="isOpen"
+    [cdkConnectedOverlayPositions]="positions"
+    [cdkConnectedOverlayHasBackdrop]="true"
+    [cdkConnectedOverlayLockPosition]="true"
+    (detach)="close()"
+    (backdropClick)="outsideClick($event)">
+    <div class="picker-holder">
+      @if (descriptor?.colorMode !== 'presets') {
+        <color-sketch
+          class="sketch-color-picker-component"
+          [className]="'popup-color-picker'"
+          [color]="controlValue() || ''"
+          [presetColors]="descriptor?.presets || []"
+          [disableAlpha]="descriptor?.disableAlpha || false"
+        (onChangeComplete)="changeColor($event)" />
+      }
+      @if (descriptor?.colorMode === 'presets') {
+        <color-twitter
+          [className]="'popup-color-picker'"
+          triangle="hide"
+          [color]="controlValue() || ''"
+          [colors]="descriptor?.presets || []"
+        (onChangeComplete)="changeColor($event)" />
+      }
+      <div class="m-4 flex flex-row-reverse space-x-4 space-x-reverse">
+        <button (click)="applyColor()">Ok</button>
+        <button (click)="clearColor()">Clear</button>
+      </div>
+    </div>
+  </ng-template>
+} @else {
+  <label class="pb-label" [attr.title]="descriptor?.hint">{{ descriptor?.label }}</label>
+  @if (descriptor?.colorMode !== 'presets') {
+    <color-sketch
+      [className]="'inline-color-picker max-w-sm'"
+      [color]="controlValue() || ''"
+      [presetColors]="descriptor?.presets || []"
+      [disableAlpha]="descriptor?.disableAlpha || false"
+    (onChangeComplete)="changeColor($event)" />
+  }
+  @if (descriptor?.colorMode === 'presets') {
+    <color-twitter
+      triangle="hide"
+      [className]="'inline-color-picker'"
+      [color]="controlValue() || ''"
+      [colors]="descriptor?.presets || []"
+    (onChangeComplete)="changeColor($event)" />
+  }
+}

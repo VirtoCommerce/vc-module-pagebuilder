@@ -1,0 +1,5 @@
+@use '../../../../../layout/variables' as *;
+
+[mat-dialog-content] {
+    color: $content-color;
+}

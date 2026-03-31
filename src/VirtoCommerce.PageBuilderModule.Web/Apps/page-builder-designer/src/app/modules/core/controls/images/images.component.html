@@ -1,0 +1,81 @@
+<label [attr.title]="descriptor?.hint">{{ descriptor?.label }}</label>
+@if (control()) {
+  <div>
+    <file-upload [control]="control()!" [multiple]="!!multiple()">
+      <ng-template let-isFileDragDropAvailable="isFileDragDropAvailable" #placeholder>
+        @if (isFileDragDropAvailable) {
+          <div class="add-files">
+            Add image or drop images to upload
+          </div>
+        }
+        @if (!isFileDragDropAvailable) {
+          <span>Add image</span>
+        }
+      </ng-template>
+    </file-upload>
+    @if (descriptor?.info) {
+      <p class="info grow">{{ descriptor?.info }}</p>
+    }
+    <div class="images-list"
+      [ngStyle]="{ 'max-height': maxListHeight() }"
+      cdkDropList
+      (cdkDropListDropped)="onReorderItems($event)">
+      @for (file of innerValue(); track file; let i = $index) {
+        <div class="list-item"
+          cdkDrag
+          [cdkDragDisabled]="!sortable()"
+          cdkDragBoundary=".images-list"
+          cdkDragLockAxis="y"
+          (cdkDragReleased)="onReleaseDrag()"
+          >
+          <div class="file-item">
+            @if (descriptor?.element && descriptor?.element?.length) {
+            <app-chevron [opened]="selectedFile() === file" (click)="selectFile(file)" />
+            }
+            <div class="image-item"
+                 [ngStyle]="{ backgroundImage: getBackground(file) }">
+              @if (file.loading) {
+                <div class="spinner">
+                  <app-spinner />
+                </div>
+              }
+            </div>
+            <div class="file-name"
+              [ngClass]="{ 'has-extra-props': descriptor?.element && descriptor?.element?.length }"
+              [title]="file.name"
+              (click)="selectFile(file)">{{ file.name }}</div>
+            <div class="actions">
+              <app-icon title="Copy URL" class="copy-url" (click)="copyUrl(file)">content_copy</app-icon>
+              <app-icon title="Delete image" class="remove-image" (click)="deleteFile(file)">delete</app-icon>
+              @if (sortable()) {
+                <app-drag-handle
+                  [visible]="true"
+                  cdkDragHandle
+                  (mousedown)="onStartDrag()"
+                  (mouseup)="onReleaseDrag()" />
+              }
+            </div>
+          </div>
+          <ng-container>
+            @if (file.error) {
+            <div class="error">{{ file.error }}<br /><span class="reload"
+                    (click)="uploadItem(file)">reload</span></div>
+            }
+            @if (selectedFile() === file && descriptor && elementForm() && !isDrag()) {
+              <div class="selected-file-properties">
+                <app-controls-list [currentForm]="elementForm()!"
+                  [descriptors]="descriptor.element"
+                [context]="getContext(file)" />
+              </div>
+            }
+          </ng-container>
+        </div>
+      }
+    </div>
+    @if (innerValue().length > (descriptor?.collapseThreshold || 4)) {
+      <app-icon-button class="show-all"
+        [text]="expanded() ? 'Show less' : 'Show all'"
+        (click)="toggleList()" />
+    }
+  </div>
+}

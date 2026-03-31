@@ -1,0 +1,13 @@
+.section-item {
+    @apply flex flex-row items-center space-x-1 w-full cursor-pointer;
+    &.hidden {
+        opacity: 0.5;
+    }
+}
+.name {
+    @apply whitespace-nowrap truncate grow min-w-0;
+}
+
+.section-item-checkbox {
+  @apply block -m-2;
+}

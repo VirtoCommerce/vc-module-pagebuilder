@@ -3,11 +3,10 @@ angular.module('virtoCommerce.pageBuilderModule')
         $scope.openPageBuilderApp = function () {
             var blade = $scope.blade;
             if (blade.currentEntityId) {
-                var baseUrl = window.location.origin +
-                    (window.location.pathname === '/' ? '' : window.location.pathname) +
-                    '/apps/page-builder/';
+                var pathPrefix = window.location.pathname === '/' ? '' : window.location.pathname;
+                var baseUrl = `${window.location.origin}${pathPrefix}/apps/page-builder-shell/`;
 
-                window.open(baseUrl + '?storeId=' + blade.currentEntityId, '_blank');
+                window.open(`${baseUrl}?storeId=${blade.currentEntityId}`, '_blank');
 
             }
         }

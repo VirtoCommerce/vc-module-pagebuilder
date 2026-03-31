@@ -7,7 +7,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using VirtoCommerce.AssetsModule.Core.Assets;
@@ -28,16 +27,11 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
     public class PageBuilderController(IStoreService storeService,
             IContentPathResolver pathResolver,
             IBlobContentStorageProviderFactory blobContentStorageProviderFactory,
-            IOptions<ContentOptions> options,
             IPublishingService publishingService,
             IEventPublisher eventPublisher
             )
         : Controller
     {
-        private readonly ContentOptions _options = options.Value;
-
-        private const string BlogsFolderName = "blogs";
-        private const string Pages = "pages";
         private const string Themes = "themes";
         private const string DefaultTheme = "default";
 
@@ -84,7 +78,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("settings")]
         public async Task<ActionResult> GetSettings(string storeId, string theme)
         {
-            var themeName = GetCurrentThemeName(storeId, theme);
+            var themeName = await GetCurrentThemeName(storeId, theme);
             var filePath = $"{themeName}/config/builder_settings.json";
             var basePath = GetContentBasePath(storeId, Themes, themeName);
             var storageProvider = blobContentStorageProviderFactory.CreateProvider(basePath);
@@ -126,34 +120,20 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             return Content($"{{ \"sections\": {sections}, \"blocks\": {blocks}, \"objects\": {objects}, \"shared\": {shared} }}", "application/json");
         }
 
-        // todo: create model for files and descriptors (template entry)
         [HttpGet]
         [Route("search")]
         public async Task<string> Search(string storeId, string theme, string type, string folder, string pattern = null, string keyword = null)
         {
             var basePath = GetContentBasePath(storeId, type, theme);
             var storageProvider = blobContentStorageProviderFactory.CreateProvider(basePath);
-            var regexp = pattern == null ? null : new Regex(pattern);
+            var regexp = pattern == null ? null : new Regex(Regex.Escape(pattern), RegexOptions.None, TimeSpan.FromSeconds(1));
             var files = (await storageProvider.SearchAsync(folder, keyword))
                 .Results.Where(x => x.Type != "folder" && (regexp?.IsMatch(x.Name) ?? true));
             var fileInfoes = new Dictionary<string, string>();
             var jsonSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
             foreach (var file in files)
             {
-                try
-                {
-                    var key = GetKey(type, file);
-                    if (!fileInfoes.ContainsKey(key))
-                    {
-                        var pageContent = GetPageContent(file, storageProvider);
-                        if (pageContent != null)
-                        {
-                            var content = JsonConvert.SerializeObject(pageContent, jsonSettings);
-                            fileInfoes.Add(key, content);
-                        }
-                    }
-                }
-                catch { }
+                TryAddFileContent(file, type, storageProvider, fileInfoes, jsonSettings);
             }
             var result = $"{{{string.Join(", ", fileInfoes.Keys.Select(x => $"\"{x}\": {fileInfoes[x]}"))}}}";
             return result;
@@ -174,16 +154,18 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             var providers = new Dictionary<string, IBlobContentStorageProvider>();
 
             var settings = new JsonSerializerSettings { Formatting = Formatting.Indented };
-            var themeName = GetCurrentThemeName(storeId, theme);
+            var themeName = await GetCurrentThemeName(storeId, theme);
 
             var changedFiles = new Dictionary<string, List<GenericChangedEntry<FileEntity>>>();
 
             foreach (var file in files)
             {
                 var type = file.Type.ToLowerInvariant();
-                var storageProvider = providers.TryGetValue(type, out var provider)
-                    ? provider
-                    : providers[type] = blobContentStorageProviderFactory.CreateProvider(GetContentBasePath(storeId, type, themeName));
+                if (!providers.TryGetValue(type, out var storageProvider))
+                {
+                    storageProvider = blobContentStorageProviderFactory.CreateProvider(GetContentBasePath(storeId, type, themeName));
+                    providers[type] = storageProvider;
+                }
                 var content = file.Content;
                 var targetPath = publishingService.GetRelativeDraftUrl(file.Path, draft);
                 await using var targetStream = await storageProvider.OpenWriteAsync(targetPath);
@@ -191,12 +173,13 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 var stringContent = JsonConvert.SerializeObject(content, settings);
                 await writer.WriteAsync(stringContent);
 
-                if (!changedFiles.ContainsKey(type))
+                if (!changedFiles.TryGetValue(type, out var entries))
                 {
-                    changedFiles.Add(type, new List<GenericChangedEntry<FileEntity>>());
+                    entries = new List<GenericChangedEntry<FileEntity>>();
+                    changedFiles.Add(type, entries);
                 }
 
-                changedFiles[type].Add(new GenericChangedEntry<FileEntity>(new FileEntity
+                entries.Add(new GenericChangedEntry<FileEntity>(new FileEntity
                 {
                     Path = file.Path,
                     Type = file.Type
@@ -210,7 +193,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
         private async Task<string> GetSettingsFilesFromFolder(string storeId, string theme, string folder)
         {
-            var themeName = GetCurrentThemeName(storeId, theme);
+            var themeName = await GetCurrentThemeName(storeId, theme);
             var templatesFolder = $"{themeName}/config/schemas/{folder}";
             var basePath = GetContentBasePath(storeId, Themes, themeName);
             var storageProvider = blobContentStorageProviderFactory.CreateProvider(basePath);
@@ -221,7 +204,30 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             return result;
         }
 
-        private string GetKey(string type, BlobEntry entry)
+        private void TryAddFileContent(BlobEntry file, string type, IBlobContentStorageProvider storageProvider, Dictionary<string, string> fileInfoes, JsonSerializerSettings jsonSettings)
+        {
+            try
+            {
+                var key = GetKey(type, file);
+                if (fileInfoes.ContainsKey(key))
+                {
+                    return;
+                }
+
+                var pageContent = GetPageContent(file, storageProvider);
+                if (pageContent != null)
+                {
+                    var content = JsonConvert.SerializeObject(pageContent, jsonSettings);
+                    fileInfoes.Add(key, content);
+                }
+            }
+            catch
+            {
+                // Skip files that cannot be read or parsed
+            }
+        }
+
+        private static string GetKey(string type, BlobEntry entry)
         {
             return type == null
                 ? Path.GetFileNameWithoutExtension(entry.Name)
@@ -261,13 +267,13 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             return retVal;
         }
 
-        private string GetCurrentThemeName(string storeId, string themeName)
+        private async Task<string> GetCurrentThemeName(string storeId, string themeName)
         {
             if (!string.IsNullOrEmpty(themeName))
             {
                 return themeName;
             }
-            var store = storeService.GetNoCloneAsync(storeId, StoreResponseGroup.DynamicProperties.ToString()).Result;
+            var store = await storeService.GetNoCloneAsync(storeId, StoreResponseGroup.DynamicProperties.ToString());
             return store?.DynamicProperties.FirstOrDefault(x => x.Name == "DefaultThemeName")?.Values?.FirstOrDefault()?.Value?.ToString() ?? DefaultTheme;
         }
 

@@ -1,0 +1,29 @@
+<div class="flex flex-row items-start">
+  <app-icon style="color: #1665D8;">info</app-icon>
+  <div class="ml-4">
+    <div mat-dialog-content class="flex flex-col">
+      <div class="title">Save changes</div>
+      <div class="info">Select the pages where you want<br />to save the changes</div>
+      <div [formGroup]="form" class="content">
+        <ul class="flex flex-col">
+          @for (item of entries; track item) {
+            <li>
+              <input type="checkbox" (change)="setSelectAll()" [formControlName]="item.key" />
+              <label class="pl-2">{{ item.name }}</label>
+            </li>
+          }
+        </ul>
+      </div>
+      <div class="actions">
+        <input #selectAllInput checked="checked" type="checkbox" (change)="selectAll($event)" />
+        <label class="pl-2">Select all</label>
+      </div>
+    </div>
+    <div mat-dialog-actions>
+      <div class="flex flex-row space-x-2">
+        <app-icon-button (click)="confirm()" skin="primary" text="Save" />
+        <app-icon-button (click)="decline()" skin="outline" text="Cancel" />
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,42 @@
+<app-overlap-panel [skipTranslate]="isHalfScreen()" [expandable]="false">
+  <app-panel>
+    <div class="flex flex-col">
+      @if (viewModel(); as vm) {
+        @let currentFilter = filter();
+        <div class="search-holder"
+          [ngClass]="{ 'not-found': currentFilter && !(vm.presets|keyvalue).length }">
+          <input placeholder="Search preset by name"
+            class="search"
+            type="search"
+            [value]="currentFilter"
+            (keyup)="applyPresetsFilter($event)"
+            (search)="applyPresetsFilter($event)" />
+          </div>
+          @for (preset of vm.presets|keyvalue; track preset) {
+            <div
+              class="preset-item"
+              [ngClass]="{ active: vm.state[preset.key]?.current }"
+              (click)="previewPreset(preset.key)">
+              <app-presets-icon [name]="$any(preset.key)"
+                [icon]="$any(preset.value).icon"
+              [preview]="$any(preset.value).preview" />
+              <div class="item-name" title="{{ preset.key }}">{{ preset.key }}</div>
+              <app-icon-button text="Apply" skin="solid-blue" (onClick)="usePreset(preset.key)">
+              </app-icon-button>
+            </div>
+          }
+          @if (currentFilter && !(vm.presets|keyvalue).length) {
+            <div class="no-presets">
+              No presets found
+            </div>
+          }
+        }
+      </div>
+      <ng-container title-content>
+        <div class="title pl-2">
+          <app-icon (click)="onBackClick()" title="Back">chevron_left</app-icon>
+          <div>Presets</div>
+        </div>
+      </ng-container>
+    </app-panel>
+  </app-overlap-panel>

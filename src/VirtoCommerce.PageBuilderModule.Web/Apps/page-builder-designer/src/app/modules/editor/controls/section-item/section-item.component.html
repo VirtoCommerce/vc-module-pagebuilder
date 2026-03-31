@@ -1,0 +1,25 @@
+<div class="section-item"
+  [class.hidden]="section().hidden"
+  (click)="onItemClick($event)"
+  (mouseenter)="onItemHover()"
+  (mouseleave)="onItemLeave()">
+  <div class="w-6 h-6" (mouseenter)="isIconHover.set(true)" (mouseleave)="isIconHover.set(false)">
+    @if (displayCheckbox()) {
+      <app-checkbox
+        class="section-item-checkbox"
+        [controlValue]="selected()"
+        (valueChanged)="onCheckboxValueChanged($event)"
+        (click)="$event.stopPropagation()" />
+    }
+    @else {
+      <app-icon>{{ sectionIcon() }}</app-icon>
+    }
+  </div>
+  <div class="name" [title]="sectionName() + ' (' + section().id + ')'">{{ sectionName() }}</div>
+  @if (hasContextMenu()) {
+    <app-context-menu
+      [getActions]="getItemActions"
+      [visible]="isHover()"
+      (onAction)="onActionClick($event)" />
+  }
+</div>

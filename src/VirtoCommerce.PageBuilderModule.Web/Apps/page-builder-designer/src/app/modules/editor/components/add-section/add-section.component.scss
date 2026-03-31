@@ -1,0 +1,26 @@
+@use '../../../../../layout/variables' as *;
+
+:host {
+    @apply flex flex-col w-72;
+}
+
+.title {
+    @apply flex flex-row space-x-1 items-center;
+    .back-icon:hover {
+        @apply rounded p-1 -m-1 cursor-pointer;
+    }
+}
+
+.items {
+    @apply grow overflow-y-auto flex flex-col;
+}
+
+.search-holder {
+    @apply flex flex-row py-3 px-2.5 border-b;
+}
+
+.search {
+    border: 1px solid #A7ACB1;
+    font-size: $default-font-size;
+    @apply rounded grow py-1;
+}

@@ -1,0 +1,39 @@
+@use '../../../../../layout/variables' as *;
+
+[title-content] {
+    font-family: Inter;
+    font-size: $middle-font-size;
+    font-weight: 500;
+    line-height: 18px;
+    letter-spacing: 0em;
+    text-align: left;
+    color: #121212;
+    @apply flex flex-row items-center select-none w-full;
+
+    ::ng-deep mat-icon {
+        width: 1rem;
+        height: 1rem;
+        font-size: $icon-size;
+    }
+}
+
+.list-item {
+    border-bottom: 1px solid #12121214;
+    @apply flex flex-row items-center px-4 py-2.5 select-none;
+}
+
+.group {
+    @apply flex flex-col;
+}
+
+.group-title {
+    color: #545454;
+    @apply cursor-pointer;
+    &:hover {
+        background: rgba(246, 246, 246, 1);
+    }
+}
+
+.group-name {
+    @apply whitespace-nowrap truncate w-full grow;
+}

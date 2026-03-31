@@ -1,0 +1,84 @@
+@use '../../../../../layout/variables' as *;
+
+:host {
+    display: flex;
+}
+
+button {
+    @apply flex flex-row items-center w-full p-2 rounded space-x-2;
+
+    app-icon {
+        font-size: 1.5rem;
+    }
+
+    &:hover {
+        background: #F6F6F6;
+    }
+    &:disabled {
+        color: $disable-text-color;
+        background: white;
+    }
+
+    &.btn-skin-blue {
+        color: $active-color;
+        app-icon {
+            color: $active-color;
+        }
+        &:hover {
+            background: rgba(22, 101, 216, 0.04);
+        }
+        &:disabled {
+            background: #F1F1F1;
+        }
+    }
+
+    &.btn-skin-link {
+        color: $active-color;
+        font-size: $btn-icon-size;
+        @apply p-0;
+
+        &:hover {
+            background: none;
+        }
+    }
+
+    &.btn-skin-solid-blue, &.btn-skin-primary {
+        background: $active-color;
+        color: #ffffff;
+        @apply py-1;
+        &:hover {
+            // background: rgba(22, 101, 216, 0.04);
+            background: $active-color;
+        }
+        &:disabled {
+            color: $disable-text-color;
+            background: #F1F1F1;
+        }
+    }
+    &.btn-skin-primary {
+        @apply px-4;
+    }
+    &.btn-skin-outline {
+        border: 1px solid rgba(18, 18, 18, 0.08);
+    }
+    &.btn-skin-outline-blue {
+        border: 1px solid #1665D8;
+        color: #1665D8;
+        justify-content: center;
+    }
+    &.btn-skin-secondary {
+        border: 1px solid #BABFC3;
+        background: #F1F2F3;
+    }
+}
+
+// .btn-primary {
+//     background: #1665D8;
+//     @apply text-white;
+//     &:hover {
+//         background: #0F4C8B;
+//     }
+//     &:disabled {
+//         background: #F1F1F1;
+//     }
+// }

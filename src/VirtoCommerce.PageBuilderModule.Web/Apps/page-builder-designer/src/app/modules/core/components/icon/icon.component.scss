@@ -1,0 +1,54 @@
+@use '../../../../../layout/variables' as *;
+
+:host {
+    color: $icons-color;
+    @apply flex items-center;
+
+    &.hoverable:hover {
+        background: $hover-color;
+    }
+
+    &.inline {
+        font-size: inherit;
+
+        mat-icon {
+            font-size: inherit;
+        }
+
+        @apply inline-block cursor-pointer px-1;
+
+        &:hover {
+            background-color: none;
+        }
+    }
+
+    &.disabled {
+        color: $disable-icon-color;
+    }
+
+    &.small-size {
+        font-size: $small-icon-size;
+
+        mat-icon {
+            font-size: $small-icon-size;
+            height: $small-icon-size;
+            width: $small-icon-size;
+        }
+    }
+}
+
+// todo: theme?
+::ng-deep .mat-mdc-menu-item .mat-icon-no-color,
+::ng-deep .mat-mdc-menu-submenu-icon,
+::ng-deep .mat-mdc-menu-item .mat-icon-no-color,
+::ng-deep .mat-mdc-menu-submenu-icon {
+    color: revert;
+}
+
+::ng-deep app-icon mat-icon.app-icon.mat-icon {
+    margin: 0 !important;
+    padding: 0 !important;
+    color: inherit;
+    font-size: inherit;
+    overflow: hidden;
+}

@@ -1,0 +1,85 @@
+div[item] {
+    @apply grow min-w-0;
+
+    .item-holder {
+        @apply flex flex-row items-center w-full;
+
+        app-section-item {
+            @apply grow min-w-0;
+        }
+    }
+}
+
+.cdk-drop-list-dragging .selected, .cdk-drop-list-dragging .dragging {
+    @apply opacity-50;
+}
+
+.cdk-drop-list-dragging .cdk-drag {
+    transform: none !important;
+}
+
+.sections-container {
+    @apply flex flex-col space-y-1 w-full relative;
+}
+
+.template-name {
+    @apply grow min-w-0 whitespace-nowrap truncate cursor-default;
+}
+
+.settings-container {
+    @apply flex flex-col space-y-1 w-full;
+
+    &.top {
+        border-bottom: 1px solid #12121229;
+    }
+
+    &.bottom {
+        border-top: 1px solid #12121229;
+    }
+}
+
+.static-item {
+    @apply py-2 rounded px-6 block;
+
+    &:hover {
+        background: rgba(246, 246, 246, 1);
+    }
+}
+
+.add-button {
+    @apply absolute;
+    color: rgba(22, 101, 216, 1);
+    left: 0;
+    right: 0;
+    margin-inline: auto;
+    width: fit-content;
+    cursor: pointer;
+    transition: opacity .2s;
+
+    &:hover {
+        opacity: 1 !important;
+    }
+}
+
+.line {
+    @apply absolute;
+    left: 0;
+    right: calc(50% + 12px);
+    background-color: black;
+    height: 1px;
+    &.right-line {
+        right: 0;
+        left: calc(50% + 12px);
+    }
+}
+
+.drag-preview {
+    @apply p-2 text-white block;
+    background-color: rgba(22, 101, 216, 1);
+}
+
+.section-placeholder {
+    background: #ccc;
+    min-height: 4px;
+    transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}

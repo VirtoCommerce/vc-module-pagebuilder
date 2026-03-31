@@ -90,33 +90,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
         {
             if (!criteria.Lifecycle.IsNullOrEmpty())
             {
-                var now = criteria.ActiveOn ?? DateTime.UtcNow;
-                switch (criteria.Lifecycle)
-                {
-                    case PageLifecycleFilters.Drafts:
-                        query = query.Where(g => g.Pages.Any(p => p.Status == Draft));
-                        break;
-
-                    case PageLifecycleFilters.Pending:
-                        query = query.Where(g =>
-                            g.Pages.Any(p => p.Status == Published) &&
-                            g.StartDate != null &&
-                            g.StartDate > now);
-                        break;
-
-                    case PageLifecycleFilters.Active:
-                        query = query.Where(g =>
-                            g.Pages.Any(p => p.Status == Published) &&
-                            (g.StartDate == null || g.StartDate <= now) &&
-                            (g.EndDate == null || g.EndDate >= now));
-                        break;
-
-                    case PageLifecycleFilters.Archived:
-                        query = query.Where(g =>
-                            g.Pages.All(p => p.Status == Archived) ||
-                            (g.EndDate != null && g.EndDate < now));
-                        break;
-                }
+                query = ApplyLifecycleQuery(query, criteria);
             }
 
             if (criteria.ObjectIds is { Count: > 0 })
@@ -126,6 +100,30 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
 
             return query;
         }
+
+        private static IQueryable<GroupedPageBuilderPageEntity> ApplyLifecycleQuery(IQueryable<GroupedPageBuilderPageEntity> query, PageBuilderPageSearchCriteria criteria)
+        {
+            var now = criteria.ActiveOn ?? DateTime.UtcNow;
+
+            return criteria.Lifecycle switch
+            {
+                PageLifecycleFilters.Drafts => query.Where(g => g.Pages.Any(p => p.Status == Draft)),
+                PageLifecycleFilters.Pending => query.Where(g =>
+                    g.Pages.Any(p => p.Status == Published) &&
+                    g.StartDate != null &&
+                    g.StartDate > now),
+                PageLifecycleFilters.Active => query
+                    .Where(g => g.Pages.Any(p => p.Status == Published))
+                    .Where(g => (g.StartDate == null || g.StartDate <= now) &&
+                                (g.EndDate == null || g.EndDate >= now)),
+                PageLifecycleFilters.Archived => query.Where(g =>
+                    g.Pages.All(p => p.Status == Archived) ||
+                    (g.EndDate != null && g.EndDate < now)),
+                _ => query,
+            };
+        }
+
+
 
         protected override IList<SortInfo> BuildSortExpression(PageBuilderPageSearchCriteria criteria)
         {

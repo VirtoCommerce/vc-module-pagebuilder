@@ -1,0 +1,12 @@
+<app-multipage-select filterPlaceholder="Search"
+                      panelClass="template-selector-panel"
+                      [filter]="currentFilter()"
+                      [titleText]="listTitle()"
+                      [default]="defaultTemplate"
+                      [current]="currentTemplate()"
+                      [parentItems]="rootTemplates()"
+                      [childrenItems]="childrenItems()"
+
+                      (filterChanged)="onFilterChanged($event)"
+                      (itemSelected)="onTemplateSelected($event)"
+                      (backClick)="onBackClick()" />

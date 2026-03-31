@@ -1,0 +1,8 @@
+:host {
+    @apply flex flex-col;
+}
+
+textarea.control {
+    resize: none;
+    overflow-y: hidden;
+}

@@ -1,0 +1,128 @@
+{
+    "buy-button": {
+        "name": "Buy button",
+        "icon": "image",
+        "settings": [
+            {
+                "id": "title",
+                "label": "Title",
+                "type": "string",
+                "default": "Buy now!"
+            }
+        ]
+    },
+    "category-description": {
+        "name": "Category description",
+        "icon": "image",
+        "settings": []
+    },
+    "product-description": {
+        "name": "Product description",
+        "icon": "image",
+        "settings": [
+            {
+                "id": "descriptionType",
+                "label": "Description type",
+                "type": "select",
+                "default": "FullReview",
+                "options": [
+                    {
+                        "value": "FullReview",
+                        "label": "Full review"
+                    },
+                    {
+                        "value": "QuickReview",
+                        "label": "Quick review"
+                    }
+                ]
+            }
+        ]
+    },
+    "product-info": {
+        "name": "Product info",
+        "icon": "image",
+        "settings": []
+    },
+    "product-price": {
+        "name": "Product price",
+        "icon": "text",
+        "settings": [
+            {
+                "id": "currency",
+                "label": "Currency",
+                "type": "string"
+            },
+            {
+                "id": "title",
+                "label": "Title",
+                "type": "string"
+            }
+        ]
+    },
+    "product-summary": {
+        "name": "Product summary",
+        "icon": "image",
+        "settings": []
+    },
+    "product-title": {
+        "name": "Product name title",
+        "icon": "text",
+        "settings": [
+            {
+                "id": "headerType",
+                "label": "Header type",
+                "default": "like-h2",
+                "tab": "Settings",
+                "type": "select",
+                "options": [
+                    {
+                        "value": "h1",
+                        "label": "H1"
+                    },
+                    {
+                        "value": "h2",
+                        "label": "H2"
+                    },
+                    {
+                        "value": "h3",
+                        "label": "H3"
+                    },
+                    {
+                        "value": "like-h1",
+                        "label": "Like H1"
+                    },
+                    {
+                        "value": "like-h2",
+                        "label": "Like H2"
+                    },
+                    {
+                        "value": "like-h3",
+                        "label": "Like H3"
+                    }
+                ]
+            }
+        ]
+    },
+    "product-variants": {
+        "name": "Product variants",
+        "icon": "image",
+        "settings": [
+            {
+                "id": "title",
+                "label": "Title",
+                "type": "string"
+            }
+        ]
+    },
+    "share": {
+        "name": "Share",
+        "icon": "image",
+        "settings": [
+            {
+                "id": "title",
+                "label": "Title",
+                "type": "string"
+            }
+        ]
+    }
+}

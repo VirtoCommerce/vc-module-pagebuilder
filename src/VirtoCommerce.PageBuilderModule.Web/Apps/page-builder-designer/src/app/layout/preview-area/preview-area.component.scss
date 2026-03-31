@@ -1,0 +1,7 @@
+:host {
+    @apply w-full flex items-stretch;
+
+    &.desktop-50 {
+        width: 50%;
+    }
+}

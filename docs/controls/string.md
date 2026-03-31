@@ -2,9 +2,11 @@
 
 This control is used to input short or long text values. You can configure it to allow single-line or multi-line input.
 
-| Property  | Type    | Description                             |
-| --------- | ------- | --------------------------------------- |
-| `multiline` | boolean | Allows entering text in multiple lines. |
+| Property  | Type    | Default | Description                             |
+| --------- | ------- | ------- | --------------------------------------- |
+| `multiline` | boolean | `false` | Allows entering text in multiple lines. |
+| `minRowsCount` | number | `1` | Minimum number of visible rows for the multiline textarea. Defines the initial height. Only applies when `multiline` is `true`. |
+| `maxRowsCount` | number | `4` | Maximum number of rows the textarea will expand to before showing a scrollbar. Only applies when `multiline` is `true`. |
 
 ## Example
 
@@ -26,6 +28,14 @@ This control is used to input short or long text values. You can configure it to
             "label": "Message",
             "placeholder": "Please enter message",
             "multiline": true
+        },
+        {
+            "id": "description",
+            "type": "string",
+            "label": "Description",
+            "multiline": true,
+            "minRowsCount": 2,
+            "maxRowsCount": 8
         },
         ...
     ]

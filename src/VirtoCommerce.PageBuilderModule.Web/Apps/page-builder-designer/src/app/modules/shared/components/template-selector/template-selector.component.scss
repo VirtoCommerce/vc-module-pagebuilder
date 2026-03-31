@@ -1,0 +1,6 @@
+:host {
+    @apply w-80 block p-4;
+}
+::ng-deep .multipage-select-panel-container.template-selector-panel {
+    @apply w-72;
+}

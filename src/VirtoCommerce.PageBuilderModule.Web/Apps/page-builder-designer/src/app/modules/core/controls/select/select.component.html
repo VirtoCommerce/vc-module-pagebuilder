@@ -1,0 +1,25 @@
+<label class="pb-label" [attr.title]="descriptor?.hint">{{ descriptor?.label }}</label>
+<ng-select appendTo="body"
+           bindLabel="label"
+           bindValue="value"
+           groupBy="group"
+           [ngModel]="selectedValue()"
+           (ngModelChange)="onChange($event)"
+           [items]="effectiveOptions()"
+           [multiple]="descriptor?.multiple || false"
+           [placeholder]="descriptor?.placeholder || ''"
+           [searchable]="descriptor?.searchable || false"
+           [clearable]="!descriptor?.required"
+           [hideSelected]="true"
+           [loading]="optionsResource.isLoading()"
+           [typeToSearchText]="descriptor?.placeholder || ''"
+           [compareWith]="compareWith"
+           [typeahead]="searchEvent$"
+           (open)="onOpen()">
+    <ng-template ng-label-tmp let-item="item">
+        <span class="ng-value-label">
+            <span>{{ item.label || item[descriptor?.displayField!] }}</span>
+        </span>
+        <span class="ng-value-icon left" (click)="unselect(item);" aria-hidden="true">×</span>
+    </ng-template>
+</ng-select>

@@ -1,0 +1,38 @@
+<div class="flex flex-row items-center justify-between w-full">
+  <label [attr.title]="descriptor?.hint" class="pb-label">{{ descriptor?.label }}</label>
+  @if (descriptor?.thumb) {
+    <span>{{ controlValue() }}</span>
+  }
+</div>
+
+@if (descriptor?.type !== 'slider') {
+  <input #control
+    type="number"
+    class="control"
+    [min]="descriptor?.min"
+    [max]="descriptor?.max"
+    [step]="descriptor?.step"
+    [value]="controlValue()"
+    [placeholder]="descriptor?.placeholder || ''"
+    (paste)="onPaste($event)"
+    (keyup)="raiseOnChange($event.target)"
+    (change)="raiseOnChange($event.target)"
+    (blur)="raiseOnTouched($event.target)"
+    />
+}
+
+@if (descriptor?.thumb) {
+  <mat-slider
+    [min]="descriptor?.min"
+    [max]="descriptor?.max"
+    [step]="descriptor?.step"
+    [discrete]="descriptor?.thumb || false"
+    [ngClass]="{ 'has-thumb': descriptor?.thumb }"
+  >
+    <input matSliderThumb [value]="controlValue()" (valueChange)="sliderChanged($event)" />
+  </mat-slider>
+}
+
+  @if (descriptor?.info) {
+    <p class="info">{{ descriptor?.info }}</p>
+  }

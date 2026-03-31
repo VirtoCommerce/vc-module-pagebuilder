@@ -1,0 +1,43 @@
+@use '../../../../../layout/mixins' as *;
+
+:host {
+    @apply flex flex-col;
+
+    ::ng-deep mat-custom-header button {
+        @include mdc-button-typography;
+    }
+
+    ::ng-deep .mat-clock {
+        // no way to override calculated properties
+        width: 14rem !important;
+        height: 14rem !important;
+    }
+
+    // ::ng-deep mat-custom-header .mat-custom-controls .mat-custom-time-ampm .mat-button {
+    //     font-weight: 100;
+    // }
+
+    // ::ng-deep mat-custom-header .mat-custom-controls .mat-custom-time-ampm .mat-custom-control-active {
+    //     opacity: inherit;
+    //     font-weight: inherit;
+    // }
+}
+
+::ng-deep mat-custom-header .mat-custom-controls .mat-custom-time-ampm .mat-button {
+    opacity: .7;
+}
+
+::ng-deep mat-custom-header .mat-custom-controls .mat-custom-time-ampm .mat-custom-control-active {
+    opacity: inherit;
+}
+
+mat-datepicker-toggle {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+
+    ::ng-deep .mat-button-wrapper {
+        @apply flex justify-center;
+    }
+}

@@ -1,0 +1,39 @@
+:host {
+    border-right: 1px solid rgba(18, 18, 18, 0.08);
+    @apply flex flex-row px-6 space-x-3;
+}
+
+// .btn {
+//     color: #484848;
+//     @apply px-4 rounded flex flex-row space-x-1 items-center;
+//     &:hover {
+//         background: #F6F6F6;
+//     }
+//     &:disabled {
+//         color: #8C9196;
+//         background: white;
+//     }
+// }
+
+// .btn-secondary {
+//     border: 1px solid #BABFC3;
+//     background: #F1F2F3;
+//     &:disabled {
+//         background: #F1F1F1;
+//     }
+// }
+
+// .btn-outline {
+//     border: 1px solid rgba(18, 18, 18, 0.08);
+// }
+
+// .btn-primary {
+//     background: #1665D8;
+//     @apply text-white;
+//     &:hover {
+//         background: #0F4C8B;
+//     }
+//     &:disabled {
+//         background: #F1F1F1;
+//     }
+// }

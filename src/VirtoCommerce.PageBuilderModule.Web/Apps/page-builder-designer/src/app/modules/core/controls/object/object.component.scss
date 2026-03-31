@@ -1,0 +1,25 @@
+.label-wrapper {
+    @apply flex flex-row items-center select-none cursor-pointer;
+    &:hover {
+        background-color: #F6F9FD;
+    }
+}
+
+.object-wrapper {
+    @apply flex flex-col border-y -m-4 p-4;
+    &:hover, &.expanded {
+        background-color: #F6F9FD;
+    }
+}
+
+.chevron {
+    transition: transform .2s;
+}
+
+.pb-label {
+    @apply truncate cursor-pointer;
+}
+
+app-controls-list {
+    @apply p-2 pt-4 pl-6;
+}

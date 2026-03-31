@@ -1,0 +1,29 @@
+.item {
+    @apply flex flex-row items-center space-x-1 cursor-pointer px-2.5;
+    &:hover {
+        background: rgba(246, 246, 246, 1);
+        .operation {
+            visibility: visible;
+        }
+    }
+    &.current {
+        background: rgba(22, 101, 216, 0.1);
+        border-left: .25rem solid #1665D8;
+        padding-left: 0.375rem;
+    }
+    &.child {
+        padding-left: 2rem;
+        &.current {
+            padding-left: 1.75rem;
+        }
+    }
+}
+
+.operation {
+    color: rgba(22, 101, 216, 1);
+    visibility: hidden;
+}
+
+.name {
+    @apply grow py-3;
+}

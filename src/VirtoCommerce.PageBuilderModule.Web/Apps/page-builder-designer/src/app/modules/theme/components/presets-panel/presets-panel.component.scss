@@ -1,0 +1,57 @@
+@use '../../../../../layout/variables' as *;
+
+:host{
+    @apply select-none;
+}
+
+.title {
+    @apply grow flex flex-row space-x-2 items-center;
+    app-icon:hover {
+        background: rgba(246, 246, 246, 1);
+        @apply rounded p-1 -m-1;
+    }
+}
+
+.preset-item {
+    border-bottom: 1px solid #12121214;
+
+    @apply flex flex-row items-center space-x-2 px-4 py-2 cursor-pointer;
+
+    .item-name {
+        @apply whitespace-nowrap truncate w-full grow;
+    }
+
+    app-icon-button {
+        visibility: collapse;
+    }
+
+    &:hover, &.active {
+        background-color: #F6F9FD;
+        app-icon-button {
+            visibility: visible;
+        }
+    }
+
+    &.active {
+        border-left: .25rem solid #1665D8;
+        padding-left: .75rem;
+    }
+}
+
+.no-presets {
+    color: #727272;
+    @apply px-2.5;
+}
+
+.search-holder {
+    @apply flex flex-row py-3 px-2.5 border-b;
+    &.not-found {
+        @apply border-0;
+    }
+}
+
+.search {
+    border: 1px solid #A7ACB1;
+    font-size: $default-font-size;
+    @apply rounded grow py-1;
+}

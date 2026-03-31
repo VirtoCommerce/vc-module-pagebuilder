@@ -1,0 +1,40 @@
+@use '../../../../../layout/variables' as *;
+
+.title {
+    @apply grow flex flex-row space-x-2 items-start;
+
+    .back-icon:hover {
+        @apply rounded p-1 -m-1;
+    }
+}
+
+.edit-section-title {
+    @apply grow flex flex-col;
+
+    &.invisible-section {
+        opacity: .6;
+    }
+
+    span {
+        @apply cursor-pointer;
+
+        &:hover {
+            app-icon {
+                visibility: visible;
+            }
+        }
+    }
+
+    app-icon {
+        visibility: hidden;
+    }
+}
+
+.section-info {
+    color: #646464;
+    font-size: $small-font-size;
+}
+
+.name-only {
+    margin: auto;
+}

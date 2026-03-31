@@ -1,0 +1,30 @@
+<table class="mat-calendar-table" role="grid">
+  <thead class="mat-calendar-table-header">
+    <tr>
+      @for (day of _weekdays; track day.long) {
+        <th scope="col" [attr.aria-label]="day.long">
+          <abbr class="mat-calendar-abbr" [attr.title]="day.long">{{day.narrow}}</abbr>
+        </th>
+      }
+    </tr>
+    <tr><th aria-hidden="true" class="mat-calendar-table-header-divider" colspan="7" aria-hidden="true"></th></tr>
+  </thead>
+  <tbody mat-calendar-body
+         [label]="_monthLabel"
+         [rows]="_weeks"
+         [todayValue]="_todayDate!"
+         [startValue]="_rangeStart!"
+         [endValue]="_rangeEnd!"
+         [comparisonStart]="_comparisonRangeStart"
+         [comparisonEnd]="_comparisonRangeEnd"
+         [previewStart]="_previewStart"
+         [previewEnd]="_previewEnd"
+         [isRange]="_isRange"
+         [labelMinRequiredCells]="3"
+         [activeCell]="_dateAdapter.getDate(_effectiveActiveDate()) - 1"
+         (selectedValueChange)="_dateSelected($event)"
+         (previewChange)="_previewChanged($event)"
+         (keyup)="_handleCalendarBodyKeyup($event)"
+         (keydown)="_handleCalendarBodyKeydown($event)">
+  </tbody>
+</table>

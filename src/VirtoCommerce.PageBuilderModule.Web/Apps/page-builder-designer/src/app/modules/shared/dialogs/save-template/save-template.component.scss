@@ -1,0 +1,19 @@
+:host {
+    width: 48rem;
+    max-width: 100%;
+    height: 24rem;
+}
+
+.title {
+    font-weight: 600;
+    font-size: 17px;
+    @apply mb-4;
+}
+
+.content {
+    @apply my-4;
+}
+
+.actions {
+    @apply mb-4;
+}

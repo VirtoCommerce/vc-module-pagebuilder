@@ -1,0 +1,47 @@
+/* You can add global styles to this file, and also import other style files */
+@use './layout/variables' as *;
+@use './layout/material-theme';
+@use './layout/external';
+@use './layout/toastr';
+@use './layout/controls';
+@use './layout/dialogs';
+@use './layout/extras';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+ng-scrollbar {
+  --scrollbar-thumb-color: rgba(0, 0, 0, 0.2);
+    --scrollbar-thumb-hover-color: rgba(0, 0, 0, 0.35);
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+    font-style: normal;
+    font-size: $default-font-size;
+    line-height: 20px;
+}
+
+.overlap-panel {
+  @apply absolute h-full bg-white inset-y-0 left-8 -right-8 flex flex-col;
+}
+
+.multipage-select-panel-container {
+  @apply w-full;
+}
+
+.drag-handler {
+  cursor: move;
+}
+
+.toast-top-right {
+  transform: translateY(3rem);
+}
+
+.ng-scroll-content {
+  @apply max-w-full;
+}
+
+.mat-mdc-progress-bar .mdc-linear-progress__bar-inner {
+  border-color: #1665d8;
+}

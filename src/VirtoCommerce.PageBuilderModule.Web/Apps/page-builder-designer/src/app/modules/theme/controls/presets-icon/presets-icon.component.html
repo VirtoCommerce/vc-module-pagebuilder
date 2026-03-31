@@ -1,0 +1,20 @@
+<app-icon-with-preview>
+  @if (icon() !== undefined && (icon() || preview())) {
+    <div class="preset-icon">
+      <div class="icon" [ngStyle]="{ backgroundImage: getIconBackground() }"></div>
+    </div>
+  } @else {
+    <div class="preset-icon" [ngStyle]="{ backgroundColor: background(), color: color() }">
+      <div>
+        {{ letter() }}
+      </div>
+    </div>
+  }
+  @if (preview()) {
+    <ng-container preview-body>
+      <div class="icon-with-preview-container">
+        <img class="w-full" [src]="preview()" />
+      </div>
+    </ng-container>
+  }
+</app-icon-with-preview>

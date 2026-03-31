@@ -1,0 +1,48 @@
+@use '../../../../../layout/variables' as *;
+
+:host {
+    @apply w-full flex items-stretch;
+
+    background-color: #eeeeee;
+}
+
+.preview-wrapper {
+    @apply flex flex-col justify-center h-full w-full;
+    // &.preset-preview-mode {
+    //     border: 4px solid #1665D8;
+    // }
+
+    .preview-name {
+        line-height: 24px;
+        font-size: $middle-font-size;
+        background-color: #1665D8;
+        color: #ffffff;
+        text-align: center;
+        left: 50%;
+        top: -.5rem;
+        transform: translate(-50%, 0);
+        max-width: 90%;
+        transition: opacity 5s 3s;
+        @apply py-1 px-4 rounded-lg absolute truncate;
+        &:hover {
+            opacity: 0.1;
+        }
+    }
+}
+
+.iframe-holder {
+    margin: auto;
+    @apply grow p-4 w-full;
+}
+
+.phone {
+    width: 30rem;
+}
+
+.tablet {
+    width: 48rem;
+}
+
+iframe {
+    @apply w-full h-full;
+}

@@ -1,11 +1,8 @@
 # How settings work
 
+Settings are loaded at application startup via `AppInitializator` and resolved using a chain of HTTP requests with fallback support. Each setting value can be a static string, a `ServerRequestDescriptor`, or an array of descriptors executed in order until one succeeds.
 
-
-
-todo: правила для загрузки настроек (app.initializator)
-todo: правила использования настроек, контекст
-todo: правила для заполнения свойств
+Resolved settings are available in template expressions as `{{settings.*}}`. The execution context also exposes `location.*` (current URL parts) and `config.*` (theme configuration). See the [Settings configuration](./builder-settings.md) reference for a full list of supported properties and the [Component context](./component-context.md) for available context variables.
 
 
 

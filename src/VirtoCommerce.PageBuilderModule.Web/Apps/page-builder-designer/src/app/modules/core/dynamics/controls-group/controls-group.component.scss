@@ -1,0 +1,14 @@
+.group-title {
+    @apply p-4 cursor-pointer select-none border-y flex items-center;
+    &:hover {
+        background: linear-gradient(0deg, rgba(22, 101, 216, 0.08), rgba(22, 101, 216, 0.08)), linear-gradient(0deg, #FFFFFF, #FFFFFF);
+        color: rgba(22, 101, 216, 1);
+    }
+    &.opened {
+        background: rgba(22, 101, 216, 0.08);
+    }
+}
+
+// .group-body {
+//     background: rgba(18, 18, 18, 0.04);
+// }

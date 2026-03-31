@@ -1,0 +1,11 @@
+<div mat-dialog-content>
+    <div [formGroup]="form">
+        <textarea class="paste-content-control" formControlName="value"></textarea>
+    </div>
+</div>
+<div mat-dialog-actions>
+    <div class="flex flex-row space-x-2">
+        <app-icon-button (click)="confirm()" skin="primary" text="Paste" />
+        <app-icon-button (click)="decline()" skin="outline" text="Cancel" />
+    </div>
+</div>
