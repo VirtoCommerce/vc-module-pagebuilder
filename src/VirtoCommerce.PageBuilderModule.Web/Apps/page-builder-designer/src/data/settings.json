@@ -5,6 +5,7 @@
             {
                 "url": "/api/stores/{{location.params.storeId}}",
                 "method": "GET",
+				"cacheable": true,
                 "response": {
                     "result": "$.url",
                     "isArray": false
@@ -138,7 +139,16 @@
             "isArray": false
         }
     },
-    "previewUserId": "",
+    "previewImpersonation": {
+        "init": true,
+		"url": "/api/stores/{{location.params.storeId}}",
+		"method": "GET",
+		"cacheable": true,
+		"response": {
+			"selector": "(function() { var s = (this.response.settings || []).find(function(x) { return x.name === 'VirtoCommerce.PageBuilderModule.Store.PreviewUserIds' }); return s && s.value ? s.value.split('\\n').filter(function(x) { return x.trim() }) : [] }).call(this)",
+			"isArray": true
+		}	
+    },
     "skipTemplates": {
         "init": true,
         "url": "/api/platform/security/currentuser",

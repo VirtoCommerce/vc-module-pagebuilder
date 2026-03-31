@@ -278,7 +278,8 @@ export class SharedEffects {
     sendPreviewAuth$ = createEffect(() => this.actions$.pipe(
         ofType(actions.previewLoaded),
         switchMap(() => {
-            const userId = this.appConfig.getValue('previewUserId' as any);
+            const accounts = this.appConfig.getValue('previewImpersonation' as any);
+            const userId = Array.isArray(accounts) ? accounts[0] : accounts;
             if (!userId) {
                 return of(actions.empty());
             }
