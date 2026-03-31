@@ -5,7 +5,7 @@
             {
                 "url": "/api/stores/{{location.params.storeId}}",
                 "method": "GET",
-				"cacheable": true,
+				        "cacheable": true,
                 "response": {
                     "result": "$.url",
                     "isArray": false
@@ -140,14 +140,26 @@
         }
     },
     "previewImpersonation": {
-        "init": true,
-		"url": "/api/stores/{{location.params.storeId}}",
-		"method": "GET",
-		"cacheable": true,
-		"response": {
-			"selector": "(function() { var s = (this.response.settings || []).find(function(x) { return x.name === 'VirtoCommerce.PageBuilderModule.Store.PreviewUserIds' }); return s && s.value ? s.value.split('\\n').filter(function(x) { return x.trim() }) : [] }).call(this)",
-			"isArray": true
-		}	
+      "init": true,
+      "url": "/api/stores/{{location.params.storeId}}",
+      "method": "GET",
+      "cacheable": true,
+      "response": {
+        "selector": "(function() { var s = (this.response.settings || []).find(function(x) { return x.name === 'VirtoCommerce.PageBuilderModule.Store.PreviewUserIds' }); return s && s.value ? s.value.split('\\n').filter(function(x) { return x.trim() }) : [] }).call(this)",
+        "isArray": true
+      }
+    },
+    "previewAccounts": {
+        "url": "/api/platform/security/users/search",
+        "method": "POST",
+        "body": {
+            "objectIds": "@{{this.settings.previewImpersonation || []}}",
+            "take": 100
+        },
+        "response": {
+            "selector": "(this.response.results || []).map(function(u) { return { id: u.id, name: u.userName || u.email || u.id, photoUrl: u.photoUrl || null } })",
+            "isArray": true
+        }
     },
     "skipTemplates": {
         "init": true,
