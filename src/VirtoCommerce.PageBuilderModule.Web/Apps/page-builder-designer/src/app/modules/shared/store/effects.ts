@@ -6,6 +6,7 @@ import { catchError, switchMap, map, of, withLatestFrom, filter, tap, fromEvent 
 
 import { EventsBusService, NotificationsService } from "@core/services";
 import { TemplatesService, MetaDataService } from '@shared/services';
+import { AppConfig, ImpersonateService } from '../../integration/services';
 
 import { BuilderState } from "./state";
 import * as actions from "./actions";
@@ -23,6 +24,8 @@ export class SharedEffects {
     private readonly eventsBus = inject(EventsBusService);
     private readonly notification = inject(NotificationsService);
     private readonly metaDataService = inject(MetaDataService);
+    private readonly impersonateService = inject(ImpersonateService);
+    private readonly appConfig = inject(AppConfig);
 
     raiseInitModule$ = createEffect(() => this.actions$.pipe(
         ofType(ROUTER_NAVIGATED),
@@ -270,6 +273,32 @@ export class SharedEffects {
         ofType(actions.previewLoaded),
         tap(() => this.eventsBus.emit({ target: 'preview', payload: { type: 'preview-loaded' } })),
         map(() => actions.setLivePreviewUrl())
+    ));
+
+    sendPreviewAuth$ = createEffect(() => this.actions$.pipe(
+        ofType(actions.previewLoaded),
+        switchMap(() => {
+            const userId = this.appConfig.getValue('previewUserId' as any);
+            if (!userId) {
+                return of(actions.empty());
+            }
+            return this.impersonateService.getImpersonateToken(userId).pipe(
+                tap(tokenResponse => {
+                    this.eventsBus.emit({
+                        target: 'preview',
+                        payload: {
+                            type: 'auth',
+                            token: tokenResponse
+                        }
+                    });
+                }),
+                map(() => actions.sendPreviewAuthSuccess()),
+                catchError(error => {
+                    console.error('Failed to get impersonate token for preview:', error);
+                    return of(actions.sendPreviewAuthFailed({ error }));
+                })
+            );
+        })
     ));
 
     setWindowTitle$ = createEffect(() => this.actions$.pipe(

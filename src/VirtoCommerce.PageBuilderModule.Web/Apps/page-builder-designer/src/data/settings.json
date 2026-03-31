@@ -138,6 +138,7 @@
             "isArray": false
         }
     },
+    "previewUserId": "",
     "skipTemplates": {
         "init": true,
         "url": "/api/platform/security/currentuser",

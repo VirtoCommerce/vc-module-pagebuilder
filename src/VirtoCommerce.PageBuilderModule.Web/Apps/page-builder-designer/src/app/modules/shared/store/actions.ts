@@ -45,3 +45,7 @@ export const setWindowTitle = createAction('[shared] set window title', props<{ 
 export const previewSectionHovered = createAction('[shared] preview section hovered', props<{ sectionId: string | null }>());
 
 export const updateCustomSchemas = createAction('[shared] update custom schemas', props<{ schemas: any }>());
+
+export const sendPreviewAuth = createAction('[shared] send preview auth');
+export const sendPreviewAuthSuccess = createAction('[shared] send preview auth success');
+export const sendPreviewAuthFailed = createAction('[shared] send preview auth failed', props<{ error: any }>());
