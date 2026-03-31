@@ -46,6 +46,7 @@ export const previewSectionHovered = createAction('[shared] preview section hove
 
 export const updateCustomSchemas = createAction('[shared] update custom schemas', props<{ schemas: any }>());
 
-export const sendPreviewAuth = createAction('[shared] send preview auth');
+export const changePreviewAccount = createAction('[shared] change preview account', props<{ userId: string | null }>());
+export const sendPreviewAuth = createAction('[shared] send preview auth', props<{ userId: string | null }>());
 export const sendPreviewAuthSuccess = createAction('[shared] send preview auth success');
 export const sendPreviewAuthFailed = createAction('[shared] send preview auth failed', props<{ error: any }>());

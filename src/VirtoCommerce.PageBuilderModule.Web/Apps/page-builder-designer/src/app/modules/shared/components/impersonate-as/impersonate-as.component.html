@@ -1,0 +1,12 @@
+@if (hasAccounts()) {
+  <app-context-menu
+    class="block py-2"
+    [actions]="accounts()"
+    [visible]="true"
+    (onAction)="onAccountSelected($event)">
+    <div class="impersonate-as" #contextMenuTrigger>
+      <app-icon class="trigger-icon">person</app-icon>
+      <span class="label">{{ currentLabel() }}</span>
+    </div>
+  </app-context-menu>
+}

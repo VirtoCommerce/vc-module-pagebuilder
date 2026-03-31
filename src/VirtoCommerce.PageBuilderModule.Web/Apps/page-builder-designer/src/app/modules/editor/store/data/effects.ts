@@ -4,7 +4,7 @@ import { ModalService } from '@core/services';
 import { Injectable, inject } from "@angular/core";
 
 import { of } from "rxjs";
-import { withLatestFrom, filter, map, catchError, switchMap, exhaustMap, tap } from "rxjs/operators";
+import { withLatestFrom, filter, map, catchError, switchMap, exhaustMap, tap, take } from "rxjs/operators";
 
 import { Store } from "@ngrx/store";
 import { Actions, createEffect, ofType } from "@ngrx/effects";
@@ -170,6 +170,22 @@ export class TemplateEditorDataEffects {
 
     passTemplateToPreview$ = createEffect(() => this.actions$.pipe(
         ofType(shared.previewLoaded),
+        withLatestFrom(this.store$.select(selectors.changeTemplateContext)),
+        map(([, { template, templateEntry }]) => broadcastPreviewMessage({
+            msg: {
+                type: 'page',
+                template,
+                ...templateEntry?.previewMessage
+            }
+        }))
+    ));
+
+    resendTemplateOnAccountChange$ = createEffect(() => this.actions$.pipe(
+        ofType(shared.changePreviewAccount),
+        switchMap(() => this.actions$.pipe(
+            ofType(shared.sendPreviewAuthSuccess, shared.sendPreviewAuthFailed),
+            take(1)
+        )),
         withLatestFrom(this.store$.select(selectors.changeTemplateContext)),
         map(([, { template, templateEntry }]) => broadcastPreviewMessage({
             msg: {

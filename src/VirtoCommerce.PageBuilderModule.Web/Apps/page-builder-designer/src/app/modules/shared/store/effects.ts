@@ -275,13 +275,27 @@ export class SharedEffects {
         map(() => actions.setLivePreviewUrl())
     ));
 
+    changePreviewAccount$ = createEffect(() => this.actions$.pipe(
+        ofType(actions.changePreviewAccount),
+        tap(({ userId }) => {
+            if (userId) {
+                localStorage.setItem('pb.previewAccountId', userId);
+            } else {
+                localStorage.removeItem('pb.previewAccountId');
+            }
+        }),
+        map(({ userId }) => actions.sendPreviewAuth({ userId }))
+    ));
+
     sendPreviewAuth$ = createEffect(() => this.actions$.pipe(
-        ofType(actions.previewLoaded),
-        switchMap(() => {
-            const accounts = this.appConfig.getValue('previewImpersonation' as any);
-            const userId = Array.isArray(accounts) ? accounts[0] : accounts;
+        ofType(actions.sendPreviewAuth),
+        switchMap(({ userId }) => {
             if (!userId) {
-                return of(actions.empty());
+                this.eventsBus.emit({
+                    target: 'preview',
+                    payload: { type: 'auth', token: null }
+                });
+                return of(actions.sendPreviewAuthSuccess());
             }
             return this.impersonateService.getImpersonateToken(userId).pipe(
                 tap(tokenResponse => {

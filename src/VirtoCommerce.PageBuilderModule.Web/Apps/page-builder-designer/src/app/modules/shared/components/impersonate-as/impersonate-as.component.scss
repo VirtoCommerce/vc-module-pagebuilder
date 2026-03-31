@@ -1,0 +1,20 @@
+@use '../../../../../layout/variables' as *;
+
+.impersonate-as {
+    @apply flex flex-row items-center space-x-1 cursor-pointer;
+}
+
+.trigger-icon {
+    color: $icons-color;
+
+    &:hover {
+        color: $active-color;
+    }
+}
+
+.label {
+    color: $controls-text-color;
+    font-size: $default-font-size;
+    max-width: 10rem;
+    @apply truncate;
+}
