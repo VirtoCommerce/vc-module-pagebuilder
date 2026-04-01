@@ -145,7 +145,7 @@
       "method": "GET",
       "cacheable": true,
       "response": {
-        "selector": "(function() { var s = (this.response.settings || []).find(function(x) { return x.name === 'VirtoCommerce.PageBuilderModule.Store.PreviewUserIds' }); return s && s.value ? s.value.split('\\n').filter(function(x) { return x.trim() }) : [] }).call(this)",
+        "selector": "(function() { var s = (this.response.settings || []).find(function(x) { return x.name === 'VirtoCommerce.PageBuilderModule.Store.PreviewUserIds' }); return s && s.value ? s.value.split('\\n').map(function(x) { return x.trim() }).filter(Boolean) : [] }).call(this)",
         "isArray": true
       }
     },
