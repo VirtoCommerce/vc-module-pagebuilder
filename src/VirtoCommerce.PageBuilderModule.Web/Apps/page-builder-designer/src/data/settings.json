@@ -5,7 +5,7 @@
             {
                 "url": "/api/stores/{{location.params.storeId}}",
                 "method": "GET",
-				        "cacheable": true,
+                "cacheable": true,
                 "response": {
                     "result": "$.url",
                     "isArray": false
