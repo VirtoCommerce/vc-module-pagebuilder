@@ -381,6 +381,8 @@ export function getSectionName(item: SectionModel | null, schema: SectionSchema 
         resultName = result;
       }
     }
+  } else {
+    resultName = `[${resultName}]`;
   }
   return appHelpers.stripHtmlTags(resultName);
 }
