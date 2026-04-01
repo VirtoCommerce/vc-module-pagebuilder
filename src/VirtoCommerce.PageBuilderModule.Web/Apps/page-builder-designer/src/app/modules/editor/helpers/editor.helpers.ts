@@ -372,12 +372,12 @@ export function getSectionName(item: SectionModel | null, schema: SectionSchema 
   if (!!schema && !!item) {
     if (schema.displayField) {
       const result = appHelpers.getValueByPath(item, schema.displayField);
-      if (!!result) {
+      if (result) {
         resultName = <string>result;
       }
     } else {
       const result = <string>item['name'];
-      if (!!result) {
+      if (result) {
         resultName = result;
       }
     }

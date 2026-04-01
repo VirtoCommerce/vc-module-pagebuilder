@@ -186,7 +186,7 @@ export const selectCurrentItemName = createSelector(
   fromData.selectCurrentSchemaForEdit,
   (block, section, settings, schema) => {
     const itemType = block ? 'current block' : 'current section';
-    const defaultName = !!settings ? (<string>schema?.['name'] || 'settings') : itemType;
+    const defaultName = settings ? (<string>schema?.['name'] || 'settings') : itemType;
     const name = helpers.getSectionName(block || section || settings || null, schema || null, defaultName);
     return 'Edit ' + name;
   }
