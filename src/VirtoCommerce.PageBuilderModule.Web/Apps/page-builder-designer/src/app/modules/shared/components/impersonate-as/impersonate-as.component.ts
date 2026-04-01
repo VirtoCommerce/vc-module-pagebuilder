@@ -1,9 +1,10 @@
-import { ChangeDetectionStrategy, Component, inject, signal, computed, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal, computed, OnInit, input } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { firstValueFrom } from 'rxjs';
+import { ActionsDropdownComponent } from '@core/components/actions-dropdown/actions-dropdown.component';
 import { ContextMenuComponent } from '@core/components/context-menu/context-menu.component';
 import { IconComponent } from '@core/components/icon/icon.component';
-import { ContextMenuAction, ContextMenuActionType } from '@core/models';
+import { ActionButtonDescriptor, ContextMenuAction, ContextMenuActionType } from '@core/models';
 import { AppConfig, BuilderHttpClient } from '@integration/services';
 import { BuilderState } from '@shared/store';
 import * as actions from '@shared/store/actions';
@@ -19,7 +20,7 @@ interface PreviewAccount {
     templateUrl: './impersonate-as.component.html',
     styleUrls: ['./impersonate-as.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [ContextMenuComponent, IconComponent]
+    imports: [ActionsDropdownComponent, ContextMenuComponent, IconComponent]
 })
 export class ImpersonateAsComponent implements OnInit {
 
@@ -27,10 +28,30 @@ export class ImpersonateAsComponent implements OnInit {
     private readonly appConfig = inject(AppConfig);
     private readonly http = inject(BuilderHttpClient);
 
+    readonly view = input<'dropdown' | 'context-menu'>('dropdown');
+
     readonly selectedId = signal<string | null>(null);
     readonly loadedAccounts = signal<PreviewAccount[]>([]);
 
-    readonly accounts = computed<ContextMenuAction[]>(() => {
+    readonly dropdownActions = computed<ActionButtonDescriptor[]>(() => {
+        const users = this.loadedAccounts();
+        if (!users.length) {
+            return [];
+        }
+        const anonymous: ActionButtonDescriptor = {
+            icon: 'visibility_off',
+            title: 'Anonymous',
+            alias: '',
+        };
+        const items: ActionButtonDescriptor[] = users.map(user => ({
+            icon: 'person',
+            title: user.name,
+            alias: user.id,
+        }));
+        return [anonymous, ...items];
+    });
+
+    readonly contextMenuActions = computed<ContextMenuAction[]>(() => {
         const users = this.loadedAccounts();
         if (!users.length) {
             return [];
@@ -69,7 +90,13 @@ export class ImpersonateAsComponent implements OnInit {
         this.loadAccounts();
     }
 
-    onAccountSelected(action: ContextMenuActionType) {
+    onDropdownSelected(action: ActionButtonDescriptor) {
+        const userId = action.alias || null;
+        this.selectedId.set(userId);
+        this.store.dispatch(actions.changePreviewAccount({ userId }));
+    }
+
+    onContextMenuSelected(action: ContextMenuActionType) {
         const userId = action.action || null;
         this.selectedId.set(userId);
         this.store.dispatch(actions.changePreviewAccount({ userId }));

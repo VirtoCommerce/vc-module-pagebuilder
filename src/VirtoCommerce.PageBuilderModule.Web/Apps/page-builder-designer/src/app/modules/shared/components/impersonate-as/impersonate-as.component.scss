@@ -1,6 +1,13 @@
 @use '../../../../../layout/variables' as *;
 
-.impersonate-as {
+// Dropdown view
+app-actions-dropdown, ::ng-deep .mat-mdc-menu-panel.impersonate-as-panel {
+    width: calc(1.3 * 9.125rem);
+    max-width: calc(1.3 * 9.125rem);
+}
+
+// Context menu view
+.impersonate-trigger {
     @apply flex flex-row items-center space-x-1 cursor-pointer;
 }
 

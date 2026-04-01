@@ -1,12 +1,20 @@
 @if (hasAccounts()) {
-  <app-context-menu
-    class="block py-2"
-    [actions]="accounts()"
-    [visible]="true"
-    (onAction)="onAccountSelected($event)">
-    <div class="impersonate-as" #contextMenuTrigger>
-      <app-icon class="trigger-icon">person</app-icon>
-      <span class="label">{{ currentLabel() }}</span>
-    </div>
-  </app-context-menu>
+  @if (view() === 'dropdown') {
+    <app-actions-dropdown
+      panelClass="impersonate-as-panel"
+      [actions]="dropdownActions()"
+      [active]="selectedId() ?? ''"
+      (executeAction)="onDropdownSelected($event)" />
+  } @else {
+    <app-context-menu
+      class="block py-2"
+      [actions]="contextMenuActions()"
+      [visible]="true"
+      (onAction)="onContextMenuSelected($event)">
+      <div class="impersonate-trigger" #contextMenuTrigger>
+        <app-icon class="trigger-icon">person</app-icon>
+        <span class="label">{{ currentLabel() }}</span>
+      </div>
+    </app-context-menu>
+  }
 }
