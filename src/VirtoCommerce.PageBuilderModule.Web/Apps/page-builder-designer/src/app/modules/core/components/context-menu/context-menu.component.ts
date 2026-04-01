@@ -59,7 +59,7 @@ export class ContextMenuComponent {
 
   gearClick(event: MouseEvent | KeyboardEvent) {
     const target = event.target as HTMLElement;
-    const y = 'pageY' in event ? event.pageY : target.clientTop + target.offsetHeight / 2;
+    const y = 'pageY' in event ? event.pageY : target.getBoundingClientRect().top + target.offsetHeight / 2;
     if (y > window.innerHeight / 2) {
       this.positions = [
         {
