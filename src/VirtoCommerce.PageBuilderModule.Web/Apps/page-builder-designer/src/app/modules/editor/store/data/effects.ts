@@ -173,6 +173,7 @@ export class TemplateEditorDataEffects {
     resendTemplateOnAccountChange$ = createEffect(() => this.actions$.pipe(
         ofType(shared.sendPreviewAuthSuccess, shared.previewLoaded),
         withLatestFrom(this.store$.select(selectors.changeTemplateContext)),
+        filter(([, { template }]) => !!template),
         map(([, { template, templateEntry }]) => broadcastPreviewMessage({
             msg: {
                 type: 'page',
