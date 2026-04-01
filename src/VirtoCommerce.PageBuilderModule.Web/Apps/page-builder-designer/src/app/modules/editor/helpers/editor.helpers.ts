@@ -3,8 +3,19 @@ import { FilesDescriptor, SectionPropertyDescriptor } from '@models/controls';
 import { PageModel, SectionModel, SectionSchema, TemplateModel } from '@models/document';
 import { ObjectsSchemasList, SchemasList, } from '@editor/models';
 
-// todo: refactor these
-// replace section/block in collection can be extracted and done with lodash
+// Immutable array helpers for section/block manipulation
+
+function replaceAt<T>(arr: T[], index: number, item: T): T[] {
+  return arr.map((el, i) => i === index ? item : el);
+}
+
+function insertAt<T>(arr: T[], index: number, ...items: T[]): T[] {
+  return [...arr.slice(0, index), ...items, ...arr.slice(index)];
+}
+
+function removeAt<T>(arr: T[], index: number): T[] {
+  return arr.filter((_, i) => i !== index);
+}
 
 export function addItemToTemplate(schema: SectionSchema, template: TemplateModel, section: SectionModel | null, insertIndex: number): {
   template: TemplateModel,
@@ -12,46 +23,27 @@ export function addItemToTemplate(schema: SectionSchema, template: TemplateModel
   blockId?: string
 } {
   const model = generateModelBySchema(schema);
-  model.id = generateSectionId(model); // id generator center requried
+  model.id = generateSectionId(model);
 
   if (!section) {
     const index = insertIndex === -1 ? template.content.length : insertIndex;
     return {
-      template: {
-        ...template,
-        content: [
-          ...template.content.slice(0, index),
-          model,
-          ...template.content.slice(index),
-        ]
-      },
+      template: { ...template, content: insertAt(template.content, index, model) },
       sectionId: model.id
     };
-  } else {
-    const sectionIndex = template.content.findIndex(item => item.id === section.id);
-    if (sectionIndex === -1) {
-      return { template, sectionId: section.id };
-    }
-    const blocks = section.blocks || [];
-    return {
-      template: {
-        ...template,
-        content: [
-          ...template.content.slice(0, sectionIndex),
-          {
-            ...section,
-            blocks: [
-              ...blocks,
-              model
-            ]
-          },
-          ...template.content.slice(sectionIndex + 1)
-        ]
-      },
-      sectionId: section.id,
-      blockId: model.id
-    };
   }
+
+  const sectionIndex = template.content.findIndex(item => item.id === section.id);
+  if (sectionIndex === -1) {
+    return { template, sectionId: section.id };
+  }
+
+  const newSection = { ...section, blocks: [...(section.blocks || []), model] };
+  return {
+    template: { ...template, content: replaceAt(template.content, sectionIndex, newSection) },
+    sectionId: section.id,
+    blockId: model.id
+  };
 }
 
 function reorderSectionsInList(list: SectionModel[], currentIndex: number, previousIndex: number, sectionIds: string[]): SectionModel[] {
@@ -66,14 +58,14 @@ function reorderSectionsInList(list: SectionModel[], currentIndex: number, previ
 
     let firstUntouchedElement: SectionModel | null = null;
     for (let i = currentIndex + delta; i >= 0; i--) {
-      if (sectionIds.indexOf(list[i].id) === -1) {
+      if (!sectionIds.includes(list[i].id)) {
         firstUntouchedElement = list[i];
         break;
       }
     }
 
-    const elementsToPaste = list.filter(x => sectionIds.indexOf(x.id) !== -1);
-    const newList = list.filter(x => sectionIds.indexOf(x.id) === -1);
+    const elementsToPaste = list.filter(x => sectionIds.includes(x.id));
+    const newList = list.filter(x => !sectionIds.includes(x.id));
     const newIndex = firstUntouchedElement === null ? 0 : newList.indexOf(firstUntouchedElement) + 1;
     newList.splice(newIndex, 0, ...elementsToPaste);
     return newList;
@@ -88,18 +80,9 @@ export function reorderSections(template: TemplateModel, currentIndex: number, p
 }
 
 export function reorderBlocks(template: TemplateModel, section: SectionModel, currentIndex: number, previousIndex: number, blockIds: string[]): TemplateModel {
-  const sectionIndex = template.content.findIndex(item => (item.id) === section.id);
-  return {
-    ...template,
-    content: [
-      ...template.content.slice(0, sectionIndex),
-      {
-        ...section,
-        blocks: reorderSectionsInList(section.blocks, currentIndex, previousIndex, blockIds)
-      },
-      ...template.content.slice(sectionIndex + 1)
-    ]
-  };
+  const sectionIndex = template.content.findIndex(item => item.id === section.id);
+  const newSection = { ...section, blocks: reorderSectionsInList(section.blocks, currentIndex, previousIndex, blockIds) };
+  return { ...template, content: replaceAt(template.content, sectionIndex, newSection) };
 }
 
 export function generateSectionId(section: SectionModel, force: boolean = false): string {
@@ -130,18 +113,8 @@ export function generatePreviewBySchema(schema: SectionSchema): SectionModel {
 
 export function applySectionChanges(template: TemplateModel, changes: Partial<SectionModel>, sectionId: string): TemplateModel {
   const sectionIndex = template.content.findIndex(item => item.id === sectionId);
-  const section = template.content[sectionIndex];
-  return {
-    ...template,
-    content: [
-      ...template.content.slice(0, sectionIndex),
-      <SectionModel>{
-        ...section,
-        ...changes
-      },
-      ...template.content.slice(sectionIndex + 1)
-    ]
-  };
+  const newSection = <SectionModel>{ ...template.content[sectionIndex], ...changes };
+  return { ...template, content: replaceAt(template.content, sectionIndex, newSection) };
 }
 
 export function applySettingsChanges(template: TemplateModel, changes: Partial<SectionModel>): TemplateModel {
@@ -158,26 +131,9 @@ export function applyBlockChanges(template: TemplateModel, changes: Partial<Sect
   const sectionIndex = template.content.findIndex(item => item.id === sectionId);
   const section = template.content[sectionIndex];
   const blockIndex = section.blocks.findIndex(item => item.id === blockId);
-  const block = section.blocks[blockIndex];
-  const newSection = {
-    ...section,
-    blocks: [
-      ...section.blocks.slice(0, blockIndex),
-      <SectionModel>{
-        ...block,
-        ...changes
-      },
-      ...section.blocks.slice(blockIndex + 1)
-    ]
-  };
-  return {
-    ...template,
-    content: [
-      ...template.content.slice(0, sectionIndex),
-      newSection,
-      ...template.content.slice(sectionIndex + 1)
-    ]
-  };
+  const newBlock = <SectionModel>{ ...section.blocks[blockIndex], ...changes };
+  const newSection = { ...section, blocks: replaceAt(section.blocks, blockIndex, newBlock) };
+  return { ...template, content: replaceAt(template.content, sectionIndex, newSection) };
 }
 
 export function duplicateBlock(
@@ -193,25 +149,10 @@ export function duplicateBlock(
   const blockIndex = section.blocks.findIndex(item => item.id === blockId);
   const block = section.blocks[blockIndex];
   const newId = generateSectionId(block, true);
-  const new__id = block['__id'] ? newId : undefined;
-  const newBlock = <any>{ ...block, id: newId, __id: new__id };
-  const newSection = {
-    ...section,
-    blocks: [
-      ...section.blocks.slice(0, blockIndex + 1),
-      newBlock,
-      ...section.blocks.slice(blockIndex + 1)
-    ]
-  };
+  const newBlock = <any>{ ...block, id: newId, __id: block['__id'] ? newId : undefined };
+  const newSection = { ...section, blocks: insertAt(section.blocks, blockIndex + 1, newBlock) };
   return {
-    template: {
-      ...template,
-      content: [
-        ...template.content.slice(0, sectionIndex),
-        newSection,
-        ...template.content.slice(sectionIndex + 1)
-      ]
-    },
+    template: { ...template, content: replaceAt(template.content, sectionIndex, newSection) },
     sectionId,
     blockId: newBlock.id
   };
@@ -225,17 +166,9 @@ export function duplicateSection(template: TemplateModel, sectionId: string): {
   const sectionIndex = template.content.findIndex(item => item.id === sectionId);
   const section = template.content[sectionIndex];
   const newId = generateSectionId(section, true);
-  const new__id = section['__id'] ? newId : undefined;
-  const newSection = <any>{ ...section, id: generateSectionId(section, true), __id: new__id };
+  const newSection = <any>{ ...section, id: newId, __id: section['__id'] ? newId : undefined };
   return {
-    template: {
-      ...template,
-      content: [
-        ...template.content.slice(0, sectionIndex + 1),
-        newSection,
-        ...template.content.slice(sectionIndex + 1)
-      ]
-    },
+    template: { ...template, content: insertAt(template.content, sectionIndex + 1, newSection) },
     sectionId: newSection.id
   };
 }
@@ -244,59 +177,40 @@ export function removeBlock(template: TemplateModel, sectionId: string, blockId:
   const sectionIndex = template.content.findIndex(item => item.id === sectionId);
   const section = template.content[sectionIndex];
   const blockIndex = section.blocks.findIndex(item => item.id === blockId);
-  const newSection = {
-    ...section,
-    blocks: [
-      ...section.blocks.slice(0, blockIndex),
-      ...section.blocks.slice(blockIndex + 1)
-    ]
-  };
-  return {
-    ...template,
-    content: [
-      ...template.content.slice(0, sectionIndex),
-      newSection,
-      ...template.content.slice(sectionIndex + 1)
-    ]
-  };
+  const newSection = { ...section, blocks: removeAt(section.blocks, blockIndex) };
+  return { ...template, content: replaceAt(template.content, sectionIndex, newSection) };
 }
 
 export function removeSection(template: TemplateModel, sectionId: string): TemplateModel {
   const sectionIndex = template.content.findIndex(item => item.id === sectionId);
-  return {
-    ...template,
-    content: [
-      ...template.content.slice(0, sectionIndex),
-      ...template.content.slice(sectionIndex + 1)
-    ]
-  };
+  return { ...template, content: removeAt(template.content, sectionIndex) };
 }
 
 function generateModelBySettings(settings: SectionPropertyDescriptor[], mode: 'default' | 'preview' = 'default'): any {
-  // todo: consder object and collections too
   return (settings || []).map(x => {
-    if (isElementType(x) && !isListType(x)) {
-      let e = x as { element: SectionPropertyDescriptor[] };
-      let currentValue = x[mode] || x.default || {};
-      let valueFromProps = generateModelBySettings(e.element, mode);
-      return {
-        ...x,
-        [mode]: {
-          ...currentValue,
-          ...valueFromProps
+    if (isElementType(x)) {
+      const e = x as { element: SectionPropertyDescriptor[] };
+      if (isListType(x)) {
+        // For collections: use existing default/preview array, or generate one item from element schema
+        const existingValue = x[mode] || x.default;
+        if (existingValue) {
+          return { ...x, [mode]: existingValue };
         }
+        const itemDefaults = generateModelBySettings(e.element, mode);
+        return { ...x, [mode]: Object.keys(itemDefaults).length ? [itemDefaults] : [] };
+      } else {
+        // For objects: merge element defaults into current value
+        const currentValue = x[mode] || x.default || {};
+        const valueFromProps = generateModelBySettings(e.element, mode);
+        return { ...x, [mode]: { ...currentValue, ...valueFromProps } };
       }
     }
     return x;
   }).reduce((result, value) => {
-    let res = result;
     if (value.hasOwnProperty(mode) || value.hasOwnProperty('default')) {
-      res = {
-        ...res,
-        [value.id]: value[mode] || value.default
-      };
+      return { ...result, [value.id]: value[mode] || value.default };
     }
-    return res;
+    return result;
   }, {});
 }
 
@@ -332,14 +246,14 @@ export function convertTemplateIntoCorrectVersion(template: TemplateModel | Sect
 
   // If template is already a TemplateModel, return it
   if ('settings' in template && 'content' in template) {
-    return template as TemplateModel;
+    return template;
   } else if (Array.isArray(template)) {
     // this is the old template format
     // convert it to the new format
     const [settings, ...content] = template;
     return { settings: settings || {}, content: content || [], version: 1 };
   } else if ('pageContent' in template) {
-    const { pageContent, id, storeId, permalink, name, cultureName } = template as PageModel;
+    const { pageContent, id, storeId, permalink, name, cultureName } = template;
 
     const parsedContent = JSON.parse(pageContent || '{}');
     const { settings, content } = parsedContent;
@@ -381,8 +295,6 @@ export function getSectionName(item: SectionModel | null, schema: SectionSchema 
         resultName = result;
       }
     }
-  } else {
-    resultName = `[${resultName}]`;
   }
   return appHelpers.stripHtmlTags(resultName);
 }
@@ -392,47 +304,22 @@ export function insertBlock(template: TemplateModel, sectionId: string, blockId:
   sectionId: string,
   blockId?: string
 } {
-
-  const newBlock = {
-    ...block,
-    id: generateSectionId(block, true)
-  };
-
+  const newBlock = { ...block, id: generateSectionId(block, true) };
   const sectionIndex = template.content.findIndex(item => item.id == sectionId);
-  if (sectionIndex !== -1) {
-    const section = template.content[sectionIndex];
-    const blockIndex = direction === -1 ? -1 : section.blocks.findIndex(item => item.id == blockId);
-    const blocks = section.blocks || [];
-    const newSection = blockIndex !== -1
-      ? {
-        ...section,
-        blocks: [
-          ...blocks.slice(0, blockIndex + direction),
-          newBlock,
-          ...blocks.slice(blockIndex + direction)
-        ]
-      }
-      : {
-        ...section,
-        blocks: [
-          ...blocks,
-          newBlock
-        ]
-      };
-    return {
-      template: {
-        ...template,
-        content: [
-          ...template.content.slice(0, sectionIndex),
-          newSection,
-          ...template.content.slice(sectionIndex + 1)
-        ]
-      },
-      sectionId,
-      blockId: newBlock.id
-    };
+  if (sectionIndex === -1) {
+    return { template, sectionId };
   }
-  return { template, sectionId };
+
+  const section = template.content[sectionIndex];
+  const blocks = section.blocks || [];
+  const blockIndex = direction === -1 ? -1 : blocks.findIndex(item => item.id == blockId);
+  const insertIdx = blockIndex === -1 ? blocks.length : blockIndex + direction;
+  const newSection = { ...section, blocks: insertAt(blocks, insertIdx, newBlock) };
+  return {
+    template: { ...template, content: replaceAt(template.content, sectionIndex, newSection) },
+    sectionId,
+    blockId: newBlock.id
+  };
 }
 
 export function insertSection(template: TemplateModel, sectionId: string | null, section: SectionModel, direction: number): {
@@ -440,34 +327,17 @@ export function insertSection(template: TemplateModel, sectionId: string | null,
   sectionId: string,
   blockId?: string
 } {
-
-  const newSection = {
-    ...section,
-    id: generateSectionId(section, true)
-  };
-
+  const newSection = { ...section, id: generateSectionId(section, true) };
   const sectionIndex = direction === -1 ? -1 : template.content.findIndex(item => item.id == sectionId);
-  const changedTemplate = {
-    ...template,
-    content: sectionIndex !== -1
-      ? [
-        ...template.content.slice(0, sectionIndex + direction),
-        newSection,
-        ...template.content.slice(sectionIndex + direction)
-      ]
-      : [
-        ...template.content,
-        newSection
-      ]
-  };
+  const insertIdx = sectionIndex === -1 ? template.content.length : sectionIndex + direction;
   return {
-    template: changedTemplate,
+    template: { ...template, content: insertAt(template.content, insertIdx, newSection) },
     sectionId: newSection.id
   };
 }
 
 function isElementType(setting: SectionPropertyDescriptor): boolean {
-  return ['object', 'list', 'images', 'files'].indexOf(setting.type) !== -1 &&
+  return ['object', 'list', 'images', 'files'].includes(setting.type) &&
     (!!(<any>setting).element || !!(<any>setting).elementDescriptor);
 }
 
@@ -484,7 +354,7 @@ function isListType(setting: SectionPropertyDescriptor): boolean {
 function fillElementProperty(setting: SectionPropertyDescriptor, objects: ObjectsSchemasList): SectionPropertyDescriptor {
   if (!isElementType(setting)) return setting;
   let result = setting as { element: SectionPropertyDescriptor[], elementDescriptor?: string };
-  if (!!result.elementDescriptor) {
+  if (result.elementDescriptor) {
     const shared = objects[result.elementDescriptor] || { settings: [] };
     const given = result.element || [];
     result = {
@@ -524,9 +394,9 @@ export function prepareSchema(schema: SectionSchema,
   objects: ObjectsSchemasList,
   itemType: '_sections' | '_blocks'): SectionSchema {
   try {
-    const generalSettings = schema.excludeShared !== true
-      ? shared?.[itemType]?.settings?.filter(x => !schema.settings?.find(s => s.id === x.id))
-      : [];
+    const generalSettings = schema.excludeShared === true
+      ? []
+      : shared?.[itemType]?.settings?.filter(x => !schema.settings?.find(s => s.id === x.id));
     const itemSettings = schema?.includeShared?.map(name => shared?.[name]?.settings)?.flat(1)
       .filter(x => !!x && !schema.settings?.find(s => s.id === x.id));
 
@@ -534,10 +404,10 @@ export function prepareSchema(schema: SectionSchema,
       ...schema,
       settings: [
         ...schema.settings,
-        ...generalSettings || [],
-        ...itemSettings || []
+        ...(generalSettings || []),
+        ...(itemSettings || []),
       ].filter(x =>
-        schema.excludeShared === true || (<string[]>schema.excludeShared || []).indexOf(x.id) === -1
+        schema.excludeShared === true || !(<string[]>schema.excludeShared || []).includes(x.id)
       ).map(x => fillElementProperty(x, objects)).sort((a, b) => {
         if (a.sort !== undefined && b.sort !== undefined) {
           return a.sort - b.sort;
@@ -571,6 +441,7 @@ export function prepareSchema(schema: SectionSchema,
       })),
     };
   } catch (e) {
+    console.log('Error during schema preparation', e);
     return schema;
   }
 }

@@ -22,7 +22,6 @@ import {
 } from './editor.helpers';
 import { createTemplate, createSection, createBlock, createSchema } from '@app/testing';
 import { SectionModel } from '@models/document/section.model';
-import { TemplateModel } from '@models/document/template.model';
 import { SchemasList } from '@editor/models';
 
 // ── addItemToTemplate ──────────────────────────────────────────────
@@ -658,6 +657,61 @@ describe('generateModelBySchema', () => {
     const result = generateModelBySchema(schema);
 
     expect(result.type).toBe('banner');
+  });
+
+  it('generates default item for list settings with element schema', () => {
+    const schema = createSchema({
+      type: 'features',
+      settings: [
+        {
+          id: 'columns',
+          type: 'list',
+          element: [
+            { id: 'title', type: 'string', default: 'Default Title' },
+            { id: 'text', type: 'string', default: 'Default Text' },
+          ],
+        } as any,
+      ],
+    });
+
+    const result = generateModelBySchema(schema);
+
+    expect(result['columns']).toEqual([{ title: 'Default Title', text: 'Default Text' }]);
+  });
+
+  it('uses explicit default for list settings when provided', () => {
+    const schema = createSchema({
+      type: 'features',
+      settings: [
+        {
+          id: 'items',
+          type: 'list',
+          element: [{ id: 'name', type: 'string', default: 'X' }],
+          default: [{ name: 'A' }, { name: 'B' }],
+        } as any,
+      ],
+    });
+
+    const result = generateModelBySchema(schema);
+
+    expect(result['items']).toEqual([{ name: 'A' }, { name: 'B' }]);
+  });
+
+  it('generates empty array for list with no element defaults', () => {
+    const schema = createSchema({
+      type: 'features',
+      settings: [
+        {
+          id: 'tags',
+          type: 'list',
+          element: [{ id: 'label', type: 'string' }],
+        } as any,
+      ],
+    });
+
+    const result = generateModelBySchema(schema);
+
+    expect(result['tags']).toEqual([]);
   });
 });
 

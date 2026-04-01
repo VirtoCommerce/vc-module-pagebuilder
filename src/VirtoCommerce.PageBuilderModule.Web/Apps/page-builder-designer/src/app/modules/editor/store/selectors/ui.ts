@@ -103,13 +103,13 @@ export const selectSectionsState = createSelector(
         [section.id]: <SectionState>{
           expanded: canHaveChildren,
           canHaveChildren,
-          isDragging: dragSectionIds.indexOf(section.id) !== -1,
+          isDragging: dragSectionIds.includes(section.id),
           selectable: !sectionKeyWithSelectedBlock,
           ...state?.sections[section.id],
           blocks: canHaveChildren ? section.blocks?.reduce((res, v) => ({
             ...res,
             [v.id]: {
-              isDragging: dragSectionIds.indexOf(v.id) !== -1,
+              isDragging: dragSectionIds.includes(v.id),
               selected: res[v.id]?.selected || false,
               selectable: !isSectionSelected && (!sectionKeyWithSelectedBlock || sectionKeyWithSelectedBlock === section.id),
             }
