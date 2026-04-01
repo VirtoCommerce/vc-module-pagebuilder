@@ -43,11 +43,11 @@ export class TemplateEditorDomainEffects {
             this.store$.select(selectors.selectObjectsSchemas)
         ),
         filter(([, { template }]) => !!template),
-        switchMap(([{ schema }, { template, section, templateKey, insertIndex }, shared, objects]) => {
+        switchMap(([{ schema }, { template, section, templateKey, insertIndex, templateEntry }, shared, objects]) => {
 
             const sharedSchemaName = !!section ? "_blocks" : "_sections";
 
-            const fullSchema = editorHelpers.prepareSchema(schema, shared, objects, sharedSchemaName);
+            const fullSchema = editorHelpers.prepareSchema(schema, shared, objects, sharedSchemaName, templateEntry?.controls);
             const result = editorHelpers.addItemToTemplate(fullSchema, template!, section || null, insertIndex); // section can be null
             const message = sharedActions.broadcastPreviewMessage({
                 msg: {

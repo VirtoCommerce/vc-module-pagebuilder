@@ -868,6 +868,46 @@ describe('prepareSchema', () => {
     expect((result.settings[0] as any).config).toEqual({ language: 'ru' });
   });
 
+  it('applies template controls between _controls and local settings', () => {
+    const schema = createSchema({
+      settings: [{ id: 'body', type: 'text' } as any],
+    });
+    const shared = {
+      _controls: { text: { config: { language: 'ru' }, globalOnly: true } },
+    } as any;
+    const templateControls = { text: { config: { language: 'de' }, templateOnly: true } };
+
+    const result = prepareSchema(schema, shared, {}, '_sections', templateControls);
+
+    expect((result.settings[0] as any).config).toEqual({ language: 'de' });
+    expect((result.settings[0] as any).globalOnly).toBe(true);     // from _controls
+    expect((result.settings[0] as any).templateOnly).toBe(true);   // from template
+  });
+
+  it('local settings override template controls', () => {
+    const schema = createSchema({
+      settings: [{ id: 'body', type: 'text', config: { language: 'en' } } as any],
+    });
+    const templateControls = { text: { config: { language: 'de' } } };
+
+    const result = prepareSchema(schema, {}, {}, '_sections', templateControls);
+
+    expect((result.settings[0] as any).config).toEqual({ language: 'en' });
+  });
+
+  it('works without templateControls (backward compatible)', () => {
+    const schema = createSchema({
+      settings: [{ id: 'body', type: 'text' } as any],
+    });
+    const shared = {
+      _controls: { text: { config: { language: 'ru' } } },
+    } as any;
+
+    const result = prepareSchema(schema, shared, {}, '_sections');
+
+    expect((result.settings[0] as any).config).toEqual({ language: 'ru' });
+  });
+
   it('returns schema unchanged on error', () => {
     const schema = createSchema({
       settings: null as any,

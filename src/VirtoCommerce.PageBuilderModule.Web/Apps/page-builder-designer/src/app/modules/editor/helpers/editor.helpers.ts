@@ -392,7 +392,8 @@ export function mergeSchemas(lowPrioritySchemas: SchemasList | null, highPriorit
 export function prepareSchema(schema: SectionSchema,
   shared: ObjectsSchemasList,
   objects: ObjectsSchemasList,
-  itemType: '_sections' | '_blocks'): SectionSchema {
+  itemType: '_sections' | '_blocks',
+  templateControls?: Record<string, any> | null): SectionSchema {
   try {
     const generalSettings = schema.excludeShared === true
       ? []
@@ -422,21 +423,15 @@ export function prepareSchema(schema: SectionSchema,
       })
     };
 
-    // here we should take general settings for shared["_controls"] by names
-    // example: the editor with type 'text' for all block should have one property changed
-    // So _controls may look like
-    // {
-    //    "text": {
-    //        "config": {
-    //        "language": "ru"
-    //        }
-    //    }
-    // }
-    // after the next operation all editors will have this setting
+    // Control overrides (3 levels, lowest to highest priority):
+    // 1. shared._controls   — global defaults for all control types
+    // 2. templateControls   — per-template overrides (e.g. page vs blog)
+    // 3. x (local)          — inline setting in the section/block schema
     return {
       ...orderedResult,
       settings: orderedResult.settings.map(x => ({
         ...(<any>shared?.['_controls'])?.[x.type],
+        ...templateControls?.[x.type],
         ...x,
       })),
     };
