@@ -113,16 +113,16 @@ export class ImpersonateAsComponent implements OnInit {
             const result = await firstValueFrom(this.http.doRequest<PreviewAccount[]>(request));
             if (result?.length) {
                 this.loadedAccounts.set(result);
-                this.restoreSelectedAccount(ids);
+                this.restoreSelectedAccount();
             }
         } catch (e) {
             console.error('Failed to load preview accounts:', e);
         }
     }
 
-    private restoreSelectedAccount(validIds: string[]) {
+    private restoreSelectedAccount() {
         const savedId = localStorage.getItem('pb.previewAccountId');
-        if (savedId && validIds.includes(savedId)) {
+        if (savedId && this.loadedAccounts().some(a => a.id === savedId)) {
             this.selectedId.set(savedId);
             this.store.dispatch(actions.sendPreviewAuth({ userId: savedId }));
         }
