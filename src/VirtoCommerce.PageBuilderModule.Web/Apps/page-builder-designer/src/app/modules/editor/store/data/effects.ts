@@ -168,18 +168,6 @@ export class TemplateEditorDataEffects {
         ])
     ));
 
-    passTemplateToPreview$ = createEffect(() => this.actions$.pipe(
-        ofType(shared.previewLoaded),
-        withLatestFrom(this.store$.select(selectors.changeTemplateContext)),
-        map(([, { template, templateEntry }]) => broadcastPreviewMessage({
-            msg: {
-                type: 'page',
-                template,
-                ...templateEntry?.previewMessage
-            }
-        }))
-    ));
-
     resendTemplateOnAccountChange$ = createEffect(() => this.actions$.pipe(
         ofType(shared.changePreviewAccount),
         switchMap(() => this.actions$.pipe(
