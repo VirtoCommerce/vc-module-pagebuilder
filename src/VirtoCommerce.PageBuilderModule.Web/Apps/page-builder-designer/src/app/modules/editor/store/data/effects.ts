@@ -4,7 +4,7 @@ import { ModalService } from '@core/services';
 import { Injectable, inject } from "@angular/core";
 
 import { of } from "rxjs";
-import { withLatestFrom, filter, map, catchError, switchMap, exhaustMap, tap, take } from "rxjs/operators";
+import { withLatestFrom, filter, map, catchError, switchMap, exhaustMap, tap } from "rxjs/operators";
 
 import { Store } from "@ngrx/store";
 import { Actions, createEffect, ofType } from "@ngrx/effects";
@@ -128,10 +128,11 @@ export class TemplateEditorDataEffects {
             this.store$.select(fromRoute.selectPathParameter),
             this.store$.select(fromRoute.selectTypeParameter),
             this.store$.select(fromRoute.selectGroupIdParameter),
+            this.store$.select(fromRoute.selectSectionIdParameter),
         ),
-        switchMap(([{ templateKey }, templateEntry, path, type, groupId]) => this.templates.getTemplate(path, type, templateEntry, groupId).pipe(
+        switchMap(([{ templateKey }, templateEntry, path, type, groupId, sectionId]) => this.templates.getTemplate(path, type, templateEntry, groupId).pipe(
             filter(template => !!template),
-            map(template => editorHelpers.prepareTemplate(template!)),
+            map(template => editorHelpers.prepareTemplate(template)),
             switchMap(template => [
                 actions.getTemplatePublishStatus({ templateKey }),
                 actions.loadTemplateModelSuccess({ template, templateKey }),
@@ -140,6 +141,7 @@ export class TemplateEditorDataEffects {
                     msg: {
                         type: 'page',
                         template,
+                        sectionId,
                         ...templateEntry?.previewMessage
                     }
                 })
@@ -169,11 +171,7 @@ export class TemplateEditorDataEffects {
     ));
 
     resendTemplateOnAccountChange$ = createEffect(() => this.actions$.pipe(
-        ofType(shared.changePreviewAccount),
-        switchMap(() => this.actions$.pipe(
-            ofType(shared.sendPreviewAuthSuccess, shared.sendPreviewAuthFailed),
-            take(1)
-        )),
+        ofType(shared.sendPreviewAuthSuccess),
         withLatestFrom(this.store$.select(selectors.changeTemplateContext)),
         map(([, { template, templateEntry }]) => broadcastPreviewMessage({
             msg: {
