@@ -6,7 +6,7 @@ import { catchError, switchMap, map, of, withLatestFrom, filter, tap, fromEvent 
 
 import { EventsBusService, NotificationsService } from "@core/services";
 import { TemplatesService, MetaDataService } from '@shared/services';
-import { AppConfig, ImpersonateService } from '../../integration/services';
+import { ImpersonateService } from '../../integration/services';
 
 import { BuilderState } from "./state";
 import * as actions from "./actions";
@@ -25,7 +25,6 @@ export class SharedEffects {
     private readonly notification = inject(NotificationsService);
     private readonly metaDataService = inject(MetaDataService);
     private readonly impersonateService = inject(ImpersonateService);
-    private readonly appConfig = inject(AppConfig);
 
     raiseInitModule$ = createEffect(() => this.actions$.pipe(
         ofType(ROUTER_NAVIGATED),
@@ -272,7 +271,14 @@ export class SharedEffects {
     previewLoaded$ = createEffect(() => this.actions$.pipe(
         ofType(actions.previewLoaded),
         tap(() => this.eventsBus.emit({ target: 'preview', payload: { type: 'preview-loaded' } })),
-        map(() => actions.setLivePreviewUrl())
+        switchMap(() => {
+            const savedUserId = localStorage.getItem('pb.previewAccountId');
+            const result: Action[] = [actions.setLivePreviewUrl()];
+            if (savedUserId) {
+                result.push(actions.sendPreviewAuth({ userId: savedUserId }));
+            }
+            return result;
+        })
     ));
 
     changePreviewAccount$ = createEffect(() => this.actions$.pipe(
