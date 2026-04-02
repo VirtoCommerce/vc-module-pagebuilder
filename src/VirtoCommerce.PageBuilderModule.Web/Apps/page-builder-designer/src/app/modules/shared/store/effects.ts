@@ -271,14 +271,7 @@ export class SharedEffects {
     previewLoaded$ = createEffect(() => this.actions$.pipe(
         ofType(actions.previewLoaded),
         tap(() => this.eventsBus.emit({ target: 'preview', payload: { type: 'preview-loaded' } })),
-        switchMap(() => {
-            const savedUserId = localStorage.getItem('pb.previewAccountId');
-            const result: Action[] = [actions.setLivePreviewUrl()];
-            if (savedUserId) {
-                result.push(actions.sendPreviewAuth({ userId: savedUserId }));
-            }
-            return result;
-        })
+        map(() => actions.setLivePreviewUrl())
     ));
 
     changePreviewAccount$ = createEffect(() => this.actions$.pipe(
