@@ -56,7 +56,7 @@ namespace VirtoCommerce.PageBuilderModule.Core
                 {
                     Name = "VirtoCommerce.PageBuilderModule.General.StoreUrl",
                     GroupName = "CMS Content|General",
-                    ValueType = SettingValueType.ShortText
+                    ValueType = SettingValueType.ShortText,
                 };
 
                 public static SettingDescriptor StorePreviewPath { get; } = new()
@@ -64,7 +64,7 @@ namespace VirtoCommerce.PageBuilderModule.Core
                     Name = "VirtoCommerce.PageBuilderModule.General.StorePreviewPath",
                     ValueType = SettingValueType.ShortText,
                     GroupName = "CMS Content|General",
-                    DefaultValue = "/designer-preview"
+                    DefaultValue = "/designer-preview",
                 };
 
                 public static IEnumerable<SettingDescriptor> AllGeneralSettings
@@ -84,7 +84,7 @@ namespace VirtoCommerce.PageBuilderModule.Core
                     Name = "VirtoCommerce.PageBuilderModule.Migration.MetadataFromContentMigrated",
                     GroupName = "CMS Content|Migration",
                     ValueType = SettingValueType.Boolean,
-                    DefaultValue = false
+                    DefaultValue = false,
                 };
                 public static IEnumerable<SettingDescriptor> AllMigrationSettings
                 {
@@ -102,7 +102,7 @@ namespace VirtoCommerce.PageBuilderModule.Core
                     Name = "VirtoCommerce.PageBuilderModule.Store.PreviewUserIds",
                     GroupName = "CMS Content|Page builder",
                     ValueType = SettingValueType.LongText,
-                    DefaultValue = ""
+                    DefaultValue = "",
                 };
 
                 public static IEnumerable<SettingDescriptor> AllStoreLevelSettings
