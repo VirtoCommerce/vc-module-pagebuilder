@@ -124,7 +124,6 @@ export class ImpersonateAsComponent implements OnInit {
         const savedId = localStorage.getItem('pb.previewAccountId');
         if (savedId && this.loadedAccounts().some(a => a.id === savedId)) {
             this.selectedId.set(savedId);
-            this.store.dispatch(actions.sendPreviewAuth({ userId: savedId }));
         }
     }
 }
