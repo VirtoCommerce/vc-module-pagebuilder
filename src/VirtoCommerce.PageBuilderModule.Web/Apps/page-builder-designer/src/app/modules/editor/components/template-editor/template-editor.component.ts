@@ -111,7 +111,7 @@ export class TemplateEditorComponent {
         this.store.dispatch(actions.executeContextMenuAction({ action: event, source: 'list', section, block }));
     }
 
-    readonly getPageActions = () => this.helper.getPageActions();
+    readonly getPageActions = () => this.helper.getPageActions(!!this.viewModel()?.selectMode);
 
     onMouseMove(args: MouseEvent) {
         let target = this.container().nativeElement;

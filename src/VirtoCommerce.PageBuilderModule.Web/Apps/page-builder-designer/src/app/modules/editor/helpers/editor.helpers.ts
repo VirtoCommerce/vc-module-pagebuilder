@@ -186,6 +186,10 @@ export function removeSection(template: TemplateModel, sectionId: string): Templ
   return { ...template, content: removeAt(template.content, sectionIndex) };
 }
 
+export function removeSections(template: TemplateModel, sectionIds: string[]): TemplateModel {
+  return { ...template, content: template.content.filter(item => !sectionIds.includes(item.id)) };
+}
+
 function generateModelBySettings(settings: SectionPropertyDescriptor[], mode: 'default' | 'preview' = 'default'): any {
   return (settings || []).map(x => {
     if (isElementType(x)) {

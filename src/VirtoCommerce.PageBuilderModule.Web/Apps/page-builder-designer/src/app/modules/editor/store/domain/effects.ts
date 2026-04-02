@@ -289,6 +289,38 @@ export class TemplateEditorDomainEffects {
             ))
     ));
 
+    deleteSelected$ = createEffect(() => this.actions$.pipe(
+        ofType(actions.executeContextMenuAction),
+        filter(({ action }) => action === 'delete-selected'),
+        withLatestFrom(
+            this.store$.select(selectors.changeTemplateContext),
+            this.store$.select(selectors.selectCheckedItems)
+        ),
+        filter(([, { template }, checkedItems]) => !!template && checkedItems.length > 0),
+        switchMap(([, { template, templateKey }, checkedItems]) =>
+            this.modals.confirm(`Are you sure you want to delete ${checkedItems.length} selected item(s)?`).pipe(
+                switchMap(confirmed => {
+                    if (!confirmed) {
+                        return [sharedActions.empty()];
+                    }
+                    const newTemplate = editorHelpers.removeSections(template!, checkedItems);
+                    return [
+                        actions.updateTemplateAction({
+                            template: newTemplate,
+                            templateKey
+                        }),
+                        sharedActions.broadcastPreviewMessage({
+                            msg: {
+                                type: 'reload',
+                                template: newTemplate
+                            }
+                        }),
+                        actions.closeAddItemPanel()
+                    ];
+                })
+            ))
+    ));
+
     orderSections$ = createEffect(() => this.actions$.pipe(
         ofType(actions.sortItems),
         filter(({ options }) => !options.parent),

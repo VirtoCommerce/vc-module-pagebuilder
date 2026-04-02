@@ -299,7 +299,7 @@ export class SharedEffects {
             if (!userId) {
                 this.eventsBus.emit({
                     target: 'preview',
-                    payload: { type: 'auth', token: null }
+                    payload: { type: 'auth', token: null, userId: null }
                 });
                 return of(actions.sendPreviewAuthSuccess());
             }
@@ -309,7 +309,8 @@ export class SharedEffects {
                         target: 'preview',
                         payload: {
                             type: 'auth',
-                            token: tokenResponse
+                            token: tokenResponse,
+                            userId
                         }
                     });
                 }),
