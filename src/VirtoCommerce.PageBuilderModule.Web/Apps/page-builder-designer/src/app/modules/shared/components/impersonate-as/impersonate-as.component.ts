@@ -108,12 +108,12 @@ export class ImpersonateAsComponent implements OnInit {
     }
 
     private async loadAccounts() {
-        const ids: string[] = this.appConfig.getValue('previewImpersonation' as any) || [];
+        const ids: string[] = this.appConfig.getValue('previewImpersonation') || [];
         if (!ids.length) {
             return;
         }
         try {
-            const requestConfig = this.appConfig.getValue('previewAccounts' as any);
+            const requestConfig = this.appConfig.getValue('previewAccounts');
             const request = this.http.generateRequest(requestConfig);
             const result = await firstValueFrom(this.http.doRequest<PreviewAccount[]>(request));
             if (result?.length) {
