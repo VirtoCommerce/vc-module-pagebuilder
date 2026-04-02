@@ -118,7 +118,7 @@ export class TemplateEditorComponent {
         const rect = target.getBoundingClientRect();
         const top = args.clientY - rect.top;
 
-        const w2 = rect.width / 2.0;
+        const w2 = rect.width / 2;
         this.addButtonOpacity.set(1 - Math.abs(w2 - args.clientX - rect.left) / w2);
 
         if (top < 0) {

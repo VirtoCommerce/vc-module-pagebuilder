@@ -14,13 +14,13 @@ type CustomRequests = CustomRequest | CustomRequest[] | null;
 })
 export class BuilderHttpClient extends HttpClient {
 
-    private _defaultOpts = {
+    private readonly _defaultOpts = {
         nullWhenError: true
     };
 
-    private cacheSize = 100;
+    private readonly cacheSize = 100;
 
-    private _cache: Map<string, any> = new Map();
+    private readonly _cache: Map<string, any> = new Map();
 
     private readonly evaluator = inject(EvaluatorService);
     private readonly appConfig = inject(AppConfig);
@@ -33,7 +33,7 @@ export class BuilderHttpClient extends HttpClient {
         if (!request) {
             return of(null);
         }
-        const requests = !Array.isArray(request) ? [request] : request;
+        const requests = Array.isArray(request) ? request : [request];
         return this.queueRequests(requests.shift(), requests, additionalOptions, context);
     }
 
@@ -48,7 +48,7 @@ export class BuilderHttpClient extends HttpClient {
                     console.log(error);
                     return this.queueRequests<T>((<any>requests).shift(), requests, additionalOptions, context);
                 }
-                if (!!(additionalOptions?.nullWhenError)) {
+                if (additionalOptions?.nullWhenError) {
                     return of(null);
                 }
                 throw error;
@@ -56,7 +56,7 @@ export class BuilderHttpClient extends HttpClient {
             switchMap(result => {
                 if (result === null || result === <any>'' || result === undefined) {
                     const fallbackValue = (request && typeof request !== 'string') ? request.fallbackValue : null;
-                    if (!!fallbackValue) {
+                    if (fallbackValue) {
                         return of(fallbackValue);
                     }
                     return this.queueRequests<T>((<any>requests).shift(), requests, additionalOptions, context);
@@ -83,7 +83,7 @@ export class BuilderHttpClient extends HttpClient {
         if (this._cache.has(cacheKey)) {
             result = of(this._cache.get(cacheKey));
         } else {
-            const uppercaseMethod = method && method.toUpperCase();
+            const uppercaseMethod = method?.toUpperCase();
             switch (uppercaseMethod) {
                 case 'POST':
                     result = super.post<T>(url, body, options);
@@ -159,17 +159,17 @@ export class BuilderHttpClient extends HttpClient {
             }
         };
 
-        if (!!evaluatedRequest.form) {
+        if (evaluatedRequest.form) {
             const form = new FormData();
-            if (!!evaluatedRequest.form.fileName) {
+            if (evaluatedRequest.form.fileName) {
                 form.append(evaluatedRequest.form.name, data, evaluatedRequest.form.fileName);
             } else {
                 form.append(evaluatedRequest.form.name, data);
             }
             result.body = form;
-        } else if (!!data) {
+        } else if (data) {
             const form = new FormData();
-            if (!!data.fileName) {
+            if (data.fileName) {
                 form.append(data.name, data.value, data.fileName);
             } else {
                 form.append(data.name, data.value);
@@ -180,13 +180,13 @@ export class BuilderHttpClient extends HttpClient {
         return result;
     }
 
-    private mapResponseToResult(response: any, descriptor: ServerResponseDescriptor | null, context: any | null): any {
+    private mapResponseToResult(response: any, descriptor: ServerResponseDescriptor | null, context: any): any {
         if (!descriptor) {
             return response;
         }
         let result = response;
-        if (!!result) {
-            if (!!descriptor.selector) {
+        if (result) {
+            if (descriptor.selector) {
                 const script = descriptor.selector;
                 result = appHelpers.evalInContext(script, { ...context, response: result }); // todo: maybe here should be some additional data
             }
@@ -199,7 +199,7 @@ export class BuilderHttpClient extends HttpClient {
             return result;
         }
 
-        if (descriptor.value && descriptor.value.length) {
+        if (descriptor.value?.length) {
             // we need to get value from response
             // result may be array or object
             // response also may be array or object
