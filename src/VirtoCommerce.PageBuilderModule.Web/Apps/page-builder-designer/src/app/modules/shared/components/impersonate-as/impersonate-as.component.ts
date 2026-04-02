@@ -1,4 +1,6 @@
-import { ChangeDetectionStrategy, Component, inject, signal, computed, OnInit, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal, computed, OnInit, input } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Actions, ofType } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
 import { firstValueFrom } from 'rxjs';
 import { ActionsDropdownComponent } from '@core/components/actions-dropdown/actions-dropdown.component';
@@ -25,6 +27,8 @@ interface PreviewAccount {
 export class ImpersonateAsComponent implements OnInit {
 
     private readonly store = inject(Store<BuilderState>);
+    private readonly actions$ = inject(Actions);
+    private readonly destroyRef = inject(DestroyRef);
     private readonly appConfig = inject(AppConfig);
     private readonly http = inject(BuilderHttpClient);
 
@@ -88,6 +92,7 @@ export class ImpersonateAsComponent implements OnInit {
 
     ngOnInit() {
         this.loadAccounts();
+        this.listenForPreviewLoaded();
     }
 
     onDropdownSelected(action: ActionButtonDescriptor) {
@@ -126,5 +131,17 @@ export class ImpersonateAsComponent implements OnInit {
             this.selectedId.set(savedId);
             this.store.dispatch(actions.sendPreviewAuth({ userId: savedId }));
         }
+    }
+
+    private listenForPreviewLoaded() {
+        this.actions$.pipe(
+            ofType(actions.previewLoaded),
+            takeUntilDestroyed(this.destroyRef)
+        ).subscribe(() => {
+            const userId = this.selectedId();
+            if (userId) {
+                this.store.dispatch(actions.sendPreviewAuth({ userId }));
+            }
+        });
     }
 }
