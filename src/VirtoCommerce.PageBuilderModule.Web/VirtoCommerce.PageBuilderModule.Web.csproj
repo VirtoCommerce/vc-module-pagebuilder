@@ -13,10 +13,6 @@
     <ProjectReference Include="..\VirtoCommerce.PageBuilderModule.Data\VirtoCommerce.PageBuilderModule.Data.csproj" />
   </ItemGroup>
   
-  <ItemGroup>
-    <PageBuilderApp Include="page-builder\dist\**" />
-  </ItemGroup>
-  
   <Target Name="CopyCustomContentOnPublish" AfterTargets="Publish">
     <Copy SourceFiles="@(PageBuilderApp)" DestinationFiles="$(PublishDir)\..\%(Identity)" />
   </Target>
