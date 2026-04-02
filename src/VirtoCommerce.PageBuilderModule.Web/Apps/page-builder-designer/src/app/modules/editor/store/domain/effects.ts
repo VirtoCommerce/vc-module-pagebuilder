@@ -294,16 +294,20 @@ export class TemplateEditorDomainEffects {
         filter(({ action }) => action === 'delete-selected'),
         withLatestFrom(
             this.store$.select(selectors.changeTemplateContext),
-            this.store$.select(selectors.selectCheckedItems)
+            this.store$.select(selectors.selectCheckedItems),
+            this.store$.select(selectors.hasSelectedSection),
+            this.store$.select(selectors.selectKeyOfSectionWithSelectedBlock)
         ),
         filter(([, { template }, checkedItems]) => !!template && checkedItems.length > 0),
-        switchMap(([, { template, templateKey }, checkedItems]) =>
+        switchMap(([, { template, templateKey }, checkedItems, isSectionSelected, sectionKeyWithSelectedBlock]) =>
             this.modals.confirm(`Are you sure you want to delete ${checkedItems.length} selected item(s)?`).pipe(
                 switchMap(confirmed => {
                     if (!confirmed) {
                         return [sharedActions.empty()];
                     }
-                    const newTemplate = editorHelpers.removeSections(template!, checkedItems);
+                    const newTemplate = isSectionSelected
+                        ? editorHelpers.removeSections(template!, checkedItems)
+                        : editorHelpers.removeBlocks(template!, sectionKeyWithSelectedBlock!, checkedItems);
                     return [
                         actions.updateTemplateAction({
                             template: newTemplate,

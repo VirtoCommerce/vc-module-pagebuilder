@@ -190,6 +190,16 @@ export function removeSections(template: TemplateModel, sectionIds: string[]): T
   return { ...template, content: template.content.filter(item => !sectionIds.includes(item.id)) };
 }
 
+export function removeBlocks(template: TemplateModel, sectionId: string, blockIds: string[]): TemplateModel {
+  const sectionIndex = template.content.findIndex(item => item.id === sectionId);
+  if (sectionIndex < 0) {
+    return template;
+  }
+  const section = template.content[sectionIndex];
+  const newSection = { ...section, blocks: section.blocks.filter(block => !blockIds.includes(block.id)) };
+  return { ...template, content: replaceAt(template.content, sectionIndex, newSection) };
+}
+
 function generateModelBySettings(settings: SectionPropertyDescriptor[], mode: 'default' | 'preview' = 'default'): any {
   return (settings || []).map(x => {
     if (isElementType(x)) {

@@ -78,12 +78,12 @@ export const selectCheckedItems = createSelector(
   state => getSelectedIds(state?.sections || {})
 );
 
-const hasSelectedSection = createSelector(
+export const hasSelectedSection = createSelector(
   fromDomain.selectCurrentTemplateState,
   state => !!state?.sections && Object.values(state.sections).some(x => x.selected)
 );
 
-const selectKeyOfSectionWithSelectedBlock = createSelector(
+export const selectKeyOfSectionWithSelectedBlock = createSelector(
   fromDomain.selectCurrentTemplateState,
   state => Object.keys(state?.sections || {}).find(x => Object.values(state?.sections[x].blocks || {}).some(b => b.selected))
 );
