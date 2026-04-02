@@ -174,10 +174,11 @@ export class TemplateEditorDataEffects {
         ofType(shared.sendPreviewAuthSuccess, shared.previewLoaded),
         withLatestFrom(this.store$.select(selectors.changeTemplateContext)),
         filter(([, { template }]) => !!template),
-        map(([, { template, templateEntry }]) => broadcastPreviewMessage({
+        map(([, { template, templateEntry, sectionId }]) => broadcastPreviewMessage({
             msg: {
                 type: 'page',
                 template,
+                sectionId,
                 ...templateEntry?.previewMessage
             }
         }))
