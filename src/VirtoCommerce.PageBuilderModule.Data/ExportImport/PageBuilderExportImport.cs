@@ -172,15 +172,13 @@ public sealed class PageBuilderExportImport(
         group.EndDate = exportPage.EndDate;
 
         // Add missing variants
-        foreach (var variant in exportPage.Variants)
+        var existingStatuses = group.Pages.Select(p => p.Status).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (var variant in exportPage.Variants.Where(v => !existingStatuses.Contains(v.Status)))
         {
-            if (group.Pages.All(p => p.Status != variant.Status))
-            {
-                var page = AbstractTypeFactory<PageBuilderPage>.TryCreateInstance();
-                page.Status = variant.Status;
-                page.StoreId = exportPage.StoreId;
-                group.Pages.Add(page);
-            }
+            var page = AbstractTypeFactory<PageBuilderPage>.TryCreateInstance();
+            page.Status = variant.Status;
+            page.StoreId = exportPage.StoreId;
+            group.Pages.Add(page);
         }
 
         await groupedPageService.SaveChangesAsync([group]);
