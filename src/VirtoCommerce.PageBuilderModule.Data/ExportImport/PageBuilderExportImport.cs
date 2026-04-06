@@ -172,7 +172,7 @@ public sealed class PageBuilderExportImport(
         group.EndDate = exportPage.EndDate;
 
         // Add missing variants
-        var existingStatuses = group.Pages.Select(p => p.Status).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var existingStatuses = group.Pages.Select(p => p.Status).ToHashSet();
         foreach (var variant in exportPage.Variants.Where(v => !existingStatuses.Contains(v.Status)))
         {
             var page = AbstractTypeFactory<PageBuilderPage>.TryCreateInstance();
