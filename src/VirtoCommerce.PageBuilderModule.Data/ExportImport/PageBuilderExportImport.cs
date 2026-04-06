@@ -220,6 +220,9 @@ public sealed class PageBuilderExportImport(
 
         await groupedPageService.SaveChangesAsync([newGroup]);
 
+        // Reload to get IDs for newly created pages
+        newGroup = await groupedPageService.GetByIdAsync(newGroup.Id);
+
         // Save content for each variant using index to preserve 1:1 correspondence
         for (var i = 0; i < exportPage.Variants.Count && i < newGroup.Pages.Count; i++)
         {
