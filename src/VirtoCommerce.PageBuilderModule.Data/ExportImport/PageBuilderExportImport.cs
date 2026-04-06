@@ -7,7 +7,7 @@ using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.ExportImport;
-using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
+
 
 namespace VirtoCommerce.PageBuilderModule.Data.ExportImport;
 
@@ -172,7 +172,7 @@ public sealed class PageBuilderExportImport(
             EndDate = group.EndDate,
         };
 
-        foreach (var page in group.Pages.Where(p => p.Status != Archived))
+        foreach (var page in group.Pages)
         {
             var content = await groupedPageService.LoadContent(page.Id);
             exportPage.Variants.Add(new PageBuilderExportPageVariant
