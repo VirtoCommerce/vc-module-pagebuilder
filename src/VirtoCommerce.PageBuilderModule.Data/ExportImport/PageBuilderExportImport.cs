@@ -138,12 +138,28 @@ public sealed class PageBuilderExportImport(
         criteria.StoreId = storeId;
         criteria.Keyword = permalink;
         criteria.Take = BatchSize;
+        criteria.Skip = 0;
 
-        var searchResult = await groupedPageSearchService.SearchNoCloneAsync(criteria);
+        int totalCount;
+        do
+        {
+            var searchResult = await groupedPageSearchService.SearchNoCloneAsync(criteria);
+            totalCount = searchResult.TotalCount;
 
-        return searchResult.Results.FirstOrDefault(g =>
-            string.Equals(g.Permalink, permalink, StringComparison.OrdinalIgnoreCase) &&
-            string.Equals(g.CultureName, cultureName, StringComparison.OrdinalIgnoreCase));
+            var match = searchResult.Results.FirstOrDefault(g =>
+                string.Equals(g.Permalink, permalink, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(g.CultureName, cultureName, StringComparison.OrdinalIgnoreCase));
+
+            if (match != null)
+            {
+                return match;
+            }
+
+            criteria.Skip += BatchSize;
+        }
+        while (criteria.Skip < totalCount);
+
+        return null;
     }
 
     private async Task UpdateExistingGroupAsync(GroupedPageBuilderPage group, PageBuilderExportPage exportPage)
