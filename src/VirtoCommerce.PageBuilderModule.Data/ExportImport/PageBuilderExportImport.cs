@@ -155,7 +155,22 @@ public sealed class PageBuilderExportImport(
         group.StartDate = exportPage.StartDate;
         group.EndDate = exportPage.EndDate;
 
+        // Add missing variants
+        foreach (var variant in exportPage.Variants)
+        {
+            if (group.Pages.All(p => p.Status != variant.Status))
+            {
+                var page = AbstractTypeFactory<PageBuilderPage>.TryCreateInstance();
+                page.Status = variant.Status;
+                page.StoreId = exportPage.StoreId;
+                group.Pages.Add(page);
+            }
+        }
+
         await groupedPageService.SaveChangesAsync([group]);
+
+        // Reload to get IDs for newly created pages
+        group = await groupedPageService.GetByIdAsync(group.Id);
 
         foreach (var variant in exportPage.Variants)
         {
@@ -190,13 +205,13 @@ public sealed class PageBuilderExportImport(
 
         await groupedPageService.SaveChangesAsync([newGroup]);
 
-        // Save content for each variant
-        foreach (var variant in exportPage.Variants)
+        // Save content for each variant using index to preserve 1:1 correspondence
+        for (var i = 0; i < exportPage.Variants.Count && i < newGroup.Pages.Count; i++)
         {
-            var savedPage = newGroup.Pages.FirstOrDefault(p => p.Status == variant.Status);
-            if (savedPage != null && !string.IsNullOrEmpty(variant.Content))
+            var variant = exportPage.Variants[i];
+            if (!string.IsNullOrEmpty(variant.Content))
             {
-                await groupedPageService.SaveContent(savedPage.Id, variant.Content);
+                await groupedPageService.SaveContent(newGroup.Pages[i].Id, variant.Content);
             }
         }
     }
