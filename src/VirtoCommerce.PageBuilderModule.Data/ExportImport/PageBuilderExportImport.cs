@@ -124,6 +124,55 @@ public sealed class PageBuilderExportImport(
 
     private async Task ImportPageAsync(PageBuilderExportPage exportPage)
     {
+        var existingGroup = await FindExistingGroupAsync(exportPage.StoreId, exportPage.Permalink, exportPage.CultureName);
+
+        if (existingGroup != null)
+        {
+            await UpdateExistingGroupAsync(existingGroup, exportPage);
+        }
+        else
+        {
+            await CreateNewGroupAsync(exportPage);
+        }
+    }
+
+    private async Task<GroupedPageBuilderPage> FindExistingGroupAsync(string storeId, string permalink, string cultureName)
+    {
+        var criteria = AbstractTypeFactory<PageBuilderPageSearchCriteria>.TryCreateInstance();
+        criteria.StoreId = storeId;
+        criteria.Keyword = permalink;
+        criteria.Take = BatchSize;
+
+        var searchResult = await groupedPageSearchService.SearchNoCloneAsync(criteria);
+
+        return searchResult.Results.FirstOrDefault(g =>
+            string.Equals(g.Permalink, permalink, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(g.CultureName, cultureName, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private async Task UpdateExistingGroupAsync(GroupedPageBuilderPage group, PageBuilderExportPage exportPage)
+    {
+        group.Name = exportPage.Name;
+        group.Visibility = exportPage.Visibility;
+        group.UserGroups = exportPage.UserGroups;
+        group.OrganizationId = exportPage.OrganizationId;
+        group.StartDate = exportPage.StartDate;
+        group.EndDate = exportPage.EndDate;
+
+        await groupedPageService.SaveChangesAsync([group]);
+
+        foreach (var variant in exportPage.Variants)
+        {
+            var existingPage = group.Pages.FirstOrDefault(p => p.Status == variant.Status);
+            if (existingPage != null && !string.IsNullOrEmpty(variant.Content))
+            {
+                await groupedPageService.SaveContent(existingPage.Id, variant.Content);
+            }
+        }
+    }
+
+    private async Task CreateNewGroupAsync(PageBuilderExportPage exportPage)
+    {
         var newGroup = AbstractTypeFactory<GroupedPageBuilderPage>.TryCreateInstance();
         newGroup.Name = exportPage.Name;
         newGroup.Permalink = exportPage.Permalink;
@@ -146,9 +195,8 @@ public sealed class PageBuilderExportImport(
         await groupedPageService.SaveChangesAsync([newGroup]);
 
         // Save content for each variant
-        for (var i = 0; i < exportPage.Variants.Count; i++)
+        foreach (var variant in exportPage.Variants)
         {
-            var variant = exportPage.Variants[i];
             var savedPage = newGroup.Pages.FirstOrDefault(p => p.Status == variant.Status);
             if (savedPage != null && !string.IsNullOrEmpty(variant.Content))
             {
