@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -38,18 +39,11 @@ public sealed class PageBuilderExportImport(
 
         var criteria = AbstractTypeFactory<PageBuilderPageSearchCriteria>.TryCreateInstance();
         criteria.Take = BatchSize;
-        criteria.Skip = 0;
-
-        // First, get total count
-        var initialResult = await groupedPageSearchService.SearchNoCloneAsync(criteria);
-        var totalCount = initialResult.TotalCount;
 
         var processedCount = 0;
 
-        for (var i = 0; i < totalCount; i += BatchSize)
+        for (criteria.Skip = 0; ; criteria.Skip += BatchSize)
         {
-            criteria.Skip = i;
-            criteria.Take = BatchSize;
             var searchResult = await groupedPageSearchService.SearchNoCloneAsync(criteria);
 
             foreach (var group in searchResult.Results)
@@ -63,10 +57,15 @@ public sealed class PageBuilderExportImport(
 
             await writer.FlushAsync();
 
-            progressInfo.Description = $"{processedCount} of {totalCount} page builder pages have been exported";
+            progressInfo.Description = $"{processedCount} of {searchResult.TotalCount} page builder pages have been exported";
             progressInfo.ProcessedCount = processedCount;
-            progressInfo.TotalCount = totalCount;
+            progressInfo.TotalCount = searchResult.TotalCount;
             progressCallback(progressInfo);
+
+            if (criteria.Skip + BatchSize >= searchResult.TotalCount)
+            {
+                break;
+            }
         }
 
         await writer.WriteEndArrayAsync();
@@ -187,14 +186,7 @@ public sealed class PageBuilderExportImport(
         // Reload to get IDs for newly created pages
         group = await groupedPageService.GetByIdAsync(group.Id);
 
-        foreach (var variant in exportPage.Variants)
-        {
-            var existingPage = group.Pages.FirstOrDefault(p => p.Status == variant.Status);
-            if (existingPage != null && !string.IsNullOrEmpty(variant.Content))
-            {
-                await groupedPageService.SaveContent(existingPage.Id, variant.Content);
-            }
-        }
+        await SaveVariantsContentAsync(group.Pages, exportPage.Variants);
     }
 
     private async Task CreateNewGroupAsync(PageBuilderExportPage exportPage)
@@ -223,13 +215,20 @@ public sealed class PageBuilderExportImport(
         // Reload to get IDs for newly created pages
         newGroup = await groupedPageService.GetByIdAsync(newGroup.Id);
 
-        // Save content for each variant using index to preserve 1:1 correspondence
-        for (var i = 0; i < exportPage.Variants.Count && i < newGroup.Pages.Count; i++)
+        await SaveVariantsContentAsync(newGroup.Pages, exportPage.Variants);
+    }
+
+    private async Task SaveVariantsContentAsync(IList<PageBuilderPage> pages, IList<PageBuilderExportPageVariant> variants)
+    {
+        var usedPageIds = new HashSet<string>();
+
+        foreach (var variant in variants)
         {
-            var variant = exportPage.Variants[i];
-            if (!string.IsNullOrEmpty(variant.Content))
+            var matchedPage = pages.FirstOrDefault(p => p.Status == variant.Status && !usedPageIds.Contains(p.Id));
+            if (matchedPage != null && !string.IsNullOrEmpty(variant.Content))
             {
-                await groupedPageService.SaveContent(newGroup.Pages[i].Id, variant.Content);
+                await groupedPageService.SaveContent(matchedPage.Id, variant.Content);
+                usedPageIds.Add(matchedPage.Id);
             }
         }
     }
