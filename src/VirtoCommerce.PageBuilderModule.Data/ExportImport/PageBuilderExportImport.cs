@@ -94,16 +94,14 @@ public sealed class PageBuilderExportImport(
 
     private async Task ImportPagesArrayAsync(JsonTextReader reader, ExportImportProgressInfo progressInfo, Action<ExportImportProgressInfo> progressCallback, ICancellationToken cancellationToken)
     {
-        await reader.ReadAsync();
-        if (reader.TokenType != JsonToken.StartArray)
+        if (!await reader.ReadAsync() || reader.TokenType != JsonToken.StartArray)
         {
             return;
         }
 
-        await reader.ReadAsync();
         var processedCount = 0;
 
-        while (reader.TokenType != JsonToken.EndArray)
+        while (await reader.ReadAsync() && reader.TokenType != JsonToken.EndArray)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -117,8 +115,6 @@ public sealed class PageBuilderExportImport(
                 progressInfo.ProcessedCount = processedCount;
                 progressCallback(progressInfo);
             }
-
-            await reader.ReadAsync();
         }
     }
 
