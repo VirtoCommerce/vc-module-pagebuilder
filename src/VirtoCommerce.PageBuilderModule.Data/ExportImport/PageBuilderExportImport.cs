@@ -120,10 +120,11 @@ public sealed class PageBuilderExportImport(
 
     private async Task ImportPageAsync(PageBuilderExportPage exportPage)
     {
-        var existingGroup = await FindExistingGroupAsync(exportPage.StoreId, exportPage.Permalink, exportPage.CultureName);
+        var existingGroupId = await FindExistingGroupIdAsync(exportPage.StoreId, exportPage.Permalink, exportPage.CultureName);
 
-        if (existingGroup != null)
+        if (existingGroupId != null)
         {
+            var existingGroup = await groupedPageService.GetByIdAsync(existingGroupId);
             await UpdateExistingGroupAsync(existingGroup, exportPage);
         }
         else
@@ -132,7 +133,7 @@ public sealed class PageBuilderExportImport(
         }
     }
 
-    private async Task<GroupedPageBuilderPage> FindExistingGroupAsync(string storeId, string permalink, string cultureName)
+    private async Task<string> FindExistingGroupIdAsync(string storeId, string permalink, string cultureName)
     {
         var criteria = AbstractTypeFactory<PageBuilderPageSearchCriteria>.TryCreateInstance();
         criteria.StoreId = storeId;
@@ -152,7 +153,7 @@ public sealed class PageBuilderExportImport(
 
             if (match != null)
             {
-                return match;
+                return match.Id;
             }
 
             criteria.Skip += BatchSize;
