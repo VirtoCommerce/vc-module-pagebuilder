@@ -35,6 +35,21 @@ The page is created in the builder as a list of blocks with specific settings ap
 * Integration with Virto Frontend.
 * Native Extensibility Framework.
 * Permissions.
+* Platform Backup & Restore support.
+
+## Backup & Restore
+
+Page Builder pages are included in the platform-wide backup and restore process.
+
+When you run a platform export, all Page Builder pages (metadata, Draft and Published variants, and their JSON content) are serialized into the backup archive. Archived pages are excluded.
+
+On import, pages are recreated with new identifiers, preserving all metadata and content.
+
+To run backup/restore:
+1. Open Virto Commerce Admin UI.
+1. Navigate to **Settings → Platform → Export** (or **Import**).
+1. Ensure **Page Builder Module** is selected in the module list.
+1. Run the export/import process.
 
 ## Getting started
 

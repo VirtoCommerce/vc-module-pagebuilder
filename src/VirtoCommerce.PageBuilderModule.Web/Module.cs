@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -17,10 +18,13 @@ using VirtoCommerce.PageBuilderModule.Data.Handlers;
 using VirtoCommerce.PageBuilderModule.Data.MySql;
 using VirtoCommerce.PageBuilderModule.Data.PostgreSql;
 using VirtoCommerce.PageBuilderModule.Data.Repositories;
+using VirtoCommerce.PageBuilderModule.Data.ExportImport;
 using VirtoCommerce.PageBuilderModule.Data.Search;
 using VirtoCommerce.PageBuilderModule.Data.Services;
 using VirtoCommerce.PageBuilderModule.Data.SqlServer;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Events;
+using VirtoCommerce.Platform.Core.ExportImport;
 using VirtoCommerce.Platform.Core.Modularity;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.Platform.Core.Settings;
@@ -30,8 +34,10 @@ using VirtoCommerce.Platform.Data.SqlServer.Extensions;
 
 namespace VirtoCommerce.PageBuilderModule.Web
 {
-    public class Module : IModule, IHasConfiguration
+    public class Module : IModule, IExportSupport, IImportSupport, IHasConfiguration
     {
+        private IApplicationBuilder _appBuilder;
+
         public ManifestModuleInfo ModuleInfo { get; set; }
         public IConfiguration Configuration { get; set; }
 
@@ -72,6 +78,7 @@ namespace VirtoCommerce.PageBuilderModule.Web
 
             serviceCollection.AddTransient<IAuthorizationHandler, PageBuilderAuthorizationHandler>();
             serviceCollection.AddTransient<IPagesMigrationService, PagesMigrationService>();
+            serviceCollection.AddTransient<PageBuilderExportImport>();
 
             var isFullTextSearchEnabled = Configuration.IsContentFullTextSearchEnabled();
 
@@ -94,6 +101,7 @@ namespace VirtoCommerce.PageBuilderModule.Web
 
         public void PostInitialize(IApplicationBuilder appBuilder)
         {
+            _appBuilder = appBuilder;
             var serviceProvider = appBuilder.ApplicationServices;
 
             var settingsRegistrar = serviceProvider.GetRequiredService<ISettingsRegistrar>();
@@ -143,6 +151,20 @@ namespace VirtoCommerce.PageBuilderModule.Web
         public void Uninstall()
         {
             // Method intentionally left empty.
+        }
+
+        public Task ExportAsync(Stream outStream, ExportImportOptions options, Action<ExportImportProgressInfo> progressCallback,
+            ICancellationToken cancellationToken)
+        {
+            return _appBuilder.ApplicationServices.GetRequiredService<PageBuilderExportImport>().DoExportAsync(outStream,
+                progressCallback, cancellationToken);
+        }
+
+        public Task ImportAsync(Stream inputStream, ExportImportOptions options, Action<ExportImportProgressInfo> progressCallback,
+            ICancellationToken cancellationToken)
+        {
+            return _appBuilder.ApplicationServices.GetRequiredService<PageBuilderExportImport>().DoImportAsync(inputStream,
+                progressCallback, cancellationToken);
         }
     }
 }
