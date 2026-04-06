@@ -41,7 +41,7 @@ The page is created in the builder as a list of blocks with specific settings ap
 
 Page Builder pages are included in the platform-wide backup and restore process.
 
-When you run a platform export, all Page Builder pages (metadata, Draft and Published variants, and their JSON content) are serialized into the backup archive. Archived pages are excluded.
+When you run a platform export, all Page Builder pages (metadata and all variants including Draft, Published, and Archived) along with their JSON content are serialized into the backup archive.
 
 On import, pages are recreated with new identifiers, preserving all metadata and content.
 
