@@ -17,7 +17,8 @@
         "TOOLBAR": {
           "ADD": "Add",
           "REFRESH": "Refresh",
-          "REMOVE": "Archive"
+          "REMOVE": "Archive",
+          "LOAD": "Load content"
         },
         "SEARCH": {
           "PLACEHOLDER": "Search keywords"
@@ -69,7 +70,9 @@
           "PREVIEW": "Preview",
           "DESIGNER": "Open designer",
           "PUBLISH": "Publish",
-          "UNPUBLISH": "Unpublish"
+          "UNPUBLISH": "Unpublish",
+          "DOWNLOAD_CONTENT": "Save content",
+          "CLONE": "Clone"
         },
         "FIELDS": {
           "NAME": "Name",

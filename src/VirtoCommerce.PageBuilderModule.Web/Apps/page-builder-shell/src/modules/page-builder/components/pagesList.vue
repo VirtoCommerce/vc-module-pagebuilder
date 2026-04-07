@@ -60,6 +60,13 @@
       </div>
     </template>
   </VcTable>
+  <input
+    ref="fileInputRef"
+    type="file"
+    accept=".json"
+    style="display: none"
+    @change="onFileSelected"
+  />
 </template>
 <script lang="ts" setup>
 import { ref, Ref, computed, watch, onMounted, readonly } from "vue";
@@ -101,6 +108,7 @@ const { items, totalCount, pages, currentPage, searchQuery, loadPages, removePag
 
 const selectedItemId = ref<string>();
 const selectedItems = ref<string[]>([]);
+const fileInputRef = ref<HTMLInputElement | null>(null);
 const searchValue = ref<string>();
 const statusFilters = ref({ statuses: undefined }) as Ref<{ statuses: string | undefined }>;
 const filtersQuery = ref();
@@ -228,6 +236,25 @@ watch(
   { immediate: true },
 );
 
+function openLoadFlow() {
+  fileInputRef.value?.click();
+}
+
+function onFileSelected(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
+  input.value = "";
+
+  openBlade({
+    blade: { name: "PageDetails" },
+    options: {
+      storeId: storeId.value ?? undefined,
+      importFile: file,
+    },
+  });
+}
+
 async function openAddBlade() {
   openBlade({
     blade: { name: "PageDetails" },
@@ -306,6 +333,7 @@ export interface ExposedPagesList {
   removeSelectedPages: () => Promise<void>;
   onItemClick: (item: GroupedPageBuilderPage) => void;
   openAddBlade: () => Promise<void>;
+  openLoadFlow: () => void;
 }
 
 defineExpose<ExposedPagesList>({
@@ -314,5 +342,6 @@ defineExpose<ExposedPagesList>({
   removeSelectedPages,
   onItemClick,
   openAddBlade,
+  openLoadFlow,
 });
 </script>

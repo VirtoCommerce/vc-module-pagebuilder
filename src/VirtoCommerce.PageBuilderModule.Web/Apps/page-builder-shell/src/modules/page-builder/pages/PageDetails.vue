@@ -197,6 +197,7 @@ interface Props {
   param?: string;
   options?: {
     storeId?: string;
+    importFile?: File;
   };
 }
 
@@ -232,11 +233,14 @@ const {
   publishGroup,
   unpublishGroup,
   openDraftDesigner,
+  downloadContent,
+  clonePage,
   loadUserGroups,
   loadOrganizations,
 } = usePageBuilderDetails({
   id: props.param,
   storeId: props.options?.storeId,
+  importFile: props.options?.importFile,
 });
 
 const bladeTitle = computed(() => {
@@ -298,6 +302,28 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     disabled: !props.param || isReadOnly.value,
     clickHandler: () => {
       openDraftDesigner();
+    },
+  },
+  {
+    id: "downloadContent",
+    icon: "material-download",
+    title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.DOWNLOAD_CONTENT"),
+    disabled: !props.param || isReadOnly.value,
+    clickHandler: async () => {
+      await downloadContent();
+    },
+  },
+  {
+    id: "clonePage",
+    icon: "material-content_copy",
+    title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.CLONE"),
+    disabled: !props.param || isReadOnly.value,
+    clickHandler: async () => {
+      const cloned = await clonePage();
+      emit("parent:call", { method: "reload" });
+      if (cloned?.id) {
+        emit("parent:call", { method: "onItemClick", args: cloned });
+      }
     },
   },
   {

@@ -9,6 +9,7 @@ import {
 import useUserGroups, { IUserGroupsResult } from "./../useUserGroups";
 import useOrganizations, { IOrganizationsResult } from "./../useOrganizations";
 import useUrlParams from "../useStoreParams";
+import { downloadPageContent, uploadPageContent } from "../usePageContentApi";
 
 const { getApiClient } = useApiClient(PageBuilderPageClient);
 
@@ -27,11 +28,14 @@ export interface IUsePageBuilderDetails {
   publishGroup: () => Promise<void>;
   unpublishGroup: () => Promise<void>;
   openDraftDesigner: () => void;
+  downloadContent: () => Promise<void>;
+  clonePage: () => Promise<GroupedPageBuilderPage>;
 }
 
 export interface UsePageBuilderDetailsOptions {
   id?: string;
   storeId?: string;
+  importFile?: File;
 }
 
 export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): IUsePageBuilderDetails {
@@ -67,6 +71,10 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
     if (isNew.value) {
       group.storeId = groupStoreId;
       result = await apiClient.createGroup(group);
+
+      if (options?.importFile && result.id) {
+        await uploadPageContent(result.id, options.importFile);
+      }
     } else {
       result = await apiClient.updateGroup(group);
     }
@@ -112,6 +120,39 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
     if (currentValue.value) {
       await loadGroup();
     }
+  });
+
+  const { action: downloadContent, loading: downloadingContent } = useAsync(async () => {
+    const groupId = currentValue.value?.id;
+    if (!groupId) {
+      throw new Error("Can't download content.");
+    }
+    await downloadPageContent(groupId, currentValue.value.name || "page");
+  });
+
+  const { action: clonePage, loading: cloningPage } = useAsync(async () => {
+    const source = currentValue.value;
+    if (!source?.id) {
+      throw new Error("Can't clone page.");
+    }
+
+    const clone = new GroupedPageBuilderPage();
+    clone.name = `${source.name} (copy)`;
+    clone.permalink = `${source.permalink}-copy`;
+    clone.cultureName = source.cultureName;
+    clone.storeId = source.storeId;
+    clone.visibility = source.visibility;
+    clone.userGroups = source.userGroups;
+    clone.organizationId = source.organizationId;
+
+    const apiClient = await getApiClient();
+    const created = await apiClient.createGroup(clone);
+
+    if (created.id && source.id) {
+      await apiClient.copyPageContent(created.id, source.id);
+    }
+
+    return created;
   });
 
   function openDraftDesigner() {
@@ -165,7 +206,7 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
     item: currentValue,
     status,
     isModified,
-    loading: useLoading(loadingGroup, savingGroup, deletingGroup, publishingGroup, unpublishingGroup),
+    loading: useLoading(loadingGroup, savingGroup, deletingGroup, publishingGroup, unpublishingGroup, downloadingContent, cloningPage),
     loadGroup,
     saveGroup,
     deleteGroup,
@@ -176,5 +217,7 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
     publishGroup,
     unpublishGroup,
     openDraftDesigner,
+    downloadContent,
+    clonePage,
   };
 }
