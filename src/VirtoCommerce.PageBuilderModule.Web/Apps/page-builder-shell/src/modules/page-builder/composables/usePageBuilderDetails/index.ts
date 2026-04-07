@@ -72,15 +72,20 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
       group.storeId = groupStoreId;
       result = await apiClient.createGroup(group);
 
+      // Update state before upload so a failed upload won't cause duplicate createGroup on retry
+      currentValue.value = reactive(result);
+      isNew.value = false;
+      resetModificationState();
+
       if (options?.importFile && result.id) {
         await uploadPageContent(result.id, options.importFile);
       }
     } else {
       result = await apiClient.updateGroup(group);
+      currentValue.value = reactive(result);
+      resetModificationState();
     }
 
-    currentValue.value = reactive(result);
-    resetModificationState();
     return result;
   });
 
