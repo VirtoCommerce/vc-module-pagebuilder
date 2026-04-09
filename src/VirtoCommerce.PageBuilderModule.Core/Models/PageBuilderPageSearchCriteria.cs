@@ -17,4 +17,5 @@ public class PageBuilderPageSearchCriteria : SearchCriteriaBase, IHasStoreId
     public DateTime? ActiveOn { get; set; }
 
     public DateTime? ModifiedSince { get; set; }
+    public DateTime? ModifiedBefore { get; set; }
 }

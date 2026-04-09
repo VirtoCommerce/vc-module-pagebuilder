@@ -65,15 +65,14 @@ public class PageBuilderContentProvider(
         return result;
     }
 
-#pragma warning disable S1172
     private static PageBuilderPageSearchCriteria CreateSearchCriteria(DateTime? startDate, DateTime? endDate, long skip, long take)
-#pragma warning restore S1172
     {
         var criteria = AbstractTypeFactory<PageBuilderPageSearchCriteria>.TryCreateInstance();
         criteria.Statuses = "Published";
         criteria.Skip = Convert.ToInt32(skip);
         criteria.Take = Convert.ToInt32(take);
         criteria.ModifiedSince = startDate;
+        criteria.ModifiedBefore = endDate;
 
         return criteria;
     }

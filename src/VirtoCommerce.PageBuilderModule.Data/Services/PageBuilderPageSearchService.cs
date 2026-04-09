@@ -43,6 +43,11 @@ public class PageBuilderPageSearchService(
             query = query.Where(x => x.ModifiedDate >= criteria.ModifiedSince.Value || x.CreatedDate >= criteria.ModifiedSince.Value);
         }
 
+        if (criteria.ModifiedBefore.HasValue)
+        {
+            query = query.Where(x => x.ModifiedDate <= criteria.ModifiedBefore.Value || (x.ModifiedDate == null && x.CreatedDate <= criteria.ModifiedBefore.Value));
+        }
+
         return query;
     }
 
