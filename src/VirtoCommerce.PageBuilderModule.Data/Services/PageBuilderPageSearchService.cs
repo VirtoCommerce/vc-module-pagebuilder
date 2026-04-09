@@ -38,6 +38,11 @@ public class PageBuilderPageSearchService(
             query = query.Where(x => criteria.ObjectIds.Contains(x.Id));
         }
 
+        if (criteria.ModifiedSince.HasValue)
+        {
+            query = query.Where(x => x.ModifiedDate >= criteria.ModifiedSince.Value || x.CreatedDate >= criteria.ModifiedSince.Value);
+        }
+
         return query;
     }
 

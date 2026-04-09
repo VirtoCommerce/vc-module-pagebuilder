@@ -18,14 +18,14 @@ public class PageBuilderContentProvider(
 
     public async Task<long> GetTotalChangesCountAsync(DateTime? startDate, DateTime? endDate)
     {
-        var criteria = CreateSearchCriteria(startDate, 0, 0);
+        var criteria = CreateSearchCriteria(startDate, endDate, 0, 0);
         var result = await pageSearchService.SearchAsync(criteria);
         return result.TotalCount;
     }
 
     public async Task<IList<IndexDocumentChange>> GetChangesAsync(DateTime? startDate, DateTime? endDate, long skip, long take)
     {
-        var criteria = CreateSearchCriteria(startDate, skip, take);
+        var criteria = CreateSearchCriteria(startDate, endDate, skip, take);
         var result = await pageSearchService.SearchAsync(criteria);
 
         return result.Results.Select(page => new IndexDocumentChange
@@ -38,11 +38,11 @@ public class PageBuilderContentProvider(
 
     public async Task<IList<PageDocument>> GetByIdsAsync(IList<string> ids)
     {
-        var pages = await pageSearchService.SearchAsync(new PageBuilderPageSearchCriteria
-        {
-            ObjectIds = ids.ToArray(),
-            Take = ids.Count,
-        });
+        var criteria = AbstractTypeFactory<PageBuilderPageSearchCriteria>.TryCreateInstance();
+        criteria.ObjectIds = ids.ToArray();
+        criteria.Take = ids.Count;
+
+        var pages = await pageSearchService.SearchAsync(criteria);
 
         var groupIds = pages.Results.Select(p => p.GroupId).Distinct().ToArray();
         var groups = await groupedPageService.GetAsync(groupIds);
@@ -65,14 +65,16 @@ public class PageBuilderContentProvider(
         return result;
     }
 
-    private static PageBuilderPageSearchCriteria CreateSearchCriteria(DateTime? startDate, long skip, long take)
+#pragma warning disable S1172
+    private static PageBuilderPageSearchCriteria CreateSearchCriteria(DateTime? startDate, DateTime? endDate, long skip, long take)
+#pragma warning restore S1172
     {
         var criteria = AbstractTypeFactory<PageBuilderPageSearchCriteria>.TryCreateInstance();
         criteria.Statuses = "Published";
         criteria.Skip = Convert.ToInt32(skip);
         criteria.Take = Convert.ToInt32(take);
+        criteria.ModifiedSince = startDate;
 
-        // TODO: filter by ModifiedDate >= startDate when incremental sync support is added to search criteria
         return criteria;
     }
 }
