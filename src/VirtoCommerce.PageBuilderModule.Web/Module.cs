@@ -13,6 +13,7 @@ using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Data.Authorization;
+using VirtoCommerce.PageBuilderModule.Data.ContentProviders;
 using VirtoCommerce.PageBuilderModule.Data.Handlers;
 using VirtoCommerce.PageBuilderModule.Data.MySql;
 using VirtoCommerce.PageBuilderModule.Data.PostgreSql;
@@ -20,6 +21,7 @@ using VirtoCommerce.PageBuilderModule.Data.Repositories;
 using VirtoCommerce.PageBuilderModule.Data.Search;
 using VirtoCommerce.PageBuilderModule.Data.Services;
 using VirtoCommerce.PageBuilderModule.Data.SqlServer;
+using VirtoCommerce.Pages.Core.ContentProviders;
 using VirtoCommerce.Platform.Core.Events;
 using VirtoCommerce.Platform.Core.Modularity;
 using VirtoCommerce.Platform.Core.Security;
@@ -71,6 +73,7 @@ namespace VirtoCommerce.PageBuilderModule.Web
             serviceCollection.AddTransient<GroupedPageBuilderPageChangedEventHandler>();
 
             serviceCollection.AddTransient<IAuthorizationHandler, PageBuilderAuthorizationHandler>();
+            serviceCollection.AddTransient<PageBuilderContentProvider>();
             serviceCollection.AddTransient<IPagesMigrationService, PagesMigrationService>();
 
             var isFullTextSearchEnabled = Configuration.IsContentFullTextSearchEnabled();
@@ -112,6 +115,10 @@ namespace VirtoCommerce.PageBuilderModule.Web
 
             appBuilder.RegisterEventHandler<PageBuilderPageChangedEvent, PageBuilderPageChangedEventHandler>();
             appBuilder.RegisterEventHandler<GroupedPageBuilderPageChangedEvent, GroupedPageBuilderPageChangedEventHandler>();
+
+            // Register content provider for Pages module
+            var contentProviderRegistrar = serviceProvider.GetService<IPageContentProviderRegistrar>();
+            contentProviderRegistrar?.RegisterProvider(() => serviceProvider.GetRequiredService<PageBuilderContentProvider>());
 
             // Apply migrations
             using var serviceScope = serviceProvider.CreateScope();
