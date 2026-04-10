@@ -5,6 +5,7 @@ using VirtoCommerce.Pages.Core.ContentProviders;
 using VirtoCommerce.Pages.Core.Models;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.SearchModule.Core.Model;
+using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 
 namespace VirtoCommerce.PageBuilderModule.Data.ContentProviders;
 
@@ -59,6 +60,7 @@ public class PageBuilderContentProvider(
 
             var content = await groupedPageService.LoadContent(page.Id);
             var pageDocument = page.ToPageDocument(group, content);
+            pageDocument.Status = MapStatus(page.Status);
             result.Add(pageDocument);
         }
 
@@ -68,12 +70,23 @@ public class PageBuilderContentProvider(
     private static PageBuilderPageSearchCriteria CreateSearchCriteria(DateTime? startDate, DateTime? endDate, long skip, long take)
     {
         var criteria = AbstractTypeFactory<PageBuilderPageSearchCriteria>.TryCreateInstance();
-        criteria.Statuses = "Published";
+        criteria.Statuses = $"{Draft},{Published},{Archived}";
         criteria.Skip = Convert.ToInt32(skip);
         criteria.Take = Convert.ToInt32(take);
         criteria.ModifiedSince = startDate;
         criteria.ModifiedBefore = endDate;
 
         return criteria;
+    }
+
+    private static PageDocumentStatus MapStatus(string status)
+    {
+        return status switch
+        {
+            Published => PageDocumentStatus.Published,
+            Archived => PageDocumentStatus.Archived,
+            Draft => PageDocumentStatus.Draft,
+            _ => PageDocumentStatus.Draft,
+        };
     }
 }
