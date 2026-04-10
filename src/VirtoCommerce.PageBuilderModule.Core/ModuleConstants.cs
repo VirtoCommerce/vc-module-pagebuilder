@@ -55,7 +55,7 @@ namespace VirtoCommerce.PageBuilderModule.Core
                 public static SettingDescriptor StoreUrl { get; } = new()
                 {
                     Name = "VirtoCommerce.PageBuilderModule.General.StoreUrl",
-                    GroupName = "CMS Content|General",
+                    GroupName = "CMS|General",
                     ValueType = SettingValueType.ShortText
                 };
 
@@ -63,7 +63,7 @@ namespace VirtoCommerce.PageBuilderModule.Core
                 {
                     Name = "VirtoCommerce.PageBuilderModule.General.StorePreviewPath",
                     ValueType = SettingValueType.ShortText,
-                    GroupName = "CMS Content|General",
+                    GroupName = "CMS|General",
                     DefaultValue = "/designer-preview"
                 };
 
@@ -82,7 +82,7 @@ namespace VirtoCommerce.PageBuilderModule.Core
                 public static SettingDescriptor MetadataFromContentMigrated { get; } = new()
                 {
                     Name = "VirtoCommerce.PageBuilderModule.Migration.MetadataFromContentMigrated",
-                    GroupName = "CMS Content|Migration",
+                    GroupName = "CMS|Migration",
                     ValueType = SettingValueType.Boolean,
                     DefaultValue = false
                 };
