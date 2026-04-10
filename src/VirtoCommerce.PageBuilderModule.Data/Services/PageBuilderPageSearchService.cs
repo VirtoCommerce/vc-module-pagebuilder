@@ -40,7 +40,7 @@ public class PageBuilderPageSearchService(
 
         if (criteria.ModifiedSince.HasValue)
         {
-            query = query.Where(x => x.ModifiedDate >= criteria.ModifiedSince.Value || x.CreatedDate >= criteria.ModifiedSince.Value);
+            query = query.Where(x => x.ModifiedDate >= criteria.ModifiedSince.Value || (x.ModifiedDate == null && x.CreatedDate >= criteria.ModifiedSince.Value));
         }
 
         if (criteria.ModifiedBefore.HasValue)
