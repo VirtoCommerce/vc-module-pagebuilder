@@ -66,6 +66,12 @@
             "title": "Sti for forhåndsvisning"
           }
         },
+        "Store": {
+          "PreviewUserIds": {
+            "title": "Bruker-IDer for forhåndsvisning",
+            "description": "Liste over bruker-IDer for forhåndsvisning som en annen bruker (én per linje)"
+          }
+        },
         "Migration": {
           "MetadataFromContentMigrated": {
             "title": "Metadata-migrering fra innhold fullført",

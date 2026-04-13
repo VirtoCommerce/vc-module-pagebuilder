@@ -34,7 +34,11 @@ export function generateAnchor(value: string): string {
     return generateUniqueString(10);
   }
   // replace spaces with dashes
-  return value.toLowerCase().replace(/[^\w\s-]+/g, '').replace(/\n$/, '').replace(/\s+/g, '-').replace(/^-+|-+$/g, '');
+  return value.toLowerCase()
+    .replaceAll(/[^\w\s-]+/g, '')
+    .replaceAll(/\n$/g, '')
+    .replaceAll(/\s+/g, '-')
+    .replaceAll(/^-+|-+$/g, '');
 }
 
 export function generateUniqueString(length: number): string {
@@ -44,8 +48,8 @@ export function generateUniqueString(length: number): string {
 }
 
 export function onlyLettersAndDigits(value: string): string {
-  if (!!value) {
-    return value.replace(/[^a-zA-Z0-9]/g, '');
+  if (value) {
+    return value.replaceAll(/[^a-zA-Z0-9]/g, '');
   }
   return value;
 }
@@ -53,11 +57,20 @@ export function onlyLettersAndDigits(value: string): string {
 // original regex was defined as: const nargs = /\{\{([=0-9a-zA-Z_\.]+)\}\}/g;
 const nargs = /\{\{(.+?)\}\}/g;
 
+const rawExpr = /^@\{\{(.+)\}\}$/;
+
 export function template(value: string, ...args: any) {
 
   const values = (args?.length === 1 && typeof args[0] === 'object' ? args[0] : args) || {};
 
-  return value.replace(nargs, (match, i, index) => {
+  // @{{expr}} — return raw result preserving type (array, object, etc.)
+  const rawMatch = rawExpr.exec(value);
+  if (rawMatch) {
+    const result = evalInContext(rawMatch[1], values);
+    return result ?? null;
+  }
+
+  return value.replaceAll(nargs, (match, i, index) => {
     let result;
 
     if (value[index - 1] === '{' &&
@@ -115,7 +128,7 @@ export function getValueByPath(model: any, path: any): any {
 }
 
 export function stripHtmlTags(str: string) {
-  return str.replace(/<[^>]*>/g, ' ');
+  return str.replaceAll(/<[^>]*>/g, ' ');
 }
 
 export function combine(...parts: string[]): string {

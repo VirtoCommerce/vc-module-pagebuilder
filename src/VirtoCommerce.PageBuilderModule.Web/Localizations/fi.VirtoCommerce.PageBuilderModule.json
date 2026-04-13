@@ -66,6 +66,12 @@
             "title": "Esikatselupolku"
           }
         },
+        "Store": {
+          "PreviewUserIds": {
+            "title": "Esikatselun käyttäjätunnukset",
+            "description": "Luettelo käyttäjätunnuksista esikatselun toisena käyttäjänä toimimista varten (yksi per rivi)"
+          }
+        },
         "Migration": {
           "MetadataFromContentMigrated": {
             "title": "Metatietojen siirto sisällöstä valmis",

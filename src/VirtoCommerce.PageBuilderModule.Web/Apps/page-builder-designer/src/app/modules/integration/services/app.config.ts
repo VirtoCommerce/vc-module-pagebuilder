@@ -115,4 +115,6 @@ export type OptionName = 'templatesListUrl'
   | 'externalPreview'
   | 'publishPages'
   | 'saveGroupedPage'
+  | 'previewImpersonation'
+  | 'previewAccounts'
   ;
