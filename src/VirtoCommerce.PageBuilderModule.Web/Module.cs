@@ -73,7 +73,7 @@ namespace VirtoCommerce.PageBuilderModule.Web
             serviceCollection.AddTransient<GroupedPageBuilderPageChangedEventHandler>();
 
             serviceCollection.AddTransient<IAuthorizationHandler, PageBuilderAuthorizationHandler>();
-            serviceCollection.AddTransient<PageBuilderContentProvider>();
+            serviceCollection.AddTransient<IPageContentProvider, PageBuilderContentProvider>();
             serviceCollection.AddTransient<IPagesMigrationService, PagesMigrationService>();
 
             var isFullTextSearchEnabled = Configuration.IsContentFullTextSearchEnabled();
@@ -115,10 +115,6 @@ namespace VirtoCommerce.PageBuilderModule.Web
 
             appBuilder.RegisterEventHandler<PageBuilderPageChangedEvent, PageBuilderPageChangedEventHandler>();
             appBuilder.RegisterEventHandler<GroupedPageBuilderPageChangedEvent, GroupedPageBuilderPageChangedEventHandler>();
-
-            // Register content provider for Pages module
-            var contentProviderRegistrar = serviceProvider.GetService<IPageContentProviderRegistrar>();
-            contentProviderRegistrar?.RegisterProvider(() => serviceProvider.GetRequiredService<PageBuilderContentProvider>());
 
             // Apply migrations
             using var serviceScope = serviceProvider.CreateScope();

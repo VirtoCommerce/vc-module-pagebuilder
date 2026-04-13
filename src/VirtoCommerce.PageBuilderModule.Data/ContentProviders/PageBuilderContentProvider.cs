@@ -17,24 +17,21 @@ public class PageBuilderContentProvider(
     public string ProviderName => "PageBuilder";
     public bool SupportsReindexation => true;
 
-    public async Task<long> GetTotalChangesCountAsync(DateTime? startDate, DateTime? endDate)
+    public async Task<PageChangesSearchResult> SearchChangesAsync(PageChangesSearchCriteria criteria)
     {
-        var criteria = CreateSearchCriteria(startDate, endDate, 0, 0);
-        var result = await pageSearchService.SearchAsync(criteria);
-        return result.TotalCount;
-    }
+        var searchCriteria = CreateSearchCriteria(criteria);
+        var result = await pageSearchService.SearchAsync(searchCriteria);
 
-    public async Task<IList<IndexDocumentChange>> GetChangesAsync(DateTime? startDate, DateTime? endDate, long skip, long take)
-    {
-        var criteria = CreateSearchCriteria(startDate, endDate, skip, take);
-        var result = await pageSearchService.SearchAsync(criteria);
-
-        return result.Results.Select(page => new IndexDocumentChange
+        return new PageChangesSearchResult
         {
-            DocumentId = page.Id,
-            ChangeDate = page.ModifiedDate ?? page.CreatedDate,
-            ChangeType = IndexDocumentChangeType.Modified,
-        }).ToList();
+            TotalCount = result.TotalCount,
+            Results = result.Results.Select(page => new IndexDocumentChange
+            {
+                DocumentId = page.Id,
+                ChangeDate = page.ModifiedDate ?? page.CreatedDate,
+                ChangeType = IndexDocumentChangeType.Modified,
+            }).ToList(),
+        };
     }
 
     public async Task<IList<PageDocument>> GetByIdsAsync(IList<string> ids)
@@ -67,16 +64,16 @@ public class PageBuilderContentProvider(
         return result;
     }
 
-    private static PageBuilderPageSearchCriteria CreateSearchCriteria(DateTime? startDate, DateTime? endDate, long skip, long take)
+    private static PageBuilderPageSearchCriteria CreateSearchCriteria(PageChangesSearchCriteria criteria)
     {
-        var criteria = AbstractTypeFactory<PageBuilderPageSearchCriteria>.TryCreateInstance();
-        criteria.Statuses = $"{Draft},{Published},{Archived}";
-        criteria.Skip = Convert.ToInt32(skip);
-        criteria.Take = Convert.ToInt32(take);
-        criteria.ModifiedSince = startDate;
-        criteria.ModifiedBefore = endDate;
+        var result = AbstractTypeFactory<PageBuilderPageSearchCriteria>.TryCreateInstance();
+        result.Statuses = $"{Draft},{Published},{Archived}";
+        result.Skip = criteria.Skip;
+        result.Take = criteria.Take;
+        result.ModifiedSince = criteria.StartDate;
+        result.ModifiedBefore = criteria.EndDate;
 
-        return criteria;
+        return result;
     }
 
     private static PageDocumentStatus MapStatus(string status)
