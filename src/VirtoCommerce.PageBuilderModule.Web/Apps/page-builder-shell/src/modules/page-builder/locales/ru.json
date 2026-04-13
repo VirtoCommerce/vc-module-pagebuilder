@@ -1,0 +1,123 @@
+{
+  "PAGE_BUILDER": {
+    "MENU": {
+      "DRAFT_TITLE": "Черновик",
+      "PENDING_TITLE": "На рассмотрении",
+      "ACTIVE_TITLE": "Активные",
+      "ARCHIVED_TITLE": "В архиве",
+      "TITLE": "Все страницы"
+    },
+    "PAGES": {
+      "LIST": {
+        "DRAFT_TITLE": "Черновики страниц",
+        "PENDING_TITLE": "Страницы на рассмотрении",
+        "ACTIVE_TITLE": "Активные страницы",
+        "ARCHIVED_TITLE": "Архивные страницы",
+        "TITLE": "Все страницы",
+        "TOOLBAR": {
+          "ADD": "Добавить",
+          "REFRESH": "Обновить",
+          "REMOVE": "Архивировать"
+        },
+        "SEARCH": {
+          "PLACEHOLDER": "Поиск по ключевым словам"
+        },
+        "TABLE": {
+          "TOTALS": "Количество:",
+          "HEADER": {
+            "NAME": "Название",
+            "PERMALINK": "Постоянная ссылка",
+            "MODIFIED_DATE": "Изменено",
+            "CULTURE_NAME": "Язык",
+            "MODIFIED_BY": "Кем изменено",
+            "STATUS": "Статус"
+          },
+          "FILTER": {
+            "STATUS": "Статус",
+            "APPLY": "Применить",
+            "RESET": "Сбросить"
+          },
+          "EMPTY": {
+            "TITLE": "Контент пока отсутствует",
+            "ACTION": "Добавить контент"
+          },
+          "NOT_FOUND": {
+            "TITLE": "Контент не найден.",
+            "ACTION": "Сбросить поиск"
+          },
+          "ACTIONS": {
+            "DELETE": "Архивировать"
+          }
+        },
+        "EMPTY": {
+          "NO_ITEMS": "Страниц пока нет"
+        },
+        "NOT_FOUND": {
+          "EMPTY": "Страницы не найдены",
+          "RESET": "Сбросить"
+        }
+      },
+      "DETAILS": {
+        "TITLE": {
+          "DETAILS": " подробности",
+          "NEW": "Новая страница",
+          "LOADING": "Загрузка..."
+        },
+        "TOOLBAR": {
+          "SAVE": "Сохранить",
+          "DELETE": "Архивировать",
+          "PREVIEW": "Предпросмотр",
+          "DESIGNER": "Открыть конструктор",
+          "PUBLISH": "Опубликовать",
+          "UNPUBLISH": "Снять с публикации"
+        },
+        "FIELDS": {
+          "NAME": "Название",
+          "PERMALINK": "Постоянная ссылка",
+          "CONTENT": "Контент",
+          "GUID": "GUID",
+          "CULTURE_NAME": "Язык",
+          "VISIBILITY": "Видимость",
+          "START_DATE": "Дата начала",
+          "START_DATE_HINT": "Страница становится видимой",
+          "END_DATE": "Дата окончания",
+          "END_DATE_HINT": "Страница скрывается",
+          "USER_GROUPS": "Группы пользователей",
+          "ORGANIZATION": "Организация"
+        },
+        "TOOLTIPS": {
+          "VISIBILITY": "Если видимость отключена, страница будет доступна только зарегистрированным пользователям."
+        },
+        "SECTIONS": {
+          "PERSONALIZATION_ACCESS_CONTROL": {
+            "TITLE": "Персонализация и контроль доступа",
+            "DESCRIPTION": "Ограничить видимость страницы для определённых аудиторий",
+            "VISIBILITY_TAG": "Видимая"
+          },
+          "SCHEDULING": {
+            "TAG_TEXT": "Запланировано",
+            "TITLE": "Расписание",
+            "DESCRIPTION": "Укажите, когда эта страница должна быть видимой"
+          }
+        }
+      },
+      "ALERTS": {
+        "CLOSE_CONFIRMATION": "У вас есть несохранённые изменения. Всё равно закрыть?",
+        "DELETE": "Вы уверены, что хотите архивировать эту страницу?",
+        "DELETE_SELECTED_CONFIRMATION": {
+          "MESSAGE": "Вы уверены, что хотите архивировать {count} выбранных страниц?",
+          "ALL": "все {totalCount}"
+        },
+        "UNPUBLISH_WITH_DRAFT": "Невозможно снять с публикации страницу, имеющую изменения."
+      }
+    },
+    "STATUS": {
+      "DRAFT": "Черновик",
+      "ARCHIVED": "В архиве",
+      "PUBLISHED": "Опубликовано",
+      "HAS_CHANGES": "Черновик с изменениями",
+      "SCHEDULED": "Запланировано",
+      "PERSONALIZED": "Персонализировано"
+    }
+  }
+}

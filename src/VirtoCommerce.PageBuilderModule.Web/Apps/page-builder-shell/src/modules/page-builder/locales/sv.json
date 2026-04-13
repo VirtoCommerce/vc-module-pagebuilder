@@ -1,0 +1,123 @@
+{
+  "PAGE_BUILDER": {
+    "MENU": {
+      "DRAFT_TITLE": "Utkast",
+      "PENDING_TITLE": "Väntande",
+      "ACTIVE_TITLE": "Aktiv",
+      "ARCHIVED_TITLE": "Arkiverad",
+      "TITLE": "Alla sidor"
+    },
+    "PAGES": {
+      "LIST": {
+        "DRAFT_TITLE": "Utkastsidor",
+        "PENDING_TITLE": "Väntande sidor",
+        "ACTIVE_TITLE": "Aktiva sidor",
+        "ARCHIVED_TITLE": "Arkiverade sidor",
+        "TITLE": "Alla sidor",
+        "TOOLBAR": {
+          "ADD": "Lägg till",
+          "REFRESH": "Uppdatera",
+          "REMOVE": "Arkivera"
+        },
+        "SEARCH": {
+          "PLACEHOLDER": "Sök nyckelord"
+        },
+        "TABLE": {
+          "TOTALS": "Antal:",
+          "HEADER": {
+            "NAME": "Namn",
+            "PERMALINK": "Permalänk",
+            "MODIFIED_DATE": "Ändrad",
+            "CULTURE_NAME": "Språk",
+            "MODIFIED_BY": "Ändrad av",
+            "STATUS": "Status"
+          },
+          "FILTER": {
+            "STATUS": "Status",
+            "APPLY": "Tillämpa",
+            "RESET": "Återställ"
+          },
+          "EMPTY": {
+            "TITLE": "Det finns inget innehåll ännu",
+            "ACTION": "Lägg till innehåll"
+          },
+          "NOT_FOUND": {
+            "TITLE": "Inget innehåll hittades.",
+            "ACTION": "Återställ sökning"
+          },
+          "ACTIONS": {
+            "DELETE": "Arkivera"
+          }
+        },
+        "EMPTY": {
+          "NO_ITEMS": "Det finns inga sidor ännu"
+        },
+        "NOT_FOUND": {
+          "EMPTY": "Inga sidor hittades",
+          "RESET": "Återställ"
+        }
+      },
+      "DETAILS": {
+        "TITLE": {
+          "DETAILS": " detaljer",
+          "NEW": "Ny sida",
+          "LOADING": "Laddar..."
+        },
+        "TOOLBAR": {
+          "SAVE": "Spara",
+          "DELETE": "Arkivera",
+          "PREVIEW": "Förhandsgranska",
+          "DESIGNER": "Öppna designer",
+          "PUBLISH": "Publicera",
+          "UNPUBLISH": "Avpublicera"
+        },
+        "FIELDS": {
+          "NAME": "Namn",
+          "PERMALINK": "Permalänk",
+          "CONTENT": "Innehåll",
+          "GUID": "GUID",
+          "CULTURE_NAME": "Språk",
+          "VISIBILITY": "Synlighet",
+          "START_DATE": "Startdatum",
+          "START_DATE_HINT": "Sidan blir synlig",
+          "END_DATE": "Slutdatum",
+          "END_DATE_HINT": "Sidan döljs",
+          "USER_GROUPS": "Användargrupper",
+          "ORGANIZATION": "Organisation"
+        },
+        "TOOLTIPS": {
+          "VISIBILITY": "Om synligheten är avstängd kommer sidan bara vara tillgänglig för registrerade användare."
+        },
+        "SECTIONS": {
+          "PERSONALIZATION_ACCESS_CONTROL": {
+            "TITLE": "Personalisering och åtkomstkontroll",
+            "DESCRIPTION": "Begränsa sidans synlighet till specifika målgrupper",
+            "VISIBILITY_TAG": "Synlig"
+          },
+          "SCHEDULING": {
+            "TAG_TEXT": "Schemalagd",
+            "TITLE": "Schemaläggning",
+            "DESCRIPTION": "Ange när denna sida ska vara synlig"
+          }
+        }
+      },
+      "ALERTS": {
+        "CLOSE_CONFIRMATION": "Du har osparade ändringar. Stäng ändå?",
+        "DELETE": "Är du säker på att du vill arkivera denna sida?",
+        "DELETE_SELECTED_CONFIRMATION": {
+          "MESSAGE": "Är du säker på att du vill arkivera {count} valda sidor?",
+          "ALL": "alla {totalCount}"
+        },
+        "UNPUBLISH_WITH_DRAFT": "Kan inte avpublicera en sida som har ändringar."
+      }
+    },
+    "STATUS": {
+      "DRAFT": "Utkast",
+      "ARCHIVED": "Arkiverad",
+      "PUBLISHED": "Publicerad",
+      "HAS_CHANGES": "Har utkast med ändringar",
+      "SCHEDULED": "Schemalagd",
+      "PERSONALIZED": "Personaliserad"
+    }
+  }
+}

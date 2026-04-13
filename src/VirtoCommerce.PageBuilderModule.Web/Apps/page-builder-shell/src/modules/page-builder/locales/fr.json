@@ -1,0 +1,123 @@
+{
+  "PAGE_BUILDER": {
+    "MENU": {
+      "DRAFT_TITLE": "Brouillon",
+      "PENDING_TITLE": "En attente",
+      "ACTIVE_TITLE": "Actif",
+      "ARCHIVED_TITLE": "Archivé",
+      "TITLE": "Toutes les pages"
+    },
+    "PAGES": {
+      "LIST": {
+        "DRAFT_TITLE": "Pages brouillon",
+        "PENDING_TITLE": "Pages en attente",
+        "ACTIVE_TITLE": "Pages actives",
+        "ARCHIVED_TITLE": "Pages archivées",
+        "TITLE": "Toutes les pages",
+        "TOOLBAR": {
+          "ADD": "Ajouter",
+          "REFRESH": "Actualiser",
+          "REMOVE": "Archiver"
+        },
+        "SEARCH": {
+          "PLACEHOLDER": "Rechercher des mots-clés"
+        },
+        "TABLE": {
+          "TOTALS": "Total :",
+          "HEADER": {
+            "NAME": "Nom",
+            "PERMALINK": "Lien permanent",
+            "MODIFIED_DATE": "Modifié",
+            "CULTURE_NAME": "Langue",
+            "MODIFIED_BY": "Modifié par",
+            "STATUS": "Statut"
+          },
+          "FILTER": {
+            "STATUS": "Statut",
+            "APPLY": "Appliquer",
+            "RESET": "Réinitialiser"
+          },
+          "EMPTY": {
+            "TITLE": "Il n'y a pas encore de contenu",
+            "ACTION": "Ajouter du contenu"
+          },
+          "NOT_FOUND": {
+            "TITLE": "Aucun contenu trouvé.",
+            "ACTION": "Réinitialiser la recherche"
+          },
+          "ACTIONS": {
+            "DELETE": "Archiver"
+          }
+        },
+        "EMPTY": {
+          "NO_ITEMS": "Il n'y a pas encore de pages"
+        },
+        "NOT_FOUND": {
+          "EMPTY": "Aucune page trouvée",
+          "RESET": "Réinitialiser"
+        }
+      },
+      "DETAILS": {
+        "TITLE": {
+          "DETAILS": " détails",
+          "NEW": "Nouvelle page",
+          "LOADING": "Chargement..."
+        },
+        "TOOLBAR": {
+          "SAVE": "Enregistrer",
+          "DELETE": "Archiver",
+          "PREVIEW": "Aperçu",
+          "DESIGNER": "Ouvrir le concepteur",
+          "PUBLISH": "Publier",
+          "UNPUBLISH": "Dépublier"
+        },
+        "FIELDS": {
+          "NAME": "Nom",
+          "PERMALINK": "Lien permanent",
+          "CONTENT": "Contenu",
+          "GUID": "GUID",
+          "CULTURE_NAME": "Langue",
+          "VISIBILITY": "Visibilité",
+          "START_DATE": "Date de début",
+          "START_DATE_HINT": "La page devient visible",
+          "END_DATE": "Date de fin",
+          "END_DATE_HINT": "La page devient masquée",
+          "USER_GROUPS": "Groupes d'utilisateurs",
+          "ORGANIZATION": "Organisation"
+        },
+        "TOOLTIPS": {
+          "VISIBILITY": "Si la visibilité est désactivée, la page ne sera accessible qu'aux utilisateurs enregistrés."
+        },
+        "SECTIONS": {
+          "PERSONALIZATION_ACCESS_CONTROL": {
+            "TITLE": "Personnalisation et contrôle d'accès",
+            "DESCRIPTION": "Limiter la visibilité de la page à des audiences spécifiques",
+            "VISIBILITY_TAG": "Visible"
+          },
+          "SCHEDULING": {
+            "TAG_TEXT": "Programmé",
+            "TITLE": "Programmation",
+            "DESCRIPTION": "Définir quand cette page doit être visible"
+          }
+        }
+      },
+      "ALERTS": {
+        "CLOSE_CONFIRMATION": "Vous avez des modifications non enregistrées. Fermer quand même ?",
+        "DELETE": "Êtes-vous sûr de vouloir archiver cette page ?",
+        "DELETE_SELECTED_CONFIRMATION": {
+          "MESSAGE": "Êtes-vous sûr de vouloir archiver {count} pages sélectionnées ?",
+          "ALL": "toutes les {totalCount}"
+        },
+        "UNPUBLISH_WITH_DRAFT": "Impossible de dépublier une page qui comporte des modifications."
+      }
+    },
+    "STATUS": {
+      "DRAFT": "Brouillon",
+      "ARCHIVED": "Archivé",
+      "PUBLISHED": "Publié",
+      "HAS_CHANGES": "Brouillon avec modifications",
+      "SCHEDULED": "Programmé",
+      "PERSONALIZED": "Personnalisé"
+    }
+  }
+}

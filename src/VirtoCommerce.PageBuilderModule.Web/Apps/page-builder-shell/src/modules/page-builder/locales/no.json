@@ -1,0 +1,123 @@
+{
+  "PAGE_BUILDER": {
+    "MENU": {
+      "DRAFT_TITLE": "Utkast",
+      "PENDING_TITLE": "Ventende",
+      "ACTIVE_TITLE": "Aktiv",
+      "ARCHIVED_TITLE": "Arkivert",
+      "TITLE": "Alle sider"
+    },
+    "PAGES": {
+      "LIST": {
+        "DRAFT_TITLE": "Utkastsider",
+        "PENDING_TITLE": "Ventende sider",
+        "ACTIVE_TITLE": "Aktive sider",
+        "ARCHIVED_TITLE": "Arkiverte sider",
+        "TITLE": "Alle sider",
+        "TOOLBAR": {
+          "ADD": "Legg til",
+          "REFRESH": "Oppdater",
+          "REMOVE": "Arkiver"
+        },
+        "SEARCH": {
+          "PLACEHOLDER": "Søk etter nøkkelord"
+        },
+        "TABLE": {
+          "TOTALS": "Antall:",
+          "HEADER": {
+            "NAME": "Navn",
+            "PERMALINK": "Permalink",
+            "MODIFIED_DATE": "Endret",
+            "CULTURE_NAME": "Språk",
+            "MODIFIED_BY": "Endret av",
+            "STATUS": "Status"
+          },
+          "FILTER": {
+            "STATUS": "Status",
+            "APPLY": "Bruk",
+            "RESET": "Tilbakestill"
+          },
+          "EMPTY": {
+            "TITLE": "Det finnes ikke noe innhold ennå",
+            "ACTION": "Legg til innhold"
+          },
+          "NOT_FOUND": {
+            "TITLE": "Ingen innhold funnet.",
+            "ACTION": "Tilbakestill søk"
+          },
+          "ACTIONS": {
+            "DELETE": "Arkiver"
+          }
+        },
+        "EMPTY": {
+          "NO_ITEMS": "Det finnes ingen sider ennå"
+        },
+        "NOT_FOUND": {
+          "EMPTY": "Ingen sider funnet",
+          "RESET": "Tilbakestill"
+        }
+      },
+      "DETAILS": {
+        "TITLE": {
+          "DETAILS": " detaljer",
+          "NEW": "Ny side",
+          "LOADING": "Laster..."
+        },
+        "TOOLBAR": {
+          "SAVE": "Lagre",
+          "DELETE": "Arkiver",
+          "PREVIEW": "Forhåndsvisning",
+          "DESIGNER": "Åpne designer",
+          "PUBLISH": "Publiser",
+          "UNPUBLISH": "Avpubliser"
+        },
+        "FIELDS": {
+          "NAME": "Navn",
+          "PERMALINK": "Permalink",
+          "CONTENT": "Innhold",
+          "GUID": "GUID",
+          "CULTURE_NAME": "Språk",
+          "VISIBILITY": "Synlighet",
+          "START_DATE": "Startdato",
+          "START_DATE_HINT": "Siden blir synlig",
+          "END_DATE": "Sluttdato",
+          "END_DATE_HINT": "Siden blir skjult",
+          "USER_GROUPS": "Brukergrupper",
+          "ORGANIZATION": "Organisasjon"
+        },
+        "TOOLTIPS": {
+          "VISIBILITY": "Hvis synlighet er av, vil siden kun være tilgjengelig for registrerte brukere."
+        },
+        "SECTIONS": {
+          "PERSONALIZATION_ACCESS_CONTROL": {
+            "TITLE": "Personalisering og tilgangskontroll",
+            "DESCRIPTION": "Begrens sidens synlighet til bestemte målgrupper",
+            "VISIBILITY_TAG": "Synlig"
+          },
+          "SCHEDULING": {
+            "TAG_TEXT": "Planlagt",
+            "TITLE": "Planlegging",
+            "DESCRIPTION": "Angi når denne siden skal være synlig"
+          }
+        }
+      },
+      "ALERTS": {
+        "CLOSE_CONFIRMATION": "Du har ulagrede endringer. Lukke likevel?",
+        "DELETE": "Er du sikker på at du vil arkivere denne siden?",
+        "DELETE_SELECTED_CONFIRMATION": {
+          "MESSAGE": "Er du sikker på at du vil arkivere {count} valgte sider?",
+          "ALL": "alle {totalCount}"
+        },
+        "UNPUBLISH_WITH_DRAFT": "Kan ikke avpublisere en side som har endringer."
+      }
+    },
+    "STATUS": {
+      "DRAFT": "Utkast",
+      "ARCHIVED": "Arkivert",
+      "PUBLISHED": "Publisert",
+      "HAS_CHANGES": "Har utkast med endringer",
+      "SCHEDULED": "Planlagt",
+      "PERSONALIZED": "Personalisert"
+    }
+  }
+}

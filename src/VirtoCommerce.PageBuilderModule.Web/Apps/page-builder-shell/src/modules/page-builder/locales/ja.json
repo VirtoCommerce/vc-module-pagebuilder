@@ -1,0 +1,123 @@
+{
+  "PAGE_BUILDER": {
+    "MENU": {
+      "DRAFT_TITLE": "下書き",
+      "PENDING_TITLE": "保留中",
+      "ACTIVE_TITLE": "アクティブ",
+      "ARCHIVED_TITLE": "アーカイブ済み",
+      "TITLE": "すべてのページ"
+    },
+    "PAGES": {
+      "LIST": {
+        "DRAFT_TITLE": "下書きページ",
+        "PENDING_TITLE": "保留中のページ",
+        "ACTIVE_TITLE": "アクティブなページ",
+        "ARCHIVED_TITLE": "アーカイブ済みページ",
+        "TITLE": "すべてのページ",
+        "TOOLBAR": {
+          "ADD": "追加",
+          "REFRESH": "更新",
+          "REMOVE": "アーカイブ"
+        },
+        "SEARCH": {
+          "PLACEHOLDER": "キーワードを検索"
+        },
+        "TABLE": {
+          "TOTALS": "件数:",
+          "HEADER": {
+            "NAME": "名前",
+            "PERMALINK": "パーマリンク",
+            "MODIFIED_DATE": "更新日",
+            "CULTURE_NAME": "言語",
+            "MODIFIED_BY": "更新者",
+            "STATUS": "ステータス"
+          },
+          "FILTER": {
+            "STATUS": "ステータス",
+            "APPLY": "適用",
+            "RESET": "リセット"
+          },
+          "EMPTY": {
+            "TITLE": "コンテンツはまだありません",
+            "ACTION": "コンテンツを追加"
+          },
+          "NOT_FOUND": {
+            "TITLE": "コンテンツが見つかりません。",
+            "ACTION": "検索をリセット"
+          },
+          "ACTIONS": {
+            "DELETE": "アーカイブ"
+          }
+        },
+        "EMPTY": {
+          "NO_ITEMS": "ページはまだありません"
+        },
+        "NOT_FOUND": {
+          "EMPTY": "ページが見つかりません",
+          "RESET": "リセット"
+        }
+      },
+      "DETAILS": {
+        "TITLE": {
+          "DETAILS": " 詳細",
+          "NEW": "新規ページ",
+          "LOADING": "読み込み中..."
+        },
+        "TOOLBAR": {
+          "SAVE": "保存",
+          "DELETE": "アーカイブ",
+          "PREVIEW": "プレビュー",
+          "DESIGNER": "デザイナーを開く",
+          "PUBLISH": "公開",
+          "UNPUBLISH": "公開取消"
+        },
+        "FIELDS": {
+          "NAME": "名前",
+          "PERMALINK": "パーマリンク",
+          "CONTENT": "コンテンツ",
+          "GUID": "GUID",
+          "CULTURE_NAME": "言語",
+          "VISIBILITY": "表示設定",
+          "START_DATE": "開始日",
+          "START_DATE_HINT": "ページが表示されます",
+          "END_DATE": "終了日",
+          "END_DATE_HINT": "ページが非表示になります",
+          "USER_GROUPS": "ユーザーグループ",
+          "ORGANIZATION": "組織"
+        },
+        "TOOLTIPS": {
+          "VISIBILITY": "表示設定がオフの場合、ページは登録ユーザーのみが利用できます。"
+        },
+        "SECTIONS": {
+          "PERSONALIZATION_ACCESS_CONTROL": {
+            "TITLE": "パーソナライズとアクセス制御",
+            "DESCRIPTION": "特定のオーディエンスにページの表示を制限",
+            "VISIBILITY_TAG": "表示中"
+          },
+          "SCHEDULING": {
+            "TAG_TEXT": "スケジュール済み",
+            "TITLE": "スケジュール",
+            "DESCRIPTION": "このページの表示期間を設定"
+          }
+        }
+      },
+      "ALERTS": {
+        "CLOSE_CONFIRMATION": "未保存の変更があります。閉じてもよろしいですか？",
+        "DELETE": "このページをアーカイブしてもよろしいですか？",
+        "DELETE_SELECTED_CONFIRMATION": {
+          "MESSAGE": "選択した {count} ページをアーカイブしてもよろしいですか？",
+          "ALL": "すべて {totalCount}"
+        },
+        "UNPUBLISH_WITH_DRAFT": "変更がある下書きのページは公開取消できません。"
+      }
+    },
+    "STATUS": {
+      "DRAFT": "下書き",
+      "ARCHIVED": "アーカイブ済み",
+      "PUBLISHED": "公開済み",
+      "HAS_CHANGES": "変更のある下書き",
+      "SCHEDULED": "スケジュール済み",
+      "PERSONALIZED": "パーソナライズ済み"
+    }
+  }
+}

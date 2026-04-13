@@ -1,0 +1,123 @@
+{
+  "PAGE_BUILDER": {
+    "MENU": {
+      "DRAFT_TITLE": "草稿",
+      "PENDING_TITLE": "待审核",
+      "ACTIVE_TITLE": "已激活",
+      "ARCHIVED_TITLE": "已归档",
+      "TITLE": "所有页面"
+    },
+    "PAGES": {
+      "LIST": {
+        "DRAFT_TITLE": "草稿页面",
+        "PENDING_TITLE": "待审核页面",
+        "ACTIVE_TITLE": "已激活页面",
+        "ARCHIVED_TITLE": "已归档页面",
+        "TITLE": "所有页面",
+        "TOOLBAR": {
+          "ADD": "添加",
+          "REFRESH": "刷新",
+          "REMOVE": "归档"
+        },
+        "SEARCH": {
+          "PLACEHOLDER": "搜索关键词"
+        },
+        "TABLE": {
+          "TOTALS": "数量：",
+          "HEADER": {
+            "NAME": "名称",
+            "PERMALINK": "永久链接",
+            "MODIFIED_DATE": "修改时间",
+            "CULTURE_NAME": "语言",
+            "MODIFIED_BY": "修改者",
+            "STATUS": "状态"
+          },
+          "FILTER": {
+            "STATUS": "状态",
+            "APPLY": "应用",
+            "RESET": "重置"
+          },
+          "EMPTY": {
+            "TITLE": "暂无内容",
+            "ACTION": "添加内容"
+          },
+          "NOT_FOUND": {
+            "TITLE": "未找到内容。",
+            "ACTION": "重置搜索"
+          },
+          "ACTIONS": {
+            "DELETE": "归档"
+          }
+        },
+        "EMPTY": {
+          "NO_ITEMS": "暂无页面"
+        },
+        "NOT_FOUND": {
+          "EMPTY": "未找到页面",
+          "RESET": "重置"
+        }
+      },
+      "DETAILS": {
+        "TITLE": {
+          "DETAILS": " 详情",
+          "NEW": "新建页面",
+          "LOADING": "加载中..."
+        },
+        "TOOLBAR": {
+          "SAVE": "保存",
+          "DELETE": "归档",
+          "PREVIEW": "预览",
+          "DESIGNER": "打开设计器",
+          "PUBLISH": "发布",
+          "UNPUBLISH": "取消发布"
+        },
+        "FIELDS": {
+          "NAME": "名称",
+          "PERMALINK": "永久链接",
+          "CONTENT": "内容",
+          "GUID": "GUID",
+          "CULTURE_NAME": "语言",
+          "VISIBILITY": "可见性",
+          "START_DATE": "开始日期",
+          "START_DATE_HINT": "页面变为可见",
+          "END_DATE": "结束日期",
+          "END_DATE_HINT": "页面变为隐藏",
+          "USER_GROUPS": "用户组",
+          "ORGANIZATION": "组织"
+        },
+        "TOOLTIPS": {
+          "VISIBILITY": "如果关闭可见性，页面仅对注册用户可用。"
+        },
+        "SECTIONS": {
+          "PERSONALIZATION_ACCESS_CONTROL": {
+            "TITLE": "个性化与访问控制",
+            "DESCRIPTION": "限制页面对特定受众的可见性",
+            "VISIBILITY_TAG": "可见"
+          },
+          "SCHEDULING": {
+            "TAG_TEXT": "已计划",
+            "TITLE": "计划发布",
+            "DESCRIPTION": "设置此页面的可见时间"
+          }
+        }
+      },
+      "ALERTS": {
+        "CLOSE_CONFIRMATION": "您有未保存的更改。仍然关闭吗？",
+        "DELETE": "您确定要归档此页面吗？",
+        "DELETE_SELECTED_CONFIRMATION": {
+          "MESSAGE": "您确定要归档 {count} 个选中的页面吗？",
+          "ALL": "全部 {totalCount}"
+        },
+        "UNPUBLISH_WITH_DRAFT": "无法取消发布包含更改的页面。"
+      }
+    },
+    "STATUS": {
+      "DRAFT": "草稿",
+      "ARCHIVED": "已归档",
+      "PUBLISHED": "已发布",
+      "HAS_CHANGES": "有更改的草稿",
+      "SCHEDULED": "已计划",
+      "PERSONALIZED": "已个性化"
+    }
+  }
+}
