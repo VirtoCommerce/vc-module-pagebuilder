@@ -59,7 +59,7 @@
       },
       "DETAILS": {
         "TITLE": {
-          "DETAILS": " 详情",
+          "DETAILS": "{name} 详情",
           "NEW": "新建页面",
           "LOADING": "加载中..."
         },

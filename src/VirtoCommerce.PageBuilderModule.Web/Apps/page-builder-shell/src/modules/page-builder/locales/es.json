@@ -59,7 +59,7 @@
       },
       "DETAILS": {
         "TITLE": {
-          "DETAILS": " detalles",
+          "DETAILS": "Detalles de {name}",
           "NEW": "Nueva página",
           "LOADING": "Cargando..."
         },

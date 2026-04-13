@@ -59,7 +59,7 @@
       },
       "DETAILS": {
         "TITLE": {
-          "DETAILS": " tiedot",
+          "DETAILS": "{name} tiedot",
           "NEW": "Uusi sivu",
           "LOADING": "Ladataan..."
         },

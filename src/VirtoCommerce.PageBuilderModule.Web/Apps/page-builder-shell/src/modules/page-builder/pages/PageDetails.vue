@@ -241,7 +241,7 @@ const {
 
 const bladeTitle = computed(() => {
   if (props.param || item.value?.name) {
-    return item.value?.name + t("PAGE_BUILDER.PAGES.DETAILS.TITLE.DETAILS");
+    return t("PAGE_BUILDER.PAGES.DETAILS.TITLE.DETAILS", { name: item.value?.name });
   }
   return t("PAGE_BUILDER.PAGES.DETAILS.TITLE.NEW");
 });
