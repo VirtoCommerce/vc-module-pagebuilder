@@ -29,7 +29,7 @@ export class TemplateSelectorComponent {
         map(value => value?.map(x => this.convertTemplateToItem(x)) || [])
     ), { initialValue: [] as MultipageSelectDescriptor[] });
     readonly currentTemplate = toSignal(this.store$.select(fromState.selectCurrentTemplateEntry).pipe(
-        map(value => !!value ? this.convertTemplateToItem({ entry: value, state: null }) : null)
+        map(value => value ? this.convertTemplateToItem({ entry: value, state: null }) : null)
     ), { initialValue: null });
     readonly currentFilter = toSignal(this.store$.select(fromState.selectCurrentFilter), { initialValue: null });
     readonly listTitle = toSignal(this.store$.select(fromState.selectRootTemplateTitle), { initialValue: null });
@@ -65,6 +65,6 @@ export class TemplateSelectorComponent {
     }
 
     private generateTemplateKey(value: TemplateEntry): string {
-        return value.key || (value.type!! + "::" + value.path!!);
+        return value.key || (value.type + "::" + value.path);
     }
 }

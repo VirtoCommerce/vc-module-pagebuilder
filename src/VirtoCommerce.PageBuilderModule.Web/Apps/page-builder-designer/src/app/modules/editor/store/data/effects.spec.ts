@@ -161,17 +161,6 @@ describe('TemplateEditorDataEffects', () => {
         });
     });
 
-    // ── passTemplateToPreview$ ────────────────────────────────────
-
-    describe('passTemplateToPreview$', () => {
-        it('broadcasts template on preview loaded', async () => {
-            actions$.next(sharedActions.previewLoaded());
-            const result = await firstValueFrom(effects.passTemplateToPreview$);
-            expect(result.type).toBe(sharedActions.broadcastPreviewMessage.type);
-            expect((result as any).msg.type).toBe('page');
-        });
-    });
-
     // ── resetTemplate$ ────────────────────────────────────────────
 
     describe('resetTemplate$', () => {

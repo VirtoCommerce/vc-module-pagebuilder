@@ -61,6 +61,12 @@
             "title": "Vorschau-Pfad des Geschäfts"
           }
         },
+        "Store": {
+          "PreviewUserIds": {
+            "title": "Benutzer-IDs für Vorschau",
+            "description": "Liste der Benutzer-IDs für die Vorschau-Imitation (eine pro Zeile)"
+          }
+        },
         "Migration": {
           "MetadataFromContentMigrated": {
             "title": "Migration der Metadaten aus Inhalten abgeschlossen",

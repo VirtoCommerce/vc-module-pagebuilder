@@ -156,7 +156,7 @@ export class TemplateEditorUiEffects {
         ),
         map(([{ item }, template, entry, section, shared, objects]) => {
             const sharedSchemaName = !!section ? "_blocks" : "_sections";
-            const fullSchema = editorHelpers.prepareSchema(item, shared, objects, sharedSchemaName);
+            const fullSchema = editorHelpers.prepareSchema(item, shared, objects, sharedSchemaName, entry?.controls);
             const model = editorHelpers.generatePreviewBySchema(fullSchema);
             return broadcastPreviewMessage({
                 msg: {

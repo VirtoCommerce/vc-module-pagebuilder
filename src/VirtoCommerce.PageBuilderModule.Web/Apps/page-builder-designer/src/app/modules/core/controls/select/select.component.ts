@@ -60,7 +60,7 @@ export class SelectComponent extends BaseControlDirective<SelectDescriptor> {
           return options;
         }
         return options.filter(item =>
-          item.label.toLocaleUpperCase().indexOf(query.toLocaleUpperCase()) !== -1
+          item.label.toLocaleUpperCase().includes(query.toLocaleUpperCase())
         );
       }
       const loaded = this.optionsResource.value() as any[] ?? [];
@@ -140,7 +140,7 @@ export class SelectComponent extends BaseControlDirective<SelectDescriptor> {
         map(items => [...this.descriptor?.options || [], ...items]),
         map(items => !filter || !this.descriptor?.searchable
           ? items
-          : items.filter(item => item.label.toLocaleUpperCase().indexOf(filter.toLocaleUpperCase()) !== -1)
+          : items.filter(item => item.label.toLocaleUpperCase().includes(filter.toLocaleUpperCase()))
         )
       );
     }
