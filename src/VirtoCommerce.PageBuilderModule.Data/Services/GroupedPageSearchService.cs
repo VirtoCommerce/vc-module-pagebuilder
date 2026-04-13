@@ -38,7 +38,6 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
             query = ApplyStatusFilter(query, criteria);
             query = ApplyActiveOnFilter(query, criteria);
             query = ApplyLifecycleFilter(query, criteria);
-            query = ApplyModifiedDateFilter(query, criteria);
 
             if (!string.IsNullOrEmpty(criteria.LanguageCode))
             {
@@ -122,21 +121,6 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
                     (g.EndDate != null && g.EndDate < now)),
                 _ => query,
             };
-        }
-
-        protected virtual IQueryable<GroupedPageBuilderPageEntity> ApplyModifiedDateFilter(IQueryable<GroupedPageBuilderPageEntity> query, PageBuilderPageSearchCriteria criteria)
-        {
-            if (criteria.ModifiedSince.HasValue)
-            {
-                query = query.Where(x => x.ModifiedDate >= criteria.ModifiedSince.Value || (x.ModifiedDate == null && x.CreatedDate >= criteria.ModifiedSince.Value));
-            }
-
-            if (criteria.ModifiedBefore.HasValue)
-            {
-                query = query.Where(x => x.ModifiedDate <= criteria.ModifiedBefore.Value || (x.ModifiedDate == null && x.CreatedDate <= criteria.ModifiedBefore.Value));
-            }
-
-            return query;
         }
 
 
