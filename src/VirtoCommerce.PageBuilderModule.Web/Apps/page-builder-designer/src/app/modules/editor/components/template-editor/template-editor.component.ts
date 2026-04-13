@@ -111,14 +111,14 @@ export class TemplateEditorComponent {
         this.store.dispatch(actions.executeContextMenuAction({ action: event, source: 'list', section, block }));
     }
 
-    readonly getPageActions = () => this.helper.getPageActions();
+    readonly getPageActions = () => this.helper.getPageActions(!!this.viewModel()?.selectMode);
 
     onMouseMove(args: MouseEvent) {
         let target = this.container().nativeElement;
         const rect = target.getBoundingClientRect();
         const top = args.clientY - rect.top;
 
-        const w2 = rect.width / 2.0;
+        const w2 = rect.width / 2;
         this.addButtonOpacity.set(1 - Math.abs(w2 - args.clientX - rect.left) / w2);
 
         if (top < 0) {

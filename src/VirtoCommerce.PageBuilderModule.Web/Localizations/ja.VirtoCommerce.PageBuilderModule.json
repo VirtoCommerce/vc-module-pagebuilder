@@ -61,6 +61,12 @@
             "title": "ストアプレビューパス"
           }
         },
+        "Store": {
+          "PreviewUserIds": {
+            "title": "プレビュー用ユーザーID",
+            "description": "ページプレビューのなりすまし用ユーザーIDリスト（1行に1つ）"
+          }
+        },
         "Migration": {
           "MetadataFromContentMigrated": {
             "title": "コンテンツからのメタデータ移行完了",

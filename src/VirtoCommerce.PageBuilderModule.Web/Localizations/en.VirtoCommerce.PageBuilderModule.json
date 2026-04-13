@@ -66,6 +66,12 @@
             "title": "Store preview path"
           }
         },
+        "Store": {
+          "PreviewUserIds": {
+            "title": "Preview user IDs",
+            "description": "List of user IDs for page preview impersonation (one per line)"
+          }
+        },
         "Migration": {
           "MetadataFromContentMigrated": {
             "title": "Metadata migration from content completed",

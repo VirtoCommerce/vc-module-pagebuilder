@@ -43,11 +43,11 @@ export class TemplateEditorDomainEffects {
             this.store$.select(selectors.selectObjectsSchemas)
         ),
         filter(([, { template }]) => !!template),
-        switchMap(([{ schema }, { template, section, templateKey, insertIndex }, shared, objects]) => {
+        switchMap(([{ schema }, { template, section, templateKey, insertIndex, templateEntry }, shared, objects]) => {
 
             const sharedSchemaName = !!section ? "_blocks" : "_sections";
 
-            const fullSchema = editorHelpers.prepareSchema(schema, shared, objects, sharedSchemaName);
+            const fullSchema = editorHelpers.prepareSchema(schema, shared, objects, sharedSchemaName, templateEntry?.controls);
             const result = editorHelpers.addItemToTemplate(fullSchema, template!, section || null, insertIndex); // section can be null
             const message = sharedActions.broadcastPreviewMessage({
                 msg: {
@@ -285,6 +285,42 @@ export class TemplateEditorDomainEffects {
                             actions.closeAddItemPanel()
                         ]
                         : [sharedActions.empty()]
+                })
+            ))
+    ));
+
+    deleteSelected$ = createEffect(() => this.actions$.pipe(
+        ofType(actions.executeContextMenuAction),
+        filter(({ action }) => action === 'delete-selected'),
+        withLatestFrom(
+            this.store$.select(selectors.changeTemplateContext),
+            this.store$.select(selectors.selectCheckedItems),
+            this.store$.select(selectors.hasSelectedSection),
+            this.store$.select(selectors.selectKeyOfSectionWithSelectedBlock)
+        ),
+        filter(([, { template }, checkedItems]) => !!template && checkedItems.length > 0),
+        switchMap(([, { template, templateKey }, checkedItems, isSectionSelected, sectionKeyWithSelectedBlock]) =>
+            this.modals.confirm(`Are you sure you want to delete ${checkedItems.length} selected item(s)?`).pipe(
+                switchMap(confirmed => {
+                    if (!confirmed) {
+                        return [sharedActions.empty()];
+                    }
+                    const newTemplate = isSectionSelected
+                        ? editorHelpers.removeSections(template!, checkedItems)
+                        : editorHelpers.removeBlocks(template!, sectionKeyWithSelectedBlock!, checkedItems);
+                    return [
+                        actions.updateTemplateAction({
+                            template: newTemplate,
+                            templateKey
+                        }),
+                        sharedActions.broadcastPreviewMessage({
+                            msg: {
+                                type: 'reload',
+                                template: newTemplate
+                            }
+                        }),
+                        actions.closeAddItemPanel()
+                    ];
                 })
             ))
     ));

@@ -66,6 +66,12 @@
             "title": "Sökväg för förhandsgranskning"
           }
         },
+        "Store": {
+          "PreviewUserIds": {
+            "title": "Användar-IDn för förhandsgranskning",
+            "description": "Lista med användar-IDn för förhandsgranskningsimitation (ett per rad)"
+          }
+        },
         "Migration": {
           "MetadataFromContentMigrated": {
             "title": "Metadata-migrering från innehåll slutförd",

@@ -35,7 +35,7 @@ export class SectionItemComponent {
   readonly sectionIcon = computed(() => this.sectionSchema()?.icon || 'blur_on');
   readonly sectionName = computed(() => {
     const schema = this.sectionSchema();
-    return schema ? helpers.getSectionName(this.section(), schema) : '';
+    return helpers.getSectionName(this.section(), schema);
   });
 
   onItemClick(_event: MouseEvent) {
