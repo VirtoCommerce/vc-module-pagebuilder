@@ -100,7 +100,10 @@ Lives entirely in `Apps/page-builder-designer/`. The SPA runs as an `<iframe>` i
 
 **Config system:**
 - Loads `data/settings.json` (or `?configUrl=` override)
-- Supports `{{token}}` template syntax in URLs (tokens: `location.*`, `config.*`, `settings.*`)
+- Template syntax in values (evaluated by `appHelpers.template()` in `integration/helpers/utils.ts`):
+  - `{{path}}` — substitutes value by dot-path from context (`location.*`, `config.*`, `settings.*`)
+  - `{{=expr}}` — evaluates JS expression, result is coerced to string (for use inside larger strings)
+  - `@{{expr}}` — evaluates JS expression, returns raw result preserving type (array, object, number). Must be the entire string value. Use for POST body fields that need non-string types.
 - `BuilderHttpClient` evaluates `ServerRequestDescriptor` objects with LRU cache + fallback chains
 
 **Internal libraries (`projects/`):**

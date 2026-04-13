@@ -78,12 +78,12 @@ export const selectCheckedItems = createSelector(
   state => getSelectedIds(state?.sections || {})
 );
 
-const hasSelectedSection = createSelector(
+export const hasSelectedSection = createSelector(
   fromDomain.selectCurrentTemplateState,
   state => !!state?.sections && Object.values(state.sections).some(x => x.selected)
 );
 
-const selectKeyOfSectionWithSelectedBlock = createSelector(
+export const selectKeyOfSectionWithSelectedBlock = createSelector(
   fromDomain.selectCurrentTemplateState,
   state => Object.keys(state?.sections || {}).find(x => Object.values(state?.sections[x].blocks || {}).some(b => b.selected))
 );
@@ -103,13 +103,13 @@ export const selectSectionsState = createSelector(
         [section.id]: <SectionState>{
           expanded: canHaveChildren,
           canHaveChildren,
-          isDragging: dragSectionIds.indexOf(section.id) !== -1,
+          isDragging: dragSectionIds.includes(section.id),
           selectable: !sectionKeyWithSelectedBlock,
           ...state?.sections[section.id],
           blocks: canHaveChildren ? section.blocks?.reduce((res, v) => ({
             ...res,
             [v.id]: {
-              isDragging: dragSectionIds.indexOf(v.id) !== -1,
+              isDragging: dragSectionIds.includes(v.id),
               selected: res[v.id]?.selected || false,
               selectable: !isSectionSelected && (!sectionKeyWithSelectedBlock || sectionKeyWithSelectedBlock === section.id),
             }
@@ -186,7 +186,7 @@ export const selectCurrentItemName = createSelector(
   fromData.selectCurrentSchemaForEdit,
   (block, section, settings, schema) => {
     const itemType = block ? 'current block' : 'current section';
-    const defaultName = !!settings ? (<string>schema?.['name'] || 'settings') : itemType;
+    const defaultName = settings ? (<string>schema?.['name'] || 'settings') : itemType;
     const name = helpers.getSectionName(block || section || settings || null, schema || null, defaultName);
     return 'Edit ' + name;
   }
