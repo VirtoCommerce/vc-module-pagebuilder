@@ -27,7 +27,7 @@ public sealed class PageBuilderExportImport(
         var progressInfo = new ExportImportProgressInfo { Description = "Page Builder pages are loading" };
         progressCallback(progressInfo);
 
-        using var sw = new StreamWriter(outStream);
+        using var sw = new StreamWriter(outStream, leaveOpen: true);
         using var writer = new JsonTextWriter(sw);
 
         await writer.WriteStartObjectAsync();
@@ -81,7 +81,7 @@ public sealed class PageBuilderExportImport(
 
         var progressInfo = new ExportImportProgressInfo();
 
-        using var streamReader = new StreamReader(inputStream);
+        using var streamReader = new StreamReader(inputStream, leaveOpen: true);
         using var reader = new JsonTextReader(streamReader);
 
         while (await reader.ReadAsync())
@@ -141,6 +141,9 @@ public sealed class PageBuilderExportImport(
     private async Task UpdateExistingGroupAsync(GroupedPageBuilderPage group, PageBuilderExportPage exportPage)
     {
         group.Name = exportPage.Name;
+        group.Permalink = exportPage.Permalink;
+        group.StoreId = exportPage.StoreId;
+        group.CultureName = exportPage.CultureName;
         group.Visibility = exportPage.Visibility;
         group.UserGroups = exportPage.UserGroups;
         group.OrganizationId = exportPage.OrganizationId;
