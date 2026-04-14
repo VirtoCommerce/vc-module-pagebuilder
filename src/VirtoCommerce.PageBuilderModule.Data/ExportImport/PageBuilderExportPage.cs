@@ -5,6 +5,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.ExportImport;
 
 public class PageBuilderExportPage
 {
+    public string GroupId { get; set; }
     public string Name { get; set; }
     public string Permalink { get; set; }
     public string StoreId { get; set; }

@@ -8,6 +8,7 @@ using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.ExportImport;
+using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 
 
 namespace VirtoCommerce.PageBuilderModule.Data.ExportImport;
@@ -39,6 +40,7 @@ public sealed class PageBuilderExportImport(
 
         var criteria = AbstractTypeFactory<PageBuilderPageSearchCriteria>.TryCreateInstance();
         criteria.Take = BatchSize;
+        criteria.Statuses = $"{Draft},{Published}";
 
         var processedCount = 0;
 
@@ -119,47 +121,21 @@ public sealed class PageBuilderExportImport(
 
     private async Task ImportPageAsync(PageBuilderExportPage exportPage)
     {
-        var existingGroupId = await FindExistingGroupIdAsync(exportPage.StoreId, exportPage.Permalink, exportPage.CultureName);
+        GroupedPageBuilderPage existingGroup = null;
 
-        if (existingGroupId != null)
+        if (!string.IsNullOrEmpty(exportPage.GroupId))
         {
-            var existingGroup = await groupedPageService.GetByIdAsync(existingGroupId);
+            existingGroup = await groupedPageService.GetByIdAsync(exportPage.GroupId);
+        }
+
+        if (existingGroup != null)
+        {
             await UpdateExistingGroupAsync(existingGroup, exportPage);
         }
         else
         {
             await CreateNewGroupAsync(exportPage);
         }
-    }
-
-    private async Task<string> FindExistingGroupIdAsync(string storeId, string permalink, string cultureName)
-    {
-        var criteria = AbstractTypeFactory<PageBuilderPageSearchCriteria>.TryCreateInstance();
-        criteria.StoreId = storeId;
-        criteria.Keyword = permalink;
-        criteria.Take = BatchSize;
-        criteria.Skip = 0;
-
-        int totalCount;
-        do
-        {
-            var searchResult = await groupedPageSearchService.SearchNoCloneAsync(criteria);
-            totalCount = searchResult.TotalCount;
-
-            var match = searchResult.Results.FirstOrDefault(g =>
-                string.Equals(g.Permalink, permalink, StringComparison.OrdinalIgnoreCase) &&
-                string.Equals(g.CultureName, cultureName, StringComparison.OrdinalIgnoreCase));
-
-            if (match != null)
-            {
-                return match.Id;
-            }
-
-            criteria.Skip += BatchSize;
-        }
-        while (criteria.Skip < totalCount);
-
-        return null;
     }
 
     private async Task UpdateExistingGroupAsync(GroupedPageBuilderPage group, PageBuilderExportPage exportPage)
@@ -237,6 +213,7 @@ public sealed class PageBuilderExportImport(
     {
         var exportPage = new PageBuilderExportPage
         {
+            GroupId = group.Id,
             Name = group.Name,
             Permalink = group.Permalink,
             StoreId = group.StoreId,
@@ -248,7 +225,7 @@ public sealed class PageBuilderExportImport(
             EndDate = group.EndDate,
         };
 
-        foreach (var page in group.Pages)
+        foreach (var page in group.Pages.Where(p => p.Status != Archived))
         {
             var content = await groupedPageService.LoadContent(page.Id);
             exportPage.Variants.Add(new PageBuilderExportPageVariant
