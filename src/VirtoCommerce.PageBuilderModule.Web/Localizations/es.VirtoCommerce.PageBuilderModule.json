@@ -61,6 +61,12 @@
             "title": "Ruta de vista previa de la tienda"
           }
         },
+        "Store": {
+          "PreviewUserIds": {
+            "title": "IDs de usuario para vista previa",
+            "description": "Lista de IDs de usuario para la suplantación en vista previa (uno por línea)"
+          }
+        },
         "Migration": {
           "MetadataFromContentMigrated": {
             "title": "Migración de metadatos desde el contenido completada",

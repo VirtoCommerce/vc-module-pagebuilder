@@ -20,4 +20,18 @@ export class AuthService {
         return this.http.post<any>(url, body, { headers });
     }
 
+    /**
+     * Obtain a Bearer token from the current cookie session via the impersonate grant.
+     * Calling without user_id resets impersonation and returns a token for the logged-in user.
+     */
+    obtainToken(): Observable<any> {
+        const url = '/connect/token';
+        const headers = new HttpHeaders({
+            'x-refresh': 'true',
+            'content-type': 'application/x-www-form-urlencoded'
+        });
+        const body = 'grant_type=impersonate&scope=offline_access';
+        return this.http.post<any>(url, body, { headers });
+    }
+
 }

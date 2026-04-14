@@ -1,7 +1,9 @@
 :host {
-    @apply flex flex-row w-full items-stretch space-x-6;
-    & > app-preview-mode,
-    & > app-custom-actions {
-        @apply py-4;
-    }
+  @apply flex flex-row w-full items-stretch space-x-6;
+
+  &>app-preview-mode,
+  &>app-impersonate-as,
+  &>app-custom-actions {
+    @apply py-4;
+  }
 }

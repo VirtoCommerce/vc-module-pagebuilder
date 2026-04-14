@@ -79,6 +79,11 @@ export class ContextMenuHelper {
             title: 'Delete',
             icon: 'delete_outline'
         },
+        'delete-selected': {
+            action: 'delete-selected',
+            title: 'Delete selected',
+            icon: 'delete_sweep'
+        },
         'reset-template': {
             action: 'reset-template',
             title: 'Reset template',
@@ -124,10 +129,12 @@ export class ContextMenuHelper {
         return this.getActions(result);
     }
 
-    async getPageActions(): Promise<ContextMenuAction[]> {
+    async getPageActions(hasSelection = false): Promise<ContextMenuAction[]> {
         const emptyClipboardData = !(await this.hasClipboardData());
         const result: (string | [string, boolean])[] = [
             ['paste-section', emptyClipboardData],
+            ['delete-selected', !hasSelection],
+            '|',
             'reset-template', 'refresh-preview'
         ];
         return this.getActions(result);
