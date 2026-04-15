@@ -68,6 +68,7 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
   const status = ref<FilePublishStatus>(new FilePublishStatus());
 
   let groupStoreId: string | undefined;
+  let pendingContentUpload = !!options?.importData?.content;
 
   const { currentValue, isModified, resetModificationState } = useModificationTracker(item);
 
@@ -110,14 +111,15 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
       currentValue.value = reactive(result);
       isNew.value = false;
       resetModificationState();
-
-      if (options?.importData?.content && result.id) {
-        await uploadPageContent(result.id, options.importData.content);
-      }
     } else {
       result = await apiClient.updateGroup(group);
       currentValue.value = reactive(result);
       resetModificationState();
+    }
+
+    if (pendingContentUpload && result.id && options?.importData?.content) {
+      await uploadPageContent(result.id, options.importData.content);
+      pendingContentUpload = false;
     }
 
     return result;
