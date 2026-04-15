@@ -309,7 +309,7 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     id: "downloadContent",
     icon: "material-download",
     title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.DOWNLOAD_CONTENT"),
-    disabled: !props.param || isReadOnly.value,
+    disabled: !props.param,
     clickHandler: async () => {
       await downloadContent();
       notification.success(t("PAGE_BUILDER.PAGES.ALERTS.DOWNLOAD_SUCCESS"));

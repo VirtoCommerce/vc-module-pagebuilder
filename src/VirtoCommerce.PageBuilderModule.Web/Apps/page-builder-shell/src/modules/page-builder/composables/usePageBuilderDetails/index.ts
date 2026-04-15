@@ -92,7 +92,9 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
       }
       currentValue.value = reactive(page);
     }
-    resetModificationState();
+    if (!options?.importData) {
+      resetModificationState();
+    }
   });
 
   const { action: saveGroup, loading: savingGroup } = useAsync(async () => {
