@@ -111,7 +111,9 @@
           "MESSAGE": "Are you sure you want to archive {count} selected pages?",
           "ALL": "all {totalCount}"
         },
-        "UNPUBLISH_WITH_DRAFT": "Can't unpublish a page that has changes."
+        "UNPUBLISH_WITH_DRAFT": "Can't unpublish a page that has changes.",
+        "DOWNLOAD_SUCCESS": "Content saved to file successfully",
+        "CLONE_SUCCESS": "Page cloned successfully"
       }
     },
     "STATUS": {

@@ -181,10 +181,11 @@
 import { computed, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { Field, useForm } from "vee-validate";
-import { IBladeToolbar, IParentCallArgs, useBladeNavigation, usePopup } from "@vc-shell/framework";
+import { IBladeToolbar, IParentCallArgs, useBladeNavigation, usePopup, notification } from "@vc-shell/framework";
 import PageStatus from "../components/pageStatus.vue";
 import useUrlParams from "../composables/useStoreParams";
 import { usePageBuilderDetails } from "../composables/usePageBuilderDetails";
+import type { PageExportData } from "../composables/usePageContentApi";
 
 defineOptions({
   name: "PageDetails",
@@ -197,7 +198,7 @@ interface Props {
   param?: string;
   options?: {
     storeId?: string;
-    importFile?: File;
+    importData?: PageExportData;
   };
 }
 
@@ -240,7 +241,7 @@ const {
 } = usePageBuilderDetails({
   id: props.param,
   storeId: props.options?.storeId,
-  importFile: props.options?.importFile,
+  importData: props.options?.importData,
 });
 
 const bladeTitle = computed(() => {
@@ -311,6 +312,7 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     disabled: !props.param || isReadOnly.value,
     clickHandler: async () => {
       await downloadContent();
+      notification.success(t("PAGE_BUILDER.PAGES.ALERTS.DOWNLOAD_SUCCESS"));
     },
   },
   {
@@ -320,6 +322,7 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     disabled: !props.param || isReadOnly.value,
     clickHandler: async () => {
       const cloned = await clonePage();
+      notification.success(t("PAGE_BUILDER.PAGES.ALERTS.CLONE_SUCCESS"));
       emit("parent:call", { method: "reload" });
       if (cloned?.id) {
         emit("parent:call", { method: "onItemClick", args: cloned });

@@ -75,6 +75,7 @@ import { debounce } from "lodash-es";
 import { ITableColumns, useTableSort, useBladeNavigation, usePopup, IActionBuilderResult } from "@vc-shell/framework";
 import { GroupedPageBuilderPage } from "../../../api_client/virtocommerce.pagebuildermodule";
 import { PageLifecycleFilters, usePageBuilderList, useUrlParams, refreshMenuBadges } from "../composables";
+import { parseImportFile } from "../composables/usePageContentApi";
 
 interface Props {
   expanded?: boolean;
@@ -240,17 +241,19 @@ function openLoadFlow() {
   fileInputRef.value?.click();
 }
 
-function onFileSelected(event: Event) {
+async function onFileSelected(event: Event) {
   const input = event.target as HTMLInputElement;
   const file = input.files?.[0];
   if (!file) return;
   input.value = "";
 
+  const importData = await parseImportFile(file);
+
   openBlade({
     blade: { name: "PageDetails" },
     options: {
       storeId: storeId.value ?? undefined,
-      importFile: file,
+      importData,
     },
   });
 }

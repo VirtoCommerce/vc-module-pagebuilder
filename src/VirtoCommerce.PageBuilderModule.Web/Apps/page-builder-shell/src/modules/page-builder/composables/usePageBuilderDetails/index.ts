@@ -9,7 +9,7 @@ import {
 import useUserGroups, { IUserGroupsResult } from "./../useUserGroups";
 import useOrganizations, { IOrganizationsResult } from "./../useOrganizations";
 import useUrlParams from "../useStoreParams";
-import { downloadPageContent, uploadPageContent } from "../usePageContentApi";
+import { downloadPageContent, uploadPageContent, PageExportData } from "../usePageContentApi";
 
 const { getApiClient } = useApiClient(PageBuilderPageClient);
 
@@ -35,7 +35,7 @@ export interface IUsePageBuilderDetails {
 export interface UsePageBuilderDetailsOptions {
   id?: string;
   storeId?: string;
-  importFile?: File;
+  importData?: PageExportData;
 }
 
 function incrementCopyName(name: string): string {
@@ -78,7 +78,19 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
       status.value = await apiClient.publishStatus(options.id);
       currentValue.value = reactive(result);
     } else {
-      currentValue.value = reactive(new GroupedPageBuilderPage());
+      const page = new GroupedPageBuilderPage();
+      if (options?.importData) {
+        const data = options.importData;
+        page.name = data.name;
+        page.permalink = data.permalink;
+        page.cultureName = data.cultureName;
+        page.visibility = data.visibility;
+        page.userGroups = data.userGroups;
+        page.organizationId = data.organizationId;
+        page.startDate = data.startDate;
+        page.endDate = data.endDate;
+      }
+      currentValue.value = reactive(page);
     }
     resetModificationState();
   });
@@ -97,8 +109,8 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
       isNew.value = false;
       resetModificationState();
 
-      if (options?.importFile && result.id) {
-        await uploadPageContent(result.id, options.importFile);
+      if (options?.importData?.content && result.id) {
+        await uploadPageContent(result.id, options.importData.content);
       }
     } else {
       result = await apiClient.updateGroup(group);
@@ -152,7 +164,7 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
     if (!groupId) {
       throw new Error("Can't download content.");
     }
-    await downloadPageContent(groupId, currentValue.value.name || "page");
+    await downloadPageContent(groupId, currentValue.value);
   });
 
   const { action: clonePage, loading: cloningPage } = useAsync(async () => {
