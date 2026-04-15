@@ -38,6 +38,26 @@ export interface UsePageBuilderDetailsOptions {
   importFile?: File;
 }
 
+function incrementCopyName(name: string): string {
+  const match = /^(.*)\(copy(?:\s+(\d+))?\)$/.exec(name);
+  if (match) {
+    const base = match[1];
+    const num = match[2] ? Number.parseInt(match[2], 10) + 1 : 2;
+    return `${base}(copy ${num})`;
+  }
+  return `${name} (copy)`;
+}
+
+function incrementCopyPermalink(permalink: string): string {
+  const match = /^(.*)-copy(?:-(\d+))?$/.exec(permalink);
+  if (match) {
+    const base = match[1];
+    const num = match[2] ? Number.parseInt(match[2], 10) + 1 : 2;
+    return `${base}-copy-${num}`;
+  }
+  return `${permalink}-copy`;
+}
+
 export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): IUsePageBuilderDetails {
   const { getUserGroups } = useUserGroups();
   const { getOrganizations } = useOrganizations();
@@ -142,8 +162,8 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
     }
 
     const clone = new GroupedPageBuilderPage();
-    clone.name = `${source.name} (copy)`;
-    clone.permalink = `${source.permalink}-copy`;
+    clone.name = incrementCopyName(source.name || "");
+    clone.permalink = incrementCopyPermalink(source.permalink || "");
     clone.cultureName = source.cultureName;
     clone.storeId = source.storeId;
     clone.visibility = source.visibility;
