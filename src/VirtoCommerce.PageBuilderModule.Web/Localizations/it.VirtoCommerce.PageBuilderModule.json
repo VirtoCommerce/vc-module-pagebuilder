@@ -61,6 +61,12 @@
             "title": "Percorso di anteprima del negozio"
           }
         },
+        "Store": {
+          "PreviewUserIds": {
+            "title": "ID utente per anteprima",
+            "description": "Elenco degli ID utente per l'impersonificazione nell'anteprima (uno per riga)"
+          }
+        },
         "Migration": {
           "MetadataFromContentMigrated": {
             "title": "Migrazione dei metadati da contenuti completata",

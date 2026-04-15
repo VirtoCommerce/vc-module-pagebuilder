@@ -6,6 +6,8 @@ import { catchError, map, switchMap, tap } from 'rxjs/operators';
 
 import { BuilderHttpClient } from './builder-http.client';
 import { AppConfig } from './app.config';
+import { AuthService } from './auth.service';
+import { JwtStorageService } from './jwt-storage.service';
 import { DefaultConfig } from './app.default-config';
 
 @Injectable({
@@ -15,12 +17,16 @@ export class AppInitializator {
 
     private readonly config = inject(AppConfig);
     private readonly http = inject(BuilderHttpClient);
+    private readonly auth = inject(AuthService);
+    private readonly jwt = inject(JwtStorageService);
 
     init(): Promise<any> {
         // todo: dangerous! check that this is security
         console.log(this.config.getContext());
         const configUrl = this.config.getContext().location.params.configUrl || 'data/settings.json';
-        return firstValueFrom(this.loadSettingsFrom(configUrl, null, DefaultConfig).pipe(
+        return firstValueFrom(this.ensureBearerToken().pipe(
+            switchMap(() => this.loadSettingsFrom(configUrl, null, DefaultConfig)),
+        ).pipe(
             // tap(result => {
             //     console.log(result);
             //     this.config.initConfigWith(result);
@@ -41,6 +47,21 @@ export class AppInitializator {
                 this.config.initConfigWith(result);
             }),
         ));
+    }
+
+    private ensureBearerToken(): Observable<void> {
+        const info = this.jwt.getInfo();
+        if (info?.token && info?.expiresAt && Date.now() < info.expiresAt) {
+            return of(undefined);
+        }
+        return this.auth.obtainToken().pipe(
+            tap(response => this.jwt.save(response)),
+            map(() => undefined),
+            catchError(error => {
+                console.warn('Failed to obtain bearer token from cookie session:', error);
+                return of(undefined);
+            })
+        );
     }
 
     private loadSettingsFrom(url: string | ServerRequestDescriptor | ServerRequestDescriptor[], context: any = null, defaultConfig: any = null): Observable<any> {

@@ -61,6 +61,12 @@
             "title": "Chemin d'aperçu du magasin"
           }
         },
+        "Store": {
+          "PreviewUserIds": {
+            "title": "IDs utilisateur pour l'aperçu",
+            "description": "Liste des IDs utilisateur pour l'usurpation d'identité lors de l'aperçu (un par ligne)"
+          }
+        },
         "Migration": {
           "MetadataFromContentMigrated": {
             "title": "Migration des métadonnées de contenu terminée",

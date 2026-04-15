@@ -29,11 +29,11 @@ function addAuthData(
 
   const info = jwt.getInfo();
 
-  if (info && info.expiresAt && Date.now() < info.expiresAt) {
+  if (info?.expiresAt && Date.now() < info.expiresAt) {
     return of(enrichRequest(request, info.token));
   }
 
-  if (info && info.refreshToken) {
+  if (info?.refreshToken) {
     state.start();
     return auth.refreshToken(info.refreshToken).pipe(
       tap(() => state.complete()),

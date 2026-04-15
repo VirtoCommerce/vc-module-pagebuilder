@@ -61,6 +61,12 @@
             "title": "Caminho de visualização da loja"
           }
         },
+        "Store": {
+          "PreviewUserIds": {
+            "title": "IDs de utilizador para pré-visualização",
+            "description": "Lista de IDs de utilizador para personificação na pré-visualização (um por linha)"
+          }
+        },
         "Migration": {
           "MetadataFromContentMigrated": {
             "title": "Migração de metadados a partir do conteúdo concluída",

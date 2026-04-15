@@ -6,6 +6,7 @@ import { catchError, switchMap, map, of, withLatestFrom, filter, tap, fromEvent 
 
 import { EventsBusService, NotificationsService } from "@core/services";
 import { TemplatesService, MetaDataService } from '@shared/services';
+import { ImpersonateService } from '../../integration/services';
 
 import { BuilderState } from "./state";
 import * as actions from "./actions";
@@ -23,6 +24,7 @@ export class SharedEffects {
     private readonly eventsBus = inject(EventsBusService);
     private readonly notification = inject(NotificationsService);
     private readonly metaDataService = inject(MetaDataService);
+    private readonly impersonateService = inject(ImpersonateService);
 
     raiseInitModule$ = createEffect(() => this.actions$.pipe(
         ofType(ROUTER_NAVIGATED),
@@ -270,6 +272,48 @@ export class SharedEffects {
         ofType(actions.previewLoaded),
         tap(() => this.eventsBus.emit({ target: 'preview', payload: { type: 'preview-loaded' } })),
         map(() => actions.setLivePreviewUrl())
+    ));
+
+    changePreviewAccount$ = createEffect(() => this.actions$.pipe(
+        ofType(actions.changePreviewAccount),
+        tap(({ userId }) => {
+            if (userId) {
+                localStorage.setItem('pb.previewAccountId', userId);
+            } else {
+                localStorage.removeItem('pb.previewAccountId');
+            }
+        }),
+        map(({ userId }) => actions.sendPreviewAuth({ userId }))
+    ));
+
+    sendPreviewAuth$ = createEffect(() => this.actions$.pipe(
+        ofType(actions.sendPreviewAuth),
+        switchMap(({ userId }) => {
+            if (!userId) {
+                this.eventsBus.emit({
+                    target: 'preview',
+                    payload: { type: 'auth', token: null, userId: null }
+                });
+                return of(actions.sendPreviewAuthSuccess());
+            }
+            return this.impersonateService.getImpersonateToken(userId).pipe(
+                tap(tokenResponse => {
+                    this.eventsBus.emit({
+                        target: 'preview',
+                        payload: {
+                            type: 'auth',
+                            token: tokenResponse,
+                            userId
+                        }
+                    });
+                }),
+                map(() => actions.sendPreviewAuthSuccess()),
+                catchError(error => {
+                    console.error('Failed to get impersonate token for preview:', error);
+                    return of(actions.sendPreviewAuthFailed({ error }));
+                })
+            );
+        })
     ));
 
     setWindowTitle$ = createEffect(() => this.actions$.pipe(

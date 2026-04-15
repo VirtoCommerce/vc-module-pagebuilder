@@ -20,4 +20,5 @@ export interface TemplateEntry {
     children?: TemplateEntryList;
     hasChildren: boolean;
     previewMessage?: any;
+    controls?: Record<string, any>;
 }

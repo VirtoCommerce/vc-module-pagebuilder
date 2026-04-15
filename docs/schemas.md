@@ -44,6 +44,7 @@ Each file is a descriptor for a particular page, template, or group of pages. Dr
 | `settings`       | SectionPropertyDescriptor[]                                                    | false | Template settings.                                                                     |
 | `children`       | TemplateEntryList                                                              | false | Children templates.                                                                    |
 | `previewMessage` | any                                                                              | false | Additional data, that sends to preview area.                                            |
+| `controls`       | Record&lt;string, any&gt;                                                        | false | Per-template control overrides. Overrides `shared._controls` defaults, can be overridden by local section/block settings. See [Control overrides](#control-overrides). |
 
 === "Basic template example"
     ```json
@@ -230,6 +231,73 @@ Section property can be object. In this case, it is necessary to describe the st
     ]
     }
     ```
+
+### Control overrides
+
+The Page Builder supports a three-level override system for control properties (e.g., CKEditor toolbar configuration for `text` controls). Each level overrides the previous one:
+
+| Priority | Source | Description |
+|----------|--------|-------------|
+| 1 (lowest) | `shared/_controls` | Global defaults for all control types across all templates |
+| 2 | `template.controls` | Per-template overrides (e.g., pages vs blogs) |
+| 3 (highest) | Section/block `settings` | Inline property on a specific control instance |
+
+Properties are **shallow-merged** at each level — the higher-priority value replaces the lower-priority value for the same key. Non-overlapping keys from all levels are preserved.
+
+#### Global control defaults (`shared/_controls`)
+
+Define a `_controls` key in the shared schemas folder. Each key inside is a control type name, and its value is an object of properties to apply to every control of that type.
+
+```json
+{
+  "_controls": {
+    "text": {
+      "config": {
+        "language": "ru",
+        "toolbar": [{ "name": "basicstyles", "items": ["Bold", "Italic", "Underline"] }]
+      }
+    }
+  }
+}
+```
+
+#### Template-level overrides
+
+Add a `controls` property to a template descriptor (e.g., `page.json`). Same format as `_controls` — keyed by control type.
+
+```json
+{
+  "name": "Blog posts",
+  "type": "blogs",
+  "controls": {
+    "text": {
+      "config": {
+        "toolbar": [
+          { "name": "basicstyles", "items": ["Bold", "Italic"] },
+          { "name": "paragraph", "items": ["NumberedList", "BulletedList"] }
+        ]
+      }
+    }
+  }
+}
+```
+
+In this example, blog posts get a different toolbar than the global default, while still inheriting other properties like `language: "ru"` from `_controls`.
+
+#### Section/block-level overrides
+
+Set properties directly on a control in the section or block schema. This is the highest priority.
+
+```json
+{
+  "id": "description",
+  "type": "text",
+  "label": "Description",
+  "config": {
+    "toolbar": [{ "name": "basicstyles", "items": ["Bold"] }]
+  }
+}
+```
 
 <br>
 <br>

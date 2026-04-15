@@ -1,0 +1,27 @@
+@use '../../../../../layout/variables' as *;
+
+// Dropdown view
+app-actions-dropdown, ::ng-deep .mat-mdc-menu-panel.impersonate-as-panel {
+    width: calc(1.3 * 9.125rem);
+    max-width: calc(1.3 * 9.125rem);
+}
+
+// Context menu view
+.impersonate-trigger {
+    @apply flex flex-row items-center space-x-1 cursor-pointer;
+}
+
+.trigger-icon {
+    color: $icons-color;
+
+    &:hover {
+        color: $active-color;
+    }
+}
+
+.label {
+    color: $controls-text-color;
+    font-size: $default-font-size;
+    max-width: 10rem;
+    @apply truncate;
+}

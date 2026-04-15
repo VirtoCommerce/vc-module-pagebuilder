@@ -128,10 +128,11 @@ export class TemplateEditorDataEffects {
             this.store$.select(fromRoute.selectPathParameter),
             this.store$.select(fromRoute.selectTypeParameter),
             this.store$.select(fromRoute.selectGroupIdParameter),
+            this.store$.select(fromRoute.selectSectionIdParameter),
         ),
-        switchMap(([{ templateKey }, templateEntry, path, type, groupId]) => this.templates.getTemplate(path, type, templateEntry, groupId).pipe(
+        switchMap(([{ templateKey }, templateEntry, path, type, groupId, sectionId]) => this.templates.getTemplate(path, type, templateEntry, groupId).pipe(
             filter(template => !!template),
-            map(template => editorHelpers.prepareTemplate(template!)),
+            map(template => editorHelpers.prepareTemplate(template)),
             switchMap(template => [
                 actions.getTemplatePublishStatus({ templateKey }),
                 actions.loadTemplateModelSuccess({ template, templateKey }),
@@ -140,6 +141,7 @@ export class TemplateEditorDataEffects {
                     msg: {
                         type: 'page',
                         template,
+                        sectionId,
                         ...templateEntry?.previewMessage
                     }
                 })
@@ -168,13 +170,15 @@ export class TemplateEditorDataEffects {
         ])
     ));
 
-    passTemplateToPreview$ = createEffect(() => this.actions$.pipe(
-        ofType(shared.previewLoaded),
+    resendTemplateOnAccountChange$ = createEffect(() => this.actions$.pipe(
+        ofType(shared.sendPreviewAuthSuccess, shared.previewLoaded),
         withLatestFrom(this.store$.select(selectors.changeTemplateContext)),
-        map(([, { template, templateEntry }]) => broadcastPreviewMessage({
+        filter(([, { template }]) => !!template),
+        map(([, { template, templateEntry, sectionId }]) => broadcastPreviewMessage({
             msg: {
                 type: 'page',
                 template,
+                sectionId,
                 ...templateEntry?.previewMessage
             }
         }))
