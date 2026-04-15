@@ -126,6 +126,41 @@ describe('template', () => {
     expect(template('{{val}}', { val: null })).toBe('');
     expect(template('{{val}}', { val: undefined })).toBe('');
   });
+
+  it('returns raw array for @{{expr}} syntax', () => {
+    const ctx = { items: ['a', 'b', 'c'] };
+    const result = template('@{{this.items}}', ctx);
+    expect(result).toEqual(['a', 'b', 'c']);
+  });
+
+  it('returns raw object for @{{expr}} syntax', () => {
+    const ctx = { data: { x: 1, y: 2 } };
+    const result = template('@{{this.data}}', ctx);
+    expect(result).toEqual({ x: 1, y: 2 });
+  });
+
+  it('returns raw number for @{{expr}} syntax', () => {
+    expect(template('@{{1 + 2}}', {})).toBe(3);
+  });
+
+  it('returns null for @{{expr}} when result is null', () => {
+    expect(template('@{{this.missing}}', {})).toBeNull();
+  });
+
+  it('returns null for @{{expr}} when result is undefined', () => {
+    expect(template('@{{undefined}}', {})).toBeNull();
+  });
+
+  it('evaluates @{{expr}} with fallback', () => {
+    const ctx = { items: null };
+    const result = template('@{{this.items || []}}', ctx);
+    expect(result).toEqual([]);
+  });
+
+  it('does not treat @{{}} inside a larger string as raw expression', () => {
+    const result = template('prefix @{{1 + 2}} suffix', {});
+    expect(typeof result).toBe('string');
+  });
 });
 
 // ── evalInContext ───────────────────────────────────────────────────

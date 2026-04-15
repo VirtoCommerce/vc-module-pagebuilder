@@ -5,6 +5,7 @@ import { ActionButtonDescriptor } from '@core/models';
 import { AppConfig } from '@integration/services';
 
 import { PreviewModeComponent } from '@shared/components/preview-mode/preview-mode.component';
+import { ImpersonateAsComponent } from '@shared/components/impersonate-as/impersonate-as.component';
 import { TemplateSelectorComponent } from '@shared/components/template-selector/template-selector.component';
 import { ActionsPanelComponent } from '@shared/components/actions-panel/actions-panel.component';
 
@@ -13,7 +14,7 @@ import { ActionsPanelComponent } from '@shared/components/actions-panel/actions-
     templateUrl: './default-toolbar.component.html',
     styleUrls: ['./default-toolbar.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [PreviewModeComponent, TemplateSelectorComponent, ActionsPanelComponent]
+    imports: [PreviewModeComponent, ImpersonateAsComponent, TemplateSelectorComponent, ActionsPanelComponent]
 })
 export class DefaultToolbarComponent {
 

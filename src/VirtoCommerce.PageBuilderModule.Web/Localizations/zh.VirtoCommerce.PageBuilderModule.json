@@ -61,6 +61,12 @@
             "title": "商店预览路径"
           }
         },
+        "Store": {
+          "PreviewUserIds": {
+            "title": "预览用户ID",
+            "description": "用于页面预览模拟的用户ID列表（每行一个）"
+          }
+        },
         "Migration": {
           "MetadataFromContentMigrated": {
             "title": "迁移内容元数据完成",

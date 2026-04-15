@@ -84,7 +84,7 @@ namespace VirtoCommerce.PageBuilderModule.Core
                     Name = "VirtoCommerce.PageBuilderModule.Migration.MetadataFromContentMigrated",
                     GroupName = "CMS|Migration",
                     ValueType = SettingValueType.Boolean,
-                    DefaultValue = false
+                    DefaultValue = false,
                 };
                 public static IEnumerable<SettingDescriptor> AllMigrationSettings
                 {
@@ -95,7 +95,29 @@ namespace VirtoCommerce.PageBuilderModule.Core
                 }
             }
 
-            public static IEnumerable<SettingDescriptor> AllSettings => General.AllGeneralSettings.Union(Migration.AllMigrationSettings);
+            public static class StoreLevelSettings
+            {
+                public static SettingDescriptor PreviewUserIds { get; } = new()
+                {
+                    Name = "VirtoCommerce.PageBuilderModule.Store.PreviewUserIds",
+                    GroupName = "CMS Content|Page builder",
+                    ValueType = SettingValueType.LongText,
+                    DefaultValue = "",
+                };
+
+                public static IEnumerable<SettingDescriptor> AllStoreLevelSettings
+                {
+                    get
+                    {
+                        yield return PreviewUserIds;
+                    }
+                }
+            }
+
+            public static IEnumerable<SettingDescriptor> AllSettings =>
+                General.AllGeneralSettings
+                    .Union(Migration.AllMigrationSettings)
+                    .Union(StoreLevelSettings.AllStoreLevelSettings);
         }
     }
 }
