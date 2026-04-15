@@ -311,9 +311,11 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.DOWNLOAD_CONTENT"),
     disabled: !props.param,
     clickHandler: async () => {
-      const result = await downloadContent();
-      if (result !== undefined) {
+      try {
+        await downloadContent();
         notification.success(t("PAGE_BUILDER.PAGES.ALERTS.DOWNLOAD_SUCCESS"));
+      } catch {
+        // error is handled by useAsync / global error handler
       }
     },
   },
