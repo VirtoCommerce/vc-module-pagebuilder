@@ -311,8 +311,10 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.DOWNLOAD_CONTENT"),
     disabled: !props.param,
     clickHandler: async () => {
-      await downloadContent();
-      notification.success(t("PAGE_BUILDER.PAGES.ALERTS.DOWNLOAD_SUCCESS"));
+      const result = await downloadContent();
+      if (result !== undefined) {
+        notification.success(t("PAGE_BUILDER.PAGES.ALERTS.DOWNLOAD_SUCCESS"));
+      }
     },
   },
   {
@@ -322,9 +324,9 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     disabled: !props.param || isReadOnly.value,
     clickHandler: async () => {
       const cloned = await clonePage();
-      notification.success(t("PAGE_BUILDER.PAGES.ALERTS.CLONE_SUCCESS"));
-      emit("parent:call", { method: "reload" });
       if (cloned?.id) {
+        notification.success(t("PAGE_BUILDER.PAGES.ALERTS.CLONE_SUCCESS"));
+        emit("parent:call", { method: "reload" });
         emit("parent:call", { method: "onItemClick", args: cloned });
       }
     },
