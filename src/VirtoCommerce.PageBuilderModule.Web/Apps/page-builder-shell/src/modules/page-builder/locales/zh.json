@@ -17,7 +17,8 @@
         "TOOLBAR": {
           "ADD": "添加",
           "REFRESH": "刷新",
-          "REMOVE": "归档"
+          "REMOVE": "归档",
+          "LOAD": "加载内容"
         },
         "SEARCH": {
           "PLACEHOLDER": "搜索关键词"
@@ -69,7 +70,9 @@
           "PREVIEW": "预览",
           "DESIGNER": "打开设计器",
           "PUBLISH": "发布",
-          "UNPUBLISH": "取消发布"
+          "UNPUBLISH": "取消发布",
+          "DOWNLOAD_CONTENT": "保存内容",
+          "CLONE": "克隆"
         },
         "FIELDS": {
           "NAME": "名称",
@@ -108,7 +111,9 @@
           "MESSAGE": "您确定要归档 {count} 个选中的页面吗？",
           "ALL": "全部 {totalCount}"
         },
-        "UNPUBLISH_WITH_DRAFT": "无法取消发布包含更改的页面。"
+        "UNPUBLISH_WITH_DRAFT": "无法取消发布包含更改的页面。",
+        "DOWNLOAD_SUCCESS": "内容已成功保存到文件",
+        "CLONE_SUCCESS": "页面已成功克隆"
       }
     },
     "STATUS": {

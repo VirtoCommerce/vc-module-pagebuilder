@@ -17,7 +17,8 @@
         "TOOLBAR": {
           "ADD": "Ajouter",
           "REFRESH": "Actualiser",
-          "REMOVE": "Archiver"
+          "REMOVE": "Archiver",
+          "LOAD": "Charger le contenu"
         },
         "SEARCH": {
           "PLACEHOLDER": "Rechercher des mots-clés"
@@ -69,7 +70,9 @@
           "PREVIEW": "Aperçu",
           "DESIGNER": "Ouvrir le concepteur",
           "PUBLISH": "Publier",
-          "UNPUBLISH": "Dépublier"
+          "UNPUBLISH": "Dépublier",
+          "DOWNLOAD_CONTENT": "Enregistrer le contenu",
+          "CLONE": "Cloner"
         },
         "FIELDS": {
           "NAME": "Nom",
@@ -108,7 +111,9 @@
           "MESSAGE": "Êtes-vous sûr de vouloir archiver {count} pages sélectionnées ?",
           "ALL": "toutes les {totalCount}"
         },
-        "UNPUBLISH_WITH_DRAFT": "Impossible de dépublier une page qui comporte des modifications."
+        "UNPUBLISH_WITH_DRAFT": "Impossible de dépublier une page qui comporte des modifications.",
+        "DOWNLOAD_SUCCESS": "Contenu enregistré dans le fichier avec succès",
+        "CLONE_SUCCESS": "Page clonée avec succès"
       }
     },
     "STATUS": {

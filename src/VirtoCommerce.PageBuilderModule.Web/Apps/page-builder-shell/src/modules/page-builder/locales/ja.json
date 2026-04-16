@@ -17,7 +17,8 @@
         "TOOLBAR": {
           "ADD": "追加",
           "REFRESH": "更新",
-          "REMOVE": "アーカイブ"
+          "REMOVE": "アーカイブ",
+          "LOAD": "コンテンツを読み込む"
         },
         "SEARCH": {
           "PLACEHOLDER": "キーワードを検索"
@@ -69,7 +70,9 @@
           "PREVIEW": "プレビュー",
           "DESIGNER": "デザイナーを開く",
           "PUBLISH": "公開",
-          "UNPUBLISH": "公開取消"
+          "UNPUBLISH": "公開取消",
+          "DOWNLOAD_CONTENT": "コンテンツを保存",
+          "CLONE": "複製"
         },
         "FIELDS": {
           "NAME": "名前",
@@ -108,7 +111,9 @@
           "MESSAGE": "選択した {count} ページをアーカイブしてもよろしいですか？",
           "ALL": "すべて {totalCount}"
         },
-        "UNPUBLISH_WITH_DRAFT": "変更がある下書きのページは公開取消できません。"
+        "UNPUBLISH_WITH_DRAFT": "変更がある下書きのページは公開取消できません。",
+        "DOWNLOAD_SUCCESS": "コンテンツがファイルに正常に保存されました",
+        "CLONE_SUCCESS": "ページが正常に複製されました"
       }
     },
     "STATUS": {

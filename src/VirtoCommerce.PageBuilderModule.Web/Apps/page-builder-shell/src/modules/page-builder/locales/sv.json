@@ -17,7 +17,8 @@
         "TOOLBAR": {
           "ADD": "Lägg till",
           "REFRESH": "Uppdatera",
-          "REMOVE": "Arkivera"
+          "REMOVE": "Arkivera",
+          "LOAD": "Läs in innehåll"
         },
         "SEARCH": {
           "PLACEHOLDER": "Sök nyckelord"
@@ -69,7 +70,9 @@
           "PREVIEW": "Förhandsgranska",
           "DESIGNER": "Öppna designer",
           "PUBLISH": "Publicera",
-          "UNPUBLISH": "Avpublicera"
+          "UNPUBLISH": "Avpublicera",
+          "DOWNLOAD_CONTENT": "Spara innehåll",
+          "CLONE": "Klona"
         },
         "FIELDS": {
           "NAME": "Namn",
@@ -108,7 +111,9 @@
           "MESSAGE": "Är du säker på att du vill arkivera {count} valda sidor?",
           "ALL": "alla {totalCount}"
         },
-        "UNPUBLISH_WITH_DRAFT": "Kan inte avpublicera en sida som har ändringar."
+        "UNPUBLISH_WITH_DRAFT": "Kan inte avpublicera en sida som har ändringar.",
+        "DOWNLOAD_SUCCESS": "Innehåll sparat i fil",
+        "CLONE_SUCCESS": "Sidan klonades"
       }
     },
     "STATUS": {

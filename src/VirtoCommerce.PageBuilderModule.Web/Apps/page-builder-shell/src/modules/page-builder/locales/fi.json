@@ -17,7 +17,8 @@
         "TOOLBAR": {
           "ADD": "Lisää",
           "REFRESH": "Päivitä",
-          "REMOVE": "Arkistoi"
+          "REMOVE": "Arkistoi",
+          "LOAD": "Lataa sisältö"
         },
         "SEARCH": {
           "PLACEHOLDER": "Hae avainsanoja"
@@ -69,7 +70,9 @@
           "PREVIEW": "Esikatselu",
           "DESIGNER": "Avaa suunnittelija",
           "PUBLISH": "Julkaise",
-          "UNPUBLISH": "Peruuta julkaisu"
+          "UNPUBLISH": "Peruuta julkaisu",
+          "DOWNLOAD_CONTENT": "Tallenna sisältö",
+          "CLONE": "Kloonaa"
         },
         "FIELDS": {
           "NAME": "Nimi",
@@ -108,7 +111,9 @@
           "MESSAGE": "Haluatko varmasti arkistoida {count} valittua sivua?",
           "ALL": "kaikki {totalCount}"
         },
-        "UNPUBLISH_WITH_DRAFT": "Sivua, jossa on muutoksia, ei voi peruuttaa julkaisusta."
+        "UNPUBLISH_WITH_DRAFT": "Sivua, jossa on muutoksia, ei voi peruuttaa julkaisusta.",
+        "DOWNLOAD_SUCCESS": "Sisältö tallennettu tiedostoon onnistuneesti",
+        "CLONE_SUCCESS": "Sivu kloonattu onnistuneesti"
       }
     },
     "STATUS": {

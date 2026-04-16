@@ -17,7 +17,8 @@
         "TOOLBAR": {
           "ADD": "Legg til",
           "REFRESH": "Oppdater",
-          "REMOVE": "Arkiver"
+          "REMOVE": "Arkiver",
+          "LOAD": "Last inn innhold"
         },
         "SEARCH": {
           "PLACEHOLDER": "Søk etter nøkkelord"
@@ -69,7 +70,9 @@
           "PREVIEW": "Forhåndsvisning",
           "DESIGNER": "Åpne designer",
           "PUBLISH": "Publiser",
-          "UNPUBLISH": "Avpubliser"
+          "UNPUBLISH": "Avpubliser",
+          "DOWNLOAD_CONTENT": "Lagre innhold",
+          "CLONE": "Klon"
         },
         "FIELDS": {
           "NAME": "Navn",
@@ -108,7 +111,9 @@
           "MESSAGE": "Er du sikker på at du vil arkivere {count} valgte sider?",
           "ALL": "alle {totalCount}"
         },
-        "UNPUBLISH_WITH_DRAFT": "Kan ikke avpublisere en side som har endringer."
+        "UNPUBLISH_WITH_DRAFT": "Kan ikke avpublisere en side som har endringer.",
+        "DOWNLOAD_SUCCESS": "Innhold lagret til fil",
+        "CLONE_SUCCESS": "Siden ble klonet"
       }
     },
     "STATUS": {

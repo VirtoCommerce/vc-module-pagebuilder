@@ -17,7 +17,8 @@
         "TOOLBAR": {
           "ADD": "Dodaj",
           "REFRESH": "Odśwież",
-          "REMOVE": "Archiwizuj"
+          "REMOVE": "Archiwizuj",
+          "LOAD": "Wczytaj treść"
         },
         "SEARCH": {
           "PLACEHOLDER": "Szukaj słów kluczowych"
@@ -69,7 +70,9 @@
           "PREVIEW": "Podgląd",
           "DESIGNER": "Otwórz projektant",
           "PUBLISH": "Opublikuj",
-          "UNPUBLISH": "Cofnij publikację"
+          "UNPUBLISH": "Cofnij publikację",
+          "DOWNLOAD_CONTENT": "Zapisz treść",
+          "CLONE": "Klonuj"
         },
         "FIELDS": {
           "NAME": "Nazwa",
@@ -108,7 +111,9 @@
           "MESSAGE": "Czy na pewno chcesz zarchiwizować {count} wybranych stron?",
           "ALL": "wszystkie {totalCount}"
         },
-        "UNPUBLISH_WITH_DRAFT": "Nie można cofnąć publikacji strony, która ma zmiany."
+        "UNPUBLISH_WITH_DRAFT": "Nie można cofnąć publikacji strony, która ma zmiany.",
+        "DOWNLOAD_SUCCESS": "Treść pomyślnie zapisana do pliku",
+        "CLONE_SUCCESS": "Strona pomyślnie sklonowana"
       }
     },
     "STATUS": {
