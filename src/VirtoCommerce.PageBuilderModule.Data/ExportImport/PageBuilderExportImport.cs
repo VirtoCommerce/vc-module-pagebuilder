@@ -184,6 +184,7 @@ public sealed class PageBuilderExportImport(
         {
             var page = AbstractTypeFactory<PageBuilderPage>.TryCreateInstance();
             page.Id = variant.PageId;
+            page.GroupId = newGroup.Id;
             page.Status = variant.Status;
             page.StoreId = exportPage.StoreId;
             newGroup.Pages.Add(page);
