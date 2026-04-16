@@ -17,7 +17,8 @@
         "TOOLBAR": {
           "ADD": "Add",
           "REFRESH": "Refresh",
-          "REMOVE": "Archive"
+          "REMOVE": "Archive",
+          "LOAD": "Load content"
         },
         "SEARCH": {
           "PLACEHOLDER": "Search keywords"
@@ -69,7 +70,9 @@
           "PREVIEW": "Preview",
           "DESIGNER": "Open designer",
           "PUBLISH": "Publish",
-          "UNPUBLISH": "Unpublish"
+          "UNPUBLISH": "Unpublish",
+          "DOWNLOAD_CONTENT": "Save content",
+          "CLONE": "Clone"
         },
         "FIELDS": {
           "NAME": "Name",
@@ -108,7 +111,9 @@
           "MESSAGE": "Are you sure you want to archive {count} selected pages?",
           "ALL": "all {totalCount}"
         },
-        "UNPUBLISH_WITH_DRAFT": "Can't unpublish a page that has changes."
+        "UNPUBLISH_WITH_DRAFT": "Can't unpublish a page that has changes.",
+        "DOWNLOAD_SUCCESS": "Content saved to file successfully",
+        "CLONE_SUCCESS": "Page cloned successfully"
       }
     },
     "STATUS": {
