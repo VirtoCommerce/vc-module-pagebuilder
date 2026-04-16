@@ -1,4 +1,9 @@
 {
+  "module": {
+    "VirtoCommerce.PageBuilderModule": {
+      "description": "导出/导入 Page Builder 页面"
+    }
+  },
   "pageBuilder": {
     "blades": {
       "edit-page": {

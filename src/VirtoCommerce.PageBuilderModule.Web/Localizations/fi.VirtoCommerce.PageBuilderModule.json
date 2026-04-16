@@ -1,4 +1,9 @@
 {
+  "module": {
+    "VirtoCommerce.PageBuilderModule": {
+      "description": "Page Builder -sivujen vienti/tuonti"
+    }
+  },
   "pageBuilder": {
     "blades": {
       "edit-page": {
