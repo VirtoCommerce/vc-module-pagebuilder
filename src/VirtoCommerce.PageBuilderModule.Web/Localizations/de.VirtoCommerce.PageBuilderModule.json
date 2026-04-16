@@ -1,4 +1,9 @@
 {
+  "module": {
+    "VirtoCommerce.PageBuilderModule": {
+      "description": "Export/Import von Page-Builder-Seiten"
+    }
+  },
   "pageBuilder": {
     "blades": {
       "edit-page": {
