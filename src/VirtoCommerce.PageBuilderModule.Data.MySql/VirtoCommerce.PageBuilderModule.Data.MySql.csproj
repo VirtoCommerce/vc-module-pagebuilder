@@ -3,19 +3,18 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <NoWarn>NU1608</NoWarn>
   </PropertyGroup>
   <PropertyGroup>
     <!-- Project is not a test project -->
     <SonarQubeTestProject>false</SonarQubeTestProject>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.1">
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.5">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     
-    <PackageReference Include="VirtoCommerce.Platform.Data.MySql" Version="3.1014.0" />
+    <PackageReference Include="VirtoCommerce.Platform.Data.MySql" Version="3.1016.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\VirtoCommerce.PageBuilderModule.Data\VirtoCommerce.PageBuilderModule.Data.csproj" />
