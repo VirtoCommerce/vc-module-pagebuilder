@@ -197,12 +197,9 @@ public sealed class PageBuilderExportImport(
 
     private async Task SaveVariantsContentAsync(IList<PageBuilderExportPageVariant> variants)
     {
-        foreach (var variant in variants)
+        foreach (var variant in variants.Where(v => !string.IsNullOrEmpty(v.PageId) && !string.IsNullOrEmpty(v.Content)))
         {
-            if (!string.IsNullOrEmpty(variant.PageId) && !string.IsNullOrEmpty(variant.Content))
-            {
-                await groupedPageService.SaveContent(variant.PageId, variant.Content);
-            }
+            await groupedPageService.SaveContent(variant.PageId, variant.Content);
         }
     }
 
