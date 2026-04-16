@@ -181,10 +181,11 @@
 import { computed, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { Field, useForm } from "vee-validate";
-import { IBladeToolbar, IParentCallArgs, useBladeNavigation, usePopup } from "@vc-shell/framework";
+import { IBladeToolbar, IParentCallArgs, useBladeNavigation, usePopup, notification } from "@vc-shell/framework";
 import PageStatus from "../components/pageStatus.vue";
 import useUrlParams from "../composables/useStoreParams";
 import { usePageBuilderDetails } from "../composables/usePageBuilderDetails";
+import type { PageExportData } from "../composables/usePageContentApi";
 
 defineOptions({
   name: "PageDetails",
@@ -197,6 +198,7 @@ interface Props {
   param?: string;
   options?: {
     storeId?: string;
+    importData?: PageExportData;
   };
 }
 
@@ -232,11 +234,14 @@ const {
   publishGroup,
   unpublishGroup,
   openDraftDesigner,
+  downloadContent,
+  clonePage,
   loadUserGroups,
   loadOrganizations,
 } = usePageBuilderDetails({
   id: props.param,
   storeId: props.options?.storeId,
+  importData: props.options?.importData,
 });
 
 const bladeTitle = computed(() => {
@@ -298,6 +303,34 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     disabled: !props.param || isReadOnly.value,
     clickHandler: () => {
       openDraftDesigner();
+    },
+  },
+  {
+    id: "downloadContent",
+    icon: "material-download",
+    title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.DOWNLOAD_CONTENT"),
+    disabled: !props.param,
+    clickHandler: async () => {
+      try {
+        await downloadContent();
+        notification.success(t("PAGE_BUILDER.PAGES.ALERTS.DOWNLOAD_SUCCESS"));
+      } catch {
+        // error is handled by useAsync / global error handler
+      }
+    },
+  },
+  {
+    id: "clonePage",
+    icon: "material-content_copy",
+    title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.CLONE"),
+    disabled: !props.param || isReadOnly.value,
+    clickHandler: async () => {
+      const cloned = await clonePage();
+      if (cloned?.id) {
+        notification.success(t("PAGE_BUILDER.PAGES.ALERTS.CLONE_SUCCESS"));
+        emit("parent:call", { method: "reload" });
+        emit("parent:call", { method: "onItemClick", args: cloned });
+      }
     },
   },
   {
