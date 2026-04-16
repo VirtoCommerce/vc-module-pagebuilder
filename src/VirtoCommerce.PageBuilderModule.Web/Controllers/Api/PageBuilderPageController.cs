@@ -112,7 +112,7 @@ public class PageBuilderPageController(
         await groupedPageService.SaveChangesAsync([groupedPage]);
         if (newGroup)
         {
-            await WriteDefaultContent(groupedPage.Pages.First().Id, cancellationToken);
+            await WriteDefaultContent(groupedPage.Pages[0].Id, cancellationToken);
         }
 
         return Ok(groupedPage);
@@ -244,9 +244,9 @@ public class PageBuilderPageController(
             await groupedPageService.DeleteAsync([groupId]);
             pageDeleted = true;
         }
-        catch
+        catch (Exception ex)
         {
-            logger.LogDebug("Couldn't remove group '{GroupId}'", groupId);
+            logger.LogDebug(ex, "Couldn't remove group '{GroupId}'", groupId);
         }
 
         try
@@ -255,9 +255,9 @@ public class PageBuilderPageController(
             await pageDocumentSearchService.RemoveDocuments(pagesIds);
             indexDeleted = true;
         }
-        catch
+        catch (Exception ex)
         {
-            logger.LogDebug("Couldn't remove pages from group '{GroupId}'", groupId);
+            logger.LogDebug(ex, "Couldn't remove pages from group '{GroupId}'", groupId);
         }
 
         return Ok(new { pageDeleted, indexDeleted });
@@ -348,6 +348,57 @@ public class PageBuilderPageController(
 
         var pageId = draftPage!.Id;
         await groupedPageService.SaveStreamAsContentAsync(pageId, Request.Body, cancellationToken);
+
+        return NoContent();
+    }
+
+    [HttpPost("grouped/{targetGroupId}/content/{sourceGroupId}")]
+    [Authorize(ModuleConstants.Security.Permissions.Update)]
+    public async Task<IActionResult> CopyPageContent(
+        [FromRoute] string targetGroupId,
+        [FromRoute] string sourceGroupId,
+        CancellationToken cancellationToken = default)
+    {
+        var sourceGroup = await groupedPageService.GetByIdAsync(sourceGroupId);
+        var targetGroup = await groupedPageService.GetByIdAsync(targetGroupId);
+
+        if (sourceGroup == null || targetGroup == null)
+        {
+            return NotFound();
+        }
+
+        var sourceAuth = await authorizationService.AuthorizeAsync(User, sourceGroup, new PageBuilderAuthorizationRequirement());
+        var targetAuth = await authorizationService.AuthorizeAsync(User, targetGroup, new PageBuilderAuthorizationRequirement());
+        if (!sourceAuth.Succeeded || !targetAuth.Succeeded)
+        {
+            return Forbidden;
+        }
+
+        var sourcePageId = sourceGroup.Pages
+            .Where(x => x.Status == Draft || x.Status == Published)
+            .OrderByDescending(x => x.ModifiedDate)
+            .Select(x => x.Id)
+            .FirstOrDefault();
+
+        var targetDraft = targetGroup.Pages.FirstOrDefault(x => x.Status == Draft);
+        if (targetDraft == null)
+        {
+            targetDraft = AbstractTypeFactory<PageBuilderPage>.TryCreateInstance();
+            targetDraft.StoreId = targetGroup.StoreId;
+            targetDraft.Status = Draft;
+            targetGroup.Pages.Add(targetDraft);
+            await groupedPageService.SaveChangesAsync([targetGroup]);
+
+            targetGroup = await groupedPageService.GetByIdAsync(targetGroupId);
+            targetDraft = targetGroup.Pages.FirstOrDefault(x => x.Status == Draft);
+        }
+
+        if (sourcePageId == null || targetDraft == null)
+        {
+            return NotFound();
+        }
+
+        await groupedPageService.CopyPageContentAsync(sourcePageId, targetDraft.Id, cancellationToken);
 
         return NoContent();
     }

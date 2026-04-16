@@ -9,6 +9,7 @@ import {
 import useUserGroups, { IUserGroupsResult } from "./../useUserGroups";
 import useOrganizations, { IOrganizationsResult } from "./../useOrganizations";
 import useUrlParams from "../useStoreParams";
+import { downloadPageContent, uploadPageContent, PageExportData } from "../usePageContentApi";
 
 const { getApiClient } = useApiClient(PageBuilderPageClient);
 
@@ -27,11 +28,34 @@ export interface IUsePageBuilderDetails {
   publishGroup: () => Promise<void>;
   unpublishGroup: () => Promise<void>;
   openDraftDesigner: () => void;
+  downloadContent: () => Promise<void>;
+  clonePage: () => Promise<GroupedPageBuilderPage>;
 }
 
 export interface UsePageBuilderDetailsOptions {
   id?: string;
   storeId?: string;
+  importData?: PageExportData;
+}
+
+function incrementCopyName(name: string): string {
+  const match = /^(.*)\(copy(?:\s+(\d+))?\)$/.exec(name);
+  if (match) {
+    const base = match[1];
+    const num = match[2] ? Number.parseInt(match[2], 10) + 1 : 2;
+    return `${base}(copy ${num})`;
+  }
+  return `${name} (copy)`;
+}
+
+function incrementCopyPermalink(permalink: string): string {
+  const match = /^(.*)-copy(?:-(\d+))?$/.exec(permalink);
+  if (match) {
+    const base = match[1];
+    const num = match[2] ? Number.parseInt(match[2], 10) + 1 : 2;
+    return `${base}-copy-${num}`;
+  }
+  return `${permalink}-copy`;
 }
 
 export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): IUsePageBuilderDetails {
@@ -44,6 +68,7 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
   const status = ref<FilePublishStatus>(new FilePublishStatus());
 
   let groupStoreId: string | undefined;
+  let pendingContentUpload = !!options?.importData?.content;
 
   const { currentValue, isModified, resetModificationState } = useModificationTracker(item);
 
@@ -54,9 +79,23 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
       status.value = await apiClient.publishStatus(options.id);
       currentValue.value = reactive(result);
     } else {
-      currentValue.value = reactive(new GroupedPageBuilderPage());
+      const page = new GroupedPageBuilderPage();
+      if (options?.importData) {
+        const data = options.importData;
+        page.name = data.name;
+        page.permalink = data.permalink;
+        page.cultureName = data.cultureName;
+        page.visibility = data.visibility;
+        page.userGroups = data.userGroups;
+        page.organizationId = data.organizationId;
+        page.startDate = data.startDate;
+        page.endDate = data.endDate;
+      }
+      currentValue.value = reactive(page);
     }
-    resetModificationState();
+    if (!options?.importData) {
+      resetModificationState();
+    }
   });
 
   const { action: saveGroup, loading: savingGroup } = useAsync(async () => {
@@ -67,12 +106,22 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
     if (isNew.value) {
       group.storeId = groupStoreId;
       result = await apiClient.createGroup(group);
+
+      // Update state before upload so a failed upload won't cause duplicate createGroup on retry
+      currentValue.value = reactive(result);
+      isNew.value = false;
+      resetModificationState();
     } else {
       result = await apiClient.updateGroup(group);
+      currentValue.value = reactive(result);
+      resetModificationState();
     }
 
-    currentValue.value = reactive(result);
-    resetModificationState();
+    if (pendingContentUpload && result.id && options?.importData?.content) {
+      await uploadPageContent(result.id, options.importData.content);
+      pendingContentUpload = false;
+    }
+
     return result;
   });
 
@@ -112,6 +161,39 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
     if (currentValue.value) {
       await loadGroup();
     }
+  });
+
+  const { action: downloadContent, loading: downloadingContent } = useAsync(async () => {
+    const groupId = currentValue.value?.id;
+    if (!groupId) {
+      throw new Error("Can't download content.");
+    }
+    await downloadPageContent(groupId, currentValue.value);
+  });
+
+  const { action: clonePage, loading: cloningPage } = useAsync(async () => {
+    const source = currentValue.value;
+    if (!source?.id) {
+      throw new Error("Can't clone page.");
+    }
+
+    const clone = new GroupedPageBuilderPage();
+    clone.name = incrementCopyName(source.name || "");
+    clone.permalink = incrementCopyPermalink(source.permalink || "");
+    clone.cultureName = source.cultureName;
+    clone.storeId = source.storeId;
+    clone.visibility = source.visibility;
+    clone.userGroups = source.userGroups;
+    clone.organizationId = source.organizationId;
+
+    const apiClient = await getApiClient();
+    const created = await apiClient.createGroup(clone);
+
+    if (created.id && source.id) {
+      await apiClient.copyPageContent(created.id, source.id);
+    }
+
+    return created;
   });
 
   function openDraftDesigner() {
@@ -165,7 +247,7 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
     item: currentValue,
     status,
     isModified,
-    loading: useLoading(loadingGroup, savingGroup, deletingGroup, publishingGroup, unpublishingGroup),
+    loading: useLoading(loadingGroup, savingGroup, deletingGroup, publishingGroup, unpublishingGroup, downloadingContent, cloningPage),
     loadGroup,
     saveGroup,
     deleteGroup,
@@ -176,5 +258,7 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
     publishGroup,
     unpublishGroup,
     openDraftDesigner,
+    downloadContent,
+    clonePage,
   };
 }
