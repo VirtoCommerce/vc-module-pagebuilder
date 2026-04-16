@@ -15,32 +15,47 @@ export function usePagesListToolbar(
     return (items.length || 0) === 0;
   });
 
-  return computed(() => [
-    {
-      id: "add",
-      icon: "material-add",
-      title: t("PAGE_BUILDER.PAGES.LIST.TOOLBAR.ADD"),
-      clickHandler: async () => {
-        await pagesListRef.value?.openAddBlade();
+  return computed(() => {
+    const items: IBladeToolbar[] = [
+      {
+        id: "add",
+        icon: "material-add",
+        title: t("PAGE_BUILDER.PAGES.LIST.TOOLBAR.ADD"),
+        clickHandler: async () => {
+          await pagesListRef.value?.openAddBlade();
+        },
       },
-    },
-    {
-      id: "refresh",
-      icon: "material-refresh",
-      title: t("PAGE_BUILDER.PAGES.LIST.TOOLBAR.REFRESH"),
-      clickHandler: async () => {
-        await pagesListRef.value?.reload();
-        refreshMenuBadges();
+      {
+        id: "refresh",
+        icon: "material-refresh",
+        title: t("PAGE_BUILDER.PAGES.LIST.TOOLBAR.REFRESH"),
+        clickHandler: async () => {
+          await pagesListRef.value?.reload();
+          refreshMenuBadges();
+        },
       },
-    },
-    {
-      id: "delete",
-      icon: "material-delete",
-      title: t("PAGE_BUILDER.PAGES.LIST.TOOLBAR.REMOVE"),
-      disabled: isRemoveDisabled,
-      clickHandler: async () => {
-        await pagesListRef.value?.removeSelectedPages();
+      {
+        id: "delete",
+        icon: "material-delete",
+        title: t("PAGE_BUILDER.PAGES.LIST.TOOLBAR.REMOVE"),
+        disabled: isRemoveDisabled,
+        clickHandler: async () => {
+          await pagesListRef.value?.removeSelectedPages();
+        },
       },
-    },
-  ]);
+    ];
+
+    if (_status === PageLifecycleFilters.Draft) {
+      items.push({
+        id: "load",
+        icon: "material-upload",
+        title: t("PAGE_BUILDER.PAGES.LIST.TOOLBAR.LOAD"),
+        clickHandler: async () => {
+          await pagesListRef.value?.openLoadFlow();
+        },
+      });
+    }
+
+    return items;
+  });
 }
