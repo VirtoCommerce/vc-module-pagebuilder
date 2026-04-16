@@ -140,15 +140,7 @@ public sealed class PageBuilderExportImport(
 
     private async Task UpdateExistingGroupAsync(GroupedPageBuilderPage group, PageBuilderExportPage exportPage)
     {
-        group.Name = exportPage.Name;
-        group.Permalink = exportPage.Permalink;
-        group.StoreId = exportPage.StoreId;
-        group.CultureName = exportPage.CultureName;
-        group.Visibility = exportPage.Visibility;
-        group.UserGroups = exportPage.UserGroups;
-        group.OrganizationId = exportPage.OrganizationId;
-        group.StartDate = exportPage.StartDate;
-        group.EndDate = exportPage.EndDate;
+        ApplyMetadata(group, exportPage);
 
         // Replace pages with exported snapshot
         group.Pages = exportPage.Variants.Select(v =>
@@ -170,15 +162,7 @@ public sealed class PageBuilderExportImport(
     {
         var newGroup = AbstractTypeFactory<GroupedPageBuilderPage>.TryCreateInstance();
         newGroup.Id = exportPage.GroupId;
-        newGroup.Name = exportPage.Name;
-        newGroup.Permalink = exportPage.Permalink;
-        newGroup.StoreId = exportPage.StoreId;
-        newGroup.CultureName = exportPage.CultureName;
-        newGroup.Visibility = exportPage.Visibility;
-        newGroup.UserGroups = exportPage.UserGroups;
-        newGroup.OrganizationId = exportPage.OrganizationId;
-        newGroup.StartDate = exportPage.StartDate;
-        newGroup.EndDate = exportPage.EndDate;
+        ApplyMetadata(newGroup, exportPage);
 
         foreach (var variant in exportPage.Variants)
         {
@@ -193,6 +177,19 @@ public sealed class PageBuilderExportImport(
         await groupedPageService.SaveChangesAsync([newGroup]);
 
         await SaveVariantsContentAsync(exportPage.Variants);
+    }
+
+    private static void ApplyMetadata(GroupedPageBuilderPage group, PageBuilderExportPage exportPage)
+    {
+        group.Name = exportPage.Name;
+        group.Permalink = exportPage.Permalink;
+        group.StoreId = exportPage.StoreId;
+        group.CultureName = exportPage.CultureName;
+        group.Visibility = exportPage.Visibility;
+        group.UserGroups = exportPage.UserGroups;
+        group.OrganizationId = exportPage.OrganizationId;
+        group.StartDate = exportPage.StartDate;
+        group.EndDate = exportPage.EndDate;
     }
 
     private async Task SaveVariantsContentAsync(IList<PageBuilderExportPageVariant> variants)
