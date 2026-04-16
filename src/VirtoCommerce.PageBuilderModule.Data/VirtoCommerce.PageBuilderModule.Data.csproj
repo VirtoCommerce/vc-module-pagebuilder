@@ -5,8 +5,8 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="VirtoCommerce.ContentModule.Data" Version="3.1000.0" />
-    <PackageReference Include="VirtoCommerce.Platform.Data" Version="3.1014.0" />
-    <PackageReference Include="VirtoCommerce.Platform.Security" Version="3.1014.0" />
+    <PackageReference Include="VirtoCommerce.Platform.Data" Version="3.1016.0" />
+    <PackageReference Include="VirtoCommerce.Platform.Security" Version="3.1016.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\VirtoCommerce.PageBuilderModule.Core\VirtoCommerce.PageBuilderModule.Core.csproj" />

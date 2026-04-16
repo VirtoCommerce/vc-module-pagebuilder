@@ -8,7 +8,7 @@
     <PackageReference Include="VirtoCommerce.ContentModule.Core" Version="3.1000.0" />
     <PackageReference Include="VirtoCommerce.CustomerModule.Core" Version="3.1000.0" />
     <PackageReference Include="VirtoCommerce.Pages.Core" Version="3.1000.0" />
-    <PackageReference Include="VirtoCommerce.Platform.Core" Version="3.1014.0" />
+    <PackageReference Include="VirtoCommerce.Platform.Core" Version="3.1016.0" />
     <PackageReference Include="VirtoCommerce.StoreModule.Core" Version="3.1000.0" />
     <PackageReference Include="VirtoCommerce.SearchModule.Core" Version="3.1000.0" />
   </ItemGroup>
