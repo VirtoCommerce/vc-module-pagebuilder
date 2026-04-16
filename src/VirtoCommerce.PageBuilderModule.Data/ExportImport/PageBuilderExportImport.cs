@@ -40,7 +40,7 @@ public sealed class PageBuilderExportImport(
 
         var criteria = AbstractTypeFactory<PageBuilderPageSearchCriteria>.TryCreateInstance();
         criteria.Take = BatchSize;
-        criteria.Statuses = $"{Draft},{Published}";
+        criteria.Statuses = $"{Draft},{Published},{Archived}";
 
         var processedCount = 0;
 
@@ -150,27 +150,26 @@ public sealed class PageBuilderExportImport(
         group.StartDate = exportPage.StartDate;
         group.EndDate = exportPage.EndDate;
 
-        // Add missing variants
-        var existingStatuses = group.Pages.Select(p => p.Status).ToHashSet();
-        foreach (var variant in exportPage.Variants.Where(v => !existingStatuses.Contains(v.Status)))
+        // Replace pages with exported snapshot
+        group.Pages = exportPage.Variants.Select(v =>
         {
             var page = AbstractTypeFactory<PageBuilderPage>.TryCreateInstance();
-            page.Status = variant.Status;
+            page.Id = v.PageId;
+            page.Status = v.Status;
             page.StoreId = exportPage.StoreId;
-            group.Pages.Add(page);
-        }
+            page.GroupId = group.Id;
+            return page;
+        }).ToList();
 
         await groupedPageService.SaveChangesAsync([group]);
 
-        // Reload to get IDs for newly created pages
-        group = await groupedPageService.GetByIdAsync(group.Id);
-
-        await SaveVariantsContentAsync(group.Pages, exportPage.Variants);
+        await SaveVariantsContentAsync(exportPage.Variants);
     }
 
     private async Task CreateNewGroupAsync(PageBuilderExportPage exportPage)
     {
         var newGroup = AbstractTypeFactory<GroupedPageBuilderPage>.TryCreateInstance();
+        newGroup.Id = exportPage.GroupId;
         newGroup.Name = exportPage.Name;
         newGroup.Permalink = exportPage.Permalink;
         newGroup.StoreId = exportPage.StoreId;
@@ -184,6 +183,7 @@ public sealed class PageBuilderExportImport(
         foreach (var variant in exportPage.Variants)
         {
             var page = AbstractTypeFactory<PageBuilderPage>.TryCreateInstance();
+            page.Id = variant.PageId;
             page.Status = variant.Status;
             page.StoreId = exportPage.StoreId;
             newGroup.Pages.Add(page);
@@ -191,23 +191,16 @@ public sealed class PageBuilderExportImport(
 
         await groupedPageService.SaveChangesAsync([newGroup]);
 
-        // Reload to get IDs for newly created pages
-        newGroup = await groupedPageService.GetByIdAsync(newGroup.Id);
-
-        await SaveVariantsContentAsync(newGroup.Pages, exportPage.Variants);
+        await SaveVariantsContentAsync(exportPage.Variants);
     }
 
-    private async Task SaveVariantsContentAsync(IList<PageBuilderPage> pages, IList<PageBuilderExportPageVariant> variants)
+    private async Task SaveVariantsContentAsync(IList<PageBuilderExportPageVariant> variants)
     {
-        var usedPageIds = new HashSet<string>();
-
         foreach (var variant in variants)
         {
-            var matchedPage = pages.FirstOrDefault(p => p.Status == variant.Status && !usedPageIds.Contains(p.Id));
-            if (matchedPage != null && !string.IsNullOrEmpty(variant.Content))
+            if (!string.IsNullOrEmpty(variant.PageId) && !string.IsNullOrEmpty(variant.Content))
             {
-                await groupedPageService.SaveContent(matchedPage.Id, variant.Content);
-                usedPageIds.Add(matchedPage.Id);
+                await groupedPageService.SaveContent(variant.PageId, variant.Content);
             }
         }
     }
@@ -228,11 +221,12 @@ public sealed class PageBuilderExportImport(
             EndDate = group.EndDate,
         };
 
-        foreach (var page in group.Pages.Where(p => p.Status != Archived))
+        foreach (var page in group.Pages)
         {
             var content = await groupedPageService.LoadContent(page.Id);
             exportPage.Variants.Add(new PageBuilderExportPageVariant
             {
+                PageId = page.Id,
                 Status = page.Status,
                 Content = content,
             });

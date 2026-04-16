@@ -20,6 +20,7 @@ public class PageBuilderExportPage
 
 public class PageBuilderExportPageVariant
 {
+    public string PageId { get; set; }
     public string Status { get; set; }
     public string Content { get; set; }
 }
