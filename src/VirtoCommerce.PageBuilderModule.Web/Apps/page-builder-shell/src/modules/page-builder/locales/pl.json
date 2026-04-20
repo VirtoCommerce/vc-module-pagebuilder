@@ -1,0 +1,135 @@
+{
+  "PAGE_BUILDER": {
+    "MENU": {
+      "DRAFT_TITLE": "Szkic",
+      "PENDING_TITLE": "Oczekujące",
+      "ACTIVE_TITLE": "Aktywne",
+      "ARCHIVED_TITLE": "Zarchiwizowane",
+      "TITLE": "Wszystkie strony"
+    },
+    "PAGES": {
+      "LIST": {
+        "DRAFT_TITLE": "Strony szkicowe",
+        "PENDING_TITLE": "Strony oczekujące",
+        "ACTIVE_TITLE": "Strony aktywne",
+        "ARCHIVED_TITLE": "Strony zarchiwizowane",
+        "TITLE": "Wszystkie strony",
+        "TOOLBAR": {
+          "ADD": "Dodaj",
+          "REFRESH": "Odśwież",
+          "REMOVE": "Archiwizuj",
+          "LOAD": "Wczytaj treść"
+        },
+        "SEARCH": {
+          "PLACEHOLDER": "Szukaj słów kluczowych"
+        },
+        "TABLE": {
+          "TOTALS": "Liczba:",
+          "HEADER": {
+            "NAME": "Nazwa",
+            "PERMALINK": "Link stały",
+            "MODIFIED_DATE": "Zmodyfikowano",
+            "CULTURE_NAME": "Język",
+            "MODIFIED_BY": "Zmodyfikowano przez",
+            "STATUS": "Status"
+          },
+          "FILTER": {
+            "STATUS": "Status",
+            "APPLY": "Zastosuj",
+            "RESET": "Resetuj"
+          },
+          "EMPTY": {
+            "TITLE": "Nie ma jeszcze żadnej treści",
+            "ACTION": "Dodaj treść"
+          },
+          "NOT_FOUND": {
+            "TITLE": "Nie znaleziono treści.",
+            "ACTION": "Resetuj wyszukiwanie"
+          },
+          "ACTIONS": {
+            "DELETE": "Archiwizuj"
+          }
+        },
+        "EMPTY": {
+          "NO_ITEMS": "Nie ma jeszcze żadnych stron"
+        },
+        "NOT_FOUND": {
+          "EMPTY": "Nie znaleziono stron",
+          "RESET": "Resetuj"
+        }
+      },
+      "DETAILS": {
+        "TITLE": {
+          "DETAILS": "Szczegóły {name}",
+          "NEW": "Nowa strona",
+          "LOADING": "Ładowanie..."
+        },
+        "TOOLBAR": {
+          "SAVE": "Zapisz",
+          "DELETE": "Archiwizuj",
+          "PREVIEW": "Podgląd",
+          "DESIGNER": "Otwórz projektant",
+          "PUBLISH": "Opublikuj",
+          "UNPUBLISH": "Cofnij publikację",
+          "DOWNLOAD_CONTENT": "Zapisz treść",
+          "CLONE": "Klonuj"
+        },
+        "FIELDS": {
+          "NAME": "Nazwa",
+          "PERMALINK": "Link stały",
+          "CONTENT": "Treść",
+          "GUID": "GUID",
+          "CULTURE_NAME": "Język",
+          "VISIBILITY": "Widoczność",
+          "START_DATE": "Data rozpoczęcia",
+          "START_DATE_HINT": "Strona staje się widoczna",
+          "END_DATE": "Data zakończenia",
+          "END_DATE_HINT": "Strona zostaje ukryta",
+          "USER_GROUPS": "Grupy użytkowników",
+          "ORGANIZATION": "Organizacja"
+        },
+        "TOOLTIPS": {
+          "VISIBILITY": "Jeśli widoczność jest wyłączona, strona będzie dostępna tylko dla zarejestrowanych użytkowników."
+        },
+        "SECTIONS": {
+          "BASIC_INFORMATION": "Informacje podstawowe",
+          "ADVANCED_OPTIONS": "Opcje zaawansowane",
+          "PERSONALIZATION_ACCESS_CONTROL": {
+            "TITLE": "Personalizacja i kontrola dostępu",
+            "DESCRIPTION": "Ogranicz widoczność strony do określonych odbiorców",
+            "VISIBILITY_TAG": "Widoczna"
+          },
+          "SCHEDULING": {
+            "TAG_TEXT": "Zaplanowane",
+            "TITLE": "Planowanie",
+            "DESCRIPTION": "Ustaw, kiedy ta strona ma być widoczna"
+          }
+        }
+      },
+      "ALERTS": {
+        "CLOSE_CONFIRMATION": "Masz niezapisane zmiany. Zamknąć mimo to?",
+        "DELETE": "Czy na pewno chcesz zarchiwizować tę stronę?",
+        "DELETE_SELECTED_CONFIRMATION": {
+          "MESSAGE": "Czy na pewno chcesz zarchiwizować {count} wybranych stron?",
+          "ALL": "wszystkie {totalCount}"
+        },
+        "UNPUBLISH_WITH_DRAFT": "Nie można cofnąć publikacji strony, która ma zmiany.",
+        "DOWNLOAD_SUCCESS": "Treść pomyślnie zapisana do pliku",
+        "CLONE_SUCCESS": "Strona pomyślnie sklonowana",
+        "LOAD_CONTENT_SUCCESS": "Treść pomyślnie wczytana",
+        "SAVE_SUCCESS": "Strona pomyślnie zapisana",
+        "PUBLISH_SUCCESS": "Strona pomyślnie opublikowana",
+        "UNPUBLISH_SUCCESS": "Publikacja strony pomyślnie cofnięta",
+        "DELETE_SUCCESS": "Strona pomyślnie zarchiwizowana"
+      }
+    },
+    "STATUS": {
+      "DRAFT": "Szkic",
+      "ARCHIVED": "Zarchiwizowane",
+      "PUBLISHED": "Opublikowane",
+      "HAS_CHANGES": "Szkic ze zmianami",
+      "SCHEDULED": "Zaplanowane",
+      "PERSONALIZED": "Spersonalizowane"
+    }
+  }
+}
