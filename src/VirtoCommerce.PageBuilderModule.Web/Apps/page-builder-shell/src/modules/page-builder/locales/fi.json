@@ -113,7 +113,12 @@
         },
         "UNPUBLISH_WITH_DRAFT": "Sivua, jossa on muutoksia, ei voi peruuttaa julkaisusta.",
         "DOWNLOAD_SUCCESS": "Sisältö tallennettu tiedostoon onnistuneesti",
-        "CLONE_SUCCESS": "Sivu kloonattu onnistuneesti"
+        "CLONE_SUCCESS": "Sivu kloonattu onnistuneesti",
+        "LOAD_CONTENT_SUCCESS": "Sisältö ladattu onnistuneesti",
+        "SAVE_SUCCESS": "Sivu tallennettu onnistuneesti",
+        "PUBLISH_SUCCESS": "Sivu julkaistu onnistuneesti",
+        "UNPUBLISH_SUCCESS": "Sivun julkaisu peruutettu onnistuneesti",
+        "DELETE_SUCCESS": "Sivu arkistoitu onnistuneesti"
       }
     },
     "STATUS": {

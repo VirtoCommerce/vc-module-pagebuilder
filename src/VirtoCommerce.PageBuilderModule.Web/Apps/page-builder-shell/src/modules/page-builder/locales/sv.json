@@ -113,7 +113,12 @@
         },
         "UNPUBLISH_WITH_DRAFT": "Kan inte avpublicera en sida som har ändringar.",
         "DOWNLOAD_SUCCESS": "Innehåll sparat i fil",
-        "CLONE_SUCCESS": "Sidan klonades"
+        "CLONE_SUCCESS": "Sidan klonades",
+        "LOAD_CONTENT_SUCCESS": "Innehållet laddades",
+        "SAVE_SUCCESS": "Sidan sparades",
+        "PUBLISH_SUCCESS": "Sidan publicerades",
+        "UNPUBLISH_SUCCESS": "Sidans publicering togs bort",
+        "DELETE_SUCCESS": "Sidan arkiverades"
       }
     },
     "STATUS": {

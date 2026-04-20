@@ -113,7 +113,12 @@
         },
         "UNPUBLISH_WITH_DRAFT": "Eine Seite mit Änderungen kann nicht zurückgezogen werden.",
         "DOWNLOAD_SUCCESS": "Inhalt erfolgreich in Datei gespeichert",
-        "CLONE_SUCCESS": "Seite erfolgreich geklont"
+        "CLONE_SUCCESS": "Seite erfolgreich geklont",
+        "LOAD_CONTENT_SUCCESS": "Inhalt erfolgreich geladen",
+        "SAVE_SUCCESS": "Seite erfolgreich gespeichert",
+        "PUBLISH_SUCCESS": "Seite erfolgreich veröffentlicht",
+        "UNPUBLISH_SUCCESS": "Veröffentlichung der Seite erfolgreich zurückgenommen",
+        "DELETE_SUCCESS": "Seite erfolgreich archiviert"
       }
     },
     "STATUS": {

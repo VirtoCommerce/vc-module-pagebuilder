@@ -113,7 +113,12 @@
         },
         "UNPUBLISH_WITH_DRAFT": "No se puede despublicar una página que tiene cambios.",
         "DOWNLOAD_SUCCESS": "Contenido guardado en archivo correctamente",
-        "CLONE_SUCCESS": "Página clonada correctamente"
+        "CLONE_SUCCESS": "Página clonada correctamente",
+        "LOAD_CONTENT_SUCCESS": "Contenido cargado correctamente",
+        "SAVE_SUCCESS": "Página guardada correctamente",
+        "PUBLISH_SUCCESS": "Página publicada correctamente",
+        "UNPUBLISH_SUCCESS": "Publicación de la página cancelada correctamente",
+        "DELETE_SUCCESS": "Página archivada correctamente"
       }
     },
     "STATUS": {

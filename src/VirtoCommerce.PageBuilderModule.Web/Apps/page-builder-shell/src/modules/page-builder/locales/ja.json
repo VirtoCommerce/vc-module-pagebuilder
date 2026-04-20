@@ -113,7 +113,12 @@
         },
         "UNPUBLISH_WITH_DRAFT": "変更がある下書きのページは公開取消できません。",
         "DOWNLOAD_SUCCESS": "コンテンツがファイルに正常に保存されました",
-        "CLONE_SUCCESS": "ページが正常に複製されました"
+        "CLONE_SUCCESS": "ページが正常に複製されました",
+        "LOAD_CONTENT_SUCCESS": "コンテンツが正常に読み込まれました",
+        "SAVE_SUCCESS": "ページが正常に保存されました",
+        "PUBLISH_SUCCESS": "ページが正常に公開されました",
+        "UNPUBLISH_SUCCESS": "ページの公開が正常に解除されました",
+        "DELETE_SUCCESS": "ページが正常にアーカイブされました"
       }
     },
     "STATUS": {

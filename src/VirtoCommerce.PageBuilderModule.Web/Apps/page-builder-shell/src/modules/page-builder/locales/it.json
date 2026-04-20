@@ -113,7 +113,12 @@
         },
         "UNPUBLISH_WITH_DRAFT": "Non è possibile annullare la pubblicazione di una pagina con modifiche.",
         "DOWNLOAD_SUCCESS": "Contenuto salvato su file con successo",
-        "CLONE_SUCCESS": "Pagina clonata con successo"
+        "CLONE_SUCCESS": "Pagina clonata con successo",
+        "LOAD_CONTENT_SUCCESS": "Contenuto caricato con successo",
+        "SAVE_SUCCESS": "Pagina salvata con successo",
+        "PUBLISH_SUCCESS": "Pagina pubblicata con successo",
+        "UNPUBLISH_SUCCESS": "Pubblicazione della pagina annullata con successo",
+        "DELETE_SUCCESS": "Pagina archiviata con successo"
       }
     },
     "STATUS": {

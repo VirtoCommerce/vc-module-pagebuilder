@@ -113,7 +113,12 @@
         },
         "UNPUBLISH_WITH_DRAFT": "Impossible de dépublier une page qui comporte des modifications.",
         "DOWNLOAD_SUCCESS": "Contenu enregistré dans le fichier avec succès",
-        "CLONE_SUCCESS": "Page clonée avec succès"
+        "CLONE_SUCCESS": "Page clonée avec succès",
+        "LOAD_CONTENT_SUCCESS": "Contenu chargé avec succès",
+        "SAVE_SUCCESS": "Page enregistrée avec succès",
+        "PUBLISH_SUCCESS": "Page publiée avec succès",
+        "UNPUBLISH_SUCCESS": "Page dépubliée avec succès",
+        "DELETE_SUCCESS": "Page archivée avec succès"
       }
     },
     "STATUS": {

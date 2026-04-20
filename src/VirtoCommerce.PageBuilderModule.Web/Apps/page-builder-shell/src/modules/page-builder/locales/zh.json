@@ -113,7 +113,12 @@
         },
         "UNPUBLISH_WITH_DRAFT": "无法取消发布包含更改的页面。",
         "DOWNLOAD_SUCCESS": "内容已成功保存到文件",
-        "CLONE_SUCCESS": "页面已成功克隆"
+        "CLONE_SUCCESS": "页面已成功克隆",
+        "LOAD_CONTENT_SUCCESS": "内容加载成功",
+        "SAVE_SUCCESS": "页面保存成功",
+        "PUBLISH_SUCCESS": "页面发布成功",
+        "UNPUBLISH_SUCCESS": "页面已成功取消发布",
+        "DELETE_SUCCESS": "页面已成功归档"
       }
     },
     "STATUS": {

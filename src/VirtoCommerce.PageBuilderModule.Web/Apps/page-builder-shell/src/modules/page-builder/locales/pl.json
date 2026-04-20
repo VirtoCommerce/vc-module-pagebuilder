@@ -113,7 +113,12 @@
         },
         "UNPUBLISH_WITH_DRAFT": "Nie można cofnąć publikacji strony, która ma zmiany.",
         "DOWNLOAD_SUCCESS": "Treść pomyślnie zapisana do pliku",
-        "CLONE_SUCCESS": "Strona pomyślnie sklonowana"
+        "CLONE_SUCCESS": "Strona pomyślnie sklonowana",
+        "LOAD_CONTENT_SUCCESS": "Treść pomyślnie wczytana",
+        "SAVE_SUCCESS": "Strona pomyślnie zapisana",
+        "PUBLISH_SUCCESS": "Strona pomyślnie opublikowana",
+        "UNPUBLISH_SUCCESS": "Publikacja strony pomyślnie cofnięta",
+        "DELETE_SUCCESS": "Strona pomyślnie zarchiwizowana"
       }
     },
     "STATUS": {

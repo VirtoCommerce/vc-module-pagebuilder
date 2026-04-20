@@ -113,7 +113,12 @@
         },
         "UNPUBLISH_WITH_DRAFT": "Kan ikke avpublisere en side som har endringer.",
         "DOWNLOAD_SUCCESS": "Innhold lagret til fil",
-        "CLONE_SUCCESS": "Siden ble klonet"
+        "CLONE_SUCCESS": "Siden ble klonet",
+        "LOAD_CONTENT_SUCCESS": "Innhold ble lastet inn",
+        "SAVE_SUCCESS": "Siden ble lagret",
+        "PUBLISH_SUCCESS": "Siden ble publisert",
+        "UNPUBLISH_SUCCESS": "Siden ble avpublisert",
+        "DELETE_SUCCESS": "Siden ble arkivert"
       }
     },
     "STATUS": {
