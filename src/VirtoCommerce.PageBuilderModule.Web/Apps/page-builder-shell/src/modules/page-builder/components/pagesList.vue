@@ -72,7 +72,7 @@
 import { ref, Ref, computed, watch, onMounted, readonly } from "vue";
 import { useI18n } from "vue-i18n";
 import { debounce } from "lodash-es";
-import { ITableColumns, useTableSort, useBladeNavigation, usePopup, IActionBuilderResult } from "@vc-shell/framework";
+import { ITableColumns, useTableSort, useBladeNavigation, usePopup, IActionBuilderResult, notification } from "@vc-shell/framework";
 import { GroupedPageBuilderPage } from "../../../api_client/virtocommerce.pagebuildermodule";
 import { PageLifecycleFilters, usePageBuilderList, useUrlParams, refreshMenuBadges } from "../composables";
 import { parseImportFile } from "../composables/usePageContentApi";
@@ -248,6 +248,7 @@ async function onFileSelected(event: Event) {
   input.value = "";
 
   const importData = await parseImportFile(file);
+  notification.success(t("PAGE_BUILDER.PAGES.ALERTS.LOAD_CONTENT_SUCCESS"));
 
   openBlade({
     blade: { name: "PageDetails" },

@@ -113,7 +113,12 @@
         },
         "UNPUBLISH_WITH_DRAFT": "Can't unpublish a page that has changes.",
         "DOWNLOAD_SUCCESS": "Content saved to file successfully",
-        "CLONE_SUCCESS": "Page cloned successfully"
+        "CLONE_SUCCESS": "Page cloned successfully",
+        "LOAD_CONTENT_SUCCESS": "Content loaded successfully",
+        "SAVE_SUCCESS": "Page saved successfully",
+        "PUBLISH_SUCCESS": "Page published successfully",
+        "UNPUBLISH_SUCCESS": "Page unpublished successfully",
+        "DELETE_SUCCESS": "Page archived successfully"
       }
     },
     "STATUS": {
