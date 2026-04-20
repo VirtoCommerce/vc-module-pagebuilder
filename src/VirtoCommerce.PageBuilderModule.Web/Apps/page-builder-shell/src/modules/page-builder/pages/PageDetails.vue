@@ -288,7 +288,7 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     id: "delete",
     icon: "material-delete",
     title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.DELETE"),
-    disabled: isReadOnly.value,
+    disabled: !props.param || isReadOnly.value,
     clickHandler: async () => {
       if (await showConfirmation(t("PAGE_BUILDER.PAGES.ALERTS.DELETE"))) {
         await deleteGroup();
