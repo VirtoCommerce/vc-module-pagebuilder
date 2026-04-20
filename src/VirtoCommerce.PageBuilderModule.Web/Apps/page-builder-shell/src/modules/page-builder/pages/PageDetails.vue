@@ -325,8 +325,9 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     id: "clonePage",
     icon: "material-content_copy",
     title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.CLONE"),
-    disabled: !props.param || isReadOnly.value,
+    disabled: !props.param || isReadOnly.value || loading.value,
     clickHandler: async () => {
+      if (loading.value) return;
       const cloned = await clonePage();
       if (cloned?.id) {
         notification.success(t("PAGE_BUILDER.PAGES.ALERTS.CLONE_SUCCESS"));
