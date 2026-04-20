@@ -304,7 +304,7 @@ public class PageBuilderPageController(
             return;
         }
 
-        var pageId = group.Pages.Where(x => (draft && x.Status == Draft) || x.Status == Published)
+        var pageId = group.Pages.Where(x => (draft && x.Status == Draft) || x.Status == Published || x.Status == Archived)
             .OrderByDescending(x => x.ModifiedDate).Select(x => x.Id).FirstOrDefault();
         if (pageId == null)
         {

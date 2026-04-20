@@ -281,16 +281,18 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     disabled: !isModified.value || isReadOnly.value || !meta.value.valid,
     clickHandler: async () => {
       await handleSave();
+      notification.success(t("PAGE_BUILDER.PAGES.ALERTS.SAVE_SUCCESS"));
     },
   },
   {
     id: "delete",
     icon: "material-delete",
     title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.DELETE"),
-    disabled: isReadOnly.value,
+    disabled: !props.param || isReadOnly.value,
     clickHandler: async () => {
       if (await showConfirmation(t("PAGE_BUILDER.PAGES.ALERTS.DELETE"))) {
         await deleteGroup();
+        notification.success(t("PAGE_BUILDER.PAGES.ALERTS.DELETE_SUCCESS"));
         emit("parent:call", { method: "reload" });
         emit("close:blade");
       }
@@ -342,6 +344,7 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     disabled: isReadOnly.value || !meta.value.valid || isModified.value,
     clickHandler: async () => {
       await publishGroup();
+      notification.success(t("PAGE_BUILDER.PAGES.ALERTS.PUBLISH_SUCCESS"));
       emit("parent:call", { method: "reload" });
     },
   },
@@ -353,6 +356,7 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     disabled: isReadOnly.value,
     clickHandler: async () => {
       await unpublishGroup();
+      notification.success(t("PAGE_BUILDER.PAGES.ALERTS.UNPUBLISH_SUCCESS"));
       emit("parent:call", { method: "reload" });
     },
   },
