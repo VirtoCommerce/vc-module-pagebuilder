@@ -100,7 +100,7 @@ namespace VirtoCommerce.PageBuilderModule.Core
                 public static SettingDescriptor PreviewUserIds { get; } = new()
                 {
                     Name = "VirtoCommerce.PageBuilderModule.Store.PreviewUserIds",
-                    GroupName = "CMS Content|Page builder",
+                    GroupName = "CMS|Page builder",
                     ValueType = SettingValueType.LongText,
                     DefaultValue = "",
                 };
