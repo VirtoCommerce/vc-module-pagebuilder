@@ -16,7 +16,7 @@
         <PageStatus :item="item" />
 
         <VcCard
-          header="Basic information"
+          :header="$t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.BASIC_INFORMATION')"
           class="tw-p-4"
         >
           <VcCol class="tw-gap-4">
@@ -78,7 +78,7 @@
         </VcCard>
 
         <VcCard
-          header="Advanced options"
+          :header="$t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.ADVANCED_OPTIONS')"
           class="tw-p-4"
         >
           <VcCol class="tw-gap-4">
@@ -246,7 +246,7 @@ const {
 
 const bladeTitle = computed(() => {
   if (props.param || item.value?.name) {
-    return item.value?.name + t("PAGE_BUILDER.PAGES.DETAILS.TITLE.DETAILS");
+    return t("PAGE_BUILDER.PAGES.DETAILS.TITLE.DETAILS", { name: item.value?.name });
   }
   return t("PAGE_BUILDER.PAGES.DETAILS.TITLE.NEW");
 });

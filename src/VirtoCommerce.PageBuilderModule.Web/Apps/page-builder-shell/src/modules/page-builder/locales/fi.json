@@ -1,0 +1,135 @@
+{
+  "PAGE_BUILDER": {
+    "MENU": {
+      "DRAFT_TITLE": "Luonnos",
+      "PENDING_TITLE": "Odottaa",
+      "ACTIVE_TITLE": "Aktiivinen",
+      "ARCHIVED_TITLE": "Arkistoitu",
+      "TITLE": "Kaikki sivut"
+    },
+    "PAGES": {
+      "LIST": {
+        "DRAFT_TITLE": "Luonnossivut",
+        "PENDING_TITLE": "Odottavat sivut",
+        "ACTIVE_TITLE": "Aktiiviset sivut",
+        "ARCHIVED_TITLE": "Arkistoidut sivut",
+        "TITLE": "Kaikki sivut",
+        "TOOLBAR": {
+          "ADD": "Lisää",
+          "REFRESH": "Päivitä",
+          "REMOVE": "Arkistoi",
+          "LOAD": "Lataa sisältö"
+        },
+        "SEARCH": {
+          "PLACEHOLDER": "Hae avainsanoja"
+        },
+        "TABLE": {
+          "TOTALS": "Määrä:",
+          "HEADER": {
+            "NAME": "Nimi",
+            "PERMALINK": "Pysyvä linkki",
+            "MODIFIED_DATE": "Muokattu",
+            "CULTURE_NAME": "Kieli",
+            "MODIFIED_BY": "Muokkaaja",
+            "STATUS": "Tila"
+          },
+          "FILTER": {
+            "STATUS": "Tila",
+            "APPLY": "Käytä",
+            "RESET": "Nollaa"
+          },
+          "EMPTY": {
+            "TITLE": "Sisältöä ei ole vielä",
+            "ACTION": "Lisää sisältöä"
+          },
+          "NOT_FOUND": {
+            "TITLE": "Sisältöä ei löytynyt.",
+            "ACTION": "Nollaa haku"
+          },
+          "ACTIONS": {
+            "DELETE": "Arkistoi"
+          }
+        },
+        "EMPTY": {
+          "NO_ITEMS": "Sivuja ei ole vielä"
+        },
+        "NOT_FOUND": {
+          "EMPTY": "Sivuja ei löytynyt",
+          "RESET": "Nollaa"
+        }
+      },
+      "DETAILS": {
+        "TITLE": {
+          "DETAILS": "{name} tiedot",
+          "NEW": "Uusi sivu",
+          "LOADING": "Ladataan..."
+        },
+        "TOOLBAR": {
+          "SAVE": "Tallenna",
+          "DELETE": "Arkistoi",
+          "PREVIEW": "Esikatselu",
+          "DESIGNER": "Avaa suunnittelija",
+          "PUBLISH": "Julkaise",
+          "UNPUBLISH": "Peruuta julkaisu",
+          "DOWNLOAD_CONTENT": "Tallenna sisältö",
+          "CLONE": "Kloonaa"
+        },
+        "FIELDS": {
+          "NAME": "Nimi",
+          "PERMALINK": "Pysyvä linkki",
+          "CONTENT": "Sisältö",
+          "GUID": "GUID",
+          "CULTURE_NAME": "Kieli",
+          "VISIBILITY": "Näkyvyys",
+          "START_DATE": "Alkamispäivä",
+          "START_DATE_HINT": "Sivu tulee näkyviin",
+          "END_DATE": "Päättymispäivä",
+          "END_DATE_HINT": "Sivu piilotetaan",
+          "USER_GROUPS": "Käyttäjäryhmät",
+          "ORGANIZATION": "Organisaatio"
+        },
+        "TOOLTIPS": {
+          "VISIBILITY": "Jos näkyvyys on pois päältä, sivu on käytettävissä vain rekisteröityneille käyttäjille."
+        },
+        "SECTIONS": {
+          "BASIC_INFORMATION": "Perustiedot",
+          "ADVANCED_OPTIONS": "Lisäasetukset",
+          "PERSONALIZATION_ACCESS_CONTROL": {
+            "TITLE": "Personointi ja käyttöoikeuksien hallinta",
+            "DESCRIPTION": "Rajoita sivun näkyvyys tietyille kohderyhmille",
+            "VISIBILITY_TAG": "Näkyvä"
+          },
+          "SCHEDULING": {
+            "TAG_TEXT": "Ajastettu",
+            "TITLE": "Ajastus",
+            "DESCRIPTION": "Määritä, milloin tämä sivu näytetään"
+          }
+        }
+      },
+      "ALERTS": {
+        "CLOSE_CONFIRMATION": "Sinulla on tallentamattomia muutoksia. Suljetaanko silti?",
+        "DELETE": "Haluatko varmasti arkistoida tämän sivun?",
+        "DELETE_SELECTED_CONFIRMATION": {
+          "MESSAGE": "Haluatko varmasti arkistoida {count} valittua sivua?",
+          "ALL": "kaikki {totalCount}"
+        },
+        "UNPUBLISH_WITH_DRAFT": "Sivua, jossa on muutoksia, ei voi peruuttaa julkaisusta.",
+        "DOWNLOAD_SUCCESS": "Sisältö tallennettu tiedostoon onnistuneesti",
+        "CLONE_SUCCESS": "Sivu kloonattu onnistuneesti",
+        "LOAD_CONTENT_SUCCESS": "Sisältö ladattu onnistuneesti",
+        "SAVE_SUCCESS": "Sivu tallennettu onnistuneesti",
+        "PUBLISH_SUCCESS": "Sivu julkaistu onnistuneesti",
+        "UNPUBLISH_SUCCESS": "Sivun julkaisu peruutettu onnistuneesti",
+        "DELETE_SUCCESS": "Sivu arkistoitu onnistuneesti"
+      }
+    },
+    "STATUS": {
+      "DRAFT": "Luonnos",
+      "ARCHIVED": "Arkistoitu",
+      "PUBLISHED": "Julkaistu",
+      "HAS_CHANGES": "Luonnos muutoksilla",
+      "SCHEDULED": "Ajastettu",
+      "PERSONALIZED": "Personoitu"
+    }
+  }
+}
