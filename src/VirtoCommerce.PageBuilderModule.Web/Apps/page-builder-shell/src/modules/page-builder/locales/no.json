@@ -92,6 +92,8 @@
           "VISIBILITY": "Hvis synlighet er av, vil siden kun være tilgjengelig for registrerte brukere."
         },
         "SECTIONS": {
+          "BASIC_INFORMATION": "Grunnleggende informasjon",
+          "ADVANCED_OPTIONS": "Avanserte alternativer",
           "PERSONALIZATION_ACCESS_CONTROL": {
             "TITLE": "Personalisering og tilgangskontroll",
             "DESCRIPTION": "Begrens sidens synlighet til bestemte målgrupper",

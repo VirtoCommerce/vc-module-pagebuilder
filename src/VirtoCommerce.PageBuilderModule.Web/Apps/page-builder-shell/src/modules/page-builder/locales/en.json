@@ -92,6 +92,8 @@
           "VISIBILITY": "If Visibility is off the page will be available only for registered users."
         },
         "SECTIONS": {
+          "BASIC_INFORMATION": "Basic information",
+          "ADVANCED_OPTIONS": "Advanced options",
           "PERSONALIZATION_ACCESS_CONTROL": {
             "TITLE": "Personalization & Access control",
             "DESCRIPTION": "Limit page visibility to specific audiences",

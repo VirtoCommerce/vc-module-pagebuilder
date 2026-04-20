@@ -92,6 +92,8 @@
           "VISIBILITY": "Si la visibilité est désactivée, la page ne sera accessible qu'aux utilisateurs enregistrés."
         },
         "SECTIONS": {
+          "BASIC_INFORMATION": "Informations de base",
+          "ADVANCED_OPTIONS": "Options avancées",
           "PERSONALIZATION_ACCESS_CONTROL": {
             "TITLE": "Personnalisation et contrôle d'accès",
             "DESCRIPTION": "Limiter la visibilité de la page à des audiences spécifiques",

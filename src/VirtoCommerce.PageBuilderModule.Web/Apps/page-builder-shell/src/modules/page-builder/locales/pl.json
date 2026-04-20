@@ -92,6 +92,8 @@
           "VISIBILITY": "Jeśli widoczność jest wyłączona, strona będzie dostępna tylko dla zarejestrowanych użytkowników."
         },
         "SECTIONS": {
+          "BASIC_INFORMATION": "Informacje podstawowe",
+          "ADVANCED_OPTIONS": "Opcje zaawansowane",
           "PERSONALIZATION_ACCESS_CONTROL": {
             "TITLE": "Personalizacja i kontrola dostępu",
             "DESCRIPTION": "Ogranicz widoczność strony do określonych odbiorców",

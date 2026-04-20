@@ -92,6 +92,8 @@
           "VISIBILITY": "Om synligheten är avstängd kommer sidan bara vara tillgänglig för registrerade användare."
         },
         "SECTIONS": {
+          "BASIC_INFORMATION": "Grundläggande information",
+          "ADVANCED_OPTIONS": "Avancerade alternativ",
           "PERSONALIZATION_ACCESS_CONTROL": {
             "TITLE": "Personalisering och åtkomstkontroll",
             "DESCRIPTION": "Begränsa sidans synlighet till specifika målgrupper",

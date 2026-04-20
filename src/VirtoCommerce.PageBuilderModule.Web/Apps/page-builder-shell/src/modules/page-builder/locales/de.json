@@ -92,6 +92,8 @@
           "VISIBILITY": "Wenn die Sichtbarkeit deaktiviert ist, ist die Seite nur für registrierte Benutzer verfügbar."
         },
         "SECTIONS": {
+          "BASIC_INFORMATION": "Grundinformationen",
+          "ADVANCED_OPTIONS": "Erweiterte Optionen",
           "PERSONALIZATION_ACCESS_CONTROL": {
             "TITLE": "Personalisierung & Zugriffskontrolle",
             "DESCRIPTION": "Seitensichtbarkeit auf bestimmte Zielgruppen beschränken",

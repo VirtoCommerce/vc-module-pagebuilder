@@ -92,6 +92,8 @@
           "VISIBILITY": "Jos näkyvyys on pois päältä, sivu on käytettävissä vain rekisteröityneille käyttäjille."
         },
         "SECTIONS": {
+          "BASIC_INFORMATION": "Perustiedot",
+          "ADVANCED_OPTIONS": "Lisäasetukset",
           "PERSONALIZATION_ACCESS_CONTROL": {
             "TITLE": "Personointi ja käyttöoikeuksien hallinta",
             "DESCRIPTION": "Rajoita sivun näkyvyys tietyille kohderyhmille",

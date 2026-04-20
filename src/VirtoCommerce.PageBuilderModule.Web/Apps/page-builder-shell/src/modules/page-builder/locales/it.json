@@ -92,6 +92,8 @@
           "VISIBILITY": "Se la visibilità è disattivata, la pagina sarà disponibile solo per gli utenti registrati."
         },
         "SECTIONS": {
+          "BASIC_INFORMATION": "Informazioni di base",
+          "ADVANCED_OPTIONS": "Opzioni avanzate",
           "PERSONALIZATION_ACCESS_CONTROL": {
             "TITLE": "Personalizzazione e controllo degli accessi",
             "DESCRIPTION": "Limita la visibilità della pagina a un pubblico specifico",

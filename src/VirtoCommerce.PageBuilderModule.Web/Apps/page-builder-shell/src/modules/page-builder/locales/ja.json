@@ -92,6 +92,8 @@
           "VISIBILITY": "表示設定がオフの場合、ページは登録ユーザーのみが利用できます。"
         },
         "SECTIONS": {
+          "BASIC_INFORMATION": "基本情報",
+          "ADVANCED_OPTIONS": "詳細オプション",
           "PERSONALIZATION_ACCESS_CONTROL": {
             "TITLE": "パーソナライズとアクセス制御",
             "DESCRIPTION": "特定のオーディエンスにページの表示を制限",

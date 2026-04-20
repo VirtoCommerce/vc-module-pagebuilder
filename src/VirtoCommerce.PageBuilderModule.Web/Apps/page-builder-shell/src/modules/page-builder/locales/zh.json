@@ -92,6 +92,8 @@
           "VISIBILITY": "如果关闭可见性，页面仅对注册用户可用。"
         },
         "SECTIONS": {
+          "BASIC_INFORMATION": "基本信息",
+          "ADVANCED_OPTIONS": "高级选项",
           "PERSONALIZATION_ACCESS_CONTROL": {
             "TITLE": "个性化与访问控制",
             "DESCRIPTION": "限制页面对特定受众的可见性",
