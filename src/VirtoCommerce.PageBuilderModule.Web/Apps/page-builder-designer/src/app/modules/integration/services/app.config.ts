@@ -117,4 +117,5 @@ export type OptionName = 'templatesListUrl'
   | 'saveGroupedPage'
   | 'previewImpersonation'
   | 'previewAccounts'
+  | 'ozAgentUrl'
   ;

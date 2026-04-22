@@ -1,0 +1,13 @@
+@if (safeUrl(); as src) {
+  <iframe
+    [src]="src"
+    title="Virto OZ"
+    sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads"
+    allow="clipboard-read; clipboard-write"
+    referrerpolicy="no-referrer-when-downgrade"></iframe>
+} @else {
+  <div class="placeholder">
+    <p>Virto OZ URL is not configured.</p>
+    <p>Set <code>ozAgentUrl</code> in <code>data/settings.json</code>.</p>
+  </div>
+}

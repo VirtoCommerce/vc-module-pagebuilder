@@ -13,13 +13,15 @@ import { BuilderState as ThemeState } from '@theme/store';
 import { ToolbarComponent } from './layout/toolbar/toolbar.component';
 import { PreviewAreaComponent } from './layout/preview-area/preview-area.component';
 import { FullscreenLoaderComponent } from './layout/fullscreen-loader/fullscreen-loader.component';
+import { OzAgentPanelComponent } from '@ai-agent/components/oz-agent-panel/oz-agent-panel.component';
+import { OzAgentToggleButtonComponent } from '@ai-agent/components/oz-agent-toggle-button/oz-agent-toggle-button.component';
 
 @Component({
     selector: 'app-root',
     templateUrl: './app.component.html',
     styleUrls: ['./app.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [RouterOutlet, ToolbarComponent, PreviewAreaComponent, FullscreenLoaderComponent],
+    imports: [RouterOutlet, ToolbarComponent, PreviewAreaComponent, FullscreenLoaderComponent, OzAgentPanelComponent, OzAgentToggleButtonComponent],
     host: {
         '(window:keyup)': 'keyEvent($event)',
     },

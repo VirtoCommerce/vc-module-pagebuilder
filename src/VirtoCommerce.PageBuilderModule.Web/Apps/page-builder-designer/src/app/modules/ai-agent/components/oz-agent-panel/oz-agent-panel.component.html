@@ -1,0 +1,9 @@
+@if (ui.isOpen()) {
+  <header>
+    <h2>Virto OZ</h2>
+    <app-icon-button icon="close" skin="link" (click)="close()" />
+  </header>
+  <div class="body">
+    <app-oz-agent-iframe [url]="agentUrl" />
+  </div>
+}
