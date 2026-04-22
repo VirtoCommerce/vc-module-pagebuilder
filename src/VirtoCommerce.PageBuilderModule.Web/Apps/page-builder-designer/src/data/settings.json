@@ -170,5 +170,6 @@
             "selector": "this.response.permissions.indexOf('builder:templates') === -1",
             "isArray": false
         }
-    }
+    },
+    "ozAgentUrl": "https://localhost:5174"
 }

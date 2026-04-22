@@ -13,31 +13,30 @@ import { BuilderState as ThemeState } from '@theme/store';
 import { ToolbarComponent } from './layout/toolbar/toolbar.component';
 import { PreviewAreaComponent } from './layout/preview-area/preview-area.component';
 import { FullscreenLoaderComponent } from './layout/fullscreen-loader/fullscreen-loader.component';
-import { OzAgentPanelComponent } from '@ai-agent/components/oz-agent-panel/oz-agent-panel.component';
 import { OzAgentToggleButtonComponent } from '@ai-agent/components/oz-agent-toggle-button/oz-agent-toggle-button.component';
 
 @Component({
-    selector: 'app-root',
-    templateUrl: './app.component.html',
-    styleUrls: ['./app.component.scss'],
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [RouterOutlet, ToolbarComponent, PreviewAreaComponent, FullscreenLoaderComponent, OzAgentPanelComponent, OzAgentToggleButtonComponent],
-    host: {
-        '(window:keyup)': 'keyEvent($event)',
-    },
+  selector: 'app-root',
+  templateUrl: './app.component.html',
+  styleUrls: ['./app.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [RouterOutlet, ToolbarComponent, PreviewAreaComponent, FullscreenLoaderComponent, OzAgentToggleButtonComponent],
+  host: {
+    '(window:keyup)': 'keyEvent($event)',
+  },
 })
 export class AppComponent {
 
-    private store$ = inject(Store<SharedState & EditorState & ThemeState>);
+  private readonly store$ = inject(Store<SharedState & EditorState & ThemeState>);
 
-    readonly isHttpLoading = toSignal(this.store$.select(sharedSelectors.isHttpLoading));
-    readonly isEditorLoading = toSignal(this.store$.select(editorSelectors.isLoading), { initialValue: false });
-    readonly isThemeLoading = toSignal(this.store$.select(themeSelectors.isLoading), { initialValue: false });
+  readonly isHttpLoading = toSignal(this.store$.select(sharedSelectors.isHttpLoading));
+  readonly isEditorLoading = toSignal(this.store$.select(editorSelectors.isLoading), { initialValue: false });
+  readonly isThemeLoading = toSignal(this.store$.select(themeSelectors.isLoading), { initialValue: false });
 
-    keyEvent(event: KeyboardEvent) {
-        if (event.key === 'Escape') {
-            // todo: useful feature, must be implemented
-            // this.store$.dispatch(actions.closeAllPanels());
-        }
+  keyEvent(event: KeyboardEvent) {
+    if (event.key === 'Escape') {
+      // todo: useful feature, must be implemented
+      // this.store$.dispatch(actions.closeAllPanels());
     }
+  }
 }

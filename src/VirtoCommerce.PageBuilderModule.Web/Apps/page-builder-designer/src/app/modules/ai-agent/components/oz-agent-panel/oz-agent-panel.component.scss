@@ -1,13 +1,13 @@
 @use '../../../../../layout/variables' as *;
 
 :host {
-    position: fixed;
+    position: absolute;
     top: 0;
     right: 0;
     bottom: 0;
     width: 420px;
-    max-width: 100vw;
-    z-index: 40;
+    max-width: 100%;
+    z-index: 10;
     display: none;
     flex-direction: column;
     background: #fff;
@@ -16,6 +16,13 @@
 
     &.is-open {
         display: flex;
+    }
+
+    &.is-pinned {
+        position: relative;
+        z-index: auto;
+        flex: 0 0 420px;
+        box-shadow: none;
     }
 }
 
@@ -28,6 +35,38 @@ header {
         font-size: $middle-font-size;
         font-weight: 600;
         color: $heading-color;
+    }
+}
+
+.actions {
+    @apply flex flex-row items-center;
+    gap: 4px;
+}
+
+.pin-button {
+    @apply flex items-center justify-center p-1 rounded;
+    border: 0;
+    background: transparent;
+    color: rgba(12, 12, 12, 0.55);
+    cursor: pointer;
+
+    app-icon {
+        font-size: 1.25rem;
+        transform: rotate(45deg);
+        transition: transform 120ms ease;
+    }
+
+    &:hover {
+        background: rgba(12, 12, 12, 0.04);
+        color: $heading-color;
+    }
+
+    &.is-active {
+        color: $active-color;
+
+        app-icon {
+            transform: rotate(0deg);
+        }
     }
 }
 

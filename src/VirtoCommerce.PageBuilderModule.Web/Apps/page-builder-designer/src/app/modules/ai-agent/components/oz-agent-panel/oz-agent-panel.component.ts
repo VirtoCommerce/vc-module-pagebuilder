@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { IconButtonComponent } from '@core/components/icon-button/icon-button.component';
+import { IconComponent } from '@core/components/icon/icon.component';
 import { AppConfig } from '@integration/services';
 import { OzAgentIframeComponent } from '../oz-agent-iframe/oz-agent-iframe.component';
 import { OzAgentUiService } from '../../services/oz-agent-ui.service';
@@ -9,9 +10,10 @@ import { OzAgentUiService } from '../../services/oz-agent-ui.service';
     templateUrl: './oz-agent-panel.component.html',
     styleUrls: ['./oz-agent-panel.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [IconButtonComponent, OzAgentIframeComponent],
+    imports: [IconButtonComponent, IconComponent, OzAgentIframeComponent],
     host: {
         '[class.is-open]': 'ui.isOpen()',
+        '[class.is-pinned]': 'ui.isPinned()',
     },
 })
 export class OzAgentPanelComponent {
@@ -23,5 +25,9 @@ export class OzAgentPanelComponent {
 
     close() {
         this.ui.close();
+    }
+
+    togglePin() {
+        this.ui.togglePin();
     }
 }
