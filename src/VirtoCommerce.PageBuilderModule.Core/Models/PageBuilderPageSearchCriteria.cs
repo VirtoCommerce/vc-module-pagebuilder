@@ -15,4 +15,7 @@ public class PageBuilderPageSearchCriteria : SearchCriteriaBase, IHasStoreId
     public string Lifecycle { get; set; }
 
     public DateTime? ActiveOn { get; set; }
+
+    public DateTime? ModifiedSince { get; set; }
+    public DateTime? ModifiedBefore { get; set; }
 }

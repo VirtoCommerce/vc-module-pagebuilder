@@ -55,16 +55,16 @@ namespace VirtoCommerce.PageBuilderModule.Core
                 public static SettingDescriptor StoreUrl { get; } = new()
                 {
                     Name = "VirtoCommerce.PageBuilderModule.General.StoreUrl",
-                    GroupName = "CMS Content|General",
-                    ValueType = SettingValueType.ShortText,
+                    GroupName = "CMS|General",
+                    ValueType = SettingValueType.ShortText
                 };
 
                 public static SettingDescriptor StorePreviewPath { get; } = new()
                 {
                     Name = "VirtoCommerce.PageBuilderModule.General.StorePreviewPath",
                     ValueType = SettingValueType.ShortText,
-                    GroupName = "CMS Content|General",
-                    DefaultValue = "/designer-preview",
+                    GroupName = "CMS|General",
+                    DefaultValue = "/designer-preview"
                 };
 
                 public static IEnumerable<SettingDescriptor> AllGeneralSettings
@@ -82,7 +82,7 @@ namespace VirtoCommerce.PageBuilderModule.Core
                 public static SettingDescriptor MetadataFromContentMigrated { get; } = new()
                 {
                     Name = "VirtoCommerce.PageBuilderModule.Migration.MetadataFromContentMigrated",
-                    GroupName = "CMS Content|Migration",
+                    GroupName = "CMS|Migration",
                     ValueType = SettingValueType.Boolean,
                     DefaultValue = false,
                 };
@@ -100,7 +100,7 @@ namespace VirtoCommerce.PageBuilderModule.Core
                 public static SettingDescriptor PreviewUserIds { get; } = new()
                 {
                     Name = "VirtoCommerce.PageBuilderModule.Store.PreviewUserIds",
-                    GroupName = "CMS Content|Page builder",
+                    GroupName = "CMS|Page builder",
                     ValueType = SettingValueType.LongText,
                     DefaultValue = "",
                 };
