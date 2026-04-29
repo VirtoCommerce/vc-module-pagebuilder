@@ -1,0 +1,37 @@
+name: pagebuilder_list_section_schemas
+description: |
+  Return the catalog of section, block, object, and shared schemas that the current PageBuilder theme exposes.
+  The agent must call this before generating a page so it knows which sections exist and which fields each accepts.
+  Schemas are theme-specific and may evolve, so the agent should re-read them rather than rely on baked-in knowledge.
+require_approval: false
+
+parameters:
+  type: object
+  properties:
+    storeId:
+      type: string
+      description: ID of the store whose theme schemas should be loaded. Required.
+    theme:
+      type: string
+      description: Optional theme name. If omitted, the backend falls back to the store's default theme.
+  required:
+    - storeId
+
+execution:
+  endpoint: /api/pagebuilder/sections
+  method: GET
+  mappings:
+    request:
+      query:
+        storeId: "{{storeId}}"
+        theme: "{{theme}}"
+    response:
+      schemas: "$"
+
+permission:
+  - builder:read
+
+tags:
+  - pagebuilder
+  - schema
+  - read

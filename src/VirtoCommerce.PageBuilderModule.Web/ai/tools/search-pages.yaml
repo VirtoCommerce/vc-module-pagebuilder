@@ -1,0 +1,49 @@
+name: pagebuilder_search_pages
+description: |
+  Search PageBuilder pages by free-text keyword within a store. Returns a list of matching grouped pages with their groupIds, names, permalinks and status.
+  Use this to locate the page the user wants to edit when no active page is provided in the conversation context.
+require_approval: false
+
+parameters:
+  type: object
+  properties:
+    storeId:
+      type: string
+      description: ID of the store whose pages should be searched. Required.
+    keyword:
+      type: string
+      description: Free-text fragment matched against page names and permalinks. Optional.
+    statuses:
+      type: string
+      description: Comma-separated list of statuses to include (e.g. "Draft,Published"). Optional - omit to get all non-archived pages.
+    take:
+      type: integer
+      description: Maximum number of results to return.
+      default: 20
+      minimum: 1
+      maximum: 100
+  required:
+    - storeId
+
+execution:
+  endpoint: /api/page-builder-pages/search
+  method: POST
+  mappings:
+    request:
+      body:
+        storeId: "{{storeId}}"
+        keyword: "{{keyword}}"
+        statuses: "{{statuses}}"
+        take: "{{take}}"
+    response:
+      pages: "results[*].{groupId: id, name: name, permalink: permalink, storeId: storeId, status: status, visibility: visibility}"
+      totalCount: "totalCount"
+
+permission:
+  - builder:read
+
+tags:
+  - pagebuilder
+  - page
+  - search
+  - read

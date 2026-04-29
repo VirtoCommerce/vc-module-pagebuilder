@@ -425,6 +425,62 @@ public class PageBuilderPageController(
         return NoContent();
     }
 
+    /// <summary>
+    /// Save page content from a JSON body. Mirror of <see cref="SavePageContent"/> but accepts the page JSON
+    /// inside a wrapping JSON object (<c>{ "content": "..." }</c>) instead of as a raw stream, so it is callable
+    /// from generic JSON-body API tools (e.g. the AI agent tool runner).
+    /// </summary>
+    [HttpPost("grouped/{groupId}/content-json")]
+    [Authorize(ModuleConstants.Security.Permissions.Update)]
+    public async Task<IActionResult> SavePageContentJson(
+        [FromRoute] string groupId,
+        [FromBody] UpdatePageContentRequest model,
+        CancellationToken cancellationToken = default)
+    {
+        if (model == null || string.IsNullOrWhiteSpace(model.Content))
+        {
+            return BadRequest("Content is required.");
+        }
+
+        var groupedPage = await groupedPageService.GetByIdAsync(groupId);
+
+        if (groupedPage == null)
+        {
+            return NotFound();
+        }
+
+        var authorizationResult = await authorizationService.AuthorizeAsync(User, groupedPage, new PageBuilderAuthorizationRequirement());
+        if (!authorizationResult.Succeeded)
+        {
+            return Forbidden;
+        }
+
+        var draftPage = groupedPage.Pages.FirstOrDefault(x => x.Status == Draft);
+
+        if (draftPage == null)
+        {
+            draftPage = AbstractTypeFactory<PageBuilderPage>.TryCreateInstance();
+            draftPage.StoreId = groupedPage.StoreId;
+            draftPage.Status = Draft;
+            groupedPage.Pages.Add(draftPage);
+            await groupedPageService.SaveChangesAsync([groupedPage]);
+
+            groupedPage = await groupedPageService.GetByIdAsync(groupId);
+            draftPage = groupedPage.Pages.FirstOrDefault(x => x.Status == Draft);
+        }
+
+        var contentToSave = InjectGroupIdIntoSettings(model.Content, groupId);
+
+        using var stream = new System.IO.MemoryStream();
+        var writer = new System.IO.StreamWriter(stream);
+        await writer.WriteAsync(contentToSave.AsMemory(), cancellationToken);
+        await writer.FlushAsync(cancellationToken);
+        stream.Position = 0;
+        await groupedPageService.SaveStreamAsContentAsync(draftPage.Id, stream, cancellationToken);
+
+        return NoContent();
+    }
+
     [HttpPost("grouped/{targetGroupId}/content/{sourceGroupId}")]
     [Authorize(ModuleConstants.Security.Permissions.Update)]
     public async Task<IActionResult> CopyPageContent(

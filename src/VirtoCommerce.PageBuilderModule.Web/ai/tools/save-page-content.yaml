@@ -1,0 +1,36 @@
+name: pagebuilder_save_page_content
+description: |
+  Save edited page JSON back into PageBuilder as a draft. Replaces the entire page content of the given group.
+  The backend automatically reuses or creates the draft page inside the group and re-injects the correct groupId into "settings.id".
+  Use after pagebuilder_get_page_content + in-memory mutation. Pass the full page JSON (not a diff) as a string in the "content" field.
+require_approval: true
+
+parameters:
+  type: object
+  properties:
+    groupId:
+      type: string
+      description: ID of the grouped page to update. Required.
+    content:
+      type: string
+      description: Full page JSON document as a string (same shape produced by pagebuilder_create_page / returned by pagebuilder_get_page_content). Required.
+  required:
+    - groupId
+    - content
+
+execution:
+  endpoint: /api/page-builder-pages/grouped/{groupId}/content-json
+  method: POST
+  mappings:
+    request:
+      body:
+        content: "{{content}}"
+
+permission:
+  - builder:update
+
+tags:
+  - pagebuilder
+  - page
+  - update
+  - write
