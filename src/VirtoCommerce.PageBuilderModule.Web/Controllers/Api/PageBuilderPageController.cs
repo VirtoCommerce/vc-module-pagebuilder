@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -140,6 +141,78 @@ public class PageBuilderPageController(
         await WriteDefaultContent(draftPage.Id, cancellationToken);
 
         return Ok(model);
+    }
+
+    /// <summary>
+    /// Create a grouped page with a draft page and its content in a single request.
+    /// </summary>
+    [HttpPost("create-group-page")]
+    [Authorize(ModuleConstants.Security.Permissions.Create)]
+    public async Task<ActionResult<GroupedPageBuilderPage>> CreateGroupPage(
+        [FromBody] CreateGroupedPageRequest model,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(model.StoreId) ||
+            string.IsNullOrWhiteSpace(model.Name) ||
+            string.IsNullOrWhiteSpace(model.Content))
+        {
+            return BadRequest("StoreId, Name and Content are required.");
+        }
+
+        var authorizationResult = await authorizationService.AuthorizeAsync(User, model, new PageBuilderAuthorizationRequirement());
+        if (!authorizationResult.Succeeded)
+        {
+            return Forbidden;
+        }
+
+        var groupedPage = AbstractTypeFactory<GroupedPageBuilderPage>.TryCreateInstance();
+        groupedPage.StoreId = model.StoreId;
+        groupedPage.Name = model.Name;
+        groupedPage.Permalink = model.Permalink;
+        groupedPage.CultureName = model.CultureName;
+        groupedPage.OrganizationId = model.OrganizationId;
+        groupedPage.Visibility = model.Visibility;
+        groupedPage.UserGroups = model.UserGroups;
+        groupedPage.StartDate = model.StartDate;
+        groupedPage.EndDate = model.EndDate;
+
+        var draftPage = AbstractTypeFactory<PageBuilderPage>.TryCreateInstance();
+        draftPage.Status = Draft;
+        draftPage.StoreId = model.StoreId;
+        groupedPage.Pages.Add(draftPage);
+
+        await groupedPageService.SaveChangesAsync([groupedPage]);
+
+        var contentToSave = InjectGroupIdIntoSettings(model.Content, groupedPage.Id);
+
+        using var stream = new System.IO.MemoryStream();
+        var writer = new System.IO.StreamWriter(stream);
+        await writer.WriteAsync(contentToSave.AsMemory(), cancellationToken);
+        await writer.FlushAsync(cancellationToken);
+        stream.Position = 0;
+        await groupedPageService.SaveStreamAsContentAsync(draftPage.Id, stream, cancellationToken);
+
+        return Ok(groupedPage);
+    }
+
+    private static string InjectGroupIdIntoSettings(string content, string groupId)
+    {
+        var node = JsonNode.Parse(content);
+        if (node is not JsonObject root)
+        {
+            return content;
+        }
+
+        if (root["settings"] is not JsonObject settings)
+        {
+            settings = new JsonObject();
+            root["settings"] = settings;
+        }
+
+        settings["id"] = groupId;
+        settings["type"] ??= "settings";
+
+        return root.ToJsonString();
     }
 
     [HttpPost("grouped/archive")]

@@ -36,7 +36,7 @@
             v-for="status in pageStatuses"
             :key="status.value"
             :model-value="statusFilters.statuses === status.value"
-            @update:model-value="(checked: boolean) => toggleStatusFilter(status.value, checked)"
+            @update:model-value="(checked) => toggleStatusFilter(status.value, checked as boolean)"
           >
             {{ status.label }}
           </VcCheckbox>

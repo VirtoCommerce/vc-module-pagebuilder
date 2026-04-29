@@ -1,5 +1,6 @@
 import { effect, inject, Injectable, signal } from '@angular/core';
 import { LocalStorageService } from '@core/store/local-storage.service';
+import { AppConfig } from '@integration/services';
 
 const STORAGE_KEY = 'pbd.ozAgent.ui';
 
@@ -12,6 +13,11 @@ interface OzAgentUiState {
 export class OzAgentUiService {
 
     private readonly storage = inject(LocalStorageService);
+    private readonly config = inject(AppConfig);
+
+    // Single source of truth for "is Oz agent integration available".
+    // When null, toggle button, panel, and transport all stay inert.
+    readonly agentUrl: string | null = (this.config.getValue('ozAgentUrl') as string | undefined) || null;
 
     private readonly _isOpen = signal(false);
     private readonly _isPinned = signal(false);

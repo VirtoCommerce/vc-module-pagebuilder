@@ -1,0 +1,62 @@
+name: pagebuilder_create_page
+description: |
+  Create a new draft page in PageBuilder, including its full content (page-level settings + sections).
+  Use this when the user asks to "generate a page", "create a blog post", "make a landing page" or similar.
+  The page is always created with status=Draft. Permalink and visibility can be edited later in PageBuilder UI.
+require_approval: true
+
+parameters:
+  type: object
+  properties:
+    storeId:
+      type: string
+      description: ID of the store the page belongs to. Required.
+    name:
+      type: string
+      description: Display name of the page (used as page title in lists and admin UI). Required.
+    permalink:
+      type: string
+      description: URL slug for the page (e.g. "/blog/my-new-post"). Recommended.
+    cultureName:
+      type: string
+      description: Culture/locale code (e.g. "en-US"). Optional.
+    visibility:
+      type: boolean
+      description: Whether the page is visible to end-users. Defaults to true.
+      default: true
+    content:
+      type: string
+      description: |
+        The full page content as a JSON string. Must follow the PageBuilder JSON format described in the system prompt.
+        Top-level shape: { "settings": { "type": "settings", ...metadata, ...template fields }, "content": [ ...sections ] }.
+        The backend will overwrite "settings.id" with the actual generated group id, so leave it as "" or omit it.
+        Each section is a flat object: { "type": "<section-type>", "id": "<unique>", "background": null|"bg-...", ...schema fields }.
+        Markdown fields use the shape { "markdown": "<source>", "html": "<rendered html>" } - both fields required.
+  required:
+    - storeId
+    - name
+    - content
+
+execution:
+  endpoint: /api/page-builder-pages/create-group-page
+  method: POST
+  mappings:
+    request:
+      body:
+        storeId: "{{storeId}}"
+        name: "{{name}}"
+        permalink: "{{permalink}}"
+        cultureName: "{{cultureName}}"
+        visibility: "{{visibility}}"
+        content: "{{content}}"
+    response:
+      page: "$"
+
+permission:
+  - builder:create
+
+tags:
+  - pagebuilder
+  - page
+  - create
+  - write

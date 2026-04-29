@@ -1,4 +1,4 @@
-@if (ui.isOpen()) {
+@if (ui.agentUrl && ui.isOpen()) {
   <header>
     <h2>Virto OZ</h2>
     <div class="actions">
@@ -15,6 +15,6 @@
     </div>
   </header>
   <div class="body">
-    <app-oz-agent-iframe [url]="agentUrl" />
+    <app-oz-agent-iframe [url]="ui.agentUrl" />
   </div>
 }
