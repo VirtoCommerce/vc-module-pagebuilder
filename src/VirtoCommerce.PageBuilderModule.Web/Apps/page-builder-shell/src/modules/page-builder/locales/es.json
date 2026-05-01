@@ -1,0 +1,135 @@
+{
+  "PAGE_BUILDER": {
+    "MENU": {
+      "DRAFT_TITLE": "Borrador",
+      "PENDING_TITLE": "Pendiente",
+      "ACTIVE_TITLE": "Activo",
+      "ARCHIVED_TITLE": "Archivado",
+      "TITLE": "Todas las páginas"
+    },
+    "PAGES": {
+      "LIST": {
+        "DRAFT_TITLE": "Páginas en borrador",
+        "PENDING_TITLE": "Páginas pendientes",
+        "ACTIVE_TITLE": "Páginas activas",
+        "ARCHIVED_TITLE": "Páginas archivadas",
+        "TITLE": "Todas las páginas",
+        "TOOLBAR": {
+          "ADD": "Agregar",
+          "REFRESH": "Actualizar",
+          "REMOVE": "Archivar",
+          "LOAD": "Cargar contenido"
+        },
+        "SEARCH": {
+          "PLACEHOLDER": "Buscar palabras clave"
+        },
+        "TABLE": {
+          "TOTALS": "Total:",
+          "HEADER": {
+            "NAME": "Nombre",
+            "PERMALINK": "Enlace permanente",
+            "MODIFIED_DATE": "Modificado",
+            "CULTURE_NAME": "Idioma",
+            "MODIFIED_BY": "Modificado por",
+            "STATUS": "Estado"
+          },
+          "FILTER": {
+            "STATUS": "Estado",
+            "APPLY": "Aplicar",
+            "RESET": "Restablecer"
+          },
+          "EMPTY": {
+            "TITLE": "Aún no hay contenido",
+            "ACTION": "Agregar contenido"
+          },
+          "NOT_FOUND": {
+            "TITLE": "No se encontró contenido.",
+            "ACTION": "Restablecer búsqueda"
+          },
+          "ACTIONS": {
+            "DELETE": "Archivar"
+          }
+        },
+        "EMPTY": {
+          "NO_ITEMS": "Aún no hay páginas"
+        },
+        "NOT_FOUND": {
+          "EMPTY": "No se encontraron páginas",
+          "RESET": "Restablecer"
+        }
+      },
+      "DETAILS": {
+        "TITLE": {
+          "DETAILS": "Detalles de {name}",
+          "NEW": "Nueva página",
+          "LOADING": "Cargando..."
+        },
+        "TOOLBAR": {
+          "SAVE": "Guardar",
+          "DELETE": "Archivar",
+          "PREVIEW": "Vista previa",
+          "DESIGNER": "Abrir diseñador",
+          "PUBLISH": "Publicar",
+          "UNPUBLISH": "Despublicar",
+          "DOWNLOAD_CONTENT": "Guardar contenido",
+          "CLONE": "Clonar"
+        },
+        "FIELDS": {
+          "NAME": "Nombre",
+          "PERMALINK": "Enlace permanente",
+          "CONTENT": "Contenido",
+          "GUID": "GUID",
+          "CULTURE_NAME": "Idioma",
+          "VISIBILITY": "Visibilidad",
+          "START_DATE": "Fecha de inicio",
+          "START_DATE_HINT": "La página se hace visible",
+          "END_DATE": "Fecha de fin",
+          "END_DATE_HINT": "La página se oculta",
+          "USER_GROUPS": "Grupos de usuarios",
+          "ORGANIZATION": "Organización"
+        },
+        "TOOLTIPS": {
+          "VISIBILITY": "Si la visibilidad está desactivada, la página solo estará disponible para usuarios registrados."
+        },
+        "SECTIONS": {
+          "BASIC_INFORMATION": "Información básica",
+          "ADVANCED_OPTIONS": "Opciones avanzadas",
+          "PERSONALIZATION_ACCESS_CONTROL": {
+            "TITLE": "Personalización y control de acceso",
+            "DESCRIPTION": "Limitar la visibilidad de la página a audiencias específicas",
+            "VISIBILITY_TAG": "Visible"
+          },
+          "SCHEDULING": {
+            "TAG_TEXT": "Programado",
+            "TITLE": "Programación",
+            "DESCRIPTION": "Establecer cuándo esta página debe ser visible"
+          }
+        }
+      },
+      "ALERTS": {
+        "CLOSE_CONFIRMATION": "Tiene cambios sin guardar. ¿Cerrar de todos modos?",
+        "DELETE": "¿Está seguro de que desea archivar esta página?",
+        "DELETE_SELECTED_CONFIRMATION": {
+          "MESSAGE": "¿Está seguro de que desea archivar {count} páginas seleccionadas?",
+          "ALL": "todas {totalCount}"
+        },
+        "UNPUBLISH_WITH_DRAFT": "No se puede despublicar una página que tiene cambios.",
+        "DOWNLOAD_SUCCESS": "Contenido guardado en archivo correctamente",
+        "CLONE_SUCCESS": "Página clonada correctamente",
+        "LOAD_CONTENT_SUCCESS": "Contenido cargado correctamente",
+        "SAVE_SUCCESS": "Página guardada correctamente",
+        "PUBLISH_SUCCESS": "Página publicada correctamente",
+        "UNPUBLISH_SUCCESS": "Publicación de la página cancelada correctamente",
+        "DELETE_SUCCESS": "Página archivada correctamente"
+      }
+    },
+    "STATUS": {
+      "DRAFT": "Borrador",
+      "ARCHIVED": "Archivado",
+      "PUBLISHED": "Publicado",
+      "HAS_CHANGES": "Tiene borrador con cambios",
+      "SCHEDULED": "Programado",
+      "PERSONALIZED": "Personalizado"
+    }
+  }
+}
