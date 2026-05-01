@@ -12,6 +12,10 @@
     <ProjectReference Include="..\VirtoCommerce.PageBuilderModule.Data.SqlServer\VirtoCommerce.PageBuilderModule.Data.SqlServer.csproj" />
     <ProjectReference Include="..\VirtoCommerce.PageBuilderModule.Data\VirtoCommerce.PageBuilderModule.Data.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="VirtoCommerce.PageBuilderModule.Tests" />
+  </ItemGroup>
   
   <ItemGroup>
     <Content Include="ai\**">

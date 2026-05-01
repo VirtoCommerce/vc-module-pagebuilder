@@ -177,18 +177,18 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
             if (kind == SchemaKindTemplates)
             {
-                content = await MergeStaticSectionsIntoTemplate(content, storeId, themeName);
+                content = await MergeStaticSectionsIntoTemplateAsync(content, storeId, themeName);
             }
 
             return Content(content, JsonContentType);
         }
 
-        private static bool IsValidSchemaKind(string kind)
+        internal static bool IsValidSchemaKind(string kind)
         {
             return kind is SchemaKindSections or SchemaKindTemplates or SchemaKindBlocks or SchemaKindObjects or SchemaKindShared;
         }
 
-        private static bool IsStaticEntry(JToken entry)
+        internal static bool IsStaticEntry(JToken entry)
         {
             var token = entry?["static"];
             if (token == null || token.Type == JTokenType.Null)
@@ -207,7 +207,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             return false;
         }
 
-        private async Task<string> MergeStaticSectionsIntoTemplate(string templateJson, string storeId, string themeName)
+        internal static string MergeStaticSectionsIntoTemplate(string templateJson, IReadOnlyDictionary<string, string> sectionSchemasByKey)
         {
             JObject template;
             try
@@ -235,15 +235,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 template["settings"] = templateSettings;
             }
 
-            var sectionsFolder = $"{themeName}/config/schemas/{SchemaKindSections}";
-            var basePath = GetContentBasePath(storeId, Themes, themeName);
-            var storageProvider = blobContentStorageProviderFactory.CreateProvider(basePath);
-            var sectionFiles = (await storageProvider.SearchAsync(sectionsFolder, null)).Results
-                .Where(x => x.Type != "folder" && x.Name.EndsWith(JsonExtension, StringComparison.OrdinalIgnoreCase));
-
-            foreach (var sectionFile in sectionFiles)
+            foreach (var (sectionKey, sectionJson) in sectionSchemasByKey)
             {
-                var sectionKey = Path.GetFileNameWithoutExtension(sectionFile.Name);
                 if (sectionKey.StartsWith('_'))
                 {
                     continue;
@@ -252,17 +245,41 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 {
                     continue;
                 }
-                AppendStaticSectionFields(sectionFile, storageProvider, templateSettings);
+                AppendStaticSectionFields(sectionJson, templateSettings);
             }
 
             return template.ToString(Formatting.None);
         }
 
-        private void AppendStaticSectionFields(BlobEntry sectionFile, IBlobContentStorageProvider storageProvider, JArray templateSettings)
+        private async Task<string> MergeStaticSectionsIntoTemplateAsync(string templateJson, string storeId, string themeName)
+        {
+            var sectionsFolder = $"{themeName}/config/schemas/{SchemaKindSections}";
+            var basePath = GetContentBasePath(storeId, Themes, themeName);
+            var storageProvider = blobContentStorageProviderFactory.CreateProvider(basePath);
+            var sectionFiles = (await storageProvider.SearchAsync(sectionsFolder, null)).Results
+                .Where(x => x.Type != "folder" && x.Name.EndsWith(JsonExtension, StringComparison.OrdinalIgnoreCase));
+
+            var schemas = new Dictionary<string, string>();
+            foreach (var file in sectionFiles)
+            {
+                try
+                {
+                    schemas[Path.GetFileNameWithoutExtension(file.Name)] = GetContent(file, storageProvider);
+                }
+                catch
+                {
+                    // Skip unreadable section files.
+                }
+            }
+
+            return MergeStaticSectionsIntoTemplate(templateJson, schemas);
+        }
+
+        private static void AppendStaticSectionFields(string sectionJson, JArray templateSettings)
         {
             try
             {
-                var sectionSchema = JObject.Parse(GetContent(sectionFile, storageProvider));
+                var sectionSchema = JObject.Parse(sectionJson);
                 if (!IsStaticEntry(sectionSchema) || sectionSchema["settings"] is not JArray sectionSettings)
                 {
                     return;
@@ -407,7 +424,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             return result;
         }
 
-        private static void CopySchemaMetadata(JObject source, JObject target, string kind)
+        internal static void CopySchemaMetadata(JObject source, JObject target, string kind)
         {
             // Catalog metadata is intentionally narrow — only fields the LLM uses while picking.
             // Designer-only hints (`displayField`, `icon`, `tab`, `sort`, `group*`) are stripped.
