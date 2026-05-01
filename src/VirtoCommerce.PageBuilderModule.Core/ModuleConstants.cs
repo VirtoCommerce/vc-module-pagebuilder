@@ -67,12 +67,21 @@ namespace VirtoCommerce.PageBuilderModule.Core
                     DefaultValue = "/designer-preview"
                 };
 
+                public static SettingDescriptor OzAgentUrl { get; } = new()
+                {
+                    Name = "VirtoCommerce.PageBuilderModule.General.OzAgentUrl",
+                    GroupName = "CMS|General",
+                    ValueType = SettingValueType.ShortText,
+                    DefaultValue = "",
+                };
+
                 public static IEnumerable<SettingDescriptor> AllGeneralSettings
                 {
                     get
                     {
                         yield return StoreUrl;
                         yield return StorePreviewPath;
+                        yield return OzAgentUrl;
                     }
                 }
             }

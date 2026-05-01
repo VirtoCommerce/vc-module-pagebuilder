@@ -120,8 +120,37 @@ async function bridgeLegacyAuthData() {
   });
 }
 
+// Resolves the AI agent (Virto OZ) iframe URL from the platform setting registered
+// by the .NET module (`VirtoCommerce.PageBuilderModule.General.OzAgentUrl`). Empty / missing
+// setting means the AI integration is disabled — the framework's `aiAgentPlugin` will skip
+// its install when `config.url` is empty (and the env fallback is not bundled in production).
+async function fetchOzAgentUrl(): Promise<string> {
+  try {
+    const auth = localStorage.getItem(SHELL_AUTH_KEY);
+    const token = auth ? (JSON.parse(auth) as { access_token?: string }).access_token : undefined;
+    if (!token) {
+      return "";
+    }
+    const response = await fetch(
+      "/api/platform/settings/VirtoCommerce.PageBuilderModule.General.OzAgentUrl",
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    if (!response.ok) {
+      return "";
+    }
+    const data = (await response.json()) as { value?: unknown; defaultValue?: unknown };
+    const raw = data?.value ?? data?.defaultValue ?? "";
+    return typeof raw === "string" ? raw : "";
+  } catch (e) {
+    console.warn("[oz-agent] failed to load OzAgentUrl setting", e);
+    return "";
+  }
+}
+
 async function startApp() {
   await bridgeLegacyAuthData();
+
+  const ozAgentUrl = await fetchOzAgentUrl();
 
   const { loadUser } = useUser();
   await loadUser();
@@ -137,7 +166,7 @@ async function startApp() {
       },
       aiAgent: {
         config: {
-          url: import.meta.env.APP_AI_AGENT_URL,
+          url: ozAgentUrl,
         },
       },
     })
