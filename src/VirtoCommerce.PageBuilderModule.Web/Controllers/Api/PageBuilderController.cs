@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
 using VirtoCommerce.AssetsModule.Core.Assets;
 using VirtoCommerce.ContentModule.Core.Model;
@@ -34,6 +35,11 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
     {
         private const string Themes = "themes";
         private const string DefaultTheme = "default";
+        private const string JsonContentType = "application/json";
+        private const string SchemaKindSections = "sections";
+        private const string SchemaKindBlocks = "blocks";
+        private const string SchemaKindObjects = "objects";
+        private const string SchemaKindShared = "shared";
 
 
         [HttpGet]
@@ -98,14 +104,14 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         public async Task<ActionResult> GetTemplates(string storeId, string theme)
         {
             var result = await GetSettingsFilesFromFolder(storeId, theme, "templates");
-            return Content(result, "application/json");
+            return Content(result, JsonContentType);
         }
 
         [HttpGet]
         [Route("objects")]
         public async Task<ActionResult> GetObjects(string storeId, string theme)
         {
-            var result = await GetSettingsFilesFromFolder(storeId, theme, "objects");
+            var result = await GetSettingsFilesFromFolder(storeId, theme, SchemaKindObjects);
             return Ok(result);
         }
 
@@ -113,11 +119,64 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("sections")]
         public async Task<ActionResult> GetSectionsSettings(string storeId, string theme)
         {
-            var sections = await GetSettingsFilesFromFolder(storeId, theme, "sections");
-            var blocks = await GetSettingsFilesFromFolder(storeId, theme, "blocks");
-            var objects = await GetSettingsFilesFromFolder(storeId, theme, "objects");
-            var shared = await GetSettingsFilesFromFolder(storeId, theme, "shared");
-            return Content($"{{ \"sections\": {sections}, \"blocks\": {blocks}, \"objects\": {objects}, \"shared\": {shared} }}", "application/json");
+            var sections = await GetSettingsFilesFromFolder(storeId, theme, SchemaKindSections);
+            var blocks = await GetSettingsFilesFromFolder(storeId, theme, SchemaKindBlocks);
+            var objects = await GetSettingsFilesFromFolder(storeId, theme, SchemaKindObjects);
+            var shared = await GetSettingsFilesFromFolder(storeId, theme, SchemaKindShared);
+            return Content($"{{ \"{SchemaKindSections}\": {sections}, \"{SchemaKindBlocks}\": {blocks}, \"{SchemaKindObjects}\": {objects}, \"{SchemaKindShared}\": {shared} }}", JsonContentType);
+        }
+
+        [HttpGet]
+        [Route("schemas")]
+        public async Task<ActionResult> GetSchemasCatalog(string storeId, string theme)
+        {
+            var catalog = new JObject
+            {
+                [SchemaKindSections] = await GetSchemasCatalogForFolder(storeId, theme, SchemaKindSections, filterInternal: true),
+                [SchemaKindBlocks] = await GetSchemasCatalogForFolder(storeId, theme, SchemaKindBlocks, filterInternal: true),
+                [SchemaKindObjects] = await GetSchemasCatalogForFolder(storeId, theme, SchemaKindObjects, filterInternal: true),
+                [SchemaKindShared] = await GetSchemasCatalogForFolder(storeId, theme, SchemaKindShared, filterInternal: false),
+            };
+            return Content(catalog.ToString(Formatting.None), JsonContentType);
+        }
+
+        [HttpGet]
+        [Route("schemas/{kind}/{key}")]
+        public async Task<ActionResult> GetSchemaByKey(string storeId, string theme, string kind, string key)
+        {
+            if (!IsValidSchemaKind(kind))
+            {
+                return BadRequest(new { error = $"Unknown kind '{kind}'. Expected one of: {SchemaKindSections}, {SchemaKindBlocks}, {SchemaKindObjects}, {SchemaKindShared}." });
+            }
+
+            // Underscore-prefixed keys are theme-internal; only `shared` exposes them (e.g. _sections, _blocks).
+            if (kind != SchemaKindShared && key.StartsWith('_'))
+            {
+                return NotFound(new { kind, key });
+            }
+
+            var themeName = await GetCurrentThemeName(storeId, theme);
+            var schemasFolder = $"{themeName}/config/schemas/{kind}";
+            var basePath = GetContentBasePath(storeId, Themes, themeName);
+            var storageProvider = blobContentStorageProviderFactory.CreateProvider(basePath);
+            var allFiles = await storageProvider.SearchAsync(schemasFolder, null);
+            var file = allFiles.Results.FirstOrDefault(x =>
+                x.Type != "folder" &&
+                x.Name.EndsWith(".json", StringComparison.OrdinalIgnoreCase) &&
+                Path.GetFileNameWithoutExtension(x.Name).Equals(key, StringComparison.OrdinalIgnoreCase));
+
+            if (file == null)
+            {
+                return NotFound(new { kind, key });
+            }
+
+            var content = GetContent(file, storageProvider);
+            return Content(content, JsonContentType);
+        }
+
+        private static bool IsValidSchemaKind(string kind)
+        {
+            return kind is SchemaKindSections or SchemaKindBlocks or SchemaKindObjects or SchemaKindShared;
         }
 
         [HttpGet]
@@ -202,6 +261,55 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             var response = string.Join(", ", files.Select(file => $"\"{GetKey(null, file)}\": {GetContent(file, storageProvider)}"));
             var result = $"{{{response}}}";
             return result;
+        }
+
+        private async Task<JArray> GetSchemasCatalogForFolder(string storeId, string theme, string folder, bool filterInternal)
+        {
+            var themeName = await GetCurrentThemeName(storeId, theme);
+            var schemasFolder = $"{themeName}/config/schemas/{folder}";
+            var basePath = GetContentBasePath(storeId, Themes, themeName);
+            var storageProvider = blobContentStorageProviderFactory.CreateProvider(basePath);
+            var allFiles = await storageProvider.SearchAsync(schemasFolder, null);
+            var files = allFiles.Results.Where(x =>
+                x.Type != "folder" &&
+                x.Name.EndsWith(".json", StringComparison.OrdinalIgnoreCase));
+
+            var result = new JArray();
+            foreach (var file in files)
+            {
+                var key = Path.GetFileNameWithoutExtension(file.Name);
+                if (filterInternal && key.StartsWith('_'))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    var raw = GetContent(file, storageProvider);
+                    var json = JObject.Parse(raw);
+                    var entry = new JObject { ["key"] = key };
+                    CopySchemaMetadata(json, entry);
+                    result.Add(entry);
+                }
+                catch
+                {
+                    // Skip files that cannot be parsed.
+                }
+            }
+
+            return result;
+        }
+
+        private static void CopySchemaMetadata(JObject source, JObject target)
+        {
+            foreach (var property in new[] { "name", "displayField", "tab", "sort", "static", "includeShared" })
+            {
+                var token = source[property];
+                if (token != null && token.Type != JTokenType.Null)
+                {
+                    target[property] = token.DeepClone();
+                }
+            }
         }
 
         private void TryAddFileContent(BlobEntry file, string type, IBlobContentStorageProvider storageProvider, Dictionary<string, string> fileInfoes, JsonSerializerSettings jsonSettings)

@@ -1,0 +1,86 @@
+name: pagebuilder_get_section_schema
+description: |
+  Load the full JSON schema for a single section / block / object / shared entry by its catalog path. Call AFTER `pagebuilder_list_section_schemas`, once per entry you actually plan to use plus the always-required composition entries (see below). Cache responses for the session — never re-fetch the same path.
+
+  Response shape (raw schema JSON, exactly as stored on disk):
+  ```json
+  {
+    "name": "<UI label, ignore>",
+    "icon": "<material icon, ignore>",
+    "displayField": "<headline field, ignore>",
+    "static": "top",                          // optional: pins this section to the top of the page
+    "includeShared": ["title", ...],          // optional: pulls in shared/<name> field lists
+    "settings": [ <field schema>, ... ]       // the actual field list
+  }
+  ```
+
+  Each item of `settings` is a field schema:
+  ```json
+  {
+    "id": "<field name — used as the JSON key in the page output>",
+    "label": "<UI label, ignore>",
+    "title": "<UI label for object fields, ignore>",
+    "tab": "<UI grouping, ignore>",
+    "sort": <number, UI ordering, ignore>,
+    "type": "string | markdown | select | images | color | number | checkbox | list | object",
+    "default": <any>,
+    "required": true,
+    "multiline": true,                                       // for string
+    "multiple": false,                                       // for images
+    "options": [{ "value": "<v>", "label": "<l>" }, ...],    // for select
+    "element": [ <field schema>, ... ]                       // inner field list for list / object
+  }
+  ```
+
+  Resolving the full authoritative field list for a section:
+  1. Start with the section's own `settings` array.
+  2. For every name in `includeShared`, append the `settings` array from the schema fetched via path `shared/<name>` (e.g. `shared/title`).
+  3. Append the `settings` array from `shared/_sections` — the editor merges this into every section automatically (this is where `background` comes from).
+  4. Use the same convention for blocks with `shared/_blocks`.
+
+  Always also fetch, regardless of which sections you picked:
+  - `shared/_sections` — global section settings (every section).
+  - `shared/_blocks` — global block settings (only when you use blocks).
+  - Every `shared/<name>` referenced by any chosen section's `includeShared`.
+
+  Returns 404 when the path is not present in the catalog, or when a `_`-prefixed key is requested under `sections`/`blocks`/`objects` (those are theme-internal).
+require_approval: false
+
+parameters:
+  type: object
+  properties:
+    storeId:
+      type: string
+      description: ID of the store whose theme schema should be loaded. Required.
+    path:
+      type: string
+      description: |
+        Catalog path of the schema entry, in the form "<kind>/<key>" — e.g. "sections/page-header", "blocks/feature", "shared/title", "shared/_sections".
+        `kind` must be one of: sections, blocks, objects, shared.
+        `key` is the schema entry name (file name without `.json`).
+        Underscore-prefixed keys are valid only under `shared`.
+    theme:
+      type: string
+      description: Optional theme name. If omitted, the backend falls back to the store's default theme.
+  required:
+    - storeId
+    - path
+
+execution:
+  endpoint: /api/pagebuilder/schemas/{{path}}
+  method: GET
+  mappings:
+    request:
+      query:
+        storeId: "{{storeId}}"
+        theme: "{{theme}}"
+    response:
+      schema: "_raw"
+
+permission:
+  - builder:read
+
+tags:
+  - pagebuilder
+  - schema
+  - read

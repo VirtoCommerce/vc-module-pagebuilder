@@ -1,8 +1,36 @@
 name: pagebuilder_list_section_schemas
 description: |
-  Return the catalog of section, block, object, and shared schemas that the current PageBuilder theme exposes.
-  The agent must call this before generating a page so it knows which sections exist and which fields each accepts.
-  Schemas are theme-specific and may evolve, so the agent should re-read them rather than rely on baked-in knowledge.
+  Return the lightweight catalog of section / block / object / shared schemas exposed by the current PageBuilder theme. Schemas are theme-specific and may evolve, so the agent must call this rather than rely on baked-in knowledge.
+
+  Response shape:
+  ```json
+  {
+    "sections": [
+      {
+        "key": "<typeId>",
+        "name": "<UI label>",
+        "displayField": "<headline field hint>",
+        "tab": "<UI group>",
+        "sort": 0,
+        "static": "top",
+        "includeShared": ["title", ...]
+      }
+    ],
+    "blocks":  [ ... same per-entry shape ... ],
+    "objects": [ ... same per-entry shape ... ],
+    "shared":  [ ... same per-entry shape; here `_sections` and `_blocks` are present ... ]
+  }
+  ```
+
+  Per-entry fields:
+  - `key` — the schema's type id. Use it as the `type` value of a section in the output page JSON, and as the `<key>` half of `pagebuilder_get_section_schema` paths.
+  - `name`, `displayField`, `tab`, `sort` — UI hints to understand and pick a schema. Never copy them into the output JSON.
+  - `static` — when set to `"top"` the editor pins this section at the top of the page; respect it when ordering sections.
+  - `includeShared` — names of `shared/<name>` field lists this entry pulls in; you must fetch each via `pagebuilder_get_section_schema` to resolve the section's full field list.
+
+  The backend filters theme-internal `_`/`__` entries from `sections`, `blocks`, `objects`. Under `shared` the `_sections` and `_blocks` entries are intentionally exposed — they are global field lists merged into every section/block, never used as section types themselves.
+
+  The catalog does NOT include the field-level `settings[]` array — fetch the full schema with `pagebuilder_get_section_schema` for each entry you actually plan to use.
 require_approval: false
 
 parameters:
@@ -18,7 +46,7 @@ parameters:
     - storeId
 
 execution:
-  endpoint: /api/pagebuilder/sections
+  endpoint: /api/pagebuilder/schemas
   method: GET
   mappings:
     request:
@@ -26,7 +54,7 @@ execution:
         storeId: "{{storeId}}"
         theme: "{{theme}}"
     response:
-      schemas: "$"
+      catalog: "$"
 
 permission:
   - builder:read
