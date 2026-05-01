@@ -38,7 +38,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
             query = ApplyStatusFilter(query, criteria);
             query = ApplyActiveOnFilter(query, criteria);
             query = ApplyLifecycleFilter(query, criteria);
-            
+
             if (!string.IsNullOrEmpty(criteria.LanguageCode))
             {
                 query = query.Where(x => x.CultureName == criteria.LanguageCode);
