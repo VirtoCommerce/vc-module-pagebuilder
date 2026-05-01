@@ -1,23 +1,17 @@
 <template>
   <VcBlade
-    v-loading="loading"
-    :title="bladeTitle"
     width="50%"
-    :expanded="expanded"
-    :closable="closable"
+    :loading="loading"
+    :title="bladeTitle"
     :toolbar-items="bladeToolbar"
-    :modified="isModified"
-    @close="$emit('close:blade')"
-    @expand="$emit('expand:blade')"
-    @collapse="$emit('collapse:blade')"
   >
     <VcContainer>
       <VcForm class="tw-flex tw-flex-col tw-gap-4">
         <PageStatus :item="item" />
 
         <VcCard
-          :header="$t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.BASIC_INFORMATION')"
           class="tw-p-4"
+          :header="$t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.BASIC_INFORMATION')"
         >
           <VcCol class="tw-gap-4">
             <Field
@@ -41,15 +35,15 @@
             <Field
               v-slot="{ errorMessage, handleChange, errors }"
               name="permalink"
+              rules="required"
               :model-value="item.permalink"
               :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.PERMALINK')"
-              rules="required"
             >
               <VcInput
                 v-model="item.permalink"
+                required
                 :error="errors.length > 0"
                 :error-message="errorMessage"
-                required
                 :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.PERMALINK')"
                 :disabled="isReadOnly"
                 @update:model-value="handleChange"
@@ -57,7 +51,7 @@
                 <template #prepend-inner>
                   <div
                     v-if="storeUrl"
-                    class="-tw-ml-2.5 tw-p-2 tw-text-sm tw-rounded-sm tw-pl-2.5 tw-bg-gray-300"
+                    class="permalink-prefix tw-self-stretch tw-flex tw-items-center tw-text-sm"
                   >
                     {{ storeUrl }}
                   </div>
@@ -66,11 +60,11 @@
             </Field>
 
             <VcSelect
+              option-value="name"
+              option-label="name"
               v-model="item.cultureName"
               :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.CULTURE_NAME')"
               :options="loadCultureNamesAsync"
-              option-value="name"
-              option-label="name"
               :clearable="false"
               :disabled="isReadOnly"
             />
@@ -78,19 +72,17 @@
         </VcCard>
 
         <VcCard
-          :header="$t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.ADVANCED_OPTIONS')"
           class="tw-p-4"
+          :header="$t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.ADVANCED_OPTIONS')"
         >
           <VcCol class="tw-gap-4">
             <VcCard
-              header="header"
-              class="tw-p-4"
               is-collapsable
               is-collapsed
             >
               <template #header>
                 <CardHeader
-                  icon="material-group"
+                  icon="lucide-users"
                   :tag-text="
                     item.visibility
                       ? $t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.PERSONALIZATION_ACCESS_CONTROL.VISIBILITY_TAG')
@@ -101,7 +93,7 @@
                 />
               </template>
 
-              <VcCol class="tw-gap-4">
+              <VcCol class="tw-gap-4 tw-p-4">
                 <SwitchRow
                   :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.VISIBILITY')"
                   :hint="$t('PAGE_BUILDER.PAGES.DETAILS.TOOLTIPS.VISIBILITY')"
@@ -135,20 +127,18 @@
             </VcCard>
 
             <VcCard
-              header="header"
               is-collapsable
               is-collapsed
-              class="tw-p-4"
             >
               <template #header>
                 <CardHeader
-                  icon="material-date_range"
+                  icon="lucide-calendar-range"
                   :tag-text="isScheduled ? $t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.SCHEDULING.TAG_TEXT') : ''"
                   :title="$t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.SCHEDULING.TITLE')"
                   :description="$t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.SCHEDULING.DESCRIPTION')"
                 />
               </template>
-              <VcRow class="tw-gap-4">
+              <VcRow class="tw-gap-4 tw-p-4">
                 <VcInput
                   v-model="item.startDate"
                   class="tw-flex-1"
@@ -178,54 +168,30 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import { Field, useForm } from "vee-validate";
-import { IBladeToolbar, IParentCallArgs, useBladeNavigation, usePopup, notification } from "@vc-shell/framework";
-import PageStatus from "../components/pageStatus.vue";
+import { Field } from "vee-validate";
+import { IBladeToolbar, useBlade, useBladeForm, usePopup, notification } from "@vc-shell/framework";
+import { CardHeader, PageStatus, SwitchRow } from "../components";
 import useUrlParams from "../composables/useStoreParams";
 import { usePageBuilderDetails } from "../composables/usePageBuilderDetails";
 import type { PageExportData } from "../composables/usePageContentApi";
 
-defineOptions({
+import { VcBlade, VcCard, VcCol, VcContainer, VcForm, VcInput, VcRow, VcSelect } from "@vc-shell/framework/ui";
+
+defineBlade({
   name: "PageDetails",
   url: "/details",
 });
 
-interface Props {
-  expanded?: boolean;
-  closable?: boolean;
-  param?: string;
-  options?: {
-    storeId?: string;
-    importData?: PageExportData;
-  };
-}
-
-interface Emits {
-  (event: "close:blade"): void;
-  (event: "expand:blade"): void;
-  (event: "collapse:blade"): void;
-  (event: "parent:call", args: IParentCallArgs): void;
-}
-
-const props = withDefaults(defineProps<Props>(), {
-  expanded: true,
-  closable: true,
-});
-
-const emit = defineEmits<Emits>();
-
 const { t } = useI18n({ useScope: "global" });
 const { showConfirmation } = usePopup();
-const { onBeforeClose } = useBladeNavigation();
-const { meta } = useForm({ validateOnMount: false });
+const { param, options, callParent, closeSelf } = useBlade<{ storeId?: string; importData?: PageExportData }>();
 const { getStoreUrl, getLanguages } = useUrlParams();
 
 const {
   item,
   status,
-  isModified,
   isReadOnly,
   loading,
   loadGroup,
@@ -239,13 +205,26 @@ const {
   loadUserGroups,
   loadOrganizations,
 } = usePageBuilderDetails({
-  id: props.param,
-  storeId: props.options?.storeId,
-  importData: props.options?.importData,
+  id: param.value,
+  storeId: options.value?.storeId,
+  importData: options.value?.importData,
 });
 
+const { canSave, isModified, setBaseline, formMeta } = useBladeForm({
+  data: item,
+  closeConfirmMessage: () => t("PAGE_BUILDER.PAGES.ALERTS.CLOSE_CONFIRMATION"),
+});
+
+watch(
+  item,
+  () => {
+    if (item.value && !options.value?.importData) setBaseline();
+  },
+  { once: true },
+);
+
 const bladeTitle = computed(() => {
-  if (props.param || item.value?.name) {
+  if (param.value || item.value?.name) {
     return t("PAGE_BUILDER.PAGES.DETAILS.TITLE.DETAILS", { name: item.value?.name });
   }
   return t("PAGE_BUILDER.PAGES.DETAILS.TITLE.NEW");
@@ -276,9 +255,9 @@ const itemUserGroups = computed<string[]>({
 const bladeToolbar = computed((): IBladeToolbar[] => [
   {
     id: "save",
-    icon: "material-save",
+    icon: "lucide-save",
     title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.SAVE"),
-    disabled: !isModified.value || isReadOnly.value || !meta.value.valid,
+    disabled: !canSave.value || isReadOnly.value,
     clickHandler: async () => {
       await handleSave();
       notification.success(t("PAGE_BUILDER.PAGES.ALERTS.SAVE_SUCCESS"));
@@ -286,32 +265,32 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
   },
   {
     id: "delete",
-    icon: "material-delete",
+    icon: "lucide-trash-2",
     title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.DELETE"),
-    disabled: !props.param || isReadOnly.value,
+    disabled: !param.value || isReadOnly.value,
     clickHandler: async () => {
       if (await showConfirmation(t("PAGE_BUILDER.PAGES.ALERTS.DELETE"))) {
         await deleteGroup();
         notification.success(t("PAGE_BUILDER.PAGES.ALERTS.DELETE_SUCCESS"));
-        emit("parent:call", { method: "reload" });
-        emit("close:blade");
+        callParent("reload");
+        closeSelf();
       }
     },
   },
   {
     id: "openPageDesigner",
-    icon: "material-crop",
+    icon: "lucide-crop",
     title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.DESIGNER"),
-    disabled: !props.param || isReadOnly.value,
+    disabled: !param.value || isReadOnly.value,
     clickHandler: () => {
       openDraftDesigner();
     },
   },
   {
     id: "downloadContent",
-    icon: "material-download",
+    icon: "lucide-download",
     title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.DOWNLOAD_CONTENT"),
-    disabled: !props.param,
+    disabled: !param.value,
     clickHandler: async () => {
       try {
         await downloadContent();
@@ -323,41 +302,41 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
   },
   {
     id: "clonePage",
-    icon: "material-content_copy",
+    icon: "lucide-copy",
     title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.CLONE"),
-    disabled: !props.param || isReadOnly.value || loading.value,
+    disabled: !param.value || isReadOnly.value || loading.value,
     clickHandler: async () => {
       if (loading.value) return;
       const cloned = await clonePage();
       if (cloned?.id) {
         notification.success(t("PAGE_BUILDER.PAGES.ALERTS.CLONE_SUCCESS"));
-        emit("parent:call", { method: "reload" });
-        emit("parent:call", { method: "onItemClick", args: cloned });
+        callParent("reload");
+        callParent("onItemClick", cloned);
       }
     },
   },
   {
     id: "publishPage",
-    icon: "material-description",
+    icon: "lucide-send",
     title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.PUBLISH"),
-    isVisible: !!props.param && status.value?.hasChanges === true,
-    disabled: isReadOnly.value || !meta.value.valid || isModified.value,
+    isVisible: !!param.value && status.value?.hasChanges === true,
+    disabled: isReadOnly.value || !formMeta.value.valid || isModified.value,
     clickHandler: async () => {
       await publishGroup();
       notification.success(t("PAGE_BUILDER.PAGES.ALERTS.PUBLISH_SUCCESS"));
-      emit("parent:call", { method: "reload" });
+      callParent("reload");
     },
   },
   {
     id: "unpublishPage",
-    icon: "material-article",
+    icon: "lucide-archive",
     title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.UNPUBLISH"),
-    isVisible: !!props.param && status.value?.hasChanges === false,
+    isVisible: !!param.value && status.value?.hasChanges === false,
     disabled: isReadOnly.value,
     clickHandler: async () => {
       await unpublishGroup();
       notification.success(t("PAGE_BUILDER.PAGES.ALERTS.UNPUBLISH_SUCCESS"));
-      emit("parent:call", { method: "reload" });
+      callParent("reload");
     },
   },
 ]);
@@ -373,28 +352,29 @@ async function loadCultureNamesAsync() {
 
 async function handleSave() {
   const group = await saveGroup();
+  setBaseline();
 
-  emit("parent:call", { method: "reload" });
+  callParent("reload");
 
   if (item.value.id || group.id) {
-    emit("parent:call", { method: "onItemClick", args: group.id ? group : item.value });
+    callParent("onItemClick", group.id ? group : item.value);
   }
 }
 
 // Lifecycle
 onMounted(async () => {
   await loadGroup();
+  setBaseline();
   storeUrl.value = await getStoreUrl();
 });
-
-onBeforeClose(async () => {
-  if (isModified.value) {
-    return showConfirmation(t("PAGE_BUILDER.PAGES.ALERTS.CLOSE_CONFIRMATION"));
-  }
-  return true;
-});
-
-defineExpose({
-  title: bladeTitle,
-});
 </script>
+
+<style scoped lang="scss">
+.permalink-prefix {
+  margin-left: calc(-1.1 * var(--input-padding));
+  padding-inline: var(--input-padding);
+  border-start-start-radius: var(--input-border-radius);
+  border-end-start-radius: var(--input-border-radius);
+  background-color: var(--input-disabled-bg-color);
+}
+</style>

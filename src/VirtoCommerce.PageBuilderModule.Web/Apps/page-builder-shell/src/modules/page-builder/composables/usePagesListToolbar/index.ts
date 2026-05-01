@@ -11,7 +11,7 @@ export function usePagesListToolbar(
 ): Ref<IBladeToolbar[]> {
   const { t } = useI18n({ useScope: "global" });
   const isRemoveDisabled = computed(() => {
-    const items = <string[]>(<unknown>pagesListRef.value?.selectedItems) || [];
+    const items = (pagesListRef.value?.selectedItems as unknown as string[]) || [];
     return (items.length || 0) === 0;
   });
 
@@ -19,7 +19,7 @@ export function usePagesListToolbar(
     const items: IBladeToolbar[] = [
       {
         id: "add",
-        icon: "material-add",
+        icon: "lucide-plus",
         title: t("PAGE_BUILDER.PAGES.LIST.TOOLBAR.ADD"),
         clickHandler: async () => {
           await pagesListRef.value?.openAddBlade();
@@ -27,7 +27,7 @@ export function usePagesListToolbar(
       },
       {
         id: "refresh",
-        icon: "material-refresh",
+        icon: "lucide-refresh-cw",
         title: t("PAGE_BUILDER.PAGES.LIST.TOOLBAR.REFRESH"),
         clickHandler: async () => {
           await pagesListRef.value?.reload();
@@ -36,7 +36,7 @@ export function usePagesListToolbar(
       },
       {
         id: "delete",
-        icon: "material-delete",
+        icon: "lucide-trash-2",
         title: t("PAGE_BUILDER.PAGES.LIST.TOOLBAR.REMOVE"),
         disabled: isRemoveDisabled,
         clickHandler: async () => {
@@ -48,7 +48,7 @@ export function usePagesListToolbar(
     if (_status === PageLifecycleFilters.Draft) {
       items.push({
         id: "load",
-        icon: "material-upload",
+        icon: "lucide-upload",
         title: t("PAGE_BUILDER.PAGES.LIST.TOOLBAR.LOAD"),
         clickHandler: async () => {
           await pagesListRef.value?.openLoadFlow();

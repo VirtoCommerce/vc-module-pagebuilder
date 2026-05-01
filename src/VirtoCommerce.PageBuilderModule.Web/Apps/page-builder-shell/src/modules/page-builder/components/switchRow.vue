@@ -6,16 +6,17 @@
     </VcCol>
 
     <VcSwitch
-      :model-value="modelValue"
+      :model-value="modelValue ?? false"
       @update:model-value="emit('update:model-value', !!$event)"
     />
   </VcRow>
 </template>
 <script lang="ts" setup>
+import { VcCol, VcHint, VcLabel, VcRow, VcSwitch } from "@vc-shell/framework/ui";
 interface Props {
   label: string;
   hint: string;
-  modelValue: boolean;
+  modelValue?: boolean;
 }
 
 interface Emits {

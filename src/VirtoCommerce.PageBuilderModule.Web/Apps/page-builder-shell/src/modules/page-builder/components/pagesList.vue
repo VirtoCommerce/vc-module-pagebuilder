@@ -1,65 +1,67 @@
 <template>
-  <!-- @vue-generic {GroupedPageBuilderPage}-->
-  <VcTable
-    enable-item-actions
-    multiselect
-    :expanded="expanded"
+  <VcDataTable
+    v-model:active-item-id="selectedItemId"
+    v-model:sort-field="sortField"
+    v-model:sort-order="sortOrder"
+    v-model:selection="localSelection"
+    state-key="page_builder_pages_list"
     :items="items"
-    :columns="columns"
-    :pages="pages"
-    :current-page="currentPage"
-    :total-count="totalCount"
-    :selected-item-id="selectedItemId"
-    :search-value="searchValue"
+    :total-count="pagination.totalCount"
+    :pagination="pagination"
     :loading="loading"
-    :sort-expression="sortExpression"
+    :searchable="true"
+    :selection-mode="'multiple'"
     :item-action-builder="actionBuilder"
-    :active-filter-count="activeFilterCount"
-    @item-click="onItemClick"
-    @selection-changed="onSelectionChange"
-    @search:change="onSearchList"
-    @pagination-click="onPaginationClick"
-    @header-click="onHeaderClick"
+    :global-filters="computedGlobalFilters"
+    @row-click="onItemClick"
+    @search="onSearchList"
+    @pagination-click="pagination.goToPage"
+    @filter="onFilter"
   >
-    <template #item_status="{ item }">
-      <PageStatus
-        extended
-        :item="item"
-      />
-    </template>
-
-    <template #filters="{ closePanel }">
-      <div class="tw-p-4">
-        <h3 class="tw-font-semibold tw-text-sm tw-mb-4">{{ $t("PAGE_BUILDER.PAGES.LIST.TABLE.FILTER.STATUS") }}</h3>
-        <div class="tw-flex tw-flex-col tw-gap-2">
-          <VcCheckbox
-            v-for="status in pageStatuses"
-            :key="status.value"
-            :model-value="statusFilters.statuses === status.value"
-            @update:model-value="(checked) => toggleStatusFilter(status.value, checked as boolean)"
-          >
-            {{ status.label }}
-          </VcCheckbox>
-        </div>
-
-        <div class="tw-flex tw-gap-2 tw-mt-6">
-          <VcButton
-            :disabled="isFilterActionDisabled.apply"
-            @click="applyFilters(closePanel)"
-          >
-            {{ $t("PAGE_BUILDER.PAGES.LIST.TABLE.FILTER.APPLY") }}
-          </VcButton>
-          <VcButton
-            variant="secondary"
-            :disabled="isFilterActionDisabled.reset"
-            @click="resetFilters(closePanel)"
-          >
-            {{ $t("PAGE_BUILDER.PAGES.LIST.TABLE.FILTER.RESET") }}
-          </VcButton>
-        </div>
-      </div>
-    </template>
-  </VcTable>
+    <VcColumn
+      id="name"
+      :title="t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.NAME')"
+      :always-visible="true"
+      :sortable="true"
+    />
+    <VcColumn
+      id="cultureName"
+      :title="t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.CULTURE_NAME')"
+      :always-visible="true"
+      :sortable="true"
+    />
+    <VcColumn
+      id="permalink"
+      :title="t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.PERMALINK')"
+      :always-visible="true"
+      :sortable="true"
+    />
+    <VcColumn
+      id="modifiedDate"
+      :title="t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.MODIFIED_DATE')"
+      type="datetime"
+      :always-visible="true"
+      :sortable="true"
+    />
+    <VcColumn
+      id="modifiedBy"
+      :title="t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.MODIFIED_BY')"
+      :sortable="false"
+    />
+    <VcColumn
+      id="status"
+      :title="t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.STATUS')"
+      type="status"
+      :sortable="true"
+    >
+      <template #body="{ data }">
+        <PageStatus
+          extended
+          :item="data"
+        />
+      </template>
+    </VcColumn>
+  </VcDataTable>
   <input
     ref="fileInputRef"
     type="file"
@@ -72,100 +74,58 @@
 import { ref, Ref, computed, watch, onMounted, readonly } from "vue";
 import { useI18n } from "vue-i18n";
 import { debounce } from "lodash-es";
-import { ITableColumns, useTableSort, useBladeNavigation, usePopup, IActionBuilderResult, notification } from "@vc-shell/framework";
+import { useDataTableSort, useBlade, usePopup, IActionBuilderResult, notification } from "@vc-shell/framework";
 import { GroupedPageBuilderPage } from "../../../api_client/virtocommerce.pagebuildermodule";
 import { PageLifecycleFilters, usePageBuilderList, useUrlParams, refreshMenuBadges } from "../composables";
 import { parseImportFile } from "../composables/usePageContentApi";
+import PageStatus from "./pageStatus.vue";
+
+import { VcColumn, VcDataTable } from "@vc-shell/framework/ui";
 
 interface Props {
-  expanded?: boolean;
-  closable?: boolean;
   param?: string;
-  options?: Record<string, unknown>;
   lifecycle?: PageLifecycleFilters[];
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  expanded: true,
-  closable: true,
-});
+const props = defineProps<Props>();
 
 const { t } = useI18n({ useScope: "global" });
-const { openBlade } = useBladeNavigation();
+const { openBlade } = useBlade();
 const { showConfirmation } = usePopup();
 const { storeId, initUrlParams } = useUrlParams();
 
-const { sortExpression, handleSortChange: tableSortHandler } = useTableSort({
+const { sortField, sortOrder, sortExpression } = useDataTableSort({
   initialDirection: "DESC",
-  initialProperty: "modifiedDate",
+  initialField: "modifiedDate",
 });
 
-const { items, totalCount, pages, currentPage, searchQuery, loadPages, removePages, loading, pageStatuses } =
-  usePageBuilderList({
-    pageSize: 20,
-    sort: sortExpression.value,
-    lifecycle: props.lifecycle,
-  });
+const { items, pagination, searchQuery, loadPages, removePages, loading, pageStatuses } = usePageBuilderList({
+  pageSize: 20,
+  sort: sortExpression.value,
+  lifecycle: props.lifecycle,
+});
 
 const selectedItemId = ref<string>();
-const selectedItems = ref<string[]>([]);
+const localSelection = ref<GroupedPageBuilderPage[]>([]);
 const fileInputRef = ref<HTMLInputElement | null>(null);
-const searchValue = ref<string>();
-const statusFilters = ref({ statuses: undefined }) as Ref<{ statuses: string | undefined }>;
-const filtersQuery = ref();
 
-const columns = computed((): ITableColumns[] => [
+const computedGlobalFilters = computed(() => [
   {
-    id: "name",
-    title: t("PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.NAME"),
-    alwaysVisible: true,
-    sortable: true,
-  },
-  {
-    id: "cultureName",
-    title: t("PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.CULTURE_NAME"),
-    alwaysVisible: true,
-    sortable: true,
-  },
-  {
-    id: "permalink",
-    title: t("PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.PERMALINK"),
-    alwaysVisible: true,
-    sortable: true,
-  },
-  {
-    id: "modifiedDate",
-    title: t("PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.MODIFIED_DATE"),
-    type: "date-time",
-    alwaysVisible: true,
-    sortable: true,
-  },
-  {
-    id: "modifiedBy",
-    title: t("PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.MODIFIED_BY"),
-    sortable: false,
-  },
-  {
-    id: "status",
-    title: t("PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.STATUS"),
-    sortable: true,
+    id: "statuses",
+    label: t("PAGE_BUILDER.PAGES.LIST.TABLE.FILTER.STATUS"),
+    filter: {
+      options: pageStatuses.value.map((s) => ({
+        value: s.value,
+        label: s.label,
+      })),
+    },
   },
 ]);
 
-const isFilterActionDisabled = computed(() => {
-  return {
-    apply: Object.values(statusFilters.value).every((value) => value === undefined),
-    reset: activeFilterCount.value === 0,
-  };
-});
-
-const activeFilterCount = computed(() => {
-  return Object.values(filtersQuery.value ?? {}).filter((value) => value !== undefined).length;
-});
-
-function onItemClick(item: GroupedPageBuilderPage) {
+function onItemClick(event: { data: GroupedPageBuilderPage }) {
+  const item = event.data;
   openBlade({
-    blade: { name: "PageDetails" },
+    name: "PageDetails",
     param: item.id,
     options: {
       storeId: storeId.value ?? undefined,
@@ -179,32 +139,20 @@ function onItemClick(item: GroupedPageBuilderPage) {
   });
 }
 
-function onSelectionChange(selection: GroupedPageBuilderPage[]) {
-  selectedItems.value = selection.map((item) => item.id!);
-}
-
 const onSearchList = debounce(async (keyword: string | undefined) => {
   console.debug(`Page builder list search by ${keyword}`);
-  searchValue.value = keyword;
   await loadPages({
     ...searchQuery.value,
     keyword,
   });
 }, 1000);
 
-async function onPaginationClick(page: number) {
-  await loadPages({
-    ...searchQuery.value,
-    skip: (page - 1) * (searchQuery.value.take ?? 20),
-  });
-}
-
 const actionBuilder = (item: GroupedPageBuilderPage) => {
   const result: IActionBuilderResult[] = [];
 
   if (item.status !== "Archived") {
     result.push({
-      icon: "material-delete",
+      icon: "lucide-trash-2",
       title: t("PAGE_BUILDER.PAGES.LIST.TABLE.ACTIONS.DELETE"),
       type: "danger",
       clickHandler: async () => {
@@ -251,7 +199,7 @@ async function onFileSelected(event: Event) {
   notification.success(t("PAGE_BUILDER.PAGES.ALERTS.LOAD_CONTENT_SUCCESS"));
 
   openBlade({
-    blade: { name: "PageDetails" },
+    name: "PageDetails",
     options: {
       storeId: storeId.value ?? undefined,
       importData,
@@ -261,7 +209,7 @@ async function onFileSelected(event: Event) {
 
 async function openAddBlade() {
   openBlade({
-    blade: { name: "PageDetails" },
+    name: "PageDetails",
     options: {
       storeId: storeId.value ?? undefined,
     },
@@ -271,10 +219,10 @@ async function openAddBlade() {
 async function reload() {
   await loadPages({
     ...searchQuery.value,
-    skip: (currentPage.value - 1) * (searchQuery.value.take ?? 10),
+    skip: pagination.skip,
     sort: sortExpression.value,
   });
-  selectedItems.value = [];
+  localSelection.value = [];
   refreshMenuBadges();
 }
 
@@ -282,48 +230,23 @@ async function removeSelectedPages() {
   if (
     await showConfirmation(
       t("PAGE_BUILDER.PAGES.ALERTS.DELETE_SELECTED_CONFIRMATION.MESSAGE", {
-        count: selectedItems.value.length,
+        count: localSelection.value.length,
       }),
     )
   ) {
-    await removePages({ ids: selectedItems.value });
+    const ids = localSelection.value.map((item) => item.id!).filter(Boolean);
+    await removePages({ ids });
     await reload();
   }
 }
 
-function onHeaderClick(item: ITableColumns) {
-  tableSortHandler(item.id);
-}
-
-function toggleStatusFilter(statusValue: string, checked: boolean) {
-  if (checked) {
-    statusFilters.value.statuses = statusValue;
-  } else {
-    statusFilters.value.statuses = undefined;
-  }
-}
-
-async function applyFilters(closePanel: () => void) {
-  filtersQuery.value = {
-    statuses: statusFilters.value.statuses,
-  };
-
+async function onFilter(event: { filters: Record<string, unknown> }) {
+  const statusFilter = event.filters.statuses as string | undefined;
   await loadPages({
     ...searchQuery.value,
-    ...filtersQuery.value,
+    statuses: statusFilter,
+    skip: 0,
   });
-  closePanel();
-}
-
-async function resetFilters(closePanel: () => void) {
-  statusFilters.value = { statuses: undefined };
-  filtersQuery.value = undefined;
-  await loadPages({
-    ...searchQuery.value,
-    ...statusFilters.value,
-  });
-
-  closePanel();
 }
 
 onMounted(async () => {
@@ -331,17 +254,19 @@ onMounted(async () => {
   await loadPages();
 });
 
+const selectedItems = computed(() => localSelection.value.map((item) => item.id!).filter(Boolean));
+
 export interface ExposedPagesList {
-  selectedItems: Readonly<Ref<readonly string[], readonly string[]>>;
+  selectedItems: Readonly<Ref<readonly string[]>>;
   reload: () => Promise<void>;
   removeSelectedPages: () => Promise<void>;
-  onItemClick: (item: GroupedPageBuilderPage) => void;
+  onItemClick: (event: { data: GroupedPageBuilderPage }) => void;
   openAddBlade: () => Promise<void>;
   openLoadFlow: () => void;
 }
 
 defineExpose<ExposedPagesList>({
-  selectedItems: readonly(selectedItems),
+  selectedItems: readonly(selectedItems) as unknown as Readonly<Ref<readonly string[]>>,
   reload,
   removeSelectedPages,
   onItemClick,
