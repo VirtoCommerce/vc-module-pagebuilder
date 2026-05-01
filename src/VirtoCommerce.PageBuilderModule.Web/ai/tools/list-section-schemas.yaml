@@ -18,19 +18,15 @@ description: |
   {
     "key": "<typeId>",
     "name": "<UI label>",
-    "description": "<LLM-facing intent hint>",   // optional; only present for sections / templates / blocks
-    "static": "top" | "bottom" | true,           // optional, sections only — see below
-    "includeShared": ["title", ...]              // optional
+    "description": "<LLM-facing intent hint>"    // optional; only present for sections / templates / blocks
   }
   ```
 
-  The catalog deliberately omits Designer-only metadata (`displayField`, `icon`, `tab`, `sort`, `group`) — those are property-panel layout hints with no impact on the generated page.
+  The catalog deliberately omits everything not needed for picking — Designer-only metadata (`displayField`, `icon`, `tab`, `sort`, `group`), field-resolution data (`includeShared`, `settings[]`), and the `static` marker. All of those are reflected (where relevant) in the full schema fetched via `pagebuilder_get_section_schema`.
 
   Catalog category semantics:
-  - `sections` — schemas the user composes a page from. Two roles, distinguished by the `static` field on the entry:
-    - **regular** (no `static` or falsy `static`) — content sections; entry `key` is the `type` value used in items of the page's `content[]` array.
-    - **static** (truthy `static`: `true` / `"top"` / `"bottom"`) — these are NOT placed into `content[]`. They contribute extra fields to the page-level `settings` object (e.g. SEO meta, footer overrides, trackers). The editor renders them as fixed panels next to page settings (top region for `true`/`"top"`, bottom region for `"bottom"`). The agent MUST NOT use a static section's `key` as the `type` of an item in `content[]`.
-  - `templates` — page-type templates (e.g. page, catalog, product, cart). Each template describes the canonical shape of a page's `settings` object plus a default `content[]` skeleton for that page type. The catalog entry is minimal (`key`, optional `version`); fetch the full template via `pagebuilder_get_section_schema` with `kind="templates"` to read its `settings` and `content`.
+  - `sections` — content sections the user composes a page from. Entry `key` is the `type` value used in items of the page's `content[]` array. Theme-internal entries and page-level settings panels (schemas marked with truthy `static` on disk) are filtered out — the agent never sees them as separate entries; their fields are merged into the corresponding template's `settings[]` automatically (see `templates` below).
+  - `templates` — page-type templates (e.g. `page`, `blogs`, `product`). The full template fetched via `pagebuilder_get_section_schema templates/<key>` carries the canonical `settings[]` field schema for that page type — already merged with all applicable static-section fields. This is the single source of truth for the page's `settings` shape.
   - `blocks` — block schemas referenced from inside section field lists; entry `key` is the `type` value used for nested blocks.
   - `objects` — reusable nested object schemas referenced by field schemas.
   - `shared` — global field lists merged into sections/blocks. Always includes `_sections` and `_blocks` (universal field lists every section/block inherits) plus theme-named lists (`title`, etc.) referenced via `includeShared`.
@@ -38,11 +34,9 @@ description: |
   Per-entry field semantics:
   - `key` — schema id. Use as the `<key>` half of `pagebuilder_get_section_schema` paths (`<kind>/<key>`).
   - `name` — short UI label. Useful as a fallback signal when picking; never copy into the output JSON.
-  - `description` — optional theme-author hint aimed at the LLM (NOT shown to humans). Format convention: short prose, ideally with `Use when: ...` / `Skip when: ...` cues to disambiguate sibling schemas. Backend exposes it only for `sections`, `templates`, `blocks` (the categories the agent picks by intent). For static sections (truthy `static`), root-level `description` is rarely useful — the LLM treats those as a flat extension of `settings` fields, so prefer field-level descriptions inside the schema (see `pagebuilder_get_section_schema`).
-  - `static` — only meaningful on `sections`; absence/false means a regular content section, truthy values mark a settings-extension panel (see `sections` semantics above).
-  - `includeShared` — names of `shared/<name>` field lists this entry pulls in; fetch each via `pagebuilder_get_section_schema` to resolve the full field list.
+  - `description` — optional theme-author hint aimed at the LLM (NOT shown to humans). Format convention: short prose with `Use when: ...` / `Skip when: ...` cues to disambiguate sibling schemas, plus inline per-field guidance (LLM should get all the context it needs from this single string). Backend exposes it only for `sections`, `templates`, `blocks` (the categories the agent picks by intent).
 
-  Where the page's `settings` object schema comes from: the canonical fields are described by the active **template** (e.g. `templates/page.json`); additional fields can be contributed by **static sections** in the catalog. Together they define the full set of properties the page's `settings` object can carry.
+  Where the page's `settings` object schema comes from: the active **template** (`templates/<key>`). Its `settings[]` is the complete schema, including any page-level fields contributed by static sections — the backend pre-merges them into the template response.
 
   The backend filters theme-internal `_`/`__` entries from `sections`, `templates`, `blocks`, `objects`. Under `shared` the `_sections` and `_blocks` entries are intentionally exposed.
 

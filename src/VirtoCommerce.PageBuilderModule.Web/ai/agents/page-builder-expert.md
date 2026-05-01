@@ -56,15 +56,13 @@ The page document has two top-level keys:
 
 ### `settings` — page-level metadata
 
-Built from the **active template's `settings`** object (fetched via `templates/<templateKey>`). The template's `settings` is itself a `SectionModel` instance — its keys define which fields the page's `settings` carries, and its values serve as defaults.
+Built from the **active template's `settings[]`** field schema (fetched via `templates/<templateKey>`). That schema is the complete shape — the backend has already merged any page-level extension fields contributed by the theme.
 
-1. Copy the template's `settings` keys into the page's `settings` object.
-2. For each key, if the user prompt provides a reason to override (e.g. user gave a page title → set `displayName`/`name`; user gave a slug → set `permalink`), use that. Otherwise keep the template's default. Use natural-language reasoning over field names (`displayName`, `name`, `title`, `permalink`/`slug`, `header`, `description`, `metaTitle`, etc.) — never invent keys not present in the template.
+1. For every field schema in the template's `settings[]`, emit a key in the page's `settings{}` object with a value that conforms to the field's `type` (see "Field type conventions").
+2. If the user prompt gives a reason to override (e.g. user provides a page title → set `displayName`/`name`; user provides a slug → set `permalink`), use that. Otherwise use the schema's `default`, or generate a sensible value for `required` fields. Use natural-language reasoning over field names (`displayName`, `name`, `title`, `permalink`/`slug`, `header`, `description`, `metaTitle`, etc.) — never invent keys not present in the template.
 3. Always enforce these two universal keys regardless of what the template says:
    - `"type": "settings"` — discriminator constant.
    - `"id": ""` on create (backend assigns the actual `groupId`). On edit, preserve the loaded `groupId` byte-for-byte.
-
-If any static section (catalog `sections` entries with truthy `static`) adds extra fields, leave them with their schema `default` for MVP — the user fills them later in the editor.
 
 ### `content` — ordered list of sections
 
@@ -72,7 +70,7 @@ Each item is a flat section instance (no nested `settings:` wrapper, regardless 
 
 ```json
 {
-  "type": "<key from the catalog's `sections` list (regular, no truthy `static`)>",
+  "type": "<key from the catalog's `sections` list>",
   "id":   "<typePrefix><4-7 random alphanumeric>",  // e.g. "textV9c3", "pageheaderQwe1"
   "<field1>": <value>,
   "<field2>": <value>
@@ -114,7 +112,7 @@ Pick sections by their catalog `description` (when present) and `name` — never
 - 4–7 sections is typical. Prefer fewer, well-filled sections over many sparse ones.
 - If the schema lacks a section for a given role, skip the role — don't force it.
 
-Only **regular** sections from the catalog (entries with no truthy `static` field) are valid as section `type`s in `content[]`. Sections with truthy `static` (`true` / `"top"` / `"bottom"`) contribute extra fields to the page-level `settings` object — they are NOT content sections; never place their `key` in `content[]`. The page's `settings` object schema is the canonical fields from the active **template** (catalog `templates` category) plus extension fields from these static sections. For MVP, leave the extra fields default and let the user fill them in the editor.
+If the chosen template declares a `sections` filter, only those keys are valid for `content[]` under that template — narrow your picks accordingly.
 
 ---
 
@@ -139,8 +137,8 @@ If the page doesn't exist anywhere, say so and offer to create — don't silentl
 5. Generate content: be specific, on-topic, no Lorem ipsum.
 6. Build the JSON, then self-validate:
    - Top-level: `settings` + `content`.
-   - `settings` keys mirror the template's `settings` (universal `type: "settings"` + `id: ""` enforced).
-   - Every section in `content[]` has `type` (matches a regular catalog `sections[].key` — no truthy `static`) and a unique `id`.
+   - `settings` keys mirror the template's `settings[]` schema (universal `type: "settings"` + `id: ""` enforced).
+   - Every section in `content[]` has `type` (matches a catalog `sections[].key`) and a unique `id`.
    - Every section contains exactly the schema-resolved fields — no extras, no missing required.
    - All `select` values come from `options[].value`.
    - Markdown fields have both `markdown` and `html`.

@@ -36,6 +36,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         private const string Themes = "themes";
         private const string DefaultTheme = "default";
         private const string JsonContentType = "application/json";
+        private const string JsonExtension = ".json";
         private const string SchemaKindSections = "sections";
         private const string SchemaKindTemplates = "templates";
         private const string SchemaKindBlocks = "blocks";
@@ -164,7 +165,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             var allFiles = await storageProvider.SearchAsync(schemasFolder, null);
             var file = allFiles.Results.FirstOrDefault(x =>
                 x.Type != "folder" &&
-                x.Name.EndsWith(".json", StringComparison.OrdinalIgnoreCase) &&
+                x.Name.EndsWith(JsonExtension, StringComparison.OrdinalIgnoreCase) &&
                 Path.GetFileNameWithoutExtension(x.Name).Equals(key, StringComparison.OrdinalIgnoreCase));
 
             if (file == null)
@@ -173,12 +174,108 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             }
 
             var content = GetContent(file, storageProvider);
+
+            if (kind == SchemaKindTemplates)
+            {
+                content = await MergeStaticSectionsIntoTemplate(content, storeId, themeName);
+            }
+
             return Content(content, JsonContentType);
         }
 
         private static bool IsValidSchemaKind(string kind)
         {
             return kind is SchemaKindSections or SchemaKindTemplates or SchemaKindBlocks or SchemaKindObjects or SchemaKindShared;
+        }
+
+        private static bool IsStaticEntry(JToken entry)
+        {
+            var token = entry?["static"];
+            if (token == null || token.Type == JTokenType.Null)
+            {
+                return false;
+            }
+            if (token.Type == JTokenType.Boolean)
+            {
+                return token.Value<bool>();
+            }
+            if (token.Type == JTokenType.String)
+            {
+                var value = token.Value<string>();
+                return value == "top" || value == "bottom";
+            }
+            return false;
+        }
+
+        private async Task<string> MergeStaticSectionsIntoTemplate(string templateJson, string storeId, string themeName)
+        {
+            JObject template;
+            try
+            {
+                template = JObject.Parse(templateJson);
+            }
+            catch
+            {
+                return templateJson;
+            }
+
+            // Template's `sections` filter (if present and non-empty) restricts which sections apply
+            // to this template — for both regular and static. Missing/empty means "all sections".
+            HashSet<string> allowedKeys = null;
+            if (template["sections"] is JArray sectionsFilter && sectionsFilter.Count > 0)
+            {
+                allowedKeys = new HashSet<string>(
+                    sectionsFilter.OfType<JValue>().Select(v => v.Value?.ToString()).Where(s => s != null),
+                    StringComparer.OrdinalIgnoreCase);
+            }
+
+            if (template["settings"] is not JArray templateSettings)
+            {
+                templateSettings = [];
+                template["settings"] = templateSettings;
+            }
+
+            var sectionsFolder = $"{themeName}/config/schemas/{SchemaKindSections}";
+            var basePath = GetContentBasePath(storeId, Themes, themeName);
+            var storageProvider = blobContentStorageProviderFactory.CreateProvider(basePath);
+            var sectionFiles = (await storageProvider.SearchAsync(sectionsFolder, null)).Results
+                .Where(x => x.Type != "folder" && x.Name.EndsWith(JsonExtension, StringComparison.OrdinalIgnoreCase));
+
+            foreach (var sectionFile in sectionFiles)
+            {
+                var sectionKey = Path.GetFileNameWithoutExtension(sectionFile.Name);
+                if (sectionKey.StartsWith('_'))
+                {
+                    continue;
+                }
+                if (allowedKeys != null && !allowedKeys.Contains(sectionKey))
+                {
+                    continue;
+                }
+                AppendStaticSectionFields(sectionFile, storageProvider, templateSettings);
+            }
+
+            return template.ToString(Formatting.None);
+        }
+
+        private void AppendStaticSectionFields(BlobEntry sectionFile, IBlobContentStorageProvider storageProvider, JArray templateSettings)
+        {
+            try
+            {
+                var sectionSchema = JObject.Parse(GetContent(sectionFile, storageProvider));
+                if (!IsStaticEntry(sectionSchema) || sectionSchema["settings"] is not JArray sectionSettings)
+                {
+                    return;
+                }
+                foreach (var field in sectionSettings)
+                {
+                    templateSettings.Add(field.DeepClone());
+                }
+            }
+            catch
+            {
+                // Skip unparseable section files.
+            }
         }
 
         [HttpGet]
@@ -259,7 +356,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             var basePath = GetContentBasePath(storeId, Themes, themeName);
             var storageProvider = blobContentStorageProviderFactory.CreateProvider(basePath);
             var allFiles = await storageProvider.SearchAsync(templatesFolder, null);
-            var files = allFiles.Results.Where(x => x.Name.EndsWith(".json", StringComparison.OrdinalIgnoreCase));
+            var files = allFiles.Results.Where(x => x.Name.EndsWith(JsonExtension, StringComparison.OrdinalIgnoreCase));
             var response = string.Join(", ", files.Select(file => $"\"{GetKey(null, file)}\": {GetContent(file, storageProvider)}"));
             var result = $"{{{response}}}";
             return result;
@@ -274,7 +371,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             var allFiles = await storageProvider.SearchAsync(schemasFolder, null);
             var files = allFiles.Results.Where(x =>
                 x.Type != "folder" &&
-                x.Name.EndsWith(".json", StringComparison.OrdinalIgnoreCase));
+                x.Name.EndsWith(JsonExtension, StringComparison.OrdinalIgnoreCase));
 
             var result = new JArray();
             foreach (var file in files)
@@ -289,6 +386,14 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 {
                     var raw = GetContent(file, storageProvider);
                     var json = JObject.Parse(raw);
+                    // Static section schemas describe page-level settings panels — they are not
+                    // selectable as content sections. Hide them from the catalog; their `settings[]`
+                    // is merged into the template response by `MergeStaticSectionsIntoTemplate`.
+                    if (folder == SchemaKindSections && IsStaticEntry(json))
+                    {
+                        continue;
+                    }
+
                     var entry = new JObject { ["key"] = key };
                     CopySchemaMetadata(json, entry, folder);
                     result.Add(entry);
@@ -304,14 +409,18 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
         private static void CopySchemaMetadata(JObject source, JObject target, string kind)
         {
-            // Catalog metadata is intentionally narrow — only fields the LLM acts on.
+            // Catalog metadata is intentionally narrow — only fields the LLM uses while picking.
             // Designer-only hints (`displayField`, `icon`, `tab`, `sort`, `group*`) are stripped.
+            // `includeShared` is stripped — it matters during field-list resolution in Phase B
+            // and the agent reads it from the full schema response there.
+            // `static` is stripped — static sections are entirely hidden from the agent (their
+            // `settings[]` is merged into the template response instead).
             // `description` is exposed only for kinds where the agent picks an entry by intent
             // (regular sections, templates, blocks). For objects/shared descriptions add noise.
             var includeDescription = kind is SchemaKindSections or SchemaKindTemplates or SchemaKindBlocks;
             var properties = includeDescription
-                ? new[] { "name", "description", "static", "includeShared" }
-                : new[] { "name", "static", "includeShared" };
+                ? new[] { "name", "description" }
+                : new[] { "name" };
 
             foreach (var property in properties)
             {
