@@ -37,6 +37,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         private const string DefaultTheme = "default";
         private const string JsonContentType = "application/json";
         private const string SchemaKindSections = "sections";
+        private const string SchemaKindTemplates = "templates";
         private const string SchemaKindBlocks = "blocks";
         private const string SchemaKindObjects = "objects";
         private const string SchemaKindShared = "shared";
@@ -133,6 +134,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             var catalog = new JObject
             {
                 [SchemaKindSections] = await GetSchemasCatalogForFolder(storeId, theme, SchemaKindSections, filterInternal: true),
+                [SchemaKindTemplates] = await GetSchemasCatalogForFolder(storeId, theme, SchemaKindTemplates, filterInternal: true),
                 [SchemaKindBlocks] = await GetSchemasCatalogForFolder(storeId, theme, SchemaKindBlocks, filterInternal: true),
                 [SchemaKindObjects] = await GetSchemasCatalogForFolder(storeId, theme, SchemaKindObjects, filterInternal: true),
                 [SchemaKindShared] = await GetSchemasCatalogForFolder(storeId, theme, SchemaKindShared, filterInternal: false),
@@ -146,7 +148,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         {
             if (!IsValidSchemaKind(kind))
             {
-                return BadRequest(new { error = $"Unknown kind '{kind}'. Expected one of: {SchemaKindSections}, {SchemaKindBlocks}, {SchemaKindObjects}, {SchemaKindShared}." });
+                return BadRequest(new { error = $"Unknown kind '{kind}'. Expected one of: {SchemaKindSections}, {SchemaKindTemplates}, {SchemaKindBlocks}, {SchemaKindObjects}, {SchemaKindShared}." });
             }
 
             // Underscore-prefixed keys are theme-internal; only `shared` exposes them (e.g. _sections, _blocks).
@@ -176,7 +178,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
         private static bool IsValidSchemaKind(string kind)
         {
-            return kind is SchemaKindSections or SchemaKindBlocks or SchemaKindObjects or SchemaKindShared;
+            return kind is SchemaKindSections or SchemaKindTemplates or SchemaKindBlocks or SchemaKindObjects or SchemaKindShared;
         }
 
         [HttpGet]

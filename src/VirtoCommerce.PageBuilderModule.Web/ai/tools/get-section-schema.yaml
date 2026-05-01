@@ -1,18 +1,31 @@
 name: pagebuilder_get_section_schema
 description: |
-  Load the full JSON schema for a single section / block / object / shared entry by its catalog path. Call AFTER `pagebuilder_list_section_schemas`, once per entry you actually plan to use plus the always-required composition entries (see below). Cache responses for the session — never re-fetch the same path.
+  Load the full JSON schema for a single catalog entry by its path. Call AFTER `pagebuilder_list_section_schemas`, once per entry you actually plan to use plus the always-required composition entries (see below). Cache responses for the session — never re-fetch the same path.
 
-  Response shape (raw schema JSON, exactly as stored on disk):
+  Response shape depends on `kind`:
+
+  **For `sections` / `blocks` / `objects` / `shared`** — raw schema JSON exactly as stored on disk:
   ```json
   {
     "name": "<UI label, ignore>",
     "icon": "<material icon, ignore>",
     "displayField": "<headline field, ignore>",
-    "static": "top",                          // optional: pins this section to the top of the page
+    "static": true | "top" | "bottom",        // sections only, optional. Truthy = this section contributes fields to the page's `settings` object instead of being a content section. NEVER use the section's key as the `type` of an item in `content[]` if `static` is truthy.
     "includeShared": ["title", ...],          // optional: pulls in shared/<name> field lists
     "settings": [ <field schema>, ... ]       // the actual field list
   }
   ```
+
+  **For `templates`** — raw template JSON describing a page type:
+  ```json
+  {
+    "version": <number>,                      // optional
+    "settings": <SectionModel>,               // canonical fields of this page type's `settings` object
+    "content":  [ <SectionModel>, ... ]       // default content skeleton
+  }
+  ```
+
+  Templates are the source of truth for the canonical shape of a page's `settings` object for a given page type (page / catalog / product / cart / blog / ...). Static sections in the `sections` catalog can extend this with additional `settings` fields.
 
   Each item of `settings` is a field schema:
   ```json
@@ -55,8 +68,8 @@ parameters:
     path:
       type: string
       description: |
-        Catalog path of the schema entry, in the form "<kind>/<key>" — e.g. "sections/page-header", "blocks/feature", "shared/title", "shared/_sections".
-        `kind` must be one of: sections, blocks, objects, shared.
+        Catalog path of the schema entry, in the form "<kind>/<key>" — e.g. "sections/page-header", "templates/page", "blocks/feature", "shared/title", "shared/_sections".
+        `kind` must be one of: sections, templates, blocks, objects, shared.
         `key` is the schema entry name (file name without `.json`).
         Underscore-prefixed keys are valid only under `shared`.
     theme:
