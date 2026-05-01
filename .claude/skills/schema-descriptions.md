@@ -28,12 +28,13 @@ If this skill drifts from those YAMLs, the YAMLs win — they describe the live 
 ## Where `description` goes
 
 **Yes — schema root:**
-- `sections/*.json` (both regular content sections and `static` settings panels)
+- `sections/*.json` (regular content sections only — entries with falsy / absent `static`)
 - `blocks/*.json`
-- `templates/*.json`
+- `templates/*.json` (the agent reads these to learn the page-level `settings` shape)
 
 **No — never:**
-- Inside `settings[]` per-field. Shared field schemas (`shared/title.json`, `shared/_sections.json`) are reused across many sections with different contextual meaning; one field-level description can't fit them all. Per-field guidance goes inline in the **schema-root** description of the section that uses the field.
+- `sections/*.json` with truthy `static`. The backend hides static sections from the agent's catalog and merges their `settings[]` into the relevant template's `settings[]`. The agent never reads the static section schema by itself, so a description there would be dead text. Per-field guidance for static-contributed fields goes into the **template's** description (since that's where the agent sees those fields).
+- Inside `settings[]` per-field. Shared field schemas (`shared/title.json`, `shared/_sections.json`) are reused across many sections with different contextual meaning; one field-level description can't fit them all. Per-field guidance goes inline in the **schema-root** description of the section / template that uses the field.
 - On `objects/` or `shared/` schemas. The agent doesn't pick these by intent — it follows schema references. The backend strips descriptions from these in the catalog response anyway.
 
 ---
