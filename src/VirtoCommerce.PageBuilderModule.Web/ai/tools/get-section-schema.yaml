@@ -4,17 +4,17 @@ description: |
 
   Response shape depends on `kind`:
 
-  **For `sections` / `blocks` / `objects` / `shared`** — raw schema JSON exactly as stored on disk:
+  **For `sections` / `blocks` / `objects` / `shared`** — raw schema JSON exactly as stored on disk. The fields the agent acts on:
   ```json
   {
-    "name": "<UI label, ignore>",
-    "icon": "<material icon, ignore>",
-    "displayField": "<headline field, ignore>",
-    "static": true | "top" | "bottom",        // sections only, optional. Truthy = this section contributes fields to the page's `settings` object instead of being a content section. NEVER use the section's key as the `type` of an item in `content[]` if `static` is truthy.
-    "includeShared": ["title", ...],          // optional: pulls in shared/<name> field lists
-    "settings": [ <field schema>, ... ]       // the actual field list
+    "name": "<UI label>",
+    "description": "<LLM-facing intent hint>",  // optional, theme-author convention. Recommended for sections / blocks / templates.
+    "static": true | "top" | "bottom",          // sections only, optional. Truthy = section contributes fields to the page-level `settings`, not to `content[]`. NEVER use such a key as the `type` of an item in `content[]`.
+    "includeShared": ["title", ...],            // optional: pulls in shared/<name> field lists
+    "settings": [ <field schema>, ... ]         // the actual field list
   }
   ```
+  Schemas may carry additional Designer-only metadata (`icon`, `displayField`, `tab`, `sort`, `group`, ...) — ignore any field not listed above.
 
   **For `templates`** — raw template JSON describing a page type:
   ```json
@@ -27,14 +27,11 @@ description: |
 
   Templates are the source of truth for the canonical shape of a page's `settings` object for a given page type (page / catalog / product / cart / blog / ...). Static sections in the `sections` catalog can extend this with additional `settings` fields.
 
-  Each item of `settings` is a field schema:
+  Each item of `settings` is a field schema. The fields the agent acts on:
   ```json
   {
     "id": "<field name — used as the JSON key in the page output>",
-    "label": "<UI label, ignore>",
-    "title": "<UI label for object fields, ignore>",
-    "tab": "<UI grouping, ignore>",
-    "sort": <number, UI ordering, ignore>,
+    "description": "<LLM-facing intent hint>",  // optional, theme-author convention. Recommended on every meaningful field. For static sections (settings panels), prefer field-level descriptions over a root-level one.
     "type": "string | markdown | select | images | color | number | checkbox | list | object",
     "default": <any>,
     "required": true,
@@ -44,6 +41,12 @@ description: |
     "element": [ <field schema>, ... ]                       // inner field list for list / object
   }
   ```
+  Field schemas may carry additional Designer-only metadata (`label`, `title`, `tab`, `sort`, ...) — ignore any field not listed above.
+
+  About `description` (both schema-root and per-field):
+  - Theme-author convention, not enforced by backend. Targeted at the LLM (humans don't see it).
+  - Suggested format: short prose with `Use when: ...` / `Skip when: ...` cues to disambiguate similar fields/schemas. One language per theme; no localization.
+  - Use it to guide non-obvious choices: when to pick this section over a sibling, which `select.value` fits which intent, what content style the field expects, etc.
 
   Resolving the full authoritative field list for a section:
   1. Start with the section's own `settings` array.

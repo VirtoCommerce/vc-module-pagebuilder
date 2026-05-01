@@ -290,7 +290,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                     var raw = GetContent(file, storageProvider);
                     var json = JObject.Parse(raw);
                     var entry = new JObject { ["key"] = key };
-                    CopySchemaMetadata(json, entry);
+                    CopySchemaMetadata(json, entry, folder);
                     result.Add(entry);
                 }
                 catch
@@ -302,9 +302,18 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             return result;
         }
 
-        private static void CopySchemaMetadata(JObject source, JObject target)
+        private static void CopySchemaMetadata(JObject source, JObject target, string kind)
         {
-            foreach (var property in new[] { "name", "displayField", "tab", "sort", "static", "includeShared" })
+            // Catalog metadata is intentionally narrow — only fields the LLM acts on.
+            // Designer-only hints (`displayField`, `icon`, `tab`, `sort`, `group*`) are stripped.
+            // `description` is exposed only for kinds where the agent picks an entry by intent
+            // (regular sections, templates, blocks). For objects/shared descriptions add noise.
+            var includeDescription = kind is SchemaKindSections or SchemaKindTemplates or SchemaKindBlocks;
+            var properties = includeDescription
+                ? new[] { "name", "description", "static", "includeShared" }
+                : new[] { "name", "static", "includeShared" };
+
+            foreach (var property in properties)
             {
                 var token = source[property];
                 if (token != null && token.Type != JTokenType.Null)

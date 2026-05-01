@@ -106,7 +106,7 @@ Use schema `default` when the user gives no reason to deviate. For `required` fi
 
 ## Composition heuristics
 
-Pick sections by their catalog `name`/`displayField`/`tab`, never by hardcoded type names:
+Pick sections by their catalog `description` (when present) and `name` — never by hardcoded type names. Treat `description` as the strongest signal: it's a theme-author hint aimed specifically at you.
 
 - Lead with a hero — typically a section pulling in `shared/title` (gives `title` + `heading` fields).
 - Content-heavy pages (blogs/articles): favour markdown-bearing sections, optionally interleaved with image/slider sections.
