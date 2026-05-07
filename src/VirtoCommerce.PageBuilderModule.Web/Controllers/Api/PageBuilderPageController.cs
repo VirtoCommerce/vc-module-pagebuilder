@@ -10,11 +10,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using VirtoCommerce.ContentModule.Core.Model;
 using VirtoCommerce.PageBuilderModule.Core;
+using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Data.Authorization;
 using VirtoCommerce.Pages.Core.Search;
 using VirtoCommerce.Platform.Core.Common;
+using VirtoCommerce.Platform.Core.Events;
 using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 
 namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
@@ -27,6 +29,7 @@ public class PageBuilderPageController(
     IGroupedPageSearchService groupedPageSearchService,
     IAuthorizationService authorizationService,
     IPageDocumentSearchService pageDocumentSearchService,
+    IEventPublisher eventPublisher,
     ILogger<PageBuilderPageController> logger)
     : Controller
 {
@@ -112,7 +115,9 @@ public class PageBuilderPageController(
         await groupedPageService.SaveChangesAsync([groupedPage]);
         if (newGroup)
         {
-            await WriteDefaultContent(groupedPage.Pages[0].Id, cancellationToken);
+            var newPageId = groupedPage.Pages[0].Id;
+            await WriteDefaultContent(newPageId, cancellationToken);
+            await RaisePageContentChanged(newPageId, cancellationToken);
         }
 
         return Ok(groupedPage);
@@ -138,6 +143,7 @@ public class PageBuilderPageController(
 
         await groupedPageService.SaveChangesAsync([model]);
         await WriteDefaultContent(draftPage.Id, cancellationToken);
+        await RaisePageContentChanged(draftPage.Id, cancellationToken);
 
         return Ok(model);
     }
@@ -348,6 +354,7 @@ public class PageBuilderPageController(
 
         var pageId = draftPage!.Id;
         await groupedPageService.SaveStreamAsContentAsync(pageId, Request.Body, cancellationToken);
+        await RaisePageContentChanged(pageId, cancellationToken);
 
         return NoContent();
     }
@@ -399,6 +406,7 @@ public class PageBuilderPageController(
         }
 
         await groupedPageService.CopyPageContentAsync(sourcePageId, targetDraft.Id, cancellationToken);
+        await RaisePageContentChanged(targetDraft.Id, cancellationToken);
 
         return NoContent();
     }
@@ -418,5 +426,25 @@ public class PageBuilderPageController(
 
         await groupedPageService.SaveStreamAsContentAsync(pageId, stream, cancellationToken);
 
+    }
+
+    // Re-fires page-changed event after content has been written so the page gets re-indexed
+    // with its actual content (group-level save events fire before content is persisted).
+    private async Task RaisePageContentChanged(string pageId, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrEmpty(pageId))
+        {
+            return;
+        }
+
+        var pages = await crudService.GetAsync([pageId]);
+        var page = pages.FirstOrDefault();
+        if (page == null)
+        {
+            return;
+        }
+
+        var entry = new GenericChangedEntry<PageBuilderPage>(page, EntryState.Modified);
+        await eventPublisher.Publish(new PageBuilderPageChangedEvent([entry]), cancellationToken);
     }
 }

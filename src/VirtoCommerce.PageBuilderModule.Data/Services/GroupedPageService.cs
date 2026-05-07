@@ -1,4 +1,5 @@
 using System.Text;
+using Microsoft.Extensions.Logging;
 using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
@@ -8,6 +9,7 @@ using VirtoCommerce.Platform.Core.Caching;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Events;
 using VirtoCommerce.Platform.Data.GenericCrud;
+using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Services
 {
@@ -15,7 +17,8 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
         Func<IPageBuilderModuleRepository> repositoryFactory,
         Func<IContentStreamRepository> contentStreamRepositoryFactory,
         IPlatformMemoryCache platformMemoryCache,
-        IEventPublisher eventPublisher)
+        IEventPublisher eventPublisher,
+        ILogger<GroupedPageService> logger)
         : CrudService<GroupedPageBuilderPage, GroupedPageBuilderPageEntity, GroupedPageBuilderPageChangingEvent,
                 GroupedPageBuilderPageChangedEvent>(repositoryFactory, platformMemoryCache, eventPublisher),
             IGroupedPageService
@@ -24,6 +27,46 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
         {
             var result = await ((IPageBuilderModuleRepository)repository).GetGroupedPageBuilderPagesByIdsAsync(ids, responseGroup);
             return result;
+        }
+
+        protected override Task BeforeSaveChanges(IList<GroupedPageBuilderPage> models)
+        {
+            foreach (var group in models)
+            {
+                NormalizePublishedPages(group);
+            }
+
+            return base.BeforeSaveChanges(models);
+        }
+
+        // Enforces invariant: at most one Published page per group.
+        // If multiple Published exist, keeps the newest by CreatedDate and demotes the rest to Archived.
+        // The change goes through the regular save flow, so the affected pages get re-indexed via the GroupedPageBuilderPageChangedEvent handler.
+        private void NormalizePublishedPages(GroupedPageBuilderPage group)
+        {
+            if (group?.Pages == null)
+            {
+                return;
+            }
+
+            var publishedPages = group.Pages.Where(x => x.Status == Published).ToList();
+            if (publishedPages.Count <= 1)
+            {
+                return;
+            }
+
+            var keep = publishedPages.OrderByDescending(x => x.CreatedDate).First();
+            foreach (var page in publishedPages)
+            {
+                if (page.Id == keep.Id)
+                {
+                    continue;
+                }
+
+                page.Status = Archived;
+                logger.LogWarning("Page '{PageId}' in group '{GroupId}' had Published status while another Published page exists. Demoted to Archived.",
+                    page.Id, group.Id);
+            }
         }
 
         public async Task<string> LoadContent(string pageId, CancellationToken cancellationToken = default)
