@@ -69,6 +69,10 @@
           "StorePreviewPath": {
             "description": "Relativ sökväg för sidförhandsgranskning",
             "title": "Sökväg för förhandsgranskning"
+          },
+          "OzAgentUrl": {
+            "title": "URL för Virto OZ-agent",
+            "description": "URL till Virto OZ AI-agentens iframe inbäddad i Page Builder. Lämna tomt för att inaktivera AI-assistenten."
           }
         },
         "Store": {

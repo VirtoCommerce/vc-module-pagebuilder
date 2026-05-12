@@ -1,8 +1,9 @@
 name: pagebuilder_get_page_content
 description: |
-  Load the full JSON content of a PageBuilder page (page-level settings + ordered list of sections) for editing.
-  Always loads the latest content (draft if present, otherwise published or archived).
-  Returns the raw JSON document as a string under the "content" field — parse it before mutating, then save it back via pagebuilder_save_page_content.
+  Load the full JSON content of a PageBuilder page (page-level settings + ordered list of sections) for editing. Always loads the latest content (draft if present, otherwise published or archived). Returns the raw JSON document as a string — parse it before mutating, then save back via `pagebuilder_save_page_content`.
+
+  Use when: editing an existing page — need its current state before mutating.
+  Skip when: creating a fresh page (no existing content to load).
 require_approval: false
 
 parameters:

@@ -174,6 +174,7 @@ import { Field } from "vee-validate";
 import { IBladeToolbar, useBlade, useBladeForm, usePopup, notification } from "@vc-shell/framework";
 import { CardHeader, PageStatus, SwitchRow } from "../components";
 import useUrlParams from "../composables/useStoreParams";
+import useAiAgentStoreContext from "../composables/useAiAgentStoreContext";
 import { usePageBuilderDetails } from "../composables/usePageBuilderDetails";
 import type { PageExportData } from "../composables/usePageContentApi";
 
@@ -188,6 +189,10 @@ const { t } = useI18n({ useScope: "global" });
 const { showConfirmation } = usePopup();
 const { param, options, callParent, closeSelf } = useBlade<{ storeId?: string; importData?: PageExportData }>();
 const { getStoreUrl, getLanguages } = useUrlParams();
+
+// WORKAROUND: push storeId into the AI agent context so pagebuilder tools
+// can read it. See docs/storeId-missing-in-ai-context.md for the proper fix.
+useAiAgentStoreContext();
 
 const {
   item,

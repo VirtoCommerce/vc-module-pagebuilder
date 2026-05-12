@@ -284,3 +284,130 @@ public class MergeStaticSectionsIntoTemplateTests
         Assert.Equal("header", (string)settings[0]["id"]);
     }
 }
+
+public class TryValidatePageContentEnvelopeTests
+{
+    private static bool Validate(string content, out string error) =>
+        PageBuilderPageController.TryValidatePageContentEnvelope(content, out error);
+
+    [Fact]
+    public void Accepts_minimal_valid_envelope()
+    {
+        var ok = Validate("""{"settings":{},"content":[]}""", out var error);
+        Assert.True(ok);
+        Assert.Null(error);
+    }
+
+    [Fact]
+    public void Accepts_envelope_with_sections()
+    {
+        var json = """{"settings":{"type":"settings","id":""},"content":[{"type":"title","id":"t1"},{"type":"text","id":"x2"}]}""";
+        var ok = Validate(json, out var error);
+        Assert.True(ok);
+        Assert.Null(error);
+    }
+
+    [Fact]
+    public void Tolerates_extra_top_level_keys()
+    {
+        var ok = Validate("""{"settings":{},"content":[],"meta":"whatever"}""", out var error);
+        Assert.True(ok);
+        Assert.Null(error);
+    }
+
+    [Theory]
+    [InlineData("not json")]
+    [InlineData("{ broken")]
+    [InlineData("")]
+    public void Rejects_invalid_json(string content)
+    {
+        var ok = Validate(content, out var error);
+        Assert.False(ok);
+        Assert.Contains("not valid JSON", error);
+    }
+
+    [Theory]
+    [InlineData("[]")]
+    [InlineData("42")]
+    [InlineData("\"hello\"")]
+    [InlineData("null")]
+    public void Rejects_non_object_root(string content)
+    {
+        var ok = Validate(content, out var error);
+        Assert.False(ok);
+        Assert.Contains("must be a JSON object", error);
+    }
+
+    [Fact]
+    public void Rejects_missing_settings()
+    {
+        var ok = Validate("""{"content":[]}""", out var error);
+        Assert.False(ok);
+        Assert.Contains("`settings`", error);
+    }
+
+    [Theory]
+    [InlineData("""{"settings":[],"content":[]}""")]
+    [InlineData("""{"settings":"oops","content":[]}""")]
+    [InlineData("""{"settings":null,"content":[]}""")]
+    public void Rejects_non_object_settings(string content)
+    {
+        var ok = Validate(content, out var error);
+        Assert.False(ok);
+        Assert.Contains("`settings`", error);
+    }
+
+    [Fact]
+    public void Rejects_missing_content()
+    {
+        var ok = Validate("""{"settings":{}}""", out var error);
+        Assert.False(ok);
+        Assert.Contains("`content`", error);
+    }
+
+    [Theory]
+    [InlineData("""{"settings":{},"content":{}}""")]
+    [InlineData("""{"settings":{},"content":"oops"}""")]
+    [InlineData("""{"settings":{},"content":null}""")]
+    public void Rejects_non_array_content(string content)
+    {
+        var ok = Validate(content, out var error);
+        Assert.False(ok);
+        Assert.Contains("`content`", error);
+    }
+
+    [Fact]
+    public void Rejects_non_object_section_item()
+    {
+        var ok = Validate("""{"settings":{},"content":[{"type":"title","id":"t1"},"bad"]}""", out var error);
+        Assert.False(ok);
+        Assert.Contains("content[1]", error);
+    }
+
+    [Fact]
+    public void Rejects_section_missing_type()
+    {
+        var ok = Validate("""{"settings":{},"content":[{"id":"t1"}]}""", out var error);
+        Assert.False(ok);
+        Assert.Contains("content[0].type", error);
+    }
+
+    [Theory]
+    [InlineData("""{"settings":{},"content":[{"type":"","id":"t1"}]}""")]
+    [InlineData("""{"settings":{},"content":[{"type":"   ","id":"t1"}]}""")]
+    [InlineData("""{"settings":{},"content":[{"type":null,"id":"t1"}]}""")]
+    public void Rejects_section_with_empty_type(string content)
+    {
+        var ok = Validate(content, out var error);
+        Assert.False(ok);
+        Assert.Contains("content[0].type", error);
+    }
+
+    [Fact]
+    public void Rejects_section_with_non_string_type()
+    {
+        var ok = Validate("""{"settings":{},"content":[{"type":42,"id":"t1"}]}""", out var error);
+        Assert.False(ok);
+        Assert.Contains("content[0].type", error);
+    }
+}

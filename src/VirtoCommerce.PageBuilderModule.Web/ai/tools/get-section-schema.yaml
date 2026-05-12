@@ -1,64 +1,9 @@
 name: pagebuilder_get_section_schema
 description: |
-  Load the full JSON schema for a single catalog entry by its path. Call AFTER `pagebuilder_list_section_schemas`, once per entry you actually plan to use plus the always-required composition entries (see below). Cache responses for the session — never re-fetch the same path.
+  Load the full schema for a single catalog entry by path `"<kind>/<key>"` (e.g. `sections/title`, `templates/page`, `shared/_sections`). The response is a theme schema entry per the format documented in `Apps/page-builder-designer/src/data/theme-schema.schema.json` — see the system prompt for how to use it.
 
-  Response shape depends on `kind`:
-
-  **For `sections` / `blocks` / `objects` / `shared`** — raw schema JSON as stored on disk. The fields the agent acts on:
-  ```json
-  {
-    "name": "<UI label>",
-    "description": "<LLM-facing intent hint>",  // optional, theme-author convention. Recommended for sections / blocks / templates.
-    "includeShared": ["title", ...],            // optional: pulls in shared/<name> field lists
-    "settings": [ <field schema>, ... ]         // the actual field list
-  }
-  ```
-  Schemas may carry additional Designer-only metadata (`icon`, `displayField`, `tab`, `sort`, `group`, `static`, ...) — ignore any field not listed above.
-
-  **For `templates`** — template JSON describing a page type, with static-section fields already merged into `settings[]` by the backend:
-  ```json
-  {
-    "name": "<UI label>",
-    "description": "<LLM-facing intent hint>",  // optional
-    "sections": ["image", "text", ...],         // optional: section keys allowed for this template (missing/empty = all)
-    "settings": [ <field schema>, ... ]         // canonical field schema for the page's `settings` object — merged from the template file plus all applicable static-section schemas
-  }
-  ```
-  This is the single source of truth for the shape of a page's `settings` object for a given page type (`page`, `blogs`, `product`, ...). Templates may carry additional Designer-only metadata (`previewRule`, `previewUrl`, `request`, `default`, `type`, ...) — ignore any field not listed above.
-
-  Each item of `settings` is a field schema. The fields the agent acts on:
-  ```json
-  {
-    "id": "<field name — used as the JSON key in the page output>",
-    "type": "string | markdown | select | images | color | number | checkbox | list | object",
-    "default": <any>,
-    "required": true,
-    "multiline": true,                                       // for string
-    "multiple": false,                                       // for images
-    "options": [{ "value": "<v>", "label": "<l>" }, ...],    // for select
-    "element": [ <field schema>, ... ]                       // inner field list for list / object
-  }
-  ```
-  Field schemas may carry additional Designer-only metadata (`label`, `title`, `tab`, `sort`, ...) — ignore any field not listed above.
-
-  About the schema-root `description` (per-entry hint for the agent):
-  - Theme-author convention, not enforced by backend. Targeted at the LLM (humans don't see it).
-  - Suggested format: short prose with `Use when: ...` / `Skip when: ...` cues to disambiguate sibling schemas, plus inline guidance on what each meaningful field expects (so the LLM gets all field context from the root description rather than per-field hints).
-  - One language per theme; no localization.
-  - Authors should NOT add field-level `description` — shared field schemas (e.g. `shared/title`) are reused across many sections with different contextual meaning, and a single field-level description doesn't fit. Put per-field guidance into the root description of each section that uses the field.
-
-  Resolving the full authoritative field list for a section:
-  1. Start with the section's own `settings` array.
-  2. For every name in `includeShared`, append the `settings` array from the schema fetched via path `shared/<name>` (e.g. `shared/title`).
-  3. Append the `settings` array from `shared/_sections` — the editor merges this into every section automatically (this is where `background` comes from).
-  4. Use the same convention for blocks with `shared/_blocks`.
-
-  Always also fetch, regardless of which sections you picked:
-  - `shared/_sections` — global section settings (every section).
-  - `shared/_blocks` — global block settings (only when you use blocks).
-  - Every `shared/<name>` referenced by any chosen section's `includeShared`.
-
-  Returns 404 when the path is not present in the catalog, or when a `_`-prefixed key is requested under `sections`/`blocks`/`objects` (those are theme-internal).
+  Use when: composing or editing a page and you need the field list of a specific section, template, block, or shared list.
+  Skip when: you already fetched the same path this session — cache responses.
 require_approval: false
 
 parameters:
@@ -66,14 +11,13 @@ parameters:
   properties:
     storeId:
       type: string
-      description: ID of the store whose theme schema should be loaded. Required.
+      description: |
+        ID of the store whose theme schema should be loaded. Required.
+        Read it from the chat context: the host shell pushes an item with `objectType: "pagebuilder.store"` — use that item's `id`. Do not ask the user and do not invent a value.
     path:
       type: string
       description: |
-        Catalog path of the schema entry, in the form "<kind>/<key>" — e.g. "sections/page-header", "templates/page", "blocks/feature", "shared/title", "shared/_sections".
-        `kind` must be one of: sections, templates, blocks, objects, shared.
-        `key` is the schema entry name (file name without `.json`).
-        Underscore-prefixed keys are valid only under `shared`.
+        Catalog path `"<kind>/<key>"`. `kind` is one of: sections, templates, blocks, objects, shared. `key` is the schema entry name (file name without `.json`). Underscore-prefixed keys are valid only under `shared`.
     theme:
       type: string
       description: Optional theme name. If omitted, the backend falls back to the store's default theme.

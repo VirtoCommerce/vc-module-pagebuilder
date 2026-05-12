@@ -69,6 +69,10 @@
           "StorePreviewPath": {
             "description": "Relativ sti for forhåndsvisning av side",
             "title": "Sti for forhåndsvisning"
+          },
+          "OzAgentUrl": {
+            "title": "Virto OZ-agent-URL",
+            "description": "URL til Virto OZ AI-agent-iframen som er innebygd i Page Builder. La feltet stå tomt for å deaktivere AI-assistenten."
           }
         },
         "Store": {

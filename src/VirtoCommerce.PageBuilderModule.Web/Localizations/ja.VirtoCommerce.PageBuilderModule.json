@@ -64,6 +64,10 @@
           "StorePreviewPath": {
             "description": "プレビューページの相対パス",
             "title": "ストアプレビューパス"
+          },
+          "OzAgentUrl": {
+            "title": "Virto OZ エージェント URL",
+            "description": "Page Builder に埋め込まれた Virto OZ AI エージェント iframe の URL。AI アシスタントを無効にする場合は空のままにしてください。"
           }
         },
         "Store": {

@@ -1,46 +1,9 @@
 name: pagebuilder_list_section_schemas
 description: |
-  Return the lightweight catalog of schemas exposed by the current PageBuilder theme. Schemas are theme-specific and may evolve, so the agent must call this rather than rely on baked-in knowledge.
+  Return the catalog of schemas exposed by the current PageBuilder theme: which sections, templates, blocks, objects, and shared field lists exist. Catalog entries are `{ key, name, description? }` only — call `pagebuilder_get_section_schema` to load the full schema of any entry you plan to use.
 
-  Response shape:
-  ```json
-  {
-    "sections":  [ <entry>, ... ],
-    "templates": [ <entry>, ... ],
-    "blocks":    [ <entry>, ... ],
-    "objects":   [ <entry>, ... ],
-    "shared":    [ <entry>, ... ]
-  }
-  ```
-
-  Per-entry shape:
-  ```json
-  {
-    "key": "<typeId>",
-    "name": "<UI label>",
-    "description": "<LLM-facing intent hint>"    // optional; only present for sections / templates / blocks
-  }
-  ```
-
-  The catalog deliberately omits everything not needed for picking — Designer-only metadata (`displayField`, `icon`, `tab`, `sort`, `group`), field-resolution data (`includeShared`, `settings[]`), and the `static` marker. All of those are reflected (where relevant) in the full schema fetched via `pagebuilder_get_section_schema`.
-
-  Catalog category semantics:
-  - `sections` — content sections the user composes a page from. Entry `key` is the `type` value used in items of the page's `content[]` array. Theme-internal entries and page-level settings panels (schemas marked with truthy `static` on disk) are filtered out — the agent never sees them as separate entries; their fields are merged into the corresponding template's `settings[]` automatically (see `templates` below).
-  - `templates` — page-type templates (e.g. `page`, `blogs`, `product`). The full template fetched via `pagebuilder_get_section_schema templates/<key>` carries the canonical `settings[]` field schema for that page type — already merged with all applicable static-section fields. This is the single source of truth for the page's `settings` shape.
-  - `blocks` — block schemas referenced from inside section field lists; entry `key` is the `type` value used for nested blocks.
-  - `objects` — reusable nested object schemas referenced by field schemas.
-  - `shared` — global field lists merged into sections/blocks. Always includes `_sections` and `_blocks` (universal field lists every section/block inherits) plus theme-named lists (`title`, etc.) referenced via `includeShared`.
-
-  Per-entry field semantics:
-  - `key` — schema id. Use as the `<key>` half of `pagebuilder_get_section_schema` paths (`<kind>/<key>`).
-  - `name` — short UI label. Useful as a fallback signal when picking; never copy into the output JSON.
-  - `description` — optional theme-author hint aimed at the LLM (NOT shown to humans). Format convention: short prose with `Use when: ...` / `Skip when: ...` cues to disambiguate sibling schemas, plus inline per-field guidance (LLM should get all the context it needs from this single string). Backend exposes it only for `sections`, `templates`, `blocks` (the categories the agent picks by intent).
-
-  Where the page's `settings` object schema comes from: the active **template** (`templates/<key>`). Its `settings[]` is the complete schema, including any page-level fields contributed by static sections — the backend pre-merges them into the template response.
-
-  The backend filters theme-internal `_`/`__` entries from `sections`, `templates`, `blocks`, `objects`. Under `shared` the `_sections` and `_blocks` entries are intentionally exposed.
-
-  The catalog does NOT include the field-level `settings[]` array — fetch the full schema with `pagebuilder_get_section_schema` for each entry you actually need.
+  Use when: starting work on a page (create or edit) and you need to know what's available in this theme.
+  Skip when: the catalog has already been fetched in this session — its content is stable per (store, theme).
 require_approval: false
 
 parameters:
@@ -48,7 +11,9 @@ parameters:
   properties:
     storeId:
       type: string
-      description: ID of the store whose theme schemas should be loaded. Required.
+      description: |
+        ID of the store whose theme schemas should be loaded. Required.
+        Read it from the chat context: the host shell pushes an item with `objectType: "pagebuilder.store"` — use that item's `id`. Do not ask the user and do not invent a value.
     theme:
       type: string
       description: Optional theme name. If omitted, the backend falls back to the store's default theme.

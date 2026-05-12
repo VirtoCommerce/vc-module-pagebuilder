@@ -64,6 +64,10 @@
           "StorePreviewPath": {
             "description": "Ścieżka względna do strony podglądu",
             "title": "Ścieżka podglądu sklepu"
+          },
+          "OzAgentUrl": {
+            "title": "URL agenta Virto OZ",
+            "description": "Adres URL ramki iframe agenta AI Virto OZ osadzonego w Page Builder. Pozostaw puste, aby wyłączyć asystenta AI."
           }
         },
         "Store": {

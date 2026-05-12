@@ -1,7 +1,9 @@
 name: pagebuilder_search_pages
 description: |
-  Search PageBuilder pages by free-text keyword within a store. Returns a list of matching grouped pages with their groupIds, names, permalinks and status.
-  Use this to locate the page the user wants to edit when no active page is provided in the conversation context.
+  Search PageBuilder pages by free-text keyword within a store. Returns grouped pages with their groupIds, names, permalinks, and statuses.
+
+  Use when: locating an existing page the user wants to edit and no active page is provided in the conversation context.
+  Skip when: an active page is already in context (use its groupId directly) or the user is asking to create a new page.
 require_approval: false
 
 parameters:
@@ -9,7 +11,9 @@ parameters:
   properties:
     storeId:
       type: string
-      description: ID of the store whose pages should be searched. Required.
+      description: |
+        ID of the store whose pages should be searched. Required.
+        Read it from the chat context: the host shell pushes an item with `objectType: "pagebuilder.store"` — use that item's `id`. Do not ask the user and do not invent a value.
     keyword:
       type: string
       description: Free-text fragment matched against page names and permalinks. Optional.

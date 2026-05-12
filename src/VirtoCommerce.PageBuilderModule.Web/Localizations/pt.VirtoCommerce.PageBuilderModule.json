@@ -64,6 +64,10 @@
           "StorePreviewPath": {
             "description": "Caminho relativo para a página de visualização",
             "title": "Caminho de visualização da loja"
+          },
+          "OzAgentUrl": {
+            "title": "URL do agente Virto OZ",
+            "description": "URL do iframe do agente de IA Virto OZ incorporado no Page Builder. Deixe vazio para desativar o assistente de IA."
           }
         },
         "Store": {

@@ -76,7 +76,13 @@ import { useI18n } from "vue-i18n";
 import { debounce } from "lodash-es";
 import { useDataTableSort, useBlade, usePopup, IActionBuilderResult, notification } from "@vc-shell/framework";
 import { GroupedPageBuilderPage } from "../../../api_client/virtocommerce.pagebuildermodule";
-import { PageLifecycleFilters, usePageBuilderList, useUrlParams, refreshMenuBadges } from "../composables";
+import {
+  PageLifecycleFilters,
+  usePageBuilderList,
+  useUrlParams,
+  useAiAgentStoreContext,
+  refreshMenuBadges,
+} from "../composables";
 import { parseImportFile } from "../composables/usePageContentApi";
 import PageStatus from "./pageStatus.vue";
 
@@ -93,6 +99,10 @@ const { t } = useI18n({ useScope: "global" });
 const { openBlade } = useBlade();
 const { showConfirmation } = usePopup();
 const { storeId, initUrlParams } = useUrlParams();
+
+// WORKAROUND: push storeId into the AI agent context so pagebuilder tools
+// can read it. See docs/storeId-missing-in-ai-context.md for the proper fix.
+useAiAgentStoreContext();
 
 const { sortField, sortOrder, sortExpression } = useDataTableSort({
   initialDirection: "DESC",

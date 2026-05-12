@@ -1,8 +1,11 @@
 name: pagebuilder_save_page_content
 description: |
-  Save edited page JSON back into PageBuilder as a draft. Replaces the entire page content of the given group.
-  The backend automatically reuses or creates the draft page inside the group and re-injects the correct groupId into "settings.id".
-  Use after pagebuilder_get_page_content + in-memory mutation. Pass the full page JSON (not a diff) as a string in the "content" field.
+  Save edited page JSON back into PageBuilder as a draft. Replaces the entire page content of the given group; the backend reuses or creates the draft page and re-injects the correct groupId into `settings.id`.
+
+  Use when: the user asks to modify an existing page, after `pagebuilder_get_page_content` + in-memory mutation.
+  Skip when: creating a fresh page — use `pagebuilder_create_page` instead.
+
+  Pass the full page JSON (not a diff) as a string. Envelope must follow `{ settings: object, content: array }` from the system prompt — the backend validates it and returns 400 with a specific error pointer if malformed.
 require_approval: true
 
 parameters:

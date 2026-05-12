@@ -69,6 +69,10 @@
           "StorePreviewPath": {
             "description": "Relative path for preview page",
             "title": "Store preview path"
+          },
+          "OzAgentUrl": {
+            "title": "Virto OZ agent URL",
+            "description": "URL of the Virto OZ AI agent iframe embedded into Page Builder. Leave empty to disable the AI assistant."
           }
         },
         "Store": {

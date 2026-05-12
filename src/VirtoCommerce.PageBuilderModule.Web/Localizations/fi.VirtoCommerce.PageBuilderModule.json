@@ -69,6 +69,10 @@
           "StorePreviewPath": {
             "description": "Suhteellinen polku sivun esikatseluun",
             "title": "Esikatselupolku"
+          },
+          "OzAgentUrl": {
+            "title": "Virto OZ -agentin URL",
+            "description": "Page Builderiin upotetun Virto OZ -tekoälyagentin iframen URL. Jätä tyhjäksi poistaaksesi tekoälyavustajan käytöstä."
           }
         },
         "Store": {
