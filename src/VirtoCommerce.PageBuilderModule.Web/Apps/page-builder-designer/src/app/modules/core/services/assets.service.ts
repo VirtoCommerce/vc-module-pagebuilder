@@ -66,16 +66,24 @@ export class AssetsService {
         if (request && typeof request !== 'string' && request.previewTemplate) {
             return this.evaluator.evaluate(request.previewTemplate, { ...file, url: absoluteOrRelativeUrl });
         }
-        return file.url;
+        return this.adjustUrl(file.url, context) || file.url;
     }
 
     adjustUrl(absoluteOrRelativeUrl: string | null, context: any): string | null {
         if (!absoluteOrRelativeUrl) {
             return null;
         }
-        const url = ['http://', 'https://', '//', 'data:'].find(x => absoluteOrRelativeUrl.startsWith(x))
-            ? absoluteOrRelativeUrl
-            : this.appConfig.getValue('assetsUrlTemplate', { ...context, assetName: absoluteOrRelativeUrl });
+        if (['http://', 'https://', '//', 'data:'].find(x => absoluteOrRelativeUrl.startsWith(x))) {
+            return absoluteOrRelativeUrl;
+        }
+        if (absoluteOrRelativeUrl.startsWith('/assets/')) {
+            return absoluteOrRelativeUrl;
+        }
+        if (absoluteOrRelativeUrl.startsWith('/stores/')) {
+            return `/assets${absoluteOrRelativeUrl}`;
+        }
+
+        const url = this.appConfig.getValue('assetsUrlTemplate', { ...context, assetName: absoluteOrRelativeUrl });
         return url || absoluteOrRelativeUrl;
     }
 

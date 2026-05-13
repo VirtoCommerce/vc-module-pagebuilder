@@ -1,0 +1,86 @@
+<div class="asset-picker">
+  <div class="asset-picker__header">
+    <div>
+      <h2>{{ title }}</h2>
+      <div class="asset-picker__breadcrumbs">
+        @for (crumb of breadcrumbs; track crumb.url; let last = $last) {
+          <button type="button" [disabled]="last" (click)="navigateToBreadcrumb(crumb.url)">
+            {{ crumb.label }}
+          </button>
+          @if (!last) {
+            <span>/</span>
+          }
+        }
+      </div>
+    </div>
+    <app-icon class="asset-picker__close" title="Close" (click)="decline()">close</app-icon>
+  </div>
+
+  <div mat-dialog-content>
+    <div class="asset-picker__toolbar">
+      <button
+        type="button"
+        class="asset-picker__upload"
+        [disabled]="uploading() || loading()"
+        (click)="uploadInput.click()">
+        <app-icon>upload</app-icon>
+        <span>{{ uploading() ? 'Uploading...' : 'Upload' }}</span>
+      </button>
+      <input
+        #uploadInput
+        type="file"
+        hidden
+        multiple
+        [attr.accept]="acceptAttribute"
+        (change)="onUpload($event)" />
+      <input
+        type="text"
+        [value]="searchValue()"
+        placeholder="Search assets..."
+        (input)="onSearch($any($event.target).value)" />
+      <span>{{ visibleEntries.length }} assets</span>
+    </div>
+
+    @if (error()) {
+      <div class="asset-picker__message asset-picker__message--error">{{ error() }}</div>
+    } @else if (loading()) {
+      <div class="asset-picker__message">Loading assets...</div>
+    } @else if (!visibleEntries.length) {
+      <div class="asset-picker__message">No assets found.</div>
+    } @else {
+      <div class="asset-picker__grid">
+        @for (entry of visibleEntries; track getEntryKey(entry)) {
+          <button
+            type="button"
+            class="asset-picker__card"
+            [ngClass]="{
+              'asset-picker__card--folder': entry.type === 'folder',
+              'asset-picker__card--selected': selectedAsset() === entry
+            }"
+            (click)="entry.type === 'folder' ? navigateTo(entry) : selectAsset(entry)"
+            (dblclick)="entry.type === 'blob' && selectedAsset() === entry ? confirm() : null">
+            <div class="asset-picker__preview" [ngStyle]="{ backgroundImage: getPreviewStyle(entry) }">
+              @if (entry.type === 'folder') {
+                <app-icon>folder</app-icon>
+              } @else if (!getPreviewStyle(entry)) {
+                <app-icon>insert_drive_file</app-icon>
+              }
+              @if (entry.type === 'blob') {
+                <span class="asset-picker__refs">{{ entry.referencesCount ?? 0 }} refs</span>
+              }
+            </div>
+            <div class="asset-picker__name" [title]="entry.name">{{ entry.name }}</div>
+            @if (entry.type === 'blob') {
+              <div class="asset-picker__size">{{ getSize(entry) }}</div>
+            }
+          </button>
+        }
+      </div>
+    }
+  </div>
+
+  <div mat-dialog-actions>
+    <app-icon-button skin="outline" text="Cancel" (click)="decline()" />
+    <app-icon-button skin="primary" text="Select" [disabled]="!selectedAsset()" (click)="confirm()" />
+  </div>
+</div>

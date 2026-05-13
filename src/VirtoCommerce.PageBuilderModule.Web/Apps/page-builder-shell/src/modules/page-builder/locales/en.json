@@ -5,7 +5,86 @@
       "PENDING_TITLE": "Pending",
       "ACTIVE_TITLE": "Active",
       "ARCHIVED_TITLE": "Archived",
-      "TITLE": "All Pages"
+      "TITLE": "All Pages",
+      "ASSETS_LIBRARY_TITLE": "Assets Library"
+    },
+    "ASSETS": {
+      "TITLE": "Assets Library",
+      "COUNTER": "{count} assets",
+      "BREADCRUMBS": {
+        "ROOT": "Page Builder"
+      },
+      "BADGES": {
+        "FOLDER": "Folder",
+        "REFERENCES": "{count} refs"
+      },
+      "TABLE": {
+        "NAME": "Name",
+        "SIZE": "Size",
+        "MODIFIED": "Modified"
+      },
+      "TOOLBAR": {
+        "REFRESH": "Refresh",
+        "UPLOAD": "Upload",
+        "CREATE_FOLDER": "Create folder",
+        "DELETE": "Delete",
+        "SEARCH_PLACEHOLDER": "Search assets..."
+      },
+      "ACTIONS": {
+        "COPY_URL": "Copy URL",
+        "DELETE": "Delete"
+      },
+      "DROP": {
+        "UPLOAD_HERE": "Drop files to upload them here"
+      },
+      "DETAILS": {
+        "EMPTY": "Select a file to preview its details.",
+        "FILE_DETAILS": "File details",
+        "SIZE": "Size",
+        "DIMENSIONS": "Dimensions",
+        "TYPE": "Type",
+        "MODIFIED": "Modified",
+        "UPLOADED": "Uploaded",
+        "PATH": "Path",
+        "USED_ON": "Used on ({count} pages)",
+        "NO_REFERENCES": "Not used on any Page Builder pages.",
+        "URL": "URL",
+        "COPY_URL": "Copy URL",
+        "REPLACE": "Replace",
+        "DELETE": "Delete",
+        "NOT_AVAILABLE": "N/A"
+      },
+      "EMPTY": {
+        "TITLE": "No assets in this folder yet",
+        "DESCRIPTION": "Upload files or create a folder inside the Page Builder store assets area.",
+        "NO_STORE": "Store context is missing"
+      },
+      "CREATE_FOLDER": {
+        "TITLE": "Create folder",
+        "NAME_LABEL": "Folder name",
+        "NAME_PLACEHOLDER": "Enter folder name",
+        "CANCEL": "Cancel",
+        "CREATE": "Create",
+        "VALIDATION": {
+          "MIN": "Folder name must be at least 3 characters long.",
+          "MAX": "Folder name must be at most 63 characters long.",
+          "EDGE_DASH": "Folder name must not start or end with a dash.",
+          "DOUBLE_DASH": "Folder name must not contain consecutive dashes.",
+          "CHARS": "Folder name must only contain lowercase letters, numbers, spaces, and single dashes."
+        }
+      },
+      "CONFIRM": {
+        "DELETE_SINGLE": "Delete {name}?",
+        "DELETE_SELECTED": "Delete {count} selected asset(s)?"
+      },
+      "NOTIFICATIONS": {
+        "FOLDER_CREATED": "Folder created successfully",
+        "UPLOADED": "Assets uploaded successfully",
+        "REPLACED": "Asset replaced successfully",
+        "DELETED": "Assets deleted successfully",
+        "URL_COPIED": "Asset URL copied successfully",
+        "ERROR_GENERIC": "Asset operation failed"
+      }
     },
     "PAGES": {
       "LIST": {

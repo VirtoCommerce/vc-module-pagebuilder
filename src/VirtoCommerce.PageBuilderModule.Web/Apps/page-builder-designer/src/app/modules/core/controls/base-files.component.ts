@@ -7,8 +7,9 @@ import { FileUploadControl, FileUploadValidators } from '@iplab/ngx-file-upload'
 import { Subject, takeUntil } from 'rxjs';
 
 import { ControlContext, AssetFile } from '@core/models';
-import { ModalService, AssetsService, ClipboardService } from '@core/services';
+import { ModalService, AssetsService, ClipboardService, AssetLibraryService } from '@core/services';
 import { BaseControlDirective } from '@core/controls/base-control.directive';
+import { AssetPickerComponent, AssetPickerDialogResult } from '@core/dialogs';
 import { FilesDescriptor } from '@models/controls';
 
 import { coreHelpers, formsHelpers } from '@core/helpers';
@@ -19,6 +20,7 @@ export abstract class BaseFilesComponent<T extends FilesDescriptor> extends Base
   private readonly destroyRef = inject(DestroyRef);
   private readonly modals = inject(ModalService);
   private readonly data = inject(AssetsService);
+  private readonly assetLibrary = inject(AssetLibraryService);
   private readonly clipboard = inject(ClipboardService);
   private readonly elementReset$ = new Subject<void>();
   private previousExpanded: boolean | null = null;
@@ -123,6 +125,27 @@ export abstract class BaseFilesComponent<T extends FilesDescriptor> extends Base
     this.clipboard.copyString(value);
   }
 
+  chooseFromLibrary() {
+    const rootFolderUrl = this.assetLibrary.getRootFolderUrl(this.context);
+    if (!rootFolderUrl) {
+      this.modals.alert('Store context is required to open Asset Library.');
+      return;
+    }
+
+    this.modals.show<AssetPickerDialogResult>(AssetPickerComponent, {
+      data: {
+        rootFolderUrl,
+        accept: this.getControlOptions().accept
+      }
+    }).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(result => {
+      if (result) {
+        this.addAssetFromLibrary(result);
+      }
+    });
+  }
+
   uploadItem(file: AssetFile) {
     if (!file.uploaded && !file.uploading) {
       file.uploading = true;
@@ -202,7 +225,7 @@ export abstract class BaseFilesComponent<T extends FilesDescriptor> extends Base
   private convertValueToFile(item: any, _index: number): AssetFile {
     let result: AssetFile;
     if (typeof item === 'string') {
-      const getName = (x: string) => x.startsWith('data:') ? '[inline data]' : x.substring(x.lastIndexOf('/') + 1);
+      const getName = (x: string) => x.startsWith('data:') ? '[inline data]' : this.decodeAssetName(x.substring(x.lastIndexOf('/') + 1));
       const name = item ? getName(item) : null;
       result = <AssetFile>{
         lastModified: 0,
@@ -216,10 +239,11 @@ export abstract class BaseFilesComponent<T extends FilesDescriptor> extends Base
         result.data = coreHelpers.createDefaultObject(this.descriptor.element);
       }
     } else {
+      const name = item[this.descriptor?.filenameField || 'filename']
+        || item[this.descriptor?.urlField || 'url']?.substring(item[this.descriptor?.urlField || 'url'].lastIndexOf('/') + 1);
       result = <AssetFile>{
         lastModified: 0,
-        name: (item[this.descriptor?.filenameField || 'filename']
-          || item[this.descriptor?.urlField || 'url']?.substring(item[this.descriptor?.urlField || 'url'].lastIndexOf('/') + 1)) ?? null,
+        name: this.decodeAssetName(name) ?? null,
         webkitRelativePath: item[this.descriptor?.urlField || 'url'],
         data: item,
         url: item[this.descriptor?.urlField || 'url'],
@@ -227,7 +251,7 @@ export abstract class BaseFilesComponent<T extends FilesDescriptor> extends Base
     }
     const context = this.getContext(result);
     result.previewUrl = this.data.getPreviewUrl(result, this.descriptor || {}, context);
-    result.uploaded = false;
+    result.uploaded = !(item instanceof File);
     result.uploading = false;
 
     return result;
@@ -237,6 +261,42 @@ export abstract class BaseFilesComponent<T extends FilesDescriptor> extends Base
     items.forEach((x: AssetFile) => {
       this.uploadItem(x);
     });
+  }
+
+  private addAssetFromLibrary(result: AssetPickerDialogResult) {
+    const file = <AssetFile>{
+      lastModified: 0,
+      name: this.decodeAssetName(result.entry.name),
+      webkitRelativePath: result.url,
+      data: this.descriptor?.element?.length ? coreHelpers.createDefaultObject(this.descriptor.element) : undefined,
+      url: result.url,
+      previewUrl: result.previewUrl,
+      uploaded: true,
+      uploading: false,
+      assetName: result.entry.name,
+      error: null,
+      size: result.entry.size ?? 0,
+      type: result.entry.contentType ?? ''
+    };
+
+    if (this.multiple()) {
+      this.innerValue.update(v => [...v, file]);
+    } else {
+      this.innerValue.set([file]);
+    }
+    this.raiseValueChanged();
+  }
+
+  private decodeAssetName(value: string | null | undefined): string | null {
+    if (!value) {
+      return null;
+    }
+
+    try {
+      return decodeURIComponent(value);
+    } catch {
+      return value;
+    }
   }
 
   private createUploadControl(): FileUploadControl {

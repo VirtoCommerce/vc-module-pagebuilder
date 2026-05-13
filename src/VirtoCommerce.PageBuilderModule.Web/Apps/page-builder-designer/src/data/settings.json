@@ -118,14 +118,14 @@
     "settingsPath": "{{config.themeName}}/config/settings_data.json",
     "defaultPreviewUrl": "/",
     "uploadAssetsRequest": {
-        "url": "/api/content/pages/{{location.params.storeId}}?folderUrl=/assets/pages&name={{file.assetName}}",
+        "url": "/api/assets?folderUrl=/stores/{{location.params.storeId}}/Page%20Builder&name={{file.assetName}}",
         "method": "POST",
         "form": {
             "name": "uploadedFile",
             "fileName": "{{file.assetName}}"
         },
         "response": {
-            "result": "$[0].url",
+            "selector": "this.response && this.response[0] && this.response[0].relativeUrl ? '/assets' + this.response[0].relativeUrl : null",
             "isArray": false
         }
     },

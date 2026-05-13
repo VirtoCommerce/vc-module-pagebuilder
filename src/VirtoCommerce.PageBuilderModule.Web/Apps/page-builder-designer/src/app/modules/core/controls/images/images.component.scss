@@ -1,23 +1,5 @@
 @use '../../../../../layout/variables' as *;
 
-file-upload {
-    @apply bg-white flex flex-row justify-items-stretch;
-    border: 2px dashed #8C9196;
-    min-height: 4rem;
-    border-radius: .5rem;
-    outline: none;
-    padding: .5rem;
-
-    ::ng-deep .upload-input {
-        transform: none;
-        @apply static text-center grow flex flex-col justify-center items-center;
-    }
-
-    &.dragover {
-        background: #F6F6F6;
-    }
-}
-
 .image-item {
     background-color: $no-image;
     background-size: cover;
@@ -25,6 +7,15 @@ file-upload {
 
 .images-list {
     @apply flex flex-col space-y-3 overflow-hidden mt-1;
+}
+
+.choose-from-library {
+    @apply block;
+
+    ::ng-deep button {
+        min-height: 2.75rem;
+        justify-content: center;
+    }
 }
 
 .list-item {
@@ -98,6 +89,6 @@ mat-spinner {
 }
 
 .selected-file-properties {
-    padding-left: 1.75rem;
-    padding-right: 2rem;
+    padding-left: 0;
+    padding-right: 0;
 }

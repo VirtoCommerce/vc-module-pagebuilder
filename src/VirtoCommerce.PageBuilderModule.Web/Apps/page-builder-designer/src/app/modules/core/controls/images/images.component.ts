@@ -2,7 +2,6 @@ import { AssetFile } from '@core/models';
 import { Component, computed } from '@angular/core';
 import { NgClass, NgStyle } from '@angular/common';
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
-import { FileUploadModule } from '@iplab/ngx-file-upload';
 
 import { BaseFilesComponent } from '../base-files.component';
 import { ImagesDescriptor } from '@models/controls';
@@ -17,7 +16,7 @@ import { SpinnerComponent } from '../../components/spinner/spinner.component';
     selector: 'app-images',
     templateUrl: './images.component.html',
     styleUrls: ['./images.component.scss'],
-    imports: [NgClass, NgStyle, DragDropModule, SpinnerComponent, FileUploadModule, ChevronComponent, IconComponent, DragHandleComponent, IconButtonComponent, ControlsListComponent]
+    imports: [NgClass, NgStyle, DragDropModule, SpinnerComponent, ChevronComponent, IconComponent, DragHandleComponent, IconButtonComponent, ControlsListComponent]
 })
 export class ImagesComponent extends BaseFilesComponent<ImagesDescriptor> {
 
@@ -32,7 +31,7 @@ export class ImagesComponent extends BaseFilesComponent<ImagesDescriptor> {
     }
 
     getBackground(item: AssetFile) {
-        return `url('${encodeURI(item.previewUrl ?? '').replace(/'/g, '%27')}')`;
+        return item.previewUrl ? `url("${this.escapeCssUrl(item.previewUrl)}")` : null;
     }
 
     protected override getControlOptions() {
@@ -41,5 +40,12 @@ export class ImagesComponent extends BaseFilesComponent<ImagesDescriptor> {
             result.accept = ['image/*'];
         }
         return result;
+    }
+
+    private escapeCssUrl(value: string): string {
+        return value
+            .replace(/\\/g, '\\\\')
+            .replace(/"/g, '\\"')
+            .replace(/\r?\n/g, '%0A');
     }
 }

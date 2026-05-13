@@ -13,6 +13,12 @@
         }
       </ng-template>
     </file-upload>
+    <app-icon-button
+      class="choose-from-library"
+      skin="outline"
+      icon="folder_open"
+      text="Choose from library"
+      (click)="chooseFromLibrary()" />
     @if (descriptor?.info) {
       <p class="info">{{ descriptor?.info }}</p>
     }
