@@ -2,18 +2,10 @@
   <VcBlade
     width="50%"
     :title="bladeTitle"
-    :expanded="expanded"
-    :closable="closable"
     :toolbar-items="bladeToolbar"
-    @close="$emit('close:blade')"
-    @expand="$emit('expand:blade')"
-    @collapse="$emit('collapse:blade')"
   >
     <PagesList
       ref="pagesListRef"
-      :closable="closable"
-      :expanded="expanded"
-      :param="param"
       :lifecycle="[PageLifecycleFilters.Active]"
     />
   </VcBlade>
@@ -22,43 +14,27 @@
 <script lang="ts" setup>
 import { computed, useTemplateRef } from "vue";
 import { useI18n } from "vue-i18n";
-import { IParentCallArgs } from "@vc-shell/framework";
 import { ExposedPagesList, PagesList } from "../components";
 import { usePagesListToolbar } from "../composables/usePagesListToolbar";
 import { PageLifecycleFilters } from "../composables";
-import { GroupedPageBuilderPage } from "src/api_client/virtocommerce.pagebuildermodule";
+import { GroupedPageBuilderPage } from "../../../api_client/virtocommerce.pagebuildermodule";
 
-defineOptions({
+import { VcBlade } from "@vc-shell/framework/ui";
+
+import { useBlade } from "@vc-shell/framework";
+
+const { exposeToChildren } = useBlade();
+
+defineBlade({
   name: "ActivePagesList",
   url: "/page-builder-active",
   isWorkspace: true,
   menuItem: {
     title: "PAGE_BUILDER.MENU.ACTIVE_TITLE",
-    icon: "material-article",
+    icon: "lucide-file-text",
     priority: 30,
   },
 });
-
-interface Props {
-  expanded?: boolean;
-  closable?: boolean;
-  param?: string;
-  options?: Record<string, unknown>;
-}
-
-interface Emits {
-  (event: "parent:call", args: IParentCallArgs): void;
-  (event: "close:blade"): void;
-  (event: "expand:blade"): void;
-  (event: "collapse:blade"): void;
-}
-
-withDefaults(defineProps<Props>(), {
-  expanded: true,
-  closable: true,
-});
-
-defineEmits<Emits>();
 
 const { t } = useI18n({ useScope: "global" });
 
@@ -72,9 +48,8 @@ async function reload() {
   await pagesListRef.value?.reload();
 }
 
-defineExpose({
-  title: bladeTitle,
+exposeToChildren({
   reload,
-  onItemClick: (x: GroupedPageBuilderPage) => pagesListRef.value?.onItemClick?.(x),
+  onItemClick: (x: GroupedPageBuilderPage) => pagesListRef.value?.onItemClick?.({ data: x }),
 });
 </script>

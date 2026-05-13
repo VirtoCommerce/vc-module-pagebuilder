@@ -1,6 +1,6 @@
 {
   "name": "page-builder",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "private": true,
   "scripts": {
     "serve": "cross-env APP_ENV=development vite --force",
@@ -13,8 +13,7 @@
     "type-check": "vue-tsc --noEmit",
     "lint-staged": "lint-staged",
     "lint": "eslint --fix --cache '**/*.{ts,vue}'",
-    "generate-api-client": "cross-env api-client-generator --APP_PLATFORM_MODULES='[VirtoCommerce.PageBuilderModule]' --APP_API_CLIENT_DIRECTORY=./src/api_client/ --APP_OUT_DIR=dist --APP_PACKAGE_NAME=api --APP_PACKAGE_VERSION=$npm_package_version",
-    "release": "tsx scripts/release.ts --dry"
+    "generate-api-client": "cross-env api-client-generator --APP_PLATFORM_MODULES='[VirtoCommerce.PageBuilderModule]' --APP_API_CLIENT_DIRECTORY=./src/api_client/ --APP_OUT_DIR=dist --APP_PACKAGE_NAME=api --APP_PACKAGE_VERSION=$npm_package_version --APP_TYPE_STYLE=Interface"
   },
   "devDependencies": {
     "@commitlint/cli": "^18.6.1",
@@ -24,9 +23,8 @@
     "@types/node": "^20.19.37",
     "@typescript-eslint/eslint-plugin": "^8.57.1",
     "@typescript-eslint/parser": "^8.57.1",
-    "@vc-shell/api-client-generator": "^1.2.3",
-    "@vc-shell/release-config": "^1.2.3",
-    "@vc-shell/ts-config": "^1.2.3",
+    "@vc-shell/api-client-generator": "^2.0.3",
+    "@vc-shell/ts-config": "^2.0.3",
     "@vitejs/plugin-vue": "^5.2.4",
     "@volar/typescript": "^2.4.28",
     "@vue/eslint-config-prettier": "^9.0.0",
@@ -55,8 +53,8 @@
     "vue-tsc": "^2.2.12"
   },
   "dependencies": {
-    "@vc-shell/config-generator": "^1.2.3",
-    "@vc-shell/framework": "^1.2.3",
+    "@vc-shell/config-generator": "^2.0.3",
+    "@vc-shell/framework": "^2.0.3",
     "@vueuse/core": "^10.11.1",
     "@vueuse/integrations": "^10.11.1",
     "cross-spawn": "^7.0.6",

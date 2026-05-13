@@ -35,9 +35,11 @@ export default (): IUseOrganizations => {
     loading.value = true;
     const client = await getApiClient();
     try {
-      const memberSearchResult = await client.getOrganizations(
-        new MembersSearchCriteria({ keyword, skip: skip ?? 0, objectIds }),
-      );
+      const memberSearchResult = await client.getOrganizations({
+        keyword,
+        skip: skip ?? 0,
+        objectIds,
+      } as MembersSearchCriteria);
       const result =
         memberSearchResult.results?.map((organization) => ({
           name: organization.name ?? organization.id!,

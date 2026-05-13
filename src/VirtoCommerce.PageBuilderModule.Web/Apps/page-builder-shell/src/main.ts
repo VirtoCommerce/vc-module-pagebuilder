@@ -23,7 +23,7 @@ async function startApp() {
       },
     })
     // PageBuilder module initialization
-    .use(PageBuilder, { router })
+    .use(PageBuilder)
     .use(router);
 
   Object.entries(locales).forEach(([key, message]) => {

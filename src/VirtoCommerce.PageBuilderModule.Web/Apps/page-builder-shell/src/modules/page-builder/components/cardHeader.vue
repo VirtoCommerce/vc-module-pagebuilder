@@ -14,10 +14,11 @@
   </VcRow>
 </template>
 <script lang="ts" setup>
+import { VcCol, VcHint, VcIcon, VcRow } from "@vc-shell/framework/ui";
 interface Props {
   icon: string;
   title: string;
-  tagText: string;
+  tagText?: string;
   description: string;
 }
 

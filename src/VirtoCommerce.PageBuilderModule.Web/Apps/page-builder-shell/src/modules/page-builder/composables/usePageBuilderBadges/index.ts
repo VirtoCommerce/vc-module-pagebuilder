@@ -30,21 +30,27 @@ export async function refreshMenuBadges(): Promise<void> {
   const apiClient = await getApiClient();
 
   const [draftResult, pendingResult, activeResult, archivedResult, allResult] = await Promise.all([
-    apiClient.searchGroups(
-      new PageBuilderPageSearchCriteria({ storeId: storeId.value, take: 0, lifecycle: PageLifecycleFilters.Draft }),
-    ),
-    apiClient.searchGroups(
-      new PageBuilderPageSearchCriteria({ storeId: storeId.value, take: 0, lifecycle: PageLifecycleFilters.Pending }),
-    ),
-    apiClient.searchGroups(
-      new PageBuilderPageSearchCriteria({ storeId: storeId.value, take: 0, lifecycle: PageLifecycleFilters.Active }),
-    ),
-    apiClient.searchGroups(
-      new PageBuilderPageSearchCriteria({ storeId: storeId.value, take: 0, lifecycle: PageLifecycleFilters.Archived }),
-    ),
-    apiClient.searchGroups(
-      new PageBuilderPageSearchCriteria({ storeId: storeId.value, take: 0 }),
-    ),
+    apiClient.searchGroups({
+      storeId: storeId.value,
+      take: 0,
+      lifecycle: PageLifecycleFilters.Draft,
+    } as PageBuilderPageSearchCriteria),
+    apiClient.searchGroups({
+      storeId: storeId.value,
+      take: 0,
+      lifecycle: PageLifecycleFilters.Pending,
+    } as PageBuilderPageSearchCriteria),
+    apiClient.searchGroups({
+      storeId: storeId.value,
+      take: 0,
+      lifecycle: PageLifecycleFilters.Active,
+    } as PageBuilderPageSearchCriteria),
+    apiClient.searchGroups({
+      storeId: storeId.value,
+      take: 0,
+      lifecycle: PageLifecycleFilters.Archived,
+    } as PageBuilderPageSearchCriteria),
+    apiClient.searchGroups({ storeId: storeId.value, take: 0 } as PageBuilderPageSearchCriteria),
   ]);
 
   draftCount.value = draftResult.totalCount || undefined;
