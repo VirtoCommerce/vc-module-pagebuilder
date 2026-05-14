@@ -5,7 +5,8 @@
       "PENDING_TITLE": "Pendiente",
       "ACTIVE_TITLE": "Activo",
       "ARCHIVED_TITLE": "Archivado",
-      "TITLE": "Todas las páginas"
+      "TITLE": "Todas las páginas",
+      "ASSETS_LIBRARY_TITLE": "Biblioteca de activos"
     },
     "PAGES": {
       "LIST": {
@@ -130,6 +131,90 @@
       "HAS_CHANGES": "Tiene borrador con cambios",
       "SCHEDULED": "Programado",
       "PERSONALIZED": "Personalizado"
+    },
+    "ASSETS": {
+      "TITLE": "Biblioteca de activos",
+      "COUNTER": "{count} activos",
+      "BREADCRUMBS": {
+        "ROOT": "Page Builder"
+      },
+      "BADGES": {
+        "FOLDER": "Carpeta",
+        "REFERENCES": "{count} refs"
+      },
+      "TABLE": {
+        "NAME": "Nombre",
+        "TYPE": "Tipo",
+        "SIZE": "Tamaño",
+        "REFERENCES": "Refs",
+        "MODIFIED": "Modificado"
+      },
+      "VIEW": {
+        "GRID": "Vista de cuadrícula",
+        "TABLE": "Vista de tabla"
+      },
+      "TOOLBAR": {
+        "REFRESH": "Actualizar",
+        "UPLOAD": "Subir",
+        "CREATE_FOLDER": "Crear carpeta",
+        "DELETE": "Eliminar",
+        "SEARCH_PLACEHOLDER": "Buscar activos..."
+      },
+      "ACTIONS": {
+        "COPY_URL": "Copiar URL",
+        "DELETE": "Eliminar"
+      },
+      "DROP": {
+        "UPLOAD_HERE": "Suelta archivos aquí para subirlos"
+      },
+      "DETAILS": {
+        "EMPTY": "Selecciona un archivo para ver sus detalles.",
+        "FILE_DETAILS": "Detalles del archivo",
+        "SIZE": "Tamaño",
+        "DIMENSIONS": "Dimensiones",
+        "TYPE": "Tipo",
+        "MODIFIED": "Modificado",
+        "UPLOADED": "Subido",
+        "PATH": "Ruta",
+        "USED_ON": "Usado en ({count} páginas)",
+        "NO_REFERENCES": "No se usa en ninguna página de Page Builder.",
+        "URL": "URL",
+        "COPY_URL": "Copiar URL",
+        "REPLACE": "Reemplazar",
+        "DELETE": "Eliminar",
+        "NOT_AVAILABLE": "N/D"
+      },
+      "EMPTY": {
+        "TITLE": "Aún no hay activos en esta carpeta",
+        "DESCRIPTION": "Sube archivos o crea una carpeta dentro del área de activos de la tienda de Page Builder.",
+        "NO_STORE": "Falta el contexto de la tienda"
+      },
+      "CREATE_FOLDER": {
+        "TITLE": "Crear carpeta",
+        "NAME_LABEL": "Nombre de carpeta",
+        "NAME_PLACEHOLDER": "Introduce el nombre de la carpeta",
+        "CANCEL": "Cancelar",
+        "CREATE": "Crear",
+        "VALIDATION": {
+          "MIN": "El nombre de la carpeta debe tener al menos 3 caracteres.",
+          "MAX": "El nombre de la carpeta debe tener como máximo 63 caracteres.",
+          "EDGE_DASH": "El nombre de la carpeta no debe empezar ni terminar con un guion.",
+          "DOUBLE_DASH": "El nombre de la carpeta no debe contener guiones consecutivos.",
+          "CHARS": "El nombre de la carpeta solo puede contener letras minúsculas, números, espacios y guiones simples."
+        }
+      },
+      "CONFIRM": {
+        "DELETE_SINGLE": "¿Eliminar {name}?",
+        "DELETE_SELECTED": "¿Eliminar {count} activo(s) seleccionado(s)?"
+      },
+      "NOTIFICATIONS": {
+        "FOLDER_CREATED": "Carpeta creada correctamente",
+        "UPLOADED": "Activos subidos correctamente",
+        "REPLACED": "Activo reemplazado correctamente",
+        "DELETED": "Activos eliminados correctamente",
+        "URL_COPIED": "URL del activo copiada correctamente",
+        "ERROR_GENERIC": "Error en la operación de activos"
+      }
     }
   }
 }

@@ -1,8 +1,8 @@
 <div class="asset-picker">
-  <div class="asset-picker__header">
+  <div class="header">
     <div>
       <h2>{{ title }}</h2>
-      <div class="asset-picker__breadcrumbs">
+      <div class="breadcrumbs">
         @for (crumb of breadcrumbs; track crumb.url; let last = $last) {
           <button type="button" [disabled]="last" (click)="navigateToBreadcrumb(crumb.url)">
             {{ crumb.label }}
@@ -13,14 +13,16 @@
         }
       </div>
     </div>
-    <app-icon class="asset-picker__close" title="Close" (click)="decline()">close</app-icon>
+    <button type="button" class="close" title="Close" (click)="decline()">
+      <app-icon>close</app-icon>
+    </button>
   </div>
 
   <div mat-dialog-content>
-    <div class="asset-picker__toolbar">
+    <div class="toolbar">
       <button
         type="button"
-        class="asset-picker__upload"
+        class="upload"
         [disabled]="uploading() || loading()"
         (click)="uploadInput.click()">
         <app-icon>upload</app-icon>
@@ -38,41 +40,44 @@
         [value]="searchValue()"
         placeholder="Search assets..."
         (input)="onSearch($any($event.target).value)" />
-      <span>{{ visibleEntries.length }} assets</span>
+      <span class="counter">{{ visibleEntries.length }} assets</span>
     </div>
 
     @if (error()) {
-      <div class="asset-picker__message asset-picker__message--error">{{ error() }}</div>
+      <div class="message message--error">{{ error() }}</div>
     } @else if (loading()) {
-      <div class="asset-picker__message">Loading assets...</div>
+      <div class="message">Loading assets...</div>
     } @else if (!visibleEntries.length) {
-      <div class="asset-picker__message">No assets found.</div>
+      <div class="message">No assets found.</div>
     } @else {
-      <div class="asset-picker__grid">
+      <div class="grid">
         @for (entry of visibleEntries; track getEntryKey(entry)) {
           <button
             type="button"
-            class="asset-picker__card"
+            class="card"
             [ngClass]="{
-              'asset-picker__card--folder': entry.type === 'folder',
-              'asset-picker__card--selected': selectedAsset() === entry
+              'card--folder': entry.type === 'folder',
+              'card--selected': selectedAsset() === entry
             }"
             (click)="entry.type === 'folder' ? navigateTo(entry) : selectAsset(entry)"
             (dblclick)="entry.type === 'blob' && selectedAsset() === entry ? confirm() : null">
-            <div class="asset-picker__preview" [ngStyle]="{ backgroundImage: getPreviewStyle(entry) }">
+            <div class="preview">
               @if (entry.type === 'folder') {
-                <app-icon>folder</app-icon>
-              } @else if (!getPreviewStyle(entry)) {
-                <app-icon>insert_drive_file</app-icon>
-              }
-              @if (entry.type === 'blob') {
-                <span class="asset-picker__refs">{{ entry.referencesCount ?? 0 }} refs</span>
+                <app-icon class="folder-icon">folder</app-icon>
+              } @else if (getPreviewStyle(entry)) {
+                <div class="image-frame">
+                  <div class="image" [ngStyle]="{ backgroundImage: getPreviewStyle(entry) }"></div>
+                </div>
+              } @else {
+                <app-icon class="file-icon">insert_drive_file</app-icon>
               }
             </div>
-            <div class="asset-picker__name" [title]="entry.name">{{ entry.name }}</div>
-            @if (entry.type === 'blob') {
-              <div class="asset-picker__size">{{ getSize(entry) }}</div>
-            }
+            <div class="meta">
+              <div class="name" [title]="entry.name">{{ entry.name }}</div>
+              @if (entry.type === 'blob') {
+                <div class="size">{{ getSize(entry) }}</div>
+              }
+            </div>
           </button>
         }
       </div>

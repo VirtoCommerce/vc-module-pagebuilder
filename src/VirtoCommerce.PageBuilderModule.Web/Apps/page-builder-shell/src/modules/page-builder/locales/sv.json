@@ -5,7 +5,8 @@
       "PENDING_TITLE": "Väntande",
       "ACTIVE_TITLE": "Aktiv",
       "ARCHIVED_TITLE": "Arkiverad",
-      "TITLE": "Alla sidor"
+      "TITLE": "Alla sidor",
+      "ASSETS_LIBRARY_TITLE": "Resursbibliotek"
     },
     "PAGES": {
       "LIST": {
@@ -130,6 +131,90 @@
       "HAS_CHANGES": "Har utkast med ändringar",
       "SCHEDULED": "Schemalagd",
       "PERSONALIZED": "Personaliserad"
+    },
+    "ASSETS": {
+      "TITLE": "Resursbibliotek",
+      "COUNTER": "{count} resurser",
+      "BREADCRUMBS": {
+        "ROOT": "Page Builder"
+      },
+      "BADGES": {
+        "FOLDER": "Mapp",
+        "REFERENCES": "{count} ref."
+      },
+      "TABLE": {
+        "NAME": "Namn",
+        "TYPE": "Typ",
+        "SIZE": "Storlek",
+        "REFERENCES": "Ref.",
+        "MODIFIED": "Ändrad"
+      },
+      "VIEW": {
+        "GRID": "Rutnätsvy",
+        "TABLE": "Tabellvy"
+      },
+      "TOOLBAR": {
+        "REFRESH": "Uppdatera",
+        "UPLOAD": "Ladda upp",
+        "CREATE_FOLDER": "Skapa mapp",
+        "DELETE": "Ta bort",
+        "SEARCH_PLACEHOLDER": "Sök resurser..."
+      },
+      "ACTIONS": {
+        "COPY_URL": "Kopiera URL",
+        "DELETE": "Ta bort"
+      },
+      "DROP": {
+        "UPLOAD_HERE": "Släpp filer här för att ladda upp dem"
+      },
+      "DETAILS": {
+        "EMPTY": "Välj en fil för att visa dess detaljer.",
+        "FILE_DETAILS": "Fildetaljer",
+        "SIZE": "Storlek",
+        "DIMENSIONS": "Dimensioner",
+        "TYPE": "Typ",
+        "MODIFIED": "Ändrad",
+        "UPLOADED": "Uppladdad",
+        "PATH": "Sökväg",
+        "USED_ON": "Används på ({count} sidor)",
+        "NO_REFERENCES": "Används inte på några Page Builder-sidor.",
+        "URL": "URL",
+        "COPY_URL": "Kopiera URL",
+        "REPLACE": "Ersätt",
+        "DELETE": "Ta bort",
+        "NOT_AVAILABLE": "Ej tillgängligt"
+      },
+      "EMPTY": {
+        "TITLE": "Inga resurser i den här mappen ännu",
+        "DESCRIPTION": "Ladda upp filer eller skapa en mapp i butikens Page Builder-resursområde.",
+        "NO_STORE": "Butikskontext saknas"
+      },
+      "CREATE_FOLDER": {
+        "TITLE": "Skapa mapp",
+        "NAME_LABEL": "Mappnamn",
+        "NAME_PLACEHOLDER": "Ange mappnamn",
+        "CANCEL": "Avbryt",
+        "CREATE": "Skapa",
+        "VALIDATION": {
+          "MIN": "Mappnamnet måste vara minst 3 tecken långt.",
+          "MAX": "Mappnamnet får vara högst 63 tecken långt.",
+          "EDGE_DASH": "Mappnamnet får inte börja eller sluta med bindestreck.",
+          "DOUBLE_DASH": "Mappnamnet får inte innehålla flera bindestreck i rad.",
+          "CHARS": "Mappnamnet får bara innehålla gemener, siffror, mellanslag och enstaka bindestreck."
+        }
+      },
+      "CONFIRM": {
+        "DELETE_SINGLE": "Ta bort {name}?",
+        "DELETE_SELECTED": "Ta bort {count} valda resurser?"
+      },
+      "NOTIFICATIONS": {
+        "FOLDER_CREATED": "Mappen har skapats",
+        "UPLOADED": "Resurserna har laddats upp",
+        "REPLACED": "Resursen har ersatts",
+        "DELETED": "Resurserna har tagits bort",
+        "URL_COPIED": "Resursens URL har kopierats",
+        "ERROR_GENERIC": "Resursåtgärden misslyckades"
+      }
     }
   }
 }

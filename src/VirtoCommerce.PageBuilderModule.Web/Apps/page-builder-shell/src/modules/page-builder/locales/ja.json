@@ -5,7 +5,8 @@
       "PENDING_TITLE": "保留中",
       "ACTIVE_TITLE": "アクティブ",
       "ARCHIVED_TITLE": "アーカイブ済み",
-      "TITLE": "すべてのページ"
+      "TITLE": "すべてのページ",
+      "ASSETS_LIBRARY_TITLE": "アセットライブラリ"
     },
     "PAGES": {
       "LIST": {
@@ -130,6 +131,90 @@
       "HAS_CHANGES": "変更のある下書き",
       "SCHEDULED": "スケジュール済み",
       "PERSONALIZED": "パーソナライズ済み"
+    },
+    "ASSETS": {
+      "TITLE": "アセットライブラリ",
+      "COUNTER": "{count} 件のアセット",
+      "BREADCRUMBS": {
+        "ROOT": "Page Builder"
+      },
+      "BADGES": {
+        "FOLDER": "フォルダー",
+        "REFERENCES": "{count} 参照"
+      },
+      "TABLE": {
+        "NAME": "名前",
+        "TYPE": "タイプ",
+        "SIZE": "サイズ",
+        "REFERENCES": "参照",
+        "MODIFIED": "更新日"
+      },
+      "VIEW": {
+        "GRID": "グリッド表示",
+        "TABLE": "テーブル表示"
+      },
+      "TOOLBAR": {
+        "REFRESH": "更新",
+        "UPLOAD": "アップロード",
+        "CREATE_FOLDER": "フォルダーを作成",
+        "DELETE": "削除",
+        "SEARCH_PLACEHOLDER": "アセットを検索..."
+      },
+      "ACTIONS": {
+        "COPY_URL": "URLをコピー",
+        "DELETE": "削除"
+      },
+      "DROP": {
+        "UPLOAD_HERE": "ファイルをここにドロップしてアップロード"
+      },
+      "DETAILS": {
+        "EMPTY": "詳細を表示するファイルを選択してください。",
+        "FILE_DETAILS": "ファイル詳細",
+        "SIZE": "サイズ",
+        "DIMENSIONS": "寸法",
+        "TYPE": "タイプ",
+        "MODIFIED": "更新日",
+        "UPLOADED": "アップロード日",
+        "PATH": "パス",
+        "USED_ON": "使用先 ({count} ページ)",
+        "NO_REFERENCES": "Page Builder ページでは使用されていません。",
+        "URL": "URL",
+        "COPY_URL": "URLをコピー",
+        "REPLACE": "置換",
+        "DELETE": "削除",
+        "NOT_AVAILABLE": "N/A"
+      },
+      "EMPTY": {
+        "TITLE": "このフォルダーにはまだアセットがありません",
+        "DESCRIPTION": "Page Builder のストアアセット領域にファイルをアップロードするか、フォルダーを作成します。",
+        "NO_STORE": "ストアコンテキストがありません"
+      },
+      "CREATE_FOLDER": {
+        "TITLE": "フォルダーを作成",
+        "NAME_LABEL": "フォルダー名",
+        "NAME_PLACEHOLDER": "フォルダー名を入力",
+        "CANCEL": "キャンセル",
+        "CREATE": "作成",
+        "VALIDATION": {
+          "MIN": "フォルダー名は3文字以上である必要があります。",
+          "MAX": "フォルダー名は63文字以内である必要があります。",
+          "EDGE_DASH": "フォルダー名の先頭または末尾にハイフンは使用できません。",
+          "DOUBLE_DASH": "フォルダー名に連続するハイフンは使用できません。",
+          "CHARS": "フォルダー名には小文字、数字、スペース、単独のハイフンのみ使用できます。"
+        }
+      },
+      "CONFIRM": {
+        "DELETE_SINGLE": "{name} を削除しますか？",
+        "DELETE_SELECTED": "選択した {count} 件のアセットを削除しますか？"
+      },
+      "NOTIFICATIONS": {
+        "FOLDER_CREATED": "フォルダーを作成しました",
+        "UPLOADED": "アセットをアップロードしました",
+        "REPLACED": "アセットを置換しました",
+        "DELETED": "アセットを削除しました",
+        "URL_COPIED": "アセットURLをコピーしました",
+        "ERROR_GENERIC": "アセット操作に失敗しました"
+      }
     }
   }
 }

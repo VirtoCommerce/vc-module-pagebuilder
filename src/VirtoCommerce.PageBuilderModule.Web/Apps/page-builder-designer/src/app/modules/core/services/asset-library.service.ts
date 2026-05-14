@@ -85,7 +85,7 @@ export class AssetLibraryService {
 
     getPublicUrl(entry: AssetLibraryEntry): string | null {
         if (entry.relativeUrl) {
-            return `/assets${this.ensureLeadingSlash(entry.relativeUrl)}`;
+            return this.toAbsoluteUrl(`/assets${this.ensureLeadingSlash(entry.relativeUrl)}`);
         }
 
         if (!entry.url) {
@@ -93,11 +93,7 @@ export class AssetLibraryService {
         }
 
         try {
-            const parsedUrl = new URL(entry.url, window.location.origin);
-            if (parsedUrl.pathname.startsWith('/assets/')) {
-                return `${parsedUrl.pathname}${parsedUrl.search}`;
-            }
-            return parsedUrl.toString();
+            return this.toAbsoluteUrl(entry.url);
         } catch {
             return entry.url;
         }
@@ -124,6 +120,10 @@ export class AssetLibraryService {
 
     private ensureLeadingSlash(value: string): string {
         return value.startsWith('/') ? value : `/${value}`;
+    }
+
+    private toAbsoluteUrl(value: string): string {
+        return new URL(value, this.appConfig.getContext().location.origin).toString();
     }
 
     private normalizeEntry(entry: AssetLibraryEntry | null): AssetLibraryEntry | null {

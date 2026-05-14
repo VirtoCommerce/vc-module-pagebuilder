@@ -5,7 +5,8 @@
       "PENDING_TITLE": "En attente",
       "ACTIVE_TITLE": "Actif",
       "ARCHIVED_TITLE": "Archivé",
-      "TITLE": "Toutes les pages"
+      "TITLE": "Toutes les pages",
+      "ASSETS_LIBRARY_TITLE": "Bibliothèque de ressources"
     },
     "PAGES": {
       "LIST": {
@@ -130,6 +131,90 @@
       "HAS_CHANGES": "Brouillon avec modifications",
       "SCHEDULED": "Programmé",
       "PERSONALIZED": "Personnalisé"
+    },
+    "ASSETS": {
+      "TITLE": "Bibliothèque de ressources",
+      "COUNTER": "{count} ressources",
+      "BREADCRUMBS": {
+        "ROOT": "Page Builder"
+      },
+      "BADGES": {
+        "FOLDER": "Dossier",
+        "REFERENCES": "{count} réf."
+      },
+      "TABLE": {
+        "NAME": "Nom",
+        "TYPE": "Type",
+        "SIZE": "Taille",
+        "REFERENCES": "Réfs",
+        "MODIFIED": "Modifié"
+      },
+      "VIEW": {
+        "GRID": "Vue grille",
+        "TABLE": "Vue tableau"
+      },
+      "TOOLBAR": {
+        "REFRESH": "Actualiser",
+        "UPLOAD": "Téléverser",
+        "CREATE_FOLDER": "Créer un dossier",
+        "DELETE": "Supprimer",
+        "SEARCH_PLACEHOLDER": "Rechercher des ressources..."
+      },
+      "ACTIONS": {
+        "COPY_URL": "Copier l’URL",
+        "DELETE": "Supprimer"
+      },
+      "DROP": {
+        "UPLOAD_HERE": "Déposez les fichiers ici pour les téléverser"
+      },
+      "DETAILS": {
+        "EMPTY": "Sélectionnez un fichier pour afficher ses détails.",
+        "FILE_DETAILS": "Détails du fichier",
+        "SIZE": "Taille",
+        "DIMENSIONS": "Dimensions",
+        "TYPE": "Type",
+        "MODIFIED": "Modifié",
+        "UPLOADED": "Téléversé",
+        "PATH": "Chemin",
+        "USED_ON": "Utilisé sur ({count} pages)",
+        "NO_REFERENCES": "Non utilisé sur les pages Page Builder.",
+        "URL": "URL",
+        "COPY_URL": "Copier l’URL",
+        "REPLACE": "Remplacer",
+        "DELETE": "Supprimer",
+        "NOT_AVAILABLE": "N/D"
+      },
+      "EMPTY": {
+        "TITLE": "Aucune ressource dans ce dossier pour le moment",
+        "DESCRIPTION": "Téléversez des fichiers ou créez un dossier dans la zone de ressources Page Builder de la boutique.",
+        "NO_STORE": "Le contexte de la boutique est manquant"
+      },
+      "CREATE_FOLDER": {
+        "TITLE": "Créer un dossier",
+        "NAME_LABEL": "Nom du dossier",
+        "NAME_PLACEHOLDER": "Saisir le nom du dossier",
+        "CANCEL": "Annuler",
+        "CREATE": "Créer",
+        "VALIDATION": {
+          "MIN": "Le nom du dossier doit contenir au moins 3 caractères.",
+          "MAX": "Le nom du dossier doit contenir au maximum 63 caractères.",
+          "EDGE_DASH": "Le nom du dossier ne doit pas commencer ni se terminer par un tiret.",
+          "DOUBLE_DASH": "Le nom du dossier ne doit pas contenir de tirets consécutifs.",
+          "CHARS": "Le nom du dossier ne doit contenir que des lettres minuscules, des chiffres, des espaces et des tirets simples."
+        }
+      },
+      "CONFIRM": {
+        "DELETE_SINGLE": "Supprimer {name} ?",
+        "DELETE_SELECTED": "Supprimer {count} ressource(s) sélectionnée(s) ?"
+      },
+      "NOTIFICATIONS": {
+        "FOLDER_CREATED": "Dossier créé avec succès",
+        "UPLOADED": "Ressources téléversées avec succès",
+        "REPLACED": "Ressource remplacée avec succès",
+        "DELETED": "Ressources supprimées avec succès",
+        "URL_COPIED": "URL de la ressource copiée avec succès",
+        "ERROR_GENERIC": "Échec de l’opération sur les ressources"
+      }
     }
   }
 }

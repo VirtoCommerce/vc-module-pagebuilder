@@ -34,6 +34,25 @@
       <VcHint class="assets-library__counter">
         {{ $t("PAGE_BUILDER.ASSETS.COUNTER", { count: totalCount }) }}
       </VcHint>
+
+      <div class="assets-library__view-toggle">
+        <VcButton
+          text
+          icon="material-grid_view"
+          :title="$t('PAGE_BUILDER.ASSETS.VIEW.GRID')"
+          class="assets-library__view-button"
+          :class="{ 'assets-library__view-button--active': viewMode === 'grid' }"
+          @click="viewMode = 'grid'"
+        />
+        <VcButton
+          text
+          icon="material-view_list"
+          :title="$t('PAGE_BUILDER.ASSETS.VIEW.TABLE')"
+          class="assets-library__view-button"
+          :class="{ 'assets-library__view-button--active': viewMode === 'table' }"
+          @click="viewMode = 'table'"
+        />
+      </div>
     </div>
 
     <div class="assets-library__body">
@@ -65,7 +84,7 @@
         </div>
 
         <div
-          v-if="entries.length"
+          v-if="entries.length && viewMode === 'grid'"
           class="assets-library__grid"
         >
           <article
@@ -114,9 +133,11 @@
               </template>
               <template v-else-if="isImage(entry)">
                 <div class="asset-card__image-frame">
-                  <img
+                  <VcImage
                     :src="getPreviewUrl(entry)"
-                    :alt="entry.name"
+                    aspect="16x9"
+                    background="contain"
+                    empty-icon="material-image"
                     class="asset-card__image"
                   />
                 </div>
@@ -141,6 +162,90 @@
           </article>
         </div>
 
+        <!-- @vue-generic {AssetEntry} -->
+        <VcTable
+          v-else-if="entries.length"
+          class="assets-library__table"
+          :items="entries"
+          :columns="tableColumns"
+          :expanded="true"
+          :header="false"
+          :footer="false"
+          :loading="loading"
+          :selected-item-id="selectedEntryId"
+          :enable-item-actions="true"
+          :item-action-builder="tableActionBuilder"
+          state-key="page_builder_assets_library"
+          @item-click="handleEntryClick"
+          @click.stop
+        >
+          <template #item_preview="{ item }">
+            <div class="assets-library__table-preview">
+              <VcImage
+                v-if="isImage(item)"
+                :src="getPreviewUrl(item)"
+                aspect="1x1"
+                size="s"
+                background="contain"
+                bordered
+                empty-icon="material-image"
+              />
+              <VcIcon
+                v-else
+                :icon="getEntryIcon(item)"
+                class="assets-library__table-icon"
+              />
+            </div>
+          </template>
+
+          <template #item_type="{ item }">
+            <span v-if="item.type === 'folder'">{{ $t("PAGE_BUILDER.ASSETS.BADGES.FOLDER") }}</span>
+            <span v-else>{{ item.contentType || $t("PAGE_BUILDER.ASSETS.DETAILS.NOT_AVAILABLE") }}</span>
+          </template>
+
+          <template #item_size="{ item }">
+            <span v-if="item.type === 'folder'">{{ $t("PAGE_BUILDER.ASSETS.DETAILS.NOT_AVAILABLE") }}</span>
+            <span v-else>{{ formatFileSize(item.size) }}</span>
+          </template>
+
+          <template #item_references="{ item }">
+            <span v-if="item.type === 'blob'">{{ getReferencesCount(item) }}</span>
+            <span v-else>{{ $t("PAGE_BUILDER.ASSETS.DETAILS.NOT_AVAILABLE") }}</span>
+          </template>
+
+          <template #item_modifiedDate="{ item }">
+            {{ formatDate(item.modifiedDate || item.createdDate) }}
+          </template>
+
+          <template #mobile-item="{ item }">
+            <div class="assets-library__table-mobile-item">
+              <div class="assets-library__table-preview">
+                <VcImage
+                  v-if="isImage(item)"
+                  :src="getPreviewUrl(item)"
+                  aspect="1x1"
+                  size="s"
+                  background="contain"
+                  bordered
+                  empty-icon="material-image"
+                />
+                <VcIcon
+                  v-else
+                  :icon="getEntryIcon(item)"
+                  class="assets-library__table-icon"
+                />
+              </div>
+              <div class="assets-library__table-mobile-meta">
+                <div class="assets-library__table-mobile-title">{{ item.name }}</div>
+                <VcHint>
+                  <span v-if="item.type === 'folder'">{{ $t("PAGE_BUILDER.ASSETS.BADGES.FOLDER") }}</span>
+                  <span v-else>{{ formatFileSize(item.size) }}</span>
+                </VcHint>
+              </div>
+            </div>
+          </template>
+        </VcTable>
+
         <div
           v-else
           class="assets-library__empty"
@@ -155,6 +260,20 @@
           <VcHint class="assets-library__empty-text">
             {{ $t("PAGE_BUILDER.ASSETS.EMPTY.DESCRIPTION") }}
           </VcHint>
+          <VcFileUpload
+            v-if="canCreate && storeId"
+            class="assets-library__empty-upload"
+            variant="file-upload"
+            accept=""
+            multiple
+            name="assets-library-upload"
+            :loading="loading"
+            :custom-text="{
+              dragHere: $t('PAGE_BUILDER.ASSETS.DROP.UPLOAD_HERE'),
+              browse: $t('PAGE_BUILDER.ASSETS.TOOLBAR.UPLOAD'),
+            }"
+            @upload="handleUploadFiles"
+          />
         </div>
       </section>
 
@@ -178,9 +297,11 @@
         <div class="assets-library__details-preview">
           <template v-if="isImage(selectedAsset)">
             <div class="assets-library__details-image-frame">
-              <img
+              <VcImage
                 :src="getPreviewUrl(selectedAsset)"
-                :alt="selectedAsset.name"
+                aspect="3x2"
+                background="contain"
+                empty-icon="material-image"
                 class="assets-library__details-image"
               />
             </div>
@@ -290,14 +411,6 @@
   </div>
 
   <input
-    ref="uploadInputRef"
-    type="file"
-    hidden
-    multiple
-    @change="onUploadChange"
-  />
-
-  <input
     ref="replaceInputRef"
     type="file"
     hidden
@@ -305,50 +418,45 @@
   />
 
   <VcPopup
-    v-if="isCreateFolderPopupOpen"
-    :title="$t('PAGE_BUILDER.ASSETS.CREATE_FOLDER.TITLE')"
+    v-if="isUploadPopupOpen"
+    :title="$t('PAGE_BUILDER.ASSETS.TOOLBAR.UPLOAD')"
     is-mobile-fullscreen
-    @close="closeCreateFolderPopup"
+    @close="closeUploadPopup"
   >
     <template #content>
-      <VcForm>
-        <VcInput
-          v-model="newFolderName"
-          :label="$t('PAGE_BUILDER.ASSETS.CREATE_FOLDER.NAME_LABEL')"
-          :placeholder="$t('PAGE_BUILDER.ASSETS.CREATE_FOLDER.NAME_PLACEHOLDER')"
-          :error="!!folderNameError"
-          :error-message="folderNameError"
-          @keyup.enter="handleCreateFolder"
+      <div class="assets-library__upload-popup">
+        <VcFileUpload
+          variant="file-upload"
+          accept=""
+          multiple
+          name="assets-library-toolbar-upload"
+          :loading="loading"
+          :custom-text="{
+            dragHere: $t('PAGE_BUILDER.ASSETS.DROP.UPLOAD_HERE'),
+            browse: $t('PAGE_BUILDER.ASSETS.TOOLBAR.UPLOAD'),
+          }"
+          @upload="handlePopupUpload"
         />
-      </VcForm>
-    </template>
-
-    <template #footer>
-      <div class="tw-flex tw-justify-end tw-gap-3">
-        <VcButton
-          variant="secondary"
-          @click="closeCreateFolderPopup"
-        >
-          {{ $t("PAGE_BUILDER.ASSETS.CREATE_FOLDER.CANCEL") }}
-        </VcButton>
-        <VcButton
-          :disabled="!!folderNameError || !newFolderName.trim()"
-          @click="handleCreateFolder"
-        >
-          {{ $t("PAGE_BUILDER.ASSETS.CREATE_FOLDER.CREATE") }}
-        </VcButton>
       </div>
     </template>
   </VcPopup>
+
+  <CreateFolderPopup
+    v-if="isCreateFolderPopupOpen"
+    :submitting="loading"
+    @close="closeCreateFolderPopup"
+    @create="handleCreateFolder"
+  />
 </template>
 
 <script lang="ts" setup>
 import { computed, onMounted, ref } from "vue";
 import { debounce } from "lodash-es";
 import { useI18n } from "vue-i18n";
-import { notification, usePermissions, usePopup } from "@vc-shell/framework";
+import { IActionBuilderResult, ITableColumns, notification, usePermissions, usePopup } from "@vc-shell/framework";
 import { AssetEntry } from "../composables/useAssetsLibraryApi";
 import { useAssetsLibrary } from "../composables/useAssetsLibrary";
+import CreateFolderPopup from "./CreateFolderPopup.vue";
 
 export interface ExposedAssetsLibraryContent {
   reload: () => Promise<void>;
@@ -358,10 +466,10 @@ const { t } = useI18n({ useScope: "global" });
 const { hasAccess } = usePermissions();
 const { showConfirmation } = usePopup();
 
-const uploadInputRef = ref<HTMLInputElement | null>(null);
 const replaceInputRef = ref<HTMLInputElement | null>(null);
 const isCreateFolderPopupOpen = ref(false);
-const newFolderName = ref("");
+const isUploadPopupOpen = ref(false);
+const viewMode = ref<"grid" | "table">("grid");
 const isDraggingOverSurface = ref(false);
 const draggedFolderUrl = ref<string>();
 
@@ -395,36 +503,42 @@ const {
 
 const canCreate = computed(() => hasAccess("platform:asset:create"));
 const canDelete = computed(() => hasAccess("platform:asset:delete"));
+const selectedEntryId = computed(() => getEntryKey(selectedAsset.value));
 
-const folderNameError = computed(() => {
-  const value = newFolderName.value.trim();
-
-  if (!value) {
-    return undefined;
-  }
-
-  if (value.length < 3) {
-    return t("PAGE_BUILDER.ASSETS.CREATE_FOLDER.VALIDATION.MIN");
-  }
-
-  if (value.length > 63) {
-    return t("PAGE_BUILDER.ASSETS.CREATE_FOLDER.VALIDATION.MAX");
-  }
-
-  if (value.startsWith("-") || value.endsWith("-")) {
-    return t("PAGE_BUILDER.ASSETS.CREATE_FOLDER.VALIDATION.EDGE_DASH");
-  }
-
-  if (value.includes("--")) {
-    return t("PAGE_BUILDER.ASSETS.CREATE_FOLDER.VALIDATION.DOUBLE_DASH");
-  }
-
-  if (!/^[0-9a-z -]+$/.test(value)) {
-    return t("PAGE_BUILDER.ASSETS.CREATE_FOLDER.VALIDATION.CHARS");
-  }
-
-  return undefined;
-});
+const tableColumns = computed((): ITableColumns[] => [
+  {
+    id: "preview",
+    title: "",
+    width: "72px",
+    alwaysVisible: true,
+  },
+  {
+    id: "name",
+    title: t("PAGE_BUILDER.ASSETS.TABLE.NAME"),
+    alwaysVisible: true,
+  },
+  {
+    id: "type",
+    title: t("PAGE_BUILDER.ASSETS.TABLE.TYPE"),
+    width: "20%",
+    alwaysVisible: true,
+  },
+  {
+    id: "size",
+    title: t("PAGE_BUILDER.ASSETS.TABLE.SIZE"),
+    width: "14%",
+  },
+  {
+    id: "references",
+    title: t("PAGE_BUILDER.ASSETS.TABLE.REFERENCES"),
+    width: "14%",
+  },
+  {
+    id: "modifiedDate",
+    title: t("PAGE_BUILDER.ASSETS.TABLE.MODIFIED"),
+    width: "18%",
+  },
+]);
 
 const onSearchChange = debounce(async (keyword: string | undefined) => {
   searchValue.value = keyword;
@@ -554,24 +668,30 @@ async function handleFolderDrop(entry: AssetEntry, event: DragEvent) {
 }
 
 async function uploadDroppedFiles(files: FileList | undefined, folderUrl?: string) {
+  await handleUploadFiles(files, folderUrl);
+}
+
+async function handleUploadFiles(files: FileList | File[] | undefined, folderUrl?: string): Promise<boolean> {
   if (!canCreate.value || !files?.length) {
-    return;
+    return false;
   }
 
   try {
     await uploadFiles(files, folderUrl);
     notification.success(t("PAGE_BUILDER.ASSETS.NOTIFICATIONS.UPLOADED"));
+    return true;
   } catch (error) {
     notification.error(getErrorMessage(error));
+    return false;
   }
 }
 
 function openUploadDialog() {
-  if (uploadInputRef.value) {
-    uploadInputRef.value.value = "";
-  }
+  isUploadPopupOpen.value = true;
+}
 
-  uploadInputRef.value?.click();
+function closeUploadPopup() {
+  isUploadPopupOpen.value = false;
 }
 
 function openReplaceDialog() {
@@ -583,12 +703,10 @@ function openReplaceDialog() {
 }
 
 function openCreateFolderPopup() {
-  newFolderName.value = "";
   isCreateFolderPopupOpen.value = true;
 }
 
 function closeCreateFolderPopup() {
-  newFolderName.value = "";
   isCreateFolderPopupOpen.value = false;
 }
 
@@ -600,10 +718,10 @@ async function handleEntryClick(entry: AssetEntry) {
   }
 }
 
-async function handleCreateFolder() {
-  const value = newFolderName.value.trim();
+async function handleCreateFolder(name: string) {
+  const value = name.trim();
 
-  if (!value || folderNameError.value) {
+  if (!value) {
     return;
   }
 
@@ -613,24 +731,6 @@ async function handleCreateFolder() {
     notification.success(t("PAGE_BUILDER.ASSETS.NOTIFICATIONS.FOLDER_CREATED"));
   } catch (error) {
     notification.error(getErrorMessage(error));
-  }
-}
-
-async function onUploadChange(event: Event) {
-  const input = event.target as HTMLInputElement;
-
-  if (!input.files?.length) {
-    input.value = "";
-    return;
-  }
-
-  try {
-    await uploadFiles(input.files);
-    notification.success(t("PAGE_BUILDER.ASSETS.NOTIFICATIONS.UPLOADED"));
-  } catch (error) {
-    notification.error(getErrorMessage(error));
-  } finally {
-    input.value = "";
   }
 }
 
@@ -650,6 +750,14 @@ async function onReplaceChange(event: Event) {
     notification.error(getErrorMessage(error));
   } finally {
     input.value = "";
+  }
+}
+
+async function handlePopupUpload(files: FileList) {
+  const uploaded = await handleUploadFiles(files);
+
+  if (uploaded) {
+    closeUploadPopup();
   }
 }
 
@@ -684,6 +792,34 @@ async function confirmDelete(entry: AssetEntry) {
   } catch (error) {
     notification.error(getErrorMessage(error));
   }
+}
+
+function tableActionBuilder(entry: AssetEntry): IActionBuilderResult<AssetEntry>[] {
+  const actions: IActionBuilderResult<AssetEntry>[] = [];
+
+  if (entry.type === "blob") {
+    actions.push({
+      icon: "material-content_copy",
+      title: t("PAGE_BUILDER.ASSETS.ACTIONS.COPY_URL"),
+      type: "info",
+      clickHandler: async () => {
+        await copyAssetUrl(entry);
+      },
+    });
+  }
+
+  if (canDelete.value) {
+    actions.push({
+      icon: "material-delete",
+      title: t("PAGE_BUILDER.ASSETS.ACTIONS.DELETE"),
+      type: "danger",
+      clickHandler: async () => {
+        await confirmDelete(entry);
+      },
+    });
+  }
+
+  return actions;
 }
 
 async function reloadContent() {

@@ -5,7 +5,8 @@
       "PENDING_TITLE": "Odottaa",
       "ACTIVE_TITLE": "Aktiivinen",
       "ARCHIVED_TITLE": "Arkistoitu",
-      "TITLE": "Kaikki sivut"
+      "TITLE": "Kaikki sivut",
+      "ASSETS_LIBRARY_TITLE": "Resurssikirjasto"
     },
     "PAGES": {
       "LIST": {
@@ -130,6 +131,90 @@
       "HAS_CHANGES": "Luonnos muutoksilla",
       "SCHEDULED": "Ajastettu",
       "PERSONALIZED": "Personoitu"
+    },
+    "ASSETS": {
+      "TITLE": "Resurssikirjasto",
+      "COUNTER": "{count} resurssia",
+      "BREADCRUMBS": {
+        "ROOT": "Page Builder"
+      },
+      "BADGES": {
+        "FOLDER": "Kansio",
+        "REFERENCES": "{count} viit."
+      },
+      "TABLE": {
+        "NAME": "Nimi",
+        "TYPE": "Tyyppi",
+        "SIZE": "Koko",
+        "REFERENCES": "Viitteet",
+        "MODIFIED": "Muokattu"
+      },
+      "VIEW": {
+        "GRID": "Ruudukkonäkymä",
+        "TABLE": "Taulukkonäkymä"
+      },
+      "TOOLBAR": {
+        "REFRESH": "Päivitä",
+        "UPLOAD": "Lataa",
+        "CREATE_FOLDER": "Luo kansio",
+        "DELETE": "Poista",
+        "SEARCH_PLACEHOLDER": "Etsi resursseja..."
+      },
+      "ACTIONS": {
+        "COPY_URL": "Kopioi URL",
+        "DELETE": "Poista"
+      },
+      "DROP": {
+        "UPLOAD_HERE": "Pudota tiedostot tähän ladataksesi ne"
+      },
+      "DETAILS": {
+        "EMPTY": "Valitse tiedosto nähdäksesi sen tiedot.",
+        "FILE_DETAILS": "Tiedoston tiedot",
+        "SIZE": "Koko",
+        "DIMENSIONS": "Mitat",
+        "TYPE": "Tyyppi",
+        "MODIFIED": "Muokattu",
+        "UPLOADED": "Ladattu",
+        "PATH": "Polku",
+        "USED_ON": "Käytössä ({count} sivulla)",
+        "NO_REFERENCES": "Ei käytössä millään Page Builder -sivulla.",
+        "URL": "URL",
+        "COPY_URL": "Kopioi URL",
+        "REPLACE": "Korvaa",
+        "DELETE": "Poista",
+        "NOT_AVAILABLE": "Ei saatavilla"
+      },
+      "EMPTY": {
+        "TITLE": "Tässä kansiossa ei ole vielä resursseja",
+        "DESCRIPTION": "Lataa tiedostoja tai luo kansio Page Builderin kauppakohtaiseen resurssialueeseen.",
+        "NO_STORE": "Kaupan konteksti puuttuu"
+      },
+      "CREATE_FOLDER": {
+        "TITLE": "Luo kansio",
+        "NAME_LABEL": "Kansion nimi",
+        "NAME_PLACEHOLDER": "Anna kansion nimi",
+        "CANCEL": "Peruuta",
+        "CREATE": "Luo",
+        "VALIDATION": {
+          "MIN": "Kansion nimen on oltava vähintään 3 merkkiä pitkä.",
+          "MAX": "Kansion nimi saa olla enintään 63 merkkiä pitkä.",
+          "EDGE_DASH": "Kansion nimi ei saa alkaa tai päättyä yhdysmerkkiin.",
+          "DOUBLE_DASH": "Kansion nimi ei saa sisältää peräkkäisiä yhdysmerkkejä.",
+          "CHARS": "Kansion nimi saa sisältää vain pieniä kirjaimia, numeroita, välilyöntejä ja yksittäisiä yhdysmerkkejä."
+        }
+      },
+      "CONFIRM": {
+        "DELETE_SINGLE": "Poistetaanko {name}?",
+        "DELETE_SELECTED": "Poistetaanko {count} valittua resurssia?"
+      },
+      "NOTIFICATIONS": {
+        "FOLDER_CREATED": "Kansio luotu onnistuneesti",
+        "UPLOADED": "Resurssit ladattu onnistuneesti",
+        "REPLACED": "Resurssi korvattu onnistuneesti",
+        "DELETED": "Resurssit poistettu onnistuneesti",
+        "URL_COPIED": "Resurssin URL kopioitu onnistuneesti",
+        "ERROR_GENERIC": "Resurssitoiminto epäonnistui"
+      }
     }
   }
 }

@@ -20,8 +20,14 @@
       },
       "TABLE": {
         "NAME": "Name",
+        "TYPE": "Type",
         "SIZE": "Size",
+        "REFERENCES": "Refs",
         "MODIFIED": "Modified"
+      },
+      "VIEW": {
+        "GRID": "Grid view",
+        "TABLE": "Table view"
       },
       "TOOLBAR": {
         "REFRESH": "Refresh",
@@ -212,4 +218,3 @@
     }
   }
 }
-

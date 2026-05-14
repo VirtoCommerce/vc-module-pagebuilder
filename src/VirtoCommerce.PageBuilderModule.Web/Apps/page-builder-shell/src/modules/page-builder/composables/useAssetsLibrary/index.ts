@@ -1,13 +1,15 @@
 import { computed, ref, watch, type ComputedRef, type Ref } from "vue";
-import { getFileThumbnail, isImage as isImageName, readableSize, useAsync, useLoading } from "@vc-shell/framework";
+import {
+  type Breadcrumbs,
+  getFileThumbnail,
+  isImage as isImageName,
+  readableSize,
+  useAsync,
+  useBreadcrumbs,
+  useLoading,
+} from "@vc-shell/framework";
 import useUrlParams from "../useStoreParams";
 import { AssetEntry, createAssetFolder, deleteAssets, searchAssetReferences, searchAssets, uploadAsset } from "../useAssetsLibraryApi";
-
-export interface AssetsBreadcrumb {
-  id: string;
-  title: string;
-  clickHandler?: (id: string) => Promise<void>;
-}
 
 interface UploadAssetsPayload {
   files: File[];
@@ -24,7 +26,7 @@ export interface IUseAssetsLibrary {
   selectedAssetDimensions: Ref<string | undefined>;
   storeId: Ref<string | null>;
   rootFolderUrl: ComputedRef<string>;
-  breadcrumbs: ComputedRef<AssetsBreadcrumb[]>;
+  breadcrumbs: ComputedRef<Breadcrumbs[]>;
   initialize: () => Promise<void>;
   reload: (preferredSelectionUrl?: string) => Promise<void>;
   clearSelection: () => void;
@@ -113,11 +115,13 @@ export function useAssetsLibrary(t: (key: string) => string): IUseAssetsLibrary 
   const selectedAsset = ref<AssetEntry>();
   const selectedAssetDimensions = ref<string>();
   const assetReferences = ref<Record<string, Pick<AssetEntry, "referencesCount" | "referencePages">>>({});
+  const currentBreadcrumbIds = ref<string[]>([]);
+  const { breadcrumbs, push: pushBreadcrumb, remove: removeBreadcrumbs } = useBreadcrumbs();
 
   const rootFolderUrl = computed(() => (storeId.value ? `/stores/${storeId.value}/Page Builder` : ""));
 
-  const breadcrumbs = computed<AssetsBreadcrumb[]>(() => {
-    const items: AssetsBreadcrumb[] = [];
+  function buildBreadcrumbs(): Breadcrumbs[] {
+    const items: Breadcrumbs[] = [];
 
     if (!currentFolderUrl.value || !rootFolderUrl.value) {
       return items;
@@ -148,7 +152,20 @@ export function useAssetsLibrary(t: (key: string) => string): IUseAssetsLibrary 
     });
 
     return items;
-  });
+  }
+
+  function syncBreadcrumbs() {
+    if (currentBreadcrumbIds.value.length) {
+      removeBreadcrumbs(currentBreadcrumbIds.value);
+      currentBreadcrumbIds.value = [];
+    }
+
+    const items = buildBreadcrumbs();
+    items.forEach(pushBreadcrumb);
+    currentBreadcrumbIds.value = items.map((item) => item.id);
+  }
+
+  watch([currentFolderUrl, rootFolderUrl], syncBreadcrumbs, { immediate: true });
 
   watch(selectedAsset, (value) => {
     selectedAssetDimensions.value = undefined;
