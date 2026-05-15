@@ -129,12 +129,22 @@ export class TemplateEditorUiEffects {
 
     notifySuccessSave$ = createEffect(() => this.actions$.pipe(
         ofType(actions.saveTemplateSuccess),
-        switchMap(({ templateKey, parentKey, template }) => [
-            sharedActions.showNotification({ message: `Template ${template.settings['name']} saved successfully`, msgType: 'success', top: true }),
-            parent
-                ? sharedActions.setDirtyState({ parentKey, templateKey, dirty: false })
-                : sharedActions.setRootDirtyState({ templateKey, dirty: false })
-        ])
+        switchMap(({ templateKey, parentKey, template }) => {
+            const templateName = template.settings['name'] ? <string>template.settings['name'] : '';
+            if (!template.settings['name']) {
+                console.warn('Template name is empty. It may cause issues with notifications.', template);
+            }
+            return [
+                sharedActions.showNotification({
+                    message: `Template ${templateName} saved successfully`,
+                    msgType: 'success',
+                    top: true
+                }),
+                parent
+                    ? sharedActions.setDirtyState({ parentKey, templateKey, dirty: false })
+                    : sharedActions.setRootDirtyState({ templateKey, dirty: false })
+            ];
+        })
     ));
 
     notifyFailsSave$ = createEffect(() => this.actions$.pipe(
