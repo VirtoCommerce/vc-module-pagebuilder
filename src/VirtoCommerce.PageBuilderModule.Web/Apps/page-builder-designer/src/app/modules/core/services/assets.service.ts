@@ -87,6 +87,11 @@ export class AssetsService {
         return url || absoluteOrRelativeUrl;
     }
 
+    isInlineUpload(descriptor: UploadAssetDescriptor, context: any): boolean {
+        const request = this.getRequest(descriptor, context);
+        return !request || request === 'inline';
+    }
+
     private getRequest(descriptor: UploadAssetDescriptor, context: any): AssetsRequest | 'inline' | null {
         let request = descriptor.uploadAssetsRequest;
         if (!request) {

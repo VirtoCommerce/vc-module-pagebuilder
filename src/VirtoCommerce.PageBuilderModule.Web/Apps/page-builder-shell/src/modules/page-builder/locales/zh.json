@@ -196,16 +196,14 @@
         "CANCEL": "取消",
         "CREATE": "创建",
         "VALIDATION": {
-          "MIN": "文件夹名称必须至少包含 3 个字符。",
-          "MAX": "文件夹名称最多包含 63 个字符。",
-          "EDGE_DASH": "文件夹名称不能以连字符开头或结尾。",
-          "DOUBLE_DASH": "文件夹名称不能包含连续的连字符。",
-          "CHARS": "文件夹名称只能包含小写字母、数字、空格和单个连字符。"
+          "INVALID_PATH": "文件夹名称不能包含斜杠或控制字符。"
         }
       },
       "CONFIRM": {
         "DELETE_SINGLE": "删除 {name}？",
-        "DELETE_SELECTED": "删除选中的 {count} 个资源？"
+        "DELETE_SELECTED": "删除选中的 {count} 个资源？",
+        "DELETE_USED_ONE": "删除 {name}？它正在 1 个 Page Builder 页面中使用。",
+        "DELETE_USED_MANY": "删除 {name}？它正在 {count} 个 Page Builder 页面中使用。"
       },
       "NOTIFICATIONS": {
         "FOLDER_CREATED": "文件夹创建成功",

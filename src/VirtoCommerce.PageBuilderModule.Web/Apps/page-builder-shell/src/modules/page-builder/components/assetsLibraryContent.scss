@@ -11,10 +11,7 @@
   --assets-library-folder: linear-gradient(135deg, #d9efff 0%, #c4e4ff 100%);
   --assets-library-details: #fbfdff;
   --assets-library-drop: rgba(47, 149, 218, 0.12);
-  --assets-library-font-family: "Plus Jakarta Sans", sans-serif;
-
   @apply tw-bg-[color:var(--assets-library-bg)] tw-text-sm tw-leading-[18px] tw-text-[color:var(--assets-library-text)];
-  font-family: var(--assets-library-font-family);
 
   button,
   input,
@@ -134,7 +131,7 @@
   }
 
   &__details {
-    @apply tw-flex tw-w-full tw-shrink-0 tw-flex-col tw-border-t tw-border-solid tw-border-t-[color:var(--assets-library-border)] tw-bg-[color:var(--assets-library-details)] tw-p-4 lg:tw-w-[300px] lg:tw-border-l lg:tw-border-t-0 lg:tw-border-l-[color:var(--assets-library-border)];
+    @apply tw-flex tw-w-full tw-shrink-0 tw-flex-col tw-border-t tw-border-solid tw-border-t-[color:var(--assets-library-border)] tw-bg-[color:var(--assets-library-details)] tw-p-4 lg:tw-w-[420px] lg:tw-border-l lg:tw-border-t-0 lg:tw-border-l-[color:var(--assets-library-border)];
   }
 
   &__details-header {
@@ -192,10 +189,6 @@
     @apply tw-space-y-1;
   }
 
-  &__path {
-    @apply tw-break-all;
-  }
-
   &__details-actions {
     @apply tw-mt-5 tw-flex tw-flex-col tw-gap-2;
   }
@@ -216,13 +209,6 @@
     color: var(--danger-500);
   }
 
-  :deep(.vc-button) {
-    font-family: var(--assets-library-font-family);
-    font-size: 14px;
-    font-weight: 600;
-    line-height: 18px;
-  }
-
   :deep(.vc-button__title) {
     font-weight: 600;
   }
@@ -231,14 +217,12 @@
   :deep(.vc-breadcrumbs),
   :deep(.vc-breadcrumbs-item),
   :deep(.vc-table) {
-    font-family: var(--assets-library-font-family);
     font-size: 14px;
     line-height: 18px;
   }
 
   :deep(.vc-input__field input),
   :deep(.vc-input__field input::placeholder) {
-    font-family: var(--assets-library-font-family);
     font-size: 14px;
     font-weight: 400;
     line-height: 18px;

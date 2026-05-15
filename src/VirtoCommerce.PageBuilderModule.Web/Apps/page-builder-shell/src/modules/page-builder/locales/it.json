@@ -196,16 +196,14 @@
         "CANCEL": "Annulla",
         "CREATE": "Crea",
         "VALIDATION": {
-          "MIN": "Il nome della cartella deve contenere almeno 3 caratteri.",
-          "MAX": "Il nome della cartella deve contenere al massimo 63 caratteri.",
-          "EDGE_DASH": "Il nome della cartella non deve iniziare o terminare con un trattino.",
-          "DOUBLE_DASH": "Il nome della cartella non deve contenere trattini consecutivi.",
-          "CHARS": "Il nome della cartella può contenere solo lettere minuscole, numeri, spazi e trattini singoli."
+          "INVALID_PATH": "Il nome della cartella non può contenere barre o caratteri di controllo."
         }
       },
       "CONFIRM": {
         "DELETE_SINGLE": "Eliminare {name}?",
-        "DELETE_SELECTED": "Eliminare {count} risorsa/e selezionata/e?"
+        "DELETE_SELECTED": "Eliminare {count} risorsa/e selezionata/e?",
+        "DELETE_USED_ONE": "Eliminare {name}? È usato in 1 pagina Page Builder.",
+        "DELETE_USED_MANY": "Eliminare {name}? È usato in {count} pagine Page Builder."
       },
       "NOTIFICATIONS": {
         "FOLDER_CREATED": "Cartella creata con successo",

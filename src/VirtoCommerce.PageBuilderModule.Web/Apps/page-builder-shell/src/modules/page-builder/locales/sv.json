@@ -196,16 +196,14 @@
         "CANCEL": "Avbryt",
         "CREATE": "Skapa",
         "VALIDATION": {
-          "MIN": "Mappnamnet måste vara minst 3 tecken långt.",
-          "MAX": "Mappnamnet får vara högst 63 tecken långt.",
-          "EDGE_DASH": "Mappnamnet får inte börja eller sluta med bindestreck.",
-          "DOUBLE_DASH": "Mappnamnet får inte innehålla flera bindestreck i rad.",
-          "CHARS": "Mappnamnet får bara innehålla gemener, siffror, mellanslag och enstaka bindestreck."
+          "INVALID_PATH": "Mappnamnet får inte innehålla snedstreck eller kontrolltecken."
         }
       },
       "CONFIRM": {
         "DELETE_SINGLE": "Ta bort {name}?",
-        "DELETE_SELECTED": "Ta bort {count} valda resurser?"
+        "DELETE_SELECTED": "Ta bort {count} valda resurser?",
+        "DELETE_USED_ONE": "Ta bort {name}? Den används på 1 Page Builder-sida.",
+        "DELETE_USED_MANY": "Ta bort {name}? Den används på {count} Page Builder-sidor."
       },
       "NOTIFICATIONS": {
         "FOLDER_CREATED": "Mappen har skapats",

@@ -196,16 +196,14 @@
         "CANCEL": "Avbryt",
         "CREATE": "Opprett",
         "VALIDATION": {
-          "MIN": "Mappenavnet må være minst 3 tegn langt.",
-          "MAX": "Mappenavnet kan være maks 63 tegn langt.",
-          "EDGE_DASH": "Mappenavnet kan ikke starte eller slutte med bindestrek.",
-          "DOUBLE_DASH": "Mappenavnet kan ikke inneholde flere bindestreker på rad.",
-          "CHARS": "Mappenavnet kan bare inneholde små bokstaver, tall, mellomrom og enkeltstående bindestreker."
+          "INVALID_PATH": "Mappenavnet kan ikke inneholde skråstreker eller kontrolltegn."
         }
       },
       "CONFIRM": {
         "DELETE_SINGLE": "Slette {name}?",
-        "DELETE_SELECTED": "Slette {count} valgte ressurs(er)?"
+        "DELETE_SELECTED": "Slette {count} valgte ressurs(er)?",
+        "DELETE_USED_ONE": "Slette {name}? Den brukes på 1 Page Builder-side.",
+        "DELETE_USED_MANY": "Slette {name}? Den brukes på {count} Page Builder-sider."
       },
       "NOTIFICATIONS": {
         "FOLDER_CREATED": "Mappe opprettet",

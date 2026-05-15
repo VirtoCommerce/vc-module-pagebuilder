@@ -1,21 +1,3 @@
-file-upload {
-    @apply bg-white flex flex-row justify-items-stretch;
-    border: 2px dashed #8C9196;
-    min-height: 4rem;
-    border-radius: .5rem;
-    outline: none;
-    padding: .5rem;
-
-    ::ng-deep .upload-input {
-        transform: none;
-        @apply static text-center grow flex flex-col justify-center items-center;
-    }
-
-    &.dragover {
-        background: #F6F6F6;
-    }
-}
-
 .file-list {
     @apply flex flex-col mt-1 overflow-hidden;
 
@@ -36,6 +18,15 @@ file-upload {
 
 .choose-from-library {
     @apply block mt-2;
+
+    &--drag-over ::ng-deep button {
+        border-color: #1665D8;
+        background: rgba(22, 101, 216, 0.06);
+    }
+
+    &--uploading {
+        pointer-events: none;
+    }
 }
 
 .file-item {
@@ -89,11 +80,6 @@ file-upload {
     background-color: white;
     font-size: .75rem;
     @apply break-all px-6;
-
-    .reload {
-        @apply cursor-pointer;
-        color: #1665d8;
-    }
 }
 
 .selected-file-properties {

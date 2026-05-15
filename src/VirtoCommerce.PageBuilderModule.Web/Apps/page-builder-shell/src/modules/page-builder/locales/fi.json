@@ -196,16 +196,14 @@
         "CANCEL": "Peruuta",
         "CREATE": "Luo",
         "VALIDATION": {
-          "MIN": "Kansion nimen on oltava vähintään 3 merkkiä pitkä.",
-          "MAX": "Kansion nimi saa olla enintään 63 merkkiä pitkä.",
-          "EDGE_DASH": "Kansion nimi ei saa alkaa tai päättyä yhdysmerkkiin.",
-          "DOUBLE_DASH": "Kansion nimi ei saa sisältää peräkkäisiä yhdysmerkkejä.",
-          "CHARS": "Kansion nimi saa sisältää vain pieniä kirjaimia, numeroita, välilyöntejä ja yksittäisiä yhdysmerkkejä."
+          "INVALID_PATH": "Kansion nimi ei voi sisältää vinoviivoja tai ohjausmerkkejä."
         }
       },
       "CONFIRM": {
         "DELETE_SINGLE": "Poistetaanko {name}?",
-        "DELETE_SELECTED": "Poistetaanko {count} valittua resurssia?"
+        "DELETE_SELECTED": "Poistetaanko {count} valittua resurssia?",
+        "DELETE_USED_ONE": "Poistetaanko {name}? Sitä käytetään 1 Page Builder -sivulla.",
+        "DELETE_USED_MANY": "Poistetaanko {name}? Sitä käytetään {count} Page Builder -sivulla."
       },
       "NOTIFICATIONS": {
         "FOLDER_CREATED": "Kansio luotu onnistuneesti",

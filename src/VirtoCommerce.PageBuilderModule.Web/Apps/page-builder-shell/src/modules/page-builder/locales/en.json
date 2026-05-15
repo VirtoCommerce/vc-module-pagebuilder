@@ -72,16 +72,14 @@
         "CANCEL": "Cancel",
         "CREATE": "Create",
         "VALIDATION": {
-          "MIN": "Folder name must be at least 3 characters long.",
-          "MAX": "Folder name must be at most 63 characters long.",
-          "EDGE_DASH": "Folder name must not start or end with a dash.",
-          "DOUBLE_DASH": "Folder name must not contain consecutive dashes.",
-          "CHARS": "Folder name must only contain lowercase letters, numbers, spaces, and single dashes."
+          "INVALID_PATH": "Folder name cannot contain slashes or control characters."
         }
       },
       "CONFIRM": {
         "DELETE_SINGLE": "Delete {name}?",
-        "DELETE_SELECTED": "Delete {count} selected asset(s)?"
+        "DELETE_USED_ONE": "Delete {name}? It is used on 1 Page Builder page.",
+        "DELETE_USED_MANY": "Delete {name}? It is used on {count} Page Builder pages.",
+        "DELETE_SELECTED": "Delete {count} selected assets?"
       },
       "NOTIFICATIONS": {
         "FOLDER_CREATED": "Folder created successfully",

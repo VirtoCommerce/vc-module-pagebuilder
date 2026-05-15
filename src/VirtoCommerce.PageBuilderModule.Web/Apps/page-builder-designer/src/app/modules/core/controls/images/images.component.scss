@@ -16,6 +16,15 @@
         min-height: 2.75rem;
         justify-content: center;
     }
+
+    &--drag-over ::ng-deep button {
+        background: rgba(22, 101, 216, 0.06);
+        box-shadow: 0 0 0 2px rgba(22, 101, 216, 0.12);
+    }
+
+    &--uploading {
+        pointer-events: none;
+    }
 }
 
 .list-item {
@@ -54,26 +63,11 @@
     }
 }
 
-mat-spinner {
-    width: 100% !important;
-    height: 100% !important;
-
-    ::ng-deep svg {
-        width: 100% !important;
-        height: 100% !important;
-    }
-}
-
 .error {
     color: #FF0000;
     background-color: white;
     font-size: .75rem;
     @apply break-all px-6;
-
-    .reload {
-        @apply cursor-pointer;
-        color: #1665d8;
-    }
 }
 
 .actions {
@@ -82,7 +76,6 @@ mat-spinner {
     @apply flex flex-row space-x-1;
 }
 
-.spinner,
 .image-item {
     min-width: 3.5rem;
     @apply flex flex-row justify-center items-center w-14 h-14;

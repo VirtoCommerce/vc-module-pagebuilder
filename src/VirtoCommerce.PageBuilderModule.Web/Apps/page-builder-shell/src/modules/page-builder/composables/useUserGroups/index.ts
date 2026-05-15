@@ -1,6 +1,6 @@
 import { computed, Ref, ref } from "vue";
 import { useApiClient } from "@vc-shell/framework";
-import { PageBuilderPageClient } from "../../../../api_client/virtocommerce.pagebuildermodule";
+import { PageBuilderPageSettingsClient } from "../../../../api_client/virtocommerce.pagebuildermodule";
 
 export interface IUserGroup {
   name: string;
@@ -17,7 +17,7 @@ export interface IUseUserGroups {
   getUserGroups(): Promise<IUserGroupsResult>;
 }
 
-const { getApiClient } = useApiClient(PageBuilderPageClient);
+const { getApiClient } = useApiClient(PageBuilderPageSettingsClient);
 
 export default (): IUseUserGroups => {
   const loading = ref(false);

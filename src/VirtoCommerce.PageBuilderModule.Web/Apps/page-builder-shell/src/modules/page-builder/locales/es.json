@@ -196,16 +196,14 @@
         "CANCEL": "Cancelar",
         "CREATE": "Crear",
         "VALIDATION": {
-          "MIN": "El nombre de la carpeta debe tener al menos 3 caracteres.",
-          "MAX": "El nombre de la carpeta debe tener como máximo 63 caracteres.",
-          "EDGE_DASH": "El nombre de la carpeta no debe empezar ni terminar con un guion.",
-          "DOUBLE_DASH": "El nombre de la carpeta no debe contener guiones consecutivos.",
-          "CHARS": "El nombre de la carpeta solo puede contener letras minúsculas, números, espacios y guiones simples."
+          "INVALID_PATH": "El nombre de la carpeta no puede contener barras ni caracteres de control."
         }
       },
       "CONFIRM": {
         "DELETE_SINGLE": "¿Eliminar {name}?",
-        "DELETE_SELECTED": "¿Eliminar {count} activo(s) seleccionado(s)?"
+        "DELETE_SELECTED": "¿Eliminar {count} activo(s) seleccionado(s)?",
+        "DELETE_USED_ONE": "¿Eliminar {name}? Se usa en 1 página de Page Builder.",
+        "DELETE_USED_MANY": "¿Eliminar {name}? Se usa en {count} páginas de Page Builder."
       },
       "NOTIFICATIONS": {
         "FOLDER_CREATED": "Carpeta creada correctamente",

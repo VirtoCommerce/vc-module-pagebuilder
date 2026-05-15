@@ -1,15 +1,18 @@
-import { computed, ref, watch, type ComputedRef, type Ref } from "vue";
+import { computed, onUnmounted, ref, watch, type ComputedRef, type Ref } from "vue";
 import {
   type Breadcrumbs,
-  getFileThumbnail,
-  isImage as isImageName,
   readableSize,
   useAsync,
   useBreadcrumbs,
   useLoading,
 } from "@vc-shell/framework";
 import useUrlParams from "../useStoreParams";
-import { AssetEntry, createAssetFolder, deleteAssets, searchAssetReferences, searchAssets, uploadAsset } from "../useAssetsLibraryApi";
+import type { AssetEntry } from "../useAssetsLibraryApi";
+import { createAssetFolder, deleteAssets, searchAssets, uploadAsset } from "../useAssetsLibraryApi";
+import { formatAssetDate, getAssetPath, getAssetPublicUrl, getPreviewUrl, safeDecode } from "./assetLibraryHelpers";
+import { getAssetKey, getEntryIcon, getFolderUrl, getReferencesCount, isImageEntry } from "./assetLibraryEntry";
+import { useAssetReferences } from "./useAssetReferences";
+import { useAssetSelection } from "./useAssetSelection";
 
 interface UploadAssetsPayload {
   files: File[];
@@ -36,6 +39,7 @@ export interface IUseAssetsLibrary {
   getEntryIcon: (entry: AssetEntry) => string;
   getReferencesCount: (entry: AssetEntry) => number;
   getReferencePages: (entry: AssetEntry | undefined) => NonNullable<AssetEntry["referencePages"]>;
+  getDeleteReferencesCount: (entry: AssetEntry) => Promise<number>;
   formatFileSize: (size?: number) => string;
   formatDate: (value?: string) => string;
   getAssetPath: (entry: AssetEntry) => string;
@@ -47,74 +51,27 @@ export interface IUseAssetsLibrary {
   deleteEntry: (entry: AssetEntry) => Promise<void>;
 }
 
-function ensureLeadingSlash(value: string): string {
-  return value.startsWith("/") ? value : `/${value}`;
-}
-
-function normalizeAssetUrl(value: string | undefined): string | undefined {
-  if (!value?.trim()) {
-    return undefined;
-  }
-
-  let normalized = value.trim();
-
-  try {
-    const parsedUrl = new URL(normalized, window.location.origin);
-    normalized = parsedUrl.pathname;
-  } catch {
-    normalized = normalized.split(/[?#]/, 1)[0];
-  }
-
-  if (normalized.toLowerCase().startsWith("/assets/")) {
-    normalized = normalized.slice("/assets".length);
-  }
-
-  try {
-    normalized = decodeURIComponent(normalized);
-  } catch {
-    // Keep the original value if it contains invalid escape sequences.
-  }
-
-  return ensureLeadingSlash(normalized);
-}
-
-function getAssetKey(entry: AssetEntry | undefined): string | undefined {
-  return entry?.relativeUrl || entry?.url;
-}
-
-function isImage(entry: AssetEntry | undefined): boolean {
-  if (!entry || entry.type !== "blob") {
-    return false;
-  }
-
-  if (entry.contentType?.startsWith("image/")) {
-    return true;
-  }
-
-  return isImageName(entry.name) || /\.(avif|bmp|ico|webp)$/i.test(entry.name);
-}
-
-function getEntryIcon(entry: AssetEntry): string {
-  if (entry.type === "folder") {
-    return "material-folder";
-  }
-
-  return getFileThumbnail(entry.name);
-}
-
-function getReferencesCount(entry: AssetEntry): number {
-  return entry.type === "blob" ? entry.referencesCount ?? 0 : 0;
-}
-
 export function useAssetsLibrary(t: (key: string) => string): IUseAssetsLibrary {
   const { storeId, initUrlParams } = useUrlParams();
   const entries = ref<AssetEntry[]>([]);
   const totalCount = ref(0);
   const currentFolderUrl = ref("");
   const searchValue = ref<string>();
-  const selectedAsset = ref<AssetEntry>();
-  const selectedAssetDimensions = ref<string>();
-  const assetReferences = ref<Record<string, Pick<AssetEntry, "referencesCount" | "referencePages">>>({});
+  const {
+    selectedAsset,
+    selectedAssetDimensions,
+    clearSelection,
+    selectAsset,
+    refreshSelection,
+  } = useAssetSelection();
+  const {
+    resetAssetReferences,
+    loadAssetReferences,
+    loadAssetReferencePages,
+    applyAssetReferences,
+    getReferencePages,
+    getDeleteReferencesCount,
+  } = useAssetReferences(storeId);
   const currentBreadcrumbIds = ref<string[]>([]);
   const { breadcrumbs, push: pushBreadcrumb, remove: removeBreadcrumbs } = useBreadcrumbs();
 
@@ -146,7 +103,7 @@ export function useAssetsLibrary(t: (key: string) => string): IUseAssetsLibrary 
       accumulated = `${accumulated}/${segment}`;
       items.push({
         id: accumulated,
-        title: decodeURIComponent(segment),
+        title: safeDecode(segment),
         clickHandler: navigateToFolder,
       });
     });
@@ -167,189 +124,35 @@ export function useAssetsLibrary(t: (key: string) => string): IUseAssetsLibrary 
 
   watch([currentFolderUrl, rootFolderUrl], syncBreadcrumbs, { immediate: true });
 
-  watch(selectedAsset, (value) => {
-    selectedAssetDimensions.value = undefined;
-
-    if (!value || !isImage(value)) {
-      return;
+  onUnmounted(() => {
+    if (currentBreadcrumbIds.value.length) {
+      removeBreadcrumbs(currentBreadcrumbIds.value);
+      currentBreadcrumbIds.value = [];
     }
-
-    const previewUrl = getPreviewUrl(value);
-
-    if (!previewUrl) {
-      return;
-    }
-
-    const image = new Image();
-    image.onload = () => {
-      if (getPreviewUrl(selectedAsset.value) !== previewUrl) {
-        return;
-      }
-
-      selectedAssetDimensions.value = `${image.naturalWidth} x ${image.naturalHeight}`;
-    };
-    image.src = previewUrl;
   });
 
   function formatDate(value?: string): string {
-    if (!value) {
-      return t("PAGE_BUILDER.ASSETS.DETAILS.NOT_AVAILABLE");
-    }
-
-    return new Intl.DateTimeFormat(undefined, {
-      dateStyle: "medium",
-    }).format(new Date(value));
-  }
-
-  function getAssetPublicUrl(entry: AssetEntry): string | undefined {
-    if (entry.relativeUrl) {
-      return new URL(`/assets${ensureLeadingSlash(entry.relativeUrl)}`, window.location.origin).toString();
-    }
-
-    if (!entry.url) {
-      return undefined;
-    }
-
-    try {
-      const parsedUrl = new URL(entry.url, window.location.origin);
-
-      if (parsedUrl.pathname.startsWith("/assets/")) {
-        return new URL(`${parsedUrl.pathname}${parsedUrl.search}`, window.location.origin).toString();
-      }
-
-      return parsedUrl.toString();
-    } catch {
-      return entry.url;
-    }
-  }
-
-  function getAssetPath(entry: AssetEntry): string {
-    const publicUrl = getAssetPublicUrl(entry);
-
-    if (!publicUrl) {
-      return entry.relativeUrl || entry.url || "";
-    }
-
-    try {
-      const parsedUrl = new URL(publicUrl);
-      return `${parsedUrl.pathname}${parsedUrl.search}`;
-    } catch {
-      return publicUrl;
-    }
-  }
-
-  function getPreviewUrl(entry: AssetEntry | undefined): string | undefined {
-    if (!entry) {
-      return undefined;
-    }
-
-    const publicUrl = getAssetPublicUrl(entry);
-
-    if (!publicUrl) {
-      return undefined;
-    }
-
-    if (!entry.modifiedDate) {
-      return publicUrl;
-    }
-
-    const separator = publicUrl.includes("?") ? "&" : "?";
-    return `${publicUrl}${separator}t=${encodeURIComponent(entry.modifiedDate)}`;
-  }
-
-  function getFolderUrl(entry: AssetEntry): string {
-    if (entry.type === "folder") {
-      return entry.relativeUrl || entry.url || currentFolderUrl.value;
-    }
-
-    const relativeUrl = entry.relativeUrl || "";
-    const suffix = `/${entry.name}`;
-
-    if (relativeUrl.endsWith(suffix)) {
-      return relativeUrl.slice(0, -suffix.length);
-    }
-
-    return currentFolderUrl.value;
+    return formatAssetDate(value) ?? t("PAGE_BUILDER.ASSETS.DETAILS.NOT_AVAILABLE");
   }
 
   const { action: loadEntries, loading: loadingEntries } = useAsync<string | undefined>(async (preferredSelectionUrl) => {
     if (!currentFolderUrl.value) {
       entries.value = [];
       totalCount.value = 0;
-      assetReferences.value = {};
+      resetAssetReferences();
       return;
     }
 
     const result = await searchAssets(currentFolderUrl.value, searchValue.value?.trim());
-    assetReferences.value = await loadAssetReferences(result.results);
+    await loadAssetReferences(result.results);
     entries.value = result.results.map(applyAssetReferences);
     totalCount.value = result.totalCount;
+    refreshSelection(entries.value, preferredSelectionUrl);
 
-    if (preferredSelectionUrl) {
-      selectedAsset.value = entries.value.find((entry) => getAssetKey(entry) === preferredSelectionUrl);
-    } else if (selectedAsset.value) {
-      const selectedKey = getAssetKey(selectedAsset.value);
-      selectedAsset.value = selectedKey
-        ? entries.value.find((entry) => getAssetKey(entry) === selectedKey)
-        : undefined;
+    if (selectedAsset.value?.type === "blob") {
+      await loadAssetReferencePages(selectedAsset.value);
     }
   });
-
-  async function loadAssetReferences(assetEntries: AssetEntry[]) {
-    const assetUrls = assetEntries
-      .filter((entry) => entry.type === "blob")
-      .map((entry) => entry.relativeUrl || entry.url)
-      .filter((url): url is string => !!url);
-
-    if (!storeId.value || !assetUrls.length) {
-      return {};
-    }
-
-    let references: Awaited<ReturnType<typeof searchAssetReferences>> = [];
-
-    try {
-      references = await searchAssetReferences(storeId.value, assetUrls, true);
-    } catch {
-      // Keep the asset library usable if reference lookup is temporarily unavailable.
-    }
-
-    return references.reduce<Record<string, Pick<AssetEntry, "referencesCount" | "referencePages">>>((result, reference) => {
-      const value = {
-        referencesCount: reference.referencesCount,
-        referencePages: reference.pages ?? [],
-      };
-
-      [reference.assetUrl, reference.normalizedAssetUrl, normalizeAssetUrl(reference.assetUrl)]
-        .filter((url): url is string => !!url)
-        .forEach((url) => {
-          result[url] = value;
-        });
-
-      return result;
-    }, {});
-  }
-
-  function applyAssetReferences(entry: AssetEntry): AssetEntry {
-    const references = getAssetReference(entry);
-    return references ? { ...entry, ...references } : entry;
-  }
-
-  function getAssetReference(entry: AssetEntry | undefined): Pick<AssetEntry, "referencesCount" | "referencePages"> | undefined {
-    if (!entry) {
-      return undefined;
-    }
-
-    return [
-      entry.relativeUrl,
-      entry.url,
-      getAssetPublicUrl(entry),
-      normalizeAssetUrl(entry.relativeUrl),
-      normalizeAssetUrl(entry.url),
-    ]
-      .filter((url): url is string => !!url)
-      .map((url) => assetReferences.value[url])
-      .find(Boolean);
-  }
 
   const { action: createFolderAction, loading: loadingCreateFolder } = useAsync<string>(async (name) => {
     if (!name || !currentFolderUrl.value) {
@@ -390,7 +193,7 @@ export function useAssetsLibrary(t: (key: string) => string): IUseAssetsLibrary 
       lastModified: replacement.lastModified,
     });
 
-    await uploadAsset(getFolderUrl(selectedAsset.value), renamedFile);
+    await uploadAsset(getFolderUrl(selectedAsset.value, currentFolderUrl.value), renamedFile);
     await reload(getAssetKey(selectedAsset.value));
   });
 
@@ -430,11 +233,8 @@ export function useAssetsLibrary(t: (key: string) => string): IUseAssetsLibrary 
       return;
     }
 
-    selectedAsset.value = entry;
-  }
-
-  function clearSelection() {
-    selectedAsset.value = undefined;
+    selectAsset(entry);
+    await loadAssetReferencePages(entry);
   }
 
   async function initialize() {
@@ -462,10 +262,11 @@ export function useAssetsLibrary(t: (key: string) => string): IUseAssetsLibrary 
     clearSelection,
     navigateToFolder,
     onEntryClick,
-    isImage,
+    isImage: isImageEntry,
     getEntryIcon,
     getReferencesCount,
-    getReferencePages: (entry) => getAssetReference(entry)?.referencePages ?? [],
+    getReferencePages,
+    getDeleteReferencesCount,
     formatFileSize: readableSize,
     formatDate,
     getAssetPath,

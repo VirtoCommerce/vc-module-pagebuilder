@@ -1,24 +1,35 @@
 <label class="pb-label" [attr.title]="descriptor?.hint">{{ descriptor?.label }}</label>
-@if (control()) {
-  <div>
-    <file-upload [control]="control()!" [multiple]="multiple()">
-      <ng-template let-isFileDragDropAvailable="isFileDragDropAvailable" #placeholder>
-        @if (isFileDragDropAvailable) {
-          <div>
-            Add file or drop files to upload
-          </div>
-        }
-        @if (!isFileDragDropAvailable) {
-          <span>Add file</span>
-        }
-      </ng-template>
-    </file-upload>
+<div>
+    @if (useLegacyUploadControl() && control()) {
+      <file-upload [control]="control()!" [multiple]="multiple()">
+        <ng-template let-isFileDragDropAvailable="isFileDragDropAvailable" #placeholder>
+          @if (isFileDragDropAvailable) {
+            <div>
+              Add file or drop files to upload
+            </div>
+          }
+          @if (!isFileDragDropAvailable) {
+            <span>Add file</span>
+          }
+        </ng-template>
+      </file-upload>
+    } @else {
     <app-icon-button
       class="choose-from-library"
+      [ngClass]="{
+        'choose-from-library--drag-over': assetLibraryDropActive(),
+        'choose-from-library--uploading': assetLibraryUploading()
+      }"
       skin="outline"
       icon="folder_open"
-      text="Choose from library"
-      (click)="chooseFromLibrary()" />
+      [text]="assetLibraryUploading() ? assetLibraryLabels.uploading : assetLibraryLabels.chooseOrDrop"
+      [disabled]="assetLibraryUploading()"
+      (click)="chooseFromLibrary()"
+      (dragenter)="onAssetLibraryButtonDragEnter($event)"
+      (dragover)="onAssetLibraryButtonDragOver($event)"
+      (dragleave)="onAssetLibraryButtonDragLeave($event)"
+      (drop)="onAssetLibraryButtonDrop($event)" />
+    }
     @if (descriptor?.info) {
       <p class="info">{{ descriptor?.info }}</p>
     }
@@ -57,9 +68,11 @@
               @if (file.error) {
                 <div class="error">
                     {{ $any(file).error }}<br />
-                    <span class="reload" (click)="uploadItem(file)">
+                    @if (useLegacyUploadControl()) {
+                      <span class="reload" (click)="uploadItem(file)">
                         reload
-                    </span>
+                      </span>
+                    }
                 </div>
               }
               @if (selectedFile() === file && elementForm() && descriptor && !isDrag()) {
@@ -79,5 +92,4 @@
         [text]="expanded() ? 'Show less' : 'Show all'"
       (click)="toggleList()" />
     }
-  </div>
-}
+</div>

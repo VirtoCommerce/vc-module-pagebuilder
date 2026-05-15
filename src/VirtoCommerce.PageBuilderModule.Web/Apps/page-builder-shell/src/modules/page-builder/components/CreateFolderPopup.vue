@@ -1,5 +1,6 @@
 <template>
   <VcPopup
+    class="assets-library-create-folder-popup"
     :title="$t('PAGE_BUILDER.ASSETS.CREATE_FOLDER.TITLE')"
     is-mobile-fullscreen
     @close="emit('close')"
@@ -78,24 +79,8 @@ const folderNameError = computed(() => {
     return undefined;
   }
 
-  if (value.length < 3) {
-    return t("PAGE_BUILDER.ASSETS.CREATE_FOLDER.VALIDATION.MIN");
-  }
-
-  if (value.length > 63) {
-    return t("PAGE_BUILDER.ASSETS.CREATE_FOLDER.VALIDATION.MAX");
-  }
-
-  if (value.startsWith("-") || value.endsWith("-")) {
-    return t("PAGE_BUILDER.ASSETS.CREATE_FOLDER.VALIDATION.EDGE_DASH");
-  }
-
-  if (value.includes("--")) {
-    return t("PAGE_BUILDER.ASSETS.CREATE_FOLDER.VALIDATION.DOUBLE_DASH");
-  }
-
-  if (!/^[0-9a-z -]+$/.test(value)) {
-    return t("PAGE_BUILDER.ASSETS.CREATE_FOLDER.VALIDATION.CHARS");
+  if (/[\\/]|[\u0000-\u001f]/.test(value)) {
+    return t("PAGE_BUILDER.ASSETS.CREATE_FOLDER.VALIDATION.INVALID_PATH");
   }
 
   return undefined;
@@ -112,7 +97,7 @@ function submit() {
 }
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .assets-library-create-folder {
   width: min(100%, 24rem);
 
@@ -127,7 +112,7 @@ function submit() {
   }
 }
 
-.vc-popup__content-inner:has(.assets-library-create-folder) {
+.assets-library-create-folder-popup :deep(.vc-popup__content-inner) {
   overflow-y: visible;
 }
 </style>

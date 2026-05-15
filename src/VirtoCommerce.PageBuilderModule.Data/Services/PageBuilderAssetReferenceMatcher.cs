@@ -122,11 +122,83 @@ public class PageBuilderAssetReferenceMatcher
 
         foreach (var candidate in candidates)
         {
-            if (candidate.Value.Any(x => value.Contains(x, StringComparison.OrdinalIgnoreCase)))
+            if (candidate.Value.Any(x => ContainsReference(value, x)))
             {
                 result.Add(candidate.Key);
             }
         }
+    }
+
+    private static bool ContainsReference(string value, string candidate)
+    {
+        var startIndex = 0;
+
+        while (startIndex < value.Length)
+        {
+            var index = value.IndexOf(candidate, startIndex, StringComparison.OrdinalIgnoreCase);
+            if (index < 0)
+            {
+                return false;
+            }
+
+            var endIndex = index + candidate.Length;
+            if (IsReferenceStartBoundary(value, index) && IsReferenceEndBoundary(value, endIndex))
+            {
+                return true;
+            }
+
+            startIndex = index + 1;
+        }
+
+        return false;
+    }
+
+    private static bool IsReferenceStartBoundary(string value, int index)
+    {
+        if (index <= 0)
+        {
+            return true;
+        }
+
+        return IsReferenceDelimiter(value[index - 1]) || HasAbsoluteUrlOriginBefore(value, index);
+    }
+
+    private static bool HasAbsoluteUrlOriginBefore(string value, int index)
+    {
+        var originStart = value.LastIndexOf("://", index, StringComparison.Ordinal);
+        if (originStart < 0)
+        {
+            return false;
+        }
+
+        for (var i = originStart + 3; i < index; i++)
+        {
+            if (value[i] == '/')
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool IsReferenceEndBoundary(string value, int index)
+    {
+        if (index >= value.Length)
+        {
+            return true;
+        }
+
+        return IsReferenceDelimiter(value[index]);
+    }
+
+    private static bool IsReferenceDelimiter(char value)
+    {
+        return value switch
+        {
+            '?' or '&' or '#' or '"' or '\'' or '(' or ')' or '[' or ']' or '{' or '}' or '<' or '>' or ',' or ';' or '=' or ':' or '/' => true,
+            var character => char.IsWhiteSpace(character)
+        };
     }
 
     private static IReadOnlyList<string> BuildCandidates(string normalizedAssetUrl)

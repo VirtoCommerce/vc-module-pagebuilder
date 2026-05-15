@@ -196,16 +196,14 @@
         "CANCEL": "Annuler",
         "CREATE": "Créer",
         "VALIDATION": {
-          "MIN": "Le nom du dossier doit contenir au moins 3 caractères.",
-          "MAX": "Le nom du dossier doit contenir au maximum 63 caractères.",
-          "EDGE_DASH": "Le nom du dossier ne doit pas commencer ni se terminer par un tiret.",
-          "DOUBLE_DASH": "Le nom du dossier ne doit pas contenir de tirets consécutifs.",
-          "CHARS": "Le nom du dossier ne doit contenir que des lettres minuscules, des chiffres, des espaces et des tirets simples."
+          "INVALID_PATH": "Le nom du dossier ne peut pas contenir de barres obliques ni de caractères de contrôle."
         }
       },
       "CONFIRM": {
         "DELETE_SINGLE": "Supprimer {name} ?",
-        "DELETE_SELECTED": "Supprimer {count} ressource(s) sélectionnée(s) ?"
+        "DELETE_SELECTED": "Supprimer {count} ressource(s) sélectionnée(s) ?",
+        "DELETE_USED_ONE": "Supprimer {name} ? Il est utilisé sur 1 page Page Builder.",
+        "DELETE_USED_MANY": "Supprimer {name} ? Il est utilisé sur {count} pages Page Builder."
       },
       "NOTIFICATIONS": {
         "FOLDER_CREATED": "Dossier créé avec succès",

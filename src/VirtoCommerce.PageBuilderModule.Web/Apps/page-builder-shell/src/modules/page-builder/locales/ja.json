@@ -196,16 +196,14 @@
         "CANCEL": "キャンセル",
         "CREATE": "作成",
         "VALIDATION": {
-          "MIN": "フォルダー名は3文字以上である必要があります。",
-          "MAX": "フォルダー名は63文字以内である必要があります。",
-          "EDGE_DASH": "フォルダー名の先頭または末尾にハイフンは使用できません。",
-          "DOUBLE_DASH": "フォルダー名に連続するハイフンは使用できません。",
-          "CHARS": "フォルダー名には小文字、数字、スペース、単独のハイフンのみ使用できます。"
+          "INVALID_PATH": "フォルダー名にスラッシュまたは制御文字を含めることはできません。"
         }
       },
       "CONFIRM": {
         "DELETE_SINGLE": "{name} を削除しますか？",
-        "DELETE_SELECTED": "選択した {count} 件のアセットを削除しますか？"
+        "DELETE_SELECTED": "選択した {count} 件のアセットを削除しますか？",
+        "DELETE_USED_ONE": "{name} を削除しますか？1 件の Page Builder ページで使用されています。",
+        "DELETE_USED_MANY": "{name} を削除しますか？{count} 件の Page Builder ページで使用されています。"
       },
       "NOTIFICATIONS": {
         "FOLDER_CREATED": "フォルダーを作成しました",

@@ -102,4 +102,96 @@ public class PageBuilderAssetReferenceMatcherTests
 
         Assert.Contains(assetUrl, result);
     }
+
+    [Fact]
+    public void FindReferences_DoesNotMatchAssetUrlAsSubstringOfAnotherPath()
+    {
+        var assetUrl = _matcher.NormalizeAssetUrl("/stores/B2B-store/Page Builder/2222/hero.png");
+        var content = """
+            {
+              "image": "/assets/stores/B2B-store/Page%20Builder/2222/hero.png.backup",
+              "anotherImage": "/assets/stores/B2B-store/Page%20Builder/2222/hero.png2",
+              "nestedImage": "/archive/stores/B2B-store/Page Builder/2222/hero.png"
+            }
+            """;
+
+        var result = _matcher.FindReferences(content, [assetUrl]);
+
+        Assert.DoesNotContain(assetUrl, result);
+    }
+
+    [Fact]
+    public void FindReferences_MatchesAssetUrlInsideAbsoluteCssUrl()
+    {
+        var assetUrl = _matcher.NormalizeAssetUrl("/stores/B2B-store/Page Builder/2222/hero.png");
+        var content = """
+            {
+              "style": "background-image: url(\"https://localhost:5001/assets/stores/B2B-store/Page%20Builder/2222/hero.png?t=1\")"
+            }
+            """;
+
+        var result = _matcher.FindReferences(content, [assetUrl]);
+
+        Assert.Contains(assetUrl, result);
+    }
+
+    [Fact]
+    public void FindReferences_MatchesUnquotedCssUrl()
+    {
+        var assetUrl = _matcher.NormalizeAssetUrl("/stores/B2B-store/Page Builder/2222/hero.png");
+        var content = """
+            {
+              "style": "background-image: url(/assets/stores/B2B-store/Page%20Builder/2222/hero.png)"
+            }
+            """;
+
+        var result = _matcher.FindReferences(content, [assetUrl]);
+
+        Assert.Contains(assetUrl, result);
+    }
+
+    [Fact]
+    public void FindReferences_MatchesUnquotedHtmlAttributeUrl()
+    {
+        var assetUrl = _matcher.NormalizeAssetUrl("/stores/B2B-store/Page Builder/2222/hero.png");
+        var content = """
+            {
+              "html": "<img src=/assets/stores/B2B-store/Page%20Builder/2222/hero.png>"
+            }
+            """;
+
+        var result = _matcher.FindReferences(content, [assetUrl]);
+
+        Assert.Contains(assetUrl, result);
+    }
+
+    [Fact]
+    public void FindReferences_MatchesAssetUrlBeforeQueryParameterSeparator()
+    {
+        var assetUrl = _matcher.NormalizeAssetUrl("/stores/B2B-store/Page Builder/2222/hero.png");
+        var content = """
+            {
+              "link": "/preview?image=/assets/stores/B2B-store/Page%20Builder/2222/hero.png&width=1200"
+            }
+            """;
+
+        var result = _matcher.FindReferences(content, [assetUrl]);
+
+        Assert.Contains(assetUrl, result);
+    }
+
+    [Fact]
+    public void FindReferences_MatchesAssetUrlInsideSelfClosingHtmlTag()
+    {
+        var assetUrl = _matcher.NormalizeAssetUrl("/stores/B2B-store/Page Builder/2222/hero.png");
+        var content = """
+            {
+              "html": "<img src=/assets/stores/B2B-store/Page%20Builder/2222/hero.png/>"
+            }
+            """;
+
+        var result = _matcher.FindReferences(content, [assetUrl]);
+
+        Assert.Contains(assetUrl, result);
+    }
 }

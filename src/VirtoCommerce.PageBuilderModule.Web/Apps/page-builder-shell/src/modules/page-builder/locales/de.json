@@ -196,16 +196,14 @@
         "CANCEL": "Abbrechen",
         "CREATE": "Erstellen",
         "VALIDATION": {
-          "MIN": "Der Ordnername muss mindestens 3 Zeichen lang sein.",
-          "MAX": "Der Ordnername darf höchstens 63 Zeichen lang sein.",
-          "EDGE_DASH": "Der Ordnername darf nicht mit einem Bindestrich beginnen oder enden.",
-          "DOUBLE_DASH": "Der Ordnername darf keine aufeinanderfolgenden Bindestriche enthalten.",
-          "CHARS": "Der Ordnername darf nur Kleinbuchstaben, Zahlen, Leerzeichen und einzelne Bindestriche enthalten."
+          "INVALID_PATH": "Ordnername darf keine Schrägstriche oder Steuerzeichen enthalten."
         }
       },
       "CONFIRM": {
         "DELETE_SINGLE": "{name} löschen?",
-        "DELETE_SELECTED": "{count} ausgewählte Asset(s) löschen?"
+        "DELETE_SELECTED": "{count} ausgewählte Asset(s) löschen?",
+        "DELETE_USED_ONE": "{name} löschen? Es wird auf 1 Page Builder-Seite verwendet.",
+        "DELETE_USED_MANY": "{name} löschen? Es wird auf {count} Page Builder-Seiten verwendet."
       },
       "NOTIFICATIONS": {
         "FOLDER_CREATED": "Ordner erfolgreich erstellt",

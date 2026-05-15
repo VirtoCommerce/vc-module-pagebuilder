@@ -3,65 +3,24 @@
     v-loading="loading"
     class="assets-library tw-flex tw-h-full tw-flex-col"
   >
-    <div class="assets-library__toolbar">
-      <div class="assets-library__toolbar-actions">
-        <VcButton
-          v-if="canCreate"
-          icon="material-upload"
-          @click="openUploadDialog"
-        >
-          {{ $t("PAGE_BUILDER.ASSETS.TOOLBAR.UPLOAD") }}
-        </VcButton>
-
-        <VcButton
-          v-if="canCreate"
-          variant="secondary"
-          icon="material-create_new_folder"
-          @click="openCreateFolderPopup"
-        >
-          {{ $t("PAGE_BUILDER.ASSETS.TOOLBAR.CREATE_FOLDER") }}
-        </VcButton>
-      </div>
-
-      <VcInput
-        :model-value="searchValue"
-        class="assets-library__search"
-        clearable
-        :placeholder="$t('PAGE_BUILDER.ASSETS.TOOLBAR.SEARCH_PLACEHOLDER')"
-        @update:model-value="onSearchChange"
-      />
-
-      <VcHint class="assets-library__counter">
-        {{ $t("PAGE_BUILDER.ASSETS.COUNTER", { count: totalCount }) }}
-      </VcHint>
-
-      <div class="assets-library__view-toggle">
-        <VcButton
-          text
-          icon="material-grid_view"
-          :title="$t('PAGE_BUILDER.ASSETS.VIEW.GRID')"
-          class="assets-library__view-button"
-          :class="{ 'assets-library__view-button--active': viewMode === 'grid' }"
-          @click="viewMode = 'grid'"
-        />
-        <VcButton
-          text
-          icon="material-view_list"
-          :title="$t('PAGE_BUILDER.ASSETS.VIEW.TABLE')"
-          class="assets-library__view-button"
-          :class="{ 'assets-library__view-button--active': viewMode === 'table' }"
-          @click="viewMode = 'table'"
-        />
-      </div>
-    </div>
+    <AssetLibraryToolbar
+      :can-create="canCreate"
+      :search-value="searchValue"
+      :total-count="totalCount"
+      :view-mode="viewMode"
+      @upload="openUploadDialog"
+      @create-folder="openCreateFolderPopup"
+      @search-change="onSearchChange"
+      @update:view-mode="viewMode = $event"
+    />
 
     <div class="assets-library__body">
       <section
         class="assets-library__content"
         :class="{ 'assets-library__content--drag-over': isDraggingOverSurface }"
         @click="clearSelection"
-        @dragenter.prevent="handleSurfaceDragEnter"
-        @dragover.prevent="handleSurfaceDragOver"
+        @dragenter.prevent="handleSurfaceDrag"
+        @dragover.prevent="handleSurfaceDrag"
         @dragleave="handleSurfaceDragLeave"
         @drop.prevent="handleSurfaceDrop"
       >
@@ -69,7 +28,10 @@
           class="assets-library__breadcrumbs"
           @click.stop
         >
-          <VcBreadcrumbs :items="breadcrumbs" />
+          <VcBreadcrumbs
+            :items="breadcrumbs"
+            separated
+          />
         </div>
 
         <div
@@ -83,168 +45,28 @@
           <span>{{ $t("PAGE_BUILDER.ASSETS.DROP.UPLOAD_HERE") }}</span>
         </div>
 
-        <div
-          v-if="entries.length && viewMode === 'grid'"
-          class="assets-library__grid"
-        >
-          <article
-            v-for="entry in entries"
-            :key="getEntryKey(entry)"
-            class="asset-card"
-            :class="{
-              'asset-card--selected': isEntrySelected(entry),
-              'asset-card--folder': entry.type === 'folder',
-              'asset-card--drop-target': entry.type === 'folder' && draggedFolderUrl === getEntryDropFolderUrl(entry),
-            }"
-            @click.stop="handleEntryClick(entry)"
-            @dragenter.prevent.stop="handleFolderDragEnter(entry, $event)"
-            @dragover.prevent.stop="handleFolderDragOver(entry, $event)"
-            @dragleave.stop="handleFolderDragLeave(entry, $event)"
-            @drop.prevent.stop="handleFolderDrop(entry, $event)"
-          >
-            <div class="asset-card__actions">
-              <VcButton
-                v-if="entry.type === 'blob'"
-                icon="material-content_copy"
-                text
-                @click.stop="copyAssetUrl(entry)"
-              />
-              <VcButton
-                v-if="canDelete"
-                icon="material-delete"
-                text
-                @click.stop="confirmDelete(entry)"
-              />
-            </div>
+        <AssetLibraryGrid
+          v-if="entryViewModels.length && viewMode === 'grid'"
+          :entries="entryViewModels"
+          :can-delete="canDelete"
+          @entry-click="handleEntryClick"
+          @folder-drag="handleFolderDrag"
+          @folder-drag-leave="handleFolderDragLeave"
+          @folder-drop="handleFolderDrop"
+          @copy="copyAssetUrl"
+          @delete="confirmDelete"
+        />
 
-            <div class="asset-card__preview">
-              <div
-                v-if="entry.type === 'blob'"
-                class="asset-card__references"
-              >
-                {{ $t("PAGE_BUILDER.ASSETS.BADGES.REFERENCES", { count: getReferencesCount(entry) }) }}
-              </div>
-
-              <template v-if="entry.type === 'folder'">
-                <VcIcon
-                  icon="material-folder"
-                  class="asset-card__folder-icon"
-                />
-              </template>
-              <template v-else-if="isImage(entry)">
-                <div class="asset-card__image-frame">
-                  <VcImage
-                    :src="getPreviewUrl(entry)"
-                    aspect="16x9"
-                    background="contain"
-                    empty-icon="material-image"
-                    class="asset-card__image"
-                  />
-                </div>
-              </template>
-              <template v-else>
-                <VcIcon
-                  :icon="getEntryIcon(entry)"
-                  class="asset-card__file-icon"
-                />
-              </template>
-            </div>
-
-            <div class="asset-card__meta">
-              <div class="asset-card__title">
-                {{ entry.name }}
-              </div>
-              <div class="asset-card__subtitle">
-                <span v-if="entry.type === 'folder'">{{ $t("PAGE_BUILDER.ASSETS.BADGES.FOLDER") }}</span>
-                <span v-else>{{ formatFileSize(entry.size) }}</span>
-              </div>
-            </div>
-          </article>
-        </div>
-
-        <!-- @vue-generic {AssetEntry} -->
-        <VcTable
-          v-else-if="entries.length"
-          class="assets-library__table"
-          :items="entries"
-          :columns="tableColumns"
-          :expanded="true"
-          :header="false"
-          :footer="false"
+        <AssetLibraryTable
+          v-else-if="entryViewModels.length"
+          :entries="entryViewModels"
           :loading="loading"
-          :selected-item-id="selectedEntryId"
-          :enable-item-actions="true"
-          :item-action-builder="tableActionBuilder"
-          state-key="page_builder_assets_library"
-          @item-click="handleEntryClick"
-          @click.stop
-        >
-          <template #item_preview="{ item }">
-            <div class="assets-library__table-preview">
-              <VcImage
-                v-if="isImage(item)"
-                :src="getPreviewUrl(item)"
-                aspect="1x1"
-                size="s"
-                background="contain"
-                bordered
-                empty-icon="material-image"
-              />
-              <VcIcon
-                v-else
-                :icon="getEntryIcon(item)"
-                class="assets-library__table-icon"
-              />
-            </div>
-          </template>
-
-          <template #item_type="{ item }">
-            <span v-if="item.type === 'folder'">{{ $t("PAGE_BUILDER.ASSETS.BADGES.FOLDER") }}</span>
-            <span v-else>{{ item.contentType || $t("PAGE_BUILDER.ASSETS.DETAILS.NOT_AVAILABLE") }}</span>
-          </template>
-
-          <template #item_size="{ item }">
-            <span v-if="item.type === 'folder'">{{ $t("PAGE_BUILDER.ASSETS.DETAILS.NOT_AVAILABLE") }}</span>
-            <span v-else>{{ formatFileSize(item.size) }}</span>
-          </template>
-
-          <template #item_references="{ item }">
-            <span v-if="item.type === 'blob'">{{ getReferencesCount(item) }}</span>
-            <span v-else>{{ $t("PAGE_BUILDER.ASSETS.DETAILS.NOT_AVAILABLE") }}</span>
-          </template>
-
-          <template #item_modifiedDate="{ item }">
-            {{ formatDate(item.modifiedDate || item.createdDate) }}
-          </template>
-
-          <template #mobile-item="{ item }">
-            <div class="assets-library__table-mobile-item">
-              <div class="assets-library__table-preview">
-                <VcImage
-                  v-if="isImage(item)"
-                  :src="getPreviewUrl(item)"
-                  aspect="1x1"
-                  size="s"
-                  background="contain"
-                  bordered
-                  empty-icon="material-image"
-                />
-                <VcIcon
-                  v-else
-                  :icon="getEntryIcon(item)"
-                  class="assets-library__table-icon"
-                />
-              </div>
-              <div class="assets-library__table-mobile-meta">
-                <div class="assets-library__table-mobile-title">{{ item.name }}</div>
-                <VcHint>
-                  <span v-if="item.type === 'folder'">{{ $t("PAGE_BUILDER.ASSETS.BADGES.FOLDER") }}</span>
-                  <span v-else>{{ formatFileSize(item.size) }}</span>
-                </VcHint>
-              </div>
-            </div>
-          </template>
-        </VcTable>
+          :selected-entry-key="selectedEntryKey"
+          :can-delete="canDelete"
+          @entry-click="handleEntryClick"
+          @copy="copyAssetUrl"
+          @delete="confirmDelete"
+        />
 
         <div
           v-else
@@ -272,141 +94,21 @@
               dragHere: $t('PAGE_BUILDER.ASSETS.DROP.UPLOAD_HERE'),
               browse: $t('PAGE_BUILDER.ASSETS.TOOLBAR.UPLOAD'),
             }"
-            @upload="handleUploadFiles"
+            @upload="uploadAssets"
           />
         </div>
       </section>
 
-      <aside
-        v-if="selectedAsset"
-        class="assets-library__details"
-        @click.stop
-      >
-        <div class="assets-library__details-header">
-          <div class="assets-library__details-title">
-            {{ selectedAsset.name }}
-          </div>
-
-          <VcButton
-            icon="material-close"
-            text
-            @click="clearSelection"
-          />
-        </div>
-
-        <div class="assets-library__details-preview">
-          <template v-if="isImage(selectedAsset)">
-            <div class="assets-library__details-image-frame">
-              <VcImage
-                :src="getPreviewUrl(selectedAsset)"
-                aspect="3x2"
-                background="contain"
-                empty-icon="material-image"
-                class="assets-library__details-image"
-              />
-            </div>
-          </template>
-          <template v-else>
-            <VcIcon
-              :icon="getEntryIcon(selectedAsset)"
-              class="assets-library__details-icon"
-            />
-          </template>
-        </div>
-
-        <div class="assets-library__details-section">
-          <div class="assets-library__section-title">
-            {{ $t("PAGE_BUILDER.ASSETS.DETAILS.FILE_DETAILS") }}
-          </div>
-
-          <div class="assets-library__detail-row">
-            <VcHint>{{ $t("PAGE_BUILDER.ASSETS.DETAILS.SIZE") }}</VcHint>
-            <div>{{ formatFileSize(selectedAsset.size) }}</div>
-          </div>
-
-          <div
-            v-if="selectedAssetDimensions"
-            class="assets-library__detail-row"
-          >
-            <VcHint>{{ $t("PAGE_BUILDER.ASSETS.DETAILS.DIMENSIONS") }}</VcHint>
-            <div>{{ selectedAssetDimensions }}</div>
-          </div>
-
-          <div class="assets-library__detail-row">
-            <VcHint>{{ $t("PAGE_BUILDER.ASSETS.DETAILS.TYPE") }}</VcHint>
-            <div>{{ selectedAsset.contentType || $t("PAGE_BUILDER.ASSETS.DETAILS.NOT_AVAILABLE") }}</div>
-          </div>
-
-          <div class="assets-library__detail-row">
-            <VcHint>{{ $t("PAGE_BUILDER.ASSETS.DETAILS.UPLOADED") }}</VcHint>
-            <div>{{ formatDate(selectedAsset.createdDate || selectedAsset.modifiedDate) }}</div>
-          </div>
-        </div>
-
-        <div class="assets-library__details-section">
-          <div class="assets-library__section-title">
-            {{ $t("PAGE_BUILDER.ASSETS.DETAILS.PATH") }}
-          </div>
-          <VcLink
-            class="assets-library__path"
-            @click="copyAssetUrl(selectedAsset)"
-          >
-            {{ getAssetPath(selectedAsset) }}
-          </VcLink>
-        </div>
-
-        <div class="assets-library__details-section">
-          <div class="assets-library__section-title">
-            {{ $t("PAGE_BUILDER.ASSETS.DETAILS.USED_ON", { count: getReferencesCount(selectedAsset) }) }}
-          </div>
-
-          <div
-            v-if="getReferencePages(selectedAsset).length"
-            class="assets-library__references-list"
-          >
-            <div
-              v-for="page in getReferencePages(selectedAsset)"
-              :key="page.id || page.permalink || page.name"
-              class="assets-library__reference-page"
-            >
-              <div class="assets-library__reference-page-title">
-                {{ page.name || page.permalink || page.id }}
-              </div>
-              <VcHint v-if="page.cultureName || page.status">
-                {{ [page.cultureName, page.status].filter(Boolean).join(" - ") }}
-              </VcHint>
-            </div>
-          </div>
-          <VcHint v-else>
-            {{ $t("PAGE_BUILDER.ASSETS.DETAILS.NO_REFERENCES") }}
-          </VcHint>
-        </div>
-
-        <div class="assets-library__details-actions">
-          <VcButton
-            v-if="canCreate"
-            @click="openReplaceDialog"
-          >
-            {{ $t("PAGE_BUILDER.ASSETS.DETAILS.REPLACE") }}
-          </VcButton>
-
-          <VcButton
-            variant="secondary"
-            @click="copyAssetUrl(selectedAsset)"
-          >
-            {{ $t("PAGE_BUILDER.ASSETS.DETAILS.COPY_URL") }}
-          </VcButton>
-
-          <VcButton
-            v-if="canDelete"
-            variant="secondary"
-            class="assets-library__delete-button"
-            @click="confirmDelete(selectedAsset)"
-          >
-            {{ $t("PAGE_BUILDER.ASSETS.DETAILS.DELETE") }}
-          </VcButton>
-        </div>
-      </aside>
+      <AssetLibraryDetails
+        v-if="selectedAssetView"
+        :selected-asset="selectedAssetView"
+        :can-create="canCreate"
+        :can-delete="canDelete"
+        @close="clearSelection"
+        @replace="openReplaceDialog"
+        @copy="copyAssetUrl"
+        @delete="confirmDelete"
+      />
     </div>
   </div>
 
@@ -453,10 +155,22 @@
 import { computed, onMounted, ref } from "vue";
 import { debounce } from "lodash-es";
 import { useI18n } from "vue-i18n";
-import { IActionBuilderResult, ITableColumns, notification, usePermissions, usePopup } from "@vc-shell/framework";
-import { AssetEntry } from "../composables/useAssetsLibraryApi";
+import { usePermissions } from "@vc-shell/framework";
+import type { AssetEntry } from "../composables/useAssetsLibraryApi";
 import { useAssetsLibrary } from "../composables/useAssetsLibrary";
+import { useAssetLibraryActions } from "../composables/useAssetsLibrary/useAssetLibraryActions";
+import { useAssetLibraryDragDrop } from "../composables/useAssetsLibrary/useAssetLibraryDragDrop";
+import AssetLibraryDetails from "./AssetLibraryDetails.vue";
+import AssetLibraryGrid from "./AssetLibraryGrid.vue";
+import AssetLibraryTable from "./AssetLibraryTable.vue";
+import AssetLibraryToolbar from "./AssetLibraryToolbar.vue";
 import CreateFolderPopup from "./CreateFolderPopup.vue";
+import type { AssetLibraryViewMode } from "./assetLibraryTypes";
+import {
+  createAssetLibraryDetailsViewModel,
+  createAssetLibraryEntryViewModel,
+  getAssetEntryKey,
+} from "./assetLibraryViewModels";
 
 export interface ExposedAssetsLibraryContent {
   reload: () => Promise<void>;
@@ -464,14 +178,11 @@ export interface ExposedAssetsLibraryContent {
 
 const { t } = useI18n({ useScope: "global" });
 const { hasAccess } = usePermissions();
-const { showConfirmation } = usePopup();
 
 const replaceInputRef = ref<HTMLInputElement | null>(null);
 const isCreateFolderPopupOpen = ref(false);
 const isUploadPopupOpen = ref(false);
-const viewMode = ref<"grid" | "table">("grid");
-const isDraggingOverSurface = ref(false);
-const draggedFolderUrl = ref<string>();
+const viewMode = ref<AssetLibraryViewMode>("grid");
 
 const {
   entries,
@@ -490,9 +201,9 @@ const {
   getEntryIcon,
   getReferencesCount,
   getReferencePages,
+  getDeleteReferencesCount,
   formatFileSize,
   formatDate,
-  getAssetPath,
   getAssetPublicUrl,
   getPreviewUrl,
   createFolder,
@@ -503,42 +214,65 @@ const {
 
 const canCreate = computed(() => hasAccess("platform:asset:create"));
 const canDelete = computed(() => hasAccess("platform:asset:delete"));
-const selectedEntryId = computed(() => getEntryKey(selectedAsset.value));
-
-const tableColumns = computed((): ITableColumns[] => [
-  {
-    id: "preview",
-    title: "",
-    width: "72px",
-    alwaysVisible: true,
-  },
-  {
-    id: "name",
-    title: t("PAGE_BUILDER.ASSETS.TABLE.NAME"),
-    alwaysVisible: true,
-  },
-  {
-    id: "type",
-    title: t("PAGE_BUILDER.ASSETS.TABLE.TYPE"),
-    width: "20%",
-    alwaysVisible: true,
-  },
-  {
-    id: "size",
-    title: t("PAGE_BUILDER.ASSETS.TABLE.SIZE"),
-    width: "14%",
-  },
-  {
-    id: "references",
-    title: t("PAGE_BUILDER.ASSETS.TABLE.REFERENCES"),
-    width: "14%",
-  },
-  {
-    id: "modifiedDate",
-    title: t("PAGE_BUILDER.ASSETS.TABLE.MODIFIED"),
-    width: "18%",
-  },
-]);
+const {
+  notifyError,
+  uploadAssets,
+  createAssetFolder,
+  replaceAsset,
+  copyAssetUrl,
+  confirmDelete,
+} = useAssetLibraryActions({
+  t,
+  canCreate,
+  uploadFiles,
+  createFolder,
+  replaceSelectedAsset,
+  deleteEntry,
+  getDeleteReferencesCount,
+  getAssetPublicUrl,
+});
+const {
+  isDraggingOverSurface,
+  draggedFolderUrl,
+  getEntryDropFolderUrl,
+  handleSurfaceDrag,
+  handleSurfaceDragLeave,
+  handleSurfaceDrop,
+  handleFolderDrag,
+  handleFolderDragLeave,
+  handleFolderDrop,
+} = useAssetLibraryDragDrop(canCreate, uploadAssets);
+const selectedEntryKey = computed(() => getAssetEntryKey(selectedAsset.value));
+const notAvailableText = computed(() => t("PAGE_BUILDER.ASSETS.DETAILS.NOT_AVAILABLE"));
+const entryViewModels = computed(() => entries.value.map(entry => createAssetLibraryEntryViewModel(entry, {
+  selectedEntryKey: selectedEntryKey.value,
+  draggedFolderUrl: draggedFolderUrl.value,
+  notAvailableText: notAvailableText.value,
+  getEntryDropFolderUrl,
+  isImage,
+  getEntryIcon,
+  getReferencesCount,
+  formatFileSize,
+  formatDate,
+  getPreviewUrl,
+})));
+const selectedAssetView = computed(() => {
+  const asset = selectedAsset.value;
+  return asset ? createAssetLibraryDetailsViewModel(asset, {
+    selectedEntryKey: selectedEntryKey.value,
+    draggedFolderUrl: draggedFolderUrl.value,
+    notAvailableText: notAvailableText.value,
+    getEntryDropFolderUrl,
+    isImage,
+    getEntryIcon,
+    getReferencesCount,
+    formatFileSize,
+    formatDate,
+    getPreviewUrl,
+    dimensions: selectedAssetDimensions.value,
+    getReferencePages,
+  }) : undefined;
+});
 
 const onSearchChange = debounce(async (keyword: string | undefined) => {
   searchValue.value = keyword;
@@ -546,145 +280,9 @@ const onSearchChange = debounce(async (keyword: string | undefined) => {
   try {
     await reload();
   } catch (error) {
-    notification.error(getErrorMessage(error));
+    notifyError(error);
   }
 }, 350);
-
-function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : t("PAGE_BUILDER.ASSETS.NOTIFICATIONS.ERROR_GENERIC");
-}
-
-function hasDraggedFiles(event: DragEvent): boolean {
-  return Array.from(event.dataTransfer?.types ?? []).includes("Files");
-}
-
-function getEntryKey(entry: AssetEntry | undefined): string {
-  return entry?.relativeUrl || entry?.url || entry?.name || "";
-}
-
-function isEntrySelected(entry: AssetEntry): boolean {
-  return !!selectedAsset.value && getEntryKey(selectedAsset.value) === getEntryKey(entry);
-}
-
-function markDropEffect(event: DragEvent) {
-  if (event.dataTransfer) {
-    event.dataTransfer.dropEffect = canCreate.value && hasDraggedFiles(event) ? "copy" : "none";
-  }
-}
-
-function isLeavingCurrentTarget(event: DragEvent): boolean {
-  const currentTarget = event.currentTarget as HTMLElement | null;
-  const nextTarget = event.relatedTarget;
-
-  return !!currentTarget && nextTarget instanceof Node && currentTarget.contains(nextTarget);
-}
-
-function resetDragState() {
-  isDraggingOverSurface.value = false;
-  draggedFolderUrl.value = undefined;
-}
-
-function getEntryDropFolderUrl(entry: AssetEntry): string | undefined {
-  if (entry.type !== "folder") {
-    return undefined;
-  }
-
-  return entry.relativeUrl || entry.url;
-}
-
-function handleSurfaceDragEnter(event: DragEvent) {
-  if (!canCreate.value || !hasDraggedFiles(event)) {
-    return;
-  }
-
-  markDropEffect(event);
-  isDraggingOverSurface.value = true;
-}
-
-function handleSurfaceDragOver(event: DragEvent) {
-  if (!canCreate.value || !hasDraggedFiles(event)) {
-    return;
-  }
-
-  markDropEffect(event);
-  isDraggingOverSurface.value = true;
-}
-
-function handleSurfaceDragLeave(event: DragEvent) {
-  if (isLeavingCurrentTarget(event)) {
-    return;
-  }
-
-  resetDragState();
-}
-
-async function handleSurfaceDrop(event: DragEvent) {
-  const files = event.dataTransfer?.files;
-  resetDragState();
-
-  await uploadDroppedFiles(files);
-}
-
-function handleFolderDragEnter(entry: AssetEntry, event: DragEvent) {
-  const folderUrl = getEntryDropFolderUrl(entry);
-
-  if (!canCreate.value || !hasDraggedFiles(event)) {
-    return;
-  }
-
-  markDropEffect(event);
-  isDraggingOverSurface.value = true;
-  draggedFolderUrl.value = folderUrl;
-}
-
-function handleFolderDragOver(entry: AssetEntry, event: DragEvent) {
-  const folderUrl = getEntryDropFolderUrl(entry);
-
-  if (!canCreate.value || !hasDraggedFiles(event)) {
-    return;
-  }
-
-  markDropEffect(event);
-  isDraggingOverSurface.value = true;
-  draggedFolderUrl.value = folderUrl;
-}
-
-function handleFolderDragLeave(entry: AssetEntry, event: DragEvent) {
-  if (isLeavingCurrentTarget(event)) {
-    return;
-  }
-
-  if (draggedFolderUrl.value === getEntryDropFolderUrl(entry)) {
-    draggedFolderUrl.value = undefined;
-  }
-}
-
-async function handleFolderDrop(entry: AssetEntry, event: DragEvent) {
-  const files = event.dataTransfer?.files;
-  const folderUrl = getEntryDropFolderUrl(entry);
-  resetDragState();
-
-  await uploadDroppedFiles(files, folderUrl);
-}
-
-async function uploadDroppedFiles(files: FileList | undefined, folderUrl?: string) {
-  await handleUploadFiles(files, folderUrl);
-}
-
-async function handleUploadFiles(files: FileList | File[] | undefined, folderUrl?: string): Promise<boolean> {
-  if (!canCreate.value || !files?.length) {
-    return false;
-  }
-
-  try {
-    await uploadFiles(files, folderUrl);
-    notification.success(t("PAGE_BUILDER.ASSETS.NOTIFICATIONS.UPLOADED"));
-    return true;
-  } catch (error) {
-    notification.error(getErrorMessage(error));
-    return false;
-  }
-}
 
 function openUploadDialog() {
   isUploadPopupOpen.value = true;
@@ -714,23 +312,13 @@ async function handleEntryClick(entry: AssetEntry) {
   try {
     await onEntryClick(entry);
   } catch (error) {
-    notification.error(getErrorMessage(error));
+    notifyError(error);
   }
 }
 
 async function handleCreateFolder(name: string) {
-  const value = name.trim();
-
-  if (!value) {
-    return;
-  }
-
-  try {
-    await createFolder(value);
+  if (await createAssetFolder(name)) {
     closeCreateFolderPopup();
-    notification.success(t("PAGE_BUILDER.ASSETS.NOTIFICATIONS.FOLDER_CREATED"));
-  } catch (error) {
-    notification.error(getErrorMessage(error));
   }
 }
 
@@ -743,90 +331,23 @@ async function onReplaceChange(event: Event) {
     return;
   }
 
-  try {
-    await replaceSelectedAsset(replacement);
-    notification.success(t("PAGE_BUILDER.ASSETS.NOTIFICATIONS.REPLACED"));
-  } catch (error) {
-    notification.error(getErrorMessage(error));
-  } finally {
-    input.value = "";
-  }
+  await replaceAsset(replacement);
+  input.value = "";
 }
 
 async function handlePopupUpload(files: FileList) {
-  const uploaded = await handleUploadFiles(files);
+  const uploaded = await uploadAssets(files);
 
   if (uploaded) {
     closeUploadPopup();
   }
 }
 
-async function copyAssetUrl(entry: AssetEntry) {
-  const value = getAssetPublicUrl(entry) || entry.url || entry.relativeUrl;
-
-  if (!value) {
-    return;
-  }
-
-  try {
-    await navigator.clipboard.writeText(value);
-  } catch {
-    window.prompt(t("PAGE_BUILDER.ASSETS.DETAILS.URL"), value);
-  }
-
-  notification.success(t("PAGE_BUILDER.ASSETS.NOTIFICATIONS.URL_COPIED"));
-}
-
-async function confirmDelete(entry: AssetEntry) {
-  const confirmed = await showConfirmation(
-    t("PAGE_BUILDER.ASSETS.CONFIRM.DELETE_SINGLE", { name: entry.name }),
-  );
-
-  if (!confirmed) {
-    return;
-  }
-
-  try {
-    await deleteEntry(entry);
-    notification.success(t("PAGE_BUILDER.ASSETS.NOTIFICATIONS.DELETED"));
-  } catch (error) {
-    notification.error(getErrorMessage(error));
-  }
-}
-
-function tableActionBuilder(entry: AssetEntry): IActionBuilderResult<AssetEntry>[] {
-  const actions: IActionBuilderResult<AssetEntry>[] = [];
-
-  if (entry.type === "blob") {
-    actions.push({
-      icon: "material-content_copy",
-      title: t("PAGE_BUILDER.ASSETS.ACTIONS.COPY_URL"),
-      type: "info",
-      clickHandler: async () => {
-        await copyAssetUrl(entry);
-      },
-    });
-  }
-
-  if (canDelete.value) {
-    actions.push({
-      icon: "material-delete",
-      title: t("PAGE_BUILDER.ASSETS.ACTIONS.DELETE"),
-      type: "danger",
-      clickHandler: async () => {
-        await confirmDelete(entry);
-      },
-    });
-  }
-
-  return actions;
-}
-
 async function reloadContent() {
   try {
     await reload();
   } catch (error) {
-    notification.error(getErrorMessage(error));
+    notifyError(error);
   }
 }
 
@@ -834,7 +355,7 @@ onMounted(async () => {
   try {
     await initialize();
   } catch (error) {
-    notification.error(getErrorMessage(error));
+    notifyError(error);
   }
 });
 
@@ -843,6 +364,6 @@ defineExpose<ExposedAssetsLibraryContent>({
 });
 </script>
 
-<style lang="scss" scoped>
+<style lang="scss">
 @use "./assetsLibraryContent.scss";
 </style>

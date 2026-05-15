@@ -42,7 +42,7 @@ public class PageBuilderAssetReferenceService(
 
             foreach (var matchedAsset in matchedAssets)
             {
-                var reference = references[matchedAsset];
+                var reference = references[matchedAsset.Key];
                 reference.ReferencesCount++;
 
                 if (criteria.IncludePages)
@@ -53,7 +53,7 @@ public class PageBuilderAssetReferenceService(
                         Name = group.Name,
                         Permalink = group.Permalink,
                         CultureName = group.CultureName,
-                        Status = group.Status,
+                        Status = string.Join(", ", matchedAsset.Value),
                     });
                 }
             }
@@ -95,15 +95,26 @@ public class PageBuilderAssetReferenceService(
         }
     }
 
-    private async Task<ISet<string>> GetGroupReferences(GroupedPageBuilderPage group, IEnumerable<string> normalizedAssets, ISet<string> allowedStatuses, CancellationToken cancellationToken)
+    private async Task<IDictionary<string, ISet<string>>> GetGroupReferences(GroupedPageBuilderPage group, IEnumerable<string> normalizedAssets, ISet<string> allowedStatuses, CancellationToken cancellationToken)
     {
-        var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var result = new Dictionary<string, ISet<string>>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var page in group.Pages.Where(x => allowedStatuses.Contains(x.Status)))
         {
             cancellationToken.ThrowIfCancellationRequested();
             var content = await groupedPageService.LoadContent(page.Id, cancellationToken);
-            result.UnionWith(referenceMatcher.FindReferences(content, normalizedAssets));
+            var matchedAssets = referenceMatcher.FindReferences(content, normalizedAssets);
+
+            foreach (var matchedAsset in matchedAssets)
+            {
+                if (!result.TryGetValue(matchedAsset, out var statuses))
+                {
+                    statuses = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+                    result[matchedAsset] = statuses;
+                }
+
+                statuses.Add(page.Status);
+            }
         }
 
         return result;

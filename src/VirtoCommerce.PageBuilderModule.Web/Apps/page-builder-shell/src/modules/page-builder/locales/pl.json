@@ -196,16 +196,14 @@
         "CANCEL": "Anuluj",
         "CREATE": "Utwórz",
         "VALIDATION": {
-          "MIN": "Nazwa folderu musi mieć co najmniej 3 znaki.",
-          "MAX": "Nazwa folderu może mieć maksymalnie 63 znaki.",
-          "EDGE_DASH": "Nazwa folderu nie może zaczynać się ani kończyć myślnikiem.",
-          "DOUBLE_DASH": "Nazwa folderu nie może zawierać kolejnych myślników.",
-          "CHARS": "Nazwa folderu może zawierać tylko małe litery, cyfry, spacje i pojedyncze myślniki."
+          "INVALID_PATH": "Nazwa folderu nie może zawierać ukośników ani znaków sterujących."
         }
       },
       "CONFIRM": {
         "DELETE_SINGLE": "Usunąć {name}?",
-        "DELETE_SELECTED": "Usunąć {count} wybranych zasobów?"
+        "DELETE_SELECTED": "Usunąć {count} wybranych zasobów?",
+        "DELETE_USED_ONE": "Usunąć {name}? Jest używany na 1 stronie Page Builder.",
+        "DELETE_USED_MANY": "Usunąć {name}? Jest używany na {count} stronach Page Builder."
       },
       "NOTIFICATIONS": {
         "FOLDER_CREATED": "Folder został utworzony",

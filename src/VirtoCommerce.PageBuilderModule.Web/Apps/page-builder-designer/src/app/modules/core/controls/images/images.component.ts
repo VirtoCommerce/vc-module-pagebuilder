@@ -2,6 +2,7 @@ import { AssetFile } from '@core/models';
 import { Component, computed } from '@angular/core';
 import { NgClass, NgStyle } from '@angular/common';
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
+import { FileUploadModule } from '@iplab/ngx-file-upload';
 
 import { BaseFilesComponent } from '../base-files.component';
 import { ImagesDescriptor } from '@models/controls';
@@ -16,7 +17,7 @@ import { SpinnerComponent } from '../../components/spinner/spinner.component';
     selector: 'app-images',
     templateUrl: './images.component.html',
     styleUrls: ['./images.component.scss'],
-    imports: [NgClass, NgStyle, DragDropModule, SpinnerComponent, ChevronComponent, IconComponent, DragHandleComponent, IconButtonComponent, ControlsListComponent]
+    imports: [NgClass, NgStyle, DragDropModule, FileUploadModule, SpinnerComponent, ChevronComponent, IconComponent, DragHandleComponent, IconButtonComponent, ControlsListComponent]
 })
 export class ImagesComponent extends BaseFilesComponent<ImagesDescriptor> {
 

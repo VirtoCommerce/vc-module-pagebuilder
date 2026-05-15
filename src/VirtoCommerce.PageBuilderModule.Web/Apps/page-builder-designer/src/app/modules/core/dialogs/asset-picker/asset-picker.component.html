@@ -1,91 +1,54 @@
-<div class="asset-picker">
+<div class="asset-picker" [ngClass]="{ 'asset-picker--dragging': state.dragging() }">
   <div class="header">
     <div>
-      <h2>{{ title }}</h2>
-      <div class="breadcrumbs">
-        @for (crumb of breadcrumbs; track crumb.url; let last = $last) {
-          <button type="button" [disabled]="last" (click)="navigateToBreadcrumb(crumb.url)">
-            {{ crumb.label }}
-          </button>
-          @if (!last) {
-            <span>/</span>
-          }
-        }
-      </div>
+      <h2>{{ state.title }}</h2>
+      <app-asset-picker-breadcrumbs
+        [breadcrumbs]="state.breadcrumbs()"
+        (navigate)="state.navigateToBreadcrumb($event)" />
     </div>
     <button type="button" class="close" title="Close" (click)="decline()">
       <app-icon>close</app-icon>
     </button>
   </div>
 
-  <div mat-dialog-content>
-    <div class="toolbar">
-      <button
-        type="button"
-        class="upload"
-        [disabled]="uploading() || loading()"
-        (click)="uploadInput.click()">
-        <app-icon>upload</app-icon>
-        <span>{{ uploading() ? 'Uploading...' : 'Upload' }}</span>
-      </button>
-      <input
-        #uploadInput
-        type="file"
-        hidden
-        multiple
-        [attr.accept]="acceptAttribute"
-        (change)="onUpload($event)" />
-      <input
-        type="text"
-        [value]="searchValue()"
-        placeholder="Search assets..."
-        (input)="onSearch($any($event.target).value)" />
-      <span class="counter">{{ visibleEntries.length }} assets</span>
-    </div>
+  <div
+    mat-dialog-content
+    class="content"
+    (dragenter)="state.onDragEnter($event)"
+    (dragover)="state.onDragOver($event)"
+    (dragleave)="state.onDragLeave($event)"
+    (drop)="state.onDrop($event)">
+    <app-asset-picker-toolbar
+      [labels]="state.labels"
+      [uploading]="state.uploading()"
+      [loading]="state.loading()"
+      [multiple]="state.multiple"
+      [acceptAttribute]="state.acceptAttribute()"
+      [searchValue]="state.searchValue()"
+      [counterText]="state.formatAssetsCounter(state.visibleEntries().length)"
+      (search)="state.onSearch($event)"
+      (upload)="state.uploadFiles($event)" />
 
-    @if (error()) {
-      <div class="message message--error">{{ error() }}</div>
-    } @else if (loading()) {
-      <div class="message">Loading assets...</div>
-    } @else if (!visibleEntries.length) {
-      <div class="message">No assets found.</div>
+    @if (state.error()) {
+      <div class="message message--error">{{ state.error() }}</div>
+    } @else if (state.loading()) {
+      <div class="message">{{ state.labels.loading }}</div>
+    } @else if (!state.visibleEntries().length) {
+      <div class="message">{{ state.labels.empty }}</div>
     } @else {
-      <div class="grid">
-        @for (entry of visibleEntries; track getEntryKey(entry)) {
-          <button
-            type="button"
-            class="card"
-            [ngClass]="{
-              'card--folder': entry.type === 'folder',
-              'card--selected': selectedAsset() === entry
-            }"
-            (click)="entry.type === 'folder' ? navigateTo(entry) : selectAsset(entry)"
-            (dblclick)="entry.type === 'blob' && selectedAsset() === entry ? confirm() : null">
-            <div class="preview">
-              @if (entry.type === 'folder') {
-                <app-icon class="folder-icon">folder</app-icon>
-              } @else if (getPreviewStyle(entry)) {
-                <div class="image-frame">
-                  <div class="image" [ngStyle]="{ backgroundImage: getPreviewStyle(entry) }"></div>
-                </div>
-              } @else {
-                <app-icon class="file-icon">insert_drive_file</app-icon>
-              }
-            </div>
-            <div class="meta">
-              <div class="name" [title]="entry.name">{{ entry.name }}</div>
-              @if (entry.type === 'blob') {
-                <div class="size">{{ getSize(entry) }}</div>
-              }
-            </div>
-          </button>
-        }
-      </div>
+      <app-asset-picker-grid
+        [entries]="state.visibleEntries()"
+        [multiple]="state.multiple"
+        (entryClick)="state.navigateTo($event); state.selectAsset($event)"
+        (assetDoubleClick)="confirm()"
+        (folderDragOver)="state.onFolderDragOver($event.event, $event.entry)"
+        (folderDragLeave)="state.onFolderDragLeave($event.event, $event.entry)"
+        (folderDrop)="state.onFolderDrop($event.event, $event.entry)" />
     }
   </div>
 
   <div mat-dialog-actions>
-    <app-icon-button skin="outline" text="Cancel" (click)="decline()" />
-    <app-icon-button skin="primary" text="Select" [disabled]="!selectedAsset()" (click)="confirm()" />
+    <app-icon-button skin="outline" [text]="state.labels.cancel" (click)="decline()" />
+    <app-icon-button skin="primary" [text]="state.selectButtonText()" [disabled]="!state.selectedCount()" (click)="confirm()" />
   </div>
 </div>
