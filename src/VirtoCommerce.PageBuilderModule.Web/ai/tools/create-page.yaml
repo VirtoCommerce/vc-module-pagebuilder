@@ -31,7 +31,7 @@ parameters:
       default: true
     content:
       type: string
-      description: The full page content as a JSON string. Envelope shape and field conventions are described in the system prompt. `settings.id` is overwritten by the backend with the generated group id — leave it empty or omit.
+      description: The full page content as a JSON string. Envelope shape and field conventions are described in the system prompt.
   required:
     - storeId
     - name

@@ -1,6 +1,6 @@
 name: pagebuilder_save_page_content
 description: |
-  Save edited page JSON back into PageBuilder as a draft. Replaces the entire page content of the given group; the backend reuses or creates the draft page and re-injects the correct groupId into `settings.id`.
+  Save edited page JSON back into PageBuilder as a draft. Replaces the entire page content of the given group; the backend reuses an existing draft or creates one as needed.
 
   Use when: the user asks to modify an existing page, after `pagebuilder_get_page_content` + in-memory mutation.
   Skip when: creating a fresh page — use `pagebuilder_create_page` instead.

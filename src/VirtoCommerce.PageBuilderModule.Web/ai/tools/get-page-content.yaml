@@ -11,7 +11,7 @@ parameters:
   properties:
     groupId:
       type: string
-      description: ID of the grouped page (the value stored in "settings.id" inside the page JSON). Required.
+      description: ID of the grouped page. Required.
   required:
     - groupId
 
@@ -23,7 +23,7 @@ execution:
       query:
         draft: "true"
     response:
-      content: "_raw"
+      content: "@"
 
 permission:
   - builder:read

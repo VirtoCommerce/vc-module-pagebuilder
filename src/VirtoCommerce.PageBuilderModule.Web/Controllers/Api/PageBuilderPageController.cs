@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Text;
 using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,11 +12,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using VirtoCommerce.ContentModule.Core.Model;
 using VirtoCommerce.PageBuilderModule.Core;
+using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Data.Authorization;
 using VirtoCommerce.Pages.Core.Search;
 using VirtoCommerce.Platform.Core.Common;
+using VirtoCommerce.Platform.Core.Events;
 using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 
 namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
@@ -28,6 +31,7 @@ public class PageBuilderPageController(
     IGroupedPageSearchService groupedPageSearchService,
     IAuthorizationService authorizationService,
     IPageDocumentSearchService pageDocumentSearchService,
+    IEventPublisher eventPublisher,
     ILogger<PageBuilderPageController> logger)
     : Controller
 {
@@ -184,40 +188,24 @@ public class PageBuilderPageController(
         var draftPage = AbstractTypeFactory<PageBuilderPage>.TryCreateInstance();
         draftPage.Status = Draft;
         draftPage.StoreId = model.StoreId;
+        // Assigning Content before SaveChangesAsync ensures the page row and its PageContent
+        // are persisted in a single INSERT (EF table-splitting), and the synchronous Changed
+        // event sees the content already committed.
+        draftPage.Content = model.Content;
         groupedPage.Pages.Add(draftPage);
 
         await groupedPageService.SaveChangesAsync([groupedPage]);
 
-        var contentToSave = InjectGroupIdIntoSettings(model.Content, groupedPage.Id);
-
-        using var stream = new System.IO.MemoryStream();
-        var writer = new System.IO.StreamWriter(stream);
-        await writer.WriteAsync(contentToSave.AsMemory(), cancellationToken);
-        await writer.FlushAsync(cancellationToken);
-        stream.Position = 0;
-        await groupedPageService.SaveStreamAsContentAsync(draftPage.Id, stream, cancellationToken);
-
         return Ok(groupedPage);
     }
 
-    private static string InjectGroupIdIntoSettings(string content, string groupId)
+    // Content-only updates bypass CrudService.SaveChangesAsync (because the page row's metadata
+    // is not changing), so the platform pipeline does not fire a Changed event. We publish it
+    // manually so PageBuilderPageChangedEventHandler can refresh the vc-module-pages search index.
+    private Task PublishPageContentChangedAsync(PageBuilderPage page)
     {
-        var node = JsonNode.Parse(content);
-        if (node is not JsonObject root)
-        {
-            return content;
-        }
-
-        if (root["settings"] is not JsonObject settings)
-        {
-            settings = new JsonObject();
-            root["settings"] = settings;
-        }
-
-        settings["id"] = groupId;
-        settings["type"] ??= "settings";
-
-        return root.ToJsonString();
+        var entry = new GenericChangedEntry<PageBuilderPage>(page, EntryState.Modified);
+        return eventPublisher.Publish(new PageBuilderPageChangedEvent([entry]));
     }
 
     internal static bool TryValidatePageContentEnvelope(string content, out string error)
@@ -423,7 +411,7 @@ public class PageBuilderPageController(
     [Authorize(ModuleConstants.Security.Permissions.Read)]
     public async Task GetPageContent([FromRoute] string groupId, [FromQuery] bool draft = true, CancellationToken cancellationToken = default)
     {
-        Response.ContentType = "text/plain; charset=utf-8";
+        Response.ContentType = "application/json; charset=utf-8";
         var group = await groupedPageService.GetByIdAsync(groupId);
         if (group == null)
         {
@@ -469,19 +457,21 @@ public class PageBuilderPageController(
 
         if (draftPage == null)
         {
-
+            using var bodyReader = new System.IO.StreamReader(Request.Body, Encoding.UTF8);
+            var bufferedContent = await bodyReader.ReadToEndAsync(cancellationToken);
             draftPage = AbstractTypeFactory<PageBuilderPage>.TryCreateInstance();
             draftPage.StoreId = groupedPage.StoreId;
             draftPage.Status = Draft;
+            // Atomic create — row and content land in one INSERT via EF table-splitting,
+            // so the Changed event sees committed content.
+            draftPage.Content = bufferedContent;
             groupedPage.Pages.Add(draftPage);
             await groupedPageService.SaveChangesAsync([groupedPage]);
-
-            groupedPage = await groupedPageService.GetByIdAsync(groupId);
-            draftPage = groupedPage.Pages.FirstOrDefault(x => x.Status == Draft);
+            return NoContent();
         }
 
-        var pageId = draftPage!.Id;
-        await groupedPageService.SaveStreamAsContentAsync(pageId, Request.Body, cancellationToken);
+        await groupedPageService.SaveStreamAsContentAsync(draftPage.Id, Request.Body, cancellationToken);
+        await PublishPageContentChangedAsync(draftPage);
 
         return NoContent();
     }
@@ -528,21 +518,16 @@ public class PageBuilderPageController(
             draftPage = AbstractTypeFactory<PageBuilderPage>.TryCreateInstance();
             draftPage.StoreId = groupedPage.StoreId;
             draftPage.Status = Draft;
+            // Persist row and content atomically (EF table-splitting). The synchronous Changed
+            // event published from SaveChangesAsync will then see content already committed.
+            draftPage.Content = model.Content;
             groupedPage.Pages.Add(draftPage);
             await groupedPageService.SaveChangesAsync([groupedPage]);
-
-            groupedPage = await groupedPageService.GetByIdAsync(groupId);
-            draftPage = groupedPage.Pages.FirstOrDefault(x => x.Status == Draft);
+            return NoContent();
         }
 
-        var contentToSave = InjectGroupIdIntoSettings(model.Content, groupId);
-
-        using var stream = new System.IO.MemoryStream();
-        var writer = new System.IO.StreamWriter(stream);
-        await writer.WriteAsync(contentToSave.AsMemory(), cancellationToken);
-        await writer.FlushAsync(cancellationToken);
-        stream.Position = 0;
-        await groupedPageService.SaveStreamAsContentAsync(draftPage.Id, stream, cancellationToken);
+        await groupedPageService.SaveContent(draftPage.Id, model.Content, cancellationToken);
+        await PublishPageContentChangedAsync(draftPage);
 
         return NoContent();
     }

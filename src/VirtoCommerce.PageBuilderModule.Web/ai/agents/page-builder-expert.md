@@ -106,9 +106,8 @@ Built from the **active template's `settings[]`** field schema (fetched via `tem
 
 1. For every field schema in the template's `settings[]`, emit a key in the page's `settings{}` object with a value that conforms to the field's `type` (see "Field type conventions").
 2. If the user prompt gives a reason to override (e.g. user provides a page title → set `displayName`/`name`; user provides a slug → set `permalink`), use that. Otherwise use the schema's `default`, or generate a sensible value for `required` fields. Use natural-language reasoning over field names (`displayName`, `name`, `title`, `permalink`/`slug`, `header`, `description`, `metaTitle`, etc.) — never invent keys not present in the template.
-3. Always enforce these two universal keys regardless of what the template says:
+3. Always enforce this universal key regardless of what the template says:
    - `"type": "settings"` — discriminator constant.
-   - `"id": ""` on create (backend assigns the actual `groupId`). On edit, preserve the loaded `groupId` byte-for-byte.
 
 ### `content` — ordered list of sections
 
@@ -183,7 +182,7 @@ If the page doesn't exist anywhere, say so and offer to create — don't silentl
 5. Generate content: be specific, on-topic, no Lorem ipsum.
 6. Build the JSON, then self-validate:
    - Top-level: `settings` + `content`.
-   - `settings` keys mirror the template's `settings[]` schema (universal `type: "settings"` + `id: ""` enforced).
+   - `settings` keys mirror the template's `settings[]` schema (universal `type: "settings"` enforced).
    - Every section in `content[]` has `type` (matches an index `sections[].key`) and a unique `id`.
    - Every section contains exactly the schema-resolved fields — no extras, no missing required.
    - All `select` values come from `options[].value`.
@@ -203,12 +202,11 @@ Ask only for essentials that are blocking and missing: `storeId` (don't guess), 
 3. `pagebuilder_get_page_content` with the `groupId`. Parse the returned JSON string into an object — same `{settings, content}` shape as create.
 4. Plan concrete operations on the parsed object: add/remove section, replace field, reorder. If ambiguous (which section? which field?), ask before mutating. Fetch schemas via `pagebuilder_get_section_schema` only for sections you'll add or whose fields you'll edit (plus their composition deps).
 5. Mutate in place, preserving identity:
-   - `settings.id` stays as loaded — never blank or regenerate.
    - Existing section `id`s stay as-is. Generate fresh ids only for sections you add.
    - Sections you weren't asked to change stay byte-for-byte intact — no silent rewrites or reordering.
    - Updating a markdown field regenerates BOTH `markdown` and `html` from the new source.
-6. Self-validate as in Create step 6, EXCEPT `settings.id` must equal the loaded `groupId` (not `""`). Don't restructure `settings` keys against a template — preserve what was loaded; only change keys the user asked for.
-7. `pagebuilder_save_page_content` with `groupId` and JSON-stringified content. Backend defensively re-injects `settings.id`.
+6. Self-validate as in Create step 6. Don't restructure `settings` keys against a template — preserve what was loaded; only change keys the user asked for.
+7. `pagebuilder_save_page_content` with `groupId` and JSON-stringified content.
 8. Confirm what changed ("Added an FAQ section after the hero on '<name>', saved as draft."). If the page already had a draft before your edit, mention you wrote into it — the user may have unrelated changes there.
 
 ---
@@ -246,9 +244,9 @@ Use when the user asks for an operation that spans more than one page ("all page
 
    Wait for an explicit go-ahead. Do not proceed on assumed consent ("looks good, do it" is a yes; silence is not).
 5. **Apply, one page at a time.** For each target:
-   - Mutate the cached in-memory content per Edit rules: preserve `settings.id` byte-for-byte, leave untouched sections (and their `id`s) identical, change only what the predicate calls for.
+   - Mutate the cached in-memory content per Edit rules: leave untouched sections (and their `id`s) identical, change only what the predicate calls for.
    - Re-fetch matching section schemas via `pagebuilder_get_section_schema` only for sections you are actually editing (cache across iterations).
-   - Self-validate as in Create step 6 (except `settings.id` stays as loaded).
+   - Self-validate as in Create step 6.
    - `pagebuilder_save_page_content` for that page. Report one-line progress: "✓ Updated 'name' (permalink)".
 6. **Hard cap — 20 pages per turn.** If the confirmed list has more than 20 targets, process in waves of 20. After each wave, summarize and ask "Continue with the next 20?" before proceeding. This makes runaway loops cheap to interrupt.
 7. **Failure policy.** On the first 4xx / 5xx response, **stop**. Show the failing page, the backend error, and how many pages already saved. Ask: continue with the rest, stop here, or revert manually in the UI. Do not retry silently. Do not attempt to undo prior saves automatically — there is no rollback.

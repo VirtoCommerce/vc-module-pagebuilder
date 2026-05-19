@@ -34,12 +34,14 @@ export async function downloadPageContent(groupId: string, page: GroupedPageBuil
     throw new Error(`Failed to download content: ${response.status}`);
   }
 
-  const contentText = await response.text();
   let content: unknown;
   try {
-    content = JSON.parse(contentText);
-  } catch {
-    content = contentText;
+    content = (await response.json()) as unknown;
+  } catch (parseError) {
+    const detail = parseError instanceof Error ? parseError.message : String(parseError);
+    throw new Error(
+      `Page content for group ${groupId} is not valid JSON — the page may be corrupted on the server (${detail}).`,
+    );
   }
 
   const exportData: PageExportData = {
