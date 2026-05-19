@@ -1,13 +1,9 @@
 <template>
   <VcBlade
-    width="50%"
-    :title="bladeTitle"
-    :toolbar-items="bladeToolbar"
-  >
-    <PagesList
-      ref="pagesListRef"
-      :param="param"
-    />
+           width="50%"
+           :title="bladeTitle"
+           :toolbar-items="bladeToolbar">
+    <PagesList ref="pagesListRef" />
   </VcBlade>
 </template>
 
@@ -22,7 +18,7 @@ import { VcBlade } from "@vc-shell/framework/ui";
 
 import { useBlade } from "@vc-shell/framework";
 
-const { exposeToChildren, param } = useBlade();
+const { exposeToChildren } = useBlade();
 
 defineBlade({
   name: "AllPagesList",

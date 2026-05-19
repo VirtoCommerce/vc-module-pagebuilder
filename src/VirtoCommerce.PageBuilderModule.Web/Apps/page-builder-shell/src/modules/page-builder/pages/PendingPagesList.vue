@@ -1,14 +1,11 @@
 <template>
   <VcBlade
-    width="50%"
-    :title="bladeTitle"
-    :toolbar-items="bladeToolbar"
-  >
+           width="50%"
+           :title="bladeTitle"
+           :toolbar-items="bladeToolbar">
     <PagesList
-      ref="pagesListRef"
-      :param="param"
-      :lifecycle="[PageLifecycleFilters.Pending]"
-    />
+               ref="pagesListRef"
+               :lifecycle="[PageLifecycleFilters.Pending]" />
   </VcBlade>
 </template>
 
@@ -24,7 +21,7 @@ import { VcBlade } from "@vc-shell/framework/ui";
 
 import { useBlade } from "@vc-shell/framework";
 
-const { exposeToChildren, param } = useBlade();
+const { exposeToChildren } = useBlade();
 
 defineBlade({
   name: "PendingPagesList",

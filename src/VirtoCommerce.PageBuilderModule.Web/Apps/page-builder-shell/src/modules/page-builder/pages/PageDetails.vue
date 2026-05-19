@@ -1,163 +1,111 @@
 <template>
   <VcBlade
-    width="50%"
-    :loading="loading"
-    :title="bladeTitle"
-    :toolbar-items="bladeToolbar"
-  >
+           width="50%"
+           :loading="loading"
+           :title="bladeTitle"
+           :toolbar-items="bladeToolbar">
     <VcContainer>
       <VcForm class="tw-flex tw-flex-col tw-gap-4">
         <PageStatus :item="item" />
 
         <VcCard
-          class="tw-p-4"
-          :header="$t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.BASIC_INFORMATION')"
-        >
+                class="tw-p-4"
+                :header="$t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.BASIC_INFORMATION')">
           <VcCol class="tw-gap-4">
             <Field
-              v-slot="{ errorMessage, handleChange, errors }"
-              name="name"
-              :model-value="item.name"
-              :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.NAME')"
-              rules="required"
-            >
+                   v-slot="{ errorMessage, handleChange, errors }"
+                   name="name"
+                   :model-value="item.name"
+                   :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.NAME')"
+                   rules="required">
               <VcInput
-                v-model="item.name"
-                :error="errors.length > 0"
-                :error-message="errorMessage"
-                :disabled="isReadOnly"
-                :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.NAME')"
-                required
-                @update:model-value="handleChange"
-              />
+                       v-model="item.name"
+                       :error="errors.length > 0"
+                       :error-message="errorMessage"
+                       :disabled="isReadOnly"
+                       :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.NAME')"
+                       required
+                       @update:model-value="handleChange" />
             </Field>
 
             <Field
-              v-slot="{ errorMessage, handleChange, errors }"
-              name="permalink"
-              rules="required"
-              :model-value="item.permalink"
-              :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.PERMALINK')"
-            >
+                   v-slot="{ errorMessage, handleChange, errors }"
+                   name="permalink"
+                   rules="required"
+                   :model-value="item.permalink"
+                   :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.PERMALINK')">
               <VcInput
-                v-model="item.permalink"
-                required
-                :error="errors.length > 0"
-                :error-message="errorMessage"
-                :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.PERMALINK')"
-                :disabled="isReadOnly"
-                @update:model-value="handleChange"
-              >
+                       v-model="item.permalink"
+                       required
+                       :error="errors.length > 0"
+                       :error-message="errorMessage"
+                       :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.PERMALINK')"
+                       :disabled="isReadOnly"
+                       @update:model-value="handleChange">
                 <template #prepend-inner>
                   <div
-                    v-if="storeUrl"
-                    class="permalink-prefix tw-self-stretch tw-flex tw-items-center tw-text-sm"
-                  >
+                       v-if="storeUrl"
+                       class="permalink-prefix tw-self-stretch tw-flex tw-items-center tw-text-sm">
                     {{ storeUrl }}
                   </div>
                 </template>
               </VcInput>
             </Field>
 
-            <VcSelect
-              option-value="name"
-              option-label="name"
-              v-model="item.cultureName"
-              :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.CULTURE_NAME')"
-              :options="loadCultureNamesAsync"
-              :clearable="false"
-              :disabled="isReadOnly"
-            />
+            <VcSelect option-value="name" option-label="name" v-model="item.cultureName"
+                      :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.CULTURE_NAME')" :options="loadCultureNamesAsync"
+                      :clearable="false"
+                      :disabled="isReadOnly" />
           </VcCol>
         </VcCard>
 
-        <VcCard
-          class="tw-p-4"
-          :header="$t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.ADVANCED_OPTIONS')"
-        >
+        <VcCard class="tw-p-4" :header="$t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.ADVANCED_OPTIONS')">
           <VcCol class="tw-gap-4">
-            <VcCard
-              is-collapsable
-              is-collapsed
-            >
+            <VcCard is-collapsable is-collapsed>
               <template #header>
                 <CardHeader
-                  icon="lucide-users"
-                  :tag-text="
-                    item.visibility
-                      ? $t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.PERSONALIZATION_ACCESS_CONTROL.VISIBILITY_TAG')
-                      : undefined
-                  "
-                  :title="$t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.PERSONALIZATION_ACCESS_CONTROL.TITLE')"
-                  :description="$t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.PERSONALIZATION_ACCESS_CONTROL.DESCRIPTION')"
-                />
+                            icon="lucide-users"
+                            :tag-text="item.visibility
+                              ? $t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.PERSONALIZATION_ACCESS_CONTROL.VISIBILITY_TAG')
+                              : undefined
+                              "
+                            :title="$t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.PERSONALIZATION_ACCESS_CONTROL.TITLE')"
+                            :description="$t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.PERSONALIZATION_ACCESS_CONTROL.DESCRIPTION')" />
               </template>
 
               <VcCol class="tw-gap-4 tw-p-4">
-                <SwitchRow
-                  :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.VISIBILITY')"
-                  :hint="$t('PAGE_BUILDER.PAGES.DETAILS.TOOLTIPS.VISIBILITY')"
-                  :model-value="item.visibility"
-                  @update:model-value="item.visibility = $event"
-                />
+                <SwitchRow :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.VISIBILITY')"
+                           :hint="$t('PAGE_BUILDER.PAGES.DETAILS.TOOLTIPS.VISIBILITY')" :model-value="item.visibility"
+                           @update:model-value="item.visibility = $event" />
 
-                <VcSelect
-                  v-model="itemUserGroups"
-                  :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.USER_GROUPS')"
-                  :options="loadUserGroups"
-                  option-value="name"
-                  option-label="name"
-                  searchable
-                  multiple
-                  :clearable="false"
-                  :disabled="isReadOnly"
-                />
+                <VcSelect v-model="itemUserGroups" :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.USER_GROUPS')"
+                          :options="loadUserGroups" option-value="name" option-label="name" searchable multiple
+                          :clearable="false"
+                          :disabled="isReadOnly" />
 
-                <VcSelect
-                  v-model="item.organizationId"
-                  :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.ORGANIZATION')"
-                  :options="loadOrganizations"
-                  option-value="id"
-                  option-label="name"
-                  searchable
-                  :clearable="true"
-                  :disabled="isReadOnly"
-                />
+                <VcSelect v-model="item.organizationId" :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.ORGANIZATION')"
+                          :options="loadOrganizations" option-value="id" option-label="name" searchable
+                          :clearable="true"
+                          :disabled="isReadOnly" />
               </VcCol>
             </VcCard>
 
-            <VcCard
-              is-collapsable
-              is-collapsed
-            >
+            <VcCard is-collapsable is-collapsed>
               <template #header>
                 <CardHeader
-                  icon="lucide-calendar-range"
-                  :tag-text="isScheduled ? $t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.SCHEDULING.TAG_TEXT') : ''"
-                  :title="$t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.SCHEDULING.TITLE')"
-                  :description="$t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.SCHEDULING.DESCRIPTION')"
-                />
+                            icon="lucide-calendar-range"
+                            :tag-text="isScheduled ? $t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.SCHEDULING.TAG_TEXT') : ''"
+                            :title="$t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.SCHEDULING.TITLE')"
+                            :description="$t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.SCHEDULING.DESCRIPTION')" />
               </template>
               <VcRow class="tw-gap-4 tw-p-4">
-                <VcInput
-                  v-model="item.startDate"
-                  class="tw-flex-1"
-                  type="datetime-local"
-                  clearable
-                  :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.START_DATE')"
-                  :hint="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.START_DATE_HINT')"
-                  :disabled="isReadOnly"
-                />
+                <VcInput v-model="item.startDate" class="tw-flex-1" type="datetime-local" clearable
+                         :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.START_DATE')"
+                         :hint="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.START_DATE_HINT')" :disabled="isReadOnly" />
 
-                <VcInput
-                  v-model="item.endDate"
-                  class="tw-flex-1"
-                  type="datetime-local"
-                  clearable
-                  :hint="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.END_DATE_HINT')"
-                  :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.END_DATE')"
-                  :disabled="isReadOnly"
-                />
+                <VcInput v-model="item.endDate" class="tw-flex-1" type="datetime-local" clearable
+                         :hint="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.END_DATE_HINT')"
+                         :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.END_DATE')" :disabled="isReadOnly" />
               </VcRow>
             </VcCard>
           </VcCol>
@@ -172,11 +120,13 @@ import { computed, onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { Field } from "vee-validate";
 import { IBladeToolbar, useBlade, useBladeForm, usePopup, notification } from "@vc-shell/framework";
-import { CardHeader, PageStatus, SwitchRow } from "../components";
 import useUrlParams from "../composables/useStoreParams";
 import useAiAgentStoreContext from "../composables/useAiAgentStoreContext";
 import { usePageBuilderDetails } from "../composables/usePageBuilderDetails";
 import type { PageExportData } from "../composables/usePageContentApi";
+import PageStatus from "../components/pageStatus.vue";
+import CardHeader from "./../components/cardHeader.vue";
+import SwitchRow from "./../components/switchRow.vue";
 
 import { VcBlade, VcCard, VcCol, VcContainer, VcForm, VcInput, VcRow, VcSelect } from "@vc-shell/framework/ui";
 
@@ -187,7 +137,7 @@ defineBlade({
 
 const { t } = useI18n({ useScope: "global" });
 const { showConfirmation } = usePopup();
-const { param, options, callParent, closeSelf } = useBlade<{ storeId?: string; importData?: PageExportData }>();
+const { param, options, callParent, closeSelf, exposeToChildren } = useBlade();
 const { getStoreUrl, getLanguages } = useUrlParams();
 
 // WORKAROUND: push storeId into the AI agent context so pagebuilder tools
@@ -210,14 +160,15 @@ const {
   loadUserGroups,
   loadOrganizations,
 } = usePageBuilderDetails({
-  id: param.value,
-  storeId: options.value?.storeId,
-  importData: options.value?.importData,
+  id: param.value as string | undefined,
+  storeId: options.value?.storeId as string | undefined,
+  importData: options.value?.importData as PageExportData | undefined,
 });
 
 const { canSave, isModified, setBaseline, formMeta } = useBladeForm({
   data: item,
   closeConfirmMessage: () => t("PAGE_BUILDER.PAGES.ALERTS.CLOSE_CONFIRMATION"),
+  canSaveOverride: computed(() => !isReadOnly.value),
 });
 
 watch(

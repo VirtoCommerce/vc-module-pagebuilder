@@ -177,7 +177,7 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
       visibility: source.visibility,
       userGroups: source.userGroups,
       organizationId: source.organizationId,
-    } as GroupedPageBuilderPage;
+    };
 
     const apiClient = await getApiClient();
     const created = await apiClient.createGroup(clone);

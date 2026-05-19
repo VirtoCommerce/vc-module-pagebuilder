@@ -1,74 +1,60 @@
 <template>
   <VcDataTable
-    v-model:active-item-id="selectedItemId"
-    v-model:sort-field="sortField"
-    v-model:sort-order="sortOrder"
-    v-model:selection="localSelection"
-    state-key="page_builder_pages_list"
-    :items="items"
-    :total-count="pagination.totalCount"
-    :pagination="pagination"
-    :loading="loading"
-    :searchable="true"
-    :selection-mode="'multiple'"
-    :item-action-builder="actionBuilder"
-    :global-filters="computedGlobalFilters"
-    @row-click="onItemClick"
-    @search="onSearchList"
-    @pagination-click="pagination.goToPage"
-    @filter="onFilter"
-  >
+               v-model:active-item-id="selectedItemId"
+               v-model:sort-field="sortField"
+               v-model:sort-order="sortOrder"
+               v-model:selection="localSelection"
+               state-key="page_builder_pages_list"
+               :items="items"
+               :total-count="pagination.totalCount"
+               :pagination="pagination"
+               :loading="loading"
+               :searchable="true"
+               :selection-mode="'multiple'"
+               :item-action-builder="actionBuilder"
+               :global-filters="computedGlobalFilters"
+               @row-click="onItemClick"
+               @search="onSearchList"
+               @pagination-click="pagination.goToPage"
+               @filter="onFilter">
     <VcColumn
-      id="name"
-      :title="t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.NAME')"
-      :always-visible="true"
-      :sortable="true"
-    />
+              id="name"
+              :title="t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.NAME')"
+              :always-visible="true"
+              :sortable="true" />
     <VcColumn
-      id="cultureName"
-      :title="t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.CULTURE_NAME')"
-      :always-visible="true"
-      :sortable="true"
-    />
+              id="cultureName"
+              :title="t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.CULTURE_NAME')"
+              :always-visible="true"
+              :sortable="true" />
     <VcColumn
-      id="permalink"
-      :title="t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.PERMALINK')"
-      :always-visible="true"
-      :sortable="true"
-    />
+              id="permalink"
+              :title="t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.PERMALINK')"
+              :always-visible="true"
+              :sortable="true" />
     <VcColumn
-      id="modifiedDate"
-      :title="t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.MODIFIED_DATE')"
-      type="datetime"
-      :always-visible="true"
-      :sortable="true"
-    />
+              id="modifiedDate"
+              :title="t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.MODIFIED_DATE')"
+              type="datetime"
+              :always-visible="true"
+              :sortable="true" />
     <VcColumn
-      id="modifiedBy"
-      :title="t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.MODIFIED_BY')"
-      :sortable="false"
-    />
+              id="modifiedBy"
+              :title="t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.MODIFIED_BY')"
+              :sortable="false" />
     <VcColumn
-      id="status"
-      :title="t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.STATUS')"
-      type="status"
-      :sortable="true"
-    >
+              id="status"
+              :title="t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.STATUS')"
+              type="status"
+              :sortable="true">
       <template #body="{ data }">
         <PageStatus
-          extended
-          :item="data"
-        />
+                    extended
+                    :item="data" />
       </template>
     </VcColumn>
   </VcDataTable>
-  <input
-    ref="fileInputRef"
-    type="file"
-    accept=".json"
-    style="display: none"
-    @change="onFileSelected"
-  />
+  <input ref="fileInputRef" type="file" accept=".json" style="display: none" @change="onFileSelected" />
 </template>
 <script lang="ts" setup>
 import { ref, Ref, computed, watch, onMounted, readonly } from "vue";
@@ -89,14 +75,13 @@ import PageStatus from "./pageStatus.vue";
 import { VcColumn, VcDataTable } from "@vc-shell/framework/ui";
 
 interface Props {
-  param?: string;
   lifecycle?: PageLifecycleFilters[];
 }
 
 const props = defineProps<Props>();
 
 const { t } = useI18n({ useScope: "global" });
-const { openBlade } = useBlade();
+const { param, openBlade } = useBlade();
 const { showConfirmation } = usePopup();
 const { storeId, initUrlParams } = useUrlParams();
 
@@ -188,12 +173,22 @@ watch(
 );
 
 watch(
-  () => props.param,
+  () => param.value,
   (newVal) => {
-    selectedItemId.value = newVal;
+    selectedItemId.value = newVal as string | undefined;
   },
   { immediate: true },
 );
+
+async function onFilter(event: { filters: Record<string, unknown> }) {
+  const statusFilter = event.filters.statuses as string | string[] | undefined;
+  const statuses = Array.isArray(statusFilter) ? statusFilter.join(",") : statusFilter;
+  await loadPages({
+    ...searchQuery.value,
+    statuses,
+    skip: 0,
+  });
+}
 
 function openLoadFlow() {
   fileInputRef.value?.click();
@@ -248,15 +243,6 @@ async function removeSelectedPages() {
     await removePages({ ids });
     await reload();
   }
-}
-
-async function onFilter(event: { filters: Record<string, unknown> }) {
-  const statusFilter = event.filters.statuses as string | undefined;
-  await loadPages({
-    ...searchQuery.value,
-    statuses: statusFilter,
-    skip: 0,
-  });
 }
 
 onMounted(async () => {

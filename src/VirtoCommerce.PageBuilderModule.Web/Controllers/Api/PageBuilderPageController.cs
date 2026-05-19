@@ -88,16 +88,9 @@ public class PageBuilderPageController(
         // get the existing grouped page for pages Ids
         var groupedPage = await groupedPageService.GetByIdAsync(model.Id);
 
-        var newGroup = false;
-
         if (groupedPage == null)
         {
             groupedPage = AbstractTypeFactory<GroupedPageBuilderPage>.TryCreateInstance();
-            var draftPage = AbstractTypeFactory<PageBuilderPage>.TryCreateInstance();
-            draftPage.Status = Draft;
-            draftPage.StoreId = model.StoreId;
-            groupedPage.Pages.Add(draftPage);
-            newGroup = true;
         }
         else if (groupedPage.Status == Archived)
         {
@@ -114,11 +107,28 @@ public class PageBuilderPageController(
         groupedPage.EndDate = model.EndDate;
         groupedPage.OrganizationId = model.OrganizationId;
 
-        await groupedPageService.SaveChangesAsync([groupedPage]);
-        if (newGroup)
+        // Ensure a draft page exists so the metadata edit lives in a working copy and Published stays untouched.
+        // If only a Published page exists, spin up a new draft and remember to seed it with the published content.
+        var draftPage = groupedPage.Pages.FirstOrDefault(x => x.Status == Draft);
+        var sourcePageId = (string)null;
+        if (draftPage == null)
         {
-            await WriteDefaultContent(groupedPage.Pages[0].Id, cancellationToken);
+            sourcePageId = groupedPage.Pages.FirstOrDefault(x => x.Status == Published)?.Id;
+            draftPage = AbstractTypeFactory<PageBuilderPage>.TryCreateInstance();
+            draftPage.Status = Draft;
+            draftPage.StoreId = groupedPage.StoreId;
+            groupedPage.Pages.Add(draftPage);
         }
+
+        await groupedPageService.SaveChangesAsync([groupedPage]);
+
+        if (sourcePageId != null)
+        {
+            await groupedPageService.CopyPageContentAsync(sourcePageId, draftPage.Id, cancellationToken);
+        }
+
+        await SyncGroupSettingsToContent(draftPage.Id, groupedPage, cancellationToken);
+        await RaisePageContentChanged(draftPage.Id, cancellationToken);
 
         return Ok(groupedPage);
     }
@@ -142,7 +152,8 @@ public class PageBuilderPageController(
         model.Pages.Add(draftPage);
 
         await groupedPageService.SaveChangesAsync([model]);
-        await WriteDefaultContent(draftPage.Id, cancellationToken);
+        await SyncGroupSettingsToContent(draftPage.Id, model, cancellationToken);
+        await RaisePageContentChanged(draftPage.Id, cancellationToken);
 
         return Ok(model);
     }
@@ -579,6 +590,7 @@ public class PageBuilderPageController(
         }
 
         await groupedPageService.CopyPageContentAsync(sourcePageId, targetDraft.Id, cancellationToken);
+        await RaisePageContentChanged(targetDraft.Id, cancellationToken);
 
         return NoContent();
     }
@@ -588,15 +600,53 @@ public class PageBuilderPageController(
         StatusCode = (int)HttpStatusCode.Forbidden,
     };
 
-    private async Task WriteDefaultContent(string pageId, CancellationToken cancellationToken)
+    // Syncs Name/Permalink/CultureName from the group into the draft page's content JSON `settings` object.
+    // If the page has no content yet, starts from DefaultPageContent. If the existing content is not a JSON
+    // object, leaves it untouched (legacy / non-standard payload — don't try to fix it here).
+    private async Task SyncGroupSettingsToContent(string pageId, GroupedPageBuilderPage group, CancellationToken cancellationToken)
     {
-        using var stream = new System.IO.MemoryStream();
-        var writer = new System.IO.StreamWriter(stream);
-        await writer.WriteAsync(ModuleConstants.DefaultPageContent.AsMemory(), cancellationToken);
-        await writer.FlushAsync(cancellationToken);
-        stream.Position = 0;
+        var content = await groupedPageService.LoadContent(pageId, cancellationToken);
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            content = ModuleConstants.DefaultPageContent;
+        }
 
-        await groupedPageService.SaveStreamAsContentAsync(pageId, stream, cancellationToken);
+        var node = JsonNode.Parse(content);
+        if (node is not JsonObject root)
+        {
+            return;
+        }
 
+        if (root["settings"] is not JsonObject settings)
+        {
+            settings = new JsonObject();
+            root["settings"] = settings;
+        }
+
+        settings["name"] = group.Name;
+        settings["permalink"] = group.Permalink;
+        settings["cultureName"] = group.CultureName;
+
+        await groupedPageService.SaveContent(pageId, root.ToJsonString(), cancellationToken);
+    }
+
+    // Re-fires page-changed event after content has been written so the page gets re-indexed
+    // with its actual content (group-level save events fire before content is persisted).
+    private async Task RaisePageContentChanged(string pageId, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrEmpty(pageId))
+        {
+            return;
+        }
+
+        var pages = await crudService.GetAsync([pageId]);
+        var page = pages.FirstOrDefault();
+        if (page == null)
+        {
+            return;
+        }
+
+        var entry = new GenericChangedEntry<PageBuilderPage>(page, EntryState.Modified);
+        await eventPublisher.Publish(new PageBuilderPageChangedEvent([entry]), cancellationToken);
     }
 }

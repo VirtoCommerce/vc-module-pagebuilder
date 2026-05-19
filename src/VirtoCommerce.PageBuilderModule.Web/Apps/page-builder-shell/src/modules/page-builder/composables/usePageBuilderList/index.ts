@@ -100,6 +100,12 @@ export function usePageBuilderList(options?: UsePageBuilderListOptions): IUsePag
     initUrlParams();
   });
 
+  const pagination = useDataTablePagination({
+    pageSize,
+    totalCount: computed(() => searchResult.value?.totalCount ?? 0),
+    onPageChange: ({ skip }) => loadPages({ ...searchQuery.value, skip }),
+  });
+
   return {
     items: computed(() => searchResult.value?.results || []),
     pagination,

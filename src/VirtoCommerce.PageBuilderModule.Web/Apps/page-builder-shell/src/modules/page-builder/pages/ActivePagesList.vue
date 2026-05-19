@@ -1,14 +1,11 @@
 <template>
   <VcBlade
-    width="50%"
-    :title="bladeTitle"
-    :toolbar-items="bladeToolbar"
-  >
+           width="50%"
+           :title="bladeTitle"
+           :toolbar-items="bladeToolbar">
     <PagesList
-      ref="pagesListRef"
-      :param="param"
-      :lifecycle="[PageLifecycleFilters.Active]"
-    />
+               ref="pagesListRef"
+               :lifecycle="[PageLifecycleFilters.Active]" />
   </VcBlade>
 </template>
 
@@ -18,13 +15,13 @@ import { useI18n } from "vue-i18n";
 import { ExposedPagesList, PagesList } from "../components";
 import { usePagesListToolbar } from "../composables/usePagesListToolbar";
 import { PageLifecycleFilters } from "../composables";
-import { GroupedPageBuilderPage } from "src/api_client/virtocommerce.pagebuildermodule";
+import { GroupedPageBuilderPage } from "../../../api_client/virtocommerce.pagebuildermodule";
 
 import { VcBlade } from "@vc-shell/framework/ui";
 
 import { useBlade } from "@vc-shell/framework";
 
-const { exposeToChildren, param } = useBlade();
+const { exposeToChildren } = useBlade();
 
 defineBlade({
   name: "ActivePagesList",
