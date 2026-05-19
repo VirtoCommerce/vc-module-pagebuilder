@@ -68,7 +68,7 @@ export function usePageBuilderList(options?: UsePageBuilderListOptions): IUsePag
       searchResult.value = {
         totalCount: 0,
         results: [],
-      } as GroupedPageBuilderPageSearchResult;
+      };
       return;
     }
 
@@ -98,12 +98,6 @@ export function usePageBuilderList(options?: UsePageBuilderListOptions): IUsePag
 
   onMounted(() => {
     initUrlParams();
-  });
-
-  const pagination = useDataTablePagination({
-    pageSize,
-    totalCount: computed(() => searchResult.value?.totalCount ?? 0),
-    onPageChange: ({ skip }) => loadPages({ ...searchQuery.value, skip }),
   });
 
   return {

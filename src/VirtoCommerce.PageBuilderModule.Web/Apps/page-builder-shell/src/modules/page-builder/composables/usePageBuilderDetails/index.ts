@@ -193,7 +193,7 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
     // Get platform URL from env
     const platformUrl: string = (
       (import.meta.env.DEV && import.meta.env.APP_PLATFORM_URL) ||
-      window.location.origin
+      globalThis.location.origin
     ).replace(/\/$/, "");
     const designerUrl = `${platformUrl}/Modules/$(VirtoCommerce.PageBuilderModule)/Content/page-builder-designer/index.html`;
     const groupId = item.value?.id;
