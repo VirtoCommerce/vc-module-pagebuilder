@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
 using Newtonsoft.Json;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
@@ -18,7 +13,7 @@ public sealed class PageBuilderExportImport(
     IGroupedPageSearchService groupedPageSearchService,
     JsonSerializer jsonSerializer)
 {
-    private const int BatchSize = 50;
+    private const int BatchSize = 1;
 
     public async Task DoExportAsync(Stream outStream, Action<ExportImportProgressInfo> progressCallback, ICancellationToken cancellationToken)
     {
@@ -46,10 +41,12 @@ public sealed class PageBuilderExportImport(
 
         for (criteria.Skip = 0; ; criteria.Skip += BatchSize)
         {
+            Console.WriteLine(criteria.Skip);
             var searchResult = await groupedPageSearchService.SearchNoCloneAsync(criteria);
 
             foreach (var group in searchResult.Results)
             {
+                Console.WriteLine(group.Name);
                 cancellationToken.ThrowIfCancellationRequested();
 
                 var exportPage = await ConvertToExportPageAsync(group);
