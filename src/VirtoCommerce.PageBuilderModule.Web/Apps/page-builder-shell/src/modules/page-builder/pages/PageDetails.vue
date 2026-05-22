@@ -121,7 +121,7 @@ import { useI18n } from "vue-i18n";
 import { Field } from "vee-validate";
 import { IBladeToolbar, useBlade, useBladeForm, usePopup, notification } from "@vc-shell/framework";
 import useUrlParams from "../composables/useStoreParams";
-import useAiAgentStoreContext from "../composables/useAiAgentStoreContext";
+import useAiAgentContextWithStore from "../composables/useAiAgentContextWithStore";
 import { usePageBuilderDetails } from "../composables/usePageBuilderDetails";
 import type { PageExportData } from "../composables/usePageContentApi";
 import PageStatus from "../components/pageStatus.vue";
@@ -142,7 +142,7 @@ const { getStoreUrl, getLanguages } = useUrlParams();
 
 // WORKAROUND: push storeId into the AI agent context so pagebuilder tools
 // can read it. See docs/storeId-missing-in-ai-context.md for the proper fix.
-useAiAgentStoreContext();
+useAiAgentContextWithStore();
 
 const {
   item,

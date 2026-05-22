@@ -66,7 +66,7 @@ import {
   PageLifecycleFilters,
   usePageBuilderList,
   useUrlParams,
-  useAiAgentStoreContext,
+  useAiAgentContextWithStore,
   refreshMenuBadges,
 } from "../composables";
 import { parseImportFile } from "../composables/usePageContentApi";
@@ -87,7 +87,7 @@ const { storeId, initUrlParams } = useUrlParams();
 
 // WORKAROUND: push storeId into the AI agent context so pagebuilder tools
 // can read it. See docs/storeId-missing-in-ai-context.md for the proper fix.
-useAiAgentStoreContext();
+useAiAgentContextWithStore();
 
 const { sortField, sortOrder, sortExpression } = useDataTableSort({
   initialDirection: "DESC",
