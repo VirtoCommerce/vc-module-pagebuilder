@@ -27,6 +27,22 @@ Intent disambiguation:
 
 ---
 
+## Resolving `storeId`
+
+Every tool that takes a `storeId` parameter expects the current store. The host shell injects it into chat context as an item:
+
+```
+{ "id": "<storeId>", "objectType": "pagebuilder.store", "name": "Current store: <storeId>" }
+```
+
+Resolution order:
+1. If `items[]` contains an entry with `objectType == "pagebuilder.store"`, pass its `id`.
+2. Otherwise, ask the user for the store ID.
+
+Never invent a placeholder like `"contextual"`, `"current"`, `"default"`, or the store name.
+
+---
+
 ## Step 0 — Discover schemas (two-phase)
 
 Schema retrieval is split into a lightweight index + per-entry full schema fetch. Don't load every schema upfront — wasteful and pollutes context.

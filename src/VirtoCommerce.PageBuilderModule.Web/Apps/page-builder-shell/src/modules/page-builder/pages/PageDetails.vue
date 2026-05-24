@@ -140,10 +140,6 @@ const { showConfirmation } = usePopup();
 const { param, options, callParent, closeSelf, exposeToChildren } = useBlade();
 const { getStoreUrl, getLanguages } = useUrlParams();
 
-// WORKAROUND: push storeId into the AI agent context so pagebuilder tools
-// can read it. See docs/storeId-missing-in-ai-context.md for the proper fix.
-useAiAgentContextWithStore();
-
 const {
   item,
   status,
@@ -164,6 +160,15 @@ const {
   storeId: options.value?.storeId as string | undefined,
   importData: options.value?.importData as PageExportData | undefined,
 });
+
+// WORKAROUND: push storeId + current page into the AI agent context so pagebuilder
+// tools can read them. See docs/storeId-missing-in-ai-context.md for the proper fix.
+const aiContextItem = computed(() =>
+  item.value?.id
+    ? { id: item.value.id, objectType: "pagebuilder.page", name: item.value.name }
+    : null,
+);
+useAiAgentContextWithStore({ dataRef: aiContextItem });
 
 const { canSave, isModified, setBaseline, formMeta } = useBladeForm({
   data: item,

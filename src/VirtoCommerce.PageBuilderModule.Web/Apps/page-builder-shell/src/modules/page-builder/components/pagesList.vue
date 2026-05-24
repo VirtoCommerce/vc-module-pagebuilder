@@ -85,10 +85,6 @@ const { param, openBlade } = useBlade();
 const { showConfirmation } = usePopup();
 const { storeId, initUrlParams } = useUrlParams();
 
-// WORKAROUND: push storeId into the AI agent context so pagebuilder tools
-// can read it. See docs/storeId-missing-in-ai-context.md for the proper fix.
-useAiAgentContextWithStore();
-
 const { sortField, sortOrder, sortExpression } = useDataTableSort({
   initialDirection: "DESC",
   initialField: "modifiedDate",
@@ -103,6 +99,17 @@ const { items, pagination, searchQuery, loadPages, removePages, loading, pageSta
 const selectedItemId = ref<string>();
 const localSelection = ref<GroupedPageBuilderPage[]>([]);
 const fileInputRef = ref<HTMLInputElement | null>(null);
+
+// WORKAROUND: push storeId + visible pages into the AI agent context so pagebuilder
+// tools can read them. See docs/storeId-missing-in-ai-context.md for the proper fix.
+const aiContextItems = computed(() =>
+  items.value.map((page) => ({
+    id: page.id,
+    objectType: "pagebuilder.page",
+    name: page.name,
+  })),
+);
+useAiAgentContextWithStore({ dataRef: aiContextItems });
 
 const computedGlobalFilters = computed(() => [
   {
