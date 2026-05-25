@@ -47,11 +47,6 @@ public class PageBuilderAssetReferenceMatcher
 
     public string NormalizeAssetUrl(string value)
     {
-        return NormalizeAssetUrlCore(value);
-    }
-
-    private static string NormalizeAssetUrlCore(string value)
-    {
         if (string.IsNullOrWhiteSpace(value))
         {
             return null;
@@ -59,9 +54,10 @@ public class PageBuilderAssetReferenceMatcher
 
         var normalized = value.Trim();
 
-        if (Uri.TryCreate(normalized, UriKind.Absolute, out var absoluteUri))
+        if (Uri.TryCreate(normalized, UriKind.Absolute, out var uri) &&
+            (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
         {
-            normalized = absoluteUri.AbsolutePath;
+            normalized = uri.AbsolutePath;
         }
         else
         {
@@ -84,7 +80,7 @@ public class PageBuilderAssetReferenceMatcher
         return normalized;
     }
 
-    private static void VisitJsonElement(JsonElement element, IReadOnlyDictionary<string, IReadOnlyList<string>> candidates, ISet<string> result)
+    private void VisitJsonElement(JsonElement element, IReadOnlyDictionary<string, IReadOnlyList<string>> candidates, ISet<string> result)
     {
         switch (element.ValueKind)
         {
@@ -106,14 +102,14 @@ public class PageBuilderAssetReferenceMatcher
         }
     }
 
-    private static void FindReferencesInString(string value, IReadOnlyDictionary<string, IReadOnlyList<string>> candidates, ISet<string> result)
+    private void FindReferencesInString(string value, IReadOnlyDictionary<string, IReadOnlyList<string>> candidates, ISet<string> result)
     {
         if (string.IsNullOrEmpty(value))
         {
             return;
         }
 
-        var normalizedValue = NormalizeAssetUrlCore(value);
+        var normalizedValue = NormalizeAssetUrl(value);
         if (!string.IsNullOrEmpty(normalizedValue) && candidates.ContainsKey(normalizedValue))
         {
             result.Add(normalizedValue);
