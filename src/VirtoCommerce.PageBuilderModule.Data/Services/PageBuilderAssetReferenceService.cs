@@ -7,17 +7,21 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services;
 
 public class PageBuilderAssetReferenceService(
     IGroupedPageSearchService groupedPageSearchService,
-    IGroupedPageService groupedPageService,
-    PageBuilderAssetReferenceMatcher referenceMatcher)
+    IGroupedPageService groupedPageService)
     : IPageBuilderAssetReferenceService
 {
     private const int _pageSize = 100;
 
-    public async Task<PageBuilderAssetReferencesSearchResult> SearchReferencesAsync(PageBuilderAssetReferencesSearchCriteria criteria, CancellationToken cancellationToken = default)
+    public Task<PageBuilderAssetReferencesSearchResult> SearchReferencesAsync(PageBuilderAssetReferencesSearchCriteria criteria, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(criteria);
 
-        var normalizedAssets = referenceMatcher.NormalizeAssetUrls(criteria.AssetUrls ?? []);
+        return SearchReferencesInternalAsync(criteria, cancellationToken);
+    }
+
+    private async Task<PageBuilderAssetReferencesSearchResult> SearchReferencesInternalAsync(PageBuilderAssetReferencesSearchCriteria criteria, CancellationToken cancellationToken)
+    {
+        var normalizedAssets = PageBuilderAssetReferenceMatcher.NormalizeAssetUrls(criteria.AssetUrls ?? []);
         var references = normalizedAssets.ToDictionary(
             x => x.Key,
             x => new PageBuilderAssetReference
@@ -95,7 +99,7 @@ public class PageBuilderAssetReferenceService(
         }
     }
 
-    private async Task<IDictionary<string, ISet<string>>> GetGroupReferences(GroupedPageBuilderPage group, IEnumerable<string> normalizedAssets, ISet<string> allowedStatuses, CancellationToken cancellationToken)
+    private async Task<IDictionary<string, ISet<string>>> GetGroupReferences(GroupedPageBuilderPage group, IEnumerable<string> normalizedAssets, HashSet<string> allowedStatuses, CancellationToken cancellationToken)
     {
         var result = new Dictionary<string, ISet<string>>(StringComparer.OrdinalIgnoreCase);
 
@@ -103,7 +107,7 @@ public class PageBuilderAssetReferenceService(
         {
             cancellationToken.ThrowIfCancellationRequested();
             var content = await groupedPageService.LoadContent(page.Id, cancellationToken);
-            var matchedAssets = referenceMatcher.FindReferences(content, normalizedAssets);
+            var matchedAssets = PageBuilderAssetReferenceMatcher.FindReferences(content, normalizedAssets);
 
             foreach (var matchedAsset in matchedAssets)
             {

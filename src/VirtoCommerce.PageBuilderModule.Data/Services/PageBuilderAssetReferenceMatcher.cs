@@ -2,9 +2,11 @@ using System.Text.Json;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Services;
 
-public class PageBuilderAssetReferenceMatcher
+public static class PageBuilderAssetReferenceMatcher
 {
-    public IReadOnlyDictionary<string, string> NormalizeAssetUrls(IEnumerable<string> assetUrls)
+    private const string _referenceDelimiters = "?&#\"'()[]{}<>,;=:/";
+
+    public static IReadOnlyDictionary<string, string> NormalizeAssetUrls(IEnumerable<string> assetUrls)
     {
         return assetUrls
             .Where(x => !string.IsNullOrWhiteSpace(x))
@@ -14,7 +16,7 @@ public class PageBuilderAssetReferenceMatcher
             .ToDictionary(x => x.Key, x => x.First().Original, StringComparer.OrdinalIgnoreCase);
     }
 
-    public ISet<string> FindReferences(string content, IEnumerable<string> normalizedAssetUrls)
+    public static ISet<string> FindReferences(string content, IEnumerable<string> normalizedAssetUrls)
     {
         var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
@@ -27,7 +29,7 @@ public class PageBuilderAssetReferenceMatcher
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToDictionary(x => x, BuildCandidates, StringComparer.OrdinalIgnoreCase);
 
-        if (!candidates.Any())
+        if (candidates.Count == 0)
         {
             return result;
         }
@@ -45,7 +47,7 @@ public class PageBuilderAssetReferenceMatcher
         return result;
     }
 
-    public string NormalizeAssetUrl(string value)
+    public static string NormalizeAssetUrl(string value)
     {
         if (string.IsNullOrWhiteSpace(value))
         {
@@ -80,7 +82,7 @@ public class PageBuilderAssetReferenceMatcher
         return normalized;
     }
 
-    private void VisitJsonElement(JsonElement element, IReadOnlyDictionary<string, IReadOnlyList<string>> candidates, ISet<string> result)
+    private static void VisitJsonElement(JsonElement element, IReadOnlyDictionary<string, IReadOnlyList<string>> candidates, ISet<string> result)
     {
         switch (element.ValueKind)
         {
@@ -102,7 +104,7 @@ public class PageBuilderAssetReferenceMatcher
         }
     }
 
-    private void FindReferencesInString(string value, IReadOnlyDictionary<string, IReadOnlyList<string>> candidates, ISet<string> result)
+    private static void FindReferencesInString(string value, IReadOnlyDictionary<string, IReadOnlyList<string>> candidates, ISet<string> result)
     {
         if (string.IsNullOrEmpty(value))
         {
@@ -116,13 +118,9 @@ public class PageBuilderAssetReferenceMatcher
             return;
         }
 
-        foreach (var candidate in candidates)
-        {
-            if (candidate.Value.Any(x => ContainsReference(value, x)))
-            {
-                result.Add(candidate.Key);
-            }
-        }
+        result.UnionWith(candidates
+            .Where(candidate => candidate.Value.Any(x => ContainsReference(value, x)))
+            .Select(candidate => candidate.Key));
     }
 
     private static bool ContainsReference(string value, string candidate)
@@ -190,11 +188,7 @@ public class PageBuilderAssetReferenceMatcher
 
     private static bool IsReferenceDelimiter(char value)
     {
-        return value switch
-        {
-            '?' or '&' or '#' or '"' or '\'' or '(' or ')' or '[' or ']' or '{' or '}' or '<' or '>' or ',' or ';' or '=' or ':' or '/' => true,
-            var character => char.IsWhiteSpace(character)
-        };
+        return char.IsWhiteSpace(value) || _referenceDelimiters.Contains(value);
     }
 
     private static IReadOnlyList<string> BuildCandidates(string normalizedAssetUrl)

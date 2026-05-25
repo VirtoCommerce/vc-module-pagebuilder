@@ -1,6 +1,5 @@
 import { computed, signal } from '@angular/core';
 
-import { assetLibraryHelpers } from '@core/helpers';
 import { AssetLibraryEntry, AssetLibraryService } from '@core/services';
 
 import { AssetPickerDialogItem, AssetPickerDialogResult } from './asset-picker.models';

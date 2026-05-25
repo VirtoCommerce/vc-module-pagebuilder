@@ -192,9 +192,13 @@ export class AssetPickerStateService {
                 if (uploadedEntries.length) {
                     this.selectedAssets.set(this.multiple ? this.selection.mergeSelectedAssets(uploadedEntries) : uploadedEntries.slice(-1));
                 }
-                this.loadEntries(folderUrl === this.currentFolderUrl()
-                    ? this.multiple ? preferredSelectionUrls : preferredSelectionUrls.at(-1)
-                    : undefined);
+
+                let preferredSelectionUrl: string | string[] | undefined;
+                if (folderUrl === this.currentFolderUrl()) {
+                    preferredSelectionUrl = this.multiple ? preferredSelectionUrls : preferredSelectionUrls.at(-1);
+                }
+
+                this.loadEntries(preferredSelectionUrl);
             },
             error: error => {
                 this.uploading.set(false);

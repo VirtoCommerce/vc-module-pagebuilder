@@ -76,7 +76,6 @@ namespace VirtoCommerce.PageBuilderModule.Web
 
             serviceCollection.AddTransient<IGroupedPageService, GroupedPageService>();
             serviceCollection.AddTransient<IGroupedPageSearchService, GroupedPageSearchService>();
-            serviceCollection.AddTransient<PageBuilderAssetReferenceMatcher>();
             serviceCollection.AddTransient<IPageBuilderAssetReferenceService, PageBuilderAssetReferenceService>();
 
             serviceCollection.AddTransient<GroupedPageBuilderPageChangedEventHandler>();
