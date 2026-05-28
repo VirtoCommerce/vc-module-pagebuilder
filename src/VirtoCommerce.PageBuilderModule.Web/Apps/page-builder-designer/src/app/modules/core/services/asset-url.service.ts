@@ -19,8 +19,7 @@ export class AssetUrlService {
             return null;
         }
 
-        return this.appConfig.getValue('assetLibraryRootFolderUrl', this.getAssetContext(context, { storeId }))
-            || `/stores/${storeId}/Page Builder`;
+        return this.appConfig.getValue('assetLibraryRootFolderUrl', this.getAssetContext(context, { storeId })) || null;
     }
 
     getPublicUrl(entry: AssetLibraryEntry, context: AssetLibraryContext | null = null): string | null {
@@ -29,12 +28,20 @@ export class AssetUrlService {
     }
 
     getPreviewUrl(entry: AssetLibraryEntry, context: AssetLibraryContext | null = null): string | null {
-        const publicUrl = this.getPublicUrl(entry, context);
-        if (!publicUrl) {
+        const assetUrl = this.getEntryUrl(entry);
+        if (!assetUrl) {
             return null;
         }
 
-        return this.addPreviewTimestamp(publicUrl, entry.modifiedDate);
+        const publicAssetUrl = this.getPublicAssetUrl(assetUrl, context);
+        if (!publicAssetUrl) {
+            return null;
+        }
+
+        return this.getConfiguredAssetUrl('assetPreviewUrlTemplate', assetUrl, context, {
+            publicAssetUrl,
+            modifiedDate: entry.modifiedDate ?? ''
+        });
     }
 
     getPublicAssetUrl(value: unknown, context: AssetLibraryContext | null = null): string | null {
@@ -47,18 +54,7 @@ export class AssetUrlService {
             return null;
         }
 
-        if (this.isAbsoluteAssetUrl(assetUrl)) {
-            return assetUrl;
-        }
-
-        const normalizedAssetUrl = this.ensureLeadingSlash(assetUrl);
-        const publicAssetUrl = assetLibraryHelpers.toPublicAssetUrl(assetUrl);
-
-        return this.appConfig.getValue('assetsUrlTemplate', this.getAssetContext(context, {
-            assetName: assetUrl,
-            assetUrl: normalizedAssetUrl,
-            publicAssetUrl
-        })) || publicAssetUrl;
+        return this.getConfiguredAssetUrl('assetsUrlTemplate', assetUrl, context);
     }
 
     getEntryUrl(entry: AssetLibraryEntry): string | null {
@@ -81,27 +77,22 @@ export class AssetUrlService {
             || assetLibraryHelpers.isImageFileName(entry.name);
     }
 
+    private getConfiguredAssetUrl(
+        property: 'assetsUrlTemplate' | 'assetPreviewUrlTemplate',
+        assetUrl: string,
+        context: AssetLibraryContext | null,
+        values: Record<string, string> = {}
+    ): string | null {
+        return this.appConfig.getValue(property, this.getAssetContext(context, {
+            assetUrl,
+            ...values
+        })) || null;
+    }
+
     private getAssetContext(context: AssetLibraryContext | null, values: Record<string, string>): any {
         return {
             ...(context ?? {}),
             ...values
         };
-    }
-
-    private isAbsoluteAssetUrl(value: string): boolean {
-        return /^(?:[a-z][a-z\d+\-.]*:)?\/\//i.test(value) || value.startsWith('data:');
-    }
-
-    private ensureLeadingSlash(value: string): string {
-        return value.startsWith('/') ? value : `/${value}`;
-    }
-
-    private addPreviewTimestamp(url: string, modifiedDate?: string): string {
-        if (!modifiedDate) {
-            return url;
-        }
-
-        const separator = url.includes('?') ? '&' : '?';
-        return `${url}${separator}t=${encodeURIComponent(modifiedDate)}`;
     }
 }

@@ -11,6 +11,17 @@ describe('AssetUrlService', () => {
         getValue: ReturnType<typeof vi.fn>;
     };
 
+    function toPublicAssetUrl(value: string): string {
+        if (/^(?:[a-z][a-z\d+\-.]*:)?\/\//i.test(value) || value.startsWith('data:')) {
+            return value;
+        }
+
+        const normalized = value.startsWith('/') ? value : `/${value}`;
+        return normalized.toLowerCase().startsWith('/assets/')
+            ? normalized
+            : `/assets${normalized}`;
+    }
+
     beforeEach(() => {
         appConfig = {
             getContext: vi.fn(() => ({ location: { params: { storeId: 'app-store' } } })),
@@ -20,7 +31,14 @@ describe('AssetUrlService', () => {
                 }
 
                 if (property === 'assetsUrlTemplate') {
-                    return context.publicAssetUrl;
+                    return toPublicAssetUrl(context.assetUrl);
+                }
+
+                if (property === 'assetPreviewUrlTemplate') {
+                    const separator = context.publicAssetUrl.includes('?') ? '&' : '?';
+                    return context.modifiedDate
+                        ? `${context.publicAssetUrl}${separator}t=${encodeURIComponent(context.modifiedDate)}`
+                        : context.publicAssetUrl;
                 }
 
                 return null;
@@ -71,7 +89,12 @@ describe('AssetUrlService', () => {
     it('adds preview timestamps without remapping configured public URLs again', () => {
         appConfig.getValue.mockImplementation((property: string, context: any) => {
             if (property === 'assetsUrlTemplate') {
-                return `/cdn${context.publicAssetUrl}`;
+                return `/cdn${toPublicAssetUrl(context.assetUrl)}`;
+            }
+
+            if (property === 'assetPreviewUrlTemplate') {
+                const separator = context.publicAssetUrl.includes('?') ? '&' : '?';
+                return `${context.publicAssetUrl}${separator}t=${encodeURIComponent(context.modifiedDate)}`;
             }
 
             return null;

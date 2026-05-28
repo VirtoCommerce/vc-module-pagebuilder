@@ -118,7 +118,8 @@
     "settingsPath": "{{config.themeName}}/config/settings_data.json",
     "defaultPreviewUrl": "/",
     "assetLibraryRootFolderUrl": "/stores/{{storeId}}/Page Builder",
-    "assetsUrlTemplate": "{{publicAssetUrl}}",
+    "assetsUrlTemplate": "{{=(function(url) { if (!url) return ''; var trimmed = url.trim(); if (!trimmed) return ''; if (/^(?:[a-z][a-z\\d+\\-.]*:)?\\/\\//i.test(trimmed) || trimmed.indexOf('data:') === 0) return trimmed; var normalized = trimmed.charAt(0) === '/' ? trimmed : '/' + trimmed; return normalized.toLowerCase().indexOf('/assets/') === 0 ? normalized : combine('/assets', normalized); })(this.assetUrl)}}",
+    "assetPreviewUrlTemplate": "{{=(function(publicUrl, modifiedDate) { if (!publicUrl || !modifiedDate) return publicUrl; return publicUrl + (publicUrl.indexOf('?') >= 0 ? '&' : '?') + 't=' + encodeURIComponent(modifiedDate); })(this.publicAssetUrl, this.modifiedDate)}}",
     "assetLibrarySearchRequest": "/api/assets?folderUrl={{=encodeURIComponent(this.folderUrl)}}{{=this.keyword ? '&keyword=' + encodeURIComponent(this.keyword) : ''}}",
     "assetLibraryUploadRequest": {
         "url": "/api/assets?folderUrl={{=encodeURIComponent(this.folderUrl)}}",
