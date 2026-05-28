@@ -3,7 +3,7 @@ import { concatMap, from, map, Observable, toArray } from 'rxjs';
 
 import { assetLibraryHelpers, coreHelpers } from '@core/helpers';
 import { AssetFile } from '@core/models';
-import { AssetLibraryEntry, AssetLibraryService } from '@core/services';
+import { AssetLibraryContext, AssetLibraryEntry, AssetLibraryService } from '@core/services';
 import { FilesDescriptor } from '@models/controls';
 
 import { AssetPickerDialogItem } from '@core/dialogs';
@@ -25,13 +25,13 @@ export class FilesAssetLibraryFacade {
     return this.assetLibrary.getRootFolderUrl(context);
   }
 
-  uploadFiles(folderUrl: string, files: File[]): Observable<AssetPickerDialogItem[]> {
+  uploadFiles(folderUrl: string, files: File[], context: AssetLibraryContext | null = null): Observable<AssetPickerDialogItem[]> {
     return from(files).pipe(
       concatMap(file => this.assetLibrary.upload(folderUrl, file)),
       toArray(),
       map(entries => entries
         .filter((entry): entry is AssetLibraryEntry => !!entry)
-        .map(entry => this.createPickerResult(entry))
+        .map(entry => this.createPickerResult(entry, context))
         .filter((item): item is AssetPickerDialogItem => !!item))
     );
   }
@@ -75,14 +75,14 @@ export class FilesAssetLibraryFacade {
     };
   }
 
-  private createPickerResult(entry: AssetLibraryEntry): AssetPickerDialogItem | null {
-    const url = this.assetLibrary.getPublicUrl(entry);
+  private createPickerResult(entry: AssetLibraryEntry, context: AssetLibraryContext | null = null): AssetPickerDialogItem | null {
+    const url = this.assetLibrary.getPublicUrl(entry, context);
 
     return url
       ? {
         entry,
         url,
-        previewUrl: this.assetLibrary.getPreviewUrl(entry)
+        previewUrl: this.assetLibrary.getPreviewUrl(entry, context)
       }
       : null;
   }

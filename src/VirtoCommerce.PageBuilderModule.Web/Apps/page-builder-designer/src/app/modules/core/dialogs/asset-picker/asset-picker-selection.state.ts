@@ -1,6 +1,6 @@
 import { computed, signal } from '@angular/core';
 
-import { AssetLibraryEntry, AssetLibraryService } from '@core/services';
+import { AssetLibraryContext, AssetLibraryEntry, AssetLibraryService } from '@core/services';
 
 import { AssetPickerDialogItem, AssetPickerDialogResult } from './asset-picker.models';
 
@@ -15,7 +15,8 @@ export class AssetPickerSelectionState {
     constructor(
         private readonly assets: AssetLibraryService,
         private readonly acceptedTypes: string[],
-        private readonly multiple: boolean
+        private readonly multiple: boolean,
+        private readonly context: AssetLibraryContext | null = null
     ) {
     }
 
@@ -125,7 +126,7 @@ export class AssetPickerSelectionState {
     }
 
     private toDialogResult(entry: AssetLibraryEntry): AssetPickerDialogItem | null {
-        const url = this.assets.getPublicUrl(entry);
+        const url = this.assets.getPublicUrl(entry, this.context);
         if (!url) {
             return null;
         }
@@ -133,7 +134,7 @@ export class AssetPickerSelectionState {
         return {
             entry,
             url,
-            previewUrl: this.assets.getPreviewUrl(entry)
+            previewUrl: this.assets.getPreviewUrl(entry, this.context)
         };
     }
 }

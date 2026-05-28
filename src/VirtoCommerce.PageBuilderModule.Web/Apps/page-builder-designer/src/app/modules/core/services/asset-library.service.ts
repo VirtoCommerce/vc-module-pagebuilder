@@ -1,8 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
-import { AppConfig } from '@integration/services';
-
 import { AssetLibraryApiService } from './asset-library-api.service';
 import {
     AssetLibraryContext,
@@ -44,7 +42,6 @@ const fallbackLabels: AssetLibraryLabels = {
 export class AssetLibraryService {
 
     private readonly api = inject(AssetLibraryApiService);
-    private readonly appConfig = inject(AppConfig);
     private readonly urls = inject(AssetUrlService);
 
     getRootFolderUrl(context: AssetLibraryContext | null = null): string | null {
@@ -52,10 +49,7 @@ export class AssetLibraryService {
     }
 
     getLabels(): AssetLibraryLabels {
-        return {
-            ...fallbackLabels,
-            ...(this.appConfig.getValue('assetLibraryLabels') ?? {})
-        };
+        return { ...fallbackLabels };
     }
 
     search(folderUrl: string, keyword?: string): Observable<AssetLibrarySearchResult> {
@@ -66,12 +60,12 @@ export class AssetLibraryService {
         return this.api.upload(folderUrl, file);
     }
 
-    getPublicUrl(entry: AssetLibraryEntry): string | null {
-        return this.urls.getPublicUrl(entry);
+    getPublicUrl(entry: AssetLibraryEntry, context: AssetLibraryContext | null = null): string | null {
+        return this.urls.getPublicUrl(entry, context);
     }
 
-    getPreviewUrl(entry: AssetLibraryEntry): string | null {
-        return this.urls.getPreviewUrl(entry);
+    getPreviewUrl(entry: AssetLibraryEntry, context: AssetLibraryContext | null = null): string | null {
+        return this.urls.getPreviewUrl(entry, context);
     }
 
     isImage(entry: AssetLibraryEntry): boolean {

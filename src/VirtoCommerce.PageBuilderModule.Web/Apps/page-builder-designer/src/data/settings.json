@@ -117,33 +117,26 @@
     },
     "settingsPath": "{{config.themeName}}/config/settings_data.json",
     "defaultPreviewUrl": "/",
-    "assetLibraryLabels": {
-        "title": "Choose from asset library",
-        "rootBreadcrumb": "Page Builder",
-        "choose": "Choose from Asset Library",
-        "chooseOrDrop": "Choose from Asset Library or drag and drop here",
-        "upload": "Upload",
-        "uploading": "Uploading...",
-        "searchPlaceholder": "Search assets...",
-        "assetsCounter": "{count} assets",
-        "loading": "Loading assets...",
-        "empty": "No assets found.",
-        "cancel": "Cancel",
-        "select": "Select",
-        "storeRequired": "Store context is required to open Asset Library.",
-        "uploadError": "Unable to upload asset.",
-        "loadError": "Unable to load assets.",
-        "fileTooLarge": "File is too large. Maximum size is {maxSize}."
+    "assetLibraryRootFolderUrl": "/stores/{{storeId}}/Page Builder",
+    "assetsUrlTemplate": "{{publicAssetUrl}}",
+    "assetLibrarySearchRequest": "/api/assets?folderUrl={{=encodeURIComponent(this.folderUrl)}}{{=this.keyword ? '&keyword=' + encodeURIComponent(this.keyword) : ''}}",
+    "assetLibraryUploadRequest": {
+        "url": "/api/assets?folderUrl={{=encodeURIComponent(this.folderUrl)}}",
+        "method": "POST",
+        "form": {
+            "name": "file",
+            "fileName": "{{file.name}}"
+        }
     },
     "uploadAssetsRequest": {
-        "url": "/api/assets?folderUrl=/stores/{{location.params.storeId}}/Page%20Builder&name={{file.assetName}}",
+        "url": "/api/assets?folderUrl={{=encodeURIComponent(this.folderUrl)}}&name={{file.assetName}}",
         "method": "POST",
         "form": {
             "name": "file",
             "fileName": "{{file.assetName}}"
         },
         "response": {
-            "selector": "this.response && this.response[0] ? (this.response[0].url || (this.response[0].relativeUrl ? '/assets' + this.response[0].relativeUrl : null)) : null",
+            "selector": "this.response && this.response[0] ? (this.response[0].url || this.response[0].relativeUrl || null) : null",
             "isArray": false
         }
     },

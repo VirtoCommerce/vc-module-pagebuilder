@@ -36,4 +36,5 @@ describe('assetLibraryHelpers', () => {
                 .toBe('/assets/stores/B2B-store/hero.png?size=large&t=2026-05-15');
         });
     });
+
 });

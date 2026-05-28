@@ -133,6 +133,7 @@ export abstract class BaseFilesComponent<T extends FilesDescriptor> extends Base
       autoFocus: false,
       data: {
         rootFolderUrl,
+        context: this.context,
         accept: this.getControlOptions().accept,
         multiple: this.multiple(),
         maxFileSize: this.descriptor?.maxFileSize
@@ -331,7 +332,7 @@ export abstract class BaseFilesComponent<T extends FilesDescriptor> extends Base
 
     this.assetLibraryUploading.set(true);
 
-    this.assetLibrary.uploadFiles(rootFolderUrl, uploadResult.files).pipe(
+    this.assetLibrary.uploadFiles(rootFolderUrl, uploadResult.files, this.context).pipe(
       takeUntilDestroyed(this.destroyRef)
     ).subscribe({
       next: results => {

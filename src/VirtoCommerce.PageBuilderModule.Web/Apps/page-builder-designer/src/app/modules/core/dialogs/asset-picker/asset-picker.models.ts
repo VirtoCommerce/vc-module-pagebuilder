@@ -1,7 +1,8 @@
-import { AssetLibraryEntry } from '@core/services';
+import { AssetLibraryContext, AssetLibraryEntry } from '@core/services';
 
 export interface AssetPickerDialogData {
     rootFolderUrl: string;
+    context?: AssetLibraryContext | null;
     accept?: string[];
     title?: string;
     multiple?: boolean;

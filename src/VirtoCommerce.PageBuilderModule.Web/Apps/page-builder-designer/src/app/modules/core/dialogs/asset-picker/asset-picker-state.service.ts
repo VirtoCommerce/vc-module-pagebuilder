@@ -29,7 +29,8 @@ export class AssetPickerStateService {
     readonly labels = this.assets.getLabels();
     readonly title = this.data.title || this.labels.title;
     readonly multiple = this.data.multiple === true;
-    private readonly selection = new AssetPickerSelectionState(this.assets, this.acceptedTypes, this.multiple);
+    private readonly context = this.data.context ?? null;
+    private readonly selection = new AssetPickerSelectionState(this.assets, this.acceptedTypes, this.multiple, this.context);
     readonly rootFolderUrl = this.data.rootFolderUrl;
     readonly currentFolderUrl = signal(this.data.rootFolderUrl);
     readonly entries = signal<AssetLibraryEntry[]>([]);
@@ -226,7 +227,7 @@ export class AssetPickerStateService {
         return {
             entry,
             key: getAssetPickerEntryKey(entry),
-            previewUrl: this.assets.isImage(entry) ? this.assets.getPreviewUrl(entry) : null,
+            previewUrl: this.assets.isImage(entry) ? this.assets.getPreviewUrl(entry, this.context) : null,
             size: entry.type === 'blob' ? assetLibraryHelpers.formatAssetSize(entry.size ?? 0) : null,
             selected: this.selection.isAssetSelected(entry),
             folderDropTarget: entry.type === 'folder' && this.folderDropTarget() === getAssetPickerEntryKey(entry),

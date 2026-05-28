@@ -1,15 +1,12 @@
 export interface AssetLibraryContext {
+    storeId?: string | string[];
     location?: {
         params?: {
             storeId?: string | string[];
         };
     };
-    template?: {
-        storeId?: string;
-    };
-    model?: {
-        storeId?: string;
-    };
+    template?: any;
+    model?: any;
 }
 
 export interface AssetLibraryEntry {

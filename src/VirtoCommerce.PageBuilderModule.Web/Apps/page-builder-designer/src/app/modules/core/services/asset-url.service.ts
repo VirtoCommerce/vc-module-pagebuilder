@@ -15,21 +15,50 @@ export class AssetUrlService {
     getRootFolderUrl(context: AssetLibraryContext | null = null): string | null {
         const storeId = this.getStoreId(context);
 
-        return storeId ? `/stores/${storeId}/Page Builder` : null;
-    }
-
-    getPublicUrl(entry: AssetLibraryEntry): string | null {
-        const entryUrl = this.getEntryUrl(entry);
-        return entryUrl ? assetLibraryHelpers.toPublicAssetUrl(entryUrl) : null;
-    }
-
-    getPreviewUrl(entry: AssetLibraryEntry): string | null {
-        const entryUrl = this.getEntryUrl(entry);
-        if (!entryUrl) {
+        if (!storeId) {
             return null;
         }
 
-        return assetLibraryHelpers.toAssetPreviewUrl(entryUrl, entry.modifiedDate);
+        return this.appConfig.getValue('assetLibraryRootFolderUrl', this.getAssetContext(context, { storeId }))
+            || `/stores/${storeId}/Page Builder`;
+    }
+
+    getPublicUrl(entry: AssetLibraryEntry, context: AssetLibraryContext | null = null): string | null {
+        const entryUrl = this.getEntryUrl(entry);
+        return this.getPublicAssetUrl(entryUrl, context);
+    }
+
+    getPreviewUrl(entry: AssetLibraryEntry, context: AssetLibraryContext | null = null): string | null {
+        const publicUrl = this.getPublicUrl(entry, context);
+        if (!publicUrl) {
+            return null;
+        }
+
+        return this.addPreviewTimestamp(publicUrl, entry.modifiedDate);
+    }
+
+    getPublicAssetUrl(value: unknown, context: AssetLibraryContext | null = null): string | null {
+        if (typeof value !== 'string') {
+            return null;
+        }
+
+        const assetUrl = value.trim();
+        if (!assetUrl) {
+            return null;
+        }
+
+        if (this.isAbsoluteAssetUrl(assetUrl)) {
+            return assetUrl;
+        }
+
+        const normalizedAssetUrl = this.ensureLeadingSlash(assetUrl);
+        const publicAssetUrl = assetLibraryHelpers.toPublicAssetUrl(assetUrl);
+
+        return this.appConfig.getValue('assetsUrlTemplate', this.getAssetContext(context, {
+            assetName: assetUrl,
+            assetUrl: normalizedAssetUrl,
+            publicAssetUrl
+        })) || publicAssetUrl;
     }
 
     getEntryUrl(entry: AssetLibraryEntry): string | null {
@@ -38,7 +67,8 @@ export class AssetUrlService {
 
     getStoreId(context: AssetLibraryContext | null = null): string | null {
         const appContext = this.appConfig.getContext() as AssetLibraryContext;
-        const storeId = context?.location?.params?.storeId
+        const storeId = context?.storeId
+            ?? context?.location?.params?.storeId
             ?? context?.template?.storeId
             ?? context?.model?.storeId
             ?? appContext?.location?.params?.storeId;
@@ -49,5 +79,29 @@ export class AssetUrlService {
     isImage(entry: AssetLibraryEntry): boolean {
         return entry.contentType?.startsWith('image/') === true
             || assetLibraryHelpers.isImageFileName(entry.name);
+    }
+
+    private getAssetContext(context: AssetLibraryContext | null, values: Record<string, string>): any {
+        return {
+            ...(context ?? {}),
+            ...values
+        };
+    }
+
+    private isAbsoluteAssetUrl(value: string): boolean {
+        return /^(?:[a-z][a-z\d+\-.]*:)?\/\//i.test(value) || value.startsWith('data:');
+    }
+
+    private ensureLeadingSlash(value: string): string {
+        return value.startsWith('/') ? value : `/${value}`;
+    }
+
+    private addPreviewTimestamp(url: string, modifiedDate?: string): string {
+        if (!modifiedDate) {
+            return url;
+        }
+
+        const separator = url.includes('?') ? '&' : '?';
+        return `${url}${separator}t=${encodeURIComponent(modifiedDate)}`;
     }
 }

@@ -4,6 +4,7 @@ import { AppConfig, EvaluatorService } from '@integration/services';
 import { inject, Injectable } from '@angular/core';
 import { AssetFile } from '../models';
 import { DataService } from './data.service';
+import { AssetUrlService } from './asset-url.service';
 
 import { appHelpers } from '@integration/helpers';
 
@@ -15,11 +16,13 @@ export class AssetsService {
     private readonly data = inject(DataService);
     private readonly appConfig = inject(AppConfig);
     private readonly evaluator = inject(EvaluatorService);
+    private readonly urls = inject(AssetUrlService);
 
     uploadAsset(file: AssetFile, descriptor: UploadAssetDescriptor,
         context: any, _progress: (value: number) => void, overridenRequestProps: Partial<AssetsRequest> | null = null): Observable<any> {
         // todo: progress not works
-        let request = this.getRequest(descriptor, { ...context, file });
+        let uploadContext = this.getUploadContext(context, file);
+        let request = this.getRequest(descriptor, uploadContext);
         if (!request || request === 'inline') {
             // in this case we create data-url
             return from(new Promise<string>((resolve, reject) => {
@@ -40,14 +43,15 @@ export class AssetsService {
         file.assetName = !!request.randomizeAssetName || !file.name
             ? this.randomizeAssetName(file.name, file.type)
             : file.name;
-        request = this.getRequest(descriptor, { ...context, file } ); // do it again, thus asset name can impact to request
-        return this.data.doRequest(<AssetsRequest>request, context, file, { nullWhenError: false }).pipe(
+        uploadContext = this.getUploadContext(context, file);
+        request = this.getRequest(descriptor, uploadContext); // do it again, thus asset name can impact to request
+        return this.data.doRequest(<AssetsRequest>request, uploadContext, file, { nullWhenError: false }).pipe(
             map(response => {
                 const req = <AssetsRequest>request;
                 if (req.resultTemplate) {
-                    file.url = this.evaluator.evaluate(req.resultTemplate, { ...context, response });
+                    file.url = this.evaluator.evaluate(req.resultTemplate, { ...uploadContext, response });
                 } else {
-                    file.url = response;
+                    file.url = this.resolveUploadResponse(response, uploadContext);
                 }
                 return { ...file, name: file.assetName };
             })
@@ -73,18 +77,7 @@ export class AssetsService {
         if (!absoluteOrRelativeUrl) {
             return null;
         }
-        if (['http://', 'https://', '//', 'data:'].find(x => absoluteOrRelativeUrl.startsWith(x))) {
-            return absoluteOrRelativeUrl;
-        }
-        if (absoluteOrRelativeUrl.startsWith('/assets/')) {
-            return absoluteOrRelativeUrl;
-        }
-        if (absoluteOrRelativeUrl.startsWith('/stores/')) {
-            return `/assets${absoluteOrRelativeUrl}`;
-        }
-
-        const url = this.appConfig.getValue('assetsUrlTemplate', { ...context, assetName: absoluteOrRelativeUrl });
-        return url || absoluteOrRelativeUrl;
+        return this.urls.getPublicAssetUrl(absoluteOrRelativeUrl, context) || absoluteOrRelativeUrl;
     }
 
     isInlineUpload(descriptor: UploadAssetDescriptor, context: any): boolean {
@@ -102,6 +95,25 @@ export class AssetsService {
             request = <AssetsRequest>this.appConfig.getValue(<any>request, context);
         }
         return <any>request;
+    }
+
+    private getUploadContext(context: any, file: AssetFile): any {
+        const result = { ...context, file };
+
+        if (!result.folderUrl) {
+            const rootFolderUrl = this.urls.getRootFolderUrl(context);
+            if (rootFolderUrl) {
+                result.folderUrl = rootFolderUrl;
+            }
+        }
+
+        return result;
+    }
+
+    private resolveUploadResponse(response: any, context: any): any {
+        return typeof response === 'string'
+            ? this.adjustUrl(response, context) || response
+            : response;
     }
 
     private randomizeAssetName(name: string | null, contentType: string | null = null): string {
