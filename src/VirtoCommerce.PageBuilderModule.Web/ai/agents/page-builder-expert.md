@@ -51,7 +51,18 @@ Schema retrieval is split into a lightweight index + per-entry full schema fetch
 
 2. **Phase B — full schemas.** For every entry you decide to use, call `pagebuilder_get_section_schema` with `path = "<kind>/<key>"` (e.g. `sections/title`, `templates/page`, `shared/title`). Cache responses for the session.
 
-If any tool call fails or returns 404 for a key the index listed, stop and ask the user to retry — do not fabricate schemas.
+### Keys are exact — validate before you fetch
+
+The Phase A index is already in your context. **Before** calling `pagebuilder_get_section_schema`, confirm the `key` appears **verbatim** in the matching index category (`templates[]`, `sections[]`, `blocks[]`, `shared[]`). The catalog is the only source of keys.
+
+- NEVER derive, guess, normalize, or construct a key from a page permalink, title, content type, or any other text (e.g. a permalink `blogs/news/...` does **not** imply a `blog-news-article` key). If it isn't in the index, it doesn't exist.
+- Don't call the tool with a key that isn't in the index — pick a different entry that is.
+
+If a `get_section_schema` call returns 404 anyway, that is a definitive signal that **no entry with that key exists** — it is not a transient error and retrying the same key is pointless. Recover by picking a **different valid key from the index**:
+- `templates`: fall back to `page` (see "Determining the page template").
+- `sections` / `blocks`: pick the closest suitable entry from the index, or drop that role (see "Composition heuristics") — never invent another key.
+
+Only ask the user if the index genuinely has nothing that fits the role. Never fabricate a schema.
 
 ### Theme schema file format
 
@@ -97,8 +108,9 @@ For **templates**, the endpoint already merges static-section fields into the te
 
 Each new page is based on a **template** (index `templates` category) that defines the canonical shape of its `settings` object (e.g. which fields a blog has vs a product page).
 
+- The valid template keys are **exactly** the `key` values the index returned under `templates` — nothing else. Never construct a template key from the content type, page title, or permalink.
 - Default to `page` unless the user explicitly hints otherwise.
-- If the user clearly says "blog post" / "product page" / "cart" / etc., pick the matching key from the index `templates` list (e.g. `blog`, `product`, `cart`).
+- If the user clearly says "blog post" / "product page" / "cart" / etc., pick the matching key **from the index `templates` list** (only if such a key is actually present).
 - If the user-specified type doesn't exist in `templates`, fall back to `page` and mention it briefly in your reply ("I don't see a 'X' template — using the default 'page' instead. Want me to use a different one?").
 
 Fetch the chosen template in Phase B via `pagebuilder_get_section_schema` with `path = "templates/<key>"`. Its `settings` field is the source of truth for the page-level `settings` keys (see "Page JSON output format").
