@@ -424,6 +424,11 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             return result;
         }
 
+        // Upper bound for the catalog's derived `description` summary. Full descriptions average
+        // ~1150 chars across a real theme (141 sections ≈ 162 KB); the catalog only needs enough
+        // to PICK an entry, so it carries a short head summary instead — see DeriveCatalogSummary.
+        internal const int CatalogSummaryMaxLength = 200;
+
         internal static void CopySchemaMetadata(JObject source, JObject target, string kind)
         {
             // Catalog metadata is intentionally narrow — only fields the LLM uses while picking.
@@ -434,6 +439,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             // `settings[]` is merged into the template response instead).
             // `description` is exposed only for kinds where the agent picks an entry by intent
             // (regular sections, templates, blocks). For objects/shared descriptions add noise.
+            // It is shortened to a head summary here; the full description is served by
+            // GetSchemaByKey (Phase B) once the agent commits to an entry.
             var includeDescription = kind is SchemaKindSections or SchemaKindTemplates or SchemaKindBlocks;
             var properties = includeDescription
                 ? new[] { "name", "description" }
@@ -442,11 +449,49 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             foreach (var property in properties)
             {
                 var token = source[property];
-                if (token != null && token.Type != JTokenType.Null)
+                if (token == null || token.Type == JTokenType.Null)
                 {
-                    target[property] = token.DeepClone();
+                    continue;
                 }
+
+                target[property] = property == "description" && token.Type == JTokenType.String
+                    ? DeriveCatalogSummary(token.Value<string>())
+                    : token.DeepClone();
             }
+        }
+
+        /// <summary>
+        /// Reduces a full schema description to a short head summary for the catalog listing.
+        /// Theme descriptions follow a "&lt;what it is&gt; Use when: … Skip when: … &lt;field notes&gt;"
+        /// structure; the head before "Use when:" is the selection signal. The verbose remainder
+        /// (guidance + per-field notes, which duplicate the schema's <c>settings[]</c>) is dropped
+        /// from the catalog and served in full by GetSchemaByKey when an entry is actually used.
+        /// </summary>
+        internal static string DeriveCatalogSummary(string description)
+        {
+            if (string.IsNullOrWhiteSpace(description))
+            {
+                return description;
+            }
+
+            var marker = description.IndexOf("Use when", StringComparison.OrdinalIgnoreCase);
+            var head = (marker > 0 ? description[..marker] : description).Trim();
+            if (head.Length == 0)
+            {
+                head = description.Trim();
+            }
+
+            if (head.Length <= CatalogSummaryMaxLength)
+            {
+                return head;
+            }
+
+            // Prefer cutting at the last sentence boundary within the cap; else hard-cut + ellipsis.
+            var slice = head[..CatalogSummaryMaxLength];
+            var lastStop = slice.LastIndexOfAny(['.', '!', '?']);
+            return lastStop >= CatalogSummaryMaxLength / 2
+                ? slice[..(lastStop + 1)]
+                : slice.TrimEnd() + "…";
         }
 
         private void TryAddFileContent(BlobEntry file, string type, IBlobContentStorageProvider storageProvider, Dictionary<string, string> fileInfoes, JsonSerializerSettings jsonSettings)

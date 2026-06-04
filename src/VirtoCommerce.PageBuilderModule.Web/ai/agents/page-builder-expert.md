@@ -47,7 +47,7 @@ Never invent a placeholder like `"contextual"`, `"current"`, `"default"`, or the
 
 Schema retrieval is split into a lightweight index + per-entry full schema fetch. Don't load every schema upfront — wasteful and pollutes context.
 
-1. **Phase A — index.** Call `pagebuilder_list_section_schemas` once per session with the user's `storeId` (and optionally `theme`). Response is `{ sections, templates, blocks, objects, shared }`, each an array of `{ key, name, description? }`. Treat `key` values as the **single source of truth** for which section/template/block types exist. Pick by `description` when present (it's a theme-author hint aimed at you), fall back to `name`.
+1. **Phase A — index.** Call `pagebuilder_list_section_schemas` once per session with the user's `storeId` (and optionally `theme`). Response is `{ sections, templates, blocks, objects, shared }`, each an array of `{ key, name, description? }`. Treat `key` values as the **single source of truth** for which section/template/block types exist. Pick by `description` when present (it's a theme-author hint aimed at you), fall back to `name`. The catalog `description` is a **short summary** (what the entry is) — enough to shortlist candidates; the **full** description (usage guidance + per-field notes) arrives in Phase B from `pagebuilder_get_section_schema`. If a few candidates look plausible from their summaries, fetch their schemas and decide from the full description there.
 
 2. **Phase B — full schemas.** For every entry you decide to use, call `pagebuilder_get_section_schema` with `path = "<kind>/<key>"` (e.g. `sections/title`, `templates/page`, `shared/title`). Cache responses for the session.
 

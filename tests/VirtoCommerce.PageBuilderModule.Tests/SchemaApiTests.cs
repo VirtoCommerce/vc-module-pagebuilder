@@ -91,6 +91,15 @@ public class CopySchemaMetadataTests
         Assert.Equal("Use when...", (string)target["description"]);
     }
 
+    [Fact]
+    public void Summarizes_description_to_head_before_use_when()
+    {
+        var source = JObject.Parse("""{"description":"Hero banner. Use when: top of page. Skip when: elsewhere."}""");
+        var target = new JObject();
+        PageBuilderController.CopySchemaMetadata(source, target, "sections");
+        Assert.Equal("Hero banner.", (string)target["description"]);
+    }
+
     [Theory]
     [InlineData("objects")]
     [InlineData("shared")]
@@ -134,6 +143,64 @@ public class CopySchemaMetadataTests
         PageBuilderController.CopySchemaMetadata(source, target, "sections");
         Assert.Equal("hero", (string)target["key"]);
         Assert.Equal("Hero", (string)target["name"]);
+    }
+}
+
+public class DeriveCatalogSummaryTests
+{
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public void Returns_null_or_empty_unchanged(string input) =>
+        Assert.Equal(input, PageBuilderController.DeriveCatalogSummary(input));
+
+    [Fact]
+    public void Cuts_at_use_when_marker()
+    {
+        var result = PageBuilderController.DeriveCatalogSummary(
+            "Author profile card with avatar and bio. Use when: showing a post author. Skip when: ...");
+        Assert.Equal("Author profile card with avatar and bio.", result);
+    }
+
+    [Fact]
+    public void Is_case_insensitive_on_marker()
+    {
+        var result = PageBuilderController.DeriveCatalogSummary("What it is. USE WHEN: something.");
+        Assert.Equal("What it is.", result);
+    }
+
+    [Fact]
+    public void Keeps_full_text_when_no_use_when_and_under_cap()
+    {
+        const string input = "A compact contact form with name, email and message.";
+        Assert.Equal(input, PageBuilderController.DeriveCatalogSummary(input));
+    }
+
+    [Fact]
+    public void Keeps_full_text_when_description_starts_with_use_when()
+    {
+        // Marker at index 0 is not a head boundary — keep the text as-is.
+        const string input = "Use when you need a hero.";
+        Assert.Equal(input, PageBuilderController.DeriveCatalogSummary(input));
+    }
+
+    [Fact]
+    public void Caps_long_head_at_last_sentence_boundary()
+    {
+        var sentence1 = new string('a', 120) + ".";
+        var input = sentence1 + " " + new string('b', 120); // > 200, no "Use when"
+        var result = PageBuilderController.DeriveCatalogSummary(input);
+        Assert.Equal(sentence1, result);
+        Assert.True(result.Length <= PageBuilderController.CatalogSummaryMaxLength);
+    }
+
+    [Fact]
+    public void Hard_cuts_with_ellipsis_when_no_sentence_boundary()
+    {
+        var input = new string('a', 250); // no punctuation, exceeds cap
+        var result = PageBuilderController.DeriveCatalogSummary(input);
+        Assert.EndsWith("…", result);
+        Assert.True(result.Length <= PageBuilderController.CatalogSummaryMaxLength + 1);
     }
 }
 
