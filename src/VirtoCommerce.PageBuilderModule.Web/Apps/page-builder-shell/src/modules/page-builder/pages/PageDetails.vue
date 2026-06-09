@@ -212,7 +212,7 @@ const {
   importData: options.value?.importData as PageExportData | undefined,
 });
 
-const { canSave, isModified, setBaseline } = useBladeForm({
+const { canSave, isModified, setBaseline, formMeta } = useBladeForm({
   data: item,
   closeConfirmMessage: () => t("PAGE_BUILDER.PAGES.ALERTS.CLOSE_CONFIRMATION"),
   canSaveOverride: computed(() => !isReadOnly.value),
@@ -220,7 +220,7 @@ const { canSave, isModified, setBaseline } = useBladeForm({
 
 const bladeTitle = computed(() => {
   if (param.value || item.value?.name) {
-    return item.value?.name + t("PAGE_BUILDER.PAGES.DETAILS.TITLE.DETAILS");
+    return t("PAGE_BUILDER.PAGES.DETAILS.TITLE.DETAILS", { name: item.value?.name });
   }
   return t("PAGE_BUILDER.PAGES.DETAILS.TITLE.NEW");
 });
@@ -314,7 +314,7 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     icon: "lucide-file-text",
     title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.PUBLISH"),
     isVisible: !!param.value && status.value?.hasChanges === true,
-    disabled: isReadOnly.value || isModified.value,
+    disabled: isReadOnly.value || isModified.value || !formMeta.value.valid,
     clickHandler: async () => {
       await publishGroup();
       callParent("reload");
