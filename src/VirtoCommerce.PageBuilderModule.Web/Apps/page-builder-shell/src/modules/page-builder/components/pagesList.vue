@@ -48,6 +48,24 @@
               type="status"
               :sortable="true">
       <template #body="{ data }">
+      :always-visible="true"
+      :sortable="true"
+      type="datetime"
+      field="modifiedDate"
+    />
+    <VcColumn
+      id="modifiedBy"
+      :title="$t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.MODIFIED_BY')"
+      :sortable="false"
+      field="modifiedBy"
+    />
+    <VcColumn
+      id="status"
+      :title="$t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.STATUS')"
+      :sortable="true"
+      field="status"
+    >
+      <template #body="{ data }">
         <PageStatus
                     extended
                     :item="data" />
@@ -98,6 +116,9 @@ const { items, pagination, searchQuery, loadPages, removePages, loading, pageSta
 
 const selectedItemId = ref<string>();
 const localSelection = ref<GroupedPageBuilderPage[]>([]);
+const selectedItems = computed<string[]>(() =>
+  localSelection.value.map((item) => item.id!).filter((id): id is string => !!id),
+);
 const fileInputRef = ref<HTMLInputElement | null>(null);
 
 // WORKAROUND: push storeId + visible pages into the AI agent context so pagebuilder
@@ -120,6 +141,7 @@ const computedGlobalFilters = computed(() => [
         value: s.value,
         label: s.label,
       })),
+      multiple: false,
     },
   },
 ]);
@@ -142,7 +164,6 @@ function onItemClick(event: { data: GroupedPageBuilderPage }) {
 }
 
 const onSearchList = debounce(async (keyword: string | undefined) => {
-  console.debug(`Page builder list search by ${keyword}`);
   await loadPages({
     ...searchQuery.value,
     keyword,
@@ -196,6 +217,7 @@ async function onFilter(event: { filters: Record<string, unknown> }) {
     skip: 0,
   });
 }
+
 
 function openLoadFlow() {
   fileInputRef.value?.click();

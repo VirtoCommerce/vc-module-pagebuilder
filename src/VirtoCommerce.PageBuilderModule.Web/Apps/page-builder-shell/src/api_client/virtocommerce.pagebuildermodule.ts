@@ -1159,7 +1159,6 @@ export class PageBuilderPageClient extends AuthApiBase {
     }
 
     /**
-     * @param body (optional) 
      * @return OK
      */
     savePageContentJson(groupId: string, body?: UpdatePageContentRequest | undefined): Promise<void> {
@@ -1167,15 +1166,14 @@ export class PageBuilderPageClient extends AuthApiBase {
         if (groupId === undefined || groupId === null)
             throw new globalThis.Error("The parameter 'groupId' must be defined.");
         url_ = url_.replace("{groupId}", encodeURIComponent("" + groupId));
+        if (sourceGroupId === undefined || sourceGroupId === null)
+            throw new globalThis.Error("The parameter 'sourceGroupId' must be defined.");
+        url_ = url_.replace("{sourceGroupId}", encodeURIComponent("" + sourceGroupId));
         url_ = url_.replace(/[?&]$/, "");
 
-        const content_ = JSON.stringify(body);
-
         let options_: RequestInit = {
-            body: content_,
             method: "POST",
             headers: {
-                "Content-Type": "application/json-patch+json",
             }
         };
 
@@ -1207,6 +1205,17 @@ export class PageBuilderPageClient extends AuthApiBase {
             });
         }
         return Promise.resolve<void>(null as any);
+    }
+}
+
+export class PageBuilderPageSettingsClient extends AuthApiBase {
+    private http: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> };
+    private baseUrl: string;
+
+    constructor(baseUrl?: string, http?: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> }) {
+        super();
+        this.http = http ? http : window as any;
+        this.baseUrl = this.getBaseUrl("", baseUrl);
     }
 
     /**
@@ -1477,7 +1486,6 @@ export enum AddressType {
 
 export interface CreateGroupedPageRequest {
     storeId?: string | undefined;
-    name?: string | undefined;
     permalink?: string | undefined;
     cultureName?: string | undefined;
     organizationId?: string | undefined;
@@ -1486,8 +1494,6 @@ export interface CreateGroupedPageRequest {
     startDate?: Date | undefined;
     endDate?: Date | undefined;
     content?: string | undefined;
-}
-
 export interface CustomerAddress {
     id?: string | undefined;
     addressType?: AddressType;
@@ -1615,7 +1621,6 @@ export interface Member {
     modifiedBy?: string | undefined;
     id?: string | undefined;
 }
-
 export interface MemberSearchResult {
     totalCount?: number;
     results?: Member[] | undefined;
@@ -1640,8 +1645,6 @@ export interface MembersSearchCriteria {
     readonly sortInfos?: SortInfo[] | undefined;
     skip?: number;
     take?: number;
-}
-
 export interface Note {
     title?: string | undefined;
     body?: string | undefined;
@@ -1683,8 +1686,6 @@ export interface PageBuilderPageSearchCriteria {
     readonly sortInfos?: SortInfo[] | undefined;
     skip?: number;
     take?: number;
-}
-
 export interface SaveFilesModel {
     files?: string | undefined;
 }
@@ -1718,8 +1719,6 @@ export enum SortDirection {
 export interface SortInfo {
     sortColumn?: string | undefined;
     sortDirection?: SortDirection;
-}
-
 export interface UpdatePageContentRequest {
     content?: string | undefined;
 }

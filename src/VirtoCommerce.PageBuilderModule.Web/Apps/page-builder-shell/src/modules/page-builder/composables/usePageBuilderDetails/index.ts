@@ -248,6 +248,7 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
       downloadingContent,
       cloningPage,
     ),
+    ),
     loadGroup,
     saveGroup,
     deleteGroup,

@@ -232,7 +232,7 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     clickHandler: async () => {
       if (await showConfirmation(t("PAGE_BUILDER.PAGES.ALERTS.DELETE"))) {
         await deleteGroup();
-        notification.success(t("PAGE_BUILDER.PAGES.ALERTS.DELETE_SUCCESS"));
+        callParent("reload");
         callParent("reload");
         closeSelf();
       }
@@ -284,7 +284,7 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     disabled: isReadOnly.value || !formMeta.value.valid || isModified.value,
     clickHandler: async () => {
       await publishGroup();
-      notification.success(t("PAGE_BUILDER.PAGES.ALERTS.PUBLISH_SUCCESS"));
+      callParent("reload");
       callParent("reload");
     },
   },
@@ -296,7 +296,7 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     disabled: isReadOnly.value,
     clickHandler: async () => {
       await unpublishGroup();
-      notification.success(t("PAGE_BUILDER.PAGES.ALERTS.UNPUBLISH_SUCCESS"));
+      callParent("reload");
       callParent("reload");
     },
   },
@@ -329,7 +329,6 @@ onMounted(async () => {
   storeUrl.value = await getStoreUrl();
 });
 </script>
-
 <style scoped lang="scss">
 .permalink-prefix {
   margin-left: calc(-1.1 * var(--input-padding));
