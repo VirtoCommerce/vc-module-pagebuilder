@@ -197,6 +197,7 @@ watch(
 async function onFilter(event: { filters: Record<string, unknown> }) {
   const statusFilter = event.filters.statuses as string | string[] | undefined;
   const statuses = Array.isArray(statusFilter) ? statusFilter.join(",") : statusFilter;
+  pagination.reset();
   await loadPages({
     ...searchQuery.value,
     statuses,
