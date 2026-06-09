@@ -25,7 +25,7 @@
       class="assets-library__search"
       clearable
       :placeholder="$t('PAGE_BUILDER.ASSETS.TOOLBAR.SEARCH_PLACEHOLDER')"
-      @update:model-value="emit('search-change', $event)"
+      @update:model-value="emit('search-change', ($event as string) || undefined)"
     />
 
     <VcHint class="assets-library__counter">
@@ -54,6 +54,7 @@
 </template>
 
 <script lang="ts" setup>
+import { VcButton, VcHint, VcInput } from "@vc-shell/framework/ui";
 import type { AssetLibraryViewMode } from "./assetLibraryTypes";
 
 interface Props {

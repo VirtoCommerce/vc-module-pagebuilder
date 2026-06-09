@@ -156,6 +156,7 @@ import { computed, onMounted, ref } from "vue";
 import { debounce } from "lodash-es";
 import { useI18n } from "vue-i18n";
 import { usePermissions } from "@vc-shell/framework";
+import { VcBreadcrumbs, VcFileUpload, VcHint, VcIcon, VcPopup } from "@vc-shell/framework/ui";
 import type { AssetEntry } from "../composables/useAssetsLibraryApi";
 import { useAssetsLibrary } from "../composables/useAssetsLibrary";
 import { useAssetLibraryActions } from "../composables/useAssetsLibrary/useAssetLibraryActions";

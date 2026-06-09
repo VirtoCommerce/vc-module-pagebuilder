@@ -77,6 +77,7 @@
 </template>
 
 <script lang="ts" setup>
+import { VcButton, VcIcon, VcImage } from "@vc-shell/framework/ui";
 import type { AssetEntry } from "../composables/useAssetsLibraryApi";
 import type { AssetLibraryEntryViewModel } from "./assetLibraryTypes";
 

@@ -2,16 +2,15 @@ import { useApiClient } from "@vc-shell/framework";
 import {
   ApiException,
   AssetsClient as GeneratedAssetsClient,
-  BlobEntrySearchResult,
-  BlobFolder,
-  BlobInfo,
   type BlobEntry,
+  type BlobEntrySearchResult,
+  type BlobFolder,
+  type BlobInfo,
   type FileParameter,
 } from "../../../api_client/virtocommerce.assets";
 import {
   type PageBuilderAssetReference,
   type PageBuilderAssetReferencePage,
-  PageBuilderAssetReferencesSearchCriteria,
   PageBuilderAssetsClient,
 } from "../../../api_client/virtocommerce.pagebuildermodule";
 
@@ -52,10 +51,10 @@ class AssetLibraryAssetsClient extends GeneratedAssetsClient {
     if (status === 200) {
       return response.text().then(responseText => {
         const data = responseText === "" ? null : JSON.parse(responseText, this.jsonParseReviver);
-        return new BlobEntrySearchResult({
+        return {
           totalCount: data?.totalCount,
           results: Array.isArray(data?.results) ? data.results.map((entry: any) => createBlobEntry(entry)) : [],
-        });
+        };
       });
     }
 
@@ -65,7 +64,7 @@ class AssetLibraryAssetsClient extends GeneratedAssetsClient {
       });
     }
 
-    return Promise.resolve(new BlobEntrySearchResult());
+    return Promise.resolve({ totalCount: 0, results: [] });
   }
 }
 
@@ -84,7 +83,7 @@ export async function searchAssets(folderUrl: string, keyword?: string): Promise
 
 export async function createAssetFolder(payload: CreateFolderPayload): Promise<void> {
   const client = await getAssetsClient();
-  await client.createBlobFolder(new BlobFolder(payload));
+  await client.createBlobFolder({ name: payload.name, parentUrl: payload.parentUrl });
 }
 
 export async function uploadAsset(folderUrl: string, file: File): Promise<AssetEntry | undefined> {
@@ -100,21 +99,19 @@ export async function deleteAssets(urls: string[]): Promise<void> {
 
 export async function searchAssetReferences(storeId: string, assetUrls: string[], includePages = true): Promise<AssetReference[]> {
   const client = await getPageBuilderAssetsClient();
-  const result = await client.searchReferences(
-    new PageBuilderAssetReferencesSearchCriteria({
-      storeId,
-      assetUrls,
-      includePages,
-    }),
-  );
+  const result = await client.searchReferences({
+    storeId,
+    assetUrls,
+    includePages,
+  });
 
   return result.results ?? [];
 }
 
 function createBlobEntry(entry: any): BlobEntry {
   return entry?.type === "blob"
-    ? BlobInfo.fromJS(entry)
-    : BlobFolder.fromJS(entry);
+    ? (entry as BlobInfo)
+    : (entry as BlobFolder);
 }
 
 function mapBlobEntry(entry: BlobEntry): AssetEntry {

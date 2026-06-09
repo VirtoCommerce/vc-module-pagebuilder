@@ -1,5 +1,4 @@
 <template>
-  <!-- @vue-generic {AssetLibraryEntryViewModel} -->
   <VcTable
     class="assets-library__table"
     :items="entries"
@@ -86,6 +85,7 @@
 <script lang="ts" setup>
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
+import { VcHint, VcIcon, VcImage, VcTable } from "@vc-shell/framework/ui";
 import type { IActionBuilderResult, ITableColumns } from "@vc-shell/framework";
 import type { AssetEntry } from "../composables/useAssetsLibraryApi";
 import type { AssetLibraryEntryViewModel } from "./assetLibraryTypes";

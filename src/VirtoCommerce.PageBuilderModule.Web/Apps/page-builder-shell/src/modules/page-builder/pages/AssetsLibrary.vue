@@ -17,9 +17,10 @@
 import { computed, useTemplateRef } from "vue";
 import { useI18n } from "vue-i18n";
 import { IBladeToolbar, IParentCallArgs } from "@vc-shell/framework";
+import { VcBlade } from "@vc-shell/framework/ui";
 import { AssetsLibraryContent, ExposedAssetsLibraryContent } from "../components";
 
-defineOptions({
+defineBlade({
   name: "AssetsLibrary",
   url: "/page-builder-assets",
   isWorkspace: true,
