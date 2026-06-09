@@ -15,6 +15,7 @@
 </template>
 <script lang="ts" setup>
 import { VcCol, VcHint, VcIcon, VcRow } from "@vc-shell/framework/ui";
+import Tag from "./tag.vue";
 interface Props {
   icon: string;
   title: string;
