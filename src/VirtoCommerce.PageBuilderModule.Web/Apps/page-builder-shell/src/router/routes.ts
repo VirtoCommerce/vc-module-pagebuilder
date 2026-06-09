@@ -1,6 +1,6 @@
 import { RouteRecordRaw } from "vue-router";
 import App from "../pages/App.vue";
-import { Invite, Login, ResetPassword, useBladeNavigation, ChangePasswordPage } from "@vc-shell/framework";
+import { Invite, Login, ResetPassword, ChangePasswordPage } from "@vc-shell/framework";
 // eslint-disable-next-line import/no-unresolved
 import whiteLogoImage from "/assets/logo-white.svg";
 // eslint-disable-next-line import/no-unresolved
@@ -66,13 +66,5 @@ export const routes: RouteRecordRaw[] = [
     props: () => ({
       background: bgImage,
     }),
-  },
-  {
-    path: "/:pathMatch(.*)*",
-    component: App,
-    beforeEnter: async (to) => {
-      const { routeResolver } = useBladeNavigation();
-      return routeResolver(to);
-    },
   },
 ];

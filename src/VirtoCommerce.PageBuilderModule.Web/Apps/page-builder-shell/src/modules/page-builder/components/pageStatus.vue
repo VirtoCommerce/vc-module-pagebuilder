@@ -40,6 +40,8 @@ import { computed } from "vue";
 import { GroupedPageBuilderPage } from "../../../api_client/virtocommerce.pagebuildermodule";
 import { PageStatuses } from "../composables";
 
+import { VcStatus } from "@vc-shell/framework/ui";
+
 export interface Props {
   item: GroupedPageBuilderPage;
   extended?: boolean;

@@ -1,12 +1,17 @@
 import { computed, ref, ComputedRef, onMounted } from "vue";
-import { useAsync, useLoading, useApiClient } from "@vc-shell/framework";
+import {
+  useAsync,
+  useLoading,
+  useApiClient,
+  useDataTablePagination,
+  type UseDataTablePaginationReturn,
+} from "@vc-shell/framework";
 import { useI18n } from "vue-i18n";
 
 import useUrlParams from "../useStoreParams";
 
 import {
   PageBuilderPageClient,
-  IPageBuilderPageSearchCriteria,
   PageBuilderPageSearchCriteria,
   GroupedPageBuilderPage,
   GroupedPageBuilderPageSearchResult,
@@ -29,11 +34,9 @@ export enum PageLifecycleFilters {
 
 export interface IUsePageBuilderList {
   items: ComputedRef<GroupedPageBuilderPage[]>;
-  totalCount: ComputedRef<number>;
-  pages: ComputedRef<number>;
-  currentPage: ComputedRef<number>;
-  searchQuery: ComputedRef<IPageBuilderPageSearchCriteria>;
-  loadPages: (query?: IPageBuilderPageSearchCriteria) => Promise<void>;
+  pagination: UseDataTablePaginationReturn;
+  searchQuery: ComputedRef<PageBuilderPageSearchCriteria>;
+  loadPages: (query?: PageBuilderPageSearchCriteria) => Promise<void>;
   removePages: (query?: { ids: string[] }) => Promise<void>;
   loading: ComputedRef<boolean>;
   pageStatuses: ComputedRef<{ value: string; label: string }[]>;
@@ -51,7 +54,7 @@ export function usePageBuilderList(options?: UsePageBuilderListOptions): IUsePag
   const { storeId, initUrlParams } = useUrlParams();
 
   const pageSize = options?.pageSize || 20;
-  const searchQuery = ref<IPageBuilderPageSearchCriteria>({
+  const searchQuery = ref<PageBuilderPageSearchCriteria>({
     take: pageSize,
     sort: options?.sort,
     statuses: options?.statuses?.join(",") || undefined,
@@ -60,18 +63,20 @@ export function usePageBuilderList(options?: UsePageBuilderListOptions): IUsePag
   const searchResult = ref<GroupedPageBuilderPageSearchResult>();
   const { t } = useI18n({ useScope: "global" });
 
-  const { action: loadPages, loading: loadingPages } = useAsync<IPageBuilderPageSearchCriteria>(async (_query) => {
+  const { action: loadPages, loading: loadingPages } = useAsync<PageBuilderPageSearchCriteria>(async (_query) => {
     if (!storeId?.value) {
-      searchResult.value = new GroupedPageBuilderPageSearchResult({
+      searchResult.value = {
         totalCount: 0,
         results: [],
-      });
+      } as GroupedPageBuilderPageSearchResult;
       return;
     }
 
     searchQuery.value = { ...searchQuery.value, ...(_query || {}) };
-    const criteria = new PageBuilderPageSearchCriteria(searchQuery.value);
-    criteria.storeId = storeId.value;
+    const criteria: PageBuilderPageSearchCriteria = {
+      ...searchQuery.value,
+      storeId: storeId.value,
+    };
 
     const apiClient = await getApiClient();
     searchResult.value = await apiClient.searchGroups(criteria);
@@ -89,11 +94,15 @@ export function usePageBuilderList(options?: UsePageBuilderListOptions): IUsePag
     initUrlParams();
   });
 
+  const pagination = useDataTablePagination({
+    pageSize,
+    totalCount: computed(() => searchResult.value?.totalCount ?? 0),
+    onPageChange: ({ skip }) => loadPages({ ...searchQuery.value, skip }),
+  });
+
   return {
     items: computed(() => searchResult.value?.results || []),
-    totalCount: computed(() => searchResult.value?.totalCount || 0),
-    pages: computed(() => Math.ceil((searchResult.value?.totalCount || 1) / pageSize)),
-    currentPage: computed(() => Math.ceil((searchQuery.value?.skip || 0) / Math.max(1, pageSize) + 1)),
+    pagination,
     searchQuery: computed(() => searchQuery.value),
     loadPages,
     removePages,

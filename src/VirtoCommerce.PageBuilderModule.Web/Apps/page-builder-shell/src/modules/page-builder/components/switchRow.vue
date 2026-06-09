@@ -12,10 +12,11 @@
   </VcRow>
 </template>
 <script lang="ts" setup>
+import { VcCol, VcHint, VcLabel, VcRow, VcSwitch } from "@vc-shell/framework/ui";
 interface Props {
   label: string;
   hint: string;
-  modelValue: boolean;
+  modelValue?: boolean;
 }
 
 interface Emits {

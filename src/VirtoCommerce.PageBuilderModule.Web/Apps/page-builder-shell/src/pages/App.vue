@@ -15,6 +15,8 @@ import { onMounted, ref } from "vue";
 import logoImage from "/assets/logo.svg";
 import { refreshMenuBadges } from "../modules/page-builder/composables";
 
+import { VcApp } from "@vc-shell/framework/ui";
+
 const isReady = ref(false);
 const version = import.meta.env.PACKAGE_VERSION;
 
