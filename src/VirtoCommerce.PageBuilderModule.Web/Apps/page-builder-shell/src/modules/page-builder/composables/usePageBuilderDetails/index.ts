@@ -191,9 +191,7 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
     const created = await apiClient.createGroup(clone);
 
     if (created.id && source.id) {
-      // TODO [vc-migrate]: `copyPageContent` was removed from PageBuilderPageClient.
-      // Re-wire to the replacement endpoint (if any) or remove clone content step.
-      // await apiClient.copyPageContent(created.id, source.id);
+      await apiClient.copyPageContent(created.id, source.id);
     }
 
     return created;

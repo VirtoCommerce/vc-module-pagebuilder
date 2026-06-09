@@ -1,6 +1,6 @@
 import { computed, Ref, ref } from "vue";
 import { useApiClient } from "@vc-shell/framework";
-import { PageBuilderPageClient, MembersSearchCriteria } from "../../../../api_client/virtocommerce.pagebuildermodule";
+import { PageBuilderPageSettingsClient, MembersSearchCriteria } from "../../../../api_client/virtocommerce.pagebuildermodule";
 
 export interface IOrganization {
   name: string;
@@ -21,7 +21,7 @@ export interface IUseOrganizations {
 
 const cache = new Map<string, IOrganization>();
 
-const { getApiClient } = useApiClient(PageBuilderPageClient);
+const { getApiClient } = useApiClient(PageBuilderPageSettingsClient);
 
 export default (): IUseOrganizations => {
   const loading = ref(false);

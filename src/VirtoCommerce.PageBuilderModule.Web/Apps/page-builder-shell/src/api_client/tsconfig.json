@@ -2,10 +2,14 @@
   "extends": "@vc-shell/ts-config/tsconfig.json",
   "compilerOptions": {
     "baseUrl": ".",
-    "declarationDir": "dist/types",
+    "declarationDir": "dist\\types",
     "outDir": "dist",
     "rootDir": "./"
   },
-  "files": ["virtocommerce.pagebuildermodule.ts"],
-  "include": ["*.ts"]
+  "files": [
+    "virtocommerce.pagebuildermodule.ts"
+  ],
+  "include": [
+    "*.ts"
+  ]
 }
