@@ -233,7 +233,6 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
       if (await showConfirmation(t("PAGE_BUILDER.PAGES.ALERTS.DELETE"))) {
         await deleteGroup();
         callParent("reload");
-        callParent("reload");
         closeSelf();
       }
     },
@@ -285,7 +284,6 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     clickHandler: async () => {
       await publishGroup();
       callParent("reload");
-      callParent("reload");
     },
   },
   {
@@ -296,7 +294,6 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     disabled: isReadOnly.value,
     clickHandler: async () => {
       await unpublishGroup();
-      callParent("reload");
       callParent("reload");
     },
   },

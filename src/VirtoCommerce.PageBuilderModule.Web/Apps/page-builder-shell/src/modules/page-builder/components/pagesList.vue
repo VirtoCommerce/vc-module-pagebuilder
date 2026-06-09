@@ -1,74 +1,56 @@
 <template>
   <VcDataTable
-               v-model:active-item-id="selectedItemId"
-               v-model:sort-field="sortField"
-               v-model:sort-order="sortOrder"
-               v-model:selection="localSelection"
-               state-key="page_builder_pages_list"
-               :items="items"
-               :total-count="pagination.totalCount"
-               :pagination="pagination"
-               :loading="loading"
-               :searchable="true"
-               :selection-mode="'multiple'"
-               :item-action-builder="actionBuilder"
-               :global-filters="computedGlobalFilters"
-               @row-click="onItemClick"
-               @search="onSearchList"
-               @pagination-click="pagination.goToPage"
-               @filter="onFilter">
+    v-model:active-item-id="selectedItemId"
+    v-model:sort-field="sortField"
+    v-model:sort-order="sortOrder"
+    v-model:selection="localSelection"
+    state-key="page_builder_pages_list"
+    :items="items"
+    :total-count="pagination.totalCount"
+    :pagination="pagination"
+    :loading="loading"
+    :searchable="true"
+    :selection-mode="'multiple'"
+    :item-action-builder="actionBuilder"
+    :global-filters="computedGlobalFilters"
+    @row-click="onItemClick"
+    @search="onSearchList"
+    @pagination-click="pagination.goToPage"
+    @filter="onFilter">
     <VcColumn
-              id="name"
-              :title="t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.NAME')"
-              :always-visible="true"
-              :sortable="true" />
-    <VcColumn
-              id="cultureName"
-              :title="t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.CULTURE_NAME')"
-              :always-visible="true"
-              :sortable="true" />
-    <VcColumn
-              id="permalink"
-              :title="t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.PERMALINK')"
-              :always-visible="true"
-              :sortable="true" />
-    <VcColumn
-              id="modifiedDate"
-              :title="t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.MODIFIED_DATE')"
-              type="datetime"
-              :always-visible="true"
-              :sortable="true" />
-    <VcColumn
-              id="modifiedBy"
-              :title="t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.MODIFIED_BY')"
-              :sortable="false" />
-    <VcColumn
-              id="status"
-              :title="t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.STATUS')"
-              type="status"
-              :sortable="true">
-      <template #body="{ data }">
+      id="name"
+      :title="t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.NAME')"
       :always-visible="true"
-      :sortable="true"
+      :sortable="true" />
+    <VcColumn
+      id="cultureName"
+      :title="t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.CULTURE_NAME')"
+      :always-visible="true"
+      :sortable="true" />
+    <VcColumn
+      id="permalink"
+      :title="t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.PERMALINK')"
+      :always-visible="true"
+      :sortable="true" />
+    <VcColumn
+      id="modifiedDate"
+      :title="t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.MODIFIED_DATE')"
       type="datetime"
-      field="modifiedDate"
-    />
+      :always-visible="true"
+      :sortable="true" />
     <VcColumn
       id="modifiedBy"
-      :title="$t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.MODIFIED_BY')"
-      :sortable="false"
-      field="modifiedBy"
-    />
+      :title="t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.MODIFIED_BY')"
+      :sortable="false" />
     <VcColumn
       id="status"
-      :title="$t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.STATUS')"
-      :sortable="true"
-      field="status"
-    >
+      :title="t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.STATUS')"
+      type="status"
+      :sortable="true">
       <template #body="{ data }">
         <PageStatus
-                    extended
-                    :item="data" />
+          extended
+          :item="data" />
       </template>
     </VcColumn>
   </VcDataTable>
@@ -211,6 +193,7 @@ watch(
 async function onFilter(event: { filters: Record<string, unknown> }) {
   const statusFilter = event.filters.statuses as string | string[] | undefined;
   const statuses = Array.isArray(statusFilter) ? statusFilter.join(",") : statusFilter;
+  pagination.reset();
   await loadPages({
     ...searchQuery.value,
     statuses,
@@ -278,8 +261,6 @@ onMounted(async () => {
   initUrlParams();
   await loadPages();
 });
-
-const selectedItems = computed(() => localSelection.value.map((item) => item.id!).filter(Boolean));
 
 export interface ExposedPagesList {
   selectedItems: Readonly<Ref<readonly string[]>>;
