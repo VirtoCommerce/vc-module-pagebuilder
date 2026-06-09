@@ -63,9 +63,9 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
   const { getOrganizations } = useOrganizations();
   const { storeId, initUrlParams } = useUrlParams();
 
-  const item = ref<GroupedPageBuilderPage>(new GroupedPageBuilderPage());
+  const item = ref<GroupedPageBuilderPage>({} as GroupedPageBuilderPage);
   const isNew = ref(!options?.id);
-  const status = ref<FilePublishStatus>(new FilePublishStatus());
+  const status = ref<FilePublishStatus>({} as FilePublishStatus);
 
   let groupStoreId: string | undefined;
   let pendingContentUpload = !!options?.importData?.content;
@@ -79,7 +79,7 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
       status.value = await apiClient.publishStatus(options.id);
       currentValue.value = reactive(result);
     } else {
-      const page = new GroupedPageBuilderPage();
+      const page = {} as GroupedPageBuilderPage;
       if (options?.importData) {
         const data = options.importData;
         page.name = data.name;
@@ -177,20 +177,23 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
       throw new Error("Can't clone page.");
     }
 
-    const clone = new GroupedPageBuilderPage();
-    clone.name = incrementCopyName(source.name || "");
-    clone.permalink = incrementCopyPermalink(source.permalink || "");
-    clone.cultureName = source.cultureName;
-    clone.storeId = source.storeId;
-    clone.visibility = source.visibility;
-    clone.userGroups = source.userGroups;
-    clone.organizationId = source.organizationId;
+    const clone: GroupedPageBuilderPage = {
+      name: incrementCopyName(source.name || ""),
+      permalink: incrementCopyPermalink(source.permalink || ""),
+      cultureName: source.cultureName,
+      storeId: source.storeId,
+      visibility: source.visibility,
+      userGroups: source.userGroups,
+      organizationId: source.organizationId,
+    };
 
     const apiClient = await getApiClient();
     const created = await apiClient.createGroup(clone);
 
     if (created.id && source.id) {
-      await apiClient.copyPageContent(created.id, source.id);
+      // TODO [vc-migrate]: `copyPageContent` was removed from PageBuilderPageClient.
+      // Re-wire to the replacement endpoint (if any) or remove clone content step.
+      // await apiClient.copyPageContent(created.id, source.id);
     }
 
     return created;
@@ -247,7 +250,15 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
     item: currentValue,
     status,
     isModified,
-    loading: useLoading(loadingGroup, savingGroup, deletingGroup, publishingGroup, unpublishingGroup, downloadingContent, cloningPage),
+    loading: useLoading(
+      loadingGroup,
+      savingGroup,
+      deletingGroup,
+      publishingGroup,
+      unpublishingGroup,
+      downloadingContent,
+      cloningPage,
+    ),
     loadGroup,
     saveGroup,
     deleteGroup,
