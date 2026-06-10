@@ -1,87 +1,74 @@
 <template>
   <VcDataTable
-    class="tw-grow tw-basis-0"
-    :items="items"
-    :loading="loading"
-    :total-count="pagination.totalCount"
-    :pagination="pagination"
-    :searchable="true"
-    :selection-mode="'multiple'"
-    :global-filters="computedGlobalFilters"
-    :row-actions="actionBuilder"
     v-model:active-item-id="selectedItemId"
     v-model:sort-field="sortField"
     v-model:sort-order="sortOrder"
     v-model:selection="localSelection"
+    state-key="page_builder_pages_list"
+    :items="items"
+    :total-count="pagination.totalCount"
+    :pagination="pagination"
+    :loading="loading"
+    :searchable="true"
+    :selection-mode="'multiple'"
+    :item-action-builder="actionBuilder"
+    :global-filters="computedGlobalFilters"
     @row-click="onItemClick"
     @search="onSearchList"
     @pagination-click="pagination.goToPage"
-    @filter="onFilter"
-  >
+    @filter="onFilter">
     <VcColumn
       id="name"
-      :title="$t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.NAME')"
+      :title="t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.NAME')"
       :always-visible="true"
-      :sortable="true"
-      field="name"
-    />
+      :sortable="true" />
     <VcColumn
       id="cultureName"
-      :title="$t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.CULTURE_NAME')"
+      :title="t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.CULTURE_NAME')"
       :always-visible="true"
-      :sortable="true"
-      field="cultureName"
-    />
+      :sortable="true" />
     <VcColumn
       id="permalink"
-      :title="$t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.PERMALINK')"
+      :title="t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.PERMALINK')"
       :always-visible="true"
-      :sortable="true"
-      field="permalink"
-    />
+      :sortable="true" />
     <VcColumn
       id="modifiedDate"
-      :title="$t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.MODIFIED_DATE')"
-      :always-visible="true"
-      :sortable="true"
+      :title="t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.MODIFIED_DATE')"
       type="datetime"
-      field="modifiedDate"
-    />
+      :always-visible="true"
+      :sortable="true" />
     <VcColumn
       id="modifiedBy"
-      :title="$t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.MODIFIED_BY')"
-      :sortable="false"
-      field="modifiedBy"
-    />
+      :title="t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.MODIFIED_BY')"
+      :sortable="false" />
     <VcColumn
       id="status"
-      :title="$t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.STATUS')"
-      :sortable="true"
-      field="status"
-    >
+      :title="t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.STATUS')"
+      type="status"
+      :sortable="true">
       <template #body="{ data }">
         <PageStatus
           extended
-          :item="data"
-        />
+          :item="data" />
       </template>
     </VcColumn>
   </VcDataTable>
-  <input
-    ref="fileInputRef"
-    type="file"
-    accept=".json"
-    style="display: none"
-    @change="onFileSelected"
-  />
+  <input ref="fileInputRef" type="file" accept=".json" style="display: none" @change="onFileSelected" />
 </template>
 <script lang="ts" setup>
 import { ref, Ref, computed, watch, onMounted, readonly } from "vue";
 import { useI18n } from "vue-i18n";
 import { debounce } from "lodash-es";
-import { useBlade, usePopup, useDataTableSort, IActionBuilderResult, notification } from "@vc-shell/framework";
+import { useDataTableSort, useBlade, usePopup, IActionBuilderResult, notification } from "@vc-shell/framework";
 import { GroupedPageBuilderPage } from "../../../api_client/virtocommerce.pagebuildermodule";
-import { PageLifecycleFilters, usePageBuilderList, useUrlParams, refreshMenuBadges } from "../composables";
+import {
+  PageLifecycleFilters,
+  usePageBuilderList,
+  useUrlParams,
+  useAiAgentContextWithStore,
+  refreshMenuBadges,
+} from "../composables";
 import { parseImportFile } from "../composables/usePageContentApi";
 import PageStatus from "./pageStatus.vue";
 
@@ -115,7 +102,17 @@ const selectedItems = computed<string[]>(() =>
   localSelection.value.map((item) => item.id!).filter((id): id is string => !!id),
 );
 const fileInputRef = ref<HTMLInputElement | null>(null);
-const searchValue = ref<string>();
+
+// WORKAROUND: push storeId + visible pages into the AI agent context so pagebuilder
+// tools can read them. See docs/storeId-missing-in-ai-context.md for the proper fix.
+const aiContextItems = computed(() =>
+  items.value.map((page) => ({
+    id: page.id,
+    objectType: "pagebuilder.page",
+    name: page.name,
+  })),
+);
+useAiAgentContextWithStore({ dataRef: aiContextItems });
 
 const computedGlobalFilters = computed(() => [
   {
@@ -149,7 +146,6 @@ function onItemClick(event: { data: GroupedPageBuilderPage }) {
 }
 
 const onSearchList = debounce(async (keyword: string | undefined) => {
-  searchValue.value = keyword;
   await loadPages({
     ...searchQuery.value,
     keyword,
@@ -205,6 +201,7 @@ async function onFilter(event: { filters: Record<string, unknown> }) {
   });
 }
 
+
 function openLoadFlow() {
   fileInputRef.value?.click();
 }
@@ -250,11 +247,12 @@ async function removeSelectedPages() {
   if (
     await showConfirmation(
       t("PAGE_BUILDER.PAGES.ALERTS.DELETE_SELECTED_CONFIRMATION.MESSAGE", {
-        count: selectedItems.value.length,
+        count: localSelection.value.length,
       }),
     )
   ) {
-    await removePages({ ids: selectedItems.value });
+    const ids = localSelection.value.map((item) => item.id!).filter(Boolean);
+    await removePages({ ids });
     await reload();
   }
 }
@@ -265,7 +263,7 @@ onMounted(async () => {
 });
 
 export interface ExposedPagesList {
-  selectedItems: Readonly<Ref<readonly string[], readonly string[]>>;
+  selectedItems: Readonly<Ref<readonly string[]>>;
   reload: () => Promise<void>;
   removeSelectedPages: () => Promise<void>;
   onItemClick: (event: { data: GroupedPageBuilderPage }) => void;
@@ -274,7 +272,7 @@ export interface ExposedPagesList {
 }
 
 defineExpose<ExposedPagesList>({
-  selectedItems: readonly(selectedItems),
+  selectedItems: readonly(selectedItems) as unknown as Readonly<Ref<readonly string[]>>,
   reload,
   removeSelectedPages,
   onItemClick,

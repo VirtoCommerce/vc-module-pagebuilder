@@ -64,6 +64,10 @@
           "StorePreviewPath": {
             "description": "Относительный путь к странице предпросмотра",
             "title": "Путь предпросмотра магазина"
+          },
+          "OzAgentUrl": {
+            "title": "URL агента Virto OZ",
+            "description": "URL iframe AI-агента Virto OZ, встроенного в Page Builder. Оставьте пустым, чтобы отключить AI-ассистента."
           }
         },
         "Store": {

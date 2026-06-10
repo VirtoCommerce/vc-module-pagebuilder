@@ -1,0 +1,62 @@
+name: pagebuilder_create_page
+description: |
+  Create a new draft page in PageBuilder with full content (page-level settings + sections) in a single call. Status is always `Draft`; permalink and visibility can be edited later in PageBuilder UI.
+
+  Use when: the user asks to generate or create a new page ("write a blog post about X", "make a landing page for Y").
+  Skip when: a page matching the user's intent already exists — use `pagebuilder_save_page_content` to edit it instead.
+
+  Page JSON `content` parameter must follow the envelope `{ settings: object, content: array }` described in the system prompt. The backend validates the envelope and returns 400 with a specific error pointer (e.g. `content[2].type`) if malformed — use that feedback to correct and retry.
+require_approval: true
+
+parameters:
+  type: object
+  properties:
+    storeId:
+      type: string
+      description: |
+        ID of the store the page belongs to. Required.
+        Read it from the chat context: the host shell pushes an item with `objectType: "pagebuilder.store"` — use that item's `id`. Do not ask the user and do not invent a value.
+    name:
+      type: string
+      description: Display name of the page (used as page title in lists and admin UI). Required.
+    permalink:
+      type: string
+      description: URL slug for the page (e.g. "/blog/my-new-post"). Recommended.
+    cultureName:
+      type: string
+      description: Culture/locale code (e.g. "en-US"). Optional.
+    visibility:
+      type: boolean
+      description: Whether the page is visible to end-users. Defaults to true.
+      default: true
+    content:
+      type: string
+      description: The full page content as a JSON string. Envelope shape and field conventions are described in the system prompt.
+  required:
+    - storeId
+    - name
+    - content
+
+execution:
+  endpoint: /api/page-builder-pages/create-group-page
+  method: POST
+  mappings:
+    request:
+      body:
+        storeId: "{{storeId}}"
+        name: "{{name}}"
+        permalink: "{{permalink}}"
+        cultureName: "{{cultureName}}"
+        visibility: "{{visibility}}"
+        content: "{{content}}"
+    response:
+      page: "$"
+
+permission:
+  - builder:create
+
+tags:
+  - pagebuilder
+  - page
+  - create
+  - write

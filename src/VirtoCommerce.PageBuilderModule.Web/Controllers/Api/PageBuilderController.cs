@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
 using VirtoCommerce.AssetsModule.Core.Assets;
 using VirtoCommerce.ContentModule.Core.Model;
@@ -34,6 +35,13 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
     {
         private const string Themes = "themes";
         private const string DefaultTheme = "default";
+        private const string JsonContentType = "application/json";
+        private const string JsonExtension = ".json";
+        private const string SchemaKindSections = "sections";
+        private const string SchemaKindTemplates = "templates";
+        private const string SchemaKindBlocks = "blocks";
+        private const string SchemaKindObjects = "objects";
+        private const string SchemaKindShared = "shared";
 
 
         [HttpGet]
@@ -98,14 +106,14 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         public async Task<ActionResult> GetTemplates(string storeId, string theme)
         {
             var result = await GetSettingsFilesFromFolder(storeId, theme, "templates");
-            return Content(result, "application/json");
+            return Content(result, JsonContentType);
         }
 
         [HttpGet]
         [Route("objects")]
         public async Task<ActionResult> GetObjects(string storeId, string theme)
         {
-            var result = await GetSettingsFilesFromFolder(storeId, theme, "objects");
+            var result = await GetSettingsFilesFromFolder(storeId, theme, SchemaKindObjects);
             return Ok(result);
         }
 
@@ -113,11 +121,178 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("sections")]
         public async Task<ActionResult> GetSectionsSettings(string storeId, string theme)
         {
-            var sections = await GetSettingsFilesFromFolder(storeId, theme, "sections");
-            var blocks = await GetSettingsFilesFromFolder(storeId, theme, "blocks");
-            var objects = await GetSettingsFilesFromFolder(storeId, theme, "objects");
-            var shared = await GetSettingsFilesFromFolder(storeId, theme, "shared");
-            return Content($"{{ \"sections\": {sections}, \"blocks\": {blocks}, \"objects\": {objects}, \"shared\": {shared} }}", "application/json");
+            var sections = await GetSettingsFilesFromFolder(storeId, theme, SchemaKindSections);
+            var blocks = await GetSettingsFilesFromFolder(storeId, theme, SchemaKindBlocks);
+            var objects = await GetSettingsFilesFromFolder(storeId, theme, SchemaKindObjects);
+            var shared = await GetSettingsFilesFromFolder(storeId, theme, SchemaKindShared);
+            return Content($"{{ \"{SchemaKindSections}\": {sections}, \"{SchemaKindBlocks}\": {blocks}, \"{SchemaKindObjects}\": {objects}, \"{SchemaKindShared}\": {shared} }}", JsonContentType);
+        }
+
+        [HttpGet]
+        [Route("schemas")]
+        public async Task<ActionResult> GetSchemasCatalog(string storeId, string theme)
+        {
+            var catalog = new JObject
+            {
+                [SchemaKindSections] = await GetSchemasCatalogForFolder(storeId, theme, SchemaKindSections, filterInternal: true),
+                [SchemaKindTemplates] = await GetSchemasCatalogForFolder(storeId, theme, SchemaKindTemplates, filterInternal: true),
+                [SchemaKindBlocks] = await GetSchemasCatalogForFolder(storeId, theme, SchemaKindBlocks, filterInternal: true),
+                [SchemaKindObjects] = await GetSchemasCatalogForFolder(storeId, theme, SchemaKindObjects, filterInternal: true),
+                [SchemaKindShared] = await GetSchemasCatalogForFolder(storeId, theme, SchemaKindShared, filterInternal: false),
+            };
+            return Content(catalog.ToString(Formatting.None), JsonContentType);
+        }
+
+        [HttpGet]
+        [Route("schemas/{kind}/{key}")]
+        public async Task<ActionResult> GetSchemaByKey(string storeId, string theme, string kind, string key)
+        {
+            if (!IsValidSchemaKind(kind))
+            {
+                return BadRequest(new { error = $"Unknown kind '{kind}'. Expected one of: {SchemaKindSections}, {SchemaKindTemplates}, {SchemaKindBlocks}, {SchemaKindObjects}, {SchemaKindShared}." });
+            }
+
+            // Underscore-prefixed keys are theme-internal; only `shared` exposes them (e.g. _sections, _blocks).
+            if (kind != SchemaKindShared && key.StartsWith('_'))
+            {
+                return NotFound(new { kind, key });
+            }
+
+            var themeName = await GetCurrentThemeName(storeId, theme);
+            var schemasFolder = $"{themeName}/config/schemas/{kind}";
+            var basePath = GetContentBasePath(storeId, Themes, themeName);
+            var storageProvider = blobContentStorageProviderFactory.CreateProvider(basePath);
+            var allFiles = await storageProvider.SearchAsync(schemasFolder, null);
+            var file = allFiles.Results.FirstOrDefault(x =>
+                x.Type != "folder" &&
+                x.Name.EndsWith(JsonExtension, StringComparison.OrdinalIgnoreCase) &&
+                Path.GetFileNameWithoutExtension(x.Name).Equals(key, StringComparison.OrdinalIgnoreCase));
+
+            if (file == null)
+            {
+                return NotFound(new { kind, key });
+            }
+
+            var content = GetContent(file, storageProvider);
+
+            if (kind == SchemaKindTemplates)
+            {
+                content = await MergeStaticSectionsIntoTemplateAsync(content, storeId, themeName);
+            }
+
+            return Content(content, JsonContentType);
+        }
+
+        internal static bool IsValidSchemaKind(string kind)
+        {
+            return kind is SchemaKindSections or SchemaKindTemplates or SchemaKindBlocks or SchemaKindObjects or SchemaKindShared;
+        }
+
+        internal static bool IsStaticEntry(JToken entry)
+        {
+            var token = entry?["static"];
+            if (token == null || token.Type == JTokenType.Null)
+            {
+                return false;
+            }
+            if (token.Type == JTokenType.Boolean)
+            {
+                return token.Value<bool>();
+            }
+            if (token.Type == JTokenType.String)
+            {
+                var value = token.Value<string>();
+                return value == "top" || value == "bottom";
+            }
+            return false;
+        }
+
+        internal static string MergeStaticSectionsIntoTemplate(string templateJson, IReadOnlyDictionary<string, string> sectionSchemasByKey)
+        {
+            JObject template;
+            try
+            {
+                template = JObject.Parse(templateJson);
+            }
+            catch
+            {
+                return templateJson;
+            }
+
+            // Template's `sections` filter (if present and non-empty) restricts which sections apply
+            // to this template — for both regular and static. Missing/empty means "all sections".
+            HashSet<string> allowedKeys = null;
+            if (template["sections"] is JArray sectionsFilter && sectionsFilter.Count > 0)
+            {
+                allowedKeys = new HashSet<string>(
+                    sectionsFilter.OfType<JValue>().Select(v => v.Value?.ToString()).Where(s => s != null),
+                    StringComparer.OrdinalIgnoreCase);
+            }
+
+            if (template["settings"] is not JArray templateSettings)
+            {
+                templateSettings = [];
+                template["settings"] = templateSettings;
+            }
+
+            foreach (var (sectionKey, sectionJson) in sectionSchemasByKey)
+            {
+                if (sectionKey.StartsWith('_'))
+                {
+                    continue;
+                }
+                if (allowedKeys != null && !allowedKeys.Contains(sectionKey))
+                {
+                    continue;
+                }
+                AppendStaticSectionFields(sectionJson, templateSettings);
+            }
+
+            return template.ToString(Formatting.None);
+        }
+
+        private async Task<string> MergeStaticSectionsIntoTemplateAsync(string templateJson, string storeId, string themeName)
+        {
+            var sectionsFolder = $"{themeName}/config/schemas/{SchemaKindSections}";
+            var basePath = GetContentBasePath(storeId, Themes, themeName);
+            var storageProvider = blobContentStorageProviderFactory.CreateProvider(basePath);
+            var sectionFiles = (await storageProvider.SearchAsync(sectionsFolder, null)).Results
+                .Where(x => x.Type != "folder" && x.Name.EndsWith(JsonExtension, StringComparison.OrdinalIgnoreCase));
+
+            var schemas = new Dictionary<string, string>();
+            foreach (var file in sectionFiles)
+            {
+                try
+                {
+                    schemas[Path.GetFileNameWithoutExtension(file.Name)] = GetContent(file, storageProvider);
+                }
+                catch
+                {
+                    // Skip unreadable section files.
+                }
+            }
+
+            return MergeStaticSectionsIntoTemplate(templateJson, schemas);
+        }
+
+        private static void AppendStaticSectionFields(string sectionJson, JArray templateSettings)
+        {
+            try
+            {
+                var sectionSchema = JObject.Parse(sectionJson);
+                if (!IsStaticEntry(sectionSchema) || sectionSchema["settings"] is not JArray sectionSettings)
+                {
+                    return;
+                }
+                foreach (var field in sectionSettings)
+                {
+                    templateSettings.Add(field.DeepClone());
+                }
+            }
+            catch
+            {
+                // Skip unparseable section files.
+            }
         }
 
         [HttpGet]
@@ -198,10 +373,125 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             var basePath = GetContentBasePath(storeId, Themes, themeName);
             var storageProvider = blobContentStorageProviderFactory.CreateProvider(basePath);
             var allFiles = await storageProvider.SearchAsync(templatesFolder, null);
-            var files = allFiles.Results.Where(x => x.Name.EndsWith(".json", StringComparison.OrdinalIgnoreCase));
+            var files = allFiles.Results.Where(x => x.Name.EndsWith(JsonExtension, StringComparison.OrdinalIgnoreCase));
             var response = string.Join(", ", files.Select(file => $"\"{GetKey(null, file)}\": {GetContent(file, storageProvider)}"));
             var result = $"{{{response}}}";
             return result;
+        }
+
+        private async Task<JArray> GetSchemasCatalogForFolder(string storeId, string theme, string folder, bool filterInternal)
+        {
+            var themeName = await GetCurrentThemeName(storeId, theme);
+            var schemasFolder = $"{themeName}/config/schemas/{folder}";
+            var basePath = GetContentBasePath(storeId, Themes, themeName);
+            var storageProvider = blobContentStorageProviderFactory.CreateProvider(basePath);
+            var allFiles = await storageProvider.SearchAsync(schemasFolder, null);
+            var files = allFiles.Results.Where(x =>
+                x.Type != "folder" &&
+                x.Name.EndsWith(JsonExtension, StringComparison.OrdinalIgnoreCase));
+
+            var result = new JArray();
+            foreach (var file in files)
+            {
+                var key = Path.GetFileNameWithoutExtension(file.Name);
+                if (filterInternal && key.StartsWith('_'))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    var raw = GetContent(file, storageProvider);
+                    var json = JObject.Parse(raw);
+                    // Static section schemas describe page-level settings panels — they are not
+                    // selectable as content sections. Hide them from the catalog; their `settings[]`
+                    // is merged into the template response by `MergeStaticSectionsIntoTemplate`.
+                    if (folder == SchemaKindSections && IsStaticEntry(json))
+                    {
+                        continue;
+                    }
+
+                    var entry = new JObject { ["key"] = key };
+                    CopySchemaMetadata(json, entry, folder);
+                    result.Add(entry);
+                }
+                catch
+                {
+                    // Skip files that cannot be parsed.
+                }
+            }
+
+            return result;
+        }
+
+        // Upper bound for the catalog's derived `description` summary. Full descriptions average
+        // ~1150 chars across a real theme (141 sections ≈ 162 KB); the catalog only needs enough
+        // to PICK an entry, so it carries a short head summary instead — see DeriveCatalogSummary.
+        internal const int CatalogSummaryMaxLength = 200;
+
+        internal static void CopySchemaMetadata(JObject source, JObject target, string kind)
+        {
+            // Catalog metadata is intentionally narrow — only fields the LLM uses while picking.
+            // Designer-only hints (`displayField`, `icon`, `tab`, `sort`, `group*`) are stripped.
+            // `includeShared` is stripped — it matters during field-list resolution in Phase B
+            // and the agent reads it from the full schema response there.
+            // `static` is stripped — static sections are entirely hidden from the agent (their
+            // `settings[]` is merged into the template response instead).
+            // `description` is exposed only for kinds where the agent picks an entry by intent
+            // (regular sections, templates, blocks). For objects/shared descriptions add noise.
+            // It is shortened to a head summary here; the full description is served by
+            // GetSchemaByKey (Phase B) once the agent commits to an entry.
+            var includeDescription = kind is SchemaKindSections or SchemaKindTemplates or SchemaKindBlocks;
+            var properties = includeDescription
+                ? new[] { "name", "description" }
+                : new[] { "name" };
+
+            foreach (var property in properties)
+            {
+                var token = source[property];
+                if (token == null || token.Type == JTokenType.Null)
+                {
+                    continue;
+                }
+
+                target[property] = property == "description" && token.Type == JTokenType.String
+                    ? DeriveCatalogSummary(token.Value<string>())
+                    : token.DeepClone();
+            }
+        }
+
+        /// <summary>
+        /// Reduces a full schema description to a short head summary for the catalog listing.
+        /// Theme descriptions follow a "&lt;what it is&gt; Use when: … Skip when: … &lt;field notes&gt;"
+        /// structure; the head before "Use when:" is the selection signal. The verbose remainder
+        /// (guidance + per-field notes, which duplicate the schema's <c>settings[]</c>) is dropped
+        /// from the catalog and served in full by GetSchemaByKey when an entry is actually used.
+        /// </summary>
+        internal static string DeriveCatalogSummary(string description)
+        {
+            if (string.IsNullOrWhiteSpace(description))
+            {
+                return description;
+            }
+
+            var marker = description.IndexOf("Use when", StringComparison.OrdinalIgnoreCase);
+            var head = (marker > 0 ? description[..marker] : description).Trim();
+            if (head.Length == 0)
+            {
+                head = description.Trim();
+            }
+
+            if (head.Length <= CatalogSummaryMaxLength)
+            {
+                return head;
+            }
+
+            // Prefer cutting at the last sentence boundary within the cap; else hard-cut + ellipsis.
+            var slice = head[..CatalogSummaryMaxLength];
+            var lastStop = slice.LastIndexOfAny(['.', '!', '?']);
+            return lastStop >= CatalogSummaryMaxLength / 2
+                ? slice[..(lastStop + 1)]
+                : slice.TrimEnd() + "…";
         }
 
         private void TryAddFileContent(BlobEntry file, string type, IBlobContentStorageProvider storageProvider, Dictionary<string, string> fileInfoes, JsonSerializerSettings jsonSettings)

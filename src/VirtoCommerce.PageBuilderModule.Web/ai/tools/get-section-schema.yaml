@@ -1,0 +1,54 @@
+name: pagebuilder_get_section_schema
+description: |
+  Load the full schema for a single catalog entry identified by `kind` + `key` (e.g. `sections`/`title`, `templates`/`page`, `shared`/`_sections`). The response is a theme schema entry per the format documented in `Apps/page-builder-designer/src/data/theme-schema.schema.json` — see the system prompt for how to use it.
+
+  Use when: composing or editing a page and you need the field list of a specific section, template, block, or shared list.
+  Skip when: you already fetched the same `kind`+`key` this session — cache responses.
+require_approval: false
+
+parameters:
+  type: object
+  properties:
+    storeId:
+      type: string
+      description: |
+        ID of the store whose theme schema should be loaded. Required.
+        Read it from the chat context: the host shell pushes an item with `objectType: "pagebuilder.store"` — use that item's `id`. Do not ask the user and do not invent a value.
+    kind:
+      type: string
+      enum:
+        - sections
+        - templates
+        - blocks
+        - objects
+        - shared
+      description: Catalog kind. One of `sections`, `templates`, `blocks`, `objects`, `shared`.
+    key:
+      type: string
+      description: Schema entry name (the file name without `.json`). Underscore-prefixed keys are valid only when `kind` is `shared`.
+    theme:
+      type: string
+      description: Optional theme name. If omitted, the backend falls back to the store's default theme.
+  required:
+    - storeId
+    - kind
+    - key
+
+execution:
+  endpoint: /api/pagebuilder/schemas/{kind}/{key}
+  method: GET
+  mappings:
+    request:
+      query:
+        storeId: "{{storeId}}"
+        theme: "{{theme}}"
+    response:
+      schema: "@"
+
+permission:
+  - builder:read
+
+tags:
+  - pagebuilder
+  - schema
+  - read

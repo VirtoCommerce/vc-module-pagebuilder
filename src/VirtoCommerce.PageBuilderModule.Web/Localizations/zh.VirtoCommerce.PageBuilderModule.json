@@ -64,6 +64,10 @@
           "StorePreviewPath": {
             "description": "预览页面的相对路径",
             "title": "商店预览路径"
+          },
+          "OzAgentUrl": {
+            "title": "Virto OZ 代理 URL",
+            "description": "嵌入到 Page Builder 中的 Virto OZ AI 代理 iframe 的 URL。留空可禁用 AI 助手。"
           }
         },
         "Store": {

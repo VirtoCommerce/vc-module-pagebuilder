@@ -25,6 +25,7 @@
       <iconUrl>/apps/page-builder-shell/assets/images/logo-only.svg</iconUrl>
       <permission>none</permission>
       <supportEmbeddedMode>false</supportEmbeddedMode>
+	  <placement>Hidden</placement>
     </app>
     <app id="page-builder-designer">
       <title>Page Builder Designer</title>
@@ -32,6 +33,7 @@
       <iconUrl>/apps/page-builder-designer/assets/images/logo-only.svg</iconUrl>
       <permission>none</permission>
       <supportEmbeddedMode>false</supportEmbeddedMode>
+	  <placement>Hidden</placement>
     </app>
   </apps>
 

@@ -70,7 +70,7 @@ public abstract class ContentStreamRepository(PageBuilderModuleDbContext dbConte
         await using var reader = await cmd.ExecuteReaderAsync(
             CommandBehavior.SequentialAccess | CommandBehavior.SingleRow, cancellationToken);
 
-        if (await reader.ReadAsync(cancellationToken))
+        if (await reader.ReadAsync(cancellationToken) && !await reader.IsDBNullAsync(0, cancellationToken))
         {
             using var textReader = reader.GetTextReader(0);
             var buf = new char[ContentBufferSize];

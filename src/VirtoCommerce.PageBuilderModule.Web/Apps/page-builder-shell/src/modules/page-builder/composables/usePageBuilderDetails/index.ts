@@ -1,5 +1,5 @@
 import { computed, ref, reactive, Ref, ComputedRef, onMounted } from "vue";
-import { useAsync, useLoading, useApiClient, useModificationTracker } from "@vc-shell/framework";
+import { useAsync, useLoading, useApiClient } from "@vc-shell/framework";
 import {
   FilePublishStatus,
   PageBuilderPageClient,
@@ -16,7 +16,6 @@ const { getApiClient } = useApiClient(PageBuilderPageClient);
 export interface IUsePageBuilderDetails {
   item: Ref<GroupedPageBuilderPage>;
   status: Ref<FilePublishStatus>;
-  isModified: Readonly<Ref<boolean>>;
   loading: ComputedRef<boolean>;
   loadGroup: () => Promise<void>;
   saveGroup: () => Promise<GroupedPageBuilderPage>;
@@ -70,14 +69,12 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
   let groupStoreId: string | undefined;
   let pendingContentUpload = !!options?.importData?.content;
 
-  const { currentValue, isModified, resetModificationState } = useModificationTracker(item);
-
   const { action: loadGroup, loading: loadingGroup } = useAsync(async () => {
     if (options?.id) {
       const apiClient = await getApiClient();
       const result = await apiClient.getGroup(options.id);
       status.value = await apiClient.publishStatus(options.id);
-      currentValue.value = reactive(result);
+      item.value = reactive(result);
     } else {
       const page = {} as GroupedPageBuilderPage;
       if (options?.importData) {
@@ -91,16 +88,13 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
         page.startDate = data.startDate;
         page.endDate = data.endDate;
       }
-      currentValue.value = reactive(page);
-    }
-    if (!options?.importData) {
-      resetModificationState();
+      item.value = reactive(page);
     }
   });
 
   const { action: saveGroup, loading: savingGroup } = useAsync(async () => {
     const apiClient = await getApiClient();
-    const group = currentValue.value;
+    const group = item.value;
     let result: GroupedPageBuilderPage;
 
     if (isNew.value) {
@@ -108,13 +102,11 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
       result = await apiClient.createGroup(group);
 
       // Update state before upload so a failed upload won't cause duplicate createGroup on retry
-      currentValue.value = reactive(result);
+      item.value = reactive(result);
       isNew.value = false;
-      resetModificationState();
     } else {
       result = await apiClient.updateGroup(group);
-      currentValue.value = reactive(result);
-      resetModificationState();
+      item.value = reactive(result);
     }
 
     if (pendingContentUpload && result.id && options?.importData?.content) {
@@ -126,21 +118,21 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
   });
 
   const { action: deleteGroup, loading: deletingGroup } = useAsync(async () => {
-    if (currentValue.value.id) {
+    if (item.value.id) {
       const apiClient = await getApiClient();
-      await apiClient.archiveGroups([currentValue.value.id]);
+      await apiClient.archiveGroups([item.value.id]);
     }
   });
 
   const { action: publishGroup, loading: publishingGroup } = useAsync(async () => {
-    const groupId = currentValue.value?.id;
+    const groupId = item.value?.id;
     if (!groupId) {
       throw new Error("Can't publish group.");
     }
     const apiClient = await getApiClient();
     await apiClient.publishGroup(groupId, true);
 
-    if (currentValue.value) {
+    if (item.value) {
       await loadGroup();
     }
   });
@@ -151,28 +143,28 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
       throw new Error("PAGE_BUILDER.PAGES.ALERTS.UNPUBLISH_WITH_DRAFT");
     }
 
-    const groupId = currentValue.value?.id;
+    const groupId = item.value?.id;
     if (!groupId) {
       throw new Error("Can't unpublish group.");
     }
     const apiClient = await getApiClient();
     await apiClient.publishGroup(groupId, false);
 
-    if (currentValue.value) {
+    if (item.value) {
       await loadGroup();
     }
   });
 
   const { action: downloadContent, loading: downloadingContent } = useAsync(async () => {
-    const groupId = currentValue.value?.id;
+    const groupId = item.value?.id;
     if (!groupId) {
       throw new Error("Can't download content.");
     }
-    await downloadPageContent(groupId, currentValue.value);
+    await downloadPageContent(groupId, item.value);
   });
 
   const { action: clonePage, loading: cloningPage } = useAsync(async () => {
-    const source = currentValue.value;
+    const source = item.value;
     if (!source?.id) {
       throw new Error("Can't clone page.");
     }
@@ -201,11 +193,11 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
     // Get platform URL from env
     const platformUrl: string = (
       (import.meta.env.DEV && import.meta.env.APP_PLATFORM_URL) ||
-      window.location.origin
+      globalThis.location.origin
     ).replace(/\/$/, "");
     const designerUrl = `${platformUrl}/Modules/$(VirtoCommerce.PageBuilderModule)/Content/page-builder-designer/index.html`;
-    const groupId = currentValue.value?.id;
-    const pageStoreId = currentValue.value?.storeId;
+    const groupId = item.value?.id;
+    const pageStoreId = item.value?.storeId;
 
     if (groupId && pageStoreId) {
       const url = `${designerUrl}?storeId=${pageStoreId}#/pages?type=pages&groupId=${groupId}`;
@@ -224,11 +216,11 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
   }
 
   const isReadOnly = computed(() => {
-    return currentValue.value != null && currentValue.value.status === "Archived";
+    return item.value?.status === "Archived";
   });
 
   const statusText = computed(() => {
-    const page = currentValue.value;
+    const page = item.value;
     if (page == null) {
       return "Draft";
     }
@@ -245,9 +237,8 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
   });
 
   return {
-    item: currentValue,
+    item,
     status,
-    isModified,
     loading: useLoading(
       loadingGroup,
       savingGroup,

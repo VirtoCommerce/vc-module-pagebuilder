@@ -64,6 +64,10 @@
           "StorePreviewPath": {
             "description": "Relativer Pfad für Vorschauseite",
             "title": "Vorschau-Pfad des Geschäfts"
+          },
+          "OzAgentUrl": {
+            "title": "Virto OZ Agent-URL",
+            "description": "URL des in Page Builder eingebetteten Virto OZ AI-Agent-iFrames. Leer lassen, um den AI-Assistenten zu deaktivieren."
           }
         },
         "Store": {
