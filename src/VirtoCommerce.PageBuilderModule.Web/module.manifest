@@ -36,11 +36,12 @@
   </apps>
 
   <authors>
-    <author>Virto Commerce</author>
+    <author>Vasily Kotov</author>
   </authors>
   <owners>
     <owner>Virto Commerce</owner>
   </owners>
+  <projectUrl>https://github.com/VirtoCommerce/vc-module-pagebuilder</projectUrl>
   <requireLicenseAcceptance>false</requireLicenseAcceptance>
   <copyright>Copyright © 2011-2026 Virto Commerce. All rights reserved</copyright>
   <tags>cms content pagebuilder</tags>
