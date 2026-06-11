@@ -7,6 +7,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services;
 public static class PageBuilderAssetReferenceMatcher
 {
     private static readonly string[] _referenceMarkers = ["/assets/", "/stores/", "https://", "http://"];
+    private static readonly char[] _unquotedReferenceTerminators = ['"', '\'', '<', '>', ')', ',', ';', '?', '#', '&', '{', '}'];
 
     public static IReadOnlyDictionary<string, string> NormalizeAssetUrls(IEnumerable<string> assetUrls)
     {
@@ -167,23 +168,55 @@ public static class PageBuilderAssetReferenceMatcher
 
     private static bool IsReferenceTerminator(char value, char? quote)
     {
-        if (quote.HasValue)
-        {
-            return value == quote.Value || value == ',';
-        }
+        return quote.HasValue
+            ? IsQuotedReferenceTerminator(value, quote.Value)
+            : IsUnquotedReferenceTerminator(value);
+    }
 
-        return char.IsWhiteSpace(value)
-            || value is '"' or '\'' or '<' or '>' or ')' or ',' or ';' or '?' or '#' or '&' or '{' or '}';
+    private static bool IsQuotedReferenceTerminator(char value, char quote)
+    {
+        return value == quote;
+    }
+
+    private static bool IsUnquotedReferenceTerminator(char value)
+    {
+        return char.IsWhiteSpace(value) || IsReferencePunctuationTerminator(value);
+    }
+
+    private static bool IsReferencePunctuationTerminator(char value)
+    {
+        return _unquotedReferenceTerminators.Contains(value);
     }
 
     private static void AddExtractedReference(string value, ISet<string> result)
     {
-        var normalizedValue = NormalizeAssetUrl(TrimReferenceToken(value));
-
-        if (IsAssetReference(normalizedValue))
+        foreach (var referenceToken in SplitReferenceToken(value))
         {
-            result.Add(normalizedValue);
+            var normalizedValue = NormalizeAssetUrl(TrimReferenceToken(referenceToken));
+
+            if (IsAssetReference(normalizedValue))
+            {
+                result.Add(normalizedValue);
+            }
         }
+    }
+
+    private static IEnumerable<string> SplitReferenceToken(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return [];
+        }
+
+        var parts = value.Split(',');
+        return parts.Length > 1 && parts.Skip(1).Any(ContainsReferenceMarker)
+            ? parts
+            : [value];
+    }
+
+    private static bool ContainsReferenceMarker(string value)
+    {
+        return _referenceMarkers.Any(marker => value.Contains(marker, StringComparison.OrdinalIgnoreCase));
     }
 
     private static bool IsAssetReference(string normalizedValue)

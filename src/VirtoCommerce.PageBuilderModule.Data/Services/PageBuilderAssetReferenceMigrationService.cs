@@ -15,6 +15,7 @@ public class PageBuilderAssetReferenceMigrationService(
     : IPageBuilderAssetReferenceMigrationService
 {
     private const int _batchSize = 50;
+    private const int _concurrentExecutionTimeoutInSeconds = 24 * 60 * 60;
     private static readonly object LockObject = new();
 
     public void StartMigration()
@@ -29,7 +30,7 @@ public class PageBuilderAssetReferenceMigrationService(
         }
     }
 
-    [DisableConcurrentExecution(24 * 60 * 60)]
+    [DisableConcurrentExecution(_concurrentExecutionTimeoutInSeconds)]
     public async Task RebuildAssetReferenceIndex()
     {
         var migrationCompleted = settingsManager.GetValue<bool>(Settings.Migration.AssetReferenceIndexMigrated);

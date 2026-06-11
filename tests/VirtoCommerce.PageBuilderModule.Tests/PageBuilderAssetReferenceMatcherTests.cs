@@ -112,6 +112,20 @@ public class PageBuilderAssetReferenceMatcherTests
     }
 
     [Fact]
+    public void ExtractReferences_KeepsCommaInsideQuotedAssetUrl()
+    {
+        var content = """
+            {
+              "html": "<img src=\"/assets/stores/B2B-store/Page%20Builder/2222/hero,desktop.png\">"
+            }
+            """;
+
+        var result = PageBuilderAssetReferenceMatcher.ExtractReferences(content);
+
+        Assert.Contains("/stores/B2B-store/Page Builder/2222/hero,desktop.png", result);
+    }
+
+    [Fact]
     public void ExtractReferences_ReturnsSrcsetAssetUrls()
     {
         var content = """
