@@ -196,7 +196,12 @@
         "CANCEL": "Cancelar",
         "CREATE": "Crear",
         "VALIDATION": {
-          "INVALID_PATH": "El nombre de la carpeta no puede contener barras ni caracteres de control."
+          "DASH_CONSECUTIVE": "El nombre de la carpeta no debe contener guiones consecutivos.",
+          "DASH_END": "El nombre de la carpeta no debe terminar con un guion.",
+          "DASH_START": "El nombre de la carpeta no debe comenzar con un guion.",
+          "INVALID_CHARACTERS": "El nombre de la carpeta solo puede contener letras minúsculas, números, espacios y guiones individuales.",
+          "MAX_LENGTH": "El nombre de la carpeta debe tener como máximo 63 caracteres. Ha introducido {count} caracteres.",
+          "MIN_LENGTH": "El nombre de la carpeta debe tener al menos 3 caracteres. Ha introducido {count} caracteres."
         }
       },
       "CONFIRM": {

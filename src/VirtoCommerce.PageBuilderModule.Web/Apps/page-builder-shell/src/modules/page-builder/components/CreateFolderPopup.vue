@@ -1,8 +1,10 @@
 <template>
   <VcPopup
     class="assets-library-create-folder-popup"
+    :model-value="true"
     :title="$t('PAGE_BUILDER.ASSETS.CREATE_FOLDER.TITLE')"
     is-mobile-fullscreen
+    @update:model-value="handleModelValueUpdate"
     @close="emit('close')"
   >
     <template #content>
@@ -12,6 +14,8 @@
           :label="$t('PAGE_BUILDER.ASSETS.CREATE_FOLDER.NAME_LABEL')"
           :placeholder="$t('PAGE_BUILDER.ASSETS.CREATE_FOLDER.NAME_PLACEHOLDER')"
           :error="!!folderNameError"
+          :error-message="folderNameError"
+          @update:model-value="emit('clear-error')"
           @keyup.enter="submit"
         >
           <template #error>
@@ -54,18 +58,22 @@
 <script lang="ts" setup>
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
+import { VcButton, VcForm, VcHint, VcInput, VcPopup } from "@vc-shell/framework/ui";
 
 interface Props {
   submitting?: boolean;
+  serverError?: string;
 }
 
 interface Emits {
+  (event: "clear-error"): void;
   (event: "close"): void;
   (event: "create", name: string): void;
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   submitting: false,
+  serverError: undefined,
 });
 
 const emit = defineEmits<Emits>();
@@ -75,12 +83,36 @@ const folderName = ref("");
 const folderNameError = computed(() => {
   const value = folderName.value.trim();
 
+  if (props.serverError) {
+    return props.serverError;
+  }
+
   if (!value) {
     return undefined;
   }
 
-  if (/[\\/]|[\u0000-\u001f]/.test(value)) {
-    return t("PAGE_BUILDER.ASSETS.CREATE_FOLDER.VALIDATION.INVALID_PATH");
+  if (value.length < 3) {
+    return t("PAGE_BUILDER.ASSETS.CREATE_FOLDER.VALIDATION.MIN_LENGTH", { count: value.length });
+  }
+
+  if (value.length > 63) {
+    return t("PAGE_BUILDER.ASSETS.CREATE_FOLDER.VALIDATION.MAX_LENGTH", { count: value.length });
+  }
+
+  if (value.startsWith("-")) {
+    return t("PAGE_BUILDER.ASSETS.CREATE_FOLDER.VALIDATION.DASH_START");
+  }
+
+  if (value.endsWith("-")) {
+    return t("PAGE_BUILDER.ASSETS.CREATE_FOLDER.VALIDATION.DASH_END");
+  }
+
+  if (value.includes("--")) {
+    return t("PAGE_BUILDER.ASSETS.CREATE_FOLDER.VALIDATION.DASH_CONSECUTIVE");
+  }
+
+  if (/[^0-9a-z -]/.test(value)) {
+    return t("PAGE_BUILDER.ASSETS.CREATE_FOLDER.VALIDATION.INVALID_CHARACTERS");
   }
 
   return undefined;
@@ -95,11 +127,26 @@ function submit() {
 
   emit("create", value);
 }
+
+function handleModelValueUpdate(value: boolean) {
+  if (!value) {
+    emit("close");
+  }
+}
 </script>
 
 <style lang="scss" scoped>
+.assets-library-create-folder-popup {
+  --popup-bg: var(--additional-50);
+  --popup-header-color: var(--neutrals-900);
+  --popup-content-text-color: var(--neutrals-800);
+  --popup-close-btn-bg: var(--neutrals-100);
+  --popup-close-btn-bg-hover: var(--neutrals-200);
+}
+
 .assets-library-create-folder {
   width: min(100%, 24rem);
+  color: var(--neutrals-800);
 
   &__message {
     display: block;
@@ -114,5 +161,6 @@ function submit() {
 
 .assets-library-create-folder-popup :deep(.vc-popup__content-inner) {
   overflow-y: visible;
+  color: var(--neutrals-800);
 }
 </style>

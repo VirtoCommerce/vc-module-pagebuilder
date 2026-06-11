@@ -77,12 +77,14 @@ namespace VirtoCommerce.PageBuilderModule.Web
             serviceCollection.AddTransient<IGroupedPageService, GroupedPageService>();
             serviceCollection.AddTransient<IGroupedPageSearchService, GroupedPageSearchService>();
             serviceCollection.AddTransient<IPageBuilderAssetReferenceService, PageBuilderAssetReferenceService>();
+            serviceCollection.AddTransient<IPageBuilderAssetReferenceIndexService, PageBuilderAssetReferenceIndexService>();
 
             serviceCollection.AddTransient<GroupedPageBuilderPageChangedEventHandler>();
 
             serviceCollection.AddTransient<IAuthorizationHandler, PageBuilderAuthorizationHandler>();
             serviceCollection.AddTransient<IPageContentProvider, PageBuilderContentProvider>();
             serviceCollection.AddTransient<IPagesMigrationService, PagesMigrationService>();
+            serviceCollection.AddTransient<IPageBuilderAssetReferenceMigrationService, PageBuilderAssetReferenceMigrationService>();
             serviceCollection.AddTransient<PageBuilderExportImport>();
 
             var isFullTextSearchEnabled = Configuration.IsContentFullTextSearchEnabled();
@@ -135,6 +137,10 @@ namespace VirtoCommerce.PageBuilderModule.Web
             // Run pages migration
             var pagesMigrationService = serviceScope.ServiceProvider.GetRequiredService<IPagesMigrationService>();
             pagesMigrationService.StartMigration();
+
+            // Build asset reference index for existing pages
+            var assetReferenceMigrationService = serviceScope.ServiceProvider.GetRequiredService<IPageBuilderAssetReferenceMigrationService>();
+            assetReferenceMigrationService.StartMigration();
 
             // page-builder
             var pageBuilderAppPath = Path.Combine(ModuleInfo.FullPhysicalPath, "page-builder", "dist");

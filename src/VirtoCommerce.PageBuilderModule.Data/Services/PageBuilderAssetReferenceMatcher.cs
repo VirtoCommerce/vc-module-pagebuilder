@@ -1,10 +1,12 @@
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Services;
 
 public static class PageBuilderAssetReferenceMatcher
 {
-    private const string _referenceDelimiters = "?&#\"'()[]{}<>,;=:/";
+    private static readonly string[] _referenceMarkers = ["/assets/", "/stores/", "https://", "http://"];
 
     public static IReadOnlyDictionary<string, string> NormalizeAssetUrls(IEnumerable<string> assetUrls)
     {
@@ -16,7 +18,7 @@ public static class PageBuilderAssetReferenceMatcher
             .ToDictionary(x => x.Key, x => x.First().Original, StringComparer.OrdinalIgnoreCase);
     }
 
-    public static ISet<string> FindReferences(string content, IEnumerable<string> normalizedAssetUrls)
+    public static ISet<string> ExtractReferences(string content)
     {
         var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
@@ -25,23 +27,14 @@ public static class PageBuilderAssetReferenceMatcher
             return result;
         }
 
-        var candidates = normalizedAssetUrls
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(x => x, BuildCandidates, StringComparer.OrdinalIgnoreCase);
-
-        if (candidates.Count == 0)
-        {
-            return result;
-        }
-
         try
         {
             using var document = JsonDocument.Parse(content);
-            VisitJsonElement(document.RootElement, candidates, result);
+            VisitJsonElement(document.RootElement, result);
         }
         catch (JsonException)
         {
-            FindReferencesInString(content, candidates, result);
+            ExtractReferencesFromString(content, result);
         }
 
         return result;
@@ -82,132 +75,161 @@ public static class PageBuilderAssetReferenceMatcher
         return normalized;
     }
 
-    private static void VisitJsonElement(JsonElement element, IReadOnlyDictionary<string, IReadOnlyList<string>> candidates, ISet<string> result)
+    public static string GetAssetUrlHash(string normalizedAssetUrl)
+    {
+        if (string.IsNullOrWhiteSpace(normalizedAssetUrl))
+        {
+            return null;
+        }
+
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(normalizedAssetUrl.ToUpperInvariant())));
+    }
+
+    private static void VisitJsonElement(JsonElement element, ISet<string> result)
     {
         switch (element.ValueKind)
         {
             case JsonValueKind.Object:
                 foreach (var property in element.EnumerateObject())
                 {
-                    VisitJsonElement(property.Value, candidates, result);
+                    VisitJsonElement(property.Value, result);
                 }
                 break;
             case JsonValueKind.Array:
                 foreach (var item in element.EnumerateArray())
                 {
-                    VisitJsonElement(item, candidates, result);
+                    VisitJsonElement(item, result);
                 }
                 break;
             case JsonValueKind.String:
-                FindReferencesInString(element.GetString(), candidates, result);
+                ExtractReferencesFromString(element.GetString(), result);
                 break;
         }
     }
 
-    private static void FindReferencesInString(string value, IReadOnlyDictionary<string, IReadOnlyList<string>> candidates, ISet<string> result)
+    private static void ExtractReferencesFromString(string value, ISet<string> result)
     {
-        if (string.IsNullOrEmpty(value))
+        if (string.IsNullOrWhiteSpace(value))
         {
             return;
         }
 
-        var normalizedValue = NormalizeAssetUrl(value);
-        if (!string.IsNullOrEmpty(normalizedValue) && candidates.ContainsKey(normalizedValue))
+        AddExtractedReference(value, result);
+
+        var startIndex = 0;
+        while (TryFindReferenceStart(value, startIndex, out var referenceStart))
+        {
+            var token = ReadReferenceToken(value, referenceStart);
+            AddExtractedReference(token, result);
+            startIndex = referenceStart + Math.Max(token?.Length ?? 0, 1);
+        }
+    }
+
+    private static bool TryFindReferenceStart(string value, int startIndex, out int result)
+    {
+        result = -1;
+
+        foreach (var marker in _referenceMarkers)
+        {
+            var index = value.IndexOf(marker, startIndex, StringComparison.OrdinalIgnoreCase);
+            if (index >= 0 && (result < 0 || index < result))
+            {
+                result = index;
+            }
+        }
+
+        return result >= 0;
+    }
+
+    private static string ReadReferenceToken(string value, int startIndex)
+    {
+        var quote = GetOpeningQuote(value, startIndex);
+        var endIndex = startIndex;
+
+        while (endIndex < value.Length && !IsReferenceTerminator(value[endIndex], quote))
+        {
+            endIndex++;
+        }
+
+        return value[startIndex..endIndex];
+    }
+
+    private static char? GetOpeningQuote(string value, int startIndex)
+    {
+        if (startIndex <= 0)
+        {
+            return null;
+        }
+
+        var previous = value[startIndex - 1];
+        return previous is '"' or '\'' ? previous : null;
+    }
+
+    private static bool IsReferenceTerminator(char value, char? quote)
+    {
+        if (quote.HasValue)
+        {
+            return value == quote.Value || value == ',';
+        }
+
+        return char.IsWhiteSpace(value)
+            || value is '"' or '\'' or '<' or '>' or ')' or ',' or ';' or '?' or '#' or '&' or '{' or '}';
+    }
+
+    private static void AddExtractedReference(string value, ISet<string> result)
+    {
+        var normalizedValue = NormalizeAssetUrl(TrimReferenceToken(value));
+
+        if (IsAssetReference(normalizedValue))
         {
             result.Add(normalizedValue);
-            return;
         }
-
-        result.UnionWith(candidates
-            .Where(candidate => candidate.Value.Any(x => ContainsReference(value, x)))
-            .Select(candidate => candidate.Key));
     }
 
-    private static bool ContainsReference(string value, string candidate)
+    private static bool IsAssetReference(string normalizedValue)
     {
-        var startIndex = 0;
+        return normalizedValue?.StartsWith("/stores/", StringComparison.OrdinalIgnoreCase) == true;
+    }
 
-        while (startIndex < value.Length)
+    private static string TrimReferenceToken(string value)
+    {
+        var result = value?.Trim().TrimEnd('/', '.', ',', ';');
+        if (string.IsNullOrEmpty(result))
         {
-            var index = value.IndexOf(candidate, startIndex, StringComparison.OrdinalIgnoreCase);
-            if (index < 0)
-            {
-                return false;
-            }
-
-            var endIndex = index + candidate.Length;
-            if (IsReferenceStartBoundary(value, index) && IsReferenceEndBoundary(value, endIndex))
-            {
-                return true;
-            }
-
-            startIndex = index + 1;
+            return result;
         }
 
-        return false;
-    }
-
-    private static bool IsReferenceStartBoundary(string value, int index)
-    {
-        if (index <= 0)
+        var descriptorIndex = result.LastIndexOfAny([' ', '\t', '\r', '\n']);
+        if (descriptorIndex >= 0 && IsSrcSetDescriptor(result[(descriptorIndex + 1)..]))
         {
-            return true;
+            result = result[..descriptorIndex];
         }
 
-        return IsReferenceDelimiter(value[index - 1]) || HasAbsoluteUrlOriginBefore(value, index);
+        return result;
     }
 
-    private static bool HasAbsoluteUrlOriginBefore(string value, int index)
+    private static bool IsSrcSetDescriptor(string value)
     {
-        var originStart = value.LastIndexOf("://", index, StringComparison.Ordinal);
-        if (originStart < 0)
+        if (string.IsNullOrEmpty(value))
         {
             return false;
         }
 
-        for (var i = originStart + 3; i < index; i++)
+        var unit = value[^1];
+        if (unit != 'w' && unit != 'x')
         {
-            if (value[i] == '/')
-            {
-                return false;
-            }
+            return false;
         }
 
-        return true;
-    }
-
-    private static bool IsReferenceEndBoundary(string value, int index)
-    {
-        if (index >= value.Length)
+        var number = value[..^1];
+        if (string.IsNullOrEmpty(number))
         {
-            return true;
+            return false;
         }
 
-        return IsReferenceDelimiter(value[index]);
-    }
-
-    private static bool IsReferenceDelimiter(char value)
-    {
-        return char.IsWhiteSpace(value) || _referenceDelimiters.Contains(value);
-    }
-
-    private static IReadOnlyList<string> BuildCandidates(string normalizedAssetUrl)
-    {
-        var decoded = EnsureLeadingSlash(SafeUnescapeDataString(normalizedAssetUrl));
-        var encoded = EncodePath(decoded);
-
-        return
-        [
-            decoded,
-            encoded,
-            $"/assets{decoded}",
-            $"/assets{encoded}",
-        ];
-    }
-
-    private static string EncodePath(string value)
-    {
-        return string.Join("/", value.Split('/').Select(Uri.EscapeDataString)).Replace("%2F", "/", StringComparison.OrdinalIgnoreCase);
+        return unit == 'w'
+            ? number.All(char.IsDigit)
+            : number.Any(char.IsDigit) && number.Count(x => x == '.') <= 1 && number.Where(x => x != '.').All(char.IsDigit);
     }
 
     private static string EnsureLeadingSlash(string value)

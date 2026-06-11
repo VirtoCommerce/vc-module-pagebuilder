@@ -196,7 +196,12 @@
         "CANCEL": "Annuler",
         "CREATE": "Créer",
         "VALIDATION": {
-          "INVALID_PATH": "Le nom du dossier ne peut pas contenir de barres obliques ni de caractères de contrôle."
+          "DASH_CONSECUTIVE": "Le nom du dossier ne doit pas contenir de tirets consécutifs.",
+          "DASH_END": "Le nom du dossier ne doit pas se terminer par un tiret.",
+          "DASH_START": "Le nom du dossier ne doit pas commencer par un tiret.",
+          "INVALID_CHARACTERS": "Le nom du dossier ne peut contenir que des lettres minuscules, des chiffres, des espaces et des tirets simples.",
+          "MAX_LENGTH": "Le nom du dossier doit contenir au maximum 63 caractères. Vous avez saisi {count} caractères.",
+          "MIN_LENGTH": "Le nom du dossier doit contenir au moins 3 caractères. Vous avez saisi {count} caractères."
         }
       },
       "CONFIRM": {

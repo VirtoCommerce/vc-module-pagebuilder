@@ -196,7 +196,12 @@
         "CANCEL": "Avbryt",
         "CREATE": "Opprett",
         "VALIDATION": {
-          "INVALID_PATH": "Mappenavnet kan ikke inneholde skråstreker eller kontrolltegn."
+          "DASH_CONSECUTIVE": "Mappenavnet kan ikke inneholde bindestreker etter hverandre.",
+          "DASH_END": "Mappenavnet kan ikke slutte med bindestrek.",
+          "DASH_START": "Mappenavnet kan ikke starte med bindestrek.",
+          "INVALID_CHARACTERS": "Mappenavnet kan bare inneholde små bokstaver, tall, mellomrom og enkeltstående bindestreker.",
+          "MAX_LENGTH": "Mappenavnet kan være maks 63 tegn. Du skrev inn {count} tegn.",
+          "MIN_LENGTH": "Mappenavnet må være minst 3 tegn. Du skrev inn {count} tegn."
         }
       },
       "CONFIRM": {

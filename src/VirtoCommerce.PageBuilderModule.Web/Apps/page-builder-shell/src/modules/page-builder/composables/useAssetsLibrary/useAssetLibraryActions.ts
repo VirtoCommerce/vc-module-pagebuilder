@@ -13,10 +13,21 @@ interface UseAssetLibraryActionsOptions {
   getAssetPublicUrl: (entry: AssetEntry) => string | undefined;
 }
 
+export interface AssetActionResult {
+  succeeded: boolean;
+  errorMessage?: string;
+}
+
 export function useAssetLibraryActions(options: UseAssetLibraryActionsOptions) {
   const { showConfirmation } = usePopup();
 
   function getErrorMessage(error: unknown): string {
+    const validationMessage = getValidationErrorMessage(error);
+
+    if (validationMessage) {
+      return validationMessage;
+    }
+
     return error instanceof Error ? error.message : options.t("PAGE_BUILDER.ASSETS.NOTIFICATIONS.ERROR_GENERIC");
   }
 
@@ -39,20 +50,22 @@ export function useAssetLibraryActions(options: UseAssetLibraryActionsOptions) {
     }
   }
 
-  async function createAssetFolder(name: string): Promise<boolean> {
+  async function createAssetFolder(name: string): Promise<AssetActionResult> {
     const value = name.trim();
 
     if (!value) {
-      return false;
+      return { succeeded: false };
     }
 
     try {
       await options.createFolder(value);
       notification.success(options.t("PAGE_BUILDER.ASSETS.NOTIFICATIONS.FOLDER_CREATED"));
-      return true;
+      return { succeeded: true };
     } catch (error) {
-      notifyError(error);
-      return false;
+      return {
+        succeeded: false,
+        errorMessage: getErrorMessage(error),
+      };
     }
   }
 
@@ -128,4 +141,28 @@ export function useAssetLibraryActions(options: UseAssetLibraryActionsOptions) {
     copyAssetUrl,
     confirmDelete,
   };
+}
+
+function getValidationErrorMessage(error: unknown): string | undefined {
+  if (!error || typeof error !== "object" || !("response" in error) || typeof error.response !== "string") {
+    return undefined;
+  }
+
+  try {
+    const payload = JSON.parse(error.response);
+
+    if (typeof payload?.message === "string" && payload.message.trim()) {
+      return payload.message;
+    }
+
+    const firstErrorMessage = Array.isArray(payload?.errors)
+      ? payload.errors.find((item: unknown) => typeof (item as { errorMessage?: unknown })?.errorMessage === "string")?.errorMessage
+      : undefined;
+
+    return typeof firstErrorMessage === "string" && firstErrorMessage.trim()
+      ? firstErrorMessage
+      : undefined;
+  } catch {
+    return undefined;
+  }
 }

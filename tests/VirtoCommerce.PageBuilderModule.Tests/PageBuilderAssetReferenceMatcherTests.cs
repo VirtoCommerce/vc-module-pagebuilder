@@ -40,156 +40,133 @@ public class PageBuilderAssetReferenceMatcherTests
     }
 
     [Fact]
-    public void FindReferences_MatchesEncodedAndDecodedAssetUrls()
+    public void ExtractReferences_ReturnsNormalizedAssetUrlsFromJsonStrings()
     {
-        var assetUrl = PageBuilderAssetReferenceMatcher.NormalizeAssetUrl("/stores/B2B-store/Page Builder/2222/hero banner.png");
         var content = """
             {
-              "content": [
-                {
-                  "settings": {
-                    "image": "/assets/stores/B2B-store/Page%20Builder/2222/hero%20banner.png"
-                  }
-                }
-              ]
+              "image": "/assets/stores/B2B-store/Page%20Builder/2222/hero%20banner.png?t=1",
+              "html": "<img src=/assets/stores/B2B-store/Page%20Builder/2222/icon.png/>",
+              "external": "https://localhost:5001/assets/stores/B2B-store/Page%20Builder/2222/absolute.png"
             }
             """;
 
-        var result = PageBuilderAssetReferenceMatcher.FindReferences(content, [assetUrl]);
+        var result = PageBuilderAssetReferenceMatcher.ExtractReferences(content);
 
-        Assert.Contains(assetUrl, result);
+        Assert.Contains("/stores/B2B-store/Page Builder/2222/hero banner.png", result);
+        Assert.Contains("/stores/B2B-store/Page Builder/2222/icon.png", result);
+        Assert.Contains("/stores/B2B-store/Page Builder/2222/absolute.png", result);
     }
 
     [Fact]
-    public void FindReferences_MatchesAbsoluteAssetUrls()
+    public void ExtractReferences_ReturnsMixedEncodedAssetUrl()
     {
-        var assetUrl = PageBuilderAssetReferenceMatcher.NormalizeAssetUrl("/stores/B2B-store/Page Builder/2222/hero.png");
-        var content = """
-            {
-              "image": "https://localhost:5001/assets/stores/B2B-store/Page%20Builder/2222/hero.png?t=638000000000000000"
-            }
-            """;
-
-        var result = PageBuilderAssetReferenceMatcher.FindReferences(content, [assetUrl]);
-
-        Assert.Contains(assetUrl, result);
-    }
-
-    [Fact]
-    public void FindReferences_MatchesMixedEncodedJsonAssetUrl()
-    {
-        var assetUrl = PageBuilderAssetReferenceMatcher.NormalizeAssetUrl("/stores/B2B-store/Page Builder/%D0%A1%D0%BD%D0%B8%D0%BC%D0%BE%D0%BA%20%D1%8D%D0%BA%D1%80%D0%B0%D0%BD%D0%B0%202025-04-04%20122937.png");
         var content = """
             {
               "image": "/assets/stores/B2B-store/Page Builder/%D0%A1%D0%BD%D0%B8%D0%BC%D0%BE%D0%BA%20%D1%8D%D0%BA%D1%80%D0%B0%D0%BD%D0%B0%202025-04-04%20122937.png"
             }
             """;
 
-        var result = PageBuilderAssetReferenceMatcher.FindReferences(content, [assetUrl]);
+        var result = PageBuilderAssetReferenceMatcher.ExtractReferences(content);
 
-        Assert.Contains(assetUrl, result);
+        Assert.Contains("/stores/B2B-store/Page Builder/\u0421\u043D\u0438\u043C\u043E\u043A \u044D\u043A\u0440\u0430\u043D\u0430 2025-04-04 122937.png", result);
     }
 
     [Fact]
-    public void FindReferences_UsesRawFallbackForInvalidJson()
+    public void ExtractReferences_UsesRawFallbackForInvalidJson()
     {
-        var assetUrl = PageBuilderAssetReferenceMatcher.NormalizeAssetUrl("/stores/B2B-store/Page Builder/2222/hero.png");
-        var content = $"broken /assets/stores/B2B-store/Page%20Builder/2222/hero.png json";
+        var content = "broken /assets/stores/B2B-store/Page%20Builder/2222/hero.png json";
 
-        var result = PageBuilderAssetReferenceMatcher.FindReferences(content, [assetUrl]);
+        var result = PageBuilderAssetReferenceMatcher.ExtractReferences(content);
 
-        Assert.Contains(assetUrl, result);
+        Assert.Contains("/stores/B2B-store/Page Builder/2222/hero.png", result);
     }
 
     [Fact]
-    public void FindReferences_DoesNotMatchAssetUrlAsSubstringOfAnotherPath()
+    public void ExtractReferences_ReturnsAssetUrlsFromCssAndHtmlFragments()
     {
-        var assetUrl = PageBuilderAssetReferenceMatcher.NormalizeAssetUrl("/stores/B2B-store/Page Builder/2222/hero.png");
         var content = """
             {
-              "image": "/assets/stores/B2B-store/Page%20Builder/2222/hero.png.backup",
-              "anotherImage": "/assets/stores/B2B-store/Page%20Builder/2222/hero.png2",
-              "nestedImage": "/archive/stores/B2B-store/Page Builder/2222/hero.png"
+              "style": "background-image: url(\"https://localhost:5001/assets/stores/B2B-store/Page%20Builder/2222/hero.png?t=1\")",
+              "html": "<img src=/assets/stores/B2B-store/Page%20Builder/2222/icon.png/>"
             }
             """;
 
-        var result = PageBuilderAssetReferenceMatcher.FindReferences(content, [assetUrl]);
+        var result = PageBuilderAssetReferenceMatcher.ExtractReferences(content);
 
-        Assert.DoesNotContain(assetUrl, result);
+        Assert.Contains("/stores/B2B-store/Page Builder/2222/hero.png", result);
+        Assert.Contains("/stores/B2B-store/Page Builder/2222/icon.png", result);
     }
 
     [Fact]
-    public void FindReferences_MatchesAssetUrlInsideAbsoluteCssUrl()
+    public void ExtractReferences_ReturnsQuotedHtmlAssetUrlsWithCommonFileNameCharacters()
     {
-        var assetUrl = PageBuilderAssetReferenceMatcher.NormalizeAssetUrl("/stores/B2B-store/Page Builder/2222/hero.png");
         var content = """
             {
-              "style": "background-image: url(\"https://localhost:5001/assets/stores/B2B-store/Page%20Builder/2222/hero.png?t=1\")"
+              "html": "<img src=\"/assets/stores/B2B-store/Page%20Builder/2222/hero(1)[mobile]=wide.png\">"
             }
             """;
 
-        var result = PageBuilderAssetReferenceMatcher.FindReferences(content, [assetUrl]);
+        var result = PageBuilderAssetReferenceMatcher.ExtractReferences(content);
 
-        Assert.Contains(assetUrl, result);
+        Assert.Contains("/stores/B2B-store/Page Builder/2222/hero(1)[mobile]=wide.png", result);
     }
 
     [Fact]
-    public void FindReferences_MatchesUnquotedCssUrl()
+    public void ExtractReferences_ReturnsSrcsetAssetUrls()
     {
-        var assetUrl = PageBuilderAssetReferenceMatcher.NormalizeAssetUrl("/stores/B2B-store/Page Builder/2222/hero.png");
         var content = """
             {
-              "style": "background-image: url(/assets/stores/B2B-store/Page%20Builder/2222/hero.png)"
+              "html": "<img srcset=\"/assets/stores/B2B-store/Page%20Builder/2222/small.png 480w, /assets/stores/B2B-store/Page%20Builder/2222/large.png 960w\">"
             }
             """;
 
-        var result = PageBuilderAssetReferenceMatcher.FindReferences(content, [assetUrl]);
+        var result = PageBuilderAssetReferenceMatcher.ExtractReferences(content);
 
-        Assert.Contains(assetUrl, result);
+        Assert.Contains("/stores/B2B-store/Page Builder/2222/small.png", result);
+        Assert.Contains("/stores/B2B-store/Page Builder/2222/large.png", result);
     }
 
     [Fact]
-    public void FindReferences_MatchesUnquotedHtmlAttributeUrl()
+    public void ExtractReferences_ReturnsAssetUrlInsideQueryParameter()
     {
-        var assetUrl = PageBuilderAssetReferenceMatcher.NormalizeAssetUrl("/stores/B2B-store/Page Builder/2222/hero.png");
-        var content = """
-            {
-              "html": "<img src=/assets/stores/B2B-store/Page%20Builder/2222/hero.png>"
-            }
-            """;
-
-        var result = PageBuilderAssetReferenceMatcher.FindReferences(content, [assetUrl]);
-
-        Assert.Contains(assetUrl, result);
-    }
-
-    [Fact]
-    public void FindReferences_MatchesAssetUrlBeforeQueryParameterSeparator()
-    {
-        var assetUrl = PageBuilderAssetReferenceMatcher.NormalizeAssetUrl("/stores/B2B-store/Page Builder/2222/hero.png");
         var content = """
             {
               "link": "/preview?image=/assets/stores/B2B-store/Page%20Builder/2222/hero.png&width=1200"
             }
             """;
 
-        var result = PageBuilderAssetReferenceMatcher.FindReferences(content, [assetUrl]);
+        var result = PageBuilderAssetReferenceMatcher.ExtractReferences(content);
 
-        Assert.Contains(assetUrl, result);
+        Assert.Contains("/stores/B2B-store/Page Builder/2222/hero.png", result);
+        Assert.DoesNotContain("/stores/B2B-store/Page Builder/2222/hero.png&width", result);
     }
 
     [Fact]
-    public void FindReferences_MatchesAssetUrlInsideSelfClosingHtmlTag()
+    public void ExtractReferences_IgnoresNonAssetUrls()
     {
-        var assetUrl = PageBuilderAssetReferenceMatcher.NormalizeAssetUrl("/stores/B2B-store/Page Builder/2222/hero.png");
         var content = """
             {
-              "html": "<img src=/assets/stores/B2B-store/Page%20Builder/2222/hero.png/>"
+              "link": "https://example.com/products",
+              "relative": "/images/local.png"
             }
             """;
 
-        var result = PageBuilderAssetReferenceMatcher.FindReferences(content, [assetUrl]);
+        var result = PageBuilderAssetReferenceMatcher.ExtractReferences(content);
 
-        Assert.Contains(assetUrl, result);
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void ExtractReferences_DoesNotScanJsonPropertyNames()
+    {
+        var content = """
+            {
+              "/assets/stores/B2B-store/Page%20Builder/2222/property-name.png": "not a reference"
+            }
+            """;
+
+        var result = PageBuilderAssetReferenceMatcher.ExtractReferences(content);
+
+        Assert.Empty(result);
     }
 }

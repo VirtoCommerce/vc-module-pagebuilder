@@ -196,7 +196,12 @@
         "CANCEL": "Annulla",
         "CREATE": "Crea",
         "VALIDATION": {
-          "INVALID_PATH": "Il nome della cartella non può contenere barre o caratteri di controllo."
+          "DASH_CONSECUTIVE": "Il nome della cartella non deve contenere trattini consecutivi.",
+          "DASH_END": "Il nome della cartella non deve terminare con un trattino.",
+          "DASH_START": "Il nome della cartella non deve iniziare con un trattino.",
+          "INVALID_CHARACTERS": "Il nome della cartella può contenere solo lettere minuscole, numeri, spazi e trattini singoli.",
+          "MAX_LENGTH": "Il nome della cartella deve contenere al massimo 63 caratteri. Hai inserito {count} caratteri.",
+          "MIN_LENGTH": "Il nome della cartella deve contenere almeno 3 caratteri. Hai inserito {count} caratteri."
         }
       },
       "CONFIRM": {

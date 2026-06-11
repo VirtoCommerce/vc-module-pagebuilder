@@ -196,7 +196,12 @@
         "CANCEL": "取消",
         "CREATE": "创建",
         "VALIDATION": {
-          "INVALID_PATH": "文件夹名称不能包含斜杠或控制字符。"
+          "DASH_CONSECUTIVE": "文件夹名称不能包含连续的连字符。",
+          "DASH_END": "文件夹名称不能以连字符结尾。",
+          "DASH_START": "文件夹名称不能以连字符开头。",
+          "INVALID_CHARACTERS": "文件夹名称只能包含小写字母、数字、空格和单个连字符。",
+          "MAX_LENGTH": "文件夹名称最多 63 个字符。您输入了 {count} 个字符。",
+          "MIN_LENGTH": "文件夹名称至少 3 个字符。您输入了 {count} 个字符。"
         }
       },
       "CONFIRM": {

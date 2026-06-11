@@ -196,7 +196,12 @@
         "CANCEL": "Abbrechen",
         "CREATE": "Erstellen",
         "VALIDATION": {
-          "INVALID_PATH": "Ordnername darf keine Schrägstriche oder Steuerzeichen enthalten."
+          "DASH_CONSECUTIVE": "Ordnername darf keine aufeinanderfolgenden Bindestriche enthalten.",
+          "DASH_END": "Ordnername darf nicht mit einem Bindestrich enden.",
+          "DASH_START": "Ordnername darf nicht mit einem Bindestrich beginnen.",
+          "INVALID_CHARACTERS": "Ordnername darf nur Kleinbuchstaben, Zahlen, Leerzeichen und einzelne Bindestriche enthalten.",
+          "MAX_LENGTH": "Ordnername darf höchstens 63 Zeichen lang sein. Sie haben {count} Zeichen eingegeben.",
+          "MIN_LENGTH": "Ordnername muss mindestens 3 Zeichen lang sein. Sie haben {count} Zeichen eingegeben."
         }
       },
       "CONFIRM": {

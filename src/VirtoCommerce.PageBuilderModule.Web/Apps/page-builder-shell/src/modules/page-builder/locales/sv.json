@@ -196,7 +196,12 @@
         "CANCEL": "Avbryt",
         "CREATE": "Skapa",
         "VALIDATION": {
-          "INVALID_PATH": "Mappnamnet får inte innehålla snedstreck eller kontrolltecken."
+          "DASH_CONSECUTIVE": "Mappnamnet får inte innehålla flera bindestreck i följd.",
+          "DASH_END": "Mappnamnet får inte sluta med ett bindestreck.",
+          "DASH_START": "Mappnamnet får inte börja med ett bindestreck.",
+          "INVALID_CHARACTERS": "Mappnamnet får endast innehålla gemena bokstäver, siffror, mellanslag och enskilda bindestreck.",
+          "MAX_LENGTH": "Mappnamnet får vara högst 63 tecken långt. Du angav {count} tecken.",
+          "MIN_LENGTH": "Mappnamnet måste vara minst 3 tecken långt. Du angav {count} tecken."
         }
       },
       "CONFIRM": {

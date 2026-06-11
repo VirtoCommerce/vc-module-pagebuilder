@@ -72,7 +72,12 @@
         "CANCEL": "Cancel",
         "CREATE": "Create",
         "VALIDATION": {
-          "INVALID_PATH": "Folder name cannot contain slashes or control characters."
+          "DASH_CONSECUTIVE": "Folder name must not contain consecutive dash symbols.",
+          "DASH_END": "Folder name must not end with a dash symbol.",
+          "DASH_START": "Folder name must not start with a dash symbol.",
+          "INVALID_CHARACTERS": "Folder name must only contain lowercase letters, numbers, spaces, and single dashes.",
+          "MAX_LENGTH": "Folder name must be at most 63 characters long. You entered {count} characters.",
+          "MIN_LENGTH": "Folder name must be at least 3 characters long. You entered {count} characters."
         }
       },
       "CONFIRM": {

@@ -18,7 +18,8 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
         Func<IContentStreamRepository> contentStreamRepositoryFactory,
         IPlatformMemoryCache platformMemoryCache,
         IEventPublisher eventPublisher,
-        ILogger<GroupedPageService> logger)
+        ILogger<GroupedPageService> logger,
+        IPageBuilderAssetReferenceIndexService assetReferenceIndexService)
         : CrudService<GroupedPageBuilderPage, GroupedPageBuilderPageEntity, GroupedPageBuilderPageChangingEvent,
                 GroupedPageBuilderPageChangedEvent>(repositoryFactory, platformMemoryCache, eventPublisher),
             IGroupedPageService
@@ -123,8 +124,12 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
         public async Task SaveStreamAsContentAsync(string pageId, Stream stream, CancellationToken cancellationToken = default)
         {
             using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, leaveOpen: false);
+            var content = await reader.ReadToEndAsync(cancellationToken);
             var repository = contentStreamRepositoryFactory();
-            await repository.SaveBinaryAsync(pageId, reader, cancellationToken);
+            using var contentReader = new StringReader(content);
+            await repository.SaveBinaryAsync(pageId, contentReader, cancellationToken);
+
+            await assetReferenceIndexService.RebuildPageIndexAsync(pageId, content, cancellationToken);
         }
 
         public async Task CopyPageContentAsync(string sourcePageId, string targetPageId, CancellationToken cancellationToken = default)

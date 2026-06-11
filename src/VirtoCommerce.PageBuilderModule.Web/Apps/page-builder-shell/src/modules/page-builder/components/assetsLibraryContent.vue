@@ -60,7 +60,6 @@
         <AssetLibraryTable
           v-else-if="entryViewModels.length"
           :entries="entryViewModels"
-          :loading="loading"
           :selected-entry-key="selectedEntryKey"
           :can-delete="canDelete"
           @entry-click="handleEntryClick"
@@ -69,7 +68,7 @@
         />
 
         <div
-          v-else
+          v-else-if="!loading"
           class="assets-library__empty"
         >
           <VcIcon
@@ -121,6 +120,7 @@
 
   <VcPopup
     v-if="isUploadPopupOpen"
+    v-model="isUploadPopupOpen"
     :title="$t('PAGE_BUILDER.ASSETS.TOOLBAR.UPLOAD')"
     is-mobile-fullscreen
     @close="closeUploadPopup"
@@ -146,6 +146,8 @@
   <CreateFolderPopup
     v-if="isCreateFolderPopupOpen"
     :submitting="loading"
+    :server-error="createFolderError"
+    @clear-error="clearCreateFolderError"
     @close="closeCreateFolderPopup"
     @create="handleCreateFolder"
   />
@@ -181,6 +183,7 @@ const { t } = useI18n({ useScope: "global" });
 const { hasAccess } = usePermissions();
 
 const replaceInputRef = ref<HTMLInputElement | null>(null);
+const createFolderError = ref<string>();
 const isCreateFolderPopupOpen = ref(false);
 const isUploadPopupOpen = ref(false);
 const viewMode = ref<AssetLibraryViewMode>("grid");
@@ -302,11 +305,17 @@ function openReplaceDialog() {
 }
 
 function openCreateFolderPopup() {
+  clearCreateFolderError();
   isCreateFolderPopupOpen.value = true;
 }
 
 function closeCreateFolderPopup() {
+  clearCreateFolderError();
   isCreateFolderPopupOpen.value = false;
+}
+
+function clearCreateFolderError() {
+  createFolderError.value = undefined;
 }
 
 async function handleEntryClick(entry: AssetEntry) {
@@ -318,9 +327,16 @@ async function handleEntryClick(entry: AssetEntry) {
 }
 
 async function handleCreateFolder(name: string) {
-  if (await createAssetFolder(name)) {
+  clearCreateFolderError();
+
+  const result = await createAssetFolder(name);
+
+  if (result.succeeded) {
     closeCreateFolderPopup();
+    return;
   }
+
+  createFolderError.value = result.errorMessage;
 }
 
 async function onReplaceChange(event: Event) {

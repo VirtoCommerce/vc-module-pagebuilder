@@ -196,7 +196,12 @@
         "CANCEL": "Anuluj",
         "CREATE": "Utwórz",
         "VALIDATION": {
-          "INVALID_PATH": "Nazwa folderu nie może zawierać ukośników ani znaków sterujących."
+          "DASH_CONSECUTIVE": "Nazwa folderu nie może zawierać kolejnych znaków myślnika.",
+          "DASH_END": "Nazwa folderu nie może kończyć się myślnikiem.",
+          "DASH_START": "Nazwa folderu nie może zaczynać się od myślnika.",
+          "INVALID_CHARACTERS": "Nazwa folderu może zawierać tylko małe litery, cyfry, spacje i pojedyncze myślniki.",
+          "MAX_LENGTH": "Nazwa folderu może mieć maksymalnie 63 znaki. Wpisano {count} znaków.",
+          "MIN_LENGTH": "Nazwa folderu musi mieć co najmniej 3 znaki. Wpisano {count} znaków."
         }
       },
       "CONFIRM": {

@@ -17,7 +17,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.PostgreSql.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.11")
+                .HasAnnotation("ProductVersion", "10.0.5")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -79,6 +79,61 @@ namespace VirtoCommerce.PageBuilderModule.Data.PostgreSql.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("GroupedPageBuilderPage", (string)null);
+                });
+
+            modelBuilder.Entity("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderAssetReferenceEntity", b =>
+                {
+                    b.Property<string>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("CultureName")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("GroupId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("NormalizedAssetUrl")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)");
+
+                    b.Property<string>("NormalizedAssetUrlHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("PageId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("StoreId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GroupId");
+
+                    b.HasIndex("PageId");
+
+                    b.HasIndex("PageId", "NormalizedAssetUrlHash")
+                        .IsUnique();
+
+                    b.HasIndex("StoreId", "NormalizedAssetUrlHash", "Status", "CultureName");
+
+                    b.ToTable("PageBuilderAssetReference", (string)null);
                 });
 
             modelBuilder.Entity("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderContentEntity", b =>

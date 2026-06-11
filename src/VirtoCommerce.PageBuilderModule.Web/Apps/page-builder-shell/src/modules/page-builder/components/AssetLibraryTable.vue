@@ -6,7 +6,6 @@
     :expanded="true"
     :header="false"
     :footer="false"
-    :loading="loading"
     :selected-item-id="selectedEntryKey"
     :enable-item-actions="true"
     :item-action-builder="tableActionBuilder"
@@ -92,7 +91,6 @@ import type { AssetLibraryEntryViewModel } from "./assetLibraryTypes";
 
 interface Props {
   entries: AssetLibraryEntryViewModel[];
-  loading: boolean;
   selectedEntryKey: string;
   canDelete: boolean;
 }

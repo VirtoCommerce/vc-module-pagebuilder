@@ -1,17 +1,17 @@
+using Microsoft.EntityFrameworkCore;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
+using VirtoCommerce.PageBuilderModule.Data.Models;
+using VirtoCommerce.PageBuilderModule.Data.Repositories;
 using VirtoCommerce.Platform.Core.Common;
 using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Services;
 
 public class PageBuilderAssetReferenceService(
-    IGroupedPageSearchService groupedPageSearchService,
-    IGroupedPageService groupedPageService)
+    Func<IPageBuilderModuleRepository> repositoryFactory)
     : IPageBuilderAssetReferenceService
 {
-    private const int _pageSize = 100;
-
     public Task<PageBuilderAssetReferencesSearchResult> SearchReferencesAsync(PageBuilderAssetReferencesSearchCriteria criteria, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(criteria);
@@ -36,92 +36,86 @@ public class PageBuilderAssetReferenceService(
             return CreateResult(references.Values);
         }
 
-        var allowedStatuses = GetStatuses(criteria.Statuses)
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var normalizedAssetUrlHashes = references.Keys
+            .Select(PageBuilderAssetReferenceMatcher.GetAssetUrlHash)
+            .ToArray();
+        var allowedStatuses = GetAllowedStatuses(criteria.Statuses)
+            .ToArray();
 
-        await foreach (var group in SearchGroups(criteria, cancellationToken))
+        using var repository = repositoryFactory();
+        var indexedReferences = repository.PageBuilderAssetReferences
+            .Where(x => x.StoreId == criteria.StoreId)
+            .Where(x => normalizedAssetUrlHashes.Contains(x.NormalizedAssetUrlHash))
+            .Where(x => allowedStatuses.Contains(x.Status));
+
+        if (!string.IsNullOrWhiteSpace(criteria.LanguageCode))
         {
-            var matchedAssets = await GetGroupReferences(group, references.Keys, allowedStatuses, cancellationToken);
+            indexedReferences = indexedReferences.Where(x => x.CultureName == criteria.LanguageCode);
+        }
 
-            foreach (var matchedAsset in matchedAssets)
+        if (!criteria.ObjectIds.IsNullOrEmpty())
+        {
+            indexedReferences = indexedReferences.Where(x => criteria.ObjectIds.Contains(x.GroupId));
+        }
+
+        var referenceGroups = await indexedReferences
+            .GroupBy(x => x.NormalizedAssetUrl)
+            .Select(x => new
             {
-                var reference = references[matchedAsset.Key];
-                reference.ReferencesCount++;
+                NormalizedAssetUrl = x.Key,
+                ReferencesCount = x.Select(r => r.GroupId).Distinct().Count(),
+            })
+            .ToListAsync(cancellationToken);
 
-                if (criteria.IncludePages)
-                {
-                    reference.Pages.Add(new PageBuilderAssetReferencePage
+        foreach (var group in referenceGroups)
+        {
+            if (references.TryGetValue(group.NormalizedAssetUrl, out var reference))
+            {
+                reference.ReferencesCount = group.ReferencesCount;
+            }
+        }
+
+        if (criteria.IncludePages)
+        {
+            var referencePages = await indexedReferences
+                .Join(
+                    repository.GroupedPageBuilderPages,
+                    reference => reference.GroupId,
+                    group => group.Id,
+                    (reference, group) => new
                     {
-                        Id = group.Id,
-                        Name = group.Name,
-                        Permalink = group.Permalink,
-                        CultureName = group.CultureName,
-                        Status = string.Join(", ", matchedAsset.Value),
-                    });
+                        reference.NormalizedAssetUrl,
+                        group.Id,
+                        group.Name,
+                        group.Permalink,
+                        group.CultureName,
+                        reference.Status,
+                    })
+                .ToListAsync(cancellationToken);
+
+            foreach (var referencePage in referencePages
+                .GroupBy(x => new { x.NormalizedAssetUrl, x.Id, x.Name, x.Permalink, x.CultureName }))
+            {
+                if (!references.TryGetValue(referencePage.Key.NormalizedAssetUrl, out var reference))
+                {
+                    continue;
                 }
+
+                reference.Pages.Add(new PageBuilderAssetReferencePage
+                {
+                    Id = referencePage.Key.Id,
+                    Name = referencePage.Key.Name,
+                    Permalink = referencePage.Key.Permalink,
+                    CultureName = referencePage.Key.CultureName,
+                    Status = string.Join(", ", referencePage
+                        .Select(x => x.Status)
+                        .Distinct()
+                        .OrderBy(x => x)),
+                });
             }
         }
 
         return CreateResult(references.Values);
-    }
-
-    private async IAsyncEnumerable<GroupedPageBuilderPage> SearchGroups(PageBuilderAssetReferencesSearchCriteria criteria, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
-    {
-        var skip = 0;
-
-        while (!cancellationToken.IsCancellationRequested)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            var pageCriteria = AbstractTypeFactory<PageBuilderPageSearchCriteria>.TryCreateInstance();
-            pageCriteria.StoreId = criteria.StoreId;
-            pageCriteria.Statuses = GetStatuses(criteria.Statuses);
-            pageCriteria.LanguageCode = criteria.LanguageCode;
-            pageCriteria.ObjectIds = criteria.ObjectIds;
-            pageCriteria.Skip = skip;
-            pageCriteria.Take = _pageSize;
-
-            var searchResult = await groupedPageSearchService.SearchAsync(pageCriteria);
-
-            foreach (var group in searchResult.Results ?? [])
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                yield return group;
-            }
-
-            skip += searchResult.Results?.Count ?? 0;
-
-            if (skip >= searchResult.TotalCount || searchResult.Results.IsNullOrEmpty())
-            {
-                break;
-            }
-        }
-    }
-
-    private async Task<IDictionary<string, ISet<string>>> GetGroupReferences(GroupedPageBuilderPage group, IEnumerable<string> normalizedAssets, HashSet<string> allowedStatuses, CancellationToken cancellationToken)
-    {
-        var result = new Dictionary<string, ISet<string>>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var page in group.Pages.Where(x => allowedStatuses.Contains(x.Status)))
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            var content = await groupedPageService.LoadContent(page.Id, cancellationToken);
-            var matchedAssets = PageBuilderAssetReferenceMatcher.FindReferences(content, normalizedAssets);
-
-            foreach (var matchedAsset in matchedAssets)
-            {
-                if (!result.TryGetValue(matchedAsset, out var statuses))
-                {
-                    statuses = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
-                    result[matchedAsset] = statuses;
-                }
-
-                statuses.Add(page.Status);
-            }
-        }
-
-        return result;
     }
 
     private static PageBuilderAssetReferencesSearchResult CreateResult(IEnumerable<PageBuilderAssetReference> references)
@@ -133,6 +127,17 @@ public class PageBuilderAssetReferenceService(
             TotalCount = results.Count,
             Results = results,
         };
+    }
+
+    private static IEnumerable<PageBuilderPageStatus> GetAllowedStatuses(string statuses)
+    {
+        return GetStatuses(statuses)
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(x => Enum.TryParse<PageBuilderPageStatus>(x, ignoreCase: true, out var status)
+                ? status
+                : (PageBuilderPageStatus?)null)
+            .Where(x => x.HasValue)
+            .Select(x => x.Value);
     }
 
     private static string GetStatuses(string statuses)

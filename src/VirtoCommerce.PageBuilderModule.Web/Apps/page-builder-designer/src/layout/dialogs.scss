@@ -103,14 +103,57 @@
     }
 
     .close {
+        $close-size: 2rem;
+
+        appearance: none;
         display: flex;
         align-items: center;
+        justify-content: center;
         align-self: flex-start;
-        padding: 0.25rem;
+        flex: 0 0 $close-size;
+        width: $close-size !important;
+        min-width: $close-size !important;
+        max-width: $close-size !important;
+        height: $close-size !important;
+        min-height: $close-size !important;
+        max-height: $close-size !important;
+        inline-size: $close-size !important;
+        block-size: $close-size !important;
+        aspect-ratio: 1 / 1;
+        box-sizing: border-box;
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+        background: transparent;
         color: $muted;
+        transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+
+        &:hover {
+            background: $preview-alt;
+            color: $text;
+        }
+
+        &:focus-visible {
+            outline: 2px solid rgba($primary, 0.35);
+            outline-offset: 2px;
+        }
 
         app-icon {
-            font-size: 1.125rem;
+            display: flex;
+            width: 1.375rem;
+            height: 1.375rem;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 1.375rem;
+            font-size: 1.375rem;
+            line-height: 1.375rem;
+        }
+
+        app-icon mat-icon {
+            width: 1.375rem !important;
+            height: 1.375rem !important;
+            font-size: 1.375rem !important;
+            line-height: 1.375rem !important;
         }
     }
 
@@ -130,6 +173,20 @@
         margin: 0;
         padding: 0.75rem 1rem;
         border-top: 1px solid $border;
+
+        app-icon-button {
+            display: block;
+
+            button {
+                width: 6.5rem;
+                min-height: 2.875rem;
+                justify-content: center;
+                padding: 0 1rem;
+                border-radius: 0.375rem;
+                font-size: 1rem;
+                line-height: 1.25rem;
+            }
+        }
     }
 
     .toolbar {

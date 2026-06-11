@@ -1,16 +1,26 @@
 .assets-library {
-  --assets-library-bg: #f6f8fb;
-  --assets-library-panel: #ffffff;
-  --assets-library-border: #dde6f2;
+  --assets-library-bg: var(--neutrals-50, #f6f8fb);
+  --assets-library-panel: var(--additional-50, #ffffff);
+  --assets-library-border: var(--neutrals-200, #dde6f2);
   --assets-library-text: var(--neutrals-800, #243447);
-  --assets-library-text-muted: #6f8298;
-  --assets-library-selected: #2f95da;
-  --assets-library-reference-bg: #d8efff;
-  --assets-library-reference-text: #2478ad;
-  --assets-library-preview: linear-gradient(135deg, #f7fbff 0%, #edf4fb 100%);
-  --assets-library-folder: linear-gradient(135deg, #d9efff 0%, #c4e4ff 100%);
-  --assets-library-details: #fbfdff;
-  --assets-library-drop: rgba(47, 149, 218, 0.12);
+  --assets-library-text-muted: var(--neutrals-500, #6f8298);
+  --assets-library-selected: var(--primary-500, #2f95da);
+  --assets-library-reference-bg: color-mix(in srgb, var(--assets-library-selected), transparent 84%);
+  --assets-library-reference-text: var(--primary-700, #2478ad);
+  --assets-library-preview: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--assets-library-panel), var(--assets-library-selected) 5%) 0%,
+    color-mix(in srgb, var(--assets-library-bg), var(--assets-library-selected) 8%) 100%
+  );
+  --assets-library-folder: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--assets-library-selected), var(--assets-library-panel) 34%) 0%,
+    color-mix(in srgb, var(--assets-library-selected), var(--assets-library-bg) 20%) 100%
+  );
+  --assets-library-details: var(--additional-50, #fbfdff);
+  --assets-library-drop: color-mix(in srgb, var(--assets-library-selected), transparent 88%);
+  --assets-library-checker-bg: color-mix(in srgb, var(--assets-library-panel), var(--assets-library-bg) 50%);
+  --assets-library-checker-tile: color-mix(in srgb, var(--assets-library-border), transparent 25%);
   @apply tw-bg-[color:var(--assets-library-bg)] tw-text-sm tw-leading-[18px] tw-text-[color:var(--assets-library-text)];
 
   button,
@@ -21,7 +31,7 @@
   }
 
   &__toolbar {
-    @apply tw-flex tw-flex-wrap tw-items-center tw-gap-2 tw-border-b tw-border-solid tw-border-b-[color:var(--assets-library-border)] tw-bg-white tw-p-3;
+    @apply tw-flex tw-flex-wrap tw-items-center tw-gap-2 tw-border-b tw-border-solid tw-border-b-[color:var(--assets-library-border)] tw-bg-[color:var(--assets-library-panel)] tw-p-3;
   }
 
   &__toolbar-actions {
@@ -37,7 +47,7 @@
   }
 
   &__view-toggle {
-    @apply tw-ml-auto tw-flex tw-items-center tw-gap-1 tw-rounded tw-border tw-border-solid tw-border-[color:var(--assets-library-border)] tw-bg-white tw-p-1;
+    @apply tw-ml-auto tw-flex tw-items-center tw-gap-1 tw-rounded tw-border tw-border-solid tw-border-[color:var(--assets-library-border)] tw-bg-[color:var(--assets-library-panel)] tw-p-1;
   }
 
   &__view-button {
@@ -63,7 +73,8 @@
   }
 
   &__drop-hint {
-    @apply tw-pointer-events-none tw-absolute tw-inset-x-4 tw-top-20 tw-z-20 tw-flex tw-items-center tw-justify-center tw-gap-2 tw-rounded-lg tw-border tw-border-dashed tw-border-[color:var(--assets-library-selected)] tw-bg-white/90 tw-p-4 tw-text-sm tw-font-semibold tw-text-[color:var(--assets-library-selected)] tw-shadow-sm;
+    @apply tw-pointer-events-none tw-absolute tw-inset-x-4 tw-top-20 tw-z-20 tw-flex tw-items-center tw-justify-center tw-gap-2 tw-rounded-lg tw-border tw-border-dashed tw-border-[color:var(--assets-library-selected)] tw-p-4 tw-text-sm tw-font-semibold tw-text-[color:var(--assets-library-selected)] tw-shadow-sm;
+    background-color: color-mix(in srgb, var(--assets-library-panel), transparent 8%);
   }
 
   &__drop-hint-icon {
@@ -71,7 +82,7 @@
   }
 
   &__breadcrumbs {
-    @apply tw-border-b tw-border-solid tw-border-b-[color:var(--assets-library-border)] tw-bg-white tw-px-4 tw-py-2;
+    @apply tw-border-b tw-border-solid tw-border-b-[color:var(--assets-library-border)] tw-bg-[color:var(--assets-library-panel)] tw-px-4 tw-py-2;
   }
 
   &__grid {
@@ -151,7 +162,7 @@
     overflow: hidden;
     border: 1px solid var(--assets-library-border);
     border-radius: 0.375rem;
-    background: #fff;
+    background: var(--assets-library-panel);
   }
 
   &__details-image-frame {
@@ -160,10 +171,10 @@
     width: 100%;
     align-items: center;
     justify-content: center;
-    background-color: #f8fbff;
+    background-color: var(--assets-library-checker-bg);
     background-image:
-      linear-gradient(45deg, #edf3fa 25%, transparent 25%, transparent 75%, #edf3fa 75%, #edf3fa),
-      linear-gradient(45deg, #edf3fa 25%, transparent 25%, transparent 75%, #edf3fa 75%, #edf3fa);
+      linear-gradient(45deg, var(--assets-library-checker-tile) 25%, transparent 25%, transparent 75%, var(--assets-library-checker-tile) 75%, var(--assets-library-checker-tile)),
+      linear-gradient(45deg, var(--assets-library-checker-tile) 25%, transparent 25%, transparent 75%, var(--assets-library-checker-tile) 75%, var(--assets-library-checker-tile));
     background-position: 0 0, 8px 8px;
     background-size: 16px 16px;
   }
@@ -198,7 +209,7 @@
   }
 
   &__reference-page {
-    @apply tw-rounded tw-border tw-border-solid tw-border-[color:var(--assets-library-border)] tw-bg-white tw-p-2;
+    @apply tw-rounded tw-border tw-border-solid tw-border-[color:var(--assets-library-border)] tw-bg-[color:var(--assets-library-panel)] tw-p-2;
   }
 
   &__reference-page-title {
@@ -250,7 +261,8 @@
   }
 
   &__actions {
-    @apply tw-absolute tw-right-2 tw-top-2 tw-z-10 tw-flex tw-gap-1 tw-rounded-full tw-bg-white/90 tw-p-0.5 tw-shadow-sm;
+    @apply tw-absolute tw-right-2 tw-top-2 tw-z-10 tw-flex tw-gap-1 tw-rounded-full tw-p-0.5 tw-shadow-sm;
+    background-color: color-mix(in srgb, var(--assets-library-panel), transparent 8%);
   }
 
   &__references {
@@ -277,10 +289,10 @@
     align-items: center;
     justify-content: center;
     border-radius: 0.375rem;
-    background-color: #f8fbff;
+    background-color: var(--assets-library-checker-bg);
     background-image:
-      linear-gradient(45deg, #edf3fa 25%, transparent 25%, transparent 75%, #edf3fa 75%, #edf3fa),
-      linear-gradient(45deg, #edf3fa 25%, transparent 25%, transparent 75%, #edf3fa 75%, #edf3fa);
+      linear-gradient(45deg, var(--assets-library-checker-tile) 25%, transparent 25%, transparent 75%, var(--assets-library-checker-tile) 75%, var(--assets-library-checker-tile)),
+      linear-gradient(45deg, var(--assets-library-checker-tile) 25%, transparent 25%, transparent 75%, var(--assets-library-checker-tile) 75%, var(--assets-library-checker-tile));
     background-position: 0 0, 8px 8px;
     background-size: 16px 16px;
   }
