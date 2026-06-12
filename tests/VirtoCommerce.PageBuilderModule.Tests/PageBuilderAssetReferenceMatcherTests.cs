@@ -72,6 +72,21 @@ public class PageBuilderAssetReferenceMatcherTests
     }
 
     [Fact]
+    public void ExtractReferences_ReturnsUnquotedAssetUrlWithSpaces()
+    {
+        var content = """
+            {
+              "html": "<img src=/assets/stores/B2B-store/Page Builder/Снимок экрана 2025-04-04 122937.png>"
+            }
+            """;
+
+        var result = PageBuilderAssetReferenceMatcher.ExtractReferences(content);
+
+        Assert.Contains("/stores/B2B-store/Page Builder/Снимок экрана 2025-04-04 122937.png", result);
+        Assert.DoesNotContain("/stores/B2B-store/Page", result);
+    }
+
+    [Fact]
     public void ExtractReferences_UsesRawFallbackForInvalidJson()
     {
         var content = "broken /assets/stores/B2B-store/Page%20Builder/2222/hero.png json";
@@ -161,7 +176,8 @@ public class PageBuilderAssetReferenceMatcherTests
         var content = """
             {
               "link": "https://example.com/products",
-              "relative": "/images/local.png"
+              "relative": "/images/local.png",
+              "text": "website, mobile app, marketplaces, social commerce, stores/POS, and contact centre"
             }
             """;
 

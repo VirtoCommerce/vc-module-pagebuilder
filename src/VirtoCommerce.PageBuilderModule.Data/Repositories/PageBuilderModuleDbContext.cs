@@ -8,7 +8,6 @@ namespace VirtoCommerce.PageBuilderModule.Data.Repositories;
 public class PageBuilderModuleDbContext : DbContextBase
 {
     public const string PageBuilderPageTableName = "PageBuilderPage";
-    private const int PageBuilderPageStatusLength = 128;
 
     public PageBuilderModuleDbContext(DbContextOptions<PageBuilderModuleDbContext> options)
         : base(options)
@@ -39,11 +38,11 @@ public class PageBuilderModuleDbContext : DbContextBase
 
         modelBuilder.Entity<PageBuilderAssetReferenceEntity>().ToTable("PageBuilderAssetReference").HasKey(x => x.Id);
         modelBuilder.Entity<PageBuilderAssetReferenceEntity>().Property(x => x.Id).HasMaxLength(IdLength).ValueGeneratedOnAdd();
-        modelBuilder.Entity<PageBuilderAssetReferenceEntity>().Property(x => x.Status).HasConversion<string>().HasMaxLength(PageBuilderPageStatusLength);
+        modelBuilder.Entity<PageBuilderAssetReferenceEntity>().HasOne<PageBuilderPageEntity>().WithMany()
+            .HasForeignKey(x => x.PageId).OnDelete(DeleteBehavior.Cascade).IsRequired();
         modelBuilder.Entity<PageBuilderAssetReferenceEntity>().HasIndex(x => x.PageId);
-        modelBuilder.Entity<PageBuilderAssetReferenceEntity>().HasIndex(x => x.GroupId);
+        modelBuilder.Entity<PageBuilderAssetReferenceEntity>().HasIndex(x => x.NormalizedAssetUrlHash);
         modelBuilder.Entity<PageBuilderAssetReferenceEntity>().HasIndex(x => new { x.PageId, x.NormalizedAssetUrlHash }).IsUnique();
-        modelBuilder.Entity<PageBuilderAssetReferenceEntity>().HasIndex(x => new { x.StoreId, x.NormalizedAssetUrlHash, x.Status, x.CultureName });
 
         switch (Database.ProviderName)
         {

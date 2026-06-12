@@ -7,6 +7,10 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services;
 public static class PageBuilderAssetReferenceMatcher
 {
     private static readonly string[] _referenceMarkers = ["/assets/", "/stores/", "https://", "http://"];
+    private static readonly string[] _assetFileExtensions =
+    [
+        ".avif", ".bmp", ".csv", ".doc", ".docx", ".gif", ".ico", ".jpeg", ".jpg", ".pdf", ".png", ".ppt", ".pptx", ".svg", ".txt", ".webp", ".xls", ".xlsx", ".zip"
+    ];
     private static readonly char[] _unquotedReferenceTerminators = ['"', '\'', '<', '>', ')', ',', ';', '?', '#', '&', '{', '}'];
 
     public static IReadOnlyDictionary<string, string> NormalizeAssetUrls(IEnumerable<string> assetUrls)
@@ -147,7 +151,7 @@ public static class PageBuilderAssetReferenceMatcher
         var quote = GetOpeningQuote(value, startIndex);
         var endIndex = startIndex;
 
-        while (endIndex < value.Length && !IsReferenceTerminator(value[endIndex], quote))
+        while (endIndex < value.Length && !IsReferenceTerminator(value, startIndex, endIndex, quote))
         {
             endIndex++;
         }
@@ -166,11 +170,13 @@ public static class PageBuilderAssetReferenceMatcher
         return previous is '"' or '\'' ? previous : null;
     }
 
-    private static bool IsReferenceTerminator(char value, char? quote)
+    private static bool IsReferenceTerminator(string source, int startIndex, int currentIndex, char? quote)
     {
+        var value = source[currentIndex];
+
         return quote.HasValue
             ? IsQuotedReferenceTerminator(value, quote.Value)
-            : IsUnquotedReferenceTerminator(value);
+            : IsUnquotedReferenceTerminator(source, startIndex, currentIndex);
     }
 
     private static bool IsQuotedReferenceTerminator(char value, char quote)
@@ -178,9 +184,12 @@ public static class PageBuilderAssetReferenceMatcher
         return value == quote;
     }
 
-    private static bool IsUnquotedReferenceTerminator(char value)
+    private static bool IsUnquotedReferenceTerminator(string source, int startIndex, int currentIndex)
     {
-        return char.IsWhiteSpace(value) || IsReferencePunctuationTerminator(value);
+        var value = source[currentIndex];
+
+        return IsReferencePunctuationTerminator(value) ||
+            char.IsWhiteSpace(value) && HasKnownAssetFileExtension(source, startIndex, currentIndex);
     }
 
     private static bool IsReferencePunctuationTerminator(char value)
@@ -188,11 +197,23 @@ public static class PageBuilderAssetReferenceMatcher
         return _unquotedReferenceTerminators.Contains(value);
     }
 
+    private static bool HasKnownAssetFileExtension(string value, int startIndex, int endIndex)
+    {
+        var token = value[startIndex..endIndex].TrimEnd('/', '.', ',', ';');
+        return _assetFileExtensions.Any(extension => token.EndsWith(extension, StringComparison.OrdinalIgnoreCase));
+    }
+
     private static void AddExtractedReference(string value, ISet<string> result)
     {
         foreach (var referenceToken in SplitReferenceToken(value))
         {
-            var normalizedValue = NormalizeAssetUrl(TrimReferenceToken(referenceToken));
+            var trimmedToken = TrimReferenceToken(referenceToken);
+            if (string.IsNullOrWhiteSpace(trimmedToken) || !HasExplicitReferenceMarker(trimmedToken))
+            {
+                continue;
+            }
+
+            var normalizedValue = NormalizeAssetUrl(trimmedToken);
 
             if (IsAssetReference(normalizedValue))
             {
@@ -201,7 +222,7 @@ public static class PageBuilderAssetReferenceMatcher
         }
     }
 
-    private static IEnumerable<string> SplitReferenceToken(string value)
+    private static string[] SplitReferenceToken(string value)
     {
         if (string.IsNullOrWhiteSpace(value))
         {
@@ -222,6 +243,11 @@ public static class PageBuilderAssetReferenceMatcher
     private static bool IsAssetReference(string normalizedValue)
     {
         return normalizedValue?.StartsWith("/stores/", StringComparison.OrdinalIgnoreCase) == true;
+    }
+
+    private static bool HasExplicitReferenceMarker(string value)
+    {
+        return _referenceMarkers.Any(marker => value.TrimStart().StartsWith(marker, StringComparison.OrdinalIgnoreCase));
     }
 
     private static string TrimReferenceToken(string value)

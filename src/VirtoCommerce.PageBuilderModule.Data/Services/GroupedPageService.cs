@@ -45,7 +45,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
         // (compared against DB state) and demotes the rest to Archived. This handles the legitimate
         // PublishGroup flow silently. If no clear transition exists (data anomaly from import/migration),
         // falls back to "newest by CreatedDate" and logs a warning.
-        // Demoted pages get re-indexed via the GroupedPageBuilderPageChangedEvent handler.
+        // Reference queries read page status from PageBuilderPage, so demoted pages do not need reference metadata refresh.
         private async Task NormalizePublishedPages(GroupedPageBuilderPage group)
         {
             if (group?.Pages == null)

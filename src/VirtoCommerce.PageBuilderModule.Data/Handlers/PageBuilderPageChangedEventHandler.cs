@@ -34,13 +34,6 @@ public class PageBuilderPageChangedEventHandler(
             .Where(x => !string.IsNullOrWhiteSpace(x))
             .ToArray();
 
-        var changedPageIds = message.ChangedEntries
-            .Where(x => x.EntryState != EntryState.Deleted)
-            .Select(x => x.NewEntry?.Id ?? x.OldEntry?.Id)
-            .Where(x => !string.IsNullOrWhiteSpace(x))
-            .ToArray();
-
         await assetReferenceIndexService.DeletePageIndexAsync(deletedPageIds);
-        await assetReferenceIndexService.RefreshPageMetadataAsync(changedPageIds);
     }
 }

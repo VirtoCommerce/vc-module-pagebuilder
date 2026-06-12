@@ -36,15 +36,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Handlers
                 .Where(x => !string.IsNullOrWhiteSpace(x))
                 .ToArray();
 
-            var changedPageIds = message.ChangedEntries
-                .Where(x => x.EntryState != EntryState.Deleted)
-                .SelectMany(x => (x.NewEntry ?? x.OldEntry)?.Pages ?? [])
-                .Select(x => x.Id)
-                .Where(x => !string.IsNullOrWhiteSpace(x))
-                .ToArray();
-
             await assetReferenceIndexService.DeleteGroupIndexAsync(deletedGroupIds);
-            await assetReferenceIndexService.RefreshPageMetadataAsync(changedPageIds);
         }
     }
 }

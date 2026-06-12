@@ -10,20 +10,6 @@ public class PageBuilderAssetReferenceEntity : Entity
     [Required]
     public string PageId { get; set; }
 
-    [StringLength(IdLength)]
-    [Required]
-    public string GroupId { get; set; }
-
-    [StringLength(IdLength)]
-    [Required]
-    public string StoreId { get; set; }
-
-    [StringLength(CultureNameLength)]
-    public string CultureName { get; set; }
-
-    [Required]
-    public PageBuilderPageStatus Status { get; set; }
-
     [StringLength(2048)]
     [Required]
     public string NormalizedAssetUrl { get; set; }

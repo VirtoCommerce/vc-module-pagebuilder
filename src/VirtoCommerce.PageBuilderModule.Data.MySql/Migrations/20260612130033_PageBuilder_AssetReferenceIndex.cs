@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -18,14 +18,6 @@ namespace VirtoCommerce.PageBuilderModule.Data.MySql.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     PageId = table.Column<string>(type: "varchar(128)", maxLength: 128, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    GroupId = table.Column<string>(type: "varchar(128)", maxLength: 128, nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    StoreId = table.Column<string>(type: "varchar(128)", maxLength: 128, nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    CultureName = table.Column<string>(type: "varchar(16)", maxLength: 16, nullable: true)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    Status = table.Column<string>(type: "varchar(128)", maxLength: 128, nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
                     NormalizedAssetUrl = table.Column<string>(type: "varchar(2048)", maxLength: 2048, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     NormalizedAssetUrlHash = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: false)
@@ -34,13 +26,19 @@ namespace VirtoCommerce.PageBuilderModule.Data.MySql.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_PageBuilderAssetReference", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_PageBuilderAssetReference_PageBuilderPage_PageId",
+                        column: x => x.PageId,
+                        principalTable: "PageBuilderPage",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateIndex(
-                name: "IX_PageBuilderAssetReference_GroupId",
+                name: "IX_PageBuilderAssetReference_NormalizedAssetUrlHash",
                 table: "PageBuilderAssetReference",
-                column: "GroupId");
+                column: "NormalizedAssetUrlHash");
 
             migrationBuilder.CreateIndex(
                 name: "IX_PageBuilderAssetReference_PageId",
@@ -52,11 +50,6 @@ namespace VirtoCommerce.PageBuilderModule.Data.MySql.Migrations
                 table: "PageBuilderAssetReference",
                 columns: new[] { "PageId", "NormalizedAssetUrlHash" },
                 unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_PageBuilderAssetReference_StoreId_NormalizedAssetUrlHash_Sta~",
-                table: "PageBuilderAssetReference",
-                columns: new[] { "StoreId", "NormalizedAssetUrlHash", "Status", "CultureName" });
         }
 
         /// <inheritdoc />

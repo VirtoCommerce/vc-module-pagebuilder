@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
-using VirtoCommerce.PageBuilderModule.Data.Models;
 using VirtoCommerce.PageBuilderModule.Data.Repositories;
 using VirtoCommerce.Platform.Core.Common;
 using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
@@ -36,7 +35,7 @@ public class PageBuilderAssetReferenceService(
 
         if (criteria.IncludePages)
         {
-            var referencePages = await LoadReferencePagesAsync(repository, indexedReferences, cancellationToken);
+            var referencePages = await LoadReferencePagesAsync(indexedReferences, cancellationToken);
             ApplyReferencePages(references, referencePages);
         }
 
@@ -57,7 +56,7 @@ public class PageBuilderAssetReferenceService(
             StringComparer.OrdinalIgnoreCase);
     }
 
-    private static IQueryable<PageBuilderAssetReferenceEntity> CreateReferencesQuery(
+    private static IQueryable<IndexedReferenceResult> CreateReferencesQuery(
         IPageBuilderModuleRepository repository,
         PageBuilderAssetReferencesSearchCriteria criteria,
         IEnumerable<string> normalizedAssetUrls)
@@ -68,8 +67,27 @@ public class PageBuilderAssetReferenceService(
         var allowedStatuses = GetAllowedStatuses(criteria.Statuses).ToArray();
 
         var query = repository.PageBuilderAssetReferences
+            .Where(reference => normalizedAssetUrlHashes.Contains(reference.NormalizedAssetUrlHash))
+            .Join(
+                repository.PageBuilderPages,
+                reference => reference.PageId,
+                page => page.Id,
+                (reference, page) => new { reference, page })
+            .Join(
+                repository.GroupedPageBuilderPages,
+                x => x.page.GroupId,
+                group => group.Id,
+                (x, group) => new IndexedReferenceResult
+                {
+                    NormalizedAssetUrl = x.reference.NormalizedAssetUrl,
+                    GroupId = x.page.GroupId,
+                    StoreId = x.page.StoreId ?? group.StoreId,
+                    CultureName = group.CultureName,
+                    Name = group.Name,
+                    Permalink = group.Permalink,
+                    Status = x.page.Status,
+                })
             .Where(x => x.StoreId == criteria.StoreId)
-            .Where(x => normalizedAssetUrlHashes.Contains(x.NormalizedAssetUrlHash))
             .Where(x => allowedStatuses.Contains(x.Status));
 
         if (!string.IsNullOrWhiteSpace(criteria.LanguageCode))
@@ -86,7 +104,7 @@ public class PageBuilderAssetReferenceService(
     }
 
     private static Task<List<ReferenceCountResult>> LoadReferenceGroupsAsync(
-        IQueryable<PageBuilderAssetReferenceEntity> indexedReferences,
+        IQueryable<IndexedReferenceResult> indexedReferences,
         CancellationToken cancellationToken)
     {
         return indexedReferences
@@ -100,7 +118,7 @@ public class PageBuilderAssetReferenceService(
     }
 
     private static void ApplyReferenceCounts(
-        IDictionary<string, PageBuilderAssetReference> references,
+        Dictionary<string, PageBuilderAssetReference> references,
         IEnumerable<ReferenceCountResult> referenceGroups)
     {
         foreach (var group in referenceGroups)
@@ -113,29 +131,24 @@ public class PageBuilderAssetReferenceService(
     }
 
     private static Task<List<ReferencePageResult>> LoadReferencePagesAsync(
-        IPageBuilderModuleRepository repository,
-        IQueryable<PageBuilderAssetReferenceEntity> indexedReferences,
+        IQueryable<IndexedReferenceResult> indexedReferences,
         CancellationToken cancellationToken)
     {
         return indexedReferences
-            .Join(
-                repository.GroupedPageBuilderPages,
-                reference => reference.GroupId,
-                group => group.Id,
-                (reference, group) => new ReferencePageResult
-                {
-                    NormalizedAssetUrl = reference.NormalizedAssetUrl,
-                    Id = group.Id,
-                    Name = group.Name,
-                    Permalink = group.Permalink,
-                    CultureName = group.CultureName,
-                    Status = reference.Status,
-                })
+            .Select(reference => new ReferencePageResult
+            {
+                NormalizedAssetUrl = reference.NormalizedAssetUrl,
+                Id = reference.GroupId,
+                Name = reference.Name,
+                Permalink = reference.Permalink,
+                CultureName = reference.CultureName,
+                Status = reference.Status,
+            })
             .ToListAsync(cancellationToken);
     }
 
     private static void ApplyReferencePages(
-        IDictionary<string, PageBuilderAssetReference> references,
+        Dictionary<string, PageBuilderAssetReference> references,
         IEnumerable<ReferencePageResult> referencePages)
     {
         foreach (var referencePage in referencePages
@@ -171,20 +184,37 @@ public class PageBuilderAssetReferenceService(
         };
     }
 
-    private static IEnumerable<PageBuilderPageStatus> GetAllowedStatuses(string statuses)
+    private static IEnumerable<string> GetAllowedStatuses(string statuses)
     {
         return GetStatuses(statuses)
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Select(x => Enum.TryParse<PageBuilderPageStatus>(x, ignoreCase: true, out var status)
-                ? status
-                : (PageBuilderPageStatus?)null)
-            .Where(x => x.HasValue)
-            .Select(x => x.Value);
+            .Select(NormalizeStatus)
+            .Where(x => x != null);
     }
 
     private static string GetStatuses(string statuses)
     {
         return string.IsNullOrWhiteSpace(statuses) ? $"{Draft},{Published}" : statuses;
+    }
+
+    private static string NormalizeStatus(string status)
+    {
+        if (string.Equals(status, Draft, StringComparison.OrdinalIgnoreCase))
+        {
+            return Draft;
+        }
+
+        if (string.Equals(status, Published, StringComparison.OrdinalIgnoreCase))
+        {
+            return Published;
+        }
+
+        if (string.Equals(status, Archived, StringComparison.OrdinalIgnoreCase))
+        {
+            return Archived;
+        }
+
+        return null;
     }
 
     private sealed class ReferenceCountResult
@@ -200,6 +230,17 @@ public class PageBuilderAssetReferenceService(
         public string Name { get; init; }
         public string Permalink { get; init; }
         public string CultureName { get; init; }
-        public PageBuilderPageStatus Status { get; init; }
+        public string Status { get; init; }
+    }
+
+    private sealed class IndexedReferenceResult
+    {
+        public string NormalizedAssetUrl { get; init; }
+        public string GroupId { get; init; }
+        public string StoreId { get; init; }
+        public string CultureName { get; init; }
+        public string Name { get; init; }
+        public string Permalink { get; init; }
+        public string Status { get; init; }
     }
 }

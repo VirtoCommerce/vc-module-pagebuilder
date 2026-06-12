@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -16,22 +16,24 @@ namespace VirtoCommerce.PageBuilderModule.Data.PostgreSql.Migrations
                 {
                     Id = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
                     PageId = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
-                    GroupId = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
-                    StoreId = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
-                    CultureName = table.Column<string>(type: "character varying(16)", maxLength: 16, nullable: true),
-                    Status = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
                     NormalizedAssetUrl = table.Column<string>(type: "character varying(2048)", maxLength: 2048, nullable: false),
                     NormalizedAssetUrlHash = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_PageBuilderAssetReference", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_PageBuilderAssetReference_PageBuilderPage_PageId",
+                        column: x => x.PageId,
+                        principalTable: "PageBuilderPage",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_PageBuilderAssetReference_GroupId",
+                name: "IX_PageBuilderAssetReference_NormalizedAssetUrlHash",
                 table: "PageBuilderAssetReference",
-                column: "GroupId");
+                column: "NormalizedAssetUrlHash");
 
             migrationBuilder.CreateIndex(
                 name: "IX_PageBuilderAssetReference_PageId",
@@ -43,11 +45,6 @@ namespace VirtoCommerce.PageBuilderModule.Data.PostgreSql.Migrations
                 table: "PageBuilderAssetReference",
                 columns: new[] { "PageId", "NormalizedAssetUrlHash" },
                 unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_PageBuilderAssetReference_StoreId_NormalizedAssetUrlHash_St~",
-                table: "PageBuilderAssetReference",
-                columns: new[] { "StoreId", "NormalizedAssetUrlHash", "Status", "CultureName" });
         }
 
         /// <inheritdoc />
