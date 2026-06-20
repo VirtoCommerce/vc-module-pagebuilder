@@ -1,4 +1,5 @@
-using System;
+using System;
+using System.Threading;
 using System.IO;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -159,14 +160,14 @@ namespace VirtoCommerce.PageBuilderModule.Web
         }
 
         public Task ExportAsync(Stream outStream, ExportImportOptions options, Action<ExportImportProgressInfo> progressCallback,
-            ICancellationToken cancellationToken)
+            CancellationToken cancellationToken)
         {
             return _appBuilder.ApplicationServices.GetRequiredService<PageBuilderExportImport>().DoExportAsync(outStream,
                 progressCallback, cancellationToken);
         }
 
         public Task ImportAsync(Stream inputStream, ExportImportOptions options, Action<ExportImportProgressInfo> progressCallback,
-            ICancellationToken cancellationToken)
+            CancellationToken cancellationToken)
         {
             return _appBuilder.ApplicationServices.GetRequiredService<PageBuilderExportImport>().DoImportAsync(inputStream,
                 progressCallback, cancellationToken);

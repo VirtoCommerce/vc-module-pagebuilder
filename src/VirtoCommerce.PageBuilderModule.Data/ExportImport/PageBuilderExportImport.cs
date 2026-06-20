@@ -1,4 +1,5 @@
-using System;
+using System;
+using System.Threading;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -20,7 +21,7 @@ public sealed class PageBuilderExportImport(
 {
     private const int BatchSize = 50;
 
-    public async Task DoExportAsync(Stream outStream, Action<ExportImportProgressInfo> progressCallback, ICancellationToken cancellationToken)
+    public async Task DoExportAsync(Stream outStream, Action<ExportImportProgressInfo> progressCallback, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -75,7 +76,7 @@ public sealed class PageBuilderExportImport(
         await writer.FlushAsync();
     }
 
-    public async Task DoImportAsync(Stream inputStream, Action<ExportImportProgressInfo> progressCallback, ICancellationToken cancellationToken)
+    public async Task DoImportAsync(Stream inputStream, Action<ExportImportProgressInfo> progressCallback, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -93,7 +94,7 @@ public sealed class PageBuilderExportImport(
         }
     }
 
-    private async Task ImportPagesArrayAsync(JsonTextReader reader, ExportImportProgressInfo progressInfo, Action<ExportImportProgressInfo> progressCallback, ICancellationToken cancellationToken)
+    private async Task ImportPagesArrayAsync(JsonTextReader reader, ExportImportProgressInfo progressInfo, Action<ExportImportProgressInfo> progressCallback, CancellationToken cancellationToken)
     {
         if (!await reader.ReadAsync() || reader.TokenType != JsonToken.StartArray)
         {
