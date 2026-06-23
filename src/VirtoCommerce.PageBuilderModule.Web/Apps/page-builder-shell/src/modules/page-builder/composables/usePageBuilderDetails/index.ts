@@ -79,7 +79,8 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
       status.value = await apiClient.publishStatus(options.id);
       currentValue.value = reactive(result);
     } else {
-      const page = {} as GroupedPageBuilderPage;
+      // New pages are visible to everyone (incl. anonymous) by default; import keeps its own value below.
+      const page = { visibility: true } as GroupedPageBuilderPage;
       if (options?.importData) {
         const data = options.importData;
         page.name = data.name;
