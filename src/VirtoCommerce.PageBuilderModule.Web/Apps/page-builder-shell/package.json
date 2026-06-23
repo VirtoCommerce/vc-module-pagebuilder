@@ -24,8 +24,8 @@
     "@types/node": "^20.19.37",
     "@typescript-eslint/eslint-plugin": "^8.57.1",
     "@typescript-eslint/parser": "^8.57.1",
-    "@vc-shell/api-client-generator": "^2.0.3",
-    "@vc-shell/ts-config": "^2.0.3",
+    "@vc-shell/api-client-generator": "^2.1.0",
+    "@vc-shell/ts-config": "^2.1.0",
     "@vitejs/plugin-vue": "^5.2.4",
     "@volar/typescript": "^2.4.28",
     "@vue/eslint-config-prettier": "^9.0.0",
@@ -54,8 +54,8 @@
     "vue-tsc": "^2.2.12"
   },
   "dependencies": {
-    "@vc-shell/config-generator": "^2.0.3",
-    "@vc-shell/framework": "^2.0.3",
+    "@vc-shell/config-generator": "^2.1.0",
+    "@vc-shell/framework": "^2.1.0",
     "@vueuse/core": "^10.11.1",
     "@vueuse/integrations": "^10.11.1",
     "cross-spawn": "^7.0.6",
