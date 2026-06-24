@@ -1,7 +1,7 @@
 import { ref, watch } from "vue";
-import type { AssetEntry } from "../useAssetsLibraryApi";
-import { getPreviewUrl } from "./assetLibraryHelpers";
-import { getAssetKey, isImageEntry } from "./assetLibraryEntry";
+import type { AssetEntry } from "../types";
+import { getPreviewUrl } from "../utilities/assetUrl";
+import { getAssetKey, isImageEntry } from "../utilities/assetEntry";
 
 export function useAssetSelection() {
   const selectedAsset = ref<AssetEntry>();

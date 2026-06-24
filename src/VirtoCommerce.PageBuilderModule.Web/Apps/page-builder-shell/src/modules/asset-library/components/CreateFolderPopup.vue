@@ -2,20 +2,20 @@
   <VcPopup
     class="assets-library-create-folder-popup"
     :model-value="true"
-    :title="$t('PAGE_BUILDER.ASSETS.CREATE_FOLDER.TITLE')"
+    :title="$t('ASSET_LIBRARY.CREATE_FOLDER.TITLE')"
     is-mobile-fullscreen
     @update:model-value="handleModelValueUpdate"
-    @close="emit('close')"
+    @close="$emit('close')"
   >
     <template #content>
       <VcForm class="assets-library-create-folder">
         <VcInput
           v-model="folderName"
-          :label="$t('PAGE_BUILDER.ASSETS.CREATE_FOLDER.NAME_LABEL')"
-          :placeholder="$t('PAGE_BUILDER.ASSETS.CREATE_FOLDER.NAME_PLACEHOLDER')"
+          :label="$t('ASSET_LIBRARY.CREATE_FOLDER.NAME_LABEL')"
+          :placeholder="$t('ASSET_LIBRARY.CREATE_FOLDER.NAME_PLACEHOLDER')"
           :error="!!folderNameError"
           :error-message="folderNameError"
-          @update:model-value="emit('clear-error')"
+          @update:model-value="$emit('clear-error')"
           @keyup.enter="submit"
         >
           <template #error>
@@ -40,15 +40,15 @@
         <VcButton
           variant="secondary"
           :disabled="submitting"
-          @click="emit('close')"
+          @click="$emit('close')"
         >
-          {{ $t("PAGE_BUILDER.ASSETS.CREATE_FOLDER.CANCEL") }}
+          {{ $t("ASSET_LIBRARY.CREATE_FOLDER.CANCEL") }}
         </VcButton>
         <VcButton
           :disabled="submitting || !!folderNameError || !folderName.trim()"
           @click="submit"
         >
-          {{ $t("PAGE_BUILDER.ASSETS.CREATE_FOLDER.CREATE") }}
+          {{ $t("ASSET_LIBRARY.CREATE_FOLDER.CREATE") }}
         </VcButton>
       </div>
     </template>
@@ -92,27 +92,27 @@ const folderNameError = computed(() => {
   }
 
   if (value.length < 3) {
-    return t("PAGE_BUILDER.ASSETS.CREATE_FOLDER.VALIDATION.MIN_LENGTH", { count: value.length });
+    return t("ASSET_LIBRARY.CREATE_FOLDER.VALIDATION.MIN_LENGTH", { count: value.length });
   }
 
   if (value.length > 63) {
-    return t("PAGE_BUILDER.ASSETS.CREATE_FOLDER.VALIDATION.MAX_LENGTH", { count: value.length });
+    return t("ASSET_LIBRARY.CREATE_FOLDER.VALIDATION.MAX_LENGTH", { count: value.length });
   }
 
   if (value.startsWith("-")) {
-    return t("PAGE_BUILDER.ASSETS.CREATE_FOLDER.VALIDATION.DASH_START");
+    return t("ASSET_LIBRARY.CREATE_FOLDER.VALIDATION.DASH_START");
   }
 
   if (value.endsWith("-")) {
-    return t("PAGE_BUILDER.ASSETS.CREATE_FOLDER.VALIDATION.DASH_END");
+    return t("ASSET_LIBRARY.CREATE_FOLDER.VALIDATION.DASH_END");
   }
 
   if (value.includes("--")) {
-    return t("PAGE_BUILDER.ASSETS.CREATE_FOLDER.VALIDATION.DASH_CONSECUTIVE");
+    return t("ASSET_LIBRARY.CREATE_FOLDER.VALIDATION.DASH_CONSECUTIVE");
   }
 
   if (/[^0-9a-z -]/.test(value)) {
-    return t("PAGE_BUILDER.ASSETS.CREATE_FOLDER.VALIDATION.INVALID_CHARACTERS");
+    return t("ASSET_LIBRARY.CREATE_FOLDER.VALIDATION.INVALID_CHARACTERS");
   }
 
   return undefined;

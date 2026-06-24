@@ -5,8 +5,7 @@
       "PENDING_TITLE": "In attesa",
       "ACTIVE_TITLE": "Attivo",
       "ARCHIVED_TITLE": "Archiviato",
-      "TITLE": "Tutte le pagine",
-      "ASSETS_LIBRARY_TITLE": "Libreria risorse"
+      "TITLE": "Tutte le pagine"
     },
     "PAGES": {
       "LIST": {
@@ -131,93 +130,6 @@
       "HAS_CHANGES": "Bozza con modifiche",
       "SCHEDULED": "Programmato",
       "PERSONALIZED": "Personalizzato"
-    },
-    "ASSETS": {
-      "TITLE": "Libreria risorse",
-      "COUNTER": "{count} risorse",
-      "BREADCRUMBS": {
-        "ROOT": "Page Builder"
-      },
-      "BADGES": {
-        "FOLDER": "Cartella",
-        "REFERENCES": "{count} rif."
-      },
-      "TABLE": {
-        "NAME": "Nome",
-        "TYPE": "Tipo",
-        "SIZE": "Dimensione",
-        "REFERENCES": "Rif.",
-        "MODIFIED": "Modificato"
-      },
-      "VIEW": {
-        "GRID": "Vista griglia",
-        "TABLE": "Vista tabella"
-      },
-      "TOOLBAR": {
-        "REFRESH": "Aggiorna",
-        "UPLOAD": "Carica",
-        "CREATE_FOLDER": "Crea cartella",
-        "DELETE": "Elimina",
-        "SEARCH_PLACEHOLDER": "Cerca risorse..."
-      },
-      "ACTIONS": {
-        "COPY_URL": "Copia URL",
-        "DELETE": "Elimina"
-      },
-      "DROP": {
-        "UPLOAD_HERE": "Rilascia i file qui per caricarli"
-      },
-      "DETAILS": {
-        "EMPTY": "Seleziona un file per visualizzarne i dettagli.",
-        "FILE_DETAILS": "Dettagli file",
-        "SIZE": "Dimensione",
-        "DIMENSIONS": "Dimensioni",
-        "TYPE": "Tipo",
-        "MODIFIED": "Modificato",
-        "UPLOADED": "Caricato",
-        "PATH": "Percorso",
-        "USED_ON": "Usato in ({count} pagine)",
-        "NO_REFERENCES": "Non usato in nessuna pagina Page Builder.",
-        "URL": "URL",
-        "COPY_URL": "Copia URL",
-        "REPLACE": "Sostituisci",
-        "DELETE": "Elimina",
-        "NOT_AVAILABLE": "N/D"
-      },
-      "EMPTY": {
-        "TITLE": "Nessuna risorsa in questa cartella",
-        "DESCRIPTION": "Carica file o crea una cartella nell’area risorse Page Builder dello store.",
-        "NO_STORE": "Contesto store mancante"
-      },
-      "CREATE_FOLDER": {
-        "TITLE": "Crea cartella",
-        "NAME_LABEL": "Nome cartella",
-        "NAME_PLACEHOLDER": "Inserisci il nome della cartella",
-        "CANCEL": "Annulla",
-        "CREATE": "Crea",
-        "VALIDATION": {
-          "DASH_CONSECUTIVE": "Il nome della cartella non deve contenere trattini consecutivi.",
-          "DASH_END": "Il nome della cartella non deve terminare con un trattino.",
-          "DASH_START": "Il nome della cartella non deve iniziare con un trattino.",
-          "INVALID_CHARACTERS": "Il nome della cartella può contenere solo lettere minuscole, numeri, spazi e trattini singoli.",
-          "MAX_LENGTH": "Il nome della cartella deve contenere al massimo 63 caratteri. Hai inserito {count} caratteri.",
-          "MIN_LENGTH": "Il nome della cartella deve contenere almeno 3 caratteri. Hai inserito {count} caratteri."
-        }
-      },
-      "CONFIRM": {
-        "DELETE_SINGLE": "Eliminare {name}?",
-        "DELETE_SELECTED": "Eliminare {count} risorsa/e selezionata/e?",
-        "DELETE_USED_ONE": "Eliminare {name}? È usato in 1 pagina Page Builder.",
-        "DELETE_USED_MANY": "Eliminare {name}? È usato in {count} pagine Page Builder."
-      },
-      "NOTIFICATIONS": {
-        "FOLDER_CREATED": "Cartella creata con successo",
-        "UPLOADED": "Risorse caricate con successo",
-        "REPLACED": "Risorsa sostituita con successo",
-        "DELETED": "Risorse eliminate con successo",
-        "URL_COPIED": "URL risorsa copiato con successo",
-        "ERROR_GENERIC": "Operazione sulle risorse non riuscita"
-      }
     }
   }
 }

@@ -5,8 +5,7 @@
       "PENDING_TITLE": "Ventende",
       "ACTIVE_TITLE": "Aktiv",
       "ARCHIVED_TITLE": "Arkivert",
-      "TITLE": "Alle sider",
-      "ASSETS_LIBRARY_TITLE": "Ressursbibliotek"
+      "TITLE": "Alle sider"
     },
     "PAGES": {
       "LIST": {
@@ -131,93 +130,6 @@
       "HAS_CHANGES": "Har utkast med endringer",
       "SCHEDULED": "Planlagt",
       "PERSONALIZED": "Personalisert"
-    },
-    "ASSETS": {
-      "TITLE": "Ressursbibliotek",
-      "COUNTER": "{count} ressurser",
-      "BREADCRUMBS": {
-        "ROOT": "Page Builder"
-      },
-      "BADGES": {
-        "FOLDER": "Mappe",
-        "REFERENCES": "{count} ref."
-      },
-      "TABLE": {
-        "NAME": "Navn",
-        "TYPE": "Type",
-        "SIZE": "Størrelse",
-        "REFERENCES": "Ref.",
-        "MODIFIED": "Endret"
-      },
-      "VIEW": {
-        "GRID": "Rutenettvisning",
-        "TABLE": "Tabellvisning"
-      },
-      "TOOLBAR": {
-        "REFRESH": "Oppdater",
-        "UPLOAD": "Last opp",
-        "CREATE_FOLDER": "Opprett mappe",
-        "DELETE": "Slett",
-        "SEARCH_PLACEHOLDER": "Søk i ressurser..."
-      },
-      "ACTIONS": {
-        "COPY_URL": "Kopier URL",
-        "DELETE": "Slett"
-      },
-      "DROP": {
-        "UPLOAD_HERE": "Slipp filer her for å laste dem opp"
-      },
-      "DETAILS": {
-        "EMPTY": "Velg en fil for å se detaljer.",
-        "FILE_DETAILS": "Fildetaljer",
-        "SIZE": "Størrelse",
-        "DIMENSIONS": "Dimensjoner",
-        "TYPE": "Type",
-        "MODIFIED": "Endret",
-        "UPLOADED": "Lastet opp",
-        "PATH": "Sti",
-        "USED_ON": "Brukt på ({count} sider)",
-        "NO_REFERENCES": "Ikke brukt på noen Page Builder-sider.",
-        "URL": "URL",
-        "COPY_URL": "Kopier URL",
-        "REPLACE": "Erstatt",
-        "DELETE": "Slett",
-        "NOT_AVAILABLE": "Ikke tilgjengelig"
-      },
-      "EMPTY": {
-        "TITLE": "Ingen ressurser i denne mappen ennå",
-        "DESCRIPTION": "Last opp filer eller opprett en mappe i Page Builder-ressursområdet for butikken.",
-        "NO_STORE": "Butikkontekst mangler"
-      },
-      "CREATE_FOLDER": {
-        "TITLE": "Opprett mappe",
-        "NAME_LABEL": "Mappenavn",
-        "NAME_PLACEHOLDER": "Skriv inn mappenavn",
-        "CANCEL": "Avbryt",
-        "CREATE": "Opprett",
-        "VALIDATION": {
-          "DASH_CONSECUTIVE": "Mappenavnet kan ikke inneholde bindestreker etter hverandre.",
-          "DASH_END": "Mappenavnet kan ikke slutte med bindestrek.",
-          "DASH_START": "Mappenavnet kan ikke starte med bindestrek.",
-          "INVALID_CHARACTERS": "Mappenavnet kan bare inneholde små bokstaver, tall, mellomrom og enkeltstående bindestreker.",
-          "MAX_LENGTH": "Mappenavnet kan være maks 63 tegn. Du skrev inn {count} tegn.",
-          "MIN_LENGTH": "Mappenavnet må være minst 3 tegn. Du skrev inn {count} tegn."
-        }
-      },
-      "CONFIRM": {
-        "DELETE_SINGLE": "Slette {name}?",
-        "DELETE_SELECTED": "Slette {count} valgte ressurs(er)?",
-        "DELETE_USED_ONE": "Slette {name}? Den brukes på 1 Page Builder-side.",
-        "DELETE_USED_MANY": "Slette {name}? Den brukes på {count} Page Builder-sider."
-      },
-      "NOTIFICATIONS": {
-        "FOLDER_CREATED": "Mappe opprettet",
-        "UPLOADED": "Ressurser lastet opp",
-        "REPLACED": "Ressurs erstattet",
-        "DELETED": "Ressurser slettet",
-        "URL_COPIED": "Ressurs-URL kopiert",
-        "ERROR_GENERIC": "Ressursoperasjonen mislyktes"
-      }
     }
   }
 }

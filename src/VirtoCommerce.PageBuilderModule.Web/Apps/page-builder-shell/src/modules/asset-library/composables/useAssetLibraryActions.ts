@@ -1,6 +1,6 @@
 import type { ComputedRef } from "vue";
-import { notification, usePopup } from "@vc-shell/framework";
-import type { AssetEntry } from "../useAssetsLibraryApi";
+import { notification, parseError, usePopup } from "@vc-shell/framework";
+import type { AssetEntry } from "../types";
 
 interface UseAssetLibraryActionsOptions {
   t: (key: string, params?: Record<string, unknown>) => string;
@@ -22,13 +22,8 @@ export function useAssetLibraryActions(options: UseAssetLibraryActionsOptions) {
   const { showConfirmation } = usePopup();
 
   function getErrorMessage(error: unknown): string {
-    const validationMessage = getValidationErrorMessage(error);
-
-    if (validationMessage) {
-      return validationMessage;
-    }
-
-    return error instanceof Error ? error.message : options.t("PAGE_BUILDER.ASSETS.NOTIFICATIONS.ERROR_GENERIC");
+    const parsed = parseError(error);
+    return parsed.message || options.t("ASSET_LIBRARY.NOTIFICATIONS.ERROR_GENERIC");
   }
 
   function notifyError(error: unknown) {
@@ -42,7 +37,7 @@ export function useAssetLibraryActions(options: UseAssetLibraryActionsOptions) {
 
     try {
       await options.uploadFiles(files, folderUrl);
-      notification.success(options.t("PAGE_BUILDER.ASSETS.NOTIFICATIONS.UPLOADED"));
+      notification.success(options.t("ASSET_LIBRARY.NOTIFICATIONS.UPLOADED"));
       return true;
     } catch (error) {
       notifyError(error);
@@ -59,7 +54,7 @@ export function useAssetLibraryActions(options: UseAssetLibraryActionsOptions) {
 
     try {
       await options.createFolder(value);
-      notification.success(options.t("PAGE_BUILDER.ASSETS.NOTIFICATIONS.FOLDER_CREATED"));
+      notification.success(options.t("ASSET_LIBRARY.NOTIFICATIONS.FOLDER_CREATED"));
       return { succeeded: true };
     } catch (error) {
       return {
@@ -72,7 +67,7 @@ export function useAssetLibraryActions(options: UseAssetLibraryActionsOptions) {
   async function replaceAsset(file: File): Promise<void> {
     try {
       await options.replaceSelectedAsset(file);
-      notification.success(options.t("PAGE_BUILDER.ASSETS.NOTIFICATIONS.REPLACED"));
+      notification.success(options.t("ASSET_LIBRARY.NOTIFICATIONS.REPLACED"));
     } catch (error) {
       notifyError(error);
     }
@@ -85,13 +80,17 @@ export function useAssetLibraryActions(options: UseAssetLibraryActionsOptions) {
       return;
     }
 
-    try {
-      await navigator.clipboard.writeText(value);
-    } catch {
-      window.prompt(options.t("PAGE_BUILDER.ASSETS.DETAILS.URL"), value);
+    if (!navigator.clipboard?.writeText) {
+      notification.error(options.t("ASSET_LIBRARY.NOTIFICATIONS.COPY_FAILED"));
+      return;
     }
 
-    notification.success(options.t("PAGE_BUILDER.ASSETS.NOTIFICATIONS.URL_COPIED"));
+    try {
+      await navigator.clipboard.writeText(value);
+      notification.success(options.t("ASSET_LIBRARY.NOTIFICATIONS.URL_COPIED"));
+    } catch {
+      notification.error(options.t("ASSET_LIBRARY.NOTIFICATIONS.COPY_FAILED"));
+    }
   }
 
   async function confirmDelete(entry: AssetEntry): Promise<void> {
@@ -112,7 +111,7 @@ export function useAssetLibraryActions(options: UseAssetLibraryActionsOptions) {
 
     try {
       await options.deleteEntry(entry);
-      notification.success(options.t("PAGE_BUILDER.ASSETS.NOTIFICATIONS.DELETED"));
+      notification.success(options.t("ASSET_LIBRARY.NOTIFICATIONS.DELETED"));
     } catch (error) {
       notifyError(error);
     }
@@ -121,8 +120,8 @@ export function useAssetLibraryActions(options: UseAssetLibraryActionsOptions) {
   function getDeleteConfirmationMessage(entry: AssetEntry, referencesCount: number): string {
     if (referencesCount > 0) {
       const key = referencesCount === 1
-        ? "PAGE_BUILDER.ASSETS.CONFIRM.DELETE_USED_ONE"
-        : "PAGE_BUILDER.ASSETS.CONFIRM.DELETE_USED_MANY";
+        ? "ASSET_LIBRARY.CONFIRM.DELETE_USED_ONE"
+        : "ASSET_LIBRARY.CONFIRM.DELETE_USED_MANY";
 
       return options.t(key, {
         name: entry.name,
@@ -130,7 +129,7 @@ export function useAssetLibraryActions(options: UseAssetLibraryActionsOptions) {
       });
     }
 
-    return options.t("PAGE_BUILDER.ASSETS.CONFIRM.DELETE_SINGLE", { name: entry.name });
+    return options.t("ASSET_LIBRARY.CONFIRM.DELETE_SINGLE", { name: entry.name });
   }
 
   return {
@@ -141,28 +140,4 @@ export function useAssetLibraryActions(options: UseAssetLibraryActionsOptions) {
     copyAssetUrl,
     confirmDelete,
   };
-}
-
-function getValidationErrorMessage(error: unknown): string | undefined {
-  if (!error || typeof error !== "object" || !("response" in error) || typeof error.response !== "string") {
-    return undefined;
-  }
-
-  try {
-    const payload = JSON.parse(error.response);
-
-    if (typeof payload?.message === "string" && payload.message.trim()) {
-      return payload.message;
-    }
-
-    const firstErrorMessage = Array.isArray(payload?.errors)
-      ? payload.errors.find((item: unknown) => typeof (item as { errorMessage?: unknown })?.errorMessage === "string")?.errorMessage
-      : undefined;
-
-    return typeof firstErrorMessage === "string" && firstErrorMessage.trim()
-      ? firstErrorMessage
-      : undefined;
-  } catch {
-    return undefined;
-  }
 }

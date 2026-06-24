@@ -1,17 +1,15 @@
 <template>
   <div
-    v-loading="loading"
     class="assets-library tw-flex tw-h-full tw-flex-col"
   >
     <AssetLibraryToolbar
       :can-create="canCreate"
       :search-value="searchValue"
       :total-count="totalCount"
-      :view-mode="viewMode"
+      v-model:view-mode="viewMode"
       @upload="openUploadDialog"
       @create-folder="openCreateFolderPopup"
       @search-change="onSearchChange"
-      @update:view-mode="viewMode = $event"
     />
 
     <div class="assets-library__body">
@@ -39,15 +37,16 @@
           class="assets-library__drop-hint"
         >
           <VcIcon
-            icon="material-cloud_upload"
+            icon="lucide-cloud-upload"
             class="assets-library__drop-hint-icon"
           />
-          <span>{{ $t("PAGE_BUILDER.ASSETS.DROP.UPLOAD_HERE") }}</span>
+          <span>{{ $t("ASSET_LIBRARY.DROP.UPLOAD_HERE") }}</span>
         </div>
 
         <AssetLibraryGrid
-          v-if="entryViewModels.length && viewMode === 'grid'"
+          v-if="viewMode === 'grid' && (loading || entryViewModels.length)"
           :entries="entryViewModels"
+          :loading="loading"
           :can-delete="canDelete"
           @entry-click="handleEntryClick"
           @folder-drag="handleFolderDrag"
@@ -58,8 +57,9 @@
         />
 
         <AssetLibraryTable
-          v-else-if="entryViewModels.length"
+          v-else-if="viewMode === 'table' && (loading || entryViewModels.length)"
           :entries="entryViewModels"
+          :loading="loading"
           :selected-entry-key="selectedEntryKey"
           :can-delete="canDelete"
           @entry-click="handleEntryClick"
@@ -72,14 +72,14 @@
           class="assets-library__empty"
         >
           <VcIcon
-            icon="material-folder_open"
+            icon="lucide-folder-open"
             class="assets-library__empty-icon"
           />
           <div class="assets-library__empty-title">
-            {{ storeId ? $t("PAGE_BUILDER.ASSETS.EMPTY.TITLE") : $t("PAGE_BUILDER.ASSETS.EMPTY.NO_STORE") }}
+            {{ storeId ? $t("ASSET_LIBRARY.EMPTY.TITLE") : $t("ASSET_LIBRARY.EMPTY.NO_STORE") }}
           </div>
           <VcHint class="assets-library__empty-text">
-            {{ $t("PAGE_BUILDER.ASSETS.EMPTY.DESCRIPTION") }}
+            {{ $t("ASSET_LIBRARY.EMPTY.DESCRIPTION") }}
           </VcHint>
           <VcFileUpload
             v-if="canCreate && storeId"
@@ -90,8 +90,8 @@
             name="assets-library-upload"
             :loading="loading"
             :custom-text="{
-              dragHere: $t('PAGE_BUILDER.ASSETS.DROP.UPLOAD_HERE'),
-              browse: $t('PAGE_BUILDER.ASSETS.TOOLBAR.UPLOAD'),
+              dragHere: $t('ASSET_LIBRARY.DROP.UPLOAD_HERE'),
+              browse: $t('ASSET_LIBRARY.TOOLBAR.UPLOAD'),
             }"
             @upload="uploadAssets"
           />
@@ -121,7 +121,7 @@
   <VcPopup
     v-if="isUploadPopupOpen"
     v-model="isUploadPopupOpen"
-    :title="$t('PAGE_BUILDER.ASSETS.TOOLBAR.UPLOAD')"
+    :title="$t('ASSET_LIBRARY.TOOLBAR.UPLOAD')"
     is-mobile-fullscreen
     @close="closeUploadPopup"
   >
@@ -134,8 +134,8 @@
           name="assets-library-toolbar-upload"
           :loading="loading"
           :custom-text="{
-            dragHere: $t('PAGE_BUILDER.ASSETS.DROP.UPLOAD_HERE'),
-            browse: $t('PAGE_BUILDER.ASSETS.TOOLBAR.UPLOAD'),
+            dragHere: $t('ASSET_LIBRARY.DROP.UPLOAD_HERE'),
+            browse: $t('ASSET_LIBRARY.TOOLBAR.UPLOAD'),
           }"
           @upload="handlePopupUpload"
         />
@@ -159,21 +159,21 @@ import { debounce } from "lodash-es";
 import { useI18n } from "vue-i18n";
 import { usePermissions } from "@vc-shell/framework";
 import { VcBreadcrumbs, VcFileUpload, VcHint, VcIcon, VcPopup } from "@vc-shell/framework/ui";
-import type { AssetEntry } from "../composables/useAssetsLibraryApi";
+import type { AssetEntry } from "../types";
 import { useAssetsLibrary } from "../composables/useAssetsLibrary";
-import { useAssetLibraryActions } from "../composables/useAssetsLibrary/useAssetLibraryActions";
-import { useAssetLibraryDragDrop } from "../composables/useAssetsLibrary/useAssetLibraryDragDrop";
+import { useAssetLibraryActions } from "../composables/useAssetLibraryActions";
+import { useAssetLibraryDragDrop } from "../composables/useAssetLibraryDragDrop";
 import AssetLibraryDetails from "./AssetLibraryDetails.vue";
 import AssetLibraryGrid from "./AssetLibraryGrid.vue";
 import AssetLibraryTable from "./AssetLibraryTable.vue";
 import AssetLibraryToolbar from "./AssetLibraryToolbar.vue";
 import CreateFolderPopup from "./CreateFolderPopup.vue";
-import type { AssetLibraryViewMode } from "./assetLibraryTypes";
+import type { AssetLibraryViewMode } from "../types";
 import {
   createAssetLibraryDetailsViewModel,
   createAssetLibraryEntryViewModel,
   getAssetEntryKey,
-} from "./assetLibraryViewModels";
+} from "../utilities/viewModels";
 
 export interface ExposedAssetsLibraryContent {
   reload: () => Promise<void>;
@@ -214,7 +214,7 @@ const {
   uploadFiles,
   replaceSelectedAsset,
   deleteEntry,
-} = useAssetsLibrary(t);
+} = useAssetsLibrary();
 
 const canCreate = computed(() => hasAccess("platform:asset:create"));
 const canDelete = computed(() => hasAccess("platform:asset:delete"));
@@ -247,7 +247,7 @@ const {
   handleFolderDrop,
 } = useAssetLibraryDragDrop(canCreate, uploadAssets);
 const selectedEntryKey = computed(() => getAssetEntryKey(selectedAsset.value));
-const notAvailableText = computed(() => t("PAGE_BUILDER.ASSETS.DETAILS.NOT_AVAILABLE"));
+const notAvailableText = computed(() => t("ASSET_LIBRARY.DETAILS.NOT_AVAILABLE"));
 const entryViewModels = computed(() => entries.value.map(entry => createAssetLibraryEntryViewModel(entry, {
   selectedEntryKey: selectedEntryKey.value,
   draggedFolderUrl: draggedFolderUrl.value,
@@ -381,6 +381,88 @@ defineExpose<ExposedAssetsLibraryContent>({
 });
 </script>
 
-<style lang="scss">
-@use "./assetsLibraryContent.scss";
+<style lang="scss" scoped>
+.assets-library {
+  --assets-library-bg: var(--neutrals-50);
+  --assets-library-panel: var(--additional-50);
+  --assets-library-border: var(--neutrals-200);
+  --assets-library-text: var(--neutrals-800);
+  --assets-library-text-muted: var(--neutrals-500);
+  --assets-library-selected: var(--primary-500);
+  --assets-library-reference-bg: color-mix(in srgb, var(--assets-library-selected), transparent 84%);
+  --assets-library-reference-text: var(--primary-700);
+  --assets-library-preview: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--assets-library-panel), var(--assets-library-selected) 5%) 0%,
+    color-mix(in srgb, var(--assets-library-bg), var(--assets-library-selected) 8%) 100%
+  );
+  --assets-library-folder: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--assets-library-selected), var(--assets-library-panel) 34%) 0%,
+    color-mix(in srgb, var(--assets-library-selected), var(--assets-library-bg) 20%) 100%
+  );
+  --assets-library-details: var(--additional-50);
+  --assets-library-drop: color-mix(in srgb, var(--assets-library-selected), transparent 88%);
+  --assets-library-checker-bg: color-mix(in srgb, var(--assets-library-panel), var(--assets-library-bg) 50%);
+  --assets-library-checker-tile: color-mix(in srgb, var(--assets-library-border), transparent 25%);
+  @apply tw-bg-[color:var(--assets-library-bg)] tw-text-sm tw-leading-[18px] tw-text-[color:var(--assets-library-text)];
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  &__body {
+    @apply tw-flex tw-min-h-0 tw-flex-1 tw-flex-col lg:tw-flex-row;
+  }
+
+  &__content {
+    @apply tw-relative tw-flex tw-min-h-0 tw-grow tw-basis-0 tw-flex-col;
+    transition: background-color 0.16s ease, box-shadow 0.16s ease;
+  }
+
+  &__content--drag-over {
+    background-color: var(--assets-library-drop);
+    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--primary-500), transparent 65%);
+  }
+
+  &__drop-hint {
+    @apply tw-pointer-events-none tw-absolute tw-inset-x-4 tw-top-20 tw-z-20 tw-flex tw-items-center tw-justify-center tw-gap-2 tw-rounded-lg tw-border tw-border-dashed tw-border-[color:var(--assets-library-selected)] tw-p-4 tw-text-sm tw-font-semibold tw-text-[color:var(--assets-library-selected)] tw-shadow-sm;
+    background-color: color-mix(in srgb, var(--assets-library-panel), transparent 8%);
+  }
+
+  &__drop-hint-icon {
+    @apply tw-text-xl;
+  }
+
+  &__breadcrumbs {
+    @apply tw-border-b tw-border-solid tw-border-b-[color:var(--assets-library-border)] tw-bg-[color:var(--assets-library-panel)] tw-px-4 tw-py-2;
+  }
+
+  &__empty {
+    @apply tw-flex tw-h-full tw-flex-1 tw-flex-col tw-items-center tw-justify-center tw-gap-3 tw-p-8;
+  }
+
+  &__empty-icon {
+    @apply tw-text-[64px] tw-text-[color:var(--assets-library-selected)];
+  }
+
+  &__empty-title {
+    @apply tw-text-lg tw-font-semibold;
+  }
+
+  &__empty-text {
+    @apply tw-max-w-[420px] tw-text-center;
+  }
+
+  &__empty-upload {
+    @apply tw-mt-3 tw-w-full tw-max-w-[420px];
+  }
+
+  &__upload-popup {
+    @apply tw-p-4;
+  }
+}
 </style>

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { toPublicAssetUrl } from "../src/modules/page-builder/composables/useAssetsLibrary/assetLibraryHelpers";
+import { toPublicAssetUrl } from "../src/modules/asset-library/utilities/assetUrl";
 
 const origin = "https://admin.example.com";
 

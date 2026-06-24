@@ -1,0 +1,93 @@
+{
+  "ASSET_LIBRARY": {
+    "MENU": {
+      "TITLE": "资源库"
+    },
+    "TITLE": "资源库",
+    "COUNTER": "{count} 个资源",
+    "BREADCRUMBS": {
+      "ROOT": "Page Builder"
+    },
+    "BADGES": {
+      "FOLDER": "文件夹",
+      "REFERENCES": "{count} 个引用"
+    },
+    "TABLE": {
+      "NAME": "名称",
+      "TYPE": "类型",
+      "SIZE": "大小",
+      "REFERENCES": "引用",
+      "MODIFIED": "已修改"
+    },
+    "VIEW": {
+      "GRID": "网格视图",
+      "TABLE": "表格视图"
+    },
+    "TOOLBAR": {
+      "REFRESH": "刷新",
+      "UPLOAD": "上传",
+      "CREATE_FOLDER": "创建文件夹",
+      "DELETE": "删除",
+      "SEARCH_PLACEHOLDER": "搜索资源..."
+    },
+    "ACTIONS": {
+      "COPY_URL": "复制 URL",
+      "DELETE": "删除"
+    },
+    "DROP": {
+      "UPLOAD_HERE": "将文件拖放到此处上传"
+    },
+    "DETAILS": {
+      "EMPTY": "选择一个文件以预览其详细信息。",
+      "FILE_DETAILS": "文件详细信息",
+      "SIZE": "大小",
+      "DIMENSIONS": "尺寸",
+      "TYPE": "类型",
+      "MODIFIED": "已修改",
+      "UPLOADED": "已上传",
+      "PATH": "路径",
+      "USED_ON": "用于 ({count} 个页面)",
+      "NO_REFERENCES": "未在任何 Page Builder 页面中使用。",
+      "URL": "URL",
+      "COPY_URL": "复制 URL",
+      "REPLACE": "替换",
+      "DELETE": "删除",
+      "NOT_AVAILABLE": "不可用"
+    },
+    "EMPTY": {
+      "TITLE": "此文件夹中还没有资源",
+      "DESCRIPTION": "上传文件或在商店的 Page Builder 资源区域中创建文件夹。",
+      "NO_STORE": "缺少商店上下文"
+    },
+    "CREATE_FOLDER": {
+      "TITLE": "创建文件夹",
+      "NAME_LABEL": "文件夹名称",
+      "NAME_PLACEHOLDER": "输入文件夹名称",
+      "CANCEL": "取消",
+      "CREATE": "创建",
+      "VALIDATION": {
+        "DASH_CONSECUTIVE": "文件夹名称不能包含连续的连字符。",
+        "DASH_END": "文件夹名称不能以连字符结尾。",
+        "DASH_START": "文件夹名称不能以连字符开头。",
+        "INVALID_CHARACTERS": "文件夹名称只能包含小写字母、数字、空格和单个连字符。",
+        "MAX_LENGTH": "文件夹名称最多 63 个字符。您输入了 {count} 个字符。",
+        "MIN_LENGTH": "文件夹名称至少 3 个字符。您输入了 {count} 个字符。"
+      }
+    },
+    "CONFIRM": {
+      "DELETE_SINGLE": "删除 {name}？",
+      "DELETE_SELECTED": "删除选中的 {count} 个资源？",
+      "DELETE_USED_ONE": "删除 {name}？它正在 1 个 Page Builder 页面中使用。",
+      "DELETE_USED_MANY": "删除 {name}？它正在 {count} 个 Page Builder 页面中使用。"
+    },
+    "NOTIFICATIONS": {
+      "FOLDER_CREATED": "文件夹创建成功",
+      "UPLOADED": "资源上传成功",
+      "REPLACED": "资源替换成功",
+      "DELETED": "资源删除成功",
+      "URL_COPIED": "资源 URL 已复制",
+      "COPY_FAILED": "无法将 URL 复制到剪贴板",
+      "ERROR_GENERIC": "资源操作失败"
+    }
+  }
+}

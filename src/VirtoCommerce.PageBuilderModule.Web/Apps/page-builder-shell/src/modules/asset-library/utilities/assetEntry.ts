@@ -1,5 +1,5 @@
 import { isImage as isImageName } from "@vc-shell/framework";
-import type { AssetEntry } from "../useAssetsLibraryApi";
+import type { AssetEntry } from "../types";
 
 export function getAssetKey(entry: AssetEntry | undefined): string | undefined {
   return entry?.relativeUrl || entry?.url;
@@ -20,7 +20,7 @@ export function isImageEntry(entry: AssetEntry | undefined): boolean {
 export function getEntryIcon(entry: AssetEntry): string {
   // NOTE: `getFileThumbnail` (per-extension icons) was removed in @vc-shell/framework 2.0.3.
   // Fall back to a generic file icon; add an extension→icon map here if per-type icons are needed.
-  return entry.type === "folder" ? "material-folder" : "material-file";
+  return entry.type === "folder" ? "lucide-folder" : "lucide-file";
 }
 
 export function getReferencesCount(entry: AssetEntry): number {

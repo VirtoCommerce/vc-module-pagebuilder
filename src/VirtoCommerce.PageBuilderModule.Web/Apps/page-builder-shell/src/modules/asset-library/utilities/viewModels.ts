@@ -1,5 +1,4 @@
-import type { AssetEntry } from "../composables/useAssetsLibraryApi";
-import type { AssetLibraryDetailsViewModel, AssetLibraryEntryViewModel } from "./assetLibraryTypes";
+import type { AssetEntry, AssetLibraryDetailsViewModel, AssetLibraryEntryViewModel } from "../types";
 
 interface EntryViewModelContext {
   selectedEntryKey: string;

@@ -1,11 +1,12 @@
 import { ref, type Ref } from "vue";
-import type { AssetEntry, AssetReference } from "../useAssetsLibraryApi";
-import { searchAssetReferences, searchAssets } from "../useAssetsLibraryApi";
-import { getAssetKey, getReferencesCount } from "./assetLibraryEntry";
+import type { AssetEntry, AssetReference } from "../types";
+import { useAssetsLibraryApi } from "./useAssetsLibraryApi";
+import { getAssetKey, getReferencesCount } from "../utilities/assetEntry";
 
 type AssetReferenceState = Pick<AssetEntry, "referencesCount" | "referencePages">;
 
 export function useAssetReferences(storeId: Ref<string | null | undefined>) {
+  const { searchAssetReferences, searchAssets } = useAssetsLibraryApi();
   const assetReferences = ref<Record<string, AssetReferenceState>>({});
 
   async function loadAssetReferences(assetEntries: AssetEntry[]) {
@@ -110,7 +111,8 @@ export function useAssetReferences(storeId: Ref<string | null | undefined>) {
     visited.add(folderUrl);
 
     const result = await searchAssets(folderUrl);
-    const assetUrls: string[] = [];
+    const folders: string[] = [];
+    const blobs: string[] = [];
 
     for (const entry of result.results) {
       const entryUrl = getAssetKey(entry);
@@ -120,13 +122,15 @@ export function useAssetReferences(storeId: Ref<string | null | undefined>) {
       }
 
       if (entry.type === "folder") {
-        assetUrls.push(...await collectFolderAssetUrls(entryUrl, visited));
+        folders.push(entryUrl);
       } else {
-        assetUrls.push(entryUrl);
+        blobs.push(entryUrl);
       }
     }
 
-    return assetUrls;
+    // Parallel recursion over subfolders (was sequential await-in-loop).
+    const nested = await Promise.all(folders.map((url) => collectFolderAssetUrls(url, visited)));
+    return [...blobs, ...nested.flat()];
   }
 
   function toReferenceState(reference: AssetReference, includePages: boolean): AssetReferenceState {

@@ -5,8 +5,7 @@
       "PENDING_TITLE": "Ausstehend",
       "ACTIVE_TITLE": "Aktiv",
       "ARCHIVED_TITLE": "Archiviert",
-      "TITLE": "Alle Seiten",
-      "ASSETS_LIBRARY_TITLE": "Asset-Bibliothek"
+      "TITLE": "Alle Seiten"
     },
     "PAGES": {
       "LIST": {
@@ -131,93 +130,6 @@
       "HAS_CHANGES": "Hat Entwurf mit Änderungen",
       "SCHEDULED": "Geplant",
       "PERSONALIZED": "Personalisiert"
-    },
-    "ASSETS": {
-      "TITLE": "Asset-Bibliothek",
-      "COUNTER": "{count} Assets",
-      "BREADCRUMBS": {
-        "ROOT": "Page Builder"
-      },
-      "BADGES": {
-        "FOLDER": "Ordner",
-        "REFERENCES": "{count} Ref."
-      },
-      "TABLE": {
-        "NAME": "Name",
-        "TYPE": "Typ",
-        "SIZE": "Größe",
-        "REFERENCES": "Ref.",
-        "MODIFIED": "Geändert"
-      },
-      "VIEW": {
-        "GRID": "Rasteransicht",
-        "TABLE": "Tabellenansicht"
-      },
-      "TOOLBAR": {
-        "REFRESH": "Aktualisieren",
-        "UPLOAD": "Hochladen",
-        "CREATE_FOLDER": "Ordner erstellen",
-        "DELETE": "Löschen",
-        "SEARCH_PLACEHOLDER": "Assets suchen..."
-      },
-      "ACTIONS": {
-        "COPY_URL": "URL kopieren",
-        "DELETE": "Löschen"
-      },
-      "DROP": {
-        "UPLOAD_HERE": "Dateien hier ablegen, um sie hochzuladen"
-      },
-      "DETAILS": {
-        "EMPTY": "Wählen Sie eine Datei aus, um Details anzuzeigen.",
-        "FILE_DETAILS": "Dateidetails",
-        "SIZE": "Größe",
-        "DIMENSIONS": "Abmessungen",
-        "TYPE": "Typ",
-        "MODIFIED": "Geändert",
-        "UPLOADED": "Hochgeladen",
-        "PATH": "Pfad",
-        "USED_ON": "Verwendet auf ({count} Seiten)",
-        "NO_REFERENCES": "Auf keiner Page Builder-Seite verwendet.",
-        "URL": "URL",
-        "COPY_URL": "URL kopieren",
-        "REPLACE": "Ersetzen",
-        "DELETE": "Löschen",
-        "NOT_AVAILABLE": "N/V"
-      },
-      "EMPTY": {
-        "TITLE": "Noch keine Assets in diesem Ordner",
-        "DESCRIPTION": "Laden Sie Dateien hoch oder erstellen Sie einen Ordner im Page Builder-Assetbereich des Shops.",
-        "NO_STORE": "Shop-Kontext fehlt"
-      },
-      "CREATE_FOLDER": {
-        "TITLE": "Ordner erstellen",
-        "NAME_LABEL": "Ordnername",
-        "NAME_PLACEHOLDER": "Ordnername eingeben",
-        "CANCEL": "Abbrechen",
-        "CREATE": "Erstellen",
-        "VALIDATION": {
-          "DASH_CONSECUTIVE": "Ordnername darf keine aufeinanderfolgenden Bindestriche enthalten.",
-          "DASH_END": "Ordnername darf nicht mit einem Bindestrich enden.",
-          "DASH_START": "Ordnername darf nicht mit einem Bindestrich beginnen.",
-          "INVALID_CHARACTERS": "Ordnername darf nur Kleinbuchstaben, Zahlen, Leerzeichen und einzelne Bindestriche enthalten.",
-          "MAX_LENGTH": "Ordnername darf höchstens 63 Zeichen lang sein. Sie haben {count} Zeichen eingegeben.",
-          "MIN_LENGTH": "Ordnername muss mindestens 3 Zeichen lang sein. Sie haben {count} Zeichen eingegeben."
-        }
-      },
-      "CONFIRM": {
-        "DELETE_SINGLE": "{name} löschen?",
-        "DELETE_SELECTED": "{count} ausgewählte Asset(s) löschen?",
-        "DELETE_USED_ONE": "{name} löschen? Es wird auf 1 Page Builder-Seite verwendet.",
-        "DELETE_USED_MANY": "{name} löschen? Es wird auf {count} Page Builder-Seiten verwendet."
-      },
-      "NOTIFICATIONS": {
-        "FOLDER_CREATED": "Ordner erfolgreich erstellt",
-        "UPLOADED": "Assets erfolgreich hochgeladen",
-        "REPLACED": "Asset erfolgreich ersetzt",
-        "DELETED": "Assets erfolgreich gelöscht",
-        "URL_COPIED": "Asset-URL erfolgreich kopiert",
-        "ERROR_GENERIC": "Asset-Vorgang fehlgeschlagen"
-      }
     }
   }
 }

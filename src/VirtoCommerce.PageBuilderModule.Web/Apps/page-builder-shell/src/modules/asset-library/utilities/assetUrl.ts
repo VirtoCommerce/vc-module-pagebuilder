@@ -1,4 +1,4 @@
-import type { AssetEntry } from "../useAssetsLibraryApi";
+import type { AssetEntry } from "../types";
 
 export function safeDecode(value: string): string {
   try {

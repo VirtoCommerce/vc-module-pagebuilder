@@ -1,4 +1,5 @@
-import { computed, onUnmounted, ref, watch, type ComputedRef, type Ref } from "vue";
+import { computed, onScopeDispose, ref, watch, type ComputedRef, type Ref } from "vue";
+import { useI18n } from "vue-i18n";
 import {
   type Breadcrumbs,
   readableSize,
@@ -6,11 +7,11 @@ import {
   useBreadcrumbs,
   useLoading,
 } from "@vc-shell/framework";
-import useUrlParams from "../useStoreParams";
-import type { AssetEntry } from "../useAssetsLibraryApi";
-import { createAssetFolder, deleteAssets, searchAssets, uploadAsset } from "../useAssetsLibraryApi";
-import { formatAssetDate, getAssetPath, getAssetPublicUrl, getPreviewUrl, safeDecode } from "./assetLibraryHelpers";
-import { getAssetKey, getEntryIcon, getFolderUrl, getReferencesCount, isImageEntry } from "./assetLibraryEntry";
+import { useUrlParams } from "../../page-builder";
+import type { AssetEntry } from "../types";
+import { useAssetsLibraryApi } from "./useAssetsLibraryApi";
+import { formatAssetDate, getAssetPath, getAssetPublicUrl, getPreviewUrl, safeDecode } from "../utilities/assetUrl";
+import { getAssetKey, getEntryIcon, getFolderUrl, getReferencesCount, isImageEntry } from "../utilities/assetEntry";
 import { useAssetReferences } from "./useAssetReferences";
 import { useAssetSelection } from "./useAssetSelection";
 
@@ -51,7 +52,9 @@ export interface IUseAssetsLibrary {
   deleteEntry: (entry: AssetEntry) => Promise<void>;
 }
 
-export function useAssetsLibrary(t: (key: string) => string): IUseAssetsLibrary {
+export function useAssetsLibrary(): IUseAssetsLibrary {
+  const { searchAssets, createAssetFolder, deleteAssets, uploadAsset } = useAssetsLibraryApi();
+  const { t } = useI18n({ useScope: "global" });
   const { storeId, initUrlParams } = useUrlParams();
   const entries = ref<AssetEntry[]>([]);
   const totalCount = ref(0);
@@ -89,7 +92,7 @@ export function useAssetsLibrary(t: (key: string) => string): IUseAssetsLibrary 
 
     items.push({
       id: rootFolderUrl.value,
-      title: t("PAGE_BUILDER.ASSETS.BREADCRUMBS.ROOT"),
+      title: t("ASSET_LIBRARY.BREADCRUMBS.ROOT"),
       clickHandler: navigateToFolder,
     });
 
@@ -111,28 +114,25 @@ export function useAssetsLibrary(t: (key: string) => string): IUseAssetsLibrary 
     return items;
   }
 
-  function syncBreadcrumbs() {
+  function clearTrackedBreadcrumbs() {
     if (currentBreadcrumbIds.value.length) {
       removeBreadcrumbs(currentBreadcrumbIds.value);
       currentBreadcrumbIds.value = [];
     }
+  }
 
+  function syncBreadcrumbs() {
+    clearTrackedBreadcrumbs();
     const items = buildBreadcrumbs();
     items.forEach(pushBreadcrumb);
     currentBreadcrumbIds.value = items.map((item) => item.id);
   }
 
   watch([currentFolderUrl, rootFolderUrl], syncBreadcrumbs, { immediate: true });
-
-  onUnmounted(() => {
-    if (currentBreadcrumbIds.value.length) {
-      removeBreadcrumbs(currentBreadcrumbIds.value);
-      currentBreadcrumbIds.value = [];
-    }
-  });
+  onScopeDispose(clearTrackedBreadcrumbs);
 
   function formatDate(value?: string): string {
-    return formatAssetDate(value) ?? t("PAGE_BUILDER.ASSETS.DETAILS.NOT_AVAILABLE");
+    return formatAssetDate(value) ?? t("ASSET_LIBRARY.DETAILS.NOT_AVAILABLE");
   }
 
   const { action: loadEntries, loading: loadingEntries } = useAsync<string | undefined>(async (preferredSelectionUrl) => {

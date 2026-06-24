@@ -1,5 +1,5 @@
 import { ref } from "vue";
-import type { AssetEntry } from "../useAssetsLibraryApi";
+import type { AssetEntry } from "../types";
 
 interface ReadonlyRef<T> {
   readonly value: T;
