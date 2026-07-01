@@ -130,12 +130,12 @@ angular.module('virtoCommerce.pageBuilderModule')
                 if (!blade.isNew) {
                     originFileName = blade.origEntity.name;
                 }
-                var settings = $scope.blade.currentEntity.settings;
-                if (!settings.name) {
-                    settings.name = blade.currentEntity.pageName;
+                var pageSettings = $scope.blade.currentEntity.settings;
+                if (!pageSettings.name) {
+                    pageSettings.name = blade.currentEntity.pageName;
                 }
-                if (!settings.permalink) {
-                    settings.permalink = '/' + blade.currentEntity.pageName;
+                if (!pageSettings.permalink) {
+                    pageSettings.permalink = '/' + blade.currentEntity.pageName;
                 }
                 // VCST-5274: the baked settings.name/displayName are not updated when the File name
                 // is changed. When they still match the previous File name (i.e. they were auto-filled,
@@ -143,11 +143,11 @@ angular.module('virtoCommerce.pageBuilderModule')
                 // and everything derived from it (search index, SEO, storefront) — does not go stale.
                 var oldPageName = blade.origEntity && blade.origEntity.pageName;
                 if (oldPageName && oldPageName !== blade.currentEntity.pageName) {
-                    if (settings.name === oldPageName) {
-                        settings.name = blade.currentEntity.pageName;
+                    if (pageSettings.name === oldPageName) {
+                        pageSettings.name = blade.currentEntity.pageName;
                     }
-                    if (settings.displayName === oldPageName) {
-                        settings.displayName = blade.currentEntity.pageName;
+                    if (pageSettings.displayName === oldPageName) {
+                        pageSettings.displayName = blade.currentEntity.pageName;
                     }
                 }
                 reloadPageAndSave(newFileName, originFileName);
