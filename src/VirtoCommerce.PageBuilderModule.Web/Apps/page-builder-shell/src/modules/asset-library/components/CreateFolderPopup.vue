@@ -18,19 +18,6 @@
           @update:model-value="$emit('clear-error')"
           @keyup.enter="submit"
         >
-          <template #error>
-            <VcHint class="assets-library-create-folder__message assets-library-create-folder__message--error">
-              {{ folderNameError }}
-            </VcHint>
-          </template>
-          <template #hint>
-            <VcHint
-              aria-hidden="true"
-              class="assets-library-create-folder__message"
-            >
-              &nbsp;
-            </VcHint>
-          </template>
         </VcInput>
       </VcForm>
     </template>
@@ -145,18 +132,8 @@ function handleModelValueUpdate(value: boolean) {
 }
 
 .assets-library-create-folder {
-  width: min(100%, 24rem);
+  width: 100%;
   color: var(--neutrals-800);
-
-  &__message {
-    display: block;
-    min-height: 3rem;
-    margin-top: 0.25rem;
-  }
-
-  &__message--error {
-    --hint-color: var(--danger-500);
-  }
 }
 
 </style>

@@ -1,7 +1,5 @@
 <template>
-  <div
-    class="assets-library tw-flex tw-h-full tw-flex-col"
-  >
+  <div class="assets-library tw-flex tw-h-full tw-flex-col">
     <AssetLibraryToolbar
       :can-create="canCreate"
       :search-value="searchValue"
@@ -224,23 +222,17 @@ const contentLoading = computed(() => loading.value || storeContextStatus.value 
 const assetCount = computed(() => entries.value.filter((entry) => entry.type === "blob").length);
 const canCreate = computed(() => hasAccess("platform:asset:create") && isStoreContextReady.value);
 const canDelete = computed(() => hasAccess("platform:asset:delete") && isStoreContextReady.value);
-const {
-  notifyError,
-  uploadAssets,
-  createAssetFolder,
-  replaceAsset,
-  copyAssetUrl,
-  confirmDelete,
-} = useAssetLibraryActions({
-  t,
-  canCreate,
-  uploadFiles,
-  createFolder,
-  replaceSelectedAsset,
-  deleteEntry,
-  getDeleteReferences,
-  getAssetPublicUrl,
-});
+const { notifyError, uploadAssets, createAssetFolder, replaceAsset, copyAssetUrl, confirmDelete } =
+  useAssetLibraryActions({
+    t,
+    canCreate,
+    uploadFiles,
+    createFolder,
+    replaceSelectedAsset,
+    deleteEntry,
+    getDeleteReferences,
+    getAssetPublicUrl,
+  });
 const {
   isDraggingOverSurface,
   draggedFolderUrl,
@@ -276,34 +268,40 @@ const emptyDescription = computed(() => {
 
   return t("ASSET_LIBRARY.EMPTY.DESCRIPTION");
 });
-const entryViewModels = computed(() => entries.value.map(entry => createAssetLibraryEntryViewModel(entry, {
-  selectedEntryKey: selectedEntryKey.value,
-  draggedFolderUrl: draggedFolderUrl.value,
-  notAvailableText: notAvailableText.value,
-  getEntryDropFolderUrl,
-  isImage,
-  getEntryIcon,
-  getReferencesCount,
-  formatFileSize,
-  formatDate,
-  getPreviewUrl,
-})));
+const entryViewModels = computed(() =>
+  entries.value.map((entry) =>
+    createAssetLibraryEntryViewModel(entry, {
+      selectedEntryKey: selectedEntryKey.value,
+      draggedFolderUrl: draggedFolderUrl.value,
+      notAvailableText: notAvailableText.value,
+      getEntryDropFolderUrl,
+      isImage,
+      getEntryIcon,
+      getReferencesCount,
+      formatFileSize,
+      formatDate,
+      getPreviewUrl,
+    }),
+  ),
+);
 const selectedAssetView = computed(() => {
   const asset = selectedAsset.value;
-  return asset ? createAssetLibraryDetailsViewModel(asset, {
-    selectedEntryKey: selectedEntryKey.value,
-    draggedFolderUrl: draggedFolderUrl.value,
-    notAvailableText: notAvailableText.value,
-    getEntryDropFolderUrl,
-    isImage,
-    getEntryIcon,
-    getReferencesCount,
-    formatFileSize,
-    formatDate,
-    getPreviewUrl,
-    dimensions: selectedAssetDimensions.value,
-    getReferencePages,
-  }) : undefined;
+  return asset
+    ? createAssetLibraryDetailsViewModel(asset, {
+        selectedEntryKey: selectedEntryKey.value,
+        draggedFolderUrl: draggedFolderUrl.value,
+        notAvailableText: notAvailableText.value,
+        getEntryDropFolderUrl,
+        isImage,
+        getEntryIcon,
+        getReferencesCount,
+        formatFileSize,
+        formatDate,
+        getPreviewUrl,
+        dimensions: selectedAssetDimensions.value,
+        getReferencePages,
+      })
+    : undefined;
 });
 
 const onSearchChange = debounce(async (keyword: string | undefined) => {
@@ -438,7 +436,9 @@ defineExpose<ExposedAssetsLibraryContent>({
 
   &__content {
     @apply tw-relative tw-flex tw-min-h-0 tw-grow tw-basis-0 tw-flex-col;
-    transition: background-color 0.16s ease, box-shadow 0.16s ease;
+    transition:
+      background-color 0.16s ease,
+      box-shadow 0.16s ease;
   }
 
   &__content--drag-over {
@@ -484,11 +484,11 @@ defineExpose<ExposedAssetsLibraryContent>({
   }
 
   &__upload-popup {
-    @apply tw-flex tw-min-h-[260px] tw-w-full tw-flex-1 tw-p-4;
+    @apply tw-flex tw-w-full tw-flex-1;
   }
 
   &__upload-popup-file {
-    @apply tw-flex tw-min-h-[228px] tw-w-full tw-flex-1;
+    @apply tw-flex tw-w-full tw-flex-1;
   }
 }
 </style>
