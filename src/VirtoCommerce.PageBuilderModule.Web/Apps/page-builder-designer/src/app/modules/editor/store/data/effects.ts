@@ -129,8 +129,9 @@ export class TemplateEditorDataEffects {
             this.store$.select(fromRoute.selectTypeParameter),
             this.store$.select(fromRoute.selectGroupIdParameter),
             this.store$.select(fromRoute.selectSectionIdParameter),
+            this.store$.select(fromRoute.selectCultureNameParameter),
         ),
-        switchMap(([{ templateKey }, templateEntry, path, type, groupId, sectionId]) => this.templates.getTemplate(path, type, templateEntry, groupId).pipe(
+        switchMap(([{ templateKey }, templateEntry, path, type, groupId, sectionId, cultureName]) => this.templates.getTemplate(path, type, templateEntry, groupId).pipe(
             filter(template => !!template),
             map(template => editorHelpers.prepareTemplate(template)),
             switchMap(template => [
@@ -141,6 +142,9 @@ export class TemplateEditorDataEffects {
                     msg: {
                         type: 'page',
                         template,
+                        // Pass the edited page's language (from the designer URL) to the storefront
+                        // preview so it renders in that language instead of the store default (VCST-5219).
+                        cultureName,
                         sectionId,
                         ...templateEntry?.previewMessage
                     }

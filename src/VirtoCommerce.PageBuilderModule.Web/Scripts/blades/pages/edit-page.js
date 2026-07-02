@@ -162,7 +162,14 @@ angular.module('virtoCommerce.pageBuilderModule')
                                 storeUrl = (storeUrl || blade.storeUrl).replace(/\/$/, '');
                                 if (storeUrl) {
                                     var documentId = filesDraftService.getDocumentId(blade, true);
-                                    window.open(`${storeUrl}/designer-preview?pageId=${encodeURIComponent(documentId)}`, '_blank');
+                                    // Pass the page language so the storefront preview renders in that language
+                                    // instead of the store default (VCST-5219).
+                                    var language = blade.currentEntity && blade.currentEntity.language;
+                                    var previewUrl = `${storeUrl}/designer-preview?pageId=${encodeURIComponent(documentId)}`;
+                                    if (language) {
+                                        previewUrl += `&cultureName=${encodeURIComponent(language)}`;
+                                    }
+                                    window.open(previewUrl, '_blank');
                                 } else {
                                     var dialog = {
                                         id: "noUrlInStore",
@@ -345,6 +352,11 @@ angular.module('virtoCommerce.pageBuilderModule')
                     var relativeUrl = filesDraftService.getDraftFileName(blade);
                     var previewId = filesDraftService.getDocumentId(blade, true);
                     var parameters = `storeId=${blade.storeId}#/pages?type=${blade.contentType}&path=${relativeUrl}&previewId=${encodeURIComponent(previewId)}`;
+                    // Pass the page language so the designer preview renders in that language (VCST-5219).
+                    var designerLanguage = blade.currentEntity && blade.currentEntity.language;
+                    if (designerLanguage) {
+                        parameters += `&cultureName=${encodeURIComponent(designerLanguage)}`;
+                    }
                     window.open(`${blade.designerUrl}?${parameters}`, '_blank');
                 } else {
                     var dialog = {
