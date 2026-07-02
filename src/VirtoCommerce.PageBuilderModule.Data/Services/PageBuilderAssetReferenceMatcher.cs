@@ -7,10 +7,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services;
 public static class PageBuilderAssetReferenceMatcher
 {
     private static readonly string[] _referenceMarkers = ["/assets/", "/stores/", "https://", "http://"];
-    private static readonly string[] _assetFileExtensions =
-    [
-        ".avif", ".bmp", ".csv", ".doc", ".docx", ".gif", ".ico", ".jpeg", ".jpg", ".pdf", ".png", ".ppt", ".pptx", ".svg", ".txt", ".webp", ".xls", ".xlsx", ".zip"
-    ];
+    private const int _maxFileExtensionLength = 16;
     private static readonly char[] _unquotedReferenceTerminators = ['"', '\'', '<', '>', ')', ',', ';', '?', '#', '&', '{', '}'];
 
     public static IReadOnlyDictionary<string, string> NormalizeAssetUrls(IEnumerable<string> assetUrls)
@@ -194,7 +191,7 @@ public static class PageBuilderAssetReferenceMatcher
         var value = source[currentIndex];
 
         return IsReferencePunctuationTerminator(value) ||
-            char.IsWhiteSpace(value) && HasKnownAssetFileExtension(source, startIndex, currentIndex);
+            char.IsWhiteSpace(value) && HasAssetFileExtension(source, startIndex, currentIndex);
     }
 
     private static bool IsReferencePunctuationTerminator(char value)
@@ -202,10 +199,27 @@ public static class PageBuilderAssetReferenceMatcher
         return _unquotedReferenceTerminators.Contains(value);
     }
 
-    private static bool HasKnownAssetFileExtension(string value, int startIndex, int endIndex)
+    private static bool HasAssetFileExtension(string value, int startIndex, int endIndex)
     {
         var token = value[startIndex..endIndex].TrimEnd('/', '.', ',', ';');
-        return _assetFileExtensions.Any(extension => token.EndsWith(extension, StringComparison.OrdinalIgnoreCase));
+        var lastSlashIndex = token.LastIndexOf('/');
+        var extensionStartIndex = token.LastIndexOf('.');
+
+        if (extensionStartIndex <= lastSlashIndex || extensionStartIndex == token.Length - 1)
+        {
+            return false;
+        }
+
+        var extension = token[(extensionStartIndex + 1)..];
+
+        return extension.Length <= _maxFileExtensionLength && extension.All(IsFileExtensionChar);
+    }
+
+    private static bool IsFileExtensionChar(char value)
+    {
+        return value is >= 'a' and <= 'z' ||
+            value is >= 'A' and <= 'Z' ||
+            value is >= '0' and <= '9';
     }
 
     private static void AddExtractedReference(string value, ISet<string> result)

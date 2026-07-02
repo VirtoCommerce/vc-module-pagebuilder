@@ -99,6 +99,21 @@ public class PageBuilderAssetReferenceMatcherTests
     }
 
     [Fact]
+    public void ExtractReferences_ReturnsUnquotedAssetUrlWithAnyFileExtension()
+    {
+        var content = """
+            {
+              "html": "<video src=/assets/stores/B2B-store/Page Builder/demo video.mp4 controls>"
+            }
+            """;
+
+        var result = PageBuilderAssetReferenceMatcher.ExtractReferences(content);
+
+        Assert.Contains("/stores/B2B-store/Page Builder/demo video.mp4", result);
+        Assert.DoesNotContain("/stores/B2B-store/Page Builder/demo video.mp4 controls", result);
+    }
+
+    [Fact]
     public void ExtractReferences_UsesRawFallbackForInvalidJson()
     {
         var content = "broken /assets/stores/B2B-store/Page%20Builder/2222/hero.png json";
