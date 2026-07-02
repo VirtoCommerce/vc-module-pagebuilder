@@ -144,7 +144,8 @@ export class TemplateEditorDataEffects {
                         template,
                         // Pass the edited page's language (from the designer URL) to the storefront
                         // preview so it renders in that language instead of the store default (VCST-5219).
-                        cultureName,
+                        // Omit when empty so it never overrides an already-applied preview language.
+                        cultureName: cultureName || undefined,
                         sectionId,
                         ...templateEntry?.previewMessage
                     }
@@ -176,12 +177,19 @@ export class TemplateEditorDataEffects {
 
     resendTemplateOnAccountChange$ = createEffect(() => this.actions$.pipe(
         ofType(shared.sendPreviewAuthSuccess, shared.previewLoaded),
-        withLatestFrom(this.store$.select(selectors.changeTemplateContext)),
+        withLatestFrom(
+            this.store$.select(selectors.changeTemplateContext),
+            this.store$.select(fromRoute.selectCultureNameParameter),
+        ),
         filter(([, { template }]) => !!template),
-        map(([, { template, templateEntry, sectionId }]) => broadcastPreviewMessage({
+        map(([, { template, templateEntry, sectionId }, cultureName]) => broadcastPreviewMessage({
             msg: {
                 type: 'page',
                 template,
+                // Keep the page language on resend (iframe reload / preview auth) so the storefront
+                // preview does not revert to the store default language (VCST-5219).
+                // Omit when empty so it never overrides an already-applied preview language.
+                cultureName: cultureName || undefined,
                 sectionId,
                 ...templateEntry?.previewMessage
             }
