@@ -118,8 +118,7 @@
 
 <script lang="ts" setup>
 import { VcButton, VcHint, VcIcon, VcImage } from "@vc-shell/framework/ui";
-import type { AssetEntry } from "../types";
-import type { AssetLibraryDetailsViewModel } from "../types";
+import type { AssetEntry, AssetLibraryDetailsViewModel } from "../types";
 
 interface Props {
   selectedAsset: AssetLibraryDetailsViewModel;

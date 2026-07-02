@@ -99,8 +99,7 @@
 import { useI18n } from "vue-i18n";
 import { VcColumn, VcDataTable, VcIcon, VcImage } from "@vc-shell/framework/ui";
 import type { TableAction } from "@vc-shell/framework";
-import type { AssetEntry } from "../types";
-import type { AssetLibraryEntryViewModel } from "../types";
+import type { AssetEntry, AssetLibraryEntryViewModel } from "../types";
 
 interface Props {
   entries: AssetLibraryEntryViewModel[];

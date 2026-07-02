@@ -162,7 +162,7 @@ import { debounce } from "lodash-es";
 import { useI18n } from "vue-i18n";
 import { usePermissions } from "@vc-shell/framework";
 import { VcBreadcrumbs, VcFileUpload, VcHint, VcIcon, VcPopup } from "@vc-shell/framework/ui";
-import type { AssetEntry } from "../types";
+import type { AssetEntry, AssetLibraryViewMode } from "../types";
 import { useAssetsLibrary } from "../composables/useAssetsLibrary";
 import { useAssetLibraryActions } from "../composables/useAssetLibraryActions";
 import { useAssetLibraryDragDrop } from "../composables/useAssetLibraryDragDrop";
@@ -171,7 +171,6 @@ import AssetLibraryGrid from "./AssetLibraryGrid.vue";
 import AssetLibraryTable from "./AssetLibraryTable.vue";
 import AssetLibraryToolbar from "./AssetLibraryToolbar.vue";
 import CreateFolderPopup from "./CreateFolderPopup.vue";
-import type { AssetLibraryViewMode } from "../types";
 import {
   createAssetLibraryDetailsViewModel,
   createAssetLibraryEntryViewModel,

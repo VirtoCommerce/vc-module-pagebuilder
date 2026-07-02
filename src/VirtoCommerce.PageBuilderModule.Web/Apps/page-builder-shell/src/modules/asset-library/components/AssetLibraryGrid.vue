@@ -113,8 +113,7 @@
 <script lang="ts" setup>
 import { computed } from "vue";
 import { VcIcon, VcImage, VcSkeleton } from "@vc-shell/framework/ui";
-import type { AssetEntry } from "../types";
-import type { AssetLibraryEntryViewModel } from "../types";
+import type { AssetEntry, AssetLibraryEntryViewModel } from "../types";
 
 interface Props {
   entries: AssetLibraryEntryViewModel[];
