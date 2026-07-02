@@ -27,6 +27,10 @@ export class ImagesComponent extends BaseFilesComponent<ImagesDescriptor> {
             : '12rem'
     );
 
+    protected override get defaultLabel(): string {
+        return this.assetLibraryLabels.imageLabel;
+    }
+
     onReorderItems(event: CdkDragDrop<any>) {
         this.reorderItems(event.previousIndex, event.currentIndex);
     }

@@ -5,7 +5,7 @@
     <AssetLibraryToolbar
       :can-create="canCreate"
       :search-value="searchValue"
-      :total-count="totalCount"
+      :total-count="assetCount"
       v-model:view-mode="viewMode"
       @upload="openUploadDialog"
       @create-folder="openCreateFolderPopup"
@@ -44,9 +44,9 @@
         </div>
 
         <AssetLibraryGrid
-          v-if="viewMode === 'grid' && (loading || entryViewModels.length)"
+          v-if="viewMode === 'grid' && (contentLoading || entryViewModels.length)"
           :entries="entryViewModels"
-          :loading="loading"
+          :loading="contentLoading"
           :can-delete="canDelete"
           @entry-click="handleEntryClick"
           @folder-drag="handleFolderDrag"
@@ -57,9 +57,9 @@
         />
 
         <AssetLibraryTable
-          v-else-if="viewMode === 'table' && (loading || entryViewModels.length)"
+          v-else-if="viewMode === 'table' && (contentLoading || entryViewModels.length)"
           :entries="entryViewModels"
-          :loading="loading"
+          :loading="contentLoading"
           :selected-entry-key="selectedEntryKey"
           :can-delete="canDelete"
           @entry-click="handleEntryClick"
@@ -68,18 +68,19 @@
         />
 
         <div
-          v-else-if="!loading"
+          v-else-if="!contentLoading"
           class="assets-library__empty"
         >
           <VcIcon
-            icon="lucide-folder-open"
+            :icon="isStoreContextInvalid ? 'lucide-triangle-alert' : 'lucide-folder-open'"
             class="assets-library__empty-icon"
+            :class="{ 'assets-library__empty-icon--error': isStoreContextInvalid }"
           />
           <div class="assets-library__empty-title">
-            {{ storeId ? $t("ASSET_LIBRARY.EMPTY.TITLE") : $t("ASSET_LIBRARY.EMPTY.NO_STORE") }}
+            {{ emptyTitle }}
           </div>
           <VcHint class="assets-library__empty-text">
-            {{ $t("ASSET_LIBRARY.EMPTY.DESCRIPTION") }}
+            {{ emptyDescription }}
           </VcHint>
           <VcFileUpload
             v-if="canCreate && storeId"
@@ -120,6 +121,7 @@
 
   <VcPopup
     v-if="isUploadPopupOpen"
+    class="assets-library__upload-dialog"
     v-model="isUploadPopupOpen"
     :title="$t('ASSET_LIBRARY.TOOLBAR.UPLOAD')"
     is-mobile-fullscreen
@@ -128,6 +130,7 @@
     <template #content>
       <div class="assets-library__upload-popup">
         <VcFileUpload
+          class="assets-library__upload-popup-file"
           variant="file-upload"
           accept=""
           multiple
@@ -191,11 +194,11 @@ const viewMode = ref<AssetLibraryViewMode>("grid");
 const {
   entries,
   loading,
-  totalCount,
   searchValue,
   selectedAsset,
   selectedAssetDimensions,
   storeId,
+  storeContextStatus,
   breadcrumbs,
   initialize,
   reload,
@@ -205,7 +208,7 @@ const {
   getEntryIcon,
   getReferencesCount,
   getReferencePages,
-  getDeleteReferencesCount,
+  getDeleteReferences,
   formatFileSize,
   formatDate,
   getAssetPublicUrl,
@@ -216,8 +219,12 @@ const {
   deleteEntry,
 } = useAssetsLibrary();
 
-const canCreate = computed(() => hasAccess("platform:asset:create"));
-const canDelete = computed(() => hasAccess("platform:asset:delete"));
+const isStoreContextReady = computed(() => storeContextStatus.value === "ready");
+const isStoreContextInvalid = computed(() => ["missing", "notFound", "error"].includes(storeContextStatus.value));
+const contentLoading = computed(() => loading.value || storeContextStatus.value === "loading");
+const assetCount = computed(() => entries.value.filter((entry) => entry.type === "blob").length);
+const canCreate = computed(() => hasAccess("platform:asset:create") && isStoreContextReady.value);
+const canDelete = computed(() => hasAccess("platform:asset:delete") && isStoreContextReady.value);
 const {
   notifyError,
   uploadAssets,
@@ -232,7 +239,7 @@ const {
   createFolder,
   replaceSelectedAsset,
   deleteEntry,
-  getDeleteReferencesCount,
+  getDeleteReferences,
   getAssetPublicUrl,
 });
 const {
@@ -248,6 +255,28 @@ const {
 } = useAssetLibraryDragDrop(canCreate, uploadAssets);
 const selectedEntryKey = computed(() => getAssetEntryKey(selectedAsset.value));
 const notAvailableText = computed(() => t("ASSET_LIBRARY.DETAILS.NOT_AVAILABLE"));
+const emptyTitle = computed(() => {
+  if (storeContextStatus.value === "missing") {
+    return t("COMMON.STORE_CONTEXT.MISSING_TITLE");
+  }
+
+  if (isStoreContextInvalid.value) {
+    return t("COMMON.STORE_CONTEXT.INVALID_TITLE");
+  }
+
+  return t("ASSET_LIBRARY.EMPTY.TITLE");
+});
+const emptyDescription = computed(() => {
+  if (storeContextStatus.value === "missing") {
+    return t("COMMON.STORE_CONTEXT.MISSING_DESCRIPTION");
+  }
+
+  if (isStoreContextInvalid.value) {
+    return t("COMMON.STORE_CONTEXT.INVALID_DESCRIPTION", { storeId: storeId.value });
+  }
+
+  return t("ASSET_LIBRARY.EMPTY.DESCRIPTION");
+});
 const entryViewModels = computed(() => entries.value.map(entry => createAssetLibraryEntryViewModel(entry, {
   selectedEntryKey: selectedEntryKey.value,
   draggedFolderUrl: draggedFolderUrl.value,
@@ -383,29 +412,19 @@ defineExpose<ExposedAssetsLibraryContent>({
 
 <style lang="scss" scoped>
 .assets-library {
-  --assets-library-bg: var(--neutrals-50);
-  --assets-library-panel: var(--additional-50);
-  --assets-library-border: var(--neutrals-200);
-  --assets-library-text: var(--neutrals-800);
-  --assets-library-text-muted: var(--neutrals-500);
-  --assets-library-selected: var(--primary-500);
-  --assets-library-reference-bg: color-mix(in srgb, var(--assets-library-selected), transparent 84%);
-  --assets-library-reference-text: var(--primary-700);
   --assets-library-preview: linear-gradient(
     135deg,
-    color-mix(in srgb, var(--assets-library-panel), var(--assets-library-selected) 5%) 0%,
-    color-mix(in srgb, var(--assets-library-bg), var(--assets-library-selected) 8%) 100%
+    color-mix(in srgb, var(--additional-50), var(--primary-500) 5%) 0%,
+    color-mix(in srgb, var(--neutrals-50), var(--primary-500) 8%) 100%
   );
   --assets-library-folder: linear-gradient(
     135deg,
-    color-mix(in srgb, var(--assets-library-selected), var(--assets-library-panel) 34%) 0%,
-    color-mix(in srgb, var(--assets-library-selected), var(--assets-library-bg) 20%) 100%
+    color-mix(in srgb, var(--primary-500), var(--additional-50) 34%) 0%,
+    color-mix(in srgb, var(--primary-500), var(--neutrals-50) 20%) 100%
   );
-  --assets-library-details: var(--additional-50);
-  --assets-library-drop: color-mix(in srgb, var(--assets-library-selected), transparent 88%);
-  --assets-library-checker-bg: color-mix(in srgb, var(--assets-library-panel), var(--assets-library-bg) 50%);
-  --assets-library-checker-tile: color-mix(in srgb, var(--assets-library-border), transparent 25%);
-  @apply tw-bg-[color:var(--assets-library-bg)] tw-text-sm tw-leading-[18px] tw-text-[color:var(--assets-library-text)];
+  --assets-library-checker-bg: color-mix(in srgb, var(--additional-50), var(--neutrals-50) 50%);
+  --assets-library-checker-tile: color-mix(in srgb, var(--neutrals-200), transparent 25%);
+  @apply tw-bg-[color:var(--neutrals-50)] tw-text-sm tw-leading-[18px] tw-text-[color:var(--neutrals-800)];
 
   button,
   input,
@@ -424,13 +443,13 @@ defineExpose<ExposedAssetsLibraryContent>({
   }
 
   &__content--drag-over {
-    background-color: var(--assets-library-drop);
+    background-color: color-mix(in srgb, var(--primary-500), transparent 88%);
     box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--primary-500), transparent 65%);
   }
 
   &__drop-hint {
-    @apply tw-pointer-events-none tw-absolute tw-inset-x-4 tw-top-20 tw-z-20 tw-flex tw-items-center tw-justify-center tw-gap-2 tw-rounded-lg tw-border tw-border-dashed tw-border-[color:var(--assets-library-selected)] tw-p-4 tw-text-sm tw-font-semibold tw-text-[color:var(--assets-library-selected)] tw-shadow-sm;
-    background-color: color-mix(in srgb, var(--assets-library-panel), transparent 8%);
+    @apply tw-pointer-events-none tw-absolute tw-inset-x-4 tw-top-20 tw-z-20 tw-flex tw-items-center tw-justify-center tw-gap-2 tw-rounded-lg tw-border tw-border-dashed tw-border-[color:var(--primary-500)] tw-p-4 tw-text-sm tw-font-semibold tw-text-[color:var(--primary-500)] tw-shadow-sm;
+    background-color: color-mix(in srgb, var(--additional-50), transparent 8%);
   }
 
   &__drop-hint-icon {
@@ -438,7 +457,7 @@ defineExpose<ExposedAssetsLibraryContent>({
   }
 
   &__breadcrumbs {
-    @apply tw-border-b tw-border-solid tw-border-b-[color:var(--assets-library-border)] tw-bg-[color:var(--assets-library-panel)] tw-px-4 tw-py-2;
+    @apply tw-border-b tw-border-solid tw-border-b-[color:var(--neutrals-200)] tw-bg-[color:var(--additional-50)] tw-px-4 tw-py-2;
   }
 
   &__empty {
@@ -446,7 +465,11 @@ defineExpose<ExposedAssetsLibraryContent>({
   }
 
   &__empty-icon {
-    @apply tw-text-[64px] tw-text-[color:var(--assets-library-selected)];
+    @apply tw-text-[64px] tw-text-[color:var(--primary-500)];
+  }
+
+  &__empty-icon--error {
+    @apply tw-text-[color:var(--danger-500)];
   }
 
   &__empty-title {
@@ -462,7 +485,11 @@ defineExpose<ExposedAssetsLibraryContent>({
   }
 
   &__upload-popup {
-    @apply tw-p-4;
+    @apply tw-flex tw-min-h-[260px] tw-w-full tw-flex-1 tw-p-4;
+  }
+
+  &__upload-popup-file {
+    @apply tw-flex tw-min-h-[228px] tw-w-full tw-flex-1;
   }
 }
 </style>

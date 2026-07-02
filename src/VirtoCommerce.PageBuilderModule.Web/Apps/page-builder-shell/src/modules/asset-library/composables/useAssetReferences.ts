@@ -4,9 +4,10 @@ import { useAssetsLibraryApi } from "./useAssetsLibraryApi";
 import { getAssetKey, getReferencesCount } from "../utilities/assetEntry";
 
 type AssetReferenceState = Pick<AssetEntry, "referencesCount" | "referencePages">;
+export type DeleteAssetReferences = Required<Pick<AssetEntry, "referencesCount" | "referencePages">>;
 
 export function useAssetReferences(storeId: Ref<string | null | undefined>) {
-  const { searchAssetReferences, searchAssets } = useAssetsLibraryApi();
+  const { searchAssetReferences, searchFolderReferences } = useAssetsLibraryApi();
   const assetReferences = ref<Record<string, AssetReferenceState>>({});
 
   async function loadAssetReferences(assetEntries: AssetEntry[]) {
@@ -74,63 +75,47 @@ export function useAssetReferences(storeId: Ref<string | null | undefined>) {
       .find(Boolean);
   }
 
-  async function getDeleteReferencesCount(entry: AssetEntry): Promise<number> {
+  async function getDeleteReferences(entry: AssetEntry): Promise<DeleteAssetReferences> {
     const folderUrl = getAssetKey(entry);
 
     if (!folderUrl || !storeId.value) {
-      return 0;
+      return emptyDeleteReferences();
     }
 
     if (entry.type === "blob") {
-      return getAssetReferencesCount([folderUrl], getReferencesCount(entry));
+      return getAssetReferences([folderUrl], {
+        referencesCount: getReferencesCount(entry),
+        referencePages: entry.referencePages ?? [],
+      }, true);
     }
 
-    const assetUrls = await collectFolderAssetUrls(folderUrl);
+    const reference = await searchFolderReferences(storeId.value, folderUrl, true);
 
-    if (!assetUrls.length) {
-      return 0;
+    if (!reference) {
+      return emptyDeleteReferences();
     }
 
-    return getAssetReferencesCount(assetUrls);
+    return toDeleteReferences([reference], true);
   }
 
-  async function getAssetReferencesCount(assetUrls: string[], fallback = 0): Promise<number> {
+  async function getAssetReferences(assetUrls: string[], fallback = emptyDeleteReferences(), includePages = false): Promise<DeleteAssetReferences> {
     if (!storeId.value || !assetUrls.length) {
       return fallback;
     }
 
-    const references = await searchAssetReferences(storeId.value, assetUrls, false);
-    return references.reduce((count, reference) => count + (reference.referencesCount ?? 0), 0);
+    const references = await searchAssetReferences(storeId.value, assetUrls, includePages);
+    return toDeleteReferences(references, includePages);
   }
 
-  async function collectFolderAssetUrls(folderUrl: string, visited = new Set<string>()): Promise<string[]> {
-    if (visited.has(folderUrl)) {
-      return [];
-    }
+  function toDeleteReferences(references: AssetReference[], includePages: boolean): DeleteAssetReferences {
+    const referencePages = includePages
+      ? getDistinctReferencePages(references.flatMap((reference) => reference.pages ?? []))
+      : [];
 
-    visited.add(folderUrl);
-
-    const result = await searchAssets(folderUrl);
-    const folders: string[] = [];
-    const blobs: string[] = [];
-
-    for (const entry of result.results) {
-      const entryUrl = getAssetKey(entry);
-
-      if (!entryUrl) {
-        continue;
-      }
-
-      if (entry.type === "folder") {
-        folders.push(entryUrl);
-      } else {
-        blobs.push(entryUrl);
-      }
-    }
-
-    // Parallel recursion over subfolders (was sequential await-in-loop).
-    const nested = await Promise.all(folders.map((url) => collectFolderAssetUrls(url, visited)));
-    return [...blobs, ...nested.flat()];
+    return {
+      referencesCount: referencePages.length || references.reduce((count, reference) => count + (reference.referencesCount ?? 0), 0),
+      referencePages,
+    };
   }
 
   function toReferenceState(reference: AssetReference, includePages: boolean): AssetReferenceState {
@@ -147,6 +132,29 @@ export function useAssetReferences(storeId: Ref<string | null | undefined>) {
     ].filter((url): url is string => !!url);
   }
 
+  function emptyDeleteReferences(): DeleteAssetReferences {
+    return {
+      referencesCount: 0,
+      referencePages: [],
+    };
+  }
+
+  function getDistinctReferencePages(pages: NonNullable<AssetReference["pages"]>): NonNullable<AssetReference["pages"]> {
+    const result: NonNullable<AssetReference["pages"]> = [];
+    const seen = new Set<string>();
+
+    for (const page of pages) {
+      const key = page.id || page.permalink || `${page.name ?? ""}:${page.cultureName ?? ""}`;
+
+      if (key && !seen.has(key)) {
+        seen.add(key);
+        result.push(page);
+      }
+    }
+
+    return result;
+  }
+
   return {
     resetAssetReferences: () => {
       assetReferences.value = {};
@@ -155,6 +163,6 @@ export function useAssetReferences(storeId: Ref<string | null | undefined>) {
     loadAssetReferencePages,
     applyAssetReferences,
     getReferencePages: (entry: AssetEntry | undefined) => getAssetReference(entry)?.referencePages ?? [],
-    getDeleteReferencesCount,
+    getDeleteReferences,
   };
 }

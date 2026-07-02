@@ -8,10 +8,22 @@ public class PageBuilderAssetReferenceMatcherTests
     [Theory]
     [InlineData("/assets/stores/B2B-store/Page%20Builder/2222/hero.png", "/stores/B2B-store/Page Builder/2222/hero.png")]
     [InlineData("https://localhost:5001/assets/stores/B2B-store/Page%20Builder/2222/hero.png?t=1", "/stores/B2B-store/Page Builder/2222/hero.png")]
+    [InlineData("/cms-content/assets/stores/B2B-store/Page%20Builder/2222/hero.png", "/stores/B2B-store/Page Builder/2222/hero.png")]
+    [InlineData("https://localhost:5001/cms-content/assets/stores/B2B-store/Page%20Builder/2222/hero.png?t=1", "/stores/B2B-store/Page Builder/2222/hero.png")]
     [InlineData("/stores/B2B-store/Page Builder/2222/hero.png", "/stores/B2B-store/Page Builder/2222/hero.png")]
     public void NormalizeAssetUrl_RemovesAssetsPrefixAndQuery(string value, string expected)
     {
         var actual = PageBuilderAssetReferenceMatcher.NormalizeAssetUrl(value);
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Theory]
+    [InlineData("/assets/stores/B2B-store/Page%20Builder/folder/", "/stores/B2B-store/Page Builder/folder")]
+    [InlineData("https://localhost:5001/cms-content/assets/stores/B2B-store/Page%20Builder/folder/?t=1", "/stores/B2B-store/Page Builder/folder")]
+    public void NormalizeAssetFolderUrl_RemovesPublicMountAndTrailingSlash(string value, string expected)
+    {
+        var actual = PageBuilderAssetReferenceMatcher.NormalizeAssetFolderUrl(value);
 
         Assert.Equal(expected, actual);
     }
@@ -110,6 +122,20 @@ public class PageBuilderAssetReferenceMatcherTests
 
         Assert.Contains("/stores/B2B-store/Page Builder/2222/hero.png", result);
         Assert.Contains("/stores/B2B-store/Page Builder/2222/icon.png", result);
+    }
+
+    [Fact]
+    public void ExtractReferences_ReturnsAssetUrlsFromConfiguredPublicContentPath()
+    {
+        var content = """
+            {
+              "image": "https://localhost:5001/cms-content/assets/stores/B2B-store/Page%20Builder/2222/hero.png?t=1"
+            }
+            """;
+
+        var result = PageBuilderAssetReferenceMatcher.ExtractReferences(content);
+
+        Assert.Contains("/stores/B2B-store/Page Builder/2222/hero.png", result);
     }
 
     [Fact]

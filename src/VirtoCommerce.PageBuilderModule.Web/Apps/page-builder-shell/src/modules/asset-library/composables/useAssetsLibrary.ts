@@ -13,6 +13,7 @@ import { useAssetsLibraryApi } from "./useAssetsLibraryApi";
 import { formatAssetDate, getAssetPath, getAssetPublicUrl, getPreviewUrl, safeDecode } from "../utilities/assetUrl";
 import { getAssetKey, getEntryIcon, getFolderUrl, getReferencesCount, isImageEntry } from "../utilities/assetEntry";
 import { useAssetReferences } from "./useAssetReferences";
+import type { DeleteAssetReferences } from "./useAssetReferences";
 import { useAssetSelection } from "./useAssetSelection";
 
 interface UploadAssetsPayload {
@@ -29,6 +30,7 @@ export interface IUseAssetsLibrary {
   selectedAsset: Ref<AssetEntry | undefined>;
   selectedAssetDimensions: Ref<string | undefined>;
   storeId: Ref<string | null>;
+  storeContextStatus: ReturnType<typeof useUrlParams>["storeContextStatus"];
   rootFolderUrl: ComputedRef<string>;
   breadcrumbs: ComputedRef<Breadcrumbs[]>;
   initialize: () => Promise<void>;
@@ -40,7 +42,7 @@ export interface IUseAssetsLibrary {
   getEntryIcon: (entry: AssetEntry) => string;
   getReferencesCount: (entry: AssetEntry) => number;
   getReferencePages: (entry: AssetEntry | undefined) => NonNullable<AssetEntry["referencePages"]>;
-  getDeleteReferencesCount: (entry: AssetEntry) => Promise<number>;
+  getDeleteReferences: (entry: AssetEntry) => Promise<DeleteAssetReferences>;
   formatFileSize: (size?: number) => string;
   formatDate: (value?: string) => string;
   getAssetPath: (entry: AssetEntry) => string;
@@ -55,7 +57,7 @@ export interface IUseAssetsLibrary {
 export function useAssetsLibrary(): IUseAssetsLibrary {
   const { searchAssets, createAssetFolder, deleteAssets, uploadAsset } = useAssetsLibraryApi();
   const { t } = useI18n({ useScope: "global" });
-  const { storeId, initUrlParams } = useUrlParams();
+  const { storeId, storeContextStatus, initUrlParams, validateStoreContext } = useUrlParams();
   const entries = ref<AssetEntry[]>([]);
   const totalCount = ref(0);
   const currentFolderUrl = ref("");
@@ -73,7 +75,7 @@ export function useAssetsLibrary(): IUseAssetsLibrary {
     loadAssetReferencePages,
     applyAssetReferences,
     getReferencePages,
-    getDeleteReferencesCount,
+    getDeleteReferences,
   } = useAssetReferences(storeId);
   const currentBreadcrumbIds = ref<string[]>([]);
   const { breadcrumbs, push: pushBreadcrumb, remove: removeBreadcrumbs } = useBreadcrumbs();
@@ -217,7 +219,24 @@ export function useAssetsLibrary(): IUseAssetsLibrary {
     await reload();
   });
 
+  function resetContent() {
+    currentFolderUrl.value = "";
+    selectedAsset.value = undefined;
+    entries.value = [];
+    totalCount.value = 0;
+    resetAssetReferences();
+  }
+
   async function reload(preferredSelectionUrl?: string) {
+    if (!(await validateStoreContext())) {
+      resetContent();
+      return;
+    }
+
+    if (!currentFolderUrl.value) {
+      currentFolderUrl.value = rootFolderUrl.value;
+    }
+
     await loadEntries(preferredSelectionUrl);
   }
 
@@ -255,6 +274,7 @@ export function useAssetsLibrary(): IUseAssetsLibrary {
     selectedAsset,
     selectedAssetDimensions,
     storeId: computed(() => storeId.value ?? null),
+    storeContextStatus,
     rootFolderUrl,
     breadcrumbs,
     initialize,
@@ -266,7 +286,7 @@ export function useAssetsLibrary(): IUseAssetsLibrary {
     getEntryIcon,
     getReferencesCount,
     getReferencePages,
-    getDeleteReferencesCount,
+    getDeleteReferences,
     formatFileSize: readableSize,
     formatDate,
     getAssetPath,

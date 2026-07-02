@@ -1,5 +1,5 @@
-<label class="pb-label" [attr.title]="descriptor?.hint">{{ descriptor?.label }}</label>
-<div>
+<label class="pb-label" [attr.title]="descriptor?.hint">{{ displayLabel() }}</label>
+<div class="files-control">
     @if (useLegacyUploadControl() && control()) {
       <file-upload [control]="control()!" [multiple]="multiple()">
         <ng-template let-isFileDragDropAvailable="isFileDragDropAvailable" #placeholder>
@@ -21,6 +21,7 @@
         'choose-from-library--uploading': assetLibraryUploading()
       }"
       skin="outline"
+      layout="dropzone"
       icon="folder_open"
       [text]="assetLibraryUploading() ? assetLibraryLabels.uploading : assetLibraryLabels.chooseOrDrop"
       [disabled]="assetLibraryUploading()"
@@ -52,10 +53,10 @@
                 <app-chevron
                 [opened]="selectedFile() === file" (click)="selectFile($any(file))" />
               }
-              <app-icon class="file-type">attachment</app-icon>
+              <app-icon class="file-type" [smallSize]="true">attachment</app-icon>
               <div class="file-name" [title]="file.name" (click)="selectFile($any(file))">{{ file.name }}</div>
-              <app-icon title="Copy URL" class="copy-url" (click)="copyUrl(file)">content_copy</app-icon>
-              <app-icon title="Delete file" class="delete-icon" (click)="deleteFile($any(file))">delete</app-icon>
+              <app-icon title="Copy URL" class="copy-url" [smallSize]="true" (click)="copyUrl(file)">content_copy</app-icon>
+              <app-icon title="Delete file" class="delete-icon" [smallSize]="true" (click)="deleteFile($any(file))">delete</app-icon>
               @if (sortable()) {
                 <app-drag-handle [visible]="hoverItem() === file" cdkDragHandle (mousedown)="onStartDrag()"
                 (mouseup)="onReleaseDrag()" />
@@ -89,6 +90,7 @@
     }
     @if (innerValue().length > (descriptor?.collapseThreshold || 6)) {
       <app-icon-button class="show-all"
+        layout="full-center"
         [text]="expanded() ? 'Show less' : 'Show all'"
       (click)="toggleList()" />
     }

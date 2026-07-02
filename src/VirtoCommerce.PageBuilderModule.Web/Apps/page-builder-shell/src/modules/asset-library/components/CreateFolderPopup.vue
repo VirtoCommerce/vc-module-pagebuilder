@@ -159,8 +159,4 @@ function handleModelValueUpdate(value: boolean) {
   }
 }
 
-.assets-library-create-folder-popup :deep(.vc-popup__content-inner) {
-  overflow-y: visible;
-  color: var(--neutrals-800);
-}
 </style>

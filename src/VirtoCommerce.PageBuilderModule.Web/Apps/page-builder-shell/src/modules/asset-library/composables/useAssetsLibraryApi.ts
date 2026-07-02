@@ -51,7 +51,18 @@ export function useAssetsLibraryApi() {
     return result.results ?? [];
   }
 
-  return { searchAssets, createAssetFolder, uploadAsset, deleteAssets, searchAssetReferences };
+  async function searchFolderReferences(storeId: string, folderUrl: string, includePages = true): Promise<AssetReference | undefined> {
+    const client = await getPageBuilderAssetsClient();
+    const result = await client.searchReferences({
+      storeId,
+      folderUrl,
+      includePages,
+    });
+
+    return result.results?.[0];
+  }
+
+  return { searchAssets, createAssetFolder, uploadAsset, deleteAssets, searchAssetReferences, searchFolderReferences };
 }
 
 function mapBlobEntry(entry: BlobEntry): AssetEntry {

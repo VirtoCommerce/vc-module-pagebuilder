@@ -37,10 +37,7 @@ export function toPublicAssetUrl(value: string, origin = getWindowOrigin()): str
 
   if (/^(?:[a-z][a-z\d+\-.]*:)?\/\//i.test(trimmed)) {
     try {
-      const parsedUrl = new URL(trimmed, origin);
-      return parsedUrl.pathname.startsWith("/assets/")
-        ? new URL(`${parsedUrl.pathname}${parsedUrl.search}`, origin).toString()
-        : parsedUrl.toString();
+      return new URL(trimmed, origin).toString();
     } catch {
       return trimmed;
     }
@@ -51,12 +48,13 @@ export function toPublicAssetUrl(value: string, origin = getWindowOrigin()): str
 }
 
 export function getAssetPublicUrl(entry: AssetEntry): string | undefined {
-  const assetUrl = getAssetUrl(entry);
-  if (!assetUrl) {
-    return undefined;
+  const assetUrl = entry.url?.trim();
+
+  if (assetUrl) {
+    return toPublicAssetUrl(assetUrl);
   }
 
-  return toPublicAssetUrl(assetUrl);
+  return entry.relativeUrl ? toPublicAssetUrl(entry.relativeUrl) : undefined;
 }
 
 export function getAssetPath(entry: AssetEntry): string {
@@ -97,15 +95,10 @@ function ensureLeadingSlash(value: string): string {
   return value.startsWith("/") ? value : `/${value}`;
 }
 
-function getAssetUrl(entry: AssetEntry): string | undefined {
-  return entry.relativeUrl || entry.url;
-}
-
 function normalizeAssetPath(value: string): string {
   const path = ensureLeadingSlash(value);
-  return path.toLowerCase().startsWith("/assets/")
-    ? path
-    : `/assets${path}`;
+
+  return path.toLowerCase().startsWith("/stores/") ? `/assets${path}` : path;
 }
 
 function getWindowOrigin(): string {

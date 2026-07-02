@@ -1,6 +1,7 @@
 import type { ComputedRef } from "vue";
 import { notification, parseError, usePopup } from "@vc-shell/framework";
-import type { AssetEntry } from "../types";
+import type { AssetEntry, AssetReferencePage } from "../types";
+import type { DeleteAssetReferences } from "./useAssetReferences";
 
 interface UseAssetLibraryActionsOptions {
   t: (key: string, params?: Record<string, unknown>) => string;
@@ -9,7 +10,7 @@ interface UseAssetLibraryActionsOptions {
   createFolder: (name: string) => Promise<void>;
   replaceSelectedAsset: (file: File) => Promise<void>;
   deleteEntry: (entry: AssetEntry) => Promise<void>;
-  getDeleteReferencesCount: (entry: AssetEntry) => Promise<number>;
+  getDeleteReferences: (entry: AssetEntry) => Promise<DeleteAssetReferences>;
   getAssetPublicUrl: (entry: AssetEntry) => string | undefined;
 }
 
@@ -94,16 +95,16 @@ export function useAssetLibraryActions(options: UseAssetLibraryActionsOptions) {
   }
 
   async function confirmDelete(entry: AssetEntry): Promise<void> {
-    let referencesCount = 0;
+    let references: DeleteAssetReferences;
 
     try {
-      referencesCount = await options.getDeleteReferencesCount(entry);
+      references = await options.getDeleteReferences(entry);
     } catch (error) {
       notifyError(error);
       return;
     }
 
-    const confirmed = await showConfirmation(getDeleteConfirmationMessage(entry, referencesCount));
+    const confirmed = await showConfirmation(getDeleteConfirmationMessage(entry, references));
 
     if (!confirmed) {
       return;
@@ -117,19 +118,31 @@ export function useAssetLibraryActions(options: UseAssetLibraryActionsOptions) {
     }
   }
 
-  function getDeleteConfirmationMessage(entry: AssetEntry, referencesCount: number): string {
+  function getDeleteConfirmationMessage(entry: AssetEntry, references: DeleteAssetReferences): string {
+    const referencesCount = references.referencesCount;
+
     if (referencesCount > 0) {
       const key = referencesCount === 1
         ? "ASSET_LIBRARY.CONFIRM.DELETE_USED_ONE"
         : "ASSET_LIBRARY.CONFIRM.DELETE_USED_MANY";
 
-      return options.t(key, {
+      const message = options.t(key, {
         name: entry.name,
         count: referencesCount,
       });
+
+      const pageNames = getReferencePageNames(references.referencePages);
+      return pageNames.length
+        ? `${message}\n\n${pageNames.join("\n")}`
+        : message;
     }
 
     return options.t("ASSET_LIBRARY.CONFIRM.DELETE_SINGLE", { name: entry.name });
+  }
+
+  function getReferencePageNames(pages: AssetReferencePage[]): string[] {
+    return [...new Set(pages.map((page) => page.name || page.permalink || page.id).filter((name): name is string => !!name))]
+      .map((name) => `- ${name}`);
   }
 
   return {

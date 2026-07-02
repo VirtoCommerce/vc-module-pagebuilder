@@ -10,5 +10,7 @@ public class PageBuilderAssetReferencesSearchCriteria : SearchCriteriaBase, IHas
 
     public bool IncludePages { get; set; }
 
+    public string FolderUrl { get; set; }
+
     public IList<string> AssetUrls { get; set; } = [];
 }

@@ -22,6 +22,8 @@ const fallbackLabels: AssetLibraryLabels = {
     rootBreadcrumb: 'Page Builder',
     choose: 'Choose from Asset Library',
     chooseOrDrop: 'Choose from Asset Library or drag and drop here',
+    fileLabel: 'File',
+    imageLabel: 'Image',
     upload: 'Upload',
     uploading: 'Uploading...',
     searchPlaceholder: 'Search assets...',

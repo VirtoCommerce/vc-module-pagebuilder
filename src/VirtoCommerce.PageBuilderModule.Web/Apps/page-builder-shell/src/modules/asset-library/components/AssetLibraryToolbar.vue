@@ -82,7 +82,7 @@ defineEmits<Emits>();
 <style lang="scss" scoped>
 .assets-library {
   &__toolbar {
-    @apply tw-flex tw-flex-wrap tw-items-center tw-gap-2 tw-border-b tw-border-solid tw-border-b-[color:var(--assets-library-border)] tw-bg-[color:var(--assets-library-panel)] tw-p-3;
+    @apply tw-flex tw-flex-wrap tw-items-center tw-gap-2 tw-border-b tw-border-solid tw-border-b-[color:var(--neutrals-200)] tw-bg-[color:var(--additional-50)] tw-p-3;
   }
 
   &__toolbar-actions {
@@ -94,7 +94,7 @@ defineEmits<Emits>();
   }
 
   &__counter {
-    @apply tw-whitespace-nowrap tw-text-[color:var(--assets-library-text-muted)];
+    @apply tw-whitespace-nowrap tw-text-[color:var(--neutrals-500)];
   }
 
   &__view-toggle {

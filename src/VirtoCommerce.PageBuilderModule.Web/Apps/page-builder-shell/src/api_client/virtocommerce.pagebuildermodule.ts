@@ -1507,6 +1507,7 @@ export interface PageBuilderAssetReferencesSearchCriteria {
     storeId?: string | undefined;
     statuses?: string | undefined;
     includePages?: boolean;
+    folderUrl?: string | undefined;
     assetUrls?: string[] | undefined;
     responseGroup?: string | undefined;
     objectType?: string | undefined;

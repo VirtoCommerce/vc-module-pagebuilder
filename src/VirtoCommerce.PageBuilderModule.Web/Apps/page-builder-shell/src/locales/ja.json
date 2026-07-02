@@ -1,3 +1,11 @@
 {
-  "language_name": "日本語"
+  "language_name": "日本語",
+  "COMMON": {
+    "STORE_CONTEXT": {
+      "MISSING_TITLE": "ストアコンテキストがありません",
+      "MISSING_DESCRIPTION": "ページとアセットを管理するには、ストアから Page Builder を開いてください。",
+      "INVALID_TITLE": "ストアが見つかりません",
+      "INVALID_DESCRIPTION": "ストア \"{storeId}\" は存在しないか利用できません。ストアコンテキストを確認し、有効なストアから Page Builder を開き直してください。"
+    }
+  }
 }

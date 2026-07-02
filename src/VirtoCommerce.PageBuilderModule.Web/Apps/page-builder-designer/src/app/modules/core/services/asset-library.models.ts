@@ -30,6 +30,8 @@ export interface AssetLibraryLabels {
     rootBreadcrumb: string;
     choose: string;
     chooseOrDrop: string;
+    fileLabel: string;
+    imageLabel: string;
     upload: string;
     uploading: string;
     searchPlaceholder: string;

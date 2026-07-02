@@ -69,11 +69,7 @@ public static class PageBuilderAssetReferenceMatcher
         }
 
         normalized = normalized.Replace('\\', '/');
-
-        if (normalized.StartsWith("/assets/", StringComparison.OrdinalIgnoreCase))
-        {
-            normalized = normalized["/assets".Length..];
-        }
+        normalized = NormalizeAssetStoragePath(normalized);
 
         normalized = EnsureLeadingSlash(SafeUnescapeDataString(normalized));
 
@@ -88,6 +84,15 @@ public static class PageBuilderAssetReferenceMatcher
         }
 
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(normalizedAssetUrl.ToUpperInvariant())));
+    }
+
+    public static string NormalizeAssetFolderUrl(string value)
+    {
+        var normalized = NormalizeAssetUrl(value);
+
+        return string.IsNullOrWhiteSpace(normalized)
+            ? null
+            : normalized.TrimEnd('/');
     }
 
     private static void VisitJsonElement(JsonElement element, ISet<string> result)
@@ -243,6 +248,19 @@ public static class PageBuilderAssetReferenceMatcher
     private static bool IsAssetReference(string normalizedValue)
     {
         return normalizedValue?.StartsWith("/stores/", StringComparison.OrdinalIgnoreCase) == true;
+    }
+
+    private static string NormalizeAssetStoragePath(string value)
+    {
+        const string assetsStoresMarker = "/assets/stores/";
+
+        var assetsStoresIndex = value.IndexOf(assetsStoresMarker, StringComparison.OrdinalIgnoreCase);
+        if (assetsStoresIndex >= 0)
+        {
+            return value[(assetsStoresIndex + "/assets".Length)..];
+        }
+
+        return value;
     }
 
     private static bool HasExplicitReferenceMarker(string value)

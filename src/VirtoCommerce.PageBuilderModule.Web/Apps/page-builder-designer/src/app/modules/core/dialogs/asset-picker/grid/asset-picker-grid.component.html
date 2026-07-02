@@ -8,11 +8,19 @@
                 'card--selected': item.selected,
                 'card--drop-target': item.folderDropTarget
             }"
+            [attr.aria-selected]="item.entry.type === 'blob' ? item.selected : null"
             (dragover)="item.entry.type === 'folder' ? folderDragOver.emit({ entry: item.entry, event: $event }) : null"
             (dragleave)="item.entry.type === 'folder' ? folderDragLeave.emit({ entry: item.entry, event: $event }) : null"
             (drop)="item.entry.type === 'folder' ? folderDrop.emit({ entry: item.entry, event: $event }) : null"
             (click)="entryClick.emit(item.entry)"
             (dblclick)="item.entry.type === 'blob' && !multiple() && item.selected ? assetDoubleClick.emit() : null">
+            @if (multiple() && item.entry.type === 'blob') {
+                <span class="selection-marker" [ngClass]="{ 'selection-marker--selected': item.selected }">
+                    @if (item.selected) {
+                        <app-icon>check</app-icon>
+                    }
+                </span>
+            }
             <div class="preview">
                 @if (item.entry.type === 'folder') {
                     <app-icon class="folder-icon">folder</app-icon>

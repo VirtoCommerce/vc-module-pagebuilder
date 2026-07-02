@@ -1,26 +1,24 @@
 @use '../../../../../layout/variables' as *;
 
+:host {
+    @apply flex flex-col;
+}
+
+.images-control {
+    @apply flex flex-col gap-2 mt-1;
+}
+
 .image-item {
     background-color: $no-image;
     background-size: cover;
 }
 
 .images-list {
-    @apply flex flex-col space-y-3 overflow-hidden mt-1;
+    @apply flex flex-col gap-2 overflow-hidden;
 }
 
 .choose-from-library {
     @apply block;
-
-    ::ng-deep button {
-        min-height: 2.75rem;
-        justify-content: center;
-    }
-
-    &--drag-over ::ng-deep button {
-        background: rgba(22, 101, 216, 0.06);
-        box-shadow: 0 0 0 2px rgba(22, 101, 216, 0.12);
-    }
 
     &--uploading {
         pointer-events: none;
@@ -32,7 +30,7 @@
 }
 
 .file-item {
-    @apply flex flex-row space-x-2 items-center bg-white;
+    @apply flex flex-row gap-2 items-center bg-white rounded px-2 py-1;
 
     &:hover .actions {
         opacity: 1;
@@ -50,21 +48,17 @@
 }
 
 .show-all {
-    background: #F6F6F6;
-    color: #1665d8;
+    background: $hover-color;
+    color: $active-color;
     @apply mt-2 block text-center rounded;
 
-    ::ng-deep .text {
-        @apply block grow;
-    }
-
-    &:hover ::ng-deep button {
-        background: #F0F0F0;
+    &:hover {
+        filter: brightness(0.98);
     }
 }
 
 .error {
-    color: #FF0000;
+    color: $error-color;
     background-color: white;
     font-size: .75rem;
     @apply break-all px-6;

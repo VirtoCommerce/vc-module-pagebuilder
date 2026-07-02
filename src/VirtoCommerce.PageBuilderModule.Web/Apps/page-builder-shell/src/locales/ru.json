@@ -1,3 +1,11 @@
 {
-  "language_name": "Русский"
+  "language_name": "Русский",
+  "COMMON": {
+    "STORE_CONTEXT": {
+      "MISSING_TITLE": "Контекст магазина отсутствует",
+      "MISSING_DESCRIPTION": "Откройте Page Builder из магазина, чтобы управлять страницами и ассетами.",
+      "INVALID_TITLE": "Магазин не найден",
+      "INVALID_DESCRIPTION": "Магазин \"{storeId}\" не существует или недоступен. Проверьте контекст магазина и откройте Page Builder из корректного магазина."
+    }
+  }
 }

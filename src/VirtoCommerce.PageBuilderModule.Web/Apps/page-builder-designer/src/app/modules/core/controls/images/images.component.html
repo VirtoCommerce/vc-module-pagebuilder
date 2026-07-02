@@ -1,5 +1,5 @@
-<label [attr.title]="descriptor?.hint">{{ descriptor?.label }}</label>
-<div>
+<label class="pb-label" [attr.title]="descriptor?.hint">{{ displayLabel() }}</label>
+<div class="images-control">
     @if (useLegacyUploadControl() && control()) {
       <file-upload [control]="control()!" [multiple]="multiple()">
         <ng-template let-isFileDragDropAvailable="isFileDragDropAvailable" #placeholder>
@@ -21,6 +21,7 @@
         'choose-from-library--uploading': assetLibraryUploading()
       }"
       skin="outline-blue"
+      layout="dropzone"
       icon="image_search"
       [text]="assetLibraryUploading() ? assetLibraryLabels.uploading : assetLibraryLabels.chooseOrDrop"
       [disabled]="assetLibraryUploading()"
@@ -94,6 +95,7 @@
     </div>
     @if (innerValue().length > (descriptor?.collapseThreshold || 4)) {
       <app-icon-button class="show-all"
+        layout="full-center"
         [text]="expanded() ? 'Show less' : 'Show all'"
         (click)="toggleList()" />
     }

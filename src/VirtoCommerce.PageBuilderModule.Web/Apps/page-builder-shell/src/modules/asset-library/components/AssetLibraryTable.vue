@@ -162,7 +162,7 @@ function tableActionBuilder(item: AssetLibraryEntryViewModel): TableAction<Asset
   }
 
   &__table-icon {
-    @apply tw-text-[32px] tw-text-[color:var(--assets-library-selected)];
+    @apply tw-text-[32px] tw-text-[color:var(--primary-500)];
   }
 }
 </style>

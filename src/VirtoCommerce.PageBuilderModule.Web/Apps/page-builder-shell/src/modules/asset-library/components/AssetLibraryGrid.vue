@@ -43,18 +43,24 @@
         @drop.prevent.stop="item.dropFolderUrl ? $emit('folder-drop', item.entry, $event) : undefined"
       >
         <div class="asset-card__actions">
-          <VcButton
+          <button
             v-if="item.isBlob"
-            icon="lucide-copy"
-            text
+            type="button"
+            class="asset-card__action"
+            :title="$t('ASSET_LIBRARY.ACTIONS.COPY_URL')"
             @click.stop="$emit('copy', item.entry)"
-          />
-          <VcButton
+          >
+            <VcIcon icon="lucide-copy" />
+          </button>
+          <button
             v-if="canDelete"
-            icon="lucide-trash-2"
-            text
+            type="button"
+            class="asset-card__action"
+            :title="$t('ASSET_LIBRARY.ACTIONS.DELETE')"
             @click.stop="$emit('delete', item.entry)"
-          />
+          >
+            <VcIcon icon="lucide-trash-2" />
+          </button>
         </div>
 
         <div class="asset-card__preview">
@@ -106,7 +112,7 @@
 
 <script lang="ts" setup>
 import { computed } from "vue";
-import { VcButton, VcIcon, VcImage, VcSkeleton } from "@vc-shell/framework/ui";
+import { VcIcon, VcImage, VcSkeleton } from "@vc-shell/framework/ui";
 import type { AssetEntry } from "../types";
 import type { AssetLibraryEntryViewModel } from "../types";
 
@@ -145,18 +151,18 @@ const showSkeleton = computed(() => !!props.loading);
 }
 
 .asset-card {
-  @apply tw-relative tw-flex tw-cursor-pointer tw-flex-col tw-overflow-hidden tw-rounded-md tw-border tw-border-solid tw-border-[color:var(--assets-library-border)] tw-bg-[color:var(--assets-library-panel)] tw-transition-all;
+  @apply tw-relative tw-flex tw-cursor-pointer tw-flex-col tw-overflow-hidden tw-rounded-md tw-border tw-border-solid tw-border-[color:var(--neutrals-200)] tw-bg-[color:var(--additional-50)] tw-transition-all;
 
   &:hover {
     @apply tw--translate-y-[1px] tw-shadow-sm;
   }
 
   &--selected {
-    @apply tw-border-[color:var(--assets-library-selected)] tw-shadow-sm;
+    @apply tw-border-[color:var(--primary-500)] tw-shadow-sm;
   }
 
   &--drop-target {
-    border-color: var(--assets-library-selected);
+    border-color: var(--primary-500);
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-500), transparent 82%);
   }
 
@@ -166,12 +172,21 @@ const showSkeleton = computed(() => !!props.loading);
   }
 
   &__actions {
-    @apply tw-absolute tw-right-2 tw-top-2 tw-z-10 tw-flex tw-gap-1 tw-rounded-full tw-p-0.5 tw-shadow-sm;
-    background-color: color-mix(in srgb, var(--assets-library-panel), transparent 8%);
+    @apply tw-absolute tw-right-2 tw-top-2 tw-z-10 tw-flex tw-gap-1;
+  }
+
+  &__action {
+    @apply tw-flex tw-h-8 tw-w-8 tw-items-center tw-justify-center tw-rounded-full tw-border-0 tw-bg-[color:var(--additional-50)] tw-p-0 tw-text-xl tw-text-[color:var(--primary-500)] tw-shadow-sm tw-transition-colors;
+  }
+
+  &__action:hover,
+  &__action:focus-visible {
+    background-color: color-mix(in srgb, var(--primary-500), var(--additional-50) 82%);
   }
 
   &__references {
-    @apply tw-absolute tw-left-2 tw-top-2 tw-z-10 tw-rounded-full tw-bg-[color:var(--assets-library-reference-bg)] tw-px-2 tw-py-0.5 tw-text-xs tw-font-semibold tw-text-[color:var(--assets-library-reference-text)];
+    @apply tw-absolute tw-left-2 tw-top-2 tw-z-10 tw-rounded-full tw-px-2 tw-py-0.5 tw-text-xs tw-font-semibold tw-text-[color:var(--primary-700)];
+    background-color: color-mix(in srgb, var(--primary-500), transparent 84%);
   }
 
   &__preview {
@@ -196,9 +211,25 @@ const showSkeleton = computed(() => !!props.loading);
     border-radius: 0.375rem;
     background-color: var(--assets-library-checker-bg);
     background-image:
-      linear-gradient(45deg, var(--assets-library-checker-tile) 25%, transparent 25%, transparent 75%, var(--assets-library-checker-tile) 75%, var(--assets-library-checker-tile)),
-      linear-gradient(45deg, var(--assets-library-checker-tile) 25%, transparent 25%, transparent 75%, var(--assets-library-checker-tile) 75%, var(--assets-library-checker-tile));
-    background-position: 0 0, 8px 8px;
+      linear-gradient(
+        45deg,
+        var(--assets-library-checker-tile) 25%,
+        transparent 25%,
+        transparent 75%,
+        var(--assets-library-checker-tile) 75%,
+        var(--assets-library-checker-tile)
+      ),
+      linear-gradient(
+        45deg,
+        var(--assets-library-checker-tile) 25%,
+        transparent 25%,
+        transparent 75%,
+        var(--assets-library-checker-tile) 75%,
+        var(--assets-library-checker-tile)
+      );
+    background-position:
+      0 0,
+      8px 8px;
     background-size: 16px 16px;
   }
 
@@ -207,7 +238,7 @@ const showSkeleton = computed(() => !!props.loading);
   }
 
   &__file-icon {
-    @apply tw-text-[44px] tw-text-[color:var(--assets-library-selected)];
+    @apply tw-text-[44px] tw-text-[color:var(--primary-500)];
   }
 
   &__image {
@@ -223,7 +254,7 @@ const showSkeleton = computed(() => !!props.loading);
   }
 
   &__subtitle {
-    @apply tw-truncate tw-text-xs tw-leading-[14px] tw-text-[color:var(--assets-library-text-muted)];
+    @apply tw-truncate tw-text-xs tw-leading-[14px] tw-text-[color:var(--neutrals-500)];
   }
 }
 </style>

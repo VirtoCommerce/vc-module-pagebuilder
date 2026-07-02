@@ -20,6 +20,11 @@ public class PageBuilderAssetReferenceService(
 
     private async Task<PageBuilderAssetReferencesSearchResult> SearchReferencesInternalAsync(PageBuilderAssetReferencesSearchCriteria criteria, CancellationToken cancellationToken)
     {
+        if (!string.IsNullOrWhiteSpace(criteria.FolderUrl))
+        {
+            return await SearchFolderReferencesAsync(criteria, cancellationToken);
+        }
+
         var references = CreateReferences(criteria.AssetUrls);
 
         if (references.Count == 0 || string.IsNullOrWhiteSpace(criteria.StoreId))
@@ -28,7 +33,13 @@ public class PageBuilderAssetReferenceService(
         }
 
         using var repository = repositoryFactory();
-        var indexedReferences = CreateReferencesQuery(repository, criteria, references.Keys);
+        var normalizedAssetUrlHashes = references.Keys
+            .Select(PageBuilderAssetReferenceMatcher.GetAssetUrlHash)
+            .ToArray();
+        var indexedReferences = ApplyCriteriaFilters(
+            CreateIndexedReferencesQuery(repository)
+                .Where(reference => normalizedAssetUrlHashes.Contains(reference.NormalizedAssetUrlHash)),
+            criteria);
         var referenceGroups = await LoadReferenceGroupsAsync(indexedReferences, cancellationToken);
 
         ApplyReferenceCounts(references, referenceGroups);
@@ -40,6 +51,42 @@ public class PageBuilderAssetReferenceService(
         }
 
         return CreateResult(references.Values);
+    }
+
+    private async Task<PageBuilderAssetReferencesSearchResult> SearchFolderReferencesAsync(PageBuilderAssetReferencesSearchCriteria criteria, CancellationToken cancellationToken)
+    {
+        var normalizedFolderUrl = PageBuilderAssetReferenceMatcher.NormalizeAssetFolderUrl(criteria.FolderUrl);
+
+        if (string.IsNullOrWhiteSpace(normalizedFolderUrl) || string.IsNullOrWhiteSpace(criteria.StoreId))
+        {
+            return CreateResult([]);
+        }
+
+        var reference = new PageBuilderAssetReference
+        {
+            AssetUrl = criteria.FolderUrl,
+            NormalizedAssetUrl = normalizedFolderUrl,
+        };
+
+        using var repository = repositoryFactory();
+        var folderPrefix = $"{normalizedFolderUrl}/";
+        var indexedReferences = ApplyCriteriaFilters(
+            CreateIndexedReferencesQuery(repository)
+                .Where(x => x.NormalizedAssetUrl.StartsWith(folderPrefix)),
+            criteria);
+        var referencesCount = await indexedReferences
+            .Select(x => x.GroupId)
+            .Distinct()
+            .CountAsync(cancellationToken);
+
+        reference.ReferencesCount = referencesCount;
+
+        if (criteria.IncludePages)
+        {
+            ApplyFolderReferencePages(reference, await LoadReferencePagesAsync(indexedReferences, cancellationToken));
+        }
+
+        return CreateResult([reference]);
     }
 
     private static Dictionary<string, PageBuilderAssetReference> CreateReferences(IEnumerable<string> assetUrls)
@@ -56,18 +103,9 @@ public class PageBuilderAssetReferenceService(
             StringComparer.OrdinalIgnoreCase);
     }
 
-    private static IQueryable<IndexedReferenceResult> CreateReferencesQuery(
-        IPageBuilderModuleRepository repository,
-        PageBuilderAssetReferencesSearchCriteria criteria,
-        IEnumerable<string> normalizedAssetUrls)
+    private static IQueryable<IndexedReferenceResult> CreateIndexedReferencesQuery(IPageBuilderModuleRepository repository)
     {
-        var normalizedAssetUrlHashes = normalizedAssetUrls
-            .Select(PageBuilderAssetReferenceMatcher.GetAssetUrlHash)
-            .ToArray();
-        var allowedStatuses = GetAllowedStatuses(criteria.Statuses).ToArray();
-
-        var query = repository.PageBuilderAssetReferences
-            .Where(reference => normalizedAssetUrlHashes.Contains(reference.NormalizedAssetUrlHash))
+        return repository.PageBuilderAssetReferences
             .Join(
                 repository.PageBuilderPages,
                 reference => reference.PageId,
@@ -86,7 +124,17 @@ public class PageBuilderAssetReferenceService(
                     Name = group.Name,
                     Permalink = group.Permalink,
                     Status = x.page.Status,
-                })
+                    NormalizedAssetUrlHash = x.reference.NormalizedAssetUrlHash,
+                });
+    }
+
+    private static IQueryable<IndexedReferenceResult> ApplyCriteriaFilters(
+        IQueryable<IndexedReferenceResult> query,
+        PageBuilderAssetReferencesSearchCriteria criteria)
+    {
+        var allowedStatuses = GetAllowedStatuses(criteria.Statuses).ToArray();
+
+        query = query
             .Where(x => x.StoreId == criteria.StoreId)
             .Where(x => allowedStatuses.Contains(x.Status));
 
@@ -173,6 +221,27 @@ public class PageBuilderAssetReferenceService(
         }
     }
 
+    private static void ApplyFolderReferencePages(
+        PageBuilderAssetReference reference,
+        IEnumerable<ReferencePageResult> referencePages)
+    {
+        foreach (var referencePage in referencePages
+            .GroupBy(x => new { x.Id, x.Name, x.Permalink, x.CultureName }))
+        {
+            reference.Pages.Add(new PageBuilderAssetReferencePage
+            {
+                Id = referencePage.Key.Id,
+                Name = referencePage.Key.Name,
+                Permalink = referencePage.Key.Permalink,
+                CultureName = referencePage.Key.CultureName,
+                Status = string.Join(", ", referencePage
+                    .Select(x => x.Status)
+                    .Distinct()
+                    .OrderBy(x => x)),
+            });
+        }
+    }
+
     private static PageBuilderAssetReferencesSearchResult CreateResult(IEnumerable<PageBuilderAssetReference> references)
     {
         var results = references.ToList();
@@ -236,6 +305,7 @@ public class PageBuilderAssetReferenceService(
     private sealed class IndexedReferenceResult
     {
         public string NormalizedAssetUrl { get; init; }
+        public string NormalizedAssetUrlHash { get; init; }
         public string GroupId { get; init; }
         public string StoreId { get; init; }
         public string CultureName { get; init; }

@@ -1,3 +1,11 @@
 {
-  "language_name": "Deutsch"
+  "language_name": "Deutsch",
+  "COMMON": {
+    "STORE_CONTEXT": {
+      "MISSING_TITLE": "Store-Kontext fehlt",
+      "MISSING_DESCRIPTION": "Öffnen Sie Page Builder aus einem Store, um Seiten und Assets zu verwalten.",
+      "INVALID_TITLE": "Store nicht gefunden",
+      "INVALID_DESCRIPTION": "Der Store \"{storeId}\" existiert nicht oder ist nicht verfügbar. Prüfen Sie den Store-Kontext und öffnen Sie Page Builder aus einem gültigen Store erneut."
+    }
+  }
 }

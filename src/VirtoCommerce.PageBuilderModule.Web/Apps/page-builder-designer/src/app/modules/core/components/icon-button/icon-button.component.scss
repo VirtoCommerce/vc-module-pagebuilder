@@ -62,14 +62,42 @@ button {
         border: 1px solid rgba(18, 18, 18, 0.08);
     }
     &.btn-skin-outline-blue {
-        border: 1px solid #1665D8;
-        color: #1665D8;
+        border: 1px solid $active-color;
+        color: $active-color;
         justify-content: center;
     }
     &.btn-skin-secondary {
         border: 1px solid #BABFC3;
         background: #F1F2F3;
     }
+
+    &.btn-layout-dropzone {
+        min-height: 4.5rem;
+        justify-content: center;
+        padding: .75rem 1rem;
+        gap: .75rem;
+
+        .text {
+            line-height: 1.25rem;
+            white-space: normal;
+            text-align: center;
+        }
+    }
+
+    &.btn-layout-full-center {
+        justify-content: center;
+
+        .text {
+            display: block;
+            flex-grow: 1;
+        }
+    }
+}
+
+:host(.choose-from-library--drag-over) button.btn-layout-dropzone {
+    border-color: $active-color;
+    background: rgba($active-color, 0.06);
+    box-shadow: 0 0 0 2px rgba($active-color, 0.12);
 }
 
 // .btn-primary {

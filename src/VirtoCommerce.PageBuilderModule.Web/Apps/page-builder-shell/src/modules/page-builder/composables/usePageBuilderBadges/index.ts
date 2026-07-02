@@ -21,11 +21,22 @@ setMenuBadge("ActivePagesList", { content: activeCount, variant: "success" });
 setMenuBadge("ArchivedPagesList", { content: archivedCount, variant: "secondary" });
 setMenuBadge("AllPagesList", { content: allCount, variant: "primary" });
 
+function clearMenuBadges() {
+  draftCount.value = undefined;
+  pendingCount.value = undefined;
+  activeCount.value = undefined;
+  archivedCount.value = undefined;
+  allCount.value = undefined;
+}
+
 export async function refreshMenuBadges(): Promise<void> {
-  const { storeId, initUrlParams } = useUrlParams();
+  const { storeId, initUrlParams, validateStoreContext } = useUrlParams();
   initUrlParams();
 
-  if (!storeId.value) return;
+  if (!storeId.value || !(await validateStoreContext())) {
+    clearMenuBadges();
+    return;
+  }
 
   const apiClient = await getApiClient();
 

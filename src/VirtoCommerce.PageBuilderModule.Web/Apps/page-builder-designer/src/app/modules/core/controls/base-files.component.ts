@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { DestroyRef, Directive, inject, signal } from '@angular/core';
+import { computed, DestroyRef, Directive, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { UntypedFormGroup } from '@angular/forms';
 import { moveItemInArray } from '@angular/cdk/drag-drop';
@@ -39,6 +39,11 @@ export abstract class BaseFilesComponent<T extends FilesDescriptor> extends Base
   readonly assetLibraryUploading = signal(false);
   readonly useLegacyUploadControl = signal(false);
   readonly control = signal<FileUploadControl | null>(null);
+  readonly displayLabel = computed(() => this.descriptor?.label || this.defaultLabel);
+
+  protected get defaultLabel(): string {
+    return this.assetLibraryLabels.fileLabel;
+  }
 
   protected override initContent(): void {
     super.initContent();

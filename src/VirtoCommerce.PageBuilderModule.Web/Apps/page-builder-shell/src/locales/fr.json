@@ -1,3 +1,11 @@
 {
-  "language_name": "Français"
+  "language_name": "Français",
+  "COMMON": {
+    "STORE_CONTEXT": {
+      "MISSING_TITLE": "Contexte de boutique manquant",
+      "MISSING_DESCRIPTION": "Ouvrez Page Builder depuis une boutique pour gérer les pages et les assets.",
+      "INVALID_TITLE": "Boutique introuvable",
+      "INVALID_DESCRIPTION": "La boutique \"{storeId}\" n’existe pas ou n’est pas disponible. Vérifiez le contexte de boutique et rouvrez Page Builder depuis une boutique valide."
+    }
+  }
 }

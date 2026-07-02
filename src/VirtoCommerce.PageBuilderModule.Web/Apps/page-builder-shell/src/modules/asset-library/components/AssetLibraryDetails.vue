@@ -142,7 +142,7 @@ defineEmits<Emits>();
 <style lang="scss" scoped>
 .assets-library {
   &__details {
-    @apply tw-flex tw-w-full tw-shrink-0 tw-flex-col tw-border-t tw-border-solid tw-border-t-[color:var(--assets-library-border)] tw-bg-[color:var(--assets-library-details)] tw-p-4 lg:tw-w-[420px] lg:tw-border-l lg:tw-border-t-0 lg:tw-border-l-[color:var(--assets-library-border)];
+    @apply tw-flex tw-w-full tw-shrink-0 tw-flex-col tw-border-t tw-border-solid tw-border-t-[color:var(--neutrals-200)] tw-bg-[color:var(--additional-50)] tw-p-4 lg:tw-w-[420px] lg:tw-border-l lg:tw-border-t-0 lg:tw-border-l-[color:var(--neutrals-200)];
   }
 
   &__details-header {
@@ -160,9 +160,9 @@ defineEmits<Emits>();
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    border: 1px solid var(--assets-library-border);
+    border: 1px solid var(--neutrals-200);
     border-radius: 0.375rem;
-    background: var(--assets-library-panel);
+    background: var(--additional-50);
   }
 
   &__details-image-frame {
@@ -184,7 +184,7 @@ defineEmits<Emits>();
   }
 
   &__details-icon {
-    @apply tw-text-[64px] tw-text-[color:var(--assets-library-selected)];
+    @apply tw-text-[64px] tw-text-[color:var(--primary-500)];
   }
 
   &__details-section {
@@ -192,7 +192,7 @@ defineEmits<Emits>();
   }
 
   &__section-title {
-    @apply tw-text-xs tw-font-semibold tw-uppercase tw-text-[color:var(--assets-library-text-muted)];
+    @apply tw-text-xs tw-font-semibold tw-uppercase tw-text-[color:var(--neutrals-500)];
     letter-spacing: 0;
   }
 
@@ -209,7 +209,7 @@ defineEmits<Emits>();
   }
 
   &__reference-page {
-    @apply tw-rounded tw-border tw-border-solid tw-border-[color:var(--assets-library-border)] tw-bg-[color:var(--assets-library-panel)] tw-p-2;
+    @apply tw-rounded tw-border tw-border-solid tw-border-[color:var(--neutrals-200)] tw-bg-[color:var(--additional-50)] tw-p-2;
   }
 
   &__reference-page-title {
