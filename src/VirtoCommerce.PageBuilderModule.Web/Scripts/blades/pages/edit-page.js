@@ -130,11 +130,25 @@ angular.module('virtoCommerce.pageBuilderModule')
                 if (!blade.isNew) {
                     originFileName = blade.origEntity.name;
                 }
-                if (!$scope.blade.currentEntity.settings.name) {
-                    $scope.blade.currentEntity.settings.name = blade.currentEntity.pageName;
+                var pageSettings = $scope.blade.currentEntity.settings;
+                if (!pageSettings.name) {
+                    pageSettings.name = blade.currentEntity.pageName;
                 }
-                if (!$scope.blade.currentEntity.settings.permalink) {
-                    $scope.blade.currentEntity.settings.permalink = '/' + blade.currentEntity.pageName;
+                if (!pageSettings.permalink) {
+                    pageSettings.permalink = '/' + blade.currentEntity.pageName;
+                }
+                // VCST-5274: the baked settings.name/displayName are not updated when the File name
+                // is changed. When they still match the previous File name (i.e. they were auto-filled,
+                // not customized), keep them in sync with the new File name so the stored document —
+                // and everything derived from it (search index, SEO, storefront) — does not go stale.
+                var oldPageName = blade.origEntity && blade.origEntity.pageName;
+                if (oldPageName && oldPageName !== blade.currentEntity.pageName) {
+                    if (pageSettings.name === oldPageName) {
+                        pageSettings.name = blade.currentEntity.pageName;
+                    }
+                    if (pageSettings.displayName === oldPageName) {
+                        pageSettings.displayName = blade.currentEntity.pageName;
+                    }
                 }
                 reloadPageAndSave(newFileName, originFileName);
             };
