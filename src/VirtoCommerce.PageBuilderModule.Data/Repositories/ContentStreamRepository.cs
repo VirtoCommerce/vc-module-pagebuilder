@@ -39,38 +39,76 @@ public abstract class ContentStreamRepository(PageBuilderModuleDbContext dbConte
         var connection = dbContext.Database.GetDbConnection();
         await dbContext.Database.OpenConnectionAsync(cancellationToken);
 
-        // write empty value first to avoid "out of memory" exception in case of large content
-        await using (var init = connection.CreateCommand())
+        var ambientTransaction = dbContext.Database.CurrentTransaction?.GetDbTransaction();
+        await WriteContentAsync(connection, ambientTransaction, pageId, reader, cancellationToken);
+    }
+
+    // The content is saved as an "empty first, then append chunks" sequence (writing empty first
+    // avoids an out-of-memory exception for large content). That sequence must be ATOMIC: without a
+    // transaction each statement auto-commits, so the empty intermediate value becomes globally
+    // visible and a concurrent reader (a different connection issuing GET .../content while a save
+    // is in flight) reads it as empty content — the transient empty-body read behind VCST-5429,
+    // which self-heals once the appends land. Wrapping the init + appends in one transaction means a
+    // concurrent reader only ever sees the previous committed content or the new one, never the empty
+    // intermediate. When the caller already runs inside a transaction, that ambient one is reused and
+    // left for the caller to commit.
+    protected virtual async Task WriteContentAsync(
+        DbConnection connection,
+        DbTransaction ambientTransaction,
+        string pageId,
+        TextReader reader,
+        CancellationToken cancellationToken)
+    {
+        var ownsTransaction = ambientTransaction == null;
+        var transaction = ambientTransaction ?? await connection.BeginTransactionAsync(cancellationToken);
+
+        try
         {
-            init.CommandText = InitContentSql;
-            SetIdParameter(init, pageId);
-            var tx = dbContext.Database.CurrentTransaction?.GetDbTransaction();
-            if (tx != null)
+            // write empty value first to avoid "out of memory" exception in case of large content
+            await using (var init = connection.CreateCommand())
             {
-                init.Transaction = tx;
+                init.CommandText = InitContentSql;
+                SetIdParameter(init, pageId);
+                init.Transaction = transaction;
+                await init.ExecuteNonQueryAsync(cancellationToken);
             }
 
-            await init.ExecuteNonQueryAsync(cancellationToken);
+            var buffer = new char[ContentBufferSize];
+            int read;
+            while ((read = await reader.ReadAsync(buffer, 0, buffer.Length)) > 0)
+            {
+                await using var cmd = connection.CreateCommand();
+                cmd.CommandText = AppendContentChunkSql;
+                SetIdParameter(cmd, pageId);
+
+                var chunk = new string(buffer, 0, read);
+                SetContentChunk(cmd, chunk);
+
+                cmd.Transaction = transaction;
+
+                await cmd.ExecuteNonQueryAsync(cancellationToken);
+            }
+
+            if (ownsTransaction)
+            {
+                await transaction.CommitAsync(cancellationToken);
+            }
         }
-
-        var buffer = new char[ContentBufferSize];
-        int read;
-        while ((read = await reader.ReadAsync(buffer, 0, buffer.Length)) > 0)
+        catch
         {
-            await using var cmd = connection.CreateCommand();
-            cmd.CommandText = AppendContentChunkSql;
-            SetIdParameter(cmd, pageId);
-
-            var chunk = new string(buffer, 0, read);
-            SetContentChunk(cmd, chunk);
-
-            var tx = dbContext.Database.CurrentTransaction?.GetDbTransaction();
-            if (tx != null)
+            if (ownsTransaction)
             {
-                cmd.Transaction = tx;
+                await transaction.RollbackAsync(cancellationToken);
             }
 
-            await cmd.ExecuteNonQueryAsync(cancellationToken);
+            throw;
+        }
+        finally
+        {
+            if (ownsTransaction)
+            {
+                await transaction.DisposeAsync();
+            }
         }
     }
 
