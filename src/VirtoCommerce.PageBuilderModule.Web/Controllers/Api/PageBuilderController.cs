@@ -42,6 +42,9 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         : Controller
     {
         private const string Themes = "themes";
+        // the only content type the git flow covers: blogs are markdown articles, themes and schemas
+        // stay in blob storage
+        private const string PagesContentType = "pages";
         private const string DefaultTheme = "default";
         private const string JsonContentType = "application/json";
         private const string JsonExtension = ".json";
@@ -54,8 +57,16 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
         [HttpGet]
         [Route("template")]
-        public async Task<ActionResult> GetTemplate(string storeId, string theme, string path, string type, bool draft = false)
+        public async Task<ActionResult> GetTemplate(string storeId, string theme, string path, string type, bool draft = false, [FromQuery(Name = "ref")] string gitRef = null)
         {
+            // With the git flow on, a page is read from git: the caller's URL does not change, because
+            // resolving "this editor's draft, else what is published" is the server's job.
+            if (IsPage(type) && !path.IsNullOrEmpty() &&
+                await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
+            {
+                return await GetTemplateFromGit(path, draft, gitRef);
+            }
+
             var basePath = GetContentBasePath(storeId, type, theme);
             if (!path.IsNullOrEmpty())
             {
@@ -89,6 +100,42 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 templatePath = path
             });
         }
+
+        /// <summary>
+        /// Reads a page out of the content repository. Without an explicit ref: the editor's draft of
+        /// this page when they have one, otherwise the published version. That fallback is what keeps
+        /// the contract of the blob-backed endpoint — "the draft, else what is live" — intact, so the
+        /// callers of this URL never learn that pages moved to git.
+        /// </summary>
+        private async Task<ActionResult> GetTemplateFromGit(string path, bool draft, string gitRef)
+        {
+            var options = gitContentOptions.Value;
+            var repoPath = GitPageLocation.RepoPath(options.PagesRoot, path);
+
+            if (!string.IsNullOrEmpty(gitRef))
+            {
+                // an exact commit — what a preview link points at
+                var atRef = await gitContentRepository.ReadFileAsync(repoPath, gitRef, HttpContext.RequestAborted);
+                return atRef == null ? NotFound(new { templatePath = path, gitRef }) : PageContent(atRef);
+            }
+
+            if (draft)
+            {
+                var branch = GitPageLocation.BranchFor(options.BranchTemplate, User?.Identity?.Name, path);
+                var onBranch = await gitContentRepository.ReadFileAsync(repoPath, branch, HttpContext.RequestAborted);
+                if (onBranch != null)
+                {
+                    return PageContent(onBranch);
+                }
+            }
+
+            var published = await gitContentRepository.ReadFileAsync(repoPath, options.BaseBranch, HttpContext.RequestAborted);
+            return published == null ? NotFound(new { templatePath = path }) : PageContent(published);
+        }
+
+        private ContentResult PageContent(string json) => Content(json, JsonContentType);
+
+        private static bool IsPage(string contentType) => string.Equals(contentType, PagesContentType, StringComparison.OrdinalIgnoreCase);
 
         [HttpGet]
         [Route("settings")]
@@ -328,81 +375,98 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         {
             var files = JsonConvert.DeserializeObject<List<SaveFileModel>>(value.Files);
 
-            if (await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
+            if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
             {
-                if (!draft)
-                {
-                    // With the git flow on, live writes belong to the CI deploy (merge to the production
-                    // branch): only callers holding the publish permission (the CI service account) may
-                    // pass draft=false. Editors publish through PR + merge instead.
-                    var authorizationResult = await authorizationService.AuthorizeAsync(User, null, ModuleConstants.Security.Permissions.Publish);
-                    if (!authorizationResult.Succeeded)
-                    {
-                        return Forbid();
-                    }
-                }
-                else
-                {
-                    // Round-trip of designer edits back to git: validate → commit the canonical .page
-                    // to the editor's work branch → only then write the .page-draft to blob (below).
-                    // The commit is an authoritative step: when it fails the whole save fails — a
-                    // best-effort commit would let git and the blob draft silently drift apart.
-                    var pages = files.Where(x => string.Equals(x.Type, "pages", StringComparison.OrdinalIgnoreCase)).ToList();
-
-                    var errors = pages
-                        .SelectMany(file => PageEnvelopeValidator.Validate(AsToken(file.Content)).Select(error => $"{file.Path}: {error}"))
-                        .ToList();
-                    if (errors.Count > 0)
-                    {
-                        return BadRequest(new { errors });
-                    }
-
-                    foreach (var page in pages)
-                    {
-                        await CommitPageToGitAsync(page, storeId);
-                    }
-                }
+                await SaveFilesTo(storeId, theme, files, draft);
+                return Ok();
             }
 
-            await SaveFilesTo(storeId, theme, files, draft);
-            return Ok();
+            if (!draft)
+            {
+                // With the git flow on, live writes belong to the CI deploy (merge to the production
+                // branch): only callers holding the publish permission (the CI service account) may
+                // pass draft=false. Editors publish through PR + merge instead.
+                var authorizationResult = await authorizationService.AuthorizeAsync(User, null, ModuleConstants.Security.Permissions.Publish);
+                if (!authorizationResult.Succeeded)
+                {
+                    return Forbid();
+                }
+
+                await SaveFilesTo(storeId, theme, files, draft: false);
+                return Ok();
+            }
+
+            // A draft is a commit on a work branch, not a .page-draft blob. The blob was a single slot
+            // per page, so two editors of the same page overwrote each other's draft and preview; their
+            // branches do not.
+            var pages = files.Where(x => string.Equals(x.Type, PagesContentType, StringComparison.OrdinalIgnoreCase)).ToList();
+
+            var errors = pages
+                .SelectMany(file => PageEnvelopeValidator.Validate(AsToken(file.Content)).Select(error => $"{file.Path}: {error}"))
+                .ToList();
+            if (errors.Count > 0)
+            {
+                return BadRequest(new { errors });
+            }
+
+            var saved = new List<object>();
+            foreach (var page in pages)
+            {
+                saved.Add(await CommitPageToGitAsync(page, storeId));
+            }
+
+            // Themes, schemas and everything else still live in blob storage — only pages moved to git.
+            var others = files.Except(pages).ToList();
+            if (others.Count > 0)
+            {
+                await SaveFilesTo(storeId, theme, others, draft: true);
+            }
+
+            return Ok(new { pages = saved });
         }
 
-        private async Task CommitPageToGitAsync(SaveFileModel file, string storeId)
+        private async Task<object> CommitPageToGitAsync(SaveFileModel file, string storeId)
         {
             var options = gitContentOptions.Value;
+            var branch = GitPageLocation.BranchFor(options.BranchTemplate, User?.Identity?.Name, file.Path);
+            var repoPath = GitPageLocation.RepoPath(options.PagesRoot, file.Path);
 
-            var userName = User?.Identity?.Name;
-            var branch = options.BranchTemplate.Replace("{user}", SanitizeForGitRef(userName) ?? "unknown");
-            var author = new GitCommitAuthor
+            // Cut from the production branch at the first save of this page, so what a merge of this
+            // branch ships is today's published page plus this edit — never a stale base, never another
+            // page the editor happens to be working on.
+            if (await gitContentRepository.GetBranchHeadShaAsync(branch, HttpContext.RequestAborted) == null)
             {
-                Name = string.IsNullOrEmpty(userName) ? options.FallbackAuthorName : userName,
-                Email = User?.FindFirstValue(ClaimTypes.Email) ?? options.FallbackAuthorEmail,
-            };
+                await gitContentRepository.CreateBranchAsync(branch, options.BaseBranch, HttpContext.RequestAborted);
+            }
 
-            var repoPath = $"{options.PagesRoot.TrimEnd('/')}/{file.Path.Replace('\\', '/').TrimStart('/')}";
-            // Canonical bytes, not JsonConvert's: publish status compares the work branch against the
+            var author = CurrentAuthor();
+            // Canonical bytes, not JsonConvert's: publish status compares this branch against the
             // production branch, and Formatting.Indented would end lines with the host's newline.
             var content = PageJson.Serialize(file.Content);
             var message = $"designer: save {file.Path} (store: {storeId}, by: {author.Name})";
 
-            await gitContentRepository.CommitFileAsync(repoPath, content, branch, message, author, HttpContext.RequestAborted);
+            // Authoritative, not best-effort: when the commit fails the save fails, because an editor
+            // who was told their work is saved has to be able to find it.
+            var commitSha = await gitContentRepository.CommitFileAsync(repoPath, content, branch, message, author, HttpContext.RequestAborted);
+
+            return new { path = file.Path, branch, commitSha };
+        }
+
+        private GitCommitAuthor CurrentAuthor()
+        {
+            var options = gitContentOptions.Value;
+            var userName = User?.Identity?.Name;
+
+            return new GitCommitAuthor
+            {
+                Name = string.IsNullOrEmpty(userName) ? options.FallbackAuthorName : userName,
+                Email = User?.FindFirstValue(ClaimTypes.Email) ?? options.FallbackAuthorEmail,
+            };
         }
 
         private static JToken AsToken(object content)
         {
             return content as JToken ?? (content == null ? JValue.CreateNull() : JToken.FromObject(content));
-        }
-
-        // git ref components must avoid spaces and most punctuation; the user name may be an email
-        private static string SanitizeForGitRef(string value)
-        {
-            if (string.IsNullOrWhiteSpace(value))
-            {
-                return null;
-            }
-            var sanitized = Regex.Replace(value.ToLowerInvariant(), "[^a-z0-9._-]+", "-", RegexOptions.None, TimeSpan.FromSeconds(1)).Trim('-', '.');
-            return sanitized.Length == 0 ? null : sanitized;
         }
 
         private async Task SaveFilesTo(string storeId, string theme, IEnumerable<SaveFileModel> files, bool draft, CancellationToken cancellationToken = default)
