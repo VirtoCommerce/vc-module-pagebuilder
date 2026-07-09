@@ -20,7 +20,7 @@
     }
   </span>
 </button>
-<mat-menu #menu="matMenu" [class]="'menu-panel ' + panelClass() || ''">
+<mat-menu #menu="matMenu" [class]="'menu-panel ' + (panelClass() ?? '')">
   <div class="flex flex-col p-1">
     @for (action of actions(); track action) {
       <button mat-menu-item (click)="actionChoosed(action)">
