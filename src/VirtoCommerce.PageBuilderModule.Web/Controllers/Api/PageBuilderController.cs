@@ -381,9 +381,9 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             };
 
             var repoPath = $"{options.PagesRoot.TrimEnd('/')}/{file.Path.Replace('\\', '/').TrimStart('/')}";
-            // Serialized exactly like the blob write in SaveFilesTo, so the committed .page and the
-            // blob draft stay byte-identical (the draft is a rebuildable cache of the git state).
-            var content = JsonConvert.SerializeObject(file.Content, Formatting.Indented);
+            // Canonical bytes, not JsonConvert's: publish status compares the work branch against the
+            // production branch, and Formatting.Indented would end lines with the host's newline.
+            var content = PageJson.Serialize(file.Content);
             var message = $"designer: save {file.Path} (store: {storeId}, by: {author.Name})";
 
             await gitContentWriter.CommitFileAsync(repoPath, content, branch, message, author, HttpContext.RequestAborted);
