@@ -110,6 +110,7 @@ namespace VirtoCommerce.PageBuilderModule.Web
                     }
                 });
             serviceCollection.AddTransient<IGitContentRepository, GitHubContentRepository>();
+            serviceCollection.AddTransient<IGitContentPublisher, GitHubContentPublisher>();
             serviceCollection.AddTransient<IGitContentPolicy, GitContentPolicy>();
 
             var isFullTextSearchEnabled = Configuration.IsContentFullTextSearchEnabled();

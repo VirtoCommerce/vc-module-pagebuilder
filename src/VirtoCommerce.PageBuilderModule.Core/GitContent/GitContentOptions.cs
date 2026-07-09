@@ -27,8 +27,15 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
         public Uri ApiUrl { get; set; } = new("https://api.github.com/");
 
         /// <summary>
-        /// Token with contents read/write access to the repository (fine-grained PAT or
-        /// installation token). A platform secret — keep it in environment/secret storage.
+        /// GitHub's GraphQL endpoint. Needed because auto-merge — letting a pull request merge itself
+        /// once the required checks go green — exists only there; the REST API can merge immediately or
+        /// not at all. Override for GitHub Enterprise.
+        /// </summary>
+        public Uri GraphQlUrl { get; set; } = new("https://api.github.com/graphql");
+
+        /// <summary>
+        /// Token with contents and pull-request read/write access to the repository (fine-grained PAT or
+        /// GitHub App installation token). A platform secret — keep it in environment/secret storage.
         /// </summary>
         public string Token { get; set; }
 
