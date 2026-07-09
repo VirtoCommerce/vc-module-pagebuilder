@@ -50,6 +50,9 @@ export class AssetPickerStateService {
     readonly visibleEntries = computed(() => this.entries()
         .filter(entry => entry.type === 'folder' || this.selection.matchesAccept(entry))
         .map(entry => this.toGridItem(entry)));
+    readonly visibleAssetsCount = computed(() => this.entries()
+        .filter(entry => entry.type === 'blob' && this.selection.matchesAccept(entry))
+        .length);
 
     constructor() {
         this.destroyRef.onDestroy(() => {

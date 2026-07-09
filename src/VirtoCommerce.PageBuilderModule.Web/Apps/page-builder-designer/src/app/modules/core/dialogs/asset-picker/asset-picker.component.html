@@ -25,7 +25,7 @@
       [multiple]="state.multiple"
       [acceptAttribute]="state.acceptAttribute()"
       [searchValue]="state.searchValue()"
-      [counterText]="state.formatAssetsCounter(state.visibleEntries().length)"
+      [counterText]="state.formatAssetsCounter(state.visibleAssetsCount())"
       (search)="state.onSearch($event)"
       (upload)="state.uploadFiles($event)" />
 
