@@ -93,7 +93,7 @@ namespace VirtoCommerce.PageBuilderModule.Web
             // Fail fast: a half-configured flow must not boot, or publishing would silently keep writing
             // straight to production on an installation whose operator expects pull requests.
             gitContentSection.Get<GitContentOptions>()?.Validate();
-            serviceCollection.AddHttpClient(GitHubContentWriter.HttpClientName)
+            serviceCollection.AddHttpClient(GitHubContentRepository.HttpClientName)
                 .ConfigureHttpClient((provider, httpClient) =>
                 {
                     var gitContentOptions = provider.GetRequiredService<IOptions<GitContentOptions>>().Value;
@@ -109,7 +109,7 @@ namespace VirtoCommerce.PageBuilderModule.Web
                         httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + gitContentOptions.Token);
                     }
                 });
-            serviceCollection.AddTransient<IGitContentWriter, GitHubContentWriter>();
+            serviceCollection.AddTransient<IGitContentRepository, GitHubContentRepository>();
             serviceCollection.AddTransient<IGitContentPolicy, GitContentPolicy>();
 
             var isFullTextSearchEnabled = Configuration.IsContentFullTextSearchEnabled();

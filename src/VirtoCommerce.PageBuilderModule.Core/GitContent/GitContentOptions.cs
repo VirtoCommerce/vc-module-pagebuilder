@@ -66,12 +66,17 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
         public TimeSpan RequestTimeout { get; set; } = TimeSpan.FromSeconds(30);
 
         /// <summary>
-        /// How long a page read from git is cached. Keyed by (repository, ref, path); a ref that is a
-        /// commit sha is immutable, so those entries could live much longer than ones read by branch
-        /// name. Every template the designer opens is a GitHub call, so this is what keeps the flow
-        /// inside the API rate limit.
+        /// How long a page read by branch name is cached. Every template the designer opens is a GitHub
+        /// call, so the cache is what keeps the flow inside the API rate limit. A branch moves, hence
+        /// the short life; a write through this module drops the entry it invalidated straight away.
         /// </summary>
         public TimeSpan ReadCacheExpiration { get; set; } = TimeSpan.FromMinutes(1);
+
+        /// <summary>
+        /// How long a page read by commit sha is cached. A sha is immutable, so the only reason to
+        /// expire it at all is to bound memory.
+        /// </summary>
+        public TimeSpan ImmutableReadCacheExpiration { get; set; } = TimeSpan.FromHours(1);
 
         /// <summary>
         /// True when the connection is filled in well enough to talk to GitHub at all.

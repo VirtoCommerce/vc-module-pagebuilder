@@ -36,7 +36,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             IEventPublisher eventPublisher,
             IOptions<GitContentOptions> gitContentOptions,
             IGitContentPolicy gitContentPolicy,
-            IGitContentWriter gitContentWriter,
+            IGitContentRepository gitContentRepository,
             IAuthorizationService authorizationService
             )
         : Controller
@@ -386,7 +386,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             var content = PageJson.Serialize(file.Content);
             var message = $"designer: save {file.Path} (store: {storeId}, by: {author.Name})";
 
-            await gitContentWriter.CommitFileAsync(repoPath, content, branch, message, author, HttpContext.RequestAborted);
+            await gitContentRepository.CommitFileAsync(repoPath, content, branch, message, author, HttpContext.RequestAborted);
         }
 
         private static JToken AsToken(object content)
