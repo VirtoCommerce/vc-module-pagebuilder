@@ -2,18 +2,22 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Claims;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
 using VirtoCommerce.AssetsModule.Core.Assets;
 using VirtoCommerce.ContentModule.Core.Model;
 using VirtoCommerce.ContentModule.Core.Services;
+using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Events;
+using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Web.Models;
 using VirtoCommerce.Platform.Core.Common;
@@ -29,7 +33,11 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             IContentPathResolver pathResolver,
             IBlobContentStorageProviderFactory blobContentStorageProviderFactory,
             IPublishingService publishingService,
-            IEventPublisher eventPublisher
+            IEventPublisher eventPublisher,
+            IOptions<GitContentOptions> gitContentOptions,
+            IGitContentPolicy gitContentPolicy,
+            IGitContentWriter gitContentWriter,
+            IAuthorizationService authorizationService
             )
         : Controller
     {
@@ -318,14 +326,87 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("save")]
         public async Task<ActionResult> SaveTemplates(string storeId, string theme, [FromBody] SaveFilesModel value, [FromQuery] bool draft = false)
         {
-            await SaveFilesTo(storeId, theme, value, draft);
+            var files = JsonConvert.DeserializeObject<List<SaveFileModel>>(value.Files);
+
+            if (await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
+            {
+                if (!draft)
+                {
+                    // With the git flow on, live writes belong to the CI deploy (merge to the production
+                    // branch): only callers holding the publish permission (the CI service account) may
+                    // pass draft=false. Editors publish through PR + merge instead.
+                    var authorizationResult = await authorizationService.AuthorizeAsync(User, null, ModuleConstants.Security.Permissions.Publish);
+                    if (!authorizationResult.Succeeded)
+                    {
+                        return Forbid();
+                    }
+                }
+                else
+                {
+                    // Round-trip of designer edits back to git: validate → commit the canonical .page
+                    // to the editor's work branch → only then write the .page-draft to blob (below).
+                    // The commit is an authoritative step: when it fails the whole save fails — a
+                    // best-effort commit would let git and the blob draft silently drift apart.
+                    var pages = files.Where(x => string.Equals(x.Type, "pages", StringComparison.OrdinalIgnoreCase)).ToList();
+
+                    var errors = pages
+                        .SelectMany(file => PageEnvelopeValidator.Validate(AsToken(file.Content)).Select(error => $"{file.Path}: {error}"))
+                        .ToList();
+                    if (errors.Count > 0)
+                    {
+                        return BadRequest(new { errors });
+                    }
+
+                    foreach (var page in pages)
+                    {
+                        await CommitPageToGitAsync(page, storeId);
+                    }
+                }
+            }
+
+            await SaveFilesTo(storeId, theme, files, draft);
             return Ok();
         }
 
-        private async Task SaveFilesTo(string storeId, string theme, SaveFilesModel model, bool draft, CancellationToken cancellationToken = default)
+        private async Task CommitPageToGitAsync(SaveFileModel file, string storeId)
         {
-            var files = JsonConvert.DeserializeObject<IEnumerable<SaveFileModel>>(model.Files);
+            var options = gitContentOptions.Value;
 
+            var userName = User?.Identity?.Name;
+            var branch = options.BranchTemplate.Replace("{user}", SanitizeForGitRef(userName) ?? "unknown");
+            var author = new GitCommitAuthor
+            {
+                Name = string.IsNullOrEmpty(userName) ? options.FallbackAuthorName : userName,
+                Email = User?.FindFirstValue(ClaimTypes.Email) ?? options.FallbackAuthorEmail,
+            };
+
+            var repoPath = $"{options.PagesRoot.TrimEnd('/')}/{file.Path.Replace('\\', '/').TrimStart('/')}";
+            // Serialized exactly like the blob write in SaveFilesTo, so the committed .page and the
+            // blob draft stay byte-identical (the draft is a rebuildable cache of the git state).
+            var content = JsonConvert.SerializeObject(file.Content, Formatting.Indented);
+            var message = $"designer: save {file.Path} (store: {storeId}, by: {author.Name})";
+
+            await gitContentWriter.CommitFileAsync(repoPath, content, branch, message, author, HttpContext.RequestAborted);
+        }
+
+        private static JToken AsToken(object content)
+        {
+            return content as JToken ?? (content == null ? JValue.CreateNull() : JToken.FromObject(content));
+        }
+
+        // git ref components must avoid spaces and most punctuation; the user name may be an email
+        private static string SanitizeForGitRef(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return null;
+            }
+            var sanitized = Regex.Replace(value.ToLowerInvariant(), "[^a-z0-9._-]+", "-", RegexOptions.None, TimeSpan.FromSeconds(1)).Trim('-', '.');
+            return sanitized.Length == 0 ? null : sanitized;
+        }
+
+        private async Task SaveFilesTo(string storeId, string theme, IEnumerable<SaveFileModel> files, bool draft, CancellationToken cancellationToken = default)
+        {
             var providers = new Dictionary<string, IBlobContentStorageProvider>();
 
             var settings = new JsonSerializerSettings { Formatting = Formatting.Indented };

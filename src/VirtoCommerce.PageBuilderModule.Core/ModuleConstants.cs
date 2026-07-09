@@ -50,6 +50,13 @@ namespace VirtoCommerce.PageBuilderModule.Core
 
         public static class Settings
         {
+            /// <summary>
+            /// Object type store-level settings are registered and looked up under. Matches
+            /// <c>nameof(Store)</c>, kept here so layers that only need the key do not have to
+            /// reference the store module.
+            /// </summary>
+            public const string StoreSettingsObjectType = "Store";
+
             public static class General
             {
                 public static SettingDescriptor StoreUrl { get; } = new()
@@ -114,11 +121,28 @@ namespace VirtoCommerce.PageBuilderModule.Core
                     DefaultValue = "",
                 };
 
+                /// <summary>
+                /// Turns the git content flow on for this store: pages are edited on git work branches
+                /// and published by merging into the production branch, instead of being written straight
+                /// to blob storage. Off by default — a store keeps its current behaviour until someone
+                /// opts it in. The connection itself (repository, token, base branch) lives in
+                /// appsettings under <see cref="GitContent.GitContentOptions.SectionName"/>; this switch
+                /// only decides which stores use it.
+                /// </summary>
+                public static SettingDescriptor GitContentEnabled { get; } = new()
+                {
+                    Name = "VirtoCommerce.PageBuilderModule.Store.GitContentEnabled",
+                    GroupName = "CMS|Page builder",
+                    ValueType = SettingValueType.Boolean,
+                    DefaultValue = false,
+                };
+
                 public static IEnumerable<SettingDescriptor> AllStoreLevelSettings
                 {
                     get
                     {
                         yield return PreviewUserIds;
+                        yield return GitContentEnabled;
                     }
                 }
             }
