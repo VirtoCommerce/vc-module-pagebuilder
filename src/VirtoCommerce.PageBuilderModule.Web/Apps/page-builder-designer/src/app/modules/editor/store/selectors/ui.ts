@@ -261,7 +261,7 @@ export const changeTemplateContext = createSelector(
     ({ template, section, block, sectionsSchemas, blocksSchemas, templateKey, sectionId, blockId, insertIndex, templateEntry })
 );
 
-export const selectToolbarButtonsState = (context: { useTheme: boolean, useDrafts: boolean, useExternalPreview: boolean }) => createSelector(
+export const selectToolbarButtonsState = (context: { useTheme: boolean, useDrafts: boolean, useUnpublish: boolean, useExternalPreview: boolean }) => createSelector(
   // fromDomain.selectCurrentTemplateState,
   fromShared.hasDirty,
   fromDomain.selectCurrentTemplateState,
@@ -291,22 +291,30 @@ export const selectToolbarButtonsState = (context: { useTheme: boolean, useDraft
     }
 
     if (context.useDrafts && !state?.isLoading && !state?.error) {
-      result.push([
-        {
-          canAction: !hasDirty && state?.published && !state?.hasChanges,
+      const buttons = <ActionButtonDescriptor[]>[];
+
+      // With pages in git there is no "unpublish": taking a page down means deleting it from the
+      // production branch. The server says so by not offering the descriptor.
+      if (context.useUnpublish) {
+        buttons.push({
+          canAction: !hasDirty && state?.published && !state?.hasChanges && !state?.pending,
           icon: 'unpublished',
           alias: 'unpublish',
           title: 'Unpublish',
           type: 'outline'
-        },
-        {
-          canAction: !hasDirty && state?.hasChanges,
-          icon: 'publish',
-          alias: 'publish',
-          title: 'Publish',
-          type: 'outline'
-        },
-      ]);
+        });
+      }
+
+      buttons.push({
+        // a pull request for this page is already open — publishing again would achieve nothing
+        canAction: !hasDirty && state?.hasChanges && !state?.pending,
+        icon: 'publish',
+        alias: 'publish',
+        title: state?.pending ? 'Publishing…' : 'Publish',
+        type: 'outline'
+      });
+
+      result.push(buttons);
     }
 
     // [

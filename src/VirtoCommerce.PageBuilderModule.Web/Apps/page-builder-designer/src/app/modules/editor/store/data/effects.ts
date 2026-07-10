@@ -194,7 +194,7 @@ export class TemplateEditorDataEffects {
         ),
         switchMap(([{ templateKey }, entry, path, type, groupId]) => this.templates.getTemplatePublishStatus(path, type, entry || {}, groupId).pipe(
             filter(status => !!status),
-            map(({ hasChanges, published }) => actions.getTemplatePublishStatusSuccess({ templateKey, hasChanges, published })),
+            map(({ hasChanges, published, pending }) => actions.getTemplatePublishStatusSuccess({ templateKey, hasChanges, published, pending })),
             catchError(error => of(actions.getTemplatePublishStatusFails({ error, templateKey })))
         ))
     ));
@@ -206,13 +206,18 @@ export class TemplateEditorDataEffects {
         withLatestFrom(
             this.store$.select(selectors.selectRunActionContext),
         ),
+        // Ask the server what happened instead of assuming it went well. Publishing a page can end up
+        // waiting on a CI check, or refuse outright because the page changed in production while this
+        // draft was being written — reporting "published" for either would send the editor away
+        // believing the page is live.
         switchMap(([, { templateKey, entry, path, type, groupId }]) => this.templates.publishTemplate(path, type, entry, groupId).pipe(
-            switchMap(() => [
-                actions.getTemplatePublishStatusSuccess({ templateKey, hasChanges: false, published: true }),
+            switchMap(() => this.templates.getTemplatePublishStatus(path, type, entry, groupId)),
+            switchMap(({ hasChanges, published, pending }) => [
+                actions.getTemplatePublishStatusSuccess({ templateKey, hasChanges, published, pending }),
                 shared.broadcastPlatformMessage({
                     msg: {
-                        hasChanges: false,
-                        published: true,
+                        hasChanges,
+                        published,
                         source: 'builder',
                         relativeUrl: path,
                         contentType: type,
@@ -220,6 +225,7 @@ export class TemplateEditorDataEffects {
                     }
                 }),
             ]),
+            catchError(error => of(actions.getTemplatePublishStatusFails({ error, templateKey })))
         ))
     ));
 
@@ -230,12 +236,13 @@ export class TemplateEditorDataEffects {
             this.store$.select(selectors.selectRunActionContext),
         ),
         switchMap(([, { templateKey, entry, path, type, groupId }]) => this.templates.unpublishTemplate(path, type, entry, groupId).pipe(
-            switchMap(() => [
-                actions.getTemplatePublishStatusSuccess({ templateKey, hasChanges: true, published: false }),
+            switchMap(() => this.templates.getTemplatePublishStatus(path, type, entry, groupId)),
+            switchMap(({ hasChanges, published, pending }) => [
+                actions.getTemplatePublishStatusSuccess({ templateKey, hasChanges, published, pending }),
                 shared.broadcastPlatformMessage({
                     msg: {
-                        hasChanges: true,
-                        published: false,
+                        hasChanges,
+                        published,
                         source: 'builder',
                         relativeUrl: path,
                         contentType: type,
@@ -243,6 +250,7 @@ export class TemplateEditorDataEffects {
                     }
                 }),
             ]),
+            catchError(error => of(actions.getTemplatePublishStatusFails({ error, templateKey })))
         ))
     ));
 

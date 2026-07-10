@@ -7,6 +7,13 @@ import { Observable, map, of } from "rxjs";
 import { helpers } from '@editor/helpers';
 import { TemplateEntry } from '@shared/models';
 
+export interface PublishStatus {
+    published: boolean;
+    hasChanges: boolean;
+    /** Only the git flow reports this: a pull request for the page is open and has not merged yet. */
+    pending?: boolean;
+}
+
 @Injectable({
     providedIn: 'root'
 })
@@ -33,12 +40,12 @@ export class TemplatesService {
         );
     }
 
-    getTemplatePublishStatus(path: string, type: string, entry: TemplateEntry, groupId: string): Observable<{ published: boolean, hasChanges: boolean }> {
+    getTemplatePublishStatus(path: string, type: string, entry: TemplateEntry, groupId: string): Observable<PublishStatus> {
         const value = groupId ? 'publishPages' : 'publish';
         const publishStatusUrls = this.appConfig.getValueByEntryType(value, { item: entry, type, path, groupId }, entry.type || type);
         const statusUrl = publishStatusUrls['status'];
         const request = this.http.generateRequest(statusUrl, { item: entry });
-        return this.http.doRequest<{ published: boolean, hasChanges: boolean }>(request, { nullWhenError: false }, null).pipe(
+        return this.http.doRequest<PublishStatus>(request, { nullWhenError: false }, null).pipe(
             map(result => result || { published: true, hasChanges: false })
         );
     }

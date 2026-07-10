@@ -15,7 +15,7 @@ export const reloadTemplateModelSuccess = createAction('[template editor] reload
 export const reloadTemplateModelFails = createAction('[template editor] reload template model fails', props<{ error: HttpErrorResponse, templateKey: string }>());
 
 export const getTemplatePublishStatus = createAction('[template editor] get template publish status', props<{ templateKey: string }>());
-export const getTemplatePublishStatusSuccess = createAction('[template editor] get template publish status success', props<{ templateKey: string, hasChanges: boolean, published: boolean }>());
+export const getTemplatePublishStatusSuccess = createAction('[template editor] get template publish status success', props<{ templateKey: string, hasChanges: boolean, published: boolean, pending?: boolean }>());
 export const getTemplatePublishStatusFails = createAction('[template editor] get template publish status fails', props<{ error: HttpErrorResponse, templateKey: string }>());
 
 export const loadTemplateSchemas = createAction('[template editor] load template schemas');

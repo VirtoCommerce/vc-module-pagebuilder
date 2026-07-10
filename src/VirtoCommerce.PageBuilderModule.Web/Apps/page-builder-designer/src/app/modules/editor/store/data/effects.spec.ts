@@ -182,6 +182,28 @@ describe('TemplateEditorDataEffects', () => {
             expect(types).toContain(actions.getTemplatePublishStatusSuccess.type);
             expect(types).toContain(sharedActions.broadcastPlatformMessage.type);
         });
+
+        it('reports what the server says, not that publishing must have worked', async () => {
+            // the page is waiting on a check: it is not live yet, and the toolbar must not claim it is
+            templatesService.getTemplatePublishStatus.mockReturnValue(of({ hasChanges: true, published: false, pending: true }));
+
+            actions$.next(actions.executeToolbarAction({ action: 'publish' }));
+            const results = await firstValueFrom(effects.publishTemplate$.pipe(take(2), toArray()));
+
+            const success = results.find(r => r.type === actions.getTemplatePublishStatusSuccess.type) as any;
+            expect(success.published).toBe(false);
+            expect(success.pending).toBe(true);
+        });
+
+        it('does not report a refused publish as published', async () => {
+            // 409: the page changed in production while this draft was being written
+            templatesService.publishTemplate.mockReturnValue(throwError(() => new Error('conflict')));
+
+            actions$.next(actions.executeToolbarAction({ action: 'publish' }));
+            const result = await firstValueFrom(effects.publishTemplate$.pipe(take(1)));
+
+            expect(result.type).toBe(actions.getTemplatePublishStatusFails.type);
+        });
     });
 
     // ── unpublishTemplate$ ────────────────────────────────────────

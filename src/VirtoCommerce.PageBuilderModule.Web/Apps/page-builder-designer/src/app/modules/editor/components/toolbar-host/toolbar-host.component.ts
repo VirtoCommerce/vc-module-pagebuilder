@@ -25,6 +25,9 @@ export class ToolbarHostComponent {
         {
             useTheme: !this.appConfig.getValue('skipTheme'),
             useDrafts: !!this.appConfig.getValue('publish'),
+            // A store whose pages live in git is served no unpublish descriptor: taking a page down
+            // there means deleting it from the production branch, not calling an endpoint.
+            useUnpublish: !!this.appConfig.getValue('publish')?.unpublish,
             useExternalPreview: !!this.appConfig.getValue('externalPreview')
         }
     )), { initialValue: null });

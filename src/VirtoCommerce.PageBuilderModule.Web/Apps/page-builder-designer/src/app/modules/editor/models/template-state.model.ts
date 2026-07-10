@@ -6,6 +6,11 @@ export interface TemplateState {
     isLoading: boolean;
     hasChanges?: boolean;
     published?: boolean;
+    /**
+     * The page is on its way to production but not there yet: a pull request for it is open, waiting
+     * on its checks. Publishing again would achieve nothing.
+     */
+    pending?: boolean;
     error?: string;
     sections: SectionStatesList;
 }

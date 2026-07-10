@@ -46,14 +46,15 @@ export const editorDomainReducers = createReducer<EditorDomainState>(
             }
         })
     ),
-    on(actions.getTemplatePublishStatusSuccess, (state, { templateKey, hasChanges, published }) => ({
+    on(actions.getTemplatePublishStatusSuccess, (state, { templateKey, hasChanges, published, pending }) => ({
         ...state,
         states: {
             ...state.states,
             [templateKey]: {
                 ...state.states[templateKey],
                 hasChanges,
-                published
+                published,
+                pending: !!pending
             }
         }
     })),
