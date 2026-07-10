@@ -1,0 +1,93 @@
+{
+  "ASSET_LIBRARY": {
+    "MENU": {
+      "TITLE": "Biblioteca de activos"
+    },
+    "TITLE": "Biblioteca de activos",
+    "COUNTER": "{count} activos",
+    "BREADCRUMBS": {
+      "ROOT": "Page Builder"
+    },
+    "BADGES": {
+      "FOLDER": "Carpeta",
+      "REFERENCES": "{count} refs"
+    },
+    "TABLE": {
+      "NAME": "Nombre",
+      "TYPE": "Tipo",
+      "SIZE": "Tamaño",
+      "REFERENCES": "Refs",
+      "MODIFIED": "Modificado"
+    },
+    "VIEW": {
+      "GRID": "Vista de cuadrícula",
+      "TABLE": "Vista de tabla"
+    },
+    "TOOLBAR": {
+      "REFRESH": "Actualizar",
+      "UPLOAD": "Subir",
+      "CREATE_FOLDER": "Crear carpeta",
+      "DELETE": "Eliminar",
+      "SEARCH_PLACEHOLDER": "Buscar activos..."
+    },
+    "ACTIONS": {
+      "COPY_URL": "Copiar URL",
+      "DELETE": "Eliminar"
+    },
+    "DROP": {
+      "UPLOAD_HERE": "Suelta archivos aquí para subirlos"
+    },
+    "DETAILS": {
+      "EMPTY": "Selecciona un archivo para ver sus detalles.",
+      "FILE_DETAILS": "Detalles del archivo",
+      "SIZE": "Tamaño",
+      "DIMENSIONS": "Dimensiones",
+      "TYPE": "Tipo",
+      "MODIFIED": "Modificado",
+      "UPLOADED": "Subido",
+      "PATH": "Ruta",
+      "USED_ON": "Usado en ({count} páginas)",
+      "NO_REFERENCES": "No se usa en ninguna página de Page Builder.",
+      "URL": "URL",
+      "COPY_URL": "Copiar URL",
+      "REPLACE": "Reemplazar",
+      "DELETE": "Eliminar",
+      "NOT_AVAILABLE": "N/D"
+    },
+    "EMPTY": {
+      "TITLE": "Aún no hay activos en esta carpeta",
+      "DESCRIPTION": "Sube archivos o crea una carpeta dentro del área de activos de la tienda de Page Builder.",
+      "NO_STORE": "Falta el contexto de la tienda"
+    },
+    "CREATE_FOLDER": {
+      "TITLE": "Crear carpeta",
+      "NAME_LABEL": "Nombre de carpeta",
+      "NAME_PLACEHOLDER": "Introduce el nombre de la carpeta",
+      "CANCEL": "Cancelar",
+      "CREATE": "Crear",
+      "VALIDATION": {
+        "DASH_CONSECUTIVE": "El nombre de la carpeta no debe contener guiones consecutivos.",
+        "DASH_END": "El nombre de la carpeta no debe terminar con un guion.",
+        "DASH_START": "El nombre de la carpeta no debe comenzar con un guion.",
+        "INVALID_CHARACTERS": "El nombre de la carpeta solo puede contener letras minúsculas, números, espacios y guiones individuales.",
+        "MAX_LENGTH": "El nombre de la carpeta debe tener como máximo 63 caracteres. Ha introducido {count} caracteres.",
+        "MIN_LENGTH": "El nombre de la carpeta debe tener al menos 3 caracteres. Ha introducido {count} caracteres."
+      }
+    },
+    "CONFIRM": {
+      "DELETE_SINGLE": "¿Eliminar {name}?",
+      "DELETE_SELECTED": "¿Eliminar {count} activo(s) seleccionado(s)?",
+      "DELETE_USED_ONE": "¿Eliminar {name}? Se usa en 1 página de Page Builder.",
+      "DELETE_USED_MANY": "¿Eliminar {name}? Se usa en {count} páginas de Page Builder."
+    },
+    "NOTIFICATIONS": {
+      "FOLDER_CREATED": "Carpeta creada correctamente",
+      "UPLOADED": "Activos subidos correctamente",
+      "REPLACED": "Activo reemplazado correctamente",
+      "DELETED": "Activos eliminados correctamente",
+      "URL_COPIED": "URL del activo copiada correctamente",
+      "COPY_FAILED": "No se pudo copiar la URL al portapapeles",
+      "ERROR_GENERIC": "Error en la operación de activos"
+    }
+  }
+}

@@ -57,6 +57,68 @@ export class AuthApiBase {
   }
 }
 
+export class PageBuilderAssetsClient extends AuthApiBase {
+    private http: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> };
+    private baseUrl: string;
+
+    constructor(baseUrl?: string, http?: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> }) {
+        super();
+        this.http = http ? http : window as any;
+        this.baseUrl = this.getBaseUrl("", baseUrl);
+    }
+
+    /**
+     * @param body (optional) 
+     * @return OK
+     */
+    searchReferences(body?: PageBuilderAssetReferencesSearchCriteria | undefined): Promise<PageBuilderAssetReferencesSearchResult> {
+        let url_ = this.baseUrl + "/api/page-builder-assets/references";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json-patch+json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.transformOptions(options_).then(transformedOptions_ => {
+            return this.http.fetch(url_, transformedOptions_);
+        }).then((_response: Response) => {
+            return this.processSearchReferences(_response);
+        });
+    }
+
+    protected processSearchReferences(response: Response): Promise<PageBuilderAssetReferencesSearchResult> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as PageBuilderAssetReferencesSearchResult;
+            return result200;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            return throwException("Unauthorized", status, _responseText, _headers);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            return throwException("Forbidden", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<PageBuilderAssetReferencesSearchResult>(null as any);
+    }
+}
+
 export class PageBuilderClient extends AuthApiBase {
     private http: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> };
     private baseUrl: string;
@@ -1424,6 +1486,45 @@ export interface Note {
     createdBy?: string | undefined;
     modifiedBy?: string | undefined;
     id?: string | undefined;
+}
+
+export interface PageBuilderAssetReference {
+    assetUrl?: string | undefined;
+    normalizedAssetUrl?: string | undefined;
+    referencesCount?: number;
+    pages?: PageBuilderAssetReferencePage[] | undefined;
+}
+
+export interface PageBuilderAssetReferencePage {
+    id?: string | undefined;
+    name?: string | undefined;
+    permalink?: string | undefined;
+    cultureName?: string | undefined;
+    status?: string | undefined;
+}
+
+export interface PageBuilderAssetReferencesSearchCriteria {
+    storeId?: string | undefined;
+    statuses?: string | undefined;
+    includePages?: boolean;
+    folderUrl?: string | undefined;
+    assetUrls?: string[] | undefined;
+    responseGroup?: string | undefined;
+    objectType?: string | undefined;
+    objectTypes?: string[] | undefined;
+    objectIds?: string[] | undefined;
+    keyword?: string | undefined;
+    searchPhrase?: string | undefined;
+    languageCode?: string | undefined;
+    sort?: string | undefined;
+    readonly sortInfos?: SortInfo[] | undefined;
+    skip?: number;
+    take?: number;
+}
+
+export interface PageBuilderAssetReferencesSearchResult {
+    totalCount?: number;
+    results?: PageBuilderAssetReference[] | undefined;
 }
 
 export interface PageBuilderPage {

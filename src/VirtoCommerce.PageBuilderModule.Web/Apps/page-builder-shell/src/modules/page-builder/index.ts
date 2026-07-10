@@ -6,3 +6,5 @@ export default defineAppModule({
   blades: pages,
   locales,
 });
+
+export * from "./composables";

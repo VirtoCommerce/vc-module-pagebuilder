@@ -41,6 +41,7 @@ export interface IUsePageBuilderList {
   loading: ComputedRef<boolean>;
   pageStatuses: ComputedRef<{ value: string; label: string }[]>;
   storeId: ComputedRef<string | null>;
+  storeContextStatus: ReturnType<typeof useUrlParams>["storeContextStatus"];
 }
 
 export interface UsePageBuilderListOptions {
@@ -51,7 +52,7 @@ export interface UsePageBuilderListOptions {
 }
 
 export function usePageBuilderList(options?: UsePageBuilderListOptions): IUsePageBuilderList {
-  const { storeId, initUrlParams } = useUrlParams();
+  const { storeId, storeContextStatus, initUrlParams, validateStoreContext } = useUrlParams();
 
   const pageSize = options?.pageSize || 20;
   const searchQuery = ref<PageBuilderPageSearchCriteria>({
@@ -64,7 +65,9 @@ export function usePageBuilderList(options?: UsePageBuilderListOptions): IUsePag
   const { t } = useI18n({ useScope: "global" });
 
   const { action: loadPages, loading: loadingPages } = useAsync<PageBuilderPageSearchCriteria>(async (_query) => {
-    if (!storeId?.value) {
+    searchQuery.value = { ...searchQuery.value, ...(_query || {}) };
+
+    if (!storeId?.value || !(await validateStoreContext())) {
       searchResult.value = {
         totalCount: 0,
         results: [],
@@ -72,7 +75,6 @@ export function usePageBuilderList(options?: UsePageBuilderListOptions): IUsePag
       return;
     }
 
-    searchQuery.value = { ...searchQuery.value, ...(_query || {}) };
     const criteria: PageBuilderPageSearchCriteria = {
       ...searchQuery.value,
       storeId: storeId.value,
@@ -114,5 +116,6 @@ export function usePageBuilderList(options?: UsePageBuilderListOptions): IUsePag
       })),
     ),
     storeId: computed(() => storeId?.value ?? null),
+    storeContextStatus,
   };
 }

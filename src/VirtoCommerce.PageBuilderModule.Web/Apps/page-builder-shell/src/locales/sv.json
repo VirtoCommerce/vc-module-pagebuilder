@@ -1,3 +1,11 @@
 {
-  "language_name": "Svenska"
+  "language_name": "Svenska",
+  "COMMON": {
+    "STORE_CONTEXT": {
+      "MISSING_TITLE": "Butikskontext saknas",
+      "MISSING_DESCRIPTION": "Öppna Page Builder från en butik för att hantera sidor och assets.",
+      "INVALID_TITLE": "Butiken hittades inte",
+      "INVALID_DESCRIPTION": "Butiken \"{storeId}\" finns inte eller är inte tillgänglig. Kontrollera butikskontexten och öppna Page Builder igen från en giltig butik."
+    }
+  }
 }

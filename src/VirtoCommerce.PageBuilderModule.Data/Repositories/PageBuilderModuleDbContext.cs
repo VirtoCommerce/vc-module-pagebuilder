@@ -36,6 +36,14 @@ public class PageBuilderModuleDbContext : DbContextBase
 
         modelBuilder.Entity<PageBuilderContentEntity>().ToTable(PageBuilderPageTableName).HasKey(x => x.Id);
 
+        modelBuilder.Entity<PageBuilderAssetReferenceEntity>().ToTable("PageBuilderAssetReference").HasKey(x => x.Id);
+        modelBuilder.Entity<PageBuilderAssetReferenceEntity>().Property(x => x.Id).HasMaxLength(IdLength).ValueGeneratedOnAdd();
+        modelBuilder.Entity<PageBuilderAssetReferenceEntity>().HasOne<PageBuilderPageEntity>().WithMany()
+            .HasForeignKey(x => x.PageId).OnDelete(DeleteBehavior.Cascade).IsRequired();
+        modelBuilder.Entity<PageBuilderAssetReferenceEntity>().HasIndex(x => x.PageId);
+        modelBuilder.Entity<PageBuilderAssetReferenceEntity>().HasIndex(x => x.NormalizedAssetUrlHash);
+        modelBuilder.Entity<PageBuilderAssetReferenceEntity>().HasIndex(x => new { x.PageId, x.NormalizedAssetUrlHash }).IsUnique();
+
         switch (Database.ProviderName)
         {
             case "Pomelo.EntityFrameworkCore.MySql":
