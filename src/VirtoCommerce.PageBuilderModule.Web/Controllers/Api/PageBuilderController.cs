@@ -22,6 +22,7 @@ using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Web.Models;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Events;
+using VirtoCommerce.Platform.Core.Settings;
 using VirtoCommerce.StoreModule.Core.Model;
 using VirtoCommerce.StoreModule.Core.Services;
 
@@ -37,6 +38,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             IOptions<GitContentOptions> gitContentOptions,
             IGitContentPolicy gitContentPolicy,
             IGitContentRepository gitContentRepository,
+            IGitContentPublisher gitContentPublisher,
+            ISettingsManager settingsManager,
             IAuthorizationService authorizationService
             )
         : Controller
@@ -45,6 +48,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         // the only content type the git flow covers: blogs are markdown articles, themes and schemas
         // stay in blob storage
         private const string PagesContentType = "pages";
+        private const string DefaultPreviewPath = "/designer-preview";
         private const string DefaultTheme = "default";
         private const string JsonContentType = "application/json";
         private const string JsonExtension = ".json";
@@ -147,13 +151,62 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             var storageProvider = blobContentStorageProviderFactory.CreateProvider(basePath);
 
             var blobInfo = await storageProvider.GetBlobInfoAsync(filePath);
+            var gitFlow = await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted);
 
-            if (blobInfo != null)
+            if (blobInfo == null)
+            {
+                return Content(gitFlow ? GitBuilderDescriptors().ToString(Formatting.None) : "{}", JsonContentType);
+            }
+
+            if (!gitFlow)
             {
                 var stream = await storageProvider.OpenReadAsync(blobInfo.RelativeUrl);
                 return File(stream, MimeTypeResolver.ResolveContentType(blobInfo.Name));
             }
-            return Content("{}");
+
+            // The builder overlays this response on top of its bundled data/settings.json, server wins.
+            // That is how a store on the git flow gets git urls for publishing without anyone editing the
+            // app's static config — and how a store that is not on it keeps the bytes it has always got.
+            var settings = await ReadJsonBlobAsync(storageProvider, blobInfo.RelativeUrl);
+            settings.Merge(GitBuilderDescriptors(), new JsonMergeSettings { MergeArrayHandling = MergeArrayHandling.Replace });
+
+            return Content(settings.ToString(Formatting.None), JsonContentType);
+        }
+
+        /// <summary>
+        /// The publish-related request descriptors for a store on the git flow. Note the absence of
+        /// <c>unpublish</c>: with pages in git, taking a page down is deleting it from the production
+        /// branch, and the toolbar hides the button when no descriptor is offered.
+        /// </summary>
+        private static JObject GitBuilderDescriptors()
+        {
+            const string storeIdArg = "storeId={{location.params.storeId}}";
+
+            return new JObject
+            {
+                ["publish"] = new JObject
+                {
+                    ["status"] = $"/api/pagebuilder/git/publish-status?{storeIdArg}&path={{{{path}}}}",
+                    ["publish"] = new JObject
+                    {
+                        ["url"] = $"/api/pagebuilder/git/publish?{storeIdArg}&path={{{{path}}}}&type={{{{type}}}}",
+                        ["method"] = "POST",
+                    },
+                },
+                ["externalPreview"] = new JObject
+                {
+                    ["url"] = $"/api/pagebuilder/git/preview?{storeIdArg}&path={{{{path}}}}",
+                },
+            };
+        }
+
+        private static async Task<JObject> ReadJsonBlobAsync(IBlobContentStorageProvider storageProvider, string relativeUrl)
+        {
+            await using var stream = await storageProvider.OpenReadAsync(relativeUrl);
+            using var reader = new StreamReader(stream);
+            var json = await reader.ReadToEndAsync();
+
+            return string.IsNullOrWhiteSpace(json) ? [] : JObject.Parse(json);
         }
 
         [HttpGet]
@@ -423,6 +476,230 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             }
 
             return Ok(new { pages = saved });
+        }
+
+        /// <summary>
+        /// Publishes a page: merges its work branch into the production branch, from where CI deploys it.
+        /// The editor's own draft is what ships — never the bytes the caller happens to send.
+        /// </summary>
+        [HttpPost]
+        [Route("git/publish")]
+        public async Task<ActionResult> GitPublish(string storeId, string path, string type)
+        {
+            if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
+            {
+                // the switch is off for this store: publish means what it always meant
+                await publishingService.PublishingAsync(type ?? PagesContentType, storeId, path, publish: true);
+                return Ok(new { state = nameof(GitPublishState.Merged) });
+            }
+
+            if (!await IsAllowedToPublishAsync())
+            {
+                return Forbid();
+            }
+
+            var options = gitContentOptions.Value;
+            var branch = GitPageLocation.BranchFor(options.BranchTemplate, User?.Identity?.Name, path);
+            var repoPath = GitPageLocation.RepoPath(options.PagesRoot, path);
+
+            var draft = await gitContentRepository.ReadFileAsync(repoPath, branch, HttpContext.RequestAborted);
+            if (draft == null)
+            {
+                // no branch, or no such page on it: there is nothing of this editor's to publish
+                return Ok(new { state = nameof(GitPublishState.AlreadyPublished) });
+            }
+
+            // The CI gate runs the full, schema-aware validator; this one only refuses to open a pull
+            // request that could never pass it.
+            var errors = PageEnvelopeValidator.Validate(ParsePage(draft));
+            if (errors.Count > 0)
+            {
+                return BadRequest(new { errors });
+            }
+
+            var result = await gitContentPublisher.MergeBranchAsync(branch, $"publish {path} (store: {storeId})", HttpContext.RequestAborted);
+
+            return await RespondToPublishAsync(result, branch, path);
+        }
+
+        /// <summary>
+        /// Unpublishes a page by removing it from the production branch. Deleting the file is the whole
+        /// operation — the module never removes a page from blob storage itself, or production would
+        /// stop matching the branch and a revert would stop being a rollback.
+        /// </summary>
+        [HttpPost]
+        [Route("git/unpublish")]
+        public async Task<ActionResult> GitUnpublish(string storeId, string path, string type)
+        {
+            if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
+            {
+                await publishingService.PublishingAsync(type ?? PagesContentType, storeId, path, publish: false);
+                return Ok();
+            }
+
+            if (!await IsAllowedToPublishAsync())
+            {
+                return Forbid();
+            }
+
+            var options = gitContentOptions.Value;
+            var branch = GitPageLocation.BranchFor(options.BranchTemplate, User?.Identity?.Name, path);
+            var repoPath = GitPageLocation.RepoPath(options.PagesRoot, path);
+
+            if (await gitContentRepository.ReadFileAsync(repoPath, options.BaseBranch, HttpContext.RequestAborted) == null)
+            {
+                return NotFound(new { templatePath = path });
+            }
+
+            if (await gitContentRepository.GetBranchHeadShaAsync(branch, HttpContext.RequestAborted) == null)
+            {
+                await gitContentRepository.CreateBranchAsync(branch, options.BaseBranch, HttpContext.RequestAborted);
+            }
+
+            await gitContentRepository.DeleteFileAsync(repoPath, branch, $"unpublish {path} (store: {storeId})", CurrentAuthor(), HttpContext.RequestAborted);
+            var result = await gitContentPublisher.MergeBranchAsync(branch, $"unpublish {path} (store: {storeId})", HttpContext.RequestAborted);
+
+            return await RespondToPublishAsync(result, branch, path);
+        }
+
+        /// <summary>
+        /// The shape the builder's toolbar expects, answered from git: <c>published</c> is "the page
+        /// exists in the production branch", <c>hasChanges</c> is "this editor's branch says something
+        /// different", <c>pending</c> is "a pull request for it is open".
+        /// </summary>
+        [HttpGet]
+        [Route("git/publish-status")]
+        public async Task<ActionResult> GitPublishStatus(string storeId, string path)
+        {
+            if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
+            {
+                var status = await publishingService.PublishStatusAsync(PagesContentType, storeId, path);
+                return Ok(status);
+            }
+
+            var options = gitContentOptions.Value;
+            var branch = GitPageLocation.BranchFor(options.BranchTemplate, User?.Identity?.Name, path);
+            var repoPath = GitPageLocation.RepoPath(options.PagesRoot, path);
+
+            var published = await gitContentRepository.ReadFileAsync(repoPath, options.BaseBranch, HttpContext.RequestAborted);
+            var draft = await gitContentRepository.ReadFileAsync(repoPath, branch, HttpContext.RequestAborted);
+            var pending = await gitContentPublisher.GetOpenPullRequestNumberAsync(branch, HttpContext.RequestAborted);
+
+            return Ok(new
+            {
+                published = published != null,
+                // a draft that says the same thing as production is not a change, whatever its history
+                hasChanges = draft != null && !PageJson.AreSame(draft, published),
+                pending = pending != null,
+            });
+        }
+
+        /// <summary>
+        /// Redirects to the storefront's preview of this page at an exact commit: the editor's draft if
+        /// they have one, otherwise what is published. A commit sha is immutable, so the link keeps
+        /// showing what it showed when it was made.
+        /// </summary>
+        [HttpGet]
+        [Route("git/preview")]
+        public async Task<ActionResult> GitPreview(string storeId, string path)
+        {
+            if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
+            {
+                return NotFound();
+            }
+
+            var options = gitContentOptions.Value;
+            var branch = GitPageLocation.BranchFor(options.BranchTemplate, User?.Identity?.Name, path);
+
+            var gitRef = await gitContentRepository.GetBranchHeadShaAsync(branch, HttpContext.RequestAborted)
+                         ?? await gitContentRepository.GetBranchHeadShaAsync(options.BaseBranch, HttpContext.RequestAborted);
+            if (gitRef == null)
+            {
+                return NotFound(new { templatePath = path });
+            }
+
+            var storeUrl = await GetSettingAsync(ModuleConstants.Settings.General.StoreUrl);
+            if (string.IsNullOrEmpty(storeUrl))
+            {
+                return BadRequest(new { error = $"Set {ModuleConstants.Settings.General.StoreUrl.Name} to the storefront url before previewing." });
+            }
+
+            var previewPath = await GetSettingAsync(ModuleConstants.Settings.General.StorePreviewPath) ?? DefaultPreviewPath;
+            var pageId = EncodePageId(storeId, path);
+
+            return Redirect($"{storeUrl.TrimEnd('/')}{previewPath}?pageId={Uri.EscapeDataString(pageId)}&ref={Uri.EscapeDataString(gitRef)}");
+        }
+
+        /// <summary>
+        /// Throws this editor's draft of the page away, so the next read starts from what is published.
+        /// The way out of a conflict, and the only one that does not quietly pick a winner.
+        /// </summary>
+        [HttpPost]
+        [Route("git/discard-draft")]
+        public async Task<ActionResult> GitDiscardDraft(string storeId, string path)
+        {
+            if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
+            {
+                return NotFound();
+            }
+
+            var options = gitContentOptions.Value;
+            var branch = GitPageLocation.BranchFor(options.BranchTemplate, User?.Identity?.Name, path);
+
+            await gitContentRepository.DeleteBranchAsync(branch, HttpContext.RequestAborted);
+            return Ok();
+        }
+
+        private async Task<ActionResult> RespondToPublishAsync(GitPublishResult result, string branch, string path)
+        {
+            if (result.State == GitPublishState.Merged)
+            {
+                await gitContentRepository.DeleteBranchAsync(branch, HttpContext.RequestAborted);
+            }
+
+            if (result.State == GitPublishState.Conflict)
+            {
+                return Conflict(new
+                {
+                    error = $"\"{path}\" changed in the production branch while this draft was being written. Re-read the page and apply the change again.",
+                    pullRequest = result.PullRequestNumber,
+                    url = result.Url,
+                });
+            }
+
+            return Ok(new { state = result.State.ToString(), pullRequest = result.PullRequestNumber, url = result.Url });
+        }
+
+        private async Task<bool> IsAllowedToPublishAsync()
+        {
+            var authorization = await authorizationService.AuthorizeAsync(User, null, ModuleConstants.Security.Permissions.Publish);
+            return authorization.Succeeded;
+        }
+
+        private async Task<string> GetSettingAsync(SettingDescriptor descriptor)
+        {
+            var setting = await settingsManager.GetObjectSettingAsync(descriptor.Name);
+            return setting?.Value?.ToString();
+        }
+
+        // base64("<storeId>::<contentType>::<relativeUrl>") with '=' replaced by '-', matching what the
+        // builder puts in a preview link and what the storefront decodes (DesignerPreviewController).
+        private static string EncodePageId(string storeId, string path)
+        {
+            var raw = $"{storeId}::{PagesContentType}::{path.Replace('\\', '/').TrimStart('/')}";
+            return Convert.ToBase64String(PageJson.Encoding.GetBytes(raw)).Replace('=', '-');
+        }
+
+        private static JToken ParsePage(string json)
+        {
+            try
+            {
+                return JToken.Parse(json);
+            }
+            catch (JsonReaderException)
+            {
+                return JValue.CreateNull();
+            }
         }
 
         private async Task<object> CommitPageToGitAsync(SaveFileModel file, string storeId)

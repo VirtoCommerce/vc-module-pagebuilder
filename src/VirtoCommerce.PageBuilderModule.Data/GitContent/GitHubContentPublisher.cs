@@ -63,6 +63,16 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             return new GitPublishResult { State = state, PullRequestNumber = number, Url = url };
         }
 
+        public async Task<int?> GetOpenPullRequestNumberAsync(string branch, CancellationToken cancellationToken = default)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(branch);
+
+            var client = _httpClientFactory.CreateClient(HttpClientName);
+            var pullRequest = await FindOpenPullRequestAsync(client, branch, cancellationToken);
+
+            return pullRequest?["number"]?.Value<int>();
+        }
+
         private async Task<JObject> OpenOrReusePullRequestAsync(HttpClient client, string branch, string title, CancellationToken cancellationToken)
         {
             var body = new JObject

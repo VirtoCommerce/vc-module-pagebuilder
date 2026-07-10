@@ -148,6 +148,24 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         [Fact]
+        public async Task GetOpenPullRequestNumberAsync_finds_the_page_on_its_way_to_production()
+        {
+            var handler = new ScriptedHandler(
+                ("GET", $"repos/o/r/pulls?state=open&head={Uri.EscapeDataString($"o:{Branch}")}", _ => RespondJson($"[{PullRequest()}]")));
+
+            Assert.Equal(7, await Create(handler).GetOpenPullRequestNumberAsync(Branch, TestContext.Current.CancellationToken));
+        }
+
+        [Fact]
+        public async Task GetOpenPullRequestNumberAsync_is_null_when_nothing_is_in_flight()
+        {
+            var handler = new ScriptedHandler(
+                ("GET", $"repos/o/r/pulls?state=open&head={Uri.EscapeDataString($"o:{Branch}")}", _ => RespondJson("[]")));
+
+            Assert.Null(await Create(handler).GetOpenPullRequestNumberAsync(Branch, TestContext.Current.CancellationToken));
+        }
+
+        [Fact]
         public async Task An_api_failure_that_is_not_422_throws()
         {
             var handler = new ScriptedHandler(

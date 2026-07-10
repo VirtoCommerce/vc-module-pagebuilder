@@ -16,5 +16,11 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
         /// Never merges past a failing check, and never resolves a conflict on the editor's behalf.
         /// </summary>
         Task<GitPublishResult> MergeBranchAsync(string branch, string title, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Number of the open pull request from <paramref name="branch"/>, or <c>null</c> when there is
+        /// none. A page with one is on its way to production and must not be reported as published yet.
+        /// </summary>
+        Task<int?> GetOpenPullRequestNumberAsync(string branch, CancellationToken cancellationToken = default);
     }
 }
