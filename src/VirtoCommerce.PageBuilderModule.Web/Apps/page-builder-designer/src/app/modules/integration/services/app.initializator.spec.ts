@@ -18,10 +18,19 @@ describe('app initializator', () => {
     let evaluator: EvaluatorService;
     let httpController: HttpTestingController;
 
+    // The platform shell leaves a token here before the app boots. Without one, init() asks
+    // /connect/token for a fresh one first, and the config request these tests expect never goes out.
+    const storeValidToken = () => localStorage.setItem('ls.authenticationData', JSON.stringify({
+        token: 'test-token',
+        expiresAt: Date.now() + 3600_000,
+    }));
+
     beforeEach(() => {
         cookies = <any>{};
         // evaluator = <any>jasmine.createSpyObj('evaluator', ['evaluate']);
         // evaluator.evaluate.and.callFake((x: any) => x);
+
+        storeValidToken();
 
         envRef = <any>{
             nativeWindow: {
@@ -47,6 +56,10 @@ describe('app initializator', () => {
 
     });
 
+    afterEach(() => {
+        localStorage.removeItem('ls.authenticationData');
+    });
+
     it('simple scenario', () => {
         const response = {
             key: "value"
@@ -60,6 +73,34 @@ describe('app initializator', () => {
         const request = httpController.expectOne('data/settings.json');
         expect(request.request.method).toBe('GET');
         request.flush(response);
+    });
+
+    describe('bearer token', () => {
+        it('is obtained from the cookie session when the shell left none', async () => {
+            localStorage.removeItem('ls.authenticationData');
+
+            const done = initializator.init();
+
+            const tokenRequest = httpController.expectOne('/connect/token');
+            expect(tokenRequest.request.method).toBe('POST');
+            tokenRequest.flush({ access_token: 'fresh', expires_in: 3600 });
+
+            // the config is only fetched once the app can authenticate for it
+            httpController.expectOne('data/settings.json').flush({ key: 'value' });
+            httpController.expectOne(r => r.url.startsWith('/api/pagebuilder/settings')).flush({});
+
+            await expect(done).resolves.toEqual({ key: 'value' });
+            expect(JSON.parse(localStorage.getItem('ls.authenticationData')!).token).toBe('fresh');
+        });
+
+        it('is reused while it is still valid', () => {
+            storeValidToken();
+
+            initializator.init();
+
+            httpController.expectNone('/connect/token');
+            httpController.expectOne('data/settings.json').flush({});
+        });
     });
 
     it('override config via get parameter', () => {
