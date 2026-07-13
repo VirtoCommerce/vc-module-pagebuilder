@@ -15,6 +15,13 @@
     &:hover {
         background: rgba(18, 18, 18, 0.04);
     }
+
+    // mat-button wraps the projected content into .mdc-button__label, a flex item without
+    // min-width: 0. Its content-based minimum keeps it from shrinking, so a long unbreakable
+    // title overflows the button (.mdc-button has overflow: visible) instead of truncating.
+    ::ng-deep .mdc-button__label {
+        @apply w-full min-w-0;
+    }
 }
 
 .btn-inner {
@@ -31,10 +38,16 @@
     line-height: 2.25rem;
     border-radius: .25rem;
     @apply px-2;
+
+    // Material sets `flex: 1; white-space: normal` on this wrapper, so a long title wraps
+    // onto a second line instead of being ellipsized.
+    ::ng-deep .mat-mdc-menu-item-text {
+        @apply min-w-0;
+    }
 }
 
 .item-inner {
-    @apply flex flex-row items-center w-full;
+    @apply flex flex-row items-center w-full min-w-0;
 
     app-icon {
         @apply mr-2;
@@ -47,5 +60,9 @@
 
 .text {
     line-height: 1.5rem;
-    @apply px-2 text-left grow align-middle;
+    @apply px-2 text-left grow min-w-0 align-middle;
+}
+
+.text-item {
+    @apply truncate;
 }
