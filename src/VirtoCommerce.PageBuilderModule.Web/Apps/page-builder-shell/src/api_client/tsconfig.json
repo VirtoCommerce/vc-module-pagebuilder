@@ -7,7 +7,8 @@
     "rootDir": "./"
   },
   "files": [
-    "virtocommerce.pagebuildermodule.ts"
+    "virtocommerce.pagebuildermodule.ts",
+    "virtocommerce.assets.ts"
   ],
   "include": [
     "*.ts"

@@ -1,21 +1,11 @@
 @use '../../../../../layout/variables' as *;
 
-file-upload {
-    @apply bg-white flex flex-row justify-items-stretch;
-    border: 2px dashed #8C9196;
-    min-height: 4rem;
-    border-radius: .5rem;
-    outline: none;
-    padding: .5rem;
+:host {
+    @apply flex flex-col;
+}
 
-    ::ng-deep .upload-input {
-        transform: none;
-        @apply static text-center grow flex flex-col justify-center items-center;
-    }
-
-    &.dragover {
-        background: #F6F6F6;
-    }
+.images-control {
+    @apply flex flex-col gap-2 mt-1;
 }
 
 .image-item {
@@ -24,7 +14,15 @@ file-upload {
 }
 
 .images-list {
-    @apply flex flex-col space-y-3 overflow-hidden mt-1;
+    @apply flex flex-col gap-2 overflow-hidden;
+}
+
+.choose-from-library {
+    @apply block;
+
+    &--uploading {
+        pointer-events: none;
+    }
 }
 
 .list-item {
@@ -32,7 +30,7 @@ file-upload {
 }
 
 .file-item {
-    @apply flex flex-row space-x-2 items-center bg-white;
+    @apply flex flex-row gap-2 items-center bg-white rounded px-2 py-1;
 
     &:hover .actions {
         opacity: 1;
@@ -50,39 +48,20 @@ file-upload {
 }
 
 .show-all {
-    background: #F6F6F6;
-    color: #1665d8;
+    background: $hover-color;
+    color: $active-color;
     @apply mt-2 block text-center rounded;
 
-    ::ng-deep .text {
-        @apply block grow;
-    }
-
-    &:hover ::ng-deep button {
-        background: #F0F0F0;
-    }
-}
-
-mat-spinner {
-    width: 100% !important;
-    height: 100% !important;
-
-    ::ng-deep svg {
-        width: 100% !important;
-        height: 100% !important;
+    &:hover {
+        filter: brightness(0.98);
     }
 }
 
 .error {
-    color: #FF0000;
+    color: $error-color;
     background-color: white;
     font-size: .75rem;
     @apply break-all px-6;
-
-    .reload {
-        @apply cursor-pointer;
-        color: #1665d8;
-    }
 }
 
 .actions {
@@ -91,13 +70,12 @@ mat-spinner {
     @apply flex flex-row space-x-1;
 }
 
-.spinner,
 .image-item {
     min-width: 3.5rem;
     @apply flex flex-row justify-center items-center w-14 h-14;
 }
 
 .selected-file-properties {
-    padding-left: 1.75rem;
-    padding-right: 2rem;
+    padding-left: 0;
+    padding-right: 0;
 }

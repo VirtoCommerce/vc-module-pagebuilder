@@ -1,3 +1,11 @@
 {
-  "language_name": "中文"
+  "language_name": "中文",
+  "COMMON": {
+    "STORE_CONTEXT": {
+      "MISSING_TITLE": "缺少店铺上下文",
+      "MISSING_DESCRIPTION": "请从店铺打开 Page Builder 以管理页面和资产。",
+      "INVALID_TITLE": "未找到店铺",
+      "INVALID_DESCRIPTION": "店铺 “{storeId}” 不存在或不可用。请检查店铺上下文，并从有效店铺重新打开 Page Builder。"
+    }
+  }
 }

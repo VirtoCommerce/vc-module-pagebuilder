@@ -1,0 +1,93 @@
+{
+  "ASSET_LIBRARY": {
+    "MENU": {
+      "TITLE": "アセットライブラリ"
+    },
+    "TITLE": "アセットライブラリ",
+    "COUNTER": "{count} 件のアセット",
+    "BREADCRUMBS": {
+      "ROOT": "Page Builder"
+    },
+    "BADGES": {
+      "FOLDER": "フォルダー",
+      "REFERENCES": "{count} 参照"
+    },
+    "TABLE": {
+      "NAME": "名前",
+      "TYPE": "タイプ",
+      "SIZE": "サイズ",
+      "REFERENCES": "参照",
+      "MODIFIED": "更新日"
+    },
+    "VIEW": {
+      "GRID": "グリッド表示",
+      "TABLE": "テーブル表示"
+    },
+    "TOOLBAR": {
+      "REFRESH": "更新",
+      "UPLOAD": "アップロード",
+      "CREATE_FOLDER": "フォルダーを作成",
+      "DELETE": "削除",
+      "SEARCH_PLACEHOLDER": "アセットを検索..."
+    },
+    "ACTIONS": {
+      "COPY_URL": "URLをコピー",
+      "DELETE": "削除"
+    },
+    "DROP": {
+      "UPLOAD_HERE": "ファイルをここにドロップしてアップロード"
+    },
+    "DETAILS": {
+      "EMPTY": "詳細を表示するファイルを選択してください。",
+      "FILE_DETAILS": "ファイル詳細",
+      "SIZE": "サイズ",
+      "DIMENSIONS": "寸法",
+      "TYPE": "タイプ",
+      "MODIFIED": "更新日",
+      "UPLOADED": "アップロード日",
+      "PATH": "パス",
+      "USED_ON": "使用先 ({count} ページ)",
+      "NO_REFERENCES": "Page Builder ページでは使用されていません。",
+      "URL": "URL",
+      "COPY_URL": "URLをコピー",
+      "REPLACE": "置換",
+      "DELETE": "削除",
+      "NOT_AVAILABLE": "N/A"
+    },
+    "EMPTY": {
+      "TITLE": "このフォルダーにはまだアセットがありません",
+      "DESCRIPTION": "Page Builder のストアアセット領域にファイルをアップロードするか、フォルダーを作成します。",
+      "NO_STORE": "ストアコンテキストがありません"
+    },
+    "CREATE_FOLDER": {
+      "TITLE": "フォルダーを作成",
+      "NAME_LABEL": "フォルダー名",
+      "NAME_PLACEHOLDER": "フォルダー名を入力",
+      "CANCEL": "キャンセル",
+      "CREATE": "作成",
+      "VALIDATION": {
+        "DASH_CONSECUTIVE": "フォルダー名に連続したハイフンを含めることはできません。",
+        "DASH_END": "フォルダー名をハイフンで終わらせることはできません。",
+        "DASH_START": "フォルダー名をハイフンで始めることはできません。",
+        "INVALID_CHARACTERS": "フォルダー名には小文字、数字、スペース、単独のハイフンのみ使用できます。",
+        "MAX_LENGTH": "フォルダー名は最大63文字です。入力された文字数: {count}。",
+        "MIN_LENGTH": "フォルダー名は3文字以上である必要があります。入力された文字数: {count}。"
+      }
+    },
+    "CONFIRM": {
+      "DELETE_SINGLE": "{name} を削除しますか？",
+      "DELETE_SELECTED": "選択した {count} 件のアセットを削除しますか？",
+      "DELETE_USED_ONE": "{name} を削除しますか？1 件の Page Builder ページで使用されています。",
+      "DELETE_USED_MANY": "{name} を削除しますか？{count} 件の Page Builder ページで使用されています。"
+    },
+    "NOTIFICATIONS": {
+      "FOLDER_CREATED": "フォルダーを作成しました",
+      "UPLOADED": "アセットをアップロードしました",
+      "REPLACED": "アセットを置換しました",
+      "DELETED": "アセットを削除しました",
+      "URL_COPIED": "アセットURLをコピーしました",
+      "COPY_FAILED": "URLをクリップボードにコピーできませんでした",
+      "ERROR_GENERIC": "アセット操作に失敗しました"
+    }
+  }
+}

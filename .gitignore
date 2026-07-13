@@ -280,3 +280,5 @@ builder/
 /src/VirtoCommerce.PageBuilderModule.Web/Content/bridge
 
 settings.local.json
+# Superpowers session artifacts (specs/plans)
+docs/superpowers/

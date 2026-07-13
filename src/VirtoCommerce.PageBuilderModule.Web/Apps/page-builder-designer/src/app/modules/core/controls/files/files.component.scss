@@ -1,37 +1,31 @@
-file-upload {
-    @apply bg-white flex flex-row justify-items-stretch;
-    border: 2px dashed #8C9196;
-    min-height: 4rem;
-    border-radius: .5rem;
-    outline: none;
-    padding: .5rem;
+@use '../../../../../layout/variables' as *;
 
-    ::ng-deep .upload-input {
-        transform: none;
-        @apply static text-center grow flex flex-col justify-center items-center;
-    }
+:host {
+    @apply flex flex-col;
+}
 
-    &.dragover {
-        background: #F6F6F6;
-    }
+.files-control {
+    @apply flex flex-col gap-2 mt-1;
 }
 
 .file-list {
-    @apply flex flex-col mt-1 overflow-hidden;
+    @apply flex flex-col overflow-hidden;
 
     app-icon.file-type,
     app-icon.copy-url,
     app-icon.delete-icon {
         width: 1rem;
         height: 1rem;
-
-        ::ng-deep mat-icon {
-            width: 1rem;
-            height: 1rem;
-            line-height: 1rem;
-        }
     }
 
+}
+
+.choose-from-library {
+    @apply block;
+
+    &--uploading {
+        pointer-events: none;
+    }
 }
 
 .file-item {
@@ -41,18 +35,18 @@ file-upload {
         @apply cursor-pointer;
     }
 
-        .delete-icon,
-        .copy-url {
+    .delete-icon,
+    .copy-url {
         visibility: hidden;
         cursor: pointer;
         font-size: 1rem;
     }
 
     &:hover {
-        background: #F6F6F6;
+        background: $hover-color;
 
         .delete-icon,
-          .copy-url {
+        .copy-url {
             visibility: visible;
         }
     }
@@ -67,32 +61,23 @@ file-upload {
 }
 
 .show-all {
-    background: #F6F6F6;
-    color: #1665d8;
+    background: $hover-color;
+    color: $active-color;
     @apply mt-2 block text-center rounded;
 
-    ::ng-deep .text {
-        @apply block grow;
-    }
-
-    &:hover ::ng-deep button {
-        background: #F0F0F0;
+    &:hover {
+        filter: brightness(0.98);
     }
 }
 
 .error {
-    color: #FF0000;
+    color: $error-color;
     background-color: white;
     font-size: .75rem;
     @apply break-all px-6;
-
-    .reload {
-        @apply cursor-pointer;
-        color: #1665d8;
-    }
 }
 
 .selected-file-properties {
-    padding-left: 1.75rem;
-    padding-right: 2rem;
+    padding-left: 0;
+    padding-right: 0;
 }
