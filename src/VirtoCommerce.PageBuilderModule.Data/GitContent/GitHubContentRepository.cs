@@ -261,9 +261,9 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             return body["commit"]?["sha"]?.Value<string>();
         }
 
-        private void InvalidateRead(string path, string branch)
+        public void InvalidateRead(string path, string gitRef)
         {
-            _memoryCache.Remove(ReadCacheKey(path, branch));
+            _memoryCache.Remove(ReadCacheKey(path, gitRef));
         }
 
         private string ReadCacheKey(string path, string gitRef) => $"{nameof(GitHubContentRepository)}:{_options.Repository}:{gitRef}:{path}";

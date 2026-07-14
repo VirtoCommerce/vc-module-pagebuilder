@@ -655,8 +655,14 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         {
             if (result.State == GitPublishState.Merged)
             {
-                var repoPath = GitPageLocation.RepoPath(gitContentOptions.Value.PagesRoot, path);
+                var options = gitContentOptions.Value;
+                var repoPath = GitPageLocation.RepoPath(options.PagesRoot, path);
+
                 await gitContentRepository.DeleteBranchAsync(branch, repoPath, HttpContext.RequestAborted);
+
+                // the merge moved the production branch, so what it said about this page a moment ago is
+                // the pre-publish content — publish-status would report the page as still unpublished
+                gitContentRepository.InvalidateRead(repoPath, options.BaseBranch);
             }
 
             if (result.State == GitPublishState.Conflict)

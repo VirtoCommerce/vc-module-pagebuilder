@@ -43,6 +43,14 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
         Task DeleteBranchAsync(string branch, string pagePath, CancellationToken cancellationToken = default);
 
         /// <summary>
+        /// Forgets what <paramref name="gitRef"/> last said about the page, so the next read goes back to
+        /// git. Needed whenever a ref moves behind this module's back — a merge performed by the
+        /// publisher moves the production branch, and until it is forgotten the page reads as it was
+        /// before it was published.
+        /// </summary>
+        void InvalidateRead(string path, string gitRef);
+
+        /// <summary>
         /// Creates or updates the file on an existing branch. The branch is not created implicitly:
         /// a work branch must be cut from the production branch at a moment the caller chooses, so that
         /// what gets published is the page as it stands today plus this edit, and nothing else.

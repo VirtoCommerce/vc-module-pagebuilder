@@ -183,5 +183,28 @@
             "isArray": false
         }
     },
-    "ozAgentUrl": ""
+    "ozAgentUrl-disabled": {
+      "init": "requests",
+      "requests": [
+        {
+          "url": "/api/platform/settings/VirtoCommerce.PageBuilderModule.General.OzAgentUrl",
+          "method": "GET",
+          "cacheable": true,
+          "response": {
+            "result": "$.value",
+            "isArray": false
+          }
+        },
+        {
+          "url": "/api/platform/settings/VirtoCommerce.PageBuilderModule.General.OzAgentUrl",
+          "method": "GET",
+          "cacheable": true,
+          "response": {
+            "result": "$.defaultValue",
+            "isArray": false
+          }
+        }
+      ],
+      "fallbackValue": ""
+    }
 }

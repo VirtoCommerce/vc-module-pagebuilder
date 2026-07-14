@@ -1,4 +1,4 @@
-import { inject, Injectable } from '@angular/core';
+import { computed, inject, Injectable, Signal } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { AppConfig, JwtStorageService } from '@integration/services';
 import { BuilderState, selectGroupIdParameter, selectPathParameter } from '@shared/routing';
@@ -29,24 +29,20 @@ export class OzContextService {
     private readonly appConfig = inject(AppConfig);
     private readonly store = inject(Store<BuilderState>);
 
-    buildInitPayload(): OzInitContextPayload {
-        const info = this.jwt.getInfo();
-        const accessToken = (info?.token as string | undefined) || FALLBACK_ACCESS_TOKEN;
-        const userId = (info?.userName as string | undefined) || FALLBACK_USER_ID;
-        return {
-            accessToken,
-            userId,
-            locale: (navigator.language || 'en').slice(0, 2),
-            blade: PAGE_BUILDER_BLADE,
-            contextType: 'list',
-            items: this.buildItems(),
-        };
-    }
+    // The router feature lives in the root store, so these resolve before the lazy editor module is
+    // loaded — the chat can be opened from anywhere in the app.
+    private readonly path = this.store.selectSignal(selectPathParameter);
+    private readonly groupId = this.store.selectSignal(selectGroupIdParameter);
 
-    // Store first, page second. Without the store item the agent has no store id at all and has to
-    // ask for one (or guess); without the page item "edit this page" has nothing to act on. Both are
-    // omitted when unknown rather than sent empty — an item with no id is worse than no item.
-    private buildItems(): Record<string, unknown>[] {
+    /**
+     * What the agent is looking at: the store, then the open page. Reactive, because the page changes
+     * under a chat that stays open — the transport re-sends it on every change.
+     *
+     * Store first, page second. Without the store item the agent has no store id at all and has to ask
+     * for one (or guess); without the page item "edit this page" has nothing to act on. Either is
+     * omitted when unknown rather than sent empty — an item with no id is worse than no item.
+     */
+    readonly items: Signal<Record<string, unknown>[]> = computed(() => {
         const items: Record<string, unknown>[] = [];
 
         const storeId = this.getStoreId();
@@ -58,11 +54,8 @@ export class OzContextService {
             });
         }
 
-        // The router feature lives in the root store, so this works before the lazy editor module
-        // is loaded — the chat can be opened from anywhere in the app.
-        const path = this.store.selectSignal(selectPathParameter)();
-        const groupId = this.store.selectSignal(selectGroupIdParameter)();
-        const pageId = groupId || path;
+        const path = this.path();
+        const pageId = this.groupId() || path;
         if (pageId) {
             items.push({
                 id: pageId,
@@ -72,6 +65,20 @@ export class OzContextService {
         }
 
         return items;
+    });
+
+    buildInitPayload(): OzInitContextPayload {
+        const info = this.jwt.getInfo();
+        const accessToken = (info?.token as string | undefined) || FALLBACK_ACCESS_TOKEN;
+        const userId = (info?.userName as string | undefined) || FALLBACK_USER_ID;
+        return {
+            accessToken,
+            userId,
+            locale: (navigator.language || 'en').slice(0, 2),
+            blade: PAGE_BUILDER_BLADE,
+            contextType: 'list',
+            items: this.items(),
+        };
     }
 
     private getStoreId(): string | null {

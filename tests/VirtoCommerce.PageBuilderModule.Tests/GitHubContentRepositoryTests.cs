@@ -163,6 +163,23 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             handler.AssertDone();
         }
 
+        [Fact]
+        public async Task InvalidateRead_SendsTheNextReadOfThatRefBackToGit()
+        {
+            // the publisher merges behind the repository's back, so the production branch moves without
+            // any write going through here — the cached read of it has to be dropped explicitly
+            var handler = new ScriptedHandler(
+                ("GET", "repos/o/r/contents/pages/foo.page?ref=master", _ => RespondJson(ContentsPayload("before"))),
+                ("GET", "repos/o/r/contents/pages/foo.page?ref=master", _ => RespondJson(ContentsPayload("after"))));
+            var repository = Create(handler);
+
+            Assert.Equal("before", await repository.ReadFileAsync("pages/foo.page", "master", TestContext.Current.CancellationToken));
+            repository.InvalidateRead("pages/foo.page", "master");
+
+            Assert.Equal("after", await repository.ReadFileAsync("pages/foo.page", "master", TestContext.Current.CancellationToken));
+            handler.AssertDone();
+        }
+
         // ── writing ────────────────────────────────────────────────────────────────────────────────
 
         [Fact]

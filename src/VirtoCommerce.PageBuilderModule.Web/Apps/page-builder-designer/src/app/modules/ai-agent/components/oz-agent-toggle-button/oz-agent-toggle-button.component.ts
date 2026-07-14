@@ -14,7 +14,9 @@ export class OzAgentToggleButtonComponent {
 
     protected readonly ui = inject(OzAgentUiService);
 
-    readonly iconUrl = 'https://virtooz.virtocommerce.org/public/assets/chat-DafIu_-0.png';
+    // Bundled, not linked from the OZ deployment: its asset names carry a content hash, so every OZ
+    // redeploy renames the file and would leave this button with a broken image.
+    readonly iconUrl = 'assets/icons/oz-chat.png';
 
     toggle() {
         this.ui.toggle();

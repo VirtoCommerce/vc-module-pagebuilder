@@ -1,4 +1,4 @@
-import { DestroyRef, Injectable, inject } from '@angular/core';
+import { DestroyRef, Injectable, effect, inject } from '@angular/core';
 import { AppConfig } from '@integration/services';
 import type { OzChatMessage, OzParentToChatMessage } from '../types';
 import { OzContextService } from './oz-context.service';
@@ -15,6 +15,12 @@ export class OzAgentTransportService {
   // flushed as soon as setIframe() gets called.
   private pendingInit = false;
 
+  // The context last handed to the chat, or null while there is no chat to tell. The panel keeps the
+  // iframe mounted while it is open, so the page changes under a live chat; without a re-send the agent
+  // keeps acting on whatever was open at handshake time. Serialized rather than compared by reference:
+  // the items are rebuilt on every route change, and re-sending an identical context is noise.
+  private lastSentItems: string | null = null;
+
   private readonly ozOrigin: string | null = this.computeOzOrigin();
 
   constructor() {
@@ -24,12 +30,31 @@ export class OzAgentTransportService {
     const handler = (event: MessageEvent) => this.handleIncoming(event);
     window.addEventListener('message', handler);
     this.destroyRef.onDestroy(() => window.removeEventListener('message', handler));
+
+    effect(() => {
+      const items = this.context.items();
+
+      // no handshake yet — INIT_CONTEXT will carry the current items when it happens
+      if (this.lastSentItems === null) {
+        return;
+      }
+
+      const serialized = JSON.stringify(items);
+      if (serialized === this.lastSentItems) {
+        return;
+      }
+
+      this.lastSentItems = serialized;
+      this.sendToIframe({ type: 'UPDATE_CONTEXT', payload: { contextType: 'list', items } });
+    });
   }
 
   setIframe(el: HTMLIFrameElement | null) {
     this.iframe = el;
     if (!el) {
       this.pendingInit = false;
+      // the chat is gone; the next one starts from a fresh INIT_CONTEXT
+      this.lastSentItems = null;
       return;
     }
     if (this.pendingInit) {
@@ -79,6 +104,8 @@ export class OzAgentTransportService {
 
   private sendInitContext() {
     const payload = this.context.buildInitPayload();
+    // from here on the effect owns the context: it re-sends whenever the page changes
+    this.lastSentItems = JSON.stringify(payload.items ?? []);
     this.sendToIframe({ type: 'INIT_CONTEXT', payload });
   }
 
