@@ -29,7 +29,7 @@
   },
   "apiClientGenerator": {
     "version": "2.0.0",
-    "generatedAt": "2026-06-09T16:19:53.819Z"
+    "generatedAt": "2026-07-14T12:51:14.499Z"
   },
   "module": "./dist/virtocommerce.pagebuildermodule.js",
   "types": "./dist/types/virtocommerce.pagebuildermodule.d.ts"

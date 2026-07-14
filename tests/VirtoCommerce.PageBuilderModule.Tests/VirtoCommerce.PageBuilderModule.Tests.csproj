@@ -8,6 +8,7 @@
     <ProjectReference Include="..\..\src\VirtoCommerce.PageBuilderModule.Data.SqlServer\VirtoCommerce.PageBuilderModule.Data.SqlServer.csproj" />
     <ProjectReference Include="..\..\src\VirtoCommerce.PageBuilderModule.Data.PostgreSql\VirtoCommerce.PageBuilderModule.Data.PostgreSql.csproj" />
     <ProjectReference Include="..\..\src\VirtoCommerce.PageBuilderModule.Data.MySql\VirtoCommerce.PageBuilderModule.Data.MySql.csproj" />
+    <ProjectReference Include="..\..\src\VirtoCommerce.PageBuilderModule.Web\VirtoCommerce.PageBuilderModule.Web.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="10.0.1">

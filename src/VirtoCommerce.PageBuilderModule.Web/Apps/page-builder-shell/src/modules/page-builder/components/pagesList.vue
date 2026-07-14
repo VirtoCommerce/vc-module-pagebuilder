@@ -299,8 +299,6 @@ onMounted(async () => {
   await loadPages();
 });
 
-const selectedItems = computed(() => localSelection.value.map((item) => item.id!).filter(Boolean));
-
 export interface ExposedPagesList {
   selectedItems: Readonly<Ref<readonly string[]>>;
   reload: () => Promise<void>;

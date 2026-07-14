@@ -19,6 +19,7 @@ using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Data.Authorization;
 using VirtoCommerce.PageBuilderModule.Data.ContentProviders;
 using VirtoCommerce.PageBuilderModule.Data.ExportImport;
+using VirtoCommerce.PageBuilderModule.Data.GitContent;
 using VirtoCommerce.PageBuilderModule.Data.Handlers;
 using VirtoCommerce.PageBuilderModule.Data.MySql;
 using VirtoCommerce.PageBuilderModule.Data.PostgreSql;

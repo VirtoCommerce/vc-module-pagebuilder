@@ -195,12 +195,6 @@ const aiContextItem = computed(() =>
 );
 useAiAgentContextWithStore({ dataRef: aiContextItem });
 
-const { canSave, isModified, setBaseline, formMeta } = useBladeForm({
-  data: item,
-  closeConfirmMessage: () => t("PAGE_BUILDER.PAGES.ALERTS.CLOSE_CONFIRMATION"),
-  canSaveOverride: computed(() => !isReadOnly.value),
-});
-
 watch(
   item,
   () => {

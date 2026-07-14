@@ -5,7 +5,6 @@ import {
   useAiAgentContext,
   useBladeStack,
   type UseAiAgentContextOptions,
-  type UseAiAgentContextReturn,
 } from "@vc-shell/framework";
 
 const STORE_SENTINEL_OBJECT_TYPE = "pagebuilder.store";
@@ -58,7 +57,7 @@ export interface UseAiAgentContextWithStoreOptions<T extends ContextItem> {
 //     (after which the clobber can no longer touch another blade's slot).
 export default function useAiAgentContextWithStore<T extends ContextItem = ContextItem>(
   options: UseAiAgentContextWithStoreOptions<T> = {},
-): UseAiAgentContextReturn {
+): void {
   const route = useRoute();
   const { activeBlade } = useBladeStack();
   const bladeDescriptor = inject(BladeDescriptorKey, null);
@@ -114,7 +113,7 @@ export default function useAiAgentContextWithStore<T extends ContextItem = Conte
     { immediate: true, deep: true, flush: "post" },
   );
 
-  return useAiAgentContext({
+  useAiAgentContext({
     dataRef: mergedItems,
     suggestions: options.suggestions,
   });

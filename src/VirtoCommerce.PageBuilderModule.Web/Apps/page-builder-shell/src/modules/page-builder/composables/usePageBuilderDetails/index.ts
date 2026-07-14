@@ -240,7 +240,6 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
   return {
     item,
     status,
-    isModified,
     loading: useLoading(
       loadingGroup,
       savingGroup,
