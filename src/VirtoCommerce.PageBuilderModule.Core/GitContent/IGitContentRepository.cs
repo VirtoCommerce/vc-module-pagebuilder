@@ -31,8 +31,16 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
         /// </summary>
         Task CreateBranchAsync(string branch, string fromRef, CancellationToken cancellationToken = default);
 
-        /// <summary>Deletes the branch. Succeeds quietly when it is already gone.</summary>
-        Task DeleteBranchAsync(string branch, CancellationToken cancellationToken = default);
+        /// <summary>
+        /// Deletes the branch. Succeeds quietly when it is already gone.
+        /// <para>
+        /// <paramref name="pagePath"/> is the page the branch was cut for, and its cached read is dropped
+        /// along with the branch. Without it a publish or a discard would keep serving the draft it just
+        /// deleted until the read cache expired, and the editor would be told the page still has one.
+        /// A work branch holds exactly one page, so that single path is the whole of the branch's cache.
+        /// </para>
+        /// </summary>
+        Task DeleteBranchAsync(string branch, string pagePath, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Creates or updates the file on an existing branch. The branch is not created implicitly:

@@ -19,7 +19,7 @@ public sealed class PageBuilderExportImport(
     IGroupedPageSearchService groupedPageSearchService,
     JsonSerializer jsonSerializer)
 {
-    private const int BatchSize = 1;
+    private const int BatchSize = 50;
 
     public async Task DoExportAsync(Stream outStream, Action<ExportImportProgressInfo> progressCallback, CancellationToken cancellationToken)
     {
@@ -47,12 +47,10 @@ public sealed class PageBuilderExportImport(
 
         for (criteria.Skip = 0; ; criteria.Skip += BatchSize)
         {
-            Console.WriteLine(criteria.Skip);
             var searchResult = await groupedPageSearchService.SearchNoCloneAsync(criteria);
 
             foreach (var group in searchResult.Results)
             {
-                Console.WriteLine(group.Name);
                 cancellationToken.ThrowIfCancellationRequested();
 
                 var exportPage = await ConvertToExportPageAsync(group);

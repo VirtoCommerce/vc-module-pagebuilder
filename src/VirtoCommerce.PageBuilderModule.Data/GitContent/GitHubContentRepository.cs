@@ -107,9 +107,10 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             }
         }
 
-        public async Task DeleteBranchAsync(string branch, CancellationToken cancellationToken = default)
+        public async Task DeleteBranchAsync(string branch, string pagePath, CancellationToken cancellationToken = default)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(branch);
+            ArgumentException.ThrowIfNullOrWhiteSpace(pagePath);
             EnsureConfigured();
 
             var client = _httpClientFactory.CreateClient(HttpClientName);
@@ -121,6 +122,10 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             {
                 await ThrowIfFailedAsync(response, $"delete branch \"{branch}\"");
             }
+
+            // the draft is gone, so the read that would still serve it has to go with it — including the
+            // cached miss, which is what a not-yet-saved page on this branch left behind
+            InvalidateRead(pagePath, branch);
         }
 
         public async Task<string> CommitFileAsync(string path, string content, string branch, string message, GitCommitAuthor author, CancellationToken cancellationToken = default)

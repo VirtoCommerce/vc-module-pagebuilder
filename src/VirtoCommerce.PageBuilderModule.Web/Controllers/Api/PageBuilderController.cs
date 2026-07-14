@@ -645,8 +645,9 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
             var options = gitContentOptions.Value;
             var branch = GitPageLocation.BranchFor(options.BranchTemplate, User?.Identity?.Name, path);
+            var repoPath = GitPageLocation.RepoPath(options.PagesRoot, path);
 
-            await gitContentRepository.DeleteBranchAsync(branch, HttpContext.RequestAborted);
+            await gitContentRepository.DeleteBranchAsync(branch, repoPath, HttpContext.RequestAborted);
             return Ok();
         }
 
@@ -654,7 +655,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         {
             if (result.State == GitPublishState.Merged)
             {
-                await gitContentRepository.DeleteBranchAsync(branch, HttpContext.RequestAborted);
+                var repoPath = GitPageLocation.RepoPath(gitContentOptions.Value.PagesRoot, path);
+                await gitContentRepository.DeleteBranchAsync(branch, repoPath, HttpContext.RequestAborted);
             }
 
             if (result.State == GitPublishState.Conflict)

@@ -142,7 +142,24 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             var handler = new ScriptedHandler(
                 ("DELETE", "repos/o/r/git/refs/heads/designer/john/foo", _ => Respond(HttpStatusCode.NotFound)));
 
-            await Create(handler).DeleteBranchAsync("designer/john/foo", TestContext.Current.CancellationToken);
+            await Create(handler).DeleteBranchAsync("designer/john/foo", "pages/foo.page", TestContext.Current.CancellationToken);
+            handler.AssertDone();
+        }
+
+        [Fact]
+        public async Task DeleteBranchAsync_DropsTheCachedDraftOfThatBranch()
+        {
+            var handler = new ScriptedHandler(
+                ("GET", "repos/o/r/contents/pages/foo.page?ref=designer%2Fjohn%2Ffoo", _ => RespondJson(ContentsPayload("draft"))),
+                ("DELETE", "repos/o/r/git/refs/heads/designer/john/foo", _ => Respond(HttpStatusCode.NoContent)),
+                // the draft is gone from GitHub; the read must go back and see that, not serve the cache
+                ("GET", "repos/o/r/contents/pages/foo.page?ref=designer%2Fjohn%2Ffoo", _ => Respond(HttpStatusCode.NotFound)));
+            var repository = Create(handler);
+
+            Assert.Equal("draft", await repository.ReadFileAsync("pages/foo.page", "designer/john/foo", TestContext.Current.CancellationToken));
+            await repository.DeleteBranchAsync("designer/john/foo", "pages/foo.page", TestContext.Current.CancellationToken);
+
+            Assert.Null(await repository.ReadFileAsync("pages/foo.page", "designer/john/foo", TestContext.Current.CancellationToken));
             handler.AssertDone();
         }
 
