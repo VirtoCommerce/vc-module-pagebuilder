@@ -4,15 +4,18 @@ import { IBladeToolbar } from "@vc-shell/framework";
 import { PageLifecycleFilters } from "../usePageBuilderList";
 import { ExposedPagesList } from "../../components";
 import { refreshMenuBadges } from "../usePageBuilderBadges";
+import useUrlParams from "../useStoreParams";
 
 export function usePagesListToolbar(
   _status: PageLifecycleFilters | null,
   pagesListRef: Readonly<ShallowRef<ExposedPagesList | null>>,
 ): Ref<IBladeToolbar[]> {
   const { t } = useI18n({ useScope: "global" });
+  const { storeContextStatus } = useUrlParams();
+  const isStoreContextReady = computed(() => storeContextStatus.value === "ready");
   const isRemoveDisabled = computed(() => {
     const items = (pagesListRef.value?.selectedItems as unknown as string[]) || [];
-    return (items.length || 0) === 0;
+    return !isStoreContextReady.value || (items.length || 0) === 0;
   });
 
   return computed(() => {
@@ -21,6 +24,7 @@ export function usePagesListToolbar(
         id: "add",
         icon: "lucide-plus",
         title: t("PAGE_BUILDER.PAGES.LIST.TOOLBAR.ADD"),
+        disabled: computed(() => !isStoreContextReady.value),
         clickHandler: async () => {
           await pagesListRef.value?.openAddBlade();
         },
@@ -50,6 +54,7 @@ export function usePagesListToolbar(
         id: "load",
         icon: "lucide-upload",
         title: t("PAGE_BUILDER.PAGES.LIST.TOOLBAR.LOAD"),
+        disabled: computed(() => !isStoreContextReady.value),
         clickHandler: async () => {
           await pagesListRef.value?.openLoadFlow();
         },

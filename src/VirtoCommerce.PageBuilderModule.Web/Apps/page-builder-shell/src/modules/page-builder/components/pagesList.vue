@@ -1,5 +1,22 @@
 <template>
+  <div
+    v-if="isStoreContextInvalid"
+    class="pages-list__store-context"
+  >
+    <VcIcon
+      icon="lucide-triangle-alert"
+      class="pages-list__store-context-icon"
+    />
+    <div class="pages-list__store-context-title">
+      {{ storeContextTitle }}
+    </div>
+    <VcHint class="pages-list__store-context-text">
+      {{ storeContextDescription }}
+    </VcHint>
+  </div>
+
   <VcDataTable
+    v-else
     class="tw-grow tw-basis-0"
     :items="items"
     :loading="loading"
@@ -85,7 +102,7 @@ import { PageLifecycleFilters, usePageBuilderList, useUrlParams, refreshMenuBadg
 import { parseImportFile } from "../composables/usePageContentApi";
 import PageStatus from "./pageStatus.vue";
 
-import { VcColumn, VcDataTable } from "@vc-shell/framework/ui";
+import { VcColumn, VcDataTable, VcHint, VcIcon } from "@vc-shell/framework/ui";
 
 interface Props {
   lifecycle?: PageLifecycleFilters[];
@@ -103,7 +120,7 @@ const { sortField, sortOrder, sortExpression } = useDataTableSort({
   initialField: "modifiedDate",
 });
 
-const { items, pagination, searchQuery, loadPages, removePages, loading, pageStatuses } = usePageBuilderList({
+const { items, pagination, searchQuery, loadPages, removePages, loading, pageStatuses, storeContextStatus } = usePageBuilderList({
   pageSize: 20,
   sort: sortExpression.value,
   lifecycle: props.lifecycle,
@@ -116,6 +133,17 @@ const selectedItems = computed<string[]>(() =>
 );
 const fileInputRef = ref<HTMLInputElement | null>(null);
 const searchValue = ref<string>();
+const isStoreContextInvalid = computed(() => ["missing", "notFound", "error"].includes(storeContextStatus.value));
+const storeContextTitle = computed(() =>
+  storeContextStatus.value === "missing"
+    ? t("COMMON.STORE_CONTEXT.MISSING_TITLE")
+    : t("COMMON.STORE_CONTEXT.INVALID_TITLE"),
+);
+const storeContextDescription = computed(() =>
+  storeContextStatus.value === "missing"
+    ? t("COMMON.STORE_CONTEXT.MISSING_DESCRIPTION")
+    : t("COMMON.STORE_CONTEXT.INVALID_DESCRIPTION", { storeId: storeId.value }),
+);
 
 const computedGlobalFilters = computed(() => [
   {
@@ -282,3 +310,23 @@ defineExpose<ExposedPagesList>({
   openLoadFlow,
 });
 </script>
+
+<style lang="scss" scoped>
+.pages-list {
+  &__store-context {
+    @apply tw-flex tw-h-full tw-flex-1 tw-flex-col tw-items-center tw-justify-center tw-gap-3 tw-bg-[color:var(--neutrals-50)] tw-p-8 tw-text-center;
+  }
+
+  &__store-context-icon {
+    @apply tw-text-[64px] tw-text-[color:var(--danger-500)];
+  }
+
+  &__store-context-title {
+    @apply tw-text-lg tw-font-semibold tw-text-[color:var(--neutrals-800)];
+  }
+
+  &__store-context-text {
+    @apply tw-max-w-[460px];
+  }
+}
+</style>
