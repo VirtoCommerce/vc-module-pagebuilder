@@ -1,9 +1,6 @@
 import { computed, Ref, ref } from "vue";
 import { useApiClient } from "@vc-shell/framework";
-import {
-  PageBuilderPageSettingsClient,
-  MembersSearchCriteria,
-} from "../../../../api_client/virtocommerce.pagebuildermodule";
+import { PageBuilderPageSettingsClient, MembersSearchCriteria } from "../../../../api_client/virtocommerce.pagebuildermodule";
 
 export interface IOrganization {
   name: string;

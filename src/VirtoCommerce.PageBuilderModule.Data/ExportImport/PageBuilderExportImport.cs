@@ -1,3 +1,9 @@
+using System;
+using System.Threading;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
@@ -15,7 +21,7 @@ public sealed class PageBuilderExportImport(
 {
     private const int BatchSize = 1;
 
-    public async Task DoExportAsync(Stream outStream, Action<ExportImportProgressInfo> progressCallback, ICancellationToken cancellationToken)
+    public async Task DoExportAsync(Stream outStream, Action<ExportImportProgressInfo> progressCallback, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -25,13 +31,13 @@ public sealed class PageBuilderExportImport(
         using var sw = new StreamWriter(outStream, leaveOpen: true);
         using var writer = new JsonTextWriter(sw);
 
-        await writer.WriteStartObjectAsync();
+        await writer.WriteStartObjectAsync(cancellationToken);
 
         progressInfo.Description = "Page Builder pages are started to export";
         progressCallback(progressInfo);
 
-        await writer.WritePropertyNameAsync("PageBuilderPages");
-        await writer.WriteStartArrayAsync();
+        await writer.WritePropertyNameAsync("PageBuilderPages", cancellationToken);
+        await writer.WriteStartArrayAsync(cancellationToken);
 
         var criteria = AbstractTypeFactory<PageBuilderPageSearchCriteria>.TryCreateInstance();
         criteria.Take = BatchSize;
@@ -54,7 +60,7 @@ public sealed class PageBuilderExportImport(
                 processedCount++;
             }
 
-            await writer.FlushAsync();
+            await writer.FlushAsync(cancellationToken);
 
             progressInfo.Description = $"{processedCount} of {searchResult.TotalCount} page builder pages have been exported";
             progressInfo.ProcessedCount = processedCount;
@@ -67,12 +73,12 @@ public sealed class PageBuilderExportImport(
             }
         }
 
-        await writer.WriteEndArrayAsync();
-        await writer.WriteEndObjectAsync();
-        await writer.FlushAsync();
+        await writer.WriteEndArrayAsync(cancellationToken);
+        await writer.WriteEndObjectAsync(cancellationToken);
+        await writer.FlushAsync(cancellationToken);
     }
 
-    public async Task DoImportAsync(Stream inputStream, Action<ExportImportProgressInfo> progressCallback, ICancellationToken cancellationToken)
+    public async Task DoImportAsync(Stream inputStream, Action<ExportImportProgressInfo> progressCallback, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -81,7 +87,7 @@ public sealed class PageBuilderExportImport(
         using var streamReader = new StreamReader(inputStream, leaveOpen: true);
         using var reader = new JsonTextReader(streamReader);
 
-        while (await reader.ReadAsync())
+        while (await reader.ReadAsync(cancellationToken))
         {
             if (reader.TokenType == JsonToken.PropertyName && reader.Value?.ToString() == "PageBuilderPages")
             {
@@ -90,16 +96,16 @@ public sealed class PageBuilderExportImport(
         }
     }
 
-    private async Task ImportPagesArrayAsync(JsonTextReader reader, ExportImportProgressInfo progressInfo, Action<ExportImportProgressInfo> progressCallback, ICancellationToken cancellationToken)
+    private async Task ImportPagesArrayAsync(JsonTextReader reader, ExportImportProgressInfo progressInfo, Action<ExportImportProgressInfo> progressCallback, CancellationToken cancellationToken)
     {
-        if (!await reader.ReadAsync() || reader.TokenType != JsonToken.StartArray)
+        if (!await reader.ReadAsync(cancellationToken) || reader.TokenType != JsonToken.StartArray)
         {
             return;
         }
 
         var processedCount = 0;
 
-        while (await reader.ReadAsync() && reader.TokenType != JsonToken.EndArray)
+        while (await reader.ReadAsync(cancellationToken) && reader.TokenType != JsonToken.EndArray)
         {
             cancellationToken.ThrowIfCancellationRequested();
 

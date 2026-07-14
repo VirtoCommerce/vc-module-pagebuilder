@@ -14,6 +14,14 @@
       "import": "./dist/virtocommerce.pagebuildermodule.js",
       "types": "./dist/types/virtocommerce.pagebuildermodule.d.ts"
     },
+    "./assets": {
+      "import": "./dist/virtocommerce.assets.js",
+      "types": "./dist/types/virtocommerce.assets.d.ts"
+    },
+    "./virtocommerce.assets": {
+      "import": "./dist/virtocommerce.assets.js",
+      "types": "./dist/types/virtocommerce.assets.d.ts"
+    },
     ".": {
       "import": "./dist/virtocommerce.pagebuildermodule.js",
       "types": "./dist/types/virtocommerce.pagebuildermodule.d.ts"
@@ -21,7 +29,7 @@
   },
   "apiClientGenerator": {
     "version": "2.0.0",
-    "generatedAt": "2026-05-19T09:14:58.179Z"
+    "generatedAt": "2026-06-09T16:19:53.819Z"
   },
   "module": "./dist/virtocommerce.pagebuildermodule.js",
   "types": "./dist/types/virtocommerce.pagebuildermodule.d.ts"

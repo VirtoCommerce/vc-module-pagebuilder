@@ -14,6 +14,7 @@ export class IconButtonComponent {
     readonly icon = input<string>();
     readonly text = input<string>();
     readonly skin = input<string>();
+    readonly layout = input<string>();
     readonly disabled = input(false);
 
     readonly onClick = output<MouseEvent>();

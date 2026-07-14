@@ -1,0 +1,10 @@
+<div class="breadcrumbs">
+    @for (crumb of breadcrumbs(); track crumb.url; let last = $last) {
+        <button type="button" [disabled]="last" (click)="navigate.emit(crumb.url)">
+            {{ crumb.label }}
+        </button>
+        @if (!last) {
+            <span>/</span>
+        }
+    }
+</div>

@@ -1,6 +1,7 @@
 import { RouteRecordRaw } from "vue-router";
 import App from "../pages/App.vue";
 import { Invite, Login, ResetPassword, ChangePasswordPage } from "@vc-shell/framework";
+// eslint-disable-next-line import/no-unresolved
 import whiteLogoImage from "/assets/logo-white.svg";
 import bgImage from "/assets/background.jpg";
 

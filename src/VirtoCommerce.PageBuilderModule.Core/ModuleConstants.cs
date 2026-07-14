@@ -102,11 +102,21 @@ namespace VirtoCommerce.PageBuilderModule.Core
                     ValueType = SettingValueType.Boolean,
                     DefaultValue = false,
                 };
+
+                public static SettingDescriptor AssetReferenceIndexMigrated { get; } = new()
+                {
+                    Name = "VirtoCommerce.PageBuilderModule.Migration.AssetReferenceIndexMigrated",
+                    GroupName = "CMS|Migration",
+                    ValueType = SettingValueType.Boolean,
+                    DefaultValue = false,
+                };
+
                 public static IEnumerable<SettingDescriptor> AllMigrationSettings
                 {
                     get
                     {
                         yield return MetadataFromContentMigrated;
+                        yield return AssetReferenceIndexMigrated;
                     }
                 }
             }

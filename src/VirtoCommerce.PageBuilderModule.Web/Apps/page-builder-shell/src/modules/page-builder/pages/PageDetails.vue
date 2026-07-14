@@ -1,9 +1,10 @@
 <template>
   <VcBlade
-           width="50%"
-           :loading="loading"
-           :title="bladeTitle"
-           :toolbar-items="bladeToolbar">
+    :loading="loading"
+    :title="bladeTitle"
+    width="50%"
+    :toolbar-items="bladeToolbar"
+  >
     <VcContainer>
       <VcForm class="tw-flex tw-flex-col tw-gap-4">
         <PageStatus :item="item" />
@@ -61,22 +62,30 @@
 
         <VcCard class="tw-p-4" :header="$t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.ADVANCED_OPTIONS')">
           <VcCol class="tw-gap-4">
-            <VcCard is-collapsable is-collapsed>
+            <VcCard
+              is-collapsable
+              is-collapsed
+            >
               <template #header>
                 <CardHeader
-                            icon="lucide-users"
-                            :tag-text="item.visibility
-                              ? $t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.PERSONALIZATION_ACCESS_CONTROL.VISIBILITY_TAG')
-                              : undefined
-                              "
-                            :title="$t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.PERSONALIZATION_ACCESS_CONTROL.TITLE')"
-                            :description="$t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.PERSONALIZATION_ACCESS_CONTROL.DESCRIPTION')" />
+                  icon="lucide-users"
+                  :tag-text="
+                    item.visibility
+                      ? $t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.PERSONALIZATION_ACCESS_CONTROL.VISIBILITY_TAG')
+                      : undefined
+                  "
+                  :title="$t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.PERSONALIZATION_ACCESS_CONTROL.TITLE')"
+                  :description="$t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.PERSONALIZATION_ACCESS_CONTROL.DESCRIPTION')"
+                />
               </template>
 
               <VcCol class="tw-gap-4 tw-p-4">
-                <SwitchRow :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.VISIBILITY')"
-                           :hint="$t('PAGE_BUILDER.PAGES.DETAILS.TOOLTIPS.VISIBILITY')" :model-value="item.visibility"
-                           @update:model-value="item.visibility = $event" />
+                <SwitchRow
+                  :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.VISIBILITY')"
+                  :hint="$t('PAGE_BUILDER.PAGES.DETAILS.TOOLTIPS.VISIBILITY')"
+                  :model-value="item.visibility"
+                  @update:model-value="item.visibility = $event"
+                />
 
                 <VcSelect v-model="itemUserGroups" :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.USER_GROUPS')"
                           :options="loadUserGroups" option-value="name" option-label="name" searchable multiple
@@ -90,18 +99,28 @@
               </VcCol>
             </VcCard>
 
-            <VcCard is-collapsable is-collapsed>
+            <VcCard
+              is-collapsable
+              is-collapsed
+            >
               <template #header>
                 <CardHeader
-                            icon="lucide-calendar-range"
-                            :tag-text="isScheduled ? $t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.SCHEDULING.TAG_TEXT') : ''"
-                            :title="$t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.SCHEDULING.TITLE')"
-                            :description="$t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.SCHEDULING.DESCRIPTION')" />
+                  icon="lucide-calendar-range"
+                  :tag-text="isScheduled ? $t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.SCHEDULING.TAG_TEXT') : ''"
+                  :title="$t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.SCHEDULING.TITLE')"
+                  :description="$t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.SCHEDULING.DESCRIPTION')"
+                />
               </template>
               <VcRow class="tw-gap-4 tw-p-4">
-                <VcInput v-model="item.startDate" class="tw-flex-1" type="datetime-local" clearable
-                         :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.START_DATE')"
-                         :hint="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.START_DATE_HINT')" :disabled="isReadOnly" />
+                <VcInput
+                  v-model="item.startDate"
+                  class="tw-flex-1"
+                  type="datetime-local"
+                  clearable
+                  :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.START_DATE')"
+                  :hint="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.START_DATE_HINT')"
+                  :disabled="isReadOnly"
+                />
 
                 <VcInput v-model="item.endDate" class="tw-flex-1" type="datetime-local" clearable
                          :hint="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.END_DATE_HINT')"
@@ -120,11 +139,11 @@ import { computed, onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { Field } from "vee-validate";
 import { IBladeToolbar, useBlade, useBladeForm, usePopup, notification } from "@vc-shell/framework";
+import PageStatus from "../components/pageStatus.vue";
 import useUrlParams from "../composables/useStoreParams";
 import useAiAgentContextWithStore from "../composables/useAiAgentContextWithStore";
 import { usePageBuilderDetails } from "../composables/usePageBuilderDetails";
 import type { PageExportData } from "../composables/usePageContentApi";
-import PageStatus from "../components/pageStatus.vue";
 import CardHeader from "./../components/cardHeader.vue";
 import SwitchRow from "./../components/switchRow.vue";
 
@@ -159,6 +178,12 @@ const {
   id: param.value as string | undefined,
   storeId: options.value?.storeId as string | undefined,
   importData: options.value?.importData as PageExportData | undefined,
+});
+
+const { canSave, isModified, setBaseline, formMeta } = useBladeForm({
+  data: item,
+  closeConfirmMessage: () => t("PAGE_BUILDER.PAGES.ALERTS.CLOSE_CONFIRMATION"),
+  canSaveOverride: computed(() => !isReadOnly.value),
 });
 
 // WORKAROUND: push storeId + current page into the AI agent context so pagebuilder
@@ -218,7 +243,7 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     id: "save",
     icon: "lucide-save",
     title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.SAVE"),
-    disabled: !canSave.value || isReadOnly.value,
+    disabled: !canSave.value,
     clickHandler: async () => {
       await handleSave();
       notification.success(t("PAGE_BUILDER.PAGES.ALERTS.SAVE_SUCCESS"));
@@ -232,7 +257,6 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     clickHandler: async () => {
       if (await showConfirmation(t("PAGE_BUILDER.PAGES.ALERTS.DELETE"))) {
         await deleteGroup();
-        notification.success(t("PAGE_BUILDER.PAGES.ALERTS.DELETE_SUCCESS"));
         callParent("reload");
         closeSelf();
       }
@@ -265,7 +289,7 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     id: "clonePage",
     icon: "lucide-copy",
     title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.CLONE"),
-    disabled: !param.value || isReadOnly.value || loading.value,
+    disabled: !param.value || isReadOnly.value,
     clickHandler: async () => {
       if (loading.value) return;
       const cloned = await clonePage();
@@ -278,25 +302,23 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
   },
   {
     id: "publishPage",
-    icon: "lucide-send",
+    icon: "lucide-file-text",
     title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.PUBLISH"),
     isVisible: !!param.value && status.value?.hasChanges === true,
-    disabled: isReadOnly.value || !formMeta.value.valid || isModified.value,
+    disabled: isReadOnly.value || isModified.value || !formMeta.value.valid,
     clickHandler: async () => {
       await publishGroup();
-      notification.success(t("PAGE_BUILDER.PAGES.ALERTS.PUBLISH_SUCCESS"));
       callParent("reload");
     },
   },
   {
     id: "unpublishPage",
-    icon: "lucide-archive",
+    icon: "lucide-file",
     title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.UNPUBLISH"),
     isVisible: !!param.value && status.value?.hasChanges === false,
     disabled: isReadOnly.value,
     clickHandler: async () => {
       await unpublishGroup();
-      notification.success(t("PAGE_BUILDER.PAGES.ALERTS.UNPUBLISH_SUCCESS"));
       callParent("reload");
     },
   },

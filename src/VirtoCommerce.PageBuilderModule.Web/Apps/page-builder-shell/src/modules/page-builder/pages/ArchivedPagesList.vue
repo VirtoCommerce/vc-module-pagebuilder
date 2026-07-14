@@ -1,11 +1,13 @@
 <template>
   <VcBlade
-           width="50%"
-           :title="bladeTitle"
-           :toolbar-items="bladeToolbar">
+    width="50%"
+    :title="bladeTitle"
+    :toolbar-items="bladeToolbar"
+  >
     <PagesList
-               ref="pagesListRef"
-               :lifecycle="[PageLifecycleFilters.Archived]" />
+      ref="pagesListRef"
+      :lifecycle="[PageLifecycleFilters.Archived]"
+    />
   </VcBlade>
 </template>
 

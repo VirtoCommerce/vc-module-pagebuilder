@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
@@ -17,17 +18,15 @@ using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Data.Authorization;
 using VirtoCommerce.PageBuilderModule.Data.ContentProviders;
-using VirtoCommerce.PageBuilderModule.Data.GitContent;
+using VirtoCommerce.PageBuilderModule.Data.ExportImport;
 using VirtoCommerce.PageBuilderModule.Data.Handlers;
 using VirtoCommerce.PageBuilderModule.Data.MySql;
 using VirtoCommerce.PageBuilderModule.Data.PostgreSql;
 using VirtoCommerce.PageBuilderModule.Data.Repositories;
-using VirtoCommerce.PageBuilderModule.Data.ExportImport;
 using VirtoCommerce.PageBuilderModule.Data.Search;
 using VirtoCommerce.PageBuilderModule.Data.Services;
 using VirtoCommerce.PageBuilderModule.Data.SqlServer;
 using VirtoCommerce.Pages.Core.ContentProviders;
-using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Events;
 using VirtoCommerce.Platform.Core.ExportImport;
 using VirtoCommerce.Platform.Core.Modularity;
@@ -78,12 +77,15 @@ namespace VirtoCommerce.PageBuilderModule.Web
 
             serviceCollection.AddTransient<IGroupedPageService, GroupedPageService>();
             serviceCollection.AddTransient<IGroupedPageSearchService, GroupedPageSearchService>();
+            serviceCollection.AddTransient<IPageBuilderAssetReferenceService, PageBuilderAssetReferenceService>();
+            serviceCollection.AddTransient<IPageBuilderAssetReferenceIndexService, PageBuilderAssetReferenceIndexService>();
 
             serviceCollection.AddTransient<GroupedPageBuilderPageChangedEventHandler>();
 
             serviceCollection.AddTransient<IAuthorizationHandler, PageBuilderAuthorizationHandler>();
             serviceCollection.AddTransient<IPageContentProvider, PageBuilderContentProvider>();
             serviceCollection.AddTransient<IPagesMigrationService, PagesMigrationService>();
+            serviceCollection.AddTransient<IPageBuilderAssetReferenceMigrationService, PageBuilderAssetReferenceMigrationService>();
             serviceCollection.AddTransient<PageBuilderExportImport>();
 
             // Git content flow (disabled until PageBuilder:GitContent:Enabled is set AND a store opts in
@@ -164,6 +166,10 @@ namespace VirtoCommerce.PageBuilderModule.Web
             var pagesMigrationService = serviceScope.ServiceProvider.GetRequiredService<IPagesMigrationService>();
             pagesMigrationService.StartMigration();
 
+            // Build asset reference index for existing pages
+            var assetReferenceMigrationService = serviceScope.ServiceProvider.GetRequiredService<IPageBuilderAssetReferenceMigrationService>();
+            assetReferenceMigrationService.StartMigration();
+
             // page-builder
             var pageBuilderAppPath = Path.Combine(ModuleInfo.FullPhysicalPath, "page-builder", "dist");
             if (Directory.Exists(pageBuilderAppPath))
@@ -179,7 +185,6 @@ namespace VirtoCommerce.PageBuilderModule.Web
                     RequestPath = new PathString($"/apps/page-builder")
                 });
             }
-
         }
 
         public void Uninstall()
@@ -188,14 +193,14 @@ namespace VirtoCommerce.PageBuilderModule.Web
         }
 
         public Task ExportAsync(Stream outStream, ExportImportOptions options, Action<ExportImportProgressInfo> progressCallback,
-            ICancellationToken cancellationToken)
+            CancellationToken cancellationToken)
         {
             return _appBuilder.ApplicationServices.GetRequiredService<PageBuilderExportImport>().DoExportAsync(outStream,
                 progressCallback, cancellationToken);
         }
 
         public Task ImportAsync(Stream inputStream, ExportImportOptions options, Action<ExportImportProgressInfo> progressCallback,
-            ICancellationToken cancellationToken)
+            CancellationToken cancellationToken)
         {
             return _appBuilder.ApplicationServices.GetRequiredService<PageBuilderExportImport>().DoImportAsync(inputStream,
                 progressCallback, cancellationToken);

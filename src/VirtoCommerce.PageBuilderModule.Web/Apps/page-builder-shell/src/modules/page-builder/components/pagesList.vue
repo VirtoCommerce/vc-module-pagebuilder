@@ -1,66 +1,102 @@
 <template>
+  <div
+    v-if="isStoreContextInvalid"
+    class="pages-list__store-context"
+  >
+    <VcIcon
+      icon="lucide-triangle-alert"
+      class="pages-list__store-context-icon"
+    />
+    <div class="pages-list__store-context-title">
+      {{ storeContextTitle }}
+    </div>
+    <VcHint class="pages-list__store-context-text">
+      {{ storeContextDescription }}
+    </VcHint>
+  </div>
+
   <VcDataTable
-               v-model:active-item-id="selectedItemId"
-               v-model:sort-field="sortField"
-               v-model:sort-order="sortOrder"
-               v-model:selection="localSelection"
-               state-key="page_builder_pages_list"
-               :items="items"
-               :total-count="pagination.totalCount"
-               :pagination="pagination"
-               :loading="loading"
-               :searchable="true"
-               :selection-mode="'multiple'"
-               :item-action-builder="actionBuilder"
-               :global-filters="computedGlobalFilters"
-               @row-click="onItemClick"
-               @search="onSearchList"
-               @pagination-click="pagination.goToPage"
-               @filter="onFilter">
+    v-else
+    class="tw-grow tw-basis-0"
+    :items="items"
+    :loading="loading"
+    :total-count="pagination.totalCount"
+    :pagination="pagination"
+    :searchable="true"
+    :selection-mode="'multiple'"
+    :global-filters="computedGlobalFilters"
+    :row-actions="actionBuilder"
+    v-model:active-item-id="selectedItemId"
+    v-model:sort-field="sortField"
+    v-model:sort-order="sortOrder"
+    v-model:selection="localSelection"
+    @row-click="onItemClick"
+    @search="onSearchList"
+    @pagination-click="pagination.goToPage"
+    @filter="onFilter"
+  >
     <VcColumn
-              id="name"
-              :title="t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.NAME')"
-              :always-visible="true"
-              :sortable="true" />
+      id="name"
+      :title="$t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.NAME')"
+      :always-visible="true"
+      :sortable="true"
+      field="name"
+    />
     <VcColumn
-              id="cultureName"
-              :title="t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.CULTURE_NAME')"
-              :always-visible="true"
-              :sortable="true" />
+      id="cultureName"
+      :title="$t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.CULTURE_NAME')"
+      :always-visible="true"
+      :sortable="true"
+      field="cultureName"
+    />
     <VcColumn
-              id="permalink"
-              :title="t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.PERMALINK')"
-              :always-visible="true"
-              :sortable="true" />
+      id="permalink"
+      :title="$t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.PERMALINK')"
+      :always-visible="true"
+      :sortable="true"
+      field="permalink"
+    />
     <VcColumn
-              id="modifiedDate"
-              :title="t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.MODIFIED_DATE')"
-              type="datetime"
-              :always-visible="true"
-              :sortable="true" />
+      id="modifiedDate"
+      :title="$t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.MODIFIED_DATE')"
+      :always-visible="true"
+      :sortable="true"
+      type="datetime"
+      field="modifiedDate"
+    />
     <VcColumn
-              id="modifiedBy"
-              :title="t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.MODIFIED_BY')"
-              :sortable="false" />
+      id="modifiedBy"
+      :title="$t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.MODIFIED_BY')"
+      :sortable="false"
+      field="modifiedBy"
+    />
     <VcColumn
-              id="status"
-              :title="t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.STATUS')"
-              type="status"
-              :sortable="true">
+      id="status"
+      :title="$t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.STATUS')"
+      :sortable="true"
+      field="status"
+    >
       <template #body="{ data }">
         <PageStatus
-                    extended
-                    :item="data" />
+          extended
+          :item="data"
+        />
       </template>
     </VcColumn>
   </VcDataTable>
-  <input ref="fileInputRef" type="file" accept=".json" style="display: none" @change="onFileSelected" />
+  <input
+    ref="fileInputRef"
+    type="file"
+    accept=".json"
+    style="display: none"
+    @change="onFileSelected"
+  />
 </template>
 <script lang="ts" setup>
 import { ref, Ref, computed, watch, onMounted, readonly } from "vue";
 import { useI18n } from "vue-i18n";
 import { debounce } from "lodash-es";
-import { useDataTableSort, useBlade, usePopup, IActionBuilderResult, notification } from "@vc-shell/framework";
+import { useBlade, usePopup, useDataTableSort, IActionBuilderResult, notification } from "@vc-shell/framework";
 import { GroupedPageBuilderPage } from "../../../api_client/virtocommerce.pagebuildermodule";
 import {
   PageLifecycleFilters,
@@ -72,7 +108,7 @@ import {
 import { parseImportFile } from "../composables/usePageContentApi";
 import PageStatus from "./pageStatus.vue";
 
-import { VcColumn, VcDataTable } from "@vc-shell/framework/ui";
+import { VcColumn, VcDataTable, VcHint, VcIcon } from "@vc-shell/framework/ui";
 
 interface Props {
   lifecycle?: PageLifecycleFilters[];
@@ -90,7 +126,7 @@ const { sortField, sortOrder, sortExpression } = useDataTableSort({
   initialField: "modifiedDate",
 });
 
-const { items, pagination, searchQuery, loadPages, removePages, loading, pageStatuses } = usePageBuilderList({
+const { items, pagination, searchQuery, loadPages, removePages, loading, pageStatuses, storeContextStatus } = usePageBuilderList({
   pageSize: 20,
   sort: sortExpression.value,
   lifecycle: props.lifecycle,
@@ -98,18 +134,22 @@ const { items, pagination, searchQuery, loadPages, removePages, loading, pageSta
 
 const selectedItemId = ref<string>();
 const localSelection = ref<GroupedPageBuilderPage[]>([]);
-const fileInputRef = ref<HTMLInputElement | null>(null);
-
-// WORKAROUND: push storeId + visible pages into the AI agent context so pagebuilder
-// tools can read them. See docs/storeId-missing-in-ai-context.md for the proper fix.
-const aiContextItems = computed(() =>
-  items.value.map((page) => ({
-    id: page.id,
-    objectType: "pagebuilder.page",
-    name: page.name,
-  })),
+const selectedItems = computed<string[]>(() =>
+  localSelection.value.map((item) => item.id!).filter((id): id is string => !!id),
 );
-useAiAgentContextWithStore({ dataRef: aiContextItems });
+const fileInputRef = ref<HTMLInputElement | null>(null);
+const searchValue = ref<string>();
+const isStoreContextInvalid = computed(() => ["missing", "notFound", "error"].includes(storeContextStatus.value));
+const storeContextTitle = computed(() =>
+  storeContextStatus.value === "missing"
+    ? t("COMMON.STORE_CONTEXT.MISSING_TITLE")
+    : t("COMMON.STORE_CONTEXT.INVALID_TITLE"),
+);
+const storeContextDescription = computed(() =>
+  storeContextStatus.value === "missing"
+    ? t("COMMON.STORE_CONTEXT.MISSING_DESCRIPTION")
+    : t("COMMON.STORE_CONTEXT.INVALID_DESCRIPTION", { storeId: storeId.value }),
+);
 
 const computedGlobalFilters = computed(() => [
   {
@@ -120,6 +160,7 @@ const computedGlobalFilters = computed(() => [
         value: s.value,
         label: s.label,
       })),
+      multiple: false,
     },
   },
 ]);
@@ -142,7 +183,7 @@ function onItemClick(event: { data: GroupedPageBuilderPage }) {
 }
 
 const onSearchList = debounce(async (keyword: string | undefined) => {
-  console.debug(`Page builder list search by ${keyword}`);
+  searchValue.value = keyword;
   await loadPages({
     ...searchQuery.value,
     keyword,
@@ -190,6 +231,7 @@ watch(
 async function onFilter(event: { filters: Record<string, unknown> }) {
   const statusFilter = event.filters.statuses as string | string[] | undefined;
   const statuses = Array.isArray(statusFilter) ? statusFilter.join(",") : statusFilter;
+  pagination.reset();
   await loadPages({
     ...searchQuery.value,
     statuses,
@@ -277,3 +319,23 @@ defineExpose<ExposedPagesList>({
   openLoadFlow,
 });
 </script>
+
+<style lang="scss" scoped>
+.pages-list {
+  &__store-context {
+    @apply tw-flex tw-h-full tw-flex-1 tw-flex-col tw-items-center tw-justify-center tw-gap-3 tw-bg-[color:var(--neutrals-50)] tw-p-8 tw-text-center;
+  }
+
+  &__store-context-icon {
+    @apply tw-text-[64px] tw-text-[color:var(--danger-500)];
+  }
+
+  &__store-context-title {
+    @apply tw-text-lg tw-font-semibold tw-text-[color:var(--neutrals-800)];
+  }
+
+  &__store-context-text {
+    @apply tw-max-w-[460px];
+  }
+}
+</style>
