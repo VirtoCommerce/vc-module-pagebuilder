@@ -121,9 +121,25 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         {
             var handler = new ScriptedHandler(
                 ("GET", "repos/o/r/git/ref/heads/master", _ => RespondJson($$"""{ "object": { "sha": "{{Sha}}" } }""")),
-                ("POST", "repos/o/r/git/refs", _ => Respond(HttpStatusCode.UnprocessableEntity)));
+                ("POST", "repos/o/r/git/refs", _ => Respond422("Reference already exists")));
 
             await Create(handler).CreateBranchAsync("designer/john/foo", "master", TestContext.Current.CancellationToken);
+            handler.AssertDone();
+        }
+
+        [Fact]
+        public async Task CreateBranchAsync_A422ThatIsNotAboutAnExistingRef_Throws()
+        {
+            // GitHub says 422 to a name git refuses and to a sha it cannot find as well. Swallowing those
+            // would report a branch that was never cut, and the commit that follows would fail instead —
+            // somewhere else, with a worse message.
+            var handler = new ScriptedHandler(
+                ("GET", "repos/o/r/git/ref/heads/master", _ => RespondJson($$"""{ "object": { "sha": "{{Sha}}" } }""")),
+                ("POST", "repos/o/r/git/refs", _ => Respond422("Object does not exist")));
+
+            await Assert.ThrowsAsync<HttpRequestException>(() =>
+                Create(handler).CreateBranchAsync("designer/john/foo", "master", TestContext.Current.CancellationToken));
+            handler.AssertDone();
         }
 
         [Fact]
@@ -314,6 +330,18 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
         private static HttpResponseMessage Respond(HttpStatusCode status) =>
             new(status) { Content = new StringContent("{}") };
+
+        // The body is the only thing that separates "the branch is already there" from a 422 that means
+        // the branch was not created at all, so the tests have to carry a real one.
+        private static HttpResponseMessage Respond422(string message)
+        {
+            var body = new JObject
+            {
+                ["message"] = "Validation Failed",
+                ["errors"] = new JArray { new JObject { ["message"] = message } },
+            };
+            return RespondJson(body.ToString(), HttpStatusCode.UnprocessableEntity);
+        }
 
         private static HttpResponseMessage RespondJson(string json, HttpStatusCode status = HttpStatusCode.OK) =>
             new(status) { Content = new StringContent(json, Encoding.UTF8, "application/json") };

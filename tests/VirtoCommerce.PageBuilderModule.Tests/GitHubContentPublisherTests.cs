@@ -43,7 +43,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         public async Task Nothing_to_merge_is_already_published_not_an_error()
         {
             var handler = new ScriptedHandler(
-                ("POST", "repos/o/r/pulls", _ => Respond(HttpStatusCode.UnprocessableEntity)),
+                ("POST", "repos/o/r/pulls", _ => NothingToMerge()),
                 ("GET", $"repos/o/r/pulls?state=open&head={Uri.EscapeDataString($"o:{Branch}")}", _ => RespondJson("[]")));
 
             var result = await Create(handler).MergeBranchAsync(Branch, "publish foo", TestContext.Current.CancellationToken);
@@ -57,7 +57,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         public async Task An_open_pull_request_is_reused_rather_than_duplicated()
         {
             var handler = new ScriptedHandler(
-                ("POST", "repos/o/r/pulls", _ => Respond(HttpStatusCode.UnprocessableEntity)),
+                ("POST", "repos/o/r/pulls", _ => PullRequestAlreadyOpen()),
                 ("GET", $"repos/o/r/pulls?state=open&head={Uri.EscapeDataString($"o:{Branch}")}", _ => RespondJson($"[{PullRequest()}]")),
                 ("GET", "repos/o/r/pulls/7", _ => RespondJson(PullRequest(mergeable: true))),
                 ("POST", "graphql", _ => RespondJson("""{ "data": {} }""")));
@@ -137,7 +137,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         public async Task An_already_merged_pull_request_reports_merged()
         {
             var handler = new ScriptedHandler(
-                ("POST", "repos/o/r/pulls", _ => Respond(HttpStatusCode.UnprocessableEntity)),
+                ("POST", "repos/o/r/pulls", _ => PullRequestAlreadyOpen()),
                 ("GET", $"repos/o/r/pulls?state=open&head={Uri.EscapeDataString($"o:{Branch}")}", _ => RespondJson($"[{PullRequest()}]")),
                 ("GET", "repos/o/r/pulls/7", _ => RespondJson("""{ "number": 7, "merged": true }""")));
 
@@ -175,6 +175,20 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 Create(handler).MergeBranchAsync(Branch, "publish foo", TestContext.Current.CancellationToken));
         }
 
+        [Fact]
+        public async Task A_422_that_is_not_about_this_branch_throws_rather_than_reporting_published()
+        {
+            // a repository rule, a base branch that does not exist, a token without the rights — GitHub
+            // says 422 to all of them. Reading that as "nothing to merge" would tell the editor their
+            // page is live when no pull request was ever opened.
+            var handler = new ScriptedHandler(
+                ("POST", "repos/o/r/pulls", _ => Respond422("Base branch was modified. Review and try the merge again.")));
+
+            await Assert.ThrowsAsync<HttpRequestException>(() =>
+                Create(handler).MergeBranchAsync(Branch, "publish foo", TestContext.Current.CancellationToken));
+            handler.AssertDone();
+        }
+
         // ── helpers ────────────────────────────────────────────────────────────────────────────────
 
         private static GitHubContentPublisher Create(ScriptedHandler handler)
@@ -203,6 +217,24 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
         private static HttpResponseMessage Respond(HttpStatusCode status) =>
             new(status) { Content = new StringContent("{}") };
+
+        // GitHub says 422 to several unrelated things when a pull request is opened, and the body is the
+        // only way to tell them apart — so the tests have to carry a real one.
+        private static HttpResponseMessage Respond422(string message)
+        {
+            var body = new JObject
+            {
+                ["message"] = "Validation Failed",
+                ["errors"] = new JArray { new JObject { ["message"] = message } },
+            };
+            return RespondJson(body.ToString(), HttpStatusCode.UnprocessableEntity);
+        }
+
+        private static HttpResponseMessage NothingToMerge() =>
+            Respond422($"No commits between master and {Branch}");
+
+        private static HttpResponseMessage PullRequestAlreadyOpen() =>
+            Respond422($"A pull request already exists for o:{Branch}.");
 
         private static HttpResponseMessage RespondJson(string json, HttpStatusCode status = HttpStatusCode.OK) =>
             new(status) { Content = new StringContent(json, Encoding.UTF8, "application/json") };

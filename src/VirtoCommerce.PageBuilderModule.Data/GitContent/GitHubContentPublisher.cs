@@ -88,14 +88,37 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
                 return JObject.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
             }
 
-            // 422 is both "No commits between master and the branch" and "A pull request already exists"
-            if (response.StatusCode != HttpStatusCode.UnprocessableEntity)
+            if (response.StatusCode == HttpStatusCode.UnprocessableEntity)
+            {
+                // GitHub answers 422 both to "there is nothing to merge" and to "you already have a pull
+                // request for this branch" — the two outcomes this method knows how to live with. It also
+                // answers 422 when the base or head is wrong, or a repository rule refuses the pull
+                // request; those must NOT end up as AlreadyPublished, which is what the caller reports
+                // when this returns null. Telling an editor their page is live when nothing was even
+                // opened is the one failure this whole flow cannot afford.
+                var details = await response.Content.ReadAsStringAsync(cancellationToken);
+                if (!IsNothingToMerge(details) && !IsPullRequestAlreadyOpen(details))
+                {
+                    throw Failed(response, details, $"open a pull request from \"{branch}\"");
+                }
+            }
+            else
             {
                 await ThrowIfFailedAsync(response, $"open a pull request from \"{branch}\"");
             }
 
             return await FindOpenPullRequestAsync(client, branch, cancellationToken);
         }
+
+        // "No commits between master and designer/john/foo" — the branch holds nothing the production
+        // branch does not already have, so the page is published as far as the editor is concerned.
+        private static bool IsNothingToMerge(string details) =>
+            details?.Contains("No commits between", StringComparison.OrdinalIgnoreCase) == true;
+
+        // "A pull request already exists for owner:designer/john/foo." — publish was pressed twice, or an
+        // earlier one armed auto-merge and is still waiting for its checks.
+        private static bool IsPullRequestAlreadyOpen(string details) =>
+            details?.Contains("pull request already exists", StringComparison.OrdinalIgnoreCase) == true;
 
         private async Task<JObject> FindOpenPullRequestAsync(HttpClient client, string branch, CancellationToken cancellationToken)
         {
@@ -223,13 +246,18 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
                 return;
             }
 
-            var details = await response.Content.ReadAsStringAsync();
+            throw Failed(response, await response.Content.ReadAsStringAsync(), operation);
+        }
+
+        // For callers that had to read the body themselves to tell an expected failure from a real one.
+        private static HttpRequestException Failed(HttpResponseMessage response, string details, string operation)
+        {
             if (details?.Length > 500)
             {
                 details = details[..500];
             }
 
-            throw new HttpRequestException($"GitHub request to {operation} failed: {(int)response.StatusCode} {response.ReasonPhrase}. {details}");
+            return new HttpRequestException($"GitHub request to {operation} failed: {(int)response.StatusCode} {response.ReasonPhrase}. {details}");
         }
     }
 }

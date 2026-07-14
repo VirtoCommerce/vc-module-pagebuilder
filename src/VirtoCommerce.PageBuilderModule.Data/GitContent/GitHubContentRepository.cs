@@ -100,11 +100,22 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
 
             using var response = await client.PostAsync($"repos/{_options.Repository}/git/refs", JsonContent(body), cancellationToken);
 
-            // 422 "Reference already exists" — someone cut the same branch between our check and this call
-            if (response.StatusCode != HttpStatusCode.UnprocessableEntity)
+            if (response.StatusCode == HttpStatusCode.UnprocessableEntity)
             {
-                await ThrowIfFailedAsync(response, $"create branch \"{branch}\" from \"{fromRef}\"");
+                // "Reference already exists" — someone cut the same branch between our check and this
+                // call, which is the outcome this method wanted anyway. Every OTHER 422 (a name git
+                // refuses, an unknown sha, a repository rule) is a real failure: reporting success would
+                // send the save that follows straight at a branch that does not exist.
+                var details = await response.Content.ReadAsStringAsync(cancellationToken);
+                if (details?.Contains("Reference already exists", StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    return;
+                }
+
+                throw Failed(response, details, $"create branch \"{branch}\" from \"{fromRef}\"");
             }
+
+            await ThrowIfFailedAsync(response, $"create branch \"{branch}\" from \"{fromRef}\"");
         }
 
         public async Task DeleteBranchAsync(string branch, string pagePath, CancellationToken cancellationToken = default)
@@ -301,13 +312,18 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
                 return;
             }
 
-            var details = await response.Content.ReadAsStringAsync();
+            throw Failed(response, await response.Content.ReadAsStringAsync(), operation);
+        }
+
+        // For callers that had to read the body themselves to tell an expected failure from a real one.
+        private static HttpRequestException Failed(HttpResponseMessage response, string details, string operation)
+        {
             if (details?.Length > 500)
             {
                 details = details[..500];
             }
 
-            throw new HttpRequestException($"GitHub request to {operation} failed: {(int)response.StatusCode} {response.ReasonPhrase}. {details}");
+            return new HttpRequestException($"GitHub request to {operation} failed: {(int)response.StatusCode} {response.ReasonPhrase}. {details}");
         }
     }
 }
