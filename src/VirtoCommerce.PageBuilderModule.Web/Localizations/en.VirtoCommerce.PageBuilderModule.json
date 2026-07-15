@@ -79,6 +79,10 @@
           "PreviewUserIds": {
             "title": "Preview user IDs",
             "description": "List of user IDs for page preview impersonation (one per line)"
+          },
+          "GitContentEnabled": {
+            "title": "Publish pages through Git",
+            "description": "When enabled, saving a page commits it to a work branch in the configured content repository and publishing opens and merges a pull request, instead of writing to blob storage directly. Requires the Git content connection to be configured on the server (PageBuilder:GitContent)."
           }
         },
         "Migration": {
