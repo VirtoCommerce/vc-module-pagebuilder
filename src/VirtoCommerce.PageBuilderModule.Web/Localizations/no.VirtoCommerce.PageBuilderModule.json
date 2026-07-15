@@ -76,6 +76,10 @@
           }
         },
         "Store": {
+          "GitContentEnabled": {
+            "title": "Publiser sider via Git",
+            "description": "Når aktivert, committes en side til en arbeidsgren i det konfigurerte innholdsrepositoriet når den lagres, og publisering åpner og fletter en pull request i stedet for å skrive direkte til blob-lagring. Krever at Git-innholdstilkoblingen er konfigurert på serveren (PageBuilder:GitContent)."
+          },
           "PreviewUserIds": {
             "title": "Bruker-IDer for forhåndsvisning",
             "description": "Liste over bruker-IDer for forhåndsvisning som en annen bruker (én per linje)"

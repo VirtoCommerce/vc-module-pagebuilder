@@ -71,6 +71,10 @@
           }
         },
         "Store": {
+          "GitContentEnabled": {
+            "title": "Pubblica le pagine tramite Git",
+            "description": "Se abilitato, il salvataggio di una pagina crea un commit in un branch di lavoro del repository di contenuti configurato e la pubblicazione apre e unisce una pull request, invece di scrivere direttamente nell'archivio blob. Richiede una connessione ai contenuti Git configurata sul server (PageBuilder:GitContent)."
+          },
           "PreviewUserIds": {
             "title": "ID utente per anteprima",
             "description": "Elenco degli ID utente per l'impersonificazione nell'anteprima (uno per riga)"

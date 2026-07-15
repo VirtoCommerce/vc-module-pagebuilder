@@ -71,6 +71,10 @@
           }
         },
         "Store": {
+          "GitContentEnabled": {
+            "title": "通过 Git 发布页面",
+            "description": "启用后，保存页面时会将其提交到已配置内容仓库的工作分支，发布时会打开并合并拉取请求（pull request），而不是直接写入 blob 存储。需要在服务器上配置 Git 内容连接（PageBuilder:GitContent）。"
+          },
           "PreviewUserIds": {
             "title": "预览用户ID",
             "description": "用于页面预览模拟的用户ID列表（每行一个）"

@@ -76,6 +76,10 @@
           }
         },
         "Store": {
+          "GitContentEnabled": {
+            "title": "Publicera sidor via Git",
+            "description": "När det är aktiverat commitas en sida till en arbetsgren i det konfigurerade innehållsförvaret när den sparas, och publicering öppnar och slår samman en pull request i stället för att skriva direkt till blob-lagring. Kräver att Git-innehållsanslutningen är konfigurerad på servern (PageBuilder:GitContent)."
+          },
           "PreviewUserIds": {
             "title": "Användar-IDn för förhandsgranskning",
             "description": "Lista med användar-IDn för förhandsgranskningsimitation (ett per rad)"

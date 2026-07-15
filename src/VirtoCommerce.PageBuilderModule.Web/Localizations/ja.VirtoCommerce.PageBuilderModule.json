@@ -71,6 +71,10 @@
           }
         },
         "Store": {
+          "GitContentEnabled": {
+            "title": "Git経由でページを公開",
+            "description": "有効にすると、ページの保存時に設定されたコンテンツリポジトリの作業ブランチへコミットし、公開時にはBlobストレージへ直接書き込む代わりにプルリクエストを作成してマージします。サーバーでGitコンテンツ接続が設定されている必要があります（PageBuilder:GitContent）。"
+          },
           "PreviewUserIds": {
             "title": "プレビュー用ユーザーID",
             "description": "ページプレビューのなりすまし用ユーザーIDリスト（1行に1つ）"

@@ -71,6 +71,10 @@
           }
         },
         "Store": {
+          "GitContentEnabled": {
+            "title": "Seiten über Git veröffentlichen",
+            "description": "Wenn aktiviert, wird beim Speichern einer Seite ein Commit in einem Arbeitsbranch des konfigurierten Content-Repositorys erstellt, und beim Veröffentlichen wird ein Pull Request geöffnet und zusammengeführt — anstatt direkt in den Blob-Speicher zu schreiben. Erfordert eine auf dem Server konfigurierte Git-Content-Verbindung (PageBuilder:GitContent)."
+          },
           "PreviewUserIds": {
             "title": "Benutzer-IDs für Vorschau",
             "description": "Liste der Benutzer-IDs für die Vorschau-Imitation (eine pro Zeile)"

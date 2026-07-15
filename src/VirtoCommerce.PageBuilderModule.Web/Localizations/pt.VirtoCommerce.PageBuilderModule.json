@@ -71,6 +71,10 @@
           }
         },
         "Store": {
+          "GitContentEnabled": {
+            "title": "Publicar páginas através do Git",
+            "description": "Quando ativado, guardar uma página cria um commit num ramo de trabalho do repositório de conteúdo configurado, e a publicação abre e integra uma pull request, em vez de escrever diretamente no armazenamento blob. Requer uma ligação de conteúdo Git configurada no servidor (PageBuilder:GitContent)."
+          },
           "PreviewUserIds": {
             "title": "IDs de utilizador para pré-visualização",
             "description": "Lista de IDs de utilizador para personificação na pré-visualização (um por linha)"

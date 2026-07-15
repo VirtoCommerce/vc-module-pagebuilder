@@ -76,6 +76,10 @@
           }
         },
         "Store": {
+          "GitContentEnabled": {
+            "title": "Julkaise sivut Gitin kautta",
+            "description": "Kun käytössä, sivun tallentaminen tekee commitin määritetyn sisältövaraston työhaaraan ja julkaiseminen avaa ja yhdistää pull requestin sen sijaan, että kirjoitettaisiin suoraan blob-tallennustilaan. Edellyttää palvelimella määritettyä Git-sisältöyhteyttä (PageBuilder:GitContent)."
+          },
           "PreviewUserIds": {
             "title": "Esikatselun käyttäjätunnukset",
             "description": "Luettelo käyttäjätunnuksista esikatselun toisena käyttäjänä toimimista varten (yksi per rivi)"

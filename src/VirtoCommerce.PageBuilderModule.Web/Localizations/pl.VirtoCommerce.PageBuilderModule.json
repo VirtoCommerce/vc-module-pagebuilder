@@ -71,6 +71,10 @@
           }
         },
         "Store": {
+          "GitContentEnabled": {
+            "title": "Publikuj strony przez Git",
+            "description": "Gdy włączone, zapisanie strony tworzy commit w gałęzi roboczej skonfigurowanego repozytorium treści, a publikowanie otwiera i scala pull request, zamiast zapisywać bezpośrednio do magazynu blob. Wymaga skonfigurowanego na serwerze połączenia z treścią Git (PageBuilder:GitContent)."
+          },
           "PreviewUserIds": {
             "title": "ID użytkowników do podglądu",
             "description": "Lista ID użytkowników do podszywania się podczas podglądu stron (jeden na wiersz)"
