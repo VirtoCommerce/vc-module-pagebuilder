@@ -38,12 +38,28 @@ public abstract class ContentStreamRepository(PageBuilderModuleDbContext dbConte
     // Chunked append differs structurally per dialect, so each provider supplies it in full.
     protected abstract string AppendContentChunkSql { get; }
 
+    // Server-side copy: the payload never leaves the database. A missing or NULL source yields NULL, which is
+    // the correct result — the target then reads as "never seeded", exactly like the source.
+    // MySQL rejects reading the table being updated in a plain subquery (error 1093) and overrides this.
+    protected virtual string CopyContentSql =>
+        $"UPDATE {Table} SET {ContentColumn} = (SELECT {ContentColumn} FROM {Table} WHERE {IdColumn} = @sourceId) " +
+        $"WHERE {IdColumn} = @id";
+
     public async Task SaveBinaryAsync(string pageId, TextReader reader, CancellationToken cancellationToken = default)
     {
         var connection = dbContext.Database.GetDbConnection();
         await dbContext.Database.OpenConnectionAsync(cancellationToken);
         try
         {
+            // InitContentSql blanks the column and the chunks are appended one statement at a time, so without a
+            // transaction every save is briefly visible to readers as empty and then as truncated content. Own a
+            // transaction here unless the caller already started one, in which case theirs wins and the commands
+            // below enlist in it. Not committing on the way out rolls back on dispose.
+            var ownsTransaction = dbContext.Database.CurrentTransaction == null;
+            await using var transaction = ownsTransaction
+                ? await dbContext.Database.BeginTransactionAsync(cancellationToken)
+                : null;
+
             // write empty value first to avoid "out of memory" exception in case of large content
             await using (var init = connection.CreateCommand())
             {
@@ -76,6 +92,11 @@ public abstract class ContentStreamRepository(PageBuilderModuleDbContext dbConte
                 }
 
                 await cmd.ExecuteNonQueryAsync(cancellationToken);
+            }
+
+            if (transaction != null)
+            {
+                await transaction.CommitAsync(cancellationToken);
             }
         }
         finally
@@ -117,6 +138,39 @@ public abstract class ContentStreamRepository(PageBuilderModuleDbContext dbConte
             }
 
             return await CopyContentToWriterAsync(reader, writer, ContentBufferSize, cancellationToken);
+        }
+        finally
+        {
+            await dbContext.Database.CloseConnectionAsync();
+        }
+    }
+
+    public async Task CopyContentAsync(string sourcePageId, string targetPageId, CancellationToken cancellationToken = default)
+    {
+        var connection = dbContext.Database.GetDbConnection();
+        await dbContext.Database.OpenConnectionAsync(cancellationToken);
+        try
+        {
+            await using var cmd = connection.CreateCommand();
+            cmd.CommandText = CopyContentSql;
+
+            SetIdParameter(cmd, targetPageId);
+
+            // DbCommand.CreateParameter yields the provider's own parameter type, so the source id needs no
+            // per-provider hook of its own.
+            var sourceParameter = cmd.CreateParameter();
+            sourceParameter.ParameterName = "@sourceId";
+            sourceParameter.Value = sourcePageId;
+            cmd.Parameters.Add(sourceParameter);
+
+            var tx = dbContext.Database.CurrentTransaction?.GetDbTransaction();
+            if (tx != null)
+            {
+                cmd.Transaction = tx;
+            }
+
+            // A single statement is atomic on its own, so no transaction is started here.
+            await cmd.ExecuteNonQueryAsync(cancellationToken);
         }
         finally
         {

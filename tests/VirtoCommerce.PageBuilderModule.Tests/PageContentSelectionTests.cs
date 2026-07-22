@@ -198,6 +198,61 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.Contains("Welcome", liveBody);
         }
 
+        [Fact]
+        public async Task Copying_from_a_never_seeded_source_leaves_the_target_unseeded_rather_than_blank()
+        {
+            var service = new PublishedRenameContentPreservationTests.FakeGroupedPageService();
+
+            // The source draft exists but was never seeded; the target draft holds real content from before.
+            service.SeedGroup(new GroupedPageBuilderPage
+            {
+                Id = "group-source",
+                StoreId = "Store1",
+                Pages = new List<PageBuilderPage>
+                {
+                    new() { Id = "source-draft", GroupId = "group-source", Status = Draft, ModifiedDate = new DateTime(2026, 7, 22) },
+                },
+            });
+            service.SeedGroup(new GroupedPageBuilderPage
+            {
+                Id = "group-target",
+                StoreId = "Store1",
+                Pages = new List<PageBuilderPage>
+                {
+                    new() { Id = "target-draft", GroupId = "group-target", Status = Draft, ModifiedDate = new DateTime(2026, 7, 1) },
+                },
+            });
+            service.SeedContent("target-draft", LiveContent);
+
+            var controller = CreateController(service);
+            await controller.CopyPageContent("group-target", "group-source", TestContext.Current.CancellationToken);
+
+            // A copy carries the source's state verbatim. Had it written the empty result instead, the target
+            // would read as "deliberately empty" and stop falling through to a live page.
+            var (body, status) = await GetContent(service, "group-target", draft: true);
+
+            Assert.Equal((int)HttpStatusCode.NotFound, status);
+            Assert.Equal(string.Empty, body);
+        }
+
+        private static PageBuilderPageController CreateController(
+            PublishedRenameContentPreservationTests.FakeGroupedPageService service)
+        {
+            var controller = new PageBuilderPageController(
+                crudService: new PublishedRenameContentPreservationTests.FakePageBuilderPageService(service),
+                groupedPageService: service,
+                groupedPageSearchService: new PublishedRenameContentPreservationTests.FakeGroupedPageSearchService(),
+                authorizationService: new PublishedRenameContentPreservationTests.AllowAllAuthorizationService(),
+                pageDocumentSearchService: new PublishedRenameContentPreservationTests.NoopPageDocumentSearchService(),
+                eventPublisher: new PublishedRenameContentPreservationTests.NoopEventPublisher(),
+                logger: NullLogger<PageBuilderPageController>.Instance);
+
+            var httpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity()) };
+            httpContext.Response.Body = new MemoryStream();
+            controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
+            return controller;
+        }
+
         private static async Task<(string Body, int StatusCode)> GetContent(
             PublishedRenameContentPreservationTests.FakeGroupedPageService service, string groupId, bool draft)
         {

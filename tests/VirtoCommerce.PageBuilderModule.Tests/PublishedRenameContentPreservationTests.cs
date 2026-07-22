@@ -279,11 +279,15 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
             public Task CopyPageContentAsync(string sourcePageId, string targetPageId, CancellationToken cancellationToken = default)
             {
-                // Mirrors production: copying from a source that has no content leaves the target untouched,
-                // so the target stays "never seeded" rather than becoming "deliberately empty".
+                // Mirrors the server-side copy: the target takes on exactly the source's state. A source that was
+                // never seeded leaves the target unseeded too, rather than "deliberately empty".
                 if (_content.TryGetValue(sourcePageId, out var c))
                 {
                     _content[targetPageId] = c;
+                }
+                else
+                {
+                    _content.Remove(targetPageId);
                 }
 
                 return Task.CompletedTask;

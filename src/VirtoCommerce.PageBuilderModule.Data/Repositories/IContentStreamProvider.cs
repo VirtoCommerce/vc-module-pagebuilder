@@ -28,4 +28,21 @@ public interface IContentStreamRepository : IAsyncDisposable
 #pragma warning restore CS0618
         return true;
     }
+
+    /// <summary>
+    /// Copies one page's content onto another. The target ends up with exactly what the source had, including
+    /// nothing at all when the source was never seeded.
+    /// </summary>
+    /// <remarks>
+    /// The default implementation round-trips the payload through the caller. Implementations that can express
+    /// the copy as a single server-side statement should override it: that keeps the whole copy atomic — a
+    /// load followed by a save leaves a gap in which the source can change — and keeps the content off the heap.
+    /// </remarks>
+    async Task CopyContentAsync(string sourcePageId, string targetPageId, CancellationToken cancellationToken = default)
+    {
+        var buffer = new StringWriter();
+        var found = await TryLoadBinaryAsync(sourcePageId, buffer, cancellationToken);
+        using var reader = new StringReader(found ? buffer.ToString() : string.Empty);
+        await SaveBinaryAsync(targetPageId, reader, cancellationToken);
+    }
 }

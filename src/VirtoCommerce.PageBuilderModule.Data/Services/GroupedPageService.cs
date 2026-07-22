@@ -145,16 +145,19 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
 
         public async Task CopyPageContentAsync(string sourcePageId, string targetPageId, CancellationToken cancellationToken = default)
         {
-            await using var memoryStream = new MemoryStream();
-            // Copying "nothing" must leave the target untouched. Writing the empty result would flip the target
-            // from NULL (never seeded) to '' (deliberately empty) and destroy the distinction readers rely on.
-            if (!await LoadContentToStreamAsync(sourcePageId, memoryStream, cancellationToken))
+            // One server-side statement: the target takes on exactly the source's state, NULL included, and the
+            // payload never round-trips through here. A load followed by a save would leave a gap in which the
+            // source could change, and would flip a NULL source into '' on the target — turning "never seeded"
+            // into "deliberately empty", which is the distinction readers use to fall through to the live page.
+            await using (var repository = contentStreamRepositoryFactory())
             {
-                return;
+                await repository.CopyContentAsync(sourcePageId, targetPageId, cancellationToken);
             }
 
-            memoryStream.Position = 0;
-            await SaveStreamAsContentAsync(targetPageId, memoryStream, cancellationToken);
+            // The asset reference index is keyed by page id, so it cannot be copied server-side along with the
+            // column. This is the one step that still has to bring the content back through the application.
+            var content = await LoadContent(targetPageId, cancellationToken);
+            await assetReferenceIndexService.RebuildPageIndexAsync(targetPageId, content, cancellationToken);
         }
     }
 }
