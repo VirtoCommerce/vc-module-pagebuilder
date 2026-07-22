@@ -8,7 +8,12 @@ namespace VirtoCommerce.PageBuilderModule.Core.Services
         Task<string> LoadContent(string pageId, CancellationToken cancellationToken = default);
         Task SaveContent(string pageId, string content, CancellationToken cancellationToken = default);
 
-        Task LoadContentToStreamAsync(string pageId, Stream stream, CancellationToken cancellationToken = default);
+        /// <returns>
+        /// <c>false</c> when the page has no content at all — it was deleted, or it is a draft that was created
+        /// but never seeded. Callers must not treat that as empty content; nothing is written to
+        /// <paramref name="stream"/> in that case.
+        /// </returns>
+        Task<bool> LoadContentToStreamAsync(string pageId, Stream stream, CancellationToken cancellationToken = default);
         Task SaveStreamAsContentAsync(string pageId, Stream stream, CancellationToken cancellationToken = default);
 
         Task CopyPageContentAsync(string sourcePageId, string targetPageId,

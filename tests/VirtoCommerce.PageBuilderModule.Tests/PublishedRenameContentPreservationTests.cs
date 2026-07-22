@@ -256,11 +256,19 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 return Task.CompletedTask;
             }
 
-            public async Task LoadContentToStreamAsync(string pageId, Stream stream, CancellationToken cancellationToken = default)
+            // Absence from _content mirrors a NULL PageContent column — content was never written for this page.
+            // A present empty string mirrors '' — content was written and is deliberately empty. Only the former
+            // reports false, and only the former writes nothing to the stream.
+            public async Task<bool> LoadContentToStreamAsync(string pageId, Stream stream, CancellationToken cancellationToken = default)
             {
-                var content = await LoadContent(pageId, cancellationToken);
+                if (!_content.TryGetValue(pageId, out var content))
+                {
+                    return false;
+                }
+
                 var bytes = Encoding.UTF8.GetBytes(content);
                 await stream.WriteAsync(bytes, cancellationToken);
+                return true;
             }
 
             public async Task SaveStreamAsContentAsync(string pageId, Stream stream, CancellationToken cancellationToken = default)
@@ -271,7 +279,13 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
             public Task CopyPageContentAsync(string sourcePageId, string targetPageId, CancellationToken cancellationToken = default)
             {
-                _content[targetPageId] = _content.TryGetValue(sourcePageId, out var c) ? c : string.Empty;
+                // Mirrors production: copying from a source that has no content leaves the target untouched,
+                // so the target stays "never seeded" rather than becoming "deliberately empty".
+                if (_content.TryGetValue(sourcePageId, out var c))
+                {
+                    _content[targetPageId] = c;
+                }
+
                 return Task.CompletedTask;
             }
 

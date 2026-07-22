@@ -319,14 +319,44 @@ public class PageBuilderPageController(
             return;
         }
 
-        var pageId = group.Pages.Where(x => (draft && x.Status == Draft) || x.Status == Published || x.Status == Archived)
-            .OrderByDescending(x => x.ModifiedDate).Select(x => x.Id).FirstOrDefault();
-        if (pageId == null)
+        // Walk the candidates in order of authority and serve the first one that actually has content.
+        // Picking by newest ModifiedDate instead used to hand out the wrong page: a draft that UpdateGroup had
+        // just created but not yet seeded is the newest row while its content is still NULL, and pages demoted
+        // to Archived by NormalizePublishedPages share the Published page's timestamp, so the winner of that
+        // comparison was undefined. Falling through on "no content" also covers a stale cached group that still
+        // lists deleted pages.
+        foreach (var pageId in GetContentCandidates(group, draft))
         {
-            Response.StatusCode = (int)HttpStatusCode.NotFound;
-            return;
+            if (await groupedPageService.LoadContentToStreamAsync(pageId, Response.Body, cancellationToken))
+            {
+                return;
+            }
         }
-        await groupedPageService.LoadContentToStreamAsync(pageId, Response.Body, cancellationToken);
+
+        Response.StatusCode = (int)HttpStatusCode.NotFound;
+    }
+
+    // Draft is the working copy and wins when requested; Published is the live page; Archived is the last
+    // resort so that fully archived groups (ArchiveGroups sets every page to Archived) still render.
+    private static IEnumerable<string> GetContentCandidates(GroupedPageBuilderPage group, bool draft)
+    {
+        if (draft)
+        {
+            foreach (var page in group.Pages.Where(x => x.Status == Draft))
+            {
+                yield return page.Id;
+            }
+        }
+
+        foreach (var page in group.Pages.Where(x => x.Status == Published))
+        {
+            yield return page.Id;
+        }
+
+        foreach (var page in group.Pages.Where(x => x.Status == Archived).OrderByDescending(x => x.ModifiedDate))
+        {
+            yield return page.Id;
+        }
     }
 
     [HttpPost("grouped/{groupId}/content")]

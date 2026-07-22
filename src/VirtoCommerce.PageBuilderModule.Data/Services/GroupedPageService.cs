@@ -114,18 +114,29 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
             await SaveStreamAsContentAsync(pageId, memoryStream, cancellationToken);
         }
 
-        public async Task LoadContentToStreamAsync(string pageId, Stream stream, CancellationToken cancellationToken = default)
+        public async Task<bool> LoadContentToStreamAsync(string pageId, Stream stream, CancellationToken cancellationToken = default)
         {
-            var repository = contentStreamRepositoryFactory();
-            await using var writer = new StreamWriter(stream, Encoding.UTF8, bufferSize: 8192, leaveOpen: true);
-            await repository.LoadBinaryAsync(pageId, writer, cancellationToken);
+            await using var repository = contentStreamRepositoryFactory();
+
+            // Deliberately not disposed: disposing flushes, and flushing an HTTP response body commits the
+            // status line, which would make the caller's fall-through to the next candidate — or to 404 —
+            // impossible. It would also emit the UTF8 preamble for a page that turned out to have no content.
+            // The writer holds no unmanaged resources and the stream is left open either way.
+            var writer = new StreamWriter(stream, Encoding.UTF8, bufferSize: 8192, leaveOpen: true);
+            var found = await repository.TryLoadBinaryAsync(pageId, writer, cancellationToken);
+            if (found)
+            {
+                await writer.FlushAsync(cancellationToken);
+            }
+
+            return found;
         }
 
         public async Task SaveStreamAsContentAsync(string pageId, Stream stream, CancellationToken cancellationToken = default)
         {
             using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, leaveOpen: false);
             var content = await reader.ReadToEndAsync(cancellationToken);
-            var repository = contentStreamRepositoryFactory();
+            await using var repository = contentStreamRepositoryFactory();
             using var contentReader = new StringReader(content);
             await repository.SaveBinaryAsync(pageId, contentReader, cancellationToken);
 
@@ -135,7 +146,13 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
         public async Task CopyPageContentAsync(string sourcePageId, string targetPageId, CancellationToken cancellationToken = default)
         {
             await using var memoryStream = new MemoryStream();
-            await LoadContentToStreamAsync(sourcePageId, memoryStream, cancellationToken);
+            // Copying "nothing" must leave the target untouched. Writing the empty result would flip the target
+            // from NULL (never seeded) to '' (deliberately empty) and destroy the distinction readers rely on.
+            if (!await LoadContentToStreamAsync(sourcePageId, memoryStream, cancellationToken))
+            {
+                return;
+            }
+
             memoryStream.Position = 0;
             await SaveStreamAsContentAsync(targetPageId, memoryStream, cancellationToken);
         }
