@@ -302,6 +302,7 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     disabled: isReadOnly.value || isModified.value || !formMeta.value.valid,
     clickHandler: async () => {
       await publishGroup();
+      setBaseline();
       callParent("reload");
     },
   },
@@ -313,6 +314,7 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     disabled: isReadOnly.value,
     clickHandler: async () => {
       await unpublishGroup();
+      setBaseline();
       callParent("reload");
     },
   },
