@@ -4,7 +4,8 @@ using VirtoCommerce.PageBuilderModule.Data.Repositories;
 
 namespace VirtoCommerce.PageBuilderModule.Data.PostgreSql;
 
-public class PostgreSqlContentStreamRepository(PageBuilderModuleDbContext dbContext) : ContentStreamRepository(dbContext)
+public class PostgreSqlContentStreamRepository(PageBuilderModuleDbContext dbContext, IDisposable? owner = null)
+    : ContentStreamRepository(dbContext, owner)
 {
     protected override string QuoteOpen => "\"";
     protected override string QuoteClose => "\"";
