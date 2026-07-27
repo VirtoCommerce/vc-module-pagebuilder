@@ -4,11 +4,24 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\src\VirtoCommerce.PageBuilderModule.Data\VirtoCommerce.PageBuilderModule.Data.csproj" />
+    <ProjectReference Include="..\..\src\VirtoCommerce.PageBuilderModule.Data.SqlServer\VirtoCommerce.PageBuilderModule.Data.SqlServer.csproj" />
+    <ProjectReference Include="..\..\src\VirtoCommerce.PageBuilderModule.Data.PostgreSql\VirtoCommerce.PageBuilderModule.Data.PostgreSql.csproj" />
+    <ProjectReference Include="..\..\src\VirtoCommerce.PageBuilderModule.Data.MySql\VirtoCommerce.PageBuilderModule.Data.MySql.csproj" />
+    <ProjectReference Include="..\..\src\VirtoCommerce.PageBuilderModule.Web\VirtoCommerce.PageBuilderModule.Web.csproj" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.4">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
     <PackageReference Include="xunit" Version="2.6.2" />
+    <!-- Without a VSTest adapter `dotnet test` discovers nothing, so the regression tests here would pass
+         vacuously in CI. HEAD carried no adapter because the project held only a placeholder test. -->
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.4">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
   </ItemGroup>
 </Project>

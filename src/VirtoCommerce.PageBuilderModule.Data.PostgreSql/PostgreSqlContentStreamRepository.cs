@@ -4,8 +4,15 @@ using VirtoCommerce.PageBuilderModule.Data.Repositories;
 
 namespace VirtoCommerce.PageBuilderModule.Data.PostgreSql;
 
-public class PostgreSqlContentStreamRepository(PageBuilderModuleDbContext dbContext) : ContentStreamRepository(dbContext)
+public class PostgreSqlContentStreamRepository(PageBuilderModuleDbContext dbContext, IDisposable? owner = null)
+    : ContentStreamRepository(dbContext, owner)
 {
+    protected override string QuoteOpen => "\"";
+    protected override string QuoteClose => "\"";
+
+    protected override string AppendContentChunkSql =>
+        $"UPDATE {Table} SET {ContentColumn} = {ContentColumn} || @chunk WHERE {IdColumn} = @id";
+
     protected override void SetIdParameter(DbCommand cmd, string value)
     {
         cmd.Parameters.Add(new NpgsqlParameter("@id", value));

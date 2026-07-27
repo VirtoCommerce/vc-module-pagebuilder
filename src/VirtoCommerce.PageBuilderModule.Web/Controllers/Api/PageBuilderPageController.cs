@@ -1,7 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -348,14 +352,39 @@ public class PageBuilderPageController(
             return;
         }
 
-        var pageId = group.Pages.Where(x => (draft && x.Status == Draft) || x.Status == Published)
-            .OrderByDescending(x => x.ModifiedDate).Select(x => x.Id).FirstOrDefault();
-        if (pageId == null)
+        // Walk the candidates in order of authority and serve the first one that actually has content.
+        // Picking by newest ModifiedDate instead used to hand out the wrong page: SavePageContent creates the
+        // draft row and writes its content in a separate step afterwards, so in between — and for good after a
+        // write that failed — the draft is the newest row while its content column is still NULL. Falling
+        // through on "no content" keeps such a draft from shadowing the published page that still holds the
+        // work, which is how a page came back blank and then lost its content on the next publish.
+        foreach (var pageId in GetContentCandidates(group, draft))
         {
-            Response.StatusCode = (int)HttpStatusCode.NotFound;
-            return;
+            if (await groupedPageService.LoadContentToStreamAsync(pageId, Response.Body, cancellationToken))
+            {
+                return;
+            }
         }
-        await groupedPageService.LoadContentToStreamAsync(pageId, Response.Body, cancellationToken);
+
+        Response.StatusCode = (int)HttpStatusCode.NotFound;
+    }
+
+    // Draft is the working copy and wins when requested; Published is the live page. The candidate set is the
+    // same one the previous query considered — only the order is now by authority rather than by timestamp.
+    private static IEnumerable<string> GetContentCandidates(GroupedPageBuilderPage group, bool draft)
+    {
+        if (draft)
+        {
+            foreach (var page in group.Pages.Where(x => x.Status == Draft))
+            {
+                yield return page.Id;
+            }
+        }
+
+        foreach (var page in group.Pages.Where(x => x.Status == Published))
+        {
+            yield return page.Id;
+        }
     }
 
     [HttpPost("grouped/{groupId}/content")]
@@ -375,6 +404,23 @@ public class PageBuilderPageController(
             return Forbidden;
         }
 
+        // Read and validate before touching the group. This is the last point at which a page can still be
+        // blanked: the reader-side fall-through only rescues a page whose content column is NULL, and a body
+        // that gets written turns the page into "deliberately empty" — a real answer that shadows the live
+        // version and survives the next publish. An empty or unparsable body is never a save the designer
+        // means to make, so it must not reach the column. Validating first also keeps a rejected request from
+        // leaving a draft row behind, since the draft below is created before anything is written.
+        string content;
+        using (var reader = new StreamReader(Request.Body, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, leaveOpen: true))
+        {
+            content = await reader.ReadToEndAsync(cancellationToken);
+        }
+
+        if (string.IsNullOrWhiteSpace(content) || !IsWellFormedJson(content))
+        {
+            return BadRequest("Page content must be a non-empty, well-formed JSON document.");
+        }
+
         var draftPage = groupedPage.Pages.FirstOrDefault(x => x.Status == Draft);
 
         if (draftPage == null)
@@ -391,7 +437,7 @@ public class PageBuilderPageController(
         }
 
         var pageId = draftPage!.Id;
-        await groupedPageService.SaveStreamAsContentAsync(pageId, Request.Body, cancellationToken);
+        await groupedPageService.SaveContent(pageId, content, cancellationToken);
 
         return NoContent();
     }
@@ -411,5 +457,22 @@ public class PageBuilderPageController(
 
         await groupedPageService.SaveStreamAsContentAsync(pageId, stream, cancellationToken);
 
+    }
+
+    // Only well-formedness is checked, not the document's shape: content stored by older designer versions can
+    // be an array rather than the current { settings, content } object, and both still load. What this rules
+    // out is a payload that never parses at all — a truncated upload, which is indistinguishable from a real
+    // save once written, and which no reader further down can tell apart from content the author saved.
+    private static bool IsWellFormedJson(string content)
+    {
+        try
+        {
+            JsonNode.Parse(content);
+            return true;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
     }
 }
