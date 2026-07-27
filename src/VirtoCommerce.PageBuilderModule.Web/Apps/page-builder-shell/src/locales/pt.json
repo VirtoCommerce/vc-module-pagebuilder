@@ -1,3 +1,11 @@
 {
-  "language_name": "Português"
+  "language_name": "Português",
+  "COMMON": {
+    "STORE_CONTEXT": {
+      "MISSING_TITLE": "Contexto da loja ausente",
+      "MISSING_DESCRIPTION": "Abra o Page Builder a partir de uma loja para gerenciar páginas e assets.",
+      "INVALID_TITLE": "Loja não encontrada",
+      "INVALID_DESCRIPTION": "A loja \"{storeId}\" não existe ou não está disponível. Verifique o contexto da loja e reabra o Page Builder a partir de uma loja válida."
+    }
+  }
 }

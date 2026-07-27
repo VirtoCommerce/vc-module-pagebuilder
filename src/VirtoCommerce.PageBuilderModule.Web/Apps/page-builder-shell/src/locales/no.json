@@ -1,3 +1,11 @@
 {
-  "language_name": "Norsk"
+  "language_name": "Norsk",
+  "COMMON": {
+    "STORE_CONTEXT": {
+      "MISSING_TITLE": "Butikkontekst mangler",
+      "MISSING_DESCRIPTION": "Åpne Page Builder fra en butikk for å administrere sider og assets.",
+      "INVALID_TITLE": "Butikk ikke funnet",
+      "INVALID_DESCRIPTION": "Butikken \"{storeId}\" finnes ikke eller er ikke tilgjengelig. Kontroller butikkonteksten og åpne Page Builder på nytt fra en gyldig butikk."
+    }
+  }
 }

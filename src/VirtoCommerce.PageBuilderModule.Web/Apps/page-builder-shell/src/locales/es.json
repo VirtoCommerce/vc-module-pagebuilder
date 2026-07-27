@@ -1,3 +1,11 @@
 {
-  "language_name": "Español"
+  "language_name": "Español",
+  "COMMON": {
+    "STORE_CONTEXT": {
+      "MISSING_TITLE": "Falta el contexto de la tienda",
+      "MISSING_DESCRIPTION": "Abra Page Builder desde una tienda para gestionar páginas y assets.",
+      "INVALID_TITLE": "Tienda no encontrada",
+      "INVALID_DESCRIPTION": "La tienda \"{storeId}\" no existe o no está disponible. Compruebe el contexto de la tienda y vuelva a abrir Page Builder desde una tienda válida."
+    }
+  }
 }

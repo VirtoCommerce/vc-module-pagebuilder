@@ -4,6 +4,385 @@
     }
 }
 
+.asset-picker-dialog {
+    width: min(58rem, 96vw) !important;
+    height: min(52rem, 86vh) !important;
+    max-width: 96vw !important;
+    max-height: 86vh !important;
+
+    .mat-mdc-dialog-container,
+    .mat-mdc-dialog-surface,
+    .mdc-dialog__container,
+    .mdc-dialog__surface {
+        width: 100%;
+        height: 100%;
+        max-width: 100%;
+        max-height: 100%;
+        overflow: hidden;
+    }
+}
+
+.asset-picker {
+    $bg: #f6f8fb;
+    $surface: #fff;
+    $border: #dde6f2;
+    $text: #243447;
+    $muted: #6f8298;
+    $primary: #2f95da;
+    $preview: #f7fbff;
+    $preview-alt: #edf4fb;
+    $folder: #d9efff;
+    $folder-alt: #c4e4ff;
+
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: $bg;
+    color: $text;
+    font-size: 0.875rem;
+    line-height: 1.125rem;
+
+    button,
+    input {
+        font: inherit;
+    }
+
+    .header,
+    .toolbar,
+    [mat-dialog-actions] {
+        background: $surface;
+        border-color: $border;
+    }
+
+    .header {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1rem;
+        border-bottom: 1px solid $border;
+
+        h2 {
+            margin: 0;
+            font-size: 1.125rem;
+            font-weight: 500;
+            line-height: 1.5rem;
+        }
+    }
+
+    .breadcrumbs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+        margin-top: 0.5rem;
+        color: $muted;
+
+        button {
+            padding: 0;
+            border: 0;
+            background: transparent;
+            color: $primary;
+            font-weight: 500;
+            cursor: pointer;
+
+            &:disabled {
+                color: $muted;
+                cursor: default;
+            }
+        }
+    }
+
+    .close,
+    .upload {
+        border: 1px solid $border;
+        border-radius: 0.25rem;
+        background: $surface;
+        color: $primary;
+        cursor: pointer;
+    }
+
+    .close {
+        $close-size: 2rem;
+
+        appearance: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        align-self: flex-start;
+        flex: 0 0 $close-size;
+        width: $close-size !important;
+        min-width: $close-size !important;
+        max-width: $close-size !important;
+        height: $close-size !important;
+        min-height: $close-size !important;
+        max-height: $close-size !important;
+        inline-size: $close-size !important;
+        block-size: $close-size !important;
+        aspect-ratio: 1 / 1;
+        box-sizing: border-box;
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+        background: transparent;
+        color: $muted;
+        transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+
+        &:hover {
+            background: $preview-alt;
+            color: $text;
+        }
+
+        &:focus-visible {
+            outline: 2px solid rgba($primary, 0.35);
+            outline-offset: 2px;
+        }
+
+        app-icon {
+            display: flex;
+            width: 1.375rem;
+            height: 1.375rem;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 1.375rem;
+            font-size: 1.375rem;
+            line-height: 1.375rem;
+        }
+
+        app-icon mat-icon {
+            width: 1.375rem !important;
+            height: 1.375rem !important;
+            font-size: 1.375rem !important;
+            line-height: 1.375rem !important;
+        }
+    }
+
+    [mat-dialog-content] {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        min-height: 0;
+        margin: 0;
+        padding: 0;
+    }
+
+    [mat-dialog-actions] {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+        margin: 0;
+        padding: 0.75rem 1rem;
+        border-top: 1px solid $border;
+
+        app-icon-button {
+            display: block;
+
+            button {
+                width: 6.5rem;
+                min-height: 2.875rem;
+                justify-content: center;
+                padding: 0 1rem;
+                border-radius: 0.375rem;
+                font-size: 1rem;
+                line-height: 1.25rem;
+            }
+        }
+    }
+
+    .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem;
+        border-bottom: 1px solid $border;
+
+        input {
+            flex: 1 1 15rem;
+            min-width: 15rem;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid $border;
+            border-radius: 0.25rem;
+            outline: 0;
+            color: $text;
+
+            &:focus {
+                border-color: $primary;
+            }
+        }
+    }
+
+    .upload {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 0.75rem;
+
+        &:disabled {
+            opacity: 0.6;
+            cursor: default;
+        }
+    }
+
+    .counter,
+    .size {
+        color: $muted;
+    }
+
+    .grid {
+        display: grid;
+        flex: 1;
+        grid-template-columns: repeat(auto-fill, 180px);
+        grid-auto-rows: 220px;
+        align-content: start;
+        justify-content: start;
+        gap: 1rem;
+        min-height: 0;
+        padding: 1rem;
+        overflow-y: auto;
+    }
+
+    .card {
+        position: relative;
+        display: flex;
+        width: 180px;
+        height: 220px;
+        flex-direction: column;
+        overflow: hidden;
+        padding: 0;
+        border: 1px solid $border;
+        border-radius: 0.375rem;
+        background: $surface;
+        color: $text;
+        text-align: left;
+        cursor: pointer;
+
+        &:hover {
+            border-color: $primary;
+        }
+
+        &--selected,
+        &--drop-target {
+            border-color: $primary;
+        }
+
+        &--selected {
+            box-shadow: 0 0 0 2px rgba($primary, 0.22);
+        }
+    }
+
+    .selection-marker {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        z-index: 1;
+        display: flex;
+        width: 1.5rem;
+        height: 1.5rem;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid rgba($primary, 0.45);
+        border-radius: 0.25rem;
+        background: rgba($surface, 0.92);
+        color: $surface;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+
+        &--selected {
+            border-color: $primary;
+            background: $primary;
+        }
+
+        app-icon {
+            display: flex;
+            width: 1rem;
+            height: 1rem;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            line-height: 1rem;
+        }
+    }
+
+    .preview {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 150px;
+        padding: 0.5rem;
+        flex: 0 0 150px;
+        background: linear-gradient(135deg, $preview, $preview-alt);
+    }
+
+    .card--folder .preview {
+        background: linear-gradient(135deg, $folder, $folder-alt);
+    }
+
+    .image-frame,
+    .image {
+        width: 100%;
+        height: 100%;
+    }
+
+    .image-frame {
+        overflow: hidden;
+        border-radius: 0.375rem;
+        background: $preview repeating-conic-gradient($preview-alt 0 25%, transparent 0 50%) 0 / 16px 16px;
+    }
+
+    .image {
+        display: block;
+        object-fit: cover;
+    }
+
+    .folder-icon,
+    .file-icon {
+        font-size: 2.75rem;
+    }
+
+    .folder-icon {
+        color: $surface;
+    }
+
+    .file-icon {
+        color: $primary;
+    }
+
+    .meta {
+        padding: 0.75rem;
+        border-top: 1px solid $border;
+    }
+
+    .name,
+    .size {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .size {
+        margin-top: 0.125rem;
+        font-size: 0.75rem;
+        line-height: 0.875rem;
+    }
+
+    .message {
+        display: flex;
+        flex: 1;
+        align-items: center;
+        justify-content: center;
+        margin: 0.75rem;
+        border: 1px solid $border;
+        border-radius: 0.25rem;
+        background: $surface;
+        color: $muted;
+    }
+
+    .message--error {
+        border-color: #fca5a5;
+        color: #b91c1c;
+    }
+}
+
 // todo: do padding through theme
 // .mat-dialog-container {
 //     padding: 1.25rem;

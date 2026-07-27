@@ -1,3 +1,11 @@
 {
-  "language_name": "Polski"
+  "language_name": "Polski",
+  "COMMON": {
+    "STORE_CONTEXT": {
+      "MISSING_TITLE": "Brak kontekstu sklepu",
+      "MISSING_DESCRIPTION": "Otwórz Page Builder ze sklepu, aby zarządzać stronami i zasobami.",
+      "INVALID_TITLE": "Nie znaleziono sklepu",
+      "INVALID_DESCRIPTION": "Sklep \"{storeId}\" nie istnieje albo jest niedostępny. Sprawdź kontekst sklepu i otwórz ponownie Page Builder z poprawnego sklepu."
+    }
+  }
 }

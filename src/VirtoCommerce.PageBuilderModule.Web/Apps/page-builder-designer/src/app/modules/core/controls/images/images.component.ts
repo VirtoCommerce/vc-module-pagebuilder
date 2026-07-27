@@ -17,7 +17,7 @@ import { SpinnerComponent } from '../../components/spinner/spinner.component';
     selector: 'app-images',
     templateUrl: './images.component.html',
     styleUrls: ['./images.component.scss'],
-    imports: [NgClass, NgStyle, DragDropModule, SpinnerComponent, FileUploadModule, ChevronComponent, IconComponent, DragHandleComponent, IconButtonComponent, ControlsListComponent]
+    imports: [NgClass, NgStyle, DragDropModule, FileUploadModule, SpinnerComponent, ChevronComponent, IconComponent, DragHandleComponent, IconButtonComponent, ControlsListComponent]
 })
 export class ImagesComponent extends BaseFilesComponent<ImagesDescriptor> {
 
@@ -27,12 +27,16 @@ export class ImagesComponent extends BaseFilesComponent<ImagesDescriptor> {
             : '12rem'
     );
 
+    protected override get defaultLabel(): string {
+        return this.assetLibraryLabels.imageLabel;
+    }
+
     onReorderItems(event: CdkDragDrop<any>) {
         this.reorderItems(event.previousIndex, event.currentIndex);
     }
 
     getBackground(item: AssetFile) {
-        return `url('${encodeURI(item.previewUrl ?? '').replace(/'/g, '%27')}')`;
+        return item.previewUrl ? `url("${this.escapeCssUrl(item.previewUrl)}")` : null;
     }
 
     protected override getControlOptions() {
@@ -41,5 +45,12 @@ export class ImagesComponent extends BaseFilesComponent<ImagesDescriptor> {
             result.accept = ['image/*'];
         }
         return result;
+    }
+
+    private escapeCssUrl(value: string): string {
+        return value
+            .replace(/\\/g, '\\\\')
+            .replace(/"/g, '\\"')
+            .replace(/\r?\n/g, '%0A');
     }
 }
