@@ -123,14 +123,17 @@ namespace VirtoCommerce.PageBuilderModule.Web
                 serviceCollection.AddTransient<PageBuilderContentItemBuilder>();
             }
 
+            // The scope is handed to the repository, which disposes it together with the DbContext it owns.
+            // Callers must dispose the repository (await using) or the pooled connection is never released.
             serviceCollection.AddSingleton<Func<IContentStreamRepository>>(provider => () =>
             {
-                var db = provider.CreateScope().ServiceProvider.GetRequiredService<PageBuilderModuleDbContext>();
+                var scope = provider.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<PageBuilderModuleDbContext>();
                 return databaseProvider switch
                 {
-                    "MySql" => new MySqlContentStreamRepository(db),
-                    "PostgreSql" => new PostgreSqlContentStreamRepository(db),
-                    _ => new SqlServerContentStreamRepository(db)
+                    "MySql" => new MySqlContentStreamRepository(db, scope),
+                    "PostgreSql" => new PostgreSqlContentStreamRepository(db, scope),
+                    _ => new SqlServerContentStreamRepository(db, scope)
                 };
             });
         }
