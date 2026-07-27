@@ -5,6 +5,7 @@ using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Data.Models;
 using VirtoCommerce.PageBuilderModule.Data.Repositories;
+using VirtoCommerce.Platform.Caching;
 using VirtoCommerce.Platform.Core.Caching;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Events;
@@ -38,6 +39,38 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
             }
 
             await base.BeforeSaveChanges(models);
+        }
+
+        // A grouped save changes the status of child pages (publish/unpublish/archive), but the base
+        // ClearCache only expires GroupedPageBuilderPage regions. Read paths that hydrate individual
+        // pages — notably PageBuilderPageSearchService used by the search-index reindex provider —
+        // go through PageBuilderPage caches, which would otherwise keep serving the pre-change status
+        // until they expire. That makes a reindex write stale statuses to the index (the event-driven
+        // path is unaffected because it reads the freshly saved entry, not the cache). Invalidate the
+        // affected pages' caches here so a reindex immediately reflects the new status.
+        protected override void ClearCache(IList<GroupedPageBuilderPage> models)
+        {
+            base.ClearCache(models);
+
+            var pageIds = models
+                .Where(x => x?.Pages != null)
+                .SelectMany(x => x.Pages)
+                .Select(x => x.Id)
+                .Where(id => !string.IsNullOrEmpty(id))
+                .Distinct()
+                .ToList();
+
+            if (pageIds.Count == 0)
+            {
+                return;
+            }
+
+            foreach (var id in pageIds)
+            {
+                GenericCachingRegion<PageBuilderPage>.ExpireTokenForKey(id);
+            }
+
+            GenericSearchCachingRegion<PageBuilderPage>.ExpireRegion();
         }
 
         // Enforces invariant: at most one Published page per group.

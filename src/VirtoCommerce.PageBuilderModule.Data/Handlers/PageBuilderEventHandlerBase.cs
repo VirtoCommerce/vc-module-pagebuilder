@@ -16,6 +16,14 @@ namespace VirtoCommerce.PageBuilderModule.Data.Handlers
         {
             var pageOperation = state.ToPageOperation(entry);
 
+            // A page with an unrecognized status maps to PageOperation.Unknown, which has no
+            // corresponding index status (GetPageDocumentStatus would throw). Such a page must not
+            // be pushed to the index, so skip it instead of raising an event for it.
+            if (pageOperation == PageOperation.Unknown)
+            {
+                return null;
+            }
+
             var group = await groupedPageService.GetByIdAsync(entry.GroupId);
             var content = await groupedPageService.LoadContent(entry.Id);
 
@@ -34,7 +42,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Handlers
 
         protected static async Task PublishPagesDomainEvents(IEnumerable<PagesDomainEvent> events, IEventPublisher eventPublisher)
         {
-            await Task.WhenAll(events.Select(e => eventPublisher.Publish(e)));
+            await Task.WhenAll(events.Where(e => e != null).Select(e => eventPublisher.Publish(e)));
         }
     }
 }
