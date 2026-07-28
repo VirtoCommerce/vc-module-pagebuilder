@@ -197,11 +197,16 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
       globalThis.location.origin
     ).replace(/\/$/, "");
     const designerUrl = `${platformUrl}/Modules/$(VirtoCommerce.PageBuilderModule)/Content/page-builder-designer/index.html`;
-    const groupId = item.value?.id;
-    const pageStoreId = item.value?.storeId;
+    const groupId = currentValue.value?.id;
+    const pageStoreId = currentValue.value?.storeId;
+    const cultureName = currentValue.value?.cultureName;
 
     if (groupId && pageStoreId) {
-      const url = `${designerUrl}?storeId=${pageStoreId}#/pages?type=pages&groupId=${groupId}`;
+      let url = `${designerUrl}?storeId=${pageStoreId}#/pages?type=pages&groupId=${groupId}`;
+      // Pass the page language so the designer preview renders in that language (VCST-5219).
+      if (cultureName) {
+        url += `&cultureName=${encodeURIComponent(cultureName)}`;
+      }
       window.open(url, "_blank");
     } else {
       throw new Error("Can't open page.");

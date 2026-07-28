@@ -57,6 +57,13 @@ export const selectTypeParameter = createSelector(
     queryParams => queryParams && queryParams['type'] || ''
 );
 
+// Language of the page being edited, passed as `cultureName` when the designer is opened (VCST-5219).
+// Forwarded to the storefront preview so it renders in the page's language.
+export const selectCultureNameParameter = createSelector(
+    selectQueryParams,
+    queryParams => queryParams && queryParams['cultureName'] || ''
+);
+
 export const selectTemplateKeyParameter = createSelector(
     selectTypeParameter,
     selectPathParameter,
