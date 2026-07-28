@@ -9,6 +9,20 @@ describe('selectQueryParams', () => {
     });
 });
 
+describe('route query selectors', () => {
+    it('returns cultureName and linkedComponentId query parameters', () => {
+        const queryParams = { cultureName: 'en-US', linkedComponentId: 'component-1' };
+
+        expect(selectors.selectCultureNameParameter.projector(queryParams)).toBe('en-US');
+        expect(selectors.selectLinkedComponentIdParameter.projector(queryParams)).toBe('component-1');
+    });
+
+    it('returns empty values when the query parameters are missing', () => {
+        expect(selectors.selectCultureNameParameter.projector({})).toBe('');
+        expect(selectors.selectLinkedComponentIdParameter.projector({})).toBe('');
+    });
+});
+
 // ── selectPathParams ──────────────────────────────────────────────
 
 describe('selectPathParams', () => {
@@ -34,20 +48,25 @@ describe('selectDataParams', () => {
 // ── selectTemplateKeyParameter ────────────────────────────────────
 
 describe('selectTemplateKeyParameter', () => {
+    it('uses the Shared Component id before page route parameters', () => {
+        expect(selectors.selectTemplateKeyParameter.projector('page', '/home.json', 'g1', 'component-1'))
+            .toBe('linked-component::component-1');
+    });
+
     it('returns type::path when type is set', () => {
-        expect(selectors.selectTemplateKeyParameter.projector('page', '/home.json', '')).toBe('page::/home.json');
+        expect(selectors.selectTemplateKeyParameter.projector('page', '/home.json', '', '')).toBe('page::/home.json');
     });
 
     it('returns type::groupId when type and groupId are set', () => {
-        expect(selectors.selectTemplateKeyParameter.projector('page', '/home.json', 'g1')).toBe('page::g1');
+        expect(selectors.selectTemplateKeyParameter.projector('page', '/home.json', 'g1', '')).toBe('page::g1');
     });
 
     it('returns groupId when only groupId is set', () => {
-        expect(selectors.selectTemplateKeyParameter.projector('', '', 'g1')).toBe('g1');
+        expect(selectors.selectTemplateKeyParameter.projector('', '', 'g1', '')).toBe('g1');
     });
 
     it('returns path when only path is set', () => {
-        expect(selectors.selectTemplateKeyParameter.projector('', '/home.json', '')).toBe('/home.json');
+        expect(selectors.selectTemplateKeyParameter.projector('', '/home.json', '', '')).toBe('/home.json');
     });
 });
 

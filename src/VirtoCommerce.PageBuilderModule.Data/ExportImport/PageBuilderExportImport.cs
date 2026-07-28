@@ -1,14 +1,16 @@
 using System;
-
-using System.Threading;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
+using VirtoCommerce.PageBuilderModule.Data.Services;
 using VirtoCommerce.Platform.Core.Common;
+using VirtoCommerce.Platform.Core.Events;
 using VirtoCommerce.Platform.Core.ExportImport;
 using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 
@@ -18,6 +20,9 @@ namespace VirtoCommerce.PageBuilderModule.Data.ExportImport;
 public sealed class PageBuilderExportImport(
     IGroupedPageService groupedPageService,
     IGroupedPageSearchService groupedPageSearchService,
+    IPageBuilderPageService pageBuilderPageService,
+    PageBuilderLinkedComponentExportImportDependencies linkedComponents,
+    IEventPublisher eventPublisher,
     JsonSerializer jsonSerializer)
 {
     private const int BatchSize = 50;
@@ -33,6 +38,8 @@ public sealed class PageBuilderExportImport(
         using var writer = new JsonTextWriter(sw);
 
         await writer.WriteStartObjectAsync(cancellationToken);
+
+        await ExportLinkedComponentsAsync(writer, progressInfo, progressCallback, cancellationToken);
 
         progressInfo.Description = "Page Builder pages are started to export";
         progressCallback(progressInfo);
@@ -82,16 +89,143 @@ public sealed class PageBuilderExportImport(
         cancellationToken.ThrowIfCancellationRequested();
 
         var progressInfo = new ExportImportProgressInfo();
+        var pageBufferPath = Path.Combine(
+            Path.GetTempPath(),
+            $"page-builder-import-{Guid.NewGuid():N}.json");
+        await using var pageBuffer = new FileStream(
+            pageBufferPath,
+            FileMode.CreateNew,
+            FileAccess.ReadWrite,
+            FileShare.None,
+            bufferSize: 81920,
+            FileOptions.Asynchronous | FileOptions.SequentialScan | FileOptions.DeleteOnClose);
 
-        using var streamReader = new StreamReader(inputStream, leaveOpen: true);
-        using var reader = new JsonTextReader(streamReader);
-
-        while (await reader.ReadAsync(cancellationToken))
+        using (var pageBufferStreamWriter = new StreamWriter(pageBuffer, leaveOpen: true))
+        using (var pageBufferWriter = new JsonTextWriter(pageBufferStreamWriter))
         {
-            if (reader.TokenType == JsonToken.PropertyName && reader.Value?.ToString() == "PageBuilderPages")
+            await pageBufferWriter.WriteStartArrayAsync(cancellationToken);
+
+            using var streamReader = new StreamReader(inputStream, leaveOpen: true);
+            using var reader = new JsonTextReader(streamReader);
+
+            while (await reader.ReadAsync(cancellationToken))
             {
-                await ImportPagesArrayAsync(reader, progressInfo, progressCallback, cancellationToken);
+                if (reader.TokenType != JsonToken.PropertyName)
+                {
+                    continue;
+                }
+
+                if (reader.Value?.ToString() == "PageBuilderLinkedComponents")
+                {
+                    await ImportLinkedComponentsArrayAsync(reader, progressInfo, progressCallback, cancellationToken);
+                }
+                else if (reader.Value?.ToString() == "PageBuilderPages")
+                {
+                    await BufferPagesArrayAsync(reader, pageBufferWriter, cancellationToken);
+                }
             }
+
+            await pageBufferWriter.WriteEndArrayAsync(cancellationToken);
+            await pageBufferWriter.FlushAsync(cancellationToken);
+        }
+
+        pageBuffer.Position = 0;
+        using var pageBufferStreamReader = new StreamReader(pageBuffer, leaveOpen: true);
+        using var pageBufferReader = new JsonTextReader(pageBufferStreamReader);
+        await ImportPagesArrayAsync(pageBufferReader, progressInfo, progressCallback, cancellationToken);
+    }
+
+    private async Task ExportLinkedComponentsAsync(
+        JsonTextWriter writer,
+        ExportImportProgressInfo progressInfo,
+        Action<ExportImportProgressInfo> progressCallback,
+        CancellationToken cancellationToken)
+    {
+        progressInfo.Description = "Page Builder Linked Components are started to export";
+        progressCallback(progressInfo);
+
+        await writer.WritePropertyNameAsync("PageBuilderLinkedComponents", cancellationToken);
+        await writer.WriteStartArrayAsync(cancellationToken);
+
+        var criteria = AbstractTypeFactory<PageBuilderLinkedComponentSearchCriteria>.TryCreateInstance();
+        criteria.Take = BatchSize;
+        var processedCount = 0;
+
+        for (criteria.Skip = 0; ; criteria.Skip += BatchSize)
+        {
+            var searchResult = await linkedComponents.SearchService.SearchAsync(criteria);
+
+            foreach (var component in searchResult.Results)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var exportComponent = new PageBuilderExportLinkedComponent
+                {
+                    Id = component.Id,
+                    StoreId = component.StoreId,
+                    Name = component.Name,
+                    Content = await linkedComponents.ContentService.LoadContentAsync(component.Id, cancellationToken),
+                };
+                jsonSerializer.Serialize(writer, exportComponent);
+                processedCount++;
+            }
+
+            await writer.FlushAsync(cancellationToken);
+            progressInfo.Description = $"{processedCount} of {searchResult.TotalCount} Page Builder Linked Components have been exported";
+            progressInfo.ProcessedCount = processedCount;
+            progressInfo.TotalCount = searchResult.TotalCount;
+            progressCallback(progressInfo);
+
+            if (criteria.Skip + BatchSize >= searchResult.TotalCount)
+            {
+                break;
+            }
+        }
+
+        await writer.WriteEndArrayAsync(cancellationToken);
+    }
+
+    private async Task ImportLinkedComponentsArrayAsync(
+        JsonTextReader reader,
+        ExportImportProgressInfo progressInfo,
+        Action<ExportImportProgressInfo> progressCallback,
+        CancellationToken cancellationToken)
+    {
+        if (!await reader.ReadAsync(cancellationToken) || reader.TokenType != JsonToken.StartArray)
+        {
+            return;
+        }
+
+        var processedCount = 0;
+        while (await reader.ReadAsync(cancellationToken) && reader.TokenType != JsonToken.EndArray)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var exportComponent = jsonSerializer.Deserialize<PageBuilderExportLinkedComponent>(reader);
+            if (exportComponent == null)
+            {
+                continue;
+            }
+
+            PageBuilderLinkedComponentReferenceMatcher.ValidateComponentContent(exportComponent.Content);
+
+            var component = string.IsNullOrWhiteSpace(exportComponent.Id)
+                ? null
+                : await linkedComponents.ComponentService.GetByIdAsync(exportComponent.Id);
+            component ??= AbstractTypeFactory<PageBuilderLinkedComponent>.TryCreateInstance();
+            component.Id = exportComponent.Id;
+            component.StoreId = exportComponent.StoreId;
+            component.Name = exportComponent.Name;
+
+            await linkedComponents.ComponentService.SaveWithContentAsync(
+                component,
+                exportComponent.Content,
+                cancellationToken);
+
+            processedCount++;
+            progressInfo.Description = $"{processedCount} Page Builder Linked Components have been imported";
+            progressInfo.ProcessedCount = processedCount;
+            progressCallback(progressInfo);
         }
     }
 
@@ -111,7 +245,7 @@ public sealed class PageBuilderExportImport(
             var exportPage = jsonSerializer.Deserialize<PageBuilderExportPage>(reader);
             if (exportPage != null)
             {
-                await ImportPageAsync(exportPage);
+                await ImportPageAsync(exportPage, cancellationToken);
                 processedCount++;
 
                 progressInfo.Description = $"{processedCount} page builder pages have been imported";
@@ -121,7 +255,7 @@ public sealed class PageBuilderExportImport(
         }
     }
 
-    private async Task ImportPageAsync(PageBuilderExportPage exportPage)
+    private async Task ImportPageAsync(PageBuilderExportPage exportPage, CancellationToken cancellationToken)
     {
         GroupedPageBuilderPage existingGroup = null;
 
@@ -132,20 +266,23 @@ public sealed class PageBuilderExportImport(
 
         if (existingGroup != null)
         {
-            await UpdateExistingGroupAsync(existingGroup, exportPage);
+            await UpdateExistingGroupAsync(existingGroup, exportPage, cancellationToken);
         }
         else
         {
-            await CreateNewGroupAsync(exportPage);
+            await CreateNewGroupAsync(exportPage, cancellationToken);
         }
     }
 
-    private async Task UpdateExistingGroupAsync(GroupedPageBuilderPage group, PageBuilderExportPage exportPage)
+    private async Task UpdateExistingGroupAsync(
+        GroupedPageBuilderPage group,
+        PageBuilderExportPage exportPage,
+        CancellationToken cancellationToken)
     {
         ApplyMetadata(group, exportPage);
 
         // Replace pages with exported snapshot
-        group.Pages = exportPage.Variants.Select(v =>
+        group.Pages = [.. exportPage.Variants.Select(v =>
         {
             var page = AbstractTypeFactory<PageBuilderPage>.TryCreateInstance();
             page.Id = v.PageId;
@@ -153,14 +290,14 @@ public sealed class PageBuilderExportImport(
             page.StoreId = exportPage.StoreId;
             page.GroupId = group.Id;
             return page;
-        }).ToList();
+        })];
 
         await groupedPageService.SaveChangesAsync([group]);
 
-        await SaveVariantsContentAsync(exportPage.Variants);
+        await SaveVariantsContentAsync(exportPage.Variants, cancellationToken);
     }
 
-    private async Task CreateNewGroupAsync(PageBuilderExportPage exportPage)
+    private async Task CreateNewGroupAsync(PageBuilderExportPage exportPage, CancellationToken cancellationToken)
     {
         var newGroup = AbstractTypeFactory<GroupedPageBuilderPage>.TryCreateInstance();
         newGroup.Id = exportPage.GroupId;
@@ -178,7 +315,7 @@ public sealed class PageBuilderExportImport(
 
         await groupedPageService.SaveChangesAsync([newGroup]);
 
-        await SaveVariantsContentAsync(exportPage.Variants);
+        await SaveVariantsContentAsync(exportPage.Variants, cancellationToken);
     }
 
     private static void ApplyMetadata(GroupedPageBuilderPage group, PageBuilderExportPage exportPage)
@@ -194,12 +331,55 @@ public sealed class PageBuilderExportImport(
         group.EndDate = exportPage.EndDate;
     }
 
-    private async Task SaveVariantsContentAsync(IList<PageBuilderExportPageVariant> variants)
+    private async Task SaveVariantsContentAsync(
+        IList<PageBuilderExportPageVariant> variants,
+        CancellationToken cancellationToken)
     {
-        foreach (var variant in variants.Where(v => !string.IsNullOrEmpty(v.PageId) && !string.IsNullOrEmpty(v.Content)))
+        var variantsWithContent = variants
+            .Where(v => !string.IsNullOrEmpty(v.PageId) && !string.IsNullOrEmpty(v.Content))
+            .ToArray();
+
+        foreach (var variant in variantsWithContent)
         {
-            await groupedPageService.SaveContent(variant.PageId, variant.Content);
+            await groupedPageService.SaveContent(variant.PageId, variant.Content, cancellationToken);
         }
+
+        if (variantsWithContent.Length > 0)
+        {
+            var pages = await pageBuilderPageService.GetAsync(variantsWithContent.Select(x => x.PageId).ToArray());
+            var changedEntries = pages
+                .Select(x => new GenericChangedEntry<PageBuilderPage>(x, EntryState.Modified))
+                .ToArray();
+
+            if (changedEntries.Length > 0)
+            {
+                await eventPublisher.Publish(new PageBuilderPageChangedEvent(changedEntries), cancellationToken);
+            }
+        }
+    }
+
+    private async Task BufferPagesArrayAsync(
+        JsonTextReader reader,
+        JsonTextWriter writer,
+        CancellationToken cancellationToken)
+    {
+        if (!await reader.ReadAsync(cancellationToken) || reader.TokenType != JsonToken.StartArray)
+        {
+            return;
+        }
+
+        while (await reader.ReadAsync(cancellationToken) && reader.TokenType != JsonToken.EndArray)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var exportPage = jsonSerializer.Deserialize<PageBuilderExportPage>(reader);
+            if (exportPage != null)
+            {
+                jsonSerializer.Serialize(writer, exportPage);
+            }
+        }
+
+        await writer.FlushAsync(cancellationToken);
     }
 
     private async Task<PageBuilderExportPage> ConvertToExportPageAsync(GroupedPageBuilderPage group)

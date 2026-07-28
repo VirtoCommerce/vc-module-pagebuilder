@@ -1,0 +1,63 @@
+{
+  "LINKED_COMPONENTS": {
+    "MENU": {
+      "TITLE": "Współdzielone komponenty"
+    },
+    "TITLE": "Współdzielone komponenty",
+    "SEARCH": {
+      "PLACEHOLDER": "Wyszukaj współdzielone komponenty..."
+    },
+    "TABLE": {
+      "NAME": "Nazwa",
+      "USAGE": "Używany na",
+      "MODIFIED": "Zmodyfikowano",
+      "MODIFIED_BY": "Zmodyfikowane przez"
+    },
+    "TOOLBAR": {
+      "REFRESH": "Odśwież"
+    },
+    "ACTIONS": {
+      "RENAME": "Zmień nazwę",
+      "DELETE": "Usuń",
+      "DELETE_BLOCKED": "Ten komponent jest używany i nie można go usunąć",
+      "CLOSE": "Zamknij"
+    },
+    "DETAILS": {
+      "COMPONENT_DETAILS": "Szczegóły komponentu",
+      "STORE": "Sklep",
+      "MODIFIED": "Zmodyfikowano",
+      "MODIFIED_BY": "Zmodyfikowane przez",
+      "USED_ON_ONE": "Używany na (1 stronie)",
+      "USED_ON_MANY": "Używany na ({count} stronach)",
+      "LOADING_USAGE": "Ładowanie informacji o użyciu na stronach...",
+      "NO_USAGE": "Nie jest używany na żadnej stronie Page Builder.",
+      "DELETE_BLOCKED_ONE": "Przed usunięciem usuń ten komponent ze strony.",
+      "DELETE_BLOCKED_MANY": "Przed usunięciem usuń ten komponent ze wszystkich {count} stron.",
+      "NOT_AVAILABLE": "Niedostępne"
+    },
+    "EMPTY": {
+      "TITLE": "Brak współdzielonych komponentów",
+      "DESCRIPTION": "Utwórz współdzielony komponent z wybranych sekcji w Page Builder Designer.",
+      "NOT_FOUND_TITLE": "Nie znaleziono współdzielonych komponentów",
+      "NOT_FOUND_DESCRIPTION": "Spróbuj użyć innej frazy wyszukiwania."
+    },
+    "RENAME": {
+      "TITLE": "Zmień nazwę współdzielonego komponentu",
+      "NAME_LABEL": "Nazwa",
+      "NAME_PLACEHOLDER": "Wpisz nazwę komponentu",
+      "CANCEL": "Anuluj",
+      "SAVE": "Zapisz"
+    },
+    "CONFIRM": {
+      "DELETE": "Usunąć {name}? Tej operacji nie można cofnąć."
+    },
+    "NOTIFICATIONS": {
+      "RENAMED": "Nazwa współdzielonego komponentu została zmieniona",
+      "DELETED": "Współdzielony komponent został usunięty",
+      "DELETE_BLOCKED_ONE": "Ten komponent jest używany na 1 stronie i nie można go usunąć.",
+      "DELETE_BLOCKED_MANY": "Ten komponent jest używany na {count} stronach i nie można go usunąć.",
+      "DELETE_CONFLICT": "Komponent jest teraz używany i nie można go usunąć. Odśwież listę, aby zobaczyć miejsca użycia.",
+      "ERROR_GENERIC": "Operacja na współdzielonym komponencie nie powiodła się"
+    }
+  }
+}

@@ -29,6 +29,7 @@ export class SectionChildrenListComponent {
         Object.values(this.states() || {}).filter(x => x.selected).length
     );
     readonly selectMode = input(false);
+    readonly readOnly = input(false);
 
     readonly itemClick = output<SectionModel>();
     readonly checkChanged = output<{ blockId: string, selected: boolean }>();
@@ -37,26 +38,44 @@ export class SectionChildrenListComponent {
     readonly executeAction = output<{ action: string, block: SectionModel }>();
 
     onReorderBlocks(event: CdkDragSortEvent<SectionModel>) {
+        if (this.readOnly()) {
+            return;
+        }
         this.reorderBlocks.emit({ item: event.item.data, currentIndex: event.currentIndex, previousIndex: event.previousIndex, parent: this.section() });
     }
 
     onItemClick(block: SectionModel) {
+        if (this.readOnly()) {
+            return;
+        }
         this.itemClick.emit(block);
     }
 
     onAddBlockClick() {
+        if (this.readOnly()) {
+            return;
+        }
         this.addBlockClick.emit();
     }
 
     onActionExecuted(action: string, block: SectionModel) {
+        if (this.readOnly()) {
+            return;
+        }
         this.executeAction.emit({ action, block });
     }
 
     onItemSelectChanged(selected: boolean, blockId: string) {
+        if (this.readOnly()) {
+            return;
+        }
         this.checkChanged.emit({ blockId, selected });
     }
 
     blockDragStarted(event: CdkDragStart) {
+        if (this.readOnly()) {
+            return;
+        }
         const rootElement = event.source.getRootElement();
         this._fakeElement = domHelpers.deepCloneNode(rootElement);
         domHelpers.toggleVisibility(this._fakeElement, true, new Set(['position']));

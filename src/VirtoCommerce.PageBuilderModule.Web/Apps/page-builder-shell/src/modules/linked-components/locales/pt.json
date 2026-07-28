@@ -1,0 +1,63 @@
+{
+  "LINKED_COMPONENTS": {
+    "MENU": {
+      "TITLE": "Componentes compartilhados"
+    },
+    "TITLE": "Componentes compartilhados",
+    "SEARCH": {
+      "PLACEHOLDER": "Pesquisar componentes compartilhados..."
+    },
+    "TABLE": {
+      "NAME": "Nome",
+      "USAGE": "Usado em",
+      "MODIFIED": "Modificado",
+      "MODIFIED_BY": "Modificado por"
+    },
+    "TOOLBAR": {
+      "REFRESH": "Atualizar"
+    },
+    "ACTIONS": {
+      "RENAME": "Renomear",
+      "DELETE": "Excluir",
+      "DELETE_BLOCKED": "Este componente está em uso e não pode ser excluído",
+      "CLOSE": "Fechar"
+    },
+    "DETAILS": {
+      "COMPONENT_DETAILS": "Detalhes do componente",
+      "STORE": "Loja",
+      "MODIFIED": "Modificado",
+      "MODIFIED_BY": "Modificado por",
+      "USED_ON_ONE": "Usado em (1 página)",
+      "USED_ON_MANY": "Usado em ({count} páginas)",
+      "LOADING_USAGE": "Carregando o uso nas páginas...",
+      "NO_USAGE": "Não usado em nenhuma página do Page Builder.",
+      "DELETE_BLOCKED_ONE": "Remova este componente da página antes de excluí-lo.",
+      "DELETE_BLOCKED_MANY": "Remova este componente de todas as {count} páginas antes de excluí-lo.",
+      "NOT_AVAILABLE": "N/D"
+    },
+    "EMPTY": {
+      "TITLE": "Ainda não há componentes compartilhados",
+      "DESCRIPTION": "Crie um componente compartilhado a partir das seções selecionadas no Page Builder Designer.",
+      "NOT_FOUND_TITLE": "Nenhum componente compartilhado encontrado",
+      "NOT_FOUND_DESCRIPTION": "Tente usar outra frase de pesquisa."
+    },
+    "RENAME": {
+      "TITLE": "Renomear componente compartilhado",
+      "NAME_LABEL": "Nome",
+      "NAME_PLACEHOLDER": "Digite o nome do componente",
+      "CANCEL": "Cancelar",
+      "SAVE": "Salvar"
+    },
+    "CONFIRM": {
+      "DELETE": "Excluir {name}? Esta ação não pode ser desfeita."
+    },
+    "NOTIFICATIONS": {
+      "RENAMED": "Componente compartilhado renomeado",
+      "DELETED": "Componente compartilhado excluído",
+      "DELETE_BLOCKED_ONE": "Este componente é usado em 1 página e não pode ser excluído.",
+      "DELETE_BLOCKED_MANY": "Este componente é usado em {count} páginas e não pode ser excluído.",
+      "DELETE_CONFLICT": "O componente agora está em uso e não pode ser excluído. Atualize a lista para ver onde ele é usado.",
+      "ERROR_GENERIC": "Falha na operação do componente compartilhado"
+    }
+  }
+}

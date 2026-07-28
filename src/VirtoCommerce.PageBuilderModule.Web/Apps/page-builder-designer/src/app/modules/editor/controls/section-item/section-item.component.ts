@@ -4,7 +4,8 @@ import { CheckboxComponent } from '@core/controls/checkbox/checkbox.component';
 import { ContextMenuComponent } from '@core/components/context-menu/context-menu.component';
 import { ContextMenuAction } from '@core/models';
 import { SectionModel, SectionSchema } from '@models/document';
-import { ContextMenuHelper, helpers } from '@editor/helpers';
+import { ContextMenuHelper, helpers, isLinkedComponentReference } from '@editor/helpers';
+import { LinkedComponent } from '@editor/models';
 
 @Component({
   selector: 'app-section-item',
@@ -25,21 +26,33 @@ export class SectionItemComponent {
   readonly hasContextMenu = input(false);
   readonly selectable = input(true);
   readonly selected = input(false);
+  readonly linkedComponent = input<LinkedComponent | null>(null);
+  readonly linkedError = input<string | null>(null);
 
   readonly actionClick = output<string>();
   readonly itemClick = output();
-  readonly itemHover = output();
+  readonly itemHover = output<boolean>();
   readonly itemSelectChanged = output<boolean>();
 
   readonly displayCheckbox = computed(() => (this.isIconHover() && this.selectable()) || this.selected());
-  readonly sectionIcon = computed(() => this.sectionSchema()?.icon || 'blur_on');
+  readonly isLinked = computed(() => isLinkedComponentReference(this.section()));
+  readonly sectionIcon = computed(() => {
+    if (!this.isLinked()) {
+      return this.sectionSchema()?.icon || 'blur_on';
+    }
+
+    return this.linkedError() ? 'link_off' : 'link';
+  });
   readonly sectionName = computed(() => {
+    if (this.isLinked()) {
+      return this.linkedComponent()?.name || (this.linkedError() ? 'Missing Shared Component' : 'Shared Component');
+    }
     const schema = this.sectionSchema();
     return helpers.getSectionName(this.section(), schema);
   });
 
   onItemClick(_event: MouseEvent) {
-    if (this.sectionSchema()) {
+    if (this.sectionSchema() || this.isLinked()) {
       this.itemClick.emit();
     }
   }
@@ -56,12 +69,13 @@ export class SectionItemComponent {
 
   onItemHover() {
     this.isHover.set(true);
-    this.itemHover.emit();
+    this.itemHover.emit(true);
   }
 
   onItemLeave() {
     this.isHover.set(false);
     this.isIconHover.set(false);
+    this.itemHover.emit(false);
   }
 
   readonly getItemActions = () =>

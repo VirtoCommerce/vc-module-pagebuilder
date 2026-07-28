@@ -40,14 +40,17 @@
     "DETAILS": {
       "EMPTY": "Wybierz plik, aby wyświetlić szczegóły.",
       "FILE_DETAILS": "Szczegóły pliku",
+      "CLOSE": "Zamknij",
       "SIZE": "Rozmiar",
       "DIMENSIONS": "Wymiary",
       "TYPE": "Typ",
       "MODIFIED": "Zmodyfikowano",
       "UPLOADED": "Przesłano",
       "PATH": "Ścieżka",
-      "USED_ON": "Używane na ({count} stronach)",
-      "NO_REFERENCES": "Nie używane na żadnej stronie Page Builder.",
+      "USED_ON": "Używane w ({count})",
+      "PAGES": "Strony",
+      "LINKED_COMPONENTS": "Współdzielone komponenty",
+      "NO_REFERENCES": "Nie używane na stronach Page Builder ani we współdzielonych komponentach.",
       "URL": "URL",
       "COPY_URL": "Kopiuj URL",
       "REPLACE": "Zastąp",
@@ -77,8 +80,8 @@
     "CONFIRM": {
       "DELETE_SINGLE": "Usunąć {name}?",
       "DELETE_SELECTED": "Usunąć {count} wybranych zasobów?",
-      "DELETE_USED_ONE": "Usunąć {name}? Jest używany na 1 stronie Page Builder.",
-      "DELETE_USED_MANY": "Usunąć {name}? Jest używany na {count} stronach Page Builder."
+      "DELETE_USED_ONE": "Usunąć {name}? Jest używany w 1 elemencie Page Builder.",
+      "DELETE_USED_MANY": "Usunąć {name}? Jest używany w {count} elementach Page Builder."
     },
     "NOTIFICATIONS": {
       "FOLDER_CREATED": "Folder został utworzony",

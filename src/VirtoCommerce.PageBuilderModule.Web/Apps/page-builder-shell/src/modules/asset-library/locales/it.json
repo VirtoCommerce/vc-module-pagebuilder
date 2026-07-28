@@ -40,14 +40,17 @@
     "DETAILS": {
       "EMPTY": "Seleziona un file per visualizzarne i dettagli.",
       "FILE_DETAILS": "Dettagli file",
+      "CLOSE": "Chiudi",
       "SIZE": "Dimensione",
       "DIMENSIONS": "Dimensioni",
       "TYPE": "Tipo",
       "MODIFIED": "Modificato",
       "UPLOADED": "Caricato",
       "PATH": "Percorso",
-      "USED_ON": "Usato in ({count} pagine)",
-      "NO_REFERENCES": "Non usato in nessuna pagina Page Builder.",
+      "USED_ON": "Usato in ({count})",
+      "PAGES": "Pagine",
+      "LINKED_COMPONENTS": "Componenti condivisi",
+      "NO_REFERENCES": "Non usato in pagine Page Builder o componenti condivisi.",
       "URL": "URL",
       "COPY_URL": "Copia URL",
       "REPLACE": "Sostituisci",
@@ -77,8 +80,8 @@
     "CONFIRM": {
       "DELETE_SINGLE": "Eliminare {name}?",
       "DELETE_SELECTED": "Eliminare {count} risorsa/e selezionata/e?",
-      "DELETE_USED_ONE": "Eliminare {name}? È usato in 1 pagina Page Builder.",
-      "DELETE_USED_MANY": "Eliminare {name}? È usato in {count} pagine Page Builder."
+      "DELETE_USED_ONE": "Eliminare {name}? È usato in 1 elemento Page Builder.",
+      "DELETE_USED_MANY": "Eliminare {name}? È usato in {count} elementi Page Builder."
     },
     "NOTIFICATIONS": {
       "FOLDER_CREATED": "Cartella creata con successo",

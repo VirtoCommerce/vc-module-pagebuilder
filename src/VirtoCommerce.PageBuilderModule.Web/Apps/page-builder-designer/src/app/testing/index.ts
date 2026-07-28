@@ -87,7 +87,16 @@ export function createTemplateState(overrides: Partial<TemplateState> = {}): Tem
 }
 
 export function createEditorDataState(overrides: Partial<EditorDataState> = {}): EditorDataState {
-  return { templates: {}, schemas: null, ...overrides };
+  return {
+    templates: {},
+    schemas: null,
+    linkedComponents: {},
+    linkedComponentContents: {},
+    linkedComponentErrors: {},
+    linkedComponentDetails: { componentId: null, loading: false, error: null },
+    linkedComponentsSearch: { keyword: '', resultIds: [], totalCount: 0, loading: false, error: null },
+    ...overrides,
+  };
 }
 
 export function createEditorDomainState(overrides: Partial<EditorDomainState> = {}): EditorDomainState {

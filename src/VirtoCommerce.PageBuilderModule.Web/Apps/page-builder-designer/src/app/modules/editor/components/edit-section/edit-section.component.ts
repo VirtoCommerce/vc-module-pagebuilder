@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NgClass } from '@angular/common';
 import { ClipboardModule } from '@angular/cdk/clipboard';
@@ -12,7 +12,9 @@ import { ContextMenuComponent } from '@core/components/context-menu/context-menu
 
 import { ContextMenuAction, ModelChangedEventArgs  } from '@core/models';
 import { SectionModel, SectionSchema } from '@models/document';
-import { ContextMenuHelper } from '@editor/helpers';
+import { canEditLinkedComponentOriginal, ContextMenuHelper } from '@editor/helpers';
+import { AppConfig } from '@integration/services';
+import { LinkedComponentUsagePage } from '@editor/models';
 
 import * as actions from '@editor/store/actions';
 import * as fromState from '@editor/store/selectors';
@@ -29,26 +31,60 @@ export class EditSectionComponent {
 
     private readonly store = inject(Store<BuilderState>);
     private readonly helper = inject(ContextMenuHelper);
+    private readonly appConfig = inject(AppConfig);
 
     readonly viewModel = toSignal(this.store.select(fromState.selectEditSectionContext));
+    readonly linkedInstance = toSignal(this.store.select(fromState.selectLinkedComponentInstanceFromRoute));
+    readonly linkedDocument = toSignal(this.store.select(fromState.selectCurrentLinkedComponent));
     readonly sectionName = toSignal(this.store.select(fromState.selectCurrentItemName));
     readonly isHalfScreen = toSignal(this.store.select(fromRoute.isDesktop50), { initialValue: false });
+    readonly linkedComponentId = toSignal(this.store.select(fromRoute.selectLinkedComponentIdParameter), { initialValue: '' });
+    readonly canEditLinkedComponents = canEditLinkedComponentOriginal(this.appConfig);
+    readonly canInsertLinkedComponents = this.appConfig.getValue('canInsertLinkedComponents') === true;
+    readonly isReadOnlyOriginal = computed(() => !!this.linkedComponentId() && !this.canEditLinkedComponents);
 
     onBackClick() {
         this.store.dispatch(actions.closeEditItemPanel());
     }
 
     onModelChanged(args: ModelChangedEventArgs) {
+        if (this.isReadOnlyOriginal()) {
+            return;
+        }
+
         this.store.dispatch(actions.sectionChangedAction({ changes: args.changes }));
     }
 
     onContextMenuAction(action: ContextMenuAction, section: SectionModel, block: SectionModel) {
-        if (action !== '|') {
+        if (!this.isReadOnlyOriginal() && action !== '|') {
             this.store.dispatch(actions.executeContextMenuAction({ action: action.action, source: 'editor', section, block }));
         }
     }
 
     getItemActionsFactory(item: SectionModel, schema: SectionSchema): () => Promise<ContextMenuAction[]> {
-        return () => this.helper.getSectionsActions(item, !!schema.blocks?.length);
+        return () => this.isReadOnlyOriginal()
+            ? Promise.resolve([])
+            : this.helper.getSectionsActions(item, !!schema.blocks?.length);
+    }
+
+    editLinkedComponent(): void {
+        const instance = this.linkedInstance();
+        if (instance && this.canEditLinkedComponents) {
+            this.store.dispatch(actions.openLinkedComponent({ componentId: instance.reference.componentRef }));
+        }
+    }
+
+    detachLinkedComponent(): void {
+        const instance = this.linkedInstance();
+        if (instance && this.canInsertLinkedComponents) {
+            this.store.dispatch(actions.detachLinkedComponent({
+                sectionId: instance.reference.id,
+                componentId: instance.reference.componentRef,
+            }));
+        }
+    }
+
+    openUsagePage(page: LinkedComponentUsagePage): void {
+        this.store.dispatch(actions.openLinkedComponentUsagePage({ pageId: page.id }));
     }
 }

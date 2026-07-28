@@ -120,14 +120,32 @@ export const selectSectionsState = createSelector(
   }
 );
 
-const templateDataContext = createSelector(
-  fromData.selectCurrentTemplateModel,
+const templateSchemasContext = createSelector(
   fromData.selectSectionsSchemas,
   fromData.selectBlocksSchemas,
-  fromData.selectTemplateSettings,
   fromData.selectCurrentTemplateSettingsSchemas,
-  (template, sectionsSchemas, blocksSchemas, settings, settingsSchemas) => ({
-    template, sectionsSchemas, blocksSchemas, settings, settingsSchemas
+  (sectionsSchemas, blocksSchemas, settingsSchemas) => ({ sectionsSchemas, blocksSchemas, settingsSchemas })
+);
+
+const linkedComponentDataContext = createSelector(
+  fromData.selectLinkedComponents,
+  fromData.selectLinkedComponentErrors,
+  fromData.selectCurrentLinkedComponent,
+  fromRoute.selectLinkedComponentIdParameter,
+  (linkedComponents, linkedComponentErrors, currentLinkedComponent, linkedComponentId) => ({
+    linkedComponents, linkedComponentErrors, currentLinkedComponent,
+    linkedComponentId, isLinkedDocument: !!linkedComponentId,
+  })
+);
+
+const templateDataContext = createSelector(
+  fromData.selectCurrentTemplateModel,
+  fromData.selectTemplateSettings,
+  templateSchemasContext,
+  linkedComponentDataContext,
+  (template, settings, { sectionsSchemas, blocksSchemas, settingsSchemas }, linkedComponentContext) => ({
+    template, sectionsSchemas, blocksSchemas, settings, settingsSchemas,
+    ...linkedComponentContext,
   })
 );
 
@@ -139,10 +157,13 @@ export const editTemplateContext = createSelector(
   (templateState, dataContext, sectionsState, currentDragSection) => {
     const selectedSectionsCount = Object.values(sectionsState).filter(x => x.selected).length;
     const selectedBlocksCount = Object.values(sectionsState).reduce((acc, value) => acc + Object.values(value.blocks || {}).filter(x => x.selected).length, 0);
-    const { template, sectionsSchemas, blocksSchemas, settings, settingsSchemas } = dataContext;
+    const { template, sectionsSchemas, blocksSchemas, settings } = dataContext;
+    const settingsSchemas = dataContext.isLinkedDocument
+      ? { top: [], bottom: [] }
+      : dataContext.settingsSchemas;
     return template && sectionsSchemas && blocksSchemas
       ? {
-        template, templateState, sectionsState, sectionsSchemas, blocksSchemas, settings, settingsSchemas,
+        ...dataContext, template, templateState, sectionsState, sectionsSchemas, blocksSchemas, settings, settingsSchemas,
         selectedSectionsCount, selectedBlocksCount,
         currentDragSection,
         selectMode: selectedSectionsCount > 0 || selectedBlocksCount > 0
@@ -157,10 +178,12 @@ export const selectAddItemContext = createSelector(
   selectPreviewItemType,
   selectCurrentSectionsFilter,
   fromData.selectSectionModelFromRoute,
-  ({ groups, items }, states, previewItemType, filter, section) => ({
+  fromRoute.selectLinkedComponentIdParameter,
+  ({ groups, items }, states, previewItemType, filter, section, linkedComponentId) => ({
     groups,
     items,
     parentSection: section,
+    isLinkedDocument: !!linkedComponentId,
     states: {
       groups: groups.reduce((acc, value) => ({
         ...acc,
@@ -217,8 +240,9 @@ export const selectEditSectionContext = createSelector(
   fromData.selectCurrentTemplateModel,
   fromData.selectObjectsSchemas,
   isEditSettings,
-  (sectionContext, blockContext, { model, schema }, template, objects, isSettings) =>
-    !!schema && !!model
+  fromRoute.selectLinkedComponentIdParameter,
+  (sectionContext, blockContext, { model, schema }, template, objects, isSettings, linkedComponentId) =>
+    !!schema && !!model && !(isSettings && linkedComponentId)
       ? <any>{
         section: sectionContext.section,
         sectionSchema: sectionContext.sectionSchema,
@@ -261,13 +285,21 @@ export const changeTemplateContext = createSelector(
     ({ template, section, block, sectionsSchemas, blocksSchemas, templateKey, sectionId, blockId, insertIndex, templateEntry })
 );
 
-export const selectToolbarButtonsState = (context: { useTheme: boolean, useDrafts: boolean, useExternalPreview: boolean }) => createSelector(
+export const selectToolbarButtonsState = (context: {
+  useTheme: boolean;
+  useDrafts: boolean;
+  useExternalPreview: boolean;
+  canEditLinkedComponents?: boolean;
+}) => createSelector(
   // fromDomain.selectCurrentTemplateState,
   fromShared.hasDirty,
   fromDomain.selectCurrentTemplateState,
-  (hasDirty, state) => {
+  fromRoute.selectLinkedComponentIdParameter,
+  fromShared.selectCurrentTemplateDirty,
+  (hasDirty, state, linkedComponentId, currentTemplateDirty) => {
+    const effectiveDirty = linkedComponentId ? currentTemplateDirty : hasDirty;
     const result = <ActionButtonDescriptor[][]>[];
-    if (context.useTheme) {
+    if (context.useTheme && !linkedComponentId) {
       result.push([
         {
           icon: 'settings',
@@ -278,10 +310,10 @@ export const selectToolbarButtonsState = (context: { useTheme: boolean, useDraft
       ]);
     }
 
-    if (context.useExternalPreview) {
+    if (context.useExternalPreview && !linkedComponentId) {
       result.push([
         {
-          canAction: !hasDirty,
+          canAction: !effectiveDirty,
           icon: 'visibility',
           alias: 'external-preview',
           title: 'Preview',
@@ -290,17 +322,17 @@ export const selectToolbarButtonsState = (context: { useTheme: boolean, useDraft
       ]);
     }
 
-    if (context.useDrafts && !state?.isLoading && !state?.error) {
+    if (context.useDrafts && !linkedComponentId && !state?.isLoading && !state?.error) {
       result.push([
         {
-          canAction: !hasDirty && state?.published && !state?.hasChanges,
+          canAction: !effectiveDirty && state?.published && !state?.hasChanges,
           icon: 'unpublished',
           alias: 'unpublish',
           title: 'Unpublish',
           type: 'outline'
         },
         {
-          canAction: !hasDirty && state?.hasChanges,
+          canAction: !effectiveDirty && state?.hasChanges,
           icon: 'publish',
           alias: 'publish',
           title: 'Publish',
@@ -331,7 +363,7 @@ export const selectToolbarButtonsState = (context: { useTheme: boolean, useDraft
 
     result.push([
       {
-        canAction: hasDirty,
+        canAction: effectiveDirty && (!linkedComponentId || context.canEditLinkedComponents === true),
         title: 'Save',
         alias: 'save',
         type: 'primary'

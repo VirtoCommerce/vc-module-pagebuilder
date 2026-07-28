@@ -1,10 +1,20 @@
 import type {
   PageBuilderAssetReference,
+  PageBuilderAssetReferenceLinkedComponent,
   PageBuilderAssetReferencePage,
 } from "../../api_client/virtocommerce.pagebuildermodule";
 
 export type AssetReferencePage = PageBuilderAssetReferencePage;
+export type AssetReferenceLinkedComponent = PageBuilderAssetReferenceLinkedComponent;
 export type AssetReference = PageBuilderAssetReference;
+
+export interface AssetReferenceDetails {
+  referencesCount: number;
+  pageReferencesCount: number;
+  linkedComponentReferencesCount: number;
+  referencePages: AssetReferencePage[];
+  referenceLinkedComponents: AssetReferenceLinkedComponent[];
+}
 
 export interface AssetEntry {
   type: "folder" | "blob";
@@ -14,7 +24,10 @@ export interface AssetEntry {
   contentType?: string;
   size?: number;
   referencesCount?: number;
+  pageReferencesCount?: number;
+  linkedComponentReferencesCount?: number;
   referencePages?: AssetReferencePage[];
+  referenceLinkedComponents?: AssetReferenceLinkedComponent[];
   modifiedDate?: string;
   createdDate?: string;
 }
@@ -51,7 +64,6 @@ export interface AssetLibraryEntryViewModel {
   formattedDate: string;
 }
 
-export interface AssetLibraryDetailsViewModel extends AssetLibraryEntryViewModel {
+export interface AssetLibraryDetailsViewModel extends AssetLibraryEntryViewModel, AssetReferenceDetails {
   dimensions?: string;
-  referencePages: NonNullable<AssetEntry["referencePages"]>;
 }

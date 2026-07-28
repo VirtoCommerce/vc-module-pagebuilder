@@ -3,7 +3,7 @@ import { validateItemUnderEdit, useSchemasAction } from './../actions/data';
 import { ModalService } from '@core/services';
 import { Injectable, inject } from "@angular/core";
 
-import { of } from "rxjs";
+import { forkJoin, of } from "rxjs";
 import { withLatestFrom, filter, map, catchError, switchMap, exhaustMap, tap } from "rxjs/operators";
 
 import { Store } from "@ngrx/store";
@@ -14,19 +14,21 @@ import { RouterStateUrl } from '@shared/routing';
 import { SaveTemplateComponent } from '@shared/dialogs';
 
 import { BuilderState } from "../state";
-import { helpers as editorHelpers } from '@editor/helpers';
+import { canEditLinkedComponentOriginal, helpers as editorHelpers } from '@editor/helpers';
 import * as actions from "../actions";
 import * as shared from '@shared/store/actions';
 import * as routerActions from '@shared/routing/actions';
 import { RouterNavigatedAction, ROUTER_NAVIGATED } from "@ngrx/router-store";
-import { broadcastPreviewMessage } from '@shared/store/actions';
 import * as selectors from "../selectors";
 import * as fromRoute from '@shared/routing';
 import * as fromShared from '@shared/store/selectors';
 
 import { EditorModuleInfo } from "@models/modules";
 
-import { SchemasService, TemplatesService } from "@editor/services";
+import { LinkedComponentsService, SchemasService, TemplatesService } from "@editor/services";
+import { LinkedComponent } from '@editor/models';
+import { TemplateModel } from '@models/document';
+import { AppConfig } from '@integration/services';
 
 @Injectable({
     providedIn: 'root'
@@ -36,7 +38,9 @@ export class TemplateEditorDataEffects {
     private readonly actions$ = inject(Actions);
     private readonly schemas = inject(SchemasService);
     private readonly templates = inject(TemplatesService);
+    private readonly linkedComponents = inject(LinkedComponentsService);
     private readonly modals = inject(ModalService);
+    private readonly appConfig = inject(AppConfig);
 
     loadTemplateData$ = createEffect(() => this.actions$.pipe(
         ofType(ROUTER_NAVIGATED),
@@ -130,36 +134,50 @@ export class TemplateEditorDataEffects {
             this.store$.select(fromRoute.selectGroupIdParameter),
             this.store$.select(fromRoute.selectSectionIdParameter),
             this.store$.select(fromRoute.selectCultureNameParameter),
+            this.store$.select(fromRoute.selectLinkedComponentIdParameter),
         ),
-        switchMap(([{ templateKey }, templateEntry, path, type, groupId, sectionId, cultureName]) => this.templates.getTemplate(path, type, templateEntry, groupId).pipe(
-            filter(template => !!template),
-            map(template => editorHelpers.prepareTemplate(template)),
-            switchMap(template => [
-                actions.getTemplatePublishStatus({ templateKey }),
-                actions.loadTemplateModelSuccess({ template, templateKey }),
-                actions.validateItemUnderEdit(),
-                broadcastPreviewMessage({
-                    msg: {
-                        type: 'page',
-                        template,
-                        // Pass the edited page's language (from the designer URL) to the storefront
-                        // preview so it renders in that language instead of the store default (VCST-5219).
-                        // Omit when empty so it never overrides an already-applied preview language.
-                        cultureName: cultureName || undefined,
-                        sectionId,
-                        ...templateEntry?.previewMessage
-                    }
+        switchMap(([{ templateKey }, templateEntry, path, type, groupId, sectionId, cultureName, linkedComponentId]) => {
+            const request = linkedComponentId
+                ? forkJoin({
+                    template: this.linkedComponents.getContent(linkedComponentId),
+                    component: this.linkedComponents.get(linkedComponentId),
                 })
-            ]),
-            catchError(error => [
-                actions.loadTemplateModelFails({ error, templateKey }),
-                shared.showNotification({
-                    message: 'Could not load template',
-                    msgType: 'error',
-                    top: true
-                }),
-            ])
-        ))
+                : this.templates.getTemplate(path, type, templateEntry, groupId).pipe(
+                    map(template => ({ template, component: null as LinkedComponent | null })),
+                );
+
+            return request.pipe(
+                filter((result): result is { template: TemplateModel; component: LinkedComponent | null } => !!result.template),
+                map(result => ({ ...result, template: editorHelpers.prepareTemplate(result.template) })),
+                switchMap(({ template, component }) => [
+                    linkedComponentId && component
+                        ? actions.cacheLinkedComponent({ component, content: template })
+                        : actions.getTemplatePublishStatus({ templateKey }),
+                    actions.loadTemplateModelSuccess({ template, templateKey }),
+                    actions.validateItemUnderEdit(),
+                    actions.broadcastResolvedPreview({
+                        msg: {
+                            type: 'page',
+                            template,
+                            // Pass the edited page's language (from the designer URL) to the storefront
+                            // preview so it renders in that language instead of the store default (VCST-5219).
+                            // Omit when empty so it never overrides an already-applied preview language.
+                            cultureName: cultureName || undefined,
+                            sectionId,
+                            ...templateEntry?.previewMessage
+                        }
+                    })
+                ]),
+                catchError(error => [
+                    actions.loadTemplateModelFails({ error, templateKey }),
+                    shared.showNotification({
+                        message: linkedComponentId ? 'Could not load Shared Component' : 'Could not load template',
+                        msgType: 'error',
+                        top: true
+                    }),
+                ])
+            );
+        })
     ));
 
     validateItemUnderEdit$ = createEffect(() => this.actions$.pipe(
@@ -182,7 +200,7 @@ export class TemplateEditorDataEffects {
             this.store$.select(fromRoute.selectCultureNameParameter),
         ),
         filter(([, { template }]) => !!template),
-        map(([, { template, templateEntry, sectionId }, cultureName]) => broadcastPreviewMessage({
+        map(([, { template, templateEntry, sectionId }, cultureName]) => actions.broadcastResolvedPreview({
             msg: {
                 type: 'page',
                 template,
@@ -203,7 +221,9 @@ export class TemplateEditorDataEffects {
             this.store$.select(fromRoute.selectPathParameter),
             this.store$.select(fromRoute.selectTypeParameter),
             this.store$.select(fromRoute.selectGroupIdParameter),
+            this.store$.select(fromRoute.selectLinkedComponentIdParameter),
         ),
+        filter(([, , , , , linkedComponentId]) => !linkedComponentId),
         switchMap(([{ templateKey }, entry, path, type, groupId]) => this.templates.getTemplatePublishStatus(path, type, entry || {}, groupId).pipe(
             filter(status => !!status),
             map(({ hasChanges, published }) => actions.getTemplatePublishStatusSuccess({ templateKey, hasChanges, published })),
@@ -273,9 +293,38 @@ export class TemplateEditorDataEffects {
         withLatestFrom(
             this.store$.select(selectors.selectChangedTemplates),
             this.store$.select(fromRoute.selectGroupIdParameter),
+            this.store$.select(fromRoute.selectLinkedComponentIdParameter),
         ),
-        filter(([, changedTemplates, groupId]) => changedTemplates.length === 1 && !groupId),
+        filter(([, changedTemplates, groupId, linkedComponentId]) => changedTemplates.length === 1 && !groupId && !linkedComponentId),
         map(([, changedTemplates]) => actions.saveTemplates({ templates: changedTemplates }))
+    ));
+
+    saveLinkedComponent$ = createEffect(() => this.actions$.pipe(
+        ofType(actions.executeToolbarAction),
+        filter(({ action }) => action === 'save'),
+        withLatestFrom(
+            this.store$.select(fromRoute.selectLinkedComponentIdParameter),
+            this.store$.select(fromRoute.selectTemplateKeyParameter),
+            this.store$.select(selectors.selectCurrentTemplateModel),
+        ),
+        filter(([, linkedComponentId, , template]) =>
+            !!linkedComponentId
+            && !!template
+            && canEditLinkedComponentOriginal(this.appConfig)),
+        exhaustMap(([, linkedComponentId, templateKey, template]) =>
+            this.linkedComponents.updateContent(linkedComponentId, template!).pipe(
+                withLatestFrom(this.store$.select(selectors.selectLoadedTemplates)),
+                switchMap(([, loadedTemplates]) => [
+                    actions.cacheLinkedComponentContent({ componentId: linkedComponentId, content: template! }),
+                    actions.saveTemplateSuccess({
+                        templateKey,
+                        template: template!,
+                        clearDirty: loadedTemplates[templateKey] === template,
+                    }),
+                ]),
+                catchError(error => of(actions.saveTemplateFails({ error }))),
+            )
+        ),
     ));
 
     // should be changed to universal approach
@@ -285,8 +334,9 @@ export class TemplateEditorDataEffects {
         withLatestFrom(
             this.store$.select(selectors.selectChangedTemplates),
             this.store$.select(fromRoute.selectGroupIdParameter),
+            this.store$.select(fromRoute.selectLinkedComponentIdParameter),
         ),
-        filter(([, , groupId]) => !!groupId),
+        filter(([, , groupId, linkedComponentId]) => !!groupId && !linkedComponentId),
         switchMap(([, changedTemplates, groupId]) => {
             const groupedPageContent = changedTemplates[0].content;
             return this.templates.saveGroupedPage(groupId!, groupedPageContent).pipe(
@@ -326,8 +376,9 @@ export class TemplateEditorDataEffects {
         withLatestFrom(
             this.store$.select(selectors.selectChangedTemplates),
             this.store$.select(fromRoute.selectGroupIdParameter),
+            this.store$.select(fromRoute.selectLinkedComponentIdParameter),
         ),
-        filter(([, changedTemplates, groupId]) => changedTemplates.length > 1 && !groupId),
+        filter(([, changedTemplates, groupId, linkedComponentId]) => changedTemplates.length > 1 && !groupId && !linkedComponentId),
         switchMap(([, changedTemplates]) => this.modals.show<{ accept: boolean, entries: string[] }>(SaveTemplateComponent, {
             data: {
                 entries: changedTemplates.map(x => x.info)
@@ -384,8 +435,11 @@ export class TemplateEditorDataEffects {
             this.store$.select(fromRoute.selectPathParameter),
             this.store$.select(fromRoute.selectTypeParameter),
             this.store$.select(fromRoute.selectGroupIdParameter),
+            this.store$.select(fromRoute.selectLinkedComponentIdParameter),
         ),
-        switchMap(([{ templateKey }, entry, path, type, groupId]) => this.templates.getTemplate(path, type, entry, groupId).pipe(
+        switchMap(([{ templateKey }, entry, path, type, groupId, linkedComponentId]) => (linkedComponentId
+            ? this.linkedComponents.getContent(linkedComponentId)
+            : this.templates.getTemplate(path, type, entry, groupId)).pipe(
             filter(template => !!template),
             map(template => editorHelpers.prepareTemplate(template!)),
             switchMap((template) => [

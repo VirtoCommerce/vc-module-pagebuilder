@@ -18,6 +18,7 @@ using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Data.Authorization;
+using VirtoCommerce.PageBuilderModule.Data.Services;
 using VirtoCommerce.Pages.Core.Search;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Events;
@@ -122,11 +123,28 @@ public class PageBuilderPageController(
             groupedPage.Pages.Add(draftPage);
         }
 
+        if (sourcePageId != null)
+        {
+            var sourceContent = await groupedPageService.LoadContent(sourcePageId, cancellationToken);
+            var linkedComponentAccess = await ValidateLinkedComponentContentAccessAsync(sourceContent);
+            if (linkedComponentAccess != null)
+            {
+                return linkedComponentAccess;
+            }
+        }
+
         await groupedPageService.SaveChangesAsync([groupedPage]);
 
         if (sourcePageId != null)
         {
-            await groupedPageService.CopyPageContentAsync(sourcePageId, draftPage.Id, cancellationToken);
+            try
+            {
+                await groupedPageService.CopyPageContentAsync(sourcePageId, draftPage.Id, cancellationToken);
+            }
+            catch (InvalidDataException ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         await SyncGroupSettingsToContent(draftPage.Id, groupedPage, cancellationToken);
@@ -385,15 +403,17 @@ public class PageBuilderPageController(
         // version and survives the next publish. An empty or unparsable body is never a save the designer
         // means to make, so it must not reach the column. Validating first also keeps a rejected request from
         // leaving a draft row behind, since the draft below is created before anything is written.
-        string content;
-        using (var reader = new StreamReader(Request.Body, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, leaveOpen: true))
-        {
-            content = await reader.ReadToEndAsync(cancellationToken);
-        }
+        var content = await ReadBufferedRequestBodyAsync(cancellationToken);
 
         if (string.IsNullOrWhiteSpace(content) || !IsWellFormedJson(content))
         {
             return BadRequest("Page content must be a non-empty, well-formed JSON document.");
+        }
+
+        var linkedComponentAccess = await ValidateLinkedComponentContentAccessAsync(content);
+        if (linkedComponentAccess != null)
+        {
+            return linkedComponentAccess;
         }
 
         var draftPage = groupedPage.Pages.FirstOrDefault(x => x.Status == Draft);
@@ -412,7 +432,14 @@ public class PageBuilderPageController(
         }
 
         var pageId = draftPage!.Id;
-        await groupedPageService.SaveContent(pageId, content, cancellationToken);
+        try
+        {
+            await groupedPageService.SaveContent(pageId, content, cancellationToken);
+        }
+        catch (InvalidDataException ex)
+        {
+            return BadRequest(ex.Message);
+        }
         await RaisePageContentChanged(pageId, cancellationToken);
 
         return NoContent();
@@ -446,6 +473,18 @@ public class PageBuilderPageController(
             .Select(x => x.Id)
             .FirstOrDefault();
 
+        if (sourcePageId == null)
+        {
+            return NotFound();
+        }
+
+        var sourceContent = await groupedPageService.LoadContent(sourcePageId, cancellationToken);
+        var linkedComponentAccess = await ValidateLinkedComponentContentAccessAsync(sourceContent);
+        if (linkedComponentAccess != null)
+        {
+            return linkedComponentAccess;
+        }
+
         var targetDraft = targetGroup.Pages.FirstOrDefault(x => x.Status == Draft);
         if (targetDraft == null)
         {
@@ -459,15 +498,63 @@ public class PageBuilderPageController(
             targetDraft = targetGroup.Pages.FirstOrDefault(x => x.Status == Draft);
         }
 
-        if (sourcePageId == null || targetDraft == null)
+        if (targetDraft == null)
         {
             return NotFound();
         }
 
-        await groupedPageService.CopyPageContentAsync(sourcePageId, targetDraft.Id, cancellationToken);
+        try
+        {
+            await groupedPageService.CopyPageContentAsync(sourcePageId, targetDraft.Id, cancellationToken);
+        }
+        catch (InvalidDataException ex)
+        {
+            return BadRequest(ex.Message);
+        }
         await RaisePageContentChanged(targetDraft.Id, cancellationToken);
 
         return NoContent();
+    }
+
+    private async Task<ActionResult> ValidateLinkedComponentContentAccessAsync(string content)
+    {
+        bool hasLinkedComponents;
+        try
+        {
+            hasLinkedComponents = PageBuilderLinkedComponentReferenceMatcher.HasReferences(content);
+        }
+        catch (InvalidDataException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+
+        if (!hasLinkedComponents)
+        {
+            return null;
+        }
+
+        var authorizationResult = await authorizationService.AuthorizeAsync(
+            User,
+            null,
+            ModuleConstants.Security.Permissions.LinkedComponentsRead);
+        return authorizationResult.Succeeded ? null : Forbidden;
+    }
+
+    private async Task<string> ReadBufferedRequestBodyAsync(CancellationToken cancellationToken)
+    {
+        Request.EnableBuffering();
+        Request.Body.Position = 0;
+
+        using var reader = new StreamReader(
+            Request.Body,
+            Encoding.UTF8,
+            detectEncodingFromByteOrderMarks: true,
+            bufferSize: 8192,
+            leaveOpen: true);
+        var content = await reader.ReadToEndAsync(cancellationToken);
+        Request.Body.Position = 0;
+
+        return content;
     }
 
     private static ActionResult Forbidden => new ObjectResult(new { })

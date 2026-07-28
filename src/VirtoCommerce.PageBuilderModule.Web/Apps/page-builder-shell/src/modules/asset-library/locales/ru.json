@@ -40,14 +40,17 @@
     "DETAILS": {
       "EMPTY": "Выберите файл, чтобы посмотреть сведения.",
       "FILE_DETAILS": "Сведения о файле",
+      "CLOSE": "Закрыть",
       "SIZE": "Размер",
       "DIMENSIONS": "Размеры",
       "TYPE": "Тип",
       "MODIFIED": "Изменено",
       "UPLOADED": "Загружено",
       "PATH": "Путь",
-      "USED_ON": "Используется на страницах ({count})",
-      "NO_REFERENCES": "Не используется ни на одной странице Page Builder.",
+      "USED_ON": "Использований: {count}",
+      "PAGES": "Страницы",
+      "LINKED_COMPONENTS": "Общие компоненты",
+      "NO_REFERENCES": "Не используется ни на страницах Page Builder, ни в общих компонентах.",
       "URL": "URL",
       "COPY_URL": "Копировать URL",
       "REPLACE": "Заменить",
@@ -77,8 +80,8 @@
     "CONFIRM": {
       "DELETE_SINGLE": "Удалить {name}?",
       "DELETE_SELECTED": "Удалить выбранные ресурсы ({count})?",
-      "DELETE_USED_ONE": "Удалить {name}? Ресурс используется на 1 странице Page Builder.",
-      "DELETE_USED_MANY": "Удалить {name}? Ресурс используется на {count} страницах Page Builder."
+      "DELETE_USED_ONE": "Удалить {name}? Ресурс используется в 1 объекте Page Builder.",
+      "DELETE_USED_MANY": "Удалить {name}? Ресурс используется в {count} объектах Page Builder."
     },
     "NOTIFICATIONS": {
       "FOLDER_CREATED": "Папка успешно создана",

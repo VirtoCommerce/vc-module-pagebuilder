@@ -10,7 +10,8 @@ namespace VirtoCommerce.PageBuilderModule.Data.Repositories;
 // repository. Disposing it is what returns the pooled connection; without it the context lives until GC and the
 // connection opened below stays checked out of the pool. It is optional so a caller that owns the context itself
 // (tests, or an ambient request scope) can pass none and keep responsibility for its lifetime.
-public abstract class ContentStreamRepository(PageBuilderModuleDbContext dbContext, IDisposable owner = null) : IContentStreamRepository
+public abstract class ContentStreamRepository(PageBuilderModuleDbContext dbContext, IDisposable owner = null)
+    : ITransactionalContentStreamRepository
 {
     private const int DefaultContentBufferSize = 8192;
     protected virtual int ContentBufferSize => DefaultContentBufferSize;
@@ -46,6 +47,44 @@ public abstract class ContentStreamRepository(PageBuilderModuleDbContext dbConte
         $"WHERE {IdColumn} = @id";
 
     public async Task SaveBinaryAsync(string pageId, TextReader reader, CancellationToken cancellationToken = default)
+    {
+        await SaveBinaryAsync(pageId, reader, updateIndexesAsync: null, cancellationToken);
+    }
+
+    public async Task SaveBinaryAsync(
+        string pageId,
+        TextReader reader,
+        Func<PageBuilderModuleDbContext, CancellationToken, Task> updateIndexesAsync,
+        CancellationToken cancellationToken = default)
+    {
+        if (dbContext.Database.CurrentTransaction != null)
+        {
+            await SaveBinaryInternalAsync(pageId, reader, cancellationToken);
+            if (updateIndexesAsync != null)
+            {
+                await updateIndexesAsync(dbContext, cancellationToken);
+            }
+
+            return;
+        }
+
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(
+            IsolationLevel.ReadCommitted,
+            cancellationToken);
+
+        await SaveBinaryInternalAsync(pageId, reader, cancellationToken);
+        if (updateIndexesAsync != null)
+        {
+            await updateIndexesAsync(dbContext, cancellationToken);
+        }
+
+        await transaction.CommitAsync(cancellationToken);
+    }
+
+    private async Task SaveBinaryInternalAsync(
+        string pageId,
+        TextReader reader,
+        CancellationToken cancellationToken)
     {
         var connection = dbContext.Database.GetDbConnection();
         await dbContext.Database.OpenConnectionAsync(cancellationToken);
@@ -145,7 +184,45 @@ public abstract class ContentStreamRepository(PageBuilderModuleDbContext dbConte
         }
     }
 
-    public async Task CopyContentAsync(string sourcePageId, string targetPageId, CancellationToken cancellationToken = default)
+    public Task CopyContentAsync(string sourcePageId, string targetPageId, CancellationToken cancellationToken = default)
+    {
+        return CopyContentInternalAsync(sourcePageId, targetPageId, cancellationToken);
+    }
+
+    public async Task CopyContentAsync(
+        string sourcePageId,
+        string targetPageId,
+        Func<PageBuilderModuleDbContext, CancellationToken, Task> updateIndexesAsync,
+        CancellationToken cancellationToken = default)
+    {
+        if (dbContext.Database.CurrentTransaction != null)
+        {
+            await CopyContentInternalAsync(sourcePageId, targetPageId, cancellationToken);
+            if (updateIndexesAsync != null)
+            {
+                await updateIndexesAsync(dbContext, cancellationToken);
+            }
+
+            return;
+        }
+
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(
+            IsolationLevel.ReadCommitted,
+            cancellationToken);
+
+        await CopyContentInternalAsync(sourcePageId, targetPageId, cancellationToken);
+        if (updateIndexesAsync != null)
+        {
+            await updateIndexesAsync(dbContext, cancellationToken);
+        }
+
+        await transaction.CommitAsync(cancellationToken);
+    }
+
+    private async Task CopyContentInternalAsync(
+        string sourcePageId,
+        string targetPageId,
+        CancellationToken cancellationToken)
     {
         var connection = dbContext.Database.GetDbConnection();
         await dbContext.Database.OpenConnectionAsync(cancellationToken);

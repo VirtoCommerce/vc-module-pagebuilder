@@ -3,12 +3,15 @@ import { Injectable, inject } from "@angular/core";
 import { ClipboardService } from '@core/services';
 import { ContextMenuAction } from '@core/models';
 import { Dictionary, SectionModel } from '@models/index';
+import { AppConfig } from '@integration/services';
+import { canEditLinkedComponentOriginal, isLinkedComponentReference } from './linked-component.helpers';
 
 @Injectable({
     providedIn: 'root'
 })
 export class ContextMenuHelper {
     private readonly clipboard = inject(ClipboardService);
+    private readonly appConfig = inject(AppConfig);
     private readonly items: Dictionary<ContextMenuAction> = {
         '|': '|',
         'hide': {
@@ -93,6 +96,21 @@ export class ContextMenuHelper {
             action: 'refresh-preview',
             title: 'Refresh preview',
             icon: 'refresh'
+        },
+        'save-as-linked-component': {
+            action: 'save-as-linked-component',
+            title: 'Save selected as Shared Component',
+            icon: 'link'
+        },
+        'edit-linked-component': {
+            action: 'edit-linked-component',
+            title: 'Edit original',
+            icon: 'edit'
+        },
+        'detach-linked-component': {
+            action: 'detach-linked-component',
+            title: 'Detach',
+            icon: 'link_off'
         }
     }
 
@@ -109,6 +127,19 @@ export class ContextMenuHelper {
     }
 
     async getSectionsActions(item: SectionModel, canAddBlock: boolean): Promise<ContextMenuAction[]> {
+        if (isLinkedComponentReference(item)) {
+            const linkedClipboardEmpty = !(await this.hasClipboardData());
+            return this.getActions([
+                ['edit-linked-component', !canEditLinkedComponentOriginal(this.appConfig)],
+                ['detach-linked-component', !this.can('canInsertLinkedComponents')],
+                '|',
+                'copy',
+                ['paste-before', linkedClipboardEmpty],
+                ['paste-after', linkedClipboardEmpty],
+                '|',
+                'delete',
+            ]);
+        }
         const emptyClipboardData = !(await this.hasClipboardData());
 
         const result: (string | [string, boolean])[] = [
@@ -129,11 +160,18 @@ export class ContextMenuHelper {
         return this.getActions(result);
     }
 
-    async getPageActions(hasSelection = false): Promise<ContextMenuAction[]> {
+    async getPageActions(hasSelection = false, hasSelectedSections = false, allowSaveAsLinked = true): Promise<ContextMenuAction[]> {
         const emptyClipboardData = !(await this.hasClipboardData());
         const result: (string | [string, boolean])[] = [
             ['paste-section', emptyClipboardData],
             ['delete-selected', !hasSelection],
+            [
+                'save-as-linked-component',
+                !allowSaveAsLinked
+                    || !hasSelectedSections
+                    || !this.can('canCreateLinkedComponents')
+                    || !this.can('canInsertLinkedComponents'),
+            ],
             '|',
             'reset-template', 'refresh-preview'
         ];
@@ -143,5 +181,9 @@ export class ContextMenuHelper {
     private async hasClipboardData(): Promise<boolean> {
         const clipboardData = await this.clipboard.getData();
         return clipboardData != null;
+    }
+
+    private can(option: 'canInsertLinkedComponents' | 'canCreateLinkedComponents'): boolean {
+        return this.appConfig.getValue(option) === true;
     }
 }

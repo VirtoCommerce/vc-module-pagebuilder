@@ -46,3 +46,18 @@ public interface IContentStreamRepository : IAsyncDisposable
         await SaveBinaryAsync(targetPageId, reader, cancellationToken);
     }
 }
+
+public interface ITransactionalContentStreamRepository : IContentStreamRepository
+{
+    Task SaveBinaryAsync(
+        string pageId,
+        TextReader reader,
+        Func<PageBuilderModuleDbContext, CancellationToken, Task> updateIndexesAsync,
+        CancellationToken cancellationToken = default);
+
+    Task CopyContentAsync(
+        string sourcePageId,
+        string targetPageId,
+        Func<PageBuilderModuleDbContext, CancellationToken, Task> updateIndexesAsync,
+        CancellationToken cancellationToken = default);
+}

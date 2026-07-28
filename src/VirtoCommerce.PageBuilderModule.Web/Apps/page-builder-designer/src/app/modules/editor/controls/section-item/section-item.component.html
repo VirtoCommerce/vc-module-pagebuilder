@@ -16,6 +16,12 @@
     }
   </div>
   <div class="name" [title]="sectionName() + ' (' + section().id + ')'">{{ sectionName() }}</div>
+  @if (isLinked()) {
+    <span class="linked-badge" [class.error]="linkedError()"
+      [title]="linkedError() || ('Used on ' + (linkedComponent()?.usageCount || 0) + ' page(s)')">
+      {{ linkedError() ? 'Missing' : 'Shared' }}
+    </span>
+  }
   @if (hasContextMenu()) {
     <app-context-menu
       [getActions]="getItemActions"

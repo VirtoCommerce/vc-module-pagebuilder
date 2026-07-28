@@ -10,8 +10,9 @@ import * as actions from '../actions';
 import * as sharedActions from '@shared/store/actions';
 import * as selectors from '../selectors';
 import * as sharedSelectors from '@shared/store/selectors';
+import * as routingSelectors from '@shared/routing/selectors';
 import { ClipboardService, ModalService, EventsBusService } from '@core/services';
-import { EvaluatorService } from '@integration/services';
+import { AppConfig, EvaluatorService } from '@integration/services';
 import { createTemplate, createSection, createSchema } from '@app/testing';
 
 describe('TemplateEditorDomainEffects', () => {
@@ -21,6 +22,7 @@ describe('TemplateEditorDomainEffects', () => {
     let clipboardService: { copy: ReturnType<typeof vi.fn>; getData: ReturnType<typeof vi.fn> };
     let modalService: { confirm: ReturnType<typeof vi.fn>; show: ReturnType<typeof vi.fn> };
     let eventsBus: { emit: ReturnType<typeof vi.fn> };
+    let appConfig: { getValue: ReturnType<typeof vi.fn> };
 
     const template = createTemplate({
         content: [
@@ -34,6 +36,7 @@ describe('TemplateEditorDomainEffects', () => {
         clipboardService = { copy: vi.fn(), getData: vi.fn().mockResolvedValue(null) };
         modalService = { confirm: vi.fn().mockReturnValue(of(true)), show: vi.fn() };
         eventsBus = { emit: vi.fn() };
+        appConfig = { getValue: vi.fn().mockReturnValue(true) };
 
         TestBed.configureTestingModule({
             providers: [
@@ -61,12 +64,14 @@ describe('TemplateEditorDomainEffects', () => {
                         { selector: selectors.selectCheckedItems, value: [] },
                         { selector: sharedSelectors.selectCurrentTemplateEntry, value: { name: 'Home', key: 'home' } },
                         { selector: selectors.selectCurrentTemplateModel, value: template },
+                        { selector: routingSelectors.selectLinkedComponentIdParameter, value: '' },
                     ],
                 }),
                 { provide: ClipboardService, useValue: clipboardService },
                 { provide: ModalService, useValue: modalService },
                 { provide: EventsBusService, useValue: eventsBus },
                 { provide: EvaluatorService, useValue: { evaluate: vi.fn() } },
+                { provide: AppConfig, useValue: appConfig },
             ],
         });
 
@@ -121,7 +126,7 @@ describe('TemplateEditorDomainEffects', () => {
         it('broadcasts reload message', async () => {
             actions$.next(actions.refreshPreview());
             const results = await firstValueFrom(effects.refreshPreview$.pipe(take(1), toArray()));
-            expect(results[0].type).toBe(sharedActions.broadcastPreviewMessage.type);
+            expect(results[0].type).toBe(actions.broadcastResolvedPreview.type);
             expect((results[0] as any).msg.type).toBe('reload');
         });
     });
@@ -138,7 +143,7 @@ describe('TemplateEditorDomainEffects', () => {
             const results = await firstValueFrom(effects.deleteSectionOrBlock$.pipe(take(3), toArray()));
             const types = results.map(r => r.type);
             expect(types).toContain(actions.updateTemplateAction.type);
-            expect(types).toContain(sharedActions.broadcastPreviewMessage.type);
+            expect(types).toContain(actions.broadcastResolvedPreview.type);
             expect(types).toContain(actions.closeAddItemPanel.type);
         });
 
@@ -162,6 +167,19 @@ describe('TemplateEditorDomainEffects', () => {
             const results = await firstValueFrom(effects.updateEditableModel$.pipe(take(1), toArray()));
             expect(results[0].type).toBe(actions.updateTemplateAction.type);
         });
+
+        it('ignores changes to a read-only linked-component original', () => {
+            store.overrideSelector(routingSelectors.selectLinkedComponentIdParameter, 'component-1');
+            appConfig.getValue.mockImplementation((key: string) => key === 'canInsertLinkedComponents');
+            store.refreshState();
+            const emitted: Action[] = [];
+            const subscription = effects.updateEditableModel$.subscribe(action => emitted.push(action));
+
+            actions$.next(actions.sectionChangedAction({ changes: { hidden: true } as any }));
+
+            expect(emitted).toEqual([]);
+            subscription.unsubscribe();
+        });
     });
 
     // ── duplicateItem$ ────────────────────────────────────────────
@@ -173,7 +191,7 @@ describe('TemplateEditorDomainEffects', () => {
 
             const results = await firstValueFrom(effects.duplicateItem$.pipe(take(3), toArray()));
             const types = results.map(r => r.type);
-            expect(types).toContain(sharedActions.broadcastPreviewMessage.type);
+            expect(types).toContain(actions.broadcastResolvedPreview.type);
             expect(types).toContain(actions.updateTemplateAction.type);
             expect(types).toContain(sharedActions.showNotification.type);
         });
@@ -208,7 +226,7 @@ describe('TemplateEditorDomainEffects', () => {
             const results = await firstValueFrom(effects.showItem$.pipe(take(2), toArray()));
             const types = results.map(r => r.type);
             expect(types).toContain(actions.updateTemplateAction.type);
-            expect(types).toContain(sharedActions.broadcastPreviewMessage.type);
+            expect(types).toContain(actions.broadcastResolvedPreview.type);
         });
 
         it('dispatches updateTemplate with hidden=false for show action', async () => {
@@ -264,7 +282,7 @@ describe('TemplateEditorDomainEffects', () => {
             const results = await firstValueFrom(effects.orderSections$.pipe(take(2), toArray()));
             const types = results.map(r => r.type);
             expect(types).toContain(actions.updateTemplateAction.type);
-            expect(types).toContain(sharedActions.broadcastPreviewMessage.type);
+            expect(types).toContain(actions.broadcastResolvedPreview.type);
             expect((results[1] as any).msg.type).toBe('swap');
         });
 
@@ -303,7 +321,7 @@ describe('TemplateEditorDomainEffects', () => {
 
             const results = await firstValueFrom(effects.pasteFromClipboardAction$.pipe(take(3), toArray()));
             const types = results.map(r => r.type);
-            expect(types).toContain(sharedActions.broadcastPreviewMessage.type);
+            expect(types).toContain(actions.broadcastResolvedPreview.type);
             expect(types).toContain(actions.updateTemplateAction.type);
         });
     });

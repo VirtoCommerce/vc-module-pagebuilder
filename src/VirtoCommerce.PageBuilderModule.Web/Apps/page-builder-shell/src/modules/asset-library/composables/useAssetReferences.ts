@@ -1,32 +1,49 @@
 import { ref, type Ref } from "vue";
-import type { AssetEntry, AssetReference } from "../types";
+import type { AssetEntry, AssetReference, AssetReferenceDetails } from "../types";
 import { useAssetsLibraryApi } from "./useAssetsLibraryApi";
-import { getAssetKey, getReferencesCount } from "../utilities/assetEntry";
+import { getAssetKey, getReferencesCount as getEntryReferencesCount } from "../utilities/assetEntry";
+import { createAssetReferenceDetails } from "../utilities/assetReferences";
 
-type AssetReferenceState = Pick<AssetEntry, "referencesCount" | "referencePages">;
-export type DeleteAssetReferences = Required<Pick<AssetEntry, "referencesCount" | "referencePages">>;
+type AssetReferenceState = Pick<
+  AssetReferenceDetails,
+  "referencesCount" | "pageReferencesCount" | "linkedComponentReferencesCount"
+> &
+  Partial<Pick<AssetReferenceDetails, "referencePages" | "referenceLinkedComponents">>;
+export type DeleteAssetReferences = AssetReferenceDetails;
 
 export function useAssetReferences(storeId: Ref<string | null | undefined>) {
   const { searchAssetReferences, searchFolderReferences } = useAssetsLibraryApi();
   const assetReferences = ref<Record<string, AssetReferenceState>>({});
 
-  async function loadAssetReferences(assetEntries: AssetEntry[]) {
+  async function loadAssetReferences(
+    assetEntries: AssetEntry[],
+    isCurrent: () => boolean = () => true,
+  ): Promise<boolean> {
+    const currentStoreId = storeId.value;
     const assetUrls = assetEntries
       .filter((entry) => entry.type === "blob")
       .map(getAssetKey)
       .filter((url): url is string => !!url);
 
-    if (!storeId.value || !assetUrls.length) {
-      assetReferences.value = {};
-      return;
+    if (!currentStoreId || !assetUrls.length) {
+      if (isCurrent()) {
+        assetReferences.value = {};
+        return true;
+      }
+
+      return false;
     }
 
     let references: Awaited<ReturnType<typeof searchAssetReferences>> = [];
 
     try {
-      references = await searchAssetReferences(storeId.value, assetUrls, false);
+      references = await searchAssetReferences(currentStoreId, assetUrls, false);
     } catch {
       // Keep the asset library usable if reference lookup is temporarily unavailable.
+    }
+
+    if (!isCurrent()) {
+      return false;
     }
 
     assetReferences.value = references.reduce<Record<string, AssetReferenceState>>((result, reference) => {
@@ -36,28 +53,39 @@ export function useAssetReferences(storeId: Ref<string | null | undefined>) {
 
       return result;
     }, {});
+    return true;
   }
 
-  async function loadAssetReferencePages(entry: AssetEntry | undefined): Promise<void> {
+  async function loadAssetReferenceDetails(
+    entry: AssetEntry | undefined,
+    isCurrent: () => boolean = () => true,
+  ): Promise<boolean> {
+    const currentStoreId = storeId.value;
     const assetUrl = getAssetKey(entry);
 
-    if (!storeId.value || !assetUrl || entry?.type !== "blob") {
-      return;
+    if (!currentStoreId || !assetUrl || entry?.type !== "blob") {
+      return false;
     }
 
-    const references = await searchAssetReferences(storeId.value, [assetUrl], true);
+    const references = await searchAssetReferences(currentStoreId, [assetUrl], true);
+    if (!isCurrent()) {
+      return false;
+    }
+
     const reference = references[0];
-    const referenceState = reference
-      ? toReferenceState(reference, true)
-      : { referencesCount: 0, referencePages: [] };
+    const referenceState = reference ? toReferenceState(reference, true) : createAssetReferenceDetails([]);
 
     assetReferences.value = {
       ...assetReferences.value,
-      ...getAssetUrls(entry).reduce<Record<string, AssetReferenceState>>((result, url) => {
-        result[url] = referenceState;
-        return result;
-      }, reference?.assetUrl ? { [reference.assetUrl]: referenceState } : {}),
+      ...getAssetUrls(entry).reduce<Record<string, AssetReferenceState>>(
+        (result, url) => {
+          result[url] = referenceState;
+          return result;
+        },
+        reference?.assetUrl ? { [reference.assetUrl]: referenceState } : {},
+      ),
     };
+    return true;
   }
 
   function applyAssetReferences(entry: AssetEntry): AssetEntry {
@@ -83,10 +111,17 @@ export function useAssetReferences(storeId: Ref<string | null | undefined>) {
     }
 
     if (entry.type === "blob") {
-      return getAssetReferences([folderUrl], {
-        referencesCount: getReferencesCount(entry),
-        referencePages: entry.referencePages ?? [],
-      }, true);
+      return getAssetReferences(
+        [folderUrl],
+        {
+          referencesCount: getEntryReferencesCount(entry),
+          pageReferencesCount: entry.pageReferencesCount ?? 0,
+          linkedComponentReferencesCount: entry.linkedComponentReferencesCount ?? 0,
+          referencePages: entry.referencePages ?? [],
+          referenceLinkedComponents: entry.referenceLinkedComponents ?? [],
+        },
+        true,
+      );
     }
 
     const reference = await searchFolderReferences(storeId.value, folderUrl, true);
@@ -98,7 +133,11 @@ export function useAssetReferences(storeId: Ref<string | null | undefined>) {
     return toDeleteReferences([reference], true);
   }
 
-  async function getAssetReferences(assetUrls: string[], fallback = emptyDeleteReferences(), includePages = false): Promise<DeleteAssetReferences> {
+  async function getAssetReferences(
+    assetUrls: string[],
+    fallback = emptyDeleteReferences(),
+    includePages = false,
+  ): Promise<DeleteAssetReferences> {
     if (!storeId.value || !assetUrls.length) {
       return fallback;
     }
@@ -107,52 +146,52 @@ export function useAssetReferences(storeId: Ref<string | null | undefined>) {
     return toDeleteReferences(references, includePages);
   }
 
-  function toDeleteReferences(references: AssetReference[], includePages: boolean): DeleteAssetReferences {
-    const referencePages = includePages
-      ? getDistinctReferencePages(references.flatMap((reference) => reference.pages ?? []))
-      : [];
-
-    return {
-      referencesCount: referencePages.length || references.reduce((count, reference) => count + (reference.referencesCount ?? 0), 0),
-      referencePages,
-    };
+  function toDeleteReferences(references: AssetReference[], includeDetails: boolean): DeleteAssetReferences {
+    return includeDetails
+      ? createAssetReferenceDetails(references)
+      : {
+          referencesCount: references.reduce((count, reference) => count + (reference.referencesCount ?? 0), 0),
+          pageReferencesCount: references.reduce((count, reference) => count + (reference.pageReferencesCount ?? 0), 0),
+          linkedComponentReferencesCount: references.reduce(
+            (count, reference) => count + (reference.linkedComponentReferencesCount ?? 0),
+            0,
+          ),
+          referencePages: [],
+          referenceLinkedComponents: [],
+        };
   }
 
-  function toReferenceState(reference: AssetReference, includePages: boolean): AssetReferenceState {
+  function toReferenceState(reference: AssetReference, includeDetails: boolean): AssetReferenceState {
+    if (includeDetails) {
+      return createAssetReferenceDetails([reference]);
+    }
+
     return {
-      referencesCount: reference.referencesCount,
-      referencePages: includePages ? reference.pages ?? [] : undefined,
+      referencesCount: reference.referencesCount ?? 0,
+      pageReferencesCount: reference.pageReferencesCount ?? 0,
+      linkedComponentReferencesCount: reference.linkedComponentReferencesCount ?? 0,
     };
   }
 
   function getAssetUrls(entry: AssetEntry | undefined): string[] {
-    return [
-      entry?.relativeUrl,
-      entry?.url,
-    ].filter((url): url is string => !!url);
+    return [entry?.relativeUrl, entry?.url].filter((url): url is string => !!url);
   }
 
   function emptyDeleteReferences(): DeleteAssetReferences {
-    return {
-      referencesCount: 0,
-      referencePages: [],
-    };
+    return createAssetReferenceDetails([]);
   }
 
-  function getDistinctReferencePages(pages: NonNullable<AssetReference["pages"]>): NonNullable<AssetReference["pages"]> {
-    const result: NonNullable<AssetReference["pages"]> = [];
-    const seen = new Set<string>();
+  function getReferenceDetails(entry: AssetEntry | undefined): AssetReferenceDetails {
+    const reference = getAssetReference(entry);
 
-    for (const page of pages) {
-      const key = page.id || page.permalink || `${page.name ?? ""}:${page.cultureName ?? ""}`;
-
-      if (key && !seen.has(key)) {
-        seen.add(key);
-        result.push(page);
-      }
-    }
-
-    return result;
+    return {
+      referencesCount: reference?.referencesCount ?? entry?.referencesCount ?? 0,
+      pageReferencesCount: reference?.pageReferencesCount ?? entry?.pageReferencesCount ?? 0,
+      linkedComponentReferencesCount:
+        reference?.linkedComponentReferencesCount ?? entry?.linkedComponentReferencesCount ?? 0,
+      referencePages: reference?.referencePages ?? entry?.referencePages ?? [],
+      referenceLinkedComponents: reference?.referenceLinkedComponents ?? entry?.referenceLinkedComponents ?? [],
+    };
   }
 
   return {
@@ -160,9 +199,10 @@ export function useAssetReferences(storeId: Ref<string | null | undefined>) {
       assetReferences.value = {};
     },
     loadAssetReferences,
-    loadAssetReferencePages,
+    loadAssetReferenceDetails,
     applyAssetReferences,
-    getReferencePages: (entry: AssetEntry | undefined) => getAssetReference(entry)?.referencePages ?? [],
+    getReferenceDetails,
+    getReferencesCount: (entry: AssetEntry) => getReferenceDetails(entry).referencesCount,
     getDeleteReferences,
   };
 }

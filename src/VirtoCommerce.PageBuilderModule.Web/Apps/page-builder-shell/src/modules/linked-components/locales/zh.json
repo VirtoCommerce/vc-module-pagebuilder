@@ -1,0 +1,63 @@
+{
+  "LINKED_COMPONENTS": {
+    "MENU": {
+      "TITLE": "共享组件"
+    },
+    "TITLE": "共享组件",
+    "SEARCH": {
+      "PLACEHOLDER": "搜索共享组件..."
+    },
+    "TABLE": {
+      "NAME": "名称",
+      "USAGE": "使用页面",
+      "MODIFIED": "修改时间",
+      "MODIFIED_BY": "修改人"
+    },
+    "TOOLBAR": {
+      "REFRESH": "刷新"
+    },
+    "ACTIONS": {
+      "RENAME": "重命名",
+      "DELETE": "删除",
+      "DELETE_BLOCKED": "此组件正在使用，无法删除",
+      "CLOSE": "关闭"
+    },
+    "DETAILS": {
+      "COMPONENT_DETAILS": "组件详细信息",
+      "STORE": "店铺",
+      "MODIFIED": "修改时间",
+      "MODIFIED_BY": "修改人",
+      "USED_ON_ONE": "已用于 1 个页面",
+      "USED_ON_MANY": "已用于 {count} 个页面",
+      "LOADING_USAGE": "正在加载页面使用情况...",
+      "NO_USAGE": "未用于任何 Page Builder 页面。",
+      "DELETE_BLOCKED_ONE": "删除前，请先从页面中移除此组件。",
+      "DELETE_BLOCKED_MANY": "删除前，请先从全部 {count} 个页面中移除此组件。",
+      "NOT_AVAILABLE": "不适用"
+    },
+    "EMPTY": {
+      "TITLE": "暂无共享组件",
+      "DESCRIPTION": "请在 Page Builder Designer 中从所选区块创建共享组件。",
+      "NOT_FOUND_TITLE": "未找到共享组件",
+      "NOT_FOUND_DESCRIPTION": "请尝试其他搜索词。"
+    },
+    "RENAME": {
+      "TITLE": "重命名共享组件",
+      "NAME_LABEL": "名称",
+      "NAME_PLACEHOLDER": "输入组件名称",
+      "CANCEL": "取消",
+      "SAVE": "保存"
+    },
+    "CONFIRM": {
+      "DELETE": "确定删除 {name}？此操作无法撤销。"
+    },
+    "NOTIFICATIONS": {
+      "RENAMED": "共享组件已重命名",
+      "DELETED": "共享组件已删除",
+      "DELETE_BLOCKED_ONE": "此组件已用于 1 个页面，无法删除。",
+      "DELETE_BLOCKED_MANY": "此组件已用于 {count} 个页面，无法删除。",
+      "DELETE_CONFLICT": "此组件现已被使用，无法删除。请刷新列表以查看使用位置。",
+      "ERROR_GENERIC": "共享组件操作失败"
+    }
+  }
+}

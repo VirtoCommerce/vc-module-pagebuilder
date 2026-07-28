@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideMockActions } from '@ngrx/effects/testing';
 import { provideMockStore, MockStore } from '@ngrx/store/testing';
-import { ReplaySubject, of, firstValueFrom, throwError } from 'rxjs';
+import { ReplaySubject, Subject, of, firstValueFrom, throwError } from 'rxjs';
 import { take, toArray } from 'rxjs/operators';
 import { Action } from '@ngrx/store';
 
@@ -19,6 +19,12 @@ describe('TemplateEditorDataEffects', () => {
     let actions$: ReplaySubject<Action>;
     let store: MockStore;
     let schemasService: { getSchemas: ReturnType<typeof vi.fn> };
+    let linkedComponentsService: {
+        get: ReturnType<typeof vi.fn>;
+        getContent: ReturnType<typeof vi.fn>;
+        updateContent: ReturnType<typeof vi.fn>;
+    };
+    let appConfig: { getValue: ReturnType<typeof vi.fn> };
     let templatesService: {
         getTemplate: ReturnType<typeof vi.fn>;
         saveTemplates: ReturnType<typeof vi.fn>;
@@ -36,6 +42,12 @@ describe('TemplateEditorDataEffects', () => {
     beforeEach(() => {
         actions$ = new ReplaySubject<Action>(1);
         schemasService = { getSchemas: vi.fn().mockReturnValue(of({ sections: {}, blocks: {}, objects: {}, shared: {} })) };
+        linkedComponentsService = {
+            get: vi.fn(),
+            getContent: vi.fn(),
+            updateContent: vi.fn().mockReturnValue(of(undefined)),
+        };
+        appConfig = { getValue: vi.fn().mockReturnValue(true) };
         templatesService = {
             getTemplate: vi.fn().mockReturnValue(of(template)),
             saveTemplates: vi.fn().mockReturnValue(of(null)),
@@ -58,6 +70,7 @@ describe('TemplateEditorDataEffects', () => {
                         { selector: selectors.selectAllSchemas, value: null },
                         { selector: selectors.selectCurrentItemForEdit, value: null },
                         { selector: selectors.selectChangedTemplates, value: [] },
+                        { selector: selectors.selectLoadedTemplates, value: { home: template } },
                         { selector: selectors.selectRunActionContext, value: { templateKey: 'home', entry: {}, path: '/home.json', type: 'page', groupId: '' } },
                         {
                             selector: selectors.changeTemplateContext,
@@ -68,6 +81,8 @@ describe('TemplateEditorDataEffects', () => {
                         { selector: fromRoute.selectPathParameter, value: '/home.json' },
                         { selector: fromRoute.selectTypeParameter, value: 'page' },
                         { selector: fromRoute.selectGroupIdParameter, value: '' },
+                        { selector: fromRoute.selectCultureNameParameter, value: 'en-US' },
+                        { selector: fromRoute.selectLinkedComponentIdParameter, value: '' },
                         { selector: fromRoute.selectSectionIdParameter, value: '' },
                         { selector: fromRoute.selectBlockIdParameter, value: '' },
                         { selector: fromRoute.isEmpty, value: false },
@@ -81,6 +96,8 @@ describe('TemplateEditorDataEffects', () => {
         effects = TestBed.inject(TemplateEditorDataEffects);
         (effects as any).schemas = schemasService;
         (effects as any).templates = templatesService;
+        (effects as any).linkedComponents = linkedComponentsService;
+        (effects as any).appConfig = appConfig;
     });
 
     afterEach(() => store.resetSelectors());
@@ -147,7 +164,11 @@ describe('TemplateEditorDataEffects', () => {
             expect(types).toContain(actions.getTemplatePublishStatus.type);
             expect(types).toContain(actions.loadTemplateModelSuccess.type);
             expect(types).toContain(actions.validateItemUnderEdit.type);
-            expect(types).toContain(sharedActions.broadcastPreviewMessage.type);
+            expect(types).toContain(actions.broadcastResolvedPreview.type);
+            const preview = results.find(result => result.type === actions.broadcastResolvedPreview.type) as ReturnType<
+                typeof actions.broadcastResolvedPreview
+            >;
+            expect(preview.msg['cultureName']).toBe('en-US');
         });
 
         it('dispatches fails and notification on error', async () => {
@@ -158,6 +179,17 @@ describe('TemplateEditorDataEffects', () => {
             const types = results.map(r => r.type);
             expect(types).toContain(actions.loadTemplateModelFails.type);
             expect(types).toContain(sharedActions.showNotification.type);
+        });
+    });
+
+    describe('resendTemplateOnAccountChange$', () => {
+        it('keeps the route culture while resolving Shared Components', async () => {
+            actions$.next(sharedActions.previewLoaded());
+
+            const result = await firstValueFrom(effects.resendTemplateOnAccountChange$);
+
+            expect(result.type).toBe(actions.broadcastResolvedPreview.type);
+            expect(result.msg['cultureName']).toBe('en-US');
         });
     });
 
@@ -347,6 +379,49 @@ describe('TemplateEditorDataEffects', () => {
             await new Promise(r => setTimeout(r, 50));
             sub.unsubscribe();
             expect(results.length).toBe(0);
+        });
+    });
+
+    describe('saveLinkedComponent$', () => {
+        it('keeps the document dirty when it changes while the save request is in flight', async () => {
+            const templateKey = 'linked-component::component-1';
+            const response$ = new Subject<void>();
+            linkedComponentsService.updateContent.mockReturnValue(response$);
+            store.overrideSelector(fromRoute.selectLinkedComponentIdParameter, 'component-1');
+            store.overrideSelector(fromRoute.selectTemplateKeyParameter, templateKey);
+            store.overrideSelector(selectors.selectCurrentTemplateModel, template);
+            store.overrideSelector(selectors.selectLoadedTemplates, { [templateKey]: template });
+            store.refreshState();
+            const emittedPromise = firstValueFrom(effects.saveLinkedComponent$.pipe(take(2), toArray()));
+
+            actions$.next(actions.executeToolbarAction({ action: 'save' }));
+            const editedAfterSave = createTemplate({
+                content: [...template.content, createSection({ id: 'newer-edit' })],
+            });
+            store.overrideSelector(selectors.selectCurrentTemplateModel, editedAfterSave);
+            store.overrideSelector(selectors.selectLoadedTemplates, { [templateKey]: editedAfterSave });
+            store.refreshState();
+            response$.next();
+            response$.complete();
+
+            const emitted = await emittedPromise;
+            const success = emitted.find(action => action.type === actions.saveTemplateSuccess.type) as ReturnType<typeof actions.saveTemplateSuccess>;
+            expect(success.clearDirty).toBe(false);
+            expect(success.template).toBe(template);
+        });
+
+        it('requires linked-component read as well as update permission', () => {
+            appConfig.getValue.mockImplementation((option: string) => option === 'canEditLinkedComponents');
+            store.overrideSelector(fromRoute.selectLinkedComponentIdParameter, 'component-1');
+            store.overrideSelector(fromRoute.selectTemplateKeyParameter, 'linked-component::component-1');
+            store.overrideSelector(selectors.selectCurrentTemplateModel, template);
+            store.refreshState();
+            const subscription = effects.saveLinkedComponent$.subscribe();
+
+            actions$.next(actions.executeToolbarAction({ action: 'save' }));
+
+            expect(linkedComponentsService.updateContent).not.toHaveBeenCalled();
+            subscription.unsubscribe();
         });
     });
 

@@ -1,0 +1,63 @@
+{
+  "LINKED_COMPONENTS": {
+    "MENU": {
+      "TITLE": "Delade komponenter"
+    },
+    "TITLE": "Delade komponenter",
+    "SEARCH": {
+      "PLACEHOLDER": "Sök efter delade komponenter..."
+    },
+    "TABLE": {
+      "NAME": "Namn",
+      "USAGE": "Används på",
+      "MODIFIED": "Ändrad",
+      "MODIFIED_BY": "Ändrad av"
+    },
+    "TOOLBAR": {
+      "REFRESH": "Uppdatera"
+    },
+    "ACTIONS": {
+      "RENAME": "Byt namn",
+      "DELETE": "Ta bort",
+      "DELETE_BLOCKED": "Den här komponenten används och kan inte tas bort",
+      "CLOSE": "Stäng"
+    },
+    "DETAILS": {
+      "COMPONENT_DETAILS": "Komponentinformation",
+      "STORE": "Butik",
+      "MODIFIED": "Ändrad",
+      "MODIFIED_BY": "Ändrad av",
+      "USED_ON_ONE": "Används på (1 sida)",
+      "USED_ON_MANY": "Används på ({count} sidor)",
+      "LOADING_USAGE": "Läser in användning på sidor...",
+      "NO_USAGE": "Används inte på några Page Builder-sidor.",
+      "DELETE_BLOCKED_ONE": "Ta bort den här komponenten från sidan innan du raderar den.",
+      "DELETE_BLOCKED_MANY": "Ta bort den här komponenten från alla {count} sidor innan du raderar den.",
+      "NOT_AVAILABLE": "Inte tillgängligt"
+    },
+    "EMPTY": {
+      "TITLE": "Inga delade komponenter än",
+      "DESCRIPTION": "Skapa en delad komponent från valda sektioner i Page Builder Designer.",
+      "NOT_FOUND_TITLE": "Inga delade komponenter hittades",
+      "NOT_FOUND_DESCRIPTION": "Försök med en annan sökfras."
+    },
+    "RENAME": {
+      "TITLE": "Byt namn på delad komponent",
+      "NAME_LABEL": "Namn",
+      "NAME_PLACEHOLDER": "Ange komponentnamn",
+      "CANCEL": "Avbryt",
+      "SAVE": "Spara"
+    },
+    "CONFIRM": {
+      "DELETE": "Ta bort {name}? Den här åtgärden kan inte ångras."
+    },
+    "NOTIFICATIONS": {
+      "RENAMED": "Den delade komponenten har bytt namn",
+      "DELETED": "Den delade komponenten har tagits bort",
+      "DELETE_BLOCKED_ONE": "Den här komponenten används på 1 sida och kan inte tas bort.",
+      "DELETE_BLOCKED_MANY": "Den här komponenten används på {count} sidor och kan inte tas bort.",
+      "DELETE_CONFLICT": "Komponenten används nu och kan inte tas bort. Uppdatera listan för att se var den används.",
+      "ERROR_GENERIC": "Åtgärden för den delade komponenten misslyckades"
+    }
+  }
+}

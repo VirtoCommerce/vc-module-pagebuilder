@@ -2,10 +2,11 @@ import { ROUTER_NAVIGATED } from '@ngrx/router-store';
 import { Injectable, inject } from "@angular/core";
 import { Actions, createEffect, ofType } from "@ngrx/effects";
 import { Action, Store } from "@ngrx/store";
-import { catchError, switchMap, map, of, withLatestFrom, filter, tap, fromEvent } from "rxjs";
+import { catchError, switchMap, map, of, withLatestFrom, filter, tap } from "rxjs";
 
 import { EventsBusService, NotificationsService } from "@core/services";
-import { TemplatesService, MetaDataService } from '@shared/services';
+import { TemplatesService, MetaDataService, PreviewBridgeService } from '@shared/services';
+import type { PreviewHoverMessage, PreviewLoadedMessage, PreviewSelectMessage } from '@shared/models';
 import { ImpersonateService } from '../../integration/services';
 
 import { BuilderState } from "./state";
@@ -25,6 +26,7 @@ export class SharedEffects {
     private readonly notification = inject(NotificationsService);
     private readonly metaDataService = inject(MetaDataService);
     private readonly impersonateService = inject(ImpersonateService);
+    private readonly previewBridge = inject(PreviewBridgeService);
 
     raiseInitModule$ = createEffect(() => this.actions$.pipe(
         ofType(ROUTER_NAVIGATED),
@@ -246,26 +248,25 @@ export class SharedEffects {
         tap(({ message, msgType, top }) => this.notification.show(message, msgType, top ? 'tr' : 'bl'))
     ), { dispatch: false });
 
-    previewLoadedMessage$ = createEffect(() => fromEvent<MessageEvent>(window, 'message').pipe(
-        filter((event: MessageEvent) => event.data.source === 'preview' && event.data.type === 'loaded'),
-        tap(event => console.log(event.data)),
-        switchMap(event => {
+    previewLoadedMessage$ = createEffect(() => this.previewBridge.messages$.pipe(
+        filter((message): message is PreviewLoadedMessage => message.type === 'loaded'),
+        switchMap(message => {
             const result: Action[] = [actions.previewLoaded()];
-            if (event.data.data) {
-                result.push(actions.updateCustomSchemas({ schemas: event.data.data }));
+            if (message.data) {
+                result.push(actions.updateCustomSchemas({ schemas: message.data }));
             }
             return result;
         }),
     ));
 
-    selectSectionMessage$ = createEffect(() => fromEvent<MessageEvent>(window, 'message').pipe(
-        filter((event: MessageEvent) => event.data.source === 'preview' && event.data.type === 'select'),
-        map(({ data }) => actions.selectSection({ sectionId: data.sectionId }))
+    selectSectionMessage$ = createEffect(() => this.previewBridge.messages$.pipe(
+        filter((message): message is PreviewSelectMessage => message.type === 'select'),
+        map(message => actions.selectSection({ sectionId: message.data.sectionId }))
     ));
 
-    hoverSectionMessage$ = createEffect(() => fromEvent<MessageEvent>(window, 'message').pipe(
-        filter((event: MessageEvent) => event.data.source === 'preview' && event.data.type === 'hover'),
-        map(({ data }) => actions.previewSectionHovered({ sectionId: data.sectionId }))
+    hoverSectionMessage$ = createEffect(() => this.previewBridge.messages$.pipe(
+        filter((message): message is PreviewHoverMessage => message.type === 'hover'),
+        map(message => actions.previewSectionHovered({ sectionId: message.data.sectionId }))
     ));
 
     previewLoaded$ = createEffect(() => this.actions$.pipe(

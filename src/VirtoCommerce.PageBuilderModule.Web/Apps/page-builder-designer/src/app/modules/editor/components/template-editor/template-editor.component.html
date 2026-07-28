@@ -1,7 +1,39 @@
 <app-panel>
   <div class="p-4">
     @if (viewModel(); as vm) {
-      @if (vm.settingsSchemas.top.length) {
+      @if (vm.isLinkedDocument) {
+        <div class="linked-document-banner">
+          <button type="button" class="back-link" (click)="backToPage()">
+            <app-icon>arrow_back</app-icon>
+            Back
+          </button>
+          <div class="banner-title">
+            Editing Shared Component “{{ vm.currentLinkedComponent?.name || 'Shared Component' }}”
+          </div>
+          <div class="banner-text">
+            Changes affect {{ vm.currentLinkedComponent?.usageCount || 0 }} page{{ vm.currentLinkedComponent?.usageCount === 1 ? '' : 's' }}.
+          </div>
+          @if (vm.currentLinkedComponent?.usagePages?.length) {
+            <details class="usage-details">
+              <summary>Where used</summary>
+              <ul>
+                @for (page of vm.currentLinkedComponent!.usagePages; track page.id) {
+                  <li>
+                    <button type="button" class="rounded text-left text-blue-700 hover:underline"
+                      (click)="openUsagePage(page)">
+                      {{ page.name }}
+                    </button>
+                  </li>
+                }
+              </ul>
+            </details>
+          }
+          @if (isReadOnly()) {
+            <div class="read-only">You can view this component, but you do not have permission to edit it.</div>
+          }
+        </div>
+      }
+      @if (!vm.isLinkedDocument && vm.settingsSchemas.top.length) {
         <div class="settings-container top"
           >
           @for (schema of vm.settingsSchemas.top; track schema) {
@@ -30,6 +62,7 @@
             cdkDragBoundary=".ps"
             cdkDragLockAxis="y"
             cdkDrag
+            [cdkDragDisabled]="isReadOnly()"
             (cdkDragStarted)="sectionDragStarted($event, section)"
             (cdkDragReleased)="sectionDragCompleted($event, section)"
             (openChanged)="toggleSection($event, section.id, vm.templateState!.key)">
@@ -39,14 +72,16 @@
                 (mouseleave)="currentHoverId.set(null)">
                 <app-section-item [sectionSchema]="vm.sectionsSchemas[section.type]"
                   [section]="section"
-                  [selectable]="vm.sectionsState[section.id]?.selectable || false"
+                  [selectable]="canMutate() && (vm.sectionsState[section.id]?.selectable || false)"
                   [selected]="vm.sectionsState[section.id]?.selected || false"
-                  [hasContextMenu]="!vm.selectMode && vm.currentDragSection.length === 0"
+                  [hasContextMenu]="canMutate() && !vm.selectMode && vm.currentDragSection.length === 0"
+                  [linkedComponent]="getLinkedComponent(section)"
+                  [linkedError]="getLinkedComponentError(section)"
                   (itemClick)="!vm.selectMode && onSectionClick(section)"
-                  (itemHover)="onSectionHover(section)"
+                  (itemHover)="onSectionHover($event ? section : null)"
                   (actionClick)="onActionClick($event, section)"
                   (itemSelectChanged)="onItemSelectChanged($event, section, vm.templateState!.key)" />
-                @let isDragHandleActive = (!vm.selectMode && section.id === currentHoverId()) || !!vm.sectionsState[section.id]?.selected;
+                @let isDragHandleActive = canMutate() && ((!vm.selectMode && section.id === currentHoverId()) || !!vm.sectionsState[section.id]?.selected);
                 <app-drag-handle cdkDragHandle
                   [cdkDragHandleDisabled]="!isDragHandleActive"
                   [visible]="isDragHandleActive" />
@@ -56,6 +91,7 @@
               [blocksSchemas]="vm.blocksSchemas!"
               [states]="vm.sectionsState[section.id].blocks"
               [selectMode]="vm.selectMode"
+              [readOnly]="!canMutate()"
               (itemClick)="!vm.selectMode && onBlockClick(section, $event)"
               (addBlockClick)="addBlockClick(section)"
               (reorderBlocks)="reorderBlocks($event)"
@@ -67,14 +103,14 @@
             }}</span>
           </app-collapsible-list-item>
         }
-        @if (!vm.selectMode && vm.currentDragSection.length === 0) {
+        @if (!isReadOnly() && !vm.selectMode && vm.currentDragSection.length === 0) {
           <div [ngStyle]="{ top: addLineTop(), opacity: addButtonOpacity() }" class="line"></div>
           <div [ngStyle]="{ top: addLineTop(), opacity: addButtonOpacity() }" class="line right-line"></div>
           <app-icon [ngStyle]="{ top: addButtonTop(), opacity: addButtonOpacity() }" class="add-button"
           (click)="addSectionClick()">add_circle</app-icon>
         }
       </div>
-      @if (vm.settingsSchemas.bottom.length) {
+      @if (!vm.isLinkedDocument && vm.settingsSchemas.bottom.length) {
         <div class="settings-container bottom"
           >
           @for (schema of vm.settingsSchemas.bottom; track schema) {
@@ -92,13 +128,15 @@
   <div title-content class="w-full">
     <div class="w-full flex flex-row pl-2">
       <div [attr.title]="templateName()" class="template-name">{{ templateName() }}</div>
-      <app-context-menu [visible]="true"
+      <app-context-menu [visible]="!isReadOnly()"
         [getActions]="getPageActions"
         (onAction)="onActionClick($event.action)" />
     </div>
   </div>
+  @if (!isReadOnly()) {
   <div footer-content>
     <app-icon-button icon="add" skin="blue" text="Add block"
                      (click)="addSectionClick()" />
   </div>
+  }
 </app-panel>

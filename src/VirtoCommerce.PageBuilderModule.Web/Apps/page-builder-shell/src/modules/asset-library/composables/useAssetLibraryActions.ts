@@ -1,6 +1,7 @@
 import type { ComputedRef } from "vue";
 import { notification, parseError, usePopup } from "@vc-shell/framework";
-import type { AssetEntry, AssetReferencePage } from "../types";
+import type { AssetEntry } from "../types";
+import { getReferenceLinkedComponentNames, getReferencePageNames } from "../utilities/assetReferences";
 import type { DeleteAssetReferences } from "./useAssetReferences";
 
 interface UseAssetLibraryActionsOptions {
@@ -122,27 +123,41 @@ export function useAssetLibraryActions(options: UseAssetLibraryActionsOptions) {
     const referencesCount = references.referencesCount;
 
     if (referencesCount > 0) {
-      const key = referencesCount === 1
-        ? "ASSET_LIBRARY.CONFIRM.DELETE_USED_ONE"
-        : "ASSET_LIBRARY.CONFIRM.DELETE_USED_MANY";
+      const key =
+        referencesCount === 1 ? "ASSET_LIBRARY.CONFIRM.DELETE_USED_ONE" : "ASSET_LIBRARY.CONFIRM.DELETE_USED_MANY";
 
       const message = options.t(key, {
         name: entry.name,
         count: referencesCount,
       });
 
-      const pageNames = getReferencePageNames(references.referencePages);
-      return pageNames.length
-        ? `${message}\n\n${pageNames.join("\n")}`
-        : message;
+      const referenceSections = getReferenceSections(references);
+      return referenceSections.length ? `${message}\n\n${referenceSections.join("\n\n")}` : message;
     }
 
     return options.t("ASSET_LIBRARY.CONFIRM.DELETE_SINGLE", { name: entry.name });
   }
 
-  function getReferencePageNames(pages: AssetReferencePage[]): string[] {
-    return [...new Set(pages.map((page) => page.name || page.permalink || page.id).filter((name): name is string => !!name))]
-      .map((name) => `- ${name}`);
+  function getReferenceSections(references: DeleteAssetReferences): string[] {
+    const sections: string[] = [];
+    const pageNames = getReferencePageNames(references.referencePages);
+    const linkedComponentNames = getReferenceLinkedComponentNames(references.referenceLinkedComponents);
+
+    if (pageNames.length) {
+      sections.push(`${options.t("ASSET_LIBRARY.DETAILS.PAGES")}:\n${formatReferenceNames(pageNames)}`);
+    }
+
+    if (linkedComponentNames.length) {
+      sections.push(
+        `${options.t("ASSET_LIBRARY.DETAILS.LINKED_COMPONENTS")}:\n${formatReferenceNames(linkedComponentNames)}`,
+      );
+    }
+
+    return sections;
+  }
+
+  function formatReferenceNames(names: string[]): string {
+    return names.map((name) => `- ${name}`).join("\n");
   }
 
   return {

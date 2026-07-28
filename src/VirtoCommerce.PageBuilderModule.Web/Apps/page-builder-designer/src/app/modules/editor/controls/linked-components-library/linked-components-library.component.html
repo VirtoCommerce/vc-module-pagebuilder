@@ -1,0 +1,44 @@
+@if (canInsert) {
+  <section class="linked-library">
+    <button type="button" class="library-heading" (click)="opened.set(!opened())">
+      <app-icon>link</app-icon>
+      <span>SHARED BLOCKS LIBRARY</span>
+      <app-icon>{{ opened() ? 'expand_less' : 'expand_more' }}</app-icon>
+    </button>
+
+    @if (opened()) {
+      <div class="library-content">
+        @if (view().loading && !view().results.length) {
+          <div class="library-message">Loading Shared Components…</div>
+        } @else if (view().error && !view().results.length) {
+          <div class="library-message error">{{ view().error }}</div>
+        } @else if (!view().results.length) {
+          <div class="library-message">No Shared Components found</div>
+        } @else {
+          @for (component of view().results; track component.id) {
+            <div class="linked-item">
+              <button type="button" class="component-info" (click)="chooseInsertionMode(component, $event)"
+                [attr.aria-label]="'Insert ' + component.name"
+                [title]="'Insert ' + component.name + '. Used on ' + component.usageCount + ' page(s).'">
+                <app-icon>view_agenda</app-icon>
+                <span class="component-name">{{ component.name }}</span>
+                <span class="usage">{{ component.usageCount }} page{{ component.usageCount === 1 ? '' : 's' }}</span>
+              </button>
+            </div>
+          }
+          @if (view().loading) {
+            <div class="library-message load-more-status">Loading more…</div>
+          } @else if (view().error) {
+            <div class="library-message error">{{ view().error }}</div>
+          } @else if (canLoadMore()) {
+            <div class="load-more">
+              <button type="button" class="load-more-button" (click)="loadMore()">
+                Show more
+              </button>
+            </div>
+          }
+        }
+      </div>
+    }
+  </section>
+}

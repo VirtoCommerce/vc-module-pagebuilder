@@ -40,14 +40,17 @@
     "DETAILS": {
       "EMPTY": "Sélectionnez un fichier pour afficher ses détails.",
       "FILE_DETAILS": "Détails du fichier",
+      "CLOSE": "Fermer",
       "SIZE": "Taille",
       "DIMENSIONS": "Dimensions",
       "TYPE": "Type",
       "MODIFIED": "Modifié",
       "UPLOADED": "Téléversé",
       "PATH": "Chemin",
-      "USED_ON": "Utilisé sur ({count} pages)",
-      "NO_REFERENCES": "Non utilisé sur les pages Page Builder.",
+      "USED_ON": "Utilisé dans ({count})",
+      "PAGES": "Pages",
+      "LINKED_COMPONENTS": "Composants partagés",
+      "NO_REFERENCES": "Non utilisé dans les pages Page Builder ni dans les composants partagés.",
       "URL": "URL",
       "COPY_URL": "Copier l’URL",
       "REPLACE": "Remplacer",
@@ -77,8 +80,8 @@
     "CONFIRM": {
       "DELETE_SINGLE": "Supprimer {name} ?",
       "DELETE_SELECTED": "Supprimer {count} ressource(s) sélectionnée(s) ?",
-      "DELETE_USED_ONE": "Supprimer {name} ? Il est utilisé sur 1 page Page Builder.",
-      "DELETE_USED_MANY": "Supprimer {name} ? Il est utilisé sur {count} pages Page Builder."
+      "DELETE_USED_ONE": "Supprimer {name} ? Il est utilisé dans 1 élément Page Builder.",
+      "DELETE_USED_MANY": "Supprimer {name} ? Il est utilisé dans {count} éléments Page Builder."
     },
     "NOTIFICATIONS": {
       "FOLDER_CREATED": "Dossier créé avec succès",

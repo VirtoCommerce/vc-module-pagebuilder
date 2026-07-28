@@ -41,13 +41,26 @@ public class PageBuilderAssetReferenceService(
                 .Where(reference => normalizedAssetUrlHashes.Contains(reference.NormalizedAssetUrlHash)),
             criteria);
         var referenceGroups = await LoadReferenceGroupsAsync(indexedReferences, cancellationToken);
+        var indexedComponentReferences = CreateIndexedComponentReferencesQuery(repository)
+            .Where(reference => reference.StoreId == criteria.StoreId)
+            .Where(reference => normalizedAssetUrlHashes.Contains(reference.NormalizedAssetUrlHash));
+        var componentReferenceGroups = await LoadComponentReferenceGroupsAsync(
+            indexedComponentReferences,
+            cancellationToken);
 
-        ApplyReferenceCounts(references, referenceGroups);
+        ApplyPageReferenceCounts(references, referenceGroups);
+        ApplyComponentReferenceCounts(references, componentReferenceGroups);
+        ApplyTotalReferenceCounts(references.Values);
 
         if (criteria.IncludePages)
         {
             var referencePages = await LoadReferencePagesAsync(indexedReferences, cancellationToken);
             ApplyReferencePages(references, referencePages);
+
+            var referenceComponents = await LoadReferenceComponentsAsync(
+                indexedComponentReferences,
+                cancellationToken);
+            ApplyReferenceComponents(references, referenceComponents);
         }
 
         return CreateResult(references.Values);
@@ -79,11 +92,23 @@ public class PageBuilderAssetReferenceService(
             .Distinct()
             .CountAsync(cancellationToken);
 
-        reference.ReferencesCount = referencesCount;
+        reference.PageReferencesCount = referencesCount;
+
+        var indexedComponentReferences = CreateIndexedComponentReferencesQuery(repository)
+            .Where(x => x.StoreId == criteria.StoreId)
+            .Where(x => x.NormalizedAssetUrl.StartsWith(folderPrefix));
+        reference.LinkedComponentReferencesCount = await indexedComponentReferences
+            .Select(x => x.LinkedComponentId)
+            .Distinct()
+            .CountAsync(cancellationToken);
+        reference.ReferencesCount = reference.PageReferencesCount + reference.LinkedComponentReferencesCount;
 
         if (criteria.IncludePages)
         {
             ApplyFolderReferencePages(reference, await LoadReferencePagesAsync(indexedReferences, cancellationToken));
+            ApplyFolderReferenceComponents(
+                reference,
+                await LoadReferenceComponentsAsync(indexedComponentReferences, cancellationToken));
         }
 
         return CreateResult([reference]);
@@ -128,6 +153,24 @@ public class PageBuilderAssetReferenceService(
                 });
     }
 
+    private static IQueryable<IndexedComponentReferenceResult> CreateIndexedComponentReferencesQuery(
+        IPageBuilderModuleRepository repository)
+    {
+        return repository.PageBuilderLinkedComponentAssetReferences
+            .Join(
+                repository.PageBuilderLinkedComponents,
+                reference => reference.LinkedComponentId,
+                component => component.Id,
+                (reference, component) => new IndexedComponentReferenceResult
+                {
+                    NormalizedAssetUrl = reference.NormalizedAssetUrl,
+                    NormalizedAssetUrlHash = reference.NormalizedAssetUrlHash,
+                    LinkedComponentId = component.Id,
+                    Name = component.Name,
+                    StoreId = component.StoreId,
+                });
+    }
+
     private static IQueryable<IndexedReferenceResult> ApplyCriteriaFilters(
         IQueryable<IndexedReferenceResult> query,
         PageBuilderAssetReferencesSearchCriteria criteria)
@@ -165,7 +208,21 @@ public class PageBuilderAssetReferenceService(
             .ToListAsync(cancellationToken);
     }
 
-    private static void ApplyReferenceCounts(
+    private static Task<List<ComponentReferenceCountResult>> LoadComponentReferenceGroupsAsync(
+        IQueryable<IndexedComponentReferenceResult> indexedReferences,
+        CancellationToken cancellationToken)
+    {
+        return indexedReferences
+            .GroupBy(x => x.NormalizedAssetUrl)
+            .Select(x => new ComponentReferenceCountResult
+            {
+                NormalizedAssetUrl = x.Key,
+                ReferencesCount = x.Select(r => r.LinkedComponentId).Distinct().Count(),
+            })
+            .ToListAsync(cancellationToken);
+    }
+
+    private static void ApplyPageReferenceCounts(
         Dictionary<string, PageBuilderAssetReference> references,
         IEnumerable<ReferenceCountResult> referenceGroups)
     {
@@ -173,8 +230,29 @@ public class PageBuilderAssetReferenceService(
         {
             if (references.TryGetValue(group.NormalizedAssetUrl, out var reference))
             {
-                reference.ReferencesCount = group.ReferencesCount;
+                reference.PageReferencesCount = group.ReferencesCount;
             }
+        }
+    }
+
+    private static void ApplyComponentReferenceCounts(
+        Dictionary<string, PageBuilderAssetReference> references,
+        IEnumerable<ComponentReferenceCountResult> referenceGroups)
+    {
+        foreach (var group in referenceGroups)
+        {
+            if (references.TryGetValue(group.NormalizedAssetUrl, out var reference))
+            {
+                reference.LinkedComponentReferencesCount = group.ReferencesCount;
+            }
+        }
+    }
+
+    private static void ApplyTotalReferenceCounts(IEnumerable<PageBuilderAssetReference> references)
+    {
+        foreach (var reference in references)
+        {
+            reference.ReferencesCount = reference.PageReferencesCount + reference.LinkedComponentReferencesCount;
         }
     }
 
@@ -191,6 +269,20 @@ public class PageBuilderAssetReferenceService(
                 Permalink = reference.Permalink,
                 CultureName = reference.CultureName,
                 Status = reference.Status,
+            })
+            .ToListAsync(cancellationToken);
+    }
+
+    private static Task<List<ReferenceComponentResult>> LoadReferenceComponentsAsync(
+        IQueryable<IndexedComponentReferenceResult> indexedReferences,
+        CancellationToken cancellationToken)
+    {
+        return indexedReferences
+            .Select(reference => new ReferenceComponentResult
+            {
+                NormalizedAssetUrl = reference.NormalizedAssetUrl,
+                Id = reference.LinkedComponentId,
+                Name = reference.Name,
             })
             .ToListAsync(cancellationToken);
     }
@@ -240,6 +332,45 @@ public class PageBuilderAssetReferenceService(
                     .OrderBy(x => x)),
             });
         }
+    }
+
+    private static void ApplyReferenceComponents(
+        Dictionary<string, PageBuilderAssetReference> references,
+        IEnumerable<ReferenceComponentResult> referenceComponents)
+    {
+        foreach (var component in referenceComponents
+            .GroupBy(x => new { x.NormalizedAssetUrl, x.Id, x.Name })
+            .Select(x => x.Key))
+        {
+            if (references.TryGetValue(component.NormalizedAssetUrl, out var reference))
+            {
+                AddReferenceComponent(reference, component.Id, component.Name);
+            }
+        }
+    }
+
+    private static void ApplyFolderReferenceComponents(
+        PageBuilderAssetReference reference,
+        IEnumerable<ReferenceComponentResult> referenceComponents)
+    {
+        foreach (var component in referenceComponents
+            .GroupBy(x => new { x.Id, x.Name })
+            .Select(x => x.Key))
+        {
+            AddReferenceComponent(reference, component.Id, component.Name);
+        }
+    }
+
+    private static void AddReferenceComponent(
+        PageBuilderAssetReference reference,
+        string id,
+        string name)
+    {
+        reference.LinkedComponents.Add(new PageBuilderAssetReferenceLinkedComponent
+        {
+            Id = id,
+            Name = name,
+        });
     }
 
     private static PageBuilderAssetReferencesSearchResult CreateResult(IEnumerable<PageBuilderAssetReference> references)
@@ -292,6 +423,12 @@ public class PageBuilderAssetReferenceService(
         public int ReferencesCount { get; init; }
     }
 
+    private sealed class ComponentReferenceCountResult
+    {
+        public string NormalizedAssetUrl { get; init; }
+        public int ReferencesCount { get; init; }
+    }
+
     private sealed class ReferencePageResult
     {
         public string NormalizedAssetUrl { get; init; }
@@ -300,6 +437,13 @@ public class PageBuilderAssetReferenceService(
         public string Permalink { get; init; }
         public string CultureName { get; init; }
         public string Status { get; init; }
+    }
+
+    private sealed class ReferenceComponentResult
+    {
+        public string NormalizedAssetUrl { get; init; }
+        public string Id { get; init; }
+        public string Name { get; init; }
     }
 
     private sealed class IndexedReferenceResult
@@ -312,5 +456,14 @@ public class PageBuilderAssetReferenceService(
         public string Name { get; init; }
         public string Permalink { get; init; }
         public string Status { get; init; }
+    }
+
+    private sealed class IndexedComponentReferenceResult
+    {
+        public string NormalizedAssetUrl { get; init; }
+        public string NormalizedAssetUrlHash { get; init; }
+        public string LinkedComponentId { get; init; }
+        public string Name { get; init; }
+        public string StoreId { get; init; }
     }
 }

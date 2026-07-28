@@ -8,5 +8,11 @@ public class PageBuilderAssetReference
 
     public int ReferencesCount { get; set; }
 
+    public int PageReferencesCount { get; set; }
+
+    public int LinkedComponentReferencesCount { get; set; }
+
     public IList<PageBuilderAssetReferencePage> Pages { get; set; } = [];
+
+    public IList<PageBuilderAssetReferenceLinkedComponent> LinkedComponents { get; set; } = [];
 }

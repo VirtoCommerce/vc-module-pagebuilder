@@ -182,5 +182,45 @@
             "selector": "this.response.permissions.indexOf('builder:templates') === -1",
             "isArray": false
         }
+    },
+    "canInsertLinkedComponents": {
+        "init": true,
+        "url": "/api/platform/security/currentuser",
+        "method": "GET",
+        "cacheable": true,
+        "response": {
+            "selector": "this.response.isAdministrator === true || (this.response.permissions || []).indexOf('builder:linked-components:read') !== -1",
+            "isArray": false
+        }
+    },
+    "canCreateLinkedComponents": {
+        "init": true,
+        "url": "/api/platform/security/currentuser",
+        "method": "GET",
+        "cacheable": true,
+        "response": {
+            "selector": "this.response.isAdministrator === true || (this.response.permissions || []).indexOf('builder:linked-components:create') !== -1",
+            "isArray": false
+        }
+    },
+    "canEditLinkedComponents": {
+        "init": true,
+        "url": "/api/platform/security/currentuser",
+        "method": "GET",
+        "cacheable": true,
+        "response": {
+            "selector": "this.response.isAdministrator === true || (this.response.permissions || []).indexOf('builder:linked-components:update') !== -1",
+            "isArray": false
+        }
+    },
+    "canDeleteLinkedComponents": {
+        "init": true,
+        "url": "/api/platform/security/currentuser",
+        "method": "GET",
+        "cacheable": true,
+        "response": {
+            "selector": "this.response.isAdministrator === true || (this.response.permissions || []).indexOf('builder:linked-components:delete') !== -1",
+            "isArray": false
+        }
     }
 }

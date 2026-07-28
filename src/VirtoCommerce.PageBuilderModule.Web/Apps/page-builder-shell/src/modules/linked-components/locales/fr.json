@@ -1,0 +1,63 @@
+{
+  "LINKED_COMPONENTS": {
+    "MENU": {
+      "TITLE": "Composants partagés"
+    },
+    "TITLE": "Composants partagés",
+    "SEARCH": {
+      "PLACEHOLDER": "Rechercher des composants partagés..."
+    },
+    "TABLE": {
+      "NAME": "Nom",
+      "USAGE": "Utilisé sur",
+      "MODIFIED": "Modifié",
+      "MODIFIED_BY": "Modifié par"
+    },
+    "TOOLBAR": {
+      "REFRESH": "Actualiser"
+    },
+    "ACTIONS": {
+      "RENAME": "Renommer",
+      "DELETE": "Supprimer",
+      "DELETE_BLOCKED": "Ce composant est utilisé et ne peut pas être supprimé",
+      "CLOSE": "Fermer"
+    },
+    "DETAILS": {
+      "COMPONENT_DETAILS": "Détails du composant",
+      "STORE": "Boutique",
+      "MODIFIED": "Modifié",
+      "MODIFIED_BY": "Modifié par",
+      "USED_ON_ONE": "Utilisé sur (1 page)",
+      "USED_ON_MANY": "Utilisé sur ({count} pages)",
+      "LOADING_USAGE": "Chargement des utilisations...",
+      "NO_USAGE": "N’est utilisé sur aucune page Page Builder.",
+      "DELETE_BLOCKED_ONE": "Retirez ce composant de la page avant de le supprimer.",
+      "DELETE_BLOCKED_MANY": "Retirez ce composant des {count} pages avant de le supprimer.",
+      "NOT_AVAILABLE": "N/D"
+    },
+    "EMPTY": {
+      "TITLE": "Aucun composant partagé pour le moment",
+      "DESCRIPTION": "Créez un composant partagé à partir des sections sélectionnées dans Page Builder Designer.",
+      "NOT_FOUND_TITLE": "Aucun composant partagé trouvé",
+      "NOT_FOUND_DESCRIPTION": "Essayez une autre expression de recherche."
+    },
+    "RENAME": {
+      "TITLE": "Renommer le composant partagé",
+      "NAME_LABEL": "Nom",
+      "NAME_PLACEHOLDER": "Saisissez le nom du composant",
+      "CANCEL": "Annuler",
+      "SAVE": "Enregistrer"
+    },
+    "CONFIRM": {
+      "DELETE": "Supprimer {name} ? Cette action est irréversible."
+    },
+    "NOTIFICATIONS": {
+      "RENAMED": "Le composant partagé a été renommé",
+      "DELETED": "Le composant partagé a été supprimé",
+      "DELETE_BLOCKED_ONE": "Ce composant est utilisé sur 1 page et ne peut pas être supprimé.",
+      "DELETE_BLOCKED_MANY": "Ce composant est utilisé sur {count} pages et ne peut pas être supprimé.",
+      "DELETE_CONFLICT": "Le composant est maintenant utilisé et ne peut pas être supprimé. Actualisez la liste pour voir ses utilisations.",
+      "ERROR_GENERIC": "Échec de l’opération sur le composant partagé"
+    }
+  }
+}

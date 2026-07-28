@@ -1,0 +1,23 @@
+<h2 mat-dialog-title>Save as Shared Component</h2>
+<div mat-dialog-content>
+  <label class="field-label" for="linked-component-name">Name</label>
+  <input
+    id="linked-component-name"
+    class="name-control"
+    type="text"
+    maxlength="128"
+    autocomplete="off"
+    [formControl]="name"
+    [attr.aria-invalid]="name.touched && name.invalid"
+    [attr.aria-describedby]="name.touched && name.invalid ? 'linked-component-name-error' : null"
+    (keydown.enter)="confirm()" />
+  @if (name.touched && name.invalid) {
+    <div id="linked-component-name-error" class="validation">Enter a component name.</div>
+  }
+</div>
+<div mat-dialog-actions>
+  <div class="flex flex-row space-x-2">
+    <app-icon-button (click)="confirm()" skin="primary" text="Save" />
+    <app-icon-button (click)="decline()" skin="outline" text="Cancel" />
+  </div>
+</div>

@@ -5,10 +5,10 @@ import { createSelector } from '@ngrx/store';
 import { selectTemplateKeyParameter } from '@shared/routing';
 import { selectTemplateDataState, selectCurrentSectionsFilter } from './common';
 
-import { SectionsSchemasList } from '@editor/models';
+import { LinkedComponent, LinkedComponentInstanceView, SectionsSchemasList } from '@editor/models';
 import { appHelpers } from '@integration/helpers';
 import { coreHelpers } from '@core/helpers';
-import { helpers } from '@editor/helpers';
+import { helpers, isLinkedComponentReference, resolveLinkedComponents } from '@editor/helpers';
 
 import * as fromRoute from '@shared/routing/selectors';
 import * as fromShared from '@shared/store/selectors';
@@ -24,6 +24,59 @@ export const selectCurrentTemplateModel = createSelector(
     (templates, templateKey) => templateKey ? templates[templateKey] : null
 );
 
+export const selectLinkedComponents = createSelector(
+    selectTemplateDataState,
+    state => state.linkedComponents,
+);
+
+export const selectLinkedComponentContents = createSelector(
+    selectTemplateDataState,
+    state => state.linkedComponentContents,
+);
+
+export const selectLinkedComponentErrors = createSelector(
+    selectTemplateDataState,
+    state => state.linkedComponentErrors,
+);
+
+export const selectLinkedComponentDetailsState = createSelector(
+    selectTemplateDataState,
+    state => state.linkedComponentDetails,
+);
+
+export const selectLinkedComponentsSearchState = createSelector(
+    selectTemplateDataState,
+    state => state.linkedComponentsSearch,
+);
+
+export const selectLinkedComponentsSearchView = createSelector(
+    selectLinkedComponentsSearchState,
+    selectLinkedComponents,
+    (search, components) => ({
+        ...search,
+        results: search.resultIds
+            .map(id => components[id])
+            .filter((component): component is LinkedComponent => !!component),
+    }),
+);
+
+export const selectResolvedCurrentTemplate = createSelector(
+    selectCurrentTemplateModel,
+    selectLinkedComponentContents,
+    (template, contents) => template ? resolveLinkedComponents(template, contents) : null,
+);
+
+export const selectResolvedCurrentTemplateModel = createSelector(
+    selectResolvedCurrentTemplate,
+    result => result?.template || null,
+);
+
+export const selectCurrentLinkedComponent = createSelector(
+    selectLinkedComponents,
+    fromRoute.selectLinkedComponentIdParameter,
+    (components, componentId) => componentId ? components[componentId] || null : null,
+);
+
 export const selectFileName = createSelector(
     fromRoute.selectPathParameter,
     path => path.split('/').pop().split('.').slice(0, -1).join('.')
@@ -32,7 +85,8 @@ export const selectFileName = createSelector(
 export const selectCurrentTemplateName = createSelector(
     selectCurrentTemplateModel,
     selectFileName,
-    (model, fileName) => model?.settings?.['displayName'] || model?.settings?.['name'] || fileName || '[no name]'
+    selectCurrentLinkedComponent,
+    (model, fileName, linkedComponent) => linkedComponent?.name || model?.settings?.['displayName'] || model?.settings?.['name'] || fileName || '[no name]'
 );
 
 export const selectAllSchemas = createSelector(
@@ -171,6 +225,28 @@ export const selectSectionModelFromRoute = createSelector(
     (sectionId, template) => sectionId
         ? template?.content.find(x => x.id == sectionId)
         : null
+);
+
+export const selectLinkedComponentInstanceFromRoute = createSelector(
+    selectSectionModelFromRoute,
+    selectLinkedComponents,
+    selectLinkedComponentErrors,
+    selectLinkedComponentDetailsState,
+    (section, components, errors, details): LinkedComponentInstanceView | null => {
+        if (!isLinkedComponentReference(section)) {
+            return null;
+        }
+
+        const isCurrentDetailsRequest = details.componentId === section.componentRef;
+
+        return {
+            reference: section,
+            component: components[section.componentRef] ?? null,
+            error: errors[section.componentRef] ?? null,
+            detailsLoading: isCurrentDetailsRequest && details.loading,
+            detailsError: isCurrentDetailsRequest ? details.error : null,
+        };
+    },
 );
 
 export const selectSectionSchemaFromRoute = createSelector(

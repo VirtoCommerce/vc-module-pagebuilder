@@ -1,6 +1,6 @@
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Net;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using VirtoCommerce.PageBuilderModule.Core;
@@ -36,7 +36,27 @@ public class PageBuilderAssetsController(
 
         var result = await assetReferenceService.SearchReferencesAsync(criteria, cancellationToken);
 
+        if (!await CanReadLinkedComponentsAsync())
+        {
+            foreach (var reference in result.Results)
+            {
+                // Keep the aggregate reference count so delete preflight remains safe, but do not
+                // expose Shared Component metadata through the broader Page Builder read permission.
+                reference.LinkedComponentReferencesCount = 0;
+                reference.LinkedComponents = [];
+            }
+        }
+
         return Ok(result);
+    }
+
+    private async Task<bool> CanReadLinkedComponentsAsync()
+    {
+        var result = await authorizationService.AuthorizeAsync(
+            User,
+            null,
+            ModuleConstants.Security.Permissions.LinkedComponentsRead);
+        return result.Succeeded;
     }
 
     private static ActionResult Forbidden => new ObjectResult(new { })

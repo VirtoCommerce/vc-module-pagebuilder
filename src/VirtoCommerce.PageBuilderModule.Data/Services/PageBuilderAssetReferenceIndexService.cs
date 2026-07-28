@@ -44,6 +44,62 @@ public class PageBuilderAssetReferenceIndexService(
         await repository.UnitOfWork.CommitAsync();
     }
 
+    internal static Task RebuildPageIndexInCurrentTransactionAsync(
+        PageBuilderModuleDbContext dbContext,
+        string pageId,
+        string content,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(dbContext);
+
+        if (dbContext.Database.CurrentTransaction == null)
+        {
+            throw new InvalidOperationException("The page content and asset reference index must share a database transaction.");
+        }
+
+        return RebuildPageIndexInCurrentTransactionCoreAsync(
+            dbContext,
+            pageId,
+            content,
+            cancellationToken);
+    }
+
+    private static async Task RebuildPageIndexInCurrentTransactionCoreAsync(
+        PageBuilderModuleDbContext dbContext,
+        string pageId,
+        string content,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(pageId))
+        {
+            return;
+        }
+
+        var pageExists = await dbContext.Set<PageBuilderPageEntity>()
+            .AnyAsync(x => x.Id == pageId, cancellationToken);
+        var existingReferences = await dbContext.Set<PageBuilderAssetReferenceEntity>()
+            .Where(x => x.PageId == pageId)
+            .ToListAsync(cancellationToken);
+
+        dbContext.RemoveRange(existingReferences);
+
+        if (pageExists)
+        {
+            await dbContext.AddRangeAsync(
+                PageBuilderAssetReferenceMatcher.ExtractReferences(content)
+                    .Select(reference => new PageBuilderAssetReferenceEntity
+                    {
+                        Id = Guid.NewGuid().ToString("N"),
+                        PageId = pageId,
+                        NormalizedAssetUrl = reference,
+                        NormalizedAssetUrlHash = PageBuilderAssetReferenceMatcher.GetAssetUrlHash(reference),
+                    }),
+                cancellationToken);
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task DeletePageIndexAsync(IEnumerable<string> pageIds, CancellationToken cancellationToken = default)
     {
         var ids = pageIds

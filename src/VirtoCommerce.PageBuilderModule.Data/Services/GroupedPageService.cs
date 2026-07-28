@@ -1,4 +1,5 @@
 using System.Text;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.Models;
@@ -20,7 +21,9 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
         IPlatformMemoryCache platformMemoryCache,
         IEventPublisher eventPublisher,
         ILogger<GroupedPageService> logger,
-        IPageBuilderAssetReferenceIndexService assetReferenceIndexService)
+        IPageBuilderAssetReferenceIndexService assetReferenceIndexService,
+        IPageBuilderLinkedComponentReferenceIndexService linkedComponentReferenceIndexService,
+        IPageBuilderLinkedComponentResolver linkedComponentResolver)
         : CrudService<GroupedPageBuilderPage, GroupedPageBuilderPageEntity, GroupedPageBuilderPageChangingEvent,
                 GroupedPageBuilderPageChangedEvent>(repositoryFactory, platformMemoryCache, eventPublisher),
             IGroupedPageService
@@ -169,28 +172,90 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
         {
             using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, leaveOpen: false);
             var content = await reader.ReadToEndAsync(cancellationToken);
+            var resolvedContent = await linkedComponentResolver.ResolveAsync(content, cancellationToken);
             await using var repository = contentStreamRepositoryFactory();
             using var contentReader = new StringReader(content);
-            await repository.SaveBinaryAsync(pageId, contentReader, cancellationToken);
 
-            await assetReferenceIndexService.RebuildPageIndexAsync(pageId, content, cancellationToken);
+            if (repository is ITransactionalContentStreamRepository transactionalRepository)
+            {
+                await transactionalRepository.SaveBinaryAsync(
+                    pageId,
+                    contentReader,
+                    async (dbContext, transactionCancellationToken) =>
+                    {
+                        await PageBuilderLinkedComponentReferenceIndexService.RebuildPageIndexInCurrentTransactionAsync(
+                            dbContext,
+                            pageId,
+                            content,
+                            transactionCancellationToken);
+                        await PageBuilderAssetReferenceIndexService.RebuildPageIndexInCurrentTransactionAsync(
+                            dbContext,
+                            pageId,
+                            resolvedContent,
+                            transactionCancellationToken);
+                    },
+                    cancellationToken);
+                return;
+            }
+
+            // Compatibility path for external repositories that implement the original public contract.
+            await linkedComponentReferenceIndexService.PreparePageIndexAsync(pageId, content, cancellationToken);
+            await repository.SaveBinaryAsync(pageId, contentReader, cancellationToken);
+            await linkedComponentReferenceIndexService.RebuildPageIndexAsync(pageId, content, cancellationToken);
+            await assetReferenceIndexService.RebuildPageIndexAsync(pageId, resolvedContent, cancellationToken);
         }
 
         public async Task CopyPageContentAsync(string sourcePageId, string targetPageId, CancellationToken cancellationToken = default)
         {
-            // One server-side statement: the target takes on exactly the source's state, NULL included, and the
-            // payload never round-trips through here. A load followed by a save would leave a gap in which the
-            // source could change, and would flip a NULL source into '' on the target — turning "never seeded"
-            // into "deliberately empty", which is the distinction readers use to fall through to the live page.
-            await using (var repository = contentStreamRepositoryFactory())
+            await using var repository = contentStreamRepositoryFactory();
+            if (repository is ITransactionalContentStreamRepository transactionalRepository)
             {
-                await repository.CopyContentAsync(sourcePageId, targetPageId, cancellationToken);
+                await transactionalRepository.CopyContentAsync(
+                    sourcePageId,
+                    targetPageId,
+                    async (dbContext, transactionCancellationToken) =>
+                    {
+                        var copiedContent = await dbContext.Set<PageBuilderContentEntity>()
+                            .AsNoTracking()
+                            .Where(x => x.Id == targetPageId)
+                            .Select(x => x.PageContent)
+                            .FirstOrDefaultAsync(transactionCancellationToken);
+                        var resolvedContent = await linkedComponentResolver.ResolveAsync(
+                            copiedContent,
+                            transactionCancellationToken);
+
+                        await PageBuilderLinkedComponentReferenceIndexService.RebuildPageIndexInCurrentTransactionAsync(
+                            dbContext,
+                            targetPageId,
+                            copiedContent,
+                            transactionCancellationToken);
+                        await PageBuilderAssetReferenceIndexService.RebuildPageIndexInCurrentTransactionAsync(
+                            dbContext,
+                            targetPageId,
+                            resolvedContent,
+                            transactionCancellationToken);
+                    },
+                    cancellationToken);
+                return;
             }
 
-            // The asset reference index is keyed by page id, so it cannot be copied server-side along with the
-            // column. This is the one step that still has to bring the content back through the application.
-            var content = await LoadContent(targetPageId, cancellationToken);
-            await assetReferenceIndexService.RebuildPageIndexAsync(targetPageId, content, cancellationToken);
+            // Compatibility path for external repositories that implement only the original public contract.
+            // Validate before the non-transactional fallback so invalid references cannot overwrite the target.
+            var sourceContent = await LoadContent(sourcePageId, cancellationToken);
+            await linkedComponentReferenceIndexService.ValidatePageReferencesAsync(
+                targetPageId,
+                sourceContent,
+                cancellationToken);
+            await repository.CopyContentAsync(sourcePageId, targetPageId, cancellationToken);
+
+            var copiedContent = await LoadContent(targetPageId, cancellationToken);
+            await linkedComponentReferenceIndexService.ValidatePageReferencesAsync(
+                targetPageId,
+                copiedContent,
+                cancellationToken);
+            var resolvedContent = await linkedComponentResolver.ResolveAsync(copiedContent, cancellationToken);
+            await linkedComponentReferenceIndexService.RebuildPageIndexAsync(targetPageId, copiedContent, cancellationToken);
+            await assetReferenceIndexService.RebuildPageIndexAsync(targetPageId, resolvedContent, cancellationToken);
         }
     }
 }

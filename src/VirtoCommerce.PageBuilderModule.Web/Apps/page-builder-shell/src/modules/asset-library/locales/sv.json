@@ -40,14 +40,17 @@
     "DETAILS": {
       "EMPTY": "Välj en fil för att visa dess detaljer.",
       "FILE_DETAILS": "Fildetaljer",
+      "CLOSE": "Stäng",
       "SIZE": "Storlek",
       "DIMENSIONS": "Dimensioner",
       "TYPE": "Typ",
       "MODIFIED": "Ändrad",
       "UPLOADED": "Uppladdad",
       "PATH": "Sökväg",
-      "USED_ON": "Används på ({count} sidor)",
-      "NO_REFERENCES": "Används inte på några Page Builder-sidor.",
+      "USED_ON": "Används i ({count})",
+      "PAGES": "Sidor",
+      "LINKED_COMPONENTS": "Delade komponenter",
+      "NO_REFERENCES": "Används inte på Page Builder-sidor eller i delade komponenter.",
       "URL": "URL",
       "COPY_URL": "Kopiera URL",
       "REPLACE": "Ersätt",
@@ -77,8 +80,8 @@
     "CONFIRM": {
       "DELETE_SINGLE": "Ta bort {name}?",
       "DELETE_SELECTED": "Ta bort {count} valda resurser?",
-      "DELETE_USED_ONE": "Ta bort {name}? Den används på 1 Page Builder-sida.",
-      "DELETE_USED_MANY": "Ta bort {name}? Den används på {count} Page Builder-sidor."
+      "DELETE_USED_ONE": "Ta bort {name}? Den används i 1 Page Builder-objekt.",
+      "DELETE_USED_MANY": "Ta bort {name}? Den används i {count} Page Builder-objekt."
     },
     "NOTIFICATIONS": {
       "FOLDER_CREATED": "Mappen har skapats",

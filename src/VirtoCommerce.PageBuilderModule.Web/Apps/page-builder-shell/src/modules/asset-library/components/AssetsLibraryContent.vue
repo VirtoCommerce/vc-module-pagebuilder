@@ -204,7 +204,7 @@ const {
   isImage,
   getEntryIcon,
   getReferencesCount,
-  getReferencePages,
+  getReferenceDetails,
   getDeleteReferences,
   formatFileSize,
   formatDate,
@@ -299,7 +299,7 @@ const selectedAssetView = computed(() => {
         formatDate,
         getPreviewUrl,
         dimensions: selectedAssetDimensions.value,
-        getReferencePages,
+        getReferenceDetails,
       })
     : undefined;
 });

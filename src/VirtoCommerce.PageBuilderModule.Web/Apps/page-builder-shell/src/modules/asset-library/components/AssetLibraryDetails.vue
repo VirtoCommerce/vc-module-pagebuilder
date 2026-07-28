@@ -1,6 +1,7 @@
 <template>
   <aside
     class="assets-library__details"
+    :aria-label="$t('ASSET_LIBRARY.DETAILS.FILE_DETAILS')"
     @click.stop
   >
     <div class="assets-library__details-header">
@@ -11,6 +12,7 @@
       <VcButton
         icon="lucide-x"
         text
+        :aria-label="$t('ASSET_LIBRARY.DETAILS.CLOSE')"
         @click="$emit('close')"
       />
     </div>
@@ -70,25 +72,58 @@
       </div>
 
       <div
-        v-if="selectedAsset.referencePages.length"
+        v-if="selectedAsset.referencePages.length || selectedAsset.referenceLinkedComponents.length"
         class="assets-library__references-list"
       >
         <div
-          v-for="page in selectedAsset.referencePages"
-          :key="page.id || page.permalink || page.name"
-          class="assets-library__reference-page"
+          v-if="selectedAsset.referencePages.length"
+          class="assets-library__reference-group"
         >
-          <div class="assets-library__reference-page-title">
-            {{ page.name || page.permalink || page.id }}
+          <div class="assets-library__reference-group-title">
+            {{ $t("ASSET_LIBRARY.DETAILS.PAGES") }} ({{ selectedAsset.pageReferencesCount }})
           </div>
-          <VcHint v-if="page.cultureName || page.status">
-            {{ [page.cultureName, page.status].filter(Boolean).join(" - ") }}
-          </VcHint>
+          <div
+            v-for="page in selectedAsset.referencePages"
+            :key="page.id || page.permalink || page.name"
+            class="assets-library__reference-item"
+          >
+            <div class="assets-library__reference-item-title">
+              {{ page.name || page.permalink || page.id }}
+            </div>
+            <VcHint v-if="page.cultureName || page.status">
+              {{ [page.cultureName, page.status].filter(Boolean).join(" - ") }}
+            </VcHint>
+          </div>
+        </div>
+
+        <div
+          v-if="selectedAsset.referenceLinkedComponents.length"
+          class="assets-library__reference-group"
+        >
+          <div class="assets-library__reference-group-title">
+            {{ $t("ASSET_LIBRARY.DETAILS.LINKED_COMPONENTS") }}
+            ({{ selectedAsset.linkedComponentReferencesCount }})
+          </div>
+          <div
+            v-for="component in selectedAsset.referenceLinkedComponents"
+            :key="component.id || component.name"
+            class="assets-library__reference-item assets-library__reference-item--component"
+          >
+            <VcIcon
+              icon="lucide-blocks"
+              class="assets-library__reference-item-icon"
+              aria-hidden="true"
+            />
+            <div class="assets-library__reference-item-title">
+              {{ component.name || component.id }}
+            </div>
+          </div>
         </div>
       </div>
-      <VcHint v-else>
+      <VcHint v-else-if="selectedAsset.referencesCount === 0">
         {{ $t("ASSET_LIBRARY.DETAILS.NO_REFERENCES") }}
       </VcHint>
+      <VcHint v-else>{{ $t("ASSET_LIBRARY.DETAILS.NOT_AVAILABLE") }}</VcHint>
     </div>
 
     <div class="assets-library__details-actions">
@@ -172,9 +207,25 @@ defineEmits<Emits>();
     justify-content: center;
     background-color: var(--assets-library-checker-bg);
     background-image:
-      linear-gradient(45deg, var(--assets-library-checker-tile) 25%, transparent 25%, transparent 75%, var(--assets-library-checker-tile) 75%, var(--assets-library-checker-tile)),
-      linear-gradient(45deg, var(--assets-library-checker-tile) 25%, transparent 25%, transparent 75%, var(--assets-library-checker-tile) 75%, var(--assets-library-checker-tile));
-    background-position: 0 0, 8px 8px;
+      linear-gradient(
+        45deg,
+        var(--assets-library-checker-tile) 25%,
+        transparent 25%,
+        transparent 75%,
+        var(--assets-library-checker-tile) 75%,
+        var(--assets-library-checker-tile)
+      ),
+      linear-gradient(
+        45deg,
+        var(--assets-library-checker-tile) 25%,
+        transparent 25%,
+        transparent 75%,
+        var(--assets-library-checker-tile) 75%,
+        var(--assets-library-checker-tile)
+      );
+    background-position:
+      0 0,
+      8px 8px;
     background-size: 16px 16px;
   }
 
@@ -204,14 +255,30 @@ defineEmits<Emits>();
   }
 
   &__references-list {
+    @apply tw-space-y-3;
+  }
+
+  &__reference-group {
     @apply tw-space-y-2;
   }
 
-  &__reference-page {
+  &__reference-group-title {
+    @apply tw-text-xs tw-font-medium tw-text-[color:var(--neutrals-600)];
+  }
+
+  &__reference-item {
     @apply tw-rounded tw-border tw-border-solid tw-border-[color:var(--neutrals-200)] tw-bg-[color:var(--additional-50)] tw-p-2;
   }
 
-  &__reference-page-title {
+  &__reference-item--component {
+    @apply tw-flex tw-items-center tw-gap-2;
+  }
+
+  &__reference-item-icon {
+    @apply tw-shrink-0 tw-text-[color:var(--primary-500)];
+  }
+
+  &__reference-item-title {
     @apply tw-truncate tw-text-sm tw-font-semibold;
   }
 

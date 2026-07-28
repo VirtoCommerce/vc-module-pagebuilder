@@ -40,14 +40,17 @@
     "DETAILS": {
       "EMPTY": "Velg en fil for å se detaljer.",
       "FILE_DETAILS": "Fildetaljer",
+      "CLOSE": "Lukk",
       "SIZE": "Størrelse",
       "DIMENSIONS": "Dimensjoner",
       "TYPE": "Type",
       "MODIFIED": "Endret",
       "UPLOADED": "Lastet opp",
       "PATH": "Sti",
-      "USED_ON": "Brukt på ({count} sider)",
-      "NO_REFERENCES": "Ikke brukt på noen Page Builder-sider.",
+      "USED_ON": "Brukt i ({count})",
+      "PAGES": "Sider",
+      "LINKED_COMPONENTS": "Delte komponenter",
+      "NO_REFERENCES": "Ikke brukt på Page Builder-sider eller i delte komponenter.",
       "URL": "URL",
       "COPY_URL": "Kopier URL",
       "REPLACE": "Erstatt",
@@ -77,8 +80,8 @@
     "CONFIRM": {
       "DELETE_SINGLE": "Slette {name}?",
       "DELETE_SELECTED": "Slette {count} valgte ressurs(er)?",
-      "DELETE_USED_ONE": "Slette {name}? Den brukes på 1 Page Builder-side.",
-      "DELETE_USED_MANY": "Slette {name}? Den brukes på {count} Page Builder-sider."
+      "DELETE_USED_ONE": "Slette {name}? Den brukes i 1 Page Builder-element.",
+      "DELETE_USED_MANY": "Slette {name}? Den brukes i {count} Page Builder-elementer."
     },
     "NOTIFICATIONS": {
       "FOLDER_CREATED": "Mappe opprettet",

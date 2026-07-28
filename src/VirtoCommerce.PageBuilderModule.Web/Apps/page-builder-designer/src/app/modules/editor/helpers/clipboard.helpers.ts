@@ -3,6 +3,8 @@ import { Action } from "@ngrx/store";
 import * as editorHelpers from './editor.helpers';
 import * as actions from "@editor/store/actions";
 import * as sharedActions from "@shared/store/actions";
+import { isLinkedComponentReference } from './linked-component.helpers';
+import { TemplateModel } from '@models/document';
 
 export function pasteDataIntoTemplate(
     action: any, // actions.pasteFromClipboard
@@ -30,6 +32,13 @@ export function pasteDataIntoTemplate(
             return pasteBlockIntoSection(action, sectionsSchemas, template, templateKey, value, direction);
         }
         // paste section after or before
+        if (value.type === 'section' && isLinkedComponentReference(value.content)) {
+            return [actions.chooseLinkedComponentInsertionMode({
+                componentId: value.content.componentRef,
+                insertIndex: getSectionInsertIndex(template, action.section?.id, direction),
+                defaultMode: 'copy',
+            })];
+        }
         if (value.type === 'section') {
             return pasteSectionIntoTemplate(action, sectionsSchemas, templateEntry, template, templateKey, value, direction);
         }
@@ -41,6 +50,15 @@ export function pasteDataIntoTemplate(
         }),
         actions.showClipboardModal({ ...action })
     ];
+}
+
+function getSectionInsertIndex(template: TemplateModel, sectionId: string | undefined, direction: number): number {
+    if (!sectionId || direction < 0) {
+        return template.content.length;
+    }
+
+    const sectionIndex = template.content.findIndex(section => section.id === sectionId);
+    return sectionIndex < 0 ? template.content.length : sectionIndex + direction;
 }
 
 function pasteBlockIntoSection(
@@ -62,7 +80,7 @@ function pasteBlockIntoSection(
     if (accept) {
         const changedTemplate = editorHelpers.insertBlock(template!, action.section.id, action.block?.id || null, value.content, direction);
         return [
-            sharedActions.broadcastPreviewMessage({
+            actions.broadcastResolvedPreview({
                 msg: {
                     type: 'changed',
                     template: changedTemplate.template,
@@ -106,7 +124,7 @@ function pasteSectionIntoTemplate(
         (!templateEntry.sections || !templateEntry.sections.length || templateEntry.sections?.includes(value.content.type))) {
         const changedTemplate = editorHelpers.insertSection(template!, action.section?.id || null, value.content, direction);
         return [
-            sharedActions.broadcastPreviewMessage({
+            actions.broadcastResolvedPreview({
                 msg: {
                     type: 'add',
                     template: changedTemplate.template,

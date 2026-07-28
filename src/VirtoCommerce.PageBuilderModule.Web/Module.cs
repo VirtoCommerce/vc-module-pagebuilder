@@ -78,13 +78,22 @@ namespace VirtoCommerce.PageBuilderModule.Web
             serviceCollection.AddTransient<IGroupedPageSearchService, GroupedPageSearchService>();
             serviceCollection.AddTransient<IPageBuilderAssetReferenceService, PageBuilderAssetReferenceService>();
             serviceCollection.AddTransient<IPageBuilderAssetReferenceIndexService, PageBuilderAssetReferenceIndexService>();
+            serviceCollection.AddTransient<IPageBuilderLinkedComponentAssetReferenceIndexService, PageBuilderLinkedComponentAssetReferenceIndexService>();
+            serviceCollection.AddTransient<IPageBuilderLinkedComponentService, PageBuilderLinkedComponentService>();
+            serviceCollection.AddTransient<IPageBuilderLinkedComponentSearchService, PageBuilderLinkedComponentSearchService>();
+            serviceCollection.AddTransient<IPageBuilderLinkedComponentContentService, PageBuilderLinkedComponentContentService>();
+            serviceCollection.AddTransient<IPageBuilderLinkedComponentResolver, PageBuilderLinkedComponentResolver>();
+            serviceCollection.AddTransient<IPageBuilderLinkedComponentReferenceIndexService, PageBuilderLinkedComponentReferenceIndexService>();
+            serviceCollection.AddTransient<IPageBuilderLinkedComponentUsageService, PageBuilderLinkedComponentUsageService>();
 
             serviceCollection.AddTransient<GroupedPageBuilderPageChangedEventHandler>();
+            serviceCollection.AddTransient<PageBuilderLinkedComponentContentChangedEventHandler>();
 
             serviceCollection.AddTransient<IAuthorizationHandler, PageBuilderAuthorizationHandler>();
             serviceCollection.AddTransient<IPageContentProvider, PageBuilderContentProvider>();
             serviceCollection.AddTransient<IPagesMigrationService, PagesMigrationService>();
             serviceCollection.AddTransient<IPageBuilderAssetReferenceMigrationService, PageBuilderAssetReferenceMigrationService>();
+            serviceCollection.AddTransient<PageBuilderLinkedComponentExportImportDependencies>();
             serviceCollection.AddTransient<PageBuilderExportImport>();
 
             var isFullTextSearchEnabled = Configuration.IsContentFullTextSearchEnabled();
@@ -131,6 +140,7 @@ namespace VirtoCommerce.PageBuilderModule.Web
 
             appBuilder.RegisterEventHandler<PageBuilderPageChangedEvent, PageBuilderPageChangedEventHandler>();
             appBuilder.RegisterEventHandler<GroupedPageBuilderPageChangedEvent, GroupedPageBuilderPageChangedEventHandler>();
+            appBuilder.RegisterEventHandler<PageBuilderLinkedComponentContentChangedEvent, PageBuilderLinkedComponentContentChangedEventHandler>();
 
             // Apply migrations
             using var serviceScope = serviceProvider.CreateScope();

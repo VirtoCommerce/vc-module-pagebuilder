@@ -40,14 +40,17 @@
     "DETAILS": {
       "EMPTY": "詳細を表示するファイルを選択してください。",
       "FILE_DETAILS": "ファイル詳細",
+      "CLOSE": "閉じる",
       "SIZE": "サイズ",
       "DIMENSIONS": "寸法",
       "TYPE": "タイプ",
       "MODIFIED": "更新日",
       "UPLOADED": "アップロード日",
       "PATH": "パス",
-      "USED_ON": "使用先 ({count} ページ)",
-      "NO_REFERENCES": "Page Builder ページでは使用されていません。",
+      "USED_ON": "使用先 ({count})",
+      "PAGES": "ページ",
+      "LINKED_COMPONENTS": "共有コンポーネント",
+      "NO_REFERENCES": "Page Builder ページまたは共有コンポーネントでは使用されていません。",
       "URL": "URL",
       "COPY_URL": "URLをコピー",
       "REPLACE": "置換",
@@ -77,8 +80,8 @@
     "CONFIRM": {
       "DELETE_SINGLE": "{name} を削除しますか？",
       "DELETE_SELECTED": "選択した {count} 件のアセットを削除しますか？",
-      "DELETE_USED_ONE": "{name} を削除しますか？1 件の Page Builder ページで使用されています。",
-      "DELETE_USED_MANY": "{name} を削除しますか？{count} 件の Page Builder ページで使用されています。"
+      "DELETE_USED_ONE": "{name} を削除しますか？1 件の Page Builder 項目で使用されています。",
+      "DELETE_USED_MANY": "{name} を削除しますか？{count} 件の Page Builder 項目で使用されています。"
     },
     "NOTIFICATIONS": {
       "FOLDER_CREATED": "フォルダーを作成しました",

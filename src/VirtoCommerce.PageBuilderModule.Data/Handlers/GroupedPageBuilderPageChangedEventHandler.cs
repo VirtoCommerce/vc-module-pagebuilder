@@ -8,8 +8,9 @@ namespace VirtoCommerce.PageBuilderModule.Data.Handlers
     public class GroupedPageBuilderPageChangedEventHandler(
         IEventPublisher eventPublisher,
         IGroupedPageService groupedPageService,
+        IPageBuilderLinkedComponentResolver linkedComponentResolver,
         IPageBuilderAssetReferenceIndexService assetReferenceIndexService
-    ) : PageBuilderEventHandlerBase(groupedPageService), IEventHandler<GroupedPageBuilderPageChangedEvent>
+    ) : PageBuilderEventHandlerBase(groupedPageService, linkedComponentResolver), IEventHandler<GroupedPageBuilderPageChangedEvent>
     {
         public async Task Handle(GroupedPageBuilderPageChangedEvent message)
         {

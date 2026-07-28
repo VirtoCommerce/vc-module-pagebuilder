@@ -9,7 +9,8 @@ using VirtoCommerce.Platform.Core.Events;
 namespace VirtoCommerce.PageBuilderModule.Data.Handlers
 {
     public abstract class PageBuilderEventHandlerBase(
-        IGroupedPageService groupedPageService
+        IGroupedPageService groupedPageService,
+        IPageBuilderLinkedComponentResolver linkedComponentResolver
     )
     {
         protected async Task<PagesDomainEvent> ToPagesDomainEvent(PageBuilderPage entry, EntryState state)
@@ -25,7 +26,8 @@ namespace VirtoCommerce.PageBuilderModule.Data.Handlers
             }
 
             var group = await groupedPageService.GetByIdAsync(entry.GroupId);
-            var content = await groupedPageService.LoadContent(entry.Id);
+            var rawContent = await groupedPageService.LoadContent(entry.Id);
+            var content = await linkedComponentResolver.ResolveAsync(rawContent);
 
             var pageDocument = entry.ToPageDocument(group, content);
             // todo: move to pages module
