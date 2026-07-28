@@ -66,8 +66,8 @@
           :key="page.id || [page.permalink, page.cultureName, page.status].join('-')"
           type="button"
           class="linked-components__usage-page"
-          :disabled="!canOpenPages || !page.id"
-          @click="$emit('open-page', page)"
+          :disabled="!canOpenDesigner || !page.id || page.status === 'Archived'"
+          @click="$emit('open-designer', page)"
         >
           <span
             class="linked-components__usage-page-dot"
@@ -140,7 +140,7 @@ interface Props {
   component: LinkedComponent;
   canUpdate: boolean;
   canDelete: boolean;
-  canOpenPages: boolean;
+  canOpenDesigner: boolean;
   loading: boolean;
   detailsLoading: boolean;
 }
@@ -149,7 +149,7 @@ interface Emits {
   (event: "close"): void;
   (event: "rename", component: LinkedComponent): void;
   (event: "delete", component: LinkedComponent): void;
-  (event: "open-page", page: LinkedComponent["usagePages"][number]): void;
+  (event: "open-designer", page: LinkedComponent["usagePages"][number]): void;
 }
 
 const props = defineProps<Props>();

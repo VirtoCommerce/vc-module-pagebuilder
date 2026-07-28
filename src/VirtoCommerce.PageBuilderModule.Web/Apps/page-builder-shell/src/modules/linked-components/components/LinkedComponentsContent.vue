@@ -46,13 +46,13 @@
         :component="selectedComponent"
         :can-update="canUpdate"
         :can-delete="canDelete"
-        :can-open-pages="canOpenPages"
+        :can-open-designer="canOpenDesigner"
         :loading="loading"
         :details-loading="detailsLoading"
         @close="clearSelection"
         @rename="openRenamePopup"
         @delete="handleDelete"
-        @open-page="openUsagePage"
+        @open-designer="openUsagePageDesigner"
       />
     </div>
   </div>
@@ -71,10 +71,11 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import { useBlade, usePermissions } from "@vc-shell/framework";
+import { usePermissions } from "@vc-shell/framework";
 import { VcHint, VcIcon } from "@vc-shell/framework/ui";
 import type { LinkedComponent, LinkedComponentUsagePage } from "../types";
 import { useLinkedComponentActions, useLinkedComponents } from "../composables";
+import { canOpenPageDesigner, openPageDesigner } from "../../page-builder/utilities/pageDesigner";
 import LinkedComponentDetails from "./LinkedComponentDetails.vue";
 import LinkedComponentsTable from "./LinkedComponentsTable.vue";
 import RenameLinkedComponentPopup from "./RenameLinkedComponentPopup.vue";
@@ -85,7 +86,6 @@ export interface ExposedLinkedComponentsContent {
 
 const { t } = useI18n({ useScope: "global" });
 const { hasAccess } = usePermissions();
-const { openBlade } = useBlade();
 const renameTarget = ref<LinkedComponent>();
 const renameError = ref<string>();
 
@@ -114,7 +114,9 @@ const isStoreContextInvalid = computed(() => ["missing", "notFound", "error"].in
 const contentLoading = computed(() => loading.value || ["idle", "loading"].includes(storeContextStatus.value));
 const canUpdate = computed(() => hasAccess("builder:linked-components:update") && isStoreContextReady.value);
 const canDelete = computed(() => hasAccess("builder:linked-components:delete") && isStoreContextReady.value);
-const canOpenPages = computed(() => hasAccess("builder:read") && isStoreContextReady.value);
+const canOpenDesigner = computed(
+  () => hasAccess("builder:read") && isStoreContextReady.value && Boolean(storeId.value),
+);
 const storeContextTitle = computed(() =>
   storeContextStatus.value === "missing"
     ? t("COMMON.STORE_CONTEXT.MISSING_TITLE")
@@ -193,18 +195,28 @@ async function handleDelete(component: LinkedComponent) {
   await confirmDelete(component);
 }
 
-function openUsagePage(page: LinkedComponentUsagePage) {
-  if (!canOpenPages.value || !page.id || !storeId.value) {
+function openUsagePageDesigner(page: LinkedComponentUsagePage) {
+  if (!canOpenUsagePageDesigner(page)) {
     return;
   }
 
-  openBlade({
-    name: "PageDetails",
-    param: page.id,
-    options: {
-      storeId: storeId.value,
-    },
+  openPageDesigner({
+    groupId: page.id,
+    storeId: storeId.value,
+    cultureName: page.cultureName,
+    status: page.status,
   });
+}
+
+function canOpenUsagePageDesigner(page: LinkedComponentUsagePage): boolean {
+  return (
+    canOpenDesigner.value &&
+    canOpenPageDesigner({
+      groupId: page.id,
+      storeId: storeId.value,
+      status: page.status,
+    })
+  );
 }
 
 async function reloadContent() {

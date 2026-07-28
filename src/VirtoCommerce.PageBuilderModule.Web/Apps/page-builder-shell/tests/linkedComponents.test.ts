@@ -8,6 +8,7 @@ import {
 } from "../src/modules/linked-components/utilities/LinkedComponentDeleteError";
 import { createLinkedComponentDetailsLoader } from "../src/modules/linked-components/utilities/LinkedComponentDetailsLoader";
 import { getDistinctUsagePages, getUsagePageTitle } from "../src/modules/linked-components/utilities/linkedComponent";
+import { buildPageDesignerUrl, canOpenPageDesigner } from "../src/modules/page-builder/utilities/pageDesigner";
 
 interface Deferred<T> {
   promise: Promise<T>;
@@ -35,6 +36,37 @@ function createComponent(id: string, usageCount = 0): LinkedComponent {
     usagePages: [],
   };
 }
+
+test("page designer URL matches the Open designer action and includes the page culture", () => {
+  const url = buildPageDesignerUrl(
+    {
+      groupId: "home page",
+      storeId: "B2B/store",
+      cultureName: "en-US",
+    },
+    "https://platform.example.com/",
+  );
+
+  assert.equal(
+    url,
+    "https://platform.example.com/Modules/$(VirtoCommerce.PageBuilderModule)/Content/page-builder-designer/index.html?storeId=B2B%2Fstore#/pages?type=pages&groupId=home+page&cultureName=en-US",
+  );
+});
+
+test("page designer URL omits an empty culture and requires page identity", () => {
+  assert.equal(
+    buildPageDesignerUrl({ groupId: "page-1", storeId: "store-1" }, "https://platform.example.com"),
+    "https://platform.example.com/Modules/$(VirtoCommerce.PageBuilderModule)/Content/page-builder-designer/index.html?storeId=store-1#/pages?type=pages&groupId=page-1",
+  );
+  assert.throws(() => buildPageDesignerUrl({ storeId: "store-1" }, "https://platform.example.com"), /Can't open page/);
+});
+
+test("page designer is unavailable for archived pages", () => {
+  const context = { groupId: "page-1", storeId: "store-1", status: "Archived" };
+
+  assert.equal(canOpenPageDesigner(context), false);
+  assert.throws(() => buildPageDesignerUrl(context, "https://platform.example.com"), /Can't open page/);
+});
 
 test("delete error adapter normalizes the generated client's 409 response body", () => {
   const conflictBody = createComponent("a", 2);
