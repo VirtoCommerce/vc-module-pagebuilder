@@ -197,9 +197,9 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
       globalThis.location.origin
     ).replace(/\/$/, "");
     const designerUrl = `${platformUrl}/Modules/$(VirtoCommerce.PageBuilderModule)/Content/page-builder-designer/index.html`;
-    const groupId = currentValue.value?.id;
-    const pageStoreId = currentValue.value?.storeId;
-    const cultureName = currentValue.value?.cultureName;
+    const groupId = item.value?.id;
+    const pageStoreId = item.value?.storeId;
+    const cultureName = item.value?.cultureName;
 
     if (groupId && pageStoreId) {
       let url = `${designerUrl}?storeId=${pageStoreId}#/pages?type=pages&groupId=${groupId}`;
