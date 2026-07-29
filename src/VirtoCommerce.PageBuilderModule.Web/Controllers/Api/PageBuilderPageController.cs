@@ -587,7 +587,7 @@ public class PageBuilderPageController(
         }
 
         var pageId = draftPage!.Id;
-        await groupedPageService.SaveContent(pageId, content, cancellationToken);
+        await groupedPageService.SaveContent(pageId, model.Content, cancellationToken);
         await RaisePageContentChanged(pageId, cancellationToken);
 
         return NoContent();

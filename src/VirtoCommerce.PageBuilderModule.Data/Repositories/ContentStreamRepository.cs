@@ -169,11 +169,8 @@ public abstract class ContentStreamRepository(PageBuilderModuleDbContext dbConte
                 cmd.Transaction = tx;
             }
 
-            if (await reader.ReadAsync(cancellationToken) && !await reader.IsDBNullAsync(0, cancellationToken))
-            {
-                // A single statement is atomic on its own, so no transaction is started here.
-                await cmd.ExecuteNonQueryAsync(cancellationToken);
-            }
+            // A single statement is atomic on its own, so no transaction is started here.
+            await cmd.ExecuteNonQueryAsync(cancellationToken);
         }
         finally
         {
