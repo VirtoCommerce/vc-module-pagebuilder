@@ -35,7 +35,6 @@ public class PageBuilderLinkedComponentReferenceMatcherTests
     }
 
     [Theory]
-    [InlineData("{ \"settings\": {}, \"content\": [{ \"id\": \"x\", \"componentRef\": \"c\" }] }")]
     [InlineData("{ \"settings\": {}, \"content\": [{ \"id\": \"x\", \"type\": \"componentRef\" }] }")]
     [InlineData("{ \"settings\": {}, \"content\": [{ \"id\": \"x\", \"type\": \"componentRef\", \"componentRef\": \"c\", \"blocks\": [] }] }")]
     [InlineData("{ \"settings\": {}, \"content\": [{ \"id\": \"section\", \"type\": \"hero\", \"blocks\": [{ \"id\": \"x\", \"type\": \"componentRef\", \"componentRef\": \"c\" }] }] }")]
@@ -43,6 +42,19 @@ public class PageBuilderLinkedComponentReferenceMatcherTests
     {
         Assert.Throws<InvalidDataException>(() =>
             PageBuilderLinkedComponentReferenceMatcher.ExtractReferences(content));
+    }
+
+    [Fact]
+    public void ExtractReferences_AllowsOrdinaryCustomComponentRefProperties()
+    {
+        var content =
+            "{ \"settings\": { \"componentRef\": \"theme-setting\" }, \"content\": [" +
+            "{ \"id\": \"hero\", \"type\": \"hero\", \"componentRef\": \"custom-value\", " +
+            "\"blocks\": [{ \"id\": \"image\", \"type\": \"image\", \"componentRef\": \"custom-block-value\" }] }" +
+            "] }";
+
+        Assert.Empty(PageBuilderLinkedComponentReferenceMatcher.ExtractReferences(content));
+        PageBuilderLinkedComponentReferenceMatcher.ValidateComponentContent(content);
     }
 
     [Fact]

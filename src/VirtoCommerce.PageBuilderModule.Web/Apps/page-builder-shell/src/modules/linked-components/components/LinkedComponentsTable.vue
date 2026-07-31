@@ -1,6 +1,6 @@
 <template>
   <VcDataTable
-    class="linked-components__table"
+    class="tw-min-h-0 tw-flex-1"
     :items="components"
     :loading="loading"
     :total-count="totalCount"
@@ -39,7 +39,7 @@
     <VcColumn
       id="modifiedDate"
       field="modifiedDate"
-      type="datetime"
+      type="date-ago"
       :title="t('LINKED_COMPONENTS.TABLE.MODIFIED')"
       width="25%"
       :always-visible="true"
@@ -132,9 +132,3 @@ function tableActionBuilder(component: LinkedComponent): TableAction<LinkedCompo
   return actions;
 }
 </script>
-
-<style lang="scss" scoped>
-.linked-components__table {
-  @apply tw-min-h-0 tw-flex-1;
-}
-</style>

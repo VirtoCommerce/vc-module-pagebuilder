@@ -93,8 +93,18 @@ export function createEditorDataState(overrides: Partial<EditorDataState> = {}):
     linkedComponents: {},
     linkedComponentContents: {},
     linkedComponentErrors: {},
+    linkedComponentUsageRefreshIdsByTemplate: {},
     linkedComponentDetails: { componentId: null, loading: false, error: null },
-    linkedComponentsSearch: { keyword: '', resultIds: [], totalCount: 0, loading: false, error: null },
+    linkedComponentsSearch: {
+        keyword: '',
+        resultIds: [],
+        optimisticResultIds: [],
+        loadedCount: 0,
+        totalCount: 0,
+        loading: false,
+        rebasePending: false,
+        error: null,
+    },
     ...overrides,
   };
 }

@@ -253,6 +253,45 @@ describe('TemplateEditorDataEffects', () => {
         });
     });
 
+    describe('broadcastCachedTemplate$', () => {
+        it('broadcasts the cached page after switching back from a Shared Component document', async () => {
+            const sharedOriginal = createTemplate({
+                content: [createSection({ id: 'shared-section', type: 'image' })],
+            });
+            const cachedPage = createTemplate({
+                content: [createSection({ id: 'page-section', type: 'hero' })],
+            });
+            store.overrideSelector(selectors.selectCurrentTemplateModel, sharedOriginal);
+            store.overrideSelector(selectors.selectCurrentTemplateState, { isLoading: false } as any);
+            store.overrideSelector(fromShared.selectCurrentTemplateEntry, {
+                name: 'Shared original',
+                key: 'linked-component::component-1',
+            } as any);
+            store.overrideSelector(fromRoute.selectTemplateKeyParameter, 'linked-component::component-1');
+            store.refreshState();
+
+            const emittedPromise = firstValueFrom(effects.broadcastCachedTemplate$.pipe(take(2), toArray()));
+            actions$.next(actions.raiseLoadData());
+
+            store.overrideSelector(selectors.selectCurrentTemplateModel, cachedPage);
+            store.overrideSelector(selectors.selectCurrentTemplateState, { isLoading: false } as any);
+            store.overrideSelector(fromShared.selectCurrentTemplateEntry, {
+                name: 'Homepage',
+                key: 'pages::page-1',
+                previewMessage: { pageId: 'page-1' },
+            } as any);
+            store.overrideSelector(fromRoute.selectTemplateKeyParameter, 'pages::page-1');
+            store.refreshState();
+            actions$.next(actions.raiseLoadData());
+
+            const emitted = await emittedPromise;
+            const pagePreview = emitted[1] as ReturnType<typeof actions.broadcastResolvedPreview>;
+            expect(pagePreview.msg['template']).toBe(cachedPage);
+            expect(pagePreview.msg['cultureName']).toBe('en-US');
+            expect(pagePreview.msg['pageId']).toBe('page-1');
+        });
+    });
+
     // ── mergeServerSchemas$ ───────────────────────────────────────
 
     describe('mergeServerSchemas$', () => {
@@ -421,6 +460,22 @@ describe('TemplateEditorDataEffects', () => {
             actions$.next(actions.executeToolbarAction({ action: 'save' }));
 
             expect(linkedComponentsService.updateContent).not.toHaveBeenCalled();
+            subscription.unsubscribe();
+        });
+    });
+
+    describe('saveGroupedPage$', () => {
+        it('does not dereference an empty changed-template list', () => {
+            store.overrideSelector(fromRoute.selectGroupIdParameter, 'page-group-1');
+            store.overrideSelector(selectors.selectChangedTemplates, []);
+            store.refreshState();
+            const emitted: Action[] = [];
+            const subscription = effects.saveGroupedPage$.subscribe(action => emitted.push(action));
+
+            actions$.next(actions.executeToolbarAction({ action: 'save' }));
+
+            expect(emitted).toEqual([]);
+            expect(templatesService.saveGroupedPage).not.toHaveBeenCalled();
             subscription.unsubscribe();
         });
     });

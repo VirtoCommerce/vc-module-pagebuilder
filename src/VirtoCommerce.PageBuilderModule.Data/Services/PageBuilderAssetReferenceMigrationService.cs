@@ -1,6 +1,7 @@
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using VirtoCommerce.PageBuilderModule.Core.Services;
+using VirtoCommerce.PageBuilderModule.Data.Models;
 using VirtoCommerce.PageBuilderModule.Data.Repositories;
 using VirtoCommerce.Platform.Core.Settings;
 using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants;
@@ -9,13 +10,26 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services;
 
 public class PageBuilderAssetReferenceMigrationService(
     Func<IPageBuilderModuleRepository> repositoryFactory,
-    IGroupedPageService groupedPageService,
-    IPageBuilderLinkedComponentResolver linkedComponentResolver,
-    IPageBuilderAssetReferenceIndexService assetReferenceIndexService,
     IPageBuilderLinkedComponentAssetReferenceIndexService linkedComponentAssetReferenceIndexService,
-    ISettingsManager settingsManager)
+    ISettingsManager settingsManager,
+    IGroupedPageService groupedPageService = null,
+    IPageBuilderAssetReferenceIndexService assetReferenceIndexService = null)
     : IPageBuilderAssetReferenceMigrationService
 {
+    public PageBuilderAssetReferenceMigrationService(
+        Func<IPageBuilderModuleRepository> repositoryFactory,
+        IGroupedPageService groupedPageService,
+        IPageBuilderAssetReferenceIndexService assetReferenceIndexService,
+        ISettingsManager settingsManager)
+        : this(
+            repositoryFactory,
+            linkedComponentAssetReferenceIndexService: null,
+            settingsManager,
+            groupedPageService,
+            assetReferenceIndexService)
+    {
+    }
+
     private const int _batchSize = 50;
     private const int _concurrentExecutionTimeoutInSeconds = 24 * 60 * 60;
     private static readonly object LockObject = new();
@@ -26,7 +40,8 @@ public class PageBuilderAssetReferenceMigrationService(
         {
             var pageMigrationCompleted = settingsManager.GetValue<bool>(Settings.Migration.AssetReferenceIndexMigrated);
             var componentMigrationCompleted = settingsManager.GetValue<bool>(Settings.Migration.LinkedComponentAssetReferenceIndexMigrated);
-            if (!pageMigrationCompleted || !componentMigrationCompleted)
+            if (!pageMigrationCompleted ||
+                linkedComponentAssetReferenceIndexService != null && !componentMigrationCompleted)
             {
                 BackgroundJob.Enqueue(() => RebuildAssetReferenceIndex());
             }
@@ -44,7 +59,7 @@ public class PageBuilderAssetReferenceMigrationService(
         }
 
         var componentMigrationCompleted = settingsManager.GetValue<bool>(Settings.Migration.LinkedComponentAssetReferenceIndexMigrated);
-        if (!componentMigrationCompleted)
+        if (!componentMigrationCompleted && linkedComponentAssetReferenceIndexService != null)
         {
             await RebuildLinkedComponentAssetReferenceIndex();
             await settingsManager.SetValueAsync(
@@ -53,32 +68,47 @@ public class PageBuilderAssetReferenceMigrationService(
         }
     }
 
-    private async Task RebuildPageAssetReferenceIndex()
+    internal async Task RebuildPageAssetReferenceIndex()
     {
-        var skip = 0;
-        var pageIds = await GetPageIds(skip);
+        PageCursor cursor = null;
+        var pages = await GetPages(cursor);
 
-        while (pageIds.Count > 0)
+        while (pages.Count > 0)
         {
-            foreach (var pageId in pageIds)
+            foreach (var page in pages)
             {
-                var rawContent = await groupedPageService.LoadContent(pageId);
-                await RebuildResolvedPageIndexAsync(
-                    pageId,
-                    rawContent,
-                    linkedComponentResolver,
-                    assetReferenceIndexService);
+                using var repository = repositoryFactory();
+                if (repository is not IPageBuilderWriteLockRepository writeLockRepository)
+                {
+                    if (groupedPageService == null || assetReferenceIndexService == null)
+                    {
+                        throw new NotSupportedException(
+                            "Page asset migration requires either repository write-lock support or the legacy page index services.");
+                    }
+
+                    var content = await groupedPageService.LoadContent(page.Id);
+                    await assetReferenceIndexService.RebuildPageIndexAsync(page.Id, content);
+                    continue;
+                }
+
+                await writeLockRepository.ExecuteUnderPageWriteLocksAsync(
+                    [page.Id],
+                    (dbContext, cancellationToken) =>
+                        PageBuilderPageIndexing.RebuildCurrentRawPageAssetIndexAsync(
+                            dbContext,
+                            page.Id,
+                            cancellationToken));
             }
 
-            skip += pageIds.Count;
-            pageIds = await GetPageIds(skip);
+            cursor = pages[^1];
+            pages = await GetPages(cursor);
         }
     }
 
-    private async Task RebuildLinkedComponentAssetReferenceIndex()
+    internal async Task RebuildLinkedComponentAssetReferenceIndex()
     {
-        var skip = 0;
-        var components = await GetLinkedComponentContents(skip);
+        string cursor = null;
+        var components = await GetLinkedComponentContents(cursor);
 
         while (components.Count > 0)
         {
@@ -90,20 +120,9 @@ public class PageBuilderAssetReferenceMigrationService(
                     linkedComponentAssetReferenceIndexService);
             }
 
-            skip += components.Count;
-            components = await GetLinkedComponentContents(skip);
+            cursor = components[^1].Id;
+            components = await GetLinkedComponentContents(cursor);
         }
-    }
-
-    internal static async Task RebuildResolvedPageIndexAsync(
-        string pageId,
-        string rawContent,
-        IPageBuilderLinkedComponentResolver linkedComponentResolver,
-        IPageBuilderAssetReferenceIndexService assetReferenceIndexService,
-        CancellationToken cancellationToken = default)
-    {
-        var resolvedContent = await linkedComponentResolver.ResolveAsync(rawContent, cancellationToken);
-        await assetReferenceIndexService.RebuildPageIndexAsync(pageId, resolvedContent, cancellationToken);
     }
 
     internal static Task RebuildLinkedComponentIndexAsync(
@@ -118,26 +137,44 @@ public class PageBuilderAssetReferenceMigrationService(
             cancellationToken);
     }
 
-    private async Task<IList<string>> GetPageIds(int skip)
+    private async Task<IList<PageCursor>> GetPages(PageCursor cursor)
     {
         using var repository = repositoryFactory();
 
-        return await repository.PageBuilderPages
+        var query = repository.PageBuilderPages;
+        if (cursor != null)
+        {
+            query = ApplyPageCursor(query, cursor.CreatedDate, cursor.Id);
+        }
+
+        return await query
             .OrderBy(x => x.CreatedDate)
             .ThenBy(x => x.Id)
-            .Skip(skip)
             .Take(_batchSize)
-            .Select(x => x.Id)
+            .Select(x => new PageCursor
+            {
+                Id = x.Id,
+                CreatedDate = x.CreatedDate,
+            })
             .ToListAsync();
     }
 
-    private async Task<IList<LinkedComponentContent>> GetLinkedComponentContents(int skip)
+    private async Task<IList<LinkedComponentContent>> GetLinkedComponentContents(string cursor)
     {
         using var repository = repositoryFactory();
+        if (repository is not IPageBuilderLinkedComponentRepository linkedRepository)
+        {
+            return [];
+        }
 
-        return await repository.PageBuilderLinkedComponentContents
+        var query = linkedRepository.PageBuilderLinkedComponentContents;
+        if (!string.IsNullOrEmpty(cursor))
+        {
+            query = ApplyLinkedComponentCursor(query, cursor);
+        }
+
+        return await query
             .OrderBy(x => x.Id)
-            .Skip(skip)
             .Take(_batchSize)
             .Select(x => new LinkedComponentContent
             {
@@ -147,10 +184,34 @@ public class PageBuilderAssetReferenceMigrationService(
             .ToListAsync();
     }
 
+    internal static IQueryable<PageBuilderPageEntity> ApplyPageCursor(
+        IQueryable<PageBuilderPageEntity> query,
+        DateTime createdDate,
+        string id)
+    {
+        return query.Where(x =>
+            x.CreatedDate > createdDate ||
+            x.CreatedDate == createdDate && string.Compare(x.Id, id) > 0);
+    }
+
+    internal static IQueryable<PageBuilderLinkedComponentContentEntity> ApplyLinkedComponentCursor(
+        IQueryable<PageBuilderLinkedComponentContentEntity> query,
+        string id)
+    {
+        return query.Where(x => string.Compare(x.Id, id) > 0);
+    }
+
     private sealed class LinkedComponentContent
     {
         public string Id { get; init; }
 
         public string Content { get; init; }
+    }
+
+    private sealed class PageCursor
+    {
+        public string Id { get; init; }
+
+        public DateTime CreatedDate { get; init; }
     }
 }

@@ -24,6 +24,7 @@ export interface IUseLinkedComponents {
   items: ComputedRef<LinkedComponent[]>;
   loading: ComputedRef<boolean>;
   detailsLoading: ComputedRef<boolean>;
+  loadError: Readonly<Ref<string | undefined>>;
   totalCount: ComputedRef<number>;
   searchValue: Ref<string | undefined>;
   selectedComponent: Ref<LinkedComponent | undefined>;
@@ -33,6 +34,7 @@ export interface IUseLinkedComponents {
   initialize: () => Promise<void>;
   reload: () => Promise<void>;
   search: (keyword?: string) => Promise<void>;
+  retryLastLoad: () => Promise<void>;
   selectComponent: (component: LinkedComponent) => Promise<void>;
   refreshComponent: (component: LinkedComponent) => Promise<LinkedComponent>;
   clearSelection: () => void;
@@ -55,6 +57,8 @@ export function useLinkedComponents(): IUseLinkedComponents {
   let disposed = false;
   const loadingComponents = ref(false);
   const loadingDetails = ref(false);
+  const loadError = ref<string>();
+  let retryLastLoadOperation: (() => Promise<void>) | undefined;
   const searchRequests = createLatestRequestTracker((loading) => {
     loadingComponents.value = loading;
   });
@@ -78,8 +82,7 @@ export function useLinkedComponents(): IUseLinkedComponents {
 
   async function loadComponents(query?: LinkedComponentSearchCriteria): Promise<boolean> {
     const request = searchRequests.begin();
-    searchQuery.value = { ...searchQuery.value, ...(query ?? {}) };
-    const requestCriteria = { ...searchQuery.value };
+    const requestCriteria = { ...searchQuery.value, ...(query ?? {}) };
     const requestStoreId = storeId.value;
 
     try {
@@ -87,6 +90,8 @@ export function useLinkedComponents(): IUseLinkedComponents {
         if (request.isCurrent()) {
           detailsLoader.invalidate();
           searchResult.value = { totalCount: 0, results: [] };
+          searchQuery.value = requestCriteria;
+          loadError.value = undefined;
           selectedComponent.value = undefined;
           lastSuccessfulPage = 1;
           pagination.setPage(1);
@@ -109,6 +114,8 @@ export function useLinkedComponents(): IUseLinkedComponents {
       }
 
       searchResult.value = result;
+      searchQuery.value = requestCriteria;
+      loadError.value = undefined;
       lastSuccessfulPage = Math.floor((requestCriteria.skip ?? 0) / (requestCriteria.take ?? DEFAULT_PAGE_SIZE)) + 1;
       if (selectedComponent.value) {
         selectedComponent.value = searchResult.value.results.find(
@@ -118,6 +125,7 @@ export function useLinkedComponents(): IUseLinkedComponents {
       return true;
     } catch (error) {
       if (request.isCurrent()) {
+        loadError.value = parseError(error).message;
         throw error;
       }
       return false;
@@ -151,6 +159,10 @@ export function useLinkedComponents(): IUseLinkedComponents {
     async (payload) => {
       if (!payload?.component || !payload.name) {
         return;
+      }
+
+      if (selectedComponent.value?.id === payload.component.id) {
+        detailsLoader.invalidate();
       }
 
       const updated = await renameLinkedComponent(payload.component, payload.name.trim());
@@ -188,6 +200,7 @@ export function useLinkedComponents(): IUseLinkedComponents {
   );
 
   const pagination = useDataTablePagination({
+    stateKey: "page_builder_linked_components",
     pageSize: DEFAULT_PAGE_SIZE,
     totalCount: computed(() => searchResult.value.totalCount),
     onPageChange: ({ skip }) => {
@@ -195,6 +208,13 @@ export function useLinkedComponents(): IUseLinkedComponents {
       selectedComponent.value = undefined;
       void loadComponents({ skip }).catch((error) => {
         pagination.setPage(lastSuccessfulPage);
+        retryLastLoadOperation = async () => {
+          const applied = await loadComponents({ skip });
+          if (applied) {
+            pagination.setPage(Math.floor(skip / pagination.pageSize) + 1);
+            retryLastLoadOperation = undefined;
+          }
+        };
         notification.error(parseError(error).message);
       });
     },
@@ -202,12 +222,25 @@ export function useLinkedComponents(): IUseLinkedComponents {
 
   async function initialize() {
     initUrlParams();
-    await loadComponents();
+    try {
+      await loadComponents();
+      retryLastLoadOperation = undefined;
+    } catch (error) {
+      retryLastLoadOperation = initialize;
+      throw error;
+    }
   }
 
   async function reload() {
     detailsLoader.invalidate();
-    const applied = await loadComponents({ skip: pagination.skip });
+    let applied: boolean;
+    try {
+      applied = await loadComponents({ skip: pagination.skip });
+      retryLastLoadOperation = undefined;
+    } catch (error) {
+      retryLastLoadOperation = reload;
+      throw error;
+    }
 
     if (!applied) {
       return;
@@ -220,11 +253,28 @@ export function useLinkedComponents(): IUseLinkedComponents {
   }
 
   async function search(keyword?: string) {
-    searchValue.value = keyword?.trim() || undefined;
-    detailsLoader.invalidate();
-    selectedComponent.value = undefined;
-    pagination.reset();
-    await loadComponents({ keyword: searchValue.value, skip: 0 });
+    const nextSearchValue = keyword?.trim() || undefined;
+    try {
+      const applied = await loadComponents({ keyword: nextSearchValue, skip: 0 });
+      if (!applied) {
+        return;
+      }
+      searchValue.value = nextSearchValue;
+      detailsLoader.invalidate();
+      selectedComponent.value = undefined;
+      pagination.reset();
+      retryLastLoadOperation = undefined;
+    } catch (error) {
+      retryLastLoadOperation = () => search(nextSearchValue);
+      throw error;
+    }
+  }
+
+  async function retryLastLoad() {
+    const retry = retryLastLoadOperation;
+    if (retry) {
+      await retry();
+    }
   }
 
   function clearSelection() {
@@ -256,10 +306,11 @@ export function useLinkedComponents(): IUseLinkedComponents {
 
   return {
     items: computed(() => searchResult.value.results),
-    loading: useLoading(loadingComponents, loadingDetails, loadingRefresh, loadingRename, loadingDelete),
+    loading: useLoading(loadingComponents, loadingRefresh, loadingRename, loadingDelete),
     detailsLoading: computed(
       () => loadingDetails.value || (loadingComponents.value && selectedComponent.value !== undefined),
     ),
+    loadError,
     totalCount: computed(() => searchResult.value.totalCount),
     searchValue,
     selectedComponent,
@@ -269,6 +320,7 @@ export function useLinkedComponents(): IUseLinkedComponents {
     initialize,
     reload,
     search,
+    retryLastLoad,
     selectComponent: loadDetails,
     refreshComponent: refreshComponentAction,
     clearSelection,

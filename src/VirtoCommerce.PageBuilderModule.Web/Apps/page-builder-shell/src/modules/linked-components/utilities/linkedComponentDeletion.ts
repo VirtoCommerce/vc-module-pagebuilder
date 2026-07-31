@@ -45,19 +45,16 @@ export async function deleteLinkedComponentWithPreflight(
     try {
       await options.reload();
     } catch {
-      // The delete already succeeded. Keep the success result and the locally
-      // updated state even when the best-effort server refresh fails.
+      // Deletion already succeeded; a failed best-effort refresh must not turn it into an error.
     }
 
     return true;
   } catch (error) {
     if (isConflict(error)) {
-      // The server is the final authority. Refresh the stale list/details before
-      // reporting the conflict, but keep this flow to one user-facing message.
       try {
         await options.reload();
       } catch {
-        // The conflict remains the actionable result even if refresh fails.
+        // The conflict remains actionable even if refreshing the stale view also fails.
       }
 
       options.onConflict(currentComponent);

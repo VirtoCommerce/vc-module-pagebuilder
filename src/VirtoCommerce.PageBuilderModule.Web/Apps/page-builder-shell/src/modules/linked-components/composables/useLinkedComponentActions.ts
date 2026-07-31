@@ -37,6 +37,7 @@ export function useLinkedComponentActions(options: UseLinkedComponentActionsOpti
     try {
       await options.renameComponent(component, value);
       notification.success(t("LINKED_COMPONENTS.NOTIFICATIONS.RENAMED"));
+      void options.reload().catch(() => undefined);
       return { succeeded: true };
     } catch (error) {
       return {

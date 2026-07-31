@@ -10,7 +10,7 @@ import useUserGroups, { IUserGroupsResult } from "./../useUserGroups";
 import useOrganizations, { IOrganizationsResult } from "./../useOrganizations";
 import useUrlParams from "../useStoreParams";
 import { downloadPageContent, uploadPageContent, PageExportData } from "../usePageContentApi";
-import { openPageDesigner } from "../../utilities/pageDesigner";
+import { openPageDesigner } from "../../../../utilities/pageDesigner";
 
 const { getApiClient } = useApiClient(PageBuilderPageClient);
 

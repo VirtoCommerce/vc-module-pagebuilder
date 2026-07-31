@@ -94,8 +94,7 @@ public static class PageBuilderLinkedComponentReferenceMatcher
         if (node is JsonObject objectNode)
         {
             var type = GetString(objectNode["type"]);
-            if (objectNode.ContainsKey(LinkedComponents.ReferenceProperty) ||
-                string.Equals(type, LinkedComponents.ReferenceType, StringComparison.Ordinal))
+            if (string.Equals(type, LinkedComponents.ReferenceType, StringComparison.Ordinal))
             {
                 return true;
             }

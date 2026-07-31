@@ -16,7 +16,7 @@ export interface LinkedComponentReferenceModel {
 export type LinkedComponentReferenceSection = SectionModel & LinkedComponentReferenceModel;
 
 export interface LinkedComponentUsagePage {
-    id: string;
+    id?: string | null;
     name: string;
     permalink?: string | null;
     cultureName?: string | null;
@@ -48,22 +48,10 @@ export interface LinkedComponentSearchResult {
     results: LinkedComponent[];
 }
 
-export interface LinkedComponentSearchCriteria {
-    storeId: string;
-    keyword?: string;
-    skip?: number;
-    take?: number;
-}
-
 export interface CreateLinkedComponentRequest {
     storeId: string;
     name: string;
     content: TemplateModel;
-}
-
-export interface UpdateLinkedComponentRequest {
-    storeId: string;
-    name: string;
 }
 
 export type LinkedComponentContentCache = Record<string, TemplateModel>;

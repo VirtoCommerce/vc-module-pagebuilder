@@ -23,7 +23,7 @@ public class PageBuilderLinkedComponentUsageService(
         }
 
         using var repository = repositoryFactory();
-        var usageQuery = CreateUsageQuery(repository, result.Keys.ToArray(), storeId);
+        var usageQuery = CreateUsageQuery(repository.RequireLinkedComponents(), result.Keys.ToArray(), storeId);
 
         if (includePages)
         {
@@ -52,7 +52,7 @@ public class PageBuilderLinkedComponentUsageService(
     }
 
     private static IQueryable<IndexedUsageResult> CreateUsageQuery(
-        IPageBuilderModuleRepository repository,
+        IPageBuilderLinkedComponentRepository repository,
         string[] linkedComponentIds,
         string storeId)
     {

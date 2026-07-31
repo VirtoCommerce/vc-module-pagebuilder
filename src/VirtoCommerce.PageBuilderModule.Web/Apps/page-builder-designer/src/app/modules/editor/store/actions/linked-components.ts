@@ -11,12 +11,17 @@ export const broadcastResolvedPreview = createAction(
 
 export const cacheLinkedComponent = createAction(
     '[linked components] cache component',
-    props<{ component: LinkedComponent; content?: TemplateModel }>(),
+    props<{ component: LinkedComponent; content?: TemplateModel; addToSearchResults?: boolean }>(),
 );
 
 export const cacheLinkedComponentContent = createAction(
     '[linked components] cache component content',
     props<{ componentId: string; content: TemplateModel }>(),
+);
+
+export const clearLinkedComponentUsageRefresh = createAction(
+    '[linked components] clear pending usage refresh',
+    props<{ templateKey: string }>(),
 );
 
 export const loadLinkedComponentDetails = createAction(
@@ -48,9 +53,19 @@ export const searchLinkedComponents = createAction(
     props<{ keyword: string; skip?: number }>(),
 );
 
+export const retryLinkedComponentsSearch = createAction(
+    '[linked components] retry search',
+    props<{ keyword: string; skip?: number }>(),
+);
+
+export const refreshLinkedComponentsSearch = createAction(
+    '[linked components] refresh current search',
+    props<{ keyword: string }>(),
+);
+
 export const searchLinkedComponentsSuccess = createAction(
     '[linked components] search success',
-    props<{ keyword: string; result: LinkedComponentSearchResult; append?: boolean }>(),
+    props<{ keyword: string; result: LinkedComponentSearchResult; append?: boolean; rebase?: boolean }>(),
 );
 
 export const searchLinkedComponentsFailed = createAction(
@@ -90,7 +105,12 @@ export const closeLinkedComponent = createAction(
     '[linked components] close document',
 );
 
+export const discardLinkedComponentChanges = createAction(
+    '[linked components] discard document changes',
+    props<{ templateKey: string }>(),
+);
+
 export const openLinkedComponentUsagePage = createAction(
     '[linked components] open usage page',
-    props<{ pageId: string }>(),
+    props<{ pageId: string; cultureName: string | null | undefined }>(),
 );

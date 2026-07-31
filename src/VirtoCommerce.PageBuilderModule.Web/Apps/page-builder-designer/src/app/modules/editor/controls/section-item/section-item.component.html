@@ -20,6 +20,14 @@
     <span class="linked-badge" [class.error]="linkedError()"
       [title]="linkedError() || ('Used on ' + (linkedComponent()?.usageCount || 0) + ' page(s)')">
       {{ linkedError() ? 'Missing' : 'Shared' }}
+      @if (!linkedError()) {
+        <span
+          class="linked-usage"
+          [attr.aria-label]="'Used on ' + (linkedComponent()?.usageCount || 0) + ' page(s)'">
+          <span aria-hidden="true">·</span>
+          {{ linkedComponent()?.usageCount || 0 }}
+        </span>
+      }
     </span>
   }
   @if (hasContextMenu()) {

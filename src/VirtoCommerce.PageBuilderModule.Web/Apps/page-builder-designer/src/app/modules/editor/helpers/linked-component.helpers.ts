@@ -7,6 +7,7 @@ import {
     LinkedComponentContentCache,
     LinkedComponentReferenceModel,
     LinkedComponentReferenceSection,
+    LinkedComponentUsagePage,
 } from '@editor/models/linked-component.model';
 
 export interface LinkedComponentResolutionBoundary {
@@ -14,8 +15,7 @@ export interface LinkedComponentResolutionBoundary {
     componentRef: string;
     startIndex: number;
     count: number;
-    name?: string;
-    usageCount?: number;
+    label?: string;
 }
 
 export interface LinkedComponentResolutionResult {
@@ -31,6 +31,12 @@ type IdFactory = (section: SectionModel, path: string) => string;
 export function canEditLinkedComponentOriginal(appConfig: AppConfig): boolean {
     return appConfig.getValue('canInsertLinkedComponents') === true
         && appConfig.getValue('canEditLinkedComponents') === true;
+}
+
+export function canOpenLinkedComponentUsagePage<T extends Pick<LinkedComponentUsagePage, 'id' | 'status'>>(
+    page: T,
+): page is T & { id: string } {
+    return typeof page.id === 'string' && page.id.trim().length > 0 && page.status !== 'Archived';
 }
 
 export function isLinkedComponentReference(value: unknown): value is LinkedComponentReferenceSection {
@@ -202,10 +208,6 @@ export function resolveLinkedComponents(
         boundaries,
         missingComponentIds: [...missing],
     };
-}
-
-export function cloneSectionWithFreshIds(section: SectionModel): SectionModel {
-    return cloneSectionWithIds(section, 'section', freshIdFactory);
 }
 
 function cloneSectionWithIds(section: SectionModel, path: string, idFactory: IdFactory): SectionModel {

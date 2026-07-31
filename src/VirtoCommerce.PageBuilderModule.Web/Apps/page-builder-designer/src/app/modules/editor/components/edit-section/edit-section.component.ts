@@ -12,7 +12,7 @@ import { ContextMenuComponent } from '@core/components/context-menu/context-menu
 
 import { ContextMenuAction, ModelChangedEventArgs  } from '@core/models';
 import { SectionModel, SectionSchema } from '@models/document';
-import { canEditLinkedComponentOriginal, ContextMenuHelper } from '@editor/helpers';
+import { canEditLinkedComponentOriginal, canOpenLinkedComponentUsagePage, ContextMenuHelper } from '@editor/helpers';
 import { AppConfig } from '@integration/services';
 import { LinkedComponentUsagePage } from '@editor/models';
 
@@ -67,9 +67,9 @@ export class EditSectionComponent {
             : this.helper.getSectionsActions(item, !!schema.blocks?.length);
     }
 
-    editLinkedComponent(): void {
+    openLinkedComponent(): void {
         const instance = this.linkedInstance();
-        if (instance && this.canEditLinkedComponents) {
+        if (instance && this.canInsertLinkedComponents) {
             this.store.dispatch(actions.openLinkedComponent({ componentId: instance.reference.componentRef }));
         }
     }
@@ -85,6 +85,15 @@ export class EditSectionComponent {
     }
 
     openUsagePage(page: LinkedComponentUsagePage): void {
-        this.store.dispatch(actions.openLinkedComponentUsagePage({ pageId: page.id }));
+        if (canOpenLinkedComponentUsagePage(page)) {
+            this.store.dispatch(actions.openLinkedComponentUsagePage({
+                pageId: page.id,
+                cultureName: page.cultureName,
+            }));
+        }
+    }
+
+    canOpenUsagePage(page: LinkedComponentUsagePage): boolean {
+        return canOpenLinkedComponentUsagePage(page);
     }
 }

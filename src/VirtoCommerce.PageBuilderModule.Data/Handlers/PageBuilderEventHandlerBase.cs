@@ -13,6 +13,8 @@ namespace VirtoCommerce.PageBuilderModule.Data.Handlers
         IPageBuilderLinkedComponentResolver linkedComponentResolver
     )
     {
+        internal const int MaxDegreeOfParallelism = 8;
+
         protected async Task<PagesDomainEvent> ToPagesDomainEvent(PageBuilderPage entry, EntryState state)
         {
             var pageOperation = state.ToPageOperation(entry);
@@ -44,7 +46,30 @@ namespace VirtoCommerce.PageBuilderModule.Data.Handlers
 
         protected static async Task PublishPagesDomainEvents(IEnumerable<PagesDomainEvent> events, IEventPublisher eventPublisher)
         {
-            await Task.WhenAll(events.Where(e => e != null).Select(e => eventPublisher.Publish(e)));
+            await ForEachBoundedAsync(
+                events.Where(e => e != null).ToArray(),
+                @event => eventPublisher.Publish(@event));
+        }
+
+        internal static async Task<TResult[]> SelectBoundedAsync<TSource, TResult>(
+            IReadOnlyList<TSource> source,
+            Func<TSource, Task<TResult>> selector)
+        {
+            var results = new TResult[source.Count];
+            await ForEachBoundedAsync(
+                Enumerable.Range(0, source.Count).ToArray(),
+                async index => results[index] = await selector(source[index]));
+            return results;
+        }
+
+        internal static Task ForEachBoundedAsync<TSource>(
+            IReadOnlyList<TSource> source,
+            Func<TSource, Task> action)
+        {
+            return Parallel.ForEachAsync(
+                source,
+                new ParallelOptions { MaxDegreeOfParallelism = MaxDegreeOfParallelism },
+                async (item, _) => await action(item));
         }
     }
 }

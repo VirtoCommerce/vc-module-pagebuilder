@@ -13,9 +13,13 @@
 }
 
 .linked-badge {
-  @apply shrink-0 rounded bg-green-100 px-1.5 py-0.5 text-xs font-medium text-green-700;
+  @apply inline-flex shrink-0 items-center gap-1 rounded bg-green-100 px-1.5 py-0.5 text-xs font-medium text-green-700;
 
   &.error {
     @apply bg-red-100 text-red-700;
   }
+}
+
+.linked-usage {
+  @apply inline-flex items-center gap-1 tabular-nums;
 }

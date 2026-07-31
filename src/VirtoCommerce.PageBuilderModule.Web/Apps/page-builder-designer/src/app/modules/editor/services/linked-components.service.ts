@@ -8,7 +8,6 @@ import {
     CreateLinkedComponentRequest,
     LinkedComponent,
     LinkedComponentSearchResult,
-    UpdateLinkedComponentRequest,
 } from '@editor/models/linked-component.model';
 
 export const LINKED_COMPONENTS_PAGE_SIZE = 20;
@@ -43,15 +42,6 @@ export class LinkedComponentsService {
 
     get(id: string): Observable<LinkedComponent> {
         return this.http.get<LinkedComponent>(`${this.apiUrl}/${encodeURIComponent(id)}`);
-    }
-
-    update(id: string, name: string): Observable<LinkedComponent> {
-        const request: UpdateLinkedComponentRequest = { storeId: this.storeId, name: name.trim() };
-        return this.http.put<LinkedComponent>(`${this.apiUrl}/${encodeURIComponent(id)}`, request);
-    }
-
-    delete(id: string): Observable<void> {
-        return this.http.delete<void>(`${this.apiUrl}/${encodeURIComponent(id)}`);
     }
 
     getContent(id: string): Observable<TemplateModel> {

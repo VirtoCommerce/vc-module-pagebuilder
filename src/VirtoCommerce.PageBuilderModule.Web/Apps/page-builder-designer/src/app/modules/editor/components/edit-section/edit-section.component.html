@@ -18,8 +18,8 @@
           <div class="mt-3 flex gap-2">
             <button type="button"
               class="rounded border border-green-300 bg-white px-3 py-2 text-green-800 transition-colors hover:bg-green-100 disabled:cursor-not-allowed disabled:opacity-50"
-              [disabled]="!canEditLinkedComponents" (click)="editLinkedComponent()">
-              Edit original
+              [disabled]="!canInsertLinkedComponents" (click)="openLinkedComponent()">
+              {{ canEditLinkedComponents ? 'Edit original' : 'View original' }}
             </button>
             <button type="button"
               class="rounded border border-orange-300 bg-white px-3 py-2 text-orange-700 transition-colors hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-50"
@@ -46,12 +46,23 @@
             <div class="text-red-700">Usage details could not be loaded. Try reopening the component.</div>
           } @else if (instance.component?.usagePages?.length) {
             <ul class="divide-y divide-gray-200 border-y border-gray-200">
-              @for (page of instance.component!.usagePages; track page.id) {
+              @for (page of instance.component!.usagePages; track page.id || page.permalink || $index) {
+                @let canOpen = canOpenUsagePage(page);
                 <li>
-                  <button type="button" class="flex w-full items-center gap-2 rounded py-2 text-left hover:bg-blue-50"
+                  <button type="button"
+                    class="flex w-full items-center gap-2 rounded py-2 text-left hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    [disabled]="!canOpen"
                     (click)="openUsagePage(page)">
-                    <span class="h-2 w-2 shrink-0 rounded-full bg-blue-500"></span>
-                    <span>{{ page.name }}</span>
+                    <span class="h-2 w-2 shrink-0 rounded-full"
+                      [class.bg-blue-500]="canOpen" [class.bg-gray-400]="!canOpen"></span>
+                    <span>
+                      {{ page.name || page.permalink || 'Unavailable page' }}
+                      @if (!canOpen) {
+                        <span class="block text-xs text-gray-500">
+                          {{ page.status === 'Archived' ? 'Archived — cannot be opened' : 'Page identity is unavailable' }}
+                        </span>
+                      }
+                    </span>
                   </button>
                 </li>
               }
@@ -81,11 +92,17 @@
           </div>
         }
       }
-      @if (vm && !isReadOnlyOriginal()) {
-        <app-dynamic-form [context]="vm.editContext"
-          [descriptors]="vm.schema.settings"
-          [sectionModel]="vm.model"
-          (modelChanged)="onModelChanged($event)" />
+      @if (vm) {
+        <div class="dynamic-form-boundary"
+          [class.dynamic-form-boundary--read-only]="isReadOnlyOriginal()"
+          [attr.inert]="isReadOnlyOriginal() ? '' : null"
+          [attr.aria-disabled]="isReadOnlyOriginal() ? 'true' : null">
+          <app-dynamic-form [context]="vm.editContext"
+            [descriptors]="vm.schema.settings"
+            [sectionModel]="vm.model"
+            [readOnly]="isReadOnlyOriginal()"
+            (modelChanged)="onModelChanged($event)" />
+        </div>
       }
     }
     <ng-container title-content>

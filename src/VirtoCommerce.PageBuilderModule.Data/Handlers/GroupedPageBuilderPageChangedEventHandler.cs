@@ -16,15 +16,17 @@ namespace VirtoCommerce.PageBuilderModule.Data.Handlers
         {
             await UpdateReferenceIndex(message);
 
-            var eventTasks = message.ChangedEntries
+            var pageChanges = message.ChangedEntries
                 .SelectMany(x =>
                 {
                     var groupedEntry = x.NewEntry ?? x.OldEntry;
-                    return groupedEntry.Pages.Select(page => ToPagesDomainEvent(page, x.EntryState));
+                    return groupedEntry.Pages.Select(page => (Page: page, x.EntryState));
                 })
                 .ToArray();
 
-            var events = await Task.WhenAll(eventTasks);
+            var events = await SelectBoundedAsync(
+                pageChanges,
+                x => ToPagesDomainEvent(x.Page, x.EntryState));
 
             await PublishPagesDomainEvents(events, eventPublisher);
         }

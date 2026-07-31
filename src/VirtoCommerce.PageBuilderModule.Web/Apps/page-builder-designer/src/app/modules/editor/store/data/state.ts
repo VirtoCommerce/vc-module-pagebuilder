@@ -4,8 +4,11 @@ import { TemplateModelsList } from '@models/document';
 export interface LinkedComponentsSearchState {
     keyword: string;
     resultIds: string[];
+    optimisticResultIds: string[];
+    loadedCount: number;
     totalCount: number;
     loading: boolean;
+    rebasePending: boolean;
     error: string | null;
 }
 
@@ -21,6 +24,7 @@ export interface EditorDataState {
     linkedComponents: LinkedComponentMetadataCache;
     linkedComponentContents: LinkedComponentContentCache;
     linkedComponentErrors: Record<string, string>;
+    linkedComponentUsageRefreshIdsByTemplate: Record<string, string[]>;
     linkedComponentDetails: LinkedComponentDetailsState;
     linkedComponentsSearch: LinkedComponentsSearchState;
 }
@@ -31,6 +35,7 @@ export const initialState: EditorDataState = {
     linkedComponents: {},
     linkedComponentContents: {},
     linkedComponentErrors: {},
+    linkedComponentUsageRefreshIdsByTemplate: {},
     linkedComponentDetails: {
         componentId: null,
         loading: false,
@@ -39,8 +44,11 @@ export const initialState: EditorDataState = {
     linkedComponentsSearch: {
         keyword: '',
         resultIds: [],
+        optimisticResultIds: [],
+        loadedCount: 0,
         totalCount: 0,
         loading: false,
+        rebasePending: false,
         error: null,
     },
 }

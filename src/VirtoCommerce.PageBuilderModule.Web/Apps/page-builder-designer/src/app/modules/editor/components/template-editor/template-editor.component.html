@@ -1,5 +1,29 @@
 <app-panel>
   <div class="p-4">
+    @if (!viewModel() && isLinkedDocument()) {
+      <div class="linked-document-banner">
+        <button type="button" class="back-link" (click)="backToPage()">
+          <app-icon>arrow_back</app-icon>
+          Back
+        </button>
+        <div class="banner-title">Shared Component</div>
+        @if (loadState()?.error) {
+          <div
+            class="my-3 flex items-start gap-2 rounded border border-red-200 bg-red-50 p-3 text-red-700"
+            role="alert">
+            <app-icon>error</app-icon>
+            <div>
+              <div class="font-medium">Could not load this Shared Component</div>
+              <div class="mt-1 text-sm">{{ loadState()?.error }}</div>
+            </div>
+          </div>
+          <app-icon-button icon="refresh" skin="outline" text="Retry"
+            (click)="retryLinkedComponentLoad()" />
+        } @else {
+          <div class="banner-text">Loading Shared Component…</div>
+        }
+      </div>
+    }
     @if (viewModel(); as vm) {
       @if (vm.isLinkedDocument) {
         <div class="linked-document-banner">
@@ -17,11 +41,18 @@
             <details class="usage-details">
               <summary>Where used</summary>
               <ul>
-                @for (page of vm.currentLinkedComponent!.usagePages; track page.id) {
+                @for (page of vm.currentLinkedComponent!.usagePages; track page.id || page.permalink || $index) {
                   <li>
-                    <button type="button" class="rounded text-left text-blue-700 hover:underline"
+                    <button type="button"
+                      class="rounded text-left text-blue-700 hover:underline disabled:cursor-not-allowed disabled:text-gray-500 disabled:no-underline"
+                      [disabled]="!canOpenUsagePage(page)"
                       (click)="openUsagePage(page)">
-                      {{ page.name }}
+                      {{ page.name || page.permalink || 'Unavailable page' }}
+                      @if (!canOpenUsagePage(page)) {
+                        <span class="ml-1 text-xs">
+                          ({{ page.status === 'Archived' ? 'archived' : 'unavailable' }})
+                        </span>
+                      }
                     </button>
                   </li>
                 }
@@ -128,15 +159,14 @@
   <div title-content class="w-full">
     <div class="w-full flex flex-row pl-2">
       <div [attr.title]="templateName()" class="template-name">{{ templateName() }}</div>
-      <app-context-menu [visible]="!isReadOnly()"
+      <app-context-menu [visible]="!!viewModel() && !isReadOnly()"
         [getActions]="getPageActions"
         (onAction)="onActionClick($event.action)" />
     </div>
   </div>
   @if (!isReadOnly()) {
-  <div footer-content>
-    <app-icon-button icon="add" skin="blue" text="Add block"
-                     (click)="addSectionClick()" />
-  </div>
+    <div footer-content>
+      <app-icon-button icon="add" skin="blue" text="Add block" (click)="addSectionClick()" />
+    </div>
   }
 </app-panel>

@@ -16,8 +16,8 @@ using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using VirtoCommerce.Pages.Core.Models;
 using VirtoCommerce.Pages.Core.Search;
 using VirtoCommerce.Platform.Core.Common;
-using VirtoCommerce.SearchModule.Core.Model;
 using VirtoCommerce.Platform.Core.Events;
+using VirtoCommerce.SearchModule.Core.Model;
 using Xunit;
 using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 
@@ -136,6 +136,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 groupedPageSearchService: new FakeGroupedPageSearchService(),
                 authorizationService: new AllowAllAuthorizationService(),
                 pageDocumentSearchService: new NoopPageDocumentSearchService(),
+                linkedComponentReferenceIndexService: new NoopLinkedComponentReferenceIndexService(),
                 eventPublisher: new NoopEventPublisher(),
                 logger: NullLogger<PageBuilderPageController>.Instance);
 
@@ -153,6 +154,11 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             private readonly Dictionary<string, GroupedPageBuilderPage> _groups = new();
             private readonly Dictionary<string, string> _content = new();
             private int _idSeq;
+
+            internal Exception SaveContentException { get; set; }
+            internal string ConcurrentContentBeforeSaveFailure { get; set; }
+            internal int EmptyDraftCleanupAttempts { get; private set; }
+            internal string ReplaceNewDraftAfterSaveWithPageId { get; set; }
 
             public void SeedGroup(GroupedPageBuilderPage group) => _groups[group.Id] = DeepClone(group);
             public void SeedContent(string pageId, string content) => _content[pageId] = content;
@@ -188,6 +194,16 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                     NormalizePublishedPages(model);
 
                     _groups[model.Id] = DeepClone(model);
+                    if (!string.IsNullOrWhiteSpace(ReplaceNewDraftAfterSaveWithPageId))
+                    {
+                        var storedDraft = _groups[model.Id].Pages.FirstOrDefault(x => x.Status == Draft);
+                        if (storedDraft != null)
+                        {
+                            storedDraft.Id = ReplaceNewDraftAfterSaveWithPageId;
+                        }
+
+                        ReplaceNewDraftAfterSaveWithPageId = null;
+                    }
                 }
 
                 return Task.CompletedTask;
@@ -252,6 +268,16 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
             public Task SaveContent(string pageId, string content, CancellationToken cancellationToken = default)
             {
+                if (SaveContentException != null)
+                {
+                    if (ConcurrentContentBeforeSaveFailure != null)
+                    {
+                        _content[pageId] = ConcurrentContentBeforeSaveFailure;
+                    }
+
+                    throw SaveContentException;
+                }
+
                 _content[pageId] = content;
                 return Task.CompletedTask;
             }
@@ -291,6 +317,21 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 }
 
                 return Task.CompletedTask;
+            }
+
+            public async Task<bool> TryDeleteEmptyDraftAsync(
+                string pageId,
+                CancellationToken cancellationToken = default)
+            {
+                EmptyDraftCleanupAttempts++;
+                var page = GetStoredPage(pageId);
+                if (page == null || page.Status != Draft || _content.ContainsKey(pageId))
+                {
+                    return false;
+                }
+
+                await DeleteAsync([pageId]);
+                return true;
             }
 
             internal PageBuilderPage GetStoredPage(string pageId)

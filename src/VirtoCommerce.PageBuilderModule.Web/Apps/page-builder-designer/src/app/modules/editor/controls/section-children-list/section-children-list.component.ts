@@ -45,9 +45,6 @@ export class SectionChildrenListComponent {
     }
 
     onItemClick(block: SectionModel) {
-        if (this.readOnly()) {
-            return;
-        }
         this.itemClick.emit(block);
     }
 

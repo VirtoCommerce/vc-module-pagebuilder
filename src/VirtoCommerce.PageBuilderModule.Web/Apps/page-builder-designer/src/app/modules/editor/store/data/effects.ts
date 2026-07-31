@@ -4,7 +4,7 @@ import { ModalService } from '@core/services';
 import { Injectable, inject } from "@angular/core";
 
 import { forkJoin, of } from "rxjs";
-import { withLatestFrom, filter, map, catchError, switchMap, exhaustMap, tap } from "rxjs/operators";
+import { withLatestFrom, filter, map, catchError, switchMap, exhaustMap, tap, distinctUntilChanged } from "rxjs/operators";
 
 import { Store } from "@ngrx/store";
 import { Actions, createEffect, ofType } from "@ngrx/effects";
@@ -75,6 +75,32 @@ export class TemplateEditorDataEffects {
         switchMap(([, , , , templateKey]) => [
             actions.loadTemplateModel({ templateKey })
         ])
+    ));
+
+    broadcastCachedTemplate$ = createEffect(() => this.actions$.pipe(
+        ofType(actions.raiseLoadData),
+        withLatestFrom(
+            this.store$.select(fromRoute.selectTemplateKeyParameter),
+            this.store$.select(fromRoute.selectCultureNameParameter),
+            this.store$.select(selectors.selectCurrentTemplateModel),
+            this.store$.select(selectors.selectCurrentTemplateState),
+            this.store$.select(fromShared.selectCurrentTemplateEntry),
+            this.store$.select(fromRoute.selectSectionIdParameter),
+        ),
+        // Child routes (section/block editors) raise load data too. Re-send only
+        // when the active document or its culture actually changes.
+        distinctUntilChanged((previous, current) =>
+            previous[1] === current[1] && previous[2] === current[2]),
+        filter(([, , , template, state, entry]) => !!template && !!state && !!entry),
+        map(([, , cultureName, template, , entry, sectionId]) => actions.broadcastResolvedPreview({
+            msg: {
+                type: 'page',
+                template: template!,
+                cultureName: cultureName || undefined,
+                sectionId,
+                ...entry?.previewMessage,
+            },
+        })),
     ));
 
     raiseLoadTemplateSchemas$ = createEffect(() => this.actions$.pipe(
@@ -336,7 +362,8 @@ export class TemplateEditorDataEffects {
             this.store$.select(fromRoute.selectGroupIdParameter),
             this.store$.select(fromRoute.selectLinkedComponentIdParameter),
         ),
-        filter(([, , groupId, linkedComponentId]) => !!groupId && !linkedComponentId),
+        filter(([, changedTemplates, groupId, linkedComponentId]) =>
+            changedTemplates.length > 0 && !!groupId && !linkedComponentId),
         switchMap(([, changedTemplates, groupId]) => {
             const groupedPageContent = changedTemplates[0].content;
             return this.templates.saveGroupedPage(groupId!, groupedPageContent).pipe(

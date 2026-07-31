@@ -1,7 +1,21 @@
 import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { Action, Store } from '@ngrx/store';
-import { catchError, concatMap, EMPTY, filter, forkJoin, map, Observable, of, switchMap, withLatestFrom } from 'rxjs';
+import {
+  catchError,
+  concatMap,
+  EMPTY,
+  exhaustMap,
+  filter,
+  forkJoin,
+  map,
+  Observable,
+  of,
+  switchMap,
+  takeUntil,
+  timer,
+  withLatestFrom,
+} from 'rxjs';
 
 import { isLinkedComponentReference, resolveLinkedComponents } from '@editor/helpers';
 import { LinkedComponent } from '@editor/models';
@@ -28,19 +42,41 @@ export class LinkedComponentsDataEffects {
 
   search$ = createEffect(() =>
     this.actions$.pipe(
-      ofType(actions.searchLinkedComponents),
+      ofType(
+        actions.searchLinkedComponents,
+        actions.retryLinkedComponentsSearch,
+        actions.refreshLinkedComponentsSearch,
+      ),
       filter(() => this.canInsertLinkedComponents()),
-      switchMap(({ keyword, skip = 0 }) =>
-        this.linkedComponents.search(keyword, skip, LINKED_COMPONENTS_PAGE_SIZE).pipe(
-          map((result) => actions.searchLinkedComponentsSuccess({ keyword, result, append: skip > 0 })),
-          catchError((error) =>
-            of(
-              actions.searchLinkedComponentsFailed({
-                keyword,
-                error: getErrorMessage(error),
-              }),
-            ),
-          ),
+      filter((action) => !('skip' in action) || !(action.skip ?? 0)),
+      switchMap((action) => {
+        const keyword = action.keyword.trim();
+        const rebase = action.type === actions.refreshLinkedComponentsSearch.type;
+        return action.type === actions.searchLinkedComponents.type
+          ? timer(250).pipe(switchMap(() => this.searchRequest(keyword, 0, rebase)))
+          : this.searchRequest(keyword, 0, rebase);
+      }),
+    ),
+  );
+
+  refreshSearchAfterCreate$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(actions.cacheLinkedComponent),
+      filter(({ addToSearchResults }) => addToSearchResults === true),
+      withLatestFrom(this.store.select(selectors.selectLinkedComponentsSearchState)),
+      filter(([{ component }, search]) => matchesKeyword(component.name, search.keyword)),
+      map(([, search]) => actions.refreshLinkedComponentsSearch({ keyword: search.keyword })),
+    ),
+  );
+
+  loadMore$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(actions.searchLinkedComponents, actions.retryLinkedComponentsSearch),
+      filter(() => this.canInsertLinkedComponents()),
+      filter(({ skip = 0 }) => skip > 0),
+      exhaustMap(({ keyword, skip = 0 }) =>
+        this.searchRequest(keyword.trim(), skip).pipe(
+          takeUntil(this.nextFirstPageRequest()),
         ),
       ),
     ),
@@ -70,20 +106,28 @@ export class LinkedComponentsDataEffects {
   refreshUsageAfterSave$ = createEffect(() =>
     this.actions$.pipe(
       ofType(actions.saveTemplateSuccess),
-      switchMap(({ template }) => {
+      withLatestFrom(this.store.select(selectors.selectLinkedComponentUsageRefreshIdsByTemplate)),
+      concatMap(([{ template, templateKey }, refreshIdsByTemplate]) => {
         const componentIds = [
-          ...new Set(template.content.filter(isLinkedComponentReference).map((reference) => reference.componentRef)),
+          ...new Set([
+            ...template.content.filter(isLinkedComponentReference).map((reference) => reference.componentRef),
+            ...(refreshIdsByTemplate[templateKey] || []),
+          ]),
         ];
         if (componentIds.length === 0) {
           return of(sharedActions.empty());
         }
 
         return forkJoin(componentIds.map((componentId) => toLoadResult(this.linkedComponents.get(componentId)))).pipe(
-          switchMap((results) =>
-            results.flatMap((result) =>
+          switchMap((results) => {
+            const outgoingActions: Action[] = results.flatMap((result) =>
               result.value ? [actions.cacheLinkedComponent({ component: result.value })] : [],
-            ),
-          ),
+            );
+            if (results.every((result) => result.value !== null)) {
+              outgoingActions.push(actions.clearLinkedComponentUsageRefresh({ templateKey }));
+            }
+            return outgoingActions;
+          }),
         );
       }),
     ),
@@ -117,9 +161,10 @@ export class LinkedComponentsDataEffects {
             }
 
             const requests = componentIds.map((componentId) => {
-              const componentRequest = !forceRefresh && metadataCache[componentId]
-                ? of<LoadResult<LinkedComponent>>({ value: metadataCache[componentId], error: null })
-                : toLoadResult(this.linkedComponents.get(componentId));
+              const componentRequest =
+                !forceRefresh && metadataCache[componentId]
+                  ? of<LoadResult<LinkedComponent>>({ value: metadataCache[componentId], error: null })
+                  : toLoadResult(this.linkedComponents.get(componentId));
 
               let contentRequest: Observable<LoadResult<TemplateModel>>;
               if (!forceRefresh && contentCache[componentId]) {
@@ -178,7 +223,12 @@ export class LinkedComponentsDataEffects {
                 const resolved = resolveLinkedComponents(template, mergedContents);
                 const boundaries = resolved.boundaries.map((boundary) => {
                   const component = mergedMetadata[boundary.componentRef];
-                  return component ? { ...boundary, name: component.name, usageCount: component.usageCount } : boundary;
+                  return component
+                    ? {
+                        ...boundary,
+                        label: getBoundaryLabel(component.usageCount),
+                      }
+                    : { ...boundary, label: 'Shared' };
                 });
                 const resolvedMessage = STRUCTURAL_PREVIEW_MESSAGE_TYPES.has(msg.type)
                   ? { type: 'reload', template: resolved.template }
@@ -204,6 +254,38 @@ export class LinkedComponentsDataEffects {
   private canInsertLinkedComponents(): boolean {
     return this.appConfig.getValue('canInsertLinkedComponents') === true;
   }
+
+  private nextFirstPageRequest() {
+    return this.actions$.pipe(
+      ofType(
+        actions.searchLinkedComponents,
+        actions.retryLinkedComponentsSearch,
+        actions.refreshLinkedComponentsSearch,
+      ),
+      filter((action) => !('skip' in action) || !(action.skip ?? 0)),
+    );
+  }
+
+  private searchRequest(keyword: string, skip: number, rebase = false) {
+    return this.linkedComponents.search(keyword, skip, LINKED_COMPONENTS_PAGE_SIZE).pipe(
+      map((result) =>
+        actions.searchLinkedComponentsSuccess({
+          keyword,
+          result,
+          append: skip > 0,
+          ...(rebase ? { rebase: true } : {}),
+        }),
+      ),
+      catchError((error) =>
+        of(
+          actions.searchLinkedComponentsFailed({
+            keyword,
+            error: getErrorMessage(error),
+          }),
+        ),
+      ),
+    );
+  }
 }
 
 const STRUCTURAL_PREVIEW_MESSAGE_TYPES = new Set(['add', 'remove', 'swap', 'update']);
@@ -220,4 +302,12 @@ function getErrorMessage(error: unknown): string {
     return String((error as { message: unknown }).message);
   }
   return String(error || 'Unknown error');
+}
+
+function getBoundaryLabel(usageCount: number): string {
+  return `Shared · Used on ${usageCount} page${usageCount === 1 ? '' : 's'}`;
+}
+
+function matchesKeyword(name: string, keyword: string): boolean {
+  return name.toLocaleLowerCase().includes(keyword.trim().toLocaleLowerCase());
 }

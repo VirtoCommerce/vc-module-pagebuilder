@@ -33,7 +33,10 @@
       "NO_USAGE": "Nie jest używany na żadnej stronie Page Builder.",
       "DELETE_BLOCKED_ONE": "Przed usunięciem usuń ten komponent ze strony.",
       "DELETE_BLOCKED_MANY": "Przed usunięciem usuń ten komponent ze wszystkich {count} stron.",
-      "NOT_AVAILABLE": "Niedostępne"
+      "NOT_AVAILABLE": "Niedostępne",
+      "OPEN_UNAVAILABLE_PERMISSION": "Nie masz uprawnień do otwarcia tej strony w Designerze.",
+      "OPEN_UNAVAILABLE_ARCHIVED": "Zarchiwizowanych stron nie można otworzyć w Designerze.",
+      "OPEN_UNAVAILABLE_IDENTITY": "Nie można otworzyć tej strony, ponieważ jej identyfikator jest niedostępny."
     },
     "EMPTY": {
       "TITLE": "Brak współdzielonych komponentów",

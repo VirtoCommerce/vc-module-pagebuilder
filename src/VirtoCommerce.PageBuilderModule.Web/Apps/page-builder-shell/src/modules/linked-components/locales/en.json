@@ -33,7 +33,10 @@
       "NO_USAGE": "Not used on any Page Builder pages.",
       "DELETE_BLOCKED_ONE": "Remove this component from the page before deleting it.",
       "DELETE_BLOCKED_MANY": "Remove this component from all {count} pages before deleting it.",
-      "NOT_AVAILABLE": "N/A"
+      "NOT_AVAILABLE": "N/A",
+      "OPEN_UNAVAILABLE_PERMISSION": "You do not have permission to open this page in Designer.",
+      "OPEN_UNAVAILABLE_ARCHIVED": "Archived pages cannot be opened in Designer.",
+      "OPEN_UNAVAILABLE_IDENTITY": "This page cannot be opened because its identifier is unavailable."
     },
     "EMPTY": {
       "TITLE": "No shared components yet",

@@ -20,7 +20,8 @@ public class PageBuilderPageSearchService(
 {
     protected override IQueryable<PageBuilderPageEntity> BuildQuery(IRepository repository, PageBuilderPageSearchCriteria criteria)
     {
-        var query = ((IPageBuilderModuleRepository)repository).PageBuilderPages;
+        var pageBuilderRepository = (IPageBuilderModuleRepository)repository;
+        var query = pageBuilderRepository.PageBuilderPages;
 
         if (!string.IsNullOrEmpty(criteria.StoreId))
         {
@@ -38,17 +39,11 @@ public class PageBuilderPageSearchService(
             query = query.Where(x => criteria.ObjectIds.Contains(x.Id));
         }
 
-        if (criteria.ModifiedSince.HasValue)
-        {
-            query = query.Where(x => x.ModifiedDate >= criteria.ModifiedSince.Value || (x.ModifiedDate == null && x.CreatedDate >= criteria.ModifiedSince.Value));
-        }
-
-        if (criteria.ModifiedBefore.HasValue)
-        {
-            query = query.Where(x => x.ModifiedDate <= criteria.ModifiedBefore.Value || (x.ModifiedDate == null && x.CreatedDate <= criteria.ModifiedBefore.Value));
-        }
-
-        return query;
+        return PageBuilderPageChangeTracking.ApplyDateRange(
+            query,
+            pageBuilderRepository,
+            criteria.ModifiedSince,
+            criteria.ModifiedBefore);
     }
 
     protected override IList<SortInfo> BuildSortExpression(PageBuilderPageSearchCriteria criteria)

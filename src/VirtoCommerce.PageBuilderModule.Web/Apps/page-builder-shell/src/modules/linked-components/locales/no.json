@@ -33,7 +33,10 @@
       "NO_USAGE": "Ikke brukt på noen Page Builder-sider.",
       "DELETE_BLOCKED_ONE": "Fjern denne komponenten fra siden før du sletter den.",
       "DELETE_BLOCKED_MANY": "Fjern denne komponenten fra alle {count} sider før du sletter den.",
-      "NOT_AVAILABLE": "Ikke tilgjengelig"
+      "NOT_AVAILABLE": "Ikke tilgjengelig",
+      "OPEN_UNAVAILABLE_PERMISSION": "Du har ikke tillatelse til å åpne denne siden i Designer.",
+      "OPEN_UNAVAILABLE_ARCHIVED": "Arkiverte sider kan ikke åpnes i Designer.",
+      "OPEN_UNAVAILABLE_IDENTITY": "Siden kan ikke åpnes fordi identifikatoren ikke er tilgjengelig."
     },
     "EMPTY": {
       "TITLE": "Ingen delte komponenter ennå",

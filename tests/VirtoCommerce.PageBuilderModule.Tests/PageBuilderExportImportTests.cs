@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -18,14 +19,15 @@ public class PageBuilderExportImportTests
     public async Task DoImportAsync_AppliesComponentsBeforePagesRegardlessOfJsonPropertyOrder()
     {
         var calls = new List<string>();
+        var referenceIndex = new RecordingReferenceIndexService(calls);
         var exportImport = new PageBuilderExportImport(
             new RecordingGroupedPageService(calls),
             null!,
             null!,
-            new PageBuilderLinkedComponentExportImportDependencies(
-                new RecordingLinkedComponentService(calls),
-                null!,
-                new RecordingLinkedComponentContentService(calls)),
+            referenceIndex,
+            new RecordingLinkedComponentService(calls),
+            null!,
+            new RecordingLinkedComponentContentService(calls),
             null!,
             JsonSerializer.CreateDefault());
         var payload = JsonConvert.SerializeObject(new
@@ -58,7 +60,79 @@ public class PageBuilderExportImportTests
             _ => { },
             TestContext.Current.CancellationToken);
 
-        Assert.Equal(["component-aggregate", "page-group"], calls);
+        Assert.Equal(["component-aggregate", "preflight", "page-group"], calls);
+        Assert.Equal(1, referenceIndex.CallCount);
+    }
+
+    [Fact]
+    public async Task DoImportAsync_PreflightsAllVariantsOnceBeforeMutatingGroup()
+    {
+        var calls = new List<string>();
+        var referenceIndex = new RecordingReferenceIndexService(calls, throwOnValidation: true);
+        var exportImport = new PageBuilderExportImport(
+            new RecordingGroupedPageService(calls),
+            null!,
+            null!,
+            referenceIndex,
+            null!,
+            null!,
+            null!,
+            null!,
+            JsonSerializer.CreateDefault());
+        var variants = new[]
+        {
+            new PageBuilderExportPageVariant { PageId = "draft", Content = "variant-a" },
+            new PageBuilderExportPageVariant { PageId = "published", Content = "variant-b" },
+            new PageBuilderExportPageVariant { PageId = "archived", Content = "variant-c" },
+        };
+        var payload = JsonConvert.SerializeObject(new
+        {
+            PageBuilderPages = new[]
+            {
+                new PageBuilderExportPage
+                {
+                    GroupId = "group",
+                    StoreId = "store",
+                    Name = "Page",
+                    Variants = variants,
+                },
+            },
+        });
+        await using var stream = new MemoryStream(Encoding.UTF8.GetBytes(payload));
+
+        await Assert.ThrowsAsync<InvalidDataException>(() => exportImport.DoImportAsync(
+            stream,
+            _ => { },
+            TestContext.Current.CancellationToken));
+
+        Assert.Equal(["preflight"], calls);
+        Assert.Equal(1, referenceIndex.CallCount);
+        Assert.Equal(variants.Select(x => x.Content), referenceIndex.Contents);
+    }
+
+    private sealed class RecordingReferenceIndexService(
+        IList<string> calls,
+        bool throwOnValidation = false) : NoopLinkedComponentReferenceIndexService
+    {
+        public int CallCount { get; private set; }
+
+        public string[] Contents { get; private set; } = [];
+
+        public override Task ValidateReferencesForStoreAsync(
+            string storeId,
+            IEnumerable<string> contents,
+            CancellationToken cancellationToken = default)
+        {
+            calls.Add("preflight");
+            CallCount++;
+            Contents = contents.ToArray();
+            if (throwOnValidation)
+            {
+                throw new InvalidDataException("Invalid shared component reference.");
+            }
+
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class RecordingLinkedComponentService(IList<string> calls)
@@ -73,6 +147,13 @@ public class PageBuilderExportImportTests
         }
 
         public Task SaveChangesAsync(IList<PageBuilderLinkedComponent> models)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task<PageBuilderLinkedComponent> UpdateMetadataAsync(
+            PageBuilderLinkedComponent model,
+            CancellationToken cancellationToken = default)
         {
             throw new NotSupportedException();
         }
@@ -172,6 +253,13 @@ public class PageBuilderExportImportTests
         public Task CopyPageContentAsync(
             string sourcePageId,
             string targetPageId,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task<bool> TryDeleteEmptyDraftAsync(
+            string pageId,
             CancellationToken cancellationToken = default)
         {
             throw new NotSupportedException();

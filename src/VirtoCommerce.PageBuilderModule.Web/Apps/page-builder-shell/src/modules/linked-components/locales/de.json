@@ -33,7 +33,10 @@
       "NO_USAGE": "Auf keiner Page Builder-Seite verwendet.",
       "DELETE_BLOCKED_ONE": "Entfernen Sie diese Komponente vor dem Löschen von der Seite.",
       "DELETE_BLOCKED_MANY": "Entfernen Sie diese Komponente vor dem Löschen von allen {count} Seiten.",
-      "NOT_AVAILABLE": "Nicht verfügbar"
+      "NOT_AVAILABLE": "Nicht verfügbar",
+      "OPEN_UNAVAILABLE_PERMISSION": "Sie sind nicht berechtigt, diese Seite im Designer zu öffnen.",
+      "OPEN_UNAVAILABLE_ARCHIVED": "Archivierte Seiten können im Designer nicht geöffnet werden.",
+      "OPEN_UNAVAILABLE_IDENTITY": "Diese Seite kann nicht geöffnet werden, da ihre Kennung nicht verfügbar ist."
     },
     "EMPTY": {
       "TITLE": "Noch keine geteilten Komponenten",

@@ -250,7 +250,11 @@ export class LinkedComponentsDomainEffects {
                   this.store.select(routingSelectors.selectLinkedComponentIdParameter),
                 ),
                 switchMap(([component, finalSelectedIds, finalTemplate, finalTemplateKey, finalLinkedComponentId]) => {
-                  const cache = actions.cacheLinkedComponent({ component, content });
+                  const cache = actions.cacheLinkedComponent({
+                    component,
+                    content,
+                    addToSearchResults: true,
+                  });
                   if (
                     !finalTemplate ||
                     !isSameDocument(origin, finalTemplateKey, finalLinkedComponentId) ||
@@ -267,6 +271,13 @@ export class LinkedComponentsDomainEffects {
                   const updated = replaceSectionsWithLinkedComponent(finalTemplate, finalSelectedIds, component.id);
                   return [
                     cache,
+                    ...submittedSelectedIds.map((sectionId) =>
+                      actions.sectionStateChangedAction({
+                        sectionId,
+                        templateKey: finalTemplateKey,
+                        state: { selected: false },
+                      }),
+                    ),
                     actions.updateTemplateAction({ template: updated, templateKey: finalTemplateKey }),
                     actions.broadcastResolvedPreview({
                       msg: { type: 'reload', template: updated },

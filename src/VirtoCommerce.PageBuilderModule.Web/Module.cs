@@ -88,12 +88,12 @@ namespace VirtoCommerce.PageBuilderModule.Web
 
             serviceCollection.AddTransient<GroupedPageBuilderPageChangedEventHandler>();
             serviceCollection.AddTransient<PageBuilderLinkedComponentContentChangedEventHandler>();
+            serviceCollection.AddTransient<PageBuilderLinkedComponentContentPropagationJob>();
 
             serviceCollection.AddTransient<IAuthorizationHandler, PageBuilderAuthorizationHandler>();
             serviceCollection.AddTransient<IPageContentProvider, PageBuilderContentProvider>();
             serviceCollection.AddTransient<IPagesMigrationService, PagesMigrationService>();
             serviceCollection.AddTransient<IPageBuilderAssetReferenceMigrationService, PageBuilderAssetReferenceMigrationService>();
-            serviceCollection.AddTransient<PageBuilderLinkedComponentExportImportDependencies>();
             serviceCollection.AddTransient<PageBuilderExportImport>();
 
             var isFullTextSearchEnabled = Configuration.IsContentFullTextSearchEnabled();

@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { LinkedComponent } from "../src/modules/linked-components/types";
-import { deleteLinkedComponentWithPreflight } from "../src/modules/linked-components/utilities/LinkedComponentDelete";
+import { deleteLinkedComponentWithPreflight } from "../src/modules/linked-components/utilities/linkedComponentDeletion";
 import {
   LinkedComponentDeleteConflictError,
   normalizeLinkedComponentDeleteError,
-} from "../src/modules/linked-components/utilities/LinkedComponentDeleteError";
-import { createLinkedComponentDetailsLoader } from "../src/modules/linked-components/utilities/LinkedComponentDetailsLoader";
+} from "../src/modules/linked-components/utilities/linkedComponentDeletionError";
+import { createLinkedComponentDetailsLoader } from "../src/modules/linked-components/utilities/linkedComponentDetailsRequest";
 import { getDistinctUsagePages, getUsagePageTitle } from "../src/modules/linked-components/utilities/linkedComponent";
-import { buildPageDesignerUrl, canOpenPageDesigner } from "../src/modules/page-builder/utilities/pageDesigner";
+import { buildPageDesignerUrl, canOpenPageDesigner } from "../src/utilities/pageDesigner";
 
 interface Deferred<T> {
   promise: Promise<T>;
@@ -59,6 +59,15 @@ test("page designer URL omits an empty culture and requires page identity", () =
     "https://platform.example.com/Modules/$(VirtoCommerce.PageBuilderModule)/Content/page-builder-designer/index.html?storeId=store-1#/pages?type=pages&groupId=page-1",
   );
   assert.throws(() => buildPageDesignerUrl({ storeId: "store-1" }, "https://platform.example.com"), /Can't open page/);
+  assert.equal(canOpenPageDesigner({ groupId: "  ", storeId: "store-1" }), false);
+  assert.equal(canOpenPageDesigner({ groupId: "page-1", storeId: "  " }), false);
+});
+
+test("page designer URL trims page and store identifiers", () => {
+  assert.equal(
+    buildPageDesignerUrl({ groupId: " page-1 ", storeId: " store-1 " }, "https://platform.example.com"),
+    "https://platform.example.com/Modules/$(VirtoCommerce.PageBuilderModule)/Content/page-builder-designer/index.html?storeId=store-1#/pages?type=pages&groupId=page-1",
+  );
 });
 
 test("page designer is unavailable for archived pages", () => {
@@ -188,6 +197,37 @@ test("details loader does not apply an outstanding response after dispose", asyn
   await pendingLoad;
 
   assert.equal(applied, false);
+});
+
+test("details loader invalidation prevents a stale response from overwriting a rename", async () => {
+  const component = createComponent("a");
+  const request = createDeferred<LinkedComponent>();
+  let selectedComponent: LinkedComponent | undefined;
+  const applied: string[] = [];
+  const loader = createLinkedComponentDetailsLoader({
+    getComponent: () => request.promise,
+    getSelectedComponentId: () => selectedComponent?.id,
+    selectComponent: (value) => {
+      selectedComponent = value;
+    },
+    applyComponent: (value) => {
+      selectedComponent = value;
+      applied.push(value.name);
+    },
+    clearSelectedComponent: () => {
+      selectedComponent = undefined;
+    },
+    onLoadingChange: () => undefined,
+  });
+
+  const pendingLoad = loader.load(component);
+  loader.invalidate();
+  selectedComponent = { ...component, name: "Renamed component" };
+  request.resolve({ ...component, name: "Stale component name" });
+  await pendingLoad;
+
+  assert.equal(selectedComponent?.name, "Renamed component");
+  assert.deepEqual(applied, []);
 });
 
 test("details loader suppresses an obsolete request error after another component is selected", async () => {

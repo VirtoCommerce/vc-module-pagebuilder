@@ -34,6 +34,7 @@ public class PageBuilderPageController(
     IGroupedPageSearchService groupedPageSearchService,
     IAuthorizationService authorizationService,
     IPageDocumentSearchService pageDocumentSearchService,
+    IPageBuilderLinkedComponentReferenceIndexService linkedComponentReferenceIndexService,
     IEventPublisher eventPublisher,
     ILogger<PageBuilderPageController> logger)
     : Controller
@@ -82,14 +83,33 @@ public class PageBuilderPageController(
     [Authorize(ModuleConstants.Security.Permissions.Update)]
     public async Task<ActionResult<GroupedPageBuilderPage>> UpdateGroup([FromBody] GroupedPageBuilderPage model, CancellationToken cancellationToken = default)
     {
-        var authorizationResult = await authorizationService.AuthorizeAsync(User, model, new PageBuilderAuthorizationRequirement());
+        // Authorize the persisted resource for updates. Authorizing only the incoming model would let a caller
+        // spoof a store they can access and then learn the existing group's store from validation details.
+        var groupedPage = await groupedPageService.GetByIdAsync(model.Id);
+        var authorizationResult = await authorizationService.AuthorizeAsync(
+            User,
+            groupedPage ?? model,
+            new PageBuilderAuthorizationRequirement());
         if (!authorizationResult.Succeeded)
         {
             return Forbidden;
         }
 
-        // get the existing grouped page for pages Ids
-        var groupedPage = await groupedPageService.GetByIdAsync(model.Id);
+        var storeChanged = groupedPage != null &&
+            !string.Equals(groupedPage.StoreId, model.StoreId, StringComparison.OrdinalIgnoreCase);
+        if (storeChanged)
+        {
+            // A move crosses two resource boundaries: the caller must be allowed to update both the
+            // persisted source and the requested destination store.
+            var destinationAuthorizationResult = await authorizationService.AuthorizeAsync(
+                User,
+                model,
+                new PageBuilderAuthorizationRequirement());
+            if (!destinationAuthorizationResult.Succeeded)
+            {
+                return Forbidden;
+            }
+        }
 
         if (groupedPage == null)
         {
@@ -104,6 +124,13 @@ public class PageBuilderPageController(
         groupedPage.Permalink = model.Permalink;
         groupedPage.CultureName = model.CultureName;
         groupedPage.StoreId = model.StoreId;
+        if (storeChanged)
+        {
+            foreach (var page in groupedPage.Pages)
+            {
+                page.StoreId = model.StoreId;
+            }
+        }
         groupedPage.Visibility = model.Visibility;
         groupedPage.UserGroups = model.UserGroups;
         groupedPage.StartDate = model.StartDate;
@@ -113,14 +140,11 @@ public class PageBuilderPageController(
         // Ensure a draft page exists so the metadata edit lives in a working copy and Published stays untouched.
         // If only a Published page exists, spin up a new draft and remember to seed it with the published content.
         var draftPage = groupedPage.Pages.FirstOrDefault(x => x.Status == Draft);
+        var createdDraftPageId = (string)null;
         var sourcePageId = (string)null;
         if (draftPage == null)
         {
             sourcePageId = groupedPage.Pages.FirstOrDefault(x => x.Status == Published)?.Id;
-            draftPage = AbstractTypeFactory<PageBuilderPage>.TryCreateInstance();
-            draftPage.Status = Draft;
-            draftPage.StoreId = groupedPage.StoreId;
-            groupedPage.Pages.Add(draftPage);
         }
 
         if (sourcePageId != null)
@@ -131,9 +155,35 @@ public class PageBuilderPageController(
             {
                 return linkedComponentAccess;
             }
+
+            var preflightResult = await PreflightLinkedComponentReferencesAsync(
+                groupedPage.StoreId,
+                [sourceContent],
+                cancellationToken);
+            if (preflightResult != null)
+            {
+                return preflightResult;
+            }
         }
 
-        await groupedPageService.SaveChangesAsync([groupedPage]);
+        if (draftPage == null)
+        {
+            draftPage = AbstractTypeFactory<PageBuilderPage>.TryCreateInstance();
+            draftPage.Id = Guid.NewGuid().ToString("N");
+            draftPage.Status = Draft;
+            draftPage.StoreId = groupedPage.StoreId;
+            groupedPage.Pages.Add(draftPage);
+            createdDraftPageId = draftPage.Id;
+        }
+
+        try
+        {
+            await groupedPageService.SaveChangesAsync([groupedPage]);
+        }
+        catch (InvalidDataException ex)
+        {
+            return BadRequest(ex.Message);
+        }
 
         if (sourcePageId != null)
         {
@@ -141,9 +191,20 @@ public class PageBuilderPageController(
             {
                 await groupedPageService.CopyPageContentAsync(sourcePageId, draftPage.Id, cancellationToken);
             }
-            catch (InvalidDataException ex)
+            catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                if (createdDraftPageId != null &&
+                    string.Equals(createdDraftPageId, draftPage.Id, StringComparison.OrdinalIgnoreCase))
+                {
+                    await RemoveFailedDraftAsync(draftPage.Id, ex);
+                }
+
+                if (ex is InvalidDataException)
+                {
+                    return BadRequest(ex.Message);
+                }
+
+                throw;
             }
         }
 
@@ -403,7 +464,15 @@ public class PageBuilderPageController(
         // version and survives the next publish. An empty or unparsable body is never a save the designer
         // means to make, so it must not reach the column. Validating first also keeps a rejected request from
         // leaving a draft row behind, since the draft below is created before anything is written.
-        var content = await ReadBufferedRequestBodyAsync(cancellationToken);
+        string content;
+        using (var reader = new StreamReader(
+                   Request.Body,
+                   Encoding.UTF8,
+                   detectEncodingFromByteOrderMarks: true,
+                   leaveOpen: true))
+        {
+            content = await reader.ReadToEndAsync(cancellationToken);
+        }
 
         if (string.IsNullOrWhiteSpace(content) || !IsWellFormedJson(content))
         {
@@ -416,15 +485,26 @@ public class PageBuilderPageController(
             return linkedComponentAccess;
         }
 
+        var preflightResult = await PreflightLinkedComponentReferencesAsync(
+            groupedPage.StoreId,
+            [content],
+            cancellationToken);
+        if (preflightResult != null)
+        {
+            return preflightResult;
+        }
+
         var draftPage = groupedPage.Pages.FirstOrDefault(x => x.Status == Draft);
+        var createdDraftPageId = (string)null;
 
         if (draftPage == null)
         {
-
             draftPage = AbstractTypeFactory<PageBuilderPage>.TryCreateInstance();
+            draftPage.Id = Guid.NewGuid().ToString("N");
             draftPage.StoreId = groupedPage.StoreId;
             draftPage.Status = Draft;
             groupedPage.Pages.Add(draftPage);
+            createdDraftPageId = draftPage.Id;
             await groupedPageService.SaveChangesAsync([groupedPage]);
 
             groupedPage = await groupedPageService.GetByIdAsync(groupId);
@@ -436,9 +516,20 @@ public class PageBuilderPageController(
         {
             await groupedPageService.SaveContent(pageId, content, cancellationToken);
         }
-        catch (InvalidDataException ex)
+        catch (Exception ex)
         {
-            return BadRequest(ex.Message);
+            if (createdDraftPageId != null &&
+                string.Equals(createdDraftPageId, pageId, StringComparison.OrdinalIgnoreCase))
+            {
+                await RemoveFailedDraftAsync(pageId, ex);
+            }
+
+            if (ex is InvalidDataException)
+            {
+                return BadRequest(ex.Message);
+            }
+
+            throw;
         }
         await RaisePageContentChanged(pageId, cancellationToken);
 
@@ -485,13 +576,25 @@ public class PageBuilderPageController(
             return linkedComponentAccess;
         }
 
+        var preflightResult = await PreflightLinkedComponentReferencesAsync(
+            targetGroup.StoreId,
+            [sourceContent],
+            cancellationToken);
+        if (preflightResult != null)
+        {
+            return preflightResult;
+        }
+
         var targetDraft = targetGroup.Pages.FirstOrDefault(x => x.Status == Draft);
+        var createdTargetDraftPageId = (string)null;
         if (targetDraft == null)
         {
             targetDraft = AbstractTypeFactory<PageBuilderPage>.TryCreateInstance();
+            targetDraft.Id = Guid.NewGuid().ToString("N");
             targetDraft.StoreId = targetGroup.StoreId;
             targetDraft.Status = Draft;
             targetGroup.Pages.Add(targetDraft);
+            createdTargetDraftPageId = targetDraft.Id;
             await groupedPageService.SaveChangesAsync([targetGroup]);
 
             targetGroup = await groupedPageService.GetByIdAsync(targetGroupId);
@@ -507,13 +610,46 @@ public class PageBuilderPageController(
         {
             await groupedPageService.CopyPageContentAsync(sourcePageId, targetDraft.Id, cancellationToken);
         }
-        catch (InvalidDataException ex)
+        catch (Exception ex)
         {
-            return BadRequest(ex.Message);
+            if (createdTargetDraftPageId != null &&
+                string.Equals(createdTargetDraftPageId, targetDraft.Id, StringComparison.OrdinalIgnoreCase))
+            {
+                await RemoveFailedDraftAsync(targetDraft.Id, ex);
+            }
+
+            if (ex is InvalidDataException)
+            {
+                return BadRequest(ex.Message);
+            }
+
+            throw;
         }
         await RaisePageContentChanged(targetDraft.Id, cancellationToken);
 
         return NoContent();
+    }
+
+    private async Task RemoveFailedDraftAsync(string pageId, Exception originalException)
+    {
+        try
+        {
+            var deleted = await groupedPageService.TryDeleteEmptyDraftAsync(pageId);
+            if (!deleted)
+            {
+                logger.LogDebug(
+                    "Skipped cleanup of draft page {PageId} after a failed content write because it is no longer an empty draft",
+                    pageId);
+            }
+        }
+        catch (Exception cleanupException)
+        {
+            logger.LogError(
+                cleanupException,
+                "Failed to remove draft page {PageId} after its content write failed: {WriteError}",
+                pageId,
+                originalException.Message);
+        }
     }
 
     private async Task<ActionResult> ValidateLinkedComponentContentAccessAsync(string content)
@@ -540,21 +676,23 @@ public class PageBuilderPageController(
         return authorizationResult.Succeeded ? null : Forbidden;
     }
 
-    private async Task<string> ReadBufferedRequestBodyAsync(CancellationToken cancellationToken)
+    private async Task<ActionResult> PreflightLinkedComponentReferencesAsync(
+        string storeId,
+        IEnumerable<string> contents,
+        CancellationToken cancellationToken)
     {
-        Request.EnableBuffering();
-        Request.Body.Position = 0;
-
-        using var reader = new StreamReader(
-            Request.Body,
-            Encoding.UTF8,
-            detectEncodingFromByteOrderMarks: true,
-            bufferSize: 8192,
-            leaveOpen: true);
-        var content = await reader.ReadToEndAsync(cancellationToken);
-        Request.Body.Position = 0;
-
-        return content;
+        try
+        {
+            await linkedComponentReferenceIndexService.ValidateReferencesForStoreAsync(
+                storeId,
+                contents,
+                cancellationToken);
+            return null;
+        }
+        catch (InvalidDataException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
     private static ActionResult Forbidden => new ObjectResult(new { })

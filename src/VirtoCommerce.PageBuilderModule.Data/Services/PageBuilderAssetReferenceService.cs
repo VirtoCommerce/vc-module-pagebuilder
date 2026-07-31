@@ -41,12 +41,17 @@ public class PageBuilderAssetReferenceService(
                 .Where(reference => normalizedAssetUrlHashes.Contains(reference.NormalizedAssetUrlHash)),
             criteria);
         var referenceGroups = await LoadReferenceGroupsAsync(indexedReferences, cancellationToken);
-        var indexedComponentReferences = CreateIndexedComponentReferencesQuery(repository)
-            .Where(reference => reference.StoreId == criteria.StoreId)
-            .Where(reference => normalizedAssetUrlHashes.Contains(reference.NormalizedAssetUrlHash));
-        var componentReferenceGroups = await LoadComponentReferenceGroupsAsync(
-            indexedComponentReferences,
-            cancellationToken);
+        IQueryable<IndexedComponentReferenceResult> indexedComponentReferences = null;
+        var componentReferenceGroups = new List<ComponentReferenceCountResult>();
+        if (repository is IPageBuilderLinkedComponentRepository linkedRepository)
+        {
+            indexedComponentReferences = CreateIndexedComponentReferencesQuery(linkedRepository)
+                .Where(reference => reference.StoreId == criteria.StoreId)
+                .Where(reference => normalizedAssetUrlHashes.Contains(reference.NormalizedAssetUrlHash));
+            componentReferenceGroups = await LoadComponentReferenceGroupsAsync(
+                indexedComponentReferences,
+                cancellationToken);
+        }
 
         ApplyPageReferenceCounts(references, referenceGroups);
         ApplyComponentReferenceCounts(references, componentReferenceGroups);
@@ -57,10 +62,13 @@ public class PageBuilderAssetReferenceService(
             var referencePages = await LoadReferencePagesAsync(indexedReferences, cancellationToken);
             ApplyReferencePages(references, referencePages);
 
-            var referenceComponents = await LoadReferenceComponentsAsync(
-                indexedComponentReferences,
-                cancellationToken);
-            ApplyReferenceComponents(references, referenceComponents);
+            if (indexedComponentReferences != null)
+            {
+                var referenceComponents = await LoadReferenceComponentsAsync(
+                    indexedComponentReferences,
+                    cancellationToken);
+                ApplyReferenceComponents(references, referenceComponents);
+            }
         }
 
         return CreateResult(references.Values);
@@ -94,21 +102,28 @@ public class PageBuilderAssetReferenceService(
 
         reference.PageReferencesCount = referencesCount;
 
-        var indexedComponentReferences = CreateIndexedComponentReferencesQuery(repository)
-            .Where(x => x.StoreId == criteria.StoreId)
-            .Where(x => x.NormalizedAssetUrl.StartsWith(folderPrefix));
-        reference.LinkedComponentReferencesCount = await indexedComponentReferences
-            .Select(x => x.LinkedComponentId)
-            .Distinct()
-            .CountAsync(cancellationToken);
+        IQueryable<IndexedComponentReferenceResult> indexedComponentReferences = null;
+        if (repository is IPageBuilderLinkedComponentRepository linkedRepository)
+        {
+            indexedComponentReferences = CreateIndexedComponentReferencesQuery(linkedRepository)
+                .Where(x => x.StoreId == criteria.StoreId)
+                .Where(x => x.NormalizedAssetUrl.StartsWith(folderPrefix));
+            reference.LinkedComponentReferencesCount = await indexedComponentReferences
+                .Select(x => x.LinkedComponentId)
+                .Distinct()
+                .CountAsync(cancellationToken);
+        }
         reference.ReferencesCount = reference.PageReferencesCount + reference.LinkedComponentReferencesCount;
 
         if (criteria.IncludePages)
         {
             ApplyFolderReferencePages(reference, await LoadReferencePagesAsync(indexedReferences, cancellationToken));
-            ApplyFolderReferenceComponents(
-                reference,
-                await LoadReferenceComponentsAsync(indexedComponentReferences, cancellationToken));
+            if (indexedComponentReferences != null)
+            {
+                ApplyFolderReferenceComponents(
+                    reference,
+                    await LoadReferenceComponentsAsync(indexedComponentReferences, cancellationToken));
+            }
         }
 
         return CreateResult([reference]);
@@ -130,7 +145,7 @@ public class PageBuilderAssetReferenceService(
 
     private static IQueryable<IndexedReferenceResult> CreateIndexedReferencesQuery(IPageBuilderModuleRepository repository)
     {
-        return repository.PageBuilderAssetReferences
+        var directPageReferences = repository.PageBuilderAssetReferences
             .Join(
                 repository.PageBuilderPages,
                 reference => reference.PageId,
@@ -151,10 +166,47 @@ public class PageBuilderAssetReferenceService(
                     Status = x.page.Status,
                     NormalizedAssetUrlHash = x.reference.NormalizedAssetUrlHash,
                 });
+
+        // Component assets stay normalized in their aggregate-owned index. Derive the pages that use them
+        // at read time instead of copying those assets into PageBuilderAssetReference. This makes a component
+        // content change visible atomically with its asset index and removes any crash window in fan-out.
+        if (repository is not IPageBuilderLinkedComponentRepository linkedRepository)
+        {
+            return directPageReferences;
+        }
+
+        var componentDerivedPageReferences = linkedRepository.PageBuilderLinkedComponentAssetReferences
+            .Join(
+                linkedRepository.PageBuilderLinkedComponentReferences,
+                asset => asset.LinkedComponentId,
+                placement => placement.LinkedComponentId,
+                (asset, placement) => new { asset, placement })
+            .Join(
+                repository.PageBuilderPages,
+                x => x.placement.PageId,
+                page => page.Id,
+                (x, page) => new { x.asset, page })
+            .Join(
+                repository.GroupedPageBuilderPages,
+                x => x.page.GroupId,
+                group => group.Id,
+                (x, group) => new IndexedReferenceResult
+                {
+                    NormalizedAssetUrl = x.asset.NormalizedAssetUrl,
+                    GroupId = x.page.GroupId,
+                    StoreId = x.page.StoreId ?? group.StoreId,
+                    CultureName = group.CultureName,
+                    Name = group.Name,
+                    Permalink = group.Permalink,
+                    Status = x.page.Status,
+                    NormalizedAssetUrlHash = x.asset.NormalizedAssetUrlHash,
+                });
+
+        return directPageReferences.Concat(componentDerivedPageReferences);
     }
 
     private static IQueryable<IndexedComponentReferenceResult> CreateIndexedComponentReferencesQuery(
-        IPageBuilderModuleRepository repository)
+        IPageBuilderLinkedComponentRepository repository)
     {
         return repository.PageBuilderLinkedComponentAssetReferences
             .Join(

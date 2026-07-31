@@ -8,7 +8,7 @@ import { selectTemplateDataState, selectCurrentSectionsFilter } from './common';
 import { LinkedComponent, LinkedComponentInstanceView, SectionsSchemasList } from '@editor/models';
 import { appHelpers } from '@integration/helpers';
 import { coreHelpers } from '@core/helpers';
-import { helpers, isLinkedComponentReference, resolveLinkedComponents } from '@editor/helpers';
+import { helpers, isLinkedComponentReference } from '@editor/helpers';
 
 import * as fromRoute from '@shared/routing/selectors';
 import * as fromShared from '@shared/store/selectors';
@@ -39,6 +39,11 @@ export const selectLinkedComponentErrors = createSelector(
     state => state.linkedComponentErrors,
 );
 
+export const selectLinkedComponentUsageRefreshIdsByTemplate = createSelector(
+    selectTemplateDataState,
+    state => state.linkedComponentUsageRefreshIdsByTemplate,
+);
+
 export const selectLinkedComponentDetailsState = createSelector(
     selectTemplateDataState,
     state => state.linkedComponentDetails,
@@ -58,17 +63,6 @@ export const selectLinkedComponentsSearchView = createSelector(
             .map(id => components[id])
             .filter((component): component is LinkedComponent => !!component),
     }),
-);
-
-export const selectResolvedCurrentTemplate = createSelector(
-    selectCurrentTemplateModel,
-    selectLinkedComponentContents,
-    (template, contents) => template ? resolveLinkedComponents(template, contents) : null,
-);
-
-export const selectResolvedCurrentTemplateModel = createSelector(
-    selectResolvedCurrentTemplate,
-    result => result?.template || null,
 );
 
 export const selectCurrentLinkedComponent = createSelector(

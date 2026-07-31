@@ -33,7 +33,10 @@
       "NO_USAGE": "未用于任何 Page Builder 页面。",
       "DELETE_BLOCKED_ONE": "删除前，请先从页面中移除此组件。",
       "DELETE_BLOCKED_MANY": "删除前，请先从全部 {count} 个页面中移除此组件。",
-      "NOT_AVAILABLE": "不适用"
+      "NOT_AVAILABLE": "不适用",
+      "OPEN_UNAVAILABLE_PERMISSION": "您没有权限在 Designer 中打开此页面。",
+      "OPEN_UNAVAILABLE_ARCHIVED": "无法在 Designer 中打开已归档的页面。",
+      "OPEN_UNAVAILABLE_IDENTITY": "页面标识符不可用，因此无法打开此页面。"
     },
     "EMPTY": {
       "TITLE": "暂无共享组件",

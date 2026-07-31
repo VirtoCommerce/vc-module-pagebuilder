@@ -68,6 +68,7 @@ describe('LivePreviewComponent', () => {
 
     expect(previewBridge.registerFrame).toHaveBeenCalledWith(frame);
     expect(previewBridge.send).toHaveBeenCalledWith({ type: 'connect' });
+    expect(frame.title).toBe('Storefront page preview');
 
     fixture.destroy();
     expect(previewBridge.unregisterFrame).toHaveBeenCalledWith(frame);
@@ -77,13 +78,20 @@ describe('LivePreviewComponent', () => {
     const fixture = TestBed.createComponent(LivePreviewComponent);
     await fixture.whenStable();
     const frame = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement;
+    const pageMessage = { type: 'page', template: { content: [], settings: {} } };
+    sendToPreview({ type: 'preview-loaded' });
     previewBridge.send.mockClear();
 
     frame.dispatchEvent(new Event('load'));
+    sendToPreview(pageMessage);
     await fixture.whenStable();
 
     expect(previewBridge.registerFrame).toHaveBeenLastCalledWith(frame);
     expect(previewBridge.send).toHaveBeenCalledWith({ type: 'connect' });
+    expect(previewBridge.send).not.toHaveBeenCalledWith(pageMessage);
+
+    sendToPreview({ type: 'preview-loaded' });
+    expect(previewBridge.send).toHaveBeenCalledWith(pageMessage);
   });
 
   it('queues typed outbound messages until preview-loaded and ignores malformed payloads', async () => {

@@ -33,7 +33,10 @@
       "NO_USAGE": "N’est utilisé sur aucune page Page Builder.",
       "DELETE_BLOCKED_ONE": "Retirez ce composant de la page avant de le supprimer.",
       "DELETE_BLOCKED_MANY": "Retirez ce composant des {count} pages avant de le supprimer.",
-      "NOT_AVAILABLE": "N/D"
+      "NOT_AVAILABLE": "N/D",
+      "OPEN_UNAVAILABLE_PERMISSION": "Vous n’avez pas l’autorisation d’ouvrir cette page dans Designer.",
+      "OPEN_UNAVAILABLE_ARCHIVED": "Les pages archivées ne peuvent pas être ouvertes dans Designer.",
+      "OPEN_UNAVAILABLE_IDENTITY": "Cette page ne peut pas être ouverte car son identifiant n’est pas disponible."
     },
     "EMPTY": {
       "TITLE": "Aucun composant partagé pour le moment",

@@ -7,6 +7,7 @@ using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Data.Models;
 using VirtoCommerce.PageBuilderModule.Data.Repositories;
 using VirtoCommerce.PageBuilderModule.Data.Services;
+using VirtoCommerce.Platform.Core.Events;
 using Xunit;
 
 namespace VirtoCommerce.PageBuilderModule.Tests;
@@ -14,7 +15,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests;
 public class PageBuilderAssetReferenceServiceLinkedComponentTests
 {
     [Fact]
-    public async Task SearchReferencesAsync_UnionsPageAndUnusedLinkedComponentOwners()
+    public async Task SearchReferencesAsync_UnionsDirectAndComponentDerivedPagesWithoutDoubleCounting()
     {
         await using var database = await TestDatabase.CreateAsync();
         var service = new PageBuilderAssetReferenceService(database.RepositoryFactory);
@@ -39,13 +40,13 @@ public class PageBuilderAssetReferenceServiceLinkedComponentTests
         var componentOnlyReference = Assert.Single(
             result.Results,
             x => x.AssetUrl == ComponentOnlyAssetUrl);
-        Assert.Equal(0, componentOnlyReference.PageReferencesCount);
+        Assert.Equal(1, componentOnlyReference.PageReferencesCount);
         Assert.Equal(1, componentOnlyReference.LinkedComponentReferencesCount);
-        Assert.Equal(1, componentOnlyReference.ReferencesCount);
-        Assert.Empty(componentOnlyReference.Pages);
+        Assert.Equal(2, componentOnlyReference.ReferencesCount);
+        Assert.Equal(GroupId, Assert.Single(componentOnlyReference.Pages).Id);
         var componentOwner = Assert.Single(componentOnlyReference.LinkedComponents);
         Assert.Equal(ComponentId, componentOwner.Id);
-        Assert.Equal("Unused shared component", componentOwner.Name);
+        Assert.Equal("Shared component", componentOwner.Name);
     }
 
     [Fact]
@@ -70,6 +71,46 @@ public class PageBuilderAssetReferenceServiceLinkedComponentTests
         Assert.Equal(2, reference.ReferencesCount);
         Assert.Single(reference.Pages);
         Assert.Single(reference.LinkedComponents);
+    }
+
+    [Fact]
+    public async Task SearchReferencesAsync_ReflectsComponentAssetChangeWithoutPageFanout()
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        var contentService = new PageBuilderLinkedComponentContentService(
+            database.RepositoryFactory,
+            new NoopEventPublisher());
+        await contentService.SaveContentAsync(
+            ComponentId,
+            $"{{ \"settings\": {{ \"image\": \"{ReplacementAssetUrl}\" }}, \"content\": [] }}",
+            TestContext.Current.CancellationToken);
+
+        var service = new PageBuilderAssetReferenceService(database.RepositoryFactory);
+        var result = await service.SearchReferencesAsync(
+            new PageBuilderAssetReferencesSearchCriteria
+            {
+                StoreId = StoreId,
+                IncludePages = true,
+                AssetUrls = [ComponentOnlyAssetUrl, ReplacementAssetUrl],
+            },
+            TestContext.Current.CancellationToken);
+
+        var oldReference = Assert.Single(result.Results, x => x.AssetUrl == ComponentOnlyAssetUrl);
+        Assert.Equal(0, oldReference.ReferencesCount);
+        Assert.Empty(oldReference.Pages);
+        Assert.Empty(oldReference.LinkedComponents);
+
+        var replacementReference = Assert.Single(result.Results, x => x.AssetUrl == ReplacementAssetUrl);
+        Assert.Equal(1, replacementReference.PageReferencesCount);
+        Assert.Equal(1, replacementReference.LinkedComponentReferencesCount);
+        Assert.Equal(GroupId, Assert.Single(replacementReference.Pages).Id);
+        Assert.Equal(ComponentId, Assert.Single(replacementReference.LinkedComponents).Id);
+    }
+
+    private sealed class NoopEventPublisher : IEventPublisher
+    {
+        public Task Publish<T>(T @event, System.Threading.CancellationToken cancellationToken = default)
+            where T : IEvent => Task.CompletedTask;
     }
 
     private sealed class TestDatabase : IAsyncDisposable
@@ -129,7 +170,7 @@ public class PageBuilderAssetReferenceServiceLinkedComponentTests
             {
                 Id = ComponentId,
                 StoreId = StoreId,
-                Name = "Unused shared component",
+                Name = "Shared component",
                 CreatedDate = createdDate,
                 Content = new PageBuilderLinkedComponentContentEntity
                 {
@@ -140,6 +181,12 @@ public class PageBuilderAssetReferenceServiceLinkedComponentTests
             context.AddRange(
                 CreateComponentReference(SharedAssetUrl),
                 CreateComponentReference(ComponentOnlyAssetUrl));
+            context.Add(new PageBuilderLinkedComponentReferenceEntity
+            {
+                Id = Guid.NewGuid().ToString("N"),
+                PageId = PageId,
+                LinkedComponentId = ComponentId,
+            });
             await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
             return database;
@@ -176,4 +223,5 @@ public class PageBuilderAssetReferenceServiceLinkedComponentTests
     private const string ComponentId = "component";
     private const string SharedAssetUrl = "/stores/store/shared.png";
     private const string ComponentOnlyAssetUrl = "/stores/store/component-only.png";
+    private const string ReplacementAssetUrl = "/stores/store/replacement.png";
 }

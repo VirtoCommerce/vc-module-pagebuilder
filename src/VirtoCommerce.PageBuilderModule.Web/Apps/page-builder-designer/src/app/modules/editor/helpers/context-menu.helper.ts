@@ -129,8 +129,10 @@ export class ContextMenuHelper {
     async getSectionsActions(item: SectionModel, canAddBlock: boolean): Promise<ContextMenuAction[]> {
         if (isLinkedComponentReference(item)) {
             const linkedClipboardEmpty = !(await this.hasClipboardData());
+            const canOpenOriginal = this.can('canInsertLinkedComponents');
+            const canEditOriginal = canEditLinkedComponentOriginal(this.appConfig);
             return this.getActions([
-                ['edit-linked-component', !canEditLinkedComponentOriginal(this.appConfig)],
+                ['edit-linked-component', !canOpenOriginal],
                 ['detach-linked-component', !this.can('canInsertLinkedComponents')],
                 '|',
                 'copy',
@@ -138,7 +140,9 @@ export class ContextMenuHelper {
                 ['paste-after', linkedClipboardEmpty],
                 '|',
                 'delete',
-            ]);
+            ]).map(action => action !== '|' && action.action === 'edit-linked-component'
+                ? { ...action, title: canEditOriginal ? 'Edit original' : 'View original' }
+                : action);
         }
         const emptyClipboardData = !(await this.hasClipboardData());
 

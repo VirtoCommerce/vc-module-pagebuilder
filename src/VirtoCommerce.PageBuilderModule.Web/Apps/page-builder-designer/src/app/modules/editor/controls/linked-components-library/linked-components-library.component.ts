@@ -18,18 +18,30 @@ import * as routingSelectors from '@shared/routing/selectors';
     imports: [IconComponent],
 })
 export class LinkedComponentsLibraryComponent implements OnInit {
+    private static nextContentId = 0;
     private readonly store = inject(Store<BuilderState>);
     private readonly appConfig = inject(AppConfig);
 
     readonly opened = signal(true);
+    readonly contentId = `linked-components-library-content-${LinkedComponentsLibraryComponent.nextContentId++}`;
     readonly view = toSignal(this.store.select(selectors.selectLinkedComponentsSearchView), {
-        initialValue: { keyword: '', resultIds: [], results: [], totalCount: 0, loading: false, error: null },
+        initialValue: {
+            keyword: '',
+            resultIds: [],
+            results: [],
+            optimisticResultIds: [],
+            loadedCount: 0,
+            totalCount: 0,
+            loading: false,
+            rebasePending: false,
+            error: null,
+        },
     });
     readonly insertIndex = toSignal(this.store.select(routingSelectors.selectInsertIndexParameter), { initialValue: -1 });
     readonly canInsert = this.appConfig.getValue('canInsertLinkedComponents') === true;
     readonly canLoadMore = computed(() => {
         const view = this.view();
-        return !view.loading && view.resultIds.length < view.totalCount;
+        return !view.loading && !view.rebasePending && view.loadedCount < view.totalCount;
     });
 
     ngOnInit(): void {
@@ -59,7 +71,20 @@ export class LinkedComponentsLibraryComponent implements OnInit {
 
         this.store.dispatch(actions.searchLinkedComponents({
             keyword: view.keyword,
-            skip: view.resultIds.length,
+            skip: view.loadedCount,
         }));
+    }
+
+    retry(): void {
+        const view = this.view();
+        if (view.rebasePending) {
+            this.store.dispatch(actions.refreshLinkedComponentsSearch({ keyword: view.keyword }));
+            return;
+        }
+
+        const skip = view.loadedCount > 0 && view.loadedCount < view.totalCount
+            ? view.loadedCount
+            : undefined;
+        this.store.dispatch(actions.retryLinkedComponentsSearch({ keyword: view.keyword, skip }));
     }
 }

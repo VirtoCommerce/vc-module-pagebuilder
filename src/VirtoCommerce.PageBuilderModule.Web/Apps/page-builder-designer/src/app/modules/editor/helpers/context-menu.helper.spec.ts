@@ -44,7 +44,7 @@ describe('ContextMenuHelper Linked Components', () => {
         expect(findAction(actions, 'paste-after').inactive).toBe(false);
     });
 
-    it('keeps component edit and detach permissions independent', async () => {
+    it('opens the original read-only and keeps detach available with read permission', async () => {
         appConfig.getValue.mockImplementation((option: string) => option === 'canInsertLinkedComponents');
 
         const actions = await TestBed.inject(ContextMenuHelper).getSectionsActions(
@@ -52,11 +52,12 @@ describe('ContextMenuHelper Linked Components', () => {
             false,
         );
 
-        expect(findAction(actions, 'edit-linked-component').inactive).toBe(true);
+        expect(findAction(actions, 'edit-linked-component').inactive).toBe(false);
+        expect(findAction(actions, 'edit-linked-component').title).toBe('View original');
         expect(findAction(actions, 'detach-linked-component').inactive).toBe(false);
     });
 
-    it('requires both read and update permission to edit the original', async () => {
+    it('does not expose the original without read permission', async () => {
         appConfig.getValue.mockImplementation((option: string) => option === 'canEditLinkedComponents');
 
         const actions = await TestBed.inject(ContextMenuHelper).getSectionsActions(
@@ -65,6 +66,7 @@ describe('ContextMenuHelper Linked Components', () => {
         );
 
         expect(findAction(actions, 'edit-linked-component').inactive).toBe(true);
+        expect(findAction(actions, 'edit-linked-component').title).toBe('View original');
         expect(findAction(actions, 'detach-linked-component').inactive).toBe(true);
     });
 });

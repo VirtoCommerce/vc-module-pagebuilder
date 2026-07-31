@@ -44,31 +44,11 @@ public class PageBuilderAssetReferenceIndexService(
         await repository.UnitOfWork.CommitAsync();
     }
 
-    internal static Task RebuildPageIndexInCurrentTransactionAsync(
+    internal static async Task ReplacePageIndexInCurrentUnitOfWorkAsync(
         PageBuilderModuleDbContext dbContext,
         string pageId,
         string content,
         CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(dbContext);
-
-        if (dbContext.Database.CurrentTransaction == null)
-        {
-            throw new InvalidOperationException("The page content and asset reference index must share a database transaction.");
-        }
-
-        return RebuildPageIndexInCurrentTransactionCoreAsync(
-            dbContext,
-            pageId,
-            content,
-            cancellationToken);
-    }
-
-    private static async Task RebuildPageIndexInCurrentTransactionCoreAsync(
-        PageBuilderModuleDbContext dbContext,
-        string pageId,
-        string content,
-        CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(pageId))
         {
@@ -96,8 +76,6 @@ public class PageBuilderAssetReferenceIndexService(
                     }),
                 cancellationToken);
         }
-
-        await dbContext.SaveChangesAsync(cancellationToken);
     }
 
     public async Task DeletePageIndexAsync(IEnumerable<string> pageIds, CancellationToken cancellationToken = default)

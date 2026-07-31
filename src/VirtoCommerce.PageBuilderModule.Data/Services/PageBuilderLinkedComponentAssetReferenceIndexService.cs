@@ -20,13 +20,19 @@ public class PageBuilderLinkedComponentAssetReferenceIndexService(
         }
 
         using var repository = repositoryFactory();
-        await repository.ExecuteUnderLinkedComponentWriteLockAsync(
+        if (repository is not IPageBuilderWriteLockRepository writeLockRepository ||
+            repository is not IPageBuilderLinkedComponentRepository linkedRepository)
+        {
+            throw new NotSupportedException("Shared Component writes require repository write-lock support.");
+        }
+
+        await writeLockRepository.ExecuteUnderLinkedComponentWriteLockAsync(
             linkedComponentId,
             async transactionCancellationToken =>
             {
                 // Migration/backfill can pass content read before a concurrent live edit. Once the row lock
                 // is held, prefer the current persisted version so an older snapshot cannot replace the index.
-                var currentContent = await repository.PageBuilderLinkedComponentContents
+                var currentContent = await linkedRepository.PageBuilderLinkedComponentContents
                     .Where(x => x.Id == linkedComponentId)
                     .Select(x => x.ComponentContent)
                     .FirstOrDefaultAsync(transactionCancellationToken);
@@ -66,7 +72,8 @@ public class PageBuilderLinkedComponentAssetReferenceIndexService(
             return;
         }
 
-        var existingReferences = await repository.PageBuilderLinkedComponentAssetReferences
+        var linkedRepository = repository.RequireLinkedComponents();
+        var existingReferences = await linkedRepository.PageBuilderLinkedComponentAssetReferences
             .Where(x => x.LinkedComponentId == linkedComponentId)
             .ToListAsync(cancellationToken);
 

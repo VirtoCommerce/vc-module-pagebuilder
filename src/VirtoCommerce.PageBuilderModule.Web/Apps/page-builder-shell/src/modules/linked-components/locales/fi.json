@@ -33,7 +33,10 @@
       "NO_USAGE": "Ei käytössä millään Page Builder -sivulla.",
       "DELETE_BLOCKED_ONE": "Poista tämä komponentti sivulta ennen sen poistamista.",
       "DELETE_BLOCKED_MANY": "Poista tämä komponentti kaikilta {count} sivulta ennen sen poistamista.",
-      "NOT_AVAILABLE": "Ei saatavilla"
+      "NOT_AVAILABLE": "Ei saatavilla",
+      "OPEN_UNAVAILABLE_PERMISSION": "Sinulla ei ole oikeutta avata tätä sivua Designerissa.",
+      "OPEN_UNAVAILABLE_ARCHIVED": "Arkistoituja sivuja ei voi avata Designerissa.",
+      "OPEN_UNAVAILABLE_IDENTITY": "Sivua ei voi avata, koska sen tunniste ei ole saatavilla."
     },
     "EMPTY": {
       "TITLE": "Ei vielä jaettuja komponentteja",

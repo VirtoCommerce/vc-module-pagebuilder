@@ -16,13 +16,14 @@ public class PageBuilderPageChangedEventHandler(
     {
         await UpdateReferenceIndex(message);
 
-        var eventTasks = message.ChangedEntries.Select(x =>
-        {
-            var page = x.NewEntry ?? x.OldEntry;
-            return ToPagesDomainEvent(page, x.EntryState);
-        });
-
-        var events = await Task.WhenAll(eventTasks);
+        var changedEntries = message.ChangedEntries.ToArray();
+        var events = await SelectBoundedAsync(
+            changedEntries,
+            x =>
+            {
+                var page = x.NewEntry ?? x.OldEntry;
+                return ToPagesDomainEvent(page, x.EntryState);
+            });
 
         await PublishPagesDomainEvents(events, eventPublisher);
     }

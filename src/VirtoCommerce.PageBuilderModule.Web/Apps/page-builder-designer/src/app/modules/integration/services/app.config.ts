@@ -139,5 +139,4 @@ export type OptionName = 'templatesListUrl'
   | 'canInsertLinkedComponents'
   | 'canCreateLinkedComponents'
   | 'canEditLinkedComponents'
-  | 'canDeleteLinkedComponents'
   ;

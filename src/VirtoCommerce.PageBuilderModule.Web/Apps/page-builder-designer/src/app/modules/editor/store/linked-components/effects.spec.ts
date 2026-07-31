@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideMockActions } from '@ngrx/effects/testing';
 import { MockStore, provideMockStore } from '@ngrx/store/testing';
 import { Action } from '@ngrx/store';
-import { filter, firstValueFrom, of, ReplaySubject, Subject, take, toArray } from 'rxjs';
+import { filter, firstValueFrom, of, ReplaySubject, Subject, take, throwError, toArray } from 'rxjs';
 
 import { createSection, createTemplate } from '@app/testing';
 import { ModalService } from '@core/services';
@@ -13,6 +13,7 @@ import { AppConfig } from '@integration/services';
 import * as routingSelectors from '@shared/routing/selectors';
 import * as routingActions from '@shared/routing/actions';
 import * as sharedActions from '@shared/store/actions';
+import * as sharedSelectors from '@shared/store/selectors';
 
 import * as actions from '../actions';
 import * as selectors from '../selectors';
@@ -33,7 +34,7 @@ describe('Linked Component effects', () => {
     getContent: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
   };
-  let modals: { show: ReturnType<typeof vi.fn> };
+  let modals: { show: ReturnType<typeof vi.fn>; confirm: ReturnType<typeof vi.fn> };
 
   const component = {
     id: 'component-1',
@@ -58,7 +59,10 @@ describe('Linked Component effects', () => {
       getContent: vi.fn().mockReturnValue(of(linkedContent)),
       create: vi.fn().mockReturnValue(of(component)),
     };
-    modals = { show: vi.fn().mockReturnValue(of({ accept: true, name: component.name })) };
+    modals = {
+      show: vi.fn().mockReturnValue(of({ accept: true, name: component.name })),
+      confirm: vi.fn().mockReturnValue(of(true)),
+    };
 
     TestBed.configureTestingModule({
       providers: [
@@ -71,6 +75,20 @@ describe('Linked Component effects', () => {
             { selector: selectors.selectLinkedComponents, value: {} },
             { selector: selectors.selectLinkedComponentContents, value: {} },
             { selector: selectors.selectLinkedComponentErrors, value: {} },
+            { selector: selectors.selectLinkedComponentUsageRefreshIdsByTemplate, value: {} },
+            {
+              selector: selectors.selectLinkedComponentsSearchState,
+              value: {
+                keyword: '',
+                resultIds: [],
+                optimisticResultIds: [],
+                loadedCount: 0,
+                totalCount: 0,
+                loading: false,
+                rebasePending: false,
+                error: null,
+              },
+            },
             { selector: selectors.selectCurrentTemplateModel, value: raw },
             { selector: selectors.selectCurrentLinkedComponent, value: null },
             { selector: selectors.selectCheckedItems, value: ['before'] },
@@ -79,6 +97,7 @@ describe('Linked Component effects', () => {
             { selector: routingSelectors.selectGroupIdParameter, value: 'page-1' },
             { selector: routingSelectors.selectSectionIdParameter, value: '' },
             { selector: routingSelectors.selectQueryParams, value: {} },
+            { selector: sharedSelectors.selectCurrentTemplateDirty, value: false },
           ],
         }),
         { provide: LinkedComponentsService, useValue: service },
@@ -98,7 +117,7 @@ describe('Linked Component effects', () => {
   it('loads a bounded next page and marks the result for append', async () => {
     actions$.next(actions.searchLinkedComponents({ keyword: 'hero', skip: 20 }));
 
-    expect(await firstValueFrom(dataEffects.search$)).toEqual(
+    expect(await firstValueFrom(dataEffects.loadMore$)).toEqual(
       actions.searchLinkedComponentsSuccess({
         keyword: 'hero',
         result: { totalCount: 1, results: [component] },
@@ -106,6 +125,73 @@ describe('Linked Component effects', () => {
       }),
     );
     expect(service.search).toHaveBeenCalledWith('hero', 20, 20);
+  });
+
+  it('debounces a search burst but repeats an explicit search for the same normalized keyword', async () => {
+    vi.useFakeTimers();
+    const emitted: Action[] = [];
+    const subscription = dataEffects.search$.subscribe((action) => emitted.push(action));
+
+    actions$.next(actions.searchLinkedComponents({ keyword: 'hero' }));
+    actions$.next(actions.searchLinkedComponents({ keyword: '  hero  ' }));
+    await vi.advanceTimersByTimeAsync(250);
+    actions$.next(actions.searchLinkedComponents({ keyword: 'hero' }));
+    await vi.advanceTimersByTimeAsync(250);
+
+    expect(service.search).toHaveBeenCalledTimes(2);
+    expect(service.search).toHaveBeenNthCalledWith(1, 'hero', 0, 20);
+    expect(service.search).toHaveBeenNthCalledWith(2, 'hero', 0, 20);
+    expect(emitted).toHaveLength(2);
+
+    subscription.unsubscribe();
+    vi.useRealTimers();
+  });
+
+  it('schedules a silent first-page rebase after optimistically caching a matching created component', async () => {
+    actions$.next(actions.cacheLinkedComponent({ component, addToSearchResults: true }));
+
+    expect(await firstValueFrom(dataEffects.refreshSearchAfterCreate$)).toEqual(
+      actions.refreshLinkedComponentsSearch({ keyword: '' }),
+    );
+  });
+
+  it('refreshes an optimistic search from the first page and marks the response as a rebase', async () => {
+    actions$.next(actions.refreshLinkedComponentsSearch({ keyword: 'hero' }));
+
+    expect(await firstValueFrom(dataEffects.search$)).toEqual(
+      actions.searchLinkedComponentsSuccess({
+        keyword: 'hero',
+        result: { totalCount: 1, results: [component] },
+        append: false,
+        rebase: true,
+      }),
+    );
+    expect(service.search).toHaveBeenCalledWith('hero', 0, 20);
+  });
+
+  it('cancels an older retry when an optimistic search rebase starts', async () => {
+    const retryResponse = new Subject<{ totalCount: number; results: (typeof component)[] }>();
+    const refreshResponse = new Subject<{ totalCount: number; results: (typeof component)[] }>();
+    service.search.mockReturnValueOnce(retryResponse).mockReturnValueOnce(refreshResponse);
+    const results: Action[] = [];
+    const subscription = dataEffects.search$.subscribe((action) => results.push(action));
+
+    actions$.next(actions.retryLinkedComponentsSearch({ keyword: 'hero' }));
+    actions$.next(actions.refreshLinkedComponentsSearch({ keyword: 'hero' }));
+    refreshResponse.next({ totalCount: 1, results: [component] });
+    refreshResponse.complete();
+    retryResponse.next({ totalCount: 0, results: [] });
+    retryResponse.complete();
+
+    expect(results).toEqual([
+      actions.searchLinkedComponentsSuccess({
+        keyword: 'hero',
+        result: { totalCount: 1, results: [component] },
+        append: false,
+        rebase: true,
+      }),
+    ]);
+    subscription.unsubscribe();
   });
 
   it('loads references and broadcasts only the resolved preview template', async () => {
@@ -123,17 +209,18 @@ describe('Linked Component effects', () => {
     expect(previewTemplate.content[1].id).not.toBe('shared');
     expect(isLinkedComponentReference(raw.content[1])).toBe(true);
     expect(preview.msg['linkedComponentBoundaries']).toEqual([
-      expect.objectContaining({
+      {
         placementId: 'placement-1',
         componentRef: component.id,
-        name: component.name,
-        usageCount: component.usageCount,
-      }),
+        startIndex: 1,
+        count: 1,
+        label: 'Shared · Used on 2 pages',
+      },
     ]);
   });
 
-  it('opens a usage page and clears the linked-component route state', async () => {
-    actions$.next(actions.openLinkedComponentUsagePage({ pageId: 'page-group-1' }));
+  it('opens a usage page in its own culture and clears the linked-component route state', async () => {
+    actions$.next(actions.openLinkedComponentUsagePage({ pageId: 'page-group-1', cultureName: 'de-DE' }));
 
     expect(await firstValueFrom(uiEffects.openUsagePage$)).toEqual(
       routingActions.go({
@@ -141,6 +228,7 @@ describe('Linked Component effects', () => {
         queryParams: {
           type: 'pages',
           groupId: 'page-group-1',
+          cultureName: 'de-DE',
           path: undefined,
           parent: undefined,
           linkedComponentId: undefined,
@@ -148,6 +236,106 @@ describe('Linked Component effects', () => {
         },
       }),
     );
+  });
+
+  it('clears the previous culture when the target usage page has no culture', async () => {
+    actions$.next(actions.openLinkedComponentUsagePage({ pageId: 'page-group-1', cultureName: null }));
+
+    expect(await firstValueFrom(uiEffects.openUsagePage$)).toEqual(
+      routingActions.go({
+        path: ['/pages'],
+        queryParams: {
+          type: 'pages',
+          groupId: 'page-group-1',
+          cultureName: undefined,
+          path: undefined,
+          parent: undefined,
+          linkedComponentId: undefined,
+          linkedComponentReturnPageId: undefined,
+        },
+      }),
+    );
+  });
+
+  it('navigates from a dirty page without showing the Shared Component discard dialog', async () => {
+    store.overrideSelector(sharedSelectors.selectCurrentTemplateDirty, true);
+    store.overrideSelector(routingSelectors.selectTemplateKeyParameter, 'page-1');
+    store.refreshState();
+
+    actions$.next(actions.openLinkedComponentUsagePage({ pageId: 'page-group-1', cultureName: 'en-US' }));
+
+    expect(await firstValueFrom(uiEffects.openUsagePage$)).toEqual(
+      routingActions.go({
+        path: ['/pages'],
+        queryParams: {
+          type: 'pages',
+          groupId: 'page-group-1',
+          cultureName: 'en-US',
+          path: undefined,
+          parent: undefined,
+          linkedComponentId: undefined,
+          linkedComponentReturnPageId: undefined,
+        },
+      }),
+    );
+    expect(modals.confirm).not.toHaveBeenCalled();
+  });
+
+  it('keeps editing when dirty-navigation discard is cancelled', async () => {
+    store.overrideSelector(sharedSelectors.selectCurrentTemplateDirty, true);
+    store.overrideSelector(routingSelectors.selectTemplateKeyParameter, 'linked-component::component-1');
+    store.refreshState();
+    modals.confirm.mockReturnValue(of(false));
+
+    actions$.next(actions.openLinkedComponentUsagePage({ pageId: 'page-group-1', cultureName: 'en-US' }));
+
+    expect(await firstValueFrom(uiEffects.openUsagePage$)).toEqual(sharedActions.empty());
+    expect(modals.confirm).toHaveBeenCalledWith(
+      'Discard unsaved changes and leave this Shared Component?',
+      { confirmText: 'Discard', declineText: 'Keep editing' },
+    );
+  });
+
+  it('clears synthetic dirty and template state before leaving a dirty original', async () => {
+    const templateKey = 'linked-component::component-1';
+    store.overrideSelector(sharedSelectors.selectCurrentTemplateDirty, true);
+    store.overrideSelector(routingSelectors.selectTemplateKeyParameter, templateKey);
+    store.refreshState();
+
+    const emittedPromise = firstValueFrom(uiEffects.openUsagePage$.pipe(take(3), toArray()));
+    actions$.next(actions.openLinkedComponentUsagePage({ pageId: 'page-group-1', cultureName: 'en-US' }));
+
+    expect(await emittedPromise).toEqual([
+      sharedActions.setRootDirtyState({ templateKey, dirty: false }),
+      actions.discardLinkedComponentChanges({ templateKey }),
+      routingActions.go({
+        path: ['/pages'],
+        queryParams: {
+          type: 'pages',
+          groupId: 'page-group-1',
+          cultureName: 'en-US',
+          path: undefined,
+          parent: undefined,
+          linkedComponentId: undefined,
+          linkedComponentReturnPageId: undefined,
+        },
+      }),
+    ]);
+  });
+
+  it('does not open an archived usage page', () => {
+    store.overrideSelector(selectors.selectCurrentLinkedComponent, {
+      ...component,
+      usagePages: [{ id: 'archived-page', name: 'Archived', status: 'Archived' }],
+    });
+    store.refreshState();
+    const emitted: Action[] = [];
+    const subscription = uiEffects.openUsagePage$.subscribe((action) => emitted.push(action));
+
+    actions$.next(actions.openLinkedComponentUsagePage({ pageId: 'archived-page', cultureName: 'en-US' }));
+
+    expect(emitted).toEqual([]);
+    subscription.unsubscribe();
   });
 
   it('remembers the source page when opening the original component', async () => {
@@ -169,27 +357,63 @@ describe('Linked Component effects', () => {
   });
 
   it('returns to the source page after a linked-component editor reload', async () => {
+    store.overrideSelector(selectors.selectCurrentLinkedComponent, {
+      ...component,
+      usagePages: [{ id: 'source-page', name: 'Homepage', cultureName: 'fr-FR' }],
+    });
     store.overrideSelector(routingSelectors.selectQueryParams, {
       linkedComponentReturnPageId: 'source-page',
+      cultureName: 'en-US',
     });
     store.refreshState();
     actions$.next(actions.closeLinkedComponent());
 
     expect(await firstValueFrom(uiEffects.closeDocument$)).toEqual(
-      actions.openLinkedComponentUsagePage({ pageId: 'source-page' }),
+      actions.openLinkedComponentUsagePage({ pageId: 'source-page', cultureName: 'fr-FR' }),
+    );
+  });
+
+  it('keeps the dirty original open when Back discard is cancelled', async () => {
+    store.overrideSelector(sharedSelectors.selectCurrentTemplateDirty, true);
+    store.overrideSelector(routingSelectors.selectTemplateKeyParameter, 'linked-component::component-1');
+    store.refreshState();
+    modals.confirm.mockReturnValue(of(false));
+    actions$.next(actions.closeLinkedComponent());
+
+    expect(await firstValueFrom(uiEffects.closeDocument$)).toEqual(sharedActions.empty());
+    expect(modals.confirm).toHaveBeenCalledWith(
+      'Discard unsaved changes and leave this Shared Component?',
+      { confirmText: 'Discard', declineText: 'Keep editing' },
     );
   });
 
   it('falls back to the first usage page when a deep link has no return context', async () => {
     store.overrideSelector(selectors.selectCurrentLinkedComponent, {
       ...component,
-      usagePages: [{ id: 'first-usage', name: 'Homepage' }],
+      usagePages: [{ id: 'first-usage', name: 'Homepage', cultureName: 'es-ES' }],
     });
     store.refreshState();
     actions$.next(actions.closeLinkedComponent());
 
     expect(await firstValueFrom(uiEffects.closeDocument$)).toEqual(
-      actions.openLinkedComponentUsagePage({ pageId: 'first-usage' }),
+      actions.openLinkedComponentUsagePage({ pageId: 'first-usage', cultureName: 'es-ES' }),
+    );
+  });
+
+  it('skips unavailable pages when choosing a where-used fallback', async () => {
+    store.overrideSelector(selectors.selectCurrentLinkedComponent, {
+      ...component,
+      usagePages: [
+        { id: 'archived', name: 'Archived', status: 'Archived' },
+        { id: null, name: 'Missing identity', status: 'Draft' },
+        { id: 'available', name: 'Available', cultureName: 'it-IT', status: 'Draft' },
+      ],
+    });
+    store.refreshState();
+    actions$.next(actions.closeLinkedComponent());
+
+    expect(await firstValueFrom(uiEffects.closeDocument$)).toEqual(
+      actions.openLinkedComponentUsagePage({ pageId: 'available', cultureName: 'it-IT' }),
     );
   });
 
@@ -472,10 +696,14 @@ describe('Linked Component effects', () => {
     expect(isLinkedComponentReference(copied.template.content[1])).toBe(false);
   });
 
-  it('creates a component from selected sections and replaces them with one marker', async () => {
+  it('creates a component, replaces the selected sections, and clears their selection state', async () => {
     actions$.next(actions.saveSelectionAsLinkedComponent());
 
-    const emitted = await firstValueFrom(domainEffects.saveSelection$.pipe(take(4), toArray()));
+    const emitted = await firstValueFrom(domainEffects.saveSelection$.pipe(take(5), toArray()));
+    const cache = emitted.find((action) => action.type === actions.cacheLinkedComponent.type) as ReturnType<
+      typeof actions.cacheLinkedComponent
+    >;
+    const deselect = emitted.find((action) => action.type === actions.sectionStateChangedAction.type);
     const update = emitted.find((action) => action.type === actions.updateTemplateAction.type) as ReturnType<
       typeof actions.updateTemplateAction
     >;
@@ -486,6 +714,14 @@ describe('Linked Component effects', () => {
         content: [raw.content[0]],
       }),
     );
+    expect(cache.addToSearchResults).toBe(true);
+    expect(deselect).toEqual(
+      actions.sectionStateChangedAction({
+        sectionId: 'before',
+        templateKey: 'page-1',
+        state: { selected: false },
+      }),
+    );
     expect(isLinkedComponentReference(update.template.content[0])).toBe(true);
     expect(update.template.content[1]).toBe(raw.content[1]);
   });
@@ -493,7 +729,7 @@ describe('Linked Component effects', () => {
   it('applies a delayed create to the latest template without losing unrelated edits', async () => {
     const response$ = new Subject<typeof component>();
     service.create.mockReturnValue(response$);
-    const emittedPromise = firstValueFrom(domainEffects.saveSelection$.pipe(take(4), toArray()));
+    const emittedPromise = firstValueFrom(domainEffects.saveSelection$.pipe(take(5), toArray()));
 
     actions$.next(actions.saveSelectionAsLinkedComponent());
     const unrelated = createSection({ id: 'unrelated' });
@@ -604,6 +840,42 @@ describe('Linked Component effects', () => {
     expect(service.get).toHaveBeenCalledWith(component.id);
   });
 
+  it('refreshes usage metadata after the last linked instance is removed and saved', async () => {
+    const detached = createTemplate({ content: [createSection({ id: 'independent' })] });
+    const refreshed = { ...component, usageCount: 0, usagePages: [] };
+    service.get.mockReturnValue(of(refreshed));
+    store.overrideSelector(selectors.selectLinkedComponentUsageRefreshIdsByTemplate, {
+      'page-1': [component.id],
+    });
+    store.refreshState();
+    actions$.next(actions.saveTemplateSuccess({ templateKey: 'page-1', template: detached }));
+
+    const emitted = await firstValueFrom(dataEffects.refreshUsageAfterSave$.pipe(take(2), toArray()));
+
+    expect(emitted).toEqual([
+      actions.cacheLinkedComponent({ component: refreshed }),
+      actions.clearLinkedComponentUsageRefresh({ templateKey: 'page-1' }),
+    ]);
+    expect(service.get).toHaveBeenCalledWith(component.id);
+  });
+
+  it('keeps a pending usage refresh after a transient metadata failure', () => {
+    const detached = createTemplate({ content: [createSection({ id: 'independent' })] });
+    service.get.mockReturnValue(throwError(() => new Error('temporary failure')));
+    store.overrideSelector(selectors.selectLinkedComponentUsageRefreshIdsByTemplate, {
+      'page-1': [component.id],
+    });
+    store.refreshState();
+    const emitted: Action[] = [];
+    const subscription = dataEffects.refreshUsageAfterSave$.subscribe((action) => emitted.push(action));
+
+    actions$.next(actions.saveTemplateSuccess({ templateKey: 'page-1', template: detached }));
+
+    expect(emitted).toEqual([]);
+    expect(service.get).toHaveBeenCalledWith(component.id);
+    subscription.unsubscribe();
+  });
+
   it('finishes initial linked resolution before forwarding a later control message', () => {
     const component$ = new Subject<typeof component>();
     const content$ = new Subject<TemplateModel>();
@@ -684,7 +956,7 @@ describe('Linked Component effects', () => {
     expect(preview.msg['section']).toBe(raw.content[0]);
     expect(isLinkedComponentReference(getPreviewTemplate(preview).content[1])).toBe(false);
     expect(preview.msg['linkedComponentBoundaries']).toEqual([
-      expect.objectContaining({ name: component.name, usageCount: component.usageCount }),
+      expect.objectContaining({ label: 'Shared · Used on 2 pages' }),
     ]);
     expect(service.get).not.toHaveBeenCalled();
     expect(service.getContent).not.toHaveBeenCalled();

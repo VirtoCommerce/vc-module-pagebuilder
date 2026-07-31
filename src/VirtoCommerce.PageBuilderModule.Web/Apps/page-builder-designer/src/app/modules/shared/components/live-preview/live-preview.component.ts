@@ -45,6 +45,7 @@ export class LivePreviewComponent {
       return;
     }
 
+    this.previewLoaded.set(false);
     this.previewBridge.registerFrame(frame);
     this.requestPreviewConnection();
     onCleanup(() => this.previewBridge.unregisterFrame(frame));
@@ -79,6 +80,7 @@ export class LivePreviewComponent {
   }
 
   onPreviewFrameLoaded(frame: HTMLIFrameElement): void {
+    this.previewLoaded.set(false);
     this.previewBridge.registerFrame(frame);
     this.requestPreviewConnection();
   }

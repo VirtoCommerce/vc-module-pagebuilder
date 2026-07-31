@@ -1,6 +1,5 @@
 <template>
   <VcPopup
-    class="linked-components-rename-popup"
     :model-value="true"
     :title="$t('LINKED_COMPONENTS.RENAME.TITLE')"
     is-mobile-fullscreen
@@ -8,7 +7,7 @@
     @close="$emit('close')"
   >
     <template #content>
-      <VcForm class="linked-components-rename-form">
+      <VcForm class="tw-w-full tw-text-[color:var(--neutrals-800)]">
         <VcInput
           v-model="name"
           maxlength="128"
@@ -85,18 +84,3 @@ function handleModelValueUpdate(value: boolean) {
   }
 }
 </script>
-
-<style lang="scss" scoped>
-.linked-components-rename-popup {
-  --popup-bg: var(--additional-50);
-  --popup-header-color: var(--neutrals-900);
-  --popup-content-text-color: var(--neutrals-800);
-  --popup-close-btn-bg: var(--neutrals-100);
-  --popup-close-btn-bg-hover: var(--neutrals-200);
-}
-
-.linked-components-rename-form {
-  width: 100%;
-  color: var(--neutrals-800);
-}
-</style>

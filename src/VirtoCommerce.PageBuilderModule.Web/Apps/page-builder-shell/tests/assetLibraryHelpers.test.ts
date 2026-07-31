@@ -281,6 +281,29 @@ test("asset used by both a page and a linked component keeps the combined prefli
   assert.deepEqual(getReferenceLinkedComponentNames(details.referenceLinkedComponents), ["Hero banner"]);
 });
 
+test("asset reference details preserve the aggregate count when some linked components are hidden", () => {
+  const details = createAssetReferenceDetails([
+    {
+      assetUrl: "/stores/store-1/Page Builder/hero.png",
+      referencesCount: 6,
+      pageReferencesCount: 4,
+      linkedComponentReferencesCount: 2,
+      pages: [
+        { id: "page-1", name: "Homepage" },
+        { id: "page-2", name: "Catalog" },
+        { id: "page-3", name: "Checkout" },
+        { id: "page-4", name: "Campaign" },
+      ],
+      linkedComponents: [{ id: "component-1", name: "Visible component" }],
+    },
+  ]);
+
+  assert.equal(details.referencesCount, 6);
+  assert.equal(details.pageReferencesCount, 4);
+  assert.equal(details.linkedComponentReferencesCount, 1);
+  assert.deepEqual(getReferenceLinkedComponentNames(details.referenceLinkedComponents), ["Visible component"]);
+});
+
 test("asset library locale keys and placeholders match English", () => {
   const englishMessages = flattenMessages(assetLibraryLocales.en);
   const englishKeys = [...englishMessages.keys()].sort();

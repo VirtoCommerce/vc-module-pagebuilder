@@ -33,7 +33,10 @@
       "NO_USAGE": "Page Builder ページでは使用されていません。",
       "DELETE_BLOCKED_ONE": "削除する前に、このコンポーネントをページから削除してください。",
       "DELETE_BLOCKED_MANY": "削除する前に、このコンポーネントを {count} ページすべてから削除してください。",
-      "NOT_AVAILABLE": "該当なし"
+      "NOT_AVAILABLE": "該当なし",
+      "OPEN_UNAVAILABLE_PERMISSION": "このページを Designer で開く権限がありません。",
+      "OPEN_UNAVAILABLE_ARCHIVED": "アーカイブされたページは Designer で開けません。",
+      "OPEN_UNAVAILABLE_IDENTITY": "ページ識別子を取得できないため、このページを開けません。"
     },
     "EMPTY": {
       "TITLE": "共有コンポーネントはまだありません",

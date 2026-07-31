@@ -212,15 +212,5 @@
             "selector": "this.response.isAdministrator === true || (this.response.permissions || []).indexOf('builder:linked-components:update') !== -1",
             "isArray": false
         }
-    },
-    "canDeleteLinkedComponents": {
-        "init": true,
-        "url": "/api/platform/security/currentuser",
-        "method": "GET",
-        "cacheable": true,
-        "response": {
-            "selector": "this.response.isAdministrator === true || (this.response.permissions || []).indexOf('builder:linked-components:delete') !== -1",
-            "isArray": false
-        }
     }
 }

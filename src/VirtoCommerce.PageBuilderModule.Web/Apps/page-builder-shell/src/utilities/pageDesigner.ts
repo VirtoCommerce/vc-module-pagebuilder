@@ -10,7 +10,7 @@ const designerPath = "/Modules/$(VirtoCommerce.PageBuilderModule)/Content/page-b
 export function canOpenPageDesigner(
   context: PageDesignerContext,
 ): context is PageDesignerContext & { groupId: string; storeId: string } {
-  return Boolean(context.groupId && context.storeId && context.status !== "Archived");
+  return Boolean(context.groupId?.trim() && context.storeId?.trim() && context.status !== "Archived");
 }
 
 export function buildPageDesignerUrl(context: PageDesignerContext, platformUrl: string): string {
@@ -20,7 +20,7 @@ export function buildPageDesignerUrl(context: PageDesignerContext, platformUrl: 
 
   const routeParameters = new URLSearchParams({
     type: "pages",
-    groupId: context.groupId,
+    groupId: context.groupId.trim(),
   });
 
   if (context.cultureName) {
@@ -28,7 +28,7 @@ export function buildPageDesignerUrl(context: PageDesignerContext, platformUrl: 
   }
 
   const normalizedPlatformUrl = platformUrl.replace(/\/+$/, "");
-  const storeId = encodeURIComponent(context.storeId);
+  const storeId = encodeURIComponent(context.storeId.trim());
 
   return `${normalizedPlatformUrl}${designerPath}?storeId=${storeId}#/pages?${routeParameters.toString()}`;
 }
@@ -36,5 +36,5 @@ export function buildPageDesignerUrl(context: PageDesignerContext, platformUrl: 
 export function openPageDesigner(context: PageDesignerContext): void {
   const platformUrl = (import.meta.env.DEV && import.meta.env.APP_PLATFORM_URL) || window.location.origin;
 
-  window.open(buildPageDesignerUrl(context, platformUrl), "_blank");
+  window.open(buildPageDesignerUrl(context, platformUrl), "_blank", "noopener,noreferrer");
 }

@@ -3,6 +3,7 @@ import { SectionModel } from '@models/document';
 
 import {
     areSectionsContiguous,
+    canOpenLinkedComponentUsagePage,
     createLinkedComponentReference,
     detachLinkedComponent,
     insertLinkedComponentCopy,
@@ -14,6 +15,14 @@ import {
 import { prepareTemplateForSave } from './editor.helpers';
 
 describe('linked component helpers', () => {
+    it('opens only usage pages that have an identity and are not archived', () => {
+        expect(canOpenLinkedComponentUsagePage({ id: 'page-1', status: 'Draft' })).toBe(true);
+        expect(canOpenLinkedComponentUsagePage({ id: 'page-1', status: 'Draft, Published' })).toBe(true);
+        expect(canOpenLinkedComponentUsagePage({ id: 'page-1', status: 'Archived' })).toBe(false);
+        expect(canOpenLinkedComponentUsagePage({ id: '  ', status: 'Draft' })).toBe(false);
+        expect(canOpenLinkedComponentUsagePage({ id: null, status: 'Draft' })).toBe(false);
+    });
+
     it('creates the strict raw marker contract', () => {
         const marker = createLinkedComponentReference('component-1', 'placement-1');
 

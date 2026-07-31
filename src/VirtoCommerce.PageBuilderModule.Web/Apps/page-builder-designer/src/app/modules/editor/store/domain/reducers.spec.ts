@@ -64,6 +64,22 @@ describe('editorDomainReducers', () => {
         });
     });
 
+    it('discards only the synthetic linked-component domain state', () => {
+        const templateKey = 'linked-component::component-1';
+        const previous = {
+            ...initialState,
+            states: {
+                home: { isLoading: false, sections: {} } as any,
+                [templateKey]: { isLoading: false, sections: {}, error: 'stale' } as any,
+            },
+        };
+
+        const state = editorDomainReducers(previous, actions.discardLinkedComponentChanges({ templateKey }));
+
+        expect(state.states['home']).toBe(previous.states['home']);
+        expect(state.states[templateKey]).toBeUndefined();
+    });
+
     describe('loadTemplateModelFails', () => {
         it('stores error message and clears loading', () => {
             const prev = {

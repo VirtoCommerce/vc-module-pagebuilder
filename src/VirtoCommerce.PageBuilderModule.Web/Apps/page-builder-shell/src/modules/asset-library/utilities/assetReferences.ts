@@ -16,11 +16,10 @@ export function createAssetReferenceDetails(references: AssetReference[]): Asset
     referenceLinkedComponents.length ||
     references.reduce((count, reference) => count + (reference.linkedComponentReferencesCount ?? 0), 0);
   const categorizedReferencesCount = pageReferencesCount + linkedComponentReferencesCount;
+  const aggregateReferencesCount = references.reduce((count, reference) => count + (reference.referencesCount ?? 0), 0);
 
   return {
-    referencesCount:
-      categorizedReferencesCount ||
-      references.reduce((count, reference) => count + (reference.referencesCount ?? 0), 0),
+    referencesCount: Math.max(categorizedReferencesCount, aggregateReferencesCount),
     pageReferencesCount,
     linkedComponentReferencesCount,
     referencePages,

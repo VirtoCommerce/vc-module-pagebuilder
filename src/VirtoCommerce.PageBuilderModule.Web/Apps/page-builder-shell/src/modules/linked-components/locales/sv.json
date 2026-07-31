@@ -33,7 +33,10 @@
       "NO_USAGE": "Används inte på några Page Builder-sidor.",
       "DELETE_BLOCKED_ONE": "Ta bort den här komponenten från sidan innan du raderar den.",
       "DELETE_BLOCKED_MANY": "Ta bort den här komponenten från alla {count} sidor innan du raderar den.",
-      "NOT_AVAILABLE": "Inte tillgängligt"
+      "NOT_AVAILABLE": "Inte tillgängligt",
+      "OPEN_UNAVAILABLE_PERMISSION": "Du har inte behörighet att öppna den här sidan i Designer.",
+      "OPEN_UNAVAILABLE_ARCHIVED": "Arkiverade sidor kan inte öppnas i Designer.",
+      "OPEN_UNAVAILABLE_IDENTITY": "Sidan kan inte öppnas eftersom dess identifierare inte är tillgänglig."
     },
     "EMPTY": {
       "TITLE": "Inga delade komponenter än",

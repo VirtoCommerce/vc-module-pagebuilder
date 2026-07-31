@@ -1,22 +1,24 @@
-import type {
-  PageBuilderLinkedComponent,
-  PageBuilderLinkedComponentSearchCriteria,
-  PageBuilderLinkedComponentUsagePage,
-} from "../../api_client/virtocommerce.pagebuildermodule";
-
-export interface LinkedComponentUsagePage extends PageBuilderLinkedComponentUsagePage {
+export interface LinkedComponentUsagePage {
   id?: string;
+  name?: string;
+  permalink?: string;
+  cultureName?: string;
+  status?: string;
 }
 
-export interface LinkedComponent extends Omit<PageBuilderLinkedComponent, "id" | "storeId" | "name" | "usagePages"> {
+export interface LinkedComponent {
   id: string;
   storeId: string;
   name: string;
   usageCount: number;
   usagePages: LinkedComponentUsagePage[];
+  createdBy?: string;
+  createdDate?: Date | string;
+  modifiedBy?: string;
+  modifiedDate?: Date | string;
 }
 
-export interface LinkedComponentSearchCriteria extends PageBuilderLinkedComponentSearchCriteria {
+export interface LinkedComponentSearchCriteria {
   storeId?: string;
   keyword?: string;
   skip?: number;

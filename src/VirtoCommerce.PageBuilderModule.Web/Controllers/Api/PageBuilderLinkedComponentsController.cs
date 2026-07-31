@@ -69,7 +69,10 @@ public class PageBuilderLinkedComponentsController(
             return Forbidden;
         }
 
-        await ApplyUsageAsync([component], includePages: true, cancellationToken);
+        await ApplyUsageAsync(
+            [component],
+            includePages: await CanReadPagesAsync(),
+            cancellationToken);
         return Ok(component);
     }
 
@@ -152,10 +155,17 @@ public class PageBuilderLinkedComponentsController(
         }
 
         component.Name = request.Name;
-        await linkedComponentService.SaveChangesAsync([component]);
+        component = await linkedComponentService.UpdateMetadataAsync(component, cancellationToken);
+        if (component == null)
+        {
+            // The component may have been deleted after the authorization read. The metadata service reloads
+            // it under the component row lock and never turns that race into an upsert.
+            return NotFound();
+        }
+
         await ApplyUsageAsync(
             [component],
-            includePages: await CanReadLinkedComponentsAsync(),
+            includePages: await CanReadPagesAsync(),
             cancellationToken);
 
         return Ok(component);
@@ -180,7 +190,7 @@ public class PageBuilderLinkedComponentsController(
             return Forbidden;
         }
 
-        var includeUsagePages = await CanReadLinkedComponentsAsync();
+        var includeUsagePages = await CanReadPagesAsync();
         await ApplyUsageAsync([component], includeUsagePages, cancellationToken);
         if (component.UsageCount > 0)
         {
@@ -189,7 +199,10 @@ public class PageBuilderLinkedComponentsController(
 
         try
         {
-            await linkedComponentService.DeleteAsync([id]);
+            if (!await linkedComponentService.TryDeleteAsync(component, cancellationToken))
+            {
+                return NotFound();
+            }
         }
         catch (DbUpdateException)
         {
@@ -208,7 +221,9 @@ public class PageBuilderLinkedComponentsController(
     [HttpGet("{id}/content")]
     [Authorize(ModuleConstants.Security.Permissions.LinkedComponentsRead)]
     [ProducesResponseType(typeof(JObject), StatusCodes.Status200OK)]
-    public async Task<ActionResult> GetContent([FromRoute] string id)
+    public async Task<ActionResult> GetContent(
+        [FromRoute] string id,
+        CancellationToken cancellationToken = default)
     {
         var component = await linkedComponentService.GetByIdAsync(id);
         if (component == null)
@@ -221,7 +236,7 @@ public class PageBuilderLinkedComponentsController(
             return Forbidden;
         }
 
-        var content = await linkedComponentContentService.LoadContentAsync(id);
+        var content = await linkedComponentContentService.TryLoadContentAsync(component, cancellationToken);
         return string.IsNullOrWhiteSpace(content)
             ? NotFound()
             : Content(content, "application/json");
@@ -254,10 +269,13 @@ public class PageBuilderLinkedComponentsController(
 
         try
         {
-            await linkedComponentContentService.SaveContentAsync(
-                id,
-                content.ToString(Formatting.None),
-                cancellationToken);
+            if (!await linkedComponentContentService.TrySaveContentAsync(
+                    component,
+                    content.ToString(Formatting.None),
+                    cancellationToken))
+            {
+                return NotFound();
+            }
         }
         catch (InvalidDataException ex)
         {
@@ -286,7 +304,7 @@ public class PageBuilderLinkedComponentsController(
                 if (usagesById.TryGetValue(component.Id, out var usage))
                 {
                     component.UsageCount = usage.UsageCount;
-                    component.UsagePages = usage.Pages;
+                    component.UsagePages = includePages ? usage.Pages : [];
                 }
             }
         }
@@ -301,12 +319,12 @@ public class PageBuilderLinkedComponentsController(
         return result.Succeeded;
     }
 
-    private async Task<bool> CanReadLinkedComponentsAsync()
+    private async Task<bool> CanReadPagesAsync()
     {
         var result = await authorizationService.AuthorizeAsync(
             User,
             null,
-            ModuleConstants.Security.Permissions.LinkedComponentsRead);
+            ModuleConstants.Security.Permissions.Read);
         return result.Succeeded;
     }
 

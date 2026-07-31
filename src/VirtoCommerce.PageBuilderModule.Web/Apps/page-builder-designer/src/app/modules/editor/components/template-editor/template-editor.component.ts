@@ -15,13 +15,19 @@ import { SectionChildrenListComponent } from '@editor/controls/section-children-
 import { ReorderItemsModel } from '@core/models';
 import { SectionModel, SectionSchema } from '@models/document';
 
-import { canEditLinkedComponentOriginal, ContextMenuHelper, isLinkedComponentReference } from '@editor/helpers';
+import {
+    canEditLinkedComponentOriginal,
+    canOpenLinkedComponentUsagePage,
+    ContextMenuHelper,
+    isLinkedComponentReference,
+} from '@editor/helpers';
 import { AppConfig } from '@integration/services';
 import { LinkedComponent, LinkedComponentUsagePage } from '@editor/models';
 import { BuilderState } from '@editor/store/state';
 
 import * as fromState from '@editor/store/selectors';
 import * as actions from '@editor/store/actions';
+import * as routingSelectors from '@shared/routing/selectors';
 import { BlockState } from '../../models';
 import { domHelpers } from '@core/helpers';
 
@@ -40,11 +46,17 @@ export class TemplateEditorComponent {
     readonly container = viewChild.required<ElementRef<HTMLDivElement>>('container');
 
     readonly viewModel = toSignal(this.store.select(fromState.editTemplateContext));
+    readonly loadState = toSignal(this.store.select(fromState.selectCurrentTemplateState));
+    readonly linkedComponentId = toSignal(
+        this.store.select(routingSelectors.selectLinkedComponentIdParameter),
+        { initialValue: '' },
+    );
 
     readonly hoveredSectionId = toSignal(this.store.select(fromState.hoveredSectionId));
     readonly templateName = toSignal(this.store.select(fromState.selectCurrentTemplateName));
     readonly canEditLinkedComponents = canEditLinkedComponentOriginal(this.appConfig);
-    readonly isReadOnly = computed(() => !!this.viewModel()?.isLinkedDocument && !this.canEditLinkedComponents);
+    readonly isLinkedDocument = computed(() => !!this.linkedComponentId());
+    readonly isReadOnly = computed(() => this.isLinkedDocument() && !this.canEditLinkedComponents);
 
     canMutate(): boolean {
         return !this.isReadOnly();
@@ -108,13 +120,6 @@ export class TemplateEditorComponent {
     }
 
     onSectionClick(section: SectionModel) {
-        if (isLinkedComponentReference(section)) {
-            this.store.dispatch(actions.editSectionAction({ sectionId: section.id }));
-            return;
-        }
-        if (this.isReadOnly()) {
-            return;
-        }
         this.store.dispatch(actions.editSectionAction({ sectionId: section.id }));
     }
 
@@ -137,9 +142,6 @@ export class TemplateEditorComponent {
     }
 
     onBlockClick(section: SectionModel, block: SectionModel) {
-        if (!this.canMutate()) {
-            return;
-        }
         this.store.dispatch(actions.editBlockAction({ sectionId: section.id, blockId: block.id }));
     }
     addBlockClick(section: SectionModel) {
@@ -170,8 +172,24 @@ export class TemplateEditorComponent {
         this.store.dispatch(actions.closeLinkedComponent());
     }
 
+    retryLinkedComponentLoad(): void {
+        const templateKey = this.loadState()?.key;
+        if (templateKey) {
+            this.store.dispatch(actions.loadTemplateModel({ templateKey }));
+        }
+    }
+
     openUsagePage(page: LinkedComponentUsagePage): void {
-        this.store.dispatch(actions.openLinkedComponentUsagePage({ pageId: page.id }));
+        if (canOpenLinkedComponentUsagePage(page)) {
+            this.store.dispatch(actions.openLinkedComponentUsagePage({
+                pageId: page.id,
+                cultureName: page.cultureName,
+            }));
+        }
+    }
+
+    canOpenUsagePage(page: LinkedComponentUsagePage): boolean {
+        return canOpenLinkedComponentUsagePage(page);
     }
 
     getLinkedComponent(section: SectionModel): LinkedComponent | null {
