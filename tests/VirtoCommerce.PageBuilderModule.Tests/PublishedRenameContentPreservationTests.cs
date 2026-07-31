@@ -130,8 +130,9 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
         private static PageBuilderPageController CreateController(FakeGroupedPageService service)
         {
+            var pageService = new FakePageBuilderPageService(service);
             var controller = new PageBuilderPageController(
-                crudService: new FakePageBuilderPageService(service),
+                crudService: pageService,
                 groupedPageService: service,
                 groupedPageSearchService: new FakeGroupedPageSearchService(),
                 authorizationService: new AllowAllAuthorizationService(),

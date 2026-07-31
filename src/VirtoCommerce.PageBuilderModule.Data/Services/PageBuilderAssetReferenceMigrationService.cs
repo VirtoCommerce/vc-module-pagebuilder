@@ -75,34 +75,39 @@ public class PageBuilderAssetReferenceMigrationService(
 
         while (pages.Count > 0)
         {
-            foreach (var page in pages)
+            foreach (var pageId in pages.Select(page => page.Id))
             {
-                using var repository = repositoryFactory();
-                if (repository is not IPageBuilderWriteLockRepository writeLockRepository)
-                {
-                    if (groupedPageService == null || assetReferenceIndexService == null)
-                    {
-                        throw new NotSupportedException(
-                            "Page asset migration requires either repository write-lock support or the legacy page index services.");
-                    }
-
-                    var content = await groupedPageService.LoadContent(page.Id);
-                    await assetReferenceIndexService.RebuildPageIndexAsync(page.Id, content);
-                    continue;
-                }
-
-                await writeLockRepository.ExecuteUnderPageWriteLocksAsync(
-                    [page.Id],
-                    (dbContext, cancellationToken) =>
-                        PageBuilderPageIndexing.RebuildCurrentRawPageAssetIndexAsync(
-                            dbContext,
-                            page.Id,
-                            cancellationToken));
+                await RebuildPageAssetReferenceIndexAsync(pageId);
             }
 
             cursor = pages[^1];
             pages = await GetPages(cursor);
         }
+    }
+
+    private async Task RebuildPageAssetReferenceIndexAsync(string pageId)
+    {
+        using var repository = repositoryFactory();
+        if (repository is IPageBuilderWriteLockRepository writeLockRepository)
+        {
+            await writeLockRepository.ExecuteUnderPageWriteLocksAsync(
+                [pageId],
+                (dbContext, cancellationToken) =>
+                    PageBuilderPageIndexing.RebuildCurrentRawPageAssetIndexAsync(
+                        dbContext,
+                        pageId,
+                        cancellationToken));
+            return;
+        }
+
+        if (groupedPageService == null || assetReferenceIndexService == null)
+        {
+            throw new NotSupportedException(
+                "Page asset migration requires either repository write-lock support or the legacy page index services.");
+        }
+
+        var content = await groupedPageService.LoadContent(pageId);
+        await assetReferenceIndexService.RebuildPageIndexAsync(pageId, content);
     }
 
     internal async Task RebuildLinkedComponentAssetReferenceIndex()

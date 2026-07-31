@@ -17,6 +17,7 @@ using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 
 namespace VirtoCommerce.PageBuilderModule.Data.ExportImport;
 
+#pragma warning disable S107 // Public constructor preserves the explicit DI/API contract without a service-locator or dependency bag.
 public sealed class PageBuilderExportImport(
     IGroupedPageService groupedPageService,
     IGroupedPageSearchService groupedPageSearchService,
@@ -28,6 +29,7 @@ public sealed class PageBuilderExportImport(
     IEventPublisher eventPublisher,
     JsonSerializer jsonSerializer)
 {
+#pragma warning restore S107
     public PageBuilderExportImport(
         IGroupedPageService groupedPageService,
         IGroupedPageSearchService groupedPageSearchService,

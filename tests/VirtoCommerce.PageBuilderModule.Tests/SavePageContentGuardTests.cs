@@ -4,13 +4,16 @@ using System.IO;
 using System.Linq;
 using System.Security.Claims;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
+using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using VirtoCommerce.Platform.Core.Common;
+using VirtoCommerce.Platform.Core.Events;
 using Xunit;
 using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 
@@ -96,6 +99,22 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         [Fact]
+        public async Task Valid_content_save_publishes_page_changed_event_exactly_once()
+        {
+            var service = NewServiceWithPublishedPage(out var groupId);
+            var events = new RecordingEventPublisher();
+
+            var (result, _) = await SaveContent(
+                service,
+                groupId,
+                "{ \"settings\": {}, \"content\": [] }",
+                events);
+
+            Assert.IsType<NoContentResult>(result);
+            Assert.Single(events.Events.OfType<PageBuilderPageChangedEvent>());
+        }
+
+        [Fact]
         public async Task Clearing_every_block_is_still_a_legitimate_save()
         {
             var service = NewServiceWithPublishedPage(out var groupId);
@@ -158,16 +177,20 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         private static async Task<(IActionResult Result, PageBuilderPageController Controller)> SaveContent(
-            PublishedRenameContentPreservationTests.FakeGroupedPageService service, string groupId, string body)
+            PublishedRenameContentPreservationTests.FakeGroupedPageService service,
+            string groupId,
+            string body,
+            IEventPublisher eventPublisher = null)
         {
+            var pageService = new PublishedRenameContentPreservationTests.FakePageBuilderPageService(service);
             var controller = new PageBuilderPageController(
-                crudService: new PublishedRenameContentPreservationTests.FakePageBuilderPageService(service),
+                crudService: pageService,
                 groupedPageService: service,
                 groupedPageSearchService: new PublishedRenameContentPreservationTests.FakeGroupedPageSearchService(),
                 authorizationService: new PublishedRenameContentPreservationTests.AllowAllAuthorizationService(),
                 pageDocumentSearchService: new PublishedRenameContentPreservationTests.NoopPageDocumentSearchService(),
                 linkedComponentReferenceIndexService: new NoopLinkedComponentReferenceIndexService(),
-                eventPublisher: new PublishedRenameContentPreservationTests.NoopEventPublisher(),
+                eventPublisher: eventPublisher ?? new PublishedRenameContentPreservationTests.NoopEventPublisher(),
                 logger: NullLogger<PageBuilderPageController>.Instance);
 
             var httpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity()) };
@@ -177,6 +200,18 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
             var result = await controller.SavePageContent(groupId, TestContext.Current.CancellationToken);
             return (result, controller);
+        }
+
+        private sealed class RecordingEventPublisher : IEventPublisher
+        {
+            public IList<IEvent> Events { get; } = [];
+
+            public Task Publish<T>(T @event, CancellationToken cancellationToken = default)
+                where T : IEvent
+            {
+                Events.Add(@event);
+                return Task.CompletedTask;
+            }
         }
     }
 }

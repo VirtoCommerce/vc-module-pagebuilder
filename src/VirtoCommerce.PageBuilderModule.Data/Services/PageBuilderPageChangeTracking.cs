@@ -15,42 +15,73 @@ internal static class PageBuilderPageChangeTracking
         DateTime? modifiedSince,
         DateTime? modifiedBefore)
     {
-        if (repository is not IPageBuilderLinkedComponentRepository linkedRepository)
-        {
-            if (modifiedSince.HasValue)
-            {
-                var start = modifiedSince.Value;
-                pages = pages.Where(page => (page.ModifiedDate ?? page.CreatedDate) >= start);
-            }
+        return repository is IPageBuilderLinkedComponentRepository linkedRepository
+            ? ApplyDateRangeWithLinkedComponents(pages, linkedRepository, modifiedSince, modifiedBefore)
+            : ApplyPageDateRange(pages, modifiedSince, modifiedBefore);
+    }
 
-            if (modifiedBefore.HasValue)
-            {
-                var end = modifiedBefore.Value;
-                pages = pages.Where(page => (page.ModifiedDate ?? page.CreatedDate) <= end);
-            }
-
-            return pages;
-        }
-
+    private static IQueryable<PageBuilderPageEntity> ApplyPageDateRange(
+        IQueryable<PageBuilderPageEntity> pages,
+        DateTime? modifiedSince,
+        DateTime? modifiedBefore)
+    {
         if (modifiedSince.HasValue)
         {
             var start = modifiedSince.Value;
-            pages = pages.Where(page =>
-                (page.ModifiedDate ?? page.CreatedDate) >= start ||
-                linkedRepository.PageBuilderLinkedComponentReferences
-                    .Where(reference => reference.PageId == page.Id)
-                    .Join(
-                        linkedRepository.PageBuilderLinkedComponents,
-                        reference => reference.LinkedComponentId,
-                        component => component.Id,
-                        (_, component) => component.ModifiedDate ?? component.CreatedDate)
-                    .Any(changeDate => changeDate >= start));
+            pages = pages.Where(page => (page.ModifiedDate ?? page.CreatedDate) >= start);
         }
 
         if (modifiedBefore.HasValue)
         {
             var end = modifiedBefore.Value;
-            pages = pages.Where(page =>
+            pages = pages.Where(page => (page.ModifiedDate ?? page.CreatedDate) <= end);
+        }
+
+        return pages;
+    }
+
+    private static IQueryable<PageBuilderPageEntity> ApplyDateRangeWithLinkedComponents(
+        IQueryable<PageBuilderPageEntity> pages,
+        IPageBuilderLinkedComponentRepository linkedRepository,
+        DateTime? modifiedSince,
+        DateTime? modifiedBefore)
+    {
+        pages = ApplyModifiedSince(pages, linkedRepository, modifiedSince);
+        return ApplyModifiedBefore(pages, linkedRepository, modifiedBefore);
+    }
+
+    private static IQueryable<PageBuilderPageEntity> ApplyModifiedSince(
+        IQueryable<PageBuilderPageEntity> pages,
+        IPageBuilderLinkedComponentRepository linkedRepository,
+        DateTime? modifiedSince)
+    {
+        if (!modifiedSince.HasValue)
+        {
+            return pages;
+        }
+
+        var start = modifiedSince.Value;
+        return pages.Where(page =>
+            (page.ModifiedDate ?? page.CreatedDate) >= start ||
+            linkedRepository.PageBuilderLinkedComponentReferences
+                .Where(reference => reference.PageId == page.Id)
+                .Join(
+                    linkedRepository.PageBuilderLinkedComponents,
+                    reference => reference.LinkedComponentId,
+                    component => component.Id,
+                    (_, component) => component.ModifiedDate ?? component.CreatedDate)
+                .Any(changeDate => changeDate >= start));
+    }
+
+    private static IQueryable<PageBuilderPageEntity> ApplyModifiedBefore(
+        IQueryable<PageBuilderPageEntity> pages,
+        IPageBuilderLinkedComponentRepository linkedRepository,
+        DateTime? modifiedBefore)
+    {
+        if (modifiedBefore.HasValue)
+        {
+            var end = modifiedBefore.Value;
+            return pages.Where(page =>
                 (page.ModifiedDate ?? page.CreatedDate) <= end &&
                 !linkedRepository.PageBuilderLinkedComponentReferences
                     .Where(reference => reference.PageId == page.Id)

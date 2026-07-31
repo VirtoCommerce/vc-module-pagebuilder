@@ -41,16 +41,23 @@ public class PageBuilderLinkedComponentContentService(
     {
         ValidateExpectedComponent(expectedComponent);
 
-        var normalizedStoreId = expectedComponent.StoreId.ToUpperInvariant();
         using var repository = repositoryFactory();
         var linkedRepository = repository.RequireLinkedComponents();
-        return await linkedRepository.PageBuilderLinkedComponentContents
+        var result = await linkedRepository.PageBuilderLinkedComponentContents
             .Where(x =>
                 x.Id == expectedComponent.Id &&
-                x.Component.StoreId.ToUpper() == normalizedStoreId &&
                 x.Component.CreatedDate == expectedComponent.CreatedDate)
-            .Select(x => x.ComponentContent)
+            .Select(x => new
+            {
+                x.Component.StoreId,
+                x.ComponentContent,
+            })
             .FirstOrDefaultAsync(cancellationToken);
+
+        return result != null &&
+               string.Equals(result.StoreId, expectedComponent.StoreId, StringComparison.OrdinalIgnoreCase)
+            ? result.ComponentContent
+            : null;
     }
 
     public async Task<IReadOnlyDictionary<string, string>> LoadContentsAsync(
@@ -125,6 +132,27 @@ public class PageBuilderLinkedComponentContentService(
         string content,
         CancellationToken cancellationToken)
     {
+        if (!await TryPersistContentAsync(
+                linkedComponentId,
+                expectedComponent,
+                content,
+                cancellationToken))
+        {
+            return false;
+        }
+
+        ExpireCaches(linkedComponentId);
+        await PublishContentChangedEventAsync(linkedComponentId);
+
+        return true;
+    }
+
+    private async Task<bool> TryPersistContentAsync(
+        string linkedComponentId,
+        PageBuilderLinkedComponent expectedComponent,
+        string content,
+        CancellationToken cancellationToken)
+    {
         using (var repository = repositoryFactory())
         {
             if (repository is not IPageBuilderWriteLockRepository writeLockRepository ||
@@ -137,60 +165,87 @@ public class PageBuilderLinkedComponentContentService(
             var componentExists = await writeLockRepository.ExecuteUnderLinkedComponentWriteLockAsync(
                 linkedComponentId,
                 async transactionCancellationToken =>
-                {
-                    var component = await linkedRepository.PageBuilderLinkedComponents
-                        .FirstAsync(x => x.Id == linkedComponentId, transactionCancellationToken);
-                    var contentEntity = await linkedRepository.PageBuilderLinkedComponentContents
-                        .FirstOrDefaultAsync(x => x.Id == linkedComponentId, transactionCancellationToken);
-
-                    if (expectedComponent != null &&
-                        (!HasExpectedIdentity(component, expectedComponent) || contentEntity == null))
-                    {
-                        return;
-                    }
-
-                    // Validate only after the locked identity check so a stale authorized snapshot fails closed.
-                    if (expectedComponent != null)
-                    {
-                        PageBuilderLinkedComponentReferenceMatcher.ValidateComponentContent(content);
-                    }
-
-                    if (contentEntity == null)
-                    {
-                        repository.Add(new PageBuilderLinkedComponentContentEntity
-                        {
-                            Id = linkedComponentId,
-                            ComponentContent = content,
-                        });
-                    }
-                    else
-                    {
-                        contentEntity.ComponentContent = content;
-                        repository.Update(contentEntity);
-                    }
-
-                    TouchMetadata(component);
-                    await PageBuilderLinkedComponentAssetReferenceIndexService.RebuildIndexInCurrentUnitOfWorkAsync(
+                    contentSaved = await TryPersistContentInCurrentUnitOfWorkAsync(
                         repository,
+                        linkedRepository,
                         linkedComponentId,
+                        expectedComponent,
                         content,
-                        transactionCancellationToken);
-                    await repository.UnitOfWork.CommitAsync();
-                    contentSaved = true;
-                },
+                        transactionCancellationToken),
                 cancellationToken);
 
-            if (!componentExists || !contentSaved)
-            {
-                return false;
-            }
+            return componentExists && contentSaved;
+        }
+    }
+
+    private static async Task<bool> TryPersistContentInCurrentUnitOfWorkAsync(
+        IPageBuilderModuleRepository repository,
+        IPageBuilderLinkedComponentRepository linkedRepository,
+        string linkedComponentId,
+        PageBuilderLinkedComponent expectedComponent,
+        string content,
+        CancellationToken cancellationToken)
+    {
+        var component = await linkedRepository.PageBuilderLinkedComponents
+            .FirstAsync(x => x.Id == linkedComponentId, cancellationToken);
+        var contentEntity = await linkedRepository.PageBuilderLinkedComponentContents
+            .FirstOrDefaultAsync(x => x.Id == linkedComponentId, cancellationToken);
+
+        if (expectedComponent != null &&
+            (!HasExpectedIdentity(component, expectedComponent) || contentEntity == null))
+        {
+            return false;
         }
 
+        // Validate only after the locked identity check so a stale authorized snapshot fails closed.
+        if (expectedComponent != null)
+        {
+            PageBuilderLinkedComponentReferenceMatcher.ValidateComponentContent(content);
+        }
+
+        UpsertContent(repository, linkedComponentId, content, contentEntity);
+        TouchMetadata(component);
+        await PageBuilderLinkedComponentAssetReferenceIndexService.RebuildIndexInCurrentUnitOfWorkAsync(
+            repository,
+            linkedComponentId,
+            content,
+            cancellationToken);
+        await repository.UnitOfWork.CommitAsync();
+
+        return true;
+    }
+
+    private static void UpsertContent(
+        IPageBuilderModuleRepository repository,
+        string linkedComponentId,
+        string content,
+        PageBuilderLinkedComponentContentEntity contentEntity)
+    {
+        if (contentEntity == null)
+        {
+            repository.Add(new PageBuilderLinkedComponentContentEntity
+            {
+                Id = linkedComponentId,
+                ComponentContent = content,
+            });
+        }
+        else
+        {
+            contentEntity.ComponentContent = content;
+            repository.Update(contentEntity);
+        }
+    }
+
+    private static void ExpireCaches(string linkedComponentId)
+    {
         GenericCachingRegion<PageBuilderLinkedComponent>.ExpireTokenForKey(linkedComponentId);
         GenericSearchCachingRegion<PageBuilderLinkedComponent>.ExpireRegion();
 
         GenericSearchCachingRegion<PageBuilderPage>.ExpireRegion();
+    }
 
+    private async Task PublishContentChangedEventAsync(string linkedComponentId)
+    {
         try
         {
             await eventPublisher.Publish(
@@ -204,8 +259,6 @@ public class PageBuilderLinkedComponentContentService(
                 "Failed to schedule post-commit propagation for Shared Component {LinkedComponentId}",
                 linkedComponentId);
         }
-
-        return true;
     }
 
     private static void ValidateExpectedComponent(PageBuilderLinkedComponent expectedComponent)

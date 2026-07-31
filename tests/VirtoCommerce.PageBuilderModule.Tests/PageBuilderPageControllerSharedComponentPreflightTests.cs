@@ -241,8 +241,9 @@ public class PageBuilderPageControllerSharedComponentPreflightTests
         string requestBody = null,
         IAuthorizationService authorizationService = null)
     {
+        var pageService = new PublishedRenameContentPreservationTests.FakePageBuilderPageService(service);
         var controller = new PageBuilderPageController(
-            new PublishedRenameContentPreservationTests.FakePageBuilderPageService(service),
+            pageService,
             service,
             new PublishedRenameContentPreservationTests.FakeGroupedPageSearchService(),
             authorizationService ?? new PublishedRenameContentPreservationTests.AllowAllAuthorizationService(),

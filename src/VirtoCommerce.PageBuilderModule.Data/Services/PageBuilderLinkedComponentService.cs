@@ -37,37 +37,46 @@ public class PageBuilderLinkedComponentService
         _logger = logger;
     }
 
-    public override async Task SaveChangesAsync(IList<PageBuilderLinkedComponent> models)
+    public override Task SaveChangesAsync(IList<PageBuilderLinkedComponent> models)
     {
         ArgumentNullException.ThrowIfNull(models);
 
         if (models.Count == 0)
         {
-            return;
+            return Task.CompletedTask;
         }
 
-        foreach (var model in models)
+        if (models.Any(model => string.IsNullOrWhiteSpace(model?.Id)))
         {
-            if (string.IsNullOrWhiteSpace(model?.Id))
-            {
-                throw new InvalidOperationException(
-                    "Shared Components must be created together with their content. Use SaveWithContentAsync.");
-            }
+            throw new InvalidOperationException(
+                "Shared Components must be created together with their content. Use SaveWithContentAsync.");
         }
 
+        return SaveChangesInternalAsync(models);
+    }
+
+    private async Task SaveChangesInternalAsync(IList<PageBuilderLinkedComponent> models)
+    {
         if (!await SaveMetadataBatchAsync(models, CancellationToken.None))
         {
             throw new KeyNotFoundException("One or more Linked Components were not found or were replaced.");
         }
     }
 
-    public async Task<PageBuilderLinkedComponent> UpdateMetadataAsync(
+    public Task<PageBuilderLinkedComponent> UpdateMetadataAsync(
         PageBuilderLinkedComponent model,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(model);
         ArgumentException.ThrowIfNullOrWhiteSpace(model.Id);
 
+        return UpdateMetadataInternalAsync(model, cancellationToken);
+    }
+
+    private async Task<PageBuilderLinkedComponent> UpdateMetadataInternalAsync(
+        PageBuilderLinkedComponent model,
+        CancellationToken cancellationToken)
+    {
         return await SaveMetadataBatchAsync([model], cancellationToken, validateStorePreflight: false)
             ? model
             : null;
@@ -78,19 +87,7 @@ public class PageBuilderLinkedComponentService
         CancellationToken cancellationToken,
         bool validateStorePreflight = true)
     {
-        if (validateStorePreflight)
-        {
-            await BeforeSaveChanges(models);
-        }
-        else
-        {
-            foreach (var model in models)
-            {
-                ValidateAndNormalize(model);
-            }
-
-            await base.BeforeSaveChanges(models);
-        }
+        await PrepareMetadataBatchAsync(models, validateStorePreflight);
 
         var ids = PageBuilderWriteLock.OrderIds(models.Select(x => x.Id));
         if (ids.Length != models.Count)
@@ -98,11 +95,7 @@ public class PageBuilderLinkedComponentService
             throw new InvalidDataException("A metadata batch cannot contain duplicate Linked Component ids.");
         }
 
-        var originalModels = new List<PageBuilderLinkedComponent>(models.Count);
-        var changedEntries = new List<GenericChangedEntry<PageBuilderLinkedComponent>>(models.Count);
-        var changedEntities = new List<PageBuilderLinkedComponentEntity>(models.Count);
-        var primaryKeyMap = new PrimaryKeyResolvingMap();
-        var saved = false;
+        var state = new MetadataBatchSaveState(models.Count);
 
         using (var repository = _repositoryFactory())
         {
@@ -112,76 +105,134 @@ public class PageBuilderLinkedComponentService
                 return false;
             }
 
-            var allComponentsExist = await writeLockRepository.ExecuteUnderLinkedComponentWriteLocksAsync(
-                ids,
-                async transactionCancellationToken =>
-                {
-                    var entities = await LoadLinkedComponentEntitiesAsync(
-                        linkedRepository,
-                        ids,
-                        transactionCancellationToken);
-                    var entitiesById = entities.ToDictionary(x => x.Id, StringComparer.OrdinalIgnoreCase);
-                    var contentIds = await LoadLinkedComponentContentIdsAsync(
-                        linkedRepository,
-                        ids,
-                        transactionCancellationToken);
-
-                    if (models.Any(model =>
-                            !entitiesById.TryGetValue(model.Id, out var entity) ||
-                            !contentIds.Contains(model.Id) ||
-                            !HasExpectedIdentity(entity, model)))
-                    {
-                        return;
-                    }
-
-                    foreach (var model in models)
-                    {
-                        var originalEntity = entitiesById[model.Id];
-                        var originalModel = ToModel(originalEntity, model: null);
-                        var modifiedEntity = FromModel(model, primaryKeyMap);
-
-                        originalModels.Add(originalModel);
-                        changedEntries.Add(new GenericChangedEntry<PageBuilderLinkedComponent>(
-                            model,
-                            originalModel,
-                            EntryState.Modified));
-                        modifiedEntity.Patch(originalEntity);
-                        originalEntity.ModifiedDate = DateTime.UtcNow;
-                        changedEntities.Add(originalEntity);
-                    }
-
-                    await _eventPublisher.Publish(
-                        EventFactory<PageBuilderLinkedComponentChangingEvent>(changedEntries),
-                        transactionCancellationToken);
-                    await repository.UnitOfWork.CommitAsync();
-                    saved = true;
-                },
-                cancellationToken);
-
-            if (!allComponentsExist || !saved)
+            if (!await TryPersistMetadataBatchAsync(
+                    repository,
+                    writeLockRepository,
+                    linkedRepository,
+                    models,
+                    ids,
+                    state,
+                    cancellationToken))
             {
                 return false;
             }
         }
 
-        primaryKeyMap.ResolvePrimaryKeys();
-        ClearCache(originalModels);
+        state.PrimaryKeyMap.ResolvePrimaryKeys();
+        ClearCache(state.OriginalModels);
         ClearCache(models);
 
-        foreach (var (changedEntry, index) in changedEntries.Select((x, index) => (x, index)))
-        {
-            changedEntry.NewEntry = ToModel(changedEntities[index], changedEntry.NewEntry);
-        }
+        UpdateChangedModels(state);
 
-        await AfterSaveChangesAsync(models, changedEntries);
+        await AfterSaveChangesAsync(models, state.ChangedEntries);
         await PublishAfterCommitAsync(
-            EventFactory<PageBuilderLinkedComponentChangedEvent>(changedEntries),
+            EventFactory<PageBuilderLinkedComponentChangedEvent>(state.ChangedEntries),
             string.Join(", ", ids));
 
         return true;
     }
 
-    public async Task<bool> TryDeleteAsync(
+    private async Task PrepareMetadataBatchAsync(
+        IList<PageBuilderLinkedComponent> models,
+        bool validateStorePreflight)
+    {
+        if (validateStorePreflight)
+        {
+            await BeforeSaveChanges(models);
+            return;
+        }
+
+        foreach (var model in models)
+        {
+            ValidateAndNormalize(model);
+        }
+
+        await base.BeforeSaveChanges(models);
+    }
+
+    private async Task<bool> TryPersistMetadataBatchAsync(
+        IPageBuilderModuleRepository repository,
+        IPageBuilderWriteLockRepository writeLockRepository,
+        IPageBuilderLinkedComponentRepository linkedRepository,
+        IList<PageBuilderLinkedComponent> models,
+        string[] ids,
+        MetadataBatchSaveState state,
+        CancellationToken cancellationToken)
+    {
+        var allComponentsExist = await writeLockRepository.ExecuteUnderLinkedComponentWriteLocksAsync(
+            ids,
+            async transactionCancellationToken =>
+            {
+                var entities = await LoadLinkedComponentEntitiesAsync(
+                    linkedRepository,
+                    ids,
+                    transactionCancellationToken);
+                var entitiesById = entities.ToDictionary(x => x.Id, StringComparer.OrdinalIgnoreCase);
+                var contentIds = await LoadLinkedComponentContentIdsAsync(
+                    linkedRepository,
+                    ids,
+                    transactionCancellationToken);
+
+                if (!AllAggregatesMatch(models, entitiesById, contentIds))
+                {
+                    return;
+                }
+
+                TrackMetadataChanges(models, entitiesById, state);
+                await _eventPublisher.Publish(
+                    EventFactory<PageBuilderLinkedComponentChangingEvent>(state.ChangedEntries),
+                    transactionCancellationToken);
+                await repository.UnitOfWork.CommitAsync();
+                state.Saved = true;
+            },
+            cancellationToken);
+
+        return allComponentsExist && state.Saved;
+    }
+
+    private static bool AllAggregatesMatch(
+        IEnumerable<PageBuilderLinkedComponent> models,
+        IReadOnlyDictionary<string, PageBuilderLinkedComponentEntity> entitiesById,
+        ISet<string> contentIds)
+    {
+        return models.All(model =>
+            entitiesById.TryGetValue(model.Id, out var entity) &&
+            contentIds.Contains(model.Id) &&
+            HasExpectedIdentity(entity, model));
+    }
+
+    private void TrackMetadataChanges(
+        IEnumerable<PageBuilderLinkedComponent> models,
+        IReadOnlyDictionary<string, PageBuilderLinkedComponentEntity> entitiesById,
+        MetadataBatchSaveState state)
+    {
+        foreach (var model in models)
+        {
+            var originalEntity = entitiesById[model.Id];
+            var originalModel = ToModel(originalEntity, model: null);
+            var modifiedEntity = FromModel(model, state.PrimaryKeyMap);
+
+            state.OriginalModels.Add(originalModel);
+            state.ChangedEntries.Add(new GenericChangedEntry<PageBuilderLinkedComponent>(
+                model,
+                originalModel,
+                EntryState.Modified));
+            modifiedEntity.Patch(originalEntity);
+            originalEntity.ModifiedDate = DateTime.UtcNow;
+            state.ChangedEntities.Add(originalEntity);
+        }
+    }
+
+    private void UpdateChangedModels(MetadataBatchSaveState state)
+    {
+        for (var index = 0; index < state.ChangedEntries.Count; index++)
+        {
+            var changedEntry = state.ChangedEntries[index];
+            changedEntry.NewEntry = ToModel(state.ChangedEntities[index], changedEntry.NewEntry);
+        }
+    }
+
+    public Task<bool> TryDeleteAsync(
         PageBuilderLinkedComponent expectedComponent,
         CancellationToken cancellationToken = default)
     {
@@ -189,6 +240,13 @@ public class PageBuilderLinkedComponentService
         ArgumentException.ThrowIfNullOrWhiteSpace(expectedComponent.Id);
         ArgumentException.ThrowIfNullOrWhiteSpace(expectedComponent.StoreId);
 
+        return TryDeleteInternalAsync(expectedComponent, cancellationToken);
+    }
+
+    private async Task<bool> TryDeleteInternalAsync(
+        PageBuilderLinkedComponent expectedComponent,
+        CancellationToken cancellationToken)
+    {
         PageBuilderLinkedComponent deletedModel = null;
         GenericChangedEntry<PageBuilderLinkedComponent> changedEntry = null;
 
@@ -565,5 +623,14 @@ public class PageBuilderLinkedComponentService
         public PrimaryKeyResolvingMap PrimaryKeyMap { get; } = new();
         public PageBuilderLinkedComponentEntity ChangedEntity { get; set; }
         public GenericChangedEntry<PageBuilderLinkedComponent> ChangedEntry { get; set; }
+    }
+
+    private sealed class MetadataBatchSaveState(int capacity)
+    {
+        public List<PageBuilderLinkedComponent> OriginalModels { get; } = new(capacity);
+        public List<GenericChangedEntry<PageBuilderLinkedComponent>> ChangedEntries { get; } = new(capacity);
+        public List<PageBuilderLinkedComponentEntity> ChangedEntities { get; } = new(capacity);
+        public PrimaryKeyResolvingMap PrimaryKeyMap { get; } = new();
+        public bool Saved { get; set; }
     }
 }

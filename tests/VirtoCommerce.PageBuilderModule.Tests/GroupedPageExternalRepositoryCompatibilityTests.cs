@@ -9,9 +9,12 @@ public class GroupedPageExternalRepositoryCompatibilityTests
     [Fact]
     public void EnsureNonTransactionalContentSupported_AllowsOrdinaryLegacyContent()
     {
-        GroupedPageService.EnsureNonTransactionalContentSupported(
-            "{ \"settings\": {}, \"content\": [{ \"id\": \"hero\", \"type\": \"hero\" }] }",
-            "{ \"settings\": {}, \"content\": [] }");
+        var exception = Record.Exception(() =>
+            GroupedPageService.EnsureNonTransactionalContentSupported(
+                "{ \"settings\": {}, \"content\": [{ \"id\": \"hero\", \"type\": \"hero\" }] }",
+                "{ \"settings\": {}, \"content\": [] }"));
+
+        Assert.Null(exception);
     }
 
     [Fact]

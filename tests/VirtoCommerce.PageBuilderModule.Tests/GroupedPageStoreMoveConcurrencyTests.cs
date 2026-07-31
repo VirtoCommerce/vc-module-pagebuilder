@@ -130,8 +130,9 @@ public class GroupedPageStoreMoveConcurrencyTests
         await using var database = await TestDatabase.CreateAsync();
         await database.SeedAsync();
         using var cache = new TestPlatformMemoryCache();
-        var events = new RecordingEventPublisher();
+        var events = new CancellationAwareEventPublisher();
         var service = CreateService(database, cache, events);
+        using var cancellationTokenSource = new CancellationTokenSource();
         var groupedSearchCacheKey = $"grouped-search-{Guid.NewGuid():N}";
         using (var cacheEntry = cache.CreateEntry(groupedSearchCacheKey))
         {
@@ -143,14 +144,16 @@ public class GroupedPageStoreMoveConcurrencyTests
 
         var deleted = await service.TryDeleteEmptyDraftAsync(
             PageId,
-            TestContext.Current.CancellationToken);
+            cancellationTokenSource.Token);
 
         Assert.True(deleted);
+        Assert.True(cancellationTokenSource.Token.CanBeCanceled);
         Assert.False(cache.TryGetValue(groupedSearchCacheKey, out _));
         var pagesEvent = Assert.Single(events.Events.OfType<PagesDomainEvent>());
         Assert.Equal(PageId, pagesEvent.Id);
         Assert.Equal(PageId, pagesEvent.Page.Id);
         Assert.Equal(PageOperation.Delete, pagesEvent.Operation);
+        Assert.False(Assert.Single(events.CancellationTokens).CanBeCanceled);
         await using var verificationContext = database.CreateContext();
         Assert.False(await verificationContext.Set<PageBuilderPageEntity>()
             .AnyAsync(x => x.Id == PageId, TestContext.Current.CancellationToken));
@@ -165,7 +168,7 @@ public class GroupedPageStoreMoveConcurrencyTests
         await database.SeedAsync();
         await database.SetPageContentAsync("{ \"concurrent\": true }");
         using var cache = new TestPlatformMemoryCache();
-        var events = new RecordingEventPublisher();
+        var events = new CancellationAwareEventPublisher();
         var service = CreateService(database, cache, events);
 
         var deleted = await service.TryDeleteEmptyDraftAsync(
@@ -241,14 +244,17 @@ public class GroupedPageStoreMoveConcurrencyTests
             where T : IEvent => Task.CompletedTask;
     }
 
-    private sealed class RecordingEventPublisher : IEventPublisher
+    private sealed class CancellationAwareEventPublisher : IEventPublisher
     {
         public IList<IEvent> Events { get; } = [];
+        public IList<CancellationToken> CancellationTokens { get; } = [];
 
         public Task Publish<T>(T @event, CancellationToken cancellationToken = default)
             where T : IEvent
         {
+            cancellationToken.ThrowIfCancellationRequested();
             Events.Add(@event);
+            CancellationTokens.Add(cancellationToken);
             return Task.CompletedTask;
         }
     }

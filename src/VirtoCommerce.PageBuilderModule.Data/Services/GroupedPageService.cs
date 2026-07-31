@@ -11,7 +11,6 @@ using VirtoCommerce.Pages.Core.Models;
 using VirtoCommerce.Platform.Caching;
 using VirtoCommerce.Platform.Core.Caching;
 using VirtoCommerce.Platform.Core.Common;
-using VirtoCommerce.Platform.Core.Domain;
 using VirtoCommerce.Platform.Core.Events;
 using VirtoCommerce.Platform.Core.GenericCrud;
 using VirtoCommerce.Platform.Data.GenericCrud;
@@ -120,10 +119,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
                                 originalModel,
                                 EntryState.Modified));
                             modifiedEntity.Patch(originalEntity);
-                            if (originalEntity is IAuditable auditableOriginalEntity)
-                            {
-                                auditableOriginalEntity.ModifiedDate = DateTime.UtcNow;
-                            }
+                            originalEntity.ModifiedDate = DateTime.UtcNow;
 
                             changedEntities.Add(originalEntity);
                         }
@@ -297,35 +293,58 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
                 return;
             }
 
-            PageBuilderPage keep = null;
-
-            if (!string.IsNullOrEmpty(group.Id) && existingPages != null)
-            {
-                var existingStatusById = existingPages
-                    .Where(p => !string.IsNullOrEmpty(p.Id))
-                    .ToDictionary(p => p.Id, p => p.Status);
-
-                var newlyPromoted = publishedPages
-                    .Where(p => !string.IsNullOrEmpty(p.Id)
-                        && existingStatusById.TryGetValue(p.Id, out var oldStatus)
-                        && oldStatus != Published)
-                    .ToList();
-
-                if (newlyPromoted.Count == 1)
-                {
-                    keep = newlyPromoted[0];
-                }
-            }
+            var keep = FindNewlyPromotedPage(group.Id, publishedPages, existingPages);
 
             if (keep == null)
             {
-                keep = publishedPages.OrderByDescending(x => x.CreatedDate).First();
-                _logger.LogWarning("Group '{GroupId}' has multiple Published pages without a clear status transition. " +
-                    "Keeping page '{KeepId}' (newest CreatedDate) and demoting the rest to Archived.",
-                    group.Id, keep.Id);
+                keep = SelectFallbackPublishedPage(group.Id, publishedPages);
             }
 
-            foreach (var page in publishedPages.Where(p => p.Id != keep.Id))
+            ArchiveOtherPublishedPages(publishedPages, keep.Id);
+        }
+
+        private static PageBuilderPage FindNewlyPromotedPage(
+            string groupId,
+            IEnumerable<PageBuilderPage> publishedPages,
+            IEnumerable<PageBuilderPageEntity> existingPages)
+        {
+            if (string.IsNullOrEmpty(groupId) || existingPages == null)
+            {
+                return null;
+            }
+
+            var existingStatusById = existingPages
+                .Where(page => !string.IsNullOrEmpty(page.Id))
+                .ToDictionary(page => page.Id, page => page.Status);
+
+            var newlyPromoted = publishedPages
+                .Where(page => !string.IsNullOrEmpty(page.Id)
+                    && existingStatusById.TryGetValue(page.Id, out var oldStatus)
+                    && oldStatus != Published)
+                .Take(2)
+                .ToList();
+
+            return newlyPromoted.Count == 1 ? newlyPromoted[0] : null;
+        }
+
+        private PageBuilderPage SelectFallbackPublishedPage(
+            string groupId,
+            IEnumerable<PageBuilderPage> publishedPages)
+        {
+            var keep = publishedPages.OrderByDescending(page => page.CreatedDate).First();
+            _logger.LogWarning(
+                "Group '{GroupId}' has multiple Published pages without a clear status transition. " +
+                "Keeping page '{KeepId}' (newest CreatedDate) and demoting the rest to Archived.",
+                groupId,
+                keep.Id);
+            return keep;
+        }
+
+        private static void ArchiveOtherPublishedPages(
+            IEnumerable<PageBuilderPage> publishedPages,
+            string keepId)
+        {
+            foreach (var page in publishedPages.Where(page => page.Id != keepId))
             {
                 page.Status = Archived;
             }
@@ -524,7 +543,9 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
                 pagesEvent.Page = pageDocument;
                 pagesEvent.Operation = PageOperation.Delete;
 
-                await _eventPublisher.Publish(pagesEvent);
+                // The row deletion has already committed, so request cancellation must not suppress the
+                // corresponding Pages delete notification and leave the downstream index stale.
+                await _eventPublisher.Publish(pagesEvent, CancellationToken.None);
             }
 
             return deleted;

@@ -9,10 +9,11 @@ namespace VirtoCommerce.PageBuilderModule.Data.Repositories;
 
 public class PageBuilderModuleRepository(PageBuilderModuleDbContext dbContext, IUnitOfWork unitOfWork = null)
     : DbContextRepositoryBase<PageBuilderModuleDbContext>(dbContext, unitOfWork),
-      IPageBuilderModuleRepository,
       IPageBuilderLinkedComponentRepository,
       IPageBuilderWriteLockRepository
 {
+    private const int GroupQueryBatchSize = 500;
+
     public IQueryable<PageBuilderPageEntity> PageBuilderPages => DbContext.Set<PageBuilderPageEntity>();
 
     public IQueryable<GroupedPageBuilderPageEntity> GroupedPageBuilderPages => DbContext.Set<GroupedPageBuilderPageEntity>();
@@ -281,7 +282,7 @@ public class PageBuilderModuleRepository(PageBuilderModuleDbContext dbContext, I
             cancellationToken);
 
         var pageIds = new List<string>();
-        foreach (var batch in orderedGroupIds.Chunk(500))
+        foreach (var batch in orderedGroupIds.Chunk(GroupQueryBatchSize))
         {
             pageIds.AddRange(await PageBuilderPages
                 .Where(x => batch.Contains(x.GroupId))

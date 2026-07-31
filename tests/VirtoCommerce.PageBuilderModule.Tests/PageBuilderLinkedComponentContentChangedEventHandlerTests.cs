@@ -39,7 +39,10 @@ public class PageBuilderLinkedComponentContentChangedEventHandlerTests
             new ThrowingBackgroundJobClient(),
             NullLogger<PageBuilderLinkedComponentContentChangedEventHandler>.Instance);
 
-        await handler.Handle(new PageBuilderLinkedComponentContentChangedEvent(["component"]));
+        var exception = await Record.ExceptionAsync(() =>
+            handler.Handle(new PageBuilderLinkedComponentContentChangedEvent(["component"])));
+
+        Assert.Null(exception);
     }
 
     [Fact]

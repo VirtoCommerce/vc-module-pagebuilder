@@ -18,7 +18,7 @@ using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Data.Authorization;
-using VirtoCommerce.PageBuilderModule.Data.Services;
+using VirtoCommerce.PageBuilderModule.Web.Services;
 using VirtoCommerce.Pages.Core.Search;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Events;
@@ -28,17 +28,42 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 
 [Route("api/page-builder-pages")]
 [Authorize]
-public class PageBuilderPageController(
-    IPageBuilderPageService crudService,
-    IGroupedPageService groupedPageService,
-    IGroupedPageSearchService groupedPageSearchService,
-    IAuthorizationService authorizationService,
-    IPageDocumentSearchService pageDocumentSearchService,
-    IPageBuilderLinkedComponentReferenceIndexService linkedComponentReferenceIndexService,
-    IEventPublisher eventPublisher,
-    ILogger<PageBuilderPageController> logger)
-    : Controller
+public class PageBuilderPageController : Controller
 {
+    private readonly IPageBuilderPageService crudService;
+    private readonly IGroupedPageService groupedPageService;
+    private readonly IGroupedPageSearchService groupedPageSearchService;
+    private readonly IAuthorizationService authorizationService;
+    private readonly IPageDocumentSearchService pageDocumentSearchService;
+    private readonly PageBuilderPageContentService pageContentService;
+    private readonly ILogger<PageBuilderPageController> logger;
+
+#pragma warning disable S107 // Preserve the published controller constructor for source and binary compatibility.
+    public PageBuilderPageController(
+        IPageBuilderPageService crudService,
+        IGroupedPageService groupedPageService,
+        IGroupedPageSearchService groupedPageSearchService,
+        IAuthorizationService authorizationService,
+        IPageDocumentSearchService pageDocumentSearchService,
+        IPageBuilderLinkedComponentReferenceIndexService linkedComponentReferenceIndexService,
+        IEventPublisher eventPublisher,
+        ILogger<PageBuilderPageController> logger)
+    {
+        this.crudService = crudService;
+        this.groupedPageService = groupedPageService;
+        this.groupedPageSearchService = groupedPageSearchService;
+        this.authorizationService = authorizationService;
+        this.pageDocumentSearchService = pageDocumentSearchService;
+        pageContentService = new PageBuilderPageContentService(
+            crudService,
+            groupedPageService,
+            linkedComponentReferenceIndexService,
+            eventPublisher,
+            logger);
+        this.logger = logger;
+    }
+#pragma warning restore S107
+
     [HttpPost("search")]
     [Authorize(ModuleConstants.Security.Permissions.Read)]
     public async Task<ActionResult<GroupedPageBuilderPageSearchResult>> SearchGroups([FromBody] PageBuilderPageSearchCriteria criteria)
@@ -83,133 +108,44 @@ public class PageBuilderPageController(
     [Authorize(ModuleConstants.Security.Permissions.Update)]
     public async Task<ActionResult<GroupedPageBuilderPage>> UpdateGroup([FromBody] GroupedPageBuilderPage model, CancellationToken cancellationToken = default)
     {
-        // Authorize the persisted resource for updates. Authorizing only the incoming model would let a caller
-        // spoof a store they can access and then learn the existing group's store from validation details.
         var groupedPage = await groupedPageService.GetByIdAsync(model.Id);
-        var authorizationResult = await authorizationService.AuthorizeAsync(
-            User,
-            groupedPage ?? model,
-            new PageBuilderAuthorizationRequirement());
-        if (!authorizationResult.Succeeded)
+        var storeChanged = HasStoreChanged(groupedPage, model);
+        var authorizationError = await AuthorizeGroupUpdateAsync(groupedPage, model, storeChanged);
+        if (authorizationError != null)
         {
-            return Forbidden;
+            return authorizationError;
         }
 
-        var storeChanged = groupedPage != null &&
-            !string.Equals(groupedPage.StoreId, model.StoreId, StringComparison.OrdinalIgnoreCase);
-        if (storeChanged)
-        {
-            // A move crosses two resource boundaries: the caller must be allowed to update both the
-            // persisted source and the requested destination store.
-            var destinationAuthorizationResult = await authorizationService.AuthorizeAsync(
-                User,
-                model,
-                new PageBuilderAuthorizationRequirement());
-            if (!destinationAuthorizationResult.Succeeded)
-            {
-                return Forbidden;
-            }
-        }
-
-        if (groupedPage == null)
-        {
-            groupedPage = AbstractTypeFactory<GroupedPageBuilderPage>.TryCreateInstance();
-        }
-        else if (groupedPage.Status == Archived)
+        if (groupedPage?.Status == Archived)
         {
             return BadRequest("Archived page cannot be updated.");
         }
 
-        groupedPage.Name = model.Name;
-        groupedPage.Permalink = model.Permalink;
-        groupedPage.CultureName = model.CultureName;
-        groupedPage.StoreId = model.StoreId;
-        if (storeChanged)
-        {
-            foreach (var page in groupedPage.Pages)
-            {
-                page.StoreId = model.StoreId;
-            }
-        }
-        groupedPage.Visibility = model.Visibility;
-        groupedPage.UserGroups = model.UserGroups;
-        groupedPage.StartDate = model.StartDate;
-        groupedPage.EndDate = model.EndDate;
-        groupedPage.OrganizationId = model.OrganizationId;
+        groupedPage ??= AbstractTypeFactory<GroupedPageBuilderPage>.TryCreateInstance();
+        ApplyGroupChanges(groupedPage, model, storeChanged);
 
-        // Ensure a draft page exists so the metadata edit lives in a working copy and Published stays untouched.
-        // If only a Published page exists, spin up a new draft and remember to seed it with the published content.
-        var draftPage = groupedPage.Pages.FirstOrDefault(x => x.Status == Draft);
-        var createdDraftPageId = (string)null;
-        var sourcePageId = (string)null;
-        if (draftPage == null)
-        {
-            sourcePageId = groupedPage.Pages.FirstOrDefault(x => x.Status == Published)?.Id;
-        }
-
+        var sourcePageId = GetPublishedContentSourceId(groupedPage);
         if (sourcePageId != null)
         {
             var sourceContent = await groupedPageService.LoadContent(sourcePageId, cancellationToken);
-            var linkedComponentAccess = await ValidateLinkedComponentContentAccessAsync(sourceContent);
-            if (linkedComponentAccess != null)
-            {
-                return linkedComponentAccess;
-            }
-
-            var preflightResult = await PreflightLinkedComponentReferencesAsync(
+            var validationError = await ValidateLinkedComponentContentAsync(
                 groupedPage.StoreId,
-                [sourceContent],
+                sourceContent,
                 cancellationToken);
-            if (preflightResult != null)
+            if (validationError != null)
             {
-                return preflightResult;
+                return validationError;
             }
         }
 
-        if (draftPage == null)
+        var writeResult = await pageContentService.SaveGroupUpdateAsync(
+            groupedPage,
+            sourcePageId,
+            cancellationToken);
+        if (writeResult.ErrorMessage != null)
         {
-            draftPage = AbstractTypeFactory<PageBuilderPage>.TryCreateInstance();
-            draftPage.Id = Guid.NewGuid().ToString("N");
-            draftPage.Status = Draft;
-            draftPage.StoreId = groupedPage.StoreId;
-            groupedPage.Pages.Add(draftPage);
-            createdDraftPageId = draftPage.Id;
+            return BadRequest(writeResult.ErrorMessage);
         }
-
-        try
-        {
-            await groupedPageService.SaveChangesAsync([groupedPage]);
-        }
-        catch (InvalidDataException ex)
-        {
-            return BadRequest(ex.Message);
-        }
-
-        if (sourcePageId != null)
-        {
-            try
-            {
-                await groupedPageService.CopyPageContentAsync(sourcePageId, draftPage.Id, cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                if (createdDraftPageId != null &&
-                    string.Equals(createdDraftPageId, draftPage.Id, StringComparison.OrdinalIgnoreCase))
-                {
-                    await RemoveFailedDraftAsync(draftPage.Id, ex);
-                }
-
-                if (ex is InvalidDataException)
-                {
-                    return BadRequest(ex.Message);
-                }
-
-                throw;
-            }
-        }
-
-        await SyncGroupSettingsToContent(draftPage.Id, groupedPage, cancellationToken);
-        await RaisePageContentChanged(draftPage.Id, cancellationToken);
 
         return Ok(groupedPage);
     }
@@ -233,8 +169,7 @@ public class PageBuilderPageController(
         model.Pages.Add(draftPage);
 
         await groupedPageService.SaveChangesAsync([model]);
-        await SyncGroupSettingsToContent(draftPage.Id, model, cancellationToken);
-        await RaisePageContentChanged(draftPage.Id, cancellationToken);
+        await pageContentService.UpdateGroupSettingsAsync(draftPage.Id, model, cancellationToken);
 
         return Ok(model);
     }
@@ -458,80 +393,31 @@ public class PageBuilderPageController(
             return Forbidden;
         }
 
-        // Read and validate before touching the group. This is the last point at which a page can still be
-        // blanked: the reader-side fall-through only rescues a page whose content column is NULL, and a body
-        // that gets written turns the page into "deliberately empty" — a real answer that shadows the live
-        // version and survives the next publish. An empty or unparsable body is never a save the designer
-        // means to make, so it must not reach the column. Validating first also keeps a rejected request from
-        // leaving a draft row behind, since the draft below is created before anything is written.
-        string content;
-        using (var reader = new StreamReader(
-                   Request.Body,
-                   Encoding.UTF8,
-                   detectEncodingFromByteOrderMarks: true,
-                   leaveOpen: true))
-        {
-            content = await reader.ReadToEndAsync(cancellationToken);
-        }
+        var content = await ReadRequestContentAsync(cancellationToken);
 
         if (string.IsNullOrWhiteSpace(content) || !IsWellFormedJson(content))
         {
             return BadRequest("Page content must be a non-empty, well-formed JSON document.");
         }
 
-        var linkedComponentAccess = await ValidateLinkedComponentContentAccessAsync(content);
-        if (linkedComponentAccess != null)
-        {
-            return linkedComponentAccess;
-        }
-
-        var preflightResult = await PreflightLinkedComponentReferencesAsync(
+        var validationError = await ValidateLinkedComponentContentAsync(
             groupedPage.StoreId,
-            [content],
+            content,
             cancellationToken);
-        if (preflightResult != null)
+        if (validationError != null)
         {
-            return preflightResult;
+            return validationError;
         }
 
-        var draftPage = groupedPage.Pages.FirstOrDefault(x => x.Status == Draft);
-        var createdDraftPageId = (string)null;
-
-        if (draftPage == null)
+        var writeResult = await pageContentService.SaveContentAsync(
+            groupId,
+            groupedPage,
+            content,
+            cancellationToken);
+        if (writeResult.ErrorMessage != null)
         {
-            draftPage = AbstractTypeFactory<PageBuilderPage>.TryCreateInstance();
-            draftPage.Id = Guid.NewGuid().ToString("N");
-            draftPage.StoreId = groupedPage.StoreId;
-            draftPage.Status = Draft;
-            groupedPage.Pages.Add(draftPage);
-            createdDraftPageId = draftPage.Id;
-            await groupedPageService.SaveChangesAsync([groupedPage]);
-
-            groupedPage = await groupedPageService.GetByIdAsync(groupId);
-            draftPage = groupedPage.Pages.FirstOrDefault(x => x.Status == Draft);
+            return BadRequest(writeResult.ErrorMessage);
         }
-
-        var pageId = draftPage!.Id;
-        try
-        {
-            await groupedPageService.SaveContent(pageId, content, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            if (createdDraftPageId != null &&
-                string.Equals(createdDraftPageId, pageId, StringComparison.OrdinalIgnoreCase))
-            {
-                await RemoveFailedDraftAsync(pageId, ex);
-            }
-
-            if (ex is InvalidDataException)
-            {
-                return BadRequest(ex.Message);
-            }
-
-            throw;
-        }
-        await RaisePageContentChanged(pageId, cancellationToken);
 
         return NoContent();
     }
@@ -558,134 +444,103 @@ public class PageBuilderPageController(
             return Forbidden;
         }
 
-        var sourcePageId = sourceGroup.Pages
-            .Where(x => x.Status == Draft || x.Status == Published)
-            .OrderByDescending(x => x.ModifiedDate)
-            .Select(x => x.Id)
-            .FirstOrDefault();
-
+        var sourcePageId = GetCopySourcePageId(sourceGroup);
         if (sourcePageId == null)
         {
             return NotFound();
         }
 
         var sourceContent = await groupedPageService.LoadContent(sourcePageId, cancellationToken);
-        var linkedComponentAccess = await ValidateLinkedComponentContentAccessAsync(sourceContent);
-        if (linkedComponentAccess != null)
-        {
-            return linkedComponentAccess;
-        }
-
-        var preflightResult = await PreflightLinkedComponentReferencesAsync(
+        var validationError = await ValidateLinkedComponentContentAsync(
             targetGroup.StoreId,
-            [sourceContent],
+            sourceContent,
             cancellationToken);
-        if (preflightResult != null)
+        if (validationError != null)
         {
-            return preflightResult;
+            return validationError;
         }
 
-        var targetDraft = targetGroup.Pages.FirstOrDefault(x => x.Status == Draft);
-        var createdTargetDraftPageId = (string)null;
-        if (targetDraft == null)
-        {
-            targetDraft = AbstractTypeFactory<PageBuilderPage>.TryCreateInstance();
-            targetDraft.Id = Guid.NewGuid().ToString("N");
-            targetDraft.StoreId = targetGroup.StoreId;
-            targetDraft.Status = Draft;
-            targetGroup.Pages.Add(targetDraft);
-            createdTargetDraftPageId = targetDraft.Id;
-            await groupedPageService.SaveChangesAsync([targetGroup]);
-
-            targetGroup = await groupedPageService.GetByIdAsync(targetGroupId);
-            targetDraft = targetGroup.Pages.FirstOrDefault(x => x.Status == Draft);
-        }
-
-        if (targetDraft == null)
+        var writeResult = await pageContentService.CopyContentAsync(
+            targetGroupId,
+            targetGroup,
+            sourcePageId,
+            cancellationToken);
+        if (!writeResult.PageFound)
         {
             return NotFound();
         }
 
-        try
+        if (writeResult.ErrorMessage != null)
         {
-            await groupedPageService.CopyPageContentAsync(sourcePageId, targetDraft.Id, cancellationToken);
+            return BadRequest(writeResult.ErrorMessage);
         }
-        catch (Exception ex)
-        {
-            if (createdTargetDraftPageId != null &&
-                string.Equals(createdTargetDraftPageId, targetDraft.Id, StringComparison.OrdinalIgnoreCase))
-            {
-                await RemoveFailedDraftAsync(targetDraft.Id, ex);
-            }
-
-            if (ex is InvalidDataException)
-            {
-                return BadRequest(ex.Message);
-            }
-
-            throw;
-        }
-        await RaisePageContentChanged(targetDraft.Id, cancellationToken);
 
         return NoContent();
     }
 
-    private async Task RemoveFailedDraftAsync(string pageId, Exception originalException)
+    private async Task<ActionResult> AuthorizeGroupUpdateAsync(
+        GroupedPageBuilderPage groupedPage,
+        GroupedPageBuilderPage model,
+        bool storeChanged)
     {
-        try
+        // Authorize the persisted resource first. Authorizing only the incoming model would let a caller spoof
+        // a store they can access and then learn the existing group's store from validation details.
+        var authorizationResult = await authorizationService.AuthorizeAsync(
+            User,
+            groupedPage ?? model,
+            new PageBuilderAuthorizationRequirement());
+        if (!authorizationResult.Succeeded)
         {
-            var deleted = await groupedPageService.TryDeleteEmptyDraftAsync(pageId);
-            if (!deleted)
-            {
-                logger.LogDebug(
-                    "Skipped cleanup of draft page {PageId} after a failed content write because it is no longer an empty draft",
-                    pageId);
-            }
+            return Forbidden;
         }
-        catch (Exception cleanupException)
+
+        if (!storeChanged)
         {
-            logger.LogError(
-                cleanupException,
-                "Failed to remove draft page {PageId} after its content write failed: {WriteError}",
-                pageId,
-                originalException.Message);
+            return null;
         }
+
+        // A move crosses two resource boundaries: the caller must be allowed to update both the persisted
+        // source and the requested destination store.
+        authorizationResult = await authorizationService.AuthorizeAsync(
+            User,
+            model,
+            new PageBuilderAuthorizationRequirement());
+
+        return authorizationResult.Succeeded ? null : Forbidden;
     }
 
-    private async Task<ActionResult> ValidateLinkedComponentContentAccessAsync(string content)
+    private async Task<ActionResult> ValidateLinkedComponentContentAsync(
+        string storeId,
+        string content,
+        CancellationToken cancellationToken)
     {
         bool hasLinkedComponents;
         try
         {
-            hasLinkedComponents = PageBuilderLinkedComponentReferenceMatcher.HasReferences(content);
+            hasLinkedComponents = pageContentService.HasLinkedComponentReferences(content);
         }
         catch (InvalidDataException ex)
         {
             return BadRequest(ex.Message);
         }
 
-        if (!hasLinkedComponents)
+        if (hasLinkedComponents)
         {
-            return null;
+            var authorizationResult = await authorizationService.AuthorizeAsync(
+                User,
+                null,
+                ModuleConstants.Security.Permissions.LinkedComponentsRead);
+            if (!authorizationResult.Succeeded)
+            {
+                return Forbidden;
+            }
         }
 
-        var authorizationResult = await authorizationService.AuthorizeAsync(
-            User,
-            null,
-            ModuleConstants.Security.Permissions.LinkedComponentsRead);
-        return authorizationResult.Succeeded ? null : Forbidden;
-    }
-
-    private async Task<ActionResult> PreflightLinkedComponentReferencesAsync(
-        string storeId,
-        IEnumerable<string> contents,
-        CancellationToken cancellationToken)
-    {
         try
         {
-            await linkedComponentReferenceIndexService.ValidateReferencesForStoreAsync(
+            await pageContentService.ValidateReferencesForStoreAsync(
                 storeId,
-                contents,
+                content,
                 cancellationToken);
             return null;
         }
@@ -695,40 +550,72 @@ public class PageBuilderPageController(
         }
     }
 
+    private async Task<string> ReadRequestContentAsync(CancellationToken cancellationToken)
+    {
+        // Validate the complete request before a draft row is created. A blank or truncated write would
+        // otherwise shadow the published page and could later replace it during publishing.
+        using var reader = new StreamReader(
+            Request.Body,
+            Encoding.UTF8,
+            detectEncodingFromByteOrderMarks: true,
+            leaveOpen: true);
+
+        return await reader.ReadToEndAsync(cancellationToken);
+    }
+
+    private static bool HasStoreChanged(
+        GroupedPageBuilderPage groupedPage,
+        GroupedPageBuilderPage model)
+    {
+        return groupedPage != null &&
+            !string.Equals(groupedPage.StoreId, model.StoreId, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static void ApplyGroupChanges(
+        GroupedPageBuilderPage groupedPage,
+        GroupedPageBuilderPage model,
+        bool storeChanged)
+    {
+        groupedPage.Name = model.Name;
+        groupedPage.Permalink = model.Permalink;
+        groupedPage.CultureName = model.CultureName;
+        groupedPage.StoreId = model.StoreId;
+
+        if (storeChanged)
+        {
+            foreach (var page in groupedPage.Pages)
+            {
+                page.StoreId = model.StoreId;
+            }
+        }
+
+        groupedPage.Visibility = model.Visibility;
+        groupedPage.UserGroups = model.UserGroups;
+        groupedPage.StartDate = model.StartDate;
+        groupedPage.EndDate = model.EndDate;
+        groupedPage.OrganizationId = model.OrganizationId;
+    }
+
+    private static string GetPublishedContentSourceId(GroupedPageBuilderPage groupedPage)
+    {
+        return groupedPage.Pages.Any(x => x.Status == Draft)
+            ? null
+            : groupedPage.Pages.FirstOrDefault(x => x.Status == Published)?.Id;
+    }
+
+    private static string GetCopySourcePageId(GroupedPageBuilderPage sourceGroup)
+    {
+        return sourceGroup.Pages
+            .Where(x => x.Status == Draft || x.Status == Published)
+            .OrderByDescending(x => x.ModifiedDate)
+            .Select(x => x.Id)
+            .FirstOrDefault();
+    }
+
     private static ActionResult Forbidden => new ObjectResult(new { })
     {
         StatusCode = (int)HttpStatusCode.Forbidden,
     };
-
-    // Syncs Name/Permalink/CultureName from the group into the draft page's content JSON `settings` object.
-    // If the page has no content yet, starts from DefaultPageContent. If the existing content is not a JSON
-    // object, leaves it untouched (legacy / non-standard payload — don't try to fix it here).
-    private async Task SyncGroupSettingsToContent(string pageId, GroupedPageBuilderPage group, CancellationToken cancellationToken)
-    {
-        var content = await groupedPageService.LoadContent(pageId, cancellationToken);
-        if (string.IsNullOrWhiteSpace(content))
-        {
-            content = ModuleConstants.DefaultPageContent;
-        }
-
-        var node = JsonNode.Parse(content);
-        if (node is not JsonObject root)
-        {
-            return;
-        }
-
-        if (root["settings"] is not JsonObject settings)
-        {
-            settings = new JsonObject();
-            root["settings"] = settings;
-        }
-
-        settings["name"] = group.Name;
-        settings["permalink"] = group.Permalink;
-        settings["cultureName"] = group.CultureName;
-
-        await groupedPageService.SaveContent(pageId, root.ToJsonString(), cancellationToken);
-    }
 
     // Only well-formedness is checked, not the document's shape: content stored by older designer versions can
     // be an array rather than the current { settings, content } object, and both still load. What this rules
@@ -745,25 +632,5 @@ public class PageBuilderPageController(
         {
             return false;
         }
-    }
-
-    // Re-fires page-changed event after content has been written so the page gets re-indexed
-    // with its actual content (group-level save events fire before content is persisted).
-    private async Task RaisePageContentChanged(string pageId, CancellationToken cancellationToken)
-    {
-        if (string.IsNullOrEmpty(pageId))
-        {
-            return;
-        }
-
-        var pages = await crudService.GetAsync([pageId]);
-        var page = pages.FirstOrDefault();
-        if (page == null)
-        {
-            return;
-        }
-
-        var entry = new GenericChangedEntry<PageBuilderPage>(page, EntryState.Modified);
-        await eventPublisher.Publish(new PageBuilderPageChangedEvent([entry]), cancellationToken);
     }
 }

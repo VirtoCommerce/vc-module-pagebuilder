@@ -174,11 +174,12 @@ export const editorDataReducers = createReducer<EditorDataState>(
         const optimisticResultIds = append || rebase
             ? state.linkedComponentsSearch.optimisticResultIds.filter(id => !serverResultIds.includes(id))
             : [];
-        const currentResultIds = append && state.linkedComponentsSearch.keyword === keyword
-            ? state.linkedComponentsSearch.resultIds
-            : rebase
-                ? optimisticResultIds
-                : [];
+        let currentResultIds: string[] = [];
+        if (append && state.linkedComponentsSearch.keyword === keyword) {
+            currentResultIds = state.linkedComponentsSearch.resultIds;
+        } else if (rebase) {
+            currentResultIds = optimisticResultIds;
+        }
 
         return {
             ...state,

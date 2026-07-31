@@ -238,8 +238,9 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         private static PageBuilderPageController CreateController(
             PublishedRenameContentPreservationTests.FakeGroupedPageService service)
         {
+            var pageService = new PublishedRenameContentPreservationTests.FakePageBuilderPageService(service);
             var controller = new PageBuilderPageController(
-                crudService: new PublishedRenameContentPreservationTests.FakePageBuilderPageService(service),
+                crudService: pageService,
                 groupedPageService: service,
                 groupedPageSearchService: new PublishedRenameContentPreservationTests.FakeGroupedPageSearchService(),
                 authorizationService: new PublishedRenameContentPreservationTests.AllowAllAuthorizationService(),
@@ -257,8 +258,9 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         private static async Task<(string Body, int StatusCode)> GetContent(
             PublishedRenameContentPreservationTests.FakeGroupedPageService service, string groupId, bool draft)
         {
+            var pageService = new PublishedRenameContentPreservationTests.FakePageBuilderPageService(service);
             var controller = new PageBuilderPageController(
-                crudService: new PublishedRenameContentPreservationTests.FakePageBuilderPageService(service),
+                crudService: pageService,
                 groupedPageService: service,
                 groupedPageSearchService: new PublishedRenameContentPreservationTests.FakeGroupedPageSearchService(),
                 authorizationService: new PublishedRenameContentPreservationTests.AllowAllAuthorizationService(),

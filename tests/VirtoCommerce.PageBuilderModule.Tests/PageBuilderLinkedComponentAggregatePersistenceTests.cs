@@ -195,6 +195,24 @@ public class PageBuilderLinkedComponentAggregatePersistenceTests
     }
 
     [Fact]
+    public async Task TryLoadContentAsync_WhenStoreIdDiffersOnlyByCase_ReturnsAuthorizedContent()
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        await database.SeedComponentAsync(OldAssetUrl);
+        var expectedComponent = await database.LoadComponentAsync();
+        expectedComponent.StoreId = StoreId.ToUpperInvariant();
+        var service = new PageBuilderLinkedComponentContentService(
+            database.RepositoryFactory,
+            new RecordingEventPublisher());
+
+        var content = await service.TryLoadContentAsync(
+            expectedComponent,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(ContentWithAsset(OldAssetUrl), content);
+    }
+
+    [Fact]
     public async Task SaveContentAsync_WhenAssetIsStillUsed_KeepsSingleExactReference()
     {
         await using var database = await TestDatabase.CreateAsync();
