@@ -192,8 +192,8 @@ public class PageBuilderLinkedComponentService
 
     private static bool AllAggregatesMatch(
         IEnumerable<PageBuilderLinkedComponent> models,
-        IReadOnlyDictionary<string, PageBuilderLinkedComponentEntity> entitiesById,
-        ISet<string> contentIds)
+        Dictionary<string, PageBuilderLinkedComponentEntity> entitiesById,
+        HashSet<string> contentIds)
     {
         return models.All(model =>
             entitiesById.TryGetValue(model.Id, out var entity) &&
@@ -203,7 +203,7 @@ public class PageBuilderLinkedComponentService
 
     private void TrackMetadataChanges(
         IEnumerable<PageBuilderLinkedComponent> models,
-        IReadOnlyDictionary<string, PageBuilderLinkedComponentEntity> entitiesById,
+        Dictionary<string, PageBuilderLinkedComponentEntity> entitiesById,
         MetadataBatchSaveState state)
     {
         foreach (var model in models)

@@ -517,7 +517,7 @@ public class PageBuilderPageController : Controller
         bool hasLinkedComponents;
         try
         {
-            hasLinkedComponents = pageContentService.HasLinkedComponentReferences(content);
+            hasLinkedComponents = PageBuilderPageContentService.HasLinkedComponentReferences(content);
         }
         catch (InvalidDataException ex)
         {

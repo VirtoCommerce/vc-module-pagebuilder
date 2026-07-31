@@ -23,7 +23,7 @@ internal sealed class PageBuilderPageContentService(
     IEventPublisher eventPublisher,
     ILogger logger)
 {
-    internal bool HasLinkedComponentReferences(string content)
+    internal static bool HasLinkedComponentReferences(string content)
     {
         return PageBuilderLinkedComponentReferenceMatcher.HasReferences(content);
     }
@@ -206,7 +206,7 @@ internal sealed class PageBuilderPageContentService(
         try
         {
             var deleted = await groupedPageService.TryDeleteEmptyDraftAsync(pageId);
-            if (!deleted)
+            if (!deleted && logger.IsEnabled(LogLevel.Debug))
             {
                 logger.LogDebug(
                     "Skipped cleanup of draft page {PageId} after a failed content write because it is no longer an empty draft",
