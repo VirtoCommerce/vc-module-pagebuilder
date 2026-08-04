@@ -90,12 +90,12 @@ export function createEditorDataState(overrides: Partial<EditorDataState> = {}):
   return {
     templates: {},
     schemas: null,
-    linkedComponents: {},
-    linkedComponentContents: {},
-    linkedComponentErrors: {},
-    linkedComponentUsageRefreshIdsByTemplate: {},
-    linkedComponentDetails: { componentId: null, loading: false, error: null },
-    linkedComponentsSearch: {
+    sharedComponents: {},
+    sharedComponentContents: {},
+    sharedComponentErrors: {},
+    sharedComponentUsageRefreshIdsByTemplate: {},
+    sharedComponentDetails: { componentId: null, loading: false, error: null },
+    sharedComponentsSearch: {
         keyword: '',
         resultIds: [],
         optimisticResultIds: [],

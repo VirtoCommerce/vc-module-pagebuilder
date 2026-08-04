@@ -256,7 +256,7 @@ describe('editTemplateContext', () => {
         expect(result!.selectedSectionsCount).toBe(1);
     });
 
-    it('removes page settings schemas from linked-document context', () => {
+    it('removes page settings schemas from shared-component-document context', () => {
         const template = createTemplate({ content: [createSection({ id: 's1', type: 'hero' })] });
         const settingsSchemas = { top: [createSchema()], bottom: [createSchema()] };
 
@@ -268,7 +268,7 @@ describe('editTemplateContext', () => {
                 blocksSchemas: { text: {} },
                 settings: template.settings,
                 settingsSchemas,
-                isLinkedDocument: true,
+                isSharedComponentDocument: true,
             } as any,
             {},
             [],
@@ -333,12 +333,12 @@ describe('selectToolbarButtonsState', () => {
         expect(saveBtn!.canAction).toBe(false);
     });
 
-    it('disables Save for a linked document without edit permission', () => {
+    it('disables Save for a Shared Component document without edit permission', () => {
         const selector = selectors.selectToolbarButtonsState({
             useTheme: false,
             useDrafts: false,
             useExternalPreview: false,
-            canEditLinkedComponents: false,
+            canEditSharedComponents: false,
         });
         const result = selector.projector(false, null, 'component-1', true);
         const saveBtn = result.flat().find(b => b.alias === 'save');

@@ -49,7 +49,7 @@
       "PATH": "Polku",
       "USED_ON": "Käytössä ({count})",
       "PAGES": "Sivut",
-      "LINKED_COMPONENTS": "Jaetut komponentit",
+      "SHARED_COMPONENTS": "Jaetut komponentit",
       "NO_REFERENCES": "Ei käytössä Page Builder -sivuilla tai jaetuissa komponenteissa.",
       "URL": "URL",
       "COPY_URL": "Kopioi URL",

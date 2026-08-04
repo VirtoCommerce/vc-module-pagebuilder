@@ -183,33 +183,33 @@
             "isArray": false
         }
     },
-    "canInsertLinkedComponents": {
+    "canInsertSharedComponents": {
         "init": true,
         "url": "/api/platform/security/currentuser",
         "method": "GET",
         "cacheable": true,
         "response": {
-            "selector": "this.response.isAdministrator === true || (this.response.permissions || []).indexOf('builder:linked-components:read') !== -1",
+            "selector": "this.response.isAdministrator === true || (this.response.permissions || []).indexOf('builder:shared-components:read') !== -1",
             "isArray": false
         }
     },
-    "canCreateLinkedComponents": {
+    "canCreateSharedComponents": {
         "init": true,
         "url": "/api/platform/security/currentuser",
         "method": "GET",
         "cacheable": true,
         "response": {
-            "selector": "this.response.isAdministrator === true || (this.response.permissions || []).indexOf('builder:linked-components:create') !== -1",
+            "selector": "this.response.isAdministrator === true || (this.response.permissions || []).indexOf('builder:shared-components:create') !== -1",
             "isArray": false
         }
     },
-    "canEditLinkedComponents": {
+    "canEditSharedComponents": {
         "init": true,
         "url": "/api/platform/security/currentuser",
         "method": "GET",
         "cacheable": true,
         "response": {
-            "selector": "this.response.isAdministrator === true || (this.response.permissions || []).indexOf('builder:linked-components:update') !== -1",
+            "selector": "this.response.isAdministrator === true || (this.response.permissions || []).indexOf('builder:shared-components:update') !== -1",
             "isArray": false
         }
     }

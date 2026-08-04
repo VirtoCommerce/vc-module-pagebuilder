@@ -5,7 +5,7 @@ import { Store } from '@ngrx/store';
 import { AppConfig } from '@integration/services';
 
 import { BuilderState } from '@editor/store/state';
-import { canEditLinkedComponentOriginal } from '@editor/helpers';
+import { canEditSharedComponentOriginal } from '@editor/helpers';
 import * as actions from '@editor/store/actions';
 import * as selectors from '@editor/store/selectors';
 import { DefaultToolbarComponent } from '@shared/components/default-toolbar/default-toolbar.component';
@@ -28,18 +28,18 @@ export class ToolbarHostComponent {
             useTheme: !this.appConfig.getValue('skipTheme'),
             useDrafts: !!this.appConfig.getValue('publish'),
             useExternalPreview: !!this.appConfig.getValue('externalPreview'),
-            canEditLinkedComponents: canEditLinkedComponentOriginal(this.appConfig),
+            canEditSharedComponents: canEditSharedComponentOriginal(this.appConfig),
         }
     )), { initialValue: null });
-    readonly linkedComponentId = toSignal(
-        this.store$.select(routingSelectors.selectLinkedComponentIdParameter),
+    readonly sharedComponentId = toSignal(
+        this.store$.select(routingSelectors.selectSharedComponentIdParameter),
         { initialValue: '' },
     );
 
     onActionExecuted(action: string) {
         if (action === 'save'
-            && this.linkedComponentId()
-            && !canEditLinkedComponentOriginal(this.appConfig)) {
+            && this.sharedComponentId()
+            && !canEditSharedComponentOriginal(this.appConfig)) {
             return;
         }
         this.store$.dispatch(actions.executeToolbarAction({ action }));

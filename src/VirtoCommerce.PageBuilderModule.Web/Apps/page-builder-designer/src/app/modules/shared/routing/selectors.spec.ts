@@ -10,16 +10,16 @@ describe('selectQueryParams', () => {
 });
 
 describe('route query selectors', () => {
-    it('returns cultureName and linkedComponentId query parameters', () => {
-        const queryParams = { cultureName: 'en-US', linkedComponentId: 'component-1' };
+    it('returns cultureName and sharedComponentId query parameters', () => {
+        const queryParams = { cultureName: 'en-US', sharedComponentId: 'component-1' };
 
         expect(selectors.selectCultureNameParameter.projector(queryParams)).toBe('en-US');
-        expect(selectors.selectLinkedComponentIdParameter.projector(queryParams)).toBe('component-1');
+        expect(selectors.selectSharedComponentIdParameter.projector(queryParams)).toBe('component-1');
     });
 
     it('returns empty values when the query parameters are missing', () => {
         expect(selectors.selectCultureNameParameter.projector({})).toBe('');
-        expect(selectors.selectLinkedComponentIdParameter.projector({})).toBe('');
+        expect(selectors.selectSharedComponentIdParameter.projector({})).toBe('');
     });
 });
 
@@ -50,7 +50,7 @@ describe('selectDataParams', () => {
 describe('selectTemplateKeyParameter', () => {
     it('uses the Shared Component id before page route parameters', () => {
         expect(selectors.selectTemplateKeyParameter.projector('page', '/home.json', 'g1', 'component-1'))
-            .toBe('linked-component::component-1');
+            .toBe('shared-component::component-1');
     });
 
     it('returns type::path when type is set', () => {

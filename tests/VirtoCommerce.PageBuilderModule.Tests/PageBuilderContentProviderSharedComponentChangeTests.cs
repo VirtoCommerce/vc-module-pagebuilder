@@ -136,7 +136,7 @@ public class PageBuilderContentProviderSharedComponentChangeTests
     {
         await using var database = await TestDatabase.CreateAsync();
         await database.SeedAsync();
-        var contentService = new PageBuilderLinkedComponentContentService(
+        var contentService = new PageBuilderSharedComponentContentService(
             database.RepositoryFactory,
             new NoopEventPublisher());
         var started = DateTime.UtcNow;
@@ -170,7 +170,7 @@ public class PageBuilderContentProviderSharedComponentChangeTests
     private static PageBuilderContentProvider CreateProvider(
         TestDatabase database,
         IPlatformMemoryCache cache,
-        IPageBuilderLinkedComponentContentService contentService = null,
+        IPageBuilderSharedComponentContentService contentService = null,
         Func<IPageBuilderModuleRepository> repositoryFactory = null)
     {
         repositoryFactory ??= database.RepositoryFactory;
@@ -183,12 +183,12 @@ public class PageBuilderContentProviderSharedComponentChangeTests
             cache,
             pageService,
             Options.Create(new CrudOptions()));
-        contentService ??= new PageBuilderLinkedComponentContentService(
+        contentService ??= new PageBuilderSharedComponentContentService(
             database.RepositoryFactory,
             new NoopEventPublisher());
-        var resolver = new PageBuilderLinkedComponentResolver(
+        var resolver = new PageBuilderSharedComponentResolver(
             contentService,
-            NullLogger<PageBuilderLinkedComponentResolver>.Instance);
+            NullLogger<PageBuilderSharedComponentResolver>.Instance);
 
         return new PageBuilderContentProvider(
             searchService,
@@ -370,16 +370,16 @@ public class PageBuilderContentProviderSharedComponentChangeTests
             };
         }
 
-        private static PageBuilderLinkedComponentEntity Component(string id, DateTime changeDate)
+        private static PageBuilderSharedComponentEntity Component(string id, DateTime changeDate)
         {
-            return new PageBuilderLinkedComponentEntity
+            return new PageBuilderSharedComponentEntity
             {
                 Id = id,
                 StoreId = StoreId,
                 Name = id,
                 CreatedDate = OldDate,
                 ModifiedDate = changeDate,
-                Content = new PageBuilderLinkedComponentContentEntity
+                Content = new PageBuilderSharedComponentContentEntity
                 {
                     Id = id,
                     ComponentContent = id == ComponentId
@@ -389,13 +389,13 @@ public class PageBuilderContentProviderSharedComponentChangeTests
             };
         }
 
-        private static PageBuilderLinkedComponentReferenceEntity Reference(string pageId, string componentId)
+        private static PageBuilderSharedComponentReferenceEntity Reference(string pageId, string componentId)
         {
-            return new PageBuilderLinkedComponentReferenceEntity
+            return new PageBuilderSharedComponentReferenceEntity
             {
                 Id = $"{pageId}-{componentId}",
                 PageId = pageId,
-                LinkedComponentId = componentId,
+                SharedComponentId = componentId,
             };
         }
     }

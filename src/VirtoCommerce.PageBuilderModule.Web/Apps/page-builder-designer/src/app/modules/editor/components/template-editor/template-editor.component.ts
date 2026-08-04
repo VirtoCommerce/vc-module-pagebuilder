@@ -16,13 +16,13 @@ import { ReorderItemsModel } from '@core/models';
 import { SectionModel, SectionSchema } from '@models/document';
 
 import {
-    canEditLinkedComponentOriginal,
-    canOpenLinkedComponentUsagePage,
+    canEditSharedComponentOriginal,
+    canOpenSharedComponentUsagePage,
     ContextMenuHelper,
-    isLinkedComponentReference,
+    isSharedComponentReference,
 } from '@editor/helpers';
 import { AppConfig } from '@integration/services';
-import { LinkedComponent, LinkedComponentUsagePage } from '@editor/models';
+import { SharedComponent, SharedComponentUsagePage } from '@editor/models';
 import { BuilderState } from '@editor/store/state';
 
 import * as fromState from '@editor/store/selectors';
@@ -47,16 +47,16 @@ export class TemplateEditorComponent {
 
     readonly viewModel = toSignal(this.store.select(fromState.editTemplateContext));
     readonly loadState = toSignal(this.store.select(fromState.selectCurrentTemplateState));
-    readonly linkedComponentId = toSignal(
-        this.store.select(routingSelectors.selectLinkedComponentIdParameter),
+    readonly sharedComponentId = toSignal(
+        this.store.select(routingSelectors.selectSharedComponentIdParameter),
         { initialValue: '' },
     );
 
     readonly hoveredSectionId = toSignal(this.store.select(fromState.hoveredSectionId));
     readonly templateName = toSignal(this.store.select(fromState.selectCurrentTemplateName));
-    readonly canEditLinkedComponents = canEditLinkedComponentOriginal(this.appConfig);
-    readonly isLinkedDocument = computed(() => !!this.linkedComponentId());
-    readonly isReadOnly = computed(() => this.isLinkedDocument() && !this.canEditLinkedComponents);
+    readonly canEditSharedComponents = canEditSharedComponentOriginal(this.appConfig);
+    readonly isSharedComponentDocument = computed(() => !!this.sharedComponentId());
+    readonly isReadOnly = computed(() => this.isSharedComponentDocument() && !this.canEditSharedComponents);
 
     canMutate(): boolean {
         return !this.isReadOnly();
@@ -165,45 +165,45 @@ export class TemplateEditorComponent {
     readonly getPageActions = () => this.helper.getPageActions(
         !!this.viewModel()?.selectMode,
         (this.viewModel()?.selectedSectionsCount || 0) > 0,
-        !this.viewModel()?.isLinkedDocument,
+        !this.viewModel()?.isSharedComponentDocument,
     );
 
     backToPage(): void {
-        this.store.dispatch(actions.closeLinkedComponent());
+        this.store.dispatch(actions.closeSharedComponent());
     }
 
-    retryLinkedComponentLoad(): void {
+    retrySharedComponentLoad(): void {
         const templateKey = this.loadState()?.key;
         if (templateKey) {
             this.store.dispatch(actions.loadTemplateModel({ templateKey }));
         }
     }
 
-    openUsagePage(page: LinkedComponentUsagePage): void {
-        if (canOpenLinkedComponentUsagePage(page)) {
-            this.store.dispatch(actions.openLinkedComponentUsagePage({
+    openUsagePage(page: SharedComponentUsagePage): void {
+        if (canOpenSharedComponentUsagePage(page)) {
+            this.store.dispatch(actions.openSharedComponentUsagePage({
                 pageId: page.id,
                 cultureName: page.cultureName,
             }));
         }
     }
 
-    canOpenUsagePage(page: LinkedComponentUsagePage): boolean {
-        return canOpenLinkedComponentUsagePage(page);
+    canOpenUsagePage(page: SharedComponentUsagePage): boolean {
+        return canOpenSharedComponentUsagePage(page);
     }
 
-    getLinkedComponent(section: SectionModel): LinkedComponent | null {
-        if (!isLinkedComponentReference(section)) {
+    getSharedComponent(section: SectionModel): SharedComponent | null {
+        if (!isSharedComponentReference(section)) {
             return null;
         }
-        return this.viewModel()?.linkedComponents[section.componentRef] || null;
+        return this.viewModel()?.sharedComponents[section.componentRef] || null;
     }
 
-    getLinkedComponentError(section: SectionModel): string | null {
-        if (!isLinkedComponentReference(section)) {
+    getSharedComponentError(section: SectionModel): string | null {
+        if (!isSharedComponentReference(section)) {
             return null;
         }
-        return this.viewModel()?.linkedComponentErrors[section.componentRef] || null;
+        return this.viewModel()?.sharedComponentErrors[section.componentRef] || null;
     }
 
     onMouseMove(args: MouseEvent) {

@@ -1,7 +1,7 @@
 <app-overlap-panel [skipTranslate]="isHalfScreen()" [expandable]="!isHalfScreen()">
   @let vm = viewModel();
-  @let instance = linkedInstance();
-  @let original = linkedDocument();
+  @let instance = sharedComponentInstance();
+  @let original = sharedComponentDocument();
   <app-panel>
     @if (instance) {
       <div class="space-y-5 p-4 text-sm">
@@ -18,12 +18,12 @@
           <div class="mt-3 flex gap-2">
             <button type="button"
               class="rounded border border-green-300 bg-white px-3 py-2 text-green-800 transition-colors hover:bg-green-100 disabled:cursor-not-allowed disabled:opacity-50"
-              [disabled]="!canInsertLinkedComponents" (click)="openLinkedComponent()">
-              {{ canEditLinkedComponents ? 'Edit original' : 'View original' }}
+              [disabled]="!canInsertSharedComponents" (click)="openSharedComponent()">
+              {{ canEditSharedComponents ? 'Edit original' : 'View original' }}
             </button>
             <button type="button"
               class="rounded border border-orange-300 bg-white px-3 py-2 text-orange-700 transition-colors hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-50"
-              [disabled]="!canInsertLinkedComponents" (click)="detachLinkedComponent()">
+              [disabled]="!canInsertSharedComponents" (click)="detachSharedComponent()">
               Detach
             </button>
           </div>

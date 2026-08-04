@@ -204,14 +204,14 @@ public class PageContentAtomicWriteTests
                     cancellationToken));
 
         var interceptor = new LockCommandRecorder();
-        var contentService = new PageBuilderLinkedComponentContentService(
+        var contentService = new PageBuilderSharedComponentContentService(
             () => new PageBuilderModuleRepository(CreateContext(database.ConnectionString, interceptor)),
             new NoopEventPublisher());
         await contentService.SaveContentAsync(
             ComponentAId,
             UpdatedComponentContent,
             TestContext.Current.CancellationToken);
-        Assert.Equal(["PageBuilderLinkedComponent"], interceptor.LockedTables);
+        Assert.Equal(["PageBuilderSharedComponent"], interceptor.LockedTables);
 
         await SaveAsync(
             database.ConnectionString,
@@ -231,14 +231,14 @@ public class PageContentAtomicWriteTests
         await using var context = CreateContext(database.ConnectionString);
         Assert.Equal(
             UpdatedComponentContent,
-            await context.Set<PageBuilderLinkedComponentContentEntity>()
+            await context.Set<PageBuilderSharedComponentContentEntity>()
                 .Where(x => x.Id == ComponentAId)
                 .Select(x => x.ComponentContent)
                 .SingleAsync(TestContext.Current.CancellationToken));
         Assert.Equal(
             [UpdatedComponentAssetUrl],
-            await context.Set<PageBuilderLinkedComponentAssetReferenceEntity>()
-                .Where(x => x.LinkedComponentId == ComponentAId)
+            await context.Set<PageBuilderSharedComponentAssetReferenceEntity>()
+                .Where(x => x.SharedComponentId == ComponentAId)
                 .Select(x => x.NormalizedAssetUrl)
                 .ToArrayAsync(TestContext.Current.CancellationToken));
 
@@ -329,10 +329,10 @@ public class PageContentAtomicWriteTests
     private static async Task<string[]> LoadReferenceIdsAsync(string connectionString)
     {
         await using var context = CreateContext(connectionString);
-        return await context.Set<PageBuilderLinkedComponentReferenceEntity>()
+        return await context.Set<PageBuilderSharedComponentReferenceEntity>()
             .Where(x => x.PageId == PageId)
-            .OrderBy(x => x.LinkedComponentId)
-            .Select(x => x.LinkedComponentId)
+            .OrderBy(x => x.SharedComponentId)
+            .Select(x => x.SharedComponentId)
             .ToArrayAsync(TestContext.Current.CancellationToken);
     }
 
@@ -390,9 +390,9 @@ public class PageContentAtomicWriteTests
             {
                 LockedTables.Add("PageBuilderPage");
             }
-            else if (command.CommandText.Contains("UPDATE \"PageBuilderLinkedComponent\"", StringComparison.Ordinal))
+            else if (command.CommandText.Contains("UPDATE \"PageBuilderSharedComponent\"", StringComparison.Ordinal))
             {
-                LockedTables.Add("PageBuilderLinkedComponent");
+                LockedTables.Add("PageBuilderSharedComponent");
             }
 
             return ValueTask.FromResult(result);
@@ -487,15 +487,15 @@ public class PageContentAtomicWriteTests
             await _anchorConnection.DisposeAsync();
         }
 
-        private static PageBuilderLinkedComponentEntity CreateComponent(string id, DateTime createdDate)
+        private static PageBuilderSharedComponentEntity CreateComponent(string id, DateTime createdDate)
         {
-            return new PageBuilderLinkedComponentEntity
+            return new PageBuilderSharedComponentEntity
             {
                 Id = id,
                 StoreId = StoreId,
                 Name = id,
                 CreatedDate = createdDate,
-                Content = new PageBuilderLinkedComponentContentEntity
+                Content = new PageBuilderSharedComponentContentEntity
                 {
                     Id = id,
                     ComponentContent = id == ComponentAId

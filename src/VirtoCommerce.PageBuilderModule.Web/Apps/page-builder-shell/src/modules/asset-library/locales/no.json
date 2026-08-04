@@ -49,7 +49,7 @@
       "PATH": "Sti",
       "USED_ON": "Brukt i ({count})",
       "PAGES": "Sider",
-      "LINKED_COMPONENTS": "Delte komponenter",
+      "SHARED_COMPONENTS": "Delte komponenter",
       "NO_REFERENCES": "Ikke brukt på Page Builder-sider eller i delte komponenter.",
       "URL": "URL",
       "COPY_URL": "Kopier URL",

@@ -1,7 +1,7 @@
 <app-panel>
   <div class="p-4">
-    @if (!viewModel() && isLinkedDocument()) {
-      <div class="linked-document-banner">
+    @if (!viewModel() && isSharedComponentDocument()) {
+      <div class="shared-component-document-banner">
         <button type="button" class="back-link" (click)="backToPage()">
           <app-icon>arrow_back</app-icon>
           Back
@@ -18,30 +18,30 @@
             </div>
           </div>
           <app-icon-button icon="refresh" skin="outline" text="Retry"
-            (click)="retryLinkedComponentLoad()" />
+            (click)="retrySharedComponentLoad()" />
         } @else {
           <div class="banner-text">Loading Shared Component…</div>
         }
       </div>
     }
     @if (viewModel(); as vm) {
-      @if (vm.isLinkedDocument) {
-        <div class="linked-document-banner">
+      @if (vm.isSharedComponentDocument) {
+        <div class="shared-component-document-banner">
           <button type="button" class="back-link" (click)="backToPage()">
             <app-icon>arrow_back</app-icon>
             Back
           </button>
           <div class="banner-title">
-            Editing Shared Component “{{ vm.currentLinkedComponent?.name || 'Shared Component' }}”
+            Editing Shared Component “{{ vm.currentSharedComponent?.name || 'Shared Component' }}”
           </div>
           <div class="banner-text">
-            Changes affect {{ vm.currentLinkedComponent?.usageCount || 0 }} page{{ vm.currentLinkedComponent?.usageCount === 1 ? '' : 's' }}.
+            Changes affect {{ vm.currentSharedComponent?.usageCount || 0 }} page{{ vm.currentSharedComponent?.usageCount === 1 ? '' : 's' }}.
           </div>
-          @if (vm.currentLinkedComponent?.usagePages?.length) {
+          @if (vm.currentSharedComponent?.usagePages?.length) {
             <details class="usage-details">
               <summary>Where used</summary>
               <ul>
-                @for (page of vm.currentLinkedComponent!.usagePages; track page.id || page.permalink || $index) {
+                @for (page of vm.currentSharedComponent!.usagePages; track page.id || page.permalink || $index) {
                   <li>
                     <button type="button"
                       class="rounded text-left text-blue-700 hover:underline disabled:cursor-not-allowed disabled:text-gray-500 disabled:no-underline"
@@ -64,7 +64,7 @@
           }
         </div>
       }
-      @if (!vm.isLinkedDocument && vm.settingsSchemas.top.length) {
+      @if (!vm.isSharedComponentDocument && vm.settingsSchemas.top.length) {
         <div class="settings-container top"
           >
           @for (schema of vm.settingsSchemas.top; track schema) {
@@ -106,8 +106,8 @@
                   [selectable]="canMutate() && (vm.sectionsState[section.id]?.selectable || false)"
                   [selected]="vm.sectionsState[section.id]?.selected || false"
                   [hasContextMenu]="canMutate() && !vm.selectMode && vm.currentDragSection.length === 0"
-                  [linkedComponent]="getLinkedComponent(section)"
-                  [linkedError]="getLinkedComponentError(section)"
+                  [sharedComponent]="getSharedComponent(section)"
+                  [sharedComponentError]="getSharedComponentError(section)"
                   (itemClick)="!vm.selectMode && onSectionClick(section)"
                   (itemHover)="onSectionHover($event ? section : null)"
                   (actionClick)="onActionClick($event, section)"
@@ -141,7 +141,7 @@
           (click)="addSectionClick()">add_circle</app-icon>
         }
       </div>
-      @if (!vm.isLinkedDocument && vm.settingsSchemas.bottom.length) {
+      @if (!vm.isSharedComponentDocument && vm.settingsSchemas.bottom.length) {
         <div class="settings-container bottom"
           >
           @for (schema of vm.settingsSchemas.bottom; track schema) {

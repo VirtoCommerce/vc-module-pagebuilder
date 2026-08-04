@@ -10,7 +10,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services;
 
 public class PageBuilderAssetReferenceMigrationService(
     Func<IPageBuilderModuleRepository> repositoryFactory,
-    IPageBuilderLinkedComponentAssetReferenceIndexService linkedComponentAssetReferenceIndexService,
+    IPageBuilderSharedComponentAssetReferenceIndexService sharedComponentAssetReferenceIndexService,
     ISettingsManager settingsManager,
     IGroupedPageService groupedPageService = null,
     IPageBuilderAssetReferenceIndexService assetReferenceIndexService = null)
@@ -23,7 +23,7 @@ public class PageBuilderAssetReferenceMigrationService(
         ISettingsManager settingsManager)
         : this(
             repositoryFactory,
-            linkedComponentAssetReferenceIndexService: null,
+            sharedComponentAssetReferenceIndexService: null,
             settingsManager,
             groupedPageService,
             assetReferenceIndexService)
@@ -39,9 +39,9 @@ public class PageBuilderAssetReferenceMigrationService(
         lock (LockObject)
         {
             var pageMigrationCompleted = settingsManager.GetValue<bool>(Settings.Migration.AssetReferenceIndexMigrated);
-            var componentMigrationCompleted = settingsManager.GetValue<bool>(Settings.Migration.LinkedComponentAssetReferenceIndexMigrated);
+            var componentMigrationCompleted = settingsManager.GetValue<bool>(Settings.Migration.SharedComponentAssetReferenceIndexMigrated);
             if (!pageMigrationCompleted ||
-                linkedComponentAssetReferenceIndexService != null && !componentMigrationCompleted)
+                sharedComponentAssetReferenceIndexService != null && !componentMigrationCompleted)
             {
                 BackgroundJob.Enqueue(() => RebuildAssetReferenceIndex());
             }
@@ -58,12 +58,12 @@ public class PageBuilderAssetReferenceMigrationService(
             await settingsManager.SetValueAsync(Settings.Migration.AssetReferenceIndexMigrated.Name, true);
         }
 
-        var componentMigrationCompleted = settingsManager.GetValue<bool>(Settings.Migration.LinkedComponentAssetReferenceIndexMigrated);
-        if (!componentMigrationCompleted && linkedComponentAssetReferenceIndexService != null)
+        var componentMigrationCompleted = settingsManager.GetValue<bool>(Settings.Migration.SharedComponentAssetReferenceIndexMigrated);
+        if (!componentMigrationCompleted && sharedComponentAssetReferenceIndexService != null)
         {
-            await RebuildLinkedComponentAssetReferenceIndex();
+            await RebuildSharedComponentAssetReferenceIndex();
             await settingsManager.SetValueAsync(
-                Settings.Migration.LinkedComponentAssetReferenceIndexMigrated.Name,
+                Settings.Migration.SharedComponentAssetReferenceIndexMigrated.Name,
                 true);
         }
     }
@@ -110,34 +110,34 @@ public class PageBuilderAssetReferenceMigrationService(
         await assetReferenceIndexService.RebuildPageIndexAsync(pageId, content);
     }
 
-    internal async Task RebuildLinkedComponentAssetReferenceIndex()
+    internal async Task RebuildSharedComponentAssetReferenceIndex()
     {
         string cursor = null;
-        var components = await GetLinkedComponentContents(cursor);
+        var components = await GetSharedComponentContents(cursor);
 
         while (components.Count > 0)
         {
             foreach (var component in components)
             {
-                await RebuildLinkedComponentIndexAsync(
+                await RebuildSharedComponentIndexAsync(
                     component.Id,
                     component.Content,
-                    linkedComponentAssetReferenceIndexService);
+                    sharedComponentAssetReferenceIndexService);
             }
 
             cursor = components[^1].Id;
-            components = await GetLinkedComponentContents(cursor);
+            components = await GetSharedComponentContents(cursor);
         }
     }
 
-    internal static Task RebuildLinkedComponentIndexAsync(
-        string linkedComponentId,
+    internal static Task RebuildSharedComponentIndexAsync(
+        string sharedComponentId,
         string content,
-        IPageBuilderLinkedComponentAssetReferenceIndexService assetReferenceIndexService,
+        IPageBuilderSharedComponentAssetReferenceIndexService assetReferenceIndexService,
         CancellationToken cancellationToken = default)
     {
         return assetReferenceIndexService.RebuildIndexAsync(
-            linkedComponentId,
+            sharedComponentId,
             content,
             cancellationToken);
     }
@@ -164,24 +164,24 @@ public class PageBuilderAssetReferenceMigrationService(
             .ToListAsync();
     }
 
-    private async Task<IList<LinkedComponentContent>> GetLinkedComponentContents(string cursor)
+    private async Task<IList<SharedComponentContent>> GetSharedComponentContents(string cursor)
     {
         using var repository = repositoryFactory();
-        if (repository is not IPageBuilderLinkedComponentRepository linkedRepository)
+        if (repository is not IPageBuilderSharedComponentRepository sharedComponentRepository)
         {
             return [];
         }
 
-        var query = linkedRepository.PageBuilderLinkedComponentContents;
+        var query = sharedComponentRepository.PageBuilderSharedComponentContents;
         if (!string.IsNullOrEmpty(cursor))
         {
-            query = ApplyLinkedComponentCursor(query, cursor);
+            query = ApplySharedComponentCursor(query, cursor);
         }
 
         return await query
             .OrderBy(x => x.Id)
             .Take(_batchSize)
-            .Select(x => new LinkedComponentContent
+            .Select(x => new SharedComponentContent
             {
                 Id = x.Id,
                 Content = x.ComponentContent,
@@ -199,14 +199,14 @@ public class PageBuilderAssetReferenceMigrationService(
             x.CreatedDate == createdDate && string.Compare(x.Id, id) > 0);
     }
 
-    internal static IQueryable<PageBuilderLinkedComponentContentEntity> ApplyLinkedComponentCursor(
-        IQueryable<PageBuilderLinkedComponentContentEntity> query,
+    internal static IQueryable<PageBuilderSharedComponentContentEntity> ApplySharedComponentCursor(
+        IQueryable<PageBuilderSharedComponentContentEntity> query,
         string id)
     {
         return query.Where(x => string.Compare(x.Id, id) > 0);
     }
 
-    private sealed class LinkedComponentContent
+    private sealed class SharedComponentContent
     {
         public string Id { get; init; }
 

@@ -49,7 +49,7 @@
       "PATH": "Path",
       "USED_ON": "Used in ({count})",
       "PAGES": "Pages",
-      "LINKED_COMPONENTS": "Shared components",
+      "SHARED_COMPONENTS": "Shared components",
       "NO_REFERENCES": "Not used on any Page Builder pages or shared components.",
       "URL": "URL",
       "COPY_URL": "Copy URL",

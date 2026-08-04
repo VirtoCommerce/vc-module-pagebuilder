@@ -128,14 +128,14 @@ export class TemplateEditorUiEffects {
 
     notifySuccessSave$ = createEffect(() => this.actions$.pipe(
         ofType(actions.saveTemplateSuccess),
-        withLatestFrom(this.store$.select(selectors.selectLinkedComponents)),
-        switchMap(([{ templateKey, parentKey, template, clearDirty }, linkedComponents]) => {
-            const linkedComponentId = templateKey.startsWith('linked-component::')
-                ? templateKey.substring('linked-component::'.length)
+        withLatestFrom(this.store$.select(selectors.selectSharedComponents)),
+        switchMap(([{ templateKey, parentKey, template, clearDirty }, sharedComponents]) => {
+            const sharedComponentId = templateKey.startsWith('shared-component::')
+                ? templateKey.substring('shared-component::'.length)
                 : '';
             const templateName = template.settings['name'] ? <string>template.settings['name'] : '';
-            const message = linkedComponentId
-                ? `Shared Component “${linkedComponents[linkedComponentId]?.name || linkedComponentId}” saved successfully`
+            const message = sharedComponentId
+                ? `Shared Component “${sharedComponents[sharedComponentId]?.name || sharedComponentId}” saved successfully`
                 : `Template ${templateName} saved successfully`;
 
             return [

@@ -137,7 +137,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 groupedPageSearchService: new FakeGroupedPageSearchService(),
                 authorizationService: new AllowAllAuthorizationService(),
                 pageDocumentSearchService: new NoopPageDocumentSearchService(),
-                linkedComponentReferenceIndexService: new NoopLinkedComponentReferenceIndexService(),
+                sharedComponentReferenceIndexService: new NoopSharedComponentReferenceIndexService(),
                 eventPublisher: new NoopEventPublisher(),
                 logger: NullLogger<PageBuilderPageController>.Instance);
 

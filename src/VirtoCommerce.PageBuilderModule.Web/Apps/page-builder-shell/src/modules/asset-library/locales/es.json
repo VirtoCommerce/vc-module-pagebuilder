@@ -49,7 +49,7 @@
       "PATH": "Ruta",
       "USED_ON": "Usado en ({count})",
       "PAGES": "Páginas",
-      "LINKED_COMPONENTS": "Componentes compartidos",
+      "SHARED_COMPONENTS": "Componentes compartidos",
       "NO_REFERENCES": "No se usa en páginas de Page Builder ni en componentes compartidos.",
       "URL": "URL",
       "COPY_URL": "Copiar URL",

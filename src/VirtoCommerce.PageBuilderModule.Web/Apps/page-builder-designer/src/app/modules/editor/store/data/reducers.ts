@@ -1,7 +1,7 @@
 import { createReducer, on } from '@ngrx/store';
 
 import * as actions from '../actions';
-import { isLinkedComponentReference } from '@editor/helpers/linked-component.helpers';
+import { isSharedComponentReference } from '@editor/helpers/shared-component.helpers';
 import { TemplateModel } from '@models/document';
 
 import { EditorDataState, initialState } from './state';
@@ -13,12 +13,12 @@ export const editorDataReducers = createReducer<EditorDataState>(
     on(actions.loadTemplateModelSuccess, (state, { template, templateKey }) => ({
         ...state,
         templates: { ...state.templates, [templateKey]: template },
-        linkedComponentUsageRefreshIdsByTemplate: withoutKey(state.linkedComponentUsageRefreshIdsByTemplate, templateKey),
+        sharedComponentUsageRefreshIdsByTemplate: withoutKey(state.sharedComponentUsageRefreshIdsByTemplate, templateKey),
     })),
     on(actions.reloadTemplateModelSuccess, (state, { template, templateKey }) => ({
         ...state,
         templates: { ...state.templates, [templateKey]: template },
-        linkedComponentUsageRefreshIdsByTemplate: withoutKey(state.linkedComponentUsageRefreshIdsByTemplate, templateKey),
+        sharedComponentUsageRefreshIdsByTemplate: withoutKey(state.sharedComponentUsageRefreshIdsByTemplate, templateKey),
     })),
     on(actions.reloadTemplateModel, (state, { templateKey }) => {
         const templates = { ...state.templates };
@@ -27,172 +27,172 @@ export const editorDataReducers = createReducer<EditorDataState>(
         }
         return { ...state, templates };
     }),
-    on(actions.discardLinkedComponentChanges, (state, { templateKey }) => ({
+    on(actions.discardSharedComponentChanges, (state, { templateKey }) => ({
         ...state,
         templates: withoutKey(state.templates, templateKey),
-        linkedComponentUsageRefreshIdsByTemplate: withoutKey(
-            state.linkedComponentUsageRefreshIdsByTemplate,
+        sharedComponentUsageRefreshIdsByTemplate: withoutKey(
+            state.sharedComponentUsageRefreshIdsByTemplate,
             templateKey,
         ),
     })),
     on(actions.updateTemplateAction, (state, { templateKey, template }) => ({
         ...state,
         templates: { ...state.templates, [templateKey]: template },
-        linkedComponentUsageRefreshIdsByTemplate: trackRemovedLinkedComponents(state, templateKey, template),
+        sharedComponentUsageRefreshIdsByTemplate: trackRemovedSharedComponents(state, templateKey, template),
     })),
-    on(actions.clearLinkedComponentUsageRefresh, (state, { templateKey }) => ({
+    on(actions.clearSharedComponentUsageRefresh, (state, { templateKey }) => ({
         ...state,
-        linkedComponentUsageRefreshIdsByTemplate: withoutKey(state.linkedComponentUsageRefreshIdsByTemplate, templateKey),
+        sharedComponentUsageRefreshIdsByTemplate: withoutKey(state.sharedComponentUsageRefreshIdsByTemplate, templateKey),
     })),
-    on(actions.cacheLinkedComponent, (state, { component, content, addToSearchResults }) => {
-        const linkedComponents = { ...state.linkedComponents, [component.id]: component };
+    on(actions.cacheSharedComponent, (state, { component, content, addToSearchResults }) => {
+        const sharedComponents = { ...state.sharedComponents, [component.id]: component };
         const shouldAddToSearch = addToSearchResults === true
-            && matchesKeyword(component, state.linkedComponentsSearch.keyword)
-            && !state.linkedComponentsSearch.resultIds.includes(component.id);
+            && matchesKeyword(component, state.sharedComponentsSearch.keyword)
+            && !state.sharedComponentsSearch.resultIds.includes(component.id);
         const resultIds = shouldAddToSearch
-            ? sortResultIds([...state.linkedComponentsSearch.resultIds, component.id], linkedComponents)
-            : state.linkedComponentsSearch.resultIds;
+            ? sortResultIds([...state.sharedComponentsSearch.resultIds, component.id], sharedComponents)
+            : state.sharedComponentsSearch.resultIds;
         const optimisticResultIds = shouldAddToSearch
-            ? mergeResultIds(state.linkedComponentsSearch.optimisticResultIds, [component.id])
-            : state.linkedComponentsSearch.optimisticResultIds;
+            ? mergeResultIds(state.sharedComponentsSearch.optimisticResultIds, [component.id])
+            : state.sharedComponentsSearch.optimisticResultIds;
 
         return {
             ...state,
-            linkedComponents,
-            linkedComponentContents: content
-                ? { ...state.linkedComponentContents, [component.id]: content }
-                : state.linkedComponentContents,
-            linkedComponentErrors: content
-                ? withoutKey(state.linkedComponentErrors, component.id)
-                : state.linkedComponentErrors,
-            linkedComponentsSearch: shouldAddToSearch
+            sharedComponents,
+            sharedComponentContents: content
+                ? { ...state.sharedComponentContents, [component.id]: content }
+                : state.sharedComponentContents,
+            sharedComponentErrors: content
+                ? withoutKey(state.sharedComponentErrors, component.id)
+                : state.sharedComponentErrors,
+            sharedComponentsSearch: shouldAddToSearch
                 ? {
-                    ...state.linkedComponentsSearch,
+                    ...state.sharedComponentsSearch,
                     resultIds,
                     optimisticResultIds,
-                    totalCount: state.linkedComponentsSearch.totalCount + 1,
+                    totalCount: state.sharedComponentsSearch.totalCount + 1,
                     loading: true,
                     rebasePending: true,
                     error: null,
                 }
-                : state.linkedComponentsSearch,
+                : state.sharedComponentsSearch,
         };
     }),
-    on(actions.cacheLinkedComponentContent, (state, { componentId, content }) => ({
+    on(actions.cacheSharedComponentContent, (state, { componentId, content }) => ({
         ...state,
-        linkedComponentContents: { ...state.linkedComponentContents, [componentId]: content },
-        linkedComponentErrors: withoutKey(state.linkedComponentErrors, componentId),
+        sharedComponentContents: { ...state.sharedComponentContents, [componentId]: content },
+        sharedComponentErrors: withoutKey(state.sharedComponentErrors, componentId),
     })),
-    on(actions.loadLinkedComponentDetails, (state, { componentId }) => ({
+    on(actions.loadSharedComponentDetails, (state, { componentId }) => ({
         ...state,
-        linkedComponentDetails: { componentId, loading: true, error: null },
+        sharedComponentDetails: { componentId, loading: true, error: null },
     })),
-    on(actions.loadLinkedComponentDetailsSuccess, (state, { component }) => ({
+    on(actions.loadSharedComponentDetailsSuccess, (state, { component }) => ({
         ...state,
-        linkedComponents: { ...state.linkedComponents, [component.id]: component },
-        linkedComponentDetails: state.linkedComponentDetails.componentId === component.id
+        sharedComponents: { ...state.sharedComponents, [component.id]: component },
+        sharedComponentDetails: state.sharedComponentDetails.componentId === component.id
             ? { componentId: component.id, loading: false, error: null }
-            : state.linkedComponentDetails,
+            : state.sharedComponentDetails,
     })),
-    on(actions.loadLinkedComponentDetailsFailed, (state, { componentId, error }) => ({
+    on(actions.loadSharedComponentDetailsFailed, (state, { componentId, error }) => ({
         ...state,
-        linkedComponentDetails: state.linkedComponentDetails.componentId === componentId
+        sharedComponentDetails: state.sharedComponentDetails.componentId === componentId
             ? { componentId, loading: false, error }
-            : state.linkedComponentDetails,
+            : state.sharedComponentDetails,
     })),
-    on(actions.clearLinkedComponentDetails, state => ({
+    on(actions.clearSharedComponentDetails, state => ({
         ...state,
-        linkedComponentDetails: { componentId: null, loading: false, error: null },
+        sharedComponentDetails: { componentId: null, loading: false, error: null },
     })),
-    on(actions.linkedComponentLoadFailed, (state, { componentId, error }) => ({
+    on(actions.sharedComponentLoadFailed, (state, { componentId, error }) => ({
         ...state,
-        linkedComponentContents: withoutKey(state.linkedComponentContents, componentId),
-        linkedComponentErrors: { ...state.linkedComponentErrors, [componentId]: error },
+        sharedComponentContents: withoutKey(state.sharedComponentContents, componentId),
+        sharedComponentErrors: { ...state.sharedComponentErrors, [componentId]: error },
     })),
-    on(actions.refreshLinkedComponentsSearch, (state, { keyword }) => {
+    on(actions.refreshSharedComponentsSearch, (state, { keyword }) => {
         const normalizedKeyword = keyword.trim();
-        return state.linkedComponentsSearch.keyword !== normalizedKeyword
+        return state.sharedComponentsSearch.keyword !== normalizedKeyword
             ? state
             : {
                 ...state,
-                linkedComponentsSearch: {
-                    ...state.linkedComponentsSearch,
+                sharedComponentsSearch: {
+                    ...state.sharedComponentsSearch,
                     loading: true,
                     rebasePending: true,
                     error: null,
                 },
             };
     }),
-    on(actions.searchLinkedComponents, actions.retryLinkedComponentsSearch, (state, { keyword, skip }) => {
+    on(actions.searchSharedComponents, actions.retrySharedComponentsSearch, (state, { keyword, skip }) => {
         const normalizedKeyword = keyword.trim();
-        const appendToCurrentSearch = !!skip && state.linkedComponentsSearch.keyword === normalizedKeyword;
+        const appendToCurrentSearch = !!skip && state.sharedComponentsSearch.keyword === normalizedKeyword;
 
         return {
             ...state,
-            linkedComponentsSearch: {
-                ...state.linkedComponentsSearch,
+            sharedComponentsSearch: {
+                ...state.sharedComponentsSearch,
                 keyword: normalizedKeyword,
                 resultIds: appendToCurrentSearch
-                    ? state.linkedComponentsSearch.resultIds
+                    ? state.sharedComponentsSearch.resultIds
                     : [],
                 optimisticResultIds: appendToCurrentSearch
-                    ? state.linkedComponentsSearch.optimisticResultIds
+                    ? state.sharedComponentsSearch.optimisticResultIds
                     : [],
                 loadedCount: appendToCurrentSearch
-                    ? state.linkedComponentsSearch.loadedCount
+                    ? state.sharedComponentsSearch.loadedCount
                     : 0,
                 totalCount: appendToCurrentSearch
-                    ? state.linkedComponentsSearch.totalCount
+                    ? state.sharedComponentsSearch.totalCount
                     : 0,
                 loading: true,
                 rebasePending: appendToCurrentSearch
-                    ? state.linkedComponentsSearch.rebasePending
+                    ? state.sharedComponentsSearch.rebasePending
                     : false,
                 error: null,
             },
         };
     }),
-    on(actions.searchLinkedComponentsSuccess, (state, { keyword, result, append, rebase }) => {
+    on(actions.searchSharedComponentsSuccess, (state, { keyword, result, append, rebase }) => {
         const normalizedKeyword = keyword.trim();
-        if (state.linkedComponentsSearch.keyword !== normalizedKeyword) {
+        if (state.sharedComponentsSearch.keyword !== normalizedKeyword) {
             return state;
         }
-        if (append && state.linkedComponentsSearch.rebasePending) {
+        if (append && state.sharedComponentsSearch.rebasePending) {
             return state;
         }
 
-        const linkedComponents = result.results.reduce(
+        const sharedComponents = result.results.reduce(
             (cache, component) => ({
                 ...cache,
                 [component.id]: hasLoadedDetails(state, component.id)
-                    ? state.linkedComponents[component.id]
+                    ? state.sharedComponents[component.id]
                     : component,
             }),
-            state.linkedComponents,
+            state.sharedComponents,
         );
         const serverResultIds = result.results.map(component => component.id);
         const optimisticResultIds = append || rebase
-            ? state.linkedComponentsSearch.optimisticResultIds.filter(id => !serverResultIds.includes(id))
+            ? state.sharedComponentsSearch.optimisticResultIds.filter(id => !serverResultIds.includes(id))
             : [];
         let currentResultIds: string[] = [];
-        if (append && state.linkedComponentsSearch.keyword === keyword) {
-            currentResultIds = state.linkedComponentsSearch.resultIds;
+        if (append && state.sharedComponentsSearch.keyword === keyword) {
+            currentResultIds = state.sharedComponentsSearch.resultIds;
         } else if (rebase) {
             currentResultIds = optimisticResultIds;
         }
 
         return {
             ...state,
-            linkedComponents,
-            linkedComponentsSearch: {
+            sharedComponents,
+            sharedComponentsSearch: {
                 keyword: normalizedKeyword,
                 resultIds: sortResultIds(
                     mergeResultIds(currentResultIds, serverResultIds),
-                    linkedComponents,
+                    sharedComponents,
                 ),
                 optimisticResultIds,
-                loadedCount: append && state.linkedComponentsSearch.keyword === keyword
-                    ? state.linkedComponentsSearch.loadedCount + result.results.length
+                loadedCount: append && state.sharedComponentsSearch.keyword === keyword
+                    ? state.sharedComponentsSearch.loadedCount + result.results.length
                     : result.results.length,
                 totalCount: result.totalCount,
                 loading: false,
@@ -201,14 +201,14 @@ export const editorDataReducers = createReducer<EditorDataState>(
             },
         };
     }),
-    on(actions.searchLinkedComponentsFailed, (state, { keyword, error }) => {
+    on(actions.searchSharedComponentsFailed, (state, { keyword, error }) => {
         const normalizedKeyword = keyword.trim();
-        return state.linkedComponentsSearch.keyword !== normalizedKeyword
+        return state.sharedComponentsSearch.keyword !== normalizedKeyword
             ? state
             : {
                 ...state,
-                linkedComponentsSearch: {
-                    ...state.linkedComponentsSearch,
+                sharedComponentsSearch: {
+                    ...state.sharedComponentsSearch,
                     loading: false,
                     error,
                 },
@@ -225,40 +225,40 @@ function withoutKey<T>(source: Record<string, T>, key: string): Record<string, T
     return result;
 }
 
-function trackRemovedLinkedComponents(
+function trackRemovedSharedComponents(
     state: EditorDataState,
     templateKey: string,
     template: TemplateModel,
 ): Record<string, string[]> {
-    const previousIds = getLinkedComponentIds(state.templates[templateKey]);
-    const currentIds = new Set(getLinkedComponentIds(template));
+    const previousIds = getSharedComponentIds(state.templates[templateKey]);
+    const currentIds = new Set(getSharedComponentIds(template));
     const removedIds = previousIds.filter(componentId => !currentIds.has(componentId));
     if (removedIds.length === 0) {
-        return state.linkedComponentUsageRefreshIdsByTemplate;
+        return state.sharedComponentUsageRefreshIdsByTemplate;
     }
 
     return {
-        ...state.linkedComponentUsageRefreshIdsByTemplate,
+        ...state.sharedComponentUsageRefreshIdsByTemplate,
         [templateKey]: [
             ...new Set([
-                ...(state.linkedComponentUsageRefreshIdsByTemplate[templateKey] || []),
+                ...(state.sharedComponentUsageRefreshIdsByTemplate[templateKey] || []),
                 ...removedIds,
             ]),
         ],
     };
 }
 
-function getLinkedComponentIds(template: TemplateModel | undefined): string[] {
+function getSharedComponentIds(template: TemplateModel | undefined): string[] {
     return template
-        ? [...new Set(template.content.filter(isLinkedComponentReference).map(reference => reference.componentRef))]
+        ? [...new Set(template.content.filter(isSharedComponentReference).map(reference => reference.componentRef))]
         : [];
 }
 
 function hasLoadedDetails(state: EditorDataState, componentId: string): boolean {
-    return state.linkedComponentDetails.componentId === componentId
-        && !state.linkedComponentDetails.loading
-        && !state.linkedComponentDetails.error
-        && !!state.linkedComponents[componentId];
+    return state.sharedComponentDetails.componentId === componentId
+        && !state.sharedComponentDetails.loading
+        && !state.sharedComponentDetails.error
+        && !!state.sharedComponents[componentId];
 }
 
 function mergeResultIds(current: string[], next: string[]): string[] {
@@ -271,7 +271,7 @@ function matchesKeyword(component: { name: string }, keyword: string): boolean {
 
 function sortResultIds(
     ids: string[],
-    components: EditorDataState['linkedComponents'],
+    components: EditorDataState['sharedComponents'],
 ): string[] {
     return [...ids].sort((leftId, rightId) => {
         const left = components[leftId];

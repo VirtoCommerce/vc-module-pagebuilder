@@ -31,8 +31,8 @@ public class PageBuilderAssetsControllerTests
 
         Assert.Equal(5, reference.ReferencesCount);
         Assert.Equal(4, reference.PageReferencesCount);
-        Assert.Equal(0, reference.LinkedComponentReferencesCount);
-        Assert.Empty(reference.LinkedComponents);
+        Assert.Equal(0, reference.SharedComponentReferencesCount);
+        Assert.Empty(reference.SharedComponents);
     }
 
     [Fact]
@@ -48,10 +48,10 @@ public class PageBuilderAssetsControllerTests
         var ok = Assert.IsType<OkObjectResult>(response.Result);
         var payload = Assert.IsType<PageBuilderAssetReferencesSearchResult>(ok.Value);
         var reference = Assert.Single(payload.Results);
-        var component = Assert.Single(reference.LinkedComponents);
+        var component = Assert.Single(reference.SharedComponents);
 
         Assert.Equal(5, reference.ReferencesCount);
-        Assert.Equal(1, reference.LinkedComponentReferencesCount);
+        Assert.Equal(1, reference.SharedComponentReferencesCount);
         Assert.Equal("component-1", component.Id);
         Assert.Equal("Shared hero", component.Name);
     }
@@ -86,10 +86,10 @@ public class PageBuilderAssetsControllerTests
                     AssetUrl = "/assets/hero.jpg",
                     ReferencesCount = 5,
                     PageReferencesCount = 4,
-                    LinkedComponentReferencesCount = 1,
-                    LinkedComponents =
+                    SharedComponentReferencesCount = 1,
+                    SharedComponents =
                     [
-                        new PageBuilderAssetReferenceLinkedComponent
+                        new PageBuilderAssetReferenceSharedComponent
                         {
                             Id = "component-1",
                             Name = "Shared hero",
@@ -126,7 +126,7 @@ public class PageBuilderAssetsControllerTests
             object resource,
             string policyName)
         {
-            var authorized = policyName != ModuleConstants.Security.Permissions.LinkedComponentsRead ||
+            var authorized = policyName != ModuleConstants.Security.Permissions.SharedComponentsRead ||
                              canReadSharedComponents;
             return Task.FromResult(authorized ? AuthorizationResult.Success() : AuthorizationResult.Failed());
         }

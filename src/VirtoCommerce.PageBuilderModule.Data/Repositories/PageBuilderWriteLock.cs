@@ -61,35 +61,35 @@ internal static class PageBuilderWriteLock
         }
     }
 
-    internal static async Task<bool> AcquireLinkedComponentLockAsync(
+    internal static async Task<bool> AcquireSharedComponentLockAsync(
         PageBuilderModuleDbContext dbContext,
-        string linkedComponentId,
+        string sharedComponentId,
         CancellationToken cancellationToken)
     {
         EnsureTransaction(dbContext);
 
-        var affectedRows = await dbContext.Set<PageBuilderLinkedComponentEntity>()
-            .Where(x => x.Id == linkedComponentId)
+        var affectedRows = await dbContext.Set<PageBuilderSharedComponentEntity>()
+            .Where(x => x.Id == sharedComponentId)
             .ExecuteUpdateAsync(
                 setters => setters.SetProperty(x => x.ModifiedDate, x => x.ModifiedDate),
                 cancellationToken);
 
         // MySQL can report changed rows rather than matched rows for a no-op UPDATE. The row is still
         // locked, so use a same-transaction existence check before treating zero as "not found".
-        return affectedRows != 0 || await dbContext.Set<PageBuilderLinkedComponentEntity>()
-            .AnyAsync(x => x.Id == linkedComponentId, cancellationToken);
+        return affectedRows != 0 || await dbContext.Set<PageBuilderSharedComponentEntity>()
+            .AnyAsync(x => x.Id == sharedComponentId, cancellationToken);
     }
 
-    internal static async Task AcquireLinkedComponentLocksAsync(
+    internal static async Task AcquireSharedComponentLocksAsync(
         PageBuilderModuleDbContext dbContext,
-        IEnumerable<string> linkedComponentIds,
+        IEnumerable<string> sharedComponentIds,
         CancellationToken cancellationToken)
     {
-        foreach (var linkedComponentId in OrderIds(linkedComponentIds))
+        foreach (var sharedComponentId in OrderIds(sharedComponentIds))
         {
-            if (!await AcquireLinkedComponentLockAsync(dbContext, linkedComponentId, cancellationToken))
+            if (!await AcquireSharedComponentLockAsync(dbContext, sharedComponentId, cancellationToken))
             {
-                throw new InvalidDataException($"Linked Component '{linkedComponentId}' was not found.");
+                throw new InvalidDataException($"Shared Component '{sharedComponentId}' was not found.");
             }
         }
     }

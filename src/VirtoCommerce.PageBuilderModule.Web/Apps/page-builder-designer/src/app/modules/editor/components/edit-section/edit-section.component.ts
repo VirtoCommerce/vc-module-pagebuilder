@@ -12,9 +12,9 @@ import { ContextMenuComponent } from '@core/components/context-menu/context-menu
 
 import { ContextMenuAction, ModelChangedEventArgs  } from '@core/models';
 import { SectionModel, SectionSchema } from '@models/document';
-import { canEditLinkedComponentOriginal, canOpenLinkedComponentUsagePage, ContextMenuHelper } from '@editor/helpers';
+import { canEditSharedComponentOriginal, canOpenSharedComponentUsagePage, ContextMenuHelper } from '@editor/helpers';
 import { AppConfig } from '@integration/services';
-import { LinkedComponentUsagePage } from '@editor/models';
+import { SharedComponentUsagePage } from '@editor/models';
 
 import * as actions from '@editor/store/actions';
 import * as fromState from '@editor/store/selectors';
@@ -34,14 +34,14 @@ export class EditSectionComponent {
     private readonly appConfig = inject(AppConfig);
 
     readonly viewModel = toSignal(this.store.select(fromState.selectEditSectionContext));
-    readonly linkedInstance = toSignal(this.store.select(fromState.selectLinkedComponentInstanceFromRoute));
-    readonly linkedDocument = toSignal(this.store.select(fromState.selectCurrentLinkedComponent));
+    readonly sharedComponentInstance = toSignal(this.store.select(fromState.selectSharedComponentInstanceFromRoute));
+    readonly sharedComponentDocument = toSignal(this.store.select(fromState.selectCurrentSharedComponent));
     readonly sectionName = toSignal(this.store.select(fromState.selectCurrentItemName));
     readonly isHalfScreen = toSignal(this.store.select(fromRoute.isDesktop50), { initialValue: false });
-    readonly linkedComponentId = toSignal(this.store.select(fromRoute.selectLinkedComponentIdParameter), { initialValue: '' });
-    readonly canEditLinkedComponents = canEditLinkedComponentOriginal(this.appConfig);
-    readonly canInsertLinkedComponents = this.appConfig.getValue('canInsertLinkedComponents') === true;
-    readonly isReadOnlyOriginal = computed(() => !!this.linkedComponentId() && !this.canEditLinkedComponents);
+    readonly sharedComponentId = toSignal(this.store.select(fromRoute.selectSharedComponentIdParameter), { initialValue: '' });
+    readonly canEditSharedComponents = canEditSharedComponentOriginal(this.appConfig);
+    readonly canInsertSharedComponents = this.appConfig.getValue('canInsertSharedComponents') === true;
+    readonly isReadOnlyOriginal = computed(() => !!this.sharedComponentId() && !this.canEditSharedComponents);
 
     onBackClick() {
         this.store.dispatch(actions.closeEditItemPanel());
@@ -67,33 +67,33 @@ export class EditSectionComponent {
             : this.helper.getSectionsActions(item, !!schema.blocks?.length);
     }
 
-    openLinkedComponent(): void {
-        const instance = this.linkedInstance();
-        if (instance && this.canInsertLinkedComponents) {
-            this.store.dispatch(actions.openLinkedComponent({ componentId: instance.reference.componentRef }));
+    openSharedComponent(): void {
+        const instance = this.sharedComponentInstance();
+        if (instance && this.canInsertSharedComponents) {
+            this.store.dispatch(actions.openSharedComponent({ componentId: instance.reference.componentRef }));
         }
     }
 
-    detachLinkedComponent(): void {
-        const instance = this.linkedInstance();
-        if (instance && this.canInsertLinkedComponents) {
-            this.store.dispatch(actions.detachLinkedComponent({
+    detachSharedComponent(): void {
+        const instance = this.sharedComponentInstance();
+        if (instance && this.canInsertSharedComponents) {
+            this.store.dispatch(actions.detachSharedComponent({
                 sectionId: instance.reference.id,
                 componentId: instance.reference.componentRef,
             }));
         }
     }
 
-    openUsagePage(page: LinkedComponentUsagePage): void {
-        if (canOpenLinkedComponentUsagePage(page)) {
-            this.store.dispatch(actions.openLinkedComponentUsagePage({
+    openUsagePage(page: SharedComponentUsagePage): void {
+        if (canOpenSharedComponentUsagePage(page)) {
+            this.store.dispatch(actions.openSharedComponentUsagePage({
                 pageId: page.id,
                 cultureName: page.cultureName,
             }));
         }
     }
 
-    canOpenUsagePage(page: LinkedComponentUsagePage): boolean {
-        return canOpenLinkedComponentUsagePage(page);
+    canOpenUsagePage(page: SharedComponentUsagePage): boolean {
+        return canOpenSharedComponentUsagePage(page);
     }
 }

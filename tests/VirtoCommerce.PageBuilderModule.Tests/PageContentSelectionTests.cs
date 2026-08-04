@@ -245,7 +245,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 groupedPageSearchService: new PublishedRenameContentPreservationTests.FakeGroupedPageSearchService(),
                 authorizationService: new PublishedRenameContentPreservationTests.AllowAllAuthorizationService(),
                 pageDocumentSearchService: new PublishedRenameContentPreservationTests.NoopPageDocumentSearchService(),
-                linkedComponentReferenceIndexService: new NoopLinkedComponentReferenceIndexService(),
+                sharedComponentReferenceIndexService: new NoopSharedComponentReferenceIndexService(),
                 eventPublisher: new PublishedRenameContentPreservationTests.NoopEventPublisher(),
                 logger: NullLogger<PageBuilderPageController>.Instance);
 
@@ -265,7 +265,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 groupedPageSearchService: new PublishedRenameContentPreservationTests.FakeGroupedPageSearchService(),
                 authorizationService: new PublishedRenameContentPreservationTests.AllowAllAuthorizationService(),
                 pageDocumentSearchService: new PublishedRenameContentPreservationTests.NoopPageDocumentSearchService(),
-                linkedComponentReferenceIndexService: new NoopLinkedComponentReferenceIndexService(),
+                sharedComponentReferenceIndexService: new NoopSharedComponentReferenceIndexService(),
                 eventPublisher: new PublishedRenameContentPreservationTests.NoopEventPublisher(),
                 logger: NullLogger<PageBuilderPageController>.Instance);
 

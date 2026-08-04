@@ -49,7 +49,7 @@
       "PATH": "Ścieżka",
       "USED_ON": "Używane w ({count})",
       "PAGES": "Strony",
-      "LINKED_COMPONENTS": "Współdzielone komponenty",
+      "SHARED_COMPONENTS": "Współdzielone komponenty",
       "NO_REFERENCES": "Nie używane na stronach Page Builder ani we współdzielonych komponentach.",
       "URL": "URL",
       "COPY_URL": "Kopiuj URL",

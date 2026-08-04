@@ -49,7 +49,7 @@
       "PATH": "路径",
       "USED_ON": "使用位置 ({count})",
       "PAGES": "页面",
-      "LINKED_COMPONENTS": "共享组件",
+      "SHARED_COMPONENTS": "共享组件",
       "NO_REFERENCES": "未在 Page Builder 页面或共享组件中使用。",
       "URL": "URL",
       "COPY_URL": "复制 URL",

@@ -64,8 +64,8 @@ describe('editorDomainReducers', () => {
         });
     });
 
-    it('discards only the synthetic linked-component domain state', () => {
-        const templateKey = 'linked-component::component-1';
+    it('discards only the synthetic shared-component domain state', () => {
+        const templateKey = 'shared-component::component-1';
         const previous = {
             ...initialState,
             states: {
@@ -74,7 +74,7 @@ describe('editorDomainReducers', () => {
             },
         };
 
-        const state = editorDomainReducers(previous, actions.discardLinkedComponentChanges({ templateKey }));
+        const state = editorDomainReducers(previous, actions.discardSharedComponentChanges({ templateKey }));
 
         expect(state.states['home']).toBe(previous.states['home']);
         expect(state.states[templateKey]).toBeUndefined();

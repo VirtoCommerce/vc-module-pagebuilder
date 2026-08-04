@@ -22,13 +22,13 @@ describe('TemplateEditorComponent', () => {
             {
               selector: selectors.selectCurrentTemplateState,
               value: {
-                key: 'linked-component::component-1',
+                key: 'shared-component::component-1',
                 template: null,
                 isLoading: false,
                 error: 'The component could not be fetched.',
               },
             },
-            { selector: routingSelectors.selectLinkedComponentIdParameter, value: 'component-1' },
+            { selector: routingSelectors.selectSharedComponentIdParameter, value: 'component-1' },
             { selector: selectors.hoveredSectionId, value: null },
             { selector: selectors.selectCurrentTemplateName, value: 'Shared Component' },
           ],
@@ -56,10 +56,10 @@ describe('TemplateEditorComponent', () => {
     expect(back).toBeTruthy();
 
     retry!.click();
-    expect(dispatch).toHaveBeenCalledWith(actions.loadTemplateModel({ templateKey: 'linked-component::component-1' }));
+    expect(dispatch).toHaveBeenCalledWith(actions.loadTemplateModel({ templateKey: 'shared-component::component-1' }));
 
     back!.click();
-    expect(dispatch).toHaveBeenCalledWith(actions.closeLinkedComponent());
+    expect(dispatch).toHaveBeenCalledWith(actions.closeSharedComponent());
   });
 
   it('keeps the main Add block footer visible while the template is loading', () => {
@@ -67,6 +67,6 @@ describe('TemplateEditorComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('[footer-content]')).toBeTruthy();
-    expect(fixture.nativeElement.querySelector('app-linked-components-library')).toBeNull();
+    expect(fixture.nativeElement.querySelector('app-shared-components-library')).toBeNull();
   });
 });

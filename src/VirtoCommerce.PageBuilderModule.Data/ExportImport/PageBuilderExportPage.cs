@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace VirtoCommerce.PageBuilderModule.Data.ExportImport;
 
-public class PageBuilderExportLinkedComponent
+public class PageBuilderExportSharedComponent
 {
     public string Id { get; set; }
     public string StoreId { get; set; }

@@ -14,7 +14,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.ContentProviders;
 public class PageBuilderContentProvider(
     IPageBuilderPageSearchService pageSearchService,
     IGroupedPageService groupedPageService,
-    IPageBuilderLinkedComponentResolver linkedComponentResolver,
+    IPageBuilderSharedComponentResolver sharedComponentResolver,
     Func<IPageBuilderModuleRepository> repositoryFactory)
     : IPageContentProvider
 {
@@ -66,7 +66,7 @@ public class PageBuilderContentProvider(
             }
 
             var rawContent = await groupedPageService.LoadContent(page.Id);
-            var content = await linkedComponentResolver.ResolveAsync(rawContent);
+            var content = await sharedComponentResolver.ResolveAsync(rawContent);
             var pageDocument = page.ToPageDocument(group, content);
             pageDocument.Status = MapStatus(page.Status);
             result.Add(pageDocument);

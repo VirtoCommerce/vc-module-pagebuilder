@@ -3,7 +3,7 @@ import { Action } from "@ngrx/store";
 import * as editorHelpers from './editor.helpers';
 import * as actions from "@editor/store/actions";
 import * as sharedActions from "@shared/store/actions";
-import { isLinkedComponentReference } from './linked-component.helpers';
+import { isSharedComponentReference } from './shared-component.helpers';
 import { TemplateModel } from '@models/document';
 
 export function pasteDataIntoTemplate(
@@ -32,8 +32,8 @@ export function pasteDataIntoTemplate(
             return pasteBlockIntoSection(action, sectionsSchemas, template, templateKey, value, direction);
         }
         // paste section after or before
-        if (value.type === 'section' && isLinkedComponentReference(value.content)) {
-            return [actions.chooseLinkedComponentInsertionMode({
+        if (value.type === 'section' && isSharedComponentReference(value.content)) {
+            return [actions.chooseSharedComponentInsertionMode({
                 componentId: value.content.componentRef,
                 insertIndex: getSectionInsertIndex(template, action.section?.id, direction),
                 defaultMode: 'copy',

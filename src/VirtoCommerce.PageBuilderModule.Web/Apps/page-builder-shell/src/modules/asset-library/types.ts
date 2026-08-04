@@ -1,19 +1,19 @@
 import type {
   PageBuilderAssetReference,
-  PageBuilderAssetReferenceLinkedComponent,
+  PageBuilderAssetReferenceSharedComponent,
   PageBuilderAssetReferencePage,
 } from "../../api_client/virtocommerce.pagebuildermodule";
 
 export type AssetReferencePage = PageBuilderAssetReferencePage;
-export type AssetReferenceLinkedComponent = PageBuilderAssetReferenceLinkedComponent;
+export type AssetReferenceSharedComponent = PageBuilderAssetReferenceSharedComponent;
 export type AssetReference = PageBuilderAssetReference;
 
 export interface AssetReferenceDetails {
   referencesCount: number;
   pageReferencesCount: number;
-  linkedComponentReferencesCount: number;
+  sharedComponentReferencesCount: number;
   referencePages: AssetReferencePage[];
-  referenceLinkedComponents: AssetReferenceLinkedComponent[];
+  referenceSharedComponents: AssetReferenceSharedComponent[];
 }
 
 export interface AssetEntry {
@@ -25,9 +25,9 @@ export interface AssetEntry {
   size?: number;
   referencesCount?: number;
   pageReferencesCount?: number;
-  linkedComponentReferencesCount?: number;
+  sharedComponentReferencesCount?: number;
   referencePages?: AssetReferencePage[];
-  referenceLinkedComponents?: AssetReferenceLinkedComponent[];
+  referenceSharedComponents?: AssetReferenceSharedComponent[];
   modifiedDate?: string;
   createdDate?: string;
 }

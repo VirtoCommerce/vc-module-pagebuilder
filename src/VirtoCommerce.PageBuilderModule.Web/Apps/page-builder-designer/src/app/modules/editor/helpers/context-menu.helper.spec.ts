@@ -5,9 +5,9 @@ import { ContextMenuAction } from '@core/models';
 import { AppConfig } from '@integration/services';
 
 import { ContextMenuHelper } from './context-menu.helper';
-import { createLinkedComponentReference } from './linked-component.helpers';
+import { createSharedComponentReference } from './shared-component.helpers';
 
-describe('ContextMenuHelper Linked Components', () => {
+describe('ContextMenuHelper Shared Components', () => {
     const clipboard = { getData: vi.fn() };
     const appConfig = { getValue: vi.fn() };
 
@@ -25,49 +25,49 @@ describe('ContextMenuHelper Linked Components', () => {
         });
     });
 
-    it('offers edit, detach, copy and relative paste for a linked instance', async () => {
+    it('offers edit, detach, copy and relative paste for a shared instance', async () => {
         const actions = await TestBed.inject(ContextMenuHelper).getSectionsActions(
-            createLinkedComponentReference('component-1', 'placement-1'),
+            createSharedComponentReference('component-1', 'placement-1'),
             false,
         );
 
         expect(actions.filter(action => action !== '|').map(action => action.action)).toEqual([
-            'edit-linked-component',
-            'detach-linked-component',
+            'edit-shared-component',
+            'detach-shared-component',
             'copy',
             'paste-before',
             'paste-after',
             'delete',
         ]);
-        expect(findAction(actions, 'edit-linked-component').title).toBe('Edit original');
-        expect(findAction(actions, 'detach-linked-component').title).toBe('Detach');
+        expect(findAction(actions, 'edit-shared-component').title).toBe('Edit original');
+        expect(findAction(actions, 'detach-shared-component').title).toBe('Detach');
         expect(findAction(actions, 'paste-after').inactive).toBe(false);
     });
 
     it('opens the original read-only and keeps detach available with read permission', async () => {
-        appConfig.getValue.mockImplementation((option: string) => option === 'canInsertLinkedComponents');
+        appConfig.getValue.mockImplementation((option: string) => option === 'canInsertSharedComponents');
 
         const actions = await TestBed.inject(ContextMenuHelper).getSectionsActions(
-            createLinkedComponentReference('component-1', 'placement-1'),
+            createSharedComponentReference('component-1', 'placement-1'),
             false,
         );
 
-        expect(findAction(actions, 'edit-linked-component').inactive).toBe(false);
-        expect(findAction(actions, 'edit-linked-component').title).toBe('View original');
-        expect(findAction(actions, 'detach-linked-component').inactive).toBe(false);
+        expect(findAction(actions, 'edit-shared-component').inactive).toBe(false);
+        expect(findAction(actions, 'edit-shared-component').title).toBe('View original');
+        expect(findAction(actions, 'detach-shared-component').inactive).toBe(false);
     });
 
     it('does not expose the original without read permission', async () => {
-        appConfig.getValue.mockImplementation((option: string) => option === 'canEditLinkedComponents');
+        appConfig.getValue.mockImplementation((option: string) => option === 'canEditSharedComponents');
 
         const actions = await TestBed.inject(ContextMenuHelper).getSectionsActions(
-            createLinkedComponentReference('component-1', 'placement-1'),
+            createSharedComponentReference('component-1', 'placement-1'),
             false,
         );
 
-        expect(findAction(actions, 'edit-linked-component').inactive).toBe(true);
-        expect(findAction(actions, 'edit-linked-component').title).toBe('View original');
-        expect(findAction(actions, 'detach-linked-component').inactive).toBe(true);
+        expect(findAction(actions, 'edit-shared-component').inactive).toBe(true);
+        expect(findAction(actions, 'edit-shared-component').title).toBe('View original');
+        expect(findAction(actions, 'detach-shared-component').inactive).toBe(true);
     });
 });
 

@@ -49,7 +49,7 @@
       "PATH": "パス",
       "USED_ON": "使用先 ({count})",
       "PAGES": "ページ",
-      "LINKED_COMPONENTS": "共有コンポーネント",
+      "SHARED_COMPONENTS": "共有コンポーネント",
       "NO_REFERENCES": "Page Builder ページまたは共有コンポーネントでは使用されていません。",
       "URL": "URL",
       "COPY_URL": "URLをコピー",

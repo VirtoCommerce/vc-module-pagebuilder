@@ -78,17 +78,17 @@ namespace VirtoCommerce.PageBuilderModule.Web
             serviceCollection.AddTransient<IGroupedPageSearchService, GroupedPageSearchService>();
             serviceCollection.AddTransient<IPageBuilderAssetReferenceService, PageBuilderAssetReferenceService>();
             serviceCollection.AddTransient<IPageBuilderAssetReferenceIndexService, PageBuilderAssetReferenceIndexService>();
-            serviceCollection.AddTransient<IPageBuilderLinkedComponentAssetReferenceIndexService, PageBuilderLinkedComponentAssetReferenceIndexService>();
-            serviceCollection.AddTransient<IPageBuilderLinkedComponentService, PageBuilderLinkedComponentService>();
-            serviceCollection.AddTransient<IPageBuilderLinkedComponentSearchService, PageBuilderLinkedComponentSearchService>();
-            serviceCollection.AddTransient<IPageBuilderLinkedComponentContentService, PageBuilderLinkedComponentContentService>();
-            serviceCollection.AddTransient<IPageBuilderLinkedComponentResolver, PageBuilderLinkedComponentResolver>();
-            serviceCollection.AddTransient<IPageBuilderLinkedComponentReferenceIndexService, PageBuilderLinkedComponentReferenceIndexService>();
-            serviceCollection.AddTransient<IPageBuilderLinkedComponentUsageService, PageBuilderLinkedComponentUsageService>();
+            serviceCollection.AddTransient<IPageBuilderSharedComponentAssetReferenceIndexService, PageBuilderSharedComponentAssetReferenceIndexService>();
+            serviceCollection.AddTransient<IPageBuilderSharedComponentService, PageBuilderSharedComponentService>();
+            serviceCollection.AddTransient<IPageBuilderSharedComponentSearchService, PageBuilderSharedComponentSearchService>();
+            serviceCollection.AddTransient<IPageBuilderSharedComponentContentService, PageBuilderSharedComponentContentService>();
+            serviceCollection.AddTransient<IPageBuilderSharedComponentResolver, PageBuilderSharedComponentResolver>();
+            serviceCollection.AddTransient<IPageBuilderSharedComponentReferenceIndexService, PageBuilderSharedComponentReferenceIndexService>();
+            serviceCollection.AddTransient<IPageBuilderSharedComponentUsageService, PageBuilderSharedComponentUsageService>();
 
             serviceCollection.AddTransient<GroupedPageBuilderPageChangedEventHandler>();
-            serviceCollection.AddTransient<PageBuilderLinkedComponentContentChangedEventHandler>();
-            serviceCollection.AddTransient<PageBuilderLinkedComponentContentPropagationJob>();
+            serviceCollection.AddTransient<PageBuilderSharedComponentContentChangedEventHandler>();
+            serviceCollection.AddTransient<PageBuilderSharedComponentContentPropagationJob>();
 
             serviceCollection.AddTransient<IAuthorizationHandler, PageBuilderAuthorizationHandler>();
             serviceCollection.AddTransient<IPageContentProvider, PageBuilderContentProvider>();
@@ -140,7 +140,7 @@ namespace VirtoCommerce.PageBuilderModule.Web
 
             appBuilder.RegisterEventHandler<PageBuilderPageChangedEvent, PageBuilderPageChangedEventHandler>();
             appBuilder.RegisterEventHandler<GroupedPageBuilderPageChangedEvent, GroupedPageBuilderPageChangedEventHandler>();
-            appBuilder.RegisterEventHandler<PageBuilderLinkedComponentContentChangedEvent, PageBuilderLinkedComponentContentChangedEventHandler>();
+            appBuilder.RegisterEventHandler<PageBuilderSharedComponentContentChangedEvent, PageBuilderSharedComponentContentChangedEventHandler>();
 
             // Apply migrations
             using var serviceScope = serviceProvider.CreateScope();

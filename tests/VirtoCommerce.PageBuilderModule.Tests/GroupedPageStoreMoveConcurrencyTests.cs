@@ -41,7 +41,7 @@ public class GroupedPageStoreMoveConcurrencyTests
             new NoopEventPublisher(),
             NullLogger<GroupedPageService>.Instance,
             new NoopAssetReferenceIndexService(),
-            new NoopLinkedComponentReferenceIndexService());
+            new NoopSharedComponentReferenceIndexService());
         var model = new GroupedPageBuilderPage
         {
             Id = GroupId,
@@ -73,7 +73,7 @@ public class GroupedPageStoreMoveConcurrencyTests
                 .Where(x => x.Id == PageId)
                 .Select(x => x.StoreId)
                 .SingleAsync(TestContext.Current.CancellationToken));
-        Assert.Empty(await verificationContext.Set<PageBuilderLinkedComponentReferenceEntity>()
+        Assert.Empty(await verificationContext.Set<PageBuilderSharedComponentReferenceEntity>()
             .ToListAsync(TestContext.Current.CancellationToken));
     }
 
@@ -90,7 +90,7 @@ public class GroupedPageStoreMoveConcurrencyTests
             new NoopEventPublisher(),
             NullLogger<GroupedPageService>.Instance,
             new NoopAssetReferenceIndexService(),
-            new NoopLinkedComponentReferenceIndexService());
+            new NoopSharedComponentReferenceIndexService());
         var model = new GroupedPageBuilderPage
         {
             Id = GroupId,
@@ -194,7 +194,7 @@ public class GroupedPageStoreMoveConcurrencyTests
             eventPublisher ?? new NoopEventPublisher(),
             NullLogger<GroupedPageService>.Instance,
             new NoopAssetReferenceIndexService(),
-            new NoopLinkedComponentReferenceIndexService());
+            new NoopSharedComponentReferenceIndexService());
     }
 
     private sealed class CoordinatedRepository(PageBuilderModuleDbContext dbContext)
@@ -209,11 +209,11 @@ public class GroupedPageStoreMoveConcurrencyTests
                 groupIds,
                 async (context, transactionCancellationToken) =>
                 {
-                    context.Add(new PageBuilderLinkedComponentReferenceEntity
+                    context.Add(new PageBuilderSharedComponentReferenceEntity
                     {
                         Id = Guid.NewGuid().ToString("N"),
                         PageId = PageId,
-                        LinkedComponentId = ComponentId,
+                        SharedComponentId = ComponentId,
                     });
                     await context.SaveChangesAsync(transactionCancellationToken);
                     await operation(context, transactionCancellationToken);
@@ -333,13 +333,13 @@ public class GroupedPageStoreMoveConcurrencyTests
                     },
                 },
             });
-            context.Add(new PageBuilderLinkedComponentEntity
+            context.Add(new PageBuilderSharedComponentEntity
             {
                 Id = ComponentId,
                 StoreId = "store-a",
                 Name = "Shared component",
                 CreatedDate = now,
-                Content = new PageBuilderLinkedComponentContentEntity
+                Content = new PageBuilderSharedComponentContentEntity
                 {
                     Id = ComponentId,
                     ComponentContent = "{}",

@@ -27,7 +27,7 @@ public class GroupedPageStoreImmutabilityTests
     }
 
     [Fact]
-    public void ValidateStoreImmutability_AllowsLegacyGroupWithoutLinkedComponentsToMove()
+    public void ValidateStoreImmutability_AllowsLegacyGroupWithoutSharedComponentsToMove()
     {
         GroupedPageService.ValidateStoreImmutability(
             [new GroupedPageBuilderPage { Id = "group", StoreId = "store-b" }],

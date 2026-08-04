@@ -1,7 +1,7 @@
 import type { ComputedRef } from "vue";
 import { notification, parseError, usePopup } from "@vc-shell/framework";
 import type { AssetEntry } from "../types";
-import { getReferenceLinkedComponentNames, getReferencePageNames } from "../utilities/assetReferences";
+import { getReferenceSharedComponentNames, getReferencePageNames } from "../utilities/assetReferences";
 import type { DeleteAssetReferences } from "./useAssetReferences";
 
 interface UseAssetLibraryActionsOptions {
@@ -141,15 +141,15 @@ export function useAssetLibraryActions(options: UseAssetLibraryActionsOptions) {
   function getReferenceSections(references: DeleteAssetReferences): string[] {
     const sections: string[] = [];
     const pageNames = getReferencePageNames(references.referencePages);
-    const linkedComponentNames = getReferenceLinkedComponentNames(references.referenceLinkedComponents);
+    const sharedComponentNames = getReferenceSharedComponentNames(references.referenceSharedComponents);
 
     if (pageNames.length) {
       sections.push(`${options.t("ASSET_LIBRARY.DETAILS.PAGES")}:\n${formatReferenceNames(pageNames)}`);
     }
 
-    if (linkedComponentNames.length) {
+    if (sharedComponentNames.length) {
       sections.push(
-        `${options.t("ASSET_LIBRARY.DETAILS.LINKED_COMPONENTS")}:\n${formatReferenceNames(linkedComponentNames)}`,
+        `${options.t("ASSET_LIBRARY.DETAILS.SHARED_COMPONENTS")}:\n${formatReferenceNames(sharedComponentNames)}`,
       );
     }
 

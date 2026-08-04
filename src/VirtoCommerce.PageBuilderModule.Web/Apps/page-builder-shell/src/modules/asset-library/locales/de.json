@@ -49,7 +49,7 @@
       "PATH": "Pfad",
       "USED_ON": "Verwendet in ({count})",
       "PAGES": "Seiten",
-      "LINKED_COMPONENTS": "Geteilte Komponenten",
+      "SHARED_COMPONENTS": "Geteilte Komponenten",
       "NO_REFERENCES": "Weder auf Page Builder-Seiten noch in geteilten Komponenten verwendet.",
       "URL": "URL",
       "COPY_URL": "URL kopieren",

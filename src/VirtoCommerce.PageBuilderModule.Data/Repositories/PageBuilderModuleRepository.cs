@@ -9,7 +9,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Repositories;
 
 public class PageBuilderModuleRepository(PageBuilderModuleDbContext dbContext, IUnitOfWork unitOfWork = null)
     : DbContextRepositoryBase<PageBuilderModuleDbContext>(dbContext, unitOfWork),
-      IPageBuilderLinkedComponentRepository,
+      IPageBuilderSharedComponentRepository,
       IPageBuilderWriteLockRepository
 {
     private const int GroupQueryBatchSize = 500;
@@ -20,13 +20,13 @@ public class PageBuilderModuleRepository(PageBuilderModuleDbContext dbContext, I
 
     public IQueryable<PageBuilderAssetReferenceEntity> PageBuilderAssetReferences => DbContext.Set<PageBuilderAssetReferenceEntity>();
 
-    public IQueryable<PageBuilderLinkedComponentEntity> PageBuilderLinkedComponents => DbContext.Set<PageBuilderLinkedComponentEntity>();
+    public IQueryable<PageBuilderSharedComponentEntity> PageBuilderSharedComponents => DbContext.Set<PageBuilderSharedComponentEntity>();
 
-    public IQueryable<PageBuilderLinkedComponentContentEntity> PageBuilderLinkedComponentContents => DbContext.Set<PageBuilderLinkedComponentContentEntity>();
+    public IQueryable<PageBuilderSharedComponentContentEntity> PageBuilderSharedComponentContents => DbContext.Set<PageBuilderSharedComponentContentEntity>();
 
-    public IQueryable<PageBuilderLinkedComponentReferenceEntity> PageBuilderLinkedComponentReferences => DbContext.Set<PageBuilderLinkedComponentReferenceEntity>();
+    public IQueryable<PageBuilderSharedComponentReferenceEntity> PageBuilderSharedComponentReferences => DbContext.Set<PageBuilderSharedComponentReferenceEntity>();
 
-    public IQueryable<PageBuilderLinkedComponentAssetReferenceEntity> PageBuilderLinkedComponentAssetReferences => DbContext.Set<PageBuilderLinkedComponentAssetReferenceEntity>();
+    public IQueryable<PageBuilderSharedComponentAssetReferenceEntity> PageBuilderSharedComponentAssetReferences => DbContext.Set<PageBuilderSharedComponentAssetReferenceEntity>();
 
     public virtual async Task<IList<PageBuilderPageEntity>> GetPageBuilderPagesByIdsAsync(IList<string> ids, string responseGroup)
     {
@@ -60,7 +60,7 @@ public class PageBuilderModuleRepository(PageBuilderModuleDbContext dbContext, I
         return groups;
     }
 
-    public virtual async Task<IList<PageBuilderLinkedComponentEntity>> GetPageBuilderLinkedComponentsByIdsAsync(
+    public virtual async Task<IList<PageBuilderSharedComponentEntity>> GetPageBuilderSharedComponentsByIdsAsync(
         IList<string> ids,
         string responseGroup)
     {
@@ -70,33 +70,33 @@ public class PageBuilderModuleRepository(PageBuilderModuleDbContext dbContext, I
         }
 
         return ids.Count == 1
-            ? await PageBuilderLinkedComponents.Where(x => x.Id == ids.First()).ToListAsync()
-            : await PageBuilderLinkedComponents.Where(x => ids.Contains(x.Id)).ToListAsync();
+            ? await PageBuilderSharedComponents.Where(x => x.Id == ids.First()).ToListAsync()
+            : await PageBuilderSharedComponents.Where(x => ids.Contains(x.Id)).ToListAsync();
     }
 
-    public virtual Task<bool> ExecuteUnderLinkedComponentWriteLockAsync(
-        string linkedComponentId,
+    public virtual Task<bool> ExecuteUnderSharedComponentWriteLockAsync(
+        string sharedComponentId,
         Func<CancellationToken, Task> operation,
         CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(linkedComponentId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(sharedComponentId);
         ArgumentNullException.ThrowIfNull(operation);
 
-        return ExecuteUnderLinkedComponentWriteLockCoreAsync(
-            linkedComponentId,
+        return ExecuteUnderSharedComponentWriteLockCoreAsync(
+            sharedComponentId,
             operation,
             cancellationToken);
     }
 
-    public virtual Task<bool> ExecuteUnderLinkedComponentWriteLocksAsync(
-        IEnumerable<string> linkedComponentIds,
+    public virtual Task<bool> ExecuteUnderSharedComponentWriteLocksAsync(
+        IEnumerable<string> sharedComponentIds,
         Func<CancellationToken, Task> operation,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(operation);
 
-        return ExecuteUnderLinkedComponentWriteLocksCoreAsync(
-            linkedComponentIds,
+        return ExecuteUnderSharedComponentWriteLocksCoreAsync(
+            sharedComponentIds,
             operation,
             cancellationToken);
     }
@@ -121,15 +121,15 @@ public class PageBuilderModuleRepository(PageBuilderModuleDbContext dbContext, I
         return ExecuteUnderGroupedPageWriteLocksCoreAsync(groupIds, operation, cancellationToken);
     }
 
-    private async Task<bool> ExecuteUnderLinkedComponentWriteLockCoreAsync(
-        string linkedComponentId,
+    private async Task<bool> ExecuteUnderSharedComponentWriteLockCoreAsync(
+        string sharedComponentId,
         Func<CancellationToken, Task> operation,
         CancellationToken cancellationToken)
     {
         if (DbContext.Database.CurrentTransaction != null)
         {
-            return await ExecuteUnderLinkedComponentWriteLockInternalAsync(
-                linkedComponentId,
+            return await ExecuteUnderSharedComponentWriteLockInternalAsync(
+                sharedComponentId,
                 operation,
                 cancellationToken);
         }
@@ -138,8 +138,8 @@ public class PageBuilderModuleRepository(PageBuilderModuleDbContext dbContext, I
             IsolationLevel.ReadCommitted,
             cancellationToken);
 
-        var result = await ExecuteUnderLinkedComponentWriteLockInternalAsync(
-            linkedComponentId,
+        var result = await ExecuteUnderSharedComponentWriteLockInternalAsync(
+            sharedComponentId,
             operation,
             cancellationToken);
 
@@ -151,14 +151,14 @@ public class PageBuilderModuleRepository(PageBuilderModuleDbContext dbContext, I
         return result;
     }
 
-    private async Task<bool> ExecuteUnderLinkedComponentWriteLockInternalAsync(
-        string linkedComponentId,
+    private async Task<bool> ExecuteUnderSharedComponentWriteLockInternalAsync(
+        string sharedComponentId,
         Func<CancellationToken, Task> operation,
         CancellationToken cancellationToken)
     {
-        if (!await PageBuilderWriteLock.AcquireLinkedComponentLockAsync(
+        if (!await PageBuilderWriteLock.AcquireSharedComponentLockAsync(
                 DbContext,
-                linkedComponentId,
+                sharedComponentId,
                 cancellationToken))
         {
             return false;
@@ -168,16 +168,16 @@ public class PageBuilderModuleRepository(PageBuilderModuleDbContext dbContext, I
         return true;
     }
 
-    private async Task<bool> ExecuteUnderLinkedComponentWriteLocksCoreAsync(
-        IEnumerable<string> linkedComponentIds,
+    private async Task<bool> ExecuteUnderSharedComponentWriteLocksCoreAsync(
+        IEnumerable<string> sharedComponentIds,
         Func<CancellationToken, Task> operation,
         CancellationToken cancellationToken)
     {
-        var orderedIds = PageBuilderWriteLock.OrderIds(linkedComponentIds);
+        var orderedIds = PageBuilderWriteLock.OrderIds(sharedComponentIds);
 
         if (DbContext.Database.CurrentTransaction != null)
         {
-            return await ExecuteUnderLinkedComponentWriteLocksInternalAsync(
+            return await ExecuteUnderSharedComponentWriteLocksInternalAsync(
                 orderedIds,
                 operation,
                 cancellationToken);
@@ -187,7 +187,7 @@ public class PageBuilderModuleRepository(PageBuilderModuleDbContext dbContext, I
             IsolationLevel.ReadCommitted,
             cancellationToken);
 
-        var result = await ExecuteUnderLinkedComponentWriteLocksInternalAsync(
+        var result = await ExecuteUnderSharedComponentWriteLocksInternalAsync(
             orderedIds,
             operation,
             cancellationToken);
@@ -199,16 +199,16 @@ public class PageBuilderModuleRepository(PageBuilderModuleDbContext dbContext, I
         return result;
     }
 
-    private async Task<bool> ExecuteUnderLinkedComponentWriteLocksInternalAsync(
-        IEnumerable<string> linkedComponentIds,
+    private async Task<bool> ExecuteUnderSharedComponentWriteLocksInternalAsync(
+        IEnumerable<string> sharedComponentIds,
         Func<CancellationToken, Task> operation,
         CancellationToken cancellationToken)
     {
-        foreach (var linkedComponentId in linkedComponentIds)
+        foreach (var sharedComponentId in sharedComponentIds)
         {
-            if (!await PageBuilderWriteLock.AcquireLinkedComponentLockAsync(
+            if (!await PageBuilderWriteLock.AcquireSharedComponentLockAsync(
                     DbContext,
-                    linkedComponentId,
+                    sharedComponentId,
                     cancellationToken))
             {
                 return false;

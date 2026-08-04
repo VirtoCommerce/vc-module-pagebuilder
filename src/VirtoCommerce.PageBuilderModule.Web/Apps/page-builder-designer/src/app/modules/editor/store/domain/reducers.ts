@@ -34,7 +34,7 @@ export const editorDomainReducers = createReducer<EditorDomainState>(
             }
         })
     ),
-    on(actions.discardLinkedComponentChanges, (state, { templateKey }) => ({
+    on(actions.discardSharedComponentChanges, (state, { templateKey }) => ({
         ...state,
         states: withoutKey(state.states, templateKey),
     })),

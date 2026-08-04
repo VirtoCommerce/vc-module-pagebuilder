@@ -16,7 +16,7 @@ public class PageBuilderRepositoryCompatibilityTests
     public void SharedComponentCapabilities_LegacyImplementationDoesNotOptIn()
     {
         IPageBuilderModuleRepository repository = new LegacyRepository();
-        Assert.False(repository is IPageBuilderLinkedComponentRepository);
+        Assert.False(repository is IPageBuilderSharedComponentRepository);
         Assert.False(repository is IPageBuilderWriteLockRepository);
     }
 

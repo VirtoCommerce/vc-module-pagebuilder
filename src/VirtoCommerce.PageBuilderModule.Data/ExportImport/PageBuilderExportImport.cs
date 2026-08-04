@@ -22,10 +22,10 @@ public sealed class PageBuilderExportImport(
     IGroupedPageService groupedPageService,
     IGroupedPageSearchService groupedPageSearchService,
     IPageBuilderPageService pageBuilderPageService,
-    IPageBuilderLinkedComponentReferenceIndexService linkedComponentReferenceIndexService,
-    IPageBuilderLinkedComponentService linkedComponentService,
-    IPageBuilderLinkedComponentSearchService linkedComponentSearchService,
-    IPageBuilderLinkedComponentContentService linkedComponentContentService,
+    IPageBuilderSharedComponentReferenceIndexService sharedComponentReferenceIndexService,
+    IPageBuilderSharedComponentService sharedComponentService,
+    IPageBuilderSharedComponentSearchService sharedComponentSearchService,
+    IPageBuilderSharedComponentContentService sharedComponentContentService,
     IEventPublisher eventPublisher,
     JsonSerializer jsonSerializer)
 {
@@ -38,10 +38,10 @@ public sealed class PageBuilderExportImport(
             groupedPageService,
             groupedPageSearchService,
             pageBuilderPageService: null,
-            linkedComponentReferenceIndexService: null,
-            linkedComponentService: null,
-            linkedComponentSearchService: null,
-            linkedComponentContentService: null,
+            sharedComponentReferenceIndexService: null,
+            sharedComponentService: null,
+            sharedComponentSearchService: null,
+            sharedComponentContentService: null,
             eventPublisher: null,
             jsonSerializer)
     {
@@ -61,9 +61,9 @@ public sealed class PageBuilderExportImport(
 
         await writer.WriteStartObjectAsync(cancellationToken);
 
-        if (linkedComponentSearchService != null && linkedComponentContentService != null)
+        if (sharedComponentSearchService != null && sharedComponentContentService != null)
         {
-            await ExportLinkedComponentsAsync(writer, progressInfo, progressCallback, cancellationToken);
+            await ExportSharedComponentsAsync(writer, progressInfo, progressCallback, cancellationToken);
         }
 
         progressInfo.Description = "Page Builder pages are started to export";
@@ -140,9 +140,9 @@ public sealed class PageBuilderExportImport(
                     continue;
                 }
 
-                if (reader.Value?.ToString() == "PageBuilderLinkedComponents")
+                if (reader.Value?.ToString() == "PageBuilderSharedComponents")
                 {
-                    await ImportLinkedComponentsArrayAsync(reader, progressInfo, progressCallback, cancellationToken);
+                    await ImportSharedComponentsArrayAsync(reader, progressInfo, progressCallback, cancellationToken);
                 }
                 else if (reader.Value?.ToString() == "PageBuilderPages")
                 {
@@ -160,7 +160,7 @@ public sealed class PageBuilderExportImport(
         await ImportPagesArrayAsync(pageBufferReader, progressInfo, progressCallback, cancellationToken);
     }
 
-    private async Task ExportLinkedComponentsAsync(
+    private async Task ExportSharedComponentsAsync(
         JsonTextWriter writer,
         ExportImportProgressInfo progressInfo,
         Action<ExportImportProgressInfo> progressCallback,
@@ -169,27 +169,27 @@ public sealed class PageBuilderExportImport(
         progressInfo.Description = "Page Builder Shared Components are started to export";
         progressCallback(progressInfo);
 
-        await writer.WritePropertyNameAsync("PageBuilderLinkedComponents", cancellationToken);
+        await writer.WritePropertyNameAsync("PageBuilderSharedComponents", cancellationToken);
         await writer.WriteStartArrayAsync(cancellationToken);
 
-        var criteria = AbstractTypeFactory<PageBuilderLinkedComponentSearchCriteria>.TryCreateInstance();
+        var criteria = AbstractTypeFactory<PageBuilderSharedComponentSearchCriteria>.TryCreateInstance();
         criteria.Take = BatchSize;
         var processedCount = 0;
 
         for (criteria.Skip = 0; ; criteria.Skip += BatchSize)
         {
-            var searchResult = await linkedComponentSearchService.SearchAsync(criteria);
+            var searchResult = await sharedComponentSearchService.SearchAsync(criteria);
 
             foreach (var component in searchResult.Results)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                var exportComponent = new PageBuilderExportLinkedComponent
+                var exportComponent = new PageBuilderExportSharedComponent
                 {
                     Id = component.Id,
                     StoreId = component.StoreId,
                     Name = component.Name,
-                    Content = await linkedComponentContentService.LoadContentAsync(component.Id, cancellationToken),
+                    Content = await sharedComponentContentService.LoadContentAsync(component.Id, cancellationToken),
                 };
                 jsonSerializer.Serialize(writer, exportComponent);
                 processedCount++;
@@ -210,7 +210,7 @@ public sealed class PageBuilderExportImport(
         await writer.WriteEndArrayAsync(cancellationToken);
     }
 
-    private async Task ImportLinkedComponentsArrayAsync(
+    private async Task ImportSharedComponentsArrayAsync(
         JsonTextReader reader,
         ExportImportProgressInfo progressInfo,
         Action<ExportImportProgressInfo> progressCallback,
@@ -226,24 +226,24 @@ public sealed class PageBuilderExportImport(
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var exportComponent = jsonSerializer.Deserialize<PageBuilderExportLinkedComponent>(reader);
+            var exportComponent = jsonSerializer.Deserialize<PageBuilderExportSharedComponent>(reader);
             if (exportComponent == null ||
-                linkedComponentService == null)
+                sharedComponentService == null)
             {
                 continue;
             }
 
-            PageBuilderLinkedComponentReferenceMatcher.ValidateComponentContent(exportComponent.Content);
+            PageBuilderSharedComponentReferenceMatcher.ValidateComponentContent(exportComponent.Content);
 
             var component = string.IsNullOrWhiteSpace(exportComponent.Id)
                 ? null
-                : await linkedComponentService.GetByIdAsync(exportComponent.Id);
-            component ??= AbstractTypeFactory<PageBuilderLinkedComponent>.TryCreateInstance();
+                : await sharedComponentService.GetByIdAsync(exportComponent.Id);
+            component ??= AbstractTypeFactory<PageBuilderSharedComponent>.TryCreateInstance();
             component.Id = exportComponent.Id;
             component.StoreId = exportComponent.StoreId;
             component.Name = exportComponent.Name;
 
-            await linkedComponentService.SaveWithContentAsync(
+            await sharedComponentService.SaveWithContentAsync(
                 component,
                 exportComponent.Content,
                 cancellationToken);
@@ -285,9 +285,9 @@ public sealed class PageBuilderExportImport(
     {
         // Validate the union once, before replacing group metadata or variants. Deterministic content errors
         // must not leave an existing group partially replaced; batching also avoids one component query per variant.
-        if (linkedComponentReferenceIndexService != null)
+        if (sharedComponentReferenceIndexService != null)
         {
-            await linkedComponentReferenceIndexService.ValidateReferencesForStoreAsync(
+            await sharedComponentReferenceIndexService.ValidateReferencesForStoreAsync(
                 exportPage.StoreId,
                 exportPage.Variants.Select(x => x.Content),
                 cancellationToken);

@@ -6,9 +6,9 @@ import { createAssetReferenceDetails } from "../utilities/assetReferences";
 
 type AssetReferenceState = Pick<
   AssetReferenceDetails,
-  "referencesCount" | "pageReferencesCount" | "linkedComponentReferencesCount"
+  "referencesCount" | "pageReferencesCount" | "sharedComponentReferencesCount"
 > &
-  Partial<Pick<AssetReferenceDetails, "referencePages" | "referenceLinkedComponents">>;
+  Partial<Pick<AssetReferenceDetails, "referencePages" | "referenceSharedComponents">>;
 export type DeleteAssetReferences = AssetReferenceDetails;
 
 export function useAssetReferences(storeId: Ref<string | null | undefined>) {
@@ -116,9 +116,9 @@ export function useAssetReferences(storeId: Ref<string | null | undefined>) {
         {
           referencesCount: getEntryReferencesCount(entry),
           pageReferencesCount: entry.pageReferencesCount ?? 0,
-          linkedComponentReferencesCount: entry.linkedComponentReferencesCount ?? 0,
+          sharedComponentReferencesCount: entry.sharedComponentReferencesCount ?? 0,
           referencePages: entry.referencePages ?? [],
-          referenceLinkedComponents: entry.referenceLinkedComponents ?? [],
+          referenceSharedComponents: entry.referenceSharedComponents ?? [],
         },
         true,
       );
@@ -152,12 +152,12 @@ export function useAssetReferences(storeId: Ref<string | null | undefined>) {
       : {
           referencesCount: references.reduce((count, reference) => count + (reference.referencesCount ?? 0), 0),
           pageReferencesCount: references.reduce((count, reference) => count + (reference.pageReferencesCount ?? 0), 0),
-          linkedComponentReferencesCount: references.reduce(
-            (count, reference) => count + (reference.linkedComponentReferencesCount ?? 0),
+          sharedComponentReferencesCount: references.reduce(
+            (count, reference) => count + (reference.sharedComponentReferencesCount ?? 0),
             0,
           ),
           referencePages: [],
-          referenceLinkedComponents: [],
+          referenceSharedComponents: [],
         };
   }
 
@@ -169,7 +169,7 @@ export function useAssetReferences(storeId: Ref<string | null | undefined>) {
     return {
       referencesCount: reference.referencesCount ?? 0,
       pageReferencesCount: reference.pageReferencesCount ?? 0,
-      linkedComponentReferencesCount: reference.linkedComponentReferencesCount ?? 0,
+      sharedComponentReferencesCount: reference.sharedComponentReferencesCount ?? 0,
     };
   }
 
@@ -187,10 +187,10 @@ export function useAssetReferences(storeId: Ref<string | null | undefined>) {
     return {
       referencesCount: reference?.referencesCount ?? entry?.referencesCount ?? 0,
       pageReferencesCount: reference?.pageReferencesCount ?? entry?.pageReferencesCount ?? 0,
-      linkedComponentReferencesCount:
-        reference?.linkedComponentReferencesCount ?? entry?.linkedComponentReferencesCount ?? 0,
+      sharedComponentReferencesCount:
+        reference?.sharedComponentReferencesCount ?? entry?.sharedComponentReferencesCount ?? 0,
       referencePages: reference?.referencePages ?? entry?.referencePages ?? [],
-      referenceLinkedComponents: reference?.referenceLinkedComponents ?? entry?.referenceLinkedComponents ?? [],
+      referenceSharedComponents: reference?.referenceSharedComponents ?? entry?.referenceSharedComponents ?? [],
     };
   }
 

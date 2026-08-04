@@ -128,122 +128,6 @@ namespace VirtoCommerce.PageBuilderModule.Data.SqlServer.Migrations
                     b.ToTable("PageBuilderPage", (string)null);
                 });
 
-            modelBuilder.Entity("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderLinkedComponentAssetReferenceEntity", b =>
-                {
-                    b.Property<string>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
-                    b.Property<string>("LinkedComponentId")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
-                    b.Property<string>("NormalizedAssetUrl")
-                        .IsRequired()
-                        .HasMaxLength(2048)
-                        .HasColumnType("nvarchar(2048)");
-
-                    b.Property<string>("NormalizedAssetUrlHash")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("LinkedComponentId");
-
-                    b.HasIndex("NormalizedAssetUrlHash");
-
-                    b.HasIndex("LinkedComponentId", "NormalizedAssetUrlHash")
-                        .IsUnique();
-
-                    b.ToTable("PageBuilderLinkedComponentAssetReference", (string)null);
-                });
-
-            modelBuilder.Entity("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderLinkedComponentContentEntity", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
-                    b.Property<string>("ComponentContent")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("PageBuilderLinkedComponentContent", (string)null);
-                });
-
-            modelBuilder.Entity("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderLinkedComponentEntity", b =>
-                {
-                    b.Property<string>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<DateTime>("CreatedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<DateTime?>("ModifiedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
-                    b.Property<string>("StoreId")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("StoreId");
-
-                    b.ToTable("PageBuilderLinkedComponent", (string)null);
-                });
-
-            modelBuilder.Entity("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderLinkedComponentReferenceEntity", b =>
-                {
-                    b.Property<string>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
-                    b.Property<string>("LinkedComponentId")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
-                    b.Property<string>("PageId")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("LinkedComponentId");
-
-                    b.HasIndex("PageId");
-
-                    b.HasIndex("PageId", "LinkedComponentId")
-                        .IsUnique();
-
-                    b.ToTable("PageBuilderLinkedComponentReference", (string)null);
-                });
-
             modelBuilder.Entity("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderPageEntity", b =>
                 {
                     b.Property<string>("Id")
@@ -285,6 +169,122 @@ namespace VirtoCommerce.PageBuilderModule.Data.SqlServer.Migrations
                     b.ToTable("PageBuilderPage", (string)null);
                 });
 
+            modelBuilder.Entity("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderSharedComponentAssetReferenceEntity", b =>
+                {
+                    b.Property<string>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<string>("NormalizedAssetUrl")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("nvarchar(2048)");
+
+                    b.Property<string>("NormalizedAssetUrlHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("SharedComponentId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NormalizedAssetUrlHash");
+
+                    b.HasIndex("SharedComponentId");
+
+                    b.HasIndex("SharedComponentId", "NormalizedAssetUrlHash")
+                        .IsUnique();
+
+                    b.ToTable("PageBuilderSharedComponentAssetReference", (string)null);
+                });
+
+            modelBuilder.Entity("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderSharedComponentContentEntity", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<string>("ComponentContent")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PageBuilderSharedComponentContent", (string)null);
+                });
+
+            modelBuilder.Entity("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderSharedComponentEntity", b =>
+                {
+                    b.Property<string>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTime?>("ModifiedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<string>("StoreId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StoreId");
+
+                    b.ToTable("PageBuilderSharedComponent", (string)null);
+                });
+
+            modelBuilder.Entity("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderSharedComponentReferenceEntity", b =>
+                {
+                    b.Property<string>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<string>("PageId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<string>("SharedComponentId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PageId");
+
+                    b.HasIndex("SharedComponentId");
+
+                    b.HasIndex("PageId", "SharedComponentId")
+                        .IsUnique();
+
+                    b.ToTable("PageBuilderSharedComponentReference", (string)null);
+                });
+
             modelBuilder.Entity("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderAssetReferenceEntity", b =>
                 {
                     b.HasOne("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderPageEntity", null)
@@ -305,41 +305,6 @@ namespace VirtoCommerce.PageBuilderModule.Data.SqlServer.Migrations
                     b.Navigation("Page");
                 });
 
-            modelBuilder.Entity("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderLinkedComponentAssetReferenceEntity", b =>
-                {
-                    b.HasOne("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderLinkedComponentEntity", null)
-                        .WithMany()
-                        .HasForeignKey("LinkedComponentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderLinkedComponentContentEntity", b =>
-                {
-                    b.HasOne("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderLinkedComponentEntity", "Component")
-                        .WithOne("Content")
-                        .HasForeignKey("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderLinkedComponentContentEntity", "Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Component");
-                });
-
-            modelBuilder.Entity("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderLinkedComponentReferenceEntity", b =>
-                {
-                    b.HasOne("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderLinkedComponentEntity", null)
-                        .WithMany()
-                        .HasForeignKey("LinkedComponentId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderPageEntity", null)
-                        .WithMany()
-                        .HasForeignKey("PageId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderPageEntity", b =>
                 {
                     b.HasOne("VirtoCommerce.PageBuilderModule.Data.Models.GroupedPageBuilderPageEntity", "Group")
@@ -351,17 +316,52 @@ namespace VirtoCommerce.PageBuilderModule.Data.SqlServer.Migrations
                     b.Navigation("Group");
                 });
 
+            modelBuilder.Entity("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderSharedComponentAssetReferenceEntity", b =>
+                {
+                    b.HasOne("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderSharedComponentEntity", null)
+                        .WithMany()
+                        .HasForeignKey("SharedComponentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderSharedComponentContentEntity", b =>
+                {
+                    b.HasOne("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderSharedComponentEntity", "Component")
+                        .WithOne("Content")
+                        .HasForeignKey("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderSharedComponentContentEntity", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Component");
+                });
+
+            modelBuilder.Entity("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderSharedComponentReferenceEntity", b =>
+                {
+                    b.HasOne("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderPageEntity", null)
+                        .WithMany()
+                        .HasForeignKey("PageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderSharedComponentEntity", null)
+                        .WithMany()
+                        .HasForeignKey("SharedComponentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("VirtoCommerce.PageBuilderModule.Data.Models.GroupedPageBuilderPageEntity", b =>
                 {
                     b.Navigation("Pages");
                 });
 
-            modelBuilder.Entity("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderLinkedComponentEntity", b =>
+            modelBuilder.Entity("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderPageEntity", b =>
                 {
                     b.Navigation("Content");
                 });
 
-            modelBuilder.Entity("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderPageEntity", b =>
+            modelBuilder.Entity("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderSharedComponentEntity", b =>
                 {
                     b.Navigation("Content");
                 });

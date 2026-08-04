@@ -127,14 +127,14 @@ const templateSchemasContext = createSelector(
   (sectionsSchemas, blocksSchemas, settingsSchemas) => ({ sectionsSchemas, blocksSchemas, settingsSchemas })
 );
 
-const linkedComponentDataContext = createSelector(
-  fromData.selectLinkedComponents,
-  fromData.selectLinkedComponentErrors,
-  fromData.selectCurrentLinkedComponent,
-  fromRoute.selectLinkedComponentIdParameter,
-  (linkedComponents, linkedComponentErrors, currentLinkedComponent, linkedComponentId) => ({
-    linkedComponents, linkedComponentErrors, currentLinkedComponent,
-    linkedComponentId, isLinkedDocument: !!linkedComponentId,
+const sharedComponentDataContext = createSelector(
+  fromData.selectSharedComponents,
+  fromData.selectSharedComponentErrors,
+  fromData.selectCurrentSharedComponent,
+  fromRoute.selectSharedComponentIdParameter,
+  (sharedComponents, sharedComponentErrors, currentSharedComponent, sharedComponentId) => ({
+    sharedComponents, sharedComponentErrors, currentSharedComponent,
+    sharedComponentId, isSharedComponentDocument: !!sharedComponentId,
   })
 );
 
@@ -142,10 +142,10 @@ const templateDataContext = createSelector(
   fromData.selectCurrentTemplateModel,
   fromData.selectTemplateSettings,
   templateSchemasContext,
-  linkedComponentDataContext,
-  (template, settings, { sectionsSchemas, blocksSchemas, settingsSchemas }, linkedComponentContext) => ({
+  sharedComponentDataContext,
+  (template, settings, { sectionsSchemas, blocksSchemas, settingsSchemas }, sharedComponentContext) => ({
     template, sectionsSchemas, blocksSchemas, settings, settingsSchemas,
-    ...linkedComponentContext,
+    ...sharedComponentContext,
   })
 );
 
@@ -158,7 +158,7 @@ export const editTemplateContext = createSelector(
     const selectedSectionsCount = Object.values(sectionsState).filter(x => x.selected).length;
     const selectedBlocksCount = Object.values(sectionsState).reduce((acc, value) => acc + Object.values(value.blocks || {}).filter(x => x.selected).length, 0);
     const { template, sectionsSchemas, blocksSchemas, settings } = dataContext;
-    const settingsSchemas = dataContext.isLinkedDocument
+    const settingsSchemas = dataContext.isSharedComponentDocument
       ? { top: [], bottom: [] }
       : dataContext.settingsSchemas;
     return template && sectionsSchemas && blocksSchemas
@@ -178,12 +178,12 @@ export const selectAddItemContext = createSelector(
   selectPreviewItemType,
   selectCurrentSectionsFilter,
   fromData.selectSectionModelFromRoute,
-  fromRoute.selectLinkedComponentIdParameter,
-  ({ groups, items }, states, previewItemType, filter, section, linkedComponentId) => ({
+  fromRoute.selectSharedComponentIdParameter,
+  ({ groups, items }, states, previewItemType, filter, section, sharedComponentId) => ({
     groups,
     items,
     parentSection: section,
-    isLinkedDocument: !!linkedComponentId,
+    isSharedComponentDocument: !!sharedComponentId,
     states: {
       groups: groups.reduce((acc, value) => ({
         ...acc,
@@ -240,9 +240,9 @@ export const selectEditSectionContext = createSelector(
   fromData.selectCurrentTemplateModel,
   fromData.selectObjectsSchemas,
   isEditSettings,
-  fromRoute.selectLinkedComponentIdParameter,
-  (sectionContext, blockContext, { model, schema }, template, objects, isSettings, linkedComponentId) =>
-    !!schema && !!model && !(isSettings && linkedComponentId)
+  fromRoute.selectSharedComponentIdParameter,
+  (sectionContext, blockContext, { model, schema }, template, objects, isSettings, sharedComponentId) =>
+    !!schema && !!model && !(isSettings && sharedComponentId)
       ? <any>{
         section: sectionContext.section,
         sectionSchema: sectionContext.sectionSchema,
@@ -289,17 +289,17 @@ export const selectToolbarButtonsState = (context: {
   useTheme: boolean;
   useDrafts: boolean;
   useExternalPreview: boolean;
-  canEditLinkedComponents?: boolean;
+  canEditSharedComponents?: boolean;
 }) => createSelector(
   // fromDomain.selectCurrentTemplateState,
   fromShared.hasDirty,
   fromDomain.selectCurrentTemplateState,
-  fromRoute.selectLinkedComponentIdParameter,
+  fromRoute.selectSharedComponentIdParameter,
   fromShared.selectCurrentTemplateDirty,
-  (hasDirty, state, linkedComponentId, currentTemplateDirty) => {
-    const effectiveDirty = linkedComponentId ? currentTemplateDirty : hasDirty;
+  (hasDirty, state, sharedComponentId, currentTemplateDirty) => {
+    const effectiveDirty = sharedComponentId ? currentTemplateDirty : hasDirty;
     const result = <ActionButtonDescriptor[][]>[];
-    if (context.useTheme && !linkedComponentId) {
+    if (context.useTheme && !sharedComponentId) {
       result.push([
         {
           icon: 'settings',
@@ -310,7 +310,7 @@ export const selectToolbarButtonsState = (context: {
       ]);
     }
 
-    if (context.useExternalPreview && !linkedComponentId) {
+    if (context.useExternalPreview && !sharedComponentId) {
       result.push([
         {
           canAction: !effectiveDirty,
@@ -322,7 +322,7 @@ export const selectToolbarButtonsState = (context: {
       ]);
     }
 
-    if (context.useDrafts && !linkedComponentId && !state?.isLoading && !state?.error) {
+    if (context.useDrafts && !sharedComponentId && !state?.isLoading && !state?.error) {
       result.push([
         {
           canAction: !effectiveDirty && state?.published && !state?.hasChanges,
@@ -363,7 +363,7 @@ export const selectToolbarButtonsState = (context: {
 
     result.push([
       {
-        canAction: effectiveDirty && (!linkedComponentId || context.canEditLinkedComponents === true),
+        canAction: effectiveDirty && (!sharedComponentId || context.canEditSharedComponents === true),
         title: 'Save',
         alias: 'save',
         type: 'primary'

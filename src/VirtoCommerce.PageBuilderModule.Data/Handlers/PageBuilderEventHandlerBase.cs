@@ -10,7 +10,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Handlers
 {
     public abstract class PageBuilderEventHandlerBase(
         IGroupedPageService groupedPageService,
-        IPageBuilderLinkedComponentResolver linkedComponentResolver
+        IPageBuilderSharedComponentResolver sharedComponentResolver
     )
     {
         internal const int MaxDegreeOfParallelism = 8;
@@ -29,7 +29,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Handlers
 
             var group = await groupedPageService.GetByIdAsync(entry.GroupId);
             var rawContent = await groupedPageService.LoadContent(entry.Id);
-            var content = await linkedComponentResolver.ResolveAsync(rawContent);
+            var content = await sharedComponentResolver.ResolveAsync(rawContent);
 
             var pageDocument = entry.ToPageDocument(group, content);
             // todo: move to pages module

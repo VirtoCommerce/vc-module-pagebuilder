@@ -15,9 +15,9 @@
               (keyup)="applySectionsFilter($event)"
               (search)="applySectionsFilter($event)" />
             </li>
-            @if (!vm.parentSection && !vm.isLinkedDocument) {
+            @if (!vm.parentSection && !vm.isSharedComponentDocument) {
               <li>
-                <app-linked-components-library />
+                <app-shared-components-library />
               </li>
             }
             @for (group of vm.groups; track group) {

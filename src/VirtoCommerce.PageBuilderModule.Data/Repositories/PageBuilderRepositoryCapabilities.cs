@@ -2,10 +2,10 @@ namespace VirtoCommerce.PageBuilderModule.Data.Repositories;
 
 internal static class PageBuilderRepositoryCapabilities
 {
-    internal static IPageBuilderLinkedComponentRepository RequireLinkedComponents(
+    internal static IPageBuilderSharedComponentRepository RequireSharedComponents(
         this IPageBuilderModuleRepository repository)
     {
-        return repository as IPageBuilderLinkedComponentRepository
-            ?? throw new NotSupportedException("Shared Components require linked-component repository support.");
+        return repository as IPageBuilderSharedComponentRepository
+            ?? throw new NotSupportedException("Shared Components require shared-component repository support.");
     }
 }

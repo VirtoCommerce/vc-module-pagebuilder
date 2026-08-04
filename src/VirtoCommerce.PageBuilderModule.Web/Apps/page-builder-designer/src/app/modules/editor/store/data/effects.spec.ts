@@ -19,7 +19,7 @@ describe('TemplateEditorDataEffects', () => {
     let actions$: ReplaySubject<Action>;
     let store: MockStore;
     let schemasService: { getSchemas: ReturnType<typeof vi.fn> };
-    let linkedComponentsService: {
+    let sharedComponentsService: {
         get: ReturnType<typeof vi.fn>;
         getContent: ReturnType<typeof vi.fn>;
         updateContent: ReturnType<typeof vi.fn>;
@@ -42,7 +42,7 @@ describe('TemplateEditorDataEffects', () => {
     beforeEach(() => {
         actions$ = new ReplaySubject<Action>(1);
         schemasService = { getSchemas: vi.fn().mockReturnValue(of({ sections: {}, blocks: {}, objects: {}, shared: {} })) };
-        linkedComponentsService = {
+        sharedComponentsService = {
             get: vi.fn(),
             getContent: vi.fn(),
             updateContent: vi.fn().mockReturnValue(of(undefined)),
@@ -82,7 +82,7 @@ describe('TemplateEditorDataEffects', () => {
                         { selector: fromRoute.selectTypeParameter, value: 'page' },
                         { selector: fromRoute.selectGroupIdParameter, value: '' },
                         { selector: fromRoute.selectCultureNameParameter, value: 'en-US' },
-                        { selector: fromRoute.selectLinkedComponentIdParameter, value: '' },
+                        { selector: fromRoute.selectSharedComponentIdParameter, value: '' },
                         { selector: fromRoute.selectSectionIdParameter, value: '' },
                         { selector: fromRoute.selectBlockIdParameter, value: '' },
                         { selector: fromRoute.isEmpty, value: false },
@@ -96,7 +96,7 @@ describe('TemplateEditorDataEffects', () => {
         effects = TestBed.inject(TemplateEditorDataEffects);
         (effects as any).schemas = schemasService;
         (effects as any).templates = templatesService;
-        (effects as any).linkedComponents = linkedComponentsService;
+        (effects as any).sharedComponents = sharedComponentsService;
         (effects as any).appConfig = appConfig;
     });
 
@@ -265,9 +265,9 @@ describe('TemplateEditorDataEffects', () => {
             store.overrideSelector(selectors.selectCurrentTemplateState, { isLoading: false } as any);
             store.overrideSelector(fromShared.selectCurrentTemplateEntry, {
                 name: 'Shared original',
-                key: 'linked-component::component-1',
+                key: 'shared-component::component-1',
             } as any);
-            store.overrideSelector(fromRoute.selectTemplateKeyParameter, 'linked-component::component-1');
+            store.overrideSelector(fromRoute.selectTemplateKeyParameter, 'shared-component::component-1');
             store.refreshState();
 
             const emittedPromise = firstValueFrom(effects.broadcastCachedTemplate$.pipe(take(2), toArray()));
@@ -421,17 +421,17 @@ describe('TemplateEditorDataEffects', () => {
         });
     });
 
-    describe('saveLinkedComponent$', () => {
+    describe('saveSharedComponent$', () => {
         it('keeps the document dirty when it changes while the save request is in flight', async () => {
-            const templateKey = 'linked-component::component-1';
+            const templateKey = 'shared-component::component-1';
             const response$ = new Subject<void>();
-            linkedComponentsService.updateContent.mockReturnValue(response$);
-            store.overrideSelector(fromRoute.selectLinkedComponentIdParameter, 'component-1');
+            sharedComponentsService.updateContent.mockReturnValue(response$);
+            store.overrideSelector(fromRoute.selectSharedComponentIdParameter, 'component-1');
             store.overrideSelector(fromRoute.selectTemplateKeyParameter, templateKey);
             store.overrideSelector(selectors.selectCurrentTemplateModel, template);
             store.overrideSelector(selectors.selectLoadedTemplates, { [templateKey]: template });
             store.refreshState();
-            const emittedPromise = firstValueFrom(effects.saveLinkedComponent$.pipe(take(2), toArray()));
+            const emittedPromise = firstValueFrom(effects.saveSharedComponent$.pipe(take(2), toArray()));
 
             actions$.next(actions.executeToolbarAction({ action: 'save' }));
             const editedAfterSave = createTemplate({
@@ -449,17 +449,17 @@ describe('TemplateEditorDataEffects', () => {
             expect(success.template).toBe(template);
         });
 
-        it('requires linked-component read as well as update permission', () => {
-            appConfig.getValue.mockImplementation((option: string) => option === 'canEditLinkedComponents');
-            store.overrideSelector(fromRoute.selectLinkedComponentIdParameter, 'component-1');
-            store.overrideSelector(fromRoute.selectTemplateKeyParameter, 'linked-component::component-1');
+        it('requires shared-component read as well as update permission', () => {
+            appConfig.getValue.mockImplementation((option: string) => option === 'canEditSharedComponents');
+            store.overrideSelector(fromRoute.selectSharedComponentIdParameter, 'component-1');
+            store.overrideSelector(fromRoute.selectTemplateKeyParameter, 'shared-component::component-1');
             store.overrideSelector(selectors.selectCurrentTemplateModel, template);
             store.refreshState();
-            const subscription = effects.saveLinkedComponent$.subscribe();
+            const subscription = effects.saveSharedComponent$.subscribe();
 
             actions$.next(actions.executeToolbarAction({ action: 'save' }));
 
-            expect(linkedComponentsService.updateContent).not.toHaveBeenCalled();
+            expect(sharedComponentsService.updateContent).not.toHaveBeenCalled();
             subscription.unsubscribe();
         });
     });

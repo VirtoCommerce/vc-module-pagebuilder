@@ -37,10 +37,10 @@ public class PageBuilderPageControllerSharedComponentPreflightTests
     public async Task SavePageContent_ReferenceDeletedAfterPreflightRemovesNewDraft()
     {
         var service = CreateServiceWithPublishedGroup("group", "published");
-        service.SaveContentException = new InvalidDataException("Linked Component 'deleted' was not found.");
+        service.SaveContentException = new InvalidDataException("Shared Component 'deleted' was not found.");
         var controller = CreateController(
             service,
-            new NoopLinkedComponentReferenceIndexService(),
+            new NoopSharedComponentReferenceIndexService(),
             ComponentReferenceContent);
 
         var result = await controller.SavePageContent("group", TestContext.Current.CancellationToken);
@@ -54,10 +54,10 @@ public class PageBuilderPageControllerSharedComponentPreflightTests
     {
         var service = CreateServiceWithPublishedGroup("group", "published");
         service.ConcurrentContentBeforeSaveFailure = "{ \"concurrent\": true }";
-        service.SaveContentException = new InvalidDataException("Linked Component 'deleted' was not found.");
+        service.SaveContentException = new InvalidDataException("Shared Component 'deleted' was not found.");
         var controller = CreateController(
             service,
-            new NoopLinkedComponentReferenceIndexService(),
+            new NoopSharedComponentReferenceIndexService(),
             ComponentReferenceContent);
 
         var result = await controller.SavePageContent("group", TestContext.Current.CancellationToken);
@@ -75,10 +75,10 @@ public class PageBuilderPageControllerSharedComponentPreflightTests
     {
         var service = CreateServiceWithPublishedGroup("group", "published");
         service.ReplaceNewDraftAfterSaveWithPageId = "concurrent-draft";
-        service.SaveContentException = new InvalidDataException("Linked Component 'deleted' was not found.");
+        service.SaveContentException = new InvalidDataException("Shared Component 'deleted' was not found.");
         var controller = CreateController(
             service,
-            new NoopLinkedComponentReferenceIndexService(),
+            new NoopSharedComponentReferenceIndexService(),
             ComponentReferenceContent);
 
         var result = await controller.SavePageContent("group", TestContext.Current.CancellationToken);
@@ -158,7 +158,7 @@ public class PageBuilderPageControllerSharedComponentPreflightTests
     public async Task UpdateGroup_LegacyGroupWithoutReferencesCanMoveStores()
     {
         var service = CreateServiceWithPublishedGroup("group", "published");
-        var preflight = new NoopLinkedComponentReferenceIndexService();
+        var preflight = new NoopSharedComponentReferenceIndexService();
         var controller = CreateController(service, preflight);
 
         var result = await controller.UpdateGroup(new GroupedPageBuilderPage
@@ -181,7 +181,7 @@ public class PageBuilderPageControllerSharedComponentPreflightTests
         var service = CreateServiceWithPublishedGroup("group", "published");
         var controller = CreateController(
             service,
-            new NoopLinkedComponentReferenceIndexService(),
+            new NoopSharedComponentReferenceIndexService(),
             authorizationService: new StoreScopedAuthorizationService(StoreId));
 
         var result = await controller.UpdateGroup(new GroupedPageBuilderPage
@@ -237,7 +237,7 @@ public class PageBuilderPageControllerSharedComponentPreflightTests
 
     private static PageBuilderPageController CreateController(
         PublishedRenameContentPreservationTests.FakeGroupedPageService service,
-        NoopLinkedComponentReferenceIndexService referenceIndex,
+        NoopSharedComponentReferenceIndexService referenceIndex,
         string requestBody = null,
         IAuthorizationService authorizationService = null)
     {
@@ -261,7 +261,7 @@ public class PageBuilderPageControllerSharedComponentPreflightTests
         return controller;
     }
 
-    private sealed class ThrowingReferenceIndexService : NoopLinkedComponentReferenceIndexService
+    private sealed class ThrowingReferenceIndexService : NoopSharedComponentReferenceIndexService
     {
         public int CallCount { get; private set; }
 
@@ -271,7 +271,7 @@ public class PageBuilderPageControllerSharedComponentPreflightTests
             CancellationToken cancellationToken = default)
         {
             CallCount++;
-            throw new InvalidDataException("Linked Component 'missing' was not found.");
+            throw new InvalidDataException("Shared Component 'missing' was not found.");
         }
     }
 

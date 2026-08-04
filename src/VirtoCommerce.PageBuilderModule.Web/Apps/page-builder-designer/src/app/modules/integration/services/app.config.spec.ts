@@ -13,8 +13,8 @@ describe('AppConfig', () => {
   beforeEach(() => {
     location = {
       search: '?storeId=store-1',
-      hash: '#/pages?type=linked-components&linkedComponentId=component-1',
-      href: 'https://localhost/designer#/pages?type=linked-components&linkedComponentId=component-1',
+      hash: '#/pages?type=shared-components&sharedComponentId=component-1',
+      href: 'https://localhost/designer#/pages?type=shared-components&sharedComponentId=component-1',
       host: 'localhost',
       protocol: 'https:',
       pathname: '/designer',

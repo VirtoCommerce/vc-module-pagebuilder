@@ -64,7 +64,7 @@ describe('TemplateEditorDomainEffects', () => {
                         { selector: selectors.selectCheckedItems, value: [] },
                         { selector: sharedSelectors.selectCurrentTemplateEntry, value: { name: 'Home', key: 'home' } },
                         { selector: selectors.selectCurrentTemplateModel, value: template },
-                        { selector: routingSelectors.selectLinkedComponentIdParameter, value: '' },
+                        { selector: routingSelectors.selectSharedComponentIdParameter, value: '' },
                     ],
                 }),
                 { provide: ClipboardService, useValue: clipboardService },
@@ -168,9 +168,9 @@ describe('TemplateEditorDomainEffects', () => {
             expect(results[0].type).toBe(actions.updateTemplateAction.type);
         });
 
-        it('ignores changes to a read-only linked-component original', () => {
-            store.overrideSelector(routingSelectors.selectLinkedComponentIdParameter, 'component-1');
-            appConfig.getValue.mockImplementation((key: string) => key === 'canInsertLinkedComponents');
+        it('ignores changes to a read-only shared-component original', () => {
+            store.overrideSelector(routingSelectors.selectSharedComponentIdParameter, 'component-1');
+            appConfig.getValue.mockImplementation((key: string) => key === 'canInsertSharedComponents');
             store.refreshState();
             const emitted: Action[] = [];
             const subscription = effects.updateEditableModel$.subscribe(action => emitted.push(action));

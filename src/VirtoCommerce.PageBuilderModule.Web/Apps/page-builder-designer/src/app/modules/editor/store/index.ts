@@ -3,9 +3,9 @@ import { Action, ActionReducer, combineReducers } from '@ngrx/store';
 import { TemplateEditorDataEffects } from './data/effects';
 import { TemplateEditorDomainEffects } from './domain/effects';
 import { TemplateEditorUiEffects } from './ui/effects';
-import { LinkedComponentsDataEffects } from './linked-components/data/effects';
-import { LinkedComponentsDomainEffects } from './linked-components/domain/effects';
-import { LinkedComponentsUiEffects } from './linked-components/ui/effects';
+import { SharedComponentsDataEffects } from './shared-components/data/effects';
+import { SharedComponentsDomainEffects } from './shared-components/domain/effects';
+import { SharedComponentsUiEffects } from './shared-components/ui/effects';
 
 import { EditorState } from './state';
 import * as data from './data';
@@ -34,9 +34,9 @@ export const EFFECTS = [
   TemplateEditorDataEffects,
   TemplateEditorDomainEffects,
   TemplateEditorUiEffects,
-  LinkedComponentsDataEffects,
-  LinkedComponentsDomainEffects,
-  LinkedComponentsUiEffects,
+  SharedComponentsDataEffects,
+  SharedComponentsDomainEffects,
+  SharedComponentsUiEffects,
 ];
 
 export * from './state';

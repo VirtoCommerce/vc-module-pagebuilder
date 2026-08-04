@@ -4,8 +4,8 @@ import { CheckboxComponent } from '@core/controls/checkbox/checkbox.component';
 import { ContextMenuComponent } from '@core/components/context-menu/context-menu.component';
 import { ContextMenuAction } from '@core/models';
 import { SectionModel, SectionSchema } from '@models/document';
-import { ContextMenuHelper, helpers, isLinkedComponentReference } from '@editor/helpers';
-import { LinkedComponent } from '@editor/models';
+import { ContextMenuHelper, helpers, isSharedComponentReference } from '@editor/helpers';
+import { SharedComponent } from '@editor/models';
 
 @Component({
   selector: 'app-section-item',
@@ -26,8 +26,8 @@ export class SectionItemComponent {
   readonly hasContextMenu = input(false);
   readonly selectable = input(true);
   readonly selected = input(false);
-  readonly linkedComponent = input<LinkedComponent | null>(null);
-  readonly linkedError = input<string | null>(null);
+  readonly sharedComponent = input<SharedComponent | null>(null);
+  readonly sharedComponentError = input<string | null>(null);
 
   readonly actionClick = output<string>();
   readonly itemClick = output();
@@ -35,24 +35,24 @@ export class SectionItemComponent {
   readonly itemSelectChanged = output<boolean>();
 
   readonly displayCheckbox = computed(() => (this.isIconHover() && this.selectable()) || this.selected());
-  readonly isLinked = computed(() => isLinkedComponentReference(this.section()));
+  readonly isShared = computed(() => isSharedComponentReference(this.section()));
   readonly sectionIcon = computed(() => {
-    if (!this.isLinked()) {
+    if (!this.isShared()) {
       return this.sectionSchema()?.icon || 'blur_on';
     }
 
-    return this.linkedError() ? 'link_off' : 'link';
+    return this.sharedComponentError() ? 'link_off' : 'link';
   });
   readonly sectionName = computed(() => {
-    if (this.isLinked()) {
-      return this.linkedComponent()?.name || (this.linkedError() ? 'Missing Shared Component' : 'Shared Component');
+    if (this.isShared()) {
+      return this.sharedComponent()?.name || (this.sharedComponentError() ? 'Missing Shared Component' : 'Shared Component');
     }
     const schema = this.sectionSchema();
     return helpers.getSectionName(this.section(), schema);
   });
 
   onItemClick(_event: MouseEvent) {
-    if (this.sectionSchema() || this.isLinked()) {
+    if (this.sectionSchema() || this.isShared()) {
       this.itemClick.emit();
     }
   }

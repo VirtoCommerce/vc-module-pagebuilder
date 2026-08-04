@@ -49,7 +49,7 @@
       "PATH": "Путь",
       "USED_ON": "Использований: {count}",
       "PAGES": "Страницы",
-      "LINKED_COMPONENTS": "Общие компоненты",
+      "SHARED_COMPONENTS": "Общие компоненты",
       "NO_REFERENCES": "Не используется ни на страницах Page Builder, ни в общих компонентах.",
       "URL": "URL",
       "COPY_URL": "Копировать URL",

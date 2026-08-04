@@ -72,7 +72,7 @@
       </div>
 
       <div
-        v-if="selectedAsset.referencePages.length || selectedAsset.referenceLinkedComponents.length"
+        v-if="selectedAsset.referencePages.length || selectedAsset.referenceSharedComponents.length"
         class="assets-library__references-list"
       >
         <div
@@ -97,15 +97,15 @@
         </div>
 
         <div
-          v-if="selectedAsset.referenceLinkedComponents.length"
+          v-if="selectedAsset.referenceSharedComponents.length"
           class="assets-library__reference-group"
         >
           <div class="assets-library__reference-group-title">
-            {{ $t("ASSET_LIBRARY.DETAILS.LINKED_COMPONENTS") }}
-            ({{ selectedAsset.linkedComponentReferencesCount }})
+            {{ $t("ASSET_LIBRARY.DETAILS.SHARED_COMPONENTS") }}
+            ({{ selectedAsset.sharedComponentReferencesCount }})
           </div>
           <div
-            v-for="component in selectedAsset.referenceLinkedComponents"
+            v-for="component in selectedAsset.referenceSharedComponents"
             :key="component.id || component.name"
             class="assets-library__reference-item assets-library__reference-item--component"
           >

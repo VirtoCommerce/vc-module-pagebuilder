@@ -15,8 +15,8 @@ internal static class PageBuilderPageChangeTracking
         DateTime? modifiedSince,
         DateTime? modifiedBefore)
     {
-        return repository is IPageBuilderLinkedComponentRepository linkedRepository
-            ? ApplyDateRangeWithLinkedComponents(pages, linkedRepository, modifiedSince, modifiedBefore)
+        return repository is IPageBuilderSharedComponentRepository sharedComponentRepository
+            ? ApplyDateRangeWithSharedComponents(pages, sharedComponentRepository, modifiedSince, modifiedBefore)
             : ApplyPageDateRange(pages, modifiedSince, modifiedBefore);
     }
 
@@ -40,19 +40,19 @@ internal static class PageBuilderPageChangeTracking
         return pages;
     }
 
-    private static IQueryable<PageBuilderPageEntity> ApplyDateRangeWithLinkedComponents(
+    private static IQueryable<PageBuilderPageEntity> ApplyDateRangeWithSharedComponents(
         IQueryable<PageBuilderPageEntity> pages,
-        IPageBuilderLinkedComponentRepository linkedRepository,
+        IPageBuilderSharedComponentRepository sharedComponentRepository,
         DateTime? modifiedSince,
         DateTime? modifiedBefore)
     {
-        pages = ApplyModifiedSince(pages, linkedRepository, modifiedSince);
-        return ApplyModifiedBefore(pages, linkedRepository, modifiedBefore);
+        pages = ApplyModifiedSince(pages, sharedComponentRepository, modifiedSince);
+        return ApplyModifiedBefore(pages, sharedComponentRepository, modifiedBefore);
     }
 
     private static IQueryable<PageBuilderPageEntity> ApplyModifiedSince(
         IQueryable<PageBuilderPageEntity> pages,
-        IPageBuilderLinkedComponentRepository linkedRepository,
+        IPageBuilderSharedComponentRepository sharedComponentRepository,
         DateTime? modifiedSince)
     {
         if (!modifiedSince.HasValue)
@@ -63,11 +63,11 @@ internal static class PageBuilderPageChangeTracking
         var start = modifiedSince.Value;
         return pages.Where(page =>
             (page.ModifiedDate ?? page.CreatedDate) >= start ||
-            linkedRepository.PageBuilderLinkedComponentReferences
+            sharedComponentRepository.PageBuilderSharedComponentReferences
                 .Where(reference => reference.PageId == page.Id)
                 .Join(
-                    linkedRepository.PageBuilderLinkedComponents,
-                    reference => reference.LinkedComponentId,
+                    sharedComponentRepository.PageBuilderSharedComponents,
+                    reference => reference.SharedComponentId,
                     component => component.Id,
                     (_, component) => component.ModifiedDate ?? component.CreatedDate)
                 .Any(changeDate => changeDate >= start));
@@ -75,7 +75,7 @@ internal static class PageBuilderPageChangeTracking
 
     private static IQueryable<PageBuilderPageEntity> ApplyModifiedBefore(
         IQueryable<PageBuilderPageEntity> pages,
-        IPageBuilderLinkedComponentRepository linkedRepository,
+        IPageBuilderSharedComponentRepository sharedComponentRepository,
         DateTime? modifiedBefore)
     {
         if (modifiedBefore.HasValue)
@@ -83,11 +83,11 @@ internal static class PageBuilderPageChangeTracking
             var end = modifiedBefore.Value;
             return pages.Where(page =>
                 (page.ModifiedDate ?? page.CreatedDate) <= end &&
-                !linkedRepository.PageBuilderLinkedComponentReferences
+                !sharedComponentRepository.PageBuilderSharedComponentReferences
                     .Where(reference => reference.PageId == page.Id)
                     .Join(
-                        linkedRepository.PageBuilderLinkedComponents,
-                        reference => reference.LinkedComponentId,
+                        sharedComponentRepository.PageBuilderSharedComponents,
+                        reference => reference.SharedComponentId,
                         component => component.Id,
                         (_, component) => component.ModifiedDate ?? component.CreatedDate)
                     .Any(changeDate => changeDate > end));
@@ -108,18 +108,18 @@ internal static class PageBuilderPageChangeTracking
                 page => page.ModifiedDate ?? page.CreatedDate,
                 StringComparer.OrdinalIgnoreCase);
 
-        if (repository is not IPageBuilderLinkedComponentRepository linkedRepository)
+        if (repository is not IPageBuilderSharedComponentRepository sharedComponentRepository)
         {
             return result;
         }
 
         foreach (var batch in result.Keys.Chunk(QueryBatchSize))
         {
-            var componentDates = await linkedRepository.PageBuilderLinkedComponentReferences
+            var componentDates = await sharedComponentRepository.PageBuilderSharedComponentReferences
                 .Where(reference => batch.Contains(reference.PageId))
                 .Join(
-                    linkedRepository.PageBuilderLinkedComponents,
-                    reference => reference.LinkedComponentId,
+                    sharedComponentRepository.PageBuilderSharedComponents,
+                    reference => reference.SharedComponentId,
                     component => component.Id,
                     (reference, component) => new
                     {

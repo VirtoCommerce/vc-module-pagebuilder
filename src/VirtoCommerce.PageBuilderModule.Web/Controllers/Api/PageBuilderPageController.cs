@@ -45,7 +45,7 @@ public class PageBuilderPageController : Controller
         IGroupedPageSearchService groupedPageSearchService,
         IAuthorizationService authorizationService,
         IPageDocumentSearchService pageDocumentSearchService,
-        IPageBuilderLinkedComponentReferenceIndexService linkedComponentReferenceIndexService,
+        IPageBuilderSharedComponentReferenceIndexService sharedComponentReferenceIndexService,
         IEventPublisher eventPublisher,
         ILogger<PageBuilderPageController> logger)
     {
@@ -57,7 +57,7 @@ public class PageBuilderPageController : Controller
         pageContentService = new PageBuilderPageContentService(
             crudService,
             groupedPageService,
-            linkedComponentReferenceIndexService,
+            sharedComponentReferenceIndexService,
             eventPublisher,
             logger);
         this.logger = logger;
@@ -128,7 +128,7 @@ public class PageBuilderPageController : Controller
         if (sourcePageId != null)
         {
             var sourceContent = await groupedPageService.LoadContent(sourcePageId, cancellationToken);
-            var validationError = await ValidateLinkedComponentContentAsync(
+            var validationError = await ValidateSharedComponentContentAsync(
                 groupedPage.StoreId,
                 sourceContent,
                 cancellationToken);
@@ -400,7 +400,7 @@ public class PageBuilderPageController : Controller
             return BadRequest("Page content must be a non-empty, well-formed JSON document.");
         }
 
-        var validationError = await ValidateLinkedComponentContentAsync(
+        var validationError = await ValidateSharedComponentContentAsync(
             groupedPage.StoreId,
             content,
             cancellationToken);
@@ -451,7 +451,7 @@ public class PageBuilderPageController : Controller
         }
 
         var sourceContent = await groupedPageService.LoadContent(sourcePageId, cancellationToken);
-        var validationError = await ValidateLinkedComponentContentAsync(
+        var validationError = await ValidateSharedComponentContentAsync(
             targetGroup.StoreId,
             sourceContent,
             cancellationToken);
@@ -509,27 +509,27 @@ public class PageBuilderPageController : Controller
         return authorizationResult.Succeeded ? null : Forbidden;
     }
 
-    private async Task<ActionResult> ValidateLinkedComponentContentAsync(
+    private async Task<ActionResult> ValidateSharedComponentContentAsync(
         string storeId,
         string content,
         CancellationToken cancellationToken)
     {
-        bool hasLinkedComponents;
+        bool hasSharedComponents;
         try
         {
-            hasLinkedComponents = PageBuilderPageContentService.HasLinkedComponentReferences(content);
+            hasSharedComponents = PageBuilderPageContentService.HasSharedComponentReferences(content);
         }
         catch (InvalidDataException ex)
         {
             return BadRequest(ex.Message);
         }
 
-        if (hasLinkedComponents)
+        if (hasSharedComponents)
         {
             var authorizationResult = await authorizationService.AuthorizeAsync(
                 User,
                 null,
-                ModuleConstants.Security.Permissions.LinkedComponentsRead);
+                ModuleConstants.Security.Permissions.SharedComponentsRead);
             if (!authorizationResult.Succeeded)
             {
                 return Forbidden;

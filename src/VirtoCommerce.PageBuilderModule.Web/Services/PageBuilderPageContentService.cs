@@ -19,13 +19,13 @@ namespace VirtoCommerce.PageBuilderModule.Web.Services;
 internal sealed class PageBuilderPageContentService(
     IPageBuilderPageService pageService,
     IGroupedPageService groupedPageService,
-    IPageBuilderLinkedComponentReferenceIndexService linkedComponentReferenceIndexService,
+    IPageBuilderSharedComponentReferenceIndexService sharedComponentReferenceIndexService,
     IEventPublisher eventPublisher,
     ILogger logger)
 {
-    internal static bool HasLinkedComponentReferences(string content)
+    internal static bool HasSharedComponentReferences(string content)
     {
-        return PageBuilderLinkedComponentReferenceMatcher.HasReferences(content);
+        return PageBuilderSharedComponentReferenceMatcher.HasReferences(content);
     }
 
     internal Task ValidateReferencesForStoreAsync(
@@ -33,7 +33,7 @@ internal sealed class PageBuilderPageContentService(
         string content,
         CancellationToken cancellationToken)
     {
-        return linkedComponentReferenceIndexService.ValidateReferencesForStoreAsync(
+        return sharedComponentReferenceIndexService.ValidateReferencesForStoreAsync(
             storeId,
             [content],
             cancellationToken);

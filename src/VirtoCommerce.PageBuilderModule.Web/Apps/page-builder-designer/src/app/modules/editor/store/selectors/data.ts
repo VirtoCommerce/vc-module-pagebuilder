@@ -5,10 +5,10 @@ import { createSelector } from '@ngrx/store';
 import { selectTemplateKeyParameter } from '@shared/routing';
 import { selectTemplateDataState, selectCurrentSectionsFilter } from './common';
 
-import { LinkedComponent, LinkedComponentInstanceView, SectionsSchemasList } from '@editor/models';
+import { SharedComponent, SharedComponentInstanceView, SectionsSchemasList } from '@editor/models';
 import { appHelpers } from '@integration/helpers';
 import { coreHelpers } from '@core/helpers';
-import { helpers, isLinkedComponentReference } from '@editor/helpers';
+import { helpers, isSharedComponentReference } from '@editor/helpers';
 
 import * as fromRoute from '@shared/routing/selectors';
 import * as fromShared from '@shared/store/selectors';
@@ -24,50 +24,50 @@ export const selectCurrentTemplateModel = createSelector(
     (templates, templateKey) => templateKey ? templates[templateKey] : null
 );
 
-export const selectLinkedComponents = createSelector(
+export const selectSharedComponents = createSelector(
     selectTemplateDataState,
-    state => state.linkedComponents,
+    state => state.sharedComponents,
 );
 
-export const selectLinkedComponentContents = createSelector(
+export const selectSharedComponentContents = createSelector(
     selectTemplateDataState,
-    state => state.linkedComponentContents,
+    state => state.sharedComponentContents,
 );
 
-export const selectLinkedComponentErrors = createSelector(
+export const selectSharedComponentErrors = createSelector(
     selectTemplateDataState,
-    state => state.linkedComponentErrors,
+    state => state.sharedComponentErrors,
 );
 
-export const selectLinkedComponentUsageRefreshIdsByTemplate = createSelector(
+export const selectSharedComponentUsageRefreshIdsByTemplate = createSelector(
     selectTemplateDataState,
-    state => state.linkedComponentUsageRefreshIdsByTemplate,
+    state => state.sharedComponentUsageRefreshIdsByTemplate,
 );
 
-export const selectLinkedComponentDetailsState = createSelector(
+export const selectSharedComponentDetailsState = createSelector(
     selectTemplateDataState,
-    state => state.linkedComponentDetails,
+    state => state.sharedComponentDetails,
 );
 
-export const selectLinkedComponentsSearchState = createSelector(
+export const selectSharedComponentsSearchState = createSelector(
     selectTemplateDataState,
-    state => state.linkedComponentsSearch,
+    state => state.sharedComponentsSearch,
 );
 
-export const selectLinkedComponentsSearchView = createSelector(
-    selectLinkedComponentsSearchState,
-    selectLinkedComponents,
+export const selectSharedComponentsSearchView = createSelector(
+    selectSharedComponentsSearchState,
+    selectSharedComponents,
     (search, components) => ({
         ...search,
         results: search.resultIds
             .map(id => components[id])
-            .filter((component): component is LinkedComponent => !!component),
+            .filter((component): component is SharedComponent => !!component),
     }),
 );
 
-export const selectCurrentLinkedComponent = createSelector(
-    selectLinkedComponents,
-    fromRoute.selectLinkedComponentIdParameter,
+export const selectCurrentSharedComponent = createSelector(
+    selectSharedComponents,
+    fromRoute.selectSharedComponentIdParameter,
     (components, componentId) => componentId ? components[componentId] || null : null,
 );
 
@@ -79,8 +79,8 @@ export const selectFileName = createSelector(
 export const selectCurrentTemplateName = createSelector(
     selectCurrentTemplateModel,
     selectFileName,
-    selectCurrentLinkedComponent,
-    (model, fileName, linkedComponent) => linkedComponent?.name || model?.settings?.['displayName'] || model?.settings?.['name'] || fileName || '[no name]'
+    selectCurrentSharedComponent,
+    (model, fileName, sharedComponent) => sharedComponent?.name || model?.settings?.['displayName'] || model?.settings?.['name'] || fileName || '[no name]'
 );
 
 export const selectAllSchemas = createSelector(
@@ -221,13 +221,13 @@ export const selectSectionModelFromRoute = createSelector(
         : null
 );
 
-export const selectLinkedComponentInstanceFromRoute = createSelector(
+export const selectSharedComponentInstanceFromRoute = createSelector(
     selectSectionModelFromRoute,
-    selectLinkedComponents,
-    selectLinkedComponentErrors,
-    selectLinkedComponentDetailsState,
-    (section, components, errors, details): LinkedComponentInstanceView | null => {
-        if (!isLinkedComponentReference(section)) {
+    selectSharedComponents,
+    selectSharedComponentErrors,
+    selectSharedComponentDetailsState,
+    (section, components, errors, details): SharedComponentInstanceView | null => {
+        if (!isSharedComponentReference(section)) {
             return null;
         }
 

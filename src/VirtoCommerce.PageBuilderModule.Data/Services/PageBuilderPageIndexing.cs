@@ -33,23 +33,23 @@ internal static class PageBuilderPageIndexing
             throw new InvalidDataException($"Page '{pageId}' has no store.");
         }
 
-        var linkedComponentIds = PageBuilderWriteLock.OrderIds(
-            PageBuilderLinkedComponentReferenceMatcher.ExtractReferences(rawContent));
+        var sharedComponentIds = PageBuilderWriteLock.OrderIds(
+            PageBuilderSharedComponentReferenceMatcher.ExtractReferences(rawContent));
 
-        await PageBuilderWriteLock.AcquireLinkedComponentLocksAsync(
+        await PageBuilderWriteLock.AcquireSharedComponentLocksAsync(
             dbContext,
-            linkedComponentIds,
+            sharedComponentIds,
             cancellationToken);
         await ValidateLockedComponentsAsync(
             dbContext,
-            linkedComponentIds,
+            sharedComponentIds,
             pageStoreId,
             cancellationToken);
 
-        await PageBuilderLinkedComponentReferenceIndexService.ReplacePageIndexInCurrentUnitOfWorkAsync(
+        await PageBuilderSharedComponentReferenceIndexService.ReplacePageIndexInCurrentUnitOfWorkAsync(
             dbContext,
             pageId,
-            linkedComponentIds,
+            sharedComponentIds,
             cancellationToken);
         await PageBuilderAssetReferenceIndexService.ReplacePageIndexInCurrentUnitOfWorkAsync(
             dbContext,
@@ -82,11 +82,11 @@ internal static class PageBuilderPageIndexing
 
     private static async Task ValidateLockedComponentsAsync(
         PageBuilderModuleDbContext dbContext,
-        string[] linkedComponentIds,
+        string[] sharedComponentIds,
         string pageStoreId,
         CancellationToken cancellationToken)
     {
-        if (linkedComponentIds.Length == 0)
+        if (sharedComponentIds.Length == 0)
         {
             return;
         }
@@ -94,13 +94,13 @@ internal static class PageBuilderPageIndexing
         var componentStores = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var contentIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var batch in linkedComponentIds.Chunk(QueryBatchSize))
+        foreach (var batch in sharedComponentIds.Chunk(QueryBatchSize))
         {
-            var stores = await dbContext.Set<PageBuilderLinkedComponentEntity>()
+            var stores = await dbContext.Set<PageBuilderSharedComponentEntity>()
                 .Where(x => batch.Contains(x.Id))
                 .Select(x => new { x.Id, x.StoreId })
                 .ToListAsync(cancellationToken);
-            var batchContentIds = await dbContext.Set<PageBuilderLinkedComponentContentEntity>()
+            var batchContentIds = await dbContext.Set<PageBuilderSharedComponentContentEntity>()
                 .Where(x => batch.Contains(x.Id))
                 .Select(x => x.Id)
                 .ToListAsync(cancellationToken);
@@ -113,8 +113,8 @@ internal static class PageBuilderPageIndexing
             contentIds.UnionWith(batchContentIds);
         }
 
-        PageBuilderLinkedComponentReferenceIndexService.ValidateComponentReferences(
-            linkedComponentIds,
+        PageBuilderSharedComponentReferenceIndexService.ValidateComponentReferences(
+            sharedComponentIds,
             pageStoreId,
             componentStores,
             contentIds);

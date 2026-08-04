@@ -5,7 +5,7 @@ import * as locales from "./locales";
 import { RouterView } from "vue-router";
 import PageBuilder from "./modules/page-builder";
 import AssetLibrary from "./modules/asset-library";
-import LinkedComponents from "./modules/linked-components";
+import SharedComponents from "./modules/shared-components";
 
 // Load required CSS
 import "@vc-shell/framework/dist/index.css";
@@ -27,7 +27,7 @@ async function startApp() {
     // PageBuilder module initialization
     .use(PageBuilder)
     .use(AssetLibrary)
-    .use(LinkedComponents)
+    .use(SharedComponents)
     .use(router);
 
   Object.entries(locales).forEach(([key, message]) => {

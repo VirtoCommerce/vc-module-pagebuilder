@@ -34,7 +34,7 @@ describe('TemplateEditorUiEffects', () => {
                         { selector: selectors.selectBlockModelFromRoute, value: null },
                         { selector: selectors.selectSharedSchemas, value: {} },
                         { selector: selectors.selectObjectsSchemas, value: {} },
-                        { selector: selectors.selectLinkedComponents, value: {} },
+                        { selector: selectors.selectSharedComponents, value: {} },
                     ],
                 }),
             ],
@@ -143,8 +143,8 @@ describe('TemplateEditorUiEffects', () => {
     });
 
     describe('notifySuccessSave$', () => {
-        it('uses the Linked Component name for a linked document', async () => {
-            store.overrideSelector(selectors.selectLinkedComponents, {
+        it('uses the Shared Component name for a Shared Component document', async () => {
+            store.overrideSelector(selectors.selectSharedComponents, {
                 'component-1': {
                     id: 'component-1',
                     storeId: 'store-1',
@@ -155,7 +155,7 @@ describe('TemplateEditorUiEffects', () => {
             });
             store.refreshState();
             actions$.next(actions.saveTemplateSuccess({
-                templateKey: 'linked-component::component-1',
+                templateKey: 'shared-component::component-1',
                 template: createTemplate(),
             }));
 
@@ -167,7 +167,7 @@ describe('TemplateEditorUiEffects', () => {
 
         it('does not clear dirty state when newer edits were made during save', async () => {
             actions$.next(actions.saveTemplateSuccess({
-                templateKey: 'linked-component::component-1',
+                templateKey: 'shared-component::component-1',
                 template: createTemplate(),
                 clearDirty: false,
             }));

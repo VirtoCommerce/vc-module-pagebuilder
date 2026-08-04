@@ -1,7 +1,7 @@
 import * as selectors from './data';
 import { createTemplate, createSection, createSchema, createSchemasList } from '@app/testing';
 import { SectionSchema } from '@models/document';
-import { createLinkedComponentReference } from '@editor/helpers';
+import { createSharedComponentReference } from '@editor/helpers';
 
 // ── selectCurrentTemplateModel ────────────────────────────────────
 
@@ -191,11 +191,11 @@ describe('selectSectionModelFromRoute', () => {
     });
 });
 
-// ── selectLinkedComponentInstanceFromRoute ────────────────────────
+// ── selectSharedComponentInstanceFromRoute ────────────────────────
 
-describe('selectLinkedComponentInstanceFromRoute', () => {
+describe('selectSharedComponentInstanceFromRoute', () => {
     it('returns the reference together with cached metadata and load error', () => {
-        const reference = createLinkedComponentReference('component-1', 'placement-1');
+        const reference = createSharedComponentReference('component-1', 'placement-1');
         const component = {
             id: 'component-1',
             storeId: 'store-1',
@@ -204,7 +204,7 @@ describe('selectLinkedComponentInstanceFromRoute', () => {
             usagePages: [],
         };
 
-        expect(selectors.selectLinkedComponentInstanceFromRoute.projector(
+        expect(selectors.selectSharedComponentInstanceFromRoute.projector(
             reference,
             { [component.id]: component },
             { [component.id]: 'Content is unavailable' },
@@ -219,7 +219,7 @@ describe('selectLinkedComponentInstanceFromRoute', () => {
     });
 
     it('returns null for an ordinary section', () => {
-        expect(selectors.selectLinkedComponentInstanceFromRoute.projector(
+        expect(selectors.selectSharedComponentInstanceFromRoute.projector(
             createSection({ id: 'ordinary' }),
             {},
             {},

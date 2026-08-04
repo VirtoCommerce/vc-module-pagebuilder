@@ -64,19 +64,19 @@ export const selectCultureNameParameter = createSelector(
     queryParams => queryParams && queryParams['cultureName'] || ''
 );
 
-export const selectLinkedComponentIdParameter = createSelector(
+export const selectSharedComponentIdParameter = createSelector(
     selectQueryParams,
-    queryParams => queryParams && queryParams['linkedComponentId'] || ''
+    queryParams => queryParams && queryParams['sharedComponentId'] || ''
 );
 
 export const selectTemplateKeyParameter = createSelector(
     selectTypeParameter,
     selectPathParameter,
     selectGroupIdParameter,
-    selectLinkedComponentIdParameter,
-    (type, path, groupId, linkedComponentId) => {
-        if (linkedComponentId) {
-            return `linked-component::${linkedComponentId}`;
+    selectSharedComponentIdParameter,
+    (type, path, groupId, sharedComponentId) => {
+        if (sharedComponentId) {
+            return `shared-component::${sharedComponentId}`;
         }
         if (!!type) {
             if (groupId) {

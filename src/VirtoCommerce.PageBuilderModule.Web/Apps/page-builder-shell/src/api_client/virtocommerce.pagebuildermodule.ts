@@ -549,7 +549,7 @@ export class PageBuilderClient extends AuthApiBase {
     }
 }
 
-export class PageBuilderLinkedComponentsClient extends AuthApiBase {
+export class PageBuilderSharedComponentsClient extends AuthApiBase {
     private http: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> };
     private baseUrl: string;
 
@@ -563,8 +563,8 @@ export class PageBuilderLinkedComponentsClient extends AuthApiBase {
      * @param body (optional)
      * @return OK
      */
-    search(body?: PageBuilderLinkedComponentSearchCriteria | undefined): Promise<PageBuilderLinkedComponentSearchResult> {
-        let url_ = this.baseUrl + "/api/page-builder-linked-components/search";
+    search(body?: PageBuilderSharedComponentSearchCriteria | undefined): Promise<PageBuilderSharedComponentSearchResult> {
+        let url_ = this.baseUrl + "/api/page-builder-shared-components/search";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = JSON.stringify(body);
@@ -585,13 +585,13 @@ export class PageBuilderLinkedComponentsClient extends AuthApiBase {
         });
     }
 
-    protected processSearch(response: Response): Promise<PageBuilderLinkedComponentSearchResult> {
+    protected processSearch(response: Response): Promise<PageBuilderSharedComponentSearchResult> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
         if (status === 200) {
             return response.text().then((_responseText) => {
             let result200: any = null;
-            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as PageBuilderLinkedComponentSearchResult;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as PageBuilderSharedComponentSearchResult;
             return result200;
             });
         } else if (status === 401) {
@@ -607,14 +607,14 @@ export class PageBuilderLinkedComponentsClient extends AuthApiBase {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<PageBuilderLinkedComponentSearchResult>(null as any);
+        return Promise.resolve<PageBuilderSharedComponentSearchResult>(null as any);
     }
 
     /**
      * @return OK
      */
-    get(id: string): Promise<PageBuilderLinkedComponent> {
-        let url_ = this.baseUrl + "/api/page-builder-linked-components/{id}";
+    get(id: string): Promise<PageBuilderSharedComponent> {
+        let url_ = this.baseUrl + "/api/page-builder-shared-components/{id}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
@@ -634,13 +634,13 @@ export class PageBuilderLinkedComponentsClient extends AuthApiBase {
         });
     }
 
-    protected processGet(response: Response): Promise<PageBuilderLinkedComponent> {
+    protected processGet(response: Response): Promise<PageBuilderSharedComponent> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
         if (status === 200) {
             return response.text().then((_responseText) => {
             let result200: any = null;
-            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as PageBuilderLinkedComponent;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as PageBuilderSharedComponent;
             return result200;
             });
         } else if (status === 401) {
@@ -656,15 +656,15 @@ export class PageBuilderLinkedComponentsClient extends AuthApiBase {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<PageBuilderLinkedComponent>(null as any);
+        return Promise.resolve<PageBuilderSharedComponent>(null as any);
     }
 
     /**
      * @param body (optional)
      * @return OK
      */
-    update(id: string, body?: PageBuilderLinkedComponentUpdateModel | undefined): Promise<PageBuilderLinkedComponent> {
-        let url_ = this.baseUrl + "/api/page-builder-linked-components/{id}";
+    update(id: string, body?: PageBuilderSharedComponentUpdateModel | undefined): Promise<PageBuilderSharedComponent> {
+        let url_ = this.baseUrl + "/api/page-builder-shared-components/{id}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
@@ -688,13 +688,13 @@ export class PageBuilderLinkedComponentsClient extends AuthApiBase {
         });
     }
 
-    protected processUpdate(response: Response): Promise<PageBuilderLinkedComponent> {
+    protected processUpdate(response: Response): Promise<PageBuilderSharedComponent> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
         if (status === 200) {
             return response.text().then((_responseText) => {
             let result200: any = null;
-            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as PageBuilderLinkedComponent;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as PageBuilderSharedComponent;
             return result200;
             });
         } else if (status === 401) {
@@ -710,14 +710,14 @@ export class PageBuilderLinkedComponentsClient extends AuthApiBase {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<PageBuilderLinkedComponent>(null as any);
+        return Promise.resolve<PageBuilderSharedComponent>(null as any);
     }
 
     /**
      * @return No Content
      */
     delete(id: string): Promise<void> {
-        let url_ = this.baseUrl + "/api/page-builder-linked-components/{id}";
+        let url_ = this.baseUrl + "/api/page-builder-shared-components/{id}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
@@ -754,7 +754,7 @@ export class PageBuilderLinkedComponentsClient extends AuthApiBase {
         } else if (status === 409) {
             return response.text().then((_responseText) => {
             let result409: any = null;
-            result409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as PageBuilderLinkedComponent;
+            result409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as PageBuilderSharedComponent;
             return throwException("Conflict", status, _responseText, _headers, result409);
             });
         } else if (status !== 200 && status !== 204) {
@@ -769,8 +769,8 @@ export class PageBuilderLinkedComponentsClient extends AuthApiBase {
      * @param body (optional)
      * @return Created
      */
-    create(body?: PageBuilderLinkedComponentCreateModel | undefined): Promise<PageBuilderLinkedComponent> {
-        let url_ = this.baseUrl + "/api/page-builder-linked-components";
+    create(body?: PageBuilderSharedComponentCreateModel | undefined): Promise<PageBuilderSharedComponent> {
+        let url_ = this.baseUrl + "/api/page-builder-shared-components";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = JSON.stringify(body);
@@ -791,13 +791,13 @@ export class PageBuilderLinkedComponentsClient extends AuthApiBase {
         });
     }
 
-    protected processCreate(response: Response): Promise<PageBuilderLinkedComponent> {
+    protected processCreate(response: Response): Promise<PageBuilderSharedComponent> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
         if (status === 201) {
             return response.text().then((_responseText) => {
             let result201: any = null;
-            result201 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as PageBuilderLinkedComponent;
+            result201 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as PageBuilderSharedComponent;
             return result201;
             });
         } else if (status === 401) {
@@ -813,14 +813,14 @@ export class PageBuilderLinkedComponentsClient extends AuthApiBase {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<PageBuilderLinkedComponent>(null as any);
+        return Promise.resolve<PageBuilderSharedComponent>(null as any);
     }
 
     /**
      * @return OK
      */
     getContent(id: string): Promise<any> {
-        let url_ = this.baseUrl + "/api/page-builder-linked-components/{id}/content";
+        let url_ = this.baseUrl + "/api/page-builder-shared-components/{id}/content";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
@@ -870,7 +870,7 @@ export class PageBuilderLinkedComponentsClient extends AuthApiBase {
      * @return No Content
      */
     saveContentPUT(id: string, body?: any | undefined): Promise<void> {
-        let url_ = this.baseUrl + "/api/page-builder-linked-components/{id}/content";
+        let url_ = this.baseUrl + "/api/page-builder-shared-components/{id}/content";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
@@ -921,7 +921,7 @@ export class PageBuilderLinkedComponentsClient extends AuthApiBase {
      * @return No Content
      */
     saveContentPOST(id: string, body?: any | undefined): Promise<void> {
-        let url_ = this.baseUrl + "/api/page-builder-linked-components/{id}/content";
+        let url_ = this.baseUrl + "/api/page-builder-shared-components/{id}/content";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
@@ -1915,12 +1915,12 @@ export interface PageBuilderAssetReference {
     normalizedAssetUrl?: string | undefined;
     referencesCount?: number;
     pageReferencesCount?: number;
-    linkedComponentReferencesCount?: number;
+    sharedComponentReferencesCount?: number;
     pages?: PageBuilderAssetReferencePage[] | undefined;
-    linkedComponents?: PageBuilderAssetReferenceLinkedComponent[] | undefined;
+    sharedComponents?: PageBuilderAssetReferenceSharedComponent[] | undefined;
 }
 
-export interface PageBuilderAssetReferenceLinkedComponent {
+export interface PageBuilderAssetReferenceSharedComponent {
     id?: string | undefined;
     name?: string | undefined;
 }
@@ -1957,11 +1957,11 @@ export interface PageBuilderAssetReferencesSearchResult {
     results?: PageBuilderAssetReference[] | undefined;
 }
 
-export interface PageBuilderLinkedComponent {
+export interface PageBuilderSharedComponent {
     storeId?: string | undefined;
     name?: string | undefined;
     usageCount?: number;
-    usagePages?: PageBuilderLinkedComponentUsagePage[] | undefined;
+    usagePages?: PageBuilderSharedComponentUsagePage[] | undefined;
     createdDate?: Date;
     modifiedDate?: Date | undefined;
     createdBy?: string | undefined;
@@ -1969,13 +1969,13 @@ export interface PageBuilderLinkedComponent {
     id?: string | undefined;
 }
 
-export interface PageBuilderLinkedComponentCreateModel {
+export interface PageBuilderSharedComponentCreateModel {
     storeId?: string | undefined;
     name?: string | undefined;
     content?: any | undefined;
 }
 
-export interface PageBuilderLinkedComponentSearchCriteria {
+export interface PageBuilderSharedComponentSearchCriteria {
     storeId?: string | undefined;
     responseGroup?: string | undefined;
     objectType?: string | undefined;
@@ -1990,17 +1990,17 @@ export interface PageBuilderLinkedComponentSearchCriteria {
     take?: number;
 }
 
-export interface PageBuilderLinkedComponentSearchResult {
+export interface PageBuilderSharedComponentSearchResult {
     totalCount?: number;
-    results?: PageBuilderLinkedComponent[] | undefined;
+    results?: PageBuilderSharedComponent[] | undefined;
 }
 
-export interface PageBuilderLinkedComponentUpdateModel {
+export interface PageBuilderSharedComponentUpdateModel {
     storeId?: string | undefined;
     name?: string | undefined;
 }
 
-export interface PageBuilderLinkedComponentUsagePage {
+export interface PageBuilderSharedComponentUsagePage {
     id?: string | undefined;
     name?: string | undefined;
     permalink?: string | undefined;

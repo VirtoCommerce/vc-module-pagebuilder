@@ -25,9 +25,9 @@ public class PageBuilderExportImportTests
             null!,
             null!,
             referenceIndex,
-            new RecordingLinkedComponentService(calls),
+            new RecordingSharedComponentService(calls),
             null!,
-            new RecordingLinkedComponentContentService(calls),
+            new RecordingSharedComponentContentService(calls),
             null!,
             JsonSerializer.CreateDefault());
         var payload = JsonConvert.SerializeObject(new
@@ -42,9 +42,9 @@ public class PageBuilderExportImportTests
                     Variants = [],
                 },
             },
-            PageBuilderLinkedComponents = new[]
+            PageBuilderSharedComponents = new[]
             {
-                new PageBuilderExportLinkedComponent
+                new PageBuilderExportSharedComponent
                 {
                     Id = "component",
                     StoreId = "store",
@@ -112,7 +112,7 @@ public class PageBuilderExportImportTests
 
     private sealed class RecordingReferenceIndexService(
         IList<string> calls,
-        bool throwOnValidation = false) : NoopLinkedComponentReferenceIndexService
+        bool throwOnValidation = false) : NoopSharedComponentReferenceIndexService
     {
         public int CallCount { get; private set; }
 
@@ -135,31 +135,31 @@ public class PageBuilderExportImportTests
         }
     }
 
-    private sealed class RecordingLinkedComponentService(IList<string> calls)
-        : IPageBuilderLinkedComponentService
+    private sealed class RecordingSharedComponentService(IList<string> calls)
+        : IPageBuilderSharedComponentService
     {
-        public Task<IList<PageBuilderLinkedComponent>> GetAsync(
+        public Task<IList<PageBuilderSharedComponent>> GetAsync(
             IList<string> ids,
             string responseGroup = null,
             bool clone = true)
         {
-            return Task.FromResult<IList<PageBuilderLinkedComponent>>([]);
+            return Task.FromResult<IList<PageBuilderSharedComponent>>([]);
         }
 
-        public Task SaveChangesAsync(IList<PageBuilderLinkedComponent> models)
+        public Task SaveChangesAsync(IList<PageBuilderSharedComponent> models)
         {
             throw new NotSupportedException();
         }
 
-        public Task<PageBuilderLinkedComponent> UpdateMetadataAsync(
-            PageBuilderLinkedComponent model,
+        public Task<PageBuilderSharedComponent> UpdateMetadataAsync(
+            PageBuilderSharedComponent model,
             CancellationToken cancellationToken = default)
         {
             throw new NotSupportedException();
         }
 
         public Task SaveWithContentAsync(
-            PageBuilderLinkedComponent model,
+            PageBuilderSharedComponent model,
             string content,
             CancellationToken cancellationToken = default)
         {
@@ -173,25 +173,25 @@ public class PageBuilderExportImportTests
         }
     }
 
-    private sealed class RecordingLinkedComponentContentService(IList<string> calls)
-        : IPageBuilderLinkedComponentContentService
+    private sealed class RecordingSharedComponentContentService(IList<string> calls)
+        : IPageBuilderSharedComponentContentService
     {
         public Task<string> LoadContentAsync(
-            string linkedComponentId,
+            string sharedComponentId,
             CancellationToken cancellationToken = default)
         {
             throw new NotSupportedException();
         }
 
         public Task<IReadOnlyDictionary<string, string>> LoadContentsAsync(
-            IEnumerable<string> linkedComponentIds,
+            IEnumerable<string> sharedComponentIds,
             CancellationToken cancellationToken = default)
         {
             throw new NotSupportedException();
         }
 
         public Task SaveContentAsync(
-            string linkedComponentId,
+            string sharedComponentId,
             string content,
             CancellationToken cancellationToken = default)
         {

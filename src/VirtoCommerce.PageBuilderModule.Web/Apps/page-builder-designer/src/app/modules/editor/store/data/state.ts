@@ -1,7 +1,7 @@
-import { LinkedComponentContentCache, LinkedComponentMetadataCache, SchemasList } from '@editor/models';
+import { SharedComponentContentCache, SharedComponentMetadataCache, SchemasList } from '@editor/models';
 import { TemplateModelsList } from '@models/document';
 
-export interface LinkedComponentsSearchState {
+export interface SharedComponentsSearchState {
     keyword: string;
     resultIds: string[];
     optimisticResultIds: string[];
@@ -12,7 +12,7 @@ export interface LinkedComponentsSearchState {
     error: string | null;
 }
 
-export interface LinkedComponentDetailsState {
+export interface SharedComponentDetailsState {
     componentId: string | null;
     loading: boolean;
     error: string | null;
@@ -21,27 +21,27 @@ export interface LinkedComponentDetailsState {
 export interface EditorDataState {
     templates: TemplateModelsList;
     schemas: SchemasList | null;
-    linkedComponents: LinkedComponentMetadataCache;
-    linkedComponentContents: LinkedComponentContentCache;
-    linkedComponentErrors: Record<string, string>;
-    linkedComponentUsageRefreshIdsByTemplate: Record<string, string[]>;
-    linkedComponentDetails: LinkedComponentDetailsState;
-    linkedComponentsSearch: LinkedComponentsSearchState;
+    sharedComponents: SharedComponentMetadataCache;
+    sharedComponentContents: SharedComponentContentCache;
+    sharedComponentErrors: Record<string, string>;
+    sharedComponentUsageRefreshIdsByTemplate: Record<string, string[]>;
+    sharedComponentDetails: SharedComponentDetailsState;
+    sharedComponentsSearch: SharedComponentsSearchState;
 }
 
 export const initialState: EditorDataState = {
     templates: {},
     schemas: null,
-    linkedComponents: {},
-    linkedComponentContents: {},
-    linkedComponentErrors: {},
-    linkedComponentUsageRefreshIdsByTemplate: {},
-    linkedComponentDetails: {
+    sharedComponents: {},
+    sharedComponentContents: {},
+    sharedComponentErrors: {},
+    sharedComponentUsageRefreshIdsByTemplate: {},
+    sharedComponentDetails: {
         componentId: null,
         loading: false,
         error: null,
     },
-    linkedComponentsSearch: {
+    sharedComponentsSearch: {
         keyword: '',
         resultIds: [],
         optimisticResultIds: [],

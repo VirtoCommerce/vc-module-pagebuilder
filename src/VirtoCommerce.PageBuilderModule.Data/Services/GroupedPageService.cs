@@ -29,7 +29,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
         private readonly IPageBuilderAssetReferenceIndexService _assetReferenceIndexService;
         private readonly Func<IContentStreamRepository> _contentStreamRepositoryFactory;
         private readonly IEventPublisher _eventPublisher;
-        private readonly IPageBuilderLinkedComponentReferenceIndexService _linkedComponentReferenceIndexService;
+        private readonly IPageBuilderSharedComponentReferenceIndexService _sharedComponentReferenceIndexService;
         private readonly ILogger<GroupedPageService> _logger;
         private readonly Func<IPageBuilderModuleRepository> _repositoryFactory;
 
@@ -40,7 +40,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
             IEventPublisher eventPublisher,
             ILogger<GroupedPageService> logger,
             IPageBuilderAssetReferenceIndexService assetReferenceIndexService,
-            IPageBuilderLinkedComponentReferenceIndexService linkedComponentReferenceIndexService)
+            IPageBuilderSharedComponentReferenceIndexService sharedComponentReferenceIndexService)
             : base(repositoryFactory, platformMemoryCache, eventPublisher)
         {
             _repositoryFactory = repositoryFactory;
@@ -48,7 +48,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
             _eventPublisher = eventPublisher;
             _logger = logger;
             _assetReferenceIndexService = assetReferenceIndexService;
-            _linkedComponentReferenceIndexService = linkedComponentReferenceIndexService;
+            _sharedComponentReferenceIndexService = sharedComponentReferenceIndexService;
         }
 
         public GroupedPageService(
@@ -65,7 +65,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
                 eventPublisher,
                 logger,
                 assetReferenceIndexService,
-                new LegacyLinkedComponentReferenceIndexService())
+                new LegacySharedComponentReferenceIndexService())
         {
         }
 
@@ -82,7 +82,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
             using (var repository = _repositoryFactory())
             {
                 if (repository is not IPageBuilderWriteLockRepository writeLockRepository ||
-                    repository is not IPageBuilderLinkedComponentRepository)
+                    repository is not IPageBuilderSharedComponentRepository)
                 {
                     await base.SaveChangesAsync(models);
                     return;
@@ -172,27 +172,27 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
         {
             var existingStores = existingEntities
                 .ToDictionary(x => x.Id, x => x.StoreId, StringComparer.OrdinalIgnoreCase);
-            var groupsWithLinkedComponents = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var groupsWithSharedComponents = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var ids = existingStores.Keys.ToArray();
 
-            if (ids.Length > 0 && repository is IPageBuilderLinkedComponentRepository linkedRepository)
+            if (ids.Length > 0 && repository is IPageBuilderSharedComponentRepository sharedComponentRepository)
             {
                 foreach (var batch in ids.Chunk(ExistingGroupsQueryBatchSize))
                 {
                     var referencedGroupIds = await repository.PageBuilderPages
                         .Where(x => batch.Contains(x.GroupId))
                         .Join(
-                            linkedRepository.PageBuilderLinkedComponentReferences,
+                            sharedComponentRepository.PageBuilderSharedComponentReferences,
                             page => page.Id,
                             reference => reference.PageId,
                             (page, reference) => page.GroupId)
                         .Distinct()
                         .ToListAsync(cancellationToken);
-                    groupsWithLinkedComponents.UnionWith(referencedGroupIds);
+                    groupsWithSharedComponents.UnionWith(referencedGroupIds);
                 }
             }
 
-            ValidateStoreImmutability(models, existingStores, groupsWithLinkedComponents);
+            ValidateStoreImmutability(models, existingStores, groupsWithSharedComponents);
             SynchronizeMovedPageStores(models, existingStores);
 
             foreach (var group in models)
@@ -207,12 +207,12 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
         internal static void ValidateStoreImmutability(
             IEnumerable<GroupedPageBuilderPage> groups,
             IReadOnlyDictionary<string, string> existingStores,
-            ISet<string> groupsWithLinkedComponents)
+            ISet<string> groupsWithSharedComponents)
         {
             foreach (var group in groups.Where(x => !string.IsNullOrWhiteSpace(x.Id)))
             {
                 if (existingStores.TryGetValue(group.Id, out var existingStoreId) &&
-                    groupsWithLinkedComponents.Contains(group.Id) &&
+                    groupsWithSharedComponents.Contains(group.Id) &&
                     !string.Equals(existingStoreId, group.StoreId, StringComparison.OrdinalIgnoreCase))
                 {
                     throw new InvalidDataException(
@@ -415,7 +415,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
             var previousContent = await LoadRepositoryContentAsync(repository, pageId, cancellationToken);
             EnsureNonTransactionalContentSupported(previousContent, content);
             await repository.SaveBinaryAsync(pageId, contentReader, cancellationToken);
-            await _linkedComponentReferenceIndexService.RebuildPageIndexAsync(pageId, content, cancellationToken);
+            await _sharedComponentReferenceIndexService.RebuildPageIndexAsync(pageId, content, cancellationToken);
             await _assetReferenceIndexService.RebuildPageIndexAsync(pageId, content, cancellationToken);
         }
 
@@ -454,7 +454,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
             await repository.CopyContentAsync(sourcePageId, targetPageId, cancellationToken);
 
             var copiedContent = await LoadRepositoryContentAsync(repository, targetPageId, cancellationToken);
-            await _linkedComponentReferenceIndexService.RebuildPageIndexAsync(targetPageId, copiedContent, cancellationToken);
+            await _sharedComponentReferenceIndexService.RebuildPageIndexAsync(targetPageId, copiedContent, cancellationToken);
             await _assetReferenceIndexService.RebuildPageIndexAsync(targetPageId, copiedContent, cancellationToken);
         }
 
@@ -486,7 +486,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
             using (var repository = _repositoryFactory())
             {
                 if (repository is not IPageBuilderWriteLockRepository writeLockRepository ||
-                    repository is not IPageBuilderLinkedComponentRepository linkedRepository)
+                    repository is not IPageBuilderSharedComponentRepository sharedComponentRepository)
                 {
                     return false;
                 }
@@ -508,9 +508,9 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
                             .AnyAsync(
                                 x => x.Id == pageId && x.PageContent != null,
                                 transactionCancellationToken);
-                        var hasLinkedComponentReferences = await linkedRepository.PageBuilderLinkedComponentReferences
+                        var hasSharedComponentReferences = await sharedComponentRepository.PageBuilderSharedComponentReferences
                             .AnyAsync(x => x.PageId == pageId, transactionCancellationToken);
-                        if (hasContent || hasLinkedComponentReferences)
+                        if (hasContent || hasSharedComponentReferences)
                         {
                             return;
                         }
@@ -553,7 +553,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
 
         internal static void EnsureNonTransactionalContentSupported(params string[] contents)
         {
-            if (contents.Any(PageBuilderLinkedComponentReferenceMatcher.HasReferences))
+            if (contents.Any(PageBuilderSharedComponentReferenceMatcher.HasReferences))
             {
                 throw new NotSupportedException(
                     "Shared Component page content requires an ITransactionalContentStreamRepository implementation.");
@@ -570,8 +570,8 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
             return writer.ToString();
         }
 
-        private sealed class LegacyLinkedComponentReferenceIndexService
-            : IPageBuilderLinkedComponentReferenceIndexService
+        private sealed class LegacySharedComponentReferenceIndexService
+            : IPageBuilderSharedComponentReferenceIndexService
         {
             public Task ValidateReferencesForStoreAsync(
                 string storeId,
@@ -592,7 +592,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
             }
 
             public Task<IList<string>> GetPageIdsAsync(
-                IEnumerable<string> linkedComponentIds,
+                IEnumerable<string> sharedComponentIds,
                 CancellationToken cancellationToken = default)
             {
                 return Task.FromResult<IList<string>>([]);

@@ -49,7 +49,7 @@
       "PATH": "Sökväg",
       "USED_ON": "Används i ({count})",
       "PAGES": "Sidor",
-      "LINKED_COMPONENTS": "Delade komponenter",
+      "SHARED_COMPONENTS": "Delade komponenter",
       "NO_REFERENCES": "Används inte på Page Builder-sidor eller i delade komponenter.",
       "URL": "URL",
       "COPY_URL": "Kopiera URL",

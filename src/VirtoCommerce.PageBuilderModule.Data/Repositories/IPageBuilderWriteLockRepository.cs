@@ -2,13 +2,13 @@ namespace VirtoCommerce.PageBuilderModule.Data.Repositories;
 
 public interface IPageBuilderWriteLockRepository
 {
-    Task<bool> ExecuteUnderLinkedComponentWriteLockAsync(
-        string linkedComponentId,
+    Task<bool> ExecuteUnderSharedComponentWriteLockAsync(
+        string sharedComponentId,
         Func<CancellationToken, Task> operation,
         CancellationToken cancellationToken = default);
 
-    Task<bool> ExecuteUnderLinkedComponentWriteLocksAsync(
-        IEnumerable<string> linkedComponentIds,
+    Task<bool> ExecuteUnderSharedComponentWriteLocksAsync(
+        IEnumerable<string> sharedComponentIds,
         Func<CancellationToken, Task> operation,
         CancellationToken cancellationToken = default);
 

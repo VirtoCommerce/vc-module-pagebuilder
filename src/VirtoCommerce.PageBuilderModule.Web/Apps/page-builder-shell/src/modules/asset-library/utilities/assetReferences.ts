@@ -1,29 +1,29 @@
 import type {
   AssetReference,
   AssetReferenceDetails,
-  AssetReferenceLinkedComponent,
+  AssetReferenceSharedComponent,
   AssetReferencePage,
 } from "../types";
 
 export function createAssetReferenceDetails(references: AssetReference[]): AssetReferenceDetails {
   const referencePages = getDistinctReferencePages(references.flatMap((reference) => reference.pages ?? []));
-  const referenceLinkedComponents = getDistinctReferenceLinkedComponents(
-    references.flatMap((reference) => reference.linkedComponents ?? []),
+  const referenceSharedComponents = getDistinctReferenceSharedComponents(
+    references.flatMap((reference) => reference.sharedComponents ?? []),
   );
   const pageReferencesCount =
     referencePages.length || references.reduce((count, reference) => count + (reference.pageReferencesCount ?? 0), 0);
-  const linkedComponentReferencesCount =
-    referenceLinkedComponents.length ||
-    references.reduce((count, reference) => count + (reference.linkedComponentReferencesCount ?? 0), 0);
-  const categorizedReferencesCount = pageReferencesCount + linkedComponentReferencesCount;
+  const sharedComponentReferencesCount =
+    referenceSharedComponents.length ||
+    references.reduce((count, reference) => count + (reference.sharedComponentReferencesCount ?? 0), 0);
+  const categorizedReferencesCount = pageReferencesCount + sharedComponentReferencesCount;
   const aggregateReferencesCount = references.reduce((count, reference) => count + (reference.referencesCount ?? 0), 0);
 
   return {
     referencesCount: Math.max(categorizedReferencesCount, aggregateReferencesCount),
     pageReferencesCount,
-    linkedComponentReferencesCount,
+    sharedComponentReferencesCount,
     referencePages,
-    referenceLinkedComponents,
+    referenceSharedComponents,
   };
 }
 
@@ -34,9 +34,9 @@ export function getDistinctReferencePages(pages: AssetReferencePage[]): AssetRef
   );
 }
 
-export function getDistinctReferenceLinkedComponents(
-  components: AssetReferenceLinkedComponent[],
-): AssetReferenceLinkedComponent[] {
+export function getDistinctReferenceSharedComponents(
+  components: AssetReferenceSharedComponent[],
+): AssetReferenceSharedComponent[] {
   return getDistinctReferences(components, (component) => component.id || component.name || "");
 }
 
@@ -44,7 +44,7 @@ export function getReferencePageNames(pages: AssetReferencePage[]): string[] {
   return getDistinctNames(pages.map((page) => page.name || page.permalink || page.id));
 }
 
-export function getReferenceLinkedComponentNames(components: AssetReferenceLinkedComponent[]): string[] {
+export function getReferenceSharedComponentNames(components: AssetReferenceSharedComponent[]): string[] {
   return getDistinctNames(components.map((component) => component.name || component.id));
 }
 

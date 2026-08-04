@@ -17,7 +17,7 @@ import * as sharedSelectors from "@shared/store/selectors";
 import * as routingSelectors from "@shared/routing/selectors";
 
 import { PasteContentComponent } from '@editor/dialogs';
-import { canEditLinkedComponentOriginal, helpers as editorHelpers, clipboardHelpers } from '@editor/helpers';
+import { canEditSharedComponentOriginal, helpers as editorHelpers, clipboardHelpers } from '@editor/helpers';
 
 import { BuilderState } from "../state";
 import * as actions from "../actions";
@@ -78,10 +78,10 @@ export class TemplateEditorDomainEffects {
         ofType(actions.sectionChangedAction),
         withLatestFrom(
             this.store$.select(selectors.changeTemplateContext),
-            this.store$.select(routingSelectors.selectLinkedComponentIdParameter),
+            this.store$.select(routingSelectors.selectSharedComponentIdParameter),
         ),
-        filter(([, { template, sectionId }, linkedComponentId]) =>
-            !!template && !!sectionId && this.canMutate(linkedComponentId)),
+        filter(([, { template, sectionId }, sharedComponentId]) =>
+            !!template && !!sectionId && this.canMutate(sharedComponentId)),
         switchMap(([{ changes }, { template, templateKey, sectionId, blockId }]) => [
             actions.updateTemplateAction({
                 template: blockId
@@ -96,10 +96,10 @@ export class TemplateEditorDomainEffects {
         ofType(actions.sectionChangedAction),
         withLatestFrom(
             this.store$.select(selectors.changeTemplateContext),
-            this.store$.select(routingSelectors.selectLinkedComponentIdParameter),
+            this.store$.select(routingSelectors.selectSharedComponentIdParameter),
         ),
-        filter(([, { template, sectionId }, linkedComponentId]) =>
-            !!template && !sectionId && this.canMutate(linkedComponentId)),
+        filter(([, { template, sectionId }, sharedComponentId]) =>
+            !!template && !sectionId && this.canMutate(sharedComponentId)),
         switchMap(([{ changes }, { template, templateKey }]) => [
             actions.updateTemplateAction({
                 template: editorHelpers.applySettingsChanges(template!, changes),
@@ -398,7 +398,7 @@ export class TemplateEditorDomainEffects {
         })
     ), { dispatch: false });
 
-    private canMutate(linkedComponentId: string): boolean {
-        return !linkedComponentId || canEditLinkedComponentOriginal(this.appConfig);
+    private canMutate(sharedComponentId: string): boolean {
+        return !sharedComponentId || canEditSharedComponentOriginal(this.appConfig);
     }
 }

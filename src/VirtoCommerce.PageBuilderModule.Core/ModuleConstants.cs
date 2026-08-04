@@ -6,7 +6,7 @@ namespace VirtoCommerce.PageBuilderModule.Core
     {
         public const string DefaultPageContent = "{ \"settings\": {}, \"content\": [] }";
 
-        public static class LinkedComponents
+        public static class SharedComponents
         {
             public const string ReferenceType = "componentRef";
             public const string ReferenceProperty = "componentRef";
@@ -40,10 +40,10 @@ namespace VirtoCommerce.PageBuilderModule.Core
                 public const string Update = "builder:update";
                 public const string Delete = "builder:delete";
                 public const string Publish = "builder:publish";
-                public const string LinkedComponentsRead = "builder:linked-components:read";
-                public const string LinkedComponentsCreate = "builder:linked-components:create";
-                public const string LinkedComponentsUpdate = "builder:linked-components:update";
-                public const string LinkedComponentsDelete = "builder:linked-components:delete";
+                public const string SharedComponentsRead = "builder:shared-components:read";
+                public const string SharedComponentsCreate = "builder:shared-components:create";
+                public const string SharedComponentsUpdate = "builder:shared-components:update";
+                public const string SharedComponentsDelete = "builder:shared-components:delete";
 
                 public static string[] AllPermissions { get; } =
                 [
@@ -55,10 +55,10 @@ namespace VirtoCommerce.PageBuilderModule.Core
                     Update,
                     Delete,
                     Publish,
-                    LinkedComponentsRead,
-                    LinkedComponentsCreate,
-                    LinkedComponentsUpdate,
-                    LinkedComponentsDelete,
+                    SharedComponentsRead,
+                    SharedComponentsCreate,
+                    SharedComponentsUpdate,
+                    SharedComponentsDelete,
                 ];
             }
         }
@@ -110,9 +110,9 @@ namespace VirtoCommerce.PageBuilderModule.Core
                     DefaultValue = false,
                 };
 
-                public static SettingDescriptor LinkedComponentAssetReferenceIndexMigrated { get; } = new()
+                public static SettingDescriptor SharedComponentAssetReferenceIndexMigrated { get; } = new()
                 {
-                    Name = "VirtoCommerce.PageBuilderModule.Migration.LinkedComponentAssetReferenceIndexMigrated",
+                    Name = "VirtoCommerce.PageBuilderModule.Migration.SharedComponentAssetReferenceIndexMigrated",
                     GroupName = "CMS|Migration",
                     ValueType = SettingValueType.Boolean,
                     DefaultValue = false,
@@ -124,7 +124,7 @@ namespace VirtoCommerce.PageBuilderModule.Core
                     {
                         yield return MetadataFromContentMigrated;
                         yield return AssetReferenceIndexMigrated;
-                        yield return LinkedComponentAssetReferenceIndexMigrated;
+                        yield return SharedComponentAssetReferenceIndexMigrated;
                     }
                 }
             }

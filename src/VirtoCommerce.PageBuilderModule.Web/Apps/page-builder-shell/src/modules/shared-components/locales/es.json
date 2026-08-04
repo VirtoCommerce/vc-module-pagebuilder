@@ -1,0 +1,66 @@
+{
+  "SHARED_COMPONENTS": {
+    "MENU": {
+      "TITLE": "Componentes compartidos"
+    },
+    "TITLE": "Componentes compartidos",
+    "SEARCH": {
+      "PLACEHOLDER": "Buscar componentes compartidos..."
+    },
+    "TABLE": {
+      "NAME": "Nombre",
+      "USAGE": "Usado en",
+      "MODIFIED": "Modificado",
+      "MODIFIED_BY": "Modificado por"
+    },
+    "TOOLBAR": {
+      "REFRESH": "Actualizar"
+    },
+    "ACTIONS": {
+      "RENAME": "Cambiar nombre",
+      "DELETE": "Eliminar",
+      "DELETE_BLOCKED": "Este componente está en uso y no se puede eliminar",
+      "CLOSE": "Cerrar"
+    },
+    "DETAILS": {
+      "COMPONENT_DETAILS": "Detalles del componente",
+      "STORE": "Tienda",
+      "MODIFIED": "Modificado",
+      "MODIFIED_BY": "Modificado por",
+      "USED_ON_ONE": "Usado en (1 página)",
+      "USED_ON_MANY": "Usado en ({count} páginas)",
+      "LOADING_USAGE": "Cargando el uso en páginas...",
+      "NO_USAGE": "No se usa en ninguna página de Page Builder.",
+      "DELETE_BLOCKED_ONE": "Quite este componente de la página antes de eliminarlo.",
+      "DELETE_BLOCKED_MANY": "Quite este componente de las {count} páginas antes de eliminarlo.",
+      "NOT_AVAILABLE": "N/D",
+      "OPEN_UNAVAILABLE_PERMISSION": "No tiene permiso para abrir esta página en Designer.",
+      "OPEN_UNAVAILABLE_ARCHIVED": "Las páginas archivadas no se pueden abrir en Designer.",
+      "OPEN_UNAVAILABLE_IDENTITY": "Esta página no se puede abrir porque su identificador no está disponible."
+    },
+    "EMPTY": {
+      "TITLE": "Aún no hay componentes compartidos",
+      "DESCRIPTION": "Cree un componente compartido a partir de las secciones seleccionadas en Page Builder Designer.",
+      "NOT_FOUND_TITLE": "No se encontraron componentes compartidos",
+      "NOT_FOUND_DESCRIPTION": "Pruebe con otra frase de búsqueda."
+    },
+    "RENAME": {
+      "TITLE": "Cambiar nombre del componente compartido",
+      "NAME_LABEL": "Nombre",
+      "NAME_PLACEHOLDER": "Introduzca el nombre del componente",
+      "CANCEL": "Cancelar",
+      "SAVE": "Guardar"
+    },
+    "CONFIRM": {
+      "DELETE": "¿Eliminar {name}? Esta acción no se puede deshacer."
+    },
+    "NOTIFICATIONS": {
+      "RENAMED": "El componente compartido se cambió de nombre correctamente",
+      "DELETED": "El componente compartido se eliminó correctamente",
+      "DELETE_BLOCKED_ONE": "Este componente se usa en 1 página y no se puede eliminar.",
+      "DELETE_BLOCKED_MANY": "Este componente se usa en {count} páginas y no se puede eliminar.",
+      "DELETE_CONFLICT": "El componente ahora está en uso y no se puede eliminar. Actualice la lista para ver dónde se usa.",
+      "ERROR_GENERIC": "Error en la operación del componente compartido"
+    }
+  }
+}
