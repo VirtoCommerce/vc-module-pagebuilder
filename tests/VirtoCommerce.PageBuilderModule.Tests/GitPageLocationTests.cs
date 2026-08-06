@@ -35,6 +35,45 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 GitPageLocation.BranchFor(Template, "john", "/docs/foo.page-draft"));
         }
 
+        [Theory]
+        [InlineData("pages", "/docs/foo.page", "docs/foo.page")]
+        [InlineData("blogs", "/assets/foo.page", "blogs/assets/foo.page")]
+        [InlineData("Blogs", "/assets/foo.page-draft", "blogs/assets/foo.page")]
+        // a blogs path that already carries the folder means the same file, not blogs/blogs/...
+        [InlineData("blogs", "/blogs/assets/foo.page", "blogs/assets/foo.page")]
+        // the same file reached through the pages root: one page, one content path
+        [InlineData("pages", "/blogs/assets/foo.page", "blogs/assets/foo.page")]
+        [InlineData(null, "/foo.page", "foo.page")]
+        public void ContentPath_puts_a_blog_article_back_under_the_blogs_folder(string contentType, string page, string expected)
+        {
+            Assert.Equal(expected, GitPageLocation.ContentPath(contentType, page));
+        }
+
+        [Fact]
+        public void ContentPath_separates_a_page_from_a_blog_article_of_the_same_name()
+        {
+            // "/foo.page" is Pages/{store}/foo.page as a page and Pages/{store}/blogs/foo.page as a blog
+            // article: two files, and therefore two branches
+            var page = GitPageLocation.ContentPath("pages", "/foo.page");
+            var article = GitPageLocation.ContentPath("blogs", "/foo.page");
+
+            Assert.NotEqual(page, article);
+            Assert.NotEqual(
+                GitPageLocation.BranchFor(Template, "john", page),
+                GitPageLocation.BranchFor(Template, "john", article));
+        }
+
+        [Theory]
+        [InlineData("pages", true)]
+        [InlineData("blogs", true)]
+        [InlineData("BLOGS", true)]
+        [InlineData("themes", false)]
+        [InlineData(null, false)]
+        public void IsPageContent_covers_pages_and_blogs_only(string contentType, bool expected)
+        {
+            Assert.Equal(expected, GitPageLocation.IsPageContent(contentType));
+        }
+
         [Fact]
         public void BranchFor_flattens_the_page_path_instead_of_nesting_it()
         {

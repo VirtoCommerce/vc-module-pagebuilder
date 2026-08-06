@@ -2,6 +2,7 @@ using System;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using VirtoCommerce.ContentModule.Core;
 
 namespace VirtoCommerce.PageBuilderModule.Core.GitContent
 {
@@ -13,11 +14,16 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
         private const int MaxSlugLength = 60;
         private const int HashLength = 7;
         private const string DraftSuffix = "-draft";
+        private const string BlogsFolder = ContentConstants.ContentTypes.Blogs + "/";
 
         private static readonly Regex Unsafe = new("[^a-z0-9._-]+", RegexOptions.None, TimeSpan.FromSeconds(1));
 
         /// <summary>
         /// Repository path of a page: the blob path under the configured pages root.
+        /// <para>
+        /// Pass a path produced by <see cref="ContentPath"/> — the raw path of a blog article is relative
+        /// to the blogs folder, and the repository keeps the same layout blob storage does.
+        /// </para>
         /// </summary>
         public static string RepoPath(string pagesRoot, string pagePath)
         {
@@ -25,6 +31,39 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
 
             return $"{(pagesRoot ?? string.Empty).Trim('/')}/{Normalize(pagePath)}";
         }
+
+        /// <summary>
+        /// The path of a page of the given content type relative to the content root, which is what both
+        /// <see cref="RepoPath"/> and <see cref="BranchFor"/> identify a page by.
+        /// <para>
+        /// A blog article is a page in a subfolder and nothing else: blob storage keeps pages under
+        /// <c>Pages/{store}</c> and blogs under <c>Pages/{store}/blogs</c>, and the repository mirrors
+        /// that under <see cref="GitContentOptions.PagesRoot"/>. The blogs paths the builder sends are
+        /// relative to that subfolder, so the prefix has to be put back — otherwise a blog article would
+        /// be read from, committed to and published at the pages root, where nothing serves it.
+        /// </para>
+        /// </summary>
+        public static string ContentPath(string contentType, string pagePath)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(pagePath);
+
+            var normalized = Normalize(pagePath);
+
+            return IsBlogs(contentType) && !normalized.StartsWith(BlogsFolder, StringComparison.OrdinalIgnoreCase)
+                ? BlogsFolder + normalized
+                : normalized;
+        }
+
+        /// <summary>
+        /// Whether the git flow covers this content type at all. Pages and blogs are the same kind of
+        /// file in two folders; themes, schemas and settings stay in blob storage.
+        /// </summary>
+        public static bool IsPageContent(string contentType) =>
+            string.Equals(contentType, ContentConstants.ContentTypes.Pages, StringComparison.OrdinalIgnoreCase) ||
+            IsBlogs(contentType);
+
+        private static bool IsBlogs(string contentType) =>
+            string.Equals(contentType, ContentConstants.ContentTypes.Blogs, StringComparison.OrdinalIgnoreCase);
 
         /// <summary>
         /// The work branch for one editor editing one page. It is cut from the production branch at the
