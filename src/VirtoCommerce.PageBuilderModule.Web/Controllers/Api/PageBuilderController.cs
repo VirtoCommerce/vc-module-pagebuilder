@@ -68,7 +68,22 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             if (IsPage(type) && !path.IsNullOrEmpty() &&
                 await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
             {
-                return await GetTemplateFromGit(path, draft, gitRef);
+                var fromGit = await ReadPageFromGitAsync(path, draft, gitRef);
+                if (fromGit != null)
+                {
+                    return PageContent(fromGit);
+                }
+
+                if (!string.IsNullOrEmpty(gitRef))
+                {
+                    // an exact commit was asked for; blob storage cannot answer that question
+                    return NotFound(new { templatePath = path, gitRef });
+                }
+
+                // Not in the repository — fall through to blob storage. A store that opts in keeps every
+                // page it had: those only reach git at their first save from the designer, and until then
+                // the blob copy is the page. Refusing to read it would make opting in look like the
+                // builder lost the store's content.
             }
 
             var basePath = GetContentBasePath(storeId, type, theme);
@@ -106,12 +121,13 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         }
 
         /// <summary>
-        /// Reads a page out of the content repository. Without an explicit ref: the editor's draft of
-        /// this page when they have one, otherwise the published version. That fallback is what keeps
-        /// the contract of the blob-backed endpoint — "the draft, else what is live" — intact, so the
-        /// callers of this URL never learn that pages moved to git.
+        /// Reads a page out of the content repository, or <c>null</c> when the repository does not have
+        /// it. Without an explicit ref: the editor's draft of this page when they have one, otherwise the
+        /// published version. That fallback is what keeps the contract of the blob-backed endpoint — "the
+        /// draft, else what is live" — intact, so the callers of this URL never learn that pages moved to
+        /// git.
         /// </summary>
-        private async Task<ActionResult> GetTemplateFromGit(string path, bool draft, string gitRef)
+        private async Task<string> ReadPageFromGitAsync(string path, bool draft, string gitRef)
         {
             var options = gitContentOptions.Value;
             var repoPath = GitPageLocation.RepoPath(options.PagesRoot, path);
@@ -119,8 +135,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             if (!string.IsNullOrEmpty(gitRef))
             {
                 // an exact commit — what a preview link points at
-                var atRef = await gitContentRepository.ReadFileAsync(repoPath, gitRef, HttpContext.RequestAborted);
-                return atRef == null ? NotFound(new { templatePath = path, gitRef }) : PageContent(atRef);
+                return await gitContentRepository.ReadFileAsync(repoPath, gitRef, HttpContext.RequestAborted);
             }
 
             if (draft)
@@ -129,12 +144,11 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 var onBranch = await gitContentRepository.ReadFileAsync(repoPath, branch, HttpContext.RequestAborted);
                 if (onBranch != null)
                 {
-                    return PageContent(onBranch);
+                    return onBranch;
                 }
             }
 
-            var published = await gitContentRepository.ReadFileAsync(repoPath, options.BaseBranch, HttpContext.RequestAborted);
-            return published == null ? NotFound(new { templatePath = path }) : PageContent(published);
+            return await gitContentRepository.ReadFileAsync(repoPath, options.BaseBranch, HttpContext.RequestAborted);
         }
 
         private ContentResult PageContent(string json) => Content(json, JsonContentType);

@@ -12,6 +12,7 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
     {
         private const int MaxSlugLength = 60;
         private const int HashLength = 7;
+        private const string DraftSuffix = "-draft";
 
         private static readonly Regex Unsafe = new("[^a-z0-9._-]+", RegexOptions.None, TimeSpan.FromSeconds(1));
 
@@ -80,6 +81,24 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
             return Convert.ToHexStringLower(hash)[..HashLength];
         }
 
-        private static string Normalize(string pagePath) => pagePath.Replace('\\', '/').TrimStart('/');
+        /// <summary>
+        /// The canonical page path: forward slashes, no leading slash, and no <c>-draft</c> suffix.
+        /// <para>
+        /// In the blob model a draft was a second file next to the page ("foo.page-draft"), and that is
+        /// still the path the admin blade and the designer send when they open a draft. In git the draft
+        /// is the work branch, so both names are the same file. Stripping the suffix here is what keeps
+        /// read, save, publish and preview pointing at one path — otherwise a work branch would hold
+        /// "foo.page-draft" while production holds "foo.page", publishing would ship a file no storefront
+        /// serves, and the storefront preview (which strips the suffix) would find neither.
+        /// </para>
+        /// </summary>
+        private static string Normalize(string pagePath)
+        {
+            var normalized = pagePath.Replace('\\', '/').TrimStart('/');
+
+            return normalized.Length > DraftSuffix.Length && normalized.EndsWith(DraftSuffix, StringComparison.OrdinalIgnoreCase)
+                ? normalized[..^DraftSuffix.Length]
+                : normalized;
+        }
     }
 }

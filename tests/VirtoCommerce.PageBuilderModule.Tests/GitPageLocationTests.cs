@@ -16,6 +16,25 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.Equal(expected, GitPageLocation.RepoPath(root, page));
         }
 
+        [Theory]
+        [InlineData("/foo.page-draft", "pages/foo.page")]
+        [InlineData("/docs/foo.page-draft", "pages/docs/foo.page")]
+        [InlineData("/docs/foo.page-DRAFT", "pages/docs/foo.page")]
+        public void RepoPath_drops_the_blob_draft_suffix(string page, string expected)
+        {
+            // the blade and the designer open a draft by its "-draft" blob name; in git that is the same
+            // file on a work branch, and production only ever holds the canonical page
+            Assert.Equal(expected, GitPageLocation.RepoPath("pages", page));
+        }
+
+        [Fact]
+        public void BranchFor_is_the_same_branch_for_a_page_and_its_draft_path()
+        {
+            Assert.Equal(
+                GitPageLocation.BranchFor(Template, "john", "docs/foo.page"),
+                GitPageLocation.BranchFor(Template, "john", "/docs/foo.page-draft"));
+        }
+
         [Fact]
         public void BranchFor_flattens_the_page_path_instead_of_nesting_it()
         {
