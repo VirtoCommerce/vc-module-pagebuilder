@@ -34,6 +34,9 @@
         "validations": {
           "pageName-invalid": "Sidenavnet kan kun inneholde alfanumeriske tegn, «_», «-» og «.»",
           "permalink-invalid": "Andre sider har samme permalenke"
+        },
+        "hints": {
+          "rename-in-git": "Denne butikken publiserer sider via Git, der filnavnet er sidens adresse i repositoriet. Gi den nytt navn der, via en pull request."
         }
       },
       "pageBuilderEditor": {
@@ -55,6 +58,12 @@
     "widgets": {
       "pageBuilder-app": {
         "title": "Page Builder"
+      }
+    },
+    "dialogs": {
+      "git-publish-pending": {
+        "title": "Publisering pågår",
+        "message": "Siden er ikke publisert ennå: en pull request er åpen og blir flettet når kontrollene passerer. {{url}}"
       }
     }
   },

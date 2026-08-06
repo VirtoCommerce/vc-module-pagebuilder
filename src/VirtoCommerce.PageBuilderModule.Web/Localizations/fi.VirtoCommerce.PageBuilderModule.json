@@ -34,6 +34,9 @@
         "validations": {
           "pageName-invalid": "Sivun nimi saa sisältää vain aakkosnumeerisia merkkejä sekä \"_\", \"-\" ja \".\"",
           "permalink-invalid": "Muilla sivuilla on sama pysyvä linkki"
+        },
+        "hints": {
+          "rename-in-git": "Tämä kauppa julkaisee sivut Gitin kautta, jossa tiedostonimi on sivun osoite repositoriossa. Nimeä se uudelleen siellä, pull requestin kautta."
         }
       },
       "pageBuilderEditor": {
@@ -55,6 +58,12 @@
     "widgets": {
       "pageBuilder-app": {
         "title": "Page Builder"
+      }
+    },
+    "dialogs": {
+      "git-publish-pending": {
+        "title": "Julkaisu käynnissä",
+        "message": "Sivu ei ole vielä julkaistu: pull request on avoinna ja yhdistetään, kun sen tarkistukset menevät läpi. {{url}}"
       }
     }
   },

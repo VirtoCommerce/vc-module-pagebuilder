@@ -50,6 +50,9 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         // storage. PagesContentType is the default assumed when a caller sends no type at all.
         private const string PagesContentType = "pages";
         private const string DefaultPreviewPath = "/designer-preview";
+        // How a client names the two flows in the publish-status answer.
+        private const string GitFlow = "git";
+        private const string BlobFlow = "blob";
         private const string DefaultTheme = "default";
         private const string JsonContentType = "application/json";
         private const string JsonExtension = ".json";
@@ -594,15 +597,29 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         /// The shape the builder's toolbar expects, answered from git: <c>published</c> is "the page
         /// exists in the production branch", <c>hasChanges</c> is "this editor's branch says something
         /// different", <c>pending</c> is "a pull request for it is open".
+        /// <para>
+        /// The answer also names the flow in effect, because a client has to behave differently under
+        /// each — the admin blade saves to git and hides "unpublish" on the git flow — and asking here
+        /// costs it nothing. Both flows answer in the same shape, so a caller reads one contract.
+        /// </para>
         /// </summary>
         [HttpGet]
         [Route("git/publish-status")]
         public async Task<ActionResult> GitPublishStatus(string storeId, string path, string type)
         {
-            if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
+            var gitFlow = await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted);
+
+            // A page that does not exist yet — the blade asking about a page it is about to create — has
+            // no status; what the caller is after in that case is the flow.
+            if (path.IsNullOrEmpty())
+            {
+                return Ok(PublishStatus(published: false, hasChanges: false, pending: false, gitFlow));
+            }
+
+            if (!gitFlow)
             {
                 var status = await publishingService.PublishStatusAsync(type ?? PagesContentType, storeId, path);
-                return Ok(status);
+                return Ok(PublishStatus(status.Published, status.HasChanges, pending: false, gitFlow: false));
             }
 
             var location = GitLocation(type, path);
@@ -611,14 +628,21 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             var draft = await gitContentRepository.ReadFileAsync(location.RepoPath, location.Branch, HttpContext.RequestAborted);
             var pending = await gitContentPublisher.GetOpenPullRequestNumberAsync(location.Branch, HttpContext.RequestAborted);
 
-            return Ok(new
-            {
-                published = published != null,
+            return Ok(PublishStatus(
+                published: published != null,
                 // a draft that says the same thing as production is not a change, whatever its history
-                hasChanges = draft != null && !PageJson.AreSame(draft, published),
-                pending = pending != null,
-            });
+                hasChanges: draft != null && !PageJson.AreSame(draft, published),
+                pending: pending != null,
+                gitFlow: true));
         }
+
+        private static object PublishStatus(bool published, bool hasChanges, bool pending, bool gitFlow) => new
+        {
+            published,
+            hasChanges,
+            pending,
+            flow = gitFlow ? GitFlow : BlobFlow,
+        };
 
         /// <summary>
         /// Redirects to the storefront's preview of this page at an exact commit: the editor's draft if

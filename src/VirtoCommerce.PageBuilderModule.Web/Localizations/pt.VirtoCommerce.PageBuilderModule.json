@@ -34,6 +34,9 @@
         "validations": {
           "pageName-invalid": "O nome da página pode conter apenas caracteres alfanuméricos, \"_\", \"-\" e \".\"",
           "permalink-invalid": "Outras páginas possuem o mesmo link permanente"
+        },
+        "hints": {
+          "rename-in-git": "Esta loja publica as páginas através do Git, onde o nome do arquivo é o endereço da página no repositório. Renomeie-a lá, através de um pull request."
         }
       },
       "pageBuilderEditor": {
@@ -51,6 +54,12 @@
       "open-designer": "Design",
       "publish": "Publicar",
       "unpublish": "Despublicar"
+    },
+    "dialogs": {
+      "git-publish-pending": {
+        "title": "Publicação em andamento",
+        "message": "A página ainda não está publicada: há um pull request aberto que será mesclado quando suas verificações passarem. {{url}}"
+      }
     }
   },
   "settings": {

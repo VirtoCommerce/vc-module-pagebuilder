@@ -34,6 +34,9 @@
         "validations": {
           "pageName-invalid": "Sidnamnet får endast innehålla alfanumeriska tecken, \"_\", \"-\" och \".\"",
           "permalink-invalid": "Andra sidor har samma permalänk"
+        },
+        "hints": {
+          "rename-in-git": "Den här butiken publicerar sidor via Git, där filnamnet är sidans adress i repositoryt. Byt namn på den där, via en pull request."
         }
       },
       "pageBuilderEditor": {
@@ -55,6 +58,12 @@
     "widgets": {
       "pageBuilder-app": {
         "title": "Page Builder"
+      }
+    },
+    "dialogs": {
+      "git-publish-pending": {
+        "title": "Publicering pågår",
+        "message": "Sidan är inte publicerad än: en pull request är öppen och slås samman när dess kontroller har godkänts. {{url}}"
       }
     }
   },

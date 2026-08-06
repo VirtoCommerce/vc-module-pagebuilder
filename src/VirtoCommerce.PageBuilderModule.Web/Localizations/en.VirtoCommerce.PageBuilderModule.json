@@ -34,6 +34,9 @@
         "validations": {
           "pageName-invalid": "Page name can contain alphanumeric, \"_\", \"-\" and \".\" characters only",
           "permalink-invalid": "Other pages have the same permalink"
+        },
+        "hints": {
+          "rename-in-git": "This store publishes pages through Git, where the file name is the page's address in the repository. Rename it there, through a pull request."
         }
       },
       "pageBuilderEditor": {
@@ -51,6 +54,12 @@
       "open-designer": "Design",
       "publish": "Publish",
       "unpublish": "Unpublish"
+    },
+    "dialogs": {
+      "git-publish-pending": {
+        "title": "Publishing in progress",
+        "message": "The page is not live yet: a pull request is open and will merge once its checks pass. {{url}}"
+      }
     },
     "widgets": {
       "pageBuilder-app": {

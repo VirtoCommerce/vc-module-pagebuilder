@@ -34,6 +34,9 @@
         "validations": {
           "pageName-invalid": "Nazwa strony może zawierać tylko znaki alfanumeryczne, \"_\", \"-\" i \".\"",
           "permalink-invalid": "Inne strony mają ten sam permalink"
+        },
+        "hints": {
+          "rename-in-git": "Ten sklep publikuje strony przez Git, gdzie nazwa pliku jest adresem strony w repozytorium. Zmień jej nazwę tam, poprzez pull request."
         }
       },
       "pageBuilderEditor": {
@@ -51,6 +54,12 @@
       "open-designer": "Projektuj",
       "publish": "Opublikuj",
       "unpublish": "Wycofaj publikację"
+    },
+    "dialogs": {
+      "git-publish-pending": {
+        "title": "Publikowanie w toku",
+        "message": "Strona nie jest jeszcze opublikowana: pull request jest otwarty i zostanie scalony, gdy przejdą jego testy. {{url}}"
+      }
     }
   },
   "settings": {
