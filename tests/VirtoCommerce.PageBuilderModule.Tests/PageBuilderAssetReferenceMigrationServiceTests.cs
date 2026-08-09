@@ -20,21 +20,6 @@ namespace VirtoCommerce.PageBuilderModule.Tests;
 public class PageBuilderAssetReferenceMigrationServiceTests
 {
     [Fact]
-    public async Task RebuildSharedComponentIndexAsync_BackfillsUnusedComponentContent()
-    {
-        var index = new RecordingSharedComponentAssetReferenceIndexService();
-
-        await PageBuilderAssetReferenceMigrationService.RebuildSharedComponentIndexAsync(
-            "unused-component",
-            "component-assets",
-            index,
-            TestContext.Current.CancellationToken);
-
-        Assert.Equal("unused-component", index.SharedComponentId);
-        Assert.Equal("component-assets", index.Content);
-    }
-
-    [Fact]
     public async Task RebuildPageAssetReferenceIndex_LegacyRepositoryUsesLegacyIndexServices()
     {
         await using var database = await MigrationDatabase.CreateAsync();
@@ -42,30 +27,14 @@ public class PageBuilderAssetReferenceMigrationServiceTests
         var indexedPageIds = new List<string>();
         var migration = new PageBuilderAssetReferenceMigrationService(
             () => new LegacyRepository(new PageBuilderModuleRepository(database.CreateContext())),
-            sharedComponentAssetReferenceIndexService: null,
-            settingsManager: null,
             new RecordingGroupedPageService(loadedPageIds),
-            new RecordingPageAssetReferenceIndexService(indexedPageIds));
+            new RecordingPageAssetReferenceIndexService(indexedPageIds),
+            settingsManager: null);
 
         await migration.RebuildPageAssetReferenceIndex();
 
         Assert.Equal(101, loadedPageIds.Count);
         Assert.Equal(loadedPageIds, indexedPageIds);
-    }
-
-    [Fact]
-    public async Task RebuildSharedComponentAssetReferenceIndex_LegacyRepositorySkipsUnsupportedBackfill()
-    {
-        await using var database = await MigrationDatabase.CreateAsync();
-        var index = new RecordingSharedComponentAssetReferenceIndexService();
-        var migration = new PageBuilderAssetReferenceMigrationService(
-            () => new LegacyRepository(new PageBuilderModuleRepository(database.CreateContext())),
-            index,
-            settingsManager: null);
-
-        await migration.RebuildSharedComponentAssetReferenceIndex();
-
-        Assert.Null(index.SharedComponentId);
     }
 
     [Fact]
@@ -86,7 +55,8 @@ public class PageBuilderAssetReferenceMigrationServiceTests
                 });
         var migration = new PageBuilderAssetReferenceMigrationService(
             repositoryFactory,
-            sharedComponentAssetReferenceIndexService: null,
+            groupedPageService: null,
+            assetReferenceIndexService: null,
             settingsManager: null);
 
         await migration.RebuildPageAssetReferenceIndex();
@@ -114,29 +84,6 @@ public class PageBuilderAssetReferenceMigrationServiceTests
     }
 
     [Fact]
-    public async Task RebuildSharedComponentAssetReferenceIndex_ConcurrentDeletionDoesNotSkipNextComponent()
-    {
-        await using var database = await MigrationDatabase.CreateAsync();
-        var index = new DeletingSharedComponentIndex(database);
-        var migration = new PageBuilderAssetReferenceMigrationService(
-            () => new PageBuilderModuleRepository(database.CreateContext()),
-            index,
-            settingsManager: null);
-
-        await migration.RebuildSharedComponentAssetReferenceIndex();
-
-        await using var context = database.CreateContext();
-        var remainingIds = await context.Set<PageBuilderSharedComponentEntity>()
-            .OrderBy(x => x.Id)
-            .Select(x => x.Id)
-            .ToArrayAsync(TestContext.Current.CancellationToken);
-
-        Assert.Equal(100, remainingIds.Length);
-        Assert.Equal(101, index.ComponentIds.Count);
-        Assert.All(remainingIds, id => Assert.Contains(id, index.ComponentIds));
-    }
-
-    [Fact]
     public async Task RebuildPageAssetReferenceIndex_ConcurrentPageSaveCannotLeaveStaleSnapshotLast()
     {
         await using var database = await MigrationDatabase.CreateAsync();
@@ -156,7 +103,8 @@ public class PageBuilderAssetReferenceMigrationServiceTests
                 });
         var migration = new PageBuilderAssetReferenceMigrationService(
             repositoryFactory,
-            sharedComponentAssetReferenceIndexService: null,
+            groupedPageService: null,
+            assetReferenceIndexService: null,
             settingsManager: null);
 
         var migrationTask = migration.RebuildPageAssetReferenceIndex();
@@ -232,31 +180,7 @@ public class PageBuilderAssetReferenceMigrationServiceTests
                 new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
                 "page-050")
             .ToQueryString();
-        var componentSql = PageBuilderAssetReferenceMigrationService.ApplySharedComponentCursor(
-                context.Set<PageBuilderSharedComponentContentEntity>(),
-                "component-050")
-            .ToQueryString();
-
         Assert.Contains("WHERE", pageSql, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("WHERE", componentSql, StringComparison.OrdinalIgnoreCase);
-    }
-
-    private sealed class RecordingSharedComponentAssetReferenceIndexService
-        : IPageBuilderSharedComponentAssetReferenceIndexService
-    {
-        public string SharedComponentId { get; private set; }
-
-        public string Content { get; private set; }
-
-        public Task RebuildIndexAsync(
-            string sharedComponentId,
-            string content,
-            CancellationToken cancellationToken = default)
-        {
-            SharedComponentId = sharedComponentId;
-            Content = content;
-            return Task.CompletedTask;
-        }
     }
 
     private sealed class RecordingGroupedPageService(IList<string> pageIds) : IGroupedPageService
@@ -376,24 +300,6 @@ public class PageBuilderAssetReferenceMigrationServiceTests
         }
     }
 
-    private sealed class DeletingSharedComponentIndex(MigrationDatabase database)
-        : IPageBuilderSharedComponentAssetReferenceIndexService
-    {
-        public IList<string> ComponentIds { get; } = [];
-
-        public async Task RebuildIndexAsync(
-            string sharedComponentId,
-            string content,
-            CancellationToken cancellationToken = default)
-        {
-            ComponentIds.Add(sharedComponentId);
-            if (ComponentIds.Count == 50)
-            {
-                await database.DeleteComponentAsync("component-010");
-            }
-        }
-    }
-
     private sealed class MigrationDatabase : IAsyncDisposable
     {
         public const string CurrentAssetUrl = "/stores/store/current.png";
@@ -455,19 +361,6 @@ public class PageBuilderAssetReferenceMigrationServiceTests
                     NormalizedAssetUrlHash = PageBuilderAssetReferenceMatcher.GetAssetUrlHash(StaleAssetUrl),
                 });
 
-                var componentId = $"component-{index:D3}";
-                context.Add(new PageBuilderSharedComponentEntity
-                {
-                    Id = componentId,
-                    StoreId = "store",
-                    Name = componentId,
-                    CreatedDate = createdDate,
-                    Content = new PageBuilderSharedComponentContentEntity
-                    {
-                        Id = componentId,
-                        ComponentContent = "{ \"settings\": {}, \"content\": [] }",
-                    },
-                });
             }
 
             await context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -489,14 +382,6 @@ public class PageBuilderAssetReferenceMigrationServiceTests
                 .SingleAsync(x => x.Id == pageId, TestContext.Current.CancellationToken);
             context.Remove(page);
             await context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        }
-
-        public async Task DeleteComponentAsync(string componentId)
-        {
-            await using var context = CreateContext();
-            await context.Set<PageBuilderSharedComponentEntity>()
-                .Where(x => x.Id == componentId)
-                .ExecuteDeleteAsync(TestContext.Current.CancellationToken);
         }
 
         public async Task SavePageAsync(string pageId, string assetUrl)

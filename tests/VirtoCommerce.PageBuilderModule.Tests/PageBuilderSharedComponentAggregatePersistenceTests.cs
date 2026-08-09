@@ -374,27 +374,6 @@ public class PageBuilderSharedComponentAggregatePersistenceTests
     }
 
     [Fact]
-    public async Task RebuildIndexAsync_WhenPassedContentIsStale_UsesCurrentPersistedContent()
-    {
-        await using var database = await TestDatabase.CreateAsync();
-        await database.SeedComponentAsync(NewAssetUrl);
-        var service = new PageBuilderSharedComponentAssetReferenceIndexService(database.RepositoryFactory);
-
-        await service.RebuildIndexAsync(
-            ComponentId,
-            ContentWithAsset(OldAssetUrl),
-            TestContext.Current.CancellationToken);
-
-        await using var context = database.CreateContext();
-        var assetReferences = await context.Set<PageBuilderSharedComponentAssetReferenceEntity>()
-            .Where(x => x.SharedComponentId == ComponentId)
-            .Select(x => x.NormalizedAssetUrl)
-            .ToArrayAsync(TestContext.Current.CancellationToken);
-
-        Assert.Equal([NewAssetUrl], assetReferences);
-    }
-
-    [Fact]
     public async Task UpdateMetadataAsync_UpdatesOnlyMetadataAndPreservesRequiredContent()
     {
         await using var database = await TestDatabase.CreateAsync();

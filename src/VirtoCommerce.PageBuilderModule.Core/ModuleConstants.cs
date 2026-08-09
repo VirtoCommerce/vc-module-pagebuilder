@@ -110,21 +110,12 @@ namespace VirtoCommerce.PageBuilderModule.Core
                     DefaultValue = false,
                 };
 
-                public static SettingDescriptor SharedComponentAssetReferenceIndexMigrated { get; } = new()
-                {
-                    Name = "VirtoCommerce.PageBuilderModule.Migration.SharedComponentAssetReferenceIndexMigrated",
-                    GroupName = "CMS|Migration",
-                    ValueType = SettingValueType.Boolean,
-                    DefaultValue = false,
-                };
-
                 public static IEnumerable<SettingDescriptor> AllMigrationSettings
                 {
                     get
                     {
                         yield return MetadataFromContentMigrated;
                         yield return AssetReferenceIndexMigrated;
-                        yield return SharedComponentAssetReferenceIndexMigrated;
                     }
                 }
             }
