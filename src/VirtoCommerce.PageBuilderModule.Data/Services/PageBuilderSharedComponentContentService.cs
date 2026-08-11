@@ -13,7 +13,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services;
 public class PageBuilderSharedComponentContentService(
     Func<IPageBuilderModuleRepository> repositoryFactory,
     IEventPublisher eventPublisher,
-    PageBuilderSharedComponentAssetReferenceIndexService assetReferenceIndexService,
+    IPageBuilderSharedComponentAssetReferenceIndexService assetReferenceIndexService,
     ILogger<PageBuilderSharedComponentContentService> logger = null)
     : IPageBuilderSharedComponentContentService
 {

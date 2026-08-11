@@ -287,7 +287,11 @@ public abstract class ContentStreamRepository(PageBuilderModuleDbContext dbConte
         }
     }
 
-    public ValueTask DisposeAsync() => dbContext.DisposeAsync();
+    public async ValueTask DisposeAsync()
+    {
+        await dbContext.DisposeAsync();
+        GC.SuppressFinalize(this);
+    }
 
     // PageContent is NULL for a freshly created draft page (no content written yet) and may be NULL
     // for imported/legacy rows. Npgsql's GetTextReader throws InvalidCastException on a NULL column,

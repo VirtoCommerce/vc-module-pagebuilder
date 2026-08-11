@@ -4,7 +4,17 @@ using VirtoCommerce.PageBuilderModule.Data.Repositories;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Services;
 
+public interface IPageBuilderSharedComponentAssetReferenceIndexService
+{
+    Task RebuildIndexInCurrentUnitOfWorkAsync(
+        IPageBuilderModuleRepository repository,
+        string sharedComponentId,
+        string content,
+        CancellationToken cancellationToken = default);
+}
+
 public sealed class PageBuilderSharedComponentAssetReferenceIndexService
+    : IPageBuilderSharedComponentAssetReferenceIndexService
 {
     public Task RebuildIndexInCurrentUnitOfWorkAsync(
         IPageBuilderModuleRepository repository,

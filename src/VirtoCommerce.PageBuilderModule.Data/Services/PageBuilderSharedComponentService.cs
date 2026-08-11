@@ -22,7 +22,7 @@ public class PageBuilderSharedComponentService
     private const int ExistingComponentsQueryBatchSize = 500;
 
     private readonly IEventPublisher _eventPublisher;
-    private readonly PageBuilderSharedComponentAssetReferenceIndexService _assetReferenceIndexService;
+    private readonly IPageBuilderSharedComponentAssetReferenceIndexService _assetReferenceIndexService;
     private readonly ILogger<PageBuilderSharedComponentService> _logger;
     private readonly Func<IPageBuilderModuleRepository> _repositoryFactory;
 
@@ -30,7 +30,7 @@ public class PageBuilderSharedComponentService
         Func<IPageBuilderModuleRepository> repositoryFactory,
         IPlatformMemoryCache platformMemoryCache,
         IEventPublisher eventPublisher,
-        PageBuilderSharedComponentAssetReferenceIndexService assetReferenceIndexService,
+        IPageBuilderSharedComponentAssetReferenceIndexService assetReferenceIndexService,
         ILogger<PageBuilderSharedComponentService> logger = null)
         : base(repositoryFactory, platformMemoryCache, eventPublisher)
     {
