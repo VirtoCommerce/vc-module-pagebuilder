@@ -41,34 +41,26 @@ public class PageBuilderAssetReferenceService(
                 .Where(reference => normalizedAssetUrlHashes.Contains(reference.NormalizedAssetUrlHash)),
             criteria);
         var referenceGroups = await LoadReferenceGroupsAsync(indexedReferences, cancellationToken);
-        IQueryable<IndexedComponentReferenceResult> indexedComponentReferences = null;
-        var componentReferenceGroups = new List<ComponentReferenceCountResult>();
-        if (repository is IPageBuilderSharedComponentRepository sharedComponentRepository)
-        {
-            indexedComponentReferences = CreateIndexedComponentReferencesQuery(sharedComponentRepository)
-                .Where(reference => reference.StoreId == criteria.StoreId)
-                .Where(reference => normalizedAssetUrlHashes.Contains(reference.NormalizedAssetUrlHash));
-            componentReferenceGroups = await LoadComponentReferenceGroupsAsync(
-                indexedComponentReferences,
-                cancellationToken);
-        }
+        var indexedComponentReferences = CreateIndexedComponentReferencesQuery(repository)
+            .Where(reference => reference.StoreId == criteria.StoreId)
+            .Where(reference => normalizedAssetUrlHashes.Contains(reference.NormalizedAssetUrlHash));
+        var componentReferenceGroups = await LoadComponentReferenceGroupsAsync(
+            indexedComponentReferences,
+            cancellationToken);
 
-        ApplyPageReferenceCounts(references, referenceGroups);
-        ApplyComponentReferenceCounts(references, componentReferenceGroups);
-        ApplyTotalReferenceCounts(references.Values);
+        EnrichPageReferenceCounts(references, referenceGroups);
+        EnrichComponentReferenceCounts(references, componentReferenceGroups);
+        EnrichTotalReferenceCounts(references.Values);
 
         if (criteria.IncludePages)
         {
             var referencePages = await LoadReferencePagesAsync(indexedReferences, cancellationToken);
-            ApplyReferencePages(references, referencePages);
+            EnrichReferencePages(references, referencePages);
 
-            if (indexedComponentReferences != null)
-            {
-                var referenceComponents = await LoadReferenceComponentsAsync(
-                    indexedComponentReferences,
-                    cancellationToken);
-                ApplyReferenceComponents(references, referenceComponents);
-            }
+            var referenceComponents = await LoadReferenceComponentsAsync(
+                indexedComponentReferences,
+                cancellationToken);
+            EnrichReferenceComponents(references, referenceComponents);
         }
 
         return CreateResult(references.Values);
@@ -102,28 +94,21 @@ public class PageBuilderAssetReferenceService(
 
         reference.PageReferencesCount = referencesCount;
 
-        IQueryable<IndexedComponentReferenceResult> indexedComponentReferences = null;
-        if (repository is IPageBuilderSharedComponentRepository sharedComponentRepository)
-        {
-            indexedComponentReferences = CreateIndexedComponentReferencesQuery(sharedComponentRepository)
-                .Where(x => x.StoreId == criteria.StoreId)
-                .Where(x => x.NormalizedAssetUrl.StartsWith(folderPrefix));
-            reference.SharedComponentReferencesCount = await indexedComponentReferences
-                .Select(x => x.SharedComponentId)
-                .Distinct()
-                .CountAsync(cancellationToken);
-        }
+        var indexedComponentReferences = CreateIndexedComponentReferencesQuery(repository)
+            .Where(x => x.StoreId == criteria.StoreId)
+            .Where(x => x.NormalizedAssetUrl.StartsWith(folderPrefix));
+        reference.SharedComponentReferencesCount = await indexedComponentReferences
+            .Select(x => x.SharedComponentId)
+            .Distinct()
+            .CountAsync(cancellationToken);
         reference.ReferencesCount = reference.PageReferencesCount + reference.SharedComponentReferencesCount;
 
         if (criteria.IncludePages)
         {
-            ApplyFolderReferencePages(reference, await LoadReferencePagesAsync(indexedReferences, cancellationToken));
-            if (indexedComponentReferences != null)
-            {
-                ApplyFolderReferenceComponents(
-                    reference,
-                    await LoadReferenceComponentsAsync(indexedComponentReferences, cancellationToken));
-            }
+            EnrichFolderReferencePages(reference, await LoadReferencePagesAsync(indexedReferences, cancellationToken));
+            EnrichFolderReferenceComponents(
+                reference,
+                await LoadReferenceComponentsAsync(indexedComponentReferences, cancellationToken));
         }
 
         return CreateResult([reference]);
@@ -170,14 +155,9 @@ public class PageBuilderAssetReferenceService(
         // Component assets stay normalized in their aggregate-owned index. Derive the pages that use them
         // at read time instead of copying those assets into PageBuilderAssetReference. This makes a component
         // content change visible atomically with its asset index and removes any crash window in fan-out.
-        if (repository is not IPageBuilderSharedComponentRepository sharedComponentRepository)
-        {
-            return directPageReferences;
-        }
-
-        var componentDerivedPageReferences = sharedComponentRepository.PageBuilderSharedComponentAssetReferences
+        var componentDerivedPageReferences = repository.PageBuilderSharedComponentAssetReferences
             .Join(
-                sharedComponentRepository.PageBuilderSharedComponentReferences,
+                repository.PageBuilderSharedComponentReferences,
                 asset => asset.SharedComponentId,
                 placement => placement.SharedComponentId,
                 (asset, placement) => new { asset, placement })
@@ -206,7 +186,7 @@ public class PageBuilderAssetReferenceService(
     }
 
     private static IQueryable<IndexedComponentReferenceResult> CreateIndexedComponentReferencesQuery(
-        IPageBuilderSharedComponentRepository repository)
+        IPageBuilderModuleRepository repository)
     {
         return repository.PageBuilderSharedComponentAssetReferences
             .Join(
@@ -274,7 +254,7 @@ public class PageBuilderAssetReferenceService(
             .ToListAsync(cancellationToken);
     }
 
-    private static void ApplyPageReferenceCounts(
+    private static void EnrichPageReferenceCounts(
         Dictionary<string, PageBuilderAssetReference> references,
         IEnumerable<ReferenceCountResult> referenceGroups)
     {
@@ -287,7 +267,7 @@ public class PageBuilderAssetReferenceService(
         }
     }
 
-    private static void ApplyComponentReferenceCounts(
+    private static void EnrichComponentReferenceCounts(
         Dictionary<string, PageBuilderAssetReference> references,
         IEnumerable<ComponentReferenceCountResult> referenceGroups)
     {
@@ -300,7 +280,7 @@ public class PageBuilderAssetReferenceService(
         }
     }
 
-    private static void ApplyTotalReferenceCounts(IEnumerable<PageBuilderAssetReference> references)
+    private static void EnrichTotalReferenceCounts(IEnumerable<PageBuilderAssetReference> references)
     {
         foreach (var reference in references)
         {
@@ -339,7 +319,7 @@ public class PageBuilderAssetReferenceService(
             .ToListAsync(cancellationToken);
     }
 
-    private static void ApplyReferencePages(
+    private static void EnrichReferencePages(
         Dictionary<string, PageBuilderAssetReference> references,
         IEnumerable<ReferencePageResult> referencePages)
     {
@@ -365,7 +345,7 @@ public class PageBuilderAssetReferenceService(
         }
     }
 
-    private static void ApplyFolderReferencePages(
+    private static void EnrichFolderReferencePages(
         PageBuilderAssetReference reference,
         IEnumerable<ReferencePageResult> referencePages)
     {
@@ -386,7 +366,7 @@ public class PageBuilderAssetReferenceService(
         }
     }
 
-    private static void ApplyReferenceComponents(
+    private static void EnrichReferenceComponents(
         Dictionary<string, PageBuilderAssetReference> references,
         IEnumerable<ReferenceComponentResult> referenceComponents)
     {
@@ -401,7 +381,7 @@ public class PageBuilderAssetReferenceService(
         }
     }
 
-    private static void ApplyFolderReferenceComponents(
+    private static void EnrichFolderReferenceComponents(
         PageBuilderAssetReference reference,
         IEnumerable<ReferenceComponentResult> referenceComponents)
     {

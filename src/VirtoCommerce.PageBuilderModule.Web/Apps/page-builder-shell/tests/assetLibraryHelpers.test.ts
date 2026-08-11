@@ -9,6 +9,7 @@ import {
   getReferencePageNames,
 } from "../src/modules/asset-library/utilities/assetReferences";
 import { getPreviewUrl, toPublicAssetUrl } from "../src/modules/asset-library/utilities/assetUrl";
+import { createAssetLibraryEntryViewModel } from "../src/modules/asset-library/utilities/viewModels";
 import { createLatestRequestTracker } from "../src/utilities/latestRequest";
 
 const origin = "https://admin.example.com";
@@ -36,6 +37,26 @@ function createAssetResult(name: string): AssetSearchResult {
     results: [{ type: "blob", name, relativeUrl: `/folder/${name}` }],
   };
 }
+
+test("asset view model preserves an unavailable reference state", () => {
+  const entry: AssetEntry = { type: "blob", name: "hero.png", relativeUrl: "/folder/hero.png" };
+
+  const viewModel = createAssetLibraryEntryViewModel(entry, {
+    selectedEntryKey: "",
+    notAvailableText: "Not available",
+    getEntryDropFolderUrl: () => undefined,
+    isImage: () => true,
+    getEntryIcon: () => "lucide-image",
+    getReferencesCount: () => 0,
+    areReferencesAvailable: () => false,
+    formatFileSize: () => "1 KB",
+    formatDate: () => "today",
+    getPreviewUrl: () => undefined,
+  });
+
+  assert.equal(viewModel.referencesCount, 0);
+  assert.equal(viewModel.referencesAvailable, false);
+});
 
 test("asset entries loader applies only the newest search result and loading state", async () => {
   const searches = new Map<string, Deferred<AssetSearchResult>>();

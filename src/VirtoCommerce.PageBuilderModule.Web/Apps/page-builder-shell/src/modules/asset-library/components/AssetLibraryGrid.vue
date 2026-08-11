@@ -68,7 +68,10 @@
             v-if="item.isBlob"
             class="asset-card__references"
           >
-            {{ $t("ASSET_LIBRARY.BADGES.REFERENCES", { count: item.referencesCount }) }}
+            <template v-if="item.referencesAvailable">
+              {{ $t("ASSET_LIBRARY.BADGES.REFERENCES", { count: item.referencesCount }) }}
+            </template>
+            <template v-else>—</template>
           </div>
 
           <template v-if="item.isFolder">

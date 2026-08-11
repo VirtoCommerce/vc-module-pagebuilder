@@ -24,9 +24,7 @@ public class PageBuilderSharedComponentSearchService(
         IRepository repository,
         PageBuilderSharedComponentSearchCriteria criteria)
     {
-        var query = ((IPageBuilderModuleRepository)repository)
-            .RequireSharedComponents()
-            .PageBuilderSharedComponents;
+        var query = ((IPageBuilderModuleRepository)repository).PageBuilderSharedComponents;
 
         if (!string.IsNullOrWhiteSpace(criteria.StoreId))
         {

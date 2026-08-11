@@ -5,6 +5,7 @@ using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging.Abstractions;
+using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Data.Services;
 using Xunit;
@@ -159,6 +160,13 @@ public class PageBuilderSharedComponentResolverTests
             return Task.FromResult(content);
         }
 
+        public Task<string> TryLoadContentAsync(
+            PageBuilderSharedComponent expectedComponent,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
         public Task<IReadOnlyDictionary<string, string>> LoadContentsAsync(
             IEnumerable<string> sharedComponentIds,
             CancellationToken cancellationToken = default)
@@ -171,6 +179,14 @@ public class PageBuilderSharedComponentResolverTests
 
         public Task SaveContentAsync(
             string sharedComponentId,
+            string content,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task<bool> TrySaveContentAsync(
+            PageBuilderSharedComponent expectedComponent,
             string content,
             CancellationToken cancellationToken = default)
         {

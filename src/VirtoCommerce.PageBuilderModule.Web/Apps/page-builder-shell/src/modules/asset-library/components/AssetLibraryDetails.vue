@@ -68,11 +68,17 @@
 
     <div class="assets-library__details-section">
       <div class="assets-library__section-title">
-        {{ $t("ASSET_LIBRARY.DETAILS.USED_ON", { count: selectedAsset.referencesCount }) }}
+        <template v-if="selectedAsset.referencesAvailable">
+          {{ $t("ASSET_LIBRARY.DETAILS.USED_ON", { count: selectedAsset.referencesCount }) }}
+        </template>
+        <template v-else>{{ $t("ASSET_LIBRARY.TABLE.REFERENCES") }}</template>
       </div>
 
       <div
-        v-if="selectedAsset.referencePages.length || selectedAsset.referenceSharedComponents.length"
+        v-if="
+          selectedAsset.referencesAvailable &&
+          (selectedAsset.referencePages.length || selectedAsset.referenceSharedComponents.length)
+        "
         class="assets-library__references-list"
       >
         <div
@@ -120,6 +126,9 @@
           </div>
         </div>
       </div>
+      <VcHint v-else-if="!selectedAsset.referencesAvailable">
+        {{ $t("ASSET_LIBRARY.DETAILS.NOT_AVAILABLE") }}
+      </VcHint>
       <VcHint v-else-if="selectedAsset.referencesCount === 0">
         {{ $t("ASSET_LIBRARY.DETAILS.NO_REFERENCES") }}
       </VcHint>

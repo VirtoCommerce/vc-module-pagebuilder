@@ -23,7 +23,7 @@ public class PageBuilderSharedComponentUsageService(
         }
 
         using var repository = repositoryFactory();
-        var usageQuery = CreateUsageQuery(repository.RequireSharedComponents(), result.Keys.ToArray(), storeId);
+        var usageQuery = CreateUsageQuery(repository, result.Keys.ToArray(), storeId);
 
         if (includePages)
         {
@@ -52,7 +52,7 @@ public class PageBuilderSharedComponentUsageService(
     }
 
     private static IQueryable<IndexedUsageResult> CreateUsageQuery(
-        IPageBuilderSharedComponentRepository repository,
+        IPageBuilderModuleRepository repository,
         string[] sharedComponentIds,
         string storeId)
     {

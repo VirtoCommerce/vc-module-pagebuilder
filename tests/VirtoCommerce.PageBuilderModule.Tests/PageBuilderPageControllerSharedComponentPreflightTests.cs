@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
+using VirtoCommerce.PageBuilderModule.Web.Services;
 using VirtoCommerce.Platform.Core.Common;
 using Xunit;
 using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
@@ -242,14 +243,20 @@ public class PageBuilderPageControllerSharedComponentPreflightTests
         IAuthorizationService authorizationService = null)
     {
         var pageService = new PublishedRenameContentPreservationTests.FakePageBuilderPageService(service);
+        var eventPublisher = new PublishedRenameContentPreservationTests.NoopEventPublisher();
+        var pageContentService = new PageBuilderPageContentService(
+            pageService,
+            service,
+            referenceIndex,
+            eventPublisher,
+            NullLogger<PageBuilderPageContentService>.Instance);
         var controller = new PageBuilderPageController(
             pageService,
             service,
             new PublishedRenameContentPreservationTests.FakeGroupedPageSearchService(),
             authorizationService ?? new PublishedRenameContentPreservationTests.AllowAllAuthorizationService(),
             new PublishedRenameContentPreservationTests.NoopPageDocumentSearchService(),
-            referenceIndex,
-            new PublishedRenameContentPreservationTests.NoopEventPublisher(),
+            pageContentService,
             NullLogger<PageBuilderPageController>.Instance);
         var httpContext = new DefaultHttpContext
         {

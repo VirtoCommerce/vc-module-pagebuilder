@@ -1,8 +1,6 @@
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Data.Extensions;
-using VirtoCommerce.PageBuilderModule.Data.Repositories;
-using VirtoCommerce.PageBuilderModule.Data.Services;
 using VirtoCommerce.Pages.Core.ContentProviders;
 using VirtoCommerce.Pages.Core.Models;
 using VirtoCommerce.Platform.Core.Common;
@@ -13,9 +11,9 @@ namespace VirtoCommerce.PageBuilderModule.Data.ContentProviders;
 
 public class PageBuilderContentProvider(
     IPageBuilderPageSearchService pageSearchService,
+    IPageBuilderPageChangeService pageChangeService,
     IGroupedPageService groupedPageService,
-    IPageBuilderSharedComponentResolver sharedComponentResolver,
-    Func<IPageBuilderModuleRepository> repositoryFactory)
+    IPageBuilderSharedComponentResolver sharedComponentResolver)
     : IPageContentProvider
 {
     public string ProviderName => "PageBuilder";
@@ -25,11 +23,8 @@ public class PageBuilderContentProvider(
     {
         var searchCriteria = CreateSearchCriteria(criteria);
         var result = await pageSearchService.SearchAsync(searchCriteria);
-        using var repository = repositoryFactory();
         var effectiveChangeDates = new Dictionary<string, DateTime>(
-            await PageBuilderPageChangeTracking.GetEffectiveChangeDatesAsync(
-                repository,
-                result.Results),
+            await pageChangeService.GetEffectiveChangeDatesAsync(result.Results),
             StringComparer.OrdinalIgnoreCase);
 
         return new PageChangesSearchResult

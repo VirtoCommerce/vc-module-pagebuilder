@@ -21,7 +21,7 @@ public class PageBuilderSharedComponentReferenceIndexServiceTests
     public void ValidateComponentReferences_RejectsMetadataOrphanWithoutContentRow()
     {
         var exception = Assert.Throws<InvalidDataException>(() =>
-            PageBuilderSharedComponentReferenceIndexService.ValidateComponentReferences(
+            PageBuilderSharedComponentReferenceValidator.Validate(
                 ["component"],
                 "store",
                 new Dictionary<string, string> { ["component"] = "store" },

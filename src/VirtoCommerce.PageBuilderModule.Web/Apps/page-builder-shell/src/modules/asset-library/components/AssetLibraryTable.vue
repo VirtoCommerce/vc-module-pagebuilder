@@ -77,7 +77,8 @@
       mobile-role="field"
     >
       <template #body="{ data }">
-        <span v-if="data.isBlob">{{ data.referencesCount }}</span>
+        <span v-if="data.isBlob && data.referencesAvailable">{{ data.referencesCount }}</span>
+        <span v-else-if="data.isBlob">{{ $t("ASSET_LIBRARY.DETAILS.NOT_AVAILABLE") }}</span>
         <span v-else>{{ $t("ASSET_LIBRARY.DETAILS.NOT_AVAILABLE") }}</span>
       </template>
     </VcColumn>

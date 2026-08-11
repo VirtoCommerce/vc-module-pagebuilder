@@ -8,11 +8,7 @@ public interface IPageBuilderSharedComponentContentService
 
     Task<string> TryLoadContentAsync(
         PageBuilderSharedComponent expectedComponent,
-        CancellationToken cancellationToken = default)
-    {
-        // Keep custom implementations compatible and fail closed until they opt in.
-        return Task.FromResult<string>(null);
-    }
+        CancellationToken cancellationToken = default);
 
     Task<IReadOnlyDictionary<string, string>> LoadContentsAsync(
         IEnumerable<string> sharedComponentIds,
@@ -26,9 +22,5 @@ public interface IPageBuilderSharedComponentContentService
     Task<bool> TrySaveContentAsync(
         PageBuilderSharedComponent expectedComponent,
         string content,
-        CancellationToken cancellationToken = default)
-    {
-        // Keep custom implementations compatible and fail closed until they opt in.
-        return Task.FromResult(false);
-    }
+        CancellationToken cancellationToken = default);
 }

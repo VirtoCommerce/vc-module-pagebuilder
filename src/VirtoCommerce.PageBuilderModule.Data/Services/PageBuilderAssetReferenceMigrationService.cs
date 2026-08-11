@@ -10,8 +10,6 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services;
 
 public class PageBuilderAssetReferenceMigrationService(
     Func<IPageBuilderModuleRepository> repositoryFactory,
-    IGroupedPageService groupedPageService,
-    IPageBuilderAssetReferenceIndexService assetReferenceIndexService,
     ISettingsManager settingsManager)
     : IPageBuilderAssetReferenceMigrationService
 {
@@ -62,26 +60,7 @@ public class PageBuilderAssetReferenceMigrationService(
     private async Task RebuildPageAssetReferenceIndexAsync(string pageId)
     {
         using var repository = repositoryFactory();
-        if (repository is IPageBuilderWriteLockRepository writeLockRepository)
-        {
-            await writeLockRepository.ExecuteUnderPageWriteLocksAsync(
-                [pageId],
-                (dbContext, cancellationToken) =>
-                    PageBuilderPageIndexing.RebuildCurrentRawPageAssetIndexAsync(
-                        dbContext,
-                        pageId,
-                        cancellationToken));
-            return;
-        }
-
-        if (groupedPageService == null || assetReferenceIndexService == null)
-        {
-            throw new NotSupportedException(
-                "Page asset migration requires either repository write-lock support or the legacy page index services.");
-        }
-
-        var content = await groupedPageService.LoadContent(pageId);
-        await assetReferenceIndexService.RebuildPageIndexAsync(pageId, content);
+        await repository.RebuildPageAssetReferenceIndexAsync(pageId);
     }
 
     private async Task<IList<PageCursor>> GetPages(PageCursor cursor)

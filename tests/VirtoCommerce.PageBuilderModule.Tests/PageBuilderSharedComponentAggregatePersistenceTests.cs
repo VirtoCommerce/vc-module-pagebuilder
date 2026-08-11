@@ -27,7 +27,11 @@ public class PageBuilderSharedComponentAggregatePersistenceTests
         await using var database = await TestDatabase.CreateAsync();
         using var cache = new TestPlatformMemoryCache();
         var events = new RecordingEventPublisher();
-        var service = new PageBuilderSharedComponentService(database.RepositoryFactory, cache, events);
+        var service = new PageBuilderSharedComponentService(
+            database.RepositoryFactory,
+            cache,
+            events,
+            new PageBuilderSharedComponentAssetReferenceIndexService());
         var model = new PageBuilderSharedComponent
         {
             StoreId = StoreId,
@@ -69,7 +73,11 @@ public class PageBuilderSharedComponentAggregatePersistenceTests
         await database.FailComponentAssetReferenceInsertsAsync();
         using var cache = new TestPlatformMemoryCache();
         var events = new RecordingEventPublisher();
-        var service = new PageBuilderSharedComponentService(database.RepositoryFactory, cache, events);
+        var service = new PageBuilderSharedComponentService(
+            database.RepositoryFactory,
+            cache,
+            events,
+            new PageBuilderSharedComponentAssetReferenceIndexService());
         var model = new PageBuilderSharedComponent
         {
             StoreId = StoreId,
@@ -99,7 +107,10 @@ public class PageBuilderSharedComponentAggregatePersistenceTests
         await database.SeedReferencingPagesAsync();
         await database.FailComponentAssetReferenceInsertsAsync();
         var events = new RecordingEventPublisher();
-        var service = new PageBuilderSharedComponentContentService(database.RepositoryFactory, events);
+        var service = new PageBuilderSharedComponentContentService(
+            database.RepositoryFactory,
+            events,
+            new PageBuilderSharedComponentAssetReferenceIndexService());
 
         await Assert.ThrowsAsync<DbUpdateException>(() => service.SaveContentAsync(
             ComponentId,
@@ -131,7 +142,8 @@ public class PageBuilderSharedComponentAggregatePersistenceTests
         await database.SeedReferencingPagesAsync();
         var service = new PageBuilderSharedComponentContentService(
             database.RepositoryFactory,
-            new ThrowingContentChangedEventPublisher());
+            new ThrowingContentChangedEventPublisher(),
+            new PageBuilderSharedComponentAssetReferenceIndexService());
 
         await service.SaveContentAsync(
             ComponentId,
@@ -151,7 +163,8 @@ public class PageBuilderSharedComponentAggregatePersistenceTests
         var service = new PageBuilderSharedComponentService(
             database.RepositoryFactory,
             cache,
-            new ThrowingContentChangedEventPublisher());
+            new ThrowingContentChangedEventPublisher(),
+            new PageBuilderSharedComponentAssetReferenceIndexService());
 
         await service.SaveWithContentAsync(
             new PageBuilderSharedComponent
@@ -173,7 +186,10 @@ public class PageBuilderSharedComponentAggregatePersistenceTests
         await database.SeedComponentAsync(OldAssetUrl);
         var expectedComponent = await database.LoadComponentAsync();
         var events = new RecordingEventPublisher();
-        var service = new PageBuilderSharedComponentContentService(database.RepositoryFactory, events);
+        var service = new PageBuilderSharedComponentContentService(
+            database.RepositoryFactory,
+            events,
+            new PageBuilderSharedComponentAssetReferenceIndexService());
 
         Assert.Equal(
             ContentWithAsset(OldAssetUrl),
@@ -203,7 +219,8 @@ public class PageBuilderSharedComponentAggregatePersistenceTests
         expectedComponent.StoreId = StoreId.ToUpperInvariant();
         var service = new PageBuilderSharedComponentContentService(
             database.RepositoryFactory,
-            new RecordingEventPublisher());
+            new RecordingEventPublisher(),
+            new PageBuilderSharedComponentAssetReferenceIndexService());
 
         var content = await service.TryLoadContentAsync(
             expectedComponent,
@@ -218,7 +235,10 @@ public class PageBuilderSharedComponentAggregatePersistenceTests
         await using var database = await TestDatabase.CreateAsync();
         await database.SeedComponentAsync(OldAssetUrl);
         var events = new RecordingEventPublisher();
-        var service = new PageBuilderSharedComponentContentService(database.RepositoryFactory, events);
+        var service = new PageBuilderSharedComponentContentService(
+            database.RepositoryFactory,
+            events,
+            new PageBuilderSharedComponentAssetReferenceIndexService());
 
         await service.SaveContentAsync(
             ComponentId,
@@ -251,7 +271,8 @@ public class PageBuilderSharedComponentAggregatePersistenceTests
                     firstWriterHasLock.SetResult();
                     await releaseFirstWriter.Task.WaitAsync(cancellationToken);
                 }),
-            new RecordingEventPublisher());
+            new RecordingEventPublisher(),
+            new PageBuilderSharedComponentAssetReferenceIndexService());
         var secondService = new PageBuilderSharedComponentContentService(
             () => new CoordinatedPageBuilderModuleRepository(
                 database.CreateContext(),
@@ -260,7 +281,8 @@ public class PageBuilderSharedComponentAggregatePersistenceTests
                     secondWriterHasLock.SetResult();
                     return Task.CompletedTask;
                 }),
-            new RecordingEventPublisher());
+            new RecordingEventPublisher(),
+            new PageBuilderSharedComponentAssetReferenceIndexService());
 
         var firstWrite = firstService.SaveContentAsync(
             ComponentId,
@@ -319,7 +341,8 @@ public class PageBuilderSharedComponentAggregatePersistenceTests
                     await releaseAggregateWriter.Task.WaitAsync(cancellationToken);
                 }),
             cache,
-            new RecordingEventPublisher());
+            new RecordingEventPublisher(),
+            new PageBuilderSharedComponentAssetReferenceIndexService());
         var contentService = new PageBuilderSharedComponentContentService(
             () => new CoordinatedPageBuilderModuleRepository(
                 database.CreateContext(),
@@ -328,7 +351,8 @@ public class PageBuilderSharedComponentAggregatePersistenceTests
                     contentWriterHasLock.SetResult();
                     return Task.CompletedTask;
                 }),
-            new RecordingEventPublisher());
+            new RecordingEventPublisher(),
+            new PageBuilderSharedComponentAssetReferenceIndexService());
 
         var aggregateWrite = aggregateService.SaveWithContentAsync(
             new PageBuilderSharedComponent
@@ -380,7 +404,11 @@ public class PageBuilderSharedComponentAggregatePersistenceTests
         await database.SeedComponentAsync(OldAssetUrl);
         using var cache = new TestPlatformMemoryCache();
         var events = new RecordingEventPublisher();
-        var service = new PageBuilderSharedComponentService(database.RepositoryFactory, cache, events);
+        var service = new PageBuilderSharedComponentService(
+            database.RepositoryFactory,
+            cache,
+            events,
+            new PageBuilderSharedComponentAssetReferenceIndexService());
         var model = new PageBuilderSharedComponent
         {
             Id = ComponentId,
@@ -417,7 +445,11 @@ public class PageBuilderSharedComponentAggregatePersistenceTests
         await database.SeedComponentAsync(OldAssetUrl);
         using var cache = new TestPlatformMemoryCache();
         var events = new RecordingEventPublisher();
-        var service = new PageBuilderSharedComponentService(database.RepositoryFactory, cache, events);
+        var service = new PageBuilderSharedComponentService(
+            database.RepositoryFactory,
+            cache,
+            events,
+            new PageBuilderSharedComponentAssetReferenceIndexService());
         var staleModel = new PageBuilderSharedComponent
         {
             Id = ComponentId,
@@ -476,7 +508,11 @@ public class PageBuilderSharedComponentAggregatePersistenceTests
         staleModel.Name = "Unauthorized stale rename";
         using var cache = new TestPlatformMemoryCache();
         var events = new RecordingEventPublisher();
-        var service = new PageBuilderSharedComponentService(database.RepositoryFactory, cache, events);
+        var service = new PageBuilderSharedComponentService(
+            database.RepositoryFactory,
+            cache,
+            events,
+            new PageBuilderSharedComponentAssetReferenceIndexService());
 
         var result = await service.UpdateMetadataAsync(
             staleModel,
@@ -501,7 +537,10 @@ public class PageBuilderSharedComponentAggregatePersistenceTests
         await database.ReplaceComponentAsync(StoreId, replacementCreatedDate, ReplacementAssetUrl);
         await database.SeedReferencingPagesAsync();
         var events = new RecordingEventPublisher();
-        var service = new PageBuilderSharedComponentContentService(database.RepositoryFactory, events);
+        var service = new PageBuilderSharedComponentContentService(
+            database.RepositoryFactory,
+            events,
+            new PageBuilderSharedComponentAssetReferenceIndexService());
 
         var saved = await service.TrySaveContentAsync(
             authorizedSnapshot,
@@ -544,7 +583,8 @@ public class PageBuilderSharedComponentAggregatePersistenceTests
             ReplacementAssetUrl);
         var service = new PageBuilderSharedComponentContentService(
             database.RepositoryFactory,
-            new RecordingEventPublisher());
+            new RecordingEventPublisher(),
+            new PageBuilderSharedComponentAssetReferenceIndexService());
 
         var content = await service.TryLoadContentAsync(
             authorizedSnapshot,
@@ -563,7 +603,11 @@ public class PageBuilderSharedComponentAggregatePersistenceTests
         await database.ReplaceComponentAsync("other-store", replacementCreatedDate, ReplacementAssetUrl);
         using var cache = new TestPlatformMemoryCache();
         var events = new RecordingEventPublisher();
-        var service = new PageBuilderSharedComponentService(database.RepositoryFactory, cache, events);
+        var service = new PageBuilderSharedComponentService(
+            database.RepositoryFactory,
+            cache,
+            events,
+            new PageBuilderSharedComponentAssetReferenceIndexService());
 
         var deleted = await service.TryDeleteAsync(
             authorizedSnapshot,
@@ -596,7 +640,11 @@ public class PageBuilderSharedComponentAggregatePersistenceTests
         var authorizedSnapshot = await database.LoadComponentAsync();
         using var cache = new TestPlatformMemoryCache();
         var events = new RecordingEventPublisher();
-        var service = new PageBuilderSharedComponentService(database.RepositoryFactory, cache, events);
+        var service = new PageBuilderSharedComponentService(
+            database.RepositoryFactory,
+            cache,
+            events,
+            new PageBuilderSharedComponentAssetReferenceIndexService());
 
         var deleted = await service.TryDeleteAsync(
             authorizedSnapshot,
@@ -625,10 +673,17 @@ public class PageBuilderSharedComponentAggregatePersistenceTests
         await database.SeedMetadataOnlyComponentAsync();
         var authorizedSnapshot = await database.LoadComponentAsync();
         var contentEvents = new RecordingEventPublisher();
-        var contentService = new PageBuilderSharedComponentContentService(database.RepositoryFactory, contentEvents);
+        var contentService = new PageBuilderSharedComponentContentService(
+            database.RepositoryFactory,
+            contentEvents,
+            new PageBuilderSharedComponentAssetReferenceIndexService());
         using var cache = new TestPlatformMemoryCache();
         var componentEvents = new RecordingEventPublisher();
-        var componentService = new PageBuilderSharedComponentService(database.RepositoryFactory, cache, componentEvents);
+        var componentService = new PageBuilderSharedComponentService(
+            database.RepositoryFactory,
+            cache,
+            componentEvents,
+            new PageBuilderSharedComponentAssetReferenceIndexService());
 
         var loadedContent = await contentService.TryLoadContentAsync(
             authorizedSnapshot,
@@ -661,7 +716,8 @@ public class PageBuilderSharedComponentAggregatePersistenceTests
         var expectedComponent = await database.LoadComponentAsync();
         var service = new PageBuilderSharedComponentContentService(
             () => new ReadOnlyGuardRepository(database.CreateContext()),
-            new RecordingEventPublisher());
+            new RecordingEventPublisher(),
+            new PageBuilderSharedComponentAssetReferenceIndexService());
 
         var content = await service.TryLoadContentAsync(
             expectedComponent,
@@ -683,7 +739,11 @@ public class PageBuilderSharedComponentAggregatePersistenceTests
         staleModel.Name = "Stale aggregate";
         using var cache = new TestPlatformMemoryCache();
         var events = new RecordingEventPublisher();
-        var service = new PageBuilderSharedComponentService(database.RepositoryFactory, cache, events);
+        var service = new PageBuilderSharedComponentService(
+            database.RepositoryFactory,
+            cache,
+            events,
+            new PageBuilderSharedComponentAssetReferenceIndexService());
 
         await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => service.SaveWithContentAsync(
             staleModel,
@@ -717,7 +777,11 @@ public class PageBuilderSharedComponentAggregatePersistenceTests
 
         using var cache = new TestPlatformMemoryCache();
         var events = new RecordingEventPublisher();
-        var service = new PageBuilderSharedComponentService(database.RepositoryFactory, cache, events);
+        var service = new PageBuilderSharedComponentService(
+            database.RepositoryFactory,
+            cache,
+            events,
+            new PageBuilderSharedComponentAssetReferenceIndexService());
 
         await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => service.SaveWithContentAsync(
             staleModel,
@@ -738,7 +802,8 @@ public class PageBuilderSharedComponentAggregatePersistenceTests
         var service = new PageBuilderSharedComponentService(
             database.RepositoryFactory,
             cache,
-            new RecordingEventPublisher());
+            new RecordingEventPublisher(),
+            new PageBuilderSharedComponentAssetReferenceIndexService());
         var model = new PageBuilderSharedComponent
         {
             Id = "imported-component",
@@ -776,7 +841,11 @@ public class PageBuilderSharedComponentAggregatePersistenceTests
         second.Name = "Updated B";
         using var cache = new TestPlatformMemoryCache();
         var events = new RecordingEventPublisher();
-        var service = new PageBuilderSharedComponentService(database.RepositoryFactory, cache, events);
+        var service = new PageBuilderSharedComponentService(
+            database.RepositoryFactory,
+            cache,
+            events,
+            new PageBuilderSharedComponentAssetReferenceIndexService());
 
         await Assert.ThrowsAsync<KeyNotFoundException>(() => service.SaveChangesAsync([first, second]));
 
@@ -801,7 +870,11 @@ public class PageBuilderSharedComponentAggregatePersistenceTests
         await database.FailSecondComponentUpdatesAsync();
         using var cache = new TestPlatformMemoryCache();
         var events = new RecordingEventPublisher();
-        var service = new PageBuilderSharedComponentService(database.RepositoryFactory, cache, events);
+        var service = new PageBuilderSharedComponentService(
+            database.RepositoryFactory,
+            cache,
+            events,
+            new PageBuilderSharedComponentAssetReferenceIndexService());
 
         await Assert.ThrowsAsync<DbUpdateException>(() => service.SaveChangesAsync([first, second]));
 
@@ -827,7 +900,11 @@ public class PageBuilderSharedComponentAggregatePersistenceTests
         first.ModifiedBy = "spoofed-modifier";
         using var cache = new TestPlatformMemoryCache();
         var events = new RecordingEventPublisher();
-        var service = new PageBuilderSharedComponentService(database.RepositoryFactory, cache, events);
+        var service = new PageBuilderSharedComponentService(
+            database.RepositoryFactory,
+            cache,
+            events,
+            new PageBuilderSharedComponentAssetReferenceIndexService());
 
         await service.SaveChangesAsync([first, second]);
 
@@ -853,7 +930,8 @@ public class PageBuilderSharedComponentAggregatePersistenceTests
         var commands = new CountingCommandInterceptor();
         var service = new PageBuilderSharedComponentContentService(
             () => new PageBuilderModuleRepository(database.CreateContext(commands)),
-            new RecordingEventPublisher());
+            new RecordingEventPublisher(),
+            new PageBuilderSharedComponentAssetReferenceIndexService());
 
         await service.SaveContentAsync(
             ComponentId,

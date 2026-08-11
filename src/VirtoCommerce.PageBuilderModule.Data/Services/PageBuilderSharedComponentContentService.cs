@@ -13,6 +13,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services;
 public class PageBuilderSharedComponentContentService(
     Func<IPageBuilderModuleRepository> repositoryFactory,
     IEventPublisher eventPublisher,
+    PageBuilderSharedComponentAssetReferenceIndexService assetReferenceIndexService,
     ILogger<PageBuilderSharedComponentContentService> logger = null)
     : IPageBuilderSharedComponentContentService
 {
@@ -28,8 +29,7 @@ public class PageBuilderSharedComponentContentService(
         }
 
         using var repository = repositoryFactory();
-        var sharedComponentRepository = repository.RequireSharedComponents();
-        return await sharedComponentRepository.PageBuilderSharedComponentContents
+        return await repository.PageBuilderSharedComponentContents
             .Where(x => x.Id == sharedComponentId)
             .Select(x => x.ComponentContent)
             .FirstOrDefaultAsync(cancellationToken);
@@ -42,8 +42,7 @@ public class PageBuilderSharedComponentContentService(
         ValidateExpectedComponent(expectedComponent);
 
         using var repository = repositoryFactory();
-        var sharedComponentRepository = repository.RequireSharedComponents();
-        var result = await sharedComponentRepository.PageBuilderSharedComponentContents
+        var result = await repository.PageBuilderSharedComponentContents
             .Where(x =>
                 x.Id == expectedComponent.Id &&
                 x.Component.CreatedDate == expectedComponent.CreatedDate)
@@ -75,12 +74,11 @@ public class PageBuilderSharedComponentContentService(
         }
 
         using var repository = repositoryFactory();
-        var sharedComponentRepository = repository.RequireSharedComponents();
         var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var batch in ids.Chunk(QueryBatchSize))
         {
-            var contents = await sharedComponentRepository.PageBuilderSharedComponentContents
+            var contents = await repository.PageBuilderSharedComponentContents
                 .Where(x => batch.Contains(x.Id))
                 .Select(x => new { x.Id, x.ComponentContent })
                 .ToListAsync(cancellationToken);
@@ -155,19 +153,12 @@ public class PageBuilderSharedComponentContentService(
     {
         using (var repository = repositoryFactory())
         {
-            if (repository is not IPageBuilderWriteLockRepository writeLockRepository ||
-                repository is not IPageBuilderSharedComponentRepository sharedComponentRepository)
-            {
-                throw new NotSupportedException("Shared Component writes require repository write-lock support.");
-            }
-
             var contentSaved = false;
-            var componentExists = await writeLockRepository.ExecuteUnderSharedComponentWriteLockAsync(
+            var componentExists = await repository.ExecuteUnderSharedComponentWriteLockAsync(
                 sharedComponentId,
                 async transactionCancellationToken =>
                     contentSaved = await TryPersistContentInCurrentUnitOfWorkAsync(
                         repository,
-                        sharedComponentRepository,
                         sharedComponentId,
                         expectedComponent,
                         content,
@@ -178,17 +169,16 @@ public class PageBuilderSharedComponentContentService(
         }
     }
 
-    private static async Task<bool> TryPersistContentInCurrentUnitOfWorkAsync(
+    private async Task<bool> TryPersistContentInCurrentUnitOfWorkAsync(
         IPageBuilderModuleRepository repository,
-        IPageBuilderSharedComponentRepository sharedComponentRepository,
         string sharedComponentId,
         PageBuilderSharedComponent expectedComponent,
         string content,
         CancellationToken cancellationToken)
     {
-        var component = await sharedComponentRepository.PageBuilderSharedComponents
+        var component = await repository.PageBuilderSharedComponents
             .FirstAsync(x => x.Id == sharedComponentId, cancellationToken);
-        var contentEntity = await sharedComponentRepository.PageBuilderSharedComponentContents
+        var contentEntity = await repository.PageBuilderSharedComponentContents
             .FirstOrDefaultAsync(x => x.Id == sharedComponentId, cancellationToken);
 
         if (expectedComponent != null &&
@@ -205,7 +195,7 @@ public class PageBuilderSharedComponentContentService(
 
         UpsertContent(repository, sharedComponentId, content, contentEntity);
         TouchMetadata(component);
-        await PageBuilderSharedComponentAssetReferenceIndexService.RebuildIndexInCurrentUnitOfWorkAsync(
+        await assetReferenceIndexService.RebuildIndexInCurrentUnitOfWorkAsync(
             repository,
             sharedComponentId,
             content,

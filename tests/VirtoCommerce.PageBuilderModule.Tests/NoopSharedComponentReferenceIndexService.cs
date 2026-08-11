@@ -12,11 +12,6 @@ internal class NoopSharedComponentReferenceIndexService : IPageBuilderSharedComp
         IEnumerable<string> contents,
         CancellationToken cancellationToken = default) => Task.CompletedTask;
 
-    public virtual Task RebuildPageIndexAsync(
-        string pageId,
-        string content,
-        CancellationToken cancellationToken = default) => Task.CompletedTask;
-
     public virtual Task<IList<string>> GetPageIdsAsync(
         IEnumerable<string> sharedComponentIds,
         CancellationToken cancellationToken = default) => Task.FromResult<IList<string>>([]);

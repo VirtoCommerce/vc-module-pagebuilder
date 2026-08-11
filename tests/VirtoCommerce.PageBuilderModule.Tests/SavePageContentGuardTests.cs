@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
+using VirtoCommerce.PageBuilderModule.Web.Services;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Events;
 using Xunit;
@@ -183,14 +184,20 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             IEventPublisher eventPublisher = null)
         {
             var pageService = new PublishedRenameContentPreservationTests.FakePageBuilderPageService(service);
+            var publisher = eventPublisher ?? new PublishedRenameContentPreservationTests.NoopEventPublisher();
+            var pageContentService = new PageBuilderPageContentService(
+                pageService,
+                service,
+                new NoopSharedComponentReferenceIndexService(),
+                publisher,
+                NullLogger<PageBuilderPageContentService>.Instance);
             var controller = new PageBuilderPageController(
                 crudService: pageService,
                 groupedPageService: service,
                 groupedPageSearchService: new PublishedRenameContentPreservationTests.FakeGroupedPageSearchService(),
                 authorizationService: new PublishedRenameContentPreservationTests.AllowAllAuthorizationService(),
                 pageDocumentSearchService: new PublishedRenameContentPreservationTests.NoopPageDocumentSearchService(),
-                sharedComponentReferenceIndexService: new NoopSharedComponentReferenceIndexService(),
-                eventPublisher: eventPublisher ?? new PublishedRenameContentPreservationTests.NoopEventPublisher(),
+                pageContentService: pageContentService,
                 logger: NullLogger<PageBuilderPageController>.Instance);
 
             var httpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity()) };

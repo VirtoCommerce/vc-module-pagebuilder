@@ -13,6 +13,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
+using VirtoCommerce.PageBuilderModule.Web.Services;
 using VirtoCommerce.Pages.Core.Models;
 using VirtoCommerce.Pages.Core.Search;
 using VirtoCommerce.Platform.Core.Common;
@@ -131,14 +132,19 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         private static PageBuilderPageController CreateController(FakeGroupedPageService service)
         {
             var pageService = new FakePageBuilderPageService(service);
+            var pageContentService = new PageBuilderPageContentService(
+                pageService,
+                service,
+                new NoopSharedComponentReferenceIndexService(),
+                new NoopEventPublisher(),
+                NullLogger<PageBuilderPageContentService>.Instance);
             var controller = new PageBuilderPageController(
                 crudService: pageService,
                 groupedPageService: service,
                 groupedPageSearchService: new FakeGroupedPageSearchService(),
                 authorizationService: new AllowAllAuthorizationService(),
                 pageDocumentSearchService: new NoopPageDocumentSearchService(),
-                sharedComponentReferenceIndexService: new NoopSharedComponentReferenceIndexService(),
-                eventPublisher: new NoopEventPublisher(),
+                pageContentService: pageContentService,
                 logger: NullLogger<PageBuilderPageController>.Instance);
 
             var httpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity()) };

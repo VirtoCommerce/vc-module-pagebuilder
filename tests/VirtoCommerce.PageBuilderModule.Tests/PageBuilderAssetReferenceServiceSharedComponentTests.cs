@@ -79,7 +79,8 @@ public class PageBuilderAssetReferenceServiceSharedComponentTests
         await using var database = await TestDatabase.CreateAsync();
         var contentService = new PageBuilderSharedComponentContentService(
             database.RepositoryFactory,
-            new NoopEventPublisher());
+            new NoopEventPublisher(),
+            new PageBuilderSharedComponentAssetReferenceIndexService());
         await contentService.SaveContentAsync(
             ComponentId,
             $"{{ \"settings\": {{ \"image\": \"{ReplacementAssetUrl}\" }}, \"content\": [] }}",

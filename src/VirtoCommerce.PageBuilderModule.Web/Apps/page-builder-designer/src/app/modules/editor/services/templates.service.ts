@@ -69,7 +69,7 @@ export class TemplatesService {
         const context = { groupId, content: pageContent };
         const saveGroupedPage = this.appConfig.getValue('saveGroupedPage', context);
         const request = this.http.generateRequest(saveGroupedPage, null, context);
-        return this.http.doRequest(request);
+        return this.http.doRequest(request, { nullWhenError: false }, null);
     }
 
     saveTemplates(templates: { entry: TemplateEntry, content: TemplateModel }[]): Observable<any> {

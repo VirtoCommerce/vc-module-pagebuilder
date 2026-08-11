@@ -39,9 +39,7 @@ public class GroupedPageStoreMoveConcurrencyTests
             () => throw new InvalidOperationException("Content repository is not used by this test."),
             cache,
             new NoopEventPublisher(),
-            NullLogger<GroupedPageService>.Instance,
-            new NoopAssetReferenceIndexService(),
-            new NoopSharedComponentReferenceIndexService());
+            NullLogger<GroupedPageService>.Instance);
         var model = new GroupedPageBuilderPage
         {
             Id = GroupId,
@@ -88,9 +86,7 @@ public class GroupedPageStoreMoveConcurrencyTests
             () => throw new InvalidOperationException("Content repository is not used by this test."),
             cache,
             new NoopEventPublisher(),
-            NullLogger<GroupedPageService>.Instance,
-            new NoopAssetReferenceIndexService(),
-            new NoopSharedComponentReferenceIndexService());
+            NullLogger<GroupedPageService>.Instance);
         var model = new GroupedPageBuilderPage
         {
             Id = GroupId,
@@ -192,9 +188,7 @@ public class GroupedPageStoreMoveConcurrencyTests
             () => throw new InvalidOperationException("Content repository is not used by this test."),
             cache,
             eventPublisher ?? new NoopEventPublisher(),
-            NullLogger<GroupedPageService>.Instance,
-            new NoopAssetReferenceIndexService(),
-            new NoopSharedComponentReferenceIndexService());
+            NullLogger<GroupedPageService>.Instance);
     }
 
     private sealed class CoordinatedRepository(PageBuilderModuleDbContext dbContext)
@@ -202,40 +196,24 @@ public class GroupedPageStoreMoveConcurrencyTests
     {
         public override Task ExecuteUnderGroupedPageWriteLocksAsync(
             IEnumerable<string> groupIds,
-            Func<PageBuilderModuleDbContext, CancellationToken, Task> operation,
+            Func<CancellationToken, Task> operation,
             CancellationToken cancellationToken = default)
         {
             return base.ExecuteUnderGroupedPageWriteLocksAsync(
                 groupIds,
-                async (context, transactionCancellationToken) =>
+                async transactionCancellationToken =>
                 {
-                    context.Add(new PageBuilderSharedComponentReferenceEntity
+                    Add(new PageBuilderSharedComponentReferenceEntity
                     {
                         Id = Guid.NewGuid().ToString("N"),
                         PageId = PageId,
                         SharedComponentId = ComponentId,
                     });
-                    await context.SaveChangesAsync(transactionCancellationToken);
-                    await operation(context, transactionCancellationToken);
+                    await UnitOfWork.CommitAsync();
+                    await operation(transactionCancellationToken);
                 },
                 cancellationToken);
         }
-    }
-
-    private sealed class NoopAssetReferenceIndexService : IPageBuilderAssetReferenceIndexService
-    {
-        public Task RebuildPageIndexAsync(
-            string pageId,
-            string content,
-            CancellationToken cancellationToken = default) => Task.CompletedTask;
-
-        public Task DeletePageIndexAsync(
-            IEnumerable<string> pageIds,
-            CancellationToken cancellationToken = default) => Task.CompletedTask;
-
-        public Task DeleteGroupIndexAsync(
-            IEnumerable<string> groupIds,
-            CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 
     private sealed class NoopEventPublisher : IEventPublisher

@@ -262,6 +262,72 @@ test("details loader suppresses an obsolete request error after another componen
   assert.equal(selectedComponent?.name, "Fresh B");
 });
 
+test("delete permission gate stops before refreshing or deleting", async () => {
+  const component = createComponent("a");
+  let refreshes = 0;
+  let confirmations = 0;
+  let deletes = 0;
+
+  const deleted = await deleteSharedComponentWithPreflight(component, {
+    allowed: false,
+    refreshComponent: async () => {
+      refreshes++;
+      return component;
+    },
+    confirm: async () => {
+      confirmations++;
+      return true;
+    },
+    deleteComponent: async () => {
+      deletes++;
+    },
+    reload: async () => undefined,
+    onBlocked: () => undefined,
+    onDeleted: () => undefined,
+    onConflict: () => undefined,
+    onError: () => undefined,
+  });
+
+  assert.equal(deleted, false);
+  assert.equal(refreshes, 0);
+  assert.equal(confirmations, 0);
+  assert.equal(deletes, 0);
+});
+
+test("delete preflight stops when fresh usage cannot be loaded", async () => {
+  const component = createComponent("a");
+  const refreshError = new Error("Refresh failed");
+  let confirmations = 0;
+  let deletes = 0;
+  let receivedError: unknown;
+
+  const deleted = await deleteSharedComponentWithPreflight(component, {
+    allowed: true,
+    refreshComponent: async () => {
+      throw refreshError;
+    },
+    confirm: async () => {
+      confirmations++;
+      return true;
+    },
+    deleteComponent: async () => {
+      deletes++;
+    },
+    reload: async () => undefined,
+    onBlocked: () => undefined,
+    onDeleted: () => undefined,
+    onConflict: () => undefined,
+    onError: (error) => {
+      receivedError = error;
+    },
+  });
+
+  assert.equal(deleted, false);
+  assert.equal(confirmations, 0);
+  assert.equal(deletes, 0);
+  assert.equal(receivedError, refreshError);
+});
+
 test("delete preflight blocks deletion using fresh usage and emits one blocked notification", async () => {
   const staleComponent = createComponent("a", 0);
   const freshComponent = createComponent("a", 3);

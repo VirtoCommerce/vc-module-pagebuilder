@@ -14,6 +14,7 @@ export type DeleteAssetReferences = AssetReferenceDetails;
 export function useAssetReferences(storeId: Ref<string | null | undefined>) {
   const { searchAssetReferences, searchFolderReferences } = useAssetsLibraryApi();
   const assetReferences = ref<Record<string, AssetReferenceState>>({});
+  const unavailableReferenceUrls = ref<Set<string>>(new Set());
 
   async function loadAssetReferences(
     assetEntries: AssetEntry[],
@@ -28,18 +29,24 @@ export function useAssetReferences(storeId: Ref<string | null | undefined>) {
     if (!currentStoreId || !assetUrls.length) {
       if (isCurrent()) {
         assetReferences.value = {};
+        unavailableReferenceUrls.value = new Set();
         return true;
       }
 
       return false;
     }
 
-    let references: Awaited<ReturnType<typeof searchAssetReferences>> = [];
+    let references: Awaited<ReturnType<typeof searchAssetReferences>>;
 
     try {
       references = await searchAssetReferences(currentStoreId, assetUrls, false);
     } catch {
-      // Keep the asset library usable if reference lookup is temporarily unavailable.
+      if (!isCurrent()) {
+        return false;
+      }
+
+      unavailableReferenceUrls.value = new Set([...unavailableReferenceUrls.value, ...assetUrls]);
+      return true;
     }
 
     if (!isCurrent()) {
@@ -53,6 +60,9 @@ export function useAssetReferences(storeId: Ref<string | null | undefined>) {
 
       return result;
     }, {});
+    const unavailableUrls = new Set(unavailableReferenceUrls.value);
+    assetUrls.forEach((url) => unavailableUrls.delete(url));
+    unavailableReferenceUrls.value = unavailableUrls;
     return true;
   }
 
@@ -85,6 +95,9 @@ export function useAssetReferences(storeId: Ref<string | null | undefined>) {
         reference?.assetUrl ? { [reference.assetUrl]: referenceState } : {},
       ),
     };
+    const unavailableUrls = new Set(unavailableReferenceUrls.value);
+    getAssetUrls(entry).forEach((url) => unavailableUrls.delete(url));
+    unavailableReferenceUrls.value = unavailableUrls;
     return true;
   }
 
@@ -101,6 +114,10 @@ export function useAssetReferences(storeId: Ref<string | null | undefined>) {
     return getAssetUrls(entry)
       .map((url) => assetReferences.value[url])
       .find(Boolean);
+  }
+
+  function areReferencesAvailable(entry: AssetEntry | undefined): boolean {
+    return !getAssetUrls(entry).some((url) => unavailableReferenceUrls.value.has(url));
   }
 
   async function getDeleteReferences(entry: AssetEntry): Promise<DeleteAssetReferences> {
@@ -197,12 +214,14 @@ export function useAssetReferences(storeId: Ref<string | null | undefined>) {
   return {
     resetAssetReferences: () => {
       assetReferences.value = {};
+      unavailableReferenceUrls.value = new Set();
     },
     loadAssetReferences,
     loadAssetReferenceDetails,
     applyAssetReferences,
     getReferenceDetails,
     getReferencesCount: (entry: AssetEntry) => getReferenceDetails(entry).referencesCount,
+    areReferencesAvailable,
     getDeleteReferences,
   };
 }

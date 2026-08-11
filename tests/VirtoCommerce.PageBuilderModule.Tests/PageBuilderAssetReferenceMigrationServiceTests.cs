@@ -20,24 +20,6 @@ namespace VirtoCommerce.PageBuilderModule.Tests;
 public class PageBuilderAssetReferenceMigrationServiceTests
 {
     [Fact]
-    public async Task RebuildPageAssetReferenceIndex_LegacyRepositoryUsesLegacyIndexServices()
-    {
-        await using var database = await MigrationDatabase.CreateAsync();
-        var loadedPageIds = new List<string>();
-        var indexedPageIds = new List<string>();
-        var migration = new PageBuilderAssetReferenceMigrationService(
-            () => new LegacyRepository(new PageBuilderModuleRepository(database.CreateContext())),
-            new RecordingGroupedPageService(loadedPageIds),
-            new RecordingPageAssetReferenceIndexService(indexedPageIds),
-            settingsManager: null);
-
-        await migration.RebuildPageAssetReferenceIndex();
-
-        Assert.Equal(101, loadedPageIds.Count);
-        Assert.Equal(loadedPageIds, indexedPageIds);
-    }
-
-    [Fact]
     public async Task RebuildPageAssetReferenceIndex_ConcurrentDeletionDoesNotSkipNextPage()
     {
         await using var database = await MigrationDatabase.CreateAsync();
@@ -55,8 +37,6 @@ public class PageBuilderAssetReferenceMigrationServiceTests
                 });
         var migration = new PageBuilderAssetReferenceMigrationService(
             repositoryFactory,
-            groupedPageService: null,
-            assetReferenceIndexService: null,
             settingsManager: null);
 
         await migration.RebuildPageAssetReferenceIndex();
@@ -103,8 +83,6 @@ public class PageBuilderAssetReferenceMigrationServiceTests
                 });
         var migration = new PageBuilderAssetReferenceMigrationService(
             repositoryFactory,
-            groupedPageService: null,
-            assetReferenceIndexService: null,
             settingsManager: null);
 
         var migrationTask = migration.RebuildPageAssetReferenceIndex();
@@ -183,95 +161,13 @@ public class PageBuilderAssetReferenceMigrationServiceTests
         Assert.Contains("WHERE", pageSql, StringComparison.OrdinalIgnoreCase);
     }
 
-    private sealed class RecordingGroupedPageService(IList<string> pageIds) : IGroupedPageService
-    {
-        public Task<IList<GroupedPageBuilderPage>> GetAsync(
-            IList<string> ids,
-            string responseGroup = null,
-            bool clone = true) => Task.FromResult<IList<GroupedPageBuilderPage>>([]);
-
-        public Task SaveChangesAsync(IList<GroupedPageBuilderPage> models) => Task.CompletedTask;
-        public Task DeleteAsync(IList<string> ids, bool softDelete = false) => Task.CompletedTask;
-
-        public Task<string> LoadContent(string pageId, CancellationToken cancellationToken = default)
-        {
-            pageIds.Add(pageId);
-            return Task.FromResult("{ \"settings\": {}, \"content\": [] }");
-        }
-
-        public Task SaveContent(string pageId, string content, CancellationToken cancellationToken = default) =>
-            Task.CompletedTask;
-
-        public Task<bool> LoadContentToStreamAsync(
-            string pageId,
-            Stream stream,
-            CancellationToken cancellationToken = default) => Task.FromResult(false);
-
-        public Task SaveStreamAsContentAsync(
-            string pageId,
-            Stream stream,
-            CancellationToken cancellationToken = default) => Task.CompletedTask;
-
-        public Task CopyPageContentAsync(
-            string sourcePageId,
-            string targetPageId,
-            CancellationToken cancellationToken = default) => Task.CompletedTask;
-
-        public Task<bool> TryDeleteEmptyDraftAsync(
-            string pageId,
-            CancellationToken cancellationToken = default) => Task.FromResult(false);
-    }
-
-    private sealed class RecordingPageAssetReferenceIndexService(IList<string> pageIds)
-        : IPageBuilderAssetReferenceIndexService
-    {
-        public Task RebuildPageIndexAsync(
-            string pageId,
-            string content,
-            CancellationToken cancellationToken = default)
-        {
-            pageIds.Add(pageId);
-            return Task.CompletedTask;
-        }
-
-        public Task DeletePageIndexAsync(
-            IEnumerable<string> pageIds,
-            CancellationToken cancellationToken = default) => Task.CompletedTask;
-
-        public Task DeleteGroupIndexAsync(
-            IEnumerable<string> groupIds,
-            CancellationToken cancellationToken = default) => Task.CompletedTask;
-    }
-
-    private sealed class LegacyRepository(PageBuilderModuleRepository inner) : IPageBuilderModuleRepository
-    {
-        public IQueryable<PageBuilderPageEntity> PageBuilderPages => inner.PageBuilderPages;
-        public IQueryable<GroupedPageBuilderPageEntity> GroupedPageBuilderPages => inner.GroupedPageBuilderPages;
-        public IQueryable<PageBuilderAssetReferenceEntity> PageBuilderAssetReferences => inner.PageBuilderAssetReferences;
-        public IUnitOfWork UnitOfWork => inner.UnitOfWork;
-
-        public Task<IList<PageBuilderPageEntity>> GetPageBuilderPagesByIdsAsync(
-            IList<string> ids,
-            string responseGroup) => inner.GetPageBuilderPagesByIdsAsync(ids, responseGroup);
-
-        public Task<IList<GroupedPageBuilderPageEntity>> GetGroupedPageBuilderPagesByIdsAsync(
-            IList<string> ids,
-            string responseGroup) => inner.GetGroupedPageBuilderPagesByIdsAsync(ids, responseGroup);
-
-        public void Attach<T>(T item) where T : class => inner.Attach(item);
-        public void Add<T>(T item) where T : class => inner.Add(item);
-        public void Update<T>(T item) where T : class => inner.Update(item);
-        public void Remove<T>(T item) where T : class => inner.Remove(item);
-        public void Dispose() => inner.Dispose();
-    }
-
     private sealed class CoordinatedRepository(
         PageBuilderModuleDbContext dbContext,
         Func<Task> afterPage) : PageBuilderModuleRepository(dbContext)
     {
         public override async Task ExecuteUnderPageWriteLocksAsync(
             IEnumerable<string> pageIds,
-            Func<PageBuilderModuleDbContext, CancellationToken, Task> operation,
+            Func<CancellationToken, Task> operation,
             CancellationToken cancellationToken = default)
         {
             await base.ExecuteUnderPageWriteLocksAsync(pageIds, operation, cancellationToken);
@@ -285,16 +181,16 @@ public class PageBuilderAssetReferenceMigrationServiceTests
     {
         public override Task ExecuteUnderPageWriteLocksAsync(
             IEnumerable<string> pageIds,
-            Func<PageBuilderModuleDbContext, CancellationToken, Task> operation,
+            Func<CancellationToken, Task> operation,
             CancellationToken cancellationToken = default)
         {
             var ids = pageIds.ToArray();
             return base.ExecuteUnderPageWriteLocksAsync(
                 ids,
-                async (context, transactionCancellationToken) =>
+                async transactionCancellationToken =>
                 {
                     await afterPageLocks(ids);
-                    await operation(context, transactionCancellationToken);
+                    await operation(transactionCancellationToken);
                 },
                 cancellationToken);
         }
@@ -389,17 +285,9 @@ public class PageBuilderAssetReferenceMigrationServiceTests
             await using var context = CreateContext();
             var repository = new SqliteContentStreamRepository(context);
             var content = $"{{ \"settings\": {{ \"image\": \"{assetUrl}\" }}, \"content\": [] }}";
-            using var reader = new StringReader(content);
-            await repository.SaveBinaryAsync(
+            await repository.SavePageContentAsync(
                 pageId,
-                reader,
-                (dbContext, cancellationToken) =>
-                    PageBuilderPageIndexing.RebuildAfterRawContentWriteAsync(
-                        dbContext,
-                        pageId,
-                        content,
-                        "store",
-                        cancellationToken),
+                content,
                 TestContext.Current.CancellationToken);
         }
 

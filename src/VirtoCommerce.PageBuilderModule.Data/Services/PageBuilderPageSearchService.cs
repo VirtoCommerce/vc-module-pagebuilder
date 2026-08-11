@@ -39,11 +39,50 @@ public class PageBuilderPageSearchService(
             query = query.Where(x => criteria.ObjectIds.Contains(x.Id));
         }
 
-        return PageBuilderPageChangeTracking.ApplyDateRange(
+        return ApplyDateRange(
             query,
             pageBuilderRepository,
             criteria.ModifiedSince,
             criteria.ModifiedBefore);
+    }
+
+    private static IQueryable<PageBuilderPageEntity> ApplyDateRange(
+        IQueryable<PageBuilderPageEntity> pages,
+        IPageBuilderModuleRepository repository,
+        DateTime? modifiedSince,
+        DateTime? modifiedBefore)
+    {
+        if (modifiedSince.HasValue)
+        {
+            var start = modifiedSince.Value;
+            pages = pages.Where(page =>
+                (page.ModifiedDate ?? page.CreatedDate) >= start ||
+                repository.PageBuilderSharedComponentReferences
+                    .Where(reference => reference.PageId == page.Id)
+                    .Join(
+                        repository.PageBuilderSharedComponents,
+                        reference => reference.SharedComponentId,
+                        component => component.Id,
+                        (_, component) => component.ModifiedDate ?? component.CreatedDate)
+                    .Any(changeDate => changeDate >= start));
+        }
+
+        if (modifiedBefore.HasValue)
+        {
+            var end = modifiedBefore.Value;
+            pages = pages.Where(page =>
+                (page.ModifiedDate ?? page.CreatedDate) <= end &&
+                !repository.PageBuilderSharedComponentReferences
+                    .Where(reference => reference.PageId == page.Id)
+                    .Join(
+                        repository.PageBuilderSharedComponents,
+                        reference => reference.SharedComponentId,
+                        component => component.Id,
+                        (_, component) => component.ModifiedDate ?? component.CreatedDate)
+                    .Any(changeDate => changeDate > end));
+        }
+
+        return pages;
     }
 
     protected override IList<SortInfo> BuildSortExpression(PageBuilderPageSearchCriteria criteria)

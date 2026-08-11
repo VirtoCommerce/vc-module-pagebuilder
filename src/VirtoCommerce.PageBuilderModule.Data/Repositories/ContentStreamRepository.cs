@@ -6,12 +6,8 @@ using VirtoCommerce.PageBuilderModule.Data.Models;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Repositories;
 
-// "owner" is the DI scope the DbContext was resolved from, when the caller created one just to build this
-// repository. Disposing it is what returns the pooled connection; without it the context lives until GC and the
-// connection opened below stays checked out of the pool. It is optional so a caller that owns the context itself
-// (tests, or an ambient request scope) can pass none and keep responsibility for its lifetime.
-public abstract class ContentStreamRepository(PageBuilderModuleDbContext dbContext, IDisposable owner = null)
-    : ITransactionalContentStreamRepository
+public abstract class ContentStreamRepository(PageBuilderModuleDbContext dbContext)
+    : IContentStreamRepository
 {
     private const int DefaultContentBufferSize = 8192;
     protected virtual int ContentBufferSize => DefaultContentBufferSize;
@@ -46,25 +42,40 @@ public abstract class ContentStreamRepository(PageBuilderModuleDbContext dbConte
         $"UPDATE {Table} SET {ContentColumn} = (SELECT {ContentColumn} FROM {Table} WHERE {IdColumn} = @sourceId) " +
         $"WHERE {IdColumn} = @id";
 
-    public async Task SaveBinaryAsync(string pageId, TextReader reader, CancellationToken cancellationToken = default)
+    internal Task SaveRawContentAsync(string pageId, TextReader reader, CancellationToken cancellationToken = default)
     {
-        await SaveBinaryAsync(pageId, reader, updateIndexesAsync: null, cancellationToken);
+        return ExecuteInTransactionAsync(
+            transactionCancellationToken => SaveBinaryInternalAsync(pageId, reader, transactionCancellationToken),
+            cancellationToken);
     }
 
-    public async Task SaveBinaryAsync(
+    public Task SavePageContentAsync(
         string pageId,
-        TextReader reader,
-        Func<PageBuilderModuleDbContext, CancellationToken, Task> updateIndexesAsync,
+        string content,
         CancellationToken cancellationToken = default)
+    {
+        return ExecuteInTransactionAsync(
+            async transactionCancellationToken =>
+            {
+                var groupStoreId = await GetGroupStoreIdBeforePageLockAsync(pageId, transactionCancellationToken);
+                using var reader = new StringReader(content ?? string.Empty);
+                await SaveBinaryInternalAsync(pageId, reader, transactionCancellationToken);
+                await RebuildIndexesAfterRawContentWriteAsync(
+                    pageId,
+                    content,
+                    groupStoreId,
+                    transactionCancellationToken);
+            },
+            cancellationToken);
+    }
+
+    private async Task ExecuteInTransactionAsync(
+        Func<CancellationToken, Task> operation,
+        CancellationToken cancellationToken)
     {
         if (dbContext.Database.CurrentTransaction != null)
         {
-            await SaveBinaryInternalAsync(pageId, reader, cancellationToken);
-            if (updateIndexesAsync != null)
-            {
-                await updateIndexesAsync(dbContext, cancellationToken);
-            }
-
+            await operation(cancellationToken);
             return;
         }
 
@@ -72,12 +83,7 @@ public abstract class ContentStreamRepository(PageBuilderModuleDbContext dbConte
             IsolationLevel.ReadCommitted,
             cancellationToken);
 
-        await SaveBinaryInternalAsync(pageId, reader, cancellationToken);
-        if (updateIndexesAsync != null)
-        {
-            await updateIndexesAsync(dbContext, cancellationToken);
-        }
-
+        await operation(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
     }
 
@@ -144,12 +150,6 @@ public abstract class ContentStreamRepository(PageBuilderModuleDbContext dbConte
         }
     }
 
-    [Obsolete("Cannot distinguish missing content from empty content. Use TryLoadBinaryAsync instead.")]
-    public Task LoadBinaryAsync(string pageId, TextWriter writer, CancellationToken cancellationToken = default)
-    {
-        return TryLoadBinaryAsync(pageId, writer, cancellationToken);
-    }
-
     public async Task<bool> TryLoadBinaryAsync(string pageId, TextWriter writer, CancellationToken cancellationToken = default)
     {
         var connection = dbContext.Database.GetDbConnection();
@@ -184,39 +184,71 @@ public abstract class ContentStreamRepository(PageBuilderModuleDbContext dbConte
         }
     }
 
-    public Task CopyContentAsync(string sourcePageId, string targetPageId, CancellationToken cancellationToken = default)
-    {
-        return CopyContentInternalAsync(sourcePageId, targetPageId, cancellationToken);
-    }
-
-    public async Task CopyContentAsync(
+    public Task CopyPageContentAsync(
         string sourcePageId,
         string targetPageId,
-        Func<PageBuilderModuleDbContext, CancellationToken, Task> updateIndexesAsync,
         CancellationToken cancellationToken = default)
     {
-        if (dbContext.Database.CurrentTransaction != null)
-        {
-            await CopyContentInternalAsync(sourcePageId, targetPageId, cancellationToken);
-            if (updateIndexesAsync != null)
+        return ExecuteInTransactionAsync(
+            async transactionCancellationToken =>
             {
-                await updateIndexesAsync(dbContext, cancellationToken);
-            }
-
-            return;
-        }
-
-        await using var transaction = await dbContext.Database.BeginTransactionAsync(
-            IsolationLevel.ReadCommitted,
+                var groupStoreId = await GetGroupStoreIdBeforePageLockAsync(
+                    targetPageId,
+                    transactionCancellationToken);
+                await CopyContentInternalAsync(sourcePageId, targetPageId, transactionCancellationToken);
+                await RebuildIndexesAfterContentCopyAsync(
+                    targetPageId,
+                    groupStoreId,
+                    transactionCancellationToken);
+            },
             cancellationToken);
+    }
 
-        await CopyContentInternalAsync(sourcePageId, targetPageId, cancellationToken);
-        if (updateIndexesAsync != null)
-        {
-            await updateIndexesAsync(dbContext, cancellationToken);
-        }
+    protected virtual Task RebuildIndexesAfterRawContentWriteAsync(
+        string pageId,
+        string content,
+        string groupStoreId,
+        CancellationToken cancellationToken)
+    {
+        return PageBuilderPageIndexing.RebuildAfterRawContentWriteAsync(
+            dbContext,
+            pageId,
+            content,
+            groupStoreId,
+            cancellationToken);
+    }
 
-        await transaction.CommitAsync(cancellationToken);
+    private async Task RebuildIndexesAfterContentCopyAsync(
+        string targetPageId,
+        string groupStoreId,
+        CancellationToken cancellationToken)
+    {
+        var copiedContent = await dbContext.Set<PageBuilderContentEntity>()
+            .AsNoTracking()
+            .Where(x => x.Id == targetPageId)
+            .Select(x => x.PageContent)
+            .FirstOrDefaultAsync(cancellationToken);
+        await RebuildIndexesAfterRawContentWriteAsync(
+            targetPageId,
+            copiedContent,
+            groupStoreId,
+            cancellationToken);
+    }
+
+    private async Task<string> GetGroupStoreIdBeforePageLockAsync(
+        string pageId,
+        CancellationToken cancellationToken)
+    {
+        var groupStoreId = await dbContext.Set<PageBuilderPageEntity>()
+            .Where(x => x.Id == pageId)
+            .Join(
+                dbContext.Set<GroupedPageBuilderPageEntity>(),
+                page => page.GroupId,
+                group => group.Id,
+                (_, group) => group.StoreId)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return groupStoreId ?? throw new KeyNotFoundException($"Page '{pageId}' was not found or has no store.");
     }
 
     private async Task CopyContentInternalAsync(
@@ -255,16 +287,12 @@ public abstract class ContentStreamRepository(PageBuilderModuleDbContext dbConte
         }
     }
 
-    public ValueTask DisposeAsync()
-    {
-        owner?.Dispose();
-        return ValueTask.CompletedTask;
-    }
+    public ValueTask DisposeAsync() => dbContext.DisposeAsync();
 
     // PageContent is NULL for a freshly created draft page (no content written yet) and may be NULL
     // for imported/legacy rows. Npgsql's GetTextReader throws InvalidCastException on a NULL column,
     // so guard with IsDBNull first. NULL is reported as "no content" rather than empty content — an empty
-    // string is a value SaveBinaryAsync writes deliberately, NULL means nothing was ever written.
+    // string is a value SaveRawContentAsync writes deliberately, NULL means nothing was ever written.
     // Returns whether content was found.
     protected static async Task<bool> CopyContentToWriterAsync(
         DbDataReader reader, TextWriter writer, int bufferSize, CancellationToken cancellationToken)

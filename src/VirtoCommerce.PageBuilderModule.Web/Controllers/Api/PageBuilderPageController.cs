@@ -14,14 +14,12 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using VirtoCommerce.ContentModule.Core.Model;
 using VirtoCommerce.PageBuilderModule.Core;
-using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Data.Authorization;
 using VirtoCommerce.PageBuilderModule.Web.Services;
 using VirtoCommerce.Pages.Core.Search;
 using VirtoCommerce.Platform.Core.Common;
-using VirtoCommerce.Platform.Core.Events;
 using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 
 namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
@@ -38,15 +36,13 @@ public class PageBuilderPageController : Controller
     private readonly PageBuilderPageContentService pageContentService;
     private readonly ILogger<PageBuilderPageController> logger;
 
-#pragma warning disable S107 // Preserve the published controller constructor for source and binary compatibility.
     public PageBuilderPageController(
         IPageBuilderPageService crudService,
         IGroupedPageService groupedPageService,
         IGroupedPageSearchService groupedPageSearchService,
         IAuthorizationService authorizationService,
         IPageDocumentSearchService pageDocumentSearchService,
-        IPageBuilderSharedComponentReferenceIndexService sharedComponentReferenceIndexService,
-        IEventPublisher eventPublisher,
+        PageBuilderPageContentService pageContentService,
         ILogger<PageBuilderPageController> logger)
     {
         this.crudService = crudService;
@@ -54,15 +50,9 @@ public class PageBuilderPageController : Controller
         this.groupedPageSearchService = groupedPageSearchService;
         this.authorizationService = authorizationService;
         this.pageDocumentSearchService = pageDocumentSearchService;
-        pageContentService = new PageBuilderPageContentService(
-            crudService,
-            groupedPageService,
-            sharedComponentReferenceIndexService,
-            eventPublisher,
-            logger);
+        this.pageContentService = pageContentService;
         this.logger = logger;
     }
-#pragma warning restore S107
 
     [HttpPost("search")]
     [Authorize(ModuleConstants.Security.Permissions.Read)]
@@ -517,7 +507,7 @@ public class PageBuilderPageController : Controller
         bool hasSharedComponents;
         try
         {
-            hasSharedComponents = PageBuilderPageContentService.HasSharedComponentReferences(content);
+            hasSharedComponents = pageContentService.HasSharedComponentReferences(content);
         }
         catch (InvalidDataException ex)
         {

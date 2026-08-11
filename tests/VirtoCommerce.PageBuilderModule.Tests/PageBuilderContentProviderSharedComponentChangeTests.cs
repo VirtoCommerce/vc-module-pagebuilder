@@ -17,7 +17,6 @@ using VirtoCommerce.PageBuilderModule.Data.Repositories;
 using VirtoCommerce.PageBuilderModule.Data.Services;
 using VirtoCommerce.Pages.Core.Models;
 using VirtoCommerce.Platform.Core.Caching;
-using VirtoCommerce.Platform.Core.Domain;
 using VirtoCommerce.Platform.Core.Events;
 using VirtoCommerce.Platform.Core.GenericCrud;
 using Xunit;
@@ -74,29 +73,6 @@ public class PageBuilderContentProviderSharedComponentChangeTests
     }
 
     [Fact]
-    public async Task SearchChangesAsync_LegacyRepositoryUsesPageDatesWithoutSharedComponentQueries()
-    {
-        await using var database = await TestDatabase.CreateAsync();
-        await database.SeedAsync();
-        using var cache = new TestPlatformMemoryCache();
-        var provider = CreateProvider(
-            database,
-            cache,
-            repositoryFactory: database.LegacyRepositoryFactory);
-
-        var result = await provider.SearchChangesAsync(new PageChangesSearchCriteria
-        {
-            StartDate = OwnPageChangeDate.AddTicks(-1),
-            EndDate = OwnPageChangeDate,
-            Take = 10,
-        });
-
-        var change = Assert.Single(result.Results);
-        Assert.Equal(PageWithoutComponentsId, change.DocumentId);
-        Assert.Equal(OwnPageChangeDate, change.ChangeDate);
-    }
-
-    [Fact]
     public async Task GetByIdsAsync_MaterializesSharedComponentWithoutChangingRawPageContent()
     {
         await using var database = await TestDatabase.CreateAsync();
@@ -138,7 +114,8 @@ public class PageBuilderContentProviderSharedComponentChangeTests
         await database.SeedAsync();
         var contentService = new PageBuilderSharedComponentContentService(
             database.RepositoryFactory,
-            new NoopEventPublisher());
+            new NoopEventPublisher(),
+            new PageBuilderSharedComponentAssetReferenceIndexService());
         var started = DateTime.UtcNow;
 
         await contentService.SaveContentAsync(
@@ -185,16 +162,17 @@ public class PageBuilderContentProviderSharedComponentChangeTests
             Options.Create(new CrudOptions()));
         contentService ??= new PageBuilderSharedComponentContentService(
             database.RepositoryFactory,
-            new NoopEventPublisher());
+            new NoopEventPublisher(),
+            new PageBuilderSharedComponentAssetReferenceIndexService());
         var resolver = new PageBuilderSharedComponentResolver(
             contentService,
             NullLogger<PageBuilderSharedComponentResolver>.Instance);
 
         return new PageBuilderContentProvider(
             searchService,
+            new PageBuilderPageChangeService(repositoryFactory),
             new TestGroupedPageService(database),
-            resolver,
-            repositoryFactory);
+            resolver);
     }
 
     private sealed class NoopEventPublisher : IEventPublisher
@@ -260,6 +238,9 @@ public class PageBuilderContentProviderSharedComponentChangeTests
             string sourcePageId,
             string targetPageId,
             CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<bool> TryDeleteEmptyDraftAsync(
+            string pageId,
+            CancellationToken cancellationToken = default) => throw new NotSupportedException();
     }
 
     private sealed class TestDatabase : IAsyncDisposable
@@ -276,9 +257,6 @@ public class PageBuilderContentProviderSharedComponentChangeTests
 
         public Func<IPageBuilderModuleRepository> RepositoryFactory =>
             () => new PageBuilderModuleRepository(CreateContext());
-
-        public Func<IPageBuilderModuleRepository> LegacyRepositoryFactory =>
-            () => new LegacyRepository(new PageBuilderModuleRepository(CreateContext()));
 
         public static async Task<TestDatabase> CreateAsync()
         {
@@ -398,34 +376,6 @@ public class PageBuilderContentProviderSharedComponentChangeTests
                 SharedComponentId = componentId,
             };
         }
-    }
-
-    private sealed class LegacyRepository(PageBuilderModuleRepository inner) : IPageBuilderModuleRepository
-    {
-        public IQueryable<PageBuilderPageEntity> PageBuilderPages => inner.PageBuilderPages;
-        public IQueryable<GroupedPageBuilderPageEntity> GroupedPageBuilderPages => inner.GroupedPageBuilderPages;
-        public IQueryable<PageBuilderAssetReferenceEntity> PageBuilderAssetReferences => inner.PageBuilderAssetReferences;
-        public IUnitOfWork UnitOfWork => inner.UnitOfWork;
-
-        public Task<IList<PageBuilderPageEntity>> GetPageBuilderPagesByIdsAsync(
-            IList<string> ids,
-            string responseGroup)
-        {
-            return inner.GetPageBuilderPagesByIdsAsync(ids, responseGroup);
-        }
-
-        public Task<IList<GroupedPageBuilderPageEntity>> GetGroupedPageBuilderPagesByIdsAsync(
-            IList<string> ids,
-            string responseGroup)
-        {
-            return inner.GetGroupedPageBuilderPagesByIdsAsync(ids, responseGroup);
-        }
-
-        public void Attach<T>(T item) where T : class => inner.Attach(item);
-        public void Add<T>(T item) where T : class => inner.Add(item);
-        public void Update<T>(T item) where T : class => inner.Update(item);
-        public void Remove<T>(T item) where T : class => inner.Remove(item);
-        public void Dispose() => inner.Dispose();
     }
 
     private const string StoreId = "store";

@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
+using VirtoCommerce.PageBuilderModule.Web.Services;
 using Xunit;
 using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 
@@ -239,14 +240,19 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             PublishedRenameContentPreservationTests.FakeGroupedPageService service)
         {
             var pageService = new PublishedRenameContentPreservationTests.FakePageBuilderPageService(service);
+            var pageContentService = new PageBuilderPageContentService(
+                pageService,
+                service,
+                new NoopSharedComponentReferenceIndexService(),
+                new PublishedRenameContentPreservationTests.NoopEventPublisher(),
+                NullLogger<PageBuilderPageContentService>.Instance);
             var controller = new PageBuilderPageController(
                 crudService: pageService,
                 groupedPageService: service,
                 groupedPageSearchService: new PublishedRenameContentPreservationTests.FakeGroupedPageSearchService(),
                 authorizationService: new PublishedRenameContentPreservationTests.AllowAllAuthorizationService(),
                 pageDocumentSearchService: new PublishedRenameContentPreservationTests.NoopPageDocumentSearchService(),
-                sharedComponentReferenceIndexService: new NoopSharedComponentReferenceIndexService(),
-                eventPublisher: new PublishedRenameContentPreservationTests.NoopEventPublisher(),
+                pageContentService: pageContentService,
                 logger: NullLogger<PageBuilderPageController>.Instance);
 
             var httpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity()) };
@@ -259,14 +265,19 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             PublishedRenameContentPreservationTests.FakeGroupedPageService service, string groupId, bool draft)
         {
             var pageService = new PublishedRenameContentPreservationTests.FakePageBuilderPageService(service);
+            var pageContentService = new PageBuilderPageContentService(
+                pageService,
+                service,
+                new NoopSharedComponentReferenceIndexService(),
+                new PublishedRenameContentPreservationTests.NoopEventPublisher(),
+                NullLogger<PageBuilderPageContentService>.Instance);
             var controller = new PageBuilderPageController(
                 crudService: pageService,
                 groupedPageService: service,
                 groupedPageSearchService: new PublishedRenameContentPreservationTests.FakeGroupedPageSearchService(),
                 authorizationService: new PublishedRenameContentPreservationTests.AllowAllAuthorizationService(),
                 pageDocumentSearchService: new PublishedRenameContentPreservationTests.NoopPageDocumentSearchService(),
-                sharedComponentReferenceIndexService: new NoopSharedComponentReferenceIndexService(),
-                eventPublisher: new PublishedRenameContentPreservationTests.NoopEventPublisher(),
+                pageContentService: pageContentService,
                 logger: NullLogger<PageBuilderPageController>.Instance);
 
             var httpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity()) };

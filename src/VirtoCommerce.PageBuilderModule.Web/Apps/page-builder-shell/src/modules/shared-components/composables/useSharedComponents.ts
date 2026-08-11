@@ -80,6 +80,28 @@ export function useSharedComponents(): IUseSharedComponents {
     },
   });
 
+  const pagination = useDataTablePagination({
+    stateKey: "page_builder_shared_components",
+    pageSize: DEFAULT_PAGE_SIZE,
+    totalCount: computed(() => searchResult.value.totalCount),
+    onPageChange: ({ skip }) => {
+      detailsLoader.invalidate();
+      selectedComponent.value = undefined;
+      void loadComponents({ skip }).catch((error) => {
+        pagination.setPage(lastSuccessfulPage);
+        retryLastLoadOperation = async () => {
+          const applied = await loadComponents({ skip });
+          if (applied) {
+            pagination.setPage(Math.floor(skip / pagination.pageSize) + 1);
+            retryLastLoadOperation = undefined;
+          }
+        };
+        notification.error(parseError(error).message);
+      });
+    },
+  });
+  lastSuccessfulPage = pagination.currentPage;
+
   async function loadComponents(query?: SharedComponentSearchCriteria): Promise<boolean> {
     const request = searchRequests.begin();
     const requestCriteria = { ...searchQuery.value, ...(query ?? {}) };
@@ -199,31 +221,10 @@ export function useSharedComponents(): IUseSharedComponents {
     { notify: false },
   );
 
-  const pagination = useDataTablePagination({
-    stateKey: "page_builder_shared_components",
-    pageSize: DEFAULT_PAGE_SIZE,
-    totalCount: computed(() => searchResult.value.totalCount),
-    onPageChange: ({ skip }) => {
-      detailsLoader.invalidate();
-      selectedComponent.value = undefined;
-      void loadComponents({ skip }).catch((error) => {
-        pagination.setPage(lastSuccessfulPage);
-        retryLastLoadOperation = async () => {
-          const applied = await loadComponents({ skip });
-          if (applied) {
-            pagination.setPage(Math.floor(skip / pagination.pageSize) + 1);
-            retryLastLoadOperation = undefined;
-          }
-        };
-        notification.error(parseError(error).message);
-      });
-    },
-  });
-
   async function initialize() {
     initUrlParams();
     try {
-      await loadComponents();
+      await loadComponents({ skip: pagination.skip });
       retryLastLoadOperation = undefined;
     } catch (error) {
       retryLastLoadOperation = initialize;

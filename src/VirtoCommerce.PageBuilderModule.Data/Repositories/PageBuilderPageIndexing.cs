@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using VirtoCommerce.PageBuilderModule.Data.Models;
-using VirtoCommerce.PageBuilderModule.Data.Repositories;
+using VirtoCommerce.PageBuilderModule.Data.Services;
 
-namespace VirtoCommerce.PageBuilderModule.Data.Services;
+namespace VirtoCommerce.PageBuilderModule.Data.Repositories;
 
 internal static class PageBuilderPageIndexing
 {
@@ -12,7 +12,7 @@ internal static class PageBuilderPageIndexing
         PageBuilderModuleDbContext dbContext,
         string pageId,
         string rawContent,
-        string fallbackStoreId,
+        string groupStoreId,
         CancellationToken cancellationToken)
     {
         EnsureTransaction(dbContext);
@@ -27,7 +27,7 @@ internal static class PageBuilderPageIndexing
             throw new KeyNotFoundException($"Page '{pageId}' was not found.");
         }
 
-        var pageStoreId = page.StoreId ?? fallbackStoreId;
+        var pageStoreId = page.StoreId ?? groupStoreId;
         if (string.IsNullOrWhiteSpace(pageStoreId))
         {
             throw new InvalidDataException($"Page '{pageId}' has no store.");
@@ -46,12 +46,12 @@ internal static class PageBuilderPageIndexing
             pageStoreId,
             cancellationToken);
 
-        await PageBuilderSharedComponentReferenceIndexService.ReplacePageIndexInCurrentUnitOfWorkAsync(
+        await ReplaceSharedComponentIndexAsync(
             dbContext,
             pageId,
             sharedComponentIds,
             cancellationToken);
-        await PageBuilderAssetReferenceIndexService.ReplacePageIndexInCurrentUnitOfWorkAsync(
+        await ReplaceAssetReferenceIndexAsync(
             dbContext,
             pageId,
             rawContent,
@@ -72,7 +72,7 @@ internal static class PageBuilderPageIndexing
             .Select(x => x.PageContent)
             .FirstOrDefaultAsync(cancellationToken);
 
-        await PageBuilderAssetReferenceIndexService.ReplacePageIndexInCurrentUnitOfWorkAsync(
+        await ReplaceAssetReferenceIndexAsync(
             dbContext,
             pageId,
             rawContent,
@@ -113,11 +113,66 @@ internal static class PageBuilderPageIndexing
             contentIds.UnionWith(batchContentIds);
         }
 
-        PageBuilderSharedComponentReferenceIndexService.ValidateComponentReferences(
+        PageBuilderSharedComponentReferenceValidator.Validate(
             sharedComponentIds,
             pageStoreId,
             componentStores,
             contentIds);
+    }
+
+    private static async Task ReplaceSharedComponentIndexAsync(
+        PageBuilderModuleDbContext dbContext,
+        string pageId,
+        IEnumerable<string> sharedComponentIds,
+        CancellationToken cancellationToken)
+    {
+        var existingReferences = await dbContext.Set<PageBuilderSharedComponentReferenceEntity>()
+            .Where(x => x.PageId == pageId)
+            .ToListAsync(cancellationToken);
+        dbContext.RemoveRange(existingReferences);
+
+        await dbContext.AddRangeAsync(
+            sharedComponentIds.Select(sharedComponentId => new PageBuilderSharedComponentReferenceEntity
+            {
+                Id = Guid.NewGuid().ToString("N"),
+                PageId = pageId,
+                SharedComponentId = sharedComponentId,
+            }),
+            cancellationToken);
+    }
+
+    private static async Task ReplaceAssetReferenceIndexAsync(
+        PageBuilderModuleDbContext dbContext,
+        string pageId,
+        string content,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(pageId))
+        {
+            return;
+        }
+
+        var pageExists = await dbContext.Set<PageBuilderPageEntity>()
+            .AnyAsync(x => x.Id == pageId, cancellationToken);
+        var existingReferences = await dbContext.Set<PageBuilderAssetReferenceEntity>()
+            .Where(x => x.PageId == pageId)
+            .ToListAsync(cancellationToken);
+
+        dbContext.RemoveRange(existingReferences);
+
+        if (pageExists)
+        {
+            await dbContext.AddRangeAsync(
+                PageBuilderAssetReferenceMatcher.ExtractReferences(content)
+                    .Select(reference => new PageBuilderAssetReferenceEntity
+                    {
+                        Id = Guid.NewGuid().ToString("N"),
+                        PageId = pageId,
+                        NormalizedAssetUrl = reference,
+                        NormalizedAssetUrlHash = PageBuilderAssetReferenceMatcher.GetAssetUrlHash(reference),
+                    }),
+                cancellationToken);
+        }
     }
 
     private static void EnsureTransaction(PageBuilderModuleDbContext dbContext)

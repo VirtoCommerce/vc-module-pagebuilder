@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
@@ -18,21 +17,16 @@ using VirtoCommerce.PageBuilderModule.Data.Authorization;
 using VirtoCommerce.PageBuilderModule.Data.ContentProviders;
 using VirtoCommerce.PageBuilderModule.Data.ExportImport;
 using VirtoCommerce.PageBuilderModule.Data.Handlers;
-using VirtoCommerce.PageBuilderModule.Data.MySql;
-using VirtoCommerce.PageBuilderModule.Data.PostgreSql;
 using VirtoCommerce.PageBuilderModule.Data.Repositories;
 using VirtoCommerce.PageBuilderModule.Data.Search;
 using VirtoCommerce.PageBuilderModule.Data.Services;
-using VirtoCommerce.PageBuilderModule.Data.SqlServer;
+using VirtoCommerce.PageBuilderModule.Web.Services;
 using VirtoCommerce.Pages.Core.ContentProviders;
 using VirtoCommerce.Platform.Core.Events;
 using VirtoCommerce.Platform.Core.ExportImport;
 using VirtoCommerce.Platform.Core.Modularity;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.Platform.Core.Settings;
-using VirtoCommerce.Platform.Data.MySql.Extensions;
-using VirtoCommerce.Platform.Data.PostgreSql.Extensions;
-using VirtoCommerce.Platform.Data.SqlServer.Extensions;
 using VirtoCommerce.StoreModule.Core.Model;
 
 namespace VirtoCommerce.PageBuilderModule.Web
@@ -46,31 +40,12 @@ namespace VirtoCommerce.PageBuilderModule.Web
 
         public void Initialize(IServiceCollection serviceCollection)
         {
-            var databaseProvider = Configuration.GetValue("DatabaseProvider", "SqlServer");
-            serviceCollection.AddDbContext<PageBuilderModuleDbContext>(options =>
-            {
-                var connectionString = Configuration.GetConnectionString(ModuleInfo.Id) ?? Configuration.GetConnectionString("VirtoCommerce");
-
-                switch (databaseProvider)
-                {
-                    case "MySql":
-                        options.UseMySqlDatabase(connectionString, typeof(MySqlDataAssemblyMarker), Configuration);
-                        break;
-                    case "PostgreSql":
-                        options.UsePostgreSqlDatabase(connectionString, typeof(PostgreSqlDataAssemblyMarker), Configuration);
-                        break;
-                    default:
-                        options.UseSqlServerDatabase(connectionString, typeof(SqlServerDataAssemblyMarker), Configuration);
-                        break;
-                }
-            });
+            serviceCollection.AddPageBuilderRepositories(Configuration, ModuleInfo);
 
             // Register services
-            serviceCollection.AddTransient<IPageBuilderModuleRepository, PageBuilderModuleRepository>();
-            serviceCollection.AddSingleton<Func<IPageBuilderModuleRepository>>(provider => () => provider.CreateScope().ServiceProvider.GetRequiredService<IPageBuilderModuleRepository>());
-
             serviceCollection.AddTransient<IPageBuilderPageService, PageBuilderPageService>();
             serviceCollection.AddTransient<IPageBuilderPageSearchService, PageBuilderPageSearchService>();
+            serviceCollection.AddTransient<IPageBuilderPageChangeService, PageBuilderPageChangeService>();
 
             serviceCollection.AddTransient<PageBuilderPageChangedEventHandler>();
 
@@ -84,6 +59,8 @@ namespace VirtoCommerce.PageBuilderModule.Web
             serviceCollection.AddTransient<IPageBuilderSharedComponentResolver, PageBuilderSharedComponentResolver>();
             serviceCollection.AddTransient<IPageBuilderSharedComponentReferenceIndexService, PageBuilderSharedComponentReferenceIndexService>();
             serviceCollection.AddTransient<IPageBuilderSharedComponentUsageService, PageBuilderSharedComponentUsageService>();
+            serviceCollection.AddTransient<PageBuilderSharedComponentAssetReferenceIndexService>();
+            serviceCollection.AddTransient<PageBuilderPageContentService>();
 
             serviceCollection.AddTransient<GroupedPageBuilderPageChangedEventHandler>();
             serviceCollection.AddTransient<PageBuilderSharedComponentContentChangedEventHandler>();
@@ -93,6 +70,7 @@ namespace VirtoCommerce.PageBuilderModule.Web
             serviceCollection.AddTransient<IPageContentProvider, PageBuilderContentProvider>();
             serviceCollection.AddTransient<IPagesMigrationService, PagesMigrationService>();
             serviceCollection.AddTransient<IPageBuilderAssetReferenceMigrationService, PageBuilderAssetReferenceMigrationService>();
+            serviceCollection.AddTransient<PageBuilderSharedComponentExportImport>();
             serviceCollection.AddTransient<PageBuilderExportImport>();
 
             var isFullTextSearchEnabled = Configuration.IsContentFullTextSearchEnabled();
@@ -102,19 +80,6 @@ namespace VirtoCommerce.PageBuilderModule.Web
                 serviceCollection.AddTransient<PageBuilderContentItemBuilder>();
             }
 
-            // The scope is handed to the repository, which disposes it together with the DbContext it owns.
-            // Callers must dispose the repository (await using) or the pooled connection is never released.
-            serviceCollection.AddSingleton<Func<IContentStreamRepository>>(provider => () =>
-            {
-                var scope = provider.CreateScope();
-                var db = scope.ServiceProvider.GetRequiredService<PageBuilderModuleDbContext>();
-                return databaseProvider switch
-                {
-                    "MySql" => new MySqlContentStreamRepository(db, scope),
-                    "PostgreSql" => new PostgreSqlContentStreamRepository(db, scope),
-                    _ => new SqlServerContentStreamRepository(db, scope)
-                };
-            });
         }
 
         public void PostInitialize(IApplicationBuilder appBuilder)
@@ -143,8 +108,7 @@ namespace VirtoCommerce.PageBuilderModule.Web
 
             // Apply migrations
             using var serviceScope = serviceProvider.CreateScope();
-            using var dbContext = serviceScope.ServiceProvider.GetRequiredService<PageBuilderModuleDbContext>();
-            dbContext.Database.Migrate();
+            serviceScope.ServiceProvider.MigratePageBuilderDatabase();
 
             // Run pages migration
             var pagesMigrationService = serviceScope.ServiceProvider.GetRequiredService<IPagesMigrationService>();

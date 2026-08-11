@@ -16,19 +16,19 @@ using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 
 namespace VirtoCommerce.PageBuilderModule.Web.Services;
 
-internal sealed class PageBuilderPageContentService(
+public sealed class PageBuilderPageContentService(
     IPageBuilderPageService pageService,
     IGroupedPageService groupedPageService,
     IPageBuilderSharedComponentReferenceIndexService sharedComponentReferenceIndexService,
     IEventPublisher eventPublisher,
-    ILogger logger)
+    ILogger<PageBuilderPageContentService> logger)
 {
-    internal static bool HasSharedComponentReferences(string content)
+    public bool HasSharedComponentReferences(string content)
     {
         return PageBuilderSharedComponentReferenceMatcher.HasReferences(content);
     }
 
-    internal Task ValidateReferencesForStoreAsync(
+    public Task ValidateReferencesForStoreAsync(
         string storeId,
         string content,
         CancellationToken cancellationToken)
@@ -39,7 +39,7 @@ internal sealed class PageBuilderPageContentService(
             cancellationToken);
     }
 
-    internal async Task<PageBuilderPageContentWriteResult> SaveGroupUpdateAsync(
+    public async Task<PageBuilderPageContentWriteResult> SaveGroupUpdateAsync(
         GroupedPageBuilderPage groupedPage,
         string sourcePageId,
         CancellationToken cancellationToken)
@@ -83,7 +83,7 @@ internal sealed class PageBuilderPageContentService(
         return PageBuilderPageContentWriteResult.Success;
     }
 
-    internal async Task UpdateGroupSettingsAsync(
+    public async Task UpdateGroupSettingsAsync(
         string pageId,
         GroupedPageBuilderPage groupedPage,
         CancellationToken cancellationToken)
@@ -92,7 +92,7 @@ internal sealed class PageBuilderPageContentService(
         await RaisePageContentChangedAsync(pageId, cancellationToken);
     }
 
-    internal async Task<PageBuilderPageContentWriteResult> SaveContentAsync(
+    public async Task<PageBuilderPageContentWriteResult> SaveContentAsync(
         string groupId,
         GroupedPageBuilderPage groupedPage,
         string content,
@@ -115,7 +115,7 @@ internal sealed class PageBuilderPageContentService(
         return PageBuilderPageContentWriteResult.Success;
     }
 
-    internal async Task<PageBuilderPageContentWriteResult> CopyContentAsync(
+    public async Task<PageBuilderPageContentWriteResult> CopyContentAsync(
         string targetGroupId,
         GroupedPageBuilderPage targetGroup,
         string sourcePageId,
@@ -277,7 +277,7 @@ internal sealed class PageBuilderPageContentService(
     private sealed record DraftPage(PageBuilderPage Page, string CreatedPageId);
 }
 
-internal sealed record PageBuilderPageContentWriteResult(bool PageFound, string ErrorMessage)
+public sealed record PageBuilderPageContentWriteResult(bool PageFound, string ErrorMessage)
 {
     public static PageBuilderPageContentWriteResult Success { get; } = new(true, null);
     public static PageBuilderPageContentWriteResult NotFound { get; } = new(false, null);

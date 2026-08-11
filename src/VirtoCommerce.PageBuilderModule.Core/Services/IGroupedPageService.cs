@@ -19,9 +19,6 @@ namespace VirtoCommerce.PageBuilderModule.Core.Services
         Task CopyPageContentAsync(string sourcePageId, string targetPageId,
             CancellationToken cancellationToken = default);
 
-        Task<bool> TryDeleteEmptyDraftAsync(string pageId, CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult(false);
-        }
+        Task<bool> TryDeleteEmptyDraftAsync(string pageId, CancellationToken cancellationToken = default);
     }
 }

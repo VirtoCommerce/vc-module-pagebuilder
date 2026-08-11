@@ -20,7 +20,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests;
 public class PageContentAtomicWriteTests
 {
     [Fact]
-    public async Task SaveBinaryAsync_ConcurrentWritersKeepRawContentAndReferenceIndexOnSameVersion()
+    public async Task SavePageContentAsync_ConcurrentWritersKeepRawContentAndReferenceIndexOnSameVersion()
     {
         await using var database = await TestDatabase.CreateAsync();
         var firstWriterReachedCommitBoundary = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -30,9 +30,8 @@ public class PageContentAtomicWriteTests
         var firstWrite = SaveAsync(
             database.ConnectionString,
             ComponentAContent,
-            async (dbContext, cancellationToken) =>
+            async cancellationToken =>
             {
-                await RebuildIndexesAsync(dbContext, ComponentAContent, cancellationToken);
                 firstWriterReachedCommitBoundary.SetResult();
                 await releaseFirstWriter.Task.WaitAsync(cancellationToken);
             });
@@ -42,10 +41,10 @@ public class PageContentAtomicWriteTests
             () => SaveAsync(
                 database.ConnectionString,
                 ComponentBContent,
-                async (dbContext, cancellationToken) =>
+                cancellationToken =>
                 {
-                    await RebuildIndexesAsync(dbContext, ComponentBContent, cancellationToken);
                     secondWriterReachedCommitBoundary.SetResult();
+                    return Task.CompletedTask;
                 }),
             TestContext.Current.CancellationToken);
 
@@ -65,22 +64,15 @@ public class PageContentAtomicWriteTests
     }
 
     [Fact]
-    public async Task SaveBinaryAsync_IndexFailureRollsBackRawContentAndReferencesTogether()
+    public async Task SavePageContentAsync_IndexFailureRollsBackRawContentAndReferencesTogether()
     {
         await using var database = await TestDatabase.CreateAsync();
-        await SaveAsync(
-            database.ConnectionString,
-            ComponentAContent,
-            (dbContext, cancellationToken) => RebuildIndexesAsync(dbContext, ComponentAContent, cancellationToken));
+        await SaveAsync(database.ConnectionString, ComponentAContent);
 
         await Assert.ThrowsAsync<IOException>(() => SaveAsync(
             database.ConnectionString,
             ComponentBContent,
-            async (dbContext, cancellationToken) =>
-            {
-                await RebuildIndexesAsync(dbContext, ComponentBContent, cancellationToken);
-                throw new IOException("simulated index failure");
-            }));
+            _ => throw new IOException("simulated index failure")));
 
         Assert.Equal(ComponentAContent, await LoadContentAsync(database.ConnectionString));
         Assert.Equal(
@@ -92,22 +84,13 @@ public class PageContentAtomicWriteTests
     }
 
     [Fact]
-    public async Task CopyContentAsync_UpdatesRawContentAndReferencesInOneTransaction()
+    public async Task CopyPageContentAsync_UpdatesRawContentAndReferencesInOneTransaction()
     {
         await using var database = await TestDatabase.CreateAsync();
-        await SaveAsync(
-            database.ConnectionString,
-            ComponentAContent,
-            (dbContext, cancellationToken) => RebuildIndexesAsync(dbContext, ComponentAContent, cancellationToken));
+        await SaveAsync(database.ConnectionString, ComponentAContent);
         await SaveRawAsync(database.ConnectionString, SourcePageId, ComponentBContent);
 
-        await CopyAsync(
-            database.ConnectionString,
-            async (dbContext, cancellationToken) =>
-            {
-                var copiedContent = await LoadContentAsync(dbContext, PageId, cancellationToken);
-                await RebuildIndexesAsync(dbContext, copiedContent, cancellationToken);
-            });
+        await CopyAsync(database.ConnectionString);
 
         Assert.Equal(ComponentBContent, await LoadContentAsync(database.ConnectionString));
         Assert.Equal([ComponentBId], await LoadReferenceIdsAsync(database.ConnectionString));
@@ -115,23 +98,15 @@ public class PageContentAtomicWriteTests
     }
 
     [Fact]
-    public async Task CopyContentAsync_IndexFailureRollsBackRawContentAndReferencesTogether()
+    public async Task CopyPageContentAsync_IndexFailureRollsBackRawContentAndReferencesTogether()
     {
         await using var database = await TestDatabase.CreateAsync();
-        await SaveAsync(
-            database.ConnectionString,
-            ComponentAContent,
-            (dbContext, cancellationToken) => RebuildIndexesAsync(dbContext, ComponentAContent, cancellationToken));
+        await SaveAsync(database.ConnectionString, ComponentAContent);
         await SaveRawAsync(database.ConnectionString, SourcePageId, ComponentBContent);
 
         await Assert.ThrowsAsync<IOException>(() => CopyAsync(
             database.ConnectionString,
-            async (dbContext, cancellationToken) =>
-            {
-                var copiedContent = await LoadContentAsync(dbContext, PageId, cancellationToken);
-                await RebuildIndexesAsync(dbContext, copiedContent, cancellationToken);
-                throw new IOException("simulated index failure");
-            }));
+            _ => throw new IOException("simulated index failure")));
 
         Assert.Equal(ComponentAContent, await LoadContentAsync(database.ConnectionString));
         Assert.Equal([ComponentAId], await LoadReferenceIdsAsync(database.ConnectionString));
@@ -139,27 +114,18 @@ public class PageContentAtomicWriteTests
     }
 
     [Fact]
-    public async Task SaveBinaryAsync_PageAssetIndexContainsRawAssetsOnly()
+    public async Task SavePageContentAsync_PageAssetIndexContainsRawAssetsOnly()
     {
         await using var database = await TestDatabase.CreateAsync();
 
-        await SaveAsync(
-            database.ConnectionString,
-            ComponentAContent,
-            (dbContext, cancellationToken) =>
-                PageBuilderPageIndexing.RebuildAfterRawContentWriteAsync(
-                    dbContext,
-                    PageId,
-                    ComponentAContent,
-                    StoreId,
-                    cancellationToken));
+        await SaveAsync(database.ConnectionString, ComponentAContent);
 
         Assert.Equal([AssetAUrl], await LoadAssetUrlsAsync(database.ConnectionString));
         Assert.DoesNotContain(ComponentEmbeddedAssetUrl, await LoadAssetUrlsAsync(database.ConnectionString));
     }
 
     [Fact]
-    public async Task SaveBinaryAsync_IndexCallbackDoesNotReadGroupAfterPageLock()
+    public async Task SavePageContentAsync_IndexingDoesNotReadGroupAfterPageLock()
     {
         await using var database = await TestDatabase.CreateAsync();
         var interceptor = new LockCommandRecorder();
@@ -169,22 +135,15 @@ public class PageContentAtomicWriteTests
             .ExecuteUpdateAsync(
                 setters => setters.SetProperty(x => x.StoreId, (string)null),
                 TestContext.Current.CancellationToken);
+        interceptor.LockedTables.Clear();
         var repository = new SqliteContentStreamRepository(context);
-        using var reader = new StringReader(ComponentAContent);
 
-        await repository.SaveBinaryAsync(
+        await repository.SavePageContentAsync(
             PageId,
-            reader,
-            (dbContext, cancellationToken) =>
-                PageBuilderPageIndexing.RebuildAfterRawContentWriteAsync(
-                    dbContext,
-                    PageId,
-                    ComponentAContent,
-                    StoreId,
-                    cancellationToken),
+            ComponentAContent,
             TestContext.Current.CancellationToken);
 
-        Assert.False(interceptor.ReadGroupedPage);
+        Assert.False(interceptor.ReadGroupedPageAfterPageLock);
         Assert.Equal([ComponentAId], await LoadReferenceIdsAsync(database.ConnectionString));
     }
 
@@ -192,37 +151,20 @@ public class PageContentAtomicWriteTests
     public async Task ComponentSave_AcquiresOnlyComponentRelationalLock()
     {
         await using var database = await TestDatabase.CreateAsync();
-        await SaveAsync(
-            database.ConnectionString,
-            ComponentAContent,
-            (dbContext, cancellationToken) =>
-                PageBuilderPageIndexing.RebuildAfterRawContentWriteAsync(
-                    dbContext,
-                    PageId,
-                    ComponentAContent,
-                    StoreId,
-                    cancellationToken));
+        await SaveAsync(database.ConnectionString, ComponentAContent);
 
         var interceptor = new LockCommandRecorder();
         var contentService = new PageBuilderSharedComponentContentService(
             () => new PageBuilderModuleRepository(CreateContext(database.ConnectionString, interceptor)),
-            new NoopEventPublisher());
+            new NoopEventPublisher(),
+            new PageBuilderSharedComponentAssetReferenceIndexService());
         await contentService.SaveContentAsync(
             ComponentAId,
             UpdatedComponentContent,
             TestContext.Current.CancellationToken);
         Assert.Equal(["PageBuilderSharedComponent"], interceptor.LockedTables);
 
-        await SaveAsync(
-            database.ConnectionString,
-            UpdatedPageContent,
-            (dbContext, cancellationToken) =>
-                PageBuilderPageIndexing.RebuildAfterRawContentWriteAsync(
-                    dbContext,
-                    PageId,
-                    UpdatedPageContent,
-                    StoreId,
-                    cancellationToken));
+        await SaveAsync(database.ConnectionString, UpdatedPageContent);
 
         Assert.Equal(UpdatedPageContent, await LoadContentAsync(database.ConnectionString));
         Assert.Equal([ComponentAId], await LoadReferenceIdsAsync(database.ConnectionString));
@@ -258,15 +200,13 @@ public class PageContentAtomicWriteTests
     private static async Task SaveAsync(
         string connectionString,
         string content,
-        Func<PageBuilderModuleDbContext, CancellationToken, Task> updateIndexAsync)
+        Func<CancellationToken, Task> afterIndex = null)
     {
         await using var context = CreateContext(connectionString);
-        var repository = new SqliteContentStreamRepository(context);
-        using var reader = new StringReader(content);
-        await repository.SaveBinaryAsync(
+        var repository = new SqliteContentStreamRepository(context, afterIndex);
+        await repository.SavePageContentAsync(
             PageId,
-            reader,
-            updateIndexAsync,
+            content,
             TestContext.Current.CancellationToken);
     }
 
@@ -275,33 +215,19 @@ public class PageContentAtomicWriteTests
         await using var context = CreateContext(connectionString);
         var repository = new SqliteContentStreamRepository(context);
         using var reader = new StringReader(content);
-        await repository.SaveBinaryAsync(pageId, reader, TestContext.Current.CancellationToken);
+        await repository.SaveRawContentAsync(pageId, reader, TestContext.Current.CancellationToken);
     }
 
     private static async Task CopyAsync(
         string connectionString,
-        Func<PageBuilderModuleDbContext, CancellationToken, Task> updateIndexAsync)
+        Func<CancellationToken, Task> afterIndex = null)
     {
         await using var context = CreateContext(connectionString);
-        var repository = new SqliteContentStreamRepository(context);
-        await repository.CopyContentAsync(
+        var repository = new SqliteContentStreamRepository(context, afterIndex);
+        await repository.CopyPageContentAsync(
             SourcePageId,
             PageId,
-            updateIndexAsync,
             TestContext.Current.CancellationToken);
-    }
-
-    private static async Task RebuildIndexesAsync(
-        PageBuilderModuleDbContext dbContext,
-        string content,
-        CancellationToken cancellationToken)
-    {
-        await PageBuilderPageIndexing.RebuildAfterRawContentWriteAsync(
-            dbContext,
-            PageId,
-            content,
-            StoreId,
-            cancellationToken);
     }
 
     private static async Task<string> LoadContentAsync(string connectionString)
@@ -312,18 +238,6 @@ public class PageContentAtomicWriteTests
         var found = await repository.TryLoadBinaryAsync(PageId, writer, TestContext.Current.CancellationToken);
         Assert.True(found);
         return writer.ToString();
-    }
-
-    private static Task<string> LoadContentAsync(
-        PageBuilderModuleDbContext dbContext,
-        string pageId,
-        CancellationToken cancellationToken)
-    {
-        return dbContext.Set<PageBuilderContentEntity>()
-            .AsNoTracking()
-            .Where(x => x.Id == pageId)
-            .Select(x => x.PageContent)
-            .FirstOrDefaultAsync(cancellationToken);
     }
 
     private static async Task<string[]> LoadReferenceIdsAsync(string connectionString)
@@ -364,7 +278,7 @@ public class PageContentAtomicWriteTests
     private sealed class LockCommandRecorder : DbCommandInterceptor
     {
         public IList<string> LockedTables { get; } = [];
-        public bool ReadGroupedPage { get; private set; }
+        public bool ReadGroupedPageAfterPageLock { get; private set; }
 
         public override ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(
             DbCommand command,
@@ -372,9 +286,10 @@ public class PageContentAtomicWriteTests
             InterceptionResult<DbDataReader> result,
             CancellationToken cancellationToken = default)
         {
-            if (command.CommandText.Contains("GroupedPageBuilderPage", StringComparison.Ordinal))
+            if (LockedTables.Contains("PageBuilderPage") &&
+                command.CommandText.Contains("GroupedPageBuilderPage", StringComparison.Ordinal))
             {
-                ReadGroupedPage = true;
+                ReadGroupedPageAfterPageLock = true;
             }
 
             return ValueTask.FromResult(result);
@@ -405,7 +320,9 @@ public class PageContentAtomicWriteTests
             where T : IEvent => Task.CompletedTask;
     }
 
-    private sealed class SqliteContentStreamRepository(PageBuilderModuleDbContext dbContext)
+    private sealed class SqliteContentStreamRepository(
+        PageBuilderModuleDbContext dbContext,
+        Func<CancellationToken, Task> afterIndex = null)
         : ContentStreamRepository(dbContext)
     {
         protected override string QuoteOpen => "\"";
@@ -413,6 +330,23 @@ public class PageContentAtomicWriteTests
 
         protected override string AppendContentChunkSql =>
             $"UPDATE {Table} SET {ContentColumn} = {ContentColumn} || @chunk WHERE {IdColumn} = @id";
+
+        protected override async Task RebuildIndexesAfterRawContentWriteAsync(
+            string pageId,
+            string content,
+            string groupStoreId,
+            CancellationToken cancellationToken)
+        {
+            await base.RebuildIndexesAfterRawContentWriteAsync(
+                pageId,
+                content,
+                groupStoreId,
+                cancellationToken);
+            if (afterIndex != null)
+            {
+                await afterIndex(cancellationToken);
+            }
+        }
 
         protected override void SetIdParameter(DbCommand cmd, string value)
         {

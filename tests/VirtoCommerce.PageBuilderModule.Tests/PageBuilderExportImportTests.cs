@@ -20,16 +20,20 @@ public class PageBuilderExportImportTests
     {
         var calls = new List<string>();
         var referenceIndex = new RecordingReferenceIndexService(calls);
-        var exportImport = new PageBuilderExportImport(
-            new RecordingGroupedPageService(calls),
-            null!,
-            null!,
+        var jsonSerializer = JsonSerializer.CreateDefault();
+        var sharedComponentExportImport = new PageBuilderSharedComponentExportImport(
             referenceIndex,
             new RecordingSharedComponentService(calls),
             null!,
             new RecordingSharedComponentContentService(calls),
+            jsonSerializer);
+        var exportImport = new PageBuilderExportImport(
+            new RecordingGroupedPageService(calls),
             null!,
-            JsonSerializer.CreateDefault());
+            null!,
+            sharedComponentExportImport,
+            null!,
+            jsonSerializer);
         var payload = JsonConvert.SerializeObject(new
         {
             PageBuilderPages = new[]
@@ -69,16 +73,20 @@ public class PageBuilderExportImportTests
     {
         var calls = new List<string>();
         var referenceIndex = new RecordingReferenceIndexService(calls, throwOnValidation: true);
-        var exportImport = new PageBuilderExportImport(
-            new RecordingGroupedPageService(calls),
-            null!,
-            null!,
+        var jsonSerializer = JsonSerializer.CreateDefault();
+        var sharedComponentExportImport = new PageBuilderSharedComponentExportImport(
             referenceIndex,
             null!,
             null!,
             null!,
+            jsonSerializer);
+        var exportImport = new PageBuilderExportImport(
+            new RecordingGroupedPageService(calls),
             null!,
-            JsonSerializer.CreateDefault());
+            null!,
+            sharedComponentExportImport,
+            null!,
+            jsonSerializer);
         var variants = new[]
         {
             new PageBuilderExportPageVariant { PageId = "draft", Content = "variant-a" },
@@ -158,6 +166,13 @@ public class PageBuilderExportImportTests
             throw new NotSupportedException();
         }
 
+        public Task<bool> TryDeleteAsync(
+            PageBuilderSharedComponent expectedComponent,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
         public Task SaveWithContentAsync(
             PageBuilderSharedComponent model,
             string content,
@@ -183,6 +198,13 @@ public class PageBuilderExportImportTests
             throw new NotSupportedException();
         }
 
+        public Task<string> TryLoadContentAsync(
+            PageBuilderSharedComponent expectedComponent,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
         public Task<IReadOnlyDictionary<string, string>> LoadContentsAsync(
             IEnumerable<string> sharedComponentIds,
             CancellationToken cancellationToken = default)
@@ -197,6 +219,14 @@ public class PageBuilderExportImportTests
         {
             calls.Add("component-content");
             return Task.CompletedTask;
+        }
+
+        public Task<bool> TrySaveContentAsync(
+            PageBuilderSharedComponent expectedComponent,
+            string content,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
         }
     }
 

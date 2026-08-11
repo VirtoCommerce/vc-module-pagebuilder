@@ -4,9 +4,9 @@ using VirtoCommerce.PageBuilderModule.Data.Repositories;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Services;
 
-internal static class PageBuilderSharedComponentAssetReferenceIndexService
+public sealed class PageBuilderSharedComponentAssetReferenceIndexService
 {
-    internal static Task RebuildIndexInCurrentUnitOfWorkAsync(
+    public Task RebuildIndexInCurrentUnitOfWorkAsync(
         IPageBuilderModuleRepository repository,
         string sharedComponentId,
         string content,
@@ -32,8 +32,7 @@ internal static class PageBuilderSharedComponentAssetReferenceIndexService
             return;
         }
 
-        var sharedComponentRepository = repository.RequireSharedComponents();
-        var existingReferences = await sharedComponentRepository.PageBuilderSharedComponentAssetReferences
+        var existingReferences = await repository.PageBuilderSharedComponentAssetReferences
             .Where(x => x.SharedComponentId == sharedComponentId)
             .ToListAsync(cancellationToken);
 

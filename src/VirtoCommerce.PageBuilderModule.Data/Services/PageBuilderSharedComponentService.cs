@@ -22,6 +22,7 @@ public class PageBuilderSharedComponentService
     private const int ExistingComponentsQueryBatchSize = 500;
 
     private readonly IEventPublisher _eventPublisher;
+    private readonly PageBuilderSharedComponentAssetReferenceIndexService _assetReferenceIndexService;
     private readonly ILogger<PageBuilderSharedComponentService> _logger;
     private readonly Func<IPageBuilderModuleRepository> _repositoryFactory;
 
@@ -29,11 +30,13 @@ public class PageBuilderSharedComponentService
         Func<IPageBuilderModuleRepository> repositoryFactory,
         IPlatformMemoryCache platformMemoryCache,
         IEventPublisher eventPublisher,
+        PageBuilderSharedComponentAssetReferenceIndexService assetReferenceIndexService,
         ILogger<PageBuilderSharedComponentService> logger = null)
         : base(repositoryFactory, platformMemoryCache, eventPublisher)
     {
         _repositoryFactory = repositoryFactory;
         _eventPublisher = eventPublisher;
+        _assetReferenceIndexService = assetReferenceIndexService;
         _logger = logger;
     }
 
@@ -99,16 +102,8 @@ public class PageBuilderSharedComponentService
 
         using (var repository = _repositoryFactory())
         {
-            if (repository is not IPageBuilderWriteLockRepository writeLockRepository ||
-                repository is not IPageBuilderSharedComponentRepository sharedComponentRepository)
-            {
-                return false;
-            }
-
             if (!await TryPersistMetadataBatchAsync(
                     repository,
-                    writeLockRepository,
-                    sharedComponentRepository,
                     models,
                     ids,
                     state,
@@ -152,24 +147,22 @@ public class PageBuilderSharedComponentService
 
     private async Task<bool> TryPersistMetadataBatchAsync(
         IPageBuilderModuleRepository repository,
-        IPageBuilderWriteLockRepository writeLockRepository,
-        IPageBuilderSharedComponentRepository sharedComponentRepository,
         IList<PageBuilderSharedComponent> models,
         string[] ids,
         MetadataBatchSaveState state,
         CancellationToken cancellationToken)
     {
-        var allComponentsExist = await writeLockRepository.ExecuteUnderSharedComponentWriteLocksAsync(
+        var allComponentsExist = await repository.ExecuteUnderSharedComponentWriteLocksAsync(
             ids,
             async transactionCancellationToken =>
             {
                 var entities = await LoadSharedComponentEntitiesAsync(
-                    sharedComponentRepository,
+                    repository,
                     ids,
                     transactionCancellationToken);
                 var entitiesById = entities.ToDictionary(x => x.Id, StringComparer.OrdinalIgnoreCase);
                 var contentIds = await LoadSharedComponentContentIdsAsync(
-                    sharedComponentRepository,
+                    repository,
                     ids,
                     transactionCancellationToken);
 
@@ -252,19 +245,13 @@ public class PageBuilderSharedComponentService
 
         using (var repository = _repositoryFactory())
         {
-            if (repository is not IPageBuilderWriteLockRepository writeLockRepository ||
-                repository is not IPageBuilderSharedComponentRepository sharedComponentRepository)
-            {
-                return false;
-            }
-
-            var componentExists = await writeLockRepository.ExecuteUnderSharedComponentWriteLockAsync(
+            var componentExists = await repository.ExecuteUnderSharedComponentWriteLockAsync(
                 expectedComponent.Id,
                 async transactionCancellationToken =>
                 {
-                    var entity = await sharedComponentRepository.PageBuilderSharedComponents
+                    var entity = await repository.PageBuilderSharedComponents
                         .FirstAsync(x => x.Id == expectedComponent.Id, transactionCancellationToken);
-                    var contentExists = await sharedComponentRepository.PageBuilderSharedComponentContents
+                    var contentExists = await repository.PageBuilderSharedComponentContents
                         .AnyAsync(x => x.Id == expectedComponent.Id, transactionCancellationToken);
 
                     if (!contentExists ||
@@ -323,15 +310,8 @@ public class PageBuilderSharedComponentService
 
         using (var repository = _repositoryFactory())
         {
-            if (repository is not IPageBuilderWriteLockRepository writeLockRepository ||
-                repository is not IPageBuilderSharedComponentRepository sharedComponentRepository)
-            {
-                throw new NotSupportedException("Shared Component writes require repository write-lock support.");
-            }
-
             await PersistAggregateUnderWriteLockAsync(
-                sharedComponentRepository,
-                writeLockRepository,
+                repository,
                 state,
                 cancellationToken);
         }
@@ -349,8 +329,7 @@ public class PageBuilderSharedComponentService
     }
 
     private async Task PersistAggregateUnderWriteLockAsync(
-        IPageBuilderSharedComponentRepository repository,
-        IPageBuilderWriteLockRepository writeLockRepository,
+        IPageBuilderModuleRepository repository,
         SharedComponentSaveState state,
         CancellationToken cancellationToken)
     {
@@ -358,7 +337,7 @@ public class PageBuilderSharedComponentService
         var existingComponentMatched = false;
         if (!string.IsNullOrWhiteSpace(state.Model.Id))
         {
-            existingComponentSaved = await writeLockRepository.ExecuteUnderSharedComponentWriteLockAsync(
+            existingComponentSaved = await repository.ExecuteUnderSharedComponentWriteLockAsync(
                 state.Model.Id,
                 async transactionCancellationToken =>
                 {
@@ -394,7 +373,7 @@ public class PageBuilderSharedComponentService
     }
 
     private async Task PersistAggregateAsync(
-        IPageBuilderSharedComponentRepository repository,
+        IPageBuilderModuleRepository repository,
         PageBuilderSharedComponentEntity originalEntity,
         SharedComponentSaveState state,
         CancellationToken cancellationToken)
@@ -402,7 +381,7 @@ public class PageBuilderSharedComponentService
         var changedEntity = TrackChangedEntity(repository, originalEntity, state);
         await UpsertContentAsync(repository, changedEntity.Id, state.Content, cancellationToken);
 
-        await PageBuilderSharedComponentAssetReferenceIndexService.RebuildIndexInCurrentUnitOfWorkAsync(
+        await _assetReferenceIndexService.RebuildIndexInCurrentUnitOfWorkAsync(
             repository,
             changedEntity.Id,
             state.Content,
@@ -442,7 +421,7 @@ public class PageBuilderSharedComponentService
     }
 
     private static async Task UpsertContentAsync(
-        IPageBuilderSharedComponentRepository repository,
+        IPageBuilderModuleRepository repository,
         string componentId,
         string content,
         CancellationToken cancellationToken)
@@ -497,7 +476,6 @@ public class PageBuilderSharedComponentService
         string responseGroup)
     {
         return ((IPageBuilderModuleRepository)repository)
-            .RequireSharedComponents()
             .GetPageBuilderSharedComponentsByIdsAsync(ids, responseGroup);
     }
 
@@ -518,10 +496,9 @@ public class PageBuilderSharedComponentService
         if (ids.Length > 0)
         {
             using var repository = _repositoryFactory();
-            var sharedComponentRepository = repository.RequireSharedComponents();
             foreach (var batch in ids.Chunk(ExistingComponentsQueryBatchSize))
             {
-                var existing = await sharedComponentRepository.PageBuilderSharedComponents
+                var existing = await repository.PageBuilderSharedComponents
                     .Where(x => batch.Contains(x.Id))
                     .Select(x => new { x.Id, x.StoreId })
                     .ToListAsync();
@@ -575,7 +552,7 @@ public class PageBuilderSharedComponentService
     }
 
     private static async Task<List<PageBuilderSharedComponentEntity>> LoadSharedComponentEntitiesAsync(
-        IPageBuilderSharedComponentRepository repository,
+        IPageBuilderModuleRepository repository,
         IEnumerable<string> ids,
         CancellationToken cancellationToken)
     {
@@ -591,7 +568,7 @@ public class PageBuilderSharedComponentService
     }
 
     private static async Task<HashSet<string>> LoadSharedComponentContentIdsAsync(
-        IPageBuilderSharedComponentRepository repository,
+        IPageBuilderModuleRepository repository,
         IEnumerable<string> ids,
         CancellationToken cancellationToken)
     {

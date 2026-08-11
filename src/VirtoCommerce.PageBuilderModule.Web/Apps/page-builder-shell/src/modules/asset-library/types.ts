@@ -60,6 +60,7 @@ export interface AssetLibraryEntryViewModel {
   icon: string;
   previewUrl?: string;
   referencesCount: number;
+  referencesAvailable: boolean;
   formattedSize: string;
   formattedDate: string;
 }

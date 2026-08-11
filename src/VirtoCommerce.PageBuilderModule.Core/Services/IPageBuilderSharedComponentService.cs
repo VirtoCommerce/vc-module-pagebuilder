@@ -7,18 +7,11 @@ public interface IPageBuilderSharedComponentService : ICrudService<PageBuilderSh
 {
     Task<PageBuilderSharedComponent> UpdateMetadataAsync(
         PageBuilderSharedComponent model,
-        CancellationToken cancellationToken = default)
-    {
-        return Task.FromResult<PageBuilderSharedComponent>(null);
-    }
+        CancellationToken cancellationToken = default);
 
     Task<bool> TryDeleteAsync(
         PageBuilderSharedComponent expectedComponent,
-        CancellationToken cancellationToken = default)
-    {
-        // Keep custom implementations compatible and fail closed until they opt in.
-        return Task.FromResult(false);
-    }
+        CancellationToken cancellationToken = default);
 
     Task SaveWithContentAsync(
         PageBuilderSharedComponent model,

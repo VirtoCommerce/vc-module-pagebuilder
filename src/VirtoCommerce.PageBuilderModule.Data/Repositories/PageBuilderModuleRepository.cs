@@ -7,14 +7,20 @@ using VirtoCommerce.Platform.Data.Infrastructure;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Repositories;
 
-public class PageBuilderModuleRepository(PageBuilderModuleDbContext dbContext, IUnitOfWork unitOfWork = null)
-    : DbContextRepositoryBase<PageBuilderModuleDbContext>(dbContext, unitOfWork),
-      IPageBuilderSharedComponentRepository,
-      IPageBuilderWriteLockRepository
+public class PageBuilderModuleRepository : DbContextRepositoryBase<PageBuilderModuleDbContext>, IPageBuilderModuleRepository
 {
     private const int GroupQueryBatchSize = 500;
 
+    public PageBuilderModuleRepository(
+        PageBuilderModuleDbContext dbContext,
+        IUnitOfWork unitOfWork = null)
+        : base(dbContext, unitOfWork)
+    {
+    }
+
     public IQueryable<PageBuilderPageEntity> PageBuilderPages => DbContext.Set<PageBuilderPageEntity>();
+
+    public IQueryable<PageBuilderContentEntity> PageBuilderContents => DbContext.Set<PageBuilderContentEntity>();
 
     public IQueryable<GroupedPageBuilderPageEntity> GroupedPageBuilderPages => DbContext.Set<GroupedPageBuilderPageEntity>();
 
@@ -103,7 +109,7 @@ public class PageBuilderModuleRepository(PageBuilderModuleDbContext dbContext, I
 
     public virtual Task ExecuteUnderPageWriteLocksAsync(
         IEnumerable<string> pageIds,
-        Func<PageBuilderModuleDbContext, CancellationToken, Task> operation,
+        Func<CancellationToken, Task> operation,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(operation);
@@ -113,12 +119,26 @@ public class PageBuilderModuleRepository(PageBuilderModuleDbContext dbContext, I
 
     public virtual Task ExecuteUnderGroupedPageWriteLocksAsync(
         IEnumerable<string> groupIds,
-        Func<PageBuilderModuleDbContext, CancellationToken, Task> operation,
+        Func<CancellationToken, Task> operation,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(operation);
 
         return ExecuteUnderGroupedPageWriteLocksCoreAsync(groupIds, operation, cancellationToken);
+    }
+
+    public virtual Task RebuildPageAssetReferenceIndexAsync(
+        string pageId,
+        CancellationToken cancellationToken = default)
+    {
+        return ExecuteUnderPageWriteLocksAsync(
+            [pageId],
+            transactionCancellationToken =>
+                PageBuilderPageIndexing.RebuildCurrentRawPageAssetIndexAsync(
+                    DbContext,
+                    pageId,
+                    transactionCancellationToken),
+            cancellationToken);
     }
 
     private async Task<bool> ExecuteUnderSharedComponentWriteLockCoreAsync(
@@ -221,7 +241,7 @@ public class PageBuilderModuleRepository(PageBuilderModuleDbContext dbContext, I
 
     private async Task ExecuteUnderPageWriteLocksCoreAsync(
         IEnumerable<string> pageIds,
-        Func<PageBuilderModuleDbContext, CancellationToken, Task> operation,
+        Func<CancellationToken, Task> operation,
         CancellationToken cancellationToken)
     {
         if (DbContext.Database.CurrentTransaction != null)
@@ -231,7 +251,7 @@ public class PageBuilderModuleRepository(PageBuilderModuleDbContext dbContext, I
                 pageIds,
                 modifiedDate: null,
                 cancellationToken);
-            await operation(DbContext, cancellationToken);
+            await operation(cancellationToken);
             return;
         }
 
@@ -244,13 +264,13 @@ public class PageBuilderModuleRepository(PageBuilderModuleDbContext dbContext, I
             pageIds,
             modifiedDate: null,
             cancellationToken);
-        await operation(DbContext, cancellationToken);
+        await operation(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
     }
 
     private async Task ExecuteUnderGroupedPageWriteLocksCoreAsync(
         IEnumerable<string> groupIds,
-        Func<PageBuilderModuleDbContext, CancellationToken, Task> operation,
+        Func<CancellationToken, Task> operation,
         CancellationToken cancellationToken)
     {
         if (DbContext.Database.CurrentTransaction != null)
@@ -269,7 +289,7 @@ public class PageBuilderModuleRepository(PageBuilderModuleDbContext dbContext, I
 
     private async Task ExecuteUnderGroupedPageWriteLocksInternalAsync(
         IEnumerable<string> groupIds,
-        Func<PageBuilderModuleDbContext, CancellationToken, Task> operation,
+        Func<CancellationToken, Task> operation,
         CancellationToken cancellationToken)
     {
         // Lock groups first so concurrent aggregate saves cannot change page membership between discovering
@@ -295,6 +315,7 @@ public class PageBuilderModuleRepository(PageBuilderModuleDbContext dbContext, I
             pageIds,
             modifiedDate: null,
             cancellationToken);
-        await operation(DbContext, cancellationToken);
+        await operation(cancellationToken);
     }
+
 }

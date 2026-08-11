@@ -8,7 +8,6 @@ using Newtonsoft.Json;
 using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
-using VirtoCommerce.PageBuilderModule.Data.Services;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Events;
 using VirtoCommerce.Platform.Core.ExportImport;
@@ -17,36 +16,14 @@ using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 
 namespace VirtoCommerce.PageBuilderModule.Data.ExportImport;
 
-#pragma warning disable S107 // Public constructor preserves the explicit DI/API contract without a service-locator or dependency bag.
 public sealed class PageBuilderExportImport(
     IGroupedPageService groupedPageService,
     IGroupedPageSearchService groupedPageSearchService,
     IPageBuilderPageService pageBuilderPageService,
-    IPageBuilderSharedComponentReferenceIndexService sharedComponentReferenceIndexService,
-    IPageBuilderSharedComponentService sharedComponentService,
-    IPageBuilderSharedComponentSearchService sharedComponentSearchService,
-    IPageBuilderSharedComponentContentService sharedComponentContentService,
+    PageBuilderSharedComponentExportImport sharedComponentExportImport,
     IEventPublisher eventPublisher,
     JsonSerializer jsonSerializer)
 {
-#pragma warning restore S107
-    public PageBuilderExportImport(
-        IGroupedPageService groupedPageService,
-        IGroupedPageSearchService groupedPageSearchService,
-        JsonSerializer jsonSerializer)
-        : this(
-            groupedPageService,
-            groupedPageSearchService,
-            pageBuilderPageService: null,
-            sharedComponentReferenceIndexService: null,
-            sharedComponentService: null,
-            sharedComponentSearchService: null,
-            sharedComponentContentService: null,
-            eventPublisher: null,
-            jsonSerializer)
-    {
-    }
-
     private const int BatchSize = 50;
 
     public async Task DoExportAsync(Stream outStream, Action<ExportImportProgressInfo> progressCallback, CancellationToken cancellationToken)
@@ -61,10 +38,11 @@ public sealed class PageBuilderExportImport(
 
         await writer.WriteStartObjectAsync(cancellationToken);
 
-        if (sharedComponentSearchService != null && sharedComponentContentService != null)
-        {
-            await ExportSharedComponentsAsync(writer, progressInfo, progressCallback, cancellationToken);
-        }
+        await sharedComponentExportImport.ExportAsync(
+            writer,
+            progressInfo,
+            progressCallback,
+            cancellationToken);
 
         progressInfo.Description = "Page Builder pages are started to export";
         progressCallback(progressInfo);
@@ -142,7 +120,11 @@ public sealed class PageBuilderExportImport(
 
                 if (reader.Value?.ToString() == "PageBuilderSharedComponents")
                 {
-                    await ImportSharedComponentsArrayAsync(reader, progressInfo, progressCallback, cancellationToken);
+                    await sharedComponentExportImport.ImportAsync(
+                        reader,
+                        progressInfo,
+                        progressCallback,
+                        cancellationToken);
                 }
                 else if (reader.Value?.ToString() == "PageBuilderPages")
                 {
@@ -158,101 +140,6 @@ public sealed class PageBuilderExportImport(
         using var pageBufferStreamReader = new StreamReader(pageBuffer, leaveOpen: true);
         using var pageBufferReader = new JsonTextReader(pageBufferStreamReader);
         await ImportPagesArrayAsync(pageBufferReader, progressInfo, progressCallback, cancellationToken);
-    }
-
-    private async Task ExportSharedComponentsAsync(
-        JsonTextWriter writer,
-        ExportImportProgressInfo progressInfo,
-        Action<ExportImportProgressInfo> progressCallback,
-        CancellationToken cancellationToken)
-    {
-        progressInfo.Description = "Page Builder Shared Components are started to export";
-        progressCallback(progressInfo);
-
-        await writer.WritePropertyNameAsync("PageBuilderSharedComponents", cancellationToken);
-        await writer.WriteStartArrayAsync(cancellationToken);
-
-        var criteria = AbstractTypeFactory<PageBuilderSharedComponentSearchCriteria>.TryCreateInstance();
-        criteria.Take = BatchSize;
-        var processedCount = 0;
-
-        for (criteria.Skip = 0; ; criteria.Skip += BatchSize)
-        {
-            var searchResult = await sharedComponentSearchService.SearchAsync(criteria);
-
-            foreach (var component in searchResult.Results)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                var exportComponent = new PageBuilderExportSharedComponent
-                {
-                    Id = component.Id,
-                    StoreId = component.StoreId,
-                    Name = component.Name,
-                    Content = await sharedComponentContentService.LoadContentAsync(component.Id, cancellationToken),
-                };
-                jsonSerializer.Serialize(writer, exportComponent);
-                processedCount++;
-            }
-
-            await writer.FlushAsync(cancellationToken);
-            progressInfo.Description = $"{processedCount} of {searchResult.TotalCount} Page Builder Shared Components have been exported";
-            progressInfo.ProcessedCount = processedCount;
-            progressInfo.TotalCount = searchResult.TotalCount;
-            progressCallback(progressInfo);
-
-            if (criteria.Skip + BatchSize >= searchResult.TotalCount)
-            {
-                break;
-            }
-        }
-
-        await writer.WriteEndArrayAsync(cancellationToken);
-    }
-
-    private async Task ImportSharedComponentsArrayAsync(
-        JsonTextReader reader,
-        ExportImportProgressInfo progressInfo,
-        Action<ExportImportProgressInfo> progressCallback,
-        CancellationToken cancellationToken)
-    {
-        if (!await reader.ReadAsync(cancellationToken) || reader.TokenType != JsonToken.StartArray)
-        {
-            return;
-        }
-
-        var processedCount = 0;
-        while (await reader.ReadAsync(cancellationToken) && reader.TokenType != JsonToken.EndArray)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            var exportComponent = jsonSerializer.Deserialize<PageBuilderExportSharedComponent>(reader);
-            if (exportComponent == null ||
-                sharedComponentService == null)
-            {
-                continue;
-            }
-
-            PageBuilderSharedComponentReferenceMatcher.ValidateComponentContent(exportComponent.Content);
-
-            var component = string.IsNullOrWhiteSpace(exportComponent.Id)
-                ? null
-                : await sharedComponentService.GetByIdAsync(exportComponent.Id);
-            component ??= AbstractTypeFactory<PageBuilderSharedComponent>.TryCreateInstance();
-            component.Id = exportComponent.Id;
-            component.StoreId = exportComponent.StoreId;
-            component.Name = exportComponent.Name;
-
-            await sharedComponentService.SaveWithContentAsync(
-                component,
-                exportComponent.Content,
-                cancellationToken);
-
-            processedCount++;
-            progressInfo.Description = $"{processedCount} Page Builder Shared Components have been imported";
-            progressInfo.ProcessedCount = processedCount;
-            progressCallback(progressInfo);
-        }
     }
 
     private async Task ImportPagesArrayAsync(JsonTextReader reader, ExportImportProgressInfo progressInfo, Action<ExportImportProgressInfo> progressCallback, CancellationToken cancellationToken)
@@ -285,13 +172,10 @@ public sealed class PageBuilderExportImport(
     {
         // Validate the union once, before replacing group metadata or variants. Deterministic content errors
         // must not leave an existing group partially replaced; batching also avoids one component query per variant.
-        if (sharedComponentReferenceIndexService != null)
-        {
-            await sharedComponentReferenceIndexService.ValidateReferencesForStoreAsync(
-                exportPage.StoreId,
-                exportPage.Variants.Select(x => x.Content),
-                cancellationToken);
-        }
+        await sharedComponentExportImport.ValidatePageReferencesAsync(
+            exportPage.StoreId,
+            exportPage.Variants.Select(x => x.Content),
+            cancellationToken);
 
         GroupedPageBuilderPage existingGroup = null;
 

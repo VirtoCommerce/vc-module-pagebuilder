@@ -1,6 +1,14 @@
 import { computed, onScopeDispose, ref, watch, type ComputedRef, type Ref } from "vue";
 import { useI18n } from "vue-i18n";
-import { type Breadcrumbs, readableSize, useAsync, useBreadcrumbs, useLoading } from "@vc-shell/framework";
+import {
+  notification,
+  parseError,
+  type Breadcrumbs,
+  readableSize,
+  useAsync,
+  useBreadcrumbs,
+  useLoading,
+} from "@vc-shell/framework";
 import { useUrlParams } from "../../page-builder";
 import type { AssetEntry, AssetReferenceDetails } from "../types";
 import { useAssetsLibraryApi } from "./useAssetsLibraryApi";
@@ -37,6 +45,7 @@ export interface IUseAssetsLibrary {
   isImage: (entry: AssetEntry | undefined) => boolean;
   getEntryIcon: (entry: AssetEntry) => string;
   getReferencesCount: (entry: AssetEntry) => number;
+  areReferencesAvailable: (entry: AssetEntry | undefined) => boolean;
   getReferenceDetails: (entry: AssetEntry | undefined) => AssetReferenceDetails;
   getDeleteReferences: (entry: AssetEntry) => Promise<DeleteAssetReferences>;
   formatFileSize: (size?: number) => string;
@@ -68,6 +77,7 @@ export function useAssetsLibrary(): IUseAssetsLibrary {
     applyAssetReferences,
     getReferenceDetails,
     getReferencesCount,
+    areReferencesAvailable,
     getDeleteReferences,
   } = useAssetReferences(storeId);
   const entriesLoader = createAssetEntriesLoader({
@@ -118,7 +128,7 @@ export function useAssetsLibrary(): IUseAssetsLibrary {
     items.push({
       id: rootFolderUrl.value,
       title: t("ASSET_LIBRARY.BREADCRUMBS.ROOT"),
-      clickHandler: navigateToFolder,
+      clickHandler: navigateFromBreadcrumb,
     });
 
     if (currentSegments.length <= baseSegments.length) {
@@ -132,7 +142,7 @@ export function useAssetsLibrary(): IUseAssetsLibrary {
       items.push({
         id: accumulated,
         title: safeDecode(segment),
-        clickHandler: navigateToFolder,
+        clickHandler: navigateFromBreadcrumb,
       });
     });
 
@@ -277,6 +287,12 @@ export function useAssetsLibrary(): IUseAssetsLibrary {
     await reload();
   }
 
+  function navigateFromBreadcrumb(folderUrl: string): void {
+    void navigateToFolder(folderUrl).catch((error) => {
+      notification.error(parseError(error).message);
+    });
+  }
+
   async function onEntryClick(entry: AssetEntry) {
     if (entry.type === "folder") {
       await navigateToFolder(entry.relativeUrl || entry.url || currentFolderUrl.value);
@@ -326,6 +342,7 @@ export function useAssetsLibrary(): IUseAssetsLibrary {
     isImage: isImageEntry,
     getEntryIcon,
     getReferencesCount,
+    areReferencesAvailable,
     getReferenceDetails,
     getDeleteReferences,
     formatFileSize: readableSize,

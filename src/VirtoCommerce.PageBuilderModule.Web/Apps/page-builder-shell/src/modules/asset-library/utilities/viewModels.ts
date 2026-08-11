@@ -13,6 +13,7 @@ interface EntryViewModelContext {
   isImage: (entry: AssetEntry | undefined) => boolean;
   getEntryIcon: (entry: AssetEntry) => string;
   getReferencesCount: (entry: AssetEntry) => number;
+  areReferencesAvailable: (entry: AssetEntry | undefined) => boolean;
   formatFileSize: (size?: number) => string;
   formatDate: (value?: string) => string;
   getPreviewUrl: (entry: AssetEntry | undefined) => string | undefined;
@@ -51,6 +52,7 @@ export function createAssetLibraryEntryViewModel(
     icon: context.getEntryIcon(entry),
     previewUrl: context.getPreviewUrl(entry),
     referencesCount: context.getReferencesCount(entry),
+    referencesAvailable: context.areReferencesAvailable(entry),
     formattedSize: isBlob ? context.formatFileSize(entry.size) : context.notAvailableText,
     formattedDate: context.formatDate(entry.modifiedDate || entry.createdDate),
   };

@@ -47,7 +47,7 @@ public class PageBuilderSharedComponentsController(
         }
 
         var result = await sharedComponentSearchService.SearchAsync(criteria);
-        await ApplyUsageAsync(result.Results, includePages: false, cancellationToken);
+        await EnrichUsageAsync(result.Results, includePages: false, cancellationToken);
 
         return Ok(result);
     }
@@ -69,7 +69,7 @@ public class PageBuilderSharedComponentsController(
             return Forbidden;
         }
 
-        await ApplyUsageAsync(
+        await EnrichUsageAsync(
             [component],
             includePages: await CanReadPagesAsync(),
             cancellationToken);
@@ -163,7 +163,7 @@ public class PageBuilderSharedComponentsController(
             return NotFound();
         }
 
-        await ApplyUsageAsync(
+        await EnrichUsageAsync(
             [component],
             includePages: await CanReadPagesAsync(),
             cancellationToken);
@@ -191,7 +191,7 @@ public class PageBuilderSharedComponentsController(
         }
 
         var includeUsagePages = await CanReadPagesAsync();
-        await ApplyUsageAsync([component], includeUsagePages, cancellationToken);
+        await EnrichUsageAsync([component], includeUsagePages, cancellationToken);
         if (component.UsageCount > 0)
         {
             return Conflict(component);
@@ -206,7 +206,7 @@ public class PageBuilderSharedComponentsController(
         }
         catch (DbUpdateException)
         {
-            await ApplyUsageAsync([component], includeUsagePages, cancellationToken);
+            await EnrichUsageAsync([component], includeUsagePages, cancellationToken);
             if (component.UsageCount > 0)
             {
                 return Conflict(component);
@@ -285,7 +285,7 @@ public class PageBuilderSharedComponentsController(
         return NoContent();
     }
 
-    private async Task ApplyUsageAsync(
+    private async Task EnrichUsageAsync(
         IList<PageBuilderSharedComponent> components,
         bool includePages,
         CancellationToken cancellationToken)
