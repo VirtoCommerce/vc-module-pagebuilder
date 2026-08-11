@@ -51,8 +51,8 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
         public override async Task SaveChangesAsync(IList<GroupedPageBuilderPage> models)
         {
             var primaryKeyMap = new PrimaryKeyResolvingMap();
-            var changedEntries = new List<GenericChangedEntry<GroupedPageBuilderPage>>();
-            var changedEntities = new List<GroupedPageBuilderPageEntity>();
+            var changedEntries = new GenericChangedEntry<GroupedPageBuilderPage>[models.Count];
+            var changedEntities = new GroupedPageBuilderPageEntity[models.Count];
             var originalModels = new List<GroupedPageBuilderPage>();
 
             using (var repository = _repositoryFactory())
@@ -72,8 +72,9 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
                         cancellationToken);
                     await BeforeSaveChanges(models);
 
-                    foreach (var model in models)
+                    for (var index = 0; index < models.Count; index++)
                     {
+                        var model = models[index];
                         var originalEntity = FindExistingEntity(existingEntities, model);
                         var modifiedEntity = FromModel(model, primaryKeyMap);
 
@@ -83,22 +84,22 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
 
                             var originalModel = ToModel(originalEntity, model: null);
                             originalModels.Add(originalModel);
-                            changedEntries.Add(new GenericChangedEntry<GroupedPageBuilderPage>(
+                            changedEntries[index] = new GenericChangedEntry<GroupedPageBuilderPage>(
                                 model,
                                 originalModel,
-                                EntryState.Modified));
+                                EntryState.Modified);
                             modifiedEntity.Patch(originalEntity);
                             originalEntity.ModifiedDate = DateTime.UtcNow;
 
-                            changedEntities.Add(originalEntity);
+                            changedEntities[index] = originalEntity;
                         }
                         else
                         {
                             repository.Add(modifiedEntity);
-                            changedEntries.Add(new GenericChangedEntry<GroupedPageBuilderPage>(
+                            changedEntries[index] = new GenericChangedEntry<GroupedPageBuilderPage>(
                                 model,
-                                EntryState.Added));
-                            changedEntities.Add(modifiedEntity);
+                                EntryState.Added);
+                            changedEntities[index] = modifiedEntity;
                         }
                     }
 
@@ -118,8 +119,9 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
             ClearCache(originalModels);
             ClearCache(models);
 
-            foreach (var (changedEntry, index) in changedEntries.Select((x, index) => (x, index)))
+            for (var index = 0; index < changedEntries.Length; index++)
             {
+                var changedEntry = changedEntries[index];
                 changedEntry.NewEntry = ToModel(changedEntities[index], changedEntry.NewEntry);
             }
 
