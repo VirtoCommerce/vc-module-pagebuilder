@@ -64,6 +64,22 @@ describe('editorDomainReducers', () => {
         });
     });
 
+    it('discards only the synthetic shared-component domain state', () => {
+        const templateKey = 'shared-component::component-1';
+        const previous = {
+            ...initialState,
+            states: {
+                home: { isLoading: false, sections: {} } as any,
+                [templateKey]: { isLoading: false, sections: {}, error: 'stale' } as any,
+            },
+        };
+
+        const state = editorDomainReducers(previous, actions.discardSharedComponentChanges({ templateKey }));
+
+        expect(state.states['home']).toBe(previous.states['home']);
+        expect(state.states[templateKey]).toBeUndefined();
+    });
+
     describe('loadTemplateModelFails', () => {
         it('stores error message and clears loading', () => {
             const prev = {

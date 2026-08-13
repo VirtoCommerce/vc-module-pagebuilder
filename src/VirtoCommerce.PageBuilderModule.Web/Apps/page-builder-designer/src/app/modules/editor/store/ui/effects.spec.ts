@@ -34,6 +34,7 @@ describe('TemplateEditorUiEffects', () => {
                         { selector: selectors.selectBlockModelFromRoute, value: null },
                         { selector: selectors.selectSharedSchemas, value: {} },
                         { selector: selectors.selectObjectsSchemas, value: {} },
+                        { selector: selectors.selectSharedComponents, value: {} },
                     ],
                 }),
             ],
@@ -141,6 +142,42 @@ describe('TemplateEditorUiEffects', () => {
         });
     });
 
+    describe('notifySuccessSave$', () => {
+        it('uses the Shared Component name for a Shared Component document', async () => {
+            store.overrideSelector(selectors.selectSharedComponents, {
+                'component-1': {
+                    id: 'component-1',
+                    storeId: 'store-1',
+                    name: 'Shared hero',
+                    usageCount: 0,
+                    usagePages: [],
+                },
+            });
+            store.refreshState();
+            actions$.next(actions.saveTemplateSuccess({
+                templateKey: 'shared-component::component-1',
+                template: createTemplate(),
+            }));
+
+            const results = await firstValueFrom(effects.notifySuccessSave$.pipe(take(2), toArray()));
+            const notification = results.find(result => result.type === sharedActions.showNotification.type) as any;
+
+            expect(notification.message).toContain('Shared Component “Shared hero”');
+        });
+
+        it('does not clear dirty state when newer edits were made during save', async () => {
+            actions$.next(actions.saveTemplateSuccess({
+                templateKey: 'shared-component::component-1',
+                template: createTemplate(),
+                clearDirty: false,
+            }));
+
+            const results = await firstValueFrom(effects.notifySuccessSave$.pipe(take(2), toArray()));
+            const dirtyAction = results.find(result => result.type === sharedActions.setRootDirtyState.type) as ReturnType<typeof sharedActions.setRootDirtyState>;
+            expect(dirtyAction.dirty).toBe(true);
+        });
+    });
+
     // ── hoverSection$ ─────────────────────────────────────────────
 
     describe('hoverSection$', () => {
@@ -150,6 +187,13 @@ describe('TemplateEditorUiEffects', () => {
             expect(result.type).toBe(sharedActions.broadcastPreviewMessage.type);
             expect((result as any).msg.type).toBe('hover');
             expect((result as any).msg.sectionId).toBe('s1');
+        });
+
+        it('broadcasts hover leave', async () => {
+            actions$.next(actions.hoverSection({ sectionId: null }));
+            const result = await firstValueFrom(effects.hoverSection$);
+
+            expect((result as any).msg).toEqual({ type: 'hover', sectionId: null });
         });
     });
 
@@ -204,7 +248,7 @@ describe('TemplateEditorUiEffects', () => {
             actions$.next(actions.templateContentChanged());
             const results = await firstValueFrom(effects.templateContentChanged$.pipe(take(2), toArray()));
             const types = results.map(r => r.type);
-            expect(types).toContain(sharedActions.broadcastPreviewMessage.type);
+            expect(types).toContain(actions.broadcastResolvedPreview.type);
             expect(types).toContain(sharedActions.setRootDirtyState.type);
         });
 
@@ -227,7 +271,7 @@ describe('TemplateEditorUiEffects', () => {
 
             // editSectionAction triggers both navigateToEditSection$ and scrollToSectionInPreview$
             const result = await firstValueFrom(effects.scrollToSectionInPreview$);
-            expect(result.type).toBe(sharedActions.broadcastPreviewMessage.type);
+            expect(result.type).toBe(actions.broadcastResolvedPreview.type);
             expect((result as any).msg.type).toBe('select');
             expect((result as any).msg.sectionId).toBe('s1');
         });
@@ -242,7 +286,7 @@ describe('TemplateEditorUiEffects', () => {
 
             actions$.next(actions.editBlockAction({ sectionId: 's1', blockId: 'b1' }));
             const result = await firstValueFrom(effects.scrollToBlockInPreview$);
-            expect(result.type).toBe(sharedActions.broadcastPreviewMessage.type);
+            expect(result.type).toBe(actions.broadcastResolvedPreview.type);
             expect((result as any).msg.type).toBe('select');
             expect((result as any).msg.blockId).toBe('b1');
         });

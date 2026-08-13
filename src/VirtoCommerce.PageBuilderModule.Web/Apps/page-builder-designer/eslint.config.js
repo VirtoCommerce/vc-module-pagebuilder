@@ -23,8 +23,12 @@ module.exports = [
                 parserOptions: {
                     project: [
                         'tsconfig.json',
+                        'tsconfig.app.json',
+                        'tsconfig.spec.json',
                         'projects/ngv-markdown/tsconfig.lib.json',
+                        'projects/ngv-markdown/tsconfig.spec.json',
                         'projects/ngv-datepicker/tsconfig.lib.json',
+                        'projects/ngv-datepicker/tsconfig.spec.json',
                     ],
                     createDefaultProgram: true,
                 },

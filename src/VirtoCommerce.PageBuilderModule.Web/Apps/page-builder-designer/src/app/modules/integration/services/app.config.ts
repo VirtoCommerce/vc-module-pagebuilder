@@ -2,6 +2,8 @@ import { inject, Injectable } from '@angular/core';
 
 import { CookieService } from 'ngx-cookie-service';
 
+import { LocationContext } from '@app/models';
+
 import { appHelpers } from '../helpers';
 
 import { EnvironmentRef } from './environment.ref';
@@ -48,32 +50,45 @@ export class AppConfig {
   }
 
   getContext(): any {
+    const location = this.getLocationContext();
     if (!this._cachedContext) {
-      const params: any = {};
-      const searchParams = new URLSearchParams(this.env.nativeWindow.location.search);
-      searchParams.forEach((value, key) => {
-        const allValues = searchParams.getAll(key);
-        params[key] = allValues.length === 1 ? value : allValues;
-      });
-      const { hash, href, host, protocol, pathname, origin } = this.env.nativeWindow.location;
-      const hashParts = hash?.split('?');
-      const hashPath = hashParts?.[0] ?? null;
-      const hashParams = hashParts?.[1] ? new URLSearchParams(hashParts[1]) : null;
-      hashParams?.forEach((value, key) => {
-        const allValues = hashParams.getAll(key);
-        params[key] = allValues.length === 1 ? value : allValues;
-      });
-
       this._cachedContext = {
         config: this.mergedConfig,
         settings: this.settings,
-        location: {
-          url: href, params: params, path: pathname,
-          host, protocol, hash, hashPath, origin
-        }
+        location
       };
+    } else {
+      this._cachedContext.location = location;
     }
     return this._cachedContext;
+  }
+
+  private getLocationContext(): LocationContext {
+    const params: LocationContext['params'] = {};
+    const searchParams = new URLSearchParams(this.env.nativeWindow.location.search);
+    searchParams.forEach((value, key) => {
+      const allValues = searchParams.getAll(key);
+      params[key] = allValues.length === 1 ? value : allValues;
+    });
+    const { hash, href, host, protocol, pathname, origin } = this.env.nativeWindow.location;
+    const hashParts = hash?.split('?');
+    const hashPath = hashParts?.[0] ?? null;
+    const hashParams = hashParts?.[1] ? new URLSearchParams(hashParts[1]) : null;
+    hashParams?.forEach((value, key) => {
+      const allValues = hashParams.getAll(key);
+      params[key] = allValues.length === 1 ? value : allValues;
+    });
+
+    return {
+      url: href,
+      params,
+      path: pathname,
+      host,
+      protocol,
+      hash,
+      hashPath,
+      origin
+    };
   }
 
   private mergeContexts(additionalContext: any) {
@@ -121,4 +136,7 @@ export type OptionName = 'templatesListUrl'
   | 'saveGroupedPage'
   | 'previewImpersonation'
   | 'previewAccounts'
+  | 'canInsertSharedComponents'
+  | 'canCreateSharedComponents'
+  | 'canEditSharedComponents'
   ;

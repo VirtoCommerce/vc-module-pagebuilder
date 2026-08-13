@@ -1,7 +1,7 @@
 import { HttpErrorResponse } from "@angular/common/http";
 import { createAction, props } from "@ngrx/store";
 
-import { TemplateEntryList } from '@shared/models';
+import { PreviewOutboundMessage, TemplateEntryList } from '@shared/models';
 
 export const initShared = createAction('[shared] init');
 export const initApp = createAction('[app] init');
@@ -35,12 +35,15 @@ export const loadChildrenTemplates = createAction('[shared] load children templa
 export const loadChildrenTemplatesSuccess = createAction('[shared] load children templates success', props<{ childrenEntries: TemplateEntryList, parentTemplate: string }>());
 export const loadChildrenTemplatesFails = createAction('[shared] load children requested', props<{ error: HttpErrorResponse, parentTemplate: string }>());
 
-export const broadcastPreviewMessage = createAction('[shared] broadcast preview message', props<{ msg: any }>());
+export const broadcastPreviewMessage = createAction(
+    '[shared] broadcast preview message',
+    props<{ msg: PreviewOutboundMessage }>(),
+);
 export const broadcastPlatformMessage = createAction('[shared] broadcast platform message', props<{ msg: any }>());
 export const showNotification = createAction('[shared] show notification', props<{ message: string, msgType: 'error'|'success'|'info'|'warning', top?: boolean }>());
 
 export const previewLoaded = createAction('[shared] preview loaded');
-export const selectSection = createAction('[shared] select section', props<{ sectionId: number }>());
+export const selectSection = createAction('[shared] select section', props<{ sectionId: string }>());
 export const setWindowTitle = createAction('[shared] set window title', props<{ title: string | null }>());
 export const previewSectionHovered = createAction('[shared] preview section hovered', props<{ sectionId: string | null }>());
 

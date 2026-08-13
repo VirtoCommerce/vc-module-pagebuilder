@@ -1,0 +1,66 @@
+{
+  "SHARED_COMPONENTS": {
+    "MENU": {
+      "TITLE": "共有コンポーネント"
+    },
+    "TITLE": "共有コンポーネント",
+    "SEARCH": {
+      "PLACEHOLDER": "共有コンポーネントを検索..."
+    },
+    "TABLE": {
+      "NAME": "名前",
+      "USAGE": "使用先",
+      "MODIFIED": "更新日時",
+      "MODIFIED_BY": "更新者"
+    },
+    "TOOLBAR": {
+      "REFRESH": "更新"
+    },
+    "ACTIONS": {
+      "RENAME": "名前を変更",
+      "DELETE": "削除",
+      "DELETE_BLOCKED": "このコンポーネントは使用中のため削除できません",
+      "CLOSE": "閉じる"
+    },
+    "DETAILS": {
+      "COMPONENT_DETAILS": "コンポーネントの詳細",
+      "STORE": "ストア",
+      "MODIFIED": "更新日時",
+      "MODIFIED_BY": "更新者",
+      "USED_ON_ONE": "使用先（1 ページ）",
+      "USED_ON_MANY": "使用先（{count} ページ）",
+      "LOADING_USAGE": "ページでの使用状況を読み込んでいます...",
+      "NO_USAGE": "Page Builder ページでは使用されていません。",
+      "DELETE_BLOCKED_ONE": "削除する前に、このコンポーネントをページから削除してください。",
+      "DELETE_BLOCKED_MANY": "削除する前に、このコンポーネントを {count} ページすべてから削除してください。",
+      "NOT_AVAILABLE": "該当なし",
+      "OPEN_UNAVAILABLE_PERMISSION": "このページを Designer で開く権限がありません。",
+      "OPEN_UNAVAILABLE_ARCHIVED": "アーカイブされたページは Designer で開けません。",
+      "OPEN_UNAVAILABLE_IDENTITY": "ページ識別子を取得できないため、このページを開けません。"
+    },
+    "EMPTY": {
+      "TITLE": "共有コンポーネントはまだありません",
+      "DESCRIPTION": "Page Builder Designer で選択したセクションから共有コンポーネントを作成します。",
+      "NOT_FOUND_TITLE": "共有コンポーネントが見つかりません",
+      "NOT_FOUND_DESCRIPTION": "別の検索語をお試しください。"
+    },
+    "RENAME": {
+      "TITLE": "共有コンポーネントの名前を変更",
+      "NAME_LABEL": "名前",
+      "NAME_PLACEHOLDER": "コンポーネント名を入力",
+      "CANCEL": "キャンセル",
+      "SAVE": "保存"
+    },
+    "CONFIRM": {
+      "DELETE": "{name} を削除しますか？この操作は元に戻せません。"
+    },
+    "NOTIFICATIONS": {
+      "RENAMED": "共有コンポーネントの名前を変更しました",
+      "DELETED": "共有コンポーネントを削除しました",
+      "DELETE_BLOCKED_ONE": "このコンポーネントは 1 ページで使用されているため削除できません。",
+      "DELETE_BLOCKED_MANY": "このコンポーネントは {count} ページで使用されているため削除できません。",
+      "DELETE_CONFLICT": "コンポーネントが使用中になったため削除できません。使用先を確認するには一覧を更新してください。",
+      "ERROR_GENERIC": "共有コンポーネントの操作に失敗しました"
+    }
+  }
+}

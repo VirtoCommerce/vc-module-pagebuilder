@@ -27,7 +27,12 @@ export const useSchemasAction = createAction('[template editor] merge schemas', 
 export const updateTemplateAction = createAction('[template editor] update template', props<{ template: TemplateModel, templateKey: string }>());
 
 export const saveTemplates = createAction('[template editor] save templates', props<{ templates: { entry: TemplateEntry , content: TemplateModel, info: TemplateEntryInfo }[] }>());
-export const saveTemplateSuccess = createAction('[template editor] save template success', props<{ templateKey: string, parentKey?: string, template: TemplateModel }>());
+export const saveTemplateSuccess = createAction('[template editor] save template success', props<{
+    templateKey: string;
+    parentKey?: string;
+    template: TemplateModel;
+    clearDirty?: boolean;
+}>());
 export const saveTemplateFails = createAction('[template editor] save template fails', props<{ error: HttpErrorResponse }>());
 
 export const validateItemUnderEdit = createAction('[template editor] validate item under edit');

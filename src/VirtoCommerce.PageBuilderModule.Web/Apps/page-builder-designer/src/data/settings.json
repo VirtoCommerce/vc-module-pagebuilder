@@ -182,5 +182,35 @@
             "selector": "this.response.permissions.indexOf('builder:templates') === -1",
             "isArray": false
         }
+    },
+    "canInsertSharedComponents": {
+        "init": true,
+        "url": "/api/platform/security/currentuser",
+        "method": "GET",
+        "cacheable": true,
+        "response": {
+            "selector": "this.response.isAdministrator === true || (this.response.permissions || []).indexOf('builder:shared-components:read') !== -1",
+            "isArray": false
+        }
+    },
+    "canCreateSharedComponents": {
+        "init": true,
+        "url": "/api/platform/security/currentuser",
+        "method": "GET",
+        "cacheable": true,
+        "response": {
+            "selector": "this.response.isAdministrator === true || (this.response.permissions || []).indexOf('builder:shared-components:create') !== -1",
+            "isArray": false
+        }
+    },
+    "canEditSharedComponents": {
+        "init": true,
+        "url": "/api/platform/security/currentuser",
+        "method": "GET",
+        "cacheable": true,
+        "response": {
+            "selector": "this.response.isAdministrator === true || (this.response.permissions || []).indexOf('builder:shared-components:update') !== -1",
+            "isArray": false
+        }
     }
 }

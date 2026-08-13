@@ -18,7 +18,7 @@ export const sortItems = createAction('[template editor] sort items', props<{ op
 export const pasteFromClipboard = createAction('[template editor] paste from clipboard', props<{ value: ClipboardModel, section?: SectionModel, block?: SectionModel, action: string, source: 'list' | 'editor' }>());
 export const showClipboardModal = createAction('[template editor] showClipboardModal', props<{ value: ClipboardModel, section?: SectionModel, block?: SectionModel, action: string, source: 'list' | 'editor' }>());
 
-export const hoverSection = createAction('[template editor] hover section', props<{ sectionId: string }>());
+export const hoverSection = createAction('[template editor] hover section', props<{ sectionId: string | null }>());
 
 export const templateContentChanged = createAction('[template editor] template content changed');
 

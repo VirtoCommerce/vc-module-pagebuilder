@@ -3,12 +3,15 @@ import { Injectable, inject } from "@angular/core";
 import { ClipboardService } from '@core/services';
 import { ContextMenuAction } from '@core/models';
 import { Dictionary, SectionModel } from '@models/index';
+import { AppConfig } from '@integration/services';
+import { canEditSharedComponentOriginal, isSharedComponentReference } from './shared-component.helpers';
 
 @Injectable({
     providedIn: 'root'
 })
 export class ContextMenuHelper {
     private readonly clipboard = inject(ClipboardService);
+    private readonly appConfig = inject(AppConfig);
     private readonly items: Dictionary<ContextMenuAction> = {
         '|': '|',
         'hide': {
@@ -93,6 +96,21 @@ export class ContextMenuHelper {
             action: 'refresh-preview',
             title: 'Refresh preview',
             icon: 'refresh'
+        },
+        'save-as-shared-component': {
+            action: 'save-as-shared-component',
+            title: 'Save selected as Shared Component',
+            icon: 'link'
+        },
+        'edit-shared-component': {
+            action: 'edit-shared-component',
+            title: 'Edit original',
+            icon: 'edit'
+        },
+        'detach-shared-component': {
+            action: 'detach-shared-component',
+            title: 'Detach',
+            icon: 'link_off'
         }
     }
 
@@ -109,6 +127,23 @@ export class ContextMenuHelper {
     }
 
     async getSectionsActions(item: SectionModel, canAddBlock: boolean): Promise<ContextMenuAction[]> {
+        if (isSharedComponentReference(item)) {
+            const sharedComponentClipboardEmpty = !(await this.hasClipboardData());
+            const canOpenOriginal = this.can('canInsertSharedComponents');
+            const canEditOriginal = canEditSharedComponentOriginal(this.appConfig);
+            return this.getActions([
+                ['edit-shared-component', !canOpenOriginal],
+                ['detach-shared-component', !this.can('canInsertSharedComponents')],
+                '|',
+                'copy',
+                ['paste-before', sharedComponentClipboardEmpty],
+                ['paste-after', sharedComponentClipboardEmpty],
+                '|',
+                'delete',
+            ]).map(action => action !== '|' && action.action === 'edit-shared-component'
+                ? { ...action, title: canEditOriginal ? 'Edit original' : 'View original' }
+                : action);
+        }
         const emptyClipboardData = !(await this.hasClipboardData());
 
         const result: (string | [string, boolean])[] = [
@@ -129,11 +164,18 @@ export class ContextMenuHelper {
         return this.getActions(result);
     }
 
-    async getPageActions(hasSelection = false): Promise<ContextMenuAction[]> {
+    async getPageActions(hasSelection = false, hasSelectedSections = false, allowSaveAsShared = true): Promise<ContextMenuAction[]> {
         const emptyClipboardData = !(await this.hasClipboardData());
         const result: (string | [string, boolean])[] = [
             ['paste-section', emptyClipboardData],
             ['delete-selected', !hasSelection],
+            [
+                'save-as-shared-component',
+                !allowSaveAsShared
+                    || !hasSelectedSections
+                    || !this.can('canCreateSharedComponents')
+                    || !this.can('canInsertSharedComponents'),
+            ],
             '|',
             'reset-template', 'refresh-preview'
         ];
@@ -143,5 +185,9 @@ export class ContextMenuHelper {
     private async hasClipboardData(): Promise<boolean> {
         const clipboardData = await this.clipboard.getData();
         return clipboardData != null;
+    }
+
+    private can(option: 'canInsertSharedComponents' | 'canCreateSharedComponents'): boolean {
+        return this.appConfig.getValue(option) === true;
     }
 }

@@ -1,44 +1,214 @@
 using System.Text;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Data.Models;
 using VirtoCommerce.PageBuilderModule.Data.Repositories;
+using VirtoCommerce.Pages.Core.Events;
+using VirtoCommerce.Pages.Core.Models;
 using VirtoCommerce.Platform.Caching;
 using VirtoCommerce.Platform.Core.Caching;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Events;
+using VirtoCommerce.Platform.Core.GenericCrud;
 using VirtoCommerce.Platform.Data.GenericCrud;
+using VirtoCommerce.Platform.Data.Infrastructure;
 using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Services
 {
-    public class GroupedPageService(
-        Func<IPageBuilderModuleRepository> repositoryFactory,
-        Func<IContentStreamRepository> contentStreamRepositoryFactory,
-        IPlatformMemoryCache platformMemoryCache,
-        IEventPublisher eventPublisher,
-        ILogger<GroupedPageService> logger,
-        IPageBuilderAssetReferenceIndexService assetReferenceIndexService)
+    public class GroupedPageService
         : CrudService<GroupedPageBuilderPage, GroupedPageBuilderPageEntity, GroupedPageBuilderPageChangingEvent,
-                GroupedPageBuilderPageChangedEvent>(repositoryFactory, platformMemoryCache, eventPublisher),
-            IGroupedPageService
+                GroupedPageBuilderPageChangedEvent>,
+          IGroupedPageService
     {
+        private const int ExistingGroupsQueryBatchSize = 500;
+
+        private readonly Func<IContentStreamRepository> _contentStreamRepositoryFactory;
+        private readonly IEventPublisher _eventPublisher;
+        private readonly ILogger<GroupedPageService> _logger;
+        private readonly Func<IPageBuilderModuleRepository> _repositoryFactory;
+
+        public GroupedPageService(
+            Func<IPageBuilderModuleRepository> repositoryFactory,
+            Func<IContentStreamRepository> contentStreamRepositoryFactory,
+            IPlatformMemoryCache platformMemoryCache,
+            IEventPublisher eventPublisher,
+            ILogger<GroupedPageService> logger)
+            : base(repositoryFactory, platformMemoryCache, eventPublisher)
+        {
+            _repositoryFactory = repositoryFactory;
+            _contentStreamRepositoryFactory = contentStreamRepositoryFactory;
+            _eventPublisher = eventPublisher;
+            _logger = logger;
+        }
+
+        // The generic CRUD hook runs before its repository transaction, which leaves a gap where a page can
+        // acquire a Shared Component reference after store validation. Repositories that support Shared
+        // Components keep the validation and commit under the same write locks as raw content writers.
+        public override async Task SaveChangesAsync(IList<GroupedPageBuilderPage> models)
+        {
+            var primaryKeyMap = new PrimaryKeyResolvingMap();
+            var changedEntries = new GenericChangedEntry<GroupedPageBuilderPage>[models.Count];
+            var changedEntities = new GroupedPageBuilderPageEntity[models.Count];
+            var originalModels = new List<GroupedPageBuilderPage>();
+
+            using (var repository = _repositoryFactory())
+            {
+                var groupIds = models
+                    .Where(x => !string.IsNullOrWhiteSpace(x.Id))
+                    .Select(x => x.Id)
+                    .ToArray();
+
+                async Task SaveInternalAsync(CancellationToken cancellationToken)
+                {
+                    var existingEntities = await LoadExistingEntities(repository, models);
+                    await PrepareModelsForSaveAsync(
+                        models,
+                        existingEntities,
+                        repository,
+                        cancellationToken);
+                    await BeforeSaveChanges(models);
+
+                    for (var index = 0; index < models.Count; index++)
+                    {
+                        var model = models[index];
+                        var originalEntity = FindExistingEntity(existingEntities, model);
+                        var modifiedEntity = FromModel(model, primaryKeyMap);
+
+                        if (originalEntity != null)
+                        {
+                            repository.TrackModifiedAsAddedForNewChildEntities(originalEntity);
+
+                            var originalModel = ToModel(originalEntity, model: null);
+                            originalModels.Add(originalModel);
+                            changedEntries[index] = new GenericChangedEntry<GroupedPageBuilderPage>(
+                                model,
+                                originalModel,
+                                EntryState.Modified);
+                            modifiedEntity.Patch(originalEntity);
+                            originalEntity.ModifiedDate = DateTime.UtcNow;
+
+                            changedEntities[index] = originalEntity;
+                        }
+                        else
+                        {
+                            repository.Add(modifiedEntity);
+                            changedEntries[index] = new GenericChangedEntry<GroupedPageBuilderPage>(
+                                model,
+                                EntryState.Added);
+                            changedEntities[index] = modifiedEntity;
+                        }
+                    }
+
+                    await _eventPublisher.Publish(
+                        EventFactory<GroupedPageBuilderPageChangingEvent>(changedEntries),
+                        cancellationToken);
+                    await CommitAsync(repository);
+                }
+
+                await repository.ExecuteUnderGroupedPageWriteLocksAsync(
+                    groupIds,
+                    SaveInternalAsync);
+            }
+
+            primaryKeyMap.ResolvePrimaryKeys();
+
+            ClearCache(originalModels);
+            ClearCache(models);
+
+            for (var index = 0; index < changedEntries.Length; index++)
+            {
+                var changedEntry = changedEntries[index];
+                changedEntry.NewEntry = ToModel(changedEntities[index], changedEntry.NewEntry);
+            }
+
+            await AfterSaveChangesAsync(models, changedEntries);
+            await _eventPublisher.Publish(EventFactory<GroupedPageBuilderPageChangedEvent>(changedEntries));
+        }
+
         protected override async Task<IList<GroupedPageBuilderPageEntity>> LoadEntities(IRepository repository, IList<string> ids, string responseGroup)
         {
             var result = await ((IPageBuilderModuleRepository)repository).GetGroupedPageBuilderPagesByIdsAsync(ids, responseGroup);
             return result;
         }
 
-        protected override async Task BeforeSaveChanges(IList<GroupedPageBuilderPage> models)
+        private async Task PrepareModelsForSaveAsync(
+            IList<GroupedPageBuilderPage> models,
+            IList<GroupedPageBuilderPageEntity> existingEntities,
+            IPageBuilderModuleRepository repository,
+            CancellationToken cancellationToken)
         {
-            foreach (var group in models)
+            var existingStores = existingEntities
+                .ToDictionary(x => x.Id, x => x.StoreId, StringComparer.OrdinalIgnoreCase);
+            var groupsWithSharedComponents = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var ids = existingStores.Keys.ToArray();
+
+            if (ids.Length > 0)
             {
-                await NormalizePublishedPages(group);
+                foreach (var batch in ids.Chunk(ExistingGroupsQueryBatchSize))
+                {
+                    var referencedGroupIds = await repository.PageBuilderPages
+                        .Where(x => batch.Contains(x.GroupId))
+                        .Join(
+                            repository.PageBuilderSharedComponentReferences,
+                            page => page.Id,
+                            reference => reference.PageId,
+                            (page, reference) => page.GroupId)
+                        .Distinct()
+                        .ToListAsync(cancellationToken);
+                    groupsWithSharedComponents.UnionWith(referencedGroupIds);
+                }
             }
 
-            await base.BeforeSaveChanges(models);
+            ValidateStoreImmutability(models, existingStores, groupsWithSharedComponents);
+            SynchronizeMovedPageStores(models, existingStores);
+
+            foreach (var group in models)
+            {
+                var existingPages = existingEntities
+                    .FirstOrDefault(x => string.Equals(x.Id, group.Id, StringComparison.OrdinalIgnoreCase))
+                    ?.Pages;
+                NormalizePublishedPages(group, existingPages);
+            }
+        }
+
+        internal static void ValidateStoreImmutability(
+            IEnumerable<GroupedPageBuilderPage> groups,
+            IReadOnlyDictionary<string, string> existingStores,
+            ISet<string> groupsWithSharedComponents)
+        {
+            foreach (var group in groups.Where(x => !string.IsNullOrWhiteSpace(x.Id)))
+            {
+                if (existingStores.TryGetValue(group.Id, out var existingStoreId) &&
+                    groupsWithSharedComponents.Contains(group.Id) &&
+                    !string.Equals(existingStoreId, group.StoreId, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidDataException(
+                        $"Page group '{group.Id}' cannot be moved from store '{existingStoreId}' to '{group.StoreId}'.");
+                }
+            }
+        }
+
+        internal static void SynchronizeMovedPageStores(
+            IEnumerable<GroupedPageBuilderPage> groups,
+            IReadOnlyDictionary<string, string> existingStores)
+        {
+            foreach (var group in groups.Where(x => !string.IsNullOrWhiteSpace(x.Id)))
+            {
+                if (!existingStores.TryGetValue(group.Id, out var existingStoreId) ||
+                    string.Equals(existingStoreId, group.StoreId, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                foreach (var page in group.Pages)
+                {
+                    page.StoreId = group.StoreId;
+                }
+            }
         }
 
         // A grouped save changes the status of child pages (publish/unpublish/archive), but the base
@@ -79,7 +249,9 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
         // PublishGroup flow silently. If no clear transition exists (data anomaly from import/migration),
         // falls back to "newest by CreatedDate" and logs a warning.
         // Reference queries read page status from PageBuilderPage, so demoted pages do not need reference metadata refresh.
-        private async Task NormalizePublishedPages(GroupedPageBuilderPage group)
+        private void NormalizePublishedPages(
+            GroupedPageBuilderPage group,
+            IEnumerable<PageBuilderPageEntity> existingPages)
         {
             if (group?.Pages == null)
             {
@@ -92,41 +264,58 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
                 return;
             }
 
-            PageBuilderPage keep = null;
-
-            if (!string.IsNullOrEmpty(group.Id))
-            {
-                using var repository = repositoryFactory();
-                var existingEntities = await repository.GetGroupedPageBuilderPagesByIdsAsync([group.Id], null);
-                var existingPages = existingEntities.FirstOrDefault()?.Pages;
-                if (existingPages != null)
-                {
-                    var existingStatusById = existingPages
-                        .Where(p => !string.IsNullOrEmpty(p.Id))
-                        .ToDictionary(p => p.Id, p => p.Status);
-
-                    var newlyPromoted = publishedPages
-                        .Where(p => !string.IsNullOrEmpty(p.Id)
-                            && existingStatusById.TryGetValue(p.Id, out var oldStatus)
-                            && oldStatus != Published)
-                        .ToList();
-
-                    if (newlyPromoted.Count == 1)
-                    {
-                        keep = newlyPromoted[0];
-                    }
-                }
-            }
+            var keep = FindNewlyPromotedPage(group.Id, publishedPages, existingPages);
 
             if (keep == null)
             {
-                keep = publishedPages.OrderByDescending(x => x.CreatedDate).First();
-                logger.LogWarning("Group '{GroupId}' has multiple Published pages without a clear status transition. " +
-                    "Keeping page '{KeepId}' (newest CreatedDate) and demoting the rest to Archived.",
-                    group.Id, keep.Id);
+                keep = SelectFallbackPublishedPage(group.Id, publishedPages);
             }
 
-            foreach (var page in publishedPages.Where(p => p.Id != keep.Id))
+            ArchiveOtherPublishedPages(publishedPages, keep.Id);
+        }
+
+        private static PageBuilderPage FindNewlyPromotedPage(
+            string groupId,
+            IEnumerable<PageBuilderPage> publishedPages,
+            IEnumerable<PageBuilderPageEntity> existingPages)
+        {
+            if (string.IsNullOrEmpty(groupId) || existingPages == null)
+            {
+                return null;
+            }
+
+            var existingStatusById = existingPages
+                .Where(page => !string.IsNullOrEmpty(page.Id))
+                .ToDictionary(page => page.Id, page => page.Status);
+
+            var newlyPromoted = publishedPages
+                .Where(page => !string.IsNullOrEmpty(page.Id)
+                    && existingStatusById.TryGetValue(page.Id, out var oldStatus)
+                    && oldStatus != Published)
+                .Take(2)
+                .ToList();
+
+            return newlyPromoted.Count == 1 ? newlyPromoted[0] : null;
+        }
+
+        private PageBuilderPage SelectFallbackPublishedPage(
+            string groupId,
+            IEnumerable<PageBuilderPage> publishedPages)
+        {
+            var keep = publishedPages.OrderByDescending(page => page.CreatedDate).First();
+            _logger.LogWarning(
+                "Group '{GroupId}' has multiple Published pages without a clear status transition. " +
+                "Keeping page '{KeepId}' (newest CreatedDate) and demoting the rest to Archived.",
+                groupId,
+                keep.Id);
+            return keep;
+        }
+
+        private static void ArchiveOtherPublishedPages(
+            IEnumerable<PageBuilderPage> publishedPages,
+            string keepId)
+        {
+            foreach (var page in publishedPages.Where(page => page.Id != keepId))
             {
                 page.Status = Archived;
             }
@@ -149,7 +338,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
 
         public async Task<bool> LoadContentToStreamAsync(string pageId, Stream stream, CancellationToken cancellationToken = default)
         {
-            await using var repository = contentStreamRepositoryFactory();
+            await using var repository = _contentStreamRepositoryFactory();
 
             // Deliberately not disposed: disposing flushes, and flushing an HTTP response body commits the
             // status line, which would make the caller's fall-through to the next candidate — or to 404 —
@@ -169,28 +358,91 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
         {
             using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, leaveOpen: false);
             var content = await reader.ReadToEndAsync(cancellationToken);
-            await using var repository = contentStreamRepositoryFactory();
-            using var contentReader = new StringReader(content);
-            await repository.SaveBinaryAsync(pageId, contentReader, cancellationToken);
-
-            await assetReferenceIndexService.RebuildPageIndexAsync(pageId, content, cancellationToken);
+            await using var repository = _contentStreamRepositoryFactory();
+            await repository.SavePageContentAsync(
+                pageId,
+                content,
+                cancellationToken);
         }
 
         public async Task CopyPageContentAsync(string sourcePageId, string targetPageId, CancellationToken cancellationToken = default)
         {
-            // One server-side statement: the target takes on exactly the source's state, NULL included, and the
-            // payload never round-trips through here. A load followed by a save would leave a gap in which the
-            // source could change, and would flip a NULL source into '' on the target — turning "never seeded"
-            // into "deliberately empty", which is the distinction readers use to fall through to the live page.
-            await using (var repository = contentStreamRepositoryFactory())
+            await using var repository = _contentStreamRepositoryFactory();
+            await repository.CopyPageContentAsync(
+                sourcePageId,
+                targetPageId,
+                cancellationToken);
+        }
+
+        public async Task<bool> TryDeleteEmptyDraftAsync(
+            string pageId,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(pageId);
+
+            var deleted = false;
+            var groupId = (string)null;
+            using (var repository = _repositoryFactory())
             {
-                await repository.CopyContentAsync(sourcePageId, targetPageId, cancellationToken);
+                await repository.ExecuteUnderPageWriteLocksAsync(
+                    [pageId],
+                    async transactionCancellationToken =>
+                    {
+                        // A successful concurrent content writer holds this same row lock. Rechecking after the
+                        // lock prevents failed-request cleanup from deleting a draft another request filled.
+                        var page = await repository.PageBuilderPages
+                            .FirstOrDefaultAsync(x => x.Id == pageId, transactionCancellationToken);
+                        if (page == null || page.Status != Draft)
+                        {
+                            return;
+                        }
+
+                        var hasContent = await repository.PageBuilderContents
+                            .AnyAsync(
+                                x => x.Id == pageId && x.PageContent != null,
+                                transactionCancellationToken);
+                        var hasSharedComponentReferences = await repository.PageBuilderSharedComponentReferences
+                            .AnyAsync(x => x.PageId == pageId, transactionCancellationToken);
+                        if (hasContent || hasSharedComponentReferences)
+                        {
+                            return;
+                        }
+
+                        groupId = page.GroupId;
+                        repository.Remove(page);
+                        await repository.UnitOfWork.CommitAsync();
+                        deleted = true;
+                    },
+                    cancellationToken);
             }
 
-            // The asset reference index is keyed by page id, so it cannot be copied server-side along with the
-            // column. This is the one step that still has to bring the content back through the application.
-            var content = await LoadContent(targetPageId, cancellationToken);
-            await assetReferenceIndexService.RebuildPageIndexAsync(targetPageId, content, cancellationToken);
+            if (deleted)
+            {
+                GenericCachingRegion<PageBuilderPage>.ExpireTokenForKey(pageId);
+                GenericSearchCachingRegion<PageBuilderPage>.ExpireRegion();
+                GenericSearchCachingRegion<GroupedPageBuilderPage>.ExpireRegion();
+                if (!string.IsNullOrWhiteSpace(groupId))
+                {
+                    GenericCachingRegion<GroupedPageBuilderPage>.ExpireTokenForKey(groupId);
+                }
+
+                // This rollback path removes a draft that was already announced to Pages by the grouped save.
+                // A normal PageBuilder delete maps to Archive, so emit the explicit hard-delete operation here.
+                var pageDocument = AbstractTypeFactory<PageDocument>.TryCreateInstance();
+                pageDocument.Id = pageId;
+
+                var pagesEvent = AbstractTypeFactory<PagesDomainEvent>.TryCreateInstance();
+                pagesEvent.Id = pageId;
+                pagesEvent.Page = pageDocument;
+                pagesEvent.Operation = PageOperation.Delete;
+
+                // The row deletion has already committed, so request cancellation must not suppress the
+                // corresponding Pages delete notification and leave the downstream index stale.
+                await _eventPublisher.Publish(pagesEvent, CancellationToken.None);
+            }
+
+            return deleted;
         }
+
     }
 }

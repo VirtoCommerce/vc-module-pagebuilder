@@ -46,9 +46,10 @@ export class RoutingEffects {
       this.store$.select(fromRoute.selectPathParameter),
       this.store$.select(fromRoute.selectParentTemplateParameter),
       this.store$.select(fromRoute.selectPreviewModeParameter),
-      this.store$.select(fromRoute.selectGroupIdParameter)
+      this.store$.select(fromRoute.selectGroupIdParameter),
+      this.store$.select(fromRoute.selectSharedComponentIdParameter)
     ),
-    tap(([{ path, queryParams, extras }, type, pathParameter, parent, previewMode, groupId]) =>
+    tap(([{ path, queryParams, extras }, type, pathParameter, parent, previewMode, groupId, sharedComponentId]) =>
       this.router.navigate(path,
         {
           queryParams: {
@@ -57,6 +58,7 @@ export class RoutingEffects {
             parent: parent || undefined,
             'preview-mode': previewMode || undefined,
             groupId: groupId || undefined,
+            sharedComponentId: sharedComponentId || undefined,
             ...queryParams
           },
           ...extras

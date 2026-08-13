@@ -1,7 +1,70 @@
 <app-panel>
   <div class="p-4">
+    @if (!viewModel() && isSharedComponentDocument()) {
+      <div class="shared-component-document-banner">
+        <button type="button" class="back-link" (click)="backToPage()">
+          <app-icon>arrow_back</app-icon>
+          Back
+        </button>
+        <div class="banner-title">Shared Component</div>
+        @if (loadState()?.error) {
+          <div
+            class="my-3 flex items-start gap-2 rounded border border-red-200 bg-red-50 p-3 text-red-700"
+            role="alert">
+            <app-icon>error</app-icon>
+            <div>
+              <div class="font-medium">Could not load this Shared Component</div>
+              <div class="mt-1 text-sm">{{ loadState()?.error }}</div>
+            </div>
+          </div>
+          <app-icon-button icon="refresh" skin="outline" text="Retry"
+            (click)="retrySharedComponentLoad()" />
+        } @else {
+          <div class="banner-text">Loading Shared Component…</div>
+        }
+      </div>
+    }
     @if (viewModel(); as vm) {
-      @if (vm.settingsSchemas.top.length) {
+      @if (vm.isSharedComponentDocument) {
+        <div class="shared-component-document-banner">
+          <button type="button" class="back-link" (click)="backToPage()">
+            <app-icon>arrow_back</app-icon>
+            Back
+          </button>
+          <div class="banner-title">
+            Editing Shared Component “{{ vm.currentSharedComponent?.name || 'Shared Component' }}”
+          </div>
+          <div class="banner-text">
+            Changes affect {{ vm.currentSharedComponent?.usageCount || 0 }} page{{ vm.currentSharedComponent?.usageCount === 1 ? '' : 's' }}.
+          </div>
+          @if (vm.currentSharedComponent?.usagePages?.length) {
+            <details class="usage-details">
+              <summary>Where used</summary>
+              <ul>
+                @for (page of vm.currentSharedComponent!.usagePages; track page.id || page.permalink || $index) {
+                  <li>
+                    <button type="button"
+                      class="rounded text-left text-blue-700 hover:underline disabled:cursor-not-allowed disabled:text-gray-500 disabled:no-underline"
+                      [disabled]="!canOpenUsagePage(page)"
+                      (click)="openUsagePage(page)">
+                      {{ page.name || page.permalink || 'Unavailable page' }}
+                      @if (!canOpenUsagePage(page)) {
+                        <span class="ml-1 text-xs">
+                          ({{ page.status === 'Archived' ? 'archived' : 'unavailable' }})
+                        </span>
+                      }
+                    </button>
+                  </li>
+                }
+              </ul>
+            </details>
+          }
+          @if (isReadOnly()) {
+            <div class="read-only">You can view this component, but you do not have permission to edit it.</div>
+          }
+        </div>
+      }
+      @if (!vm.isSharedComponentDocument && vm.settingsSchemas.top.length) {
         <div class="settings-container top"
           >
           @for (schema of vm.settingsSchemas.top; track schema) {
@@ -30,6 +93,7 @@
             cdkDragBoundary=".ps"
             cdkDragLockAxis="y"
             cdkDrag
+            [cdkDragDisabled]="isReadOnly()"
             (cdkDragStarted)="sectionDragStarted($event, section)"
             (cdkDragReleased)="sectionDragCompleted($event, section)"
             (openChanged)="toggleSection($event, section.id, vm.templateState!.key)">
@@ -39,14 +103,16 @@
                 (mouseleave)="currentHoverId.set(null)">
                 <app-section-item [sectionSchema]="vm.sectionsSchemas[section.type]"
                   [section]="section"
-                  [selectable]="vm.sectionsState[section.id]?.selectable || false"
+                  [selectable]="canMutate() && (vm.sectionsState[section.id]?.selectable || false)"
                   [selected]="vm.sectionsState[section.id]?.selected || false"
-                  [hasContextMenu]="!vm.selectMode && vm.currentDragSection.length === 0"
+                  [hasContextMenu]="canMutate() && !vm.selectMode && vm.currentDragSection.length === 0"
+                  [sharedComponent]="getSharedComponent(section)"
+                  [sharedComponentError]="getSharedComponentError(section)"
                   (itemClick)="!vm.selectMode && onSectionClick(section)"
-                  (itemHover)="onSectionHover(section)"
+                  (itemHover)="onSectionHover($event ? section : null)"
                   (actionClick)="onActionClick($event, section)"
                   (itemSelectChanged)="onItemSelectChanged($event, section, vm.templateState!.key)" />
-                @let isDragHandleActive = (!vm.selectMode && section.id === currentHoverId()) || !!vm.sectionsState[section.id]?.selected;
+                @let isDragHandleActive = canMutate() && ((!vm.selectMode && section.id === currentHoverId()) || !!vm.sectionsState[section.id]?.selected);
                 <app-drag-handle cdkDragHandle
                   [cdkDragHandleDisabled]="!isDragHandleActive"
                   [visible]="isDragHandleActive" />
@@ -56,6 +122,7 @@
               [blocksSchemas]="vm.blocksSchemas!"
               [states]="vm.sectionsState[section.id].blocks"
               [selectMode]="vm.selectMode"
+              [readOnly]="!canMutate()"
               (itemClick)="!vm.selectMode && onBlockClick(section, $event)"
               (addBlockClick)="addBlockClick(section)"
               (reorderBlocks)="reorderBlocks($event)"
@@ -67,14 +134,14 @@
             }}</span>
           </app-collapsible-list-item>
         }
-        @if (!vm.selectMode && vm.currentDragSection.length === 0) {
+        @if (!isReadOnly() && !vm.selectMode && vm.currentDragSection.length === 0) {
           <div [ngStyle]="{ top: addLineTop(), opacity: addButtonOpacity() }" class="line"></div>
           <div [ngStyle]="{ top: addLineTop(), opacity: addButtonOpacity() }" class="line right-line"></div>
           <app-icon [ngStyle]="{ top: addButtonTop(), opacity: addButtonOpacity() }" class="add-button"
           (click)="addSectionClick()">add_circle</app-icon>
         }
       </div>
-      @if (vm.settingsSchemas.bottom.length) {
+      @if (!vm.isSharedComponentDocument && vm.settingsSchemas.bottom.length) {
         <div class="settings-container bottom"
           >
           @for (schema of vm.settingsSchemas.bottom; track schema) {
@@ -92,13 +159,14 @@
   <div title-content class="w-full">
     <div class="w-full flex flex-row pl-2">
       <div [attr.title]="templateName()" class="template-name">{{ templateName() }}</div>
-      <app-context-menu [visible]="true"
+      <app-context-menu [visible]="!!viewModel() && !isReadOnly()"
         [getActions]="getPageActions"
         (onAction)="onActionClick($event.action)" />
     </div>
   </div>
-  <div footer-content>
-    <app-icon-button icon="add" skin="blue" text="Add block"
-                     (click)="addSectionClick()" />
-  </div>
+  @if (!isReadOnly()) {
+    <div footer-content>
+      <app-icon-button icon="add" skin="blue" text="Add block" (click)="addSectionClick()" />
+    </div>
+  }
 </app-panel>

@@ -9,6 +9,8 @@ import { EnvironmentRef } from './environment.ref';
 import { BuilderHttpClient } from "./builder-http.client";
 import { EvaluatorService } from "./evaluator.service";
 import { AppInitializator } from "./app.initializator";
+import { AuthService } from './auth.service';
+import { JwtStorageService } from './jwt-storage.service';
 
 describe('app initializator', () => {
     let initializator: AppInitializator;
@@ -37,6 +39,14 @@ describe('app initializator', () => {
                 provideHttpClientTesting(),
                 { provide: EnvironmentRef, useValue: envRef },
                 { provide: CookieService, useValue: cookies },
+                { provide: AuthService, useValue: { obtainToken: vi.fn() } },
+                {
+                    provide: JwtStorageService,
+                    useValue: {
+                        getInfo: vi.fn().mockReturnValue({ token: 'test-token', expiresAt: Date.now() + 60_000 }),
+                        save: vi.fn(),
+                    },
+                },
                 EvaluatorService,
                 AppConfig
             ]

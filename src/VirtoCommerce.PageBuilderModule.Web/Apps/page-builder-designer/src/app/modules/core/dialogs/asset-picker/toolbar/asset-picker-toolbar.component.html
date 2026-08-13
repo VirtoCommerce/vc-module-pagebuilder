@@ -18,6 +18,6 @@
         type="text"
         [value]="searchValue()"
         [placeholder]="labels().searchPlaceholder"
-        (input)="search.emit($any($event.target).value)" />
+        (input)="searchChanged.emit($any($event.target).value)" />
     <span class="counter">{{ counterText() }}</span>
 </div>

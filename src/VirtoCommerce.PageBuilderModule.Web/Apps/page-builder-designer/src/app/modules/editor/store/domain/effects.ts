@@ -14,14 +14,15 @@ import { ModalService, EventsBusService, ClipboardService } from '@core/services
 import { appHelpers } from "@integration/helpers";
 import * as sharedActions from "@shared/store/actions";
 import * as sharedSelectors from "@shared/store/selectors";
+import * as routingSelectors from "@shared/routing/selectors";
 
 import { PasteContentComponent } from '@editor/dialogs';
-import { helpers as editorHelpers, clipboardHelpers } from '@editor/helpers';
+import { canEditSharedComponentOriginal, helpers as editorHelpers, clipboardHelpers } from '@editor/helpers';
 
 import { BuilderState } from "../state";
 import * as actions from "../actions";
 import * as selectors from "../selectors";
-import { EvaluatorService } from "@app/modules/integration/services";
+import { AppConfig, EvaluatorService } from "@integration/services";
 import { SectionModel } from "@app/modules/models";
 
 @Injectable({
@@ -34,6 +35,7 @@ export class TemplateEditorDomainEffects {
     private readonly modals = inject(ModalService);
     private readonly eventsBus = inject(EventsBusService);
     private readonly evaluator = inject(EvaluatorService);
+    private readonly appConfig = inject(AppConfig);
 
     addItem$ = createEffect(() => this.actions$.pipe(
         ofType(actions.addItemAction),
@@ -49,7 +51,7 @@ export class TemplateEditorDomainEffects {
 
             const fullSchema = editorHelpers.prepareSchema(schema, shared, objects, sharedSchemaName, templateEntry?.controls);
             const result = editorHelpers.addItemToTemplate(fullSchema, template!, section || null, insertIndex); // section can be null
-            const message = sharedActions.broadcastPreviewMessage({
+            const message = actions.broadcastResolvedPreview({
                 msg: {
                     type: 'add',
                     template: result.template,
@@ -74,8 +76,12 @@ export class TemplateEditorDomainEffects {
 
     updateEditableModel$ = createEffect(() => this.actions$.pipe(
         ofType(actions.sectionChangedAction),
-        withLatestFrom(this.store$.select(selectors.changeTemplateContext)),
-        filter(([, { template, sectionId }]) => !!template && !!sectionId),
+        withLatestFrom(
+            this.store$.select(selectors.changeTemplateContext),
+            this.store$.select(routingSelectors.selectSharedComponentIdParameter),
+        ),
+        filter(([, { template, sectionId }, sharedComponentId]) =>
+            !!template && !!sectionId && this.canMutate(sharedComponentId)),
         switchMap(([{ changes }, { template, templateKey, sectionId, blockId }]) => [
             actions.updateTemplateAction({
                 template: blockId
@@ -88,8 +94,12 @@ export class TemplateEditorDomainEffects {
 
     updateTemplateSettings$ = createEffect(() => this.actions$.pipe(
         ofType(actions.sectionChangedAction),
-        withLatestFrom(this.store$.select(selectors.changeTemplateContext)),
-        filter(([, { template, sectionId }]) => !!template && !sectionId),
+        withLatestFrom(
+            this.store$.select(selectors.changeTemplateContext),
+            this.store$.select(routingSelectors.selectSharedComponentIdParameter),
+        ),
+        filter(([, { template, sectionId }, sharedComponentId]) =>
+            !!template && !sectionId && this.canMutate(sharedComponentId)),
         switchMap(([{ changes }, { template, templateKey }]) => [
             actions.updateTemplateAction({
                 template: editorHelpers.applySettingsChanges(template!, changes),
@@ -109,7 +119,7 @@ export class TemplateEditorDomainEffects {
         withLatestFrom(this.store$.select(selectors.changeTemplateContext)),
         filter(([, { template }]) => !!template),
         switchMap(([, { template }]) => [
-            sharedActions.broadcastPreviewMessage({
+            actions.broadcastResolvedPreview({
                 msg: {
                     type: 'reload',
                     template: template
@@ -133,7 +143,7 @@ export class TemplateEditorDomainEffects {
                     : editorHelpers.applySectionChanges(template!, { hidden: action === 'hide' }, sectionId),
                 templateKey
             }),
-            sharedActions.broadcastPreviewMessage({
+            actions.broadcastResolvedPreview({
                 msg: {
                     type: action,
                     template: template!,
@@ -156,7 +166,7 @@ export class TemplateEditorDomainEffects {
             const changedTemplate = blockId
                 ? editorHelpers.duplicateBlock(template!, sectionId, blockId)
                 : editorHelpers.duplicateSection(template!, sectionId);
-            const message = sharedActions.broadcastPreviewMessage({
+            const message = actions.broadcastResolvedPreview({
                 msg: blockId
                     ? {
                         type: 'changed',
@@ -274,7 +284,7 @@ export class TemplateEditorDomainEffects {
                                 template: newTemplate,
                                 templateKey
                             }),
-                            sharedActions.broadcastPreviewMessage({
+                            actions.broadcastResolvedPreview({
                                 msg: {
                                     type: blockId ? 'update' : 'remove',
                                     sectionId: sectionId,
@@ -313,7 +323,7 @@ export class TemplateEditorDomainEffects {
                             template: newTemplate,
                             templateKey
                         }),
-                        sharedActions.broadcastPreviewMessage({
+                        actions.broadcastResolvedPreview({
                             msg: {
                                 type: 'reload',
                                 template: newTemplate
@@ -340,7 +350,7 @@ export class TemplateEditorDomainEffects {
                     template: newTemplate,
                     templateKey
                 }),
-                sharedActions.broadcastPreviewMessage({
+                actions.broadcastResolvedPreview({
                     msg: {
                         type: 'swap',
                         template: newTemplate,
@@ -387,4 +397,8 @@ export class TemplateEditorDomainEffects {
             });
         })
     ), { dispatch: false });
+
+    private canMutate(sharedComponentId: string): boolean {
+        return !sharedComponentId || canEditSharedComponentOriginal(this.appConfig);
+    }
 }

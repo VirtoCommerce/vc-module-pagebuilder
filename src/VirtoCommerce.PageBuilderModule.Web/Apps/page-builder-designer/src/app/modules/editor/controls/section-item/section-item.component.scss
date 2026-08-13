@@ -11,3 +11,15 @@
 .section-item-checkbox {
   @apply block -m-2;
 }
+
+.shared-component-badge {
+  @apply inline-flex shrink-0 items-center gap-1 rounded bg-green-100 px-1.5 py-0.5 text-xs font-medium text-green-700;
+
+  &.error {
+    @apply bg-red-100 text-red-700;
+  }
+}
+
+.shared-component-usage {
+  @apply inline-flex items-center gap-1 tabular-nums;
+}

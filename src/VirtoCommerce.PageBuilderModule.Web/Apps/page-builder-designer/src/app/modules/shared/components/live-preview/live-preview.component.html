@@ -1,13 +1,18 @@
-<div class="preview-wrapper" [ngClass]="{ 'preset-preview-mode': (isPresetPreviewMode()) }">
-    <div class="relative">
-        @if (isPresetPreviewMode()) {
-            <div [attr.title]="previewPresetName()" class="preview-name">
-                Preset preview: {{ previewPresetName() }}
-            </div>
-        }
-    </div>
-    <div class="iframe-holder" [class]="previewMode()">
-        <!-- todo: move to config flow -->
-        <iframe class="shadow-md" #frame id="preview-frame-component" [src]="previewUrl"></iframe>
-    </div>
+<div class="preview-wrapper" [ngClass]="{ 'preset-preview-mode': isPresetPreviewMode() }">
+  <div class="relative">
+    @if (isPresetPreviewMode()) {
+      <div [attr.title]="previewPresetName()" class="preview-name">Preset preview: {{ previewPresetName() }}</div>
+    }
+  </div>
+  <div class="iframe-holder" [class]="previewMode()">
+    <!-- todo: move to config flow -->
+    <iframe
+      class="shadow-md"
+      #frame
+      id="preview-frame-component"
+      title="Storefront page preview"
+      [src]="previewUrl"
+      (load)="onPreviewFrameLoaded(frame)"
+    ></iframe>
+  </div>
 </div>

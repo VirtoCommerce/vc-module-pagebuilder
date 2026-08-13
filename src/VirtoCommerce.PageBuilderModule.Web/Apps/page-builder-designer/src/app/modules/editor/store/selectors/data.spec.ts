@@ -1,6 +1,7 @@
 import * as selectors from './data';
 import { createTemplate, createSection, createSchema, createSchemasList } from '@app/testing';
 import { SectionSchema } from '@models/document';
+import { createSharedComponentReference } from '@editor/helpers';
 
 // ── selectCurrentTemplateModel ────────────────────────────────────
 
@@ -43,21 +44,21 @@ describe('selectCurrentTemplateName', () => {
         const model = createTemplate();
         (model.settings as any).displayName = 'Display';
         (model.settings as any).name = 'Name';
-        expect(selectors.selectCurrentTemplateName.projector(model, 'file')).toBe('Display');
+        expect(selectors.selectCurrentTemplateName.projector(model, 'file', null)).toBe('Display');
     });
 
     it('falls back to name', () => {
         const model = createTemplate();
         (model.settings as any).name = 'Name';
-        expect(selectors.selectCurrentTemplateName.projector(model, 'file')).toBe('Name');
+        expect(selectors.selectCurrentTemplateName.projector(model, 'file', null)).toBe('Name');
     });
 
     it('falls back to fileName', () => {
-        expect(selectors.selectCurrentTemplateName.projector(createTemplate(), 'file')).toBe('file');
+        expect(selectors.selectCurrentTemplateName.projector(createTemplate(), 'file', null)).toBe('file');
     });
 
     it('falls back to [no name]', () => {
-        expect(selectors.selectCurrentTemplateName.projector(null, '')).toBe('[no name]');
+        expect(selectors.selectCurrentTemplateName.projector(null, '', null)).toBe('[no name]');
     });
 });
 
@@ -65,7 +66,7 @@ describe('selectCurrentTemplateName', () => {
 
 describe('selectSectionsSchemas', () => {
     it('returns empty object when schemas is null', () => {
-        expect(selectors.selectSectionsSchemas.projector({ schemas: null, templates: {} })).toEqual({});
+        expect(selectors.selectSectionsSchemas.projector({ schemas: null, templates: {} } as any)).toEqual({});
     });
 
     it('returns sections with spread properties', () => {
@@ -187,6 +188,43 @@ describe('selectSectionModelFromRoute', () => {
 
     it('returns null when sectionId is empty', () => {
         expect(selectors.selectSectionModelFromRoute.projector('', createTemplate())).toBeNull();
+    });
+});
+
+// ── selectSharedComponentInstanceFromRoute ────────────────────────
+
+describe('selectSharedComponentInstanceFromRoute', () => {
+    it('returns the reference together with cached metadata and load error', () => {
+        const reference = createSharedComponentReference('component-1', 'placement-1');
+        const component = {
+            id: 'component-1',
+            storeId: 'store-1',
+            name: 'USP bar',
+            usageCount: 4,
+            usagePages: [],
+        };
+
+        expect(selectors.selectSharedComponentInstanceFromRoute.projector(
+            reference,
+            { [component.id]: component },
+            { [component.id]: 'Content is unavailable' },
+            { componentId: component.id, loading: true, error: null },
+        )).toEqual({
+            reference,
+            component,
+            error: 'Content is unavailable',
+            detailsLoading: true,
+            detailsError: null,
+        });
+    });
+
+    it('returns null for an ordinary section', () => {
+        expect(selectors.selectSharedComponentInstanceFromRoute.projector(
+            createSection({ id: 'ordinary' }),
+            {},
+            {},
+            { componentId: null, loading: false, error: null },
+        )).toBeNull();
     });
 });
 

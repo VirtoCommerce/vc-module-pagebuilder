@@ -1,17 +1,120 @@
 <app-overlap-panel [skipTranslate]="isHalfScreen()" [expandable]="!isHalfScreen()">
   @let vm = viewModel();
+  @let instance = sharedComponentInstance();
+  @let original = sharedComponentDocument();
   <app-panel>
-    @if (vm) {
-      <app-dynamic-form [context]="vm.editContext"
-        [descriptors]="vm.schema.settings"
-        [sectionModel]="vm.model"
-        (modelChanged)="onModelChanged($event)" />
+    @if (instance) {
+      <div class="space-y-5 p-4 text-sm">
+        <div class="rounded-md border border-green-200 bg-green-50 p-3 text-green-800">
+          <div class="flex items-center gap-2 font-medium">
+            <app-icon>link</app-icon>
+            <span>This is a Shared Component</span>
+          </div>
+          <p class="mt-2 leading-5">
+            Editing will update all
+            {{ instance.component?.usageCount || 0 }}
+            page{{ instance.component?.usageCount === 1 ? '' : 's' }} using it.
+          </p>
+          <div class="mt-3 flex gap-2">
+            <button type="button"
+              class="rounded border border-green-300 bg-white px-3 py-2 text-green-800 transition-colors hover:bg-green-100 disabled:cursor-not-allowed disabled:opacity-50"
+              [disabled]="!canInsertSharedComponents" (click)="openSharedComponent()">
+              {{ canEditSharedComponents ? 'Edit original' : 'View original' }}
+            </button>
+            <button type="button"
+              class="rounded border border-orange-300 bg-white px-3 py-2 text-orange-700 transition-colors hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-50"
+              [disabled]="!canInsertSharedComponents" (click)="detachSharedComponent()">
+              Detach
+            </button>
+          </div>
+        </div>
+
+        @if (instance.error) {
+          <div class="rounded border border-red-200 bg-red-50 p-3 text-red-700">{{ instance.error }}</div>
+        }
+
+        <div class="space-y-2">
+          <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Component name</div>
+          <div>{{ instance.component?.name || instance.reference.componentRef }}</div>
+        </div>
+
+        <div class="space-y-2">
+          <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Where used</div>
+          @if (instance.detailsLoading) {
+            <div class="text-gray-500">Loading usage details…</div>
+          } @else if (instance.detailsError) {
+            <div class="text-red-700">Usage details could not be loaded. Try reopening the component.</div>
+          } @else if (instance.component?.usagePages?.length) {
+            <ul class="divide-y divide-gray-200 border-y border-gray-200">
+              @for (page of instance.component!.usagePages; track page.id || page.permalink || $index) {
+                @let canOpen = canOpenUsagePage(page);
+                <li>
+                  <button type="button"
+                    class="flex w-full items-center gap-2 rounded py-2 text-left hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    [disabled]="!canOpen"
+                    (click)="openUsagePage(page)">
+                    <span class="h-2 w-2 shrink-0 rounded-full"
+                      [class.bg-blue-500]="canOpen" [class.bg-gray-400]="!canOpen"></span>
+                    <span>
+                      {{ page.name || page.permalink || 'Unavailable page' }}
+                      @if (!canOpen) {
+                        <span class="block text-xs text-gray-500">
+                          {{ page.status === 'Archived' ? 'Archived — cannot be opened' : 'Page identity is unavailable' }}
+                        </span>
+                      }
+                    </span>
+                  </button>
+                </li>
+              }
+            </ul>
+          } @else {
+            <div class="text-gray-500">Not used on any saved page yet.</div>
+          }
+        </div>
+      </div>
+    } @else {
+      @if (original) {
+        @if (isReadOnlyOriginal()) {
+          <div class="m-4 mb-0 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm leading-5 text-amber-900">
+            <app-icon>lock</app-icon>
+            <span>
+              <strong>Read-only access.</strong>
+              You can view “{{ original.name }}”, but editing requires Shared Component update permission.
+            </span>
+          </div>
+        } @else {
+          <div class="m-4 mb-0 flex items-center gap-2 rounded-md border border-green-200 bg-green-50 p-3 text-sm font-medium leading-5 text-green-800">
+            <app-icon>info</app-icon>
+            <span>
+              You are editing “{{ original.name }}”. Changes affect
+              {{ original.usageCount }} page{{ original.usageCount === 1 ? '' : 's' }}.
+            </span>
+          </div>
+        }
+      }
+      @if (vm) {
+        <div class="dynamic-form-boundary"
+          [class.dynamic-form-boundary--read-only]="isReadOnlyOriginal()"
+          [attr.inert]="isReadOnlyOriginal() ? '' : null"
+          [attr.aria-disabled]="isReadOnlyOriginal() ? 'true' : null">
+          <app-dynamic-form [context]="vm.editContext"
+            [descriptors]="vm.schema.settings"
+            [sectionModel]="vm.model"
+            [readOnly]="isReadOnlyOriginal()"
+            (modelChanged)="onModelChanged($event)" />
+        </div>
+      }
     }
     <ng-container title-content>
       <div class="title pl-2">
         <app-icon class="back-icon" (click)="onBackClick()" [hoverable]="true" title="Back">chevron_left
         </app-icon>
-        @if (vm) {
+        @if (instance) {
+          <div class="edit-section-title flex-row items-center gap-2">
+            <div class="whitespace-normal">{{ instance.component?.name || 'Shared Component' }}</div>
+            <span class="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">Shared</span>
+          </div>
+        } @else if (vm) {
           <div class="edit-section-title"
             [ngClass]="{ 'invisible-section': vm.model.hidden, 'name-only': vm.isEditSettings }">
             <div class="whitespace-normal">{{ sectionName() }}</div>
@@ -28,7 +131,7 @@
               </div>
             }
           </div>
-          @if (!vm.isEditSettings) {
+          @if (!vm.isEditSettings && !isReadOnlyOriginal()) {
             <app-context-menu [visible]="true"
                   [getActions]="getItemActionsFactory(vm.model, vm.schema)"
                   (onAction)="onContextMenuAction($event, vm.section, vm.block)" />

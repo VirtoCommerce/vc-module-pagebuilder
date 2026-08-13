@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Data.Extensions;
@@ -9,9 +10,13 @@ using VirtoCommerce.Platform.Core.Events;
 namespace VirtoCommerce.PageBuilderModule.Data.Handlers
 {
     public abstract class PageBuilderEventHandlerBase(
-        IGroupedPageService groupedPageService
+        IGroupedPageService groupedPageService,
+        IPageBuilderSharedComponentResolver sharedComponentResolver,
+        ILogger logger
     )
     {
+        internal const int MaxDegreeOfParallelism = 8;
+
         protected async Task<PagesDomainEvent> ToPagesDomainEvent(PageBuilderPage entry, EntryState state)
         {
             var pageOperation = state.ToPageOperation(entry);
@@ -25,7 +30,21 @@ namespace VirtoCommerce.PageBuilderModule.Data.Handlers
             }
 
             var group = await groupedPageService.GetByIdAsync(entry.GroupId);
-            var content = await groupedPageService.LoadContent(entry.Id);
+            var rawContent = await groupedPageService.LoadContent(entry.Id);
+
+            string content;
+            try
+            {
+                content = await sharedComponentResolver.ResolveAsync(rawContent);
+            }
+            catch (InvalidDataException ex)
+            {
+                logger.LogError(
+                    ex,
+                    "Skipped Page Builder page {PageId} because its content could not be expanded",
+                    entry.Id);
+                return null;
+            }
 
             var pageDocument = entry.ToPageDocument(group, content);
             // todo: move to pages module
@@ -42,7 +61,30 @@ namespace VirtoCommerce.PageBuilderModule.Data.Handlers
 
         protected static async Task PublishPagesDomainEvents(IEnumerable<PagesDomainEvent> events, IEventPublisher eventPublisher)
         {
-            await Task.WhenAll(events.Where(e => e != null).Select(e => eventPublisher.Publish(e)));
+            await ForEachBoundedAsync(
+                events.Where(e => e != null).ToArray(),
+                @event => eventPublisher.Publish(@event));
+        }
+
+        internal static async Task<TResult[]> SelectBoundedAsync<TSource, TResult>(
+            IReadOnlyList<TSource> source,
+            Func<TSource, Task<TResult>> selector)
+        {
+            var results = new TResult[source.Count];
+            await ForEachBoundedAsync(
+                Enumerable.Range(0, source.Count).ToArray(),
+                async index => results[index] = await selector(source[index]));
+            return results;
+        }
+
+        internal static Task ForEachBoundedAsync<TSource>(
+            IReadOnlyList<TSource> source,
+            Func<TSource, Task> action)
+        {
+            return Parallel.ForEachAsync(
+                source,
+                new ParallelOptions { MaxDegreeOfParallelism = MaxDegreeOfParallelism },
+                async (item, _) => await action(item));
         }
     }
 }

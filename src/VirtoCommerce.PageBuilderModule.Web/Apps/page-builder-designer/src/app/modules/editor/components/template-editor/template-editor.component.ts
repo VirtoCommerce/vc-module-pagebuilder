@@ -1,4 +1,4 @@
-import { Component, ElementRef, signal, viewChild, inject } from '@angular/core';
+import { Component, computed, ElementRef, signal, viewChild, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NgClass, NgStyle } from '@angular/common';
 import { CdkDragRelease, CdkDragSortEvent, CdkDragStart, DragDropModule } from '@angular/cdk/drag-drop';
@@ -15,11 +15,19 @@ import { SectionChildrenListComponent } from '@editor/controls/section-children-
 import { ReorderItemsModel } from '@core/models';
 import { SectionModel, SectionSchema } from '@models/document';
 
-import { ContextMenuHelper } from '@editor/helpers';
+import {
+    canEditSharedComponentOriginal,
+    canOpenSharedComponentUsagePage,
+    ContextMenuHelper,
+    isSharedComponentReference,
+} from '@editor/helpers';
+import { AppConfig } from '@integration/services';
+import { SharedComponent, SharedComponentUsagePage } from '@editor/models';
 import { BuilderState } from '@editor/store/state';
 
 import * as fromState from '@editor/store/selectors';
 import * as actions from '@editor/store/actions';
+import * as routingSelectors from '@shared/routing/selectors';
 import { BlockState } from '../../models';
 import { domHelpers } from '@core/helpers';
 
@@ -33,13 +41,26 @@ export class TemplateEditorComponent {
 
     private readonly store = inject(Store<BuilderState>);
     private readonly helper = inject(ContextMenuHelper);
+    private readonly appConfig = inject(AppConfig);
 
     readonly container = viewChild.required<ElementRef<HTMLDivElement>>('container');
 
     readonly viewModel = toSignal(this.store.select(fromState.editTemplateContext));
+    readonly loadState = toSignal(this.store.select(fromState.selectCurrentTemplateState));
+    readonly sharedComponentId = toSignal(
+        this.store.select(routingSelectors.selectSharedComponentIdParameter),
+        { initialValue: '' },
+    );
 
     readonly hoveredSectionId = toSignal(this.store.select(fromState.hoveredSectionId));
     readonly templateName = toSignal(this.store.select(fromState.selectCurrentTemplateName));
+    readonly canEditSharedComponents = canEditSharedComponentOriginal(this.appConfig);
+    readonly isSharedComponentDocument = computed(() => !!this.sharedComponentId());
+    readonly isReadOnly = computed(() => this.isSharedComponentDocument() && !this.canEditSharedComponents);
+
+    canMutate(): boolean {
+        return !this.isReadOnly();
+    }
 
     readonly addButtonTop = signal('0');
     readonly addLineTop = signal('0');
@@ -48,19 +69,31 @@ export class TemplateEditorComponent {
     readonly currentHoverId = signal<string | null>(null);
 
     addSectionClick() {
+        if (!this.canMutate()) {
+            return;
+        }
         this.store.dispatch(actions.showBlankSections({ sectionId: null, positionIndex: this.currentInsertIndex() }));
     }
 
     onSettingsClick(schema: SectionSchema) {
+        if (!this.canMutate()) {
+            return;
+        }
         this.store.dispatch(actions.editSettings({ schema }))
     }
 
     private _fakeElement: HTMLElement | null = null;
 
     reorderSections(event: CdkDragSortEvent<SectionModel>) {
+        if (!this.canMutate()) {
+            return;
+        }
         this.store.dispatch(actions.sortItems({ options: { item: event.item.data, currentIndex: event.currentIndex, previousIndex: event.previousIndex } }))
     }
     sectionDragStarted(event: CdkDragStart, section: SectionModel) {
+        if (!this.canMutate()) {
+            return;
+        }
         const rootElement = event.source.getRootElement();
         this._fakeElement = domHelpers.deepCloneNode(rootElement);
         domHelpers.toggleVisibility(this._fakeElement, true, new Set(['position']));
@@ -73,10 +106,16 @@ export class TemplateEditorComponent {
         this._fakeElement?.remove();
         this._fakeElement = null;
 
+        if (!this.canMutate()) {
+            return;
+        }
         this.store.dispatch(actions.releaseDragSection({ sectionId: section.id }));
     }
 
     reorderBlocks(options: ReorderItemsModel) {
+        if (!this.canMutate()) {
+            return;
+        }
         this.store.dispatch(actions.sortItems({ options }))
     }
 
@@ -84,15 +123,21 @@ export class TemplateEditorComponent {
         this.store.dispatch(actions.editSectionAction({ sectionId: section.id }));
     }
 
-    onSectionHover(section: SectionModel) {
-        this.store.dispatch(actions.hoverSection({ sectionId: section.id }));
+    onSectionHover(section: SectionModel | null) {
+        this.store.dispatch(actions.hoverSection({ sectionId: section?.id || null }));
     }
 
     onItemSelectChanged(selected: boolean, section: SectionModel, templateKey: string) {
+        if (!this.canMutate()) {
+            return;
+        }
         this.store.dispatch(actions.sectionStateChangedAction({ sectionId: section.id, templateKey, state: { selected } }));
     }
 
     onBlockSelectChanged(selected: boolean, blockId: string, sectionId: string, templateKey: string) {
+        if (!this.canMutate()) {
+            return;
+        }
         this.store.dispatch(actions.sectionStateChangedAction({ sectionId, templateKey, state: { blocks: { [blockId]: <BlockState>{ selected } } } }));
     }
 
@@ -100,6 +145,9 @@ export class TemplateEditorComponent {
         this.store.dispatch(actions.editBlockAction({ sectionId: section.id, blockId: block.id }));
     }
     addBlockClick(section: SectionModel) {
+        if (!this.canMutate()) {
+            return;
+        }
         this.store.dispatch(actions.showBlankSections({ sectionId: section.id, positionIndex: -1 }));
     }
 
@@ -108,10 +156,55 @@ export class TemplateEditorComponent {
     }
 
     onActionClick(event: string, section?: SectionModel, block?: SectionModel) {
+        if (!this.canMutate()) {
+            return;
+        }
         this.store.dispatch(actions.executeContextMenuAction({ action: event, source: 'list', section, block }));
     }
 
-    readonly getPageActions = () => this.helper.getPageActions(!!this.viewModel()?.selectMode);
+    readonly getPageActions = () => this.helper.getPageActions(
+        !!this.viewModel()?.selectMode,
+        (this.viewModel()?.selectedSectionsCount || 0) > 0,
+        !this.viewModel()?.isSharedComponentDocument,
+    );
+
+    backToPage(): void {
+        this.store.dispatch(actions.closeSharedComponent());
+    }
+
+    retrySharedComponentLoad(): void {
+        const templateKey = this.loadState()?.key;
+        if (templateKey) {
+            this.store.dispatch(actions.loadTemplateModel({ templateKey }));
+        }
+    }
+
+    openUsagePage(page: SharedComponentUsagePage): void {
+        if (canOpenSharedComponentUsagePage(page)) {
+            this.store.dispatch(actions.openSharedComponentUsagePage({
+                pageId: page.id,
+                cultureName: page.cultureName,
+            }));
+        }
+    }
+
+    canOpenUsagePage(page: SharedComponentUsagePage): boolean {
+        return canOpenSharedComponentUsagePage(page);
+    }
+
+    getSharedComponent(section: SectionModel): SharedComponent | null {
+        if (!isSharedComponentReference(section)) {
+            return null;
+        }
+        return this.viewModel()?.sharedComponents[section.componentRef] || null;
+    }
+
+    getSharedComponentError(section: SectionModel): string | null {
+        if (!isSharedComponentReference(section)) {
+            return null;
+        }
+        return this.viewModel()?.sharedComponentErrors[section.componentRef] || null;
+    }
 
     onMouseMove(args: MouseEvent) {
         let target = this.container().nativeElement;

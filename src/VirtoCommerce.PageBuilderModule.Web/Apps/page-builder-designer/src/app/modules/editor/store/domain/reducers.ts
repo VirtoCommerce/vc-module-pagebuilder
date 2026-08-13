@@ -34,6 +34,10 @@ export const editorDomainReducers = createReducer<EditorDomainState>(
             }
         })
     ),
+    on(actions.discardSharedComponentChanges, (state, { templateKey }) => ({
+        ...state,
+        states: withoutKey(state.states, templateKey),
+    })),
     on(actions.loadTemplateModelFails, (state, { error, templateKey }) => ({
             ...state,
             states: {
@@ -78,3 +82,9 @@ export const editorDomainReducers = createReducer<EditorDomainState>(
         }
     })),
 );
+
+function withoutKey<T>(source: Record<string, T>, key: string): Record<string, T> {
+    const result = { ...source };
+    delete result[key];
+    return result;
+}
