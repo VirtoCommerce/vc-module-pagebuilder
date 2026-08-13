@@ -144,11 +144,68 @@ public class PageBuilderContentProviderSharedComponentChangeTests
             await database.LoadRawContentAsync(PageWithComponentId, TestContext.Current.CancellationToken));
     }
 
+    [Fact]
+    public async Task SearchChangesAsync_FallsBackToPageDateWhenEffectiveDateIsMissing()
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        await database.SeedAsync();
+        using var cache = new TestPlatformMemoryCache();
+        // The effective-date lookup skips pages without an id, so the provider must tolerate a page that has
+        // no entry instead of aborting the whole indexation cycle on a dictionary miss.
+        var provider = CreateProvider(database, cache, changeService: new EmptyPageChangeService());
+
+        var result = await provider.SearchChangesAsync(new PageChangesSearchCriteria
+        {
+            StartDate = OwnPageChangeDate.AddTicks(-1),
+            EndDate = OwnPageChangeDate,
+            Take = 10,
+        });
+
+        var change = Assert.Single(result.Results);
+        Assert.Equal(PageWithoutComponentsId, change.DocumentId);
+        Assert.Equal(OwnPageChangeDate, change.ChangeDate);
+    }
+
+    [Fact]
+    public async Task GetByIdsAsync_MalformedMarkerSkipsOnlyItsOwnPage()
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        await database.SeedAsync();
+        using var cache = new TestPlatformMemoryCache();
+        var provider = CreateProvider(database, cache);
+
+        var documents = await provider.GetByIdsAsync([PageWithMalformedMarkerId, PageWithComponentId]);
+
+        var document = Assert.Single(documents);
+        Assert.Equal(PageWithComponentId, document.Id);
+        Assert.Contains("Shared title", document.Content);
+    }
+
+    [Fact]
+    public async Task GetByIdsAsync_LoadsSharedComponentContentsOncePerBatch()
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        await database.SeedAsync();
+        using var cache = new TestPlatformMemoryCache();
+        var contentService = new CountingContentService(new PageBuilderSharedComponentContentService(
+            database.RepositoryFactory,
+            new NoopEventPublisher(),
+            new PageBuilderSharedComponentAssetReferenceIndexService()));
+        var provider = CreateProvider(database, cache, contentService);
+
+        var documents = await provider.GetByIdsAsync([PageWithComponentId, PageWithSameComponentId]);
+
+        Assert.Equal(2, documents.Count);
+        Assert.All(documents, document => Assert.Contains("Shared title", document.Content));
+        Assert.Equal(1, contentService.LoadContentsCallCount);
+    }
+
     private static PageBuilderContentProvider CreateProvider(
         TestDatabase database,
         IPlatformMemoryCache cache,
         IPageBuilderSharedComponentContentService contentService = null,
-        Func<IPageBuilderModuleRepository> repositoryFactory = null)
+        Func<IPageBuilderModuleRepository> repositoryFactory = null,
+        IPageBuilderPageChangeService changeService = null)
     {
         repositoryFactory ??= database.RepositoryFactory;
         var pageService = new PageBuilderPageService(
@@ -170,9 +227,10 @@ public class PageBuilderContentProviderSharedComponentChangeTests
 
         return new PageBuilderContentProvider(
             searchService,
-            new PageBuilderPageChangeService(repositoryFactory),
+            changeService ?? new PageBuilderPageChangeService(repositoryFactory),
             new TestGroupedPageService(database),
-            resolver);
+            resolver,
+            NullLogger<PageBuilderContentProvider>.Instance);
     }
 
     private sealed class NoopEventPublisher : IEventPublisher
@@ -182,6 +240,52 @@ public class PageBuilderContentProviderSharedComponentChangeTests
         {
             return Task.CompletedTask;
         }
+    }
+
+    private sealed class EmptyPageChangeService : IPageBuilderPageChangeService
+    {
+        public Task<IReadOnlyDictionary<string, DateTime>> GetEffectiveChangeDatesAsync(
+            IEnumerable<PageBuilderPage> pages,
+            CancellationToken cancellationToken = default)
+        {
+            IReadOnlyDictionary<string, DateTime> result =
+                new Dictionary<string, DateTime>(StringComparer.OrdinalIgnoreCase);
+            return Task.FromResult(result);
+        }
+    }
+
+    private sealed class CountingContentService(IPageBuilderSharedComponentContentService inner)
+        : IPageBuilderSharedComponentContentService
+    {
+        public int LoadContentsCallCount { get; private set; }
+
+        public Task<IReadOnlyDictionary<string, string>> LoadContentsAsync(
+            IEnumerable<string> sharedComponentIds,
+            CancellationToken cancellationToken = default)
+        {
+            LoadContentsCallCount++;
+            return inner.LoadContentsAsync(sharedComponentIds, cancellationToken);
+        }
+
+        public Task<string> LoadContentAsync(string sharedComponentId, CancellationToken cancellationToken = default) =>
+            inner.LoadContentAsync(sharedComponentId, cancellationToken);
+
+        public Task<string> TryLoadContentAsync(
+            PageBuilderSharedComponent expectedComponent,
+            CancellationToken cancellationToken = default) =>
+            inner.TryLoadContentAsync(expectedComponent, cancellationToken);
+
+        public Task SaveContentAsync(
+            string sharedComponentId,
+            string content,
+            CancellationToken cancellationToken = default) =>
+            inner.SaveContentAsync(sharedComponentId, content, cancellationToken);
+
+        public Task<bool> TrySaveContentAsync(
+            PageBuilderSharedComponent expectedComponent,
+            string content,
+            CancellationToken cancellationToken = default) =>
+            inner.TrySaveContentAsync(expectedComponent, content, cancellationToken);
     }
 
     private sealed class TestPlatformMemoryCache : IPlatformMemoryCache
@@ -298,7 +402,11 @@ public class PageBuilderContentProviderSharedComponentChangeTests
                 Page(PageWithFutureComponentId, OldDate.AddTicks(1)),
                 Page(PageWithMultipleComponentsId, OldDate.AddTicks(2)),
                 Page(PageWithMissingComponentId, OldDate.AddTicks(3), RawPageWithMissingComponentContent),
-                Page(PageWithoutComponentsId, OwnPageChangeDate));
+                Page(PageWithoutComponentsId, OwnPageChangeDate),
+                // Dated before every change window the tests use, so these two only take part in the
+                // GetByIdsAsync cases that name them explicitly.
+                Page(PageWithMalformedMarkerId, OldDate, RawPageWithMalformedMarkerContent),
+                Page(PageWithSameComponentId, OldDate, RawPageWithComponentContent));
             context.AddRange(
                 Component(ComponentId, ComponentChangeDate),
                 Component(FutureComponentId, FutureComponentChangeDate),
@@ -385,12 +493,16 @@ public class PageBuilderContentProviderSharedComponentChangeTests
     private const string PageWithMultipleComponentsId = "page-multiple-components";
     private const string PageWithMissingComponentId = "page-missing-component";
     private const string PageWithoutComponentsId = "page-without-components";
+    private const string PageWithMalformedMarkerId = "page-malformed-marker";
+    private const string PageWithSameComponentId = "page-same-component";
     private const string ComponentId = "component";
     private const string FutureComponentId = "component-future";
     private const string OlderComponentId = "component-older";
     private const string LatestComponentId = "component-latest";
     private const string RawPageWithComponentContent = "{ \"settings\": {}, \"content\": [{ \"id\": \"placement\", \"type\": \"componentRef\", \"componentRef\": \"component\" }] }";
     private const string RawPageWithMissingComponentContent = "{ \"settings\": {}, \"content\": [{ \"id\": \"ordinary\", \"type\": \"hero\" }, { \"id\": \"missing\", \"type\": \"componentRef\", \"componentRef\": \"missing-component\" }] }";
+    // A marker carrying an extra field is not a valid componentRef and not an ordinary section either.
+    private const string RawPageWithMalformedMarkerContent = "{ \"settings\": {}, \"content\": [{ \"id\": \"placement\", \"type\": \"componentRef\", \"componentRef\": \"component\", \"label\": \"extra\" }] }";
     private const string SharedComponentContent = "{ \"settings\": {}, \"content\": [{ \"id\": \"shared\", \"type\": \"shared-hero\", \"title\": \"Shared title\" }] }";
     private const string UpdatedSharedComponentContent = "{ \"settings\": {}, \"content\": [{ \"id\": \"shared\", \"type\": \"shared-hero\", \"title\": \"Updated shared title\" }] }";
     private static readonly DateTime OldDate = new(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);

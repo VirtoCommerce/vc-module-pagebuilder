@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Data.Extensions;
@@ -10,7 +11,8 @@ namespace VirtoCommerce.PageBuilderModule.Data.Handlers
 {
     public abstract class PageBuilderEventHandlerBase(
         IGroupedPageService groupedPageService,
-        IPageBuilderSharedComponentResolver sharedComponentResolver
+        IPageBuilderSharedComponentResolver sharedComponentResolver,
+        ILogger logger
     )
     {
         internal const int MaxDegreeOfParallelism = 8;
@@ -29,7 +31,20 @@ namespace VirtoCommerce.PageBuilderModule.Data.Handlers
 
             var group = await groupedPageService.GetByIdAsync(entry.GroupId);
             var rawContent = await groupedPageService.LoadContent(entry.Id);
-            var content = await sharedComponentResolver.ResolveAsync(rawContent);
+
+            string content;
+            try
+            {
+                content = await sharedComponentResolver.ResolveAsync(rawContent);
+            }
+            catch (InvalidDataException ex)
+            {
+                logger.LogError(
+                    ex,
+                    "Skipped Page Builder page {PageId} because its content could not be expanded",
+                    entry.Id);
+                return null;
+            }
 
             var pageDocument = entry.ToPageDocument(group, content);
             // todo: move to pages module

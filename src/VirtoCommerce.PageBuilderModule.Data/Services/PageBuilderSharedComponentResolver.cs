@@ -13,6 +13,36 @@ public class PageBuilderSharedComponentResolver(
 {
     public async Task<string> ResolveAsync(string content, CancellationToken cancellationToken = default)
     {
+        var componentContents = await LoadReferencedComponentsAsync([content], cancellationToken);
+        return Expand(content, componentContents);
+    }
+
+    public async Task<IReadOnlyDictionary<string, string>> LoadReferencedComponentsAsync(
+        IEnumerable<string> pageContents,
+        CancellationToken cancellationToken = default)
+    {
+        var references = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var pageContent in pageContents ?? [])
+        {
+            try
+            {
+                references.UnionWith(PageBuilderSharedComponentReferenceMatcher.ExtractReferences(pageContent));
+            }
+            catch (InvalidDataException)
+            {
+                // A page with a malformed marker contributes no references. Expand() throws for that page
+                // alone, so one bad document cannot deny the rest of the batch its component contents.
+            }
+        }
+
+        return references.Count == 0
+            ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            : await contentService.LoadContentsAsync(references, cancellationToken);
+    }
+
+    public string Expand(string content, IReadOnlyDictionary<string, string> componentContents)
+    {
         var references = PageBuilderSharedComponentReferenceMatcher.ExtractReferences(content);
         if (references.Count == 0)
         {
@@ -24,9 +54,10 @@ public class PageBuilderSharedComponentResolver(
             return content;
         }
 
-        var componentContents = await contentService.LoadContentsAsync(references, cancellationToken);
         var pageContent = PageBuilderSharedComponentReferenceMatcher.GetPageContentArray(root);
-        root["content"] = ResolvePageContent(pageContent, componentContents);
+        root["content"] = ResolvePageContent(
+            pageContent,
+            componentContents ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase));
 
         return root.ToJsonString();
     }
