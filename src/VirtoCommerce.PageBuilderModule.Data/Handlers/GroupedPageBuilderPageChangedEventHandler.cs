@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.Platform.Core.Common;
@@ -9,8 +10,9 @@ namespace VirtoCommerce.PageBuilderModule.Data.Handlers
         IEventPublisher eventPublisher,
         IGroupedPageService groupedPageService,
         IPageBuilderSharedComponentResolver sharedComponentResolver,
-        IPageBuilderAssetReferenceIndexService assetReferenceIndexService
-    ) : PageBuilderEventHandlerBase(groupedPageService, sharedComponentResolver), IEventHandler<GroupedPageBuilderPageChangedEvent>
+        IPageBuilderAssetReferenceIndexService assetReferenceIndexService,
+        ILogger<GroupedPageBuilderPageChangedEventHandler> logger
+    ) : PageBuilderEventHandlerBase(groupedPageService, sharedComponentResolver, logger), IEventHandler<GroupedPageBuilderPageChangedEvent>
     {
         public async Task Handle(GroupedPageBuilderPageChangedEvent message)
         {
