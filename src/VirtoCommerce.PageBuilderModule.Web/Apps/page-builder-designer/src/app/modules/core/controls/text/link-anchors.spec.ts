@@ -86,17 +86,28 @@ describe('installPageWideAnchors', () => {
         expect(link.getEditorAnchors(null)).toEqual(fieldLocal);
     });
 
-    it('installs once, so a second editor instance does not wrap the override again', () => {
+    it('wraps the override only once, however many editor instances are created', () => {
         const { link } = stubCkEditor();
         installPageWideAnchors(provider(pageAnchors));
         const wrapped = link.getEditorAnchors;
 
-        expect(installPageWideAnchors(provider([{ value: 'other', label: 'Other' }]))).toBe(true);
+        expect(installPageWideAnchors(provider(pageAnchors))).toBe(true);
         expect(link.getEditorAnchors).toBe(wrapped);
-        expect(link.getEditorAnchors(null)).toEqual([
-            { name: 'imagexun', id: null },
-            { name: 'specifications', id: null }
-        ]);
+    });
+
+    it('follows the provider of the editor route that is currently active', () => {
+        const { link, listeners } = stubCkEditor();
+        installPageWideAnchors(provider(pageAnchors));
+
+        // Leaving and re-entering the editor destroys the route scoped service and creates a new one,
+        // while the override on the global CKEDITOR namespace survives.
+        installPageWideAnchors(provider([{ value: 'reopened', label: 'Reopened page' }]));
+
+        expect(link.getEditorAnchors(null)).toEqual([{ name: 'reopened', id: null }]);
+
+        const { anchorName } = openLinkDialog(listeners);
+        anchorName.setup({});
+        expect(anchorName.items).toEqual([['', undefined], ['Reopened page (reopened)', 'reopened']]);
     });
 
     it('reflects later page edits because the provider is read on every open', () => {
