@@ -5,4 +5,5 @@
   [data]="controlValue()"
   [type]="editorType"
   [config]="config"
+  (ready)="onEditorReady()"
   (dataChange)="onValueChanged($event)" />
