@@ -1,5 +1,5 @@
 import { installPageWideAnchors } from './link-anchors';
-import { PageAnchor, PageAnchorsProvider } from '@core/services';
+import { PageAnchor, PageAnchorsProvider, clearActivePageAnchorsProvider } from '@core/services';
 
 type CkAnchor = { name: string | null; id: string | null };
 type DialogListener = (event: any) => void;
@@ -198,5 +198,40 @@ describe('anchor picker', () => {
         anchorId.setup({});
 
         expect(anchorId.cell.hidden).toBe(false);
+    });
+});
+
+describe('clearActivePageAnchorsProvider', () => {
+    it('restores the field-local anchors once the editor route is destroyed', () => {
+        const fieldLocal = [{ name: 'in-text', id: null }];
+        const { link, listeners } = stubCkEditor(fieldLocal);
+        const editorRoute = provider(pageAnchors);
+        installPageWideAnchors(editorRoute);
+
+        // Leaving /pages tears the route scoped service down, while the override on the global
+        // CKEDITOR namespace stays behind for the editors of every other module.
+        clearActivePageAnchorsProvider(editorRoute);
+
+        expect(link.getEditorAnchors(null)).toEqual(fieldLocal);
+
+        const { anchorName, anchorId } = openLinkDialog(listeners);
+        anchorName.setup({});
+        anchorId.cell.hide();
+        anchorId.setup({});
+
+        expect(anchorName.setupCalls).toBe(1);
+        expect(anchorName.items).toEqual([]);
+        expect(anchorId.cell.hidden).toBe(false);
+    });
+
+    it('ignores a provider that a later editor route has already replaced', () => {
+        const { link } = stubCkEditor();
+        const left = provider(pageAnchors);
+        installPageWideAnchors(left);
+        installPageWideAnchors(provider([{ value: 'reopened', label: 'Reopened page' }]));
+
+        clearActivePageAnchorsProvider(left);
+
+        expect(link.getEditorAnchors(null)).toEqual([{ name: 'reopened', id: null }]);
     });
 });

@@ -1,4 +1,4 @@
-import { PageAnchor, PageAnchorsProvider } from '@core/services';
+import { PageAnchor, PageAnchorsProvider, getActivePageAnchors, setActivePageAnchorsProvider } from '@core/services';
 
 /**
  * Anchor entry CKEditor's link dialog consumes. Stock CKEditor describes one anchor element through
@@ -81,10 +81,10 @@ export function installPageWideAnchors(provider: PageAnchorsProvider): boolean {
     }
 
     // The patches below live on the global CKEDITOR namespace and outlive the editor route, while the
-    // provider is route scoped and replaced on every visit. They read the current one through this
-    // reference so a page opened after leaving and re-entering the editor never lists the anchors of
-    // a destroyed service.
-    currentProvider = provider;
+    // provider is route scoped and replaced on every visit. They read the current one through the
+    // registry so a page opened after leaving and re-entering the editor never lists the anchors of a
+    // destroyed service.
+    setActivePageAnchorsProvider(provider);
 
     if (link.pbPageWideAnchorsInstalled) {
         return true;
@@ -93,7 +93,7 @@ export function installPageWideAnchors(provider: PageAnchorsProvider): boolean {
     const fieldLocalAnchors = link.getEditorAnchors.bind(link);
 
     link.getEditorAnchors = (editor: unknown) => {
-        const anchors = getAnchors();
+        const anchors = getActivePageAnchors();
         // Fall back to CKEditor's own lookup so an editor opened outside the page editor — or before
         // the page model is available — behaves exactly as it did before.
         return anchors.length
@@ -105,13 +105,6 @@ export function installPageWideAnchors(provider: PageAnchorsProvider): boolean {
     link.pbPageWideAnchorsInstalled = true;
 
     return true;
-}
-
-/** The provider of the editor route that is currently active. See `installPageWideAnchors`. */
-let currentProvider: PageAnchorsProvider | null = null;
-
-function getAnchors(): PageAnchor[] {
-    return currentProvider?.getAnchors() || [];
 }
 
 function customizeAnchorPicker(ckeditor: CkEditorNamespace): void {
@@ -130,7 +123,7 @@ function customizeAnchorPicker(ckeditor: CkEditorNamespace): void {
 
         const stockNameSetup = anchorName.setup;
         anchorName.setup = function (data: CkLinkData) {
-            const anchors = getAnchors();
+            const anchors = getActivePageAnchors();
             if (!anchors.length) {
                 stockNameSetup?.call(this, data);
                 return;
@@ -158,7 +151,7 @@ function customizeAnchorPicker(ckeditor: CkEditorNamespace): void {
             // Page anchors are all published through the name select, leaving this one empty. Hiding
             // its table cell — not just the select — lets the remaining one use the whole row.
             const cell = this.getElement().getParent();
-            if (getAnchors().length) {
+            if (getActivePageAnchors().length) {
                 cell?.hide();
             } else {
                 cell?.show();
