@@ -12,6 +12,7 @@ import { Actions, createEffect, ofType } from "@ngrx/effects";
 import { RouterStateUrl } from '@shared/routing';
 
 import { SaveTemplateComponent } from '@shared/dialogs';
+import { PageHistoryComponent } from '@editor/dialogs';
 
 import { BuilderState } from "../state";
 import { helpers as editorHelpers } from '@editor/helpers';
@@ -377,6 +378,79 @@ export class TemplateEditorDataEffects {
         })
     ));
 
+
+    // One request per opened page, so the toolbar can say that unpublished versions exist somewhere —
+    // the case this feature exists for is an edit made outside the builder that used to stay invisible
+    // until it was published. The versions themselves are only read when the panel is opened.
+    loadPageHistoryWithTemplate$ = createEffect(() => this.actions$.pipe(
+        ofType(actions.loadTemplateModelSuccess),
+        map(({ templateKey }) => actions.loadPageHistory({ templateKey }))
+    ));
+
+    loadPageHistory$ = createEffect(() => this.actions$.pipe(
+        ofType(actions.loadPageHistory),
+        withLatestFrom(
+            this.store$.select(fromShared.selectCurrentTemplateEntry),
+            this.store$.select(fromRoute.selectPathParameter),
+            this.store$.select(fromRoute.selectTypeParameter),
+            this.store$.select(fromRoute.selectGroupIdParameter),
+        ),
+        switchMap(([{ templateKey, after }, entry, path, type, groupId]) => this.templates.getPageHistory(path, type, entry || {}, groupId, after).pipe(
+            // no descriptor, no history: a store outside the git flow keeps no versions, and that is an
+            // answer rather than an error
+            filter(history => !!history),
+            map(history => actions.loadPageHistorySuccess({ templateKey, history: history! })),
+            catchError(error => of(actions.loadPageHistoryFails({ error, templateKey })))
+        ))
+    ));
+
+    openPageHistory$ = createEffect(() => this.actions$.pipe(
+        ofType(actions.executeToolbarAction),
+        filter(({ action }) => action === 'history'),
+        withLatestFrom(this.store$.select(fromRoute.selectTemplateKeyParameter)),
+        switchMap(([, templateKey]) => [
+            // reloaded on every open: somebody else may have pushed a version since the page was opened
+            actions.loadPageHistory({ templateKey }),
+            actions.showPageHistoryPanel({ templateKey }),
+        ])
+    ));
+
+    showPageHistoryPanel$ = createEffect(() => this.actions$.pipe(
+        ofType(actions.showPageHistoryPanel),
+        exhaustMap(({ templateKey }) => this.modals.show<void>(PageHistoryComponent, {
+            data: { templateKey },
+            panelClass: 'page-history-dialog',
+            autoFocus: false,
+        })),
+        map(() => shared.empty())
+    ));
+
+    previewVersion$ = createEffect(() => this.actions$.pipe(
+        ofType(actions.previewVersion),
+        withLatestFrom(this.store$.select(selectors.selectRunActionContext)),
+        tap(([{ sha }, { entry, path, type, groupId }]) => this.templates.previewVersion(path, type, entry, groupId, sha))
+    ), { dispatch: false });
+
+    restoreVersion$ = createEffect(() => this.actions$.pipe(
+        ofType(actions.restoreVersion),
+        withLatestFrom(this.store$.select(selectors.selectRunActionContext)),
+        // The restore appends a commit to my own branch, so afterwards the editor has to be shown what it
+        // now holds: the page is re-read, the publish status recomputed, and the version list reloaded so
+        // the restore itself appears in it.
+        switchMap(([{ templateKey, sha }, { entry, path, type, groupId }]) => this.templates.restoreVersion(path, type, entry, groupId, sha).pipe(
+            switchMap(result => [
+                actions.restoreVersionSuccess({ templateKey, sha, branch: result?.branch ?? '', commitSha: result?.commitSha ?? '' }),
+                actions.reloadTemplateModel({ templateKey }),
+                actions.getTemplatePublishStatus({ templateKey }),
+                actions.loadPageHistory({ templateKey }),
+                shared.showNotification({ message: `Continuing from version ${sha.substring(0, 7)}`, msgType: 'success', top: true }),
+            ]),
+            catchError(error => of(
+                actions.restoreVersionFails({ error, templateKey, sha }),
+                shared.showNotification({ message: `Could not continue from ${sha.substring(0, 7)}: ${error?.message ?? 'request failed'}`, msgType: 'error', top: true })
+            ))
+        ))
+    ));
 
     resetTemplate$ = createEffect(() => this.actions$.pipe(
         ofType(actions.executeContextMenuAction),

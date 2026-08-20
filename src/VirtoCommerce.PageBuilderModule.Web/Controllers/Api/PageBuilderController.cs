@@ -38,6 +38,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             IOptions<GitContentOptions> gitContentOptions,
             IGitContentPolicy gitContentPolicy,
             IGitContentRepository gitContentRepository,
+            IGitContentHistory gitContentHistory,
             IGitContentPublisher gitContentPublisher,
             ISettingsManager settingsManager,
             IAuthorizationService authorizationService
@@ -206,8 +207,12 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         /// The publish-related request descriptors for a store on the git flow. Note the absence of
         /// <c>unpublish</c>: with pages in git, taking a page down is deleting it from the production
         /// branch, and the toolbar hides the button when no descriptor is offered.
+        /// <para>
+        /// The same mechanism switches version history on: the panel exists only for a store whose pages
+        /// are in git, and it learns where to ask from here rather than from the app's bundled config.
+        /// </para>
         /// </summary>
-        private static JObject GitBuilderDescriptors()
+        public static JObject GitBuilderDescriptors()
         {
             const string storeIdArg = "storeId={{location.params.storeId}}";
 
@@ -229,6 +234,20 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 ["externalPreview"] = new JObject
                 {
                     ["url"] = $"/api/pagebuilder/git/preview?{storeIdArg}&{pageArgs}",
+                },
+                ["history"] = new JObject
+                {
+                    ["url"] = $"/api/pagebuilder/git/history?{storeIdArg}&{pageArgs}",
+                    // a version is addressed by its sha, which the panel substitutes per row
+                    ["preview"] = new JObject
+                    {
+                        ["url"] = $"/api/pagebuilder/git/preview?{storeIdArg}&{pageArgs}&ref={{{{sha}}}}",
+                    },
+                    ["restore"] = new JObject
+                    {
+                        ["url"] = $"/api/pagebuilder/git/restore-version?{storeIdArg}&{pageArgs}&sha={{{{sha}}}}",
+                        ["method"] = "POST",
+                    },
                 },
             };
         }
@@ -587,7 +606,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 await gitContentRepository.CreateBranchAsync(location.Branch, options.BaseBranch, HttpContext.RequestAborted);
             }
 
-            await gitContentRepository.DeleteFileAsync(location.RepoPath, location.Branch, $"unpublish {path} (store: {storeId})", CurrentAuthor(), HttpContext.RequestAborted);
+            await gitContentRepository.DeleteFileAsync(location.RepoPath, location.Branch, CommitMessage($"unpublish {path} (store: {storeId})"), CurrentAuthor(), HttpContext.RequestAborted);
+            gitContentHistory.Invalidate(location.RepoPath);
             var result = await gitContentPublisher.MergeBranchAsync(location.Branch, $"unpublish {path} (store: {storeId})", HttpContext.RequestAborted);
 
             return await RespondToPublishAsync(result, location, path);
@@ -645,32 +665,166 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         };
 
         /// <summary>
+        /// The versions of a page: commits on the production branch, and commits on any other branch that
+        /// the production branch does not have yet.
+        /// <para>
+        /// Versions are found by the page's file history rather than by branch name, which is what makes an
+        /// edit done outside the builder visible here at all: the module names its own work branches
+        /// <c>designer/{user}/{slug}</c>, an edit made through Claude lives on a <c>content/*</c> branch, and
+        /// neither has to know about the other's namespace for the commit to show up in this list.
+        /// </para>
+        /// <para>
+        /// Reading history needs no permission beyond being signed in, as with every other read here — but
+        /// note it does surface other editors' unpublished drafts, which blob storage never had.
+        /// </para>
+        /// </summary>
+        [HttpGet]
+        [Route("git/history")]
+        public async Task<ActionResult> GitHistory(string storeId, string path, string type, int? take = null, string after = null)
+        {
+            if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
+            {
+                // there is no history to show: in the blob flow a draft overwrites the page and keeps no versions
+                return NotFound();
+            }
+
+            var contentType = type.IsNullOrEmpty() ? PagesContentType : type;
+            if (!GitPageLocation.IsPageContent(contentType))
+            {
+                // themes, schemas and settings never moved to git
+                return NotFound();
+            }
+
+            if (path.IsNullOrEmpty())
+            {
+                // a page that does not exist yet — the blade asking about one it is about to create
+                return Ok(PageHistoryModel.Empty);
+            }
+
+            var location = GitLocation(contentType, path);
+
+            var history = await gitContentHistory.GetHistoryAsync(location.RepoPath, new GitHistoryQuery
+            {
+                BaseBranch = gitContentOptions.Value.BaseBranch,
+                PublishedDepth = take,
+                After = after,
+            }, HttpContext.RequestAborted);
+
+            // "mine" is the server's contribution: the repository knows which branches hold a commit, only
+            // this end knows which of those branches is the caller's.
+            return Ok(PageHistoryModel.From(history, location.Branch));
+        }
+
+        /// <summary>
+        /// Continues editing from an earlier version: the content of <paramref name="sha"/> becomes a new
+        /// commit on this editor's own work branch.
+        /// <para>
+        /// Forward only, and that is the whole design. Writing into the branch the version came from would
+        /// mean force-pushing over whatever came after it — destroying the audit trail the version list
+        /// exists to provide — or writing into a branch that belongs to another editor, which is the single
+        /// global draft slot this flow removed. Appending instead keeps history append-only, leaves branch
+        /// ownership at one editor per page, and gives a rollback that needs no git: restore, then publish.
+        /// </para>
+        /// </summary>
+        [HttpPost]
+        [Route("git/restore-version")]
+        public async Task<ActionResult> GitRestoreVersion(string storeId, string path, string type, string sha)
+        {
+            if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
+            {
+                // without git there are no versions to continue from
+                return NotFound();
+            }
+
+            var contentType = type.IsNullOrEmpty() ? PagesContentType : type;
+            if (!GitPageLocation.IsPageContent(contentType) || path.IsNullOrEmpty())
+            {
+                return NotFound();
+            }
+
+            if (!GitCommitSha.IsSha(sha))
+            {
+                // a version is a commit; a branch name would mean "whatever is there when this runs"
+                return BadRequest(new { error = $"\"{sha}\" is not a commit sha." });
+            }
+
+            var options = gitContentOptions.Value;
+            var location = GitLocation(contentType, path);
+
+            var content = await gitContentRepository.ReadFileAsync(location.RepoPath, sha, HttpContext.RequestAborted);
+            if (content == null)
+            {
+                // no such commit, or the page did not exist in it
+                return NotFound(new { templatePath = path, gitRef = sha });
+            }
+
+            // The same gate a save passes: restoring a version that CI would refuse to deploy would leave
+            // the editor with a branch that cannot be published.
+            var page = ParsePage(content);
+            var errors = PageEnvelopeValidator.Validate(page);
+            if (errors.Count > 0)
+            {
+                return BadRequest(new { errors });
+            }
+
+            if (await gitContentRepository.GetBranchHeadShaAsync(location.Branch, HttpContext.RequestAborted) == null)
+            {
+                await gitContentRepository.CreateBranchAsync(location.Branch, options.BaseBranch, HttpContext.RequestAborted);
+            }
+
+            var author = CurrentAuthor();
+            var shortSha = sha[..7];
+            var message = CommitMessage($"designer: restore {path} from {shortSha} (store: {storeId}, by: {author.Name})");
+
+            // Canonical bytes, not the ones read from the commit: an older version may have been written
+            // before the canonical form existed, and re-committing it verbatim would make publish-status
+            // report changes that are only line endings.
+            var commitSha = await gitContentRepository.CommitFileAsync(location.RepoPath, PageJson.Serialize(page), location.Branch, message, author, HttpContext.RequestAborted);
+            gitContentHistory.Invalidate(location.RepoPath);
+
+            return Ok(new { branch = location.Branch, commitSha, restoredFrom = sha });
+        }
+
+        /// <summary>
         /// Redirects to the storefront's preview of this page at an exact commit: the editor's draft if
         /// they have one, otherwise what is published. A commit sha is immutable, so the link keeps
         /// showing what it showed when it was made.
         /// </summary>
         [HttpGet]
         [Route("git/preview")]
-        public async Task<ActionResult> GitPreview(string storeId, string path, string type)
+        public async Task<ActionResult> GitPreview(string storeId, string path, string type, [FromQuery(Name = "ref")] string requestedRef = null)
         {
             if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
             {
                 return NotFound();
             }
 
+            // A version list offers a preview of one exact commit; asked for a ref, this endpoint hands it
+            // straight to the storefront, so only a sha is accepted — a caller-chosen branch name would end
+            // up in the redirect and stop meaning what the link said.
+            if (requestedRef != null && !GitCommitSha.IsSha(requestedRef))
+            {
+                return BadRequest(new { error = $"\"{requestedRef}\" is not a commit sha." });
+            }
+
             var location = GitLocation(type, path);
 
-            var gitRef = await gitContentRepository.GetBranchHeadShaAsync(location.Branch, HttpContext.RequestAborted)
+            var gitRef = requestedRef
+                         ?? await gitContentRepository.GetBranchHeadShaAsync(location.Branch, HttpContext.RequestAborted)
                          ?? await gitContentRepository.GetBranchHeadShaAsync(gitContentOptions.Value.BaseBranch, HttpContext.RequestAborted);
             if (gitRef == null)
             {
                 return NotFound(new { templatePath = path });
             }
 
-            var storeUrl = await GetSettingAsync(ModuleConstants.Settings.General.StoreUrl);
+            var storeUrl = await GetStorefrontUrlAsync(storeId);
             if (string.IsNullOrEmpty(storeUrl))
             {
-                return BadRequest(new { error = $"Set {ModuleConstants.Settings.General.StoreUrl.Name} to the storefront url before previewing." });
+                return BadRequest(new
+                {
+                    error = $"Nowhere to preview \"{path}\": store \"{storeId}\" has no storefront url. " +
+                            $"Fill in the store's Url (or Secure URL), or set {ModuleConstants.Settings.General.StoreUrl.Name} to override it."
+                });
             }
 
             var previewPath = await GetSettingAsync(ModuleConstants.Settings.General.StorePreviewPath) ?? DefaultPreviewPath;
@@ -695,6 +849,9 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             var location = GitLocation(type, path);
 
             await gitContentRepository.DeleteBranchAsync(location.Branch, location.RepoPath, HttpContext.RequestAborted);
+            // the draft is gone, and so are the versions that lived only on that branch
+            gitContentHistory.Invalidate(location.RepoPath);
+
             return Ok();
         }
 
@@ -707,6 +864,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 // the merge moved the production branch, so what it said about this page a moment ago is
                 // the pre-publish content — publish-status would report the page as still unpublished
                 gitContentRepository.InvalidateRead(location.RepoPath, gitContentOptions.Value.BaseBranch);
+                // and the draft version that just shipped is now a published one
+                gitContentHistory.Invalidate(location.RepoPath);
             }
 
             if (result.State == GitPublishState.Conflict)
@@ -727,6 +886,40 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             var authorization = await authorizationService.AuthorizeAsync(User, null, ModuleConstants.Security.Permissions.Publish);
             return authorization.Succeeded;
         }
+
+        /// <summary>
+        /// Where this store's storefront lives, for a preview link.
+        /// <para>
+        /// The store itself is the source: it already records its storefront url, and it is the only answer
+        /// that can differ per store. <see cref="ModuleConstants.Settings.General.StoreUrl"/> is a single
+        /// value for the whole installation, so on a platform with more than one store it can only be right
+        /// about one of them — it stays supported as a deliberate override (a staging host, a tunnel) and is
+        /// consulted first for installations that already rely on it.
+        /// </para>
+        /// </summary>
+        private async Task<string> GetStorefrontUrlAsync(string storeId)
+        {
+            var configured = await GetSettingAsync(ModuleConstants.Settings.General.StoreUrl);
+            if (!string.IsNullOrWhiteSpace(configured))
+            {
+                return configured.Trim();
+            }
+
+            if (string.IsNullOrEmpty(storeId))
+            {
+                return null;
+            }
+
+            var store = await storeService.GetNoCloneAsync(storeId);
+            // https first: a preview link is opened in a browser next to the platform, which is served over
+            // https itself, and a mixed-content redirect is a dead end
+            var fromStore = FirstFilled(store?.SecureUrl, store?.Url);
+
+            return fromStore?.Trim();
+        }
+
+        private static string FirstFilled(params string[] values) =>
+            values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
 
         private async Task<string> GetSettingAsync(SettingDescriptor descriptor)
         {
@@ -773,14 +966,25 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             // Canonical bytes, not JsonConvert's: publish status compares this branch against the
             // production branch, and Formatting.Indented would end lines with the host's newline.
             var content = PageJson.Serialize(file.Content);
-            var message = $"designer: save {file.Path} (store: {storeId}, by: {author.Name})";
+            var message = CommitMessage($"designer: save {file.Path} (store: {storeId}, by: {author.Name})");
 
             // Authoritative, not best-effort: when the commit fails the save fails, because an editor
             // who was told their work is saved has to be able to find it.
             var commitSha = await gitContentRepository.CommitFileAsync(repoPath, content, branch, message, author, HttpContext.RequestAborted);
 
+            // the page has a version it did not have a moment ago, and a cached list that omits the save
+            // the editor has just been told succeeded is worse than a slow one
+            gitContentHistory.Invalidate(repoPath);
+
             return new { path = file.Path, branch, commitSha };
         }
+
+        /// <summary>
+        /// A commit message with the authenticated login recorded under it. Git authorship is signed with
+        /// a shared address, so this trailer is the only attribution that survives — and because the
+        /// server writes it from the identity on the request, it is one a client cannot dress up.
+        /// </summary>
+        private string CommitMessage(string summary) => GitCommitMessage.WithVcUser(summary, User?.Identity?.Name);
 
         private GitCommitAuthor CurrentAuthor()
         {

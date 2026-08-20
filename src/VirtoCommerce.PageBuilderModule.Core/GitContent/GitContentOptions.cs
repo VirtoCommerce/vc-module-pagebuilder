@@ -86,6 +86,40 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
         public TimeSpan ImmutableReadCacheExpiration { get; set; } = TimeSpan.FromHours(1);
 
         /// <summary>
+        /// How far back the production branch is read when assembling a page's version list. This is not
+        /// a display limit: the same commits are the set that tells an unpublished version from a
+        /// published one, so a page with more publishes than this in its past could show an old published
+        /// version as a draft.
+        /// </summary>
+        public int PublishedHistoryDepth { get; set; } = 50;
+
+        /// <summary>
+        /// How many branches are examined for unpublished versions. Branches are not filtered by name:
+        /// a prefix filter costs the same and would hide drafts made on branches named anything else,
+        /// which is the whole failure this feature exists to fix.
+        /// </summary>
+        public int MaxBranches { get; set; } = 100;
+
+        /// <summary>
+        /// How many commits touching the page are read per branch. Branches share history, so most of
+        /// these are commits the production branch already has; the unpublished ones are the newest and
+        /// come first.
+        /// </summary>
+        public int CommitsPerBranch { get; set; } = 10;
+
+        /// <summary>
+        /// From how many changed files a commit counts as a bulk change rather than an edit of this page
+        /// (<see cref="GitPageVersion.Bulk"/>).
+        /// </summary>
+        public int BulkCommitFileCount { get; set; } = 20;
+
+        /// <summary>
+        /// How long a page's version list is cached. Short, because any push moves it; this module drops
+        /// the entry itself whenever it commits.
+        /// </summary>
+        public TimeSpan HistoryCacheExpiration { get; set; } = TimeSpan.FromMinutes(1);
+
+        /// <summary>
         /// True when the connection is filled in well enough to talk to GitHub at all.
         /// </summary>
         public bool IsConfigured =>

@@ -1,0 +1,104 @@
+<div class="page-history">
+  <div class="header">
+    <h2>Version history</h2>
+    <button class="close" type="button" (click)="close()">
+      <app-icon>close</app-icon>
+    </button>
+  </div>
+
+  <div mat-dialog-content>
+    @if (history(); as history) {
+      @if (history.hasDirty) {
+        <div class="notice">Save or discard your unsaved changes before continuing from a version.</div>
+      }
+
+      @if (history.isLoading && !history.groups.length) {
+        <div class="message">Loading versions…</div>
+      } @else if (history.error) {
+        <div class="message message--error">{{ history.error }}</div>
+      } @else if (!history.groups.length) {
+        <div class="message">This page has no versions in the content repository yet.</div>
+      } @else {
+        <ul class="versions">
+          @for (group of history.groups; track group.version.sha) {
+            <li class="version" [class.version--bulk]="group.version.bulk">
+              <div class="row">
+                <div class="marks">
+                  @if (group.version.published) {
+                    <span class="chip chip--published">Published</span>
+                  } @else {
+                    <span class="chip chip--draft">Unpublished</span>
+                  }
+                  @if (group.version.mine) {
+                    <span class="chip chip--mine">Mine</span>
+                  }
+                  @if (group.version.bulk) {
+                    <!-- a commit that changed hundreds of files is a version of this page, but nobody's edit of it -->
+                    <span class="chip chip--bulk" [title]="group.version.changedFiles + ' files changed'">Bulk change</span>
+                  }
+                </div>
+
+                <div class="message-line">{{ group.version.message }}</div>
+
+                <div class="meta">
+                  <span>{{ author(group.version) }}</span>
+                  <span>{{ when(group.version) }}</span>
+                  <span class="sha">{{ group.version.shortSha }}</span>
+                  @if (branches(group.version)) {
+                    <span class="branch" [title]="group.version.branches.join(', ')">{{ branches(group.version) }}</span>
+                  }
+                </div>
+
+                <div class="actions">
+                  <app-icon-button skin="outline" text="Preview" (click)="preview(group.version)" />
+                  <app-icon-button skin="outline"
+                    text="Continue from this"
+                    [disabled]="history.hasDirty || history.restoring === group.version.sha"
+                    (click)="restore(group.version)" />
+                </div>
+              </div>
+
+              @if (group.older.length) {
+                <button class="older-toggle" type="button" (click)="toggle(group.version.sha)">
+                  {{ isExpanded(group.version.sha) ? 'Hide' : 'Show' }} {{ group.older.length }} earlier
+                  {{ group.older.length === 1 ? 'save' : 'saves' }}
+                </button>
+
+                @if (isExpanded(group.version.sha)) {
+                  <ul class="older">
+                    @for (older of group.older; track older.sha) {
+                      <li class="row row--older">
+                        <div class="message-line">{{ older.message }}</div>
+                        <div class="meta">
+                          <span>{{ when(older) }}</span>
+                          <span class="sha">{{ older.shortSha }}</span>
+                        </div>
+                        <div class="actions">
+                          <app-icon-button skin="outline" text="Preview" (click)="preview(older)" />
+                          <app-icon-button skin="outline"
+                            text="Continue from this"
+                            [disabled]="history.hasDirty || history.restoring === older.sha"
+                            (click)="restore(older)" />
+                        </div>
+                      </li>
+                    }
+                  </ul>
+                }
+              }
+            </li>
+          }
+        </ul>
+
+        @if (history.truncated) {
+          <!-- the server looked at a page of branches, not all of them: say so instead of implying the list is complete -->
+          <div class="truncated">
+            <span>More branches exist than were scanned, so some unpublished versions may be missing.</span>
+            <app-icon-button skin="outline" text="Scan more branches" [disabled]="history.isLoading" (click)="loadMore()" />
+          </div>
+        }
+      }
+    } @else {
+      <div class="message">This store keeps no version history.</div>
+    }
+  </div>
+</div>

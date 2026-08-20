@@ -1,3 +1,4 @@
+import { PageHistoryState } from './page-history.model';
 import { Dictionary } from '@models/index';
 
 // template ui state
@@ -11,6 +12,8 @@ export interface TemplateState {
      * on its checks. Publishing again would achieve nothing.
      */
     pending?: boolean;
+    /** Versions of this page, once the panel has asked for them. */
+    history?: PageHistoryState;
     error?: string;
     sections: SectionStatesList;
 }

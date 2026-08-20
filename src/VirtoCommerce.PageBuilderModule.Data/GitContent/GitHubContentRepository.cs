@@ -3,7 +3,6 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
@@ -25,9 +24,6 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
     public class GitHubContentRepository : IGitContentRepository
     {
         public const string HttpClientName = "PageBuilderGitContent";
-
-        // a commit sha, as opposed to a branch or tag name — an immutable ref, so its reads cache long
-        private static readonly Regex CommitSha = new("^[0-9a-f]{40}$", RegexOptions.IgnoreCase, TimeSpan.FromSeconds(1));
 
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IMemoryCache _memoryCache;
@@ -56,7 +52,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
 
             // misses are cached too: the designer polls a page that does not exist yet on the work
             // branch on every keystroke-triggered status refresh
-            _memoryCache.Set(cacheKey, content, CommitSha.IsMatch(gitRef)
+            _memoryCache.Set(cacheKey, content, GitCommitSha.IsSha(gitRef)
                 ? _options.ImmutableReadCacheExpiration
                 : _options.ReadCacheExpiration);
 
@@ -86,7 +82,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             ArgumentException.ThrowIfNullOrWhiteSpace(fromRef);
             EnsureConfigured();
 
-            var sha = CommitSha.IsMatch(fromRef)
+            var sha = GitCommitSha.IsSha(fromRef)
                 ? fromRef
                 : await GetBranchHeadShaAsync(fromRef, cancellationToken)
                   ?? throw new InvalidOperationException($"Could not resolve \"{fromRef}\" to a commit.");

@@ -5,6 +5,7 @@ import { PageModel, SectionModel, TemplateModel } from '@models/document';
 import { Observable, map, of } from "rxjs";
 
 import { helpers } from '@editor/helpers';
+import { PageHistory } from '@editor/models';
 import { TemplateEntry } from '@shared/models';
 
 export interface PublishStatus {
@@ -70,6 +71,40 @@ export class TemplatesService {
         const previewUrl = this.appConfig.getValue('externalPreview', { item: entry, type, path, groupId });
         // open new tab with the previewUrl
         window.open(previewUrl.url, '_blank');
+    }
+
+    /**
+     * Versions of the page. The descriptor exists only for a store whose pages live in git, so a `null`
+     * config here is the answer "this store keeps no history" rather than a failure.
+     */
+    getPageHistory(path: string, type: string, entry: TemplateEntry, groupId: string, after?: string): Observable<PageHistory | null> {
+        const context = { item: entry, type, path, groupId };
+        const history = this.appConfig.getValue('history', context);
+        if (!history?.url) {
+            return of(null);
+        }
+        const url = after ? `${history.url}&after=${encodeURIComponent(after)}` : history.url;
+        const request = this.http.generateRequest(url, null, context);
+        return this.http.doRequest<PageHistory>(request, { nullWhenError: false }, null);
+    }
+
+    /**
+     * Continues editing from an earlier version: the server appends its content to my own work branch.
+     * Nothing is rewritten, so the version this came from — and my current draft — stay in history.
+     */
+    restoreVersion(path: string, type: string, entry: TemplateEntry, groupId: string, sha: string): Observable<{ branch: string, commitSha: string } | null> {
+        const context = { item: entry, type, path, groupId, sha };
+        const restore = this.appConfig.getValue('history', context)?.restore;
+        const request = this.http.generateRequest(restore, null, context);
+        return this.http.doRequest<{ branch: string, commitSha: string }>(request, { nullWhenError: false }, null);
+    }
+
+    /** Opens the storefront preview of one exact commit — a sha, so the link keeps showing what it showed. */
+    previewVersion(path: string, type: string, entry: TemplateEntry, groupId: string, sha: string): void {
+        const preview = this.appConfig.getValue('history', { item: entry, type, path, groupId, sha })?.preview;
+        if (preview?.url) {
+            window.open(preview.url, '_blank');
+        }
     }
 
     saveGroupedPage(groupId: string, pageContent: any): Observable<any> {

@@ -113,6 +113,7 @@ namespace VirtoCommerce.PageBuilderModule.Web
                     }
                 });
             serviceCollection.AddTransient<IGitContentRepository, GitHubContentRepository>();
+            serviceCollection.AddTransient<IGitContentHistory, GitHubContentHistory>();
             serviceCollection.AddTransient<IGitContentPublisher, GitHubContentPublisher>();
             serviceCollection.AddTransient<IGitContentPolicy, GitContentPolicy>();
 

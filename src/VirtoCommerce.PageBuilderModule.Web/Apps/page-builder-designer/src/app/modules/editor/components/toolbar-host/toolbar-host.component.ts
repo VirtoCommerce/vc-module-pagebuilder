@@ -28,7 +28,10 @@ export class ToolbarHostComponent {
             // A store whose pages live in git is served no unpublish descriptor: taking a page down
             // there means deleting it from the production branch, not calling an endpoint.
             useUnpublish: !!this.appConfig.getValue('publish')?.unpublish,
-            useExternalPreview: !!this.appConfig.getValue('externalPreview')
+            useExternalPreview: !!this.appConfig.getValue('externalPreview'),
+            // pages kept in git have versions; a store on blob storage has none, and the server withholds
+            // the descriptor for it
+            useHistory: !!this.appConfig.getValue('history')
         }
     )), { initialValue: null });
 
