@@ -59,6 +59,10 @@
       "git-publish-pending": {
         "title": "Publikowanie w toku",
         "message": "Strona nie jest jeszcze opublikowana: pull request jest otwarty i zostanie scalony, gdy przejdą jego testy. {{url}}"
+      },
+      "git-unpublish-pending": {
+        "title": "Wycofywanie publikacji w toku",
+        "message": "Strona jest nadal opublikowana: pull request usuwający ją jest otwarty i zostanie scalony, gdy przejdą jego testy. {{url}}"
       }
     }
   },

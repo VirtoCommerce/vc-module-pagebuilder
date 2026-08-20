@@ -309,8 +309,9 @@ export const selectToolbarButtonsState = (context: { useTheme: boolean, useDraft
     if (context.useDrafts && !state?.isLoading && !state?.error) {
       const buttons = <ActionButtonDescriptor[]>[];
 
-      // With pages in git there is no "unpublish": taking a page down means deleting it from the
-      // production branch. The server says so by not offering the descriptor.
+      // Both flows can take a page down — with pages in git that means deleting it from the production
+      // branch — but only a store configured for it gets the button, and the server says so by whether
+      // it offers the descriptor at all.
       if (context.useUnpublish) {
         buttons.push({
           canAction: !hasDirty && state?.published && !state?.hasChanges && !state?.pending,

@@ -59,6 +59,10 @@
       "git-publish-pending": {
         "title": "正在发布",
         "message": "页面尚未上线：pull request 已打开，检查通过后将合并。{{url}}"
+      },
+      "git-unpublish-pending": {
+        "title": "正在取消发布",
+        "message": "页面仍在线：删除该页面的 pull request 已打开，检查通过后将合并。{{url}}"
       }
     }
   },

@@ -59,6 +59,10 @@
       "git-publish-pending": {
         "title": "Publishing in progress",
         "message": "The page is not live yet: a pull request is open and will merge once its checks pass. {{url}}"
+      },
+      "git-unpublish-pending": {
+        "title": "Unpublishing in progress",
+        "message": "The page is still live: a pull request that removes it is open and will merge once its checks pass. {{url}}"
       }
     },
     "widgets": {

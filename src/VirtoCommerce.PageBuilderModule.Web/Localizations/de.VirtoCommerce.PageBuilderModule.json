@@ -59,6 +59,10 @@
       "git-publish-pending": {
         "title": "Veröffentlichung läuft",
         "message": "Die Seite ist noch nicht live: Ein Pull Request ist offen und wird zusammengeführt, sobald seine Prüfungen erfolgreich sind. {{url}}"
+      },
+      "git-unpublish-pending": {
+        "title": "Zurückziehen läuft",
+        "message": "Die Seite ist noch live: Ein Pull Request, der sie entfernt, ist offen und wird zusammengeführt, sobald seine Prüfungen erfolgreich sind. {{url}}"
       }
     }
   },

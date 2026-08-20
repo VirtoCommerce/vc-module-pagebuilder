@@ -204,9 +204,9 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         }
 
         /// <summary>
-        /// The publish-related request descriptors for a store on the git flow. Note the absence of
-        /// <c>unpublish</c>: with pages in git, taking a page down is deleting it from the production
-        /// branch, and the toolbar hides the button when no descriptor is offered.
+        /// The publish-related request descriptors for a store on the git flow. <c>unpublish</c> is one of
+        /// them: with pages in git, taking a page down is deleting the file from the production branch, so
+        /// it ships the same way a publish does — a commit on the work branch and a merge.
         /// <para>
         /// The same mechanism switches version history on: the panel exists only for a store whose pages
         /// are in git, and it learns where to ask from here rather than from the app's bundled config.
@@ -228,6 +228,11 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                     ["publish"] = new JObject
                     {
                         ["url"] = $"/api/pagebuilder/git/publish?{storeIdArg}&{pageArgs}",
+                        ["method"] = "POST",
+                    },
+                    ["unpublish"] = new JObject
+                    {
+                        ["url"] = $"/api/pagebuilder/git/unpublish?{storeIdArg}&{pageArgs}",
                         ["method"] = "POST",
                     },
                 },
@@ -575,8 +580,9 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
         /// <summary>
         /// Unpublishes a page by removing it from the production branch. Deleting the file is the whole
-        /// operation — the module never removes a page from blob storage itself, or production would
-        /// stop matching the branch and a revert would stop being a rollback.
+        /// operation here — the module never removes a page from blob storage itself, or production would
+        /// stop matching the branch and a revert would stop being a rollback. CI carries the deletion to
+        /// the environment on merge, the same way it carries every other change to the branch.
         /// </summary>
         [HttpPost]
         [Route("git/unpublish")]
@@ -619,8 +625,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         /// different", <c>pending</c> is "a pull request for it is open".
         /// <para>
         /// The answer also names the flow in effect, because a client has to behave differently under
-        /// each — the admin blade saves to git and hides "unpublish" on the git flow — and asking here
-        /// costs it nothing. Both flows answer in the same shape, so a caller reads one contract.
+        /// each — the admin blade saves to git and unpublishes through git on the git flow — and asking
+        /// here costs it nothing. Both flows answer in the same shape, so a caller reads one contract.
         /// </para>
         /// </summary>
         [HttpGet]

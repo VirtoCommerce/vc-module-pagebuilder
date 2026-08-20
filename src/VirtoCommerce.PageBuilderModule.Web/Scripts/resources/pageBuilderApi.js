@@ -55,6 +55,12 @@ angular.module('virtoCommerce.contentModule')
             gitPublish: {
                 method: 'POST',
                 url: 'api/pagebuilder/git/publish'
+            },
+            // Unpublishing on the git flow: a commit that deletes the page, merged into the production
+            // branch. Same states back as gitPublish — it is the same act of shipping a commit.
+            gitUnpublish: {
+                method: 'POST',
+                url: 'api/pagebuilder/git/unpublish'
             }
 			// ,
             // getStoreUrl: {

@@ -25,8 +25,8 @@ export class ToolbarHostComponent {
         {
             useTheme: !this.appConfig.getValue('skipTheme'),
             useDrafts: !!this.appConfig.getValue('publish'),
-            // A store whose pages live in git is served no unpublish descriptor: taking a page down
-            // there means deleting it from the production branch, not calling an endpoint.
+            // The descriptor is what says this store can take a page down at all — on the git flow it
+            // points at the endpoint that deletes the page from the production branch.
             useUnpublish: !!this.appConfig.getValue('publish')?.unpublish,
             useExternalPreview: !!this.appConfig.getValue('externalPreview'),
             // pages kept in git have versions; a store on blob storage has none, and the server withholds

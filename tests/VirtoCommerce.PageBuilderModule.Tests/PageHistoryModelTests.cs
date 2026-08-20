@@ -134,11 +134,28 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         [Fact]
-        public void GitBuilderDescriptors_StillWithholdUnpublish()
+        public void GitBuilderDescriptors_OfferUnpublish()
         {
-            // taking a page down means deleting it from the production branch; the toolbar hides the
-            // button precisely because no descriptor is offered
-            Assert.Null(PageBuilderController.GitBuilderDescriptors()["publish"]!["unpublish"]);
+            // Taking a page down means deleting it from the production branch — still a merge, so it is
+            // offered next to publish. The toolbar shows the button precisely because the descriptor is
+            // there, so withholding it is how a store that cannot unpublish is expressed.
+            var unpublish = PageBuilderController.GitBuilderDescriptors()["publish"]!["unpublish"];
+
+            Assert.NotNull(unpublish);
+            Assert.Contains("/api/pagebuilder/git/unpublish?", (string)unpublish["url"]);
+            Assert.Equal("POST", (string)unpublish["method"]);
+        }
+
+        [Fact]
+        public void GitBuilderDescriptors_CarryTheContentTypeIntoEveryPublishUrl()
+        {
+            // pages and blogs are the same kind of file in two folders, so a url without the type is one
+            // the server cannot answer
+            var publish = PageBuilderController.GitBuilderDescriptors()["publish"];
+
+            Assert.Contains("type={{type}}", (string)publish["status"]);
+            Assert.Contains("type={{type}}", (string)publish["publish"]["url"]);
+            Assert.Contains("type={{type}}", (string)publish["unpublish"]["url"]);
         }
 
         private static GitPageHistory History(params GitPageVersion[] versions) => new() { Versions = versions };

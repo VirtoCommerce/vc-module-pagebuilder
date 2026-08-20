@@ -275,13 +275,14 @@ angular.module('virtoCommerce.pageBuilderModule')
                 canExecuteMethod: function () { return !isDirty() && !blade.pending; }
             };
 
-            // Publishing on the git flow merges this editor's work branch into the production branch.
-            // That can land straight away or wait on the CI checks of a pull request, so the state comes
-            // from the server afterwards: telling the editor "published" when it is still pending would
-            // send them away believing the page is live.
-            function gitPublish() {
+            // Publishing on the git flow merges this editor's work branch into the production branch;
+            // unpublishing merges a branch whose commit deletes the page. Both are the same act of
+            // shipping a commit, hence one function. That can land straight away or wait on the CI checks
+            // of a pull request, so the state comes from the server afterwards: telling the editor
+            // "published" when it is still pending would send them away believing the page is live.
+            function gitShip(operation, pendingDialog) {
                 blade.isLoading = true;
-                pageBuilderApi.gitPublish({
+                operation({
                     storeId: blade.storeId,
                     type: blade.contentType,
                     path: blade.currentEntity.relativeUrl
@@ -289,9 +290,9 @@ angular.module('virtoCommerce.pageBuilderModule')
                     blade.isLoading = false;
                     if (result.state === 'Pending') {
                         dialogService.showNotificationDialog({
-                            id: "gitPublishPending",
-                            title: "pageBuilder.dialogs.git-publish-pending.title",
-                            message: "pageBuilder.dialogs.git-publish-pending.message",
+                            id: pendingDialog.id,
+                            title: pendingDialog.title,
+                            message: pendingDialog.message,
                             messageValues: { url: result.url }
                         });
                     }
@@ -309,6 +310,22 @@ angular.module('virtoCommerce.pageBuilderModule')
                 });
             }
 
+            function gitPublish() {
+                gitShip(pageBuilderApi.gitPublish, {
+                    id: "gitPublishPending",
+                    title: "pageBuilder.dialogs.git-publish-pending.title",
+                    message: "pageBuilder.dialogs.git-publish-pending.message"
+                });
+            }
+
+            function gitUnpublish() {
+                gitShip(pageBuilderApi.gitUnpublish, {
+                    id: "gitUnpublishPending",
+                    title: "pageBuilder.dialogs.git-unpublish-pending.title",
+                    message: "pageBuilder.dialogs.git-unpublish-pending.message"
+                });
+            }
+
             function gitUrl(route) {
                 return `api/pagebuilder/${route}?storeId=${encodeURIComponent(blade.storeId)}` +
                     `&type=${encodeURIComponent(blade.contentType)}` +
@@ -318,6 +335,10 @@ angular.module('virtoCommerce.pageBuilderModule')
             var unpublishCommand = {
                 name: "pageBuilder.commands.unpublish", icon: 'fa fa-file-alt',
                 executeMethod: function () {
+                    if (blade.gitFlow) {
+                        gitUnpublish();
+                        return;
+                    }
                     contentApi.unpublish({
                         contentType: blade.contentType,
                         storeId: blade.storeId,
@@ -330,7 +351,9 @@ angular.module('virtoCommerce.pageBuilderModule')
                         blade.parentBlade.refresh();
                     });
                 },
-                canExecuteMethod: function () { return !isDirty(); }
+                // a pull request for this page is already open — the page is on its way somewhere, and
+                // shipping a second commit for it would only race with the first
+                canExecuteMethod: function () { return !isDirty() && !blade.pending; }
             };
 
             function fillMetadata() {
@@ -607,16 +630,12 @@ angular.module('virtoCommerce.pageBuilderModule')
 
             function updateToolbarCommands() {
                 $scope.blade.toolbarCommands = blade.toolbarCommands.filter(x => x !== publishCommand && x !== unpublishCommand);
-                var command = publishCommand;
-                if ($scope.blade.published && !$scope.blade.hasChanges) {
-                    // On the git flow taking a page down means deleting it from the production branch —
-                    // a repository change that goes through review, not a button here. The designer hides
-                    // it for the same reason.
-                    command = blade.gitFlow ? null : unpublishCommand;
-                }
-                if (command) {
-                    $scope.blade.toolbarCommands.splice(4, 0, command);
-                }
+                // Nothing to publish and the page is live: the one thing left to do with it is take it
+                // down. On the git flow that is a commit deleting the page, merged like any other.
+                var command = $scope.blade.published && !$scope.blade.hasChanges
+                    ? unpublishCommand
+                    : publishCommand;
+                $scope.blade.toolbarCommands.splice(4, 0, command);
             }
 
             function saveError(error) {

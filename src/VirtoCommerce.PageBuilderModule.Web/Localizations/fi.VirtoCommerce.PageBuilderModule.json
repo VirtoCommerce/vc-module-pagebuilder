@@ -64,6 +64,10 @@
       "git-publish-pending": {
         "title": "Julkaisu käynnissä",
         "message": "Sivu ei ole vielä julkaistu: pull request on avoinna ja yhdistetään, kun sen tarkistukset menevät läpi. {{url}}"
+      },
+      "git-unpublish-pending": {
+        "title": "Julkaisun peruutus käynnissä",
+        "message": "Sivu on vielä julkaistu: sen poistava pull request on avoinna ja yhdistetään, kun sen tarkistukset menevät läpi. {{url}}"
       }
     }
   },

@@ -64,6 +64,10 @@
       "git-publish-pending": {
         "title": "Publicering pågår",
         "message": "Sidan är inte publicerad än: en pull request är öppen och slås samman när dess kontroller har godkänts. {{url}}"
+      },
+      "git-unpublish-pending": {
+        "title": "Avpublicering pågår",
+        "message": "Sidan är fortfarande publicerad: en pull request som tar bort den är öppen och slås samman när dess kontroller har godkänts. {{url}}"
       }
     }
   },

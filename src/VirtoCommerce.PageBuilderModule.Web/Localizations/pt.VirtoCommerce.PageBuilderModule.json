@@ -59,6 +59,10 @@
       "git-publish-pending": {
         "title": "Publicação em andamento",
         "message": "A página ainda não está publicada: há um pull request aberto que será mesclado quando suas verificações passarem. {{url}}"
+      },
+      "git-unpublish-pending": {
+        "title": "Remoção da publicação em andamento",
+        "message": "A página ainda está publicada: há um pull request aberto que a remove e será mesclado quando suas verificações passarem. {{url}}"
       }
     }
   },

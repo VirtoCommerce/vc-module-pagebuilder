@@ -59,6 +59,10 @@
       "git-publish-pending": {
         "title": "Pubblicazione in corso",
         "message": "La pagina non è ancora online: una pull request è aperta e verrà unita quando i suoi controlli saranno superati. {{url}}"
+      },
+      "git-unpublish-pending": {
+        "title": "Rimozione dalla pubblicazione in corso",
+        "message": "La pagina è ancora online: una pull request che la rimuove è aperta e verrà unita quando i suoi controlli saranno superati. {{url}}"
       }
     }
   },
