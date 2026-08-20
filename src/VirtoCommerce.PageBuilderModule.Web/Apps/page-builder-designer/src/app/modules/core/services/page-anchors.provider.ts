@@ -27,22 +27,22 @@ export const PAGE_ANCHORS_PROVIDER = new InjectionToken<PageAnchorsProvider>('PA
  * The provider of the editor route that is currently active, or `null` outside it.
  *
  * The rich-text controls patch the global CKEditor namespace, which outlives the editor route, while
- * the provider is route scoped and replaced on every visit. Routing it through this registry keeps
- * the patches reading the live service — and, once the route is gone, nothing at all, so an editor
- * opened elsewhere falls back to CKEditor's own field-local anchors instead of listing the anchors
- * of the page that happened to be open last.
+ * the provider is route scoped. Routing it through this registry keeps the patches reading the live
+ * service — and, once the route is gone, nothing at all, so an editor opened elsewhere falls back to
+ * CKEditor's own field-local anchors instead of listing the anchors of the page that happened to be
+ * open last.
  */
 let activeProvider: PageAnchorsProvider | null = null;
 
-/** Called by the route scoped provider when it is created. */
+/** Called by the editor route's component when it is created. */
 export function setActivePageAnchorsProvider(provider: PageAnchorsProvider): void {
     activeProvider = provider;
 }
 
 /**
- * Called by the route scoped provider when it is destroyed. Navigating between pages creates the new
- * provider before the old one is torn down, so a provider that is no longer the active one is
- * ignored rather than clearing its successor.
+ * Called by the editor route's component when it is destroyed. Should a future route ever be created
+ * before its predecessor is torn down, a provider that is no longer the active one is ignored rather
+ * than clearing its successor.
  */
 export function clearActivePageAnchorsProvider(provider: PageAnchorsProvider): void {
     if (activeProvider === provider) {

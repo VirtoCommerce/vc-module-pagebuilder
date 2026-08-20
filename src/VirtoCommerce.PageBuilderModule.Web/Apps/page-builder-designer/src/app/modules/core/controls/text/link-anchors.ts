@@ -1,4 +1,4 @@
-import { PageAnchor, PageAnchorsProvider, getActivePageAnchors, setActivePageAnchorsProvider } from '@core/services';
+import { PageAnchor, getActivePageAnchors } from '@core/services';
 
 /**
  * Anchor entry CKEditor's link dialog consumes. Stock CKEditor describes one anchor element through
@@ -70,21 +70,19 @@ interface CkEditorNamespace {
  *   existing `#value` href back to a list entry;
  * * the anchor picker itself, so it lists readable names instead of bare generated ids.
  *
+ * The patches are global and idempotent: they read whichever editor route is currently active
+ * through `getActivePageAnchors`, so every later editor instance — in this module or another one —
+ * reuses them and gets the anchors that belong to it.
+ *
  * @returns `true` once the override is in place, `false` while the link plugin is not loaded yet.
  */
-export function installPageWideAnchors(provider: PageAnchorsProvider): boolean {
+export function installPageWideAnchors(): boolean {
     const ckeditor = (globalThis as { CKEDITOR?: CkEditorNamespace }).CKEDITOR;
     const link = ckeditor?.plugins?.link;
 
     if (!ckeditor || !link?.getEditorAnchors) {
         return false;
     }
-
-    // The patches below live on the global CKEDITOR namespace and outlive the editor route, while the
-    // provider is route scoped and replaced on every visit. They read the current one through the
-    // registry so a page opened after leaving and re-entering the editor never lists the anchors of a
-    // destroyed service.
-    setActivePageAnchorsProvider(provider);
 
     if (link.pbPageWideAnchorsInstalled) {
         return true;

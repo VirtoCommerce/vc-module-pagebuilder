@@ -1,7 +1,6 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { CKEditor4, CKEditorModule } from 'ckeditor4-angular';
 import { BaseControlDirective } from '@core/controls/base-control.directive';
-import { PAGE_ANCHORS_PROVIDER } from '@core/services';
 import { TextDescriptor } from '@models/controls';
 import { installPageWideAnchors } from './link-anchors';
 
@@ -13,10 +12,6 @@ import { installPageWideAnchors } from './link-anchors';
   imports: [CKEditorModule]
 })
 export class TextComponent extends BaseControlDirective<TextDescriptor> {
-
-  // Absent when a rich text control is used outside the page editor — anchor linking then keeps
-  // CKEditor's field-local behaviour.
-  private readonly pageAnchors = inject(PAGE_ANCHORS_PROVIDER, { optional: true });
 
   // CKEditor4 uses ambient const enums which are incompatible with isolatedModules.
   // Double cast is required because the enum type is nominal — string literals aren't
@@ -54,12 +49,11 @@ export class TextComponent extends BaseControlDirective<TextDescriptor> {
 
   /**
    * The link plugin only exists once an editor instance is ready, so the page-wide anchor override
-   * is installed here. It is global and idempotent — every later instance reuses it.
+   * is installed here. It is global and idempotent — every later instance reuses it — and falls back
+   * to CKEditor's field-local anchors wherever the page editor is not the active route.
    */
   onEditorReady(): void {
-    if (this.pageAnchors) {
-      installPageWideAnchors(this.pageAnchors);
-    }
+    installPageWideAnchors();
   }
 
   override onValueChanged = (newValue: any) => {

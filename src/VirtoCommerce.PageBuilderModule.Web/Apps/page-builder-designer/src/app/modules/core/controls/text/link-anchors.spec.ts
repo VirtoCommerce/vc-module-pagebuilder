@@ -1,5 +1,10 @@
 import { installPageWideAnchors } from './link-anchors';
-import { PageAnchor, PageAnchorsProvider, clearActivePageAnchorsProvider } from '@core/services';
+import {
+    PageAnchor,
+    PageAnchorsProvider,
+    clearActivePageAnchorsProvider,
+    setActivePageAnchorsProvider
+} from '@core/services';
 
 type CkAnchor = { name: string | null; id: string | null };
 type DialogListener = (event: any) => void;
@@ -46,6 +51,12 @@ function provider(anchors: PageAnchor[]): PageAnchorsProvider {
     return { getAnchors: () => anchors };
 }
 
+/** What activating the editor route does: publish its anchors, then let an editor install the patch. */
+function enterEditorRoute(pageProvider: PageAnchorsProvider): boolean {
+    setActivePageAnchorsProvider(pageProvider);
+    return installPageWideAnchors();
+}
+
 const pageAnchors: PageAnchor[] = [
     { value: 'imagexun', label: 'Hero image' },
     { value: 'specifications', label: 'Specifications' }
@@ -57,13 +68,13 @@ afterEach(() => {
 
 describe('installPageWideAnchors', () => {
     it('does nothing while the link plugin is not loaded', () => {
-        expect(installPageWideAnchors(provider(pageAnchors))).toBe(false);
+        expect(enterEditorRoute(provider(pageAnchors))).toBe(false);
     });
 
     it('publishes the page anchors to the link dialog', () => {
         const { link } = stubCkEditor();
 
-        expect(installPageWideAnchors(provider(pageAnchors))).toBe(true);
+        expect(enterEditorRoute(provider(pageAnchors))).toBe(true);
         expect(link.getEditorAnchors(null)).toEqual([
             { name: 'imagexun', id: null },
             { name: 'specifications', id: null }
@@ -72,7 +83,7 @@ describe('installPageWideAnchors', () => {
 
     it('never fills the element id slot, so the built href is always the picked anchor', () => {
         const { link } = stubCkEditor();
-        installPageWideAnchors(provider(pageAnchors));
+        enterEditorRoute(provider(pageAnchors));
 
         expect(link.getEditorAnchors(null).every((anchor: CkAnchor) => anchor.id === null)).toBe(true);
     });
@@ -81,27 +92,27 @@ describe('installPageWideAnchors', () => {
         const fieldLocal = [{ name: 'in-text', id: null }];
         const { link } = stubCkEditor(fieldLocal);
 
-        installPageWideAnchors(provider([]));
+        enterEditorRoute(provider([]));
 
         expect(link.getEditorAnchors(null)).toEqual(fieldLocal);
     });
 
     it('wraps the override only once, however many editor instances are created', () => {
         const { link } = stubCkEditor();
-        installPageWideAnchors(provider(pageAnchors));
+        enterEditorRoute(provider(pageAnchors));
         const wrapped = link.getEditorAnchors;
 
-        expect(installPageWideAnchors(provider(pageAnchors))).toBe(true);
+        expect(enterEditorRoute(provider(pageAnchors))).toBe(true);
         expect(link.getEditorAnchors).toBe(wrapped);
     });
 
     it('follows the provider of the editor route that is currently active', () => {
         const { link, listeners } = stubCkEditor();
-        installPageWideAnchors(provider(pageAnchors));
+        enterEditorRoute(provider(pageAnchors));
 
         // Leaving and re-entering the editor destroys the route scoped service and creates a new one,
         // while the override on the global CKEDITOR namespace survives.
-        installPageWideAnchors(provider([{ value: 'reopened', label: 'Reopened page' }]));
+        enterEditorRoute(provider([{ value: 'reopened', label: 'Reopened page' }]));
 
         expect(link.getEditorAnchors(null)).toEqual([{ name: 'reopened', id: null }]);
 
@@ -113,7 +124,7 @@ describe('installPageWideAnchors', () => {
     it('reflects later page edits because the provider is read on every open', () => {
         const { link } = stubCkEditor();
         let anchors = [...pageAnchors];
-        installPageWideAnchors({ getAnchors: () => anchors });
+        enterEditorRoute({ getAnchors: () => anchors });
 
         anchors = [{ value: 'added-later', label: 'Added later' }];
 
@@ -124,7 +135,7 @@ describe('installPageWideAnchors', () => {
 describe('anchor picker', () => {
     it('lists the item name with the anchor it links to', () => {
         const { listeners } = stubCkEditor();
-        installPageWideAnchors(provider(pageAnchors));
+        enterEditorRoute(provider(pageAnchors));
 
         const { anchorName } = openLinkDialog(listeners);
         anchorName.setup({});
@@ -138,7 +149,7 @@ describe('anchor picker', () => {
 
     it('shows the bare value when the item has no name of its own', () => {
         const { listeners } = stubCkEditor();
-        installPageWideAnchors(provider([{ value: 'text2', label: 'text2' }]));
+        enterEditorRoute(provider([{ value: 'text2', label: 'text2' }]));
 
         const { anchorName } = openLinkDialog(listeners);
         anchorName.setup({});
@@ -148,7 +159,7 @@ describe('anchor picker', () => {
 
     it('selects the anchor an existing link points at', () => {
         const { listeners } = stubCkEditor();
-        installPageWideAnchors(provider(pageAnchors));
+        enterEditorRoute(provider(pageAnchors));
 
         const { anchorName } = openLinkDialog(listeners);
         anchorName.setup({ anchor: { name: 'specifications' } });
@@ -158,7 +169,7 @@ describe('anchor picker', () => {
 
     it('keeps an anchor that is no longer on the page selectable, so the link survives a save', () => {
         const { listeners } = stubCkEditor();
-        installPageWideAnchors(provider(pageAnchors));
+        enterEditorRoute(provider(pageAnchors));
 
         const { anchorName } = openLinkDialog(listeners);
         anchorName.setup({ anchor: { name: 'typed-by-hand' } });
@@ -169,7 +180,7 @@ describe('anchor picker', () => {
 
     it('leaves the stock picker alone when the page has no anchors', () => {
         const { listeners } = stubCkEditor();
-        installPageWideAnchors(provider([]));
+        enterEditorRoute(provider([]));
 
         const { anchorName } = openLinkDialog(listeners);
         anchorName.setup({});
@@ -180,7 +191,7 @@ describe('anchor picker', () => {
 
     it('hides the empty element id cell so the anchor select gets the whole row', () => {
         const { listeners } = stubCkEditor();
-        installPageWideAnchors(provider(pageAnchors));
+        enterEditorRoute(provider(pageAnchors));
 
         const { anchorId } = openLinkDialog(listeners);
         anchorId.setup({});
@@ -191,7 +202,7 @@ describe('anchor picker', () => {
 
     it('keeps the element id cell when falling back to CKEditor anchors', () => {
         const { listeners } = stubCkEditor();
-        installPageWideAnchors(provider([]));
+        enterEditorRoute(provider([]));
 
         const { anchorId } = openLinkDialog(listeners);
         anchorId.cell.hide();
@@ -206,7 +217,7 @@ describe('clearActivePageAnchorsProvider', () => {
         const fieldLocal = [{ name: 'in-text', id: null }];
         const { link, listeners } = stubCkEditor(fieldLocal);
         const editorRoute = provider(pageAnchors);
-        installPageWideAnchors(editorRoute);
+        enterEditorRoute(editorRoute);
 
         // Leaving /pages tears the route scoped service down, while the override on the global
         // CKEDITOR namespace stays behind for the editors of every other module.
@@ -227,8 +238,8 @@ describe('clearActivePageAnchorsProvider', () => {
     it('ignores a provider that a later editor route has already replaced', () => {
         const { link } = stubCkEditor();
         const left = provider(pageAnchors);
-        installPageWideAnchors(left);
-        installPageWideAnchors(provider([{ value: 'reopened', label: 'Reopened page' }]));
+        enterEditorRoute(left);
+        enterEditorRoute(provider([{ value: 'reopened', label: 'Reopened page' }]));
 
         clearActivePageAnchorsProvider(left);
 
