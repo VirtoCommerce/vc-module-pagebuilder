@@ -113,6 +113,37 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         [Fact]
+        public async Task Saving_over_an_existing_draft_replaces_its_content()
+        {
+            var service = new PublishedRenameContentPreservationTests.FakeGroupedPageService();
+            const string groupId = "group-1";
+            const string edited =
+                "{ \"settings\": {}, \"content\": [ { \"type\": \"hero\", \"title\": \"Second pass\" } ] }";
+
+            service.SeedGroup(new GroupedPageBuilderPage
+            {
+                Id = groupId,
+                StoreId = "Store1",
+                Pages = new List<PageBuilderPage>
+                {
+                    new() { Id = "page-draft", GroupId = groupId, Status = Draft, ModifiedDate = new DateTime(2026, 7, 22) },
+                },
+            });
+            service.SeedContent("page-draft", LiveContent);
+
+            // The path taken from the second save of a page onwards, and the one with no coverage until now:
+            // it used to hand the already-drained request body to the content writer, so every save after the
+            // first blanked the draft it was supposed to update while answering 204.
+            var (result, _) = await SaveContent(service, groupId, edited);
+
+            Assert.IsType<NoContentResult>(result);
+            Assert.Equal(edited, await service.LoadContent("page-draft", TestContext.Current.CancellationToken));
+
+            var group = await service.GetByIdAsync(groupId);
+            Assert.Equal("page-draft", Assert.Single(group.Pages, x => x.Status == Draft).Id);
+        }
+
+        [Fact]
         public async Task Existing_draft_content_survives_a_refused_save()
         {
             var service = new PublishedRenameContentPreservationTests.FakeGroupedPageService();

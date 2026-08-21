@@ -515,22 +515,24 @@ public class PageBuilderPageController(
 
         var draftPage = groupedPage.Pages.FirstOrDefault(x => x.Status == Draft);
 
+        // Both paths below write `content` — the string the validation above already read. The request body
+        // is a forward-only stream that read drained, so reading it a second time yields nothing: that is
+        // how a draft came to be created with an empty content column while the caller was told the save
+        // succeeded, which is the exact blanking VP-9220 is about.
         if (draftPage == null)
         {
-            using var bodyReader = new System.IO.StreamReader(Request.Body, Encoding.UTF8);
-            var bufferedContent = await bodyReader.ReadToEndAsync(cancellationToken);
             draftPage = AbstractTypeFactory<PageBuilderPage>.TryCreateInstance();
             draftPage.StoreId = groupedPage.StoreId;
             draftPage.Status = Draft;
             // Atomic create — row and content land in one INSERT via EF table-splitting,
             // so the Changed event sees committed content.
-            draftPage.Content = bufferedContent;
+            draftPage.Content = content;
             groupedPage.Pages.Add(draftPage);
             await groupedPageService.SaveChangesAsync([groupedPage]);
             return NoContent();
         }
 
-        await groupedPageService.SaveStreamAsContentAsync(draftPage.Id, Request.Body, cancellationToken);
+        await groupedPageService.SaveContent(draftPage.Id, content, cancellationToken);
         await PublishPageContentChangedAsync(draftPage);
 
         return NoContent();
