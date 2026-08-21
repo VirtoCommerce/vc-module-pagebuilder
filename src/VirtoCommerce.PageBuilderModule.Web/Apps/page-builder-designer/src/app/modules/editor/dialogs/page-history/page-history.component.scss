@@ -1,8 +1,32 @@
+@use '../../../../../layout/variables' as *;
+
 $surface: #fff;
-$border: #dde6f2;
-$text: #243447;
-$muted: #6f8298;
-$primary: #2f95da;
+$border: #e3e8ef;
+$divider: #edf1f6;
+
+// The shared outline skin is a hairline border on inherited text: readable on a form, but this
+// list is dense and repeats the same buttons on every row, so it needs a firmer edge.
+@mixin outline-button {
+    ::ng-deep button.btn-skin-outline {
+        width: auto;
+        padding: 0.25rem 0.75rem;
+        border-color: $controls-border-color;
+        color: $text-color;
+        font-weight: 500;
+        white-space: nowrap;
+
+        &:hover:not(:disabled) {
+            border-color: $active-color;
+            background: rgba($active-color, 0.06);
+            color: $active-color;
+        }
+
+        &:disabled {
+            border-color: #e1e3e5;
+            color: $disable-text-color;
+        }
+    }
+}
 
 .page-history {
     display: flex;
@@ -10,14 +34,15 @@ $primary: #2f95da;
     height: 100%;
     flex-direction: column;
     overflow: hidden;
-    color: $text;
-    font-size: 0.875rem;
+    background: $surface;
+    color: $text-color;
+    font-size: $default-font-size;
     line-height: 1.125rem;
 }
 
 .header {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
     gap: 1rem;
     padding: 1rem;
@@ -25,8 +50,9 @@ $primary: #2f95da;
 
     h2 {
         margin: 0;
+        color: $heading-color;
         font-size: 1.125rem;
-        font-weight: 500;
+        font-weight: 600;
         line-height: 1.5rem;
     }
 }
@@ -41,11 +67,12 @@ $primary: #2f95da;
     border: 0;
     border-radius: 50%;
     background: transparent;
-    color: $muted;
+    color: $icons-color;
     cursor: pointer;
 
     &:hover {
-        color: $text;
+        background: $hover-color;
+        color: $heading-color;
     }
 }
 
@@ -66,19 +93,20 @@ $primary: #2f95da;
     padding: 0.625rem 0.75rem;
     border: 1px solid $border;
     border-radius: 0.25rem;
-    background: $surface;
-    color: $muted;
+    background: #f7f9fc;
+    color: $info-color;
 }
 
 .message--error {
-    border-color: #fca5a5;
-    color: #b91c1c;
+    border-color: #f4b3a4;
+    background: #fdf1ee;
+    color: $error-color;
 }
 
 .notice {
-    border-color: #f4d9a0;
-    background: #fffaf0;
-    color: #92670a;
+    border-color: #e8c37a;
+    background: #fff6e5;
+    color: #8a5b00;
 }
 
 .truncated {
@@ -86,6 +114,12 @@ $primary: #2f95da;
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
+
+    @include outline-button;
+
+    app-icon-button {
+        flex: none;
+    }
 }
 
 .versions,
@@ -97,12 +131,19 @@ $primary: #2f95da;
 
 .version {
     padding: 0.75rem 1rem;
-    border-bottom: 1px solid $border;
+    border-bottom: 1px solid $divider;
+
+    &:hover {
+        background: #fafbfc;
+    }
 
     // a repository-wide import is a truthful version of the page and a useless one to a content
-    // manager: kept in the list, played down in it
-    &--bulk {
-        opacity: 0.6;
+    // manager: kept in the list, played down in it — but played down by muting the wording only.
+    // Fading the whole row (opacity) also faded its chips and buttons, which made every bulk
+    // version look disabled instead of merely uninteresting.
+    &--bulk .message-line {
+        color: $info-color;
+        font-weight: 400;
     }
 }
 
@@ -125,33 +166,45 @@ $primary: #2f95da;
 
 .chip {
     padding: 0.0625rem 0.5rem;
-    border: 1px solid $border;
+    border: 1px solid $controls-border-color;
     border-radius: 0.75rem;
+    color: $content-color;
     font-size: 0.75rem;
+    font-weight: 500;
     line-height: 1rem;
     white-space: nowrap;
 
     &--published {
-        border-color: #a7d8a9;
-        background: #f0faf0;
-        color: #256b2a;
+        border-color: #7cc182;
+        background: #e8f7ea;
+        color: #1b6b26;
     }
 
     &--draft {
-        border-color: #f4d9a0;
-        background: #fffaf0;
-        color: #92670a;
+        border-color: #e8c37a;
+        background: #fff6e5;
+        color: #8a5b00;
     }
 
     &--mine {
-        border-color: rgba($primary, 0.45);
-        background: rgba($primary, 0.08);
-        color: #1f6fa6;
+        border-color: rgba($active-color, 0.5);
+        background: rgba($active-color, 0.08);
+        color: $active-color;
+    }
+
+    &--bulk {
+        border-color: $controls-border-color;
+        background: #f1f2f3;
+        color: $info-color;
     }
 }
 
 .message-line {
     overflow: hidden;
+    color: $content-color;
+    font-size: $middle-font-size;
+    font-weight: 500;
+    line-height: 1.25rem;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
@@ -160,13 +213,19 @@ $primary: #2f95da;
     display: flex;
     flex-wrap: wrap;
     gap: 0.75rem;
-    color: $muted;
+    color: $info-color;
     font-size: 0.75rem;
     line-height: 1rem;
 }
 
+.meta > span:first-child {
+    color: $text-color;
+    font-weight: 500;
+}
+
 .sha,
 .branch {
+    color: $info-color;
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
@@ -180,6 +239,9 @@ $primary: #2f95da;
 .actions {
     display: flex;
     gap: 0.5rem;
+    margin-top: 0.125rem;
+
+    @include outline-button;
 }
 
 .older-toggle {
@@ -187,7 +249,12 @@ $primary: #2f95da;
     padding: 0;
     border: 0;
     background: transparent;
-    color: $primary;
+    color: $active-color;
     font: inherit;
+    font-weight: 500;
     cursor: pointer;
+
+    &:hover {
+        text-decoration: underline;
+    }
 }
