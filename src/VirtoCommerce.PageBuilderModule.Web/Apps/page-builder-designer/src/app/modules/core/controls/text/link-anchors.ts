@@ -36,12 +36,21 @@ type CkSetup = (this: CkSelect, data: CkLinkData) => void;
 
 interface CkElementDefinition {
     setup?: CkSetup;
+    /** Layout slots of the container definitions the anchor picker is assembled from. */
+    label?: string;
+    style?: string;
+    width?: string | number;
+    align?: string;
+}
+
+interface CkDialogContents {
+    get(id: string): CkElementDefinition | null;
 }
 
 interface CkDialogDefinitionEvent {
     data: {
         name: string;
-        definition: { getContents(id: string): { get(id: string): CkElementDefinition | null } | null };
+        definition: { getContents(id: string): CkDialogContents | null };
     };
 }
 
@@ -115,9 +124,11 @@ function customizeAnchorPicker(ckeditor: CkEditorNamespace): void {
         const anchorName = info?.get('anchorName');
         const anchorId = info?.get('anchorId');
 
-        if (!anchorName || !anchorId) {
+        if (!info || !anchorName || !anchorId) {
             return;
         }
+
+        flattenAnchorPicker(info);
 
         const stockNameSetup = anchorName.setup;
         anchorName.setup = function (data: CkLinkData) {
@@ -156,6 +167,41 @@ function customizeAnchorPicker(ckeditor: CkEditorNamespace): void {
             }
         };
     });
+}
+
+/**
+ * Puts the anchor picker on the same grid as every other link type.
+ *
+ * Stock CKEditor sizes it as a 260px fieldset centred in the dialog, because it holds two selects
+ * side by side — "By Anchor Name" and "By Element Id" — under a "Select an Anchor" legend. Page
+ * anchors are published through the name select alone, so the second one is hidden and both the
+ * frame and the centring only make the row look unlike the URL, e-mail and phone fields, which all
+ * span the dialog.
+ *
+ * The dialog definition is patched rather than the setup functions, because width and alignment are
+ * baked into the container markup when the dialog is built.
+ */
+function flattenAnchorPicker(info: CkDialogContents): void {
+    const options = info.get('anchorOptions');
+    if (options) {
+        options.width = '100%';
+        delete options.align;
+    }
+
+    const frame = info.get('selectAnchorText');
+    if (frame) {
+        // An empty label drops the legend; the fieldset element itself stays, so its default frame
+        // has to go through the inline style CKEditor copies onto it.
+        frame.label = '';
+        frame.style = 'border: none; padding: 0; margin: 0;';
+    }
+
+    // The selects size themselves to their table cell, and the cell to the row, so the row is where
+    // the full width has to be claimed.
+    const row = info.get('selectAnchor');
+    if (row) {
+        row.style = 'width: 100%;';
+    }
 }
 
 /** `Hero image (imagexun)`, or just the value when the item has no name of its own. */

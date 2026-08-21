@@ -38,13 +38,23 @@ function stubCkEditor(fieldLocal: CkAnchor[] = []) {
 function openLinkDialog(listeners: DialogListener[]) {
     const anchorName = createSelect();
     const anchorId = createSelect();
-    const elements: Record<string, unknown> = { anchorName, anchorId };
+    // The containers the picker is assembled from, with the layout slots CKEditor ships them with.
+    const anchorOptions = { type: 'vbox', width: 260, align: 'center', padding: 0 };
+    const selectAnchorText = { type: 'fieldset', label: 'Select an Anchor' };
+    const selectAnchor = { type: 'hbox' };
+    const elements: Record<string, unknown> = {
+        anchorName,
+        anchorId,
+        anchorOptions,
+        selectAnchorText,
+        selectAnchor
+    };
 
     listeners.forEach(listener => listener({
         data: { name: 'link', definition: { getContents: () => ({ get: (id: string) => elements[id] }) } }
     }));
 
-    return { anchorName, anchorId };
+    return { anchorName, anchorId, anchorOptions, selectAnchorText, selectAnchor };
 }
 
 function provider(anchors: PageAnchor[]): PageAnchorsProvider {
@@ -209,6 +219,29 @@ describe('anchor picker', () => {
         anchorId.setup({});
 
         expect(anchorId.cell.hidden).toBe(false);
+    });
+});
+
+describe('anchor picker layout', () => {
+    it('spans the dialog instead of sitting centred in a 260px box', () => {
+        const { listeners } = stubCkEditor();
+        enterEditorRoute(provider(pageAnchors));
+
+        const { anchorOptions, selectAnchor } = openLinkDialog(listeners);
+
+        expect(anchorOptions.width).toBe('100%');
+        expect('align' in anchorOptions).toBe(false);
+        expect((<{ style?: string }>selectAnchor).style).toContain('width: 100%');
+    });
+
+    it('drops the fieldset frame and its legend, leaving the select its own label', () => {
+        const { listeners } = stubCkEditor();
+        enterEditorRoute(provider(pageAnchors));
+
+        const { selectAnchorText } = openLinkDialog(listeners);
+
+        expect(selectAnchorText.label).toBe('');
+        expect((<{ style?: string }>selectAnchorText).style).toContain('border: none');
     });
 });
 
