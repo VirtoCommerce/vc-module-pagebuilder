@@ -114,5 +114,23 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         {
             Configured().Validate();
         }
+
+        /// <summary>
+        /// BaseBranch must have no default. A default boots successfully and merges into a branch the
+        /// deploy workflow is not watching, so publishing stops arriving with nothing to see anywhere —
+        /// the operator is the only one who knows which branch CI triggers on. Giving the property a
+        /// default value would also make <see cref="GitContentOptions.Validate"/>'s check for it
+        /// unreachable, which is how this was wrong before.
+        /// </summary>
+        [Fact]
+        public void Validate_reports_a_missing_base_branch()
+        {
+            var options = Configured();
+            options.BaseBranch = null;
+
+            var error = Assert.Throws<InvalidOperationException>(options.Validate);
+
+            Assert.Contains(nameof(GitContentOptions.BaseBranch), error.Message, StringComparison.Ordinal);
+        }
     }
 }

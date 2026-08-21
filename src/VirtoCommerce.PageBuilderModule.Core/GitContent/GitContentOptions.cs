@@ -41,8 +41,15 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
 
         /// <summary>
         /// The branch new work branches are forked from (and the one PRs target).
+        /// <para>
+        /// Deliberately has no default. It must name the same branch the content repository's deploy
+        /// workflow triggers on, and only the operator knows which that is — a default would be a guess
+        /// that boots successfully, merging into one branch while CI listens to another and publishing
+        /// silently stops arriving. Left unset with the flow enabled, <see cref="Validate"/> refuses to
+        /// start, which is the whole point of that check.
+        /// </para>
         /// </summary>
-        public string BaseBranch { get; set; } = "master";
+        public string BaseBranch { get; set; }
 
         /// <summary>
         /// Work-branch name, one per editor AND page: {user} is the sanitized user name, {slug} the
