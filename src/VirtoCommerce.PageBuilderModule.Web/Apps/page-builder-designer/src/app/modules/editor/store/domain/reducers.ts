@@ -99,7 +99,11 @@ export const editorDomainReducers = createReducer<EditorDomainState>(
  * Each scan answers with its own page of branches and the published history — never with the whole
  * list — so taking it as the list would drop the drafts an earlier page found, which is the opposite
  * of what asking for more branches means. Versions are keyed by sha, the only identity a commit keeps
- * across two answers, and `otherDraftCount` is recounted over the result: the server counts it per
+ * across two answers.
+ *
+ * The result is put back in the order the server answers in rather than appended to: a draft found by
+ * scanning further is the reason the editor pressed the button, and appending would file it below the
+ * published history. `otherDraftCount` is recounted for the same reason — the server counts it per
  * answer, and after a merge that number would describe a shorter list than the one being shown.
  */
 function withEarlierVersions(history: PageHistory, earlier: PageVersion[] = []): PageHistory {
@@ -109,13 +113,24 @@ function withEarlierVersions(history: PageHistory, earlier: PageVersion[] = []):
 
     const bySha = new Map(earlier.map(version => [version.sha, version]));
     history.versions.forEach(version => bySha.set(version.sha, version));
-    const versions = [...bySha.values()];
+    const versions = [...bySha.values()].sort(byUnpublishedThenNewest);
 
     return {
         ...history,
         versions,
         otherDraftCount: versions.filter(version => !version.published && !version.mine && !version.bulk).length
     };
+}
+
+/** The order the server lists versions in: unpublished first — they are the reason to open the list — then newest first. */
+function byUnpublishedThenNewest(left: PageVersion, right: PageVersion): number {
+    return Number(left.published) - Number(right.published) || committedAt(right) - committedAt(left);
+}
+
+// A version with no date sorts last within its half, the way the server treats a missing one.
+function committedAt(version: PageVersion): number {
+    const parsed = Date.parse(version.date ?? '');
+    return Number.isNaN(parsed) ? 0 : parsed;
 }
 
 /**
