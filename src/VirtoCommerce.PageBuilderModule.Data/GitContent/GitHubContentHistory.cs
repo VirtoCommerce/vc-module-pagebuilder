@@ -61,12 +61,19 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             _options = options.Value;
         }
 
-        public async Task<GitPageHistory> GetHistoryAsync(string repoPath, GitHistoryQuery query, CancellationToken cancellationToken = default)
+        // The arguments are checked here rather than in the async part below, so a call that cannot work
+        // throws where it was made instead of when its task is finally awaited.
+        public Task<GitPageHistory> GetHistoryAsync(string repoPath, GitHistoryQuery query, CancellationToken cancellationToken = default)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(repoPath);
             ArgumentNullException.ThrowIfNull(query);
             ArgumentException.ThrowIfNullOrWhiteSpace(query.BaseBranch);
 
+            return GetHistoryCoreAsync(repoPath, query, cancellationToken);
+        }
+
+        private async Task<GitPageHistory> GetHistoryCoreAsync(string repoPath, GitHistoryQuery query, CancellationToken cancellationToken)
+        {
             var (owner, name) = SplitRepository();
             var depth = query.PublishedDepth ?? _options.PublishedHistoryDepth;
 
@@ -275,7 +282,11 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
         // eviction: a dropped counter restarts at zero and points back at the entry it was meant to retire.
         private static readonly MemoryCacheEntryOptions NeverEvict = new() { Priority = CacheItemPriority.NeverRemove };
 
-        private static string Trim(string details) => details?.Length > 500 ? details[..500] : details;
+        // Enough of a GitHub error body to recognise the failure by, rather than a page of json in a log line.
+        private const int MaxErrorDetailsLength = 500;
+
+        private static string Trim(string details) =>
+            details?.Length > MaxErrorDetailsLength ? details[..MaxErrorDetailsLength] : details;
 
         private static HttpRequestException Failed(string details, string repoPath) =>
             new($"GitHub GraphQL request for the history of \"{repoPath}\" failed: {details}");

@@ -554,17 +554,19 @@ angular.module('virtoCommerce.pageBuilderModule')
 
             // The permalink is stored with a leading slash; the blob save normalizes it in the resource's
             // transformRequest, which the git save does not go through.
-            function normalizePermalink(settings) {
-                var permalink = settings && settings.permalink;
+            function normalizePermalink(pageSettings) {
+                var permalink = pageSettings && pageSettings.permalink;
                 if (permalink && permalink.length && permalink[0] !== '/') {
-                    settings.permalink = '/' + permalink;
+                    pageSettings.permalink = '/' + permalink;
                 }
             }
 
             function savePage(newFileName, originFileName) {
                 if (!flowResolved) {
                     // The flow says where this save goes; wait for the answer instead of picking one.
-                    loadPublishStatus(function () { savePage(newFileName, originFileName); });
+                    loadPublishStatus(function () {
+                        savePage(newFileName, originFileName);
+                    });
                     return;
                 }
 
