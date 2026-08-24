@@ -235,11 +235,19 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
                 return GitPublishState.Merged;
             }
 
-            // 405 "not mergeable" and 409 "head changed" both mean the merge did not happen and the
-            // pull request is where a human can see why. Saying "published" here would be a lie.
+            // 405 "not mergeable" and 409 "head changed" both mean the merge did not happen and the pull
+            // request is where a human can see why. Saying "published" here would be a lie — but so is
+            // "on its way" when the refusal was a conflict, and 405 covers both that and a check that has
+            // not passed yet. GitHub had to finish computing mergeability to refuse at all, so the answer
+            // it would not give while we waited for it is available now: ask once more, and tell an
+            // editor whose page is stuck to fix it rather than leaving them watching "Publishing…".
             if (response.StatusCode is HttpStatusCode.MethodNotAllowed or HttpStatusCode.Conflict)
             {
-                return GitPublishState.Pending;
+                var pullRequest = await GetPullRequestAsync(client, number, cancellationToken);
+
+                return pullRequest["mergeable"]?.Type == JTokenType.Boolean && !pullRequest["mergeable"]!.Value<bool>()
+                    ? GitPublishState.Conflict
+                    : GitPublishState.Pending;
             }
 
             await ThrowIfFailedAsync(response, $"merge pull request #{number}");

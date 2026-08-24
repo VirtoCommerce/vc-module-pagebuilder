@@ -125,11 +125,36 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 ("POST", "repos/o/r/pulls", _ => RespondJson(PullRequest(), HttpStatusCode.Created)),
                 ("GET", "repos/o/r/pulls/7", _ => RespondJson(PullRequest(mergeable: true))),
                 ("POST", "graphql", _ => RespondJson("""{ "errors": [ { "message": "nope" } ] }""")),
-                ("PUT", "repos/o/r/pulls/7/merge", _ => Respond(HttpStatusCode.MethodNotAllowed)));
+                ("PUT", "repos/o/r/pulls/7/merge", _ => Respond(HttpStatusCode.MethodNotAllowed)),
+                // the refusal is re-read: 405 is also what a conflict answers, and the two mean opposite things
+                ("GET", "repos/o/r/pulls/7", _ => RespondJson(PullRequest(mergeable: true))));
 
             var result = await Create(handler).MergeBranchAsync(Branch, "publish foo", TestContext.Current.CancellationToken);
 
             Assert.Equal(GitPublishState.Pending, result.State);
+            handler.AssertDone();
+        }
+
+        [Fact]
+        public async Task A_merge_refused_because_the_page_conflicts_is_a_conflict_not_pending()
+        {
+            // GitHub answers 405 both to "a check has not passed" and to "this pull request conflicts",
+            // and it had to finish computing mergeability to refuse at all — so the answer it withheld
+            // while we waited for it is available now. Reporting Pending would leave the editor watching
+            // "Publishing…" over a page that will never merge on its own.
+            var handler = new ScriptedHandler(
+                ("POST", "repos/o/r/pulls", _ => RespondJson(PullRequest(), HttpStatusCode.Created)),
+                ("GET", "repos/o/r/pulls/7", _ => RespondJson(PullRequest())),                  // mergeable: null, still computing
+                ("GET", "repos/o/r/pulls/7", _ => RespondJson(PullRequest())),
+                ("GET", "repos/o/r/pulls/7", _ => RespondJson(PullRequest())),
+                ("POST", "graphql", _ => RespondJson("""{ "errors": [ { "message": "nope" } ] }""")),
+                ("PUT", "repos/o/r/pulls/7/merge", _ => Respond(HttpStatusCode.MethodNotAllowed)),
+                ("GET", "repos/o/r/pulls/7", _ => RespondJson(PullRequest(mergeable: false))));
+
+            var result = await Create(handler).MergeBranchAsync(Branch, "publish foo", TestContext.Current.CancellationToken);
+
+            Assert.Equal(GitPublishState.Conflict, result.State);
+            Assert.Equal(7, result.PullRequestNumber);
             handler.AssertDone();
         }
 

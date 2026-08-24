@@ -54,13 +54,16 @@ export class OzContextService {
             });
         }
 
-        const path = this.path();
-        const pageId = this.groupId() || path;
-        if (pageId) {
+        // Every page tool the agent has addresses a page by its group id — /grouped/{groupId}/content and
+        // the rest — so a file path is not an identifier any of them can resolve. A session opened by path
+        // alone therefore contributes no page item at all: the agent then asks which page is meant, which
+        // is recoverable, where an id that resolves to nothing is a failed tool call.
+        const groupId = this.groupId();
+        if (groupId) {
             items.push({
-                id: pageId,
+                id: groupId,
                 objectType: PAGE_OBJECT_TYPE,
-                name: this.pageNameFrom(path) || pageId,
+                name: this.pageNameFrom(this.path()) || groupId,
             });
         }
 

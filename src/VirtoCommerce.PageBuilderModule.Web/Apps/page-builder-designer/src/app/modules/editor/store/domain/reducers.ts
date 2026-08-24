@@ -2,7 +2,7 @@ import { createReducer, on } from '@ngrx/store';
 
 import * as actions from '../actions';
 
-import { PageHistoryState } from '@editor/models';
+import { PageHistory, PageHistoryState, PageVersion } from '@editor/models';
 
 import { EditorDomainState, initialState } from './state';
 
@@ -61,7 +61,11 @@ export const editorDomainReducers = createReducer<EditorDomainState>(
         }
     })),
     on(actions.loadPageHistory, (state, { templateKey }) => withHistory(state, templateKey, { isLoading: true, error: undefined })),
-    on(actions.loadPageHistorySuccess, (state, { templateKey, history }) => withHistory(state, templateKey, { ...history, isLoading: false, error: undefined })),
+    on(actions.loadPageHistorySuccess, (state, { templateKey, history, after }) => withHistory(state, templateKey, {
+        ...(after ? withEarlierVersions(history, state.states[templateKey]?.history?.versions) : history),
+        isLoading: false,
+        error: undefined
+    })),
     on(actions.loadPageHistoryFails, (state, { templateKey, error }) => withHistory(state, templateKey, { isLoading: false, error: error?.message })),
     // the row that was clicked shows it is working; the list itself is reloaded once the commit lands
     on(actions.restoreVersion, (state, { templateKey, sha }) => withHistory(state, templateKey, { restoring: sha })),
@@ -88,6 +92,31 @@ export const editorDomainReducers = createReducer<EditorDomainState>(
         }
     })),
 );
+
+/**
+ * Folds an answer to "scan more branches" into the versions already on screen.
+ *
+ * Each scan answers with its own page of branches and the published history — never with the whole
+ * list — so taking it as the list would drop the drafts an earlier page found, which is the opposite
+ * of what asking for more branches means. Versions are keyed by sha, the only identity a commit keeps
+ * across two answers, and `otherDraftCount` is recounted over the result: the server counts it per
+ * answer, and after a merge that number would describe a shorter list than the one being shown.
+ */
+function withEarlierVersions(history: PageHistory, earlier: PageVersion[] = []): PageHistory {
+    if (!earlier.length) {
+        return history;
+    }
+
+    const bySha = new Map(earlier.map(version => [version.sha, version]));
+    history.versions.forEach(version => bySha.set(version.sha, version));
+    const versions = [...bySha.values()];
+
+    return {
+        ...history,
+        versions,
+        otherDraftCount: versions.filter(version => !version.published && !version.mine && !version.bulk).length
+    };
+}
 
 /**
  * Patches the open page's history without disturbing the rest of its state. Versions live next to publish

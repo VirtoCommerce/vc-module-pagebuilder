@@ -645,10 +645,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             }
 
             var branch = PromoteBranch(type, path);
-            if (await gitContentRepository.GetBranchHeadShaAsync(branch, HttpContext.RequestAborted) == null)
-            {
-                await gitContentRepository.CreateBranchAsync(branch, options.ReleaseBranch, HttpContext.RequestAborted);
-            }
+            await PreparePromoteBranchAsync(branch, location.RepoPath, options.ReleaseBranch);
 
             // The bytes come from the base branch, never from the request: promotion ships what the dev
             // environment has been serving, not what a client happens to send along with the button press.
@@ -1014,6 +1011,35 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             }
 
             return Ok(new { state = result.State.ToString(), pullRequest = result.PullRequestNumber, url = result.Url });
+        }
+
+        /// <summary>
+        /// Makes the promote branch ready to commit this promotion to.
+        /// <para>
+        /// It is reused only while its pull request is still open — that is what makes two editors
+        /// promoting the same page land on one pull request rather than two. Once that pull request is
+        /// gone the branch has to be cut again, because it can outlive it: the merge is a squash, so the
+        /// branch's head is not on the production branch's history afterwards, and GitHub deletes a
+        /// merged head only where the repository is configured to. Committing onto the leftover would
+        /// make the promotion a three-way merge of two full rewrites of the same file — a conflict every
+        /// retry reproduces, since the stale merge base never moves.
+        /// </para>
+        /// </summary>
+        private async Task PreparePromoteBranchAsync(string branch, string repoPath, string releaseBranch)
+        {
+            var leftover = await gitContentRepository.GetBranchHeadShaAsync(branch, HttpContext.RequestAborted);
+            if (leftover != null &&
+                await gitContentPublisher.GetOpenPullRequestNumberAsync(branch, HttpContext.RequestAborted) != null)
+            {
+                return;
+            }
+
+            if (leftover != null)
+            {
+                await gitContentRepository.DeleteBranchAsync(branch, repoPath, HttpContext.RequestAborted);
+            }
+
+            await gitContentRepository.CreateBranchAsync(branch, releaseBranch, HttpContext.RequestAborted);
         }
 
         private async Task<bool> IsAllowedToPromoteAsync()

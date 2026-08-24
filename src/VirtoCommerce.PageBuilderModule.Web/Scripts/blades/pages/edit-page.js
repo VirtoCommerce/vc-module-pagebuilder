@@ -92,13 +92,14 @@ angular.module('virtoCommerce.pageBuilderModule')
                         // a page that does not exist yet has nothing to publish, and no toolbar to update
                         updateToolbarCommands();
                     }
-                    callback && callback();
-                }, function () {
-                    // Unknown state: leave the toolbar as it is rather than inventing one. The flow counts
-                    // as resolved so a save is not stuck retrying — it falls back to the blob flow, which
-                    // is what this blade did before git existed.
-                    flowResolved = true;
-                    callback && callback();
+                    callback && callback(true);
+                }, function (error) {
+                    // Unknown state: leave the toolbar as it is rather than inventing one, and leave the
+                    // flow unresolved. Treating an unanswered question as "blob" is how settings for a
+                    // page the server reads from the repository end up written to blob storage, where the
+                    // next deploy overwrites them — so the answer is asked for again rather than assumed.
+                    bladeNavigationService.setError('Error ' + error.status, $scope.blade);
+                    callback && callback(false);
                 });
             }
 
@@ -563,9 +564,14 @@ angular.module('virtoCommerce.pageBuilderModule')
 
             function savePage(newFileName, originFileName) {
                 if (!flowResolved) {
-                    // The flow says where this save goes; wait for the answer instead of picking one.
-                    loadPublishStatus(function () {
-                        savePage(newFileName, originFileName);
+                    // The flow says where this save goes, so the save waits for it — and gives up when it
+                    // does not come. Not saving is recoverable; saving to the wrong store is not.
+                    loadPublishStatus(function (resolved) {
+                        if (resolved) {
+                            savePage(newFileName, originFileName);
+                            return;
+                        }
+                        blade.isLoading = false;
                     });
                     return;
                 }

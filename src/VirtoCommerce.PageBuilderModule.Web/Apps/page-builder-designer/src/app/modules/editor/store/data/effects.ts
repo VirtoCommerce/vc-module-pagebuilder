@@ -399,7 +399,7 @@ export class TemplateEditorDataEffects {
             // no descriptor, no history: a store outside the git flow keeps no versions, and that is an
             // answer rather than an error
             filter(history => !!history),
-            map(history => actions.loadPageHistorySuccess({ templateKey, history: history! })),
+            map(history => actions.loadPageHistorySuccess({ templateKey, history: history!, after })),
             catchError(error => of(actions.loadPageHistoryFails({ error, templateKey })))
         ))
     ));
