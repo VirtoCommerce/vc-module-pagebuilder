@@ -78,6 +78,17 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
         public string BranchTemplate { get; set; } = "designer/{user}/{slug}";
 
         /// <summary>
+        /// Branch name for a promotion to production. No {user} segment on purpose: promotion is per
+        /// page, not per editor, so two people promoting the same page must land on the same branch and
+        /// reuse the open pull request rather than opening a second one for the same file.
+        /// <para>
+        /// Being deterministic is also what makes a pending promotion findable: the status endpoint asks
+        /// whether a pull request is open from exactly this branch.
+        /// </para>
+        /// </summary>
+        public string PromoteBranchTemplate { get; set; } = "promote/{slug}";
+
+        /// <summary>
         /// Repository-relative folder that holds the page files: a page saved by the builder with
         /// path "docs/foo.page" is committed as "{PagesRoot}/docs/foo.page".
         /// </summary>

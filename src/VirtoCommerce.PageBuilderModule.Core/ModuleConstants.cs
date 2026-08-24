@@ -34,6 +34,13 @@ namespace VirtoCommerce.PageBuilderModule.Core
                 public const string Delete = "builder:delete";
                 public const string Publish = "builder:publish";
 
+                /// <summary>
+                /// Promoting a page to production. Deliberately separate from <see cref="Publish"/>: that
+                /// one writes to the environment editors work against, this one changes the public site.
+                /// Folding them together would make "may edit pages" mean "may change the live site".
+                /// </summary>
+                public const string Promote = "builder:promote";
+
                 public static string[] AllPermissions { get; } =
                 [
                     Theme,
@@ -44,6 +51,7 @@ namespace VirtoCommerce.PageBuilderModule.Core
                     Update,
                     Delete,
                     Publish,
+                    Promote,
                 ];
             }
         }

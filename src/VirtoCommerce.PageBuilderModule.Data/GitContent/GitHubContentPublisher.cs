@@ -41,13 +41,21 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             _options = options.Value;
         }
 
-        public async Task<GitPublishResult> MergeBranchAsync(string branch, string title, CancellationToken cancellationToken = default)
+        public Task<GitPublishResult> MergeBranchAsync(string branch, string title, CancellationToken cancellationToken = default) =>
+            MergeBranchIntoAsync(branch, title, _options.BaseBranch, cancellationToken);
+
+        // Promotion differs from publishing in the target branch and in nothing else: the same pull
+        // request, the same auto-merge, the same refusal to merge past a failing check.
+        public async Task<GitPublishResult> MergeBranchIntoAsync(string branch, string title, string baseBranch,
+            CancellationToken cancellationToken = default)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(branch);
+            ArgumentException.ThrowIfNullOrWhiteSpace(baseBranch);
 
+            var target = baseBranch;
             var client = _httpClientFactory.CreateClient(HttpClientName);
 
-            var pullRequest = await OpenOrReusePullRequestAsync(client, branch, title, cancellationToken);
+            var pullRequest = await OpenOrReusePullRequestAsync(client, branch, title, target, cancellationToken);
             if (pullRequest == null)
             {
                 // nothing on the branch that the production branch does not already have
@@ -73,13 +81,14 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             return pullRequest?["number"]?.Value<int>();
         }
 
-        private async Task<JObject> OpenOrReusePullRequestAsync(HttpClient client, string branch, string title, CancellationToken cancellationToken)
+        private async Task<JObject> OpenOrReusePullRequestAsync(HttpClient client, string branch, string title,
+            string baseBranch, CancellationToken cancellationToken)
         {
             var body = new JObject
             {
                 ["title"] = title,
                 ["head"] = branch,
-                ["base"] = _options.BaseBranch,
+                ["base"] = baseBranch,
             };
 
             using var response = await client.PostAsync($"repos/{_options.Repository}/pulls", JsonContent(body), cancellationToken);

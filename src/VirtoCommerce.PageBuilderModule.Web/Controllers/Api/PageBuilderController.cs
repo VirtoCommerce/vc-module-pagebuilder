@@ -235,6 +235,14 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                         ["url"] = $"/api/pagebuilder/git/unpublish?{storeIdArg}&{pageArgs}",
                         ["method"] = "POST",
                     },
+                    // Offered whether or not a release branch is configured; the status endpoint reports
+                    // production as null when there is none, and the client shows no production stage at
+                    // all. Gating the descriptor as well would mean two places to keep in agreement.
+                    ["promote"] = new JObject
+                    {
+                        ["url"] = $"/api/pagebuilder/git/promote?{storeIdArg}&{pageArgs}",
+                        ["method"] = "POST",
+                    },
                 },
                 ["externalPreview"] = new JObject
                 {
@@ -579,6 +587,86 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         }
 
         /// <summary>
+        /// Promotes a page to production: the state of its file on <c>BaseBranch</c>, placed onto
+        /// <c>ReleaseBranch</c> as its own commit.
+        /// <para>
+        /// Per page, and never a merge of one shared branch into the other. Merging would ship everything
+        /// else the base branch happens to be holding, which is exactly what an editor promoting one page
+        /// does not mean to do. Moving the file's STATE rather than replaying commits also means a page
+        /// edited several times since the last promotion needs no history to line up: production ends up
+        /// with what dev has now, which is the only thing ever wanted here.
+        /// </para>
+        /// </summary>
+        [HttpPost]
+        [Route("git/promote")]
+        public async Task<ActionResult> GitPromote(string storeId, string path, string type)
+        {
+            if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
+            {
+                // without git there is no second branch to promote into
+                return NotFound();
+            }
+
+            var options = gitContentOptions.Value;
+            if (string.IsNullOrWhiteSpace(options.ReleaseBranch))
+            {
+                // A configuration answer, not a missing page: this installation has no production contour,
+                // and saying so is more useful than a 404 that reads as "no such page".
+                return BadRequest(new
+                {
+                    error = $"{GitContentOptions.SectionName}:{nameof(GitContentOptions.ReleaseBranch)} is not set: " +
+                            "this installation has no production branch to promote into.",
+                });
+            }
+
+            if (!await IsAllowedToPromoteAsync())
+            {
+                return Forbid();
+            }
+
+            var location = GitLocation(type, path);
+
+            var onBase = await gitContentRepository.ReadFileAsync(location.RepoPath, options.BaseBranch, HttpContext.RequestAborted);
+            if (onBase == null)
+            {
+                return BadRequest(new
+                {
+                    error = $"\"{path}\" is not on {options.BaseBranch}. Publish it there first — production " +
+                            "follows what has already been through the dev environment.",
+                });
+            }
+
+            var onRelease = await gitContentRepository.ReadFileAsync(location.RepoPath, options.ReleaseBranch, HttpContext.RequestAborted);
+            if (onRelease != null && PageJson.AreSame(onBase, onRelease))
+            {
+                // production already holds this exact page; opening a pull request would only produce an
+                // empty one, and the editor would be left waiting for a merge that means nothing
+                return Ok(new { state = nameof(GitPublishState.AlreadyPublished) });
+            }
+
+            var branch = PromoteBranch(type, path);
+            if (await gitContentRepository.GetBranchHeadShaAsync(branch, HttpContext.RequestAborted) == null)
+            {
+                await gitContentRepository.CreateBranchAsync(branch, options.ReleaseBranch, HttpContext.RequestAborted);
+            }
+
+            // The bytes come from the base branch, never from the request: promotion ships what the dev
+            // environment has been serving, not what a client happens to send along with the button press.
+            await gitContentRepository.CommitFileAsync(
+                location.RepoPath,
+                onBase,
+                branch,
+                CommitMessage($"promote {path} to {options.ReleaseBranch} (store: {storeId})"),
+                CurrentAuthor(),
+                HttpContext.RequestAborted);
+
+            var result = await gitContentPublisher.MergeBranchIntoAsync(
+                branch, $"promote {path} (store: {storeId})", options.ReleaseBranch, HttpContext.RequestAborted);
+
+            return await RespondToShipAsync(result, location.RepoPath, branch, options.ReleaseBranch, path);
+        }
+
+        /// <summary>
         /// Unpublishes a page by removing it from the production branch. Deleting the file is the whole
         /// operation here — the module never removes a page from blob storage itself, or production would
         /// stop matching the branch and a revert would stop being a rollback. CI carries the deletion to
@@ -648,9 +736,10 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 return Ok(PublishStatus(status.Published, status.HasChanges, pending: false, gitFlow: false));
             }
 
+            var options = gitContentOptions.Value;
             var location = GitLocation(type, path);
 
-            var published = await gitContentRepository.ReadFileAsync(location.RepoPath, gitContentOptions.Value.BaseBranch, HttpContext.RequestAborted);
+            var published = await gitContentRepository.ReadFileAsync(location.RepoPath, options.BaseBranch, HttpContext.RequestAborted);
             var draft = await gitContentRepository.ReadFileAsync(location.RepoPath, location.Branch, HttpContext.RequestAborted);
             var pending = await gitContentPublisher.GetOpenPullRequestNumberAsync(location.Branch, HttpContext.RequestAborted);
 
@@ -659,15 +748,47 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 // a draft that says the same thing as production is not a change, whatever its history
                 hasChanges: draft != null && !PageJson.AreSame(draft, published),
                 pending: pending != null,
-                gitFlow: true));
+                gitFlow: true,
+                production: await ProductionStatusAsync(location.RepoPath, published, type, path)));
         }
 
-        private static object PublishStatus(bool published, bool hasChanges, bool pending, bool gitFlow) => new
+        /// <summary>
+        /// Where this page stands on the production branch, or <c>null</c> when the installation has none.
+        /// <para>
+        /// Reported separately from the fields above rather than folded into them: a page can be published
+        /// and production still be serving last week's version of it, and that in-between state is the one
+        /// that makes an editor say the site did not update. Nothing before this could express it.
+        /// </para>
+        /// </summary>
+        private async Task<object> ProductionStatusAsync(string repoPath, string onBase, string type, string path)
+        {
+            var options = gitContentOptions.Value;
+            if (string.IsNullOrWhiteSpace(options.ReleaseBranch))
+            {
+                return null;
+            }
+
+            var onRelease = await gitContentRepository.ReadFileAsync(repoPath, options.ReleaseBranch, HttpContext.RequestAborted);
+            var pending = await gitContentPublisher.GetOpenPullRequestNumberAsync(PromoteBranch(type, path), HttpContext.RequestAborted);
+
+            return new
+            {
+                published = onRelease != null,
+                // Behind only means something once the page is on the base branch at all: a page that has
+                // never been published is not "missing from production", it simply has not started.
+                behind = onBase != null && !PageJson.AreSame(onBase, onRelease),
+                pending = pending != null,
+            };
+        }
+
+        private static object PublishStatus(bool published, bool hasChanges, bool pending, bool gitFlow,
+            object production = null) => new
         {
             published,
             hasChanges,
             pending,
             flow = gitFlow ? GitFlow : BlobFlow,
+            production,
         };
 
         /// <summary>
@@ -861,17 +982,25 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             return Ok();
         }
 
-        private async Task<ActionResult> RespondToPublishAsync(GitPublishResult result, (string RepoPath, string Branch) location, string path)
+        private Task<ActionResult> RespondToPublishAsync(GitPublishResult result, (string RepoPath, string Branch) location, string path) =>
+            RespondToShipAsync(result, location.RepoPath, location.Branch, gitContentOptions.Value.BaseBranch, path);
+
+        /// <summary>
+        /// The tail every shipping operation shares — publish, unpublish and promote differ in which
+        /// branch they merged into, and in nothing else once the merge has happened.
+        /// </summary>
+        private async Task<ActionResult> RespondToShipAsync(GitPublishResult result, string repoPath, string branch,
+            string mergedInto, string path)
         {
             if (result.State == GitPublishState.Merged)
             {
-                await gitContentRepository.DeleteBranchAsync(location.Branch, location.RepoPath, HttpContext.RequestAborted);
+                await gitContentRepository.DeleteBranchAsync(branch, repoPath, HttpContext.RequestAborted);
 
-                // the merge moved the production branch, so what it said about this page a moment ago is
-                // the pre-publish content — publish-status would report the page as still unpublished
-                gitContentRepository.InvalidateRead(location.RepoPath, gitContentOptions.Value.BaseBranch);
+                // the merge moved that branch, so what it said about this page a moment ago is the
+                // pre-merge content — status would report the page as still unshipped
+                gitContentRepository.InvalidateRead(repoPath, mergedInto);
                 // and the draft version that just shipped is now a published one
-                gitContentHistory.Invalidate(location.RepoPath);
+                gitContentHistory.Invalidate(repoPath);
             }
 
             if (result.State == GitPublishState.Conflict)
@@ -886,6 +1015,18 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
             return Ok(new { state = result.State.ToString(), pullRequest = result.PullRequestNumber, url = result.Url });
         }
+
+        private async Task<bool> IsAllowedToPromoteAsync()
+        {
+            var authorization = await authorizationService.AuthorizeAsync(User, null, ModuleConstants.Security.Permissions.Promote);
+            return authorization.Succeeded;
+        }
+
+        // Promotion is per page, not per editor: the branch carries no {user}, so two people promoting the
+        // same page reuse one branch and one pull request instead of racing with two.
+        private string PromoteBranch(string type, string path) =>
+            GitPageLocation.BranchFor(gitContentOptions.Value.PromoteBranchTemplate, userName: null,
+                GitPageLocation.ContentPath(type, path));
 
         private async Task<bool> IsAllowedToPublishAsync()
         {

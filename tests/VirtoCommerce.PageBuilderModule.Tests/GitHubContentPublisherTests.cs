@@ -191,6 +191,48 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
         // ── helpers ────────────────────────────────────────────────────────────────────────────────
 
+        /// <summary>
+        /// Promotion ships into the release branch, and the only thing that distinguishes it from a publish
+        /// is which branch the pull request targets. If this ever fell back to BaseBranch the page would be
+        /// merged straight back into the branch it came from — a no-op reported as a successful promotion,
+        /// with production never hearing about it.
+        /// </summary>
+        [Fact]
+        public async Task Merging_into_a_named_branch_targets_that_branch_not_the_base()
+        {
+            const string promoteBranch = "promote/foo.page-abc1234";
+            var handler = new ScriptedHandler(
+                ("POST", "repos/o/r/pulls", body =>
+                {
+                    var json = JObject.Parse(body);
+                    Assert.Equal(promoteBranch, json["head"]?.Value<string>());
+                    Assert.Equal("release", json["base"]?.Value<string>());
+                    return RespondJson(PullRequest(), HttpStatusCode.Created);
+                }),
+                ("GET", "repos/o/r/pulls/7", _ => RespondJson(PullRequest(mergeable: true))),
+                ("POST", "graphql", _ => RespondJson("""{ "data": {} }""")));
+
+            var result = await Create(handler)
+                .MergeBranchIntoAsync(promoteBranch, "promote foo", "release", TestContext.Current.CancellationToken);
+
+            Assert.Equal(GitPublishState.Pending, result.State);
+            handler.AssertDone();
+        }
+
+        /// <summary>
+        /// A blank base is refused rather than quietly treated as the publish branch: the caller that
+        /// forgot to configure a release branch would otherwise promote into dev and be told it worked.
+        /// </summary>
+        [Fact]
+        public async Task Merging_into_a_blank_branch_is_refused()
+        {
+            var publisher = Create(new ScriptedHandler());
+
+            await Assert.ThrowsAsync<ArgumentException>(() =>
+                publisher.MergeBranchIntoAsync("promote/foo", "promote foo", "  ",
+                    TestContext.Current.CancellationToken));
+        }
+
         private static GitHubContentPublisher Create(ScriptedHandler handler)
         {
             var options = Options.Create(new GitContentOptions

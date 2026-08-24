@@ -109,7 +109,7 @@
   },
   "permissions": {
     "builder:theme": "Allow to edit theme settings",
-    "builder:templates": "Allow to change template during editing"
+    "builder:templates": "Allow to change template during editing",
+    "builder:promote": "Allow to promote a page to production. Separate from publishing, which only reaches the environment editors work against."
   }
 }
-
