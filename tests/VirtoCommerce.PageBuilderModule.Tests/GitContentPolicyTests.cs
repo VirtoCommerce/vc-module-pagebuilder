@@ -132,5 +132,44 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
             Assert.Contains(nameof(GitContentOptions.BaseBranch), error.Message, StringComparison.Ordinal);
         }
+
+        /// <summary>
+        /// An empty ReleaseBranch is a valid configuration and means one thing only: this installation has
+        /// no production promotion. It must not keep the flow from starting, or every deployment without a
+        /// second environment would be forced to invent a branch name it has no use for.
+        /// </summary>
+        [Fact]
+        public void Validate_passes_when_promotion_is_disabled()
+        {
+            var options = Configured();
+            options.ReleaseBranch = null;
+
+            options.Validate();
+        }
+
+        [Theory]
+        [InlineData("master")]
+        // Refs differing only in case are the same ref on a case-insensitive host and a trap everywhere
+        // else, so this is refused rather than quietly promoting into a branch nobody watches.
+        [InlineData("MASTER")]
+        [InlineData("  master  ")]
+        public void Validate_refuses_a_release_branch_that_is_the_base_branch(string releaseBranch)
+        {
+            var options = Configured();
+            options.ReleaseBranch = releaseBranch;
+
+            var error = Assert.Throws<InvalidOperationException>(options.Validate);
+
+            Assert.Contains(nameof(GitContentOptions.ReleaseBranch), error.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Validate_passes_when_the_two_branches_differ()
+        {
+            var options = Configured();
+            options.ReleaseBranch = "release";
+
+            options.Validate();
+        }
     }
 }

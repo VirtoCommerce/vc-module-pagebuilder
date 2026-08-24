@@ -52,6 +52,19 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
         public string BaseBranch { get; set; }
 
         /// <summary>
+        /// The branch the production environment follows. Optional: left empty, this installation simply
+        /// has no production promotion — the action is not offered and the endpoint refuses it, rather
+        /// than promoting into whatever branch happened to be configured for something else.
+        /// <para>
+        /// Deliberately separate from <see cref="BaseBranch"/> rather than derived from it. Promotion is
+        /// not a merge of one branch into the other: the two branches never share history, because a page
+        /// reaches production as its own commit carrying that page's file state. Which is also why they
+        /// must not name the same branch — see <see cref="Validate"/>.
+        /// </para>
+        /// </summary>
+        public string ReleaseBranch { get; set; }
+
+        /// <summary>
         /// Work-branch name, one per editor AND page: {user} is the sanitized user name, {slug} the
         /// flattened page path. The branch is cut from <see cref="BaseBranch"/> at the first save and
         /// deleted once the page is published, so the base is never merged into it and a page can never
@@ -141,8 +154,26 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
         /// </summary>
         public void Validate()
         {
-            if (!Enabled || IsConfigured)
+            if (!Enabled)
             {
+                return;
+            }
+
+            if (IsConfigured)
+            {
+                // One branch on both ends turns promotion into a no-op that reports success: the page is
+                // written back to the branch it already came from, CI redeploys the environment it was
+                // already on, and production never hears about it. There is no configuration in which
+                // this is meant, so it is a start-up failure rather than a surprise at the first promotion.
+                if (!string.IsNullOrWhiteSpace(ReleaseBranch) &&
+                    string.Equals(ReleaseBranch.Trim(), BaseBranch?.Trim(), StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidOperationException(
+                        $"{SectionName}:{nameof(ReleaseBranch)} and {SectionName}:{nameof(BaseBranch)} both name " +
+                        $"\"{BaseBranch}\". Promotion to production would merge that branch into itself. " +
+                        $"Name the production branch, or leave {nameof(ReleaseBranch)} empty to disable promotion.");
+                }
+
                 return;
             }
 
