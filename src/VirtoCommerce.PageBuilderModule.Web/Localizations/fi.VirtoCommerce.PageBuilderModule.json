@@ -34,6 +34,9 @@
         "validations": {
           "pageName-invalid": "Sivun nimi saa sisältää vain aakkosnumeerisia merkkejä sekä \"_\", \"-\" ja \".\"",
           "permalink-invalid": "Muilla sivuilla on sama pysyvä linkki"
+        },
+        "hints": {
+          "rename-in-git": "Tämä kauppa julkaisee sivut Gitin kautta, jossa tiedostonimi on sivun osoite repositoriossa. Nimeä se uudelleen siellä, pull requestin kautta."
         }
       },
       "pageBuilderEditor": {
@@ -56,6 +59,16 @@
       "pageBuilder-app": {
         "title": "Page Builder"
       }
+    },
+    "dialogs": {
+      "git-publish-pending": {
+        "title": "Julkaisu käynnissä",
+        "message": "Sivu ei ole vielä julkaistu: pull request on avoinna ja yhdistetään, kun sen tarkistukset menevät läpi. {{url}}"
+      },
+      "git-unpublish-pending": {
+        "title": "Julkaisun peruutus käynnissä",
+        "message": "Sivu on vielä julkaistu: sen poistava pull request on avoinna ja yhdistetään, kun sen tarkistukset menevät läpi. {{url}}"
+      }
     }
   },
   "settings": {
@@ -69,9 +82,17 @@
           "StorePreviewPath": {
             "description": "Suhteellinen polku sivun esikatseluun",
             "title": "Esikatselupolku"
+          },
+          "OzAgentUrl": {
+            "title": "Virto OZ -agentin URL",
+            "description": "Page Builderiin upotetun Virto OZ -tekoälyagentin iframen URL. Jätä tyhjäksi poistaaksesi tekoälyavustajan käytöstä."
           }
         },
         "Store": {
+          "GitContentEnabled": {
+            "title": "Julkaise sivut Gitin kautta",
+            "description": "Kun käytössä, sivun tallentaminen tekee commitin määritetyn sisältövaraston työhaaraan ja julkaiseminen avaa ja yhdistää pull requestin sen sijaan, että kirjoitettaisiin suoraan blob-tallennustilaan. Edellyttää palvelimella määritettyä Git-sisältöyhteyttä (PageBuilder:GitContent)."
+          },
           "PreviewUserIds": {
             "title": "Esikatselun käyttäjätunnukset",
             "description": "Luettelo käyttäjätunnuksista esikatselun toisena käyttäjänä toimimista varten (yksi per rivi)"

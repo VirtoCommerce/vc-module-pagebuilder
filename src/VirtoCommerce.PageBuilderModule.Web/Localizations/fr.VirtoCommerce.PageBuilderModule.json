@@ -34,6 +34,9 @@
         "validations": {
           "pageName-invalid": "Le nom de la page peut contenir uniquement des caractères alphanumériques, \"_\", \"-\" et \".\"",
           "permalink-invalid": "D'autres pages utilisent le même permalien"
+        },
+        "hints": {
+          "rename-in-git": "Cette boutique publie les pages via Git, où le nom du fichier est l'adresse de la page dans le dépôt. Renommez-la là-bas, via une pull request."
         }
       },
       "pageBuilderEditor": {
@@ -51,6 +54,16 @@
       "open-designer": "Concevoir",
       "publish": "Publier",
       "unpublish": "Dépublier"
+    },
+    "dialogs": {
+      "git-publish-pending": {
+        "title": "Publication en cours",
+        "message": "La page n'est pas encore en ligne : une pull request est ouverte et sera fusionnée une fois ses vérifications réussies. {{url}}"
+      },
+      "git-unpublish-pending": {
+        "title": "Retrait en cours",
+        "message": "La page est encore en ligne : une pull request qui la supprime est ouverte et sera fusionnée une fois ses vérifications réussies. {{url}}"
+      }
     }
   },
   "settings": {
@@ -64,9 +77,17 @@
           "StorePreviewPath": {
             "description": "Chemin relatif pour l'aperçu",
             "title": "Chemin d'aperçu du magasin"
+          },
+          "OzAgentUrl": {
+            "title": "URL de l'agent Virto OZ",
+            "description": "URL de l'iframe de l'agent IA Virto OZ intégré à Page Builder. Laisser vide pour désactiver l'assistant IA."
           }
         },
         "Store": {
+          "GitContentEnabled": {
+            "title": "Publier les pages via Git",
+            "description": "Lorsque cette option est activée, l'enregistrement d'une page crée un commit dans une branche de travail du dépôt de contenu configuré, et la publication ouvre et fusionne une pull request, au lieu d'écrire directement dans le stockage blob. Nécessite une connexion de contenu Git configurée sur le serveur (PageBuilder:GitContent)."
+          },
           "PreviewUserIds": {
             "title": "IDs utilisateur pour l'aperçu",
             "description": "Liste des IDs utilisateur pour l'usurpation d'identité lors de l'aperçu (un par ligne)"

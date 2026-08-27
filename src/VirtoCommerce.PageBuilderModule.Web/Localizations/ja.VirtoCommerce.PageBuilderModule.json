@@ -34,6 +34,9 @@
         "validations": {
           "pageName-invalid": "ページ名は英数字、\"_\", \"-\", \".\" のみを含むことができます",
           "permalink-invalid": "他のページが同じパーマリンクを使用しています"
+        },
+        "hints": {
+          "rename-in-git": "このストアは Git 経由でページを公開します。ファイル名がリポジトリ内のページのアドレスになるため、名前の変更はリポジトリ側でプルリクエストを通じて行ってください。"
         }
       },
       "pageBuilderEditor": {
@@ -51,6 +54,16 @@
       "open-designer": "デザイン",
       "publish": "公開",
       "unpublish": "公開停止"
+    },
+    "dialogs": {
+      "git-publish-pending": {
+        "title": "公開処理中",
+        "message": "ページはまだ公開されていません: プルリクエストが開いており、チェックが通るとマージされます。{{url}}"
+      },
+      "git-unpublish-pending": {
+        "title": "非公開処理中",
+        "message": "ページはまだ公開されています: 削除するプルリクエストが開いており、チェックが通るとマージされます。{{url}}"
+      }
     }
   },
   "settings": {
@@ -64,9 +77,17 @@
           "StorePreviewPath": {
             "description": "プレビューページの相対パス",
             "title": "ストアプレビューパス"
+          },
+          "OzAgentUrl": {
+            "title": "Virto OZ エージェント URL",
+            "description": "Page Builder に埋め込まれた Virto OZ AI エージェント iframe の URL。AI アシスタントを無効にする場合は空のままにしてください。"
           }
         },
         "Store": {
+          "GitContentEnabled": {
+            "title": "Git経由でページを公開",
+            "description": "有効にすると、ページの保存時に設定されたコンテンツリポジトリの作業ブランチへコミットし、公開時にはBlobストレージへ直接書き込む代わりにプルリクエストを作成してマージします。サーバーでGitコンテンツ接続が設定されている必要があります（PageBuilder:GitContent）。"
+          },
           "PreviewUserIds": {
             "title": "プレビュー用ユーザーID",
             "description": "ページプレビューのなりすまし用ユーザーIDリスト（1行に1つ）"

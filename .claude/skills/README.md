@@ -12,6 +12,7 @@ Skills are markdown files in `.claude/skills/` that provide Claude Code with pro
 | **Design System** | `design-system.md` | Styling stack (Tailwind + Material + SCSS), color palette, typography, UI components |
 | **Project-Specific** | `project-specific.md` | Domain model, platform integration, config-driven HTTP, schema-driven forms, deployment |
 | **Schema Authoring** | `schema-authoring.md` | JSON schema authoring for sections, blocks, templates, shared settings, objects |
+| **Schema Descriptions** | `schema-descriptions.md` | Authoring the LLM-facing `description` field on PageBuilder schemas so the Virto OZ agent can pick them by intent |
 | **AngularJS Legacy** | `angularjs-legacy.md` | Rules and architecture for the legacy AngularJS admin integration (`Web/Scripts/`) |
 
 ## When Each Skill is Used
@@ -41,6 +42,11 @@ Skills are markdown files in `.claude/skills/` that provide Claude Code with pro
 - Defining templates (`schemas/templates/`)
 - Working with shared settings or object types
 - Writing visibility expressions or ServerRequestDescriptor in schemas
+
+### schema-descriptions.md
+- Adding or editing the LLM-facing `description` field on a section / block / template
+- Auditing a theme for schemas missing descriptions
+- Updating descriptions to match the current convention
 
 ### angularjs-legacy.md
 - Reading or making minimal changes to `Web/Scripts/`

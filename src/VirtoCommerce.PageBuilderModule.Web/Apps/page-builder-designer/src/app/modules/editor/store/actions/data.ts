@@ -1,7 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { createAction, props } from "@ngrx/store";
 import { TemplateEntry, TemplateEntryInfo } from '@shared/models';
-import { SchemasList } from '@editor/models';
+import { PageHistory, SchemasList } from '@editor/models';
 import { TemplateModel } from '@models/document';
 
 export const raiseLoadData = createAction('[template editor] raise load data');
@@ -15,8 +15,20 @@ export const reloadTemplateModelSuccess = createAction('[template editor] reload
 export const reloadTemplateModelFails = createAction('[template editor] reload template model fails', props<{ error: HttpErrorResponse, templateKey: string }>());
 
 export const getTemplatePublishStatus = createAction('[template editor] get template publish status', props<{ templateKey: string }>());
-export const getTemplatePublishStatusSuccess = createAction('[template editor] get template publish status success', props<{ templateKey: string, hasChanges: boolean, published: boolean }>());
+export const getTemplatePublishStatusSuccess = createAction('[template editor] get template publish status success', props<{ templateKey: string, hasChanges: boolean, published: boolean, pending?: boolean }>());
 export const getTemplatePublishStatusFails = createAction('[template editor] get template publish status fails', props<{ error: HttpErrorResponse, templateKey: string }>());
+
+export const loadPageHistory = createAction('[template editor] load page history', props<{ templateKey: string, after?: string }>());
+// `after` is carried back from the request: an answer to "scan more branches" adds to the list on
+// screen, an answer without one replaces it.
+export const loadPageHistorySuccess = createAction('[template editor] load page history success', props<{ templateKey: string, history: PageHistory, after?: string }>());
+export const loadPageHistoryFails = createAction('[template editor] load page history fails', props<{ error: HttpErrorResponse, templateKey: string }>());
+
+export const restoreVersion = createAction('[template editor] restore version', props<{ templateKey: string, sha: string }>());
+export const restoreVersionSuccess = createAction('[template editor] restore version success', props<{ templateKey: string, sha: string, branch: string, commitSha: string }>());
+export const restoreVersionFails = createAction('[template editor] restore version fails', props<{ error: HttpErrorResponse, templateKey: string, sha: string }>());
+
+export const previewVersion = createAction('[template editor] preview version', props<{ sha: string }>());
 
 export const loadTemplateSchemas = createAction('[template editor] load template schemas');
 export const loadTemplateSchemasSuccess = createAction('[template editor] load template schemas success', props<{ schemas: SchemasList | null }>());

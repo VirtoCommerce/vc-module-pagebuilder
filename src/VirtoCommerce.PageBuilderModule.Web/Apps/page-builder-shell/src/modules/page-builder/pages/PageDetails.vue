@@ -10,71 +10,57 @@
         <PageStatus :item="item" />
 
         <VcCard
-          :header="$t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.BASIC_INFORMATION')"
-          class="tw-p-4"
-        >
+                class="tw-p-4"
+                :header="$t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.BASIC_INFORMATION')">
           <VcCol class="tw-gap-4">
             <Field
-              v-slot="{ errorMessage, handleChange, errors }"
-              name="name"
-              :model-value="item.name"
-              :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.NAME')"
-              rules="required"
-            >
+                   v-slot="{ errorMessage, handleChange, errors }"
+                   name="name"
+                   :model-value="item.name"
+                   :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.NAME')"
+                   rules="required">
               <VcInput
-                v-model="item.name"
-                :error="errors.length > 0"
-                :error-message="errorMessage"
-                :disabled="isReadOnly"
-                :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.NAME')"
-                required
-                @update:model-value="handleChange"
-              />
+                       v-model="item.name"
+                       :error="errors.length > 0"
+                       :error-message="errorMessage"
+                       :disabled="isReadOnly"
+                       :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.NAME')"
+                       required
+                       @update:model-value="handleChange" />
             </Field>
 
             <Field
-              v-slot="{ errorMessage, handleChange, errors }"
-              name="permalink"
-              :model-value="item.permalink"
-              :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.PERMALINK')"
-              rules="required"
-            >
+                   v-slot="{ errorMessage, handleChange, errors }"
+                   name="permalink"
+                   rules="required"
+                   :model-value="item.permalink"
+                   :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.PERMALINK')">
               <VcInput
-                v-model="item.permalink"
-                :error="errors.length > 0"
-                :error-message="errorMessage"
-                required
-                :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.PERMALINK')"
-                :disabled="isReadOnly"
-                @update:model-value="handleChange"
-              >
+                       v-model="item.permalink"
+                       required
+                       :error="errors.length > 0"
+                       :error-message="errorMessage"
+                       :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.PERMALINK')"
+                       :disabled="isReadOnly"
+                       @update:model-value="handleChange">
                 <template #prepend-inner>
                   <div
-                    v-if="storeUrl"
-                    class="-tw-ml-2.5 tw-p-2 tw-text-sm tw-rounded-sm tw-pl-2.5 tw-bg-gray-300"
-                  >
+                       v-if="storeUrl"
+                       class="permalink-prefix tw-self-stretch tw-flex tw-items-center tw-text-sm">
                     {{ storeUrl }}
                   </div>
                 </template>
               </VcInput>
             </Field>
 
-            <VcSelect
-              v-model="item.cultureName"
-              :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.CULTURE_NAME')"
-              :options="loadCultureNamesAsync"
-              option-value="name"
-              option-label="name"
-              :clearable="false"
-              :disabled="isReadOnly"
-            />
+            <VcSelect option-value="name" option-label="name" v-model="item.cultureName"
+                      :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.CULTURE_NAME')" :options="loadCultureNamesAsync"
+                      :clearable="false"
+                      :disabled="isReadOnly" />
           </VcCol>
         </VcCard>
 
-        <VcCard
-          :header="$t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.ADVANCED_OPTIONS')"
-          class="tw-p-4"
-        >
+        <VcCard class="tw-p-4" :header="$t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.ADVANCED_OPTIONS')">
           <VcCol class="tw-gap-4">
             <VcCard
               is-collapsable
@@ -101,28 +87,15 @@
                   @update:model-value="item.visibility = $event"
                 />
 
-                <VcSelect
-                  v-model="itemUserGroups"
-                  :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.USER_GROUPS')"
-                  :options="loadUserGroups"
-                  option-value="name"
-                  option-label="name"
-                  searchable
-                  multiple
-                  :clearable="false"
-                  :disabled="isReadOnly"
-                />
+                <VcSelect v-model="itemUserGroups" :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.USER_GROUPS')"
+                          :options="loadUserGroups" option-value="name" option-label="name" searchable multiple
+                          :clearable="false"
+                          :disabled="isReadOnly" />
 
-                <VcSelect
-                  v-model="item.organizationId"
-                  :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.ORGANIZATION')"
-                  :options="loadOrganizations"
-                  option-value="id"
-                  option-label="name"
-                  searchable
-                  :clearable="true"
-                  :disabled="isReadOnly"
-                />
+                <VcSelect v-model="item.organizationId" :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.ORGANIZATION')"
+                          :options="loadOrganizations" option-value="id" option-label="name" searchable
+                          :clearable="true"
+                          :disabled="isReadOnly" />
               </VcCol>
             </VcCard>
 
@@ -149,15 +122,9 @@
                   :disabled="isReadOnly"
                 />
 
-                <VcInput
-                  v-model="item.endDate"
-                  class="tw-flex-1"
-                  type="datetime-local"
-                  clearable
-                  :hint="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.END_DATE_HINT')"
-                  :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.END_DATE')"
-                  :disabled="isReadOnly"
-                />
+                <VcInput v-model="item.endDate" class="tw-flex-1" type="datetime-local" clearable
+                         :hint="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.END_DATE_HINT')"
+                         :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.END_DATE')" :disabled="isReadOnly" />
               </VcRow>
             </VcCard>
           </VcCol>
@@ -168,12 +135,13 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { Field } from "vee-validate";
 import { IBladeToolbar, useBlade, useBladeForm, usePopup, notification } from "@vc-shell/framework";
 import PageStatus from "../components/pageStatus.vue";
 import useUrlParams from "../composables/useStoreParams";
+import useAiAgentContextWithStore from "../composables/useAiAgentContextWithStore";
 import { usePageBuilderDetails } from "../composables/usePageBuilderDetails";
 import type { PageExportData } from "../composables/usePageContentApi";
 import CardHeader from "./../components/cardHeader.vue";
@@ -217,6 +185,23 @@ const { canSave, isModified, setBaseline, formMeta } = useBladeForm({
   closeConfirmMessage: () => t("PAGE_BUILDER.PAGES.ALERTS.CLOSE_CONFIRMATION"),
   canSaveOverride: computed(() => !isReadOnly.value),
 });
+
+// WORKAROUND: push storeId + current page into the AI agent context so pagebuilder
+// tools can read them. See docs/storeId-missing-in-ai-context.md for the proper fix.
+const aiContextItem = computed(() =>
+  item.value?.id
+    ? { id: item.value.id, objectType: "pagebuilder.page", name: item.value.name }
+    : null,
+);
+useAiAgentContextWithStore({ dataRef: aiContextItem });
+
+watch(
+  item,
+  () => {
+    if (item.value && !options.value?.importData) setBaseline();
+  },
+  { once: true },
+);
 
 const bladeTitle = computed(() => {
   if (param.value || item.value?.name) {
@@ -362,3 +347,13 @@ onMounted(async () => {
   storeUrl.value = await getStoreUrl();
 });
 </script>
+
+<style scoped lang="scss">
+.permalink-prefix {
+  margin-left: calc(-1.1 * var(--input-padding));
+  padding-inline: var(--input-padding);
+  border-start-start-radius: var(--input-border-radius);
+  border-end-start-radius: var(--input-border-radius);
+  background-color: var(--input-disabled-bg-color);
+}
+</style>

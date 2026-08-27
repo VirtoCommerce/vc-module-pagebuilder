@@ -34,6 +34,9 @@
         "validations": {
           "pageName-invalid": "Sidenavnet kan kun inneholde alfanumeriske tegn, «_», «-» og «.»",
           "permalink-invalid": "Andre sider har samme permalenke"
+        },
+        "hints": {
+          "rename-in-git": "Denne butikken publiserer sider via Git, der filnavnet er sidens adresse i repositoriet. Gi den nytt navn der, via en pull request."
         }
       },
       "pageBuilderEditor": {
@@ -56,6 +59,16 @@
       "pageBuilder-app": {
         "title": "Page Builder"
       }
+    },
+    "dialogs": {
+      "git-publish-pending": {
+        "title": "Publisering pågår",
+        "message": "Siden er ikke publisert ennå: en pull request er åpen og blir flettet når kontrollene passerer. {{url}}"
+      },
+      "git-unpublish-pending": {
+        "title": "Avpublisering pågår",
+        "message": "Siden er fortsatt publisert: en pull request som fjerner den er åpen og blir flettet når kontrollene passerer. {{url}}"
+      }
     }
   },
   "settings": {
@@ -69,9 +82,17 @@
           "StorePreviewPath": {
             "description": "Relativ sti for forhåndsvisning av side",
             "title": "Sti for forhåndsvisning"
+          },
+          "OzAgentUrl": {
+            "title": "Virto OZ-agent-URL",
+            "description": "URL til Virto OZ AI-agent-iframen som er innebygd i Page Builder. La feltet stå tomt for å deaktivere AI-assistenten."
           }
         },
         "Store": {
+          "GitContentEnabled": {
+            "title": "Publiser sider via Git",
+            "description": "Når aktivert, committes en side til en arbeidsgren i det konfigurerte innholdsrepositoriet når den lagres, og publisering åpner og fletter en pull request i stedet for å skrive direkte til blob-lagring. Krever at Git-innholdstilkoblingen er konfigurert på serveren (PageBuilder:GitContent)."
+          },
           "PreviewUserIds": {
             "title": "Bruker-IDer for forhåndsvisning",
             "description": "Liste over bruker-IDer for forhåndsvisning som en annen bruker (én per linje)"

@@ -22,11 +22,15 @@ angular.module('virtoCommerce.pageBuilderModule')
             $scope.validators = validators;
             $scope.searchEnabled = false;
             var channel;
+            // Whether the server has told us which flow this store is on. A save goes to a different
+            // place under each, so it must never run on a guess.
+            var flowResolved = false;
 
             blade.initialize = function () {
                 channel = broadcastChannelFactory(blade);
                 var pathname = window.location.pathname === '/' ? '' : window.location.pathname;
                 blade.designerUrl = `${window.location.origin + pathname}/Modules/$(VirtoCommerce.PageBuilderModule)/Content/page-builder-designer/index.html`;
+                loadPublishStatus();
                 if (blade.isNew) {
                     blade.isLoading = false;
 
@@ -39,10 +43,13 @@ angular.module('virtoCommerce.pageBuilderModule')
                         template: 'page'
                     };
                 } else {
-                    contentApi.get({
-                        contentType: blade.contentType,
+                    // Read through the page builder, not blob storage: on the git flow the page lives in
+                    // the content repository, and editing a stale blob copy here would save it back over
+                    // the draft the designer committed.
+                    pageBuilderApi.getPage({
                         storeId: blade.storeId,
-                        relativeUrl: blade.currentEntity.relativeUrl
+                        type: blade.contentType,
+                        path: blade.currentEntity.relativeUrl
                     }, function (data) {
                         blade.isLoading = false;
                         var entity = $scope.blade.currentEntity;
@@ -54,8 +61,6 @@ angular.module('virtoCommerce.pageBuilderModule')
                         entity.blocks = fileContent.content;
                         entity.version = fileContent.version;
                         entity.content = data.data;
-                        blade.hasChanges = entity.hasChanges;
-                        blade.published = entity.published;
                         updateToolbarCommands();
                         fillMetadata();
                         blade.origEntity = angular.copy(blade.currentEntity);
@@ -67,6 +72,36 @@ angular.module('virtoCommerce.pageBuilderModule')
                 }
                 loadSearchIndex();
             };
+
+            // Which flow this store is on, and the page's real publish state. The list one blade back
+            // derives both from blob file names, which says nothing about a page whose drafts are
+            // branches — so ask the server rather than trusting what we were handed.
+            function loadPublishStatus(callback) {
+                pageBuilderApi.publishStatus({
+                    storeId: blade.storeId,
+                    type: blade.contentType,
+                    // a page being created has no path yet; the answer is then just the flow
+                    path: blade.isNew ? '' : blade.currentEntity.relativeUrl
+                }, function (status) {
+                    flowResolved = true;
+                    blade.gitFlow = status.flow === 'git';
+                    if (!blade.isNew) {
+                        blade.published = status.published;
+                        blade.hasChanges = status.hasChanges;
+                        blade.pending = status.pending;
+                        // a page that does not exist yet has nothing to publish, and no toolbar to update
+                        updateToolbarCommands();
+                    }
+                    callback && callback(true);
+                }, function (error) {
+                    // Unknown state: leave the toolbar as it is rather than inventing one, and leave the
+                    // flow unresolved. Treating an unanswered question as "blob" is how settings for a
+                    // page the server reads from the repository end up written to blob storage, where the
+                    // next deploy overwrites them — so the answer is asked for again rather than assumed.
+                    bladeNavigationService.setError('Error ' + error.status, $scope.blade);
+                    callback && callback(false);
+                });
+            }
 
             $scope.permalinkDuplicates = [];
 
@@ -172,6 +207,13 @@ angular.module('virtoCommerce.pageBuilderModule')
                     {
                         name: "content.commands.preview-page", icon: 'fa fa-eye',
                         executeMethod: function () {
+                            if (blade.gitFlow) {
+                                // The repository is the source of truth: preview the exact commit at the
+                                // head of this editor's branch, else what is published. The blob draft
+                                // this url would otherwise point at is not written on this flow.
+                                window.open(gitUrl('git/preview'), '_blank');
+                                return;
+                            }
                             var showPreview = function (storeUrl) {
                                 storeUrl = (storeUrl || blade.storeUrl).replace(/\/$/, '');
                                 if (storeUrl) {
@@ -213,6 +255,10 @@ angular.module('virtoCommerce.pageBuilderModule')
             var publishCommand = {
                 name: "pageBuilder.commands.publish", icon: 'fa fa-file',
                 executeMethod: function () {
+                    if (blade.gitFlow) {
+                        gitPublish();
+                        return;
+                    }
                     contentApi.publish({
                         contentType: blade.contentType,
                         storeId: blade.storeId,
@@ -226,11 +272,74 @@ angular.module('virtoCommerce.pageBuilderModule')
                         blade.parentBlade.refresh();
                     });
                 },
-                canExecuteMethod: function () { return !isDirty(); }
+                // a pull request for this page is already open — publishing again would achieve nothing
+                canExecuteMethod: function () { return !isDirty() && !blade.pending; }
             };
+
+            // Publishing on the git flow merges this editor's work branch into the production branch;
+            // unpublishing merges a branch whose commit deletes the page. Both are the same act of
+            // shipping a commit, hence one function. That can land straight away or wait on the CI checks
+            // of a pull request, so the state comes from the server afterwards: telling the editor
+            // "published" when it is still pending would send them away believing the page is live.
+            function gitShip(operation, pendingDialog) {
+                blade.isLoading = true;
+                operation({
+                    storeId: blade.storeId,
+                    type: blade.contentType,
+                    path: blade.currentEntity.relativeUrl
+                }, {}, function (result) {
+                    blade.isLoading = false;
+                    if (result.state === 'Pending') {
+                        dialogService.showNotificationDialog({
+                            id: pendingDialog.id,
+                            title: pendingDialog.title,
+                            message: pendingDialog.message,
+                            messageValues: { url: result.url }
+                        });
+                    }
+                    loadPublishStatus(function () {
+                        getDocumentIndex();
+                        postMessageToPageBuilder({ source: 'platform', published: blade.published, hasChanges: blade.hasChanges });
+                        blade.parentBlade.refresh();
+                    });
+                }, function (error) {
+                    blade.isLoading = false;
+                    // 409 means the page changed in production while this draft was being written; the
+                    // server explains what to do, so show that rather than a bare status code.
+                    var message = error.data && error.data.error ? error.data.error : 'Error ' + error.status;
+                    bladeNavigationService.setError(message, blade);
+                });
+            }
+
+            function gitPublish() {
+                gitShip(pageBuilderApi.gitPublish, {
+                    id: "gitPublishPending",
+                    title: "pageBuilder.dialogs.git-publish-pending.title",
+                    message: "pageBuilder.dialogs.git-publish-pending.message"
+                });
+            }
+
+            function gitUnpublish() {
+                gitShip(pageBuilderApi.gitUnpublish, {
+                    id: "gitUnpublishPending",
+                    title: "pageBuilder.dialogs.git-unpublish-pending.title",
+                    message: "pageBuilder.dialogs.git-unpublish-pending.message"
+                });
+            }
+
+            function gitUrl(route) {
+                return `api/pagebuilder/${route}?storeId=${encodeURIComponent(blade.storeId)}` +
+                    `&type=${encodeURIComponent(blade.contentType)}` +
+                    `&path=${encodeURIComponent(blade.currentEntity.relativeUrl)}`;
+            }
+
             var unpublishCommand = {
                 name: "pageBuilder.commands.unpublish", icon: 'fa fa-file-alt',
                 executeMethod: function () {
+                    if (blade.gitFlow) {
+                        gitUnpublish();
+                        return;
+                    }
                     contentApi.unpublish({
                         contentType: blade.contentType,
                         storeId: blade.storeId,
@@ -243,7 +352,9 @@ angular.module('virtoCommerce.pageBuilderModule')
                         blade.parentBlade.refresh();
                     });
                 },
-                canExecuteMethod: function () { return !isDirty(); }
+                // a pull request for this page is already open — the page is on its way somewhere, and
+                // shipping a second commit for it would only race with the first
+                canExecuteMethod: function () { return !isDirty() && !blade.pending; }
             };
 
             function fillMetadata() {
@@ -388,10 +499,12 @@ angular.module('virtoCommerce.pageBuilderModule')
                     savePage(newFileName, null);
                     return;
                 }
-                contentApi.get({
-                    contentType: $scope.blade.contentType,
+                // Re-read the page the same way it was loaded — from the repository on the git flow. Taking
+                // the content from blob here would save the designer's draft back to an older revision.
+                pageBuilderApi.getPage({
                     storeId: $scope.blade.storeId,
-                    relativeUrl: $scope.blade.currentEntity.relativeUrl
+                    type: $scope.blade.contentType,
+                    path: $scope.blade.currentEntity.relativeUrl
                 }, function (data) {
                     var page = parseFileContent(data.data);
                     $scope.blade.currentEntity.settings = Object.assign({}, page.settings, $scope.blade.currentEntity.settings);
@@ -413,7 +526,57 @@ angular.module('virtoCommerce.pageBuilderModule')
                 return `${path1}/${path2}`;
             }
 
+            // A save on the git flow is a commit on this editor's work branch. Writing the blob draft
+            // instead would put these settings where nothing reads them, and the next deploy — which
+            // syncs blob storage from the repository — would drop them.
+            function saveToGit() {
+                var entity = $scope.blade.currentEntity;
+                var envelope = { settings: entity.settings, content: entity.content };
+
+                pageBuilderApi.saveDraft({ storeId: blade.storeId }, {
+                    files: JSON.stringify([{
+                        path: entity.relativeUrl,
+                        type: blade.contentType,
+                        // the legacy flat array is still a valid page document — keep the shape the page had
+                        content: entity.version === 1 ? [envelope.settings].concat(envelope.content) : envelope
+                    }])
+                }, function () {
+                    blade.isLoading = false;
+                    blade.hasChanges = true;
+                    postMessageToPageBuilder({ source: 'platform', published: blade.published, hasChanges: true });
+                    if (!blade.isNew) {
+                        // a commit that says the same thing as production is not a change — let the server
+                        // decide instead of assuming
+                        loadPublishStatus();
+                    }
+                    saveSuccess();
+                }, saveError);
+            }
+
+            // The permalink is stored with a leading slash; the blob save normalizes it in the resource's
+            // transformRequest, which the git save does not go through.
+            function normalizePermalink(pageSettings) {
+                var permalink = pageSettings && pageSettings.permalink;
+                if (permalink && permalink.length && permalink[0] !== '/') {
+                    pageSettings.permalink = '/' + permalink;
+                }
+            }
+
             function savePage(newFileName, originFileName) {
+                if (!flowResolved) {
+                    // The flow says where this save goes, so the save waits for it — and gives up when it
+                    // does not come. Not saving is recoverable; saving to the wrong store is not.
+                    loadPublishStatus(function (resolved) {
+                        if (resolved) {
+                            savePage(newFileName, originFileName);
+                            return;
+                        }
+                        blade.isLoading = false;
+                    });
+                    return;
+                }
+
+                normalizePermalink($scope.blade.currentEntity.settings);
                 $scope.blade.currentEntity.relativeUrl = joinPath($scope.blade.parentBlade.currentEntity?.relativeUrl || '', newFileName);
                 $scope.blade.currentEntity.relativeUrl = nameHelper.prepareRelativeUrl($scope.blade.currentEntity);
 
@@ -422,6 +585,12 @@ angular.module('virtoCommerce.pageBuilderModule')
                 var newLanguage = $scope.blade.currentEntity.language;
 
                 $scope.blade.currentEntity.name = newFileName;
+
+                if (blade.gitFlow) {
+                    saveToGit();
+                    return;
+                }
+
                 pageBuilderApi.savePage({
                     contentType: blade.contentType,
                     storeId: blade.storeId,
@@ -469,11 +638,12 @@ angular.module('virtoCommerce.pageBuilderModule')
 
             function updateToolbarCommands() {
                 $scope.blade.toolbarCommands = blade.toolbarCommands.filter(x => x !== publishCommand && x !== unpublishCommand);
-                if ($scope.blade.published && !$scope.blade.hasChanges) {
-                    $scope.blade.toolbarCommands.splice(4, 0, unpublishCommand);
-                } else {
-                    $scope.blade.toolbarCommands.splice(4, 0, publishCommand);
-                }
+                // Nothing to publish and the page is live: the one thing left to do with it is take it
+                // down. On the git flow that is a commit deleting the page, merged like any other.
+                var command = $scope.blade.published && !$scope.blade.hasChanges
+                    ? unpublishCommand
+                    : publishCommand;
+                $scope.blade.toolbarCommands.splice(4, 0, command);
             }
 
             function saveError(error) {

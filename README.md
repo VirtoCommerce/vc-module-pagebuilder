@@ -25,6 +25,7 @@ The page is created in the builder as a list of blocks with specific settings ap
 
 ## Key Features
 * Build a new landing page visually without developer.
+* AI assistant (Virto OZ) — generate, edit, diagnose, and bulk-update pages from a text prompt. See [AI Assistant for Page Builder](docs/ai-assistant.md).
 * Theme editor.
 * Ecommerce page customization (Preview).
 * Preview content.
@@ -180,6 +181,7 @@ These headers ensure that the site can be embedded in an iframe and handle cross
 ## Documentation
 
 * [PageBuidler module user documentation](https://docs.virtocommerce.org/platform/user-guide/page-builder/overview/)
+* [AI Assistant for Page Builder (Virto OZ)](docs/ai-assistant.md)
 * [REST API](https://virtostart-demo-admin.govirto.com/docs/index.html?urls.primaryName=VirtoCommerce.PageBuilderModule)
 * [View on GitHub](https://github.com/VirtoCommerce/vc-module-pagebuilder)
 

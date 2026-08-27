@@ -34,6 +34,9 @@
         "validations": {
           "pageName-invalid": "Nazwa strony może zawierać tylko znaki alfanumeryczne, \"_\", \"-\" i \".\"",
           "permalink-invalid": "Inne strony mają ten sam permalink"
+        },
+        "hints": {
+          "rename-in-git": "Ten sklep publikuje strony przez Git, gdzie nazwa pliku jest adresem strony w repozytorium. Zmień jej nazwę tam, poprzez pull request."
         }
       },
       "pageBuilderEditor": {
@@ -51,6 +54,16 @@
       "open-designer": "Projektuj",
       "publish": "Opublikuj",
       "unpublish": "Wycofaj publikację"
+    },
+    "dialogs": {
+      "git-publish-pending": {
+        "title": "Publikowanie w toku",
+        "message": "Strona nie jest jeszcze opublikowana: pull request jest otwarty i zostanie scalony, gdy przejdą jego testy. {{url}}"
+      },
+      "git-unpublish-pending": {
+        "title": "Wycofywanie publikacji w toku",
+        "message": "Strona jest nadal opublikowana: pull request usuwający ją jest otwarty i zostanie scalony, gdy przejdą jego testy. {{url}}"
+      }
     }
   },
   "settings": {
@@ -64,9 +77,17 @@
           "StorePreviewPath": {
             "description": "Ścieżka względna do strony podglądu",
             "title": "Ścieżka podglądu sklepu"
+          },
+          "OzAgentUrl": {
+            "title": "URL agenta Virto OZ",
+            "description": "Adres URL ramki iframe agenta AI Virto OZ osadzonego w Page Builder. Pozostaw puste, aby wyłączyć asystenta AI."
           }
         },
         "Store": {
+          "GitContentEnabled": {
+            "title": "Publikuj strony przez Git",
+            "description": "Gdy włączone, zapisanie strony tworzy commit w gałęzi roboczej skonfigurowanego repozytorium treści, a publikowanie otwiera i scala pull request, zamiast zapisywać bezpośrednio do magazynu blob. Wymaga skonfigurowanego na serwerze połączenia z treścią Git (PageBuilder:GitContent)."
+          },
           "PreviewUserIds": {
             "title": "ID użytkowników do podglądu",
             "description": "Lista ID użytkowników do podszywania się podczas podglądu stron (jeden na wiersz)"

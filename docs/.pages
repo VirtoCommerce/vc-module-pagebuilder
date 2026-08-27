@@ -1,5 +1,7 @@
 arrange:
   - index.md
   - create-landing-page.md
+  - ai-assistant.md
   - theme-editor.md
+  - version-history.md
   - ...

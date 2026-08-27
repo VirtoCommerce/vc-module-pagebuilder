@@ -6,7 +6,7 @@ import {
   selectCurrentSectionsFilter
 } from './common';
 
-import { SectionStatesList, SectionState } from '@editor/models';
+import { PageVersion, PageVersionGroup, SectionStatesList, SectionState } from '@editor/models';
 import { EditorModuleInfo } from '@models/modules';
 
 import * as fromRoute from '@shared/routing';
@@ -264,7 +264,7 @@ export const changeTemplateContext = createSelector(
     ({ template, section, block, sectionsSchemas, blocksSchemas, templateKey, sectionId, blockId, insertIndex, templateEntry })
 );
 
-export const selectToolbarButtonsState = (context: { useTheme: boolean, useDrafts: boolean, useExternalPreview: boolean }) => createSelector(
+export const selectToolbarButtonsState = (context: { useTheme: boolean, useDrafts: boolean, useUnpublish: boolean, useExternalPreview: boolean, useHistory?: boolean }) => createSelector(
   // fromDomain.selectCurrentTemplateState,
   fromShared.hasDirty,
   fromDomain.selectCurrentTemplateState,
@@ -293,23 +293,48 @@ export const selectToolbarButtonsState = (context: { useTheme: boolean, useDraft
       ]);
     }
 
-    if (context.useDrafts && !state?.isLoading && !state?.error) {
+    // Only a store whose pages live in git has versions to show, and the server says so by offering the
+    // "history" descriptor. The count is of unpublished versions that are neither mine nor bulk imports:
+    // it means "somebody else has work here that production does not have", which is the case this whole
+    // feature exists for — an edit made outside the builder used to be invisible until it was published.
+    if (context.useHistory) {
+      const otherDrafts = state?.history?.otherDraftCount ?? 0;
       result.push([
         {
-          canAction: !hasDirty && state?.published && !state?.hasChanges,
+          icon: 'history',
+          alias: 'history',
+          title: otherDrafts > 0 ? `Version history (${otherDrafts})` : 'Version history',
+          type: 'outline'
+        }
+      ]);
+    }
+
+    if (context.useDrafts && !state?.isLoading && !state?.error) {
+      const buttons = <ActionButtonDescriptor[]>[];
+
+      // Both flows can take a page down — with pages in git that means deleting it from the production
+      // branch — but only a store configured for it gets the button, and the server says so by whether
+      // it offers the descriptor at all.
+      if (context.useUnpublish) {
+        buttons.push({
+          canAction: !hasDirty && state?.published && !state?.hasChanges && !state?.pending,
           icon: 'unpublished',
           alias: 'unpublish',
           title: 'Unpublish',
           type: 'outline'
-        },
-        {
-          canAction: !hasDirty && state?.hasChanges,
-          icon: 'publish',
-          alias: 'publish',
-          title: 'Publish',
-          type: 'outline'
-        },
-      ]);
+        });
+      }
+
+      buttons.push({
+        // a pull request for this page is already open — publishing again would achieve nothing
+        canAction: !hasDirty && state?.hasChanges && !state?.pending,
+        icon: 'publish',
+        alias: 'publish',
+        title: state?.pending ? 'Publishing…' : 'Publish',
+        type: 'outline'
+      });
+
+      result.push(buttons);
     }
 
     // [
@@ -344,3 +369,50 @@ export const selectToolbarButtonsState = (context: { useTheme: boolean, useDraft
     return result;
   }
 );
+
+/**
+ * The open page's versions, with runs of consecutive commits by the same author on the same branch folded
+ * into one row.
+ *
+ * Every save is a commit, so an afternoon of editing arrives as a stack of near-identical entries — twelve
+ * within three hours on one page of the content repository. Unfolded, the list buries the versions somebody
+ * would actually want to go back to.
+ */
+export const selectPageHistory = createSelector(
+  fromDomain.selectCurrentTemplateState,
+  fromShared.hasDirty,
+  (state, hasDirty) => {
+    const history = state?.history;
+    if (!history) {
+      return null;
+    }
+
+    const groups: PageVersionGroup[] = [];
+    for (const version of history.versions) {
+      const previous = groups[groups.length - 1];
+      if (previous && sameRun(previous.version, version)) {
+        previous.older.push(version);
+      } else {
+        groups.push({ version, older: [] });
+      }
+    }
+
+    // unsaved edits block a restore: it re-reads the page from the branch, which would drop them
+    return { ...history, groups, hasDirty };
+  }
+);
+
+const RunWindowMs = 15 * 60 * 1000;
+
+function sameRun(head: PageVersion, next: PageVersion): boolean {
+  // published and unpublished versions are never folded together: whether a version is live is the first
+  // thing the panel says about it
+  if (head.published !== next.published || head.bulk !== next.bulk) {
+    return false;
+  }
+  if ((head.author?.email ?? '') !== (next.author?.email ?? '') || head.branches[0] !== next.branches[0]) {
+    return false;
+  }
+  const gap = Date.parse(head.date ?? '') - Date.parse(next.date ?? '');
+  return Number.isFinite(gap) && gap >= 0 && gap <= RunWindowMs;
+}

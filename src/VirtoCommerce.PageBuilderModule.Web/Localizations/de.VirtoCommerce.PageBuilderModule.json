@@ -34,6 +34,9 @@
         "validations": {
           "pageName-invalid": "Der Seitenname darf nur alphanumerische Zeichen, \"_\", \"-\" und \".\" enthalten",
           "permalink-invalid": "Andere Seiten verwenden denselben Permalink"
+        },
+        "hints": {
+          "rename-in-git": "Dieses Geschäft veröffentlicht Seiten über Git, wo der Dateiname die Adresse der Seite im Repository ist. Benennen Sie sie dort um, über einen Pull Request."
         }
       },
       "pageBuilderEditor": {
@@ -51,6 +54,16 @@
       "open-designer": "Gestalten",
       "publish": "Veröffentlichen",
       "unpublish": "Nicht veröffentlichen"
+    },
+    "dialogs": {
+      "git-publish-pending": {
+        "title": "Veröffentlichung läuft",
+        "message": "Die Seite ist noch nicht live: Ein Pull Request ist offen und wird zusammengeführt, sobald seine Prüfungen erfolgreich sind. {{url}}"
+      },
+      "git-unpublish-pending": {
+        "title": "Zurückziehen läuft",
+        "message": "Die Seite ist noch live: Ein Pull Request, der sie entfernt, ist offen und wird zusammengeführt, sobald seine Prüfungen erfolgreich sind. {{url}}"
+      }
     }
   },
   "settings": {
@@ -64,9 +77,17 @@
           "StorePreviewPath": {
             "description": "Relativer Pfad für Vorschauseite",
             "title": "Vorschau-Pfad des Geschäfts"
+          },
+          "OzAgentUrl": {
+            "title": "Virto OZ Agent-URL",
+            "description": "URL des in Page Builder eingebetteten Virto OZ AI-Agent-iFrames. Leer lassen, um den AI-Assistenten zu deaktivieren."
           }
         },
         "Store": {
+          "GitContentEnabled": {
+            "title": "Seiten über Git veröffentlichen",
+            "description": "Wenn aktiviert, wird beim Speichern einer Seite ein Commit in einem Arbeitsbranch des konfigurierten Content-Repositorys erstellt, und beim Veröffentlichen wird ein Pull Request geöffnet und zusammengeführt — anstatt direkt in den Blob-Speicher zu schreiben. Erfordert eine auf dem Server konfigurierte Git-Content-Verbindung (PageBuilder:GitContent)."
+          },
           "PreviewUserIds": {
             "title": "Benutzer-IDs für Vorschau",
             "description": "Liste der Benutzer-IDs für die Vorschau-Imitation (eine pro Zeile)"

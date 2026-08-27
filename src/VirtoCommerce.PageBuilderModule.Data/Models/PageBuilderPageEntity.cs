@@ -50,6 +50,11 @@ public class PageBuilderPageEntity : AuditableEntity, IDataEntity<PageBuilderPag
         StoreId = model.StoreId;
         Status = model.Status;
 
+        if (model.Content != null)
+        {
+            Content = new PageBuilderContentEntity { PageContent = model.Content };
+        }
+
         return this;
     }
 

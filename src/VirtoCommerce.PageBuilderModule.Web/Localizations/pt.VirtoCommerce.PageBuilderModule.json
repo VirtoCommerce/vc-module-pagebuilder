@@ -34,6 +34,9 @@
         "validations": {
           "pageName-invalid": "O nome da página pode conter apenas caracteres alfanuméricos, \"_\", \"-\" e \".\"",
           "permalink-invalid": "Outras páginas possuem o mesmo link permanente"
+        },
+        "hints": {
+          "rename-in-git": "Esta loja publica as páginas através do Git, onde o nome do arquivo é o endereço da página no repositório. Renomeie-a lá, através de um pull request."
         }
       },
       "pageBuilderEditor": {
@@ -51,6 +54,16 @@
       "open-designer": "Design",
       "publish": "Publicar",
       "unpublish": "Despublicar"
+    },
+    "dialogs": {
+      "git-publish-pending": {
+        "title": "Publicação em andamento",
+        "message": "A página ainda não está publicada: há um pull request aberto que será mesclado quando suas verificações passarem. {{url}}"
+      },
+      "git-unpublish-pending": {
+        "title": "Remoção da publicação em andamento",
+        "message": "A página ainda está publicada: há um pull request aberto que a remove e será mesclado quando suas verificações passarem. {{url}}"
+      }
     }
   },
   "settings": {
@@ -64,9 +77,17 @@
           "StorePreviewPath": {
             "description": "Caminho relativo para a página de visualização",
             "title": "Caminho de visualização da loja"
+          },
+          "OzAgentUrl": {
+            "title": "URL do agente Virto OZ",
+            "description": "URL do iframe do agente de IA Virto OZ incorporado no Page Builder. Deixe vazio para desativar o assistente de IA."
           }
         },
         "Store": {
+          "GitContentEnabled": {
+            "title": "Publicar páginas através do Git",
+            "description": "Quando ativado, guardar uma página cria um commit num ramo de trabalho do repositório de conteúdo configurado, e a publicação abre e integra uma pull request, em vez de escrever diretamente no armazenamento blob. Requer uma ligação de conteúdo Git configurada no servidor (PageBuilder:GitContent)."
+          },
           "PreviewUserIds": {
             "title": "IDs de utilizador para pré-visualização",
             "description": "Lista de IDs de utilizador para personificação na pré-visualização (um por linha)"

@@ -34,6 +34,9 @@
         "validations": {
           "pageName-invalid": "Page name can contain alphanumeric, \"_\", \"-\" and \".\" characters only",
           "permalink-invalid": "Other pages have the same permalink"
+        },
+        "hints": {
+          "rename-in-git": "This store publishes pages through Git, where the file name is the page's address in the repository. Rename it there, through a pull request."
         }
       },
       "pageBuilderEditor": {
@@ -52,6 +55,16 @@
       "publish": "Publish",
       "unpublish": "Unpublish"
     },
+    "dialogs": {
+      "git-publish-pending": {
+        "title": "Publishing in progress",
+        "message": "The page is not live yet: a pull request is open and will merge once its checks pass. {{url}}"
+      },
+      "git-unpublish-pending": {
+        "title": "Unpublishing in progress",
+        "message": "The page is still live: a pull request that removes it is open and will merge once its checks pass. {{url}}"
+      }
+    },
     "widgets": {
       "pageBuilder-app": {
         "title": "Page Builder"
@@ -69,12 +82,20 @@
           "StorePreviewPath": {
             "description": "Relative path for preview page",
             "title": "Store preview path"
+          },
+          "OzAgentUrl": {
+            "title": "Virto OZ agent URL",
+            "description": "URL of the Virto OZ AI agent iframe embedded into Page Builder. Leave empty to disable the AI assistant."
           }
         },
         "Store": {
           "PreviewUserIds": {
             "title": "Preview user IDs",
             "description": "List of user IDs for page preview impersonation (one per line)"
+          },
+          "GitContentEnabled": {
+            "title": "Publish pages through Git",
+            "description": "When enabled, saving a page commits it to a work branch in the configured content repository and publishing opens and merges a pull request, instead of writing to blob storage directly. Requires the Git content connection to be configured on the server (PageBuilder:GitContent)."
           }
         },
         "Migration": {
@@ -88,7 +109,7 @@
   },
   "permissions": {
     "builder:theme": "Allow to edit theme settings",
-    "builder:templates": "Allow to change template during editing"
+    "builder:templates": "Allow to change template during editing",
+    "builder:promote": "Allow to promote a page to production. Separate from publishing, which only reaches the environment editors work against."
   }
 }
-

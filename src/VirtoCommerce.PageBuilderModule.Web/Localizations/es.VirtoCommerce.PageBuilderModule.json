@@ -34,6 +34,9 @@
         "validations": {
           "pageName-invalid": "El nombre de la página solo puede contener caracteres alfanuméricos, \"_\", \"-\" y \".\"",
           "permalink-invalid": "Otras páginas tienen el mismo enlace permanente"
+        },
+        "hints": {
+          "rename-in-git": "Esta tienda publica las páginas a través de Git, donde el nombre del archivo es la dirección de la página en el repositorio. Renómbrela allí, mediante un pull request."
         }
       },
       "pageBuilderEditor": {
@@ -51,6 +54,16 @@
       "open-designer": "Diseñar",
       "publish": "Publicar",
       "unpublish": "Despublicar"
+    },
+    "dialogs": {
+      "git-publish-pending": {
+        "title": "Publicación en curso",
+        "message": "La página aún no está publicada: hay un pull request abierto que se fusionará cuando pasen sus comprobaciones. {{url}}"
+      },
+      "git-unpublish-pending": {
+        "title": "Retirada en curso",
+        "message": "La página sigue publicada: hay un pull request abierto que la elimina y se fusionará cuando pasen sus comprobaciones. {{url}}"
+      }
     }
   },
   "settings": {
@@ -64,9 +77,17 @@
           "StorePreviewPath": {
             "description": "Ruta relativa para la vista previa",
             "title": "Ruta de vista previa de la tienda"
+          },
+          "OzAgentUrl": {
+            "title": "URL del agente Virto OZ",
+            "description": "URL del iframe del agente de IA Virto OZ integrado en Page Builder. Dejar vacío para desactivar el asistente de IA."
           }
         },
         "Store": {
+          "GitContentEnabled": {
+            "title": "Publicar páginas a través de Git",
+            "description": "Cuando está habilitado, al guardar una página se confirma (commit) en una rama de trabajo del repositorio de contenido configurado, y al publicar se abre y fusiona una pull request, en lugar de escribir directamente en el almacenamiento blob. Requiere que la conexión de contenido Git esté configurada en el servidor (PageBuilder:GitContent)."
+          },
           "PreviewUserIds": {
             "title": "IDs de usuario para vista previa",
             "description": "Lista de IDs de usuario para la suplantación en vista previa (uno por línea)"

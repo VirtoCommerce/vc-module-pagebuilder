@@ -1,0 +1,260 @@
+@use '../../../../../layout/variables' as *;
+
+$surface: #fff;
+$border: #e3e8ef;
+$divider: #edf1f6;
+
+// The shared outline skin is a hairline border on inherited text: readable on a form, but this
+// list is dense and repeats the same buttons on every row, so it needs a firmer edge.
+@mixin outline-button {
+    ::ng-deep button.btn-skin-outline {
+        width: auto;
+        padding: 0.25rem 0.75rem;
+        border-color: $controls-border-color;
+        color: $text-color;
+        font-weight: 500;
+        white-space: nowrap;
+
+        &:hover:not(:disabled) {
+            border-color: $active-color;
+            background: rgba($active-color, 0.06);
+            color: $active-color;
+        }
+
+        &:disabled {
+            border-color: #e1e3e5;
+            color: $disable-text-color;
+        }
+    }
+}
+
+.page-history {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    flex-direction: column;
+    overflow: hidden;
+    background: $surface;
+    color: $text-color;
+    font-size: $default-font-size;
+    line-height: 1.125rem;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem;
+    border-bottom: 1px solid $border;
+
+    h2 {
+        margin: 0;
+        color: $heading-color;
+        font-size: 1.125rem;
+        font-weight: 600;
+        line-height: 1.5rem;
+    }
+}
+
+.close {
+    display: flex;
+    width: 2rem;
+    height: 2rem;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: $icons-color;
+    cursor: pointer;
+
+    &:hover {
+        background: $hover-color;
+        color: $heading-color;
+    }
+}
+
+[mat-dialog-content] {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+}
+
+.notice,
+.message,
+.truncated {
+    margin: 0.75rem 1rem;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid $border;
+    border-radius: 0.25rem;
+    background: #f7f9fc;
+    color: $info-color;
+}
+
+.message--error {
+    border-color: #f4b3a4;
+    background: #fdf1ee;
+    color: $error-color;
+}
+
+.notice {
+    border-color: #e8c37a;
+    background: #fff6e5;
+    color: #8a5b00;
+}
+
+.truncated {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+
+    @include outline-button;
+
+    app-icon-button {
+        flex: none;
+    }
+}
+
+.versions,
+.older {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.version {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid $divider;
+
+    &:hover {
+        background: #fafbfc;
+    }
+
+    // a repository-wide import is a truthful version of the page and a useless one to a content
+    // manager: kept in the list, played down in it — but played down by muting the wording only.
+    // Fading the whole row (opacity) also faded its chips and buttons, which made every bulk
+    // version look disabled instead of merely uninteresting.
+    &--bulk .message-line {
+        color: $info-color;
+        font-weight: 400;
+    }
+}
+
+.row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+
+    &--older {
+        padding: 0.5rem 0 0.5rem 1rem;
+        border-left: 2px solid $border;
+    }
+}
+
+.marks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+}
+
+.chip {
+    padding: 0.0625rem 0.5rem;
+    border: 1px solid $controls-border-color;
+    border-radius: 0.75rem;
+    color: $content-color;
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1rem;
+    white-space: nowrap;
+
+    &--published {
+        border-color: #7cc182;
+        background: #e8f7ea;
+        color: #1b6b26;
+    }
+
+    &--draft {
+        border-color: #e8c37a;
+        background: #fff6e5;
+        color: #8a5b00;
+    }
+
+    &--mine {
+        border-color: rgba($active-color, 0.5);
+        background: rgba($active-color, 0.08);
+        color: $active-color;
+    }
+
+    &--bulk {
+        border-color: $controls-border-color;
+        background: #f1f2f3;
+        color: $info-color;
+    }
+}
+
+.message-line {
+    overflow: hidden;
+    color: $content-color;
+    font-size: $middle-font-size;
+    font-weight: 500;
+    line-height: 1.25rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    color: $info-color;
+    font-size: 0.75rem;
+    line-height: 1rem;
+}
+
+.meta > span:first-child {
+    color: $text-color;
+    font-weight: 500;
+}
+
+.sha,
+.branch {
+    color: $info-color;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.branch {
+    overflow: hidden;
+    max-width: 18rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.125rem;
+
+    @include outline-button;
+}
+
+.older-toggle {
+    margin-top: 0.5rem;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: $active-color;
+    font: inherit;
+    font-weight: 500;
+    cursor: pointer;
+
+    &:hover {
+        text-decoration: underline;
+    }
+}

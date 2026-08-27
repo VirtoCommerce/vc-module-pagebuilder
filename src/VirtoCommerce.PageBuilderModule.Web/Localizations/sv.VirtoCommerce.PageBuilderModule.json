@@ -34,6 +34,9 @@
         "validations": {
           "pageName-invalid": "Sidnamnet får endast innehålla alfanumeriska tecken, \"_\", \"-\" och \".\"",
           "permalink-invalid": "Andra sidor har samma permalänk"
+        },
+        "hints": {
+          "rename-in-git": "Den här butiken publicerar sidor via Git, där filnamnet är sidans adress i repositoryt. Byt namn på den där, via en pull request."
         }
       },
       "pageBuilderEditor": {
@@ -56,6 +59,16 @@
       "pageBuilder-app": {
         "title": "Page Builder"
       }
+    },
+    "dialogs": {
+      "git-publish-pending": {
+        "title": "Publicering pågår",
+        "message": "Sidan är inte publicerad än: en pull request är öppen och slås samman när dess kontroller har godkänts. {{url}}"
+      },
+      "git-unpublish-pending": {
+        "title": "Avpublicering pågår",
+        "message": "Sidan är fortfarande publicerad: en pull request som tar bort den är öppen och slås samman när dess kontroller har godkänts. {{url}}"
+      }
     }
   },
   "settings": {
@@ -69,9 +82,17 @@
           "StorePreviewPath": {
             "description": "Relativ sökväg för sidförhandsgranskning",
             "title": "Sökväg för förhandsgranskning"
+          },
+          "OzAgentUrl": {
+            "title": "URL för Virto OZ-agent",
+            "description": "URL till Virto OZ AI-agentens iframe inbäddad i Page Builder. Lämna tomt för att inaktivera AI-assistenten."
           }
         },
         "Store": {
+          "GitContentEnabled": {
+            "title": "Publicera sidor via Git",
+            "description": "När det är aktiverat commitas en sida till en arbetsgren i det konfigurerade innehållsförvaret när den sparas, och publicering öppnar och slår samman en pull request i stället för att skriva direkt till blob-lagring. Kräver att Git-innehållsanslutningen är konfigurerad på servern (PageBuilder:GitContent)."
+          },
           "PreviewUserIds": {
             "title": "Användar-IDn för förhandsgranskning",
             "description": "Lista med användar-IDn för förhandsgranskningsimitation (ett per rad)"

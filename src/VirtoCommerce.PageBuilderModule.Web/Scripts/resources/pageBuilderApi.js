@@ -27,6 +27,40 @@ angular.module('virtoCommerce.contentModule')
                 // using transformResponse to:
                 // 1. avoid automatic response result string converting to array;
                 transformResponse: function (rawData) { return { data: rawData }; }
+            },
+            // The page as the server resolves it: this editor's draft, else what is published — from the
+            // content repository on the git flow, from blob storage otherwise. The blade reads through
+            // this instead of blob directly, or on the git flow it would edit a stale copy and save it
+            // back over the draft in the repository.
+            getPage: {
+                method: 'GET',
+                url: 'api/pagebuilder/template',
+                params: { draft: true },
+                transformResponse: function (rawData) { return { data: rawData }; }
+            },
+            // published/hasChanges/pending plus the flow in effect ("git" or "blob"). Both flows answer
+            // in this shape, so the blade asks once and does not have to guess how the store is set up.
+            publishStatus: {
+                method: 'GET',
+                url: 'api/pagebuilder/git/publish-status'
+            },
+            // A draft save on the git flow: a commit on this editor's work branch.
+            saveDraft: {
+                method: 'POST',
+                url: 'api/pagebuilder/save',
+                params: { draft: true }
+            },
+            // Publishing on the git flow: merges the work branch into the production branch, or opens a
+            // pull request that merges once its checks pass.
+            gitPublish: {
+                method: 'POST',
+                url: 'api/pagebuilder/git/publish'
+            },
+            // Unpublishing on the git flow: a commit that deletes the page, merged into the production
+            // branch. Same states back as gitPublish — it is the same act of shipping a commit.
+            gitUnpublish: {
+                method: 'POST',
+                url: 'api/pagebuilder/git/unpublish'
             }
 			// ,
             // getStoreUrl: {

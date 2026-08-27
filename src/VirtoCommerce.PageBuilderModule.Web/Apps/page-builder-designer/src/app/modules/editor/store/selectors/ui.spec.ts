@@ -261,28 +261,28 @@ describe('editTemplateContext', () => {
 
 describe('selectToolbarButtonsState', () => {
     it('always includes Save button', () => {
-        const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: false, useExternalPreview: false });
+        const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: false, useUnpublish: false, useExternalPreview: false });
         const result = selector.projector(false, null);
         const allButtons = result.flat();
         expect(allButtons.find(b => b.alias === 'save')).toBeTruthy();
     });
 
     it('includes theme-settings when useTheme is true', () => {
-        const selector = selectors.selectToolbarButtonsState({ useTheme: true, useDrafts: false, useExternalPreview: false });
+        const selector = selectors.selectToolbarButtonsState({ useTheme: true, useDrafts: false, useUnpublish: false, useExternalPreview: false });
         const result = selector.projector(false, null);
         const allButtons = result.flat();
         expect(allButtons.find(b => b.alias === 'theme-settings')).toBeTruthy();
     });
 
     it('includes preview when useExternalPreview is true', () => {
-        const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: false, useExternalPreview: true });
+        const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: false, useUnpublish: false, useExternalPreview: true });
         const result = selector.projector(false, null);
         const allButtons = result.flat();
         expect(allButtons.find(b => b.alias === 'external-preview')).toBeTruthy();
     });
 
     it('includes publish/unpublish when useDrafts is true and not loading', () => {
-        const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: true, useExternalPreview: false });
+        const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: true, useUnpublish: true, useExternalPreview: false });
         const state = { isLoading: false, error: undefined, published: true, hasChanges: false } as any;
         const result = selector.projector(false, state);
         const allButtons = result.flat();
@@ -291,22 +291,39 @@ describe('selectToolbarButtonsState', () => {
     });
 
     it('hides publish/unpublish when loading', () => {
-        const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: true, useExternalPreview: false });
+        const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: true, useUnpublish: true, useExternalPreview: false });
         const state = { isLoading: true } as any;
         const result = selector.projector(false, state);
         const allButtons = result.flat();
         expect(allButtons.find(b => b.alias === 'publish')).toBeFalsy();
     });
 
+    it('hides unpublish when the store does not offer it', () => {
+        // pages in git: taking one down means deleting it from the production branch
+        const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: true, useUnpublish: false, useExternalPreview: false });
+        const state = { isLoading: false, published: true, hasChanges: false } as any;
+        const allButtons = selector.projector(false, state).flat();
+        expect(allButtons.find(b => b.alias === 'publish')).toBeTruthy();
+        expect(allButtons.find(b => b.alias === 'unpublish')).toBeFalsy();
+    });
+
+    it('does not let a page be published again while its pull request is open', () => {
+        const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: true, useUnpublish: false, useExternalPreview: false });
+        const state = { isLoading: false, published: false, hasChanges: true, pending: true } as any;
+        const publishBtn = selector.projector(false, state).flat().find(b => b.alias === 'publish');
+        expect(publishBtn!.canAction).toBeFalsy();
+        expect(publishBtn!.title).toBe('Publishing…');
+    });
+
     it('Save canAction is true when hasDirty', () => {
-        const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: false, useExternalPreview: false });
+        const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: false, useUnpublish: false, useExternalPreview: false });
         const result = selector.projector(true, null);
         const saveBtn = result.flat().find(b => b.alias === 'save');
         expect(saveBtn!.canAction).toBe(true);
     });
 
     it('Save canAction is false when not dirty', () => {
-        const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: false, useExternalPreview: false });
+        const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: false, useUnpublish: false, useExternalPreview: false });
         const result = selector.projector(false, null);
         const saveBtn = result.flat().find(b => b.alias === 'save');
         expect(saveBtn!.canAction).toBe(false);

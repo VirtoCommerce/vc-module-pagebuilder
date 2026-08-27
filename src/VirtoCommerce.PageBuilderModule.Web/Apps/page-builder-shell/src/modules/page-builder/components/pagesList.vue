@@ -98,7 +98,13 @@ import { useI18n } from "vue-i18n";
 import { debounce } from "lodash-es";
 import { useBlade, usePopup, useDataTableSort, IActionBuilderResult, notification } from "@vc-shell/framework";
 import { GroupedPageBuilderPage } from "../../../api_client/virtocommerce.pagebuildermodule";
-import { PageLifecycleFilters, usePageBuilderList, useUrlParams, refreshMenuBadges } from "../composables";
+import {
+  PageLifecycleFilters,
+  usePageBuilderList,
+  useUrlParams,
+  useAiAgentContextWithStore,
+  refreshMenuBadges,
+} from "../composables";
 import { parseImportFile } from "../composables/usePageContentApi";
 import PageStatus from "./pageStatus.vue";
 
@@ -278,11 +284,12 @@ async function removeSelectedPages() {
   if (
     await showConfirmation(
       t("PAGE_BUILDER.PAGES.ALERTS.DELETE_SELECTED_CONFIRMATION.MESSAGE", {
-        count: selectedItems.value.length,
+        count: localSelection.value.length,
       }),
     )
   ) {
-    await removePages({ ids: selectedItems.value });
+    const ids = localSelection.value.map((item) => item.id!).filter(Boolean);
+    await removePages({ ids });
     await reload();
   }
 }
@@ -293,7 +300,7 @@ onMounted(async () => {
 });
 
 export interface ExposedPagesList {
-  selectedItems: Readonly<Ref<readonly string[], readonly string[]>>;
+  selectedItems: Readonly<Ref<readonly string[]>>;
   reload: () => Promise<void>;
   removeSelectedPages: () => Promise<void>;
   onItemClick: (event: { data: GroupedPageBuilderPage }) => void;
@@ -302,7 +309,7 @@ export interface ExposedPagesList {
 }
 
 defineExpose<ExposedPagesList>({
-  selectedItems: readonly(selectedItems),
+  selectedItems: readonly(selectedItems) as unknown as Readonly<Ref<readonly string[]>>,
   reload,
   removeSelectedPages,
   onItemClick,
