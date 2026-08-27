@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { CKEditor4, CKEditorModule } from 'ckeditor4-angular';
 import { BaseControlDirective } from '@core/controls/base-control.directive';
 import { TextDescriptor } from '@models/controls';
+import { installPageWideAnchors } from './link-anchors';
 
 @Component({
   selector: 'app-text',
@@ -45,6 +46,15 @@ export class TextComponent extends BaseControlDirective<TextDescriptor> {
   };
 
   config = this.defaultConfig;
+
+  /**
+   * The link plugin only exists once an editor instance is ready, so the page-wide anchor override
+   * is installed here. It is global and idempotent — every later instance reuses it — and falls back
+   * to CKEditor's field-local anchors wherever the page editor is not the active route.
+   */
+  onEditorReady(): void {
+    installPageWideAnchors();
+  }
 
   override onValueChanged = (newValue: any) => {
     if (this.controlValue() !== newValue) {

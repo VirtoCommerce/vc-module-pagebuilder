@@ -8,7 +8,7 @@ import { selectTemplateDataState, selectCurrentSectionsFilter } from './common';
 import { SectionsSchemasList } from '@editor/models';
 import { appHelpers } from '@integration/helpers';
 import { coreHelpers } from '@core/helpers';
-import { helpers } from '@editor/helpers';
+import { helpers, anchorHelpers } from '@editor/helpers';
 
 import * as fromRoute from '@shared/routing/selectors';
 import * as fromShared from '@shared/store/selectors';
@@ -252,6 +252,18 @@ export const selectGroupedSectionSchemas = createSelector(
             items: groups.find(x => x.noname)?.items || []
         }
     }
+);
+
+/**
+ * Every anchor a rich-text link can target on the page being edited — used to lift the CKEditor
+ * link dialog out of its single-field scope (VCST-5704).
+ */
+export const selectPageAnchors = createSelector(
+    selectCurrentTemplateModel,
+    selectSectionsSchemas,
+    selectBlocksSchemas,
+    (template, sectionsSchemas, blocksSchemas) =>
+        anchorHelpers.collectPageAnchors(template, sectionsSchemas, blocksSchemas)
 );
 
 export const selectRunActionContext = createSelector(

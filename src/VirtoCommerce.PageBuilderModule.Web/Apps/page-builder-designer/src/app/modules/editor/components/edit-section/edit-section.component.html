@@ -24,6 +24,10 @@
                 <span [cdkCopyToClipboard]="vm.model.id">
                     ID: {{ vm.model.id }}
                     <app-icon [smallSize]="true" [inline]="true">content_copy</app-icon>
+                </span><br />
+                <span [cdkCopyToClipboard]="'#' + vm.anchor" title="Link to this section from a rich text field">
+                    Anchor: #{{ vm.anchor }}
+                    <app-icon [smallSize]="true" [inline]="true">content_copy</app-icon>
                 </span>
               </div>
             }

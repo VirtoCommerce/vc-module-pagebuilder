@@ -14,7 +14,7 @@ import * as fromDomain from "./domain";
 import * as fromData from "./data";
 import * as fromShared from '@shared/store';
 
-import { helpers } from "@editor/helpers";
+import { helpers, anchorHelpers } from "@editor/helpers";
 import { appHelpers } from "@integration/helpers";
 
 export const selectAddItemTitle = createSelector(
@@ -226,6 +226,9 @@ export const selectEditSectionContext = createSelector(
         blockSchema: blockContext.blockSchema,
         schema, model,
         isEditSettings: isSettings,
+        // Link target this item exposes on the rendered page, shown so a content manager can build
+        // a table of contents without guessing (VCST-5704).
+        anchor: anchorHelpers.getItemAnchor(model),
         editContext: {
           model, // current item under editing, can be block, section or settings
           block: blockContext.block, // current block or null
