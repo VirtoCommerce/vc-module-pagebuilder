@@ -33,7 +33,8 @@ export const switchToChildrenTemplates = createAction('[shared] switch to childr
 export const raiseLoadChildrenTemplates = createAction('[shared] raise load children templates');
 export const loadChildrenTemplates = createAction('[shared] load children templates', props<{ templateKey: string, onInit: boolean }>());
 export const loadChildrenTemplatesSuccess = createAction('[shared] load children templates success', props<{ childrenEntries: TemplateEntryList, parentTemplate: string }>());
-export const loadChildrenTemplatesFails = createAction('[shared] load children requested', props<{ error: HttpErrorResponse, parentTemplate: string }>());
+// the entry may simply be unknown, so the reason is not always an http response
+export const loadChildrenTemplatesFails = createAction('[shared] load children requested', props<{ error: HttpErrorResponse | Error, parentTemplate: string }>());
 
 export const broadcastPreviewMessage = createAction('[shared] broadcast preview message', props<{ msg: any }>());
 export const broadcastPlatformMessage = createAction('[shared] broadcast platform message', props<{ msg: any }>());

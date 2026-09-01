@@ -9,6 +9,7 @@ import { EnvironmentRef } from './environment.ref';
 import { BuilderHttpClient } from "./builder-http.client";
 import { EvaluatorService } from "./evaluator.service";
 import { AppInitializator } from "./app.initializator";
+import { SessionService } from "./session.service";
 
 describe('app initializator', () => {
     let initializator: AppInitializator;
@@ -17,8 +18,12 @@ describe('app initializator', () => {
     // let http: BuilderHttpClient;
     let evaluator: EvaluatorService;
     let httpController: HttpTestingController;
+    let session: SessionService;
 
     beforeEach(() => {
+        // a valid token keeps init() from asking the platform for one, which these tests do not cover
+        localStorage.setItem('ls.authenticationData', JSON.stringify({ token: 'test-token', expiresAt: Date.now() + 60000 }));
+
         cookies = <any>{};
         // evaluator = <any>jasmine.createSpyObj('evaluator', ['evaluate']);
         // evaluator.evaluate.and.callFake((x: any) => x);
@@ -44,7 +49,12 @@ describe('app initializator', () => {
 
         httpController = TestBed.inject(HttpTestingController);
         initializator = TestBed.inject(AppInitializator);
+        session = TestBed.inject(SessionService);
 
+    });
+
+    afterEach(() => {
+        localStorage.removeItem('ls.authenticationData');
     });
 
     it('simple scenario', () => {
@@ -60,6 +70,18 @@ describe('app initializator', () => {
         const request = httpController.expectOne('data/settings.json');
         expect(request.request.method).toBe('GET');
         request.flush(response);
+    });
+
+    it('reports an expired session when a token cannot be obtained', () => {
+        localStorage.removeItem('ls.authenticationData');
+
+        initializator.init();
+
+        const tokenRequest = httpController.expectOne('/connect/token');
+        expect(tokenRequest.request.method).toBe('POST');
+        tokenRequest.flush('', { status: 401, statusText: 'Unauthorized' });
+
+        expect(session.expired()).toBe(true);
     });
 
     it('override config via get parameter', () => {

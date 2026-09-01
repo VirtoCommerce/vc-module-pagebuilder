@@ -46,6 +46,11 @@ button {
         background: $active-color;
         color: #ffffff;
         @apply py-1;
+
+        app-icon {
+            color: #ffffff;
+        }
+
         &:hover {
             // background: rgba(22, 101, 216, 0.04);
             background: $active-color;
@@ -53,6 +58,10 @@ button {
         &:disabled {
             color: $disable-text-color;
             background: #F1F1F1;
+
+            app-icon {
+                color: $disable-text-color;
+            }
         }
     }
     &.btn-skin-primary {

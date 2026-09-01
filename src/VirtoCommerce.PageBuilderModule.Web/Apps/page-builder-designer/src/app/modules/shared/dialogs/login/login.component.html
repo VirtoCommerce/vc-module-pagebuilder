@@ -1,0 +1,59 @@
+<div class="login">
+  <app-logo class="logo" />
+
+  <div class="heading">
+    <div class="title">Session expired</div>
+    <div class="subtitle">Sign in to your account to continue</div>
+  </div>
+
+  <form class="form" (submit)="onSubmit($event)">
+    <label class="field">
+      <span class="label">User name <span class="required">*</span></span>
+      <input
+        type="text"
+        name="username"
+        autocomplete="username"
+        [value]="userName()"
+        [disabled]="busy()"
+        (input)="userName.set($any($event.target).value)" />
+    </label>
+
+    <label class="field">
+      <span class="label">Password <span class="required">*</span></span>
+      <span class="control">
+        <input
+          [type]="passwordVisible() ? 'text' : 'password'"
+          name="password"
+          autocomplete="current-password"
+          [value]="password()"
+          [disabled]="busy()"
+          (input)="password.set($any($event.target).value)" />
+        <button
+          type="button"
+          class="reveal"
+          tabindex="-1"
+          [attr.aria-label]="passwordVisible() ? 'Hide password' : 'Show password'"
+          (click)="togglePassword()">
+          <app-icon>{{ passwordVisible() ? 'visibility_off' : 'visibility' }}</app-icon>
+        </button>
+      </span>
+    </label>
+
+    @if (error(); as message) {
+      <div class="error">
+        <app-icon>error_outline</app-icon>
+        <span>{{ message }}</span>
+      </div>
+    }
+
+    <app-icon-button
+      class="submit"
+      skin="primary"
+      icon="login"
+      [text]="busy() ? 'Signing in...' : 'Sign in'"
+      [disabled]="!canSubmit()"
+      (onClick)="signIn()" />
+
+    <button type="submit" hidden></button>
+  </form>
+</div>

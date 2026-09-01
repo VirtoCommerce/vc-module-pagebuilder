@@ -135,6 +135,23 @@ describe('TemplateEditorDataEffects', () => {
             const result = await firstValueFrom(effects.loadSchemas$);
             expect(result.type).toBe(actions.loadTemplateSchemasFails.type);
         });
+
+        it('dispatches fails when the service throws synchronously', async () => {
+            schemasService.getSchemas.mockImplementation(() => { throw new TypeError('config is not resolved'); });
+
+            actions$.next(actions.loadTemplateSchemas());
+            const result = await firstValueFrom(effects.loadSchemas$);
+            expect(result.type).toBe(actions.loadTemplateSchemasFails.type);
+        });
+
+        // the http client reports a failed request as an empty result, which must still end the loading state
+        it('dispatches fails on an empty result', async () => {
+            schemasService.getSchemas.mockReturnValue(of(null));
+
+            actions$.next(actions.loadTemplateSchemas());
+            const result = await firstValueFrom(effects.loadSchemas$);
+            expect(result.type).toBe(actions.loadTemplateSchemasFails.type);
+        });
     });
 
     // ── loadTemplate$ ─────────────────────────────────────────────
@@ -148,6 +165,24 @@ describe('TemplateEditorDataEffects', () => {
             expect(types).toContain(actions.loadTemplateModelSuccess.type);
             expect(types).toContain(actions.validateItemUnderEdit.type);
             expect(types).toContain(sharedActions.broadcastPreviewMessage.type);
+        });
+
+        // an unresolved configuration makes the service throw before it returns an observable
+        it('dispatches fails when the service throws synchronously', async () => {
+            templatesService.getTemplate.mockImplementation(() => { throw new TypeError("Cannot read properties of null (reading 'pages')"); });
+
+            actions$.next(actions.loadTemplateModel({ templateKey: 'home' }));
+            const result = await firstValueFrom(effects.loadTemplate$);
+            expect(result.type).toBe(actions.loadTemplateModelFails.type);
+        });
+
+        // nothing to load must still end the loading state, or the fullscreen loader never goes away
+        it('dispatches fails on an empty result', async () => {
+            templatesService.getTemplate.mockReturnValue(of(null));
+
+            actions$.next(actions.loadTemplateModel({ templateKey: 'home' }));
+            const result = await firstValueFrom(effects.loadTemplate$);
+            expect(result.type).toBe(actions.loadTemplateModelFails.type);
         });
 
         it('dispatches fails and notification on error', async () => {

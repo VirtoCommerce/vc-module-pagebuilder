@@ -8,6 +8,7 @@ import { BuilderHttpClient } from './builder-http.client';
 import { AppConfig } from './app.config';
 import { AuthService } from './auth.service';
 import { JwtStorageService } from './jwt-storage.service';
+import { SessionService } from './session.service';
 import { DefaultConfig } from './app.default-config';
 
 @Injectable({
@@ -19,6 +20,7 @@ export class AppInitializator {
     private readonly http = inject(BuilderHttpClient);
     private readonly auth = inject(AuthService);
     private readonly jwt = inject(JwtStorageService);
+    private readonly session = inject(SessionService);
 
     init(): Promise<any> {
         // todo: dangerous! check that this is security
@@ -58,7 +60,11 @@ export class AppInitializator {
             tap(response => this.jwt.save(response)),
             map(() => undefined),
             catchError(error => {
+                // Without a token every settings request fails and the configuration stays empty,
+                // which used to break the designer in obscure ways (VCST-5847). Report the expired
+                // session instead, so the shell can ask the user to sign in again.
                 console.warn('Failed to obtain bearer token from cookie session:', error);
+                this.session.expire();
                 return of(undefined);
             })
         );

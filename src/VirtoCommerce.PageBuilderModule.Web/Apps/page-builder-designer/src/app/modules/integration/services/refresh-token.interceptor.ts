@@ -5,14 +5,20 @@ import { catchError, map, switchMap, tap } from 'rxjs/operators';
 import { JwtStorageService } from './jwt-storage.service';
 import { AuthService } from './auth.service';
 import { TokenRefreshStateService } from './token-refresh-state.service';
+import { SessionService } from './session.service';
+
+function isAuthRequest(request: HttpRequest<unknown>): boolean {
+  return request.headers.get('x-refresh') === 'true';
+}
 
 function addAuthData(
   request: HttpRequest<unknown>,
   jwt: JwtStorageService,
   auth: AuthService,
   state: TokenRefreshStateService,
+  session: SessionService,
 ): Observable<HttpRequest<unknown>> {
-  if (request.headers.get('x-refresh') === 'true') {
+  if (isAuthRequest(request)) {
     return of(request);
   }
 
@@ -41,6 +47,7 @@ function addAuthData(
       map(response => enrichRequest(request, response.token)),
       catchError(e => {
         state.fail();
+        session.expire();
         return throwError(() => e);
       }),
     );
@@ -58,10 +65,19 @@ export const refreshTokenInterceptor: HttpInterceptorFn = (req, next) => {
   const jwt = inject(JwtStorageService);
   const auth = inject(AuthService);
   const state = inject(TokenRefreshStateService);
+  const session = inject(SessionService);
 
-  return addAuthData(req, jwt, auth, state).pipe(
+  return addAuthData(req, jwt, auth, state, session).pipe(
     switchMap(enrichedReq => next(enrichedReq).pipe(
-      catchError(err => throwError(() => err)),
+      catchError(err => {
+        // Requests are fired with no token at all when nothing is stored, and the stored token
+        // may be rejected before it formally expires. Both surface as 401 and mean the same
+        // thing for the designer: the session is gone and the user has to sign in again.
+        if (err?.status === 401 && !isAuthRequest(enrichedReq)) {
+          session.expire();
+        }
+        return throwError(() => err);
+      }),
     )),
   );
 };
