@@ -55,12 +55,13 @@ export class AssetOverwriteComponent {
   ]);
   readonly consequenceMessage = computed(() => {
     const count = this.data.reference.referencesCount ?? 0;
-    const template =
-      count === 0
-        ? this.labels.overwriteUnused
-        : count === 1
-          ? this.labels.overwriteUsedOne
-          : this.labels.overwriteUsedMany;
+    let template = this.labels.overwriteUsedMany;
+
+    if (count === 0) {
+      template = this.labels.overwriteUnused;
+    } else if (count === 1) {
+      template = this.labels.overwriteUsedOne;
+    }
 
     return formatLabel(template, {
       name: this.data.existingEntry.name,

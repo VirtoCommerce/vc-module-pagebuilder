@@ -6,8 +6,6 @@ import {
     AssetLibraryContext,
     AssetLibraryEntry,
     AssetLibraryLabels,
-    AssetLibraryReference,
-    AssetLibraryReferencePage,
     AssetLibraryReferencesSearchResult,
     AssetLibrarySearchResult,
 } from './asset-library.models';
