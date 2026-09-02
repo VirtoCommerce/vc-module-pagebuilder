@@ -7,5 +7,5 @@ export interface TemplateSelectorState {
     isLoading: boolean;
     templates: TemplateEntryList;
     states: TemplateEntryStateList;
-    error: HttpErrorResponse | null;
+    error: HttpErrorResponse | Error | null;
 }
