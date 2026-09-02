@@ -1,24 +1,24 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { MatDialogRef } from '@angular/material/dialog';
-import { Store } from '@ngrx/store';
 
 import { IconComponent } from '@core/components/icon/icon.component';
 import { IconButtonComponent } from '@core/components/icon-button/icon-button.component';
 import { LogoComponent } from '@core/components/logo/logo.component';
 
-import { JwtStorageService, SessionService } from '@integration/services';
+import { EnvironmentRef, JwtStorageService, SessionRecoveryService } from '@integration/services';
 import { AuthService } from '@integration/services/auth.service';
-import { AppInitializator } from '@integration/services/app.initializator';
-
-import { BuilderState } from '@shared/store';
-import * as actions from '@shared/store/actions';
 
 /**
- * Sign-in prompt shown when the platform session behind the designer has expired.
+ * Sign-in prompt shown when the platform session behind the designer has expired and could not be
+ * restored from the browser cookie session.
  *
  * The designer is opened in a separate tab, so sending the user back to the admin login page
  * would throw away everything that has not been saved yet. Signing in here refreshes the token
  * in place and replays the data the designer could not load (VCST-5847).
+ *
+ * The password form only works where the platform accepts the password grant. With external (SSO)
+ * login the user signs in on the platform in another tab and comes back here, which is what the
+ * second half of the dialog is for.
  */
 @Component({
     selector: 'app-login',
@@ -32,9 +32,8 @@ export class LoginComponent {
     private readonly dialogRef = inject(MatDialogRef<LoginComponent>);
     private readonly auth = inject(AuthService);
     private readonly jwt = inject(JwtStorageService);
-    private readonly session = inject(SessionService);
-    private readonly initializator = inject(AppInitializator);
-    private readonly store = inject(Store<BuilderState>);
+    private readonly recovery = inject(SessionRecoveryService);
+    private readonly env = inject(EnvironmentRef);
 
     readonly userName = signal('');
     readonly password = signal('');
@@ -64,7 +63,6 @@ export class LoginComponent {
             next: response => {
                 // the password grant does not return the user name, the platform admin stores the entered one as well
                 this.jwt.save({ ...response, userName });
-                this.session.restore();
                 void this.restoreApplication();
             },
             error: error => {
@@ -74,18 +72,27 @@ export class LoginComponent {
         });
     }
 
-    /**
-     * Reloads what the designer failed to load while the session was expired instead of reloading
-     * the page: the settings are resolved again and `initShared` restarts the data chain, where
-     * every step skips whatever is already in the store. Unsaved changes stay untouched.
-     */
+    /** Opens the platform sign-in page, whatever it is configured to be, in a separate tab. */
+    openPlatformSignIn() {
+        this.env.nativeWindow.open(this.env.nativeWindow.location.origin, '_blank', 'noopener');
+    }
+
+    /** Picks up the session the user has just established on the platform in another tab. */
+    continueWithPlatformSession() {
+        this.busy.set(true);
+        this.error.set(null);
+        void this.recovery.tryRestoreSilently().then(restored => {
+            this.busy.set(false);
+            if (restored) {
+                this.dialogRef.close(true);
+            } else {
+                this.error.set('No active platform session found. Sign in on the platform and try again.');
+            }
+        });
+    }
+
     private async restoreApplication() {
-        try {
-            await this.initializator.init();
-        } catch (error) {
-            console.warn('Failed to reload the configuration after sign in:', error);
-        }
-        this.store.dispatch(actions.initShared());
+        await this.recovery.resume();
         this.busy.set(false);
         this.dialogRef.close(true);
     }

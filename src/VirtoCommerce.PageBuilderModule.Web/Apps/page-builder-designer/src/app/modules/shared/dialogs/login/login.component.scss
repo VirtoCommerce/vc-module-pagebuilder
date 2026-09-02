@@ -89,9 +89,46 @@
     }
 }
 
+.separator {
+    color: $info-color;
+    @apply relative text-center my-5;
+
+    &::before {
+        background: $controls-border-color;
+        content: '';
+        height: 1px;
+        top: 50%;
+        @apply absolute left-0 right-0;
+    }
+
+    span {
+        background: #fff;
+        @apply relative px-2;
+    }
+}
+
+.platform {
+    @apply flex flex-col gap-2;
+
+    .hint {
+        color: $info-color;
+        @apply mb-1;
+    }
+
+    ::ng-deep button {
+        justify-content: center;
+        border-radius: 0.375rem;
+        @apply py-2;
+
+        app-icon {
+            font-size: 1.25rem;
+        }
+    }
+}
+
 .error {
     color: $error-color;
-    @apply flex flex-row items-start gap-1 mb-4;
+    @apply flex flex-row items-start gap-1 mt-4;
 
     app-icon {
         color: $error-color;

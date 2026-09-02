@@ -3,7 +3,7 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { Store } from '@ngrx/store';
 
 import { EventsBusService } from '@core/services';
-import { AppConfig, EnvironmentRef, SessionService } from '@integration/services';
+import { AppConfig, BuilderHttpClient, EnvironmentRef, SessionService } from '@integration/services';
 import { AppInitializator } from '@integration/services/app.initializator';
 
 import { BuilderState } from '@shared/store';
@@ -32,6 +32,7 @@ export class LivePreviewComponent {
   private readonly env = inject(EnvironmentRef);
   private readonly session = inject(SessionService);
   private readonly initializator = inject(AppInitializator);
+  private readonly http = inject(BuilderHttpClient);
 
   readonly frame = viewChild<ElementRef>('frame');
 
@@ -82,6 +83,9 @@ export class LivePreviewComponent {
       return;
     }
     this.reloading.set(true);
+    // the store response is cacheable, so retrying without dropping it would resolve the same
+    // broken address the user has just gone and fixed (VCST-5847)
+    this.http.clearCache();
     this.initializator.init()
       .catch(error => console.warn('Failed to reload the configuration:', error))
       .finally(() => this.reloading.set(false));

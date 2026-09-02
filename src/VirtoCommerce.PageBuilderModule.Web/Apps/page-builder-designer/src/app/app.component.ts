@@ -11,7 +11,7 @@ import { BuilderState as SharedState } from '@shared/store';
 import { BuilderState as EditorState } from '@editor/store';
 import { BuilderState as ThemeState } from '@theme/store';
 import { LoginComponent } from '@shared/dialogs';
-import { SessionService } from '@integration/services';
+import { SessionRecoveryService, SessionService } from '@integration/services';
 
 import { ToolbarComponent } from './layout/toolbar/toolbar.component';
 import { PreviewAreaComponent } from './layout/preview-area/preview-area.component';
@@ -31,6 +31,7 @@ export class AppComponent {
 
     private store$ = inject(Store<SharedState & EditorState & ThemeState>);
     private readonly session = inject(SessionService);
+    private readonly recovery = inject(SessionRecoveryService);
     private readonly dialogs = inject(MatDialog);
 
     private loginDialog?: MatDialogRef<LoginComponent>;
@@ -42,9 +43,21 @@ export class AppComponent {
     constructor() {
         effect(() => {
             if (this.session.expired()) {
-                this.promptForLogin();
+                void this.recoverSession();
             }
         });
+    }
+
+    // The designer shares the platform cookie session, so an expired bearer token can usually be
+    // replaced without bothering the user at all. Only a cookie session that is gone as well
+    // needs the sign-in prompt (VCST-5847).
+    private async recoverSession() {
+        await this.recovery.tryRestoreSilently();
+        // asking whether the attempt succeeded is not enough: the session may have gone again
+        // while the designer was catching up on what it had missed
+        if (this.session.expired()) {
+            this.promptForLogin();
+        }
     }
 
     // Nothing in the designer works without a session, so the prompt is modal and cannot be
@@ -58,7 +71,7 @@ export class AppComponent {
             this.loginDialog = undefined;
             // the session may have expired again while the designer was catching up after the sign in
             if (this.session.expired()) {
-                this.promptForLogin();
+                void this.recoverSession();
             }
         });
     }

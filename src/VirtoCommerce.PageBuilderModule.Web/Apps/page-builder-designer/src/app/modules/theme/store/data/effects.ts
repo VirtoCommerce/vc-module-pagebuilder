@@ -1,10 +1,11 @@
 import { Injectable, inject } from "@angular/core";
 import { of } from "rxjs";
-import { withLatestFrom, filter, switchMap, map, catchError } from "rxjs/operators";
+import { withLatestFrom, filter, switchMap, mergeMap, map, catchError } from "rxjs/operators";
 import { Actions, createEffect, ofType } from "@ngrx/effects";
 import { Store } from "@ngrx/store";
 import { ROUTER_NAVIGATED, RouterNavigatedAction } from "@ngrx/router-store";
 
+import * as fromRoute from '@shared/routing';
 import { RouterStateUrl } from '@shared/routing';
 
 import { ThemeSettingsService } from '@theme/services';
@@ -44,6 +45,23 @@ export class ThemeDataEffects {
         ),
         filter(([, settings]) => settings === null),
         switchMap(() => [actions.loadSettingsData(), actions.loadSettingsSchema()])
+    ));
+
+    // The module is entered on navigation only, and the route does not change when an expired
+    // session is restored - so the requests that were dropped along with the session have to be
+    // repeated explicitly, or the theme editor stays empty until the user reloads (VCST-5847).
+    reloadAfterSignIn$ = createEffect(() => this.actions$.pipe(
+        ofType(shared.initShared),
+        withLatestFrom(
+            this.store$.select(fromRoute.selectDataParams),
+            this.store$.select(selectors.selectCurrentSettings),
+            this.store$.select(selectors.selectLoadedSettingsSchema),
+        ),
+        filter(([, routeData]) => routeData?.['module'] === 'theme'),
+        mergeMap(([, , settings, schema]) => [
+            ...(settings ? [] : [actions.loadSettingsData()]),
+            ...(schema ? [] : [actions.loadSettingsSchema()]),
+        ])
     ));
 
     loadSettingsData$ = createEffect(() => this.actions$.pipe(

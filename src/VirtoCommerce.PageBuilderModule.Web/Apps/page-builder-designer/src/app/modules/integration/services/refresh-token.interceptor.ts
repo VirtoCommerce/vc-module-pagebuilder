@@ -1,7 +1,7 @@
 import { inject } from '@angular/core';
 import { HttpInterceptorFn, HttpRequest } from '@angular/common/http';
 import { Observable, throwError, of } from 'rxjs';
-import { catchError, map, switchMap, tap } from 'rxjs/operators';
+import { catchError, map, switchMap } from 'rxjs/operators';
 import { JwtStorageService } from './jwt-storage.service';
 import { AuthService } from './auth.service';
 import { TokenRefreshStateService } from './token-refresh-state.service';
@@ -22,15 +22,10 @@ function addAuthData(
     return of(request);
   }
 
-  if (state.inProgress) {
-    return new Observable(observer => {
-      const sub = state.refreshed$.subscribe(() => {
-        const refreshedInfo = jwt.getInfo();
-        observer.next(request.clone({ setHeaders: { Authorization: `Bearer ${refreshedInfo.token}` } }));
-        observer.complete();
-      });
-      return () => sub.unsubscribe();
-    });
+  // a refresh started by another request is about to produce a token for this one as well
+  const pending = state.pending;
+  if (pending) {
+    return pending.pipe(map(token => enrichRequest(request, token)));
   }
 
   const info = jwt.getInfo();
@@ -40,20 +35,29 @@ function addAuthData(
   }
 
   if (info?.refreshToken) {
-    state.start();
-    return auth.refreshToken(info.refreshToken).pipe(
-      tap(() => state.complete()),
-      map(response => jwt.save(response)),
-      map(response => enrichRequest(request, response.token)),
-      catchError(e => {
-        state.fail();
-        session.expire();
-        return throwError(() => e);
-      }),
-    );
+    return refreshAccessToken(info.refreshToken, jwt, auth, state, session)
+      .pipe(map(token => enrichRequest(request, token)));
   }
 
   return of(request);
+}
+
+function refreshAccessToken(
+  refreshToken: string,
+  jwt: JwtStorageService,
+  auth: AuthService,
+  state: TokenRefreshStateService,
+  session: SessionService,
+): Observable<string> {
+  return state.share(() => auth.refreshToken(refreshToken).pipe(
+    // the token has to reach the storage before any waiting request is released, otherwise they
+    // are sent with the expired one and fail with 401 right after a successful refresh (VCST-5847)
+    map(response => jwt.save(response).token),
+    catchError(error => {
+      session.expire();
+      return throwError(() => error);
+    }),
+  ));
 }
 
 function enrichRequest(request: HttpRequest<unknown>, token: string): HttpRequest<unknown> {
