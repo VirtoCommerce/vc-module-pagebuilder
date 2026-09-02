@@ -55,7 +55,7 @@ export class AssetLibraryUploadCoordinatorService {
             context,
             existingEntry,
             reference,
-            source: storedEntry ? 'stored' : 'batch',
+            source: getConflictSource(storedEntry),
             reservedNames: preparedFiles.map((item) => item.name),
             labels: this.assets.getLabels(),
           },
@@ -116,4 +116,8 @@ function emptyReference(entry: AssetLibraryEntry): AssetLibraryReference {
 
 function normalizeFileName(value: string): string {
   return value.trim().normalize('NFC');
+}
+
+function getConflictSource(storedEntry: AssetLibraryEntry | null): 'stored' | 'batch' {
+  return storedEntry ? 'stored' : 'batch';
 }
