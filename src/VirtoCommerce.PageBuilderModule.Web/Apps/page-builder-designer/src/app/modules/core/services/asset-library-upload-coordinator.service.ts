@@ -55,6 +55,7 @@ export class AssetLibraryUploadCoordinatorService {
             context,
             existingEntry,
             reference,
+            source: storedEntry ? 'stored' : 'batch',
             reservedNames: preparedFiles.map((item) => item.name),
             labels: this.assets.getLabels(),
           },

@@ -81,19 +81,20 @@
       "DELETE_USED_MANY": "Usunąć {name}? Jest używany na {count} stronach Page Builder."
     },
     "OVERWRITE": {
-      "TITLE": "Replace existing asset?",
-      "MESSAGE_UNUSED": "{name} is not used on any Page Builder pages. Replacing it will update the existing file.",
-      "MESSAGE_USED_ONE": "{name} is used on 1 Page Builder page. Replacing it will change the asset on that page.",
-      "MESSAGE_USED_MANY": "{name} is used on {count} Page Builder pages. Replacing it will change the asset on all of them.",
-      "AFFECTED_PAGES": "Affected Page Builder pages",
-      "UPLOAD_AS_LABEL": "Upload as",
-      "UPLOAD_AS": "Upload as",
-      "REPLACE": "Replace",
-      "CANCEL": "Cancel",
+      "TITLE": "Zastąpić istniejący zasób?",
+      "MESSAGE_UNUSED": "{name} nie jest używany na żadnej stronie Page Builder. Zastąpienie go zaktualizuje istniejący plik.",
+      "MESSAGE_USED_ONE": "{name} jest używany na 1 stronie Page Builder. Zastąpienie go zmieni zasób na tej stronie.",
+      "MESSAGE_USED_MANY": "{name} jest używany na {count} stronach Page Builder. Zastąpienie go zmieni zasób na wszystkich tych stronach.",
+      "MESSAGE_BATCH_DUPLICATE": "Inny plik w tym przesyłaniu ma już nazwę {name}. Zachowanie tej samej nazwy spowoduje przesłanie tylko ostatniego pliku.",
+      "AFFECTED_PAGES": "Strony Page Builder, których dotyczy zmiana",
+      "UPLOAD_AS_LABEL": "Prześlij jako",
+      "UPLOAD_AS": "Prześlij jako",
+      "REPLACE": "Zastąp",
+      "CANCEL": "Anuluj",
       "VALIDATION": {
-        "REQUIRED": "File name is required.",
-        "INVALID": "File name must not contain path separators.",
-        "COLLISION": "{name} already exists in this folder. Enter a different file name."
+        "REQUIRED": "Nazwa pliku jest wymagana.",
+        "INVALID": "Nazwa pliku nie może zawierać separatorów ścieżki.",
+        "COLLISION": "{name} już istnieje w tym folderze. Wprowadź inną nazwę pliku."
       }
     },
     "NOTIFICATIONS": {

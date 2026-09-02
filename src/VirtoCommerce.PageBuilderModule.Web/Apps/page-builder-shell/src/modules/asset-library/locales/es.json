@@ -81,19 +81,20 @@
       "DELETE_USED_MANY": "¿Eliminar {name}? Se usa en {count} páginas de Page Builder."
     },
     "OVERWRITE": {
-      "TITLE": "Replace existing asset?",
-      "MESSAGE_UNUSED": "{name} is not used on any Page Builder pages. Replacing it will update the existing file.",
-      "MESSAGE_USED_ONE": "{name} is used on 1 Page Builder page. Replacing it will change the asset on that page.",
-      "MESSAGE_USED_MANY": "{name} is used on {count} Page Builder pages. Replacing it will change the asset on all of them.",
-      "AFFECTED_PAGES": "Affected Page Builder pages",
-      "UPLOAD_AS_LABEL": "Upload as",
-      "UPLOAD_AS": "Upload as",
-      "REPLACE": "Replace",
-      "CANCEL": "Cancel",
+      "TITLE": "¿Reemplazar el recurso existente?",
+      "MESSAGE_UNUSED": "{name} no se usa en ninguna página de Page Builder. Al reemplazarlo se actualizará el archivo existente.",
+      "MESSAGE_USED_ONE": "{name} se usa en 1 página de Page Builder. Al reemplazarlo se cambiará el recurso en esa página.",
+      "MESSAGE_USED_MANY": "{name} se usa en {count} páginas de Page Builder. Al reemplazarlo se cambiará el recurso en todas ellas.",
+      "MESSAGE_BATCH_DUPLICATE": "Otro archivo de esta carga ya se llama {name}. Si mantiene el mismo nombre, solo se cargará el último.",
+      "AFFECTED_PAGES": "Páginas de Page Builder afectadas",
+      "UPLOAD_AS_LABEL": "Cargar como",
+      "UPLOAD_AS": "Cargar como",
+      "REPLACE": "Reemplazar",
+      "CANCEL": "Cancelar",
       "VALIDATION": {
-        "REQUIRED": "File name is required.",
-        "INVALID": "File name must not contain path separators.",
-        "COLLISION": "{name} already exists in this folder. Enter a different file name."
+        "REQUIRED": "El nombre del archivo es obligatorio.",
+        "INVALID": "El nombre del archivo no debe contener separadores de ruta.",
+        "COLLISION": "{name} ya existe en esta carpeta. Introduzca otro nombre de archivo."
       }
     },
     "NOTIFICATIONS": {

@@ -81,19 +81,20 @@
       "DELETE_USED_MANY": "Eliminare {name}? È usato in {count} pagine Page Builder."
     },
     "OVERWRITE": {
-      "TITLE": "Replace existing asset?",
-      "MESSAGE_UNUSED": "{name} is not used on any Page Builder pages. Replacing it will update the existing file.",
-      "MESSAGE_USED_ONE": "{name} is used on 1 Page Builder page. Replacing it will change the asset on that page.",
-      "MESSAGE_USED_MANY": "{name} is used on {count} Page Builder pages. Replacing it will change the asset on all of them.",
-      "AFFECTED_PAGES": "Affected Page Builder pages",
-      "UPLOAD_AS_LABEL": "Upload as",
-      "UPLOAD_AS": "Upload as",
-      "REPLACE": "Replace",
-      "CANCEL": "Cancel",
+      "TITLE": "Sostituire la risorsa esistente?",
+      "MESSAGE_UNUSED": "{name} non è utilizzato in nessuna pagina di Page Builder. La sostituzione aggiornerà il file esistente.",
+      "MESSAGE_USED_ONE": "{name} è utilizzato in 1 pagina di Page Builder. La sostituzione modificherà la risorsa in quella pagina.",
+      "MESSAGE_USED_MANY": "{name} è utilizzato in {count} pagine di Page Builder. La sostituzione modificherà la risorsa in tutte queste pagine.",
+      "MESSAGE_BATCH_DUPLICATE": "Un altro file in questo caricamento ha già il nome {name}. Mantenendo lo stesso nome verrà caricato solo l'ultimo file.",
+      "AFFECTED_PAGES": "Pagine di Page Builder interessate",
+      "UPLOAD_AS_LABEL": "Carica come",
+      "UPLOAD_AS": "Carica come",
+      "REPLACE": "Sostituisci",
+      "CANCEL": "Annulla",
       "VALIDATION": {
-        "REQUIRED": "File name is required.",
-        "INVALID": "File name must not contain path separators.",
-        "COLLISION": "{name} already exists in this folder. Enter a different file name."
+        "REQUIRED": "Il nome del file è obbligatorio.",
+        "INVALID": "Il nome del file non deve contenere separatori di percorso.",
+        "COLLISION": "{name} esiste già in questa cartella. Immettere un nome file diverso."
       }
     },
     "NOTIFICATIONS": {

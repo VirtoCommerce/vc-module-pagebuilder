@@ -66,6 +66,7 @@ export interface AssetLibraryLabels {
     overwriteUnused: string;
     overwriteUsedOne: string;
     overwriteUsedMany: string;
+    overwriteBatchDuplicate: string;
     affectedPages: string;
     uploadAs: string;
     replace: string;

@@ -18,6 +18,7 @@ export interface AssetOverwriteDialogData {
   context: AssetLibraryContext | null;
   existingEntry: AssetLibraryEntry;
   reference: AssetLibraryReference;
+  source: 'stored' | 'batch';
   reservedNames: string[];
   labels: AssetLibraryLabels;
 }
@@ -46,28 +47,18 @@ export class AssetOverwriteComponent {
       /[\\/]/.test(value().trim()) ? { kind: 'invalid', message: this.labels.fileNameInvalid } : undefined,
     );
   });
-  readonly pageNames = computed(() => [
-    ...new Set(
-      (this.data.reference.pages ?? [])
-        .map((page) => page.name || page.permalink || page.id)
-        .filter((name): name is string => !!name),
-    ),
-  ]);
-  readonly consequenceMessage = computed(() => {
-    const count = this.data.reference.referencesCount ?? 0;
-    let template = this.labels.overwriteUsedMany;
-
-    if (count === 0) {
-      template = this.labels.overwriteUnused;
-    } else if (count === 1) {
-      template = this.labels.overwriteUsedOne;
-    }
-
-    return formatLabel(template, {
-      name: this.data.existingEntry.name,
-      count: count.toString(),
-    });
-  });
+  readonly pageNames = computed(() =>
+    this.data.source === 'batch'
+      ? []
+      : [
+          ...new Set(
+            (this.data.reference.pages ?? [])
+              .map((page) => page.name || page.permalink || page.id)
+              .filter((name): name is string => !!name),
+          ),
+        ],
+  );
+  readonly consequenceMessage = computed(() => getAssetOverwriteConsequenceMessage(this.data));
 
   replace() {
     this.dialogRef.close({ action: 'replace' });
@@ -102,6 +93,26 @@ export class AssetOverwriteComponent {
       }
     });
   }
+}
+
+export function getAssetOverwriteConsequenceMessage(
+  data: Pick<AssetOverwriteDialogData, 'source' | 'existingEntry' | 'reference' | 'labels'>,
+): string {
+  const count = data.reference.referencesCount ?? 0;
+  let template = data.labels.overwriteUsedMany;
+
+  if (data.source === 'batch') {
+    template = data.labels.overwriteBatchDuplicate;
+  } else if (count === 0) {
+    template = data.labels.overwriteUnused;
+  } else if (count === 1) {
+    template = data.labels.overwriteUsedOne;
+  }
+
+  return formatLabel(template, {
+    name: data.existingEntry.name,
+    count: count.toString(),
+  });
 }
 
 function formatLabel(template: string, values: Record<string, string>): string {

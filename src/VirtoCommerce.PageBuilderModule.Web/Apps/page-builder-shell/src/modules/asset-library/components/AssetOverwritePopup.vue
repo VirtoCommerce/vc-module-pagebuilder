@@ -71,6 +71,7 @@ import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { VcButton, VcForm, VcInput, VcPopup } from "@vc-shell/framework/ui";
 import type { AssetUploadConflict } from "../composables/useAssetLibraryActions";
+import { getAssetOverwriteMessageKey } from "../utilities/assetUpload";
 
 interface Props {
   conflict: AssetUploadConflict;
@@ -101,21 +102,20 @@ watch(
   },
 );
 
-const pageNames = computed(() => [
-  ...new Set(
-    props.conflict.references.referencePages
-      .map((page) => page.name || page.permalink || page.id)
-      .filter((name): name is string => !!name),
-  ),
-]);
+const pageNames = computed(() =>
+  props.conflict.source === "batch"
+    ? []
+    : [
+        ...new Set(
+          props.conflict.references.referencePages
+            .map((page) => page.name || page.permalink || page.id)
+            .filter((name): name is string => !!name),
+        ),
+      ],
+);
 const consequenceMessage = computed(() => {
   const count = props.conflict.references.referencesCount;
-
-  if (count === 0) {
-    return t("ASSET_LIBRARY.OVERWRITE.MESSAGE_UNUSED", { name: props.conflict.existingEntry.name });
-  }
-
-  const key = count === 1 ? "ASSET_LIBRARY.OVERWRITE.MESSAGE_USED_ONE" : "ASSET_LIBRARY.OVERWRITE.MESSAGE_USED_MANY";
+  const key = getAssetOverwriteMessageKey(props.conflict);
   return t(key, { name: props.conflict.existingEntry.name, count });
 });
 const localFileNameError = computed(() => {

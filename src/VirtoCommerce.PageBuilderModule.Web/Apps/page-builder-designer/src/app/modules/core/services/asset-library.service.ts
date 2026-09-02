@@ -44,6 +44,7 @@ const fallbackLabels: AssetLibraryLabels = {
     overwriteUnused: '{name} is not used on any Page Builder pages. Replacing it will update the existing file.',
     overwriteUsedOne: '{name} is used on 1 Page Builder page. Replacing it will change the asset on that page.',
     overwriteUsedMany: '{name} is used on {count} Page Builder pages. Replacing it will change the asset on all of them.',
+    overwriteBatchDuplicate: 'Another file in this upload is already named {name}. Keeping the same name will upload only the last one.',
     affectedPages: 'Affected Page Builder pages',
     uploadAs: 'Upload as',
     replace: 'Replace',

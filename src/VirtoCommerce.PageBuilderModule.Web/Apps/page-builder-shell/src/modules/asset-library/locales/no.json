@@ -81,19 +81,20 @@
       "DELETE_USED_MANY": "Slette {name}? Den brukes på {count} Page Builder-sider."
     },
     "OVERWRITE": {
-      "TITLE": "Replace existing asset?",
-      "MESSAGE_UNUSED": "{name} is not used on any Page Builder pages. Replacing it will update the existing file.",
-      "MESSAGE_USED_ONE": "{name} is used on 1 Page Builder page. Replacing it will change the asset on that page.",
-      "MESSAGE_USED_MANY": "{name} is used on {count} Page Builder pages. Replacing it will change the asset on all of them.",
-      "AFFECTED_PAGES": "Affected Page Builder pages",
-      "UPLOAD_AS_LABEL": "Upload as",
-      "UPLOAD_AS": "Upload as",
-      "REPLACE": "Replace",
-      "CANCEL": "Cancel",
+      "TITLE": "Erstatte eksisterende ressurs?",
+      "MESSAGE_UNUSED": "{name} brukes ikke på noen Page Builder-sider. Erstatning vil oppdatere den eksisterende filen.",
+      "MESSAGE_USED_ONE": "{name} brukes på 1 Page Builder-side. Erstatning vil endre ressursen på denne siden.",
+      "MESSAGE_USED_MANY": "{name} brukes på {count} Page Builder-sider. Erstatning vil endre ressursen på alle disse sidene.",
+      "MESSAGE_BATCH_DUPLICATE": "En annen fil i denne opplastingen heter allerede {name}. Hvis du beholder samme navn, lastes bare den siste filen opp.",
+      "AFFECTED_PAGES": "Berørte Page Builder-sider",
+      "UPLOAD_AS_LABEL": "Last opp som",
+      "UPLOAD_AS": "Last opp som",
+      "REPLACE": "Erstatt",
+      "CANCEL": "Avbryt",
       "VALIDATION": {
-        "REQUIRED": "File name is required.",
-        "INVALID": "File name must not contain path separators.",
-        "COLLISION": "{name} already exists in this folder. Enter a different file name."
+        "REQUIRED": "Filnavn er påkrevd.",
+        "INVALID": "Filnavnet kan ikke inneholde baneskilletegn.",
+        "COLLISION": "{name} finnes allerede i denne mappen. Skriv inn et annet filnavn."
       }
     },
     "NOTIFICATIONS": {

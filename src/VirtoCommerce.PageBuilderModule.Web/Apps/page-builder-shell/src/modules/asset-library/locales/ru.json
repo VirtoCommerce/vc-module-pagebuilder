@@ -81,19 +81,20 @@
       "DELETE_USED_MANY": "Удалить {name}? Ресурс используется на {count} страницах Page Builder."
     },
     "OVERWRITE": {
-      "TITLE": "Replace existing asset?",
-      "MESSAGE_UNUSED": "{name} is not used on any Page Builder pages. Replacing it will update the existing file.",
-      "MESSAGE_USED_ONE": "{name} is used on 1 Page Builder page. Replacing it will change the asset on that page.",
-      "MESSAGE_USED_MANY": "{name} is used on {count} Page Builder pages. Replacing it will change the asset on all of them.",
-      "AFFECTED_PAGES": "Affected Page Builder pages",
-      "UPLOAD_AS_LABEL": "Upload as",
-      "UPLOAD_AS": "Upload as",
-      "REPLACE": "Replace",
-      "CANCEL": "Cancel",
+      "TITLE": "Заменить существующий ресурс?",
+      "MESSAGE_UNUSED": "{name} не используется ни на одной странице Page Builder. При замене существующий файл будет обновлён.",
+      "MESSAGE_USED_ONE": "{name} используется на 1 странице Page Builder. При замене ресурс на этой странице будет изменён.",
+      "MESSAGE_USED_MANY": "{name} используется на {count} страницах Page Builder. При замене ресурс на всех этих страницах будет изменён.",
+      "MESSAGE_BATCH_DUPLICATE": "В этой загрузке уже есть другой файл с именем {name}. Если сохранить это имя, будет загружен только последний файл.",
+      "AFFECTED_PAGES": "Затронутые страницы Page Builder",
+      "UPLOAD_AS_LABEL": "Загрузить как",
+      "UPLOAD_AS": "Загрузить как",
+      "REPLACE": "Заменить",
+      "CANCEL": "Отмена",
       "VALIDATION": {
-        "REQUIRED": "File name is required.",
-        "INVALID": "File name must not contain path separators.",
-        "COLLISION": "{name} already exists in this folder. Enter a different file name."
+        "REQUIRED": "Имя файла обязательно.",
+        "INVALID": "Имя файла не должно содержать разделители пути.",
+        "COLLISION": "{name} уже существует в этой папке. Введите другое имя файла."
       }
     },
     "NOTIFICATIONS": {

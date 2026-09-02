@@ -81,19 +81,20 @@
       "DELETE_USED_MANY": "{name} を削除しますか？{count} 件の Page Builder ページで使用されています。"
     },
     "OVERWRITE": {
-      "TITLE": "Replace existing asset?",
-      "MESSAGE_UNUSED": "{name} is not used on any Page Builder pages. Replacing it will update the existing file.",
-      "MESSAGE_USED_ONE": "{name} is used on 1 Page Builder page. Replacing it will change the asset on that page.",
-      "MESSAGE_USED_MANY": "{name} is used on {count} Page Builder pages. Replacing it will change the asset on all of them.",
-      "AFFECTED_PAGES": "Affected Page Builder pages",
-      "UPLOAD_AS_LABEL": "Upload as",
-      "UPLOAD_AS": "Upload as",
-      "REPLACE": "Replace",
-      "CANCEL": "Cancel",
+      "TITLE": "既存のアセットを置き換えますか？",
+      "MESSAGE_UNUSED": "{name} はどの Page Builder ページでも使用されていません。置き換えると既存のファイルが更新されます。",
+      "MESSAGE_USED_ONE": "{name} は 1 件の Page Builder ページで使用されています。置き換えると、そのページのアセットが変更されます。",
+      "MESSAGE_USED_MANY": "{name} は {count} 件の Page Builder ページで使用されています。置き換えると、すべてのページのアセットが変更されます。",
+      "MESSAGE_BATCH_DUPLICATE": "このアップロードには {name} という名前の別のファイルがあります。同じ名前のままにすると、最後のファイルだけがアップロードされます。",
+      "AFFECTED_PAGES": "影響を受ける Page Builder ページ",
+      "UPLOAD_AS_LABEL": "名前を付けてアップロード",
+      "UPLOAD_AS": "名前を付けてアップロード",
+      "REPLACE": "置き換え",
+      "CANCEL": "キャンセル",
       "VALIDATION": {
-        "REQUIRED": "File name is required.",
-        "INVALID": "File name must not contain path separators.",
-        "COLLISION": "{name} already exists in this folder. Enter a different file name."
+        "REQUIRED": "ファイル名は必須です。",
+        "INVALID": "ファイル名にパス区切り文字を含めることはできません。",
+        "COLLISION": "{name} はこのフォルダーに既に存在します。別のファイル名を入力してください。"
       }
     },
     "NOTIFICATIONS": {

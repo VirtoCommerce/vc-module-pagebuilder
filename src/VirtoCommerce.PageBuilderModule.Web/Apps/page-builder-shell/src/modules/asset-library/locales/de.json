@@ -81,19 +81,20 @@
       "DELETE_USED_MANY": "{name} löschen? Es wird auf {count} Page Builder-Seiten verwendet."
     },
     "OVERWRITE": {
-      "TITLE": "Replace existing asset?",
-      "MESSAGE_UNUSED": "{name} is not used on any Page Builder pages. Replacing it will update the existing file.",
-      "MESSAGE_USED_ONE": "{name} is used on 1 Page Builder page. Replacing it will change the asset on that page.",
-      "MESSAGE_USED_MANY": "{name} is used on {count} Page Builder pages. Replacing it will change the asset on all of them.",
-      "AFFECTED_PAGES": "Affected Page Builder pages",
-      "UPLOAD_AS_LABEL": "Upload as",
-      "UPLOAD_AS": "Upload as",
-      "REPLACE": "Replace",
-      "CANCEL": "Cancel",
+      "TITLE": "Bestehendes Asset ersetzen?",
+      "MESSAGE_UNUSED": "{name} wird auf keiner Page-Builder-Seite verwendet. Durch das Ersetzen wird die vorhandene Datei aktualisiert.",
+      "MESSAGE_USED_ONE": "{name} wird auf 1 Page-Builder-Seite verwendet. Durch das Ersetzen wird das Asset auf dieser Seite geändert.",
+      "MESSAGE_USED_MANY": "{name} wird auf {count} Page-Builder-Seiten verwendet. Durch das Ersetzen wird das Asset auf allen diesen Seiten geändert.",
+      "MESSAGE_BATCH_DUPLICATE": "Eine andere Datei in diesem Upload heißt bereits {name}. Wenn Sie denselben Namen beibehalten, wird nur die letzte Datei hochgeladen.",
+      "AFFECTED_PAGES": "Betroffene Page-Builder-Seiten",
+      "UPLOAD_AS_LABEL": "Hochladen als",
+      "UPLOAD_AS": "Hochladen als",
+      "REPLACE": "Ersetzen",
+      "CANCEL": "Abbrechen",
       "VALIDATION": {
-        "REQUIRED": "File name is required.",
-        "INVALID": "File name must not contain path separators.",
-        "COLLISION": "{name} already exists in this folder. Enter a different file name."
+        "REQUIRED": "Der Dateiname ist erforderlich.",
+        "INVALID": "Der Dateiname darf keine Pfadtrennzeichen enthalten.",
+        "COLLISION": "{name} ist in diesem Ordner bereits vorhanden. Geben Sie einen anderen Dateinamen ein."
       }
     },
     "NOTIFICATIONS": {

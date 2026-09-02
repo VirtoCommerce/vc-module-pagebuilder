@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { firstValueFrom, of } from 'rxjs';
 
+import { getAssetOverwriteConsequenceMessage } from '@core/dialogs/asset-overwrite/asset-overwrite.component';
 import { ModalService } from './modal.service';
 import { AssetLibraryService } from './asset-library.service';
 import { AssetLibraryUploadCoordinatorService } from './asset-library-upload-coordinator.service';
@@ -62,6 +63,7 @@ describe('AssetLibraryUploadCoordinatorService', () => {
 
     expect(result.map((entry) => entry.name)).toEqual(['hero.jpg']);
     expect(assets.searchReferences).toHaveBeenCalledWith(null, storedEntry);
+    expect(modals.show.mock.calls[0][1].data.source).toBe('stored');
     expect(assets.upload).toHaveBeenCalledOnce();
   });
 
@@ -87,6 +89,10 @@ describe('AssetLibraryUploadCoordinatorService', () => {
 
   it('confirms duplicate names inside one batch before uploading', async () => {
     assets.findByName.mockReturnValue(of(null));
+    assets.getLabels.mockReturnValue({
+      overwriteBatchDuplicate:
+        'Another file in this upload is already named {name}. Keeping the same name will upload only the last one.',
+    });
     modals.show.mockReturnValue(of({ action: 'upload-as', fileName: 'second-copy.jpg' }));
 
     const result = await firstValueFrom(
@@ -95,6 +101,11 @@ describe('AssetLibraryUploadCoordinatorService', () => {
 
     expect(modals.show).toHaveBeenCalledOnce();
     expect(assets.searchReferences).not.toHaveBeenCalled();
+    const dialogData = modals.show.mock.calls[0][1].data;
+    expect(dialogData.source).toBe('batch');
+    expect(getAssetOverwriteConsequenceMessage(dialogData)).toBe(
+      'Another file in this upload is already named same.jpg. Keeping the same name will upload only the last one.',
+    );
     expect(result.map((entry) => entry.name)).toEqual(['same.jpg', 'second-copy.jpg']);
   });
 });

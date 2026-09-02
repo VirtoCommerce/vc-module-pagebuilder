@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { AssetEntry } from "../src/modules/asset-library/types";
 import {
+  getAssetOverwriteMessageKey,
   prepareAssetUploadFiles,
   type AssetUploadConflict,
   type AssetUploadConflictDecision,
@@ -44,6 +45,7 @@ test("prepareAssetUploadFiles keeps the original name after Replace", async () =
       findAssetByName: async () => existingEntry,
       requestDecision: async (conflict) => {
         assert.equal(conflict.references.referencesCount, 2);
+        assert.equal(conflict.source, "stored");
         return { action: "replace" };
       },
     }),
@@ -109,8 +111,13 @@ test("prepareAssetUploadFiles confirms duplicate names inside one batch before u
   );
 
   assert.equal(decisions.length, 1);
+  assert.equal(decisions[0]?.source, "batch");
   assert.equal(decisions[0]?.references.referencesCount, 0);
-  assert.deepEqual(prepared?.map((file) => file.name), ["same.png", "second-copy.png"]);
+  assert.equal(getAssetOverwriteMessageKey(decisions[0]!), "ASSET_LIBRARY.OVERWRITE.MESSAGE_BATCH_DUPLICATE");
+  assert.deepEqual(
+    prepared?.map((file) => file.name),
+    ["same.png", "second-copy.png"],
+  );
 });
 
 function createFile(name: string): File {
