@@ -1,0 +1,39 @@
+<div class="asset-overwrite">
+  <header>
+    <h2>{{ labels.overwriteTitle }}</h2>
+  </header>
+
+  <div mat-dialog-content>
+    <p class="consequence">{{ consequenceMessage() }}</p>
+
+    @if (pageNames().length) {
+      <ul class="pages" [attr.aria-label]="labels.affectedPages">
+        @for (pageName of pageNames(); track pageName) {
+          <li>{{ pageName }}</li>
+        }
+      </ul>
+    }
+
+    <form (submit)="uploadAs(); $event.preventDefault()">
+      <label for="asset-overwrite-file-name">{{ labels.uploadAs }}</label>
+      <input
+        id="asset-overwrite-file-name"
+        autocomplete="off"
+        [formField]="fileNameForm.fileName"
+        (input)="serverError.set('')"
+      />
+
+      @if (fileNameForm.fileName().touched() && fileNameForm.fileName().errors().length) {
+        <div class="error" role="alert">{{ fileNameForm.fileName().errors()[0].message }}</div>
+      } @else if (serverError()) {
+        <div class="error" role="alert">{{ serverError() }}</div>
+      }
+    </form>
+  </div>
+
+  <div mat-dialog-actions>
+    <app-icon-button skin="outline" [text]="labels.cancel" [disabled]="checkingName()" (click)="cancel()" />
+    <app-icon-button skin="outline" [text]="labels.replace" [disabled]="checkingName()" (click)="replace()" />
+    <app-icon-button skin="primary" [text]="labels.uploadAs" [disabled]="checkingName()" (click)="uploadAs()" />
+  </div>
+</div>

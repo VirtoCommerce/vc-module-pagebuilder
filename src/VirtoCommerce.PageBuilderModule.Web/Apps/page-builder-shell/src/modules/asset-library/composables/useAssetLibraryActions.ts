@@ -2,15 +2,28 @@ import type { ComputedRef } from "vue";
 import { notification, parseError, usePopup } from "@vc-shell/framework";
 import type { AssetEntry, AssetReferencePage } from "../types";
 import type { DeleteAssetReferences } from "./useAssetReferences";
+import {
+  prepareAssetUploadFiles,
+  type AssetUploadConflict,
+  type AssetUploadConflictDecision,
+} from "../utilities/assetUpload";
+
+export type { AssetUploadConflict, AssetUploadConflictDecision } from "../utilities/assetUpload";
 
 interface UseAssetLibraryActionsOptions {
   t: (key: string, params?: Record<string, unknown>) => string;
   canCreate: ComputedRef<boolean>;
+  currentFolderUrl: ComputedRef<string>;
   uploadFiles: (files: FileList | File[], folderUrl?: string) => Promise<void>;
   createFolder: (name: string) => Promise<void>;
   replaceSelectedAsset: (file: File) => Promise<void>;
   deleteEntry: (entry: AssetEntry) => Promise<void>;
   getDeleteReferences: (entry: AssetEntry) => Promise<DeleteAssetReferences>;
+  findAssetByName: (folderUrl: string, fileName: string) => Promise<AssetEntry | undefined>;
+  requestUploadConflictDecision: (
+    conflict: AssetUploadConflict,
+    validateName: (fileName: string) => Promise<string | undefined>,
+  ) => Promise<AssetUploadConflictDecision>;
   getAssetPublicUrl: (entry: AssetEntry) => string | undefined;
 }
 
@@ -37,7 +50,21 @@ export function useAssetLibraryActions(options: UseAssetLibraryActionsOptions) {
     }
 
     try {
-      await options.uploadFiles(files, folderUrl);
+      const targetFolderUrl = folderUrl || options.currentFolderUrl.value;
+      const preparedFiles = await prepareAssetUploadFiles(Array.from(files), targetFolderUrl, {
+        findAssetByName: options.findAssetByName,
+        getReferences: options.getDeleteReferences,
+        requestDecision: options.requestUploadConflictDecision,
+        getRequiredError: () => options.t("ASSET_LIBRARY.OVERWRITE.VALIDATION.REQUIRED"),
+        getInvalidError: () => options.t("ASSET_LIBRARY.OVERWRITE.VALIDATION.INVALID"),
+        getCollisionError: (fileName) => options.t("ASSET_LIBRARY.OVERWRITE.VALIDATION.COLLISION", { name: fileName }),
+      });
+
+      if (!preparedFiles) {
+        return false;
+      }
+
+      await options.uploadFiles(preparedFiles, folderUrl);
       notification.success(options.t("ASSET_LIBRARY.NOTIFICATIONS.UPLOADED"));
       return true;
     } catch (error) {

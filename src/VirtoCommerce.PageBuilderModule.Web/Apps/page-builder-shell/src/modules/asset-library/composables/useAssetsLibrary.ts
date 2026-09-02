@@ -43,6 +43,7 @@ export interface IUseAssetsLibrary {
   getReferencesCount: (entry: AssetEntry) => number;
   getReferencePages: (entry: AssetEntry | undefined) => NonNullable<AssetEntry["referencePages"]>;
   getDeleteReferences: (entry: AssetEntry) => Promise<DeleteAssetReferences>;
+  findAssetByName: (folderUrl: string, fileName: string) => Promise<AssetEntry | undefined>;
   formatFileSize: (size?: number) => string;
   formatDate: (value?: string) => string;
   getAssetPath: (entry: AssetEntry) => string;
@@ -256,6 +257,17 @@ export function useAssetsLibrary(): IUseAssetsLibrary {
     await loadAssetReferencePages(entry);
   }
 
+  async function findAssetByName(folderUrl: string, fileName: string): Promise<AssetEntry | undefined> {
+    if (!folderUrl || !fileName) {
+      return undefined;
+    }
+
+    const result = await searchAssets(folderUrl, fileName);
+    return result.results.find(
+      (entry) => entry.type === "blob" && normalizeFileName(entry.name) === normalizeFileName(fileName),
+    );
+  }
+
   async function initialize() {
     initUrlParams();
     currentFolderUrl.value = rootFolderUrl.value;
@@ -287,6 +299,7 @@ export function useAssetsLibrary(): IUseAssetsLibrary {
     getReferencesCount,
     getReferencePages,
     getDeleteReferences,
+    findAssetByName,
     formatFileSize: readableSize,
     formatDate,
     getAssetPath,
@@ -297,4 +310,12 @@ export function useAssetsLibrary(): IUseAssetsLibrary {
     replaceSelectedAsset: replaceSelectedAssetAction,
     deleteEntry: deleteEntryAction,
   };
+}
+
+function normalizeFileName(value: string): string {
+  try {
+    return decodeURIComponent(value).normalize("NFC");
+  } catch {
+    return value.normalize("NFC");
+  }
 }

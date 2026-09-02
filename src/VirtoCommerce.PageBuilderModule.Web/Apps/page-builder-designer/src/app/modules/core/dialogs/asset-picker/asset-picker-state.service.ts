@@ -1,10 +1,9 @@
 import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { concatMap, from, toArray } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { assetLibraryHelpers } from '@core/helpers';
-import { AssetLibraryEntry, AssetLibraryService } from '@core/services';
+import { AssetLibraryEntry, AssetLibraryService, AssetLibraryUploadCoordinatorService } from '@core/services';
 
 import {
     AssetPickerBreadcrumb,
@@ -19,6 +18,7 @@ export class AssetPickerStateService {
 
     private readonly data = inject<AssetPickerDialogData>(MAT_DIALOG_DATA);
     private readonly assets = inject(AssetLibraryService);
+    private readonly uploadCoordinator = inject(AssetLibraryUploadCoordinatorService);
     private readonly destroyRef = inject(DestroyRef);
     private readonly acceptedTypes = (this.data.accept ?? []).map(x => x.trim()).filter(Boolean);
     private readonly maxFileSize = this.data.maxFileSize;
@@ -184,13 +184,11 @@ export class AssetPickerStateService {
         this.uploading.set(true);
         this.error.set(null);
 
-        from(uploadFiles).pipe(
-            concatMap(file => this.assets.upload(folderUrl, file)),
-            toArray(),
+        this.uploadCoordinator.uploadFiles(folderUrl, uploadFiles, this.context).pipe(
             takeUntilDestroyed(this.destroyRef)
         ).subscribe({
             next: uploaded => {
-                const uploadedEntries = uploaded.filter((entry): entry is AssetLibraryEntry => !!entry);
+                const uploadedEntries = uploaded;
                 const preferredSelectionUrls = uploadedEntries.map(entry => entry.relativeUrl || entry.url).filter((url): url is string => !!url);
                 this.uploading.set(false);
                 if (uploadedEntries.length) {

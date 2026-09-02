@@ -80,6 +80,22 @@
       "DELETE_USED_ONE": "Удалить {name}? Ресурс используется на 1 странице Page Builder.",
       "DELETE_USED_MANY": "Удалить {name}? Ресурс используется на {count} страницах Page Builder."
     },
+    "OVERWRITE": {
+      "TITLE": "Replace existing asset?",
+      "MESSAGE_UNUSED": "{name} is not used on any Page Builder pages. Replacing it will update the existing file.",
+      "MESSAGE_USED_ONE": "{name} is used on 1 Page Builder page. Replacing it will change the asset on that page.",
+      "MESSAGE_USED_MANY": "{name} is used on {count} Page Builder pages. Replacing it will change the asset on all of them.",
+      "AFFECTED_PAGES": "Affected Page Builder pages",
+      "UPLOAD_AS_LABEL": "Upload as",
+      "UPLOAD_AS": "Upload as",
+      "REPLACE": "Replace",
+      "CANCEL": "Cancel",
+      "VALIDATION": {
+        "REQUIRED": "File name is required.",
+        "INVALID": "File name must not contain path separators.",
+        "COLLISION": "{name} already exists in this folder. Enter a different file name."
+      }
+    },
     "NOTIFICATIONS": {
       "FOLDER_CREATED": "Папка успешно создана",
       "UPLOADED": "Ресурсы успешно загружены",
