@@ -74,6 +74,19 @@ describe('refreshTokenInterceptor', () => {
         expect(session.expired()).toBe(false);
     });
 
+    it('takes back the expired session once a refresh succeeds', () => {
+        // the session was reported gone - by the initializator failing to trade the cookie session
+        // for a token, for instance - but the refresh token turns out to still work
+        session.expire();
+
+        http.get('/api/first').subscribe();
+        httpController.expectOne('/connect/token')
+            .flush({ access_token: 'fresh-token', refresh_token: 'next-refresh-token', expires_in: 3600 });
+
+        expect(session.expired()).toBe(false);
+        httpController.expectOne('/api/first').flush({});
+    });
+
     it('reports a failed refresh to every waiting request', () => {
         const errors: number[] = [];
 

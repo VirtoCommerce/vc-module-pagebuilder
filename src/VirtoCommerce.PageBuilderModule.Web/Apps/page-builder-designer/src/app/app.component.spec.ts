@@ -15,11 +15,13 @@ describe('AppComponent session recovery', () => {
     let session: SessionService;
     let recovery: { tryRestoreSilently: ReturnType<typeof vi.fn> };
     let dialogs: { open: ReturnType<typeof vi.fn> };
+    let dialogRef: { afterClosed: () => typeof NEVER; close: ReturnType<typeof vi.fn> };
 
     beforeEach(() => {
         recovery = { tryRestoreSilently: vi.fn() };
         // the prompt cannot be dismissed, so it stays open for the whole test
-        dialogs = { open: vi.fn().mockReturnValue({ afterClosed: () => NEVER }) };
+        dialogRef = { afterClosed: () => NEVER, close: vi.fn() };
+        dialogs = { open: vi.fn().mockReturnValue(dialogRef) };
 
         TestBed.configureTestingModule({
             providers: [
@@ -69,6 +71,24 @@ describe('AppComponent session recovery', () => {
         await Promise.resolve();
 
         expect(dialogs.open).toHaveBeenCalled();
+    });
+
+    it('takes the prompt down again when the session comes back on its own', async () => {
+        recovery.tryRestoreSilently.mockResolvedValue(false);
+
+        const fixture = TestBed.createComponent(AppComponent);
+        fixture.detectChanges();
+
+        session.expire();
+        fixture.detectChanges();
+        await Promise.resolve();
+        expect(dialogs.open).toHaveBeenCalled();
+
+        // a background token refresh succeeded, so there is nothing left to ask for
+        session.restore();
+        fixture.detectChanges();
+
+        expect(dialogRef.close).toHaveBeenCalled();
     });
 
     it('still asks when the session goes again while the designer catches up', async () => {

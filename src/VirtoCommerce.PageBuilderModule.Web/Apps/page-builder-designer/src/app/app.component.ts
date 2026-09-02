@@ -44,6 +44,10 @@ export class AppComponent {
         effect(() => {
             if (this.session.expired()) {
                 void this.recoverSession();
+            } else {
+                // a token refresh may succeed on its own while the prompt is up - there is
+                // nothing left to ask the user for then
+                this.loginDialog?.close(true);
             }
         });
     }

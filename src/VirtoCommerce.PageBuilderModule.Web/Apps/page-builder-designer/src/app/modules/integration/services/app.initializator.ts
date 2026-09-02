@@ -64,7 +64,13 @@ export class AppInitializator {
                 // which used to break the designer in obscure ways (VCST-5847). Report the expired
                 // session instead, so the shell can ask the user to sign in again.
                 console.warn('Failed to obtain bearer token from cookie session:', error);
-                this.session.expire();
+                // A stored refresh token is still worth trying, and the interceptor does exactly
+                // that for the settings requests that follow - reporting the expiry itself when it
+                // fails. Announcing it here would raise the sign-in prompt over a session that is
+                // about to work again, which is what an overnight reload runs into.
+                if (!info?.refreshToken) {
+                    this.session.expire();
+                }
                 return of(undefined);
             })
         );

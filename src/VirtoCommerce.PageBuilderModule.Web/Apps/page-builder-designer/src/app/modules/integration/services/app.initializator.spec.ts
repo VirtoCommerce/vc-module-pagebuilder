@@ -84,6 +84,22 @@ describe('app initializator', () => {
         expect(session.expired()).toBe(true);
     });
 
+    it('leaves the session alone while a refresh token is still worth trying', () => {
+        // an overnight reload: the access token is stale, the cookie session may well be gone too,
+        // but the refresh token the interceptor is about to use can still restore everything
+        localStorage.setItem('ls.authenticationData', JSON.stringify({
+            token: 'expired-token',
+            refreshToken: 'refresh-token',
+            expiresAt: Date.now() - 1000
+        }));
+
+        initializator.init();
+
+        httpController.expectOne('/connect/token').flush('', { status: 401, statusText: 'Unauthorized' });
+
+        expect(session.expired()).toBe(false);
+    });
+
     it('override config via get parameter', () => {
         const response = {
             key: "value"

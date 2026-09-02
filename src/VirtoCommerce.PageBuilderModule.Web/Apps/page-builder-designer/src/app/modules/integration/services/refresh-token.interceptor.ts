@@ -52,7 +52,12 @@ function refreshAccessToken(
   return state.share(() => auth.refreshToken(refreshToken).pipe(
     // the token has to reach the storage before any waiting request is released, otherwise they
     // are sent with the expired one and fail with 401 right after a successful refresh (VCST-5847)
-    map(response => jwt.save(response).token),
+    map(response => {
+      const info = jwt.save(response);
+      // the session demonstrably works again, so anything raised over its expiry has to go away
+      session.restore();
+      return info.token;
+    }),
     catchError(error => {
       session.expire();
       return throwError(() => error);
