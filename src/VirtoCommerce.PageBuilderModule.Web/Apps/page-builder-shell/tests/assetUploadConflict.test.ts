@@ -59,6 +59,22 @@ test("prepareAssetUploadFiles keeps the original name after Replace", async () =
   );
 });
 
+test("prepareAssetUploadFiles uses the stored name when Replace matches case-insensitively", async () => {
+  const result = await prepareAssetUploadFiles(
+    [createFile("Hero.jpg")],
+    folderUrl,
+    createDependencies({
+      findAssetByName: async () => existingEntry,
+      requestDecision: async () => ({ action: "replace" }),
+    }),
+  );
+
+  assert.deepEqual(
+    result?.map((file) => file.name),
+    ["hero.jpg"],
+  );
+});
+
 test("prepareAssetUploadFiles renames a file only after the candidate is available", async () => {
   const checkedNames: string[] = [];
   const result = await prepareAssetUploadFiles(

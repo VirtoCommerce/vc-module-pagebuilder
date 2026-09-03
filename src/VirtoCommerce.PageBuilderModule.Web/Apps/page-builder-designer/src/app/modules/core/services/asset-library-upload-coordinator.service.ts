@@ -111,7 +111,13 @@ export class AssetLibraryUploadCoordinatorService {
         return null;
       }
 
-      preparedFiles.push(decision.action === 'replace' ? file : renameFile(file, decision.fileName));
+      preparedFiles.push(
+        decision.action === 'replace'
+          ? storedEntry
+            ? renameFile(file, storedEntry.name)
+            : file
+          : renameFile(file, decision.fileName),
+      );
     }
 
     return preparedFiles;

@@ -68,6 +68,15 @@ describe('AssetLibraryUploadCoordinatorService', () => {
     expect(assets.upload).toHaveBeenCalledOnce();
   });
 
+  it('uses the stored name when Replace matches case-insensitively', async () => {
+    assets.findByName.mockReturnValue(of(storedEntry));
+    modals.show.mockReturnValue(of({ action: 'replace' }));
+
+    await firstValueFrom(service.uploadFiles(folderUrl, [createFile('Hero.jpg')]));
+
+    expect(assets.upload.mock.calls[0][1].name).toBe('hero.jpg');
+  });
+
   it('uploads under the name returned by Upload as', async () => {
     modals.show.mockReturnValue(of({ action: 'upload-as', fileName: 'hero-new.jpg' }));
 

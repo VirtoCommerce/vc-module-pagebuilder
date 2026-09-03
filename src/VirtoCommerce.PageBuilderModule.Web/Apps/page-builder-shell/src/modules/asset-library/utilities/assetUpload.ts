@@ -64,7 +64,13 @@ export async function prepareAssetUploadFiles(
       return undefined;
     }
 
-    preparedFiles.push(decision.action === "replace" ? file : renameAssetFile(file, decision.fileName));
+    preparedFiles.push(
+      decision.action === "replace"
+        ? storedEntry
+          ? renameAssetFile(file, storedEntry.name)
+          : file
+        : renameAssetFile(file, decision.fileName),
+    );
   }
 
   return preparedFiles;
