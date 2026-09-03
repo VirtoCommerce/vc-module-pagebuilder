@@ -1,6 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { map, Observable, throwError } from 'rxjs';
 
+import { assetLibraryHelpers } from '@core/helpers';
 import { AssetLibraryApiService } from './asset-library-api.service';
 import {
     AssetLibraryContext,
@@ -40,17 +41,19 @@ const fallbackLabels: AssetLibraryLabels = {
     uploadError: 'Unable to upload asset.',
     loadError: 'Unable to load assets.',
     fileTooLarge: 'File is too large. Maximum size is {maxSize}.',
-    overwriteTitle: 'Replace existing asset?',
+    overwriteTitle: 'File name conflict',
     overwriteUnused: '{name} is not used on any Page Builder pages. Replacing it will update the existing file.',
     overwriteUsedOne: '{name} is used on 1 Page Builder page. Replacing it will change the asset on that page.',
     overwriteUsedMany: '{name} is used on {count} Page Builder pages. Replacing it will change the asset on all of them.',
     overwriteBatchDuplicate: 'Another file in this upload is already named {name}. Keeping the same name will upload only the last one.',
+    overwriteUsageUnknown: 'We could not determine whether {name} is used on Page Builder pages. Replacing it may change pages that use this asset.',
     affectedPages: 'Affected Page Builder pages',
     uploadAs: 'Upload as',
     replace: 'Replace',
     fileNameRequired: 'File name is required.',
     fileNameInvalid: 'File name must not contain path separators.',
-    fileNameCollision: '{name} already exists in this folder. Enter a different file name.'
+    fileNameCollision: '{name} already exists in this folder. Enter a different file name.',
+    uploadCanceled: 'Upload canceled. No files were uploaded.'
 };
 
 @Injectable({
@@ -89,9 +92,10 @@ export class AssetLibraryService {
     }
 
     findByName(folderUrl: string, fileName: string): Observable<AssetLibraryEntry | null> {
-        const normalized = normalizeFileName(fileName);
+        const normalized = assetLibraryHelpers.normalizeAssetFileName(fileName);
         return this.search(folderUrl, fileName).pipe(
-            map(result => result.results.find(item => item.type === 'blob' && normalizeFileName(item.name) === normalized) ?? null)
+            map(result => result.results.find(item =>
+                item.type === 'blob' && assetLibraryHelpers.normalizeAssetFileName(item.name) === normalized) ?? null)
         );
     }
 
@@ -109,13 +113,5 @@ export class AssetLibraryService {
 
     isImage(entry: AssetLibraryEntry): boolean {
         return this.urls.isImage(entry);
-    }
-}
-
-function normalizeFileName(value: string): string {
-    try {
-        return decodeURIComponent(value).trim().normalize('NFC');
-    } catch {
-        return value.trim().normalize('NFC');
     }
 }

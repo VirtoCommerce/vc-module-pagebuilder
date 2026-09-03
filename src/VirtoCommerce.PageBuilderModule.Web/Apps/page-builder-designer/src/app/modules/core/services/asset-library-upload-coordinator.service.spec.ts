@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
-import { firstValueFrom, of } from 'rxjs';
+import { firstValueFrom, of, Subject, throwError } from 'rxjs';
 
-import { getAssetOverwriteConsequenceMessage } from '@core/dialogs/asset-overwrite/asset-overwrite.component';
+import { assetLibraryHelpers } from '@core/helpers';
 import { ModalService } from './modal.service';
 import { AssetLibraryService } from './asset-library.service';
 import { AssetLibraryUploadCoordinatorService } from './asset-library-upload-coordinator.service';
@@ -19,7 +19,7 @@ describe('AssetLibraryUploadCoordinatorService', () => {
     upload: ReturnType<typeof vi.fn>;
     getLabels: ReturnType<typeof vi.fn>;
   };
-  let modals: { show: ReturnType<typeof vi.fn> };
+  let modals: { show: ReturnType<typeof vi.fn>; alert: ReturnType<typeof vi.fn> };
   let service: AssetLibraryUploadCoordinatorService;
 
   beforeEach(() => {
@@ -34,9 +34,9 @@ describe('AssetLibraryUploadCoordinatorService', () => {
         }),
       ),
       upload: vi.fn((_folderUrl: string, file: File) => of({ ...storedEntry, name: file.name })),
-      getLabels: vi.fn(() => ({})),
+      getLabels: vi.fn(() => ({ uploadCanceled: 'Upload canceled. No files were uploaded.' })),
     };
-    modals = { show: vi.fn() };
+    modals = { show: vi.fn(), alert: vi.fn(() => of(true)) };
 
     TestBed.configureTestingModule({
       providers: [
@@ -64,6 +64,7 @@ describe('AssetLibraryUploadCoordinatorService', () => {
     expect(result.map((entry) => entry.name)).toEqual(['hero.jpg']);
     expect(assets.searchReferences).toHaveBeenCalledWith(null, storedEntry);
     expect(modals.show.mock.calls[0][1].data.source).toBe('stored');
+    expect(modals.show.mock.calls[0][1].data.usageKnown).toBe(true);
     expect(assets.upload).toHaveBeenCalledOnce();
   });
 
@@ -85,6 +86,7 @@ describe('AssetLibraryUploadCoordinatorService', () => {
 
     expect(result).toEqual([]);
     expect(assets.upload).not.toHaveBeenCalled();
+    expect(modals.alert).toHaveBeenCalledWith('Upload canceled. No files were uploaded.');
   });
 
   it('confirms duplicate names inside one batch before uploading', async () => {
@@ -92,6 +94,7 @@ describe('AssetLibraryUploadCoordinatorService', () => {
     assets.getLabels.mockReturnValue({
       overwriteBatchDuplicate:
         'Another file in this upload is already named {name}. Keeping the same name will upload only the last one.',
+      uploadCanceled: 'Upload canceled. No files were uploaded.',
     });
     modals.show.mockReturnValue(of({ action: 'upload-as', fileName: 'second-copy.jpg' }));
 
@@ -103,10 +106,62 @@ describe('AssetLibraryUploadCoordinatorService', () => {
     expect(assets.searchReferences).not.toHaveBeenCalled();
     const dialogData = modals.show.mock.calls[0][1].data;
     expect(dialogData.source).toBe('batch');
-    expect(getAssetOverwriteConsequenceMessage(dialogData)).toBe(
+    expect(dialogData.usageKnown).toBe(true);
+    expect(
+      assetLibraryHelpers.getAssetOverwriteConsequenceMessage({
+        source: dialogData.source,
+        usageKnown: dialogData.usageKnown,
+        assetName: dialogData.existingEntry.name,
+        referencesCount: dialogData.reference.referencesCount,
+        labels: dialogData.labels,
+      }),
+    ).toBe(
       'Another file in this upload is already named same.jpg. Keeping the same name will upload only the last one.',
     );
     expect(result.map((entry) => entry.name)).toEqual(['same.jpg', 'second-copy.jpg']);
+  });
+
+  it('allows the user to continue when reference lookup fails', async () => {
+    assets.searchReferences.mockReturnValue(throwError(() => new Error('reference service unavailable')));
+    assets.getLabels.mockReturnValue({
+      overwriteUsageUnknown:
+        'We could not determine whether {name} is used on Page Builder pages. Replacing it may change pages that use this asset.',
+      uploadCanceled: 'Upload canceled. No files were uploaded.',
+    });
+    modals.show.mockReturnValue(of({ action: 'replace' }));
+
+    const result = await firstValueFrom(service.uploadFiles(folderUrl, [createFile('hero.jpg')]));
+    const dialogData = modals.show.mock.calls[0][1].data;
+
+    expect(dialogData.usageKnown).toBe(false);
+    expect(
+      assetLibraryHelpers.getAssetOverwriteConsequenceMessage({
+        source: dialogData.source,
+        usageKnown: dialogData.usageKnown,
+        assetName: dialogData.existingEntry.name,
+        referencesCount: dialogData.reference.referencesCount,
+        labels: dialogData.labels,
+      }),
+    ).toContain('could not determine');
+    expect(result.map((entry) => entry.name)).toEqual(['hero.jpg']);
+  });
+
+  it('stops before the next upload after unsubscription', async () => {
+    assets.findByName.mockReturnValue(of(null));
+    const firstUpload = new Subject<typeof storedEntry>();
+    assets.upload.mockReturnValueOnce(firstUpload).mockReturnValueOnce(of({ ...storedEntry, name: 'second.jpg' }));
+
+    const subscription = service
+      .uploadFiles(folderUrl, [createFile('first.jpg'), createFile('second.jpg')])
+      .subscribe();
+
+    await vi.waitFor(() => expect(assets.upload).toHaveBeenCalledOnce());
+    subscription.unsubscribe();
+    firstUpload.next({ ...storedEntry, name: 'first.jpg' });
+    firstUpload.complete();
+    await Promise.resolve();
+
+    expect(assets.upload).toHaveBeenCalledOnce();
   });
 });
 

@@ -81,11 +81,12 @@
       "DELETE_USED_MANY": "Poistetaanko {name}? Sitä käytetään {count} Page Builder -sivulla."
     },
     "OVERWRITE": {
-      "TITLE": "Korvataanko olemassa oleva resurssi?",
+      "TITLE": "Tiedostonimiristiriita",
       "MESSAGE_UNUSED": "{name} ei ole käytössä millään Page Builder -sivulla. Korvaaminen päivittää olemassa olevan tiedoston.",
       "MESSAGE_USED_ONE": "{name} on käytössä yhdellä Page Builder -sivulla. Korvaaminen muuttaa resurssin tällä sivulla.",
       "MESSAGE_USED_MANY": "{name} on käytössä {count} Page Builder -sivulla. Korvaaminen muuttaa resurssin kaikilla näillä sivuilla.",
       "MESSAGE_BATCH_DUPLICATE": "Tässä latauksessa on jo toinen tiedosto nimeltä {name}. Jos säilytät saman nimen, vain viimeinen tiedosto ladataan.",
+      "MESSAGE_USAGE_UNKNOWN": "Ei voitu selvittää, käytetäänkö resurssia {name} Page Builder -sivuilla. Sen korvaaminen voi muuttaa sivuja, jotka käyttävät tätä resurssia.",
       "AFFECTED_PAGES": "Page Builder -sivut, joihin muutos vaikuttaa",
       "UPLOAD_AS_LABEL": "Lataa nimellä",
       "UPLOAD_AS": "Lataa nimellä",
@@ -100,6 +101,7 @@
     "NOTIFICATIONS": {
       "FOLDER_CREATED": "Kansio luotu onnistuneesti",
       "UPLOADED": "Resurssit ladattu onnistuneesti",
+      "UPLOAD_CANCELED": "Lataus peruutettiin. Tiedostoja ei ladattu.",
       "REPLACED": "Resurssi korvattu onnistuneesti",
       "DELETED": "Resurssit poistettu onnistuneesti",
       "URL_COPIED": "Resurssin URL kopioitu onnistuneesti",

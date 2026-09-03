@@ -1,13 +1,15 @@
+@use '../../../../../layout/variables' as *;
+
 .asset-overwrite {
   display: flex;
   width: min(36rem, 90vw);
   max-height: 80vh;
   flex-direction: column;
-  color: #243447;
+  color: $content-color;
 
   header {
     padding: 1rem 1.25rem;
-    border-bottom: 1px solid #dde6f2;
+    border-bottom: 1px solid $border-color;
   }
 
   h2,
@@ -16,7 +18,8 @@
   }
 
   h2 {
-    font-size: 1.125rem;
+    color: $heading-color;
+    font-size: $middle-font-size;
     font-weight: 500;
   }
 
@@ -48,19 +51,19 @@
 
   input {
     padding: 0.625rem 0.75rem;
-    border: 1px solid #dde6f2;
+    border: 1px solid $controls-border-color;
     border-radius: 0.25rem;
     font: inherit;
 
     &:focus {
-      border-color: #2f95da;
-      outline: 2px solid rgba(47, 149, 218, 0.2);
+      border-color: $active-color;
+      outline: 2px solid rgba($active-color, 0.2);
     }
   }
 
   .error {
-    color: #b91c1c;
-    font-size: 0.75rem;
+    color: $error-color;
+    font-size: $small-font-size;
   }
 
   [mat-dialog-actions] {
@@ -69,6 +72,6 @@
     gap: 0.5rem;
     margin: 0;
     padding: 0.75rem 1.25rem;
-    border-top: 1px solid #dde6f2;
+    border-top: 1px solid $border-color;
   }
 }

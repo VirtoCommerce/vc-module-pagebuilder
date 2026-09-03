@@ -67,10 +67,12 @@ export interface AssetLibraryLabels {
     overwriteUsedOne: string;
     overwriteUsedMany: string;
     overwriteBatchDuplicate: string;
+    overwriteUsageUnknown: string;
     affectedPages: string;
     uploadAs: string;
     replace: string;
     fileNameRequired: string;
     fileNameInvalid: string;
     fileNameCollision: string;
+    uploadCanceled: string;
 }

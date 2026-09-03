@@ -81,11 +81,12 @@
       "DELETE_USED_MANY": "Ta bort {name}? Den används på {count} Page Builder-sidor."
     },
     "OVERWRITE": {
-      "TITLE": "Ersätta befintlig resurs?",
+      "TITLE": "Konflikt med filnamn",
       "MESSAGE_UNUSED": "{name} används inte på några Page Builder-sidor. Om den ersätts uppdateras den befintliga filen.",
       "MESSAGE_USED_ONE": "{name} används på 1 Page Builder-sida. Om den ersätts ändras resursen på den sidan.",
       "MESSAGE_USED_MANY": "{name} används på {count} Page Builder-sidor. Om den ersätts ändras resursen på alla dessa sidor.",
       "MESSAGE_BATCH_DUPLICATE": "En annan fil i den här uppladdningen heter redan {name}. Om du behåller samma namn laddas bara den sista filen upp.",
+      "MESSAGE_USAGE_UNKNOWN": "Det gick inte att avgöra om {name} används på Page Builder-sidor. Om du ersätter den kan sidor som använder resursen ändras.",
       "AFFECTED_PAGES": "Berörda Page Builder-sidor",
       "UPLOAD_AS_LABEL": "Ladda upp som",
       "UPLOAD_AS": "Ladda upp som",
@@ -100,6 +101,7 @@
     "NOTIFICATIONS": {
       "FOLDER_CREATED": "Mappen har skapats",
       "UPLOADED": "Resurserna har laddats upp",
+      "UPLOAD_CANCELED": "Uppladdningen avbröts. Inga filer laddades upp.",
       "REPLACED": "Resursen har ersatts",
       "DELETED": "Resurserna har tagits bort",
       "URL_COPIED": "Resursens URL har kopierats",

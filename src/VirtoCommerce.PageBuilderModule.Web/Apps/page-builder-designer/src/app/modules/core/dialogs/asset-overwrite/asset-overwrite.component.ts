@@ -4,6 +4,7 @@ import { FormField, form, required, submit, validate } from '@angular/forms/sign
 import { firstValueFrom } from 'rxjs';
 
 import { IconButtonComponent } from '@core/components/icon-button/icon-button.component';
+import { assetLibraryHelpers } from '@core/helpers';
 import {
   AssetLibraryContext,
   AssetLibraryEntry,
@@ -19,6 +20,7 @@ export interface AssetOverwriteDialogData {
   existingEntry: AssetLibraryEntry;
   reference: AssetLibraryReference;
   source: 'stored' | 'batch';
+  usageKnown: boolean;
   reservedNames: string[];
   labels: AssetLibraryLabels;
 }
@@ -48,7 +50,7 @@ export class AssetOverwriteComponent {
     );
   });
   readonly pageNames = computed(() =>
-    this.data.source === 'batch'
+    this.data.source === 'batch' || !this.data.usageKnown
       ? []
       : [
           ...new Set(
@@ -58,7 +60,15 @@ export class AssetOverwriteComponent {
           ),
         ],
   );
-  readonly consequenceMessage = computed(() => getAssetOverwriteConsequenceMessage(this.data));
+  readonly consequenceMessage = computed(() =>
+    assetLibraryHelpers.getAssetOverwriteConsequenceMessage({
+      source: this.data.source,
+      usageKnown: this.data.usageKnown,
+      assetName: this.data.existingEntry.name,
+      referencesCount: this.data.reference.referencesCount,
+      labels: this.labels,
+    }),
+  );
 
   replace() {
     this.dialogRef.close({ action: 'replace' });
@@ -76,49 +86,22 @@ export class AssetOverwriteComponent {
 
       try {
         const reserved = this.data.reservedNames.some(
-          (name) => normalizeFileName(name) === normalizeFileName(fileName),
+          (name) =>
+            assetLibraryHelpers.normalizeAssetFileName(name) === assetLibraryHelpers.normalizeAssetFileName(fileName),
         );
         const existing = reserved ? null : await firstValueFrom(this.assets.findByName(this.data.folderUrl, fileName));
 
         if (reserved || existing) {
-          this.serverError.set(formatLabel(this.labels.fileNameCollision, { name: fileName }));
+          this.serverError.set(assetLibraryHelpers.formatAssetLabel(this.labels.fileNameCollision, { name: fileName }));
           return;
         }
 
         this.dialogRef.close({ action: 'upload-as', fileName });
-      } catch (error) {
-        this.serverError.set(error instanceof Error ? error.message : this.labels.loadError);
+      } catch {
+        this.serverError.set(this.labels.loadError);
       } finally {
         this.checkingName.set(false);
       }
     });
   }
-}
-
-export function getAssetOverwriteConsequenceMessage(
-  data: Pick<AssetOverwriteDialogData, 'source' | 'existingEntry' | 'reference' | 'labels'>,
-): string {
-  const count = data.reference.referencesCount ?? 0;
-  let template = data.labels.overwriteUsedMany;
-
-  if (data.source === 'batch') {
-    template = data.labels.overwriteBatchDuplicate;
-  } else if (count === 0) {
-    template = data.labels.overwriteUnused;
-  } else if (count === 1) {
-    template = data.labels.overwriteUsedOne;
-  }
-
-  return formatLabel(template, {
-    name: data.existingEntry.name,
-    count: count.toString(),
-  });
-}
-
-function formatLabel(template: string, values: Record<string, string>): string {
-  return Object.entries(values).reduce((result, [key, value]) => result.replaceAll(`{${key}}`, value), template);
-}
-
-function normalizeFileName(value: string): string {
-  return value.trim().normalize('NFC');
 }

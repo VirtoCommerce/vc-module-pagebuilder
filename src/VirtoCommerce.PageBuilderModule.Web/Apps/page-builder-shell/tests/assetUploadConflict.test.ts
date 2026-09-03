@@ -3,6 +3,7 @@ import test from "node:test";
 import type { AssetEntry } from "../src/modules/asset-library/types";
 import {
   getAssetOverwriteMessageKey,
+  normalizeAssetFileName,
   prepareAssetUploadFiles,
   type AssetUploadConflict,
   type AssetUploadConflictDecision,
@@ -46,6 +47,7 @@ test("prepareAssetUploadFiles keeps the original name after Replace", async () =
       requestDecision: async (conflict) => {
         assert.equal(conflict.references.referencesCount, 2);
         assert.equal(conflict.source, "stored");
+        assert.equal(conflict.usageKnown, true);
         return { action: "replace" };
       },
     }),
@@ -112,12 +114,63 @@ test("prepareAssetUploadFiles confirms duplicate names inside one batch before u
 
   assert.equal(decisions.length, 1);
   assert.equal(decisions[0]?.source, "batch");
+  assert.equal(decisions[0]?.usageKnown, true);
   assert.equal(decisions[0]?.references.referencesCount, 0);
   assert.equal(getAssetOverwriteMessageKey(decisions[0]!), "ASSET_LIBRARY.OVERWRITE.MESSAGE_BATCH_DUPLICATE");
   assert.deepEqual(
     prepared?.map((file) => file.name),
     ["same.png", "second-copy.png"],
   );
+});
+
+test("prepareAssetUploadFiles degrades to usage unknown when reference lookup fails", async () => {
+  let conflict: AssetUploadConflict | undefined;
+  const result = await prepareAssetUploadFiles(
+    [createFile("hero.jpg")],
+    folderUrl,
+    createDependencies({
+      findAssetByName: async () => existingEntry,
+      getReferences: async () => {
+        throw new Error("reference service unavailable");
+      },
+      requestDecision: async (value) => {
+        conflict = value;
+        return { action: "replace" };
+      },
+    }),
+  );
+
+  assert.equal(conflict?.usageKnown, false);
+  assert.equal(conflict && getAssetOverwriteMessageKey(conflict), "ASSET_LIBRARY.OVERWRITE.MESSAGE_USAGE_UNKNOWN");
+  assert.deepEqual(
+    result?.map((file) => file.name),
+    ["hero.jpg"],
+  );
+});
+
+test("prepareAssetUploadFiles asks again when a later file reuses a replaced batch name", async () => {
+  const conflicts: AssetUploadConflict[] = [];
+  const result = await prepareAssetUploadFiles(
+    [createFile("same.jpg"), createFile("same.jpg"), createFile("SAME.jpg")],
+    folderUrl,
+    createDependencies({
+      requestDecision: async (conflict) => {
+        conflicts.push(conflict);
+        return { action: "replace" };
+      },
+    }),
+  );
+
+  assert.equal(conflicts.length, 2);
+  assert.deepEqual(
+    result?.map((file) => file.name),
+    ["same.jpg", "same.jpg", "SAME.jpg"],
+  );
+});
+
+test("normalizeAssetFileName catches encoded, whitespace, Unicode and case-only collisions", () => {
+  assert.equal(normalizeAssetFileName("  HERO%20Banner.PNG  "), "hero banner.png");
+  assert.equal(normalizeAssetFileName("Cafe\u0301.png"), "café.png");
 });
 
 function createFile(name: string): File {
@@ -127,7 +180,11 @@ function createFile(name: string): File {
 function createDependencies(overrides: Partial<PrepareAssetUploadDependencies>): PrepareAssetUploadDependencies {
   return {
     findAssetByName: async () => undefined,
-    getReferences: async () => ({ referencesCount: 2, referencePages: [{ id: "page-1" }, { id: "page-2" }] }),
+    getReferences: async () => ({
+      referencesCount: 2,
+      referencePages: [{ id: "page-1" }, { id: "page-2" }],
+      usageKnown: true,
+    }),
     requestDecision: async () => ({ action: "cancel" }) as AssetUploadConflictDecision,
     getRequiredError: () => "required",
     getInvalidError: () => "invalid",

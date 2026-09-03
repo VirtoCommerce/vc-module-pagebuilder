@@ -11,6 +11,7 @@ import { useUrlParams } from "../../page-builder";
 import type { AssetEntry } from "../types";
 import { useAssetsLibraryApi } from "./useAssetsLibraryApi";
 import { formatAssetDate, getAssetPath, getAssetPublicUrl, getPreviewUrl, safeDecode } from "../utilities/assetUrl";
+import { normalizeAssetFileName } from "../utilities/assetUpload";
 import { getAssetKey, getEntryIcon, getFolderUrl, getReferencesCount, isImageEntry } from "../utilities/assetEntry";
 import { useAssetReferences } from "./useAssetReferences";
 import type { DeleteAssetReferences } from "./useAssetReferences";
@@ -264,7 +265,7 @@ export function useAssetsLibrary(): IUseAssetsLibrary {
 
     const result = await searchAssets(folderUrl, fileName);
     return result.results.find(
-      (entry) => entry.type === "blob" && normalizeFileName(entry.name) === normalizeFileName(fileName),
+      (entry) => entry.type === "blob" && normalizeAssetFileName(entry.name) === normalizeAssetFileName(fileName),
     );
   }
 
@@ -310,12 +311,4 @@ export function useAssetsLibrary(): IUseAssetsLibrary {
     replaceSelectedAsset: replaceSelectedAssetAction,
     deleteEntry: deleteEntryAction,
   };
-}
-
-function normalizeFileName(value: string): string {
-  try {
-    return decodeURIComponent(value).normalize("NFC");
-  } catch {
-    return value.normalize("NFC");
-  }
 }

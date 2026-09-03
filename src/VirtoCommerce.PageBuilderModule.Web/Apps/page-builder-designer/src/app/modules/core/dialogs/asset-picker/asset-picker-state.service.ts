@@ -188,11 +188,10 @@ export class AssetPickerStateService {
             takeUntilDestroyed(this.destroyRef)
         ).subscribe({
             next: uploaded => {
-                const uploadedEntries = uploaded;
-                const preferredSelectionUrls = uploadedEntries.map(entry => entry.relativeUrl || entry.url).filter((url): url is string => !!url);
+                const preferredSelectionUrls = uploaded.map(entry => entry.relativeUrl || entry.url).filter((url): url is string => !!url);
                 this.uploading.set(false);
-                if (uploadedEntries.length) {
-                    this.selectedAssets.set(this.multiple ? this.selection.mergeSelectedAssets(uploadedEntries) : uploadedEntries.slice(-1));
+                if (uploaded.length) {
+                    this.selectedAssets.set(this.multiple ? this.selection.mergeSelectedAssets(uploaded) : uploaded.slice(-1));
                 }
 
                 let preferredSelectionUrl: string | string[] | undefined;

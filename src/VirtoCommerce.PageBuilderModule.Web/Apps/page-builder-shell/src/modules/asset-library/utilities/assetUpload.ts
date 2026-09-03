@@ -6,13 +6,15 @@ export interface AssetUploadConflict {
   existingEntry: AssetEntry;
   references: DeleteAssetReferences;
   source: "stored" | "batch";
+  usageKnown: boolean;
 }
 
 export type AssetOverwriteMessageKey =
   | "ASSET_LIBRARY.OVERWRITE.MESSAGE_UNUSED"
   | "ASSET_LIBRARY.OVERWRITE.MESSAGE_USED_ONE"
   | "ASSET_LIBRARY.OVERWRITE.MESSAGE_USED_MANY"
-  | "ASSET_LIBRARY.OVERWRITE.MESSAGE_BATCH_DUPLICATE";
+  | "ASSET_LIBRARY.OVERWRITE.MESSAGE_BATCH_DUPLICATE"
+  | "ASSET_LIBRARY.OVERWRITE.MESSAGE_USAGE_UNKNOWN";
 
 export type AssetUploadConflictDecision =
   | { action: "replace" }
@@ -52,11 +54,9 @@ export async function prepareAssetUploadFiles(
       continue;
     }
 
-    const references = storedEntry
-      ? await dependencies.getReferences(existingEntry)
-      : { referencesCount: 0, referencePages: [] };
+    const { references, usageKnown } = await getConflictReferences(storedEntry, existingEntry, dependencies);
     const decision = await dependencies.requestDecision(
-      { file, existingEntry, references, source: storedEntry ? "stored" : "batch" },
+      { file, existingEntry, references, source: storedEntry ? "stored" : "batch", usageKnown },
       async (candidate) => validateUploadName(candidate, folderUrl, preparedFiles, dependencies),
     );
 
@@ -86,12 +86,21 @@ export function renameAssetFile(file: File, fileName: string): File {
 }
 
 export function normalizeAssetFileName(value: string): string {
-  return value.trim().normalize("NFC");
+  // Prefer a harmless extra warning on case-sensitive providers over a silent overwrite on case-insensitive ones.
+  try {
+    return decodeURIComponent(value).trim().normalize("NFC").toLowerCase();
+  } catch {
+    return value.trim().normalize("NFC").toLowerCase();
+  }
 }
 
 export function getAssetOverwriteMessageKey(conflict: AssetUploadConflict): AssetOverwriteMessageKey {
   if (conflict.source === "batch") {
     return "ASSET_LIBRARY.OVERWRITE.MESSAGE_BATCH_DUPLICATE";
+  }
+
+  if (!conflict.usageKnown) {
+    return "ASSET_LIBRARY.OVERWRITE.MESSAGE_USAGE_UNKNOWN";
   }
 
   if (conflict.references.referencesCount === 0) {
@@ -101,6 +110,23 @@ export function getAssetOverwriteMessageKey(conflict: AssetUploadConflict): Asse
   return conflict.references.referencesCount === 1
     ? "ASSET_LIBRARY.OVERWRITE.MESSAGE_USED_ONE"
     : "ASSET_LIBRARY.OVERWRITE.MESSAGE_USED_MANY";
+}
+
+async function getConflictReferences(
+  storedEntry: AssetEntry | undefined,
+  existingEntry: AssetEntry,
+  dependencies: PrepareAssetUploadDependencies,
+): Promise<{ references: DeleteAssetReferences; usageKnown: boolean }> {
+  if (!storedEntry) {
+    return { references: { referencesCount: 0, referencePages: [], usageKnown: true }, usageKnown: true };
+  }
+
+  try {
+    const references = await dependencies.getReferences(existingEntry);
+    return { references, usageKnown: references.usageKnown };
+  } catch {
+    return { references: { referencesCount: 0, referencePages: [], usageKnown: false }, usageKnown: false };
+  }
 }
 
 async function validateUploadName(

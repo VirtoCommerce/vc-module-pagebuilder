@@ -103,7 +103,7 @@ watch(
 );
 
 const pageNames = computed(() =>
-  props.conflict.source === "batch"
+  props.conflict.source === "batch" || !props.conflict.usageKnown
     ? []
     : [
         ...new Set(

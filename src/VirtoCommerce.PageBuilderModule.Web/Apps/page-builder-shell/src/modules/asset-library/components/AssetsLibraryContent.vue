@@ -166,7 +166,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { debounce } from "lodash-es";
 import { useI18n } from "vue-i18n";
 import { usePermissions } from "@vc-shell/framework";
@@ -246,7 +246,7 @@ const { notifyError, uploadAssets, createAssetFolder, replaceAsset, copyAssetUrl
   useAssetLibraryActions({
     t,
     canCreate,
-    currentFolderUrl: computed(() => currentFolderUrl.value),
+    currentFolderUrl,
     uploadFiles,
     createFolder,
     replaceSelectedAsset,
@@ -446,8 +446,8 @@ async function handleUploadAs(fileName: string) {
     }
 
     resolveUploadConflict({ action: "upload-as", fileName });
-  } catch (error) {
-    uploadNameError.value = error instanceof Error ? error.message : t("ASSET_LIBRARY.NOTIFICATIONS.ERROR_GENERIC");
+  } catch {
+    uploadNameError.value = t("ASSET_LIBRARY.NOTIFICATIONS.ERROR_GENERIC");
   } finally {
     validatingUploadName.value = false;
   }
@@ -466,6 +466,12 @@ onMounted(async () => {
     await initialize();
   } catch (error) {
     notifyError(error);
+  }
+});
+
+onUnmounted(() => {
+  if (uploadConflictResolver) {
+    resolveUploadConflict({ action: "cancel" });
   }
 });
 

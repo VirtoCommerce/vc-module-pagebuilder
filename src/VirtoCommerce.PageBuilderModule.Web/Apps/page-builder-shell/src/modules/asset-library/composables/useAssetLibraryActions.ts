@@ -1,4 +1,4 @@
-import type { ComputedRef } from "vue";
+import type { ComputedRef, Ref } from "vue";
 import { notification, parseError, usePopup } from "@vc-shell/framework";
 import type { AssetEntry, AssetReferencePage } from "../types";
 import type { DeleteAssetReferences } from "./useAssetReferences";
@@ -13,7 +13,7 @@ export type { AssetUploadConflict, AssetUploadConflictDecision } from "../utilit
 interface UseAssetLibraryActionsOptions {
   t: (key: string, params?: Record<string, unknown>) => string;
   canCreate: ComputedRef<boolean>;
-  currentFolderUrl: ComputedRef<string>;
+  currentFolderUrl: Ref<string>;
   uploadFiles: (files: FileList | File[], folderUrl?: string) => Promise<void>;
   createFolder: (name: string) => Promise<void>;
   replaceSelectedAsset: (file: File) => Promise<void>;
@@ -61,6 +61,7 @@ export function useAssetLibraryActions(options: UseAssetLibraryActionsOptions) {
       });
 
       if (!preparedFiles) {
+        notification.warning(options.t("ASSET_LIBRARY.NOTIFICATIONS.UPLOAD_CANCELED"));
         return false;
       }
 

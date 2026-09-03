@@ -81,11 +81,12 @@
       "DELETE_USED_MANY": "Supprimer {name} ? Il est utilisé sur {count} pages Page Builder."
     },
     "OVERWRITE": {
-      "TITLE": "Remplacer la ressource existante ?",
+      "TITLE": "Conflit de nom de fichier",
       "MESSAGE_UNUSED": "{name} n'est utilisé sur aucune page Page Builder. Son remplacement mettra à jour le fichier existant.",
       "MESSAGE_USED_ONE": "{name} est utilisé sur 1 page Page Builder. Son remplacement modifiera la ressource sur cette page.",
       "MESSAGE_USED_MANY": "{name} est utilisé sur {count} pages Page Builder. Son remplacement modifiera la ressource sur toutes ces pages.",
       "MESSAGE_BATCH_DUPLICATE": "Un autre fichier de ce téléversement porte déjà le nom {name}. Si vous conservez le même nom, seul le dernier fichier sera téléversé.",
+      "MESSAGE_USAGE_UNKNOWN": "Impossible de déterminer si {name} est utilisé sur des pages Page Builder. Son remplacement peut modifier les pages qui utilisent cette ressource.",
       "AFFECTED_PAGES": "Pages Page Builder concernées",
       "UPLOAD_AS_LABEL": "Téléverser sous",
       "UPLOAD_AS": "Téléverser sous",
@@ -100,6 +101,7 @@
     "NOTIFICATIONS": {
       "FOLDER_CREATED": "Dossier créé avec succès",
       "UPLOADED": "Ressources téléversées avec succès",
+      "UPLOAD_CANCELED": "Téléversement annulé. Aucun fichier n’a été téléversé.",
       "REPLACED": "Ressource remplacée avec succès",
       "DELETED": "Ressources supprimées avec succès",
       "URL_COPIED": "URL de la ressource copiée avec succès",

@@ -81,11 +81,12 @@
       "DELETE_USED_MANY": "{name} を削除しますか？{count} 件の Page Builder ページで使用されています。"
     },
     "OVERWRITE": {
-      "TITLE": "既存のアセットを置き換えますか？",
+      "TITLE": "ファイル名の競合",
       "MESSAGE_UNUSED": "{name} はどの Page Builder ページでも使用されていません。置き換えると既存のファイルが更新されます。",
       "MESSAGE_USED_ONE": "{name} は 1 件の Page Builder ページで使用されています。置き換えると、そのページのアセットが変更されます。",
       "MESSAGE_USED_MANY": "{name} は {count} 件の Page Builder ページで使用されています。置き換えると、すべてのページのアセットが変更されます。",
       "MESSAGE_BATCH_DUPLICATE": "このアップロードには {name} という名前の別のファイルがあります。同じ名前のままにすると、最後のファイルだけがアップロードされます。",
+      "MESSAGE_USAGE_UNKNOWN": "{name} が Page Builder ページで使用されているか確認できませんでした。置き換えると、このアセットを使用しているページが変更される可能性があります。",
       "AFFECTED_PAGES": "影響を受ける Page Builder ページ",
       "UPLOAD_AS_LABEL": "名前を付けてアップロード",
       "UPLOAD_AS": "名前を付けてアップロード",
@@ -100,6 +101,7 @@
     "NOTIFICATIONS": {
       "FOLDER_CREATED": "フォルダーを作成しました",
       "UPLOADED": "アセットをアップロードしました",
+      "UPLOAD_CANCELED": "アップロードをキャンセルしました。ファイルはアップロードされていません。",
       "REPLACED": "アセットを置換しました",
       "DELETED": "アセットを削除しました",
       "URL_COPIED": "アセットURLをコピーしました",
