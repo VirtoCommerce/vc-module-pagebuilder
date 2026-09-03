@@ -111,13 +111,7 @@ export class AssetLibraryUploadCoordinatorService {
         return null;
       }
 
-      preparedFiles.push(
-        decision.action === 'replace'
-          ? storedEntry
-            ? renameFile(file, storedEntry.name)
-            : file
-          : renameFile(file, decision.fileName),
-      );
+      preparedFiles.push(applyUploadDecision(file, decision, storedEntry));
     }
 
     return preparedFiles;
@@ -160,6 +154,18 @@ function renameFile(file: File, fileName: string): File {
     type: file.type,
     lastModified: file.lastModified,
   });
+}
+
+function applyUploadDecision(
+  file: File,
+  decision: AssetOverwriteDialogResult,
+  storedEntry: AssetLibraryEntry | null,
+): File {
+  if (decision.action === 'upload-as') {
+    return renameFile(file, decision.fileName);
+  }
+
+  return storedEntry ? renameFile(file, storedEntry.name) : file;
 }
 
 function createPlannedEntry(folderUrl: string, fileName: string): AssetLibraryEntry {

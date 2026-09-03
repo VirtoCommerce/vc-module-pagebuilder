@@ -64,13 +64,7 @@ export async function prepareAssetUploadFiles(
       return undefined;
     }
 
-    preparedFiles.push(
-      decision.action === "replace"
-        ? storedEntry
-          ? renameAssetFile(file, storedEntry.name)
-          : file
-        : renameAssetFile(file, decision.fileName),
-    );
+    preparedFiles.push(applyUploadDecision(file, decision, storedEntry));
   }
 
   return preparedFiles;
@@ -89,6 +83,18 @@ export function renameAssetFile(file: File, fileName: string): File {
     type: file.type,
     lastModified: file.lastModified,
   });
+}
+
+function applyUploadDecision(
+  file: File,
+  decision: Exclude<AssetUploadConflictDecision, { action: "cancel" }>,
+  storedEntry: AssetEntry | undefined,
+): File {
+  if (decision.action === "upload-as") {
+    return renameAssetFile(file, decision.fileName);
+  }
+
+  return storedEntry ? renameAssetFile(file, storedEntry.name) : file;
 }
 
 export function normalizeAssetFileName(value: string): string {
