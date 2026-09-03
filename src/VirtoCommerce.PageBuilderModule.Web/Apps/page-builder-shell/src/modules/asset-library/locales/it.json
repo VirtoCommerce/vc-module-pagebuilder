@@ -80,9 +80,28 @@
       "DELETE_USED_ONE": "Eliminare {name}? È usato in 1 pagina Page Builder.",
       "DELETE_USED_MANY": "Eliminare {name}? È usato in {count} pagine Page Builder."
     },
+    "OVERWRITE": {
+      "TITLE": "Conflitto del nome file",
+      "MESSAGE_UNUSED": "{name} non è utilizzato in nessuna pagina di Page Builder. La sostituzione aggiornerà il file esistente.",
+      "MESSAGE_USED_ONE": "{name} è utilizzato in 1 pagina di Page Builder. La sostituzione modificherà la risorsa in quella pagina.",
+      "MESSAGE_USED_MANY": "{name} è utilizzato in {count} pagine di Page Builder. La sostituzione modificherà la risorsa in tutte queste pagine.",
+      "MESSAGE_BATCH_DUPLICATE": "Un altro file in questo caricamento ha già il nome {name}. Mantenendo lo stesso nome verrà caricato solo l'ultimo file.",
+      "MESSAGE_USAGE_UNKNOWN": "Non è stato possibile determinare se {name} è utilizzato nelle pagine di Page Builder. La sostituzione potrebbe modificare le pagine che usano questa risorsa.",
+      "AFFECTED_PAGES": "Pagine di Page Builder interessate",
+      "UPLOAD_AS_LABEL": "Carica come",
+      "UPLOAD_AS": "Carica come",
+      "REPLACE": "Sostituisci",
+      "CANCEL": "Annulla",
+      "VALIDATION": {
+        "REQUIRED": "Il nome del file è obbligatorio.",
+        "INVALID": "Il nome del file non deve contenere separatori di percorso.",
+        "COLLISION": "{name} esiste già in questa cartella. Immettere un nome file diverso."
+      }
+    },
     "NOTIFICATIONS": {
       "FOLDER_CREATED": "Cartella creata con successo",
       "UPLOADED": "Risorse caricate con successo",
+      "UPLOAD_CANCELED": "Caricamento annullato. Nessun file è stato caricato.",
       "REPLACED": "Risorsa sostituita con successo",
       "DELETED": "Risorse eliminate con successo",
       "URL_COPIED": "URL risorsa copiato con successo",

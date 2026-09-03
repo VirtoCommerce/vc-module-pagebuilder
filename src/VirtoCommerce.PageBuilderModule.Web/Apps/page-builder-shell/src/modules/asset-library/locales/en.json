@@ -80,9 +80,28 @@
       "DELETE_USED_MANY": "Delete {name}? It is used on {count} Page Builder pages.",
       "DELETE_SELECTED": "Delete {count} selected assets?"
     },
+    "OVERWRITE": {
+      "TITLE": "File name conflict",
+      "MESSAGE_UNUSED": "{name} is not used on any Page Builder pages. Replacing it will update the existing file.",
+      "MESSAGE_USED_ONE": "{name} is used on 1 Page Builder page. Replacing it will change the asset on that page.",
+      "MESSAGE_USED_MANY": "{name} is used on {count} Page Builder pages. Replacing it will change the asset on all of them.",
+      "MESSAGE_BATCH_DUPLICATE": "Another file in this upload is already named {name}. Keeping the same name will upload only the last one.",
+      "MESSAGE_USAGE_UNKNOWN": "We could not determine whether {name} is used on Page Builder pages. Replacing it may change pages that use this asset.",
+      "AFFECTED_PAGES": "Affected Page Builder pages",
+      "UPLOAD_AS_LABEL": "Upload as",
+      "UPLOAD_AS": "Upload as",
+      "REPLACE": "Replace",
+      "CANCEL": "Cancel",
+      "VALIDATION": {
+        "REQUIRED": "File name is required.",
+        "INVALID": "File name must not contain path separators.",
+        "COLLISION": "{name} already exists in this folder. Enter a different file name."
+      }
+    },
     "NOTIFICATIONS": {
       "FOLDER_CREATED": "Folder created successfully",
       "UPLOADED": "Assets uploaded successfully",
+      "UPLOAD_CANCELED": "Upload canceled. No files were uploaded.",
       "REPLACED": "Asset replaced successfully",
       "DELETED": "Assets deleted successfully",
       "URL_COPIED": "Asset URL copied successfully",

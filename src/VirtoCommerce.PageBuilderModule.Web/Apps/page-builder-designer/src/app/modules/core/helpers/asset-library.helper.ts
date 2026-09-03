@@ -48,6 +48,47 @@ export function safeDecodeURIComponent(value: string): string {
     }
 }
 
+export function normalizeAssetFileName(value: string): string {
+    // Prefer a harmless extra warning on case-sensitive providers over a silent overwrite on case-insensitive ones.
+    return safeDecodeURIComponent(value).trim().normalize('NFC').toLowerCase();
+}
+
+export function formatAssetLabel(template: string, values: Record<string, string>): string {
+    return Object.entries(values).reduce((result, [key, value]) => result.replaceAll(`{${key}}`, value), template);
+}
+
+export function getAssetOverwriteConsequenceMessage(data: {
+    source: 'stored' | 'batch';
+    usageKnown: boolean;
+    assetName: string;
+    referencesCount?: number;
+    labels: {
+        overwriteUnused: string;
+        overwriteUsedOne: string;
+        overwriteUsedMany: string;
+        overwriteBatchDuplicate: string;
+        overwriteUsageUnknown: string;
+    };
+}): string {
+    const count = data.referencesCount ?? 0;
+    let template = data.labels.overwriteUsedMany;
+
+    if (data.source === 'batch') {
+        template = data.labels.overwriteBatchDuplicate;
+    } else if (!data.usageKnown) {
+        template = data.labels.overwriteUsageUnknown;
+    } else if (count === 0) {
+        template = data.labels.overwriteUnused;
+    } else if (count === 1) {
+        template = data.labels.overwriteUsedOne;
+    }
+
+    return formatAssetLabel(template, {
+        name: data.assetName,
+        count: count.toString(),
+    });
+}
+
 export function toPublicAssetUrl(value: string): string {
     if (/^(?:[a-z][a-z\d+\-.]*:)?\/\//i.test(value) || value.startsWith('data:')) {
         return value;

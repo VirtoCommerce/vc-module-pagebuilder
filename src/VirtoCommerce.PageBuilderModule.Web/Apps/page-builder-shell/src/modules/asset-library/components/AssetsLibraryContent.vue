@@ -152,10 +152,21 @@
     @close="closeCreateFolderPopup"
     @create="handleCreateFolder"
   />
+
+  <AssetOverwritePopup
+    v-if="uploadConflict"
+    :conflict="uploadConflict"
+    :submitting="validatingUploadName"
+    :server-error="uploadNameError"
+    @clear-error="uploadNameError = undefined"
+    @cancel="resolveUploadConflict({ action: 'cancel' })"
+    @replace="resolveUploadConflict({ action: 'replace' })"
+    @upload-as="handleUploadAs"
+  />
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { debounce } from "lodash-es";
 import { useI18n } from "vue-i18n";
 import { usePermissions } from "@vc-shell/framework";
@@ -169,6 +180,8 @@ import AssetLibraryGrid from "./AssetLibraryGrid.vue";
 import AssetLibraryTable from "./AssetLibraryTable.vue";
 import AssetLibraryToolbar from "./AssetLibraryToolbar.vue";
 import CreateFolderPopup from "./CreateFolderPopup.vue";
+import AssetOverwritePopup from "./AssetOverwritePopup.vue";
+import type { AssetUploadConflict, AssetUploadConflictDecision } from "../composables/useAssetLibraryActions";
 import {
   createAssetLibraryDetailsViewModel,
   createAssetLibraryEntryViewModel,
@@ -187,10 +200,16 @@ const createFolderError = ref<string>();
 const isCreateFolderPopupOpen = ref(false);
 const isUploadPopupOpen = ref(false);
 const viewMode = ref<AssetLibraryViewMode>("grid");
+const uploadConflict = ref<AssetUploadConflict>();
+const uploadNameError = ref<string>();
+const validatingUploadName = ref(false);
+let uploadConflictResolver: ((decision: AssetUploadConflictDecision) => void) | undefined;
+let uploadNameValidator: ((fileName: string) => Promise<string | undefined>) | undefined;
 
 const {
   entries,
   loading,
+  currentFolderUrl,
   searchValue,
   selectedAsset,
   selectedAssetDimensions,
@@ -206,6 +225,7 @@ const {
   getReferencesCount,
   getReferencePages,
   getDeleteReferences,
+  findAssetByName,
   formatFileSize,
   formatDate,
   getAssetPublicUrl,
@@ -226,11 +246,14 @@ const { notifyError, uploadAssets, createAssetFolder, replaceAsset, copyAssetUrl
   useAssetLibraryActions({
     t,
     canCreate,
+    currentFolderUrl,
     uploadFiles,
     createFolder,
     replaceSelectedAsset,
     deleteEntry,
     getDeleteReferences,
+    findAssetByName,
+    requestUploadConflictDecision,
     getAssetPublicUrl,
   });
 const {
@@ -386,6 +409,50 @@ async function handlePopupUpload(files: FileList) {
   }
 }
 
+function requestUploadConflictDecision(
+  conflict: AssetUploadConflict,
+  validateName: (fileName: string) => Promise<string | undefined>,
+): Promise<AssetUploadConflictDecision> {
+  uploadConflict.value = conflict;
+  uploadNameError.value = undefined;
+  uploadNameValidator = validateName;
+
+  return new Promise((resolve) => {
+    uploadConflictResolver = resolve;
+  });
+}
+
+function resolveUploadConflict(decision: AssetUploadConflictDecision) {
+  uploadConflictResolver?.(decision);
+  uploadConflict.value = undefined;
+  uploadConflictResolver = undefined;
+  uploadNameValidator = undefined;
+  uploadNameError.value = undefined;
+}
+
+async function handleUploadAs(fileName: string) {
+  if (!uploadNameValidator || validatingUploadName.value) {
+    return;
+  }
+
+  validatingUploadName.value = true;
+
+  try {
+    const error = await uploadNameValidator(fileName);
+
+    if (error) {
+      uploadNameError.value = error;
+      return;
+    }
+
+    resolveUploadConflict({ action: "upload-as", fileName });
+  } catch {
+    uploadNameError.value = t("ASSET_LIBRARY.NOTIFICATIONS.ERROR_GENERIC");
+  } finally {
+    validatingUploadName.value = false;
+  }
+}
+
 async function reloadContent() {
   try {
     await reload();
@@ -399,6 +466,12 @@ onMounted(async () => {
     await initialize();
   } catch (error) {
     notifyError(error);
+  }
+});
+
+onUnmounted(() => {
+  if (uploadConflictResolver) {
+    resolveUploadConflict({ action: "cancel" });
   }
 });
 

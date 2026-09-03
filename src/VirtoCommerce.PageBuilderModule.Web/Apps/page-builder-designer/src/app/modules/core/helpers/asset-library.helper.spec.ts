@@ -37,4 +37,11 @@ describe('assetLibraryHelpers', () => {
         });
     });
 
+    describe('normalizeAssetFileName', () => {
+        it('decodes, trims, normalizes and folds casing for provider-independent collision checks', () => {
+            expect(assetLibraryHelpers.normalizeAssetFileName('  HERO%20Banner.PNG  ')).toBe('hero banner.png');
+            expect(assetLibraryHelpers.normalizeAssetFileName('Cafe\u0301.png')).toBe('café.png');
+        });
+    });
+
 });

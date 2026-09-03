@@ -80,9 +80,28 @@
       "DELETE_USED_ONE": "¿Eliminar {name}? Se usa en 1 página de Page Builder.",
       "DELETE_USED_MANY": "¿Eliminar {name}? Se usa en {count} páginas de Page Builder."
     },
+    "OVERWRITE": {
+      "TITLE": "Conflicto de nombre de archivo",
+      "MESSAGE_UNUSED": "{name} no se usa en ninguna página de Page Builder. Al reemplazarlo se actualizará el archivo existente.",
+      "MESSAGE_USED_ONE": "{name} se usa en 1 página de Page Builder. Al reemplazarlo se cambiará el recurso en esa página.",
+      "MESSAGE_USED_MANY": "{name} se usa en {count} páginas de Page Builder. Al reemplazarlo se cambiará el recurso en todas ellas.",
+      "MESSAGE_BATCH_DUPLICATE": "Otro archivo de esta carga ya se llama {name}. Si mantiene el mismo nombre, solo se cargará el último.",
+      "MESSAGE_USAGE_UNKNOWN": "No se pudo determinar si {name} se usa en páginas de Page Builder. Reemplazarlo puede modificar las páginas que usan este recurso.",
+      "AFFECTED_PAGES": "Páginas de Page Builder afectadas",
+      "UPLOAD_AS_LABEL": "Cargar como",
+      "UPLOAD_AS": "Cargar como",
+      "REPLACE": "Reemplazar",
+      "CANCEL": "Cancelar",
+      "VALIDATION": {
+        "REQUIRED": "El nombre del archivo es obligatorio.",
+        "INVALID": "El nombre del archivo no debe contener separadores de ruta.",
+        "COLLISION": "{name} ya existe en esta carpeta. Introduzca otro nombre de archivo."
+      }
+    },
     "NOTIFICATIONS": {
       "FOLDER_CREATED": "Carpeta creada correctamente",
       "UPLOADED": "Activos subidos correctamente",
+      "UPLOAD_CANCELED": "Carga cancelada. No se cargó ningún archivo.",
       "REPLACED": "Activo reemplazado correctamente",
       "DELETED": "Activos eliminados correctamente",
       "URL_COPIED": "URL del activo copiada correctamente",
