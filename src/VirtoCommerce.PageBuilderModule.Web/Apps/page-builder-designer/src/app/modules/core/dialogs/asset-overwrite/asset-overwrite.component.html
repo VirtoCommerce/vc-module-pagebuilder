@@ -1,10 +1,10 @@
 <div class="asset-overwrite">
   <header>
-    <h2>{{ labels.overwriteTitle }}</h2>
+    <h2 id="asset-overwrite-title">{{ labels.overwriteTitle }}</h2>
   </header>
 
   <div mat-dialog-content>
-    <p class="consequence">{{ consequenceMessage() }}</p>
+    <p id="asset-overwrite-consequence" class="consequence">{{ consequenceMessage() }}</p>
 
     @if (pageNames().length) {
       <ul class="pages" [attr.aria-label]="labels.affectedPages">
@@ -32,8 +32,8 @@
   </div>
 
   <div mat-dialog-actions>
-    <app-icon-button skin="outline" [text]="labels.cancel" [disabled]="checkingName()" (click)="cancel()" />
-    <app-icon-button skin="outline" [text]="labels.replace" [disabled]="checkingName()" (click)="replace()" />
-    <app-icon-button skin="primary" [text]="labels.uploadAs" [disabled]="checkingName()" (click)="uploadAs()" />
+    <app-icon-button skin="outline" layout="full-center" [text]="labels.cancel" [disabled]="checkingName()" (click)="cancel()" />
+    <app-icon-button skin="outline" layout="full-center" [text]="labels.replace" [disabled]="checkingName()" (click)="replace()" />
+    <app-icon-button skin="primary" layout="full-center" [text]="labels.uploadAs" [disabled]="checkingName()" (click)="uploadAs()" />
   </div>
 </div>

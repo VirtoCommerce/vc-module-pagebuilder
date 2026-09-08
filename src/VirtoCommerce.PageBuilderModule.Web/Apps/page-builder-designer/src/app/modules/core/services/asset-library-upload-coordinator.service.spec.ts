@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { firstValueFrom, of, Subject, throwError } from 'rxjs';
 
 import { assetLibraryHelpers } from '@core/helpers';
@@ -20,6 +21,7 @@ describe('AssetLibraryUploadCoordinatorService', () => {
     getLabels: ReturnType<typeof vi.fn>;
   };
   let modals: { show: ReturnType<typeof vi.fn>; alert: ReturnType<typeof vi.fn> };
+  let snackBar: { open: ReturnType<typeof vi.fn> };
   let service: AssetLibraryUploadCoordinatorService;
 
   beforeEach(() => {
@@ -37,12 +39,14 @@ describe('AssetLibraryUploadCoordinatorService', () => {
       getLabels: vi.fn(() => ({ uploadCanceled: 'Upload canceled. No files were uploaded.' })),
     };
     modals = { show: vi.fn(), alert: vi.fn(() => of(true)) };
+    snackBar = { open: vi.fn() };
 
     TestBed.configureTestingModule({
       providers: [
         AssetLibraryUploadCoordinatorService,
         { provide: AssetLibraryService, useValue: assets },
         { provide: ModalService, useValue: modals },
+        { provide: MatSnackBar, useValue: snackBar },
       ],
     });
     service = TestBed.inject(AssetLibraryUploadCoordinatorService);
@@ -86,8 +90,8 @@ describe('AssetLibraryUploadCoordinatorService', () => {
     expect(assets.upload.mock.calls[0][1].name).toBe('hero-new.jpg');
   });
 
-  it('cancels the complete batch before any upload is written', async () => {
-    modals.show.mockReturnValue(of(null));
+  it.each([null, undefined])('cancels the complete batch without another modal when the dialog returns %s', async (decision) => {
+    modals.show.mockReturnValue(of(decision));
 
     const result = await firstValueFrom(
       service.uploadFiles(folderUrl, [createFile('new.jpg'), createFile('hero.jpg')]),
@@ -95,7 +99,12 @@ describe('AssetLibraryUploadCoordinatorService', () => {
 
     expect(result).toEqual([]);
     expect(assets.upload).not.toHaveBeenCalled();
-    expect(modals.alert).toHaveBeenCalledWith('Upload canceled. No files were uploaded.');
+    expect(snackBar.open).toHaveBeenCalledWith('Upload canceled. No files were uploaded.', undefined, {
+      duration: 5000,
+      horizontalPosition: 'right',
+      verticalPosition: 'top',
+    });
+    expect(modals.alert).not.toHaveBeenCalled();
   });
 
   it('confirms duplicate names inside one batch before uploading', async () => {

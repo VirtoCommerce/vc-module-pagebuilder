@@ -1,4 +1,5 @@
 import { inject, Injectable } from '@angular/core';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { firstValueFrom, Observable } from 'rxjs';
 
 import {
@@ -17,6 +18,7 @@ import { AssetLibraryService } from './asset-library.service';
 export class AssetLibraryUploadCoordinatorService {
   private readonly assets = inject(AssetLibraryService);
   private readonly modals = inject(ModalService);
+  private readonly snackBar = inject(MatSnackBar);
 
   uploadFiles(
     folderUrl: string,
@@ -53,7 +55,12 @@ export class AssetLibraryUploadCoordinatorService {
     const preparedFiles = await this.prepareFiles(folderUrl, files, context, signal);
 
     if (!preparedFiles) {
-      this.modals.alert(this.assets.getLabels().uploadCanceled);
+      // Material keeps this feedback above the picker in the browser's top layer.
+      this.snackBar.open(this.assets.getLabels().uploadCanceled, undefined, {
+        duration: 5000,
+        horizontalPosition: 'right',
+        verticalPosition: 'top',
+      });
       return [];
     }
 
@@ -91,6 +98,10 @@ export class AssetLibraryUploadCoordinatorService {
       const decision = await firstValueFrom(
         this.modals.show<AssetOverwriteDialogResult | null>(AssetOverwriteComponent, {
           autoFocus: '#asset-overwrite-file-name',
+          ariaLabelledBy: 'asset-overwrite-title',
+          ariaDescribedBy: 'asset-overwrite-consequence',
+          width: '36rem',
+          maxWidth: '90vw',
           panelClass: 'asset-overwrite-dialog',
           data: {
             file,

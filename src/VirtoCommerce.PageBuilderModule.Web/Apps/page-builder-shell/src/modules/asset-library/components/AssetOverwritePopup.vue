@@ -3,7 +3,7 @@
     class="asset-overwrite-popup"
     :model-value="true"
     :title="$t('ASSET_LIBRARY.OVERWRITE.TITLE')"
-    is-mobile-fullscreen
+    modal-width="tw-max-w-xl"
     @update:model-value="handleModelValueUpdate"
     @close="$emit('cancel')"
   >
@@ -169,6 +169,7 @@ function handleModelValueUpdate(value: boolean) {
   flex-direction: column;
   gap: 1rem;
   color: var(--neutrals-800);
+  overflow-wrap: anywhere;
 
   &__message {
     margin: 0;
@@ -180,6 +181,7 @@ function handleModelValueUpdate(value: boolean) {
     margin: 0;
     padding-left: 1.25rem;
     overflow-y: auto;
+    list-style: disc;
   }
 
   &__form {
