@@ -42,7 +42,7 @@ public class PageBuilderContentProvider(
     }
 
     private static DateTime GetEffectiveChangeDate(
-        IReadOnlyDictionary<string, DateTime> effectiveChangeDates,
+        Dictionary<string, DateTime> effectiveChangeDates,
         PageBuilderPage page)
     {
         return !string.IsNullOrEmpty(page.Id) && effectiveChangeDates.TryGetValue(page.Id, out var changeDate)
@@ -65,9 +65,9 @@ public class PageBuilderContentProvider(
         var result = new List<PageDocument>();
 
         var rawContents = new Dictionary<string, string>(pages.Results.Count, StringComparer.OrdinalIgnoreCase);
-        foreach (var page in pages.Results.Where(x => groupsById.ContainsKey(x.GroupId)))
+        foreach (var pageId in pages.Results.Where(x => groupsById.ContainsKey(x.GroupId)).Select(page => page.Id))
         {
-            rawContents[page.Id] = await groupedPageService.LoadContent(page.Id);
+            rawContents[pageId] = await groupedPageService.LoadContent(pageId);
         }
 
         var componentContents = await sharedComponentResolver.LoadReferencedComponentsAsync(rawContents.Values);
