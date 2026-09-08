@@ -1,0 +1,142 @@
+@use './variables' as *;
+
+// CKEditor 4 dialogs (link, image, table, ...) are rendered into the document body, so they are
+// styled here rather than in a component.
+//
+// The skin ships `.cke_reset_all, .cke_reset_all *` with `background: transparent` and
+// `font: normal normal normal 12px Arial`, which wipes out both the arrow `@tailwindcss/forms`
+// draws on a select and the application typography. That rule is specificity (0,1,0) and the skin
+// stylesheet is injected after the bundle, so every override below is scoped under `.cke_dialog`
+// to win on specificity rather than order.
+
+// Mirrors $icons-color. Inlined because a data URI needs the hash escaped as %23.
+$cke-select-arrow: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23484848' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 8.5l4 4 4-4'/%3E%3C/svg%3E";
+
+.cke_dialog {
+    // Undo the skin's Arial 12px for text nodes, while leaving CKEditor's own icon fonts alone.
+    .cke_dialog_title,
+    .cke_dialog_ui_labeled_label,
+    .cke_dialog_ui_labeled_content,
+    .cke_dialog_tab,
+    legend,
+    label,
+    input,
+    select,
+    textarea,
+    a.cke_dialog_ui_button {
+        font-family: 'Inter', sans-serif;
+        font-size: $default-font-size;
+        line-height: 20px;
+    }
+
+    .cke_dialog_title {
+        color: $heading-color;
+        font-weight: 600;
+    }
+
+    .cke_dialog_ui_labeled_label {
+        display: block;
+        margin: 0 0 0.25rem;
+        color: $label-color;
+    }
+
+    // Every control shares the application's input look.
+    input.cke_dialog_ui_input_text,
+    input.cke_dialog_ui_input_password,
+    input.cke_dialog_ui_input_tel,
+    textarea.cke_dialog_ui_input_textarea,
+    select.cke_dialog_ui_input_select {
+        min-height: 2rem;
+        padding: 0.25rem 0.5rem;
+        border: 1px solid $controls-border-color;
+        border-radius: 0.25rem;
+        color: $form-controls-text-color;
+        background-color: #fff;
+        box-sizing: border-box;
+
+        &:hover {
+            border-color: $secondary-element-color;
+        }
+
+        // The skin focuses with a 2px border, which shifts the control by a pixel. Keep the border
+        // width and show the focus as a ring instead.
+        &:focus {
+            border: 1px solid $active-color;
+            box-shadow: 0 0 0 2px rgba(22, 101, 216, 0.16);
+        }
+    }
+
+    select.cke_dialog_ui_input_select {
+        height: 2rem;
+        line-height: 20px;
+        // Restore the arrow the reset stripped, and reserve room for it so long option labels such
+        // as "Call to Action (call-action)" never run underneath.
+        padding-right: 1.75rem;
+        background-image: url($cke-select-arrow);
+        background-repeat: no-repeat;
+        background-position: right 0.5rem center;
+        background-size: 1rem 1rem;
+        appearance: none;
+        cursor: pointer;
+    }
+
+    // The skin lays the select wrapper out as a table, which shrinks it to its content and leaves
+    // the field far narrower than the row it sits in.
+    div.cke_dialog_ui_input_select {
+        display: block;
+        width: 100%;
+    }
+
+    .cke_dialog_ui_hbox_first,
+    .cke_dialog_ui_hbox_child,
+    .cke_dialog_ui_hbox_last {
+        padding-right: 0.75rem;
+        vertical-align: top;
+
+        &:last-child {
+            padding-right: 0;
+        }
+    }
+
+    .cke_dialog_ui_vbox_child {
+        padding-top: 0.75rem;
+    }
+
+    fieldset {
+        margin-top: 0.5rem;
+        padding: 0.75rem;
+        border: 1px solid $border-color;
+        border-radius: 0.25rem;
+
+        legend {
+            padding: 0 0.25rem;
+            color: $label-color;
+        }
+    }
+
+    // Footer buttons: primary action in the application accent, the rest neutral.
+    a.cke_dialog_ui_button {
+        padding: 0.25rem 0.875rem;
+        border: 1px solid $controls-border-color;
+        border-radius: 0.25rem;
+        color: $form-controls-text-color;
+        background: #fff;
+        box-shadow: none;
+        text-shadow: none;
+
+        &:hover {
+            background: $hover-color;
+        }
+    }
+
+    a.cke_dialog_ui_button_ok {
+        border-color: $active-color;
+        color: #fff;
+        background: $active-color;
+
+        &:hover {
+            border-color: #1257bb;
+            background: #1257bb;
+        }
+    }
+}
