@@ -1,0 +1,79 @@
+<div class="login">
+  <app-logo class="logo" />
+
+  <div class="heading">
+    <div class="title">Session expired</div>
+    <div class="subtitle">Sign in to your account to continue</div>
+  </div>
+
+  <form class="form" (submit)="onSubmit($event)">
+    <label class="field">
+      <span class="label">User name <span class="required">*</span></span>
+      <input
+        type="text"
+        name="username"
+        autocomplete="username"
+        [value]="userName()"
+        [disabled]="busy()"
+        (input)="userName.set($any($event.target).value)" />
+    </label>
+
+    <label class="field">
+      <span class="label">Password <span class="required">*</span></span>
+      <span class="control">
+        <input
+          [type]="passwordVisible() ? 'text' : 'password'"
+          name="password"
+          autocomplete="current-password"
+          [value]="password()"
+          [disabled]="busy()"
+          (input)="password.set($any($event.target).value)" />
+        <button
+          type="button"
+          class="reveal"
+          tabindex="-1"
+          [attr.aria-label]="passwordVisible() ? 'Hide password' : 'Show password'"
+          (click)="togglePassword()">
+          <app-icon>{{ passwordVisible() ? 'visibility_off' : 'visibility' }}</app-icon>
+        </button>
+      </span>
+    </label>
+
+    <app-icon-button
+      class="submit"
+      skin="primary"
+      icon="login"
+      [text]="busy() ? 'Signing in...' : 'Sign in'"
+      [disabled]="!canSubmit()"
+      (onClick)="signIn()" />
+
+    <button type="submit" hidden></button>
+  </form>
+
+  @if (error(); as message) {
+    <div class="error">
+      <app-icon>error_outline</app-icon>
+      <span>{{ message }}</span>
+    </div>
+  }
+
+  <div class="separator"><span>or</span></div>
+
+  <!-- The password grant is refused where the platform authenticates through an external
+       provider, so the user signs in there and the designer picks up the cookie session. -->
+  <div class="platform">
+    <div class="hint">Signing in with a company account? Sign in on the platform, then come back here.</div>
+    <app-icon-button
+      skin="secondary"
+      icon="open_in_new"
+      text="Open platform sign in"
+      [disabled]="busy()"
+      (onClick)="openPlatformSignIn()" />
+    <app-icon-button
+      skin="secondary"
+      icon="refresh"
+      [text]="busy() ? 'Checking...' : 'I have signed in - continue'"
+      [disabled]="busy()"
+      (onClick)="continueWithPlatformSession()" />
+  </div>
+</div>
