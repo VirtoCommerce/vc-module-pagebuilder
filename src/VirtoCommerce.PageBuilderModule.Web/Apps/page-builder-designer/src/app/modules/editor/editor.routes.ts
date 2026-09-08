@@ -8,6 +8,8 @@ import {
     EditSectionComponent,
     ToolbarHostComponent
 } from '@editor/components';
+import { PAGE_ANCHORS_PROVIDER } from '@core/services';
+import { PageAnchorsService } from '@editor/services';
 import { EditorModuleInfo } from '@models/modules';
 import { EditorFeatureName, editorReducers, EFFECTS } from './store';
 
@@ -17,7 +19,11 @@ export const EDITOR_ROUTES: Routes = [
         component: TemplateEditorHostComponent,
         providers: [
             provideState(EditorFeatureName, editorReducers),
-            provideEffects(EFFECTS)
+            provideEffects(EFFECTS),
+            // Rich-text controls resolve page-wide anchors through this seam (VCST-5704). Registered
+            // here so it can read the editor feature state provided just above.
+            PageAnchorsService,
+            { provide: PAGE_ANCHORS_PROVIDER, useExisting: PageAnchorsService }
         ],
         data: { module: EditorModuleInfo.name, toolbar: ToolbarHostComponent },
         children: [

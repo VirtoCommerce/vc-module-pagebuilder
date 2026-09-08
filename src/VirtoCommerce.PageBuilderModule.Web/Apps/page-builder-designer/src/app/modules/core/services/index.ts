@@ -7,3 +7,4 @@ export * from './assets.service';
 export * from './asset-library-api.service';
 export * from './asset-library.service';
 export * from './asset-url.service';
+export * from './page-anchors.provider';

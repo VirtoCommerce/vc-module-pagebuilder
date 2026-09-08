@@ -9,6 +9,7 @@ import { EnvironmentRef } from './environment.ref';
 import { BuilderHttpClient } from "./builder-http.client";
 import { EvaluatorService } from "./evaluator.service";
 import { AppInitializator } from "./app.initializator";
+import { SessionService } from "./session.service";
 
 describe('app initializator', () => {
     let initializator: AppInitializator;
@@ -17,6 +18,7 @@ describe('app initializator', () => {
     // let http: BuilderHttpClient;
     let evaluator: EvaluatorService;
     let httpController: HttpTestingController;
+    let session: SessionService;
 
     // The platform shell leaves a token here before the app boots. Without one, init() asks
     // /connect/token for a fresh one first, and the config request these tests expect never goes out.
@@ -26,6 +28,9 @@ describe('app initializator', () => {
     }));
 
     beforeEach(() => {
+        // a valid token keeps init() from asking the platform for one, which these tests do not cover
+        localStorage.setItem('ls.authenticationData', JSON.stringify({ token: 'test-token', expiresAt: Date.now() + 60000 }));
+
         cookies = <any>{};
         // evaluator = <any>jasmine.createSpyObj('evaluator', ['evaluate']);
         // evaluator.evaluate.and.callFake((x: any) => x);
@@ -53,7 +58,12 @@ describe('app initializator', () => {
 
         httpController = TestBed.inject(HttpTestingController);
         initializator = TestBed.inject(AppInitializator);
+        session = TestBed.inject(SessionService);
 
+    });
+
+    afterEach(() => {
+        localStorage.removeItem('ls.authenticationData');
     });
 
     afterEach(() => {

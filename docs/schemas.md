@@ -180,6 +180,28 @@ You can also organize reusable setting groups in separate files and include them
 |------------|-------------------------------|----------------------------|
 | `settings` | SectionPropertyDescriptor[] | Property descriptors array |
 
+#### The `anchor` setting
+
+`anchor` is a well-known setting id. When a theme declares it — usually in **_sections.json** and
+**_blocks.json**, so every section and block gets it — a content manager can give an item a readable
+link target instead of the generated id:
+
+```json
+{
+  "id": "anchor",
+  "label": "Anchor",
+  "type": "string",
+  "info": "Link to this section from a rich text field, for example #specifications."
+}
+```
+
+Page Builder normalizes the value into a slug (lowercased, spaces to dashes, other characters
+dropped) and offers it in the rich text [link dialog](controls/text.md#page-wide-anchor-links). When
+the setting is empty — or the value has nothing left after normalization — the generated item id is
+used instead.
+
+The theme is responsible for rendering the matching element id, applying the same normalization.
+
 ### Objects
 
 Section property can be object. In this case, it is necessary to describe the structure of this object in a separate file, that should be stored in folder `objects`.

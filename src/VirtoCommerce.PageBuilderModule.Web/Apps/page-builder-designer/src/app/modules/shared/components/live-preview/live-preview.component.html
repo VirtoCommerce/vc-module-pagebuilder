@@ -6,8 +6,35 @@
             </div>
         }
     </div>
-    <div class="iframe-holder" [class]="previewMode()">
-        <!-- todo: move to config flow -->
-        <iframe class="shadow-md" #frame id="preview-frame-component" [src]="previewUrl"></iframe>
-    </div>
+    <!-- todo: move to config flow -->
+    @if (previewUrl(); as url) {
+        <div class="iframe-holder" [class]="previewMode()">
+            <iframe class="shadow-md" #frame id="preview-frame-component" [src]="url"></iframe>
+        </div>
+    } @else {
+        <!-- an empty or relative url would make the frame load the designer itself (VCST-5847) -->
+        <div class="iframe-holder">
+            <div class="preview-placeholder">
+                <app-icon>desktop_access_disabled</app-icon>
+                <div class="placeholder-title">Preview is not available</div>
+                @if (sessionExpired()) {
+                    <div class="placeholder-info">
+                        The storefront address cannot be read while your session is expired.
+                        Sign in to bring the preview back.
+                    </div>
+                } @else {
+                    <div class="placeholder-info">
+                        The storefront address for this store could not be resolved.
+                        Check the store URL in the store settings, or the platform setting:
+                    </div>
+                    <div class="setting">VirtoCommerce.PageBuilderModule.General.StoreUrl</div>
+                    <app-icon-button
+                        skin="outline"
+                        [text]="reloading() ? 'Retrying...' : 'Retry'"
+                        [disabled]="reloading()"
+                        (onClick)="reload()" />
+                }
+            </div>
+        </div>
+    }
 </div>
