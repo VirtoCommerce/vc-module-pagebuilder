@@ -825,6 +825,40 @@ describe('Shared Component effects', () => {
     expect(update.template.content.some((section) => isSharedComponentReference(section))).toBe(false);
   });
 
+  it('opens the independent section after detaching the edited shared instance', async () => {
+    store.overrideSelector(routingSelectors.selectSectionIdParameter, 'placement-1');
+    store.refreshState();
+    actions$.next(actions.detachSharedComponent({ sectionId: 'placement-1', componentId: component.id }));
+    const emitted = await firstValueFrom(domainEffects.detach$.pipe(take(6), toArray()));
+    const update = emitted.find(action => action.type === actions.updateTemplateAction.type) as ReturnType<typeof actions.updateTemplateAction>;
+    expect(emitted).toContainEqual(actions.clearSharedComponentDetails());
+    expect(emitted).toContainEqual(actions.editSectionAction({ sectionId: update.template.content[1].id }));
+  });
+
+  it('closes the editor when an empty shared component is detached', async () => {
+    store.overrideSelector(routingSelectors.selectSectionIdParameter, 'placement-1');
+    service.getContent.mockReturnValue(of(createTemplate({ content: [] })));
+    store.refreshState();
+    actions$.next(actions.detachSharedComponent({ sectionId: 'placement-1', componentId: component.id }));
+    const emitted = await firstValueFrom(domainEffects.detach$.pipe(take(6), toArray()));
+    expect(emitted).toContainEqual(actions.closeEditItemPanel());
+    expect(emitted.some(action => action.type === actions.editSectionAction.type)).toBe(false);
+  });
+
+  it('does not reopen the detached section if the user changed selection while loading', async () => {
+    const response$ = new Subject<TemplateModel>();
+    service.getContent.mockReturnValue(response$);
+    store.overrideSelector(routingSelectors.selectSectionIdParameter, 'placement-1');
+    store.refreshState();
+    const emittedPromise = firstValueFrom(domainEffects.detach$.pipe(take(4), toArray()));
+    actions$.next(actions.detachSharedComponent({ sectionId: 'placement-1', componentId: component.id }));
+    store.overrideSelector(routingSelectors.selectSectionIdParameter, 'before');
+    store.refreshState();
+    response$.next(sharedComponentContent);
+    response$.complete();
+    expect((await emittedPromise).some(action => action.type === actions.editSectionAction.type)).toBe(false);
+  });
+
   it('refreshes where-used metadata after saving a page with a shared instance', async () => {
     const refreshed = {
       ...component,
@@ -857,6 +891,43 @@ describe('Shared Component effects', () => {
       actions.clearSharedComponentUsageRefresh({ templateKey: 'page-1' }),
     ]);
     expect(service.get).toHaveBeenCalledWith(component.id);
+  });
+
+  it('refreshes preview metadata after save using the latest unsaved template', async () => {
+    const response$ = new Subject<typeof component>();
+    service.get.mockReturnValue(response$);
+    const emittedPromise = firstValueFrom(dataEffects.refreshUsageAfterSave$.pipe(take(3), toArray()));
+    actions$.next(actions.saveTemplateSuccess({ templateKey: 'page-1', template: raw }));
+    const editedWhileSaving = createTemplate({ content: [...raw.content, createSection({ id: 'new-edit' })] });
+    store.overrideSelector(selectors.selectCurrentTemplateModel, editedWhileSaving);
+    store.refreshState();
+    const refreshed = { ...component, usageCount: 3 };
+    response$.next(refreshed);
+    response$.complete();
+
+    expect(await emittedPromise).toEqual([
+      actions.cacheSharedComponent({ component: refreshed }),
+      actions.clearSharedComponentUsageRefresh({ templateKey: 'page-1' }),
+      actions.broadcastResolvedPreview({ msg: { type: 'changed', template: editedWhileSaving } }),
+    ]);
+  });
+
+  it('does not overwrite the preview after navigating away during usage refresh', async () => {
+    const response$ = new Subject<typeof component>();
+    service.get.mockReturnValue(response$);
+    const emitted: Action[] = [];
+    const subscription = dataEffects.refreshUsageAfterSave$.subscribe(action => emitted.push(action));
+    actions$.next(actions.saveTemplateSuccess({ templateKey: 'page-1', template: raw }));
+    store.overrideSelector(routingSelectors.selectTemplateKeyParameter, 'page-2');
+    store.refreshState();
+    response$.next(component);
+    response$.complete();
+
+    expect(emitted).toEqual([
+      actions.cacheSharedComponent({ component }),
+      actions.clearSharedComponentUsageRefresh({ templateKey: 'page-1' }),
+    ]);
+    subscription.unsubscribe();
   });
 
   it('keeps a pending usage refresh after a transient metadata failure', () => {

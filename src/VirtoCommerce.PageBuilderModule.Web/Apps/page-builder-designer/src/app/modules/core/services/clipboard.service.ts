@@ -30,8 +30,12 @@ export class ClipboardService {
             }
             try {
                 const result = <ClipboardModel>JSON.parse(data);
-                result.sourceContent = data;
-                return result;
+                if ((result?.type !== 'section' && result?.type !== 'block')
+                    || !result.content || typeof result.content !== 'object' || Array.isArray(result.content)
+                    || typeof result.content.type !== 'string' || !result.content.type.trim()) {
+                    return { wrongData: true, sourceContent: data };
+                }
+                return { ...result, sourceContent: data };
             } catch (error) {
                 return <ClipboardModel>{ wrongData: true, sourceContent: data };
             }

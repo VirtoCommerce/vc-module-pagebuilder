@@ -184,7 +184,7 @@ export class ContextMenuHelper {
 
     private async hasClipboardData(): Promise<boolean> {
         const clipboardData = await this.clipboard.getData();
-        return clipboardData != null;
+        return clipboardData != null && clipboardData.wrongData !== true;
     }
 
     private can(option: 'canInsertSharedComponents' | 'canCreateSharedComponents'): boolean {

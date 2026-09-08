@@ -75,6 +75,24 @@ describe('ClipboardService', () => {
             expect(result!.sourceContent).toBe('not valid json');
         });
 
+        it.each(['null', '42', '"text"', '[]', '{}', '{"type":"section"}',
+            '{"type":"page","content":{"type":"hero"}}',
+            '{"type":"section","content":{"type":" "}}'])
+            ('rejects JSON that is not a section or block: %s', async (data) => {
+                navigatorClipboard.readText.mockResolvedValue(data);
+                expect(await service.getData()).toEqual({ wrongData: true, sourceContent: data });
+            });
+
+        it('accepts copied blocks and shared references', async () => {
+            for (const data of [
+                { type: 'block', content: { type: 'text' } },
+                { type: 'section', content: { id: 'placement', type: 'componentRef', componentRef: 'component' } },
+            ]) {
+                navigatorClipboard.readText.mockResolvedValue(JSON.stringify(data));
+                expect((await service.getData())?.wrongData).not.toBe(true);
+            }
+        });
+
         it('returns null for empty clipboard', async () => {
             navigatorClipboard.readText.mockResolvedValue('');
 

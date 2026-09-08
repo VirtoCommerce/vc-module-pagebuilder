@@ -326,8 +326,9 @@ export class SharedComponentsDomainEffects {
             this.store.select(selectors.selectCurrentTemplateModel),
             this.store.select(routingSelectors.selectTemplateKeyParameter),
             this.store.select(routingSelectors.selectSharedComponentIdParameter),
+            this.store.select(routingSelectors.selectSectionIdParameter),
           ),
-          switchMap(([content, latestTemplate, latestTemplateKey, latestSharedComponentId]) => {
+          switchMap(([content, latestTemplate, latestTemplateKey, latestSharedComponentId, editedSectionId]) => {
             if (
               !latestTemplate ||
               !isSameDocument(origin, latestTemplateKey, latestSharedComponentId) ||
@@ -337,12 +338,21 @@ export class SharedComponentsDomainEffects {
             }
 
             const updated = detachSharedComponent(latestTemplate, sectionId, content);
+            const detachedSection = content.content.length > 0
+              ? updated.content[latestTemplate.content.findIndex(section => section.id === sectionId)]
+              : undefined;
             return [
               actions.cacheSharedComponentContent({ componentId, content }),
               actions.updateTemplateAction({ template: updated, templateKey: latestTemplateKey }),
               actions.broadcastResolvedPreview({
                 msg: { type: 'reload', template: updated },
               }),
+              ...(editedSectionId === sectionId ? [
+                actions.clearSharedComponentDetails(),
+                detachedSection
+                  ? actions.editSectionAction({ sectionId: detachedSection.id })
+                  : actions.closeEditItemPanel(),
+              ] : []),
               sharedActions.showNotification({
                 message: 'Shared Component detached. This copy is now independent.',
                 msgType: 'info',

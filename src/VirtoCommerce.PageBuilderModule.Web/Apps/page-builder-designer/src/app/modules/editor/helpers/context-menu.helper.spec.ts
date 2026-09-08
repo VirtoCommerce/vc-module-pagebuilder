@@ -57,6 +57,16 @@ describe('ContextMenuHelper Shared Components', () => {
         expect(findAction(actions, 'detach-shared-component').inactive).toBe(false);
     });
 
+    it('disables paste for unrelated clipboard text in page and instance menus', async () => {
+        clipboard.getData.mockResolvedValue({ wrongData: true, sourceContent: 'ordinary text' });
+        const helper = TestBed.inject(ContextMenuHelper);
+        const page = await helper.getPageActions();
+        const instance = await helper.getSectionsActions(createSharedComponentReference('component-1'), false);
+        expect(findAction(page, 'paste-section').inactive).toBe(true);
+        expect(findAction(instance, 'paste-before').inactive).toBe(true);
+        expect(findAction(instance, 'paste-after').inactive).toBe(true);
+    });
+
     it('does not expose the original without read permission', async () => {
         appConfig.getValue.mockImplementation((option: string) => option === 'canEditSharedComponents');
 

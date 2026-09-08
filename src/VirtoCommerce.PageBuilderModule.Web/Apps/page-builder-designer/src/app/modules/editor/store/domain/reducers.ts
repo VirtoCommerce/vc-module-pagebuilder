@@ -3,6 +3,8 @@ import { createReducer, on } from '@ngrx/store';
 import * as actions from '../actions';
 
 import { EditorDomainState, initialState } from './state';
+import { SectionStatesList } from '@editor/models';
+import { TemplateModel } from '@models/document';
 
 export const editorDomainReducers = createReducer<EditorDomainState>(
     initialState,
@@ -21,7 +23,7 @@ export const editorDomainReducers = createReducer<EditorDomainState>(
             }
         })
     ),
-    on(actions.loadTemplateModelSuccess, (state, { templateKey }) => ({
+    on(actions.loadTemplateModelSuccess, (state, { templateKey, template }) => ({
             ...state,
             states: {
                 ...state.states,
@@ -29,11 +31,21 @@ export const editorDomainReducers = createReducer<EditorDomainState>(
                     ...state.states[templateKey],
                     isLoading: false,
                     error: undefined,
-                    sections: state.states[templateKey]?.sections || {}
+                    sections: retainExistingItemStates(state.states[templateKey]?.sections || {}, template)
                 }
             }
         })
     ),
+    on(actions.updateTemplateAction, (state, { templateKey, template }) => ({
+        ...state,
+        states: {
+            ...state.states,
+            [templateKey]: {
+                ...state.states[templateKey],
+                sections: retainExistingItemStates(state.states[templateKey]?.sections || {}, template)
+            }
+        }
+    })),
     on(actions.discardSharedComponentChanges, (state, { templateKey }) => ({
         ...state,
         states: withoutKey(state.states, templateKey),
@@ -82,6 +94,18 @@ export const editorDomainReducers = createReducer<EditorDomainState>(
         }
     })),
 );
+
+function retainExistingItemStates(states: SectionStatesList, template: TemplateModel): SectionStatesList {
+    return Object.fromEntries((template.content || []).filter(section => states[section.id]).map(section => [
+        section.id,
+        {
+            ...states[section.id],
+            blocks: Object.fromEntries((section.blocks || [])
+                .filter(block => states[section.id].blocks?.[block.id])
+                .map(block => [block.id, states[section.id].blocks[block.id]]))
+        }
+    ]));
+}
 
 function withoutKey<T>(source: Record<string, T>, key: string): Record<string, T> {
     const result = { ...source };

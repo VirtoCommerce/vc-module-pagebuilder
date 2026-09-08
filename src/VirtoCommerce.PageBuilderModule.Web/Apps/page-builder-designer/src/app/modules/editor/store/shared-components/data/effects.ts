@@ -23,6 +23,7 @@ import { SHARED_COMPONENTS_PAGE_SIZE, SharedComponentsService } from '@editor/se
 import { AppConfig } from '@integration/services';
 import { TemplateModel } from '@models/document';
 import * as sharedActions from '@shared/store/actions';
+import * as routingSelectors from '@shared/routing/selectors';
 
 import * as actions from '../../actions';
 import * as selectors from '../../selectors';
@@ -119,12 +120,21 @@ export class SharedComponentsDataEffects {
         }
 
         return forkJoin(componentIds.map((componentId) => toLoadResult(this.sharedComponents.get(componentId)))).pipe(
-          switchMap((results) => {
+          withLatestFrom(
+            this.store.select(selectors.selectCurrentTemplateModel),
+            this.store.select(routingSelectors.selectTemplateKeyParameter),
+          ),
+          switchMap(([results, currentTemplate, currentTemplateKey]) => {
             const outgoingActions: Action[] = results.flatMap((result) =>
               result.value ? [actions.cacheSharedComponent({ component: result.value })] : [],
             );
             if (results.every((result) => result.value !== null)) {
               outgoingActions.push(actions.clearSharedComponentUsageRefresh({ templateKey }));
+            }
+            if (currentTemplate && currentTemplateKey === templateKey && results.some(result => result.value !== null)) {
+              outgoingActions.push(actions.broadcastResolvedPreview({
+                msg: { type: 'changed', template: currentTemplate },
+              }));
             }
             return outgoingActions;
           }),
