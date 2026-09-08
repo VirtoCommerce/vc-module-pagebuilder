@@ -3,6 +3,7 @@ import {
   Component,
   DestroyRef,
   ElementRef,
+  computed,
   effect,
   signal,
   viewChild,
@@ -12,6 +13,8 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { Store } from '@ngrx/store';
 
 import { EventsBusService } from '@core/services';
+import { AppConfig, BuilderHttpClient, EnvironmentRef, SessionService } from '@integration/services';
+import { AppInitializator } from '@integration/services/app.initializator';
 
 import { BuilderState } from '@shared/store';
 import * as fromRoute from '@shared/routing';
@@ -21,12 +24,16 @@ import { PreviewBridgeService } from '@shared/services';
 import { isPreviewOutboundMessage } from '@shared/models';
 import type { PreviewOutboundMessage } from '@shared/models';
 
+import { IconComponent } from '@core/components/icon/icon.component';
+import { IconButtonComponent } from '@core/components/icon-button/icon-button.component';
+import { isUsablePreviewUrl } from './live-preview.utils';
+
 @Component({
   selector: 'app-live-preview',
   templateUrl: './live-preview.component.html',
   styleUrls: ['./live-preview.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NgClass],
+  imports: [NgClass, IconComponent, IconButtonComponent],
 })
 export class LivePreviewComponent {
   private readonly destroyRef = inject(DestroyRef);
@@ -34,6 +41,11 @@ export class LivePreviewComponent {
   private readonly sanitizer = inject(DomSanitizer);
   private readonly eventsBus = inject(EventsBusService);
   private readonly previewBridge = inject(PreviewBridgeService);
+  private readonly config = inject(AppConfig);
+  private readonly env = inject(EnvironmentRef);
+  private readonly session = inject(SessionService);
+  private readonly initializator = inject(AppInitializator);
+  private readonly http = inject(BuilderHttpClient);
 
   readonly frame = viewChild<ElementRef<HTMLIFrameElement>>('frame');
 
@@ -55,8 +67,20 @@ export class LivePreviewComponent {
   previewPresetName = toSignal(this.store.select(fromRoute.selectPresetParameter), { initialValue: null });
   previewMode = toSignal(this.store.select(fromRoute.selectPreviewModeParameter), { initialValue: null });
 
-  readonly previewUrl: SafeResourceUrl;
-  readonly url: string;
+  /** The storefront address to preview, or null when the store settings could not be resolved. */
+  readonly url = computed<string | null>(() => {
+    this.config.version(); // settings are resolved lazily, recompute once they are (re)loaded
+    const value: unknown = this.config.getValue('fullPreviewUrl');
+    return isUsablePreviewUrl(value, this.env.nativeWindow.location.href) ? value : null;
+  });
+
+  readonly previewUrl = computed<SafeResourceUrl | null>(() => {
+    const url = this.url();
+    return url ? this.sanitizer.bypassSecurityTrustResourceUrl(url) : null;
+  });
+
+  readonly sessionExpired = this.session.expired;
+  readonly reloading = signal(false);
 
   constructor() {
     const sub = this.eventsBus.on(
@@ -75,8 +99,23 @@ export class LivePreviewComponent {
       },
     );
     this.destroyRef.onDestroy(() => sub.unsubscribe());
-    this.url = this.previewBridge.previewUrl;
-    this.previewUrl = this.sanitizer.bypassSecurityTrustResourceUrl(this.url);
+    // A changed storefront address starts a new preview handshake.
+    effect(() => {
+      this.url();
+      this.previewLoaded.set(false);
+    });
+  }
+
+  /** Resolves the store settings again after the storefront address has been corrected. */
+  reload() {
+    if (this.reloading()) {
+      return;
+    }
+    this.reloading.set(true);
+    this.http.clearCache();
+    this.initializator.init()
+      .catch(error => console.warn('Failed to reload the configuration:', error))
+      .finally(() => this.reloading.set(false));
   }
 
   onPreviewFrameLoaded(frame: HTMLIFrameElement): void {
@@ -95,10 +134,12 @@ export class LivePreviewComponent {
   }
 
   private requestPreviewConnection(): void {
-    this.previewBridge.send({ type: 'connect' });
+    this.doSend({ type: 'connect' });
   }
 
   private doSend(msg: PreviewOutboundMessage) {
-    this.previewBridge.send(msg);
+    if (this.url()) {
+      this.previewBridge.send(msg);
+    }
   }
 }

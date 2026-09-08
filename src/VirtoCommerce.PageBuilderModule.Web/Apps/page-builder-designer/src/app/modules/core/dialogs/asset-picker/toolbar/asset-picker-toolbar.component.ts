@@ -17,7 +17,7 @@ export class AssetPickerToolbarComponent {
     readonly acceptAttribute = input<string | null>(null);
     readonly searchValue = input('');
     readonly counterText = input('');
-    readonly searchChanged = output<string>();
+    readonly searchValueChange = output<string>();
     readonly upload = output<File[]>();
 
     onUpload(event: Event) {

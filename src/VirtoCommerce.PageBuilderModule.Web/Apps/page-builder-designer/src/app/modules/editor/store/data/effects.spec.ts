@@ -152,11 +152,68 @@ describe('TemplateEditorDataEffects', () => {
             const result = await firstValueFrom(effects.loadSchemas$);
             expect(result.type).toBe(actions.loadTemplateSchemasFails.type);
         });
+
+        it('dispatches fails when the service throws synchronously', async () => {
+            schemasService.getSchemas.mockImplementation(() => { throw new TypeError('config is not resolved'); });
+
+            actions$.next(actions.loadTemplateSchemas());
+            const result = await firstValueFrom(effects.loadSchemas$);
+            expect(result.type).toBe(actions.loadTemplateSchemasFails.type);
+        });
+
+        // the http client reports a failed request as an empty result, which must still end the loading state
+        it('dispatches fails on an empty result', async () => {
+            schemasService.getSchemas.mockReturnValue(of(null));
+
+            actions$.next(actions.loadTemplateSchemas());
+            const result = await firstValueFrom(effects.loadSchemas$);
+            expect(result.type).toBe(actions.loadTemplateSchemasFails.type);
+        });
     });
 
     // ── loadTemplate$ ─────────────────────────────────────────────
 
     describe('loadTemplate$', () => {
+        it('loads and caches a shared component before broadcasting its resolved preview', async () => {
+            const component = { id: 'shared-1', name: 'Shared hero' };
+            store.overrideSelector(fromRoute.selectSharedComponentIdParameter, component.id);
+            store.refreshState();
+            sharedComponentsService.getContent.mockReturnValue(of(template));
+            sharedComponentsService.get.mockReturnValue(of(component));
+
+            actions$.next(actions.loadTemplateModel({ templateKey: 'shared-1' }));
+            const results = await firstValueFrom(effects.loadTemplate$.pipe(take(4), toArray()));
+
+            expect(results[0]).toMatchObject({ type: actions.cacheSharedComponent.type, component });
+            expect(results[1]).toMatchObject({ type: actions.loadTemplateModelSuccess.type, templateKey: 'shared-1' });
+            expect(results[3]).toMatchObject({ type: actions.broadcastResolvedPreview.type, msg: { cultureName: 'en-US' } });
+            expect(templatesService.getTemplate).not.toHaveBeenCalled();
+        });
+
+        it('ends shared component loading when content is unavailable', async () => {
+            store.overrideSelector(fromRoute.selectSharedComponentIdParameter, 'shared-1');
+            store.refreshState();
+            sharedComponentsService.getContent.mockReturnValue(of(null));
+            sharedComponentsService.get.mockReturnValue(of({ id: 'shared-1' }));
+
+            actions$.next(actions.loadTemplateModel({ templateKey: 'shared-1' }));
+            const result = await firstValueFrom(effects.loadTemplate$);
+
+            expect(result).toMatchObject({ type: actions.loadTemplateModelFails.type, templateKey: 'shared-1' });
+        });
+
+        it('reports synchronous shared component request failures without terminating the effect', async () => {
+            store.overrideSelector(fromRoute.selectSharedComponentIdParameter, 'shared-1');
+            store.refreshState();
+            sharedComponentsService.getContent.mockImplementation(() => { throw new Error('Configuration is unavailable'); });
+
+            actions$.next(actions.loadTemplateModel({ templateKey: 'shared-1' }));
+            const results = await firstValueFrom(effects.loadTemplate$.pipe(take(2), toArray()));
+
+            expect(results[0]).toMatchObject({ type: actions.loadTemplateModelFails.type, templateKey: 'shared-1' });
+            expect(results[1]).toMatchObject({ type: sharedActions.showNotification.type, message: 'Could not load Shared Component' });
+        });
+
         it('dispatches success actions on load', async () => {
             actions$.next(actions.loadTemplateModel({ templateKey: 'home' }));
             const results = await firstValueFrom(effects.loadTemplate$.pipe(take(4), toArray()));
@@ -169,6 +226,24 @@ describe('TemplateEditorDataEffects', () => {
                 typeof actions.broadcastResolvedPreview
             >;
             expect(preview.msg['cultureName']).toBe('en-US');
+        });
+
+        // an unresolved configuration makes the service throw before it returns an observable
+        it('dispatches fails when the service throws synchronously', async () => {
+            templatesService.getTemplate.mockImplementation(() => { throw new TypeError("Cannot read properties of null (reading 'pages')"); });
+
+            actions$.next(actions.loadTemplateModel({ templateKey: 'home' }));
+            const result = await firstValueFrom(effects.loadTemplate$);
+            expect(result.type).toBe(actions.loadTemplateModelFails.type);
+        });
+
+        // nothing to load must still end the loading state, or the fullscreen loader never goes away
+        it('dispatches fails on an empty result', async () => {
+            templatesService.getTemplate.mockReturnValue(of(null));
+
+            actions$.next(actions.loadTemplateModel({ templateKey: 'home' }));
+            const result = await firstValueFrom(effects.loadTemplate$);
+            expect(result.type).toBe(actions.loadTemplateModelFails.type);
         });
 
         it('dispatches fails and notification on error', async () => {

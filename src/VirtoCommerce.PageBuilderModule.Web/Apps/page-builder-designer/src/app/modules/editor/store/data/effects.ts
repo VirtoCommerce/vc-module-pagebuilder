@@ -3,7 +3,7 @@ import { validateItemUnderEdit, useSchemasAction } from './../actions/data';
 import { ModalService } from '@core/services';
 import { Injectable, inject } from "@angular/core";
 
-import { forkJoin, of } from "rxjs";
+import { defer, forkJoin, of } from "rxjs";
 import { withLatestFrom, filter, map, catchError, switchMap, exhaustMap, tap, distinctUntilChanged } from "rxjs/operators";
 
 import { Store } from "@ngrx/store";
@@ -27,7 +27,6 @@ import { EditorModuleInfo } from "@models/modules";
 
 import { SharedComponentsService, SchemasService, TemplatesService } from "@editor/services";
 import { SharedComponent } from '@editor/models';
-import { TemplateModel } from '@models/document';
 import { AppConfig } from '@integration/services';
 
 @Injectable({
@@ -114,9 +113,14 @@ export class TemplateEditorDataEffects {
 
     loadSchemas$ = createEffect(() => this.actions$.pipe(
         ofType(actions.loadTemplateSchemas),
-        exhaustMap(() => this.schemas.getSchemas().pipe(
-            filter(schemas => !!schemas),
-            map(schemas => actions.loadTemplateSchemasSuccess({ schemas })),
+        // defer, so that a configuration that cannot be resolved fails the stream instead of
+        // throwing out of the effect and leaving the schemas loading forever (VCST-5847)
+        exhaustMap(() => defer(() => this.schemas.getSchemas()).pipe(
+            // the http client reports a failed request as an empty result. Dropping it left the
+            // schemas marked as loading forever, and with them the fullscreen loader (VCST-5847).
+            map(schemas => schemas
+                ? actions.loadTemplateSchemasSuccess({ schemas })
+                : actions.loadTemplateSchemasFails({ error: new Error('Section schemas are not available') })),
             catchError(error => of(actions.loadTemplateSchemasFails({ error })))
         ))
     ));
@@ -163,37 +167,42 @@ export class TemplateEditorDataEffects {
             this.store$.select(fromRoute.selectSharedComponentIdParameter),
         ),
         switchMap(([{ templateKey }, templateEntry, path, type, groupId, sectionId, cultureName, sharedComponentId]) => {
-            const request = sharedComponentId
+            // Capture synchronous configuration errors for both page and shared component requests.
+            const request = defer(() => sharedComponentId
                 ? forkJoin({
                     template: this.sharedComponents.getContent(sharedComponentId),
                     component: this.sharedComponents.get(sharedComponentId),
                 })
                 : this.templates.getTemplate(path, type, templateEntry, groupId).pipe(
                     map(template => ({ template, component: null as SharedComponent | null })),
-                );
+                ));
 
             return request.pipe(
-                filter((result): result is { template: TemplateModel; component: SharedComponent | null } => !!result.template),
-                map(result => ({ ...result, template: editorHelpers.prepareTemplate(result.template) })),
-                switchMap(({ template, component }) => [
-                    sharedComponentId && component
-                        ? actions.cacheSharedComponent({ component, content: template })
-                        : actions.getTemplatePublishStatus({ templateKey }),
-                    actions.loadTemplateModelSuccess({ template, templateKey }),
-                    actions.validateItemUnderEdit(),
-                    actions.broadcastResolvedPreview({
-                        msg: {
-                            type: 'page',
-                            template,
-                            // Pass the edited page's language (from the designer URL) to the storefront
-                            // preview so it renders in that language instead of the store default (VCST-5219).
-                            // Omit when empty so it never overrides an already-applied preview language.
-                            cultureName: cultureName || undefined,
-                            sectionId,
-                            ...templateEntry?.previewMessage
-                        }
-                    })
-                ]),
+                switchMap(({ template: loadedTemplate, component }) => {
+                    if (!loadedTemplate) {
+                        return [actions.loadTemplateModelFails({ error: new Error('Template is not available'), templateKey })];
+                    }
+                    const template = editorHelpers.prepareTemplate(loadedTemplate);
+                    return [
+                        sharedComponentId && component
+                            ? actions.cacheSharedComponent({ component, content: template })
+                            : actions.getTemplatePublishStatus({ templateKey }),
+                        actions.loadTemplateModelSuccess({ template, templateKey }),
+                        actions.validateItemUnderEdit(),
+                        actions.broadcastResolvedPreview({
+                            msg: {
+                                type: 'page',
+                                template,
+                                // Pass the edited page's language (from the designer URL) to the storefront
+                                // preview so it renders in that language instead of the store default (VCST-5219).
+                                // Omit when empty so it never overrides an already-applied preview language.
+                                cultureName: cultureName || undefined,
+                                sectionId,
+                                ...templateEntry?.previewMessage
+                            }
+                        })
+                    ];
+                }),
                 catchError(error => [
                     actions.loadTemplateModelFails({ error, templateKey }),
                     shared.showNotification({
@@ -427,7 +436,9 @@ export class TemplateEditorDataEffects {
         ),
         switchMap(([{ templates }, state]) => {
             const templatesToSave = templates.filter(x => !!x.content);
-            return this.templates.saveTemplates(templatesToSave).pipe(
+            // defer for the same reason as in loadTemplate$: a synchronous failure has to reach
+            // catchError, otherwise the save never ends and the loader stays up (VCST-5847)
+            return defer(() => this.templates.saveTemplates(templatesToSave)).pipe(
                 switchMap(() => templates.map(x => [
                     actions.saveTemplateSuccess({ templateKey: x.info.key, parentKey: x.info.parent, template: x.content }),
                     actions.getTemplatePublishStatusSuccess({ templateKey: x.info.key, hasChanges: true, published: false }),
