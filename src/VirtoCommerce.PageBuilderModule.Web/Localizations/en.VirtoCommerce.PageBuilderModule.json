@@ -40,6 +40,10 @@
         }
       },
       "pageBuilderEditor": {
+        "duplicate": {
+          "title": "Duplicate page",
+          "description": "Copy the page into the content repository under a new name"
+        },
         "create": {
           "title": "Design page",
           "description": "Use designer to create a new page"
@@ -51,11 +55,29 @@
       }
     },
     "commands": {
+      "promote": "Promote to production",
+      "delete-legacy-draft": "Delete old draft file",
       "open-designer": "Design",
       "publish": "Publish",
       "unpublish": "Unpublish"
     },
     "dialogs": {
+      "git-promote-pending": {
+        "title": "Promotion in progress",
+        "message": "Production is not updated yet: a pull request is open and will merge once its checks pass. {{url}}"
+      },
+      "delete-legacy-draft": {
+        "title": "Delete the old draft file?",
+        "message": "\"{{path}}\" is left over from before this store moved to the content repository. The page itself is not touched."
+      },
+      "delete-legacy-draft-unsaved": {
+        "title": "Delete the old draft file?",
+        "message": "\"{{path}}\" still holds changes that are not in the content repository. Deleting it loses them. The published page is not touched."
+      },
+      "legacy-draft-kept": {
+        "title": "The draft file was kept",
+        "message": "This page is not in the content repository yet, so that file is what the builder still reads. Save the page from the designer once, then delete it."
+      },
       "git-publish-pending": {
         "title": "Publishing in progress",
         "message": "The page is not live yet: a pull request is open and will merge once its checks pass. {{url}}"

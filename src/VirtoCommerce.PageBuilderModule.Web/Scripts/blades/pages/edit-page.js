@@ -71,6 +71,7 @@ angular.module('virtoCommerce.pageBuilderModule')
 
                 }
                 loadSearchIndex();
+                loadLegacyDraft();
             };
 
             // Which flow this store is on, and the page's real publish state. The list one blade back
@@ -89,6 +90,9 @@ angular.module('virtoCommerce.pageBuilderModule')
                         blade.published = status.published;
                         blade.hasChanges = status.hasChanges;
                         blade.pending = status.pending;
+                        // Null when the installation has no production branch at all — which is how
+                        // the toolbar knows whether promotion exists here as an action.
+                        blade.production = status.production;
                         // a page that does not exist yet has nothing to publish, and no toolbar to update
                         updateToolbarCommands();
                     }
@@ -324,6 +328,98 @@ angular.module('virtoCommerce.pageBuilderModule')
                     id: "gitUnpublishPending",
                     title: "pageBuilder.dialogs.git-unpublish-pending.title",
                     message: "pageBuilder.dialogs.git-unpublish-pending.message"
+                });
+            }
+
+            // Promotion ships the same way publishing does — a commit, then a merge — so it goes
+            // through gitShip and inherits its handling of a merge that waits on CI checks.
+            var promoteCommand = {
+                name: "pageBuilder.commands.promote", icon: 'fa fa-rocket',
+                executeMethod: function () {
+                    gitShip(pageBuilderApi.gitPromote, {
+                        id: "gitPromotePending",
+                        title: "pageBuilder.dialogs.git-promote-pending.title",
+                        message: "pageBuilder.dialogs.git-promote-pending.message"
+                    });
+                },
+                // Production follows what has already been through the base branch: there is
+                // nothing to promote until the page is published there, nothing to promote when
+                // production already matches, and nothing to add while a promotion is open.
+                canExecuteMethod: function () {
+                    return !isDirty() && blade.published && !blade.hasChanges && !!blade.production &&
+                        blade.production.behind && !blade.production.pending;
+                }
+            };
+
+            // The draft file this page carried over from the flow before git, if it still has one.
+            // Asked separately from publish status: that answers questions about the repository,
+            // this one is about a leftover in blob storage that nothing else will ever clear.
+            function loadLegacyDraft() {
+                blade.legacyDraft = null;
+                if (blade.isNew) {
+                    return;
+                }
+                pageBuilderApi.legacyDraft({
+                    storeId: blade.storeId,
+                    type: blade.contentType,
+                    path: blade.currentEntity.relativeUrl
+                }, function (info) {
+                    blade.legacyDraft = info && info.exists ? info : null;
+                    updateToolbarCommands();
+                }, function () {
+                    // The store is not on the git flow, or the question could not be answered.
+                    // Either way there is no cleanup to offer, and an error banner here would be
+                    // about a file the editor never asked after.
+                    blade.legacyDraft = null;
+                    updateToolbarCommands();
+                });
+            }
+
+            var deleteLegacyDraftCommand = {
+                name: "pageBuilder.commands.delete-legacy-draft", icon: 'fa fa-eraser',
+                executeMethod: function () {
+                    var draft = blade.legacyDraft;
+                    // One file, and it has no second copy anywhere. Name it in the prompt, and say
+                    // plainly when it still holds something the repository has not got.
+                    var dialogKey = draft.differsFromGit ? 'delete-legacy-draft-unsaved' : 'delete-legacy-draft';
+                    dialogService.showConfirmationDialog({
+                        id: "confirmDeleteLegacyDraft",
+                        title: 'pageBuilder.dialogs.' + dialogKey + '.title',
+                        message: 'pageBuilder.dialogs.' + dialogKey + '.message',
+                        messageValues: { path: draft.blobPath },
+                        callback: function (confirmed) {
+                            if (confirmed) {
+                                deleteLegacyDraft(draft.blobPath);
+                            }
+                        }
+                    });
+                },
+                canExecuteMethod: function () { return !!blade.legacyDraft; }
+            };
+
+            function deleteLegacyDraft(path) {
+                blade.isLoading = true;
+                pageBuilderApi.deleteLegacyDraft({
+                    storeId: blade.storeId,
+                    type: blade.contentType
+                }, { paths: [path], dryRun: false }, function (result) {
+                    blade.isLoading = false;
+                    // The server keeps a draft whose page is not in the repository — it is still
+                    // what the builder reads. Say so, rather than report a deletion that did not
+                    // happen.
+                    if (result.skipped && result.skipped.length) {
+                        dialogService.showNotificationDialog({
+                            id: "legacyDraftKept",
+                            title: "pageBuilder.dialogs.legacy-draft-kept.title",
+                            message: "pageBuilder.dialogs.legacy-draft-kept.message"
+                        });
+                    }
+                    loadLegacyDraft();
+                    blade.parentBlade.refresh();
+                }, function (error) {
+                    blade.isLoading = false;
+                    var message = error.data && error.data.error ? error.data.error : 'Error ' + error.status;
+                    bladeNavigationService.setError(message, blade);
                 });
             }
 
@@ -637,13 +733,27 @@ angular.module('virtoCommerce.pageBuilderModule')
             }
 
             function updateToolbarCommands() {
-                $scope.blade.toolbarCommands = blade.toolbarCommands.filter(x => x !== publishCommand && x !== unpublishCommand);
+                var managed = [publishCommand, unpublishCommand, promoteCommand, deleteLegacyDraftCommand];
+                $scope.blade.toolbarCommands = blade.toolbarCommands.filter(x => managed.indexOf(x) < 0);
+
                 // Nothing to publish and the page is live: the one thing left to do with it is take it
                 // down. On the git flow that is a commit deleting the page, merged like any other.
                 var command = $scope.blade.published && !$scope.blade.hasChanges
                     ? unpublishCommand
                     : publishCommand;
                 $scope.blade.toolbarCommands.splice(4, 0, command);
+
+                // Publishing reaches the environment editors work against; promotion reaches the
+                // public site. The command exists only where there is a production branch to reach.
+                if (blade.production) {
+                    $scope.blade.toolbarCommands.splice(5, 0, promoteCommand);
+                }
+
+                // Last, and only for a page that actually has a leftover: a rare, destructive one-off
+                // rather than part of the everyday toolbar.
+                if (blade.legacyDraft) {
+                    $scope.blade.toolbarCommands.push(deleteLegacyDraftCommand);
+                }
             }
 
             function saveError(error) {

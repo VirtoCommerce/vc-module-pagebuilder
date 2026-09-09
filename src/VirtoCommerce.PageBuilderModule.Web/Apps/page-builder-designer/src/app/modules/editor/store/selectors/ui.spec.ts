@@ -315,6 +315,59 @@ describe('selectToolbarButtonsState', () => {
         expect(publishBtn!.title).toBe('Publishing…');
     });
 
+    // ── promotion to production ──
+    //
+    // The second step of shipping. It exists only where the server offered the descriptor AND said
+    // this page has a production side; "published to dev, production still behind" had no way of
+    // showing before, and it is exactly the state that makes an editor say the site did not update.
+
+    const promoted = { isLoading: false, published: true, hasChanges: false, pending: false };
+
+    it('offers promotion when production is behind', () => {
+        const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: true, useUnpublish: false, useExternalPreview: false, usePromote: true });
+        const state = { ...promoted, production: { published: true, behind: true, pending: false } } as any;
+        const promoteBtn = selector.projector(false, state).flat().find(b => b.alias === 'promote');
+        expect(promoteBtn!.canAction).toBe(true);
+        expect(promoteBtn!.title).toBe('Promote to production');
+    });
+
+    it('shows production as in sync rather than offering a promotion that ships nothing', () => {
+        const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: true, useUnpublish: false, useExternalPreview: false, usePromote: true });
+        const state = { ...promoted, production: { published: true, behind: false, pending: false } } as any;
+        const promoteBtn = selector.projector(false, state).flat().find(b => b.alias === 'promote');
+        expect(promoteBtn!.canAction).toBeFalsy();
+        expect(promoteBtn!.title).toBe('In sync with production');
+    });
+
+    it('does not let a page be promoted again while its promotion is open', () => {
+        const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: true, useUnpublish: false, useExternalPreview: false, usePromote: true });
+        const state = { ...promoted, production: { published: true, behind: true, pending: true } } as any;
+        const promoteBtn = selector.projector(false, state).flat().find(b => b.alias === 'promote');
+        expect(promoteBtn!.canAction).toBeFalsy();
+        expect(promoteBtn!.title).toBe('Promoting…');
+    });
+
+    it('will not promote a page that has unpublished changes', () => {
+        // production follows what has already been through the base branch
+        const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: true, useUnpublish: false, useExternalPreview: false, usePromote: true });
+        const state = { ...promoted, hasChanges: true, production: { published: false, behind: true, pending: false } } as any;
+        const promoteBtn = selector.projector(false, state).flat().find(b => b.alias === 'promote');
+        expect(promoteBtn!.canAction).toBeFalsy();
+    });
+
+    it('hides promotion where the installation has no production branch', () => {
+        // the server reports production as null, and then the stage does not exist at all
+        const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: true, useUnpublish: false, useExternalPreview: false, usePromote: true });
+        const state = { ...promoted, production: null } as any;
+        expect(selector.projector(false, state).flat().find(b => b.alias === 'promote')).toBeFalsy();
+    });
+
+    it('hides promotion where the store does not offer the descriptor', () => {
+        const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: true, useUnpublish: false, useExternalPreview: false });
+        const state = { ...promoted, production: { published: true, behind: true, pending: false } } as any;
+        expect(selector.projector(false, state).flat().find(b => b.alias === 'promote')).toBeFalsy();
+    });
+
     it('Save canAction is true when hasDirty', () => {
         const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: false, useUnpublish: false, useExternalPreview: false });
         const result = selector.projector(true, null);

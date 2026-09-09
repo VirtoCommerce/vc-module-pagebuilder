@@ -5,7 +5,7 @@ import { PageModel, SectionModel, TemplateModel } from '@models/document';
 import { Observable, map, of } from "rxjs";
 
 import { helpers } from '@editor/helpers';
-import { PageHistory } from '@editor/models';
+import { PageHistory, ProductionStatus } from '@editor/models';
 import { TemplateEntry } from '@shared/models';
 
 export interface PublishStatus {
@@ -13,6 +13,13 @@ export interface PublishStatus {
     hasChanges: boolean;
     /** Only the git flow reports this: a pull request for the page is open and has not merged yet. */
     pending?: boolean;
+    /**
+     * Where the page stands on the production branch, or null where the installation has none.
+     * Reported apart from the fields above because a page can be published and production still
+     * be serving last week's copy of it — the in-between state that makes an editor say the site
+     * did not update.
+     */
+    production?: ProductionStatus | null;
 }
 
 @Injectable({
@@ -41,9 +48,15 @@ export class TemplatesService {
         );
     }
 
-    getTemplatePublishStatus(path: string, type: string, entry: TemplateEntry, groupId: string): Observable<PublishStatus> {
+    getTemplatePublishStatus(path: string, type: string, entry: TemplateEntry, groupId: string): Observable<PublishStatus | null> {
         const value = groupId ? 'publishPages' : 'publish';
         const publishStatusUrls = this.appConfig.getValueByEntryType(value, { item: entry, type, path, groupId }, entry.type || type);
+        // No descriptor at all: this store has no publishing surface, or the configuration could
+        // not be read. Either way there is no status to report, and inventing one would put a
+        // Publish button on a page whose flow we do not know.
+        if (!publishStatusUrls || !publishStatusUrls['status']) {
+            return of(null);
+        }
         const statusUrl = publishStatusUrls['status'];
         const request = this.http.generateRequest(statusUrl, { item: entry });
         return this.http.doRequest<PublishStatus>(request, { nullWhenError: false }, null).pipe(
@@ -63,6 +76,18 @@ export class TemplatesService {
         const value = groupId ? 'publishPages' : 'publish';
         const publishStatusUrls = this.appConfig.getValueByEntryType(value, { item: entry, type, path, groupId }, entry.type || type);
         const statusUrl = publishStatusUrls['unpublish'];
+        const request = this.http.generateRequest(statusUrl, { item: entry });
+        return this.http.doRequest(request, { nullWhenError: false }, null);
+    }
+
+    /**
+     * The second step of shipping: the page's state on the base branch placed onto the release
+     * branch. Only the git flow offers the descriptor, so only there does the button exist.
+     */
+    promoteTemplate(path: string, type: string, entry: TemplateEntry, groupId: string): Observable<any> {
+        const value = groupId ? 'publishPages' : 'publish';
+        const publishStatusUrls = this.appConfig.getValueByEntryType(value, { item: entry, type, path, groupId }, entry.type || type);
+        const statusUrl = publishStatusUrls['promote'];
         const request = this.http.generateRequest(statusUrl, { item: entry });
         return this.http.doRequest(request, { nullWhenError: false }, null);
     }

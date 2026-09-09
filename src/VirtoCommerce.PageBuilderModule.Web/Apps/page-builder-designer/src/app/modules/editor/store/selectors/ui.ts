@@ -264,7 +264,7 @@ export const changeTemplateContext = createSelector(
     ({ template, section, block, sectionsSchemas, blocksSchemas, templateKey, sectionId, blockId, insertIndex, templateEntry })
 );
 
-export const selectToolbarButtonsState = (context: { useTheme: boolean, useDrafts: boolean, useUnpublish: boolean, useExternalPreview: boolean, useHistory?: boolean }) => createSelector(
+export const selectToolbarButtonsState = (context: { useTheme: boolean, useDrafts: boolean, useUnpublish: boolean, useExternalPreview: boolean, useHistory?: boolean, usePromote?: boolean }) => createSelector(
   // fromDomain.selectCurrentTemplateState,
   fromShared.hasDirty,
   fromDomain.selectCurrentTemplateState,
@@ -333,6 +333,24 @@ export const selectToolbarButtonsState = (context: { useTheme: boolean, useDraft
         title: state?.pending ? 'Publishing…' : 'Publish',
         type: 'outline'
       });
+
+      // The second step, and the only one that reaches the public site. It appears where the
+      // server offered the descriptor AND told us this page has a production side at all; the
+      // title doubles as the stage indicator, because "published to dev, production still
+      // behind" had no way of showing before and is exactly the state that makes an editor say
+      // the site did not update.
+      if (context.usePromote && state?.production) {
+        buttons.push({
+          canAction: !hasDirty && state.published && !state.hasChanges &&
+            state.production.behind && !state.production.pending,
+          icon: 'rocket_launch',
+          alias: 'promote',
+          title: state.production.pending
+            ? 'Promoting…'
+            : state.production.behind ? 'Promote to production' : 'In sync with production',
+          type: 'outline'
+        });
+      }
 
       result.push(buttons);
     }

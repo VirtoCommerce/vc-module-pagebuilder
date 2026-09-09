@@ -61,6 +61,31 @@ angular.module('virtoCommerce.contentModule')
             gitUnpublish: {
                 method: 'POST',
                 url: 'api/pagebuilder/git/unpublish'
+            },
+            // The second step of shipping: the page's state on the base branch, placed onto the
+            // release branch. Separate from publishing on purpose — that reaches the environment
+            // editors work against, this one reaches the public site.
+            gitPromote: {
+                method: 'POST',
+                url: 'api/pagebuilder/git/promote'
+            },
+            // Whether this page still has a draft file left over from before the store moved to git.
+            legacyDraft: {
+                method: 'GET',
+                url: 'api/pagebuilder/git/legacy-draft'
+            },
+            // Deletes that one file, by its exact path. Deliberately not the content module's delete,
+            // which resolves a draft url to the published page as well and removes both.
+            deleteLegacyDraft: {
+                method: 'POST',
+                url: 'api/pagebuilder/git/legacy-drafts/delete'
+            },
+            // Duplicating a page in the content repository: a commit under a new name on the
+            // copying editor's work branch. Answers 404 for a store still on blob storage, where
+            // the content module's own copy is the right one.
+            gitCopy: {
+                method: 'POST',
+                url: 'api/pagebuilder/git/copy'
             }
 			// ,
             // getStoreUrl: {

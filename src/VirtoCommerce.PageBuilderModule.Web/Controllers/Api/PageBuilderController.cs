@@ -15,6 +15,7 @@ using Newtonsoft.Json.Serialization;
 using VirtoCommerce.AssetsModule.Core.Assets;
 using VirtoCommerce.ContentModule.Core.Model;
 using VirtoCommerce.ContentModule.Core.Services;
+using VirtoCommerce.ContentModule.Data.Extensions;
 using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
@@ -62,6 +63,15 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         private const string SchemaKindBlocks = "blocks";
         private const string SchemaKindObjects = "objects";
         private const string SchemaKindShared = "shared";
+        // The blob name of a draft in the flow that came before git: the page's name with this appended.
+        // Only the legacy-draft cleanup deals in these; everywhere else GitPageLocation strips the suffix.
+        private const string DraftSuffix = "-draft";
+        private const string FolderEntryType = "folder";
+        private const int MaxLegacyDraftPageSize = 200;
+        private const string LegacyDraftNotInGit = "not-in-git";
+        // How many "_N" names a duplicate will try before asking the caller to pick one. A page with
+        // this many copies is a naming problem, not a paging problem.
+        private const int MaxCopyIndex = 100;
 
 
         [HttpGet]
@@ -979,6 +989,389 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             return Ok();
         }
 
+        /// <summary>
+        /// The blob draft files this store carried over from the flow that came before git, and whether
+        /// each one still holds anything the repository does not.
+        /// <para>
+        /// Opting a store into the git flow leaves its "<c>foo.page-draft</c>" blobs exactly where they
+        /// were, and two very different things end up wearing that one name: dead weight, for a page that
+        /// has since been saved from the designer and now lives in git — and the only copy of somebody's
+        /// unpublished work, for a page that has not, because <see cref="GetTemplate"/> still serves those
+        /// from blob. Telling the two apart is all this endpoint does; deleting is a separate call, over
+        /// the paths the caller picked out of this answer.
+        /// </para>
+        /// <para>
+        /// Scanning <c>pages</c> covers blogs too: blob storage keeps them in a subfolder of the pages
+        /// root and the repository mirrors that layout, so a draft found under <c>blogs/</c> maps to the
+        /// repository path it would have been committed to anyway.
+        /// </para>
+        /// </summary>
+        [HttpGet]
+        [Route("git/legacy-drafts")]
+        public async Task<ActionResult> GetLegacyDrafts(string storeId, string type, string theme, int skip = 0, int take = 50)
+        {
+            if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
+            {
+                // On the blob flow a "-draft" file IS the draft, not a leftover. There is nothing to clean
+                // up here, and handing back a list would invite a caller to delete live content.
+                return NotFound();
+            }
+
+            var contentType = type ?? PagesContentType;
+            var storageProvider = blobContentStorageProviderFactory.CreateProvider(
+                GetContentBasePath(storeId, contentType, await GetCurrentThemeName(storeId, theme)));
+
+            var drafts = await FindDraftBlobsAsync(storageProvider);
+
+            // Walking folders is cheap; comparing each file against the repository is not. So page first
+            // and only look up the window that was asked for.
+            var window = drafts
+                .OrderBy(x => x.RelativeUrl, StringComparer.OrdinalIgnoreCase)
+                .Skip(Math.Max(skip, 0))
+                .Take(Math.Clamp(take, 1, MaxLegacyDraftPageSize))
+                .ToList();
+
+            var items = new List<LegacyDraftInfo>();
+            foreach (var draft in window)
+            {
+                items.Add(await DescribeLegacyDraftAsync(storageProvider, contentType, draft));
+            }
+
+            return Ok(new { totalCount = drafts.Count, skip, take, items });
+        }
+
+        /// <summary>
+        /// Deletes blob draft files left over from the pre-git flow — exactly the paths it is given, and
+        /// nothing else.
+        /// <para>
+        /// Deliberately not <c>DELETE api/content/{type}/{store}</c>, which is the endpoint a caller
+        /// reaches for first. That one resolves every url it is handed into both the draft and the
+        /// published name and removes whichever exist, so asking it to delete "foo.page-draft" takes the
+        /// live "foo.page" down with it.
+        /// </para>
+        /// </summary>
+        [HttpPost]
+        [Route("git/legacy-drafts/delete")]
+        public async Task<ActionResult> DeleteLegacyDrafts(string storeId, string type, string theme,
+            [FromBody] LegacyDraftsDeleteRequest request)
+        {
+            if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
+            {
+                return NotFound();
+            }
+
+            if (!await IsAllowedToDeleteAsync())
+            {
+                return Forbid();
+            }
+
+            var dryRun = request?.DryRun ?? true;
+            var paths = (request?.Paths ?? []).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+
+            // One bad path fails the whole batch instead of being skipped: a caller that got a path wrong
+            // has a bug, and letting the rest through would hide it behind a half-finished cleanup.
+            var invalid = paths.Where(x => !IsLegacyDraftPath(x)).ToList();
+            if (invalid.Count > 0)
+            {
+                return BadRequest(new
+                {
+                    error = $"Only \"{DraftSuffix}\" files can be deleted here, by their exact path.",
+                    paths = invalid,
+                });
+            }
+
+            var contentType = type ?? PagesContentType;
+            var storageProvider = blobContentStorageProviderFactory.CreateProvider(
+                GetContentBasePath(storeId, contentType, await GetCurrentThemeName(storeId, theme)));
+
+            var deletable = new List<string>();
+            var skipped = new List<object>();
+
+            foreach (var path in paths)
+            {
+                var repoPath = GitLocation(contentType, path).RepoPath;
+                if (await gitContentRepository.ReadFileAsync(repoPath, gitContentOptions.Value.BaseBranch, HttpContext.RequestAborted) == null)
+                {
+                    // The repository does not have this page, which means GetTemplate is still serving it
+                    // out of this very file. Deleting it would not be a cleanup, it would be the loss of
+                    // the page. Saving it once from the designer puts it in git and makes it deletable.
+                    skipped.Add(new { path, reason = LegacyDraftNotInGit });
+                    continue;
+                }
+
+                deletable.Add(path);
+            }
+
+            if (!dryRun && deletable.Count > 0)
+            {
+                await storageProvider.RemoveAsync([.. deletable]);
+            }
+
+            return Ok(new { dryRun, deleted = deletable, skipped });
+        }
+
+        /// <summary>
+        /// Duplicates a page inside the content repository: a commit of the same document under a new
+        /// name, on the copying editor's work branch.
+        /// <para>
+        /// It exists because the blob copy cannot be right here.
+        /// <c>POST api/content/{type}/{store}/copy-file</c> always writes the duplicate as a
+        /// "<c>-draft</c>" blob — the blob flow's way of saying "not published yet" — and on the git flow
+        /// that produces a file no storefront serves, which no publish will ever pick up, and which the
+        /// next deploy leaves behind. Unpublished here means "on a branch, not on the base branch", so
+        /// that is what a copy has to be.
+        /// </para>
+        /// <para>
+        /// A store not on the git flow gets <c>404</c>: the blob copy is correct for it, and the caller
+        /// falls back to it rather than this endpoint reimplementing it.
+        /// </para>
+        /// </summary>
+        [HttpPost]
+        [Route("git/copy")]
+        public async Task<ActionResult> GitCopyPage(string storeId, string type, string srcPath, string destPath)
+        {
+            if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
+            {
+                return NotFound();
+            }
+
+            if (!await IsAllowedToCreateAsync())
+            {
+                return Forbid();
+            }
+
+            if (srcPath.IsNullOrEmpty())
+            {
+                return BadRequest(new { error = "srcPath is required." });
+            }
+
+            var contentType = type ?? PagesContentType;
+            // What the editor sees, which is their own draft of the source when they have one. Copying
+            // the published version instead would silently duplicate something other than what is on
+            // screen.
+            var source = await ReadPageFromGitAsync(contentType, srcPath, draft: true, gitRef: null);
+            if (source == null)
+            {
+                return BadRequest(new { error = $"\"{srcPath}\" is not in the content repository.", srcPath });
+            }
+
+            var target = destPath.IsNullOrEmpty()
+                ? await NextFreeCopyPathAsync(contentType, srcPath)
+                : destPath;
+            if (target == null)
+            {
+                return BadRequest(new { error = $"\"{srcPath}\" already has {MaxCopyIndex} copies; name the next one yourself.", srcPath });
+            }
+
+            var saved = await CommitPageToGitAsync(
+                new SaveFileModel { Path = target, Type = contentType, Content = JToken.Parse(source) },
+                storeId,
+                action: $"copy {WithoutDraftSuffix(srcPath)} to");
+
+            return Ok(saved);
+        }
+
+        /// <summary>
+        /// The name a duplicate gets: "foo.page" becomes "foo_1.page", at the first index the repository
+        /// does not already hold — or <c>null</c> when there is no free one within reach.
+        /// <para>
+        /// Deliberately the same shape the blob flow produces, so a store that switched flows goes on
+        /// getting the names its editors are used to. The language segment is kept where the file has
+        /// one ("foo.de.page" becomes "foo_1.de.page"), because it is part of which page this is.
+        /// </para>
+        /// </summary>
+        private async Task<string> NextFreeCopyPathAsync(string contentType, string srcPath)
+        {
+            var path = WithoutDraftSuffix(srcPath);
+            var extension = Path.GetExtension(path);
+            var fileName = Path.GetFileNameWithoutExtension(path);
+            var name = path.GetFileNameWithoutLanguage();
+            var language = path.GetLanguage();
+            var languageSuffix = language.IsNullOrEmpty() ? string.Empty : $".{language}";
+            var folder = path[..^(fileName.Length + extension.Length)];
+
+            for (var index = 1; index <= MaxCopyIndex; index++)
+            {
+                var candidate = $"{folder}{name}_{index}{languageSuffix}{extension}";
+                if (!await PageExistsInRepositoryAsync(contentType, candidate))
+                {
+                    return candidate;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Whether the repository holds this page anywhere that matters for naming: on the base branch,
+        /// or on this editor's work branch. Leaving the branch out would hand the same name to two
+        /// duplicates in a row, because a copy that has not been published lives only there.
+        /// </summary>
+        private async Task<bool> PageExistsInRepositoryAsync(string contentType, string path)
+        {
+            var location = GitLocation(contentType, path);
+
+            return await gitContentRepository.ReadFileAsync(location.RepoPath, gitContentOptions.Value.BaseBranch, HttpContext.RequestAborted) != null
+                || await gitContentRepository.ReadFileAsync(location.RepoPath, location.Branch, HttpContext.RequestAborted) != null;
+        }
+
+        /// <summary>The page's own name, whichever of the two names the caller happens to hold.</summary>
+        private static string WithoutDraftSuffix(string path) =>
+            path.EndsWith(DraftSuffix, StringComparison.OrdinalIgnoreCase) ? path[..^DraftSuffix.Length] : path;
+
+        private async Task<bool> IsAllowedToCreateAsync()
+        {
+            var authorization = await authorizationService.AuthorizeAsync(User, null, ModuleConstants.Security.Permissions.Create);
+            return authorization.Succeeded;
+        }
+
+        /// <summary>
+        /// Whether one page still has a leftover blob draft from the flow that came before git, and
+        /// whether that file is safe to throw away.
+        /// <para>
+        /// The per-page question, asked by the blade for the page it has open. The store-wide inventory
+        /// answers the same thing for everything at once, which is a folder walk plus a repository read
+        /// per file — far too much for opening one page.
+        /// </para>
+        /// </summary>
+        [HttpGet]
+        [Route("git/legacy-draft")]
+        public async Task<ActionResult> GetLegacyDraft(string storeId, string type, string path, string theme)
+        {
+            if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
+            {
+                return NotFound();
+            }
+
+            if (path.IsNullOrEmpty())
+            {
+                // a page being created has no path, and therefore nothing left over
+                return Ok(new LegacyDraftInfo());
+            }
+
+            var contentType = type ?? PagesContentType;
+            var storageProvider = blobContentStorageProviderFactory.CreateProvider(
+                GetContentBasePath(storeId, contentType, await GetCurrentThemeName(storeId, theme)));
+
+            // The blade may hold either name for the page — the list strips the suffix for display but
+            // keeps it on the url of a page that only ever had a draft.
+            var blobInfo = await storageProvider.GetBlobInfoAsync(LegacyDraftPathOf(path));
+
+            return Ok(blobInfo == null
+                ? new LegacyDraftInfo()
+                : await DescribeLegacyDraftAsync(storageProvider, contentType, blobInfo));
+        }
+
+        /// <summary>The draft blob name of a page, whichever of the two names the caller already holds.</summary>
+        private static string LegacyDraftPathOf(string path) =>
+            path.EndsWith(DraftSuffix, StringComparison.OrdinalIgnoreCase) ? path : path + DraftSuffix;
+
+        /// <summary>
+        /// A path this cleanup is allowed to touch: a "-draft" file, named outright. Nothing is resolved,
+        /// completed or walked up from here — that is the whole point of the endpoint.
+        /// </summary>
+        private static bool IsLegacyDraftPath(string path) =>
+            !string.IsNullOrWhiteSpace(path) &&
+            path.EndsWith(DraftSuffix, StringComparison.OrdinalIgnoreCase) &&
+            !path.Replace('\\', '/').Split('/').Contains("..");
+
+        private async Task<LegacyDraftInfo> DescribeLegacyDraftAsync(IBlobContentStorageProvider storageProvider,
+            string contentType, BlobEntry draft)
+        {
+            var repoPath = GitLocation(contentType, draft.RelativeUrl).RepoPath;
+            var inGit = await gitContentRepository.ReadFileAsync(repoPath, gitContentOptions.Value.BaseBranch, HttpContext.RequestAborted);
+            var inBlob = await ReadBlobTextAsync(storageProvider, draft.RelativeUrl);
+
+            return new LegacyDraftInfo
+            {
+                Exists = true,
+                BlobPath = draft.RelativeUrl,
+                RepoPath = repoPath,
+                ModifiedDate = draft.ModifiedDate,
+                ExistsInGit = inGit != null,
+                DiffersFromGit = !IsSamePageDocument(inBlob, inGit),
+            };
+        }
+
+        /// <summary>
+        /// Whether two page documents say the same thing, whatever their formatting.
+        /// <para>
+        /// Compared as documents rather than as bytes, unlike publish status. Legacy drafts were written
+        /// with a four-space indent and CRLF line endings, so a byte comparison would report every single
+        /// one of them as changed and the flag would carry no information. The question being asked here
+        /// is only whether the draft still holds content the repository has not got.
+        /// </para>
+        /// <para>
+        /// A draft that will not parse counts as different: it cannot be shown to be safe to delete, and
+        /// "unknown" belongs on the cautious side of a decision that destroys the only copy.
+        /// </para>
+        /// </summary>
+        private static bool IsSamePageDocument(string left, string right)
+        {
+            if (left == null || right == null)
+            {
+                return left == null && right == null;
+            }
+
+            try
+            {
+                return JToken.DeepEquals(JToken.Parse(left), JToken.Parse(right));
+            }
+            catch (JsonReaderException)
+            {
+                return false;
+            }
+        }
+
+        private static async Task<string> ReadBlobTextAsync(IBlobContentStorageProvider storageProvider, string relativeUrl)
+        {
+            await using var stream = await storageProvider.OpenReadAsync(relativeUrl);
+            using var reader = new StreamReader(stream);
+
+            return await reader.ReadToEndAsync();
+        }
+
+        /// <summary>
+        /// Every "-draft" blob under the provider's root. The provider lists one folder at a time, so the
+        /// recursion is ours; folders already seen are not re-entered, because a provider that reports a
+        /// folder as its own child would otherwise spin here forever.
+        /// </summary>
+        private static async Task<IList<BlobEntry>> FindDraftBlobsAsync(IBlobContentStorageProvider storageProvider)
+        {
+            var found = new List<BlobEntry>();
+            var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var folders = new Queue<string>();
+            folders.Enqueue(null); // the provider's root
+
+            while (folders.Count > 0)
+            {
+                var entries = (await storageProvider.SearchAsync(folders.Dequeue(), null)).Results;
+
+                foreach (var entry in entries)
+                {
+                    if (entry.Type.EqualsIgnoreCase(FolderEntryType))
+                    {
+                        if (visited.Add(entry.RelativeUrl))
+                        {
+                            folders.Enqueue(entry.RelativeUrl);
+                        }
+                    }
+                    else if (entry.Name.EndsWith(DraftSuffix, StringComparison.OrdinalIgnoreCase))
+                    {
+                        found.Add(entry);
+                    }
+                }
+            }
+
+            return found;
+        }
+
+        private async Task<bool> IsAllowedToDeleteAsync()
+        {
+            var authorization = await authorizationService.AuthorizeAsync(User, null, ModuleConstants.Security.Permissions.Delete);
+            return authorization.Succeeded;
+        }
+
         private Task<ActionResult> RespondToPublishAsync(GitPublishResult result, (string RepoPath, string Branch) location, string path) =>
             RespondToShipAsync(result, location.RepoPath, location.Branch, gitContentOptions.Value.BaseBranch, path);
 
@@ -1122,7 +1515,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             }
         }
 
-        private async Task<object> CommitPageToGitAsync(SaveFileModel file, string storeId)
+        private async Task<object> CommitPageToGitAsync(SaveFileModel file, string storeId, string action = "save")
         {
             var options = gitContentOptions.Value;
             var (repoPath, branch) = GitLocation(file.Type, file.Path);
@@ -1139,7 +1532,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             // Canonical bytes, not JsonConvert's: publish status compares this branch against the
             // production branch, and Formatting.Indented would end lines with the host's newline.
             var content = PageJson.Serialize(file.Content);
-            var message = CommitMessage($"designer: save {file.Path} (store: {storeId}, by: {author.Name})");
+            var message = CommitMessage($"designer: {action} {file.Path} (store: {storeId}, by: {author.Name})");
 
             // Authoritative, not best-effort: when the commit fails the save fails, because an editor
             // who was told their work is saved has to be able to find it.
