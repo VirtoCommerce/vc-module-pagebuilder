@@ -72,6 +72,35 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         [Fact]
+        public async Task Inventory_ADraftSayingWhatThePublishedBlobSays_IsNotReportedAsDiffering()
+        {
+            // A page that never reached the repository is compared against the blob that serves it.
+            // Comparing against git alone reported every such draft as changed, which is no answer at
+            // all for a store still holding most of its pages in blob storage.
+            var blob = Storage();
+            blob.AddFile("legacy.page", OnGit);
+            blob.AddFile("legacy.page-draft", SameContentLegacyFormatting);
+
+            var result = await Controller(blob, git: Git()).GetLegacyDrafts("vccom", "pages", "default");
+
+            var item = Assert.Single(Items(result));
+            Assert.False((bool)Value(item, "ExistsInGit"));
+            Assert.False((bool)Value(item, "IsOnlyCopy"));
+            Assert.False((bool)Value(item, "DiffersFromCurrent"));
+        }
+
+        [Fact]
+        public async Task Inventory_ADraftWithNothingElseBehindIt_IsReportedAsTheOnlyCopy()
+        {
+            var blob = Storage();
+            blob.AddFile("never-saved.page-draft", UnpublishedWork);
+
+            var result = await Controller(blob, git: Git()).GetLegacyDrafts("vccom", "pages", "default");
+
+            Assert.True((bool)Value(Assert.Single(Items(result)), "IsOnlyCopy"));
+        }
+
+        [Fact]
         public async Task Inventory_ADraftSayingWhatGitSays_IsNotReportedAsDiffering()
         {
             // The point of the flag. Legacy drafts were written with another indent and CRLF endings, so
@@ -84,7 +113,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
             var item = Assert.Single(Items(result));
             Assert.True((bool)Value(item, "ExistsInGit"));
-            Assert.False((bool)Value(item, "DiffersFromGit"));
+            Assert.False((bool)Value(item, "DiffersFromCurrent"));
         }
 
         [Fact]
@@ -96,7 +125,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             var result = await Controller(blob, git: Git(("pages/about-us.page", OnGit))).GetLegacyDrafts("vccom", "pages", "default");
 
             var item = Assert.Single(Items(result));
-            Assert.True((bool)Value(item, "DiffersFromGit"));
+            Assert.True((bool)Value(item, "DiffersFromCurrent"));
         }
 
         [Fact]
@@ -108,7 +137,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
             var result = await Controller(blob, git: Git(("pages/about-us.page", OnGit))).GetLegacyDrafts("vccom", "pages", "default");
 
-            Assert.True((bool)Value(Assert.Single(Items(result)), "DiffersFromGit"));
+            Assert.True((bool)Value(Assert.Single(Items(result)), "DiffersFromCurrent"));
         }
 
         [Fact]
@@ -188,10 +217,10 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         [Fact]
-        public async Task Delete_ADraftWhosePageIsNotInGit_IsSkippedRatherThanDeleted()
+        public async Task Delete_ADraftThatIsTheWholeOfThePage_IsSkippedRatherThanDeleted()
         {
-            // GetTemplate still serves that page out of this very blob, so deleting it is not a cleanup:
-            // it is the loss of the page
+            // nothing else holds it — no repository copy, no published blob — so deleting it is not a
+            // cleanup, it is the loss of the page
             var blob = Storage();
             blob.AddFile("never-saved.page-draft", UnpublishedWork);
 
@@ -201,7 +230,25 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.Empty(blob.Removed);
             var skipped = Assert.Single((IEnumerable<object>)Value(Assert.IsType<OkObjectResult>(result).Value, "skipped"));
             Assert.Equal("never-saved.page-draft", Value(skipped, "path"));
-            Assert.Equal("not-in-git", Value(skipped, "reason"));
+            Assert.Equal("only-copy", Value(skipped, "reason"));
+        }
+
+        [Fact]
+        public async Task Delete_ADraftOfAPageThatIsPublishedButNotInGit_IsDeleted()
+        {
+            // The case a store that opted in is full of: pages it never re-saved from the designer are
+            // in blob storage only. Absent from the repository is NOT the same as having no other copy —
+            // the published blob goes on serving the page once the draft is gone, and refusing here left
+            // the whole cleanup blocked for exactly the stores it was written for.
+            var blob = Storage();
+            blob.AddFile("legacy.page", OnGit);
+            blob.AddFile("legacy.page-draft", UnpublishedWork);
+
+            await Controller(blob, git: Git())
+                .DeleteLegacyDrafts("vccom", "pages", "default", Request("legacy.page-draft"));
+
+            Assert.Equal(["legacy.page-draft"], blob.Removed);
+            Assert.Contains("legacy.page", blob.Files.Keys);
         }
 
         [Fact]
@@ -257,7 +304,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.True(info.Exists);
             Assert.Equal("about-us.page-draft", info.BlobPath);
             Assert.True(info.ExistsInGit);
-            Assert.True(info.DiffersFromGit);
+            Assert.True(info.DiffersFromCurrent);
         }
 
         [Fact]

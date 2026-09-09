@@ -381,7 +381,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                     var draft = blade.legacyDraft;
                     // One file, and it has no second copy anywhere. Name it in the prompt, and say
                     // plainly when it still holds something the repository has not got.
-                    var dialogKey = draft.differsFromGit ? 'delete-legacy-draft-unsaved' : 'delete-legacy-draft';
+                    var dialogKey = draft.differsFromCurrent ? 'delete-legacy-draft-unsaved' : 'delete-legacy-draft';
                     dialogService.showConfirmationDialog({
                         id: "confirmDeleteLegacyDraft",
                         title: 'pageBuilder.dialogs.' + dialogKey + '.title',

@@ -68,7 +68,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         private const string DraftSuffix = "-draft";
         private const string FolderEntryType = "folder";
         private const int MaxLegacyDraftPageSize = 200;
-        private const string LegacyDraftNotInGit = "not-in-git";
+        private const string LegacyDraftOnlyCopy = "only-copy";
         // How many "_N" names a duplicate will try before asking the caller to pick one. A page with
         // this many copies is a naming problem, not a paging problem.
         private const int MaxCopyIndex = 100;
@@ -1090,12 +1090,19 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             foreach (var path in paths)
             {
                 var repoPath = GitLocation(contentType, path).RepoPath;
-                if (await gitContentRepository.ReadFileAsync(repoPath, gitContentOptions.Value.BaseBranch, HttpContext.RequestAborted) == null)
+                var inGit = await gitContentRepository.ReadFileAsync(repoPath, gitContentOptions.Value.BaseBranch, HttpContext.RequestAborted) != null;
+                var isPublished = inGit || await storageProvider.GetBlobInfoAsync(WithoutDraftSuffix(path)) != null;
+
+                if (!isPublished)
                 {
-                    // The repository does not have this page, which means GetTemplate is still serving it
-                    // out of this very file. Deleting it would not be a cleanup, it would be the loss of
-                    // the page. Saving it once from the designer puts it in git and makes it deletable.
-                    skipped.Add(new { path, reason = LegacyDraftNotInGit });
+                    // Neither the repository nor a published blob holds this page, so this file is the
+                    // whole of it: deleting it would not be a cleanup, it would be the loss of the page.
+                    // Saving it once from the designer puts it in git and makes it deletable.
+                    //
+                    // A page that is merely absent from the repository is NOT this case — a store that
+                    // opted in keeps pages it never re-saved, and there the published blob still serves
+                    // the page after the draft goes.
+                    skipped.Add(new { path, reason = LegacyDraftOnlyCopy });
                     continue;
                 }
 
@@ -1281,6 +1288,10 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             var repoPath = GitLocation(contentType, draft.RelativeUrl).RepoPath;
             var inGit = await gitContentRepository.ReadFileAsync(repoPath, gitContentOptions.Value.BaseBranch, HttpContext.RequestAborted);
             var inBlob = await ReadBlobTextAsync(storageProvider, draft.RelativeUrl);
+            // The published blob matters as much as the repository here. A store that opted in keeps
+            // every page it had, and one never saved from the designer since is in blob storage only:
+            // for it, "foo.page" is the live page and this draft is an edit on top of it.
+            var published = await ReadPublishedBlobAsync(storageProvider, draft.RelativeUrl);
 
             return new LegacyDraftInfo
             {
@@ -1289,7 +1300,13 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 RepoPath = repoPath,
                 ModifiedDate = draft.ModifiedDate,
                 ExistsInGit = inGit != null,
-                DiffersFromGit = !IsSamePageDocument(inBlob, inGit),
+                // Nothing else holds this page: deleting the draft would not tidy up after the page,
+                // it would be the page going away.
+                IsOnlyCopy = inGit == null && published == null,
+                // Compared against whatever currently serves the page — the repository when it has it,
+                // the published blob otherwise. Comparing against git alone called every blob-only
+                // page's draft "changed", which is no answer at all for the stores being cleaned up.
+                DiffersFromCurrent = !IsSamePageDocument(inBlob, inGit ?? published),
             };
         }
 
@@ -1321,6 +1338,19 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             {
                 return false;
             }
+        }
+
+        /// <summary>
+        /// The published page next to this draft, or <c>null</c> when there is none. Read rather than
+        /// merely probed, because it is what the draft is compared against.
+        /// </summary>
+        private static async Task<string> ReadPublishedBlobAsync(IBlobContentStorageProvider storageProvider, string draftPath)
+        {
+            var published = WithoutDraftSuffix(draftPath);
+
+            return await storageProvider.GetBlobInfoAsync(published) == null
+                ? null
+                : await ReadBlobTextAsync(storageProvider, published);
         }
 
         private static async Task<string> ReadBlobTextAsync(IBlobContentStorageProvider storageProvider, string relativeUrl)

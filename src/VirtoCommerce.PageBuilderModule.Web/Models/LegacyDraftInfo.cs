@@ -23,16 +23,25 @@ namespace VirtoCommerce.PageBuilderModule.Web.Models
 
         public DateTime? ModifiedDate { get; set; }
 
-        /// <summary>
-        /// Whether the repository has this page at all. When it does not, this blob is what the builder
-        /// still serves, and deleting it loses the page rather than tidying up after it.
-        /// </summary>
+        /// <summary>Whether the content repository has this page at all.</summary>
         public bool ExistsInGit { get; set; }
 
         /// <summary>
-        /// Whether the draft still says something the repository does not — compared as documents, so
-        /// the indent and line endings the old flow used do not count as a change.
+        /// Nothing but this file holds the page — it is in neither the repository nor a published blob.
+        /// Deleting it then loses the page rather than tidying up after it, so the cleanup refuses.
+        /// <para>
+        /// Not the same as "absent from the repository": a store that opted into the git flow keeps every
+        /// page it had, and one never re-saved from the designer lives in blob storage alone. There the
+        /// published blob goes on serving the page once the draft is gone.
+        /// </para>
         /// </summary>
-        public bool DiffersFromGit { get; set; }
+        public bool IsOnlyCopy { get; set; }
+
+        /// <summary>
+        /// Whether the draft still says something the version that currently serves this page does not —
+        /// the repository's copy where there is one, the published blob otherwise. Compared as documents,
+        /// so the indent and line endings the old flow used do not count as a change.
+        /// </summary>
+        public bool DiffersFromCurrent { get; set; }
     }
 }

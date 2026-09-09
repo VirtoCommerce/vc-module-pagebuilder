@@ -76,7 +76,7 @@
       },
       "legacy-draft-kept": {
         "title": "The draft file was kept",
-        "message": "This page is not in the content repository yet, so that file is what the builder still reads. Save the page from the designer once, then delete it."
+        "message": "Nothing else holds this page: it is in neither the content repository nor a published file, so deleting the draft would delete the page. Save it from the designer once, then delete the draft."
       },
       "git-publish-pending": {
         "title": "Publishing in progress",
