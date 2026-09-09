@@ -87,5 +87,4 @@ export class AppComponent {
             // this.store$.dispatch(actions.closeAllPanels());
         }
     }
-  }
 }
