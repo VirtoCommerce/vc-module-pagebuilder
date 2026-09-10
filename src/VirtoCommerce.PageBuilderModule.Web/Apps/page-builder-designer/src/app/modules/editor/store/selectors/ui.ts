@@ -321,12 +321,18 @@ const buildPublishingButtons = (context: ToolbarContext, state: ToolbarPageState
   // Both flows can take a page down — with pages in git that means deleting it from the production
   // branch — but only a store configured for it gets the button, and the server says so by whether
   // it offers the descriptor at all.
+  //
+  // An unpublish awaiting a merge is the one case where this is the button that finishes the job:
+  // the page is off the work branch already, so Publish has nothing to offer, and reading `pending`
+  // alone here would leave every button off with the page still live.
   if (context.useUnpublish) {
     buttons.push({
-      canAction: !hasDirty && state?.published && !state?.hasChanges && !state?.pending,
+      canAction: !hasDirty && state?.published && !state?.hasChanges && !inFlight(state),
       icon: 'unpublished',
       alias: 'unpublish',
-      title: 'Unpublish',
+      // it is THIS operation that is awaiting a merge when the work branch no longer differs from
+      // production — an awaiting publish leaves changes behind and is retried by its own button
+      title: state?.awaitingMerge && !state?.hasChanges ? 'Retry unpublish' : 'Unpublish',
       type: 'outline'
     });
   }

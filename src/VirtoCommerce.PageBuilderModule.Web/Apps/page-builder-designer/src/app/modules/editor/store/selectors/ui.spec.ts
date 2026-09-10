@@ -315,6 +315,33 @@ describe('selectToolbarButtonsState', () => {
         expect(publishBtn!.title).toBe('Publishing…');
     });
 
+    it('offers unpublish again when its pull request will not merge itself', () => {
+        // the page is already off the work branch, so Publish has nothing to offer: reading pending
+        // alone here left every button off with the page still live on production
+        const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: true, useUnpublish: true, useExternalPreview: false });
+        const state = { isLoading: false, published: true, hasChanges: false, pending: true, awaitingMerge: true } as any;
+        const unpublishBtn = selector.projector(false, state).flat().find(b => b.alias === 'unpublish');
+        expect(unpublishBtn!.canAction).toBe(true);
+        expect(unpublishBtn!.title).toBe('Retry unpublish');
+    });
+
+    it('does not let a page be unpublished while its pull request is merging itself', () => {
+        const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: true, useUnpublish: true, useExternalPreview: false });
+        const state = { isLoading: false, published: true, hasChanges: false, pending: true } as any;
+        const unpublishBtn = selector.projector(false, state).flat().find(b => b.alias === 'unpublish');
+        expect(unpublishBtn!.canAction).toBeFalsy();
+        expect(unpublishBtn!.title).toBe('Unpublish');
+    });
+
+    it('leaves unpublish named as itself while a publish awaits its merge', () => {
+        // that pull request is a publish — it left changes behind, and its own button retries it
+        const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: true, useUnpublish: true, useExternalPreview: false });
+        const state = { isLoading: false, published: true, hasChanges: true, pending: true, awaitingMerge: true } as any;
+        const unpublishBtn = selector.projector(false, state).flat().find(b => b.alias === 'unpublish');
+        expect(unpublishBtn!.canAction).toBeFalsy();
+        expect(unpublishBtn!.title).toBe('Unpublish');
+    });
+
     it('offers publish again when the open pull request will not merge itself', () => {
         // the content repository does not allow auto-merge and a required check blocked the merge, so
         // nothing is going to finish this publish: leaving the button disabled would strand the page

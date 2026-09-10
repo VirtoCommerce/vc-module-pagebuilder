@@ -702,13 +702,23 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 return NotFound(new { templatePath = path });
             }
 
-            if (await gitContentRepository.GetBranchHeadShaAsync(location.Branch, HttpContext.RequestAborted) == null)
+            var hadBranch = await gitContentRepository.GetBranchHeadShaAsync(location.Branch, HttpContext.RequestAborted) != null;
+            if (!hadBranch)
             {
                 await gitContentRepository.CreateBranchAsync(location.Branch, options.BaseBranch, HttpContext.RequestAborted);
             }
 
-            await gitContentRepository.DeleteFileAsync(location.RepoPath, location.Branch, CommitMessage($"unpublish {path} (store: {storeId})"), CurrentAuthor(), HttpContext.RequestAborted);
-            gitContentHistory.Invalidate(location.RepoPath);
+            // A branch cut from the production branch a moment ago still holds the page. One that was
+            // already there may not: an earlier unpublish whose merge is waiting to be asked for again
+            // has committed the deletion, and all that is left of this operation is the merge. Deleting
+            // a file that is already gone is an error rather than a no-op, so that retry would fail here
+            // instead of finishing the unpublish it is retrying.
+            if (!hadBranch || await gitContentRepository.ReadFileAsync(location.RepoPath, location.Branch, HttpContext.RequestAborted) != null)
+            {
+                await gitContentRepository.DeleteFileAsync(location.RepoPath, location.Branch, CommitMessage($"unpublish {path} (store: {storeId})"), CurrentAuthor(), HttpContext.RequestAborted);
+                gitContentHistory.Invalidate(location.RepoPath);
+            }
+
             var result = await gitContentPublisher.MergeBranchAsync(location.Branch, $"unpublish {path} (store: {storeId})", HttpContext.RequestAborted);
 
             return await RespondToPublishAsync(result, location, path);
