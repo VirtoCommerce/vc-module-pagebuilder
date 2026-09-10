@@ -1,9 +1,9 @@
 import { inject, Injectable } from '@angular/core';
-import { concatMap, from, map, Observable, toArray } from 'rxjs';
+import { map, Observable } from 'rxjs';
 
 import { assetLibraryHelpers, coreHelpers } from '@core/helpers';
 import { AssetFile } from '@core/models';
-import { AssetLibraryContext, AssetLibraryEntry, AssetLibraryService } from '@core/services';
+import { AssetLibraryContext, AssetLibraryEntry, AssetLibraryService, AssetLibraryUploadCoordinatorService } from '@core/services';
 import { FilesDescriptor } from '@models/controls';
 
 import { AssetPickerDialogItem } from '@core/dialogs';
@@ -18,6 +18,7 @@ export interface AssetLibraryDropFilesResult {
 })
 export class FilesAssetLibraryFacade {
   private readonly assetLibrary = inject(AssetLibraryService);
+  private readonly uploadCoordinator = inject(AssetLibraryUploadCoordinatorService);
 
   readonly labels = this.assetLibrary.getLabels();
 
@@ -26,11 +27,8 @@ export class FilesAssetLibraryFacade {
   }
 
   uploadFiles(folderUrl: string, files: File[], context: AssetLibraryContext | null = null): Observable<AssetPickerDialogItem[]> {
-    return from(files).pipe(
-      concatMap(file => this.assetLibrary.upload(folderUrl, file)),
-      toArray(),
+    return this.uploadCoordinator.uploadFiles(folderUrl, files, context).pipe(
       map(entries => entries
-        .filter((entry): entry is AssetLibraryEntry => !!entry)
         .map(entry => this.createPickerResult(entry, context))
         .filter((item): item is AssetPickerDialogItem => !!item))
     );

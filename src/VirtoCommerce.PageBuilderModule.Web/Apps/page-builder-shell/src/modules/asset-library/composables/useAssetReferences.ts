@@ -4,7 +4,9 @@ import { useAssetsLibraryApi } from "./useAssetsLibraryApi";
 import { getAssetKey, getReferencesCount } from "../utilities/assetEntry";
 
 type AssetReferenceState = Pick<AssetEntry, "referencesCount" | "referencePages">;
-export type DeleteAssetReferences = Required<Pick<AssetEntry, "referencesCount" | "referencePages">>;
+export type DeleteAssetReferences = Required<Pick<AssetEntry, "referencesCount" | "referencePages">> & {
+  usageKnown: boolean;
+};
 
 export function useAssetReferences(storeId: Ref<string | null | undefined>) {
   const { searchAssetReferences, searchFolderReferences } = useAssetsLibraryApi();
@@ -79,13 +81,14 @@ export function useAssetReferences(storeId: Ref<string | null | undefined>) {
     const folderUrl = getAssetKey(entry);
 
     if (!folderUrl || !storeId.value) {
-      return emptyDeleteReferences();
+      return emptyDeleteReferences(false);
     }
 
     if (entry.type === "blob") {
       return getAssetReferences([folderUrl], {
         referencesCount: getReferencesCount(entry),
         referencePages: entry.referencePages ?? [],
+        usageKnown: true,
       }, true);
     }
 
@@ -115,6 +118,7 @@ export function useAssetReferences(storeId: Ref<string | null | undefined>) {
     return {
       referencesCount: referencePages.length || references.reduce((count, reference) => count + (reference.referencesCount ?? 0), 0),
       referencePages,
+      usageKnown: true,
     };
   }
 
@@ -132,10 +136,11 @@ export function useAssetReferences(storeId: Ref<string | null | undefined>) {
     ].filter((url): url is string => !!url);
   }
 
-  function emptyDeleteReferences(): DeleteAssetReferences {
+  function emptyDeleteReferences(usageKnown = true): DeleteAssetReferences {
     return {
       referencesCount: 0,
       referencePages: [],
+      usageKnown,
     };
   }
 

@@ -3,7 +3,7 @@ import { map, Observable } from 'rxjs';
 
 import { AppConfig, BuilderHttpClient } from '@integration/services';
 
-import { AssetLibraryEntry, AssetLibrarySearchResult } from './asset-library.models';
+import { AssetLibraryEntry, AssetLibraryReferencesSearchResult, AssetLibrarySearchResult } from './asset-library.models';
 
 @Injectable({
     providedIn: 'root'
@@ -26,7 +26,13 @@ export class AssetLibraryApiService {
         );
     }
 
-    private doConfiguredRequest<T>(property: 'assetLibrarySearchRequest' | 'assetLibraryUploadRequest', context: any, data: any = null): Observable<T | null> {
+    searchReferences(storeId: string, assetUrls: string[]): Observable<AssetLibraryReferencesSearchResult> {
+        return this.doConfiguredRequest<AssetLibraryReferencesSearchResult>('assetLibraryReferencesRequest', { storeId, assetUrls }).pipe(
+            map(response => response ?? { totalCount: 0, results: [] })
+        );
+    }
+
+    private doConfiguredRequest<T>(property: 'assetLibrarySearchRequest' | 'assetLibraryUploadRequest' | 'assetLibraryReferencesRequest', context: any, data: any = null): Observable<T | null> {
         const request = this.appConfig.getValue(property, context);
         const serverRequest = this.http.generateRequest(request, data, context);
         return this.http.doRequest<T>(serverRequest, { nullWhenError: false }, context);

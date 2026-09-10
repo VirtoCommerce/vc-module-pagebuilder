@@ -25,6 +25,24 @@ export interface AssetLibrarySearchResult {
     results: AssetLibraryEntry[];
 }
 
+export interface AssetLibraryReferencePage {
+    id?: string;
+    name?: string;
+    permalink?: string;
+    cultureName?: string;
+}
+
+export interface AssetLibraryReference {
+    assetUrl?: string;
+    referencesCount?: number;
+    pages?: AssetLibraryReferencePage[];
+}
+
+export interface AssetLibraryReferencesSearchResult {
+    totalCount: number;
+    results: AssetLibraryReference[];
+}
+
 export interface AssetLibraryLabels {
     title: string;
     rootBreadcrumb: string;
@@ -44,4 +62,17 @@ export interface AssetLibraryLabels {
     uploadError: string;
     loadError: string;
     fileTooLarge: string;
+    overwriteTitle: string;
+    overwriteUnused: string;
+    overwriteUsedOne: string;
+    overwriteUsedMany: string;
+    overwriteBatchDuplicate: string;
+    overwriteUsageUnknown: string;
+    affectedPages: string;
+    uploadAs: string;
+    replace: string;
+    fileNameRequired: string;
+    fileNameInvalid: string;
+    fileNameCollision: string;
+    uploadCanceled: string;
 }

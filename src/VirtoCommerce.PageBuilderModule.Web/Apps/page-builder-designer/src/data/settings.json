@@ -129,6 +129,15 @@
             "fileName": "{{file.name}}"
         }
     },
+    "assetLibraryReferencesRequest": {
+        "url": "/api/page-builder-assets/references",
+        "method": "POST",
+        "body": {
+            "storeId": "{{storeId}}",
+            "assetUrls": "@{{this.assetUrls}}",
+            "includePages": true
+        }
+    },
     "uploadAssetsRequest": {
         "url": "/api/assets?folderUrl={{=encodeURIComponent(this.folderUrl)}}&name={{file.assetName}}",
         "method": "POST",

@@ -1,12 +1,13 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatDialogContent, MatDialogActions, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { IconButtonComponent } from '@core/components/icon-button/icon-button.component';
 
 @Component({
     selector: 'app-alert',
     templateUrl: './alert.component.html',
     styleUrls: ['./alert.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [MatDialogContent, MatDialogActions]
+    imports: [MatDialogContent, MatDialogActions, IconButtonComponent]
 })
 export class AlertComponent {
 
