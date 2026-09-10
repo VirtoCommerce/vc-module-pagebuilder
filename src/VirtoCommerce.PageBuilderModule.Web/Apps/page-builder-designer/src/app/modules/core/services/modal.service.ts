@@ -15,8 +15,11 @@ export class ModalService {
         return dialog.afterClosed();
     }
 
-    confirm(title: string): Observable<boolean> {
-        return this.show(ConfirmComponent, { data: { title, icon: 'error' }, panelClass: 'confirm-dialog' });
+    confirm(title: string, labels?: { confirmText?: string; declineText?: string }): Observable<boolean> {
+        return this.show(ConfirmComponent, {
+            data: { title, icon: 'error', ...labels },
+            panelClass: 'confirm-dialog'
+        });
     }
 
     alert(title: string): Observable<boolean> {

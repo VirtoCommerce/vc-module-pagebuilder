@@ -1,8 +1,38 @@
 import { editorDomainReducers } from './reducers';
 import { initialState } from './state';
 import * as actions from '../actions';
+import { createSection, createTemplate } from '@app/testing';
 
 describe('editorDomainReducers', () => {
+    it.each([actions.updateTemplateAction, actions.loadTemplateModelSuccess])
+        ('removes stale selections when template content changes through %s', (action) => {
+            const previous = {
+                ...initialState,
+                states: {
+                    home: {
+                        sections: {
+                            removed: { selected: true, blocks: {} },
+                            kept: { selected: true, expanded: true, blocks: {
+                                removedBlock: { selected: true },
+                                keptBlock: { selected: false },
+                            } },
+                        },
+                    } as any,
+                    other: { sections: {} } as any,
+                },
+            };
+            const template = createTemplate({ content: [createSection({
+                id: 'kept', blocks: [createSection({ id: 'keptBlock' })],
+            })] });
+            const state = editorDomainReducers(previous, action({ templateKey: 'home', template }));
+            expect(Object.keys(state.states['home'].sections)).toEqual(['kept']);
+            expect(state.states['home'].sections['kept'].selected).toBe(true);
+            expect(state.states['home'].sections['kept'].expanded).toBe(true);
+            expect(Object.keys(state.states['home'].sections['kept'].blocks)).toEqual(['keptBlock']);
+            expect(state.states['other']).toBe(previous.states.other);
+            expect(previous.states.home.sections.removed.selected).toBe(true);
+        });
+
     it('returns initial state for unknown action', () => {
         const state = editorDomainReducers(undefined, { type: '@@INIT' });
         expect(state).toEqual(initialState);
@@ -62,6 +92,22 @@ describe('editorDomainReducers', () => {
             expect(state.states['home'].isLoading).toBe(false);
             expect(state.states['home'].error).toBeUndefined();
         });
+    });
+
+    it('discards only the synthetic shared-component domain state', () => {
+        const templateKey = 'shared-component::component-1';
+        const previous = {
+            ...initialState,
+            states: {
+                home: { isLoading: false, sections: {} } as any,
+                [templateKey]: { isLoading: false, sections: {}, error: 'stale' } as any,
+            },
+        };
+
+        const state = editorDomainReducers(previous, actions.discardSharedComponentChanges({ templateKey }));
+
+        expect(state.states['home']).toBe(previous.states['home']);
+        expect(state.states[templateKey]).toBeUndefined();
     });
 
     describe('loadTemplateModelFails', () => {

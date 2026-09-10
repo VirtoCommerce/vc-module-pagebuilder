@@ -1,4 +1,9 @@
-import type { AssetEntry, AssetLibraryDetailsViewModel, AssetLibraryEntryViewModel } from "../types";
+import type {
+  AssetEntry,
+  AssetLibraryDetailsViewModel,
+  AssetLibraryEntryViewModel,
+  AssetReferenceDetails,
+} from "../types";
 
 interface EntryViewModelContext {
   selectedEntryKey: string;
@@ -8,6 +13,7 @@ interface EntryViewModelContext {
   isImage: (entry: AssetEntry | undefined) => boolean;
   getEntryIcon: (entry: AssetEntry) => string;
   getReferencesCount: (entry: AssetEntry) => number;
+  areReferencesAvailable: (entry: AssetEntry | undefined) => boolean;
   formatFileSize: (size?: number) => string;
   formatDate: (value?: string) => string;
   getPreviewUrl: (entry: AssetEntry | undefined) => string | undefined;
@@ -15,7 +21,7 @@ interface EntryViewModelContext {
 
 interface DetailsViewModelContext extends EntryViewModelContext {
   dimensions?: string;
-  getReferencePages: (entry: AssetEntry | undefined) => NonNullable<AssetEntry["referencePages"]>;
+  getReferenceDetails: (entry: AssetEntry | undefined) => AssetReferenceDetails;
 }
 
 export function getAssetEntryKey(entry: AssetEntry | undefined): string {
@@ -46,6 +52,7 @@ export function createAssetLibraryEntryViewModel(
     icon: context.getEntryIcon(entry),
     previewUrl: context.getPreviewUrl(entry),
     referencesCount: context.getReferencesCount(entry),
+    referencesAvailable: context.areReferencesAvailable(entry),
     formattedSize: isBlob ? context.formatFileSize(entry.size) : context.notAvailableText,
     formattedDate: context.formatDate(entry.modifiedDate || entry.createdDate),
   };
@@ -58,6 +65,6 @@ export function createAssetLibraryDetailsViewModel(
   return {
     ...createAssetLibraryEntryViewModel(entry, context),
     dimensions: context.dimensions,
-    referencePages: context.getReferencePages(entry),
+    ...context.getReferenceDetails(entry),
   };
 }

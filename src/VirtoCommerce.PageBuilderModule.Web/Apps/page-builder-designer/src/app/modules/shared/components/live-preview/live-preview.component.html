@@ -9,7 +9,8 @@
     <!-- todo: move to config flow -->
     @if (previewUrl(); as url) {
         <div class="iframe-holder" [class]="previewMode()">
-            <iframe class="shadow-md" #frame id="preview-frame-component" [src]="url"></iframe>
+            <iframe class="shadow-md" #frame id="preview-frame-component" title="Storefront page preview"
+                [src]="url" (load)="onPreviewFrameLoaded(frame)"></iframe>
         </div>
     } @else {
         <!-- an empty or relative url would make the frame load the designer itself (VCST-5847) -->

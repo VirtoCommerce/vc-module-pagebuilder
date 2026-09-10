@@ -5,8 +5,8 @@ using VirtoCommerce.PageBuilderModule.Data.Repositories;
 
 namespace VirtoCommerce.PageBuilderModule.Data.SqlServer;
 
-public class SqlServerContentStreamRepository(PageBuilderModuleDbContext dbContext, IDisposable? owner = null)
-    : ContentStreamRepository(dbContext, owner)
+public class SqlServerContentStreamRepository(PageBuilderModuleDbContext dbContext)
+    : ContentStreamRepository(dbContext)
 {
     protected override string QuoteOpen => "[";
     protected override string QuoteClose => "]";

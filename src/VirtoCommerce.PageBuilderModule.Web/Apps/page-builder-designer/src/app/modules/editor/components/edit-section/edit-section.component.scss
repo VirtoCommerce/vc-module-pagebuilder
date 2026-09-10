@@ -38,3 +38,7 @@
 .name-only {
     margin: auto;
 }
+
+.dynamic-form-boundary--read-only {
+    @apply cursor-not-allowed opacity-60;
+}

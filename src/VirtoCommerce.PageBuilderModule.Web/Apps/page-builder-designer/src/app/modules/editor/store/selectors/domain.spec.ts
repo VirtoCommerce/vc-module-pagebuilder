@@ -8,7 +8,7 @@ describe('isSchemasLoaded', () => {
     });
 
     it('returns false when schemas is null', () => {
-        expect(selectors.isSchemasLoaded.projector({ schemas: null, templates: {} })).toBe(false);
+        expect(selectors.isSchemasLoaded.projector({ schemas: null, templates: {} } as any)).toBe(false);
     });
 });
 

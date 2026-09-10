@@ -204,7 +204,8 @@ const {
   isImage,
   getEntryIcon,
   getReferencesCount,
-  getReferencePages,
+  areReferencesAvailable,
+  getReferenceDetails,
   getDeleteReferences,
   formatFileSize,
   formatDate,
@@ -278,6 +279,7 @@ const entryViewModels = computed(() =>
       isImage,
       getEntryIcon,
       getReferencesCount,
+      areReferencesAvailable,
       formatFileSize,
       formatDate,
       getPreviewUrl,
@@ -295,11 +297,12 @@ const selectedAssetView = computed(() => {
         isImage,
         getEntryIcon,
         getReferencesCount,
+        areReferencesAvailable,
         formatFileSize,
         formatDate,
         getPreviewUrl,
         dimensions: selectedAssetDimensions.value,
-        getReferencePages,
+        getReferenceDetails,
       })
     : undefined;
 });

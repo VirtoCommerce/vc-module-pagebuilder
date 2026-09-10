@@ -6,6 +6,13 @@ namespace VirtoCommerce.PageBuilderModule.Core
     {
         public const string DefaultPageContent = "{ \"settings\": {}, \"content\": [] }";
 
+        public static class SharedComponents
+        {
+            public const string ReferenceType = "componentRef";
+            public const string ReferenceProperty = "componentRef";
+            public const int NameMaxLength = 128;
+        }
+
         public static class PageStatuses
         {
             public const string Draft = "Draft";
@@ -33,6 +40,10 @@ namespace VirtoCommerce.PageBuilderModule.Core
                 public const string Update = "builder:update";
                 public const string Delete = "builder:delete";
                 public const string Publish = "builder:publish";
+                public const string SharedComponentsRead = "builder:shared-components:read";
+                public const string SharedComponentsCreate = "builder:shared-components:create";
+                public const string SharedComponentsUpdate = "builder:shared-components:update";
+                public const string SharedComponentsDelete = "builder:shared-components:delete";
 
                 public static string[] AllPermissions { get; } =
                 [
@@ -44,6 +55,10 @@ namespace VirtoCommerce.PageBuilderModule.Core
                     Update,
                     Delete,
                     Publish,
+                    SharedComponentsRead,
+                    SharedComponentsCreate,
+                    SharedComponentsUpdate,
+                    SharedComponentsDelete,
                 ];
             }
         }

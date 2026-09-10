@@ -20,7 +20,8 @@ public class PageBuilderPageSearchService(
 {
     protected override IQueryable<PageBuilderPageEntity> BuildQuery(IRepository repository, PageBuilderPageSearchCriteria criteria)
     {
-        var query = ((IPageBuilderModuleRepository)repository).PageBuilderPages;
+        var pageBuilderRepository = (IPageBuilderModuleRepository)repository;
+        var query = pageBuilderRepository.PageBuilderPages;
 
         if (!string.IsNullOrEmpty(criteria.StoreId))
         {
@@ -38,17 +39,50 @@ public class PageBuilderPageSearchService(
             query = query.Where(x => criteria.ObjectIds.Contains(x.Id));
         }
 
-        if (criteria.ModifiedSince.HasValue)
+        return ApplyDateRange(
+            query,
+            pageBuilderRepository,
+            criteria.ModifiedSince,
+            criteria.ModifiedBefore);
+    }
+
+    private static IQueryable<PageBuilderPageEntity> ApplyDateRange(
+        IQueryable<PageBuilderPageEntity> pages,
+        IPageBuilderModuleRepository repository,
+        DateTime? modifiedSince,
+        DateTime? modifiedBefore)
+    {
+        if (modifiedSince.HasValue)
         {
-            query = query.Where(x => x.ModifiedDate >= criteria.ModifiedSince.Value || (x.ModifiedDate == null && x.CreatedDate >= criteria.ModifiedSince.Value));
+            var start = modifiedSince.Value;
+            pages = pages.Where(page =>
+                (page.ModifiedDate ?? page.CreatedDate) >= start ||
+                repository.PageBuilderSharedComponentReferences
+                    .Where(reference => reference.PageId == page.Id)
+                    .Join(
+                        repository.PageBuilderSharedComponents,
+                        reference => reference.SharedComponentId,
+                        component => component.Id,
+                        (_, component) => component.ModifiedDate ?? component.CreatedDate)
+                    .Any(changeDate => changeDate >= start));
         }
 
-        if (criteria.ModifiedBefore.HasValue)
+        if (modifiedBefore.HasValue)
         {
-            query = query.Where(x => x.ModifiedDate <= criteria.ModifiedBefore.Value || (x.ModifiedDate == null && x.CreatedDate <= criteria.ModifiedBefore.Value));
+            var end = modifiedBefore.Value;
+            pages = pages.Where(page =>
+                (page.ModifiedDate ?? page.CreatedDate) <= end &&
+                !repository.PageBuilderSharedComponentReferences
+                    .Where(reference => reference.PageId == page.Id)
+                    .Join(
+                        repository.PageBuilderSharedComponents,
+                        reference => reference.SharedComponentId,
+                        component => component.Id,
+                        (_, component) => component.ModifiedDate ?? component.CreatedDate)
+                    .Any(changeDate => changeDate > end));
         }
 
-        return query;
+        return pages;
     }
 
     protected override IList<SortInfo> BuildSortExpression(PageBuilderPageSearchCriteria criteria)

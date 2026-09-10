@@ -255,6 +255,27 @@ describe('editTemplateContext', () => {
         expect(result!.selectMode).toBe(true);
         expect(result!.selectedSectionsCount).toBe(1);
     });
+
+    it('removes page settings schemas from shared-component-document context', () => {
+        const template = createTemplate({ content: [createSection({ id: 's1', type: 'hero' })] });
+        const settingsSchemas = { top: [createSchema()], bottom: [createSchema()] };
+
+        const result = selectors.editTemplateContext.projector(
+            { sections: {} } as any,
+            {
+                template,
+                sectionsSchemas: { hero: {} },
+                blocksSchemas: { text: {} },
+                settings: template.settings,
+                settingsSchemas,
+                isSharedComponentDocument: true,
+            } as any,
+            {},
+            [],
+        );
+
+        expect(result!.settingsSchemas).toEqual({ top: [], bottom: [] });
+    });
 });
 
 // ── selectToolbarButtonsState ─────────────────────────────────────
@@ -262,21 +283,21 @@ describe('editTemplateContext', () => {
 describe('selectToolbarButtonsState', () => {
     it('always includes Save button', () => {
         const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: false, useExternalPreview: false });
-        const result = selector.projector(false, null);
+        const result = selector.projector(false, null, '', false);
         const allButtons = result.flat();
         expect(allButtons.find(b => b.alias === 'save')).toBeTruthy();
     });
 
     it('includes theme-settings when useTheme is true', () => {
         const selector = selectors.selectToolbarButtonsState({ useTheme: true, useDrafts: false, useExternalPreview: false });
-        const result = selector.projector(false, null);
+        const result = selector.projector(false, null, '', false);
         const allButtons = result.flat();
         expect(allButtons.find(b => b.alias === 'theme-settings')).toBeTruthy();
     });
 
     it('includes preview when useExternalPreview is true', () => {
         const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: false, useExternalPreview: true });
-        const result = selector.projector(false, null);
+        const result = selector.projector(false, null, '', false);
         const allButtons = result.flat();
         expect(allButtons.find(b => b.alias === 'external-preview')).toBeTruthy();
     });
@@ -284,7 +305,7 @@ describe('selectToolbarButtonsState', () => {
     it('includes publish/unpublish when useDrafts is true and not loading', () => {
         const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: true, useExternalPreview: false });
         const state = { isLoading: false, error: undefined, published: true, hasChanges: false } as any;
-        const result = selector.projector(false, state);
+        const result = selector.projector(false, state, '', false);
         const allButtons = result.flat();
         expect(allButtons.find(b => b.alias === 'publish')).toBeTruthy();
         expect(allButtons.find(b => b.alias === 'unpublish')).toBeTruthy();
@@ -293,21 +314,33 @@ describe('selectToolbarButtonsState', () => {
     it('hides publish/unpublish when loading', () => {
         const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: true, useExternalPreview: false });
         const state = { isLoading: true } as any;
-        const result = selector.projector(false, state);
+        const result = selector.projector(false, state, '', false);
         const allButtons = result.flat();
         expect(allButtons.find(b => b.alias === 'publish')).toBeFalsy();
     });
 
     it('Save canAction is true when hasDirty', () => {
         const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: false, useExternalPreview: false });
-        const result = selector.projector(true, null);
+        const result = selector.projector(true, null, '', false);
         const saveBtn = result.flat().find(b => b.alias === 'save');
         expect(saveBtn!.canAction).toBe(true);
     });
 
     it('Save canAction is false when not dirty', () => {
         const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: false, useExternalPreview: false });
-        const result = selector.projector(false, null);
+        const result = selector.projector(false, null, '', false);
+        const saveBtn = result.flat().find(b => b.alias === 'save');
+        expect(saveBtn!.canAction).toBe(false);
+    });
+
+    it('disables Save for a Shared Component document without edit permission', () => {
+        const selector = selectors.selectToolbarButtonsState({
+            useTheme: false,
+            useDrafts: false,
+            useExternalPreview: false,
+            canEditSharedComponents: false,
+        });
+        const result = selector.projector(false, null, 'component-1', true);
         const saveBtn = result.flat().find(b => b.alias === 'save');
         expect(saveBtn!.canAction).toBe(false);
     });

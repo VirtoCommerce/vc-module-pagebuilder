@@ -1,0 +1,66 @@
+{
+  "SHARED_COMPONENTS": {
+    "MENU": {
+      "TITLE": "Delte komponenter"
+    },
+    "TITLE": "Delte komponenter",
+    "SEARCH": {
+      "PLACEHOLDER": "Søk etter delte komponenter..."
+    },
+    "TABLE": {
+      "NAME": "Navn",
+      "USAGE": "Brukt på",
+      "MODIFIED": "Endret",
+      "MODIFIED_BY": "Endret av"
+    },
+    "TOOLBAR": {
+      "REFRESH": "Oppdater"
+    },
+    "ACTIONS": {
+      "RENAME": "Gi nytt navn",
+      "DELETE": "Slett",
+      "DELETE_BLOCKED": "Denne komponenten er i bruk og kan ikke slettes",
+      "CLOSE": "Lukk"
+    },
+    "DETAILS": {
+      "COMPONENT_DETAILS": "Komponentdetaljer",
+      "STORE": "Butikk",
+      "MODIFIED": "Endret",
+      "MODIFIED_BY": "Endret av",
+      "USED_ON_ONE": "Brukt på (1 side)",
+      "USED_ON_MANY": "Brukt på ({count} sider)",
+      "LOADING_USAGE": "Laster sidebruk...",
+      "NO_USAGE": "Ikke brukt på noen Page Builder-sider.",
+      "DELETE_BLOCKED_ONE": "Fjern denne komponenten fra siden før du sletter den.",
+      "DELETE_BLOCKED_MANY": "Fjern denne komponenten fra alle {count} sider før du sletter den.",
+      "NOT_AVAILABLE": "Ikke tilgjengelig",
+      "OPEN_UNAVAILABLE_PERMISSION": "Du har ikke tillatelse til å åpne denne siden i Designer.",
+      "OPEN_UNAVAILABLE_ARCHIVED": "Arkiverte sider kan ikke åpnes i Designer.",
+      "OPEN_UNAVAILABLE_IDENTITY": "Siden kan ikke åpnes fordi identifikatoren ikke er tilgjengelig."
+    },
+    "EMPTY": {
+      "TITLE": "Ingen delte komponenter ennå",
+      "DESCRIPTION": "Opprett en delt komponent fra valgte seksjoner i Page Builder Designer.",
+      "NOT_FOUND_TITLE": "Ingen delte komponenter funnet",
+      "NOT_FOUND_DESCRIPTION": "Prøv et annet søkeuttrykk."
+    },
+    "RENAME": {
+      "TITLE": "Gi nytt navn til delt komponent",
+      "NAME_LABEL": "Navn",
+      "NAME_PLACEHOLDER": "Skriv inn komponentnavn",
+      "CANCEL": "Avbryt",
+      "SAVE": "Lagre"
+    },
+    "CONFIRM": {
+      "DELETE": "Slette {name}? Denne handlingen kan ikke angres."
+    },
+    "NOTIFICATIONS": {
+      "RENAMED": "Den delte komponenten fikk nytt navn",
+      "DELETED": "Den delte komponenten ble slettet",
+      "DELETE_BLOCKED_ONE": "Denne komponenten brukes på 1 side og kan ikke slettes.",
+      "DELETE_BLOCKED_MANY": "Denne komponenten brukes på {count} sider og kan ikke slettes.",
+      "DELETE_CONFLICT": "Komponenten er nå i bruk og kan ikke slettes. Oppdater listen for å se hvor den brukes.",
+      "ERROR_GENERIC": "Handlingen for den delte komponenten mislyktes"
+    }
+  }
+}

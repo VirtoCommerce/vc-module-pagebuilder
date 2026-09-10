@@ -1,0 +1,54 @@
+<h2 mat-dialog-title class="dialog-title">Copy component: {{ data.name }}</h2>
+<div mat-dialog-content class="insert-dialog">
+  <p id="shared-component-mode-description" class="description">Choose how to copy this component to your page.</p>
+
+  <fieldset class="mode-options" aria-describedby="shared-component-mode-description">
+    <legend class="sr-only">Component insertion mode</legend>
+    <label
+      class="mode-option"
+      [class.selected]="mode() === 'shared'"
+      [class.disabled]="!data.allowShared">
+      <input
+        class="mode-input"
+        type="radio"
+        name="shared-component-mode"
+        value="shared"
+        [checked]="mode() === 'shared'"
+        [disabled]="!data.allowShared"
+        (change)="select('shared')" />
+      <span>
+        <strong>Insert shared instance</strong>
+        <small>
+          @if (data.allowShared) {
+            The copy stays linked to the original. Editing one updates all instances across pages. Recommended for global elements like USP bars, trust badges, or headers.
+          } @else {
+            {{ data.sharedComponentDisabledReason || 'Shared insertion is not available in this document.' }}
+          }
+        </small>
+      </span>
+    </label>
+
+    <label class="mode-option" [class.selected]="mode() === 'copy'">
+      <input
+        class="mode-input"
+        type="radio"
+        name="shared-component-mode"
+        value="copy"
+        [checked]="mode() === 'copy'"
+        (change)="select('copy')" />
+      <span>
+        <strong>Create independent copy</strong>
+        <small>
+          A standalone duplicate with its own data. Changes to this copy will not affect the original or any other instance.
+        </small>
+      </span>
+    </label>
+  </fieldset>
+</div>
+
+<div mat-dialog-actions>
+  <div class="dialog-actions">
+    <app-icon-button (click)="decline()" skin="outline" text="Cancel" />
+    <app-icon-button (click)="confirm()" skin="primary" text="Paste component" />
+  </div>
+</div>

@@ -40,14 +40,17 @@
     "DETAILS": {
       "EMPTY": "Valitse tiedosto nähdäksesi sen tiedot.",
       "FILE_DETAILS": "Tiedoston tiedot",
+      "CLOSE": "Sulje",
       "SIZE": "Koko",
       "DIMENSIONS": "Mitat",
       "TYPE": "Tyyppi",
       "MODIFIED": "Muokattu",
       "UPLOADED": "Ladattu",
       "PATH": "Polku",
-      "USED_ON": "Käytössä ({count} sivulla)",
-      "NO_REFERENCES": "Ei käytössä millään Page Builder -sivulla.",
+      "USED_ON": "Käytössä ({count})",
+      "PAGES": "Sivut",
+      "SHARED_COMPONENTS": "Jaetut komponentit",
+      "NO_REFERENCES": "Ei käytössä Page Builder -sivuilla tai jaetuissa komponenteissa.",
       "URL": "URL",
       "COPY_URL": "Kopioi URL",
       "REPLACE": "Korvaa",
@@ -77,8 +80,8 @@
     "CONFIRM": {
       "DELETE_SINGLE": "Poistetaanko {name}?",
       "DELETE_SELECTED": "Poistetaanko {count} valittua resurssia?",
-      "DELETE_USED_ONE": "Poistetaanko {name}? Sitä käytetään 1 Page Builder -sivulla.",
-      "DELETE_USED_MANY": "Poistetaanko {name}? Sitä käytetään {count} Page Builder -sivulla."
+      "DELETE_USED_ONE": "Poistetaanko {name}? Sitä käytetään 1 Page Builder -kohteessa.",
+      "DELETE_USED_MANY": "Poistetaanko {name}? Sitä käytetään {count} Page Builder -kohteessa."
     },
     "NOTIFICATIONS": {
       "FOLDER_CREATED": "Kansio luotu onnistuneesti",

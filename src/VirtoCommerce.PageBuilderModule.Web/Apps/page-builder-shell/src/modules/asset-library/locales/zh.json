@@ -40,14 +40,17 @@
     "DETAILS": {
       "EMPTY": "选择一个文件以预览其详细信息。",
       "FILE_DETAILS": "文件详细信息",
+      "CLOSE": "关闭",
       "SIZE": "大小",
       "DIMENSIONS": "尺寸",
       "TYPE": "类型",
       "MODIFIED": "已修改",
       "UPLOADED": "已上传",
       "PATH": "路径",
-      "USED_ON": "用于 ({count} 个页面)",
-      "NO_REFERENCES": "未在任何 Page Builder 页面中使用。",
+      "USED_ON": "使用位置 ({count})",
+      "PAGES": "页面",
+      "SHARED_COMPONENTS": "共享组件",
+      "NO_REFERENCES": "未在 Page Builder 页面或共享组件中使用。",
       "URL": "URL",
       "COPY_URL": "复制 URL",
       "REPLACE": "替换",
@@ -77,8 +80,8 @@
     "CONFIRM": {
       "DELETE_SINGLE": "删除 {name}？",
       "DELETE_SELECTED": "删除选中的 {count} 个资源？",
-      "DELETE_USED_ONE": "删除 {name}？它正在 1 个 Page Builder 页面中使用。",
-      "DELETE_USED_MANY": "删除 {name}？它正在 {count} 个 Page Builder 页面中使用。"
+      "DELETE_USED_ONE": "删除 {name}？它正在 1 个 Page Builder 项目中使用。",
+      "DELETE_USED_MANY": "删除 {name}？它正在 {count} 个 Page Builder 项目中使用。"
     },
     "NOTIFICATIONS": {
       "FOLDER_CREATED": "文件夹创建成功",

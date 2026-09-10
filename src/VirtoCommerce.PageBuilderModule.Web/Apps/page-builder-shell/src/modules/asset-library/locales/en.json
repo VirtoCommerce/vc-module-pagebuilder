@@ -40,14 +40,17 @@
     "DETAILS": {
       "EMPTY": "Select a file to preview its details.",
       "FILE_DETAILS": "File details",
+      "CLOSE": "Close",
       "SIZE": "Size",
       "DIMENSIONS": "Dimensions",
       "TYPE": "Type",
       "MODIFIED": "Modified",
       "UPLOADED": "Uploaded",
       "PATH": "Path",
-      "USED_ON": "Used on ({count} pages)",
-      "NO_REFERENCES": "Not used on any Page Builder pages.",
+      "USED_ON": "Used in ({count})",
+      "PAGES": "Pages",
+      "SHARED_COMPONENTS": "Shared components",
+      "NO_REFERENCES": "Not used on any Page Builder pages or shared components.",
       "URL": "URL",
       "COPY_URL": "Copy URL",
       "REPLACE": "Replace",
@@ -76,8 +79,8 @@
     },
     "CONFIRM": {
       "DELETE_SINGLE": "Delete {name}?",
-      "DELETE_USED_ONE": "Delete {name}? It is used on 1 Page Builder page.",
-      "DELETE_USED_MANY": "Delete {name}? It is used on {count} Page Builder pages.",
+      "DELETE_USED_ONE": "Delete {name}? It is used in 1 Page Builder item.",
+      "DELETE_USED_MANY": "Delete {name}? It is used in {count} Page Builder items.",
       "DELETE_SELECTED": "Delete {count} selected assets?"
     },
     "NOTIFICATIONS": {

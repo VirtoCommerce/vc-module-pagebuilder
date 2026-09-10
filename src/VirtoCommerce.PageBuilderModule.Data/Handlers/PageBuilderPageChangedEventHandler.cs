@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.Platform.Core.Common;
@@ -8,20 +9,23 @@ namespace VirtoCommerce.PageBuilderModule.Data.Handlers;
 public class PageBuilderPageChangedEventHandler(
     IEventPublisher eventPublisher,
     IGroupedPageService groupedPageService,
-    IPageBuilderAssetReferenceIndexService assetReferenceIndexService
-) : PageBuilderEventHandlerBase(groupedPageService), IEventHandler<PageBuilderPageChangedEvent>
+    IPageBuilderSharedComponentResolver sharedComponentResolver,
+    IPageBuilderAssetReferenceIndexService assetReferenceIndexService,
+    ILogger<PageBuilderPageChangedEventHandler> logger
+) : PageBuilderEventHandlerBase(groupedPageService, sharedComponentResolver, logger), IEventHandler<PageBuilderPageChangedEvent>
 {
     public async Task Handle(PageBuilderPageChangedEvent message)
     {
         await UpdateReferenceIndex(message);
 
-        var eventTasks = message.ChangedEntries.Select(x =>
-        {
-            var page = x.NewEntry ?? x.OldEntry;
-            return ToPagesDomainEvent(page, x.EntryState);
-        });
-
-        var events = await Task.WhenAll(eventTasks);
+        var changedEntries = message.ChangedEntries.ToArray();
+        var events = await SelectBoundedAsync(
+            changedEntries,
+            x =>
+            {
+                var page = x.NewEntry ?? x.OldEntry;
+                return ToPagesDomainEvent(page, x.EntryState);
+            });
 
         await PublishPagesDomainEvents(events, eventPublisher);
     }

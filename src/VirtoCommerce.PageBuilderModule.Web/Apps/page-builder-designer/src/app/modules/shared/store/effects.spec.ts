@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideMockActions } from '@ngrx/effects/testing';
 import { provideMockStore, MockStore } from '@ngrx/store/testing';
-import { ReplaySubject, of, firstValueFrom, throwError } from 'rxjs';
+import { ReplaySubject, Subject, of, firstValueFrom, throwError } from 'rxjs';
 import { take, toArray } from 'rxjs/operators';
 import { Action } from '@ngrx/store';
 
@@ -10,6 +10,8 @@ import * as actions from './actions';
 import * as fromRoute from '@shared/routing';
 import * as fromState from '@shared/store/selectors';
 import { EventsBusService, NotificationsService } from '@core/services';
+import { PreviewBridgeService } from '@shared/services';
+import type { PreviewInboundMessage } from '@shared/models';
 
 describe('SharedEffects', () => {
     let effects: SharedEffects;
@@ -22,6 +24,7 @@ describe('SharedEffects', () => {
         getChildrenTemplates: ReturnType<typeof vi.fn>;
     };
     let metaDataService: { setTitle: ReturnType<typeof vi.fn> };
+    let previewMessages$: Subject<PreviewInboundMessage>;
 
     beforeEach(() => {
         actions$ = new ReplaySubject<Action>(1);
@@ -32,6 +35,7 @@ describe('SharedEffects', () => {
             getChildrenTemplates: vi.fn().mockReturnValue(of({})),
         };
         metaDataService = { setTitle: vi.fn() };
+        previewMessages$ = new Subject<PreviewInboundMessage>();
 
         TestBed.configureTestingModule({
             providers: [
@@ -56,6 +60,7 @@ describe('SharedEffects', () => {
                 }),
                 { provide: EventsBusService, useValue: eventsBus },
                 { provide: NotificationsService, useValue: notification },
+                { provide: PreviewBridgeService, useValue: { messages$: previewMessages$ } },
                 { provide: 'MetaDataService', useValue: metaDataService },
             ],
         });
@@ -138,6 +143,34 @@ describe('SharedEffects', () => {
             actions$.next(actions.broadcastPlatformMessage({ msg: { type: 'save' } }));
             effects.broadcastPlatformMessage$.subscribe();
             expect(eventsBus.emit).toHaveBeenCalledWith({ target: 'platform', payload: { type: 'save' } });
+        });
+    });
+
+    // ── inbound preview messages ─────────────────────────────────
+
+    describe('inbound preview messages', () => {
+        it('dispatches selectSection with a string section id', async () => {
+            const result = firstValueFrom(effects.selectSectionMessage$);
+
+            previewMessages$.next({
+                source: 'preview',
+                type: 'select',
+                data: { sectionId: 'placement-1' },
+            });
+
+            await expect(result).resolves.toEqual(actions.selectSection({ sectionId: 'placement-1' }));
+        });
+
+        it('clears preview hover when the iframe emits hover leave', async () => {
+            const result = firstValueFrom(effects.hoverSectionMessage$);
+
+            previewMessages$.next({
+                source: 'preview',
+                type: 'hover',
+                data: { sectionId: null },
+            });
+
+            await expect(result).resolves.toEqual(actions.previewSectionHovered({ sectionId: null }));
         });
     });
 

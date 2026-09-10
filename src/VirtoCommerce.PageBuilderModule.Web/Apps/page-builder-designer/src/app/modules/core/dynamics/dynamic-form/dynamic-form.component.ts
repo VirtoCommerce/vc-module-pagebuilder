@@ -25,6 +25,7 @@ export class DynamicFormComponent {
   readonly sectionModel = input.required<SectionModel>();
   readonly context = input.required<ControlContext>();
   readonly descriptors = input.required<BaseControlDescriptor[]>();
+  readonly readOnly = input(false);
   readonly modelChanged = output<ModelChangedEventArgs>();
   readonly form = signal<UntypedFormGroup | null>(null);
   readonly formKey = signal(0);
@@ -33,6 +34,7 @@ export class DynamicFormComponent {
     effect(() => {
       const section = this.sectionModel();
       const descriptors = this.descriptors();
+      const readOnly = this.readOnly();
 
       if (!section || !descriptors?.length) return;
 
@@ -41,6 +43,9 @@ export class DynamicFormComponent {
         this.formReset$.next();
 
         const newForm = formsHelpers.generateForm(section, descriptors);
+        if (readOnly) {
+          newForm.disable({ emitEvent: false });
+        }
         newForm.valueChanges
           .pipe(takeUntil(this.formReset$), takeUntilDestroyed(this.destroyRef))
           .subscribe(value => {
@@ -57,7 +62,13 @@ export class DynamicFormComponent {
         this.form.set(newForm);
         this.formKey.update(k => k + 1);
       } else {
-        untracked(() => this.form())?.patchValue(section, { emitEvent: false });
+        const currentForm = untracked(() => this.form());
+        currentForm?.patchValue(section, { emitEvent: false });
+        if (readOnly) {
+          currentForm?.disable({ emitEvent: false });
+        } else {
+          currentForm?.enable({ emitEvent: false });
+        }
       }
     }, { allowSignalWrites: true });
   }
