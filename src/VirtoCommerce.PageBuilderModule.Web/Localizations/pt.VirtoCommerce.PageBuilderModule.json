@@ -56,6 +56,10 @@
       "unpublish": "Despublicar"
     },
     "dialogs": {
+      "git-awaiting-merge": {
+        "title": "A publicação precisa de mais um passo",
+        "message": "O pull request desta página está aberto, mas não será mesclado por si só: este repositório não permite auto-merge e uma verificação obrigatória não passou. Publique novamente quando as verificações estiverem verdes, ou mescle-o no GitHub. {{url}}"
+      },
       "git-publish-pending": {
         "title": "Publicação em andamento",
         "message": "A página ainda não está publicada: há um pull request aberto que será mesclado quando suas verificações passarem. {{url}}"

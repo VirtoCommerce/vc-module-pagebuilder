@@ -56,6 +56,10 @@
       "unpublish": "Dépublier"
     },
     "dialogs": {
+      "git-awaiting-merge": {
+        "title": "La publication demande une étape de plus",
+        "message": "La pull request de cette page est ouverte mais ne sera pas fusionnée d'elle-même : ce dépôt n'autorise pas l'auto-merge et une vérification obligatoire n'est pas passée. Publiez à nouveau lorsque les vérifications sont vertes, ou fusionnez-la dans GitHub. {{url}}"
+      },
       "git-publish-pending": {
         "title": "Publication en cours",
         "message": "La page n'est pas encore en ligne : une pull request est ouverte et sera fusionnée une fois ses vérifications réussies. {{url}}"

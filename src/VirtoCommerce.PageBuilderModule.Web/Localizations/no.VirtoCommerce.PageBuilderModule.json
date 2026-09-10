@@ -61,6 +61,10 @@
       }
     },
     "dialogs": {
+      "git-awaiting-merge": {
+        "title": "Publisering trenger ett steg mer",
+        "message": "Pull requesten for denne siden er åpen, men blir ikke flettet av seg selv: dette repositoriet tillater ikke auto-merge, og en påkrevd kontroll har ikke passert. Publiser på nytt når kontrollene er grønne, eller flett den i GitHub. {{url}}"
+      },
       "git-publish-pending": {
         "title": "Publisering pågår",
         "message": "Siden er ikke publisert ennå: en pull request er åpen og blir flettet når kontrollene passerer. {{url}}"

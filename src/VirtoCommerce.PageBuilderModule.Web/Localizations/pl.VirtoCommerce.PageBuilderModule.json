@@ -56,6 +56,10 @@
       "unpublish": "Wycofaj publikację"
     },
     "dialogs": {
+      "git-awaiting-merge": {
+        "title": "Publikacja wymaga jeszcze jednego kroku",
+        "message": "Pull request tej strony jest otwarty, ale nie scali się sam: to repozytorium nie pozwala na auto-merge, a wymagany test nie przeszedł. Opublikuj ponownie, gdy testy będą zielone, albo scal go w GitHubie. {{url}}"
+      },
       "git-publish-pending": {
         "title": "Publikowanie w toku",
         "message": "Strona nie jest jeszcze opublikowana: pull request jest otwarty i zostanie scalony, gdy przejdą jego testy. {{url}}"

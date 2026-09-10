@@ -1,7 +1,6 @@
 import { SchemasList } from './../../models/schemas.model';
 import { validateItemUnderEdit, useSchemasAction } from './../actions/data';
 import { ModalService } from '@core/services';
-import { PublishStatus } from '@editor/services';
 import { Injectable, inject } from "@angular/core";
 
 import { defer, of } from "rxjs";
@@ -28,7 +27,7 @@ import * as fromShared from '@shared/store/selectors';
 
 import { EditorModuleInfo } from "@models/modules";
 
-import { SchemasService, TemplatesService } from "@editor/services";
+import { PublishStatus, SchemasService, TemplatesService } from "@editor/services";
 
 @Injectable({
     providedIn: 'root'
@@ -221,7 +220,7 @@ export class TemplateEditorDataEffects {
         ),
         switchMap(([{ templateKey }, entry, path, type, groupId]) => this.templates.getTemplatePublishStatus(path, type, entry || {}, groupId).pipe(
             filter((status): status is PublishStatus => !!status),
-            map(({ hasChanges, published, pending, production }) => actions.getTemplatePublishStatusSuccess({ templateKey, hasChanges, published, pending, production })),
+            map(({ hasChanges, published, pending, awaitingMerge, production }) => actions.getTemplatePublishStatusSuccess({ templateKey, hasChanges, published, pending, awaitingMerge, production })),
             catchError(error => of(actions.getTemplatePublishStatusFails({ error, templateKey })))
         ))
     ));
@@ -240,8 +239,8 @@ export class TemplateEditorDataEffects {
         switchMap(([, { templateKey, entry, path, type, groupId }]) => this.templates.publishTemplate(path, type, entry, groupId).pipe(
             switchMap(() => this.templates.getTemplatePublishStatus(path, type, entry, groupId)),
             filter((status): status is PublishStatus => !!status),
-            switchMap(({ hasChanges, published, pending, production }) => [
-                actions.getTemplatePublishStatusSuccess({ templateKey, hasChanges, published, pending, production }),
+            switchMap(({ hasChanges, published, pending, awaitingMerge, production }) => [
+                actions.getTemplatePublishStatusSuccess({ templateKey, hasChanges, published, pending, awaitingMerge, production }),
                 shared.broadcastPlatformMessage({
                     msg: {
                         hasChanges,
@@ -266,8 +265,8 @@ export class TemplateEditorDataEffects {
         switchMap(([, { templateKey, entry, path, type, groupId }]) => this.templates.unpublishTemplate(path, type, entry, groupId).pipe(
             switchMap(() => this.templates.getTemplatePublishStatus(path, type, entry, groupId)),
             filter((status): status is PublishStatus => !!status),
-            switchMap(({ hasChanges, published, pending, production }) => [
-                actions.getTemplatePublishStatusSuccess({ templateKey, hasChanges, published, pending, production }),
+            switchMap(({ hasChanges, published, pending, awaitingMerge, production }) => [
+                actions.getTemplatePublishStatusSuccess({ templateKey, hasChanges, published, pending, awaitingMerge, production }),
                 shared.broadcastPlatformMessage({
                     msg: {
                         hasChanges,
@@ -295,8 +294,8 @@ export class TemplateEditorDataEffects {
         switchMap(([, { templateKey, entry, path, type, groupId }]) => this.templates.promoteTemplate(path, type, entry, groupId).pipe(
             switchMap(() => this.templates.getTemplatePublishStatus(path, type, entry, groupId)),
             filter((status): status is PublishStatus => !!status),
-            map(({ hasChanges, published, pending, production }) =>
-                actions.getTemplatePublishStatusSuccess({ templateKey, hasChanges, published, pending, production })),
+            map(({ hasChanges, published, pending, awaitingMerge, production }) =>
+                actions.getTemplatePublishStatusSuccess({ templateKey, hasChanges, published, pending, awaitingMerge, production })),
             // No platform broadcast here: promotion does not change whether the page is published
             // or has changes, which is all the admin blade listens for on that channel.
             catchError(error => of(actions.getTemplatePublishStatusFails({ error, templateKey })))

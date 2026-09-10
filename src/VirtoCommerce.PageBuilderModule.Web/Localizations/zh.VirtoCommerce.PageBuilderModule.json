@@ -56,6 +56,10 @@
       "unpublish": "取消发布"
     },
     "dialogs": {
+      "git-awaiting-merge": {
+        "title": "发布还需要一步",
+        "message": "此页面的 pull request 已打开，但不会自动合并：该仓库未启用自动合并，且必需检查尚未通过。检查通过后再次发布，或在 GitHub 中合并。{{url}}"
+      },
       "git-publish-pending": {
         "title": "正在发布",
         "message": "页面尚未上线：pull request 已打开，检查通过后将合并。{{url}}"

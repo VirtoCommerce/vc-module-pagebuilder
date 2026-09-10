@@ -78,6 +78,10 @@
         "title": "The draft file was kept",
         "message": "Nothing else holds this page: it is in neither the content repository nor a published file, so deleting the draft would delete the page. Save it from the designer once, then delete the draft."
       },
+      "git-awaiting-merge": {
+        "title": "Publishing needs one more step",
+        "message": "The pull request for this page is open but will not merge on its own: this repository does not allow auto-merge and a required check has not passed. Publish again once the checks are green, or merge it in GitHub. {{url}}"
+      },
       "git-publish-pending": {
         "title": "Publishing in progress",
         "message": "The page is not live yet: a pull request is open and will merge once its checks pass. {{url}}"

@@ -9,6 +9,11 @@ export interface ProductionStatus {
     behind: boolean;
     /** A promotion pull request for the page is open and has not merged yet. */
     pending: boolean;
+    /**
+     * That pull request is not going to merge itself — the content repository does not allow
+     * auto-merge — so the promotion waits for someone to ask for it again.
+     */
+    awaitingMerge?: boolean;
 }
 
 // template ui state
@@ -22,6 +27,13 @@ export interface TemplateState {
      * on its checks. Publishing again would achieve nothing.
      */
     pending?: boolean;
+    /**
+     * The open pull request will not merge itself: the content repository has auto-merge switched
+     * off, so a blocked merge stays blocked. The page is not on its way anywhere until an editor
+     * publishes it again, which is why the action stays available in this state and not in
+     * plain `pending`.
+     */
+    awaitingMerge?: boolean;
     /**
      * Where the page stands on production, or null/undefined where the installation has no
      * production branch — in which case promotion is not an action that exists here.

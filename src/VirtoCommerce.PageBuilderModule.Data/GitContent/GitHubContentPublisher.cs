@@ -23,6 +23,12 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
     /// to wait for ("clean status"). That refusal is the signal to merge outright — which is what
     /// happens when the production branch requires no checks.
     /// </para>
+    /// <para>
+    /// Where the repository has auto-merge switched off AND the production branch does require checks,
+    /// neither path can finish the publish: the mutation is refused and the immediate merge is blocked.
+    /// That is <see cref="GitPublishState.AwaitingMerge"/> — the pull request is open and waiting for
+    /// someone to come back to it, which the builder offers as publishing the page again.
+    /// </para>
     /// </summary>
     public class GitHubContentPublisher : IGitContentPublisher
     {
@@ -71,15 +77,24 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             return new GitPublishResult { State = state, PullRequestNumber = number, Url = url };
         }
 
-        public async Task<int?> GetOpenPullRequestNumberAsync(string branch, CancellationToken cancellationToken = default)
+        public async Task<GitPendingPublish> GetOpenPullRequestAsync(string branch, CancellationToken cancellationToken = default)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(branch);
 
             var client = _httpClientFactory.CreateClient(HttpClientName);
             var pullRequest = await FindOpenPullRequestAsync(client, branch, cancellationToken);
+            var number = pullRequest?["number"]?.Value<int>();
 
-            return pullRequest?["number"]?.Value<int>();
+            return number == null
+                ? null
+                : new GitPendingPublish { Number = number.Value, AutoMerging = IsAutoMerging(pullRequest) };
         }
+
+        // GitHub reports an armed auto-merge as an object on the pull request, and null when there is
+        // none — which is the difference between "this will ship by itself" and "this is waiting for
+        // somebody".
+        private static bool IsAutoMerging(JObject pullRequest) =>
+            pullRequest["auto_merge"] is { Type: not JTokenType.Null };
 
         private async Task<JObject> OpenOrReusePullRequestAsync(HttpClient client, string branch, string title,
             string baseBranch, CancellationToken cancellationToken)
@@ -241,17 +256,22 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             // not passed yet. GitHub had to finish computing mergeability to refuse at all, so the answer
             // it would not give while we waited for it is available now: ask once more, and tell an
             // editor whose page is stuck to fix it rather than leaving them watching "Publishing…".
+            //
+            // Anything short of a conflict is AwaitingMerge rather than Pending, because this method is
+            // only reached when auto-merge could not be armed: the repository does not allow it, so no
+            // check going green will merge the pull request afterwards. Pending would promise a merge
+            // that nothing is going to perform.
             if (response.StatusCode is HttpStatusCode.MethodNotAllowed or HttpStatusCode.Conflict)
             {
                 var pullRequest = await GetPullRequestAsync(client, number, cancellationToken);
 
                 return pullRequest["mergeable"]?.Type == JTokenType.Boolean && !pullRequest["mergeable"]!.Value<bool>()
                     ? GitPublishState.Conflict
-                    : GitPublishState.Pending;
+                    : GitPublishState.AwaitingMerge;
             }
 
             await ThrowIfFailedAsync(response, $"merge pull request #{number}");
-            return GitPublishState.Pending;
+            return GitPublishState.AwaitingMerge;
         }
 
         private static StringContent JsonContent(JObject body) => new(body.ToString(), Encoding.UTF8, "application/json");

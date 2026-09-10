@@ -717,7 +717,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         /// <summary>
         /// The shape the builder's toolbar expects, answered from git: <c>published</c> is "the page
         /// exists in the production branch", <c>hasChanges</c> is "this editor's branch says something
-        /// different", <c>pending</c> is "a pull request for it is open".
+        /// different", <c>pending</c> is "a pull request for it is open", and <c>awaitingMerge</c> is
+        /// "that pull request is not going to merge itself".
         /// <para>
         /// The answer also names the flow in effect, because a client has to behave differently under
         /// each — the admin blade saves to git and unpublishes through git on the git flow — and asking
@@ -748,7 +749,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
             var published = await gitContentRepository.ReadFileAsync(location.RepoPath, options.BaseBranch, HttpContext.RequestAborted);
             var draft = await gitContentRepository.ReadFileAsync(location.RepoPath, location.Branch, HttpContext.RequestAborted);
-            var pending = await gitContentPublisher.GetOpenPullRequestNumberAsync(location.Branch, HttpContext.RequestAborted);
+            var pending = await gitContentPublisher.GetOpenPullRequestAsync(location.Branch, HttpContext.RequestAborted);
 
             return Ok(PublishStatus(
                 published: published != null,
@@ -756,6 +757,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 hasChanges: draft != null && !PageJson.AreSame(draft, published),
                 pending: pending != null,
                 gitFlow: true,
+                // the pull request is open but nothing will merge it: publishing again is what finishes it
+                awaitingMerge: pending is { AutoMerging: false },
                 production: await ProductionStatusAsync(location.RepoPath, published, type, path)));
         }
 
@@ -776,7 +779,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             }
 
             var onRelease = await gitContentRepository.ReadFileAsync(repoPath, options.ReleaseBranch, HttpContext.RequestAborted);
-            var pending = await gitContentPublisher.GetOpenPullRequestNumberAsync(PromoteBranch(type, path), HttpContext.RequestAborted);
+            var pending = await gitContentPublisher.GetOpenPullRequestAsync(PromoteBranch(type, path), HttpContext.RequestAborted);
 
             return new
             {
@@ -785,15 +788,19 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 // never been published is not "missing from production", it simply has not started.
                 behind = onBase != null && !PageJson.AreSame(onBase, onRelease),
                 pending = pending != null,
+                awaitingMerge = pending is { AutoMerging: false },
             };
         }
 
         private static object PublishStatus(bool published, bool hasChanges, bool pending, bool gitFlow,
-            object production = null) => new
+            bool awaitingMerge = false, object production = null) => new
         {
             published,
             hasChanges,
             pending,
+            // Told apart from pending on purpose: both mean "a pull request is open", but only this one
+            // means the merge is not going to happen unless somebody asks for it again.
+            awaitingMerge,
             flow = gitFlow ? GitFlow : BlobFlow,
             production,
         };
@@ -1065,8 +1072,9 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 return Forbid();
             }
 
-            var dryRun = request?.DryRun ?? true;
-            var paths = (request?.Paths ?? []).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            request ??= new LegacyDraftsDeleteRequest();
+
+            var paths = (request.Paths ?? []).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
             // One bad path fails the whole batch instead of being skipped: a caller that got a path wrong
             // has a bug, and letting the rest through would hide it behind a half-finished cleanup.
@@ -1084,6 +1092,23 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             var storageProvider = blobContentStorageProviderFactory.CreateProvider(
                 GetContentBasePath(storeId, contentType, await GetCurrentThemeName(storeId, theme)));
 
+            var (deletable, skipped) = await SortLegacyDraftsAsync(paths, storageProvider, contentType);
+
+            if (!request.DryRun && deletable.Count > 0)
+            {
+                await storageProvider.RemoveAsync([.. deletable]);
+            }
+
+            return Ok(new { dryRun = request.DryRun, deleted = deletable, skipped });
+        }
+
+        /// <summary>
+        /// Splits the given draft paths into the ones whose page has another copy — those are a cleanup —
+        /// and the ones that are the page's whole copy, which are reported back untouched.
+        /// </summary>
+        private async Task<(List<string> Deletable, List<object> Skipped)> SortLegacyDraftsAsync(
+            IEnumerable<string> paths, IBlobContentStorageProvider storageProvider, string contentType)
+        {
             var deletable = new List<string>();
             var skipped = new List<object>();
 
@@ -1093,7 +1118,11 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 var inGit = await gitContentRepository.ReadFileAsync(repoPath, gitContentOptions.Value.BaseBranch, HttpContext.RequestAborted) != null;
                 var isPublished = inGit || await storageProvider.GetBlobInfoAsync(WithoutDraftSuffix(path)) != null;
 
-                if (!isPublished)
+                if (isPublished)
+                {
+                    deletable.Add(path);
+                }
+                else
                 {
                     // Neither the repository nor a published blob holds this page, so this file is the
                     // whole of it: deleting it would not be a cleanup, it would be the loss of the page.
@@ -1103,18 +1132,10 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                     // opted in keeps pages it never re-saved, and there the published blob still serves
                     // the page after the draft goes.
                     skipped.Add(new { path, reason = LegacyDraftOnlyCopy });
-                    continue;
                 }
-
-                deletable.Add(path);
             }
 
-            if (!dryRun && deletable.Count > 0)
-            {
-                await storageProvider.RemoveAsync([.. deletable]);
-            }
-
-            return Ok(new { dryRun, deleted = deletable, skipped });
+            return (deletable, skipped);
         }
 
         /// <summary>
@@ -1379,14 +1400,13 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
                 foreach (var entry in entries)
                 {
-                    if (entry.Type.EqualsIgnoreCase(FolderEntryType))
+                    var isFolder = entry.Type.EqualsIgnoreCase(FolderEntryType);
+
+                    if (isFolder && visited.Add(entry.RelativeUrl))
                     {
-                        if (visited.Add(entry.RelativeUrl))
-                        {
-                            folders.Enqueue(entry.RelativeUrl);
-                        }
+                        folders.Enqueue(entry.RelativeUrl);
                     }
-                    else if (entry.Name.EndsWith(DraftSuffix, StringComparison.OrdinalIgnoreCase))
+                    else if (!isFolder && entry.Name.EndsWith(DraftSuffix, StringComparison.OrdinalIgnoreCase))
                     {
                         found.Add(entry);
                     }
@@ -1452,7 +1472,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         {
             var leftover = await gitContentRepository.GetBranchHeadShaAsync(branch, HttpContext.RequestAborted);
             if (leftover != null &&
-                await gitContentPublisher.GetOpenPullRequestNumberAsync(branch, HttpContext.RequestAborted) != null)
+                await gitContentPublisher.GetOpenPullRequestAsync(branch, HttpContext.RequestAborted) != null)
             {
                 return;
             }

@@ -6,7 +6,7 @@ import {
   selectCurrentSectionsFilter
 } from './common';
 
-import { PageVersion, PageVersionGroup, SectionStatesList, SectionState } from '@editor/models';
+import { PageVersion, PageVersionGroup, ProductionStatus, SectionStatesList, SectionState } from '@editor/models';
 import { EditorModuleInfo } from '@models/modules';
 
 import * as fromRoute from '@shared/routing';
@@ -264,7 +264,101 @@ export const changeTemplateContext = createSelector(
     ({ template, section, block, sectionsSchemas, blocksSchemas, templateKey, sectionId, blockId, insertIndex, templateEntry })
 );
 
-export const selectToolbarButtonsState = (context: { useTheme: boolean, useDrafts: boolean, useUnpublish: boolean, useExternalPreview: boolean, useHistory?: boolean, usePromote?: boolean }) => createSelector(
+/** What the server says this store's toolbar offers, one flag per descriptor it sent. */
+interface ToolbarContext {
+  useTheme: boolean;
+  useDrafts: boolean;
+  useUnpublish: boolean;
+  useExternalPreview: boolean;
+  useHistory?: boolean;
+  usePromote?: boolean;
+}
+
+/** The part of the open page's state the publishing buttons read. */
+interface ToolbarPageState {
+  published?: boolean;
+  hasChanges?: boolean;
+  pending?: boolean;
+  awaitingMerge?: boolean;
+  production?: ProductionStatus | null;
+}
+
+/**
+ * An open pull request that nothing is going to merge — the content repository does not allow
+ * auto-merge, so the merge stayed blocked on a check — is not progress: the page ships when someone
+ * asks for it again. Both shipping buttons therefore stay available in that state, and rest only
+ * while GitHub is actually going to finish the job.
+ */
+const inFlight = (status: { pending?: boolean, awaitingMerge?: boolean } | null | undefined) =>
+  !!status?.pending && !status?.awaitingMerge;
+
+const publishButtonTitle = (state: ToolbarPageState | null | undefined) => {
+  if (state?.awaitingMerge) {
+    return 'Retry publish';
+  }
+  return state?.pending ? 'Publishing…' : 'Publish';
+};
+
+/**
+ * The promote button's title doubles as the production stage indicator, because "published to dev,
+ * production still behind" had no way of showing before and is exactly the state that makes an
+ * editor say the site did not update.
+ */
+const promoteButtonTitle = (production: ProductionStatus) => {
+  if (production.awaitingMerge) {
+    return 'Retry promote';
+  }
+  if (production.pending) {
+    return 'Promoting…';
+  }
+  return production.behind ? 'Promote to production' : 'In sync with production';
+};
+
+/** Unpublish / publish / promote — the actions that move the page between branches. */
+const buildPublishingButtons = (context: ToolbarContext, state: ToolbarPageState | null | undefined, hasDirty: boolean) => {
+  const buttons = <ActionButtonDescriptor[]>[];
+
+  // Both flows can take a page down — with pages in git that means deleting it from the production
+  // branch — but only a store configured for it gets the button, and the server says so by whether
+  // it offers the descriptor at all.
+  if (context.useUnpublish) {
+    buttons.push({
+      canAction: !hasDirty && state?.published && !state?.hasChanges && !state?.pending,
+      icon: 'unpublished',
+      alias: 'unpublish',
+      title: 'Unpublish',
+      type: 'outline'
+    });
+  }
+
+  buttons.push({
+    // a pull request that is merging itself is already publishing this page — pressing the button
+    // again would achieve nothing; one that is awaiting a merge needs exactly that press
+    canAction: !hasDirty && state?.hasChanges && !inFlight(state),
+    icon: 'publish',
+    alias: 'publish',
+    title: publishButtonTitle(state),
+    type: 'outline'
+  });
+
+  // The second step, and the only one that reaches the public site. It appears where the server
+  // offered the descriptor AND told us this page has a production side at all.
+  const production = state?.production;
+  if (context.usePromote && production) {
+    buttons.push({
+      canAction: !hasDirty && state?.published && !state?.hasChanges &&
+        production.behind && !inFlight(production),
+      icon: 'rocket_launch',
+      alias: 'promote',
+      title: promoteButtonTitle(production),
+      type: 'outline'
+    });
+  }
+
+  return buttons;
+};
+
+export const selectToolbarButtonsState = (context: ToolbarContext) => createSelector(
   // fromDomain.selectCurrentTemplateState,
   fromShared.hasDirty,
   fromDomain.selectCurrentTemplateState,
@@ -310,49 +404,7 @@ export const selectToolbarButtonsState = (context: { useTheme: boolean, useDraft
     }
 
     if (context.useDrafts && !state?.isLoading && !state?.error) {
-      const buttons = <ActionButtonDescriptor[]>[];
-
-      // Both flows can take a page down — with pages in git that means deleting it from the production
-      // branch — but only a store configured for it gets the button, and the server says so by whether
-      // it offers the descriptor at all.
-      if (context.useUnpublish) {
-        buttons.push({
-          canAction: !hasDirty && state?.published && !state?.hasChanges && !state?.pending,
-          icon: 'unpublished',
-          alias: 'unpublish',
-          title: 'Unpublish',
-          type: 'outline'
-        });
-      }
-
-      buttons.push({
-        // a pull request for this page is already open — publishing again would achieve nothing
-        canAction: !hasDirty && state?.hasChanges && !state?.pending,
-        icon: 'publish',
-        alias: 'publish',
-        title: state?.pending ? 'Publishing…' : 'Publish',
-        type: 'outline'
-      });
-
-      // The second step, and the only one that reaches the public site. It appears where the
-      // server offered the descriptor AND told us this page has a production side at all; the
-      // title doubles as the stage indicator, because "published to dev, production still
-      // behind" had no way of showing before and is exactly the state that makes an editor say
-      // the site did not update.
-      if (context.usePromote && state?.production) {
-        buttons.push({
-          canAction: !hasDirty && state.published && !state.hasChanges &&
-            state.production.behind && !state.production.pending,
-          icon: 'rocket_launch',
-          alias: 'promote',
-          title: state.production.pending
-            ? 'Promoting…'
-            : state.production.behind ? 'Promote to production' : 'In sync with production',
-          type: 'outline'
-        });
-      }
-
-      result.push(buttons);
+      result.push(buildPublishingButtons(context, state, hasDirty));
     }
 
     // [

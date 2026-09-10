@@ -48,7 +48,7 @@ export const editorDomainReducers = createReducer<EditorDomainState>(
             }
         })
     ),
-    on(actions.getTemplatePublishStatusSuccess, (state, { templateKey, hasChanges, published, pending, production }) => ({
+    on(actions.getTemplatePublishStatusSuccess, (state, { templateKey, hasChanges, published, pending, awaitingMerge, production }) => ({
         ...state,
         states: {
             ...state.states,
@@ -57,6 +57,7 @@ export const editorDomainReducers = createReducer<EditorDomainState>(
                 hasChanges,
                 published,
                 pending: !!pending,
+                awaitingMerge: !!awaitingMerge,
                 // null and undefined mean the same thing here — no production contour — and the
                 // toolbar reads it as such, so the answer is stored as it came.
                 production

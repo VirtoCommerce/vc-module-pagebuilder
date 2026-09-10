@@ -30,6 +30,12 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
         /// GitHub's GraphQL endpoint. Needed because auto-merge — letting a pull request merge itself
         /// once the required checks go green — exists only there; the REST API can merge immediately or
         /// not at all. Override for GitHub Enterprise.
+        /// <para>
+        /// Auto-merge also has to be allowed on the repository itself ("Allow auto-merge" in its
+        /// settings). Without it, a publish whose merge a required check blocks can only be finished by
+        /// asking again: the builder reports that page as awaiting a merge and keeps Publish available,
+        /// rather than showing progress nothing is going to complete.
+        /// </para>
         /// </summary>
         public Uri GraphQlUrl { get; set; } = new("https://api.github.com/graphql");
 

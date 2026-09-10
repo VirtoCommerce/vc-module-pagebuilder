@@ -61,6 +61,10 @@
       }
     },
     "dialogs": {
+      "git-awaiting-merge": {
+        "title": "Julkaisu vaatii vielä yhden askeleen",
+        "message": "Tämän sivun pull request on avoinna, mutta se ei yhdisty itsestään: tämä repositorio ei salli automaattista yhdistämistä eikä vaadittu tarkistus ole mennyt läpi. Julkaise uudelleen, kun tarkistukset ovat vihreitä, tai yhdistä se GitHubissa. {{url}}"
+      },
       "git-publish-pending": {
         "title": "Julkaisu käynnissä",
         "message": "Sivu ei ole vielä julkaistu: pull request on avoinna ja yhdistetään, kun sen tarkistukset menevät läpi. {{url}}"

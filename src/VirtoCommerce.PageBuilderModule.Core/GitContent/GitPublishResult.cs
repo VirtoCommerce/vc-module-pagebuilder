@@ -13,6 +13,14 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
         Pending,
 
         /// <summary>
+        /// The pull request is open and its merge is blocked — a required check has not passed — and
+        /// nothing will merge it on its own, because the repository does not allow auto-merge. Unlike
+        /// <see cref="Pending"/>, this state needs someone to come back to it: publishing again once
+        /// the checks are green completes it, which is why the builder keeps the action available.
+        /// </summary>
+        AwaitingMerge,
+
+        /// <summary>
         /// The work branch holds nothing the production branch does not. Publishing an unchanged page
         /// is a no-op, not an error.
         /// </summary>
@@ -35,5 +43,21 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
 
         /// <summary>Link to the pull request, for the audit trail and for a human resolving a conflict.</summary>
         public string Url { get; init; }
+    }
+
+    /// <summary>
+    /// The open pull request a page is waiting on, and whether anything will merge it without a person.
+    /// </summary>
+    public class GitPendingPublish
+    {
+        public int Number { get; init; }
+
+        /// <summary>
+        /// GitHub is set to merge the pull request itself as soon as the required checks pass. False
+        /// where the repository does not allow auto-merge: the merge then waits for another Publish
+        /// (or for someone in GitHub), and a UI that reported it as simply "on its way" would leave the
+        /// editor watching a page that never ships.
+        /// </summary>
+        public bool AutoMerging { get; init; }
     }
 }

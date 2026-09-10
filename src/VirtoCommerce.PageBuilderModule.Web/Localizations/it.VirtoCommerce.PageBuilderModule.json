@@ -56,6 +56,10 @@
       "unpublish": "Annulla pubblicazione"
     },
     "dialogs": {
+      "git-awaiting-merge": {
+        "title": "La pubblicazione richiede un altro passaggio",
+        "message": "La pull request di questa pagina è aperta ma non verrà unita da sola: questo repository non consente l'auto-merge e un controllo obbligatorio non è passato. Pubblica di nuovo quando i controlli sono verdi, oppure uniscila in GitHub. {{url}}"
+      },
       "git-publish-pending": {
         "title": "Pubblicazione in corso",
         "message": "La pagina non è ancora online: una pull request è aperta e verrà unita quando i suoi controlli saranno superati. {{url}}"

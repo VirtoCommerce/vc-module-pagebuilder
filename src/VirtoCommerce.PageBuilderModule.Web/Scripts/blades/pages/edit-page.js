@@ -90,6 +90,8 @@ angular.module('virtoCommerce.pageBuilderModule')
                         blade.published = status.published;
                         blade.hasChanges = status.hasChanges;
                         blade.pending = status.pending;
+                        // The open pull request is not going to merge itself — see inFlight below.
+                        blade.awaitingMerge = status.awaitingMerge;
                         // Null when the installation has no production branch at all — which is how
                         // the toolbar knows whether promotion exists here as an action.
                         blade.production = status.production;
@@ -276,9 +278,18 @@ angular.module('virtoCommerce.pageBuilderModule')
                         blade.parentBlade.refresh();
                     });
                 },
-                // a pull request for this page is already open — publishing again would achieve nothing
-                canExecuteMethod: function () { return !isDirty() && !blade.pending; }
+                // a pull request that is merging itself is already publishing this page — pressing
+                // publish again would achieve nothing
+                canExecuteMethod: function () { return !isDirty() && !inFlight(blade); }
             };
+
+            // "A pull request is open" is not the same as "the page is on its way": where the content
+            // repository does not allow auto-merge, a merge blocked by a check stays blocked, and the
+            // page ships only when somebody asks again. Commands rest for the first case and stay
+            // available for the second, which is the whole difference between Pending and AwaitingMerge.
+            function inFlight(status) {
+                return !!status && !!status.pending && !status.awaitingMerge;
+            }
 
             // Publishing on the git flow merges this editor's work branch into the production branch;
             // unpublishing merges a branch whose commit deletes the page. Both are the same act of
@@ -298,6 +309,15 @@ angular.module('virtoCommerce.pageBuilderModule')
                             id: pendingDialog.id,
                             title: pendingDialog.title,
                             message: pendingDialog.message,
+                            messageValues: { url: result.url }
+                        });
+                    } else if (result.state === 'AwaitingMerge') {
+                        // Not "in progress": nothing is going to merge this pull request, so say what
+                        // finishes it instead of leaving the editor waiting for something to happen.
+                        dialogService.showNotificationDialog({
+                            id: "gitAwaitingMerge",
+                            title: "pageBuilder.dialogs.git-awaiting-merge.title",
+                            message: "pageBuilder.dialogs.git-awaiting-merge.message",
                             messageValues: { url: result.url }
                         });
                     }
@@ -347,7 +367,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                 // production already matches, and nothing to add while a promotion is open.
                 canExecuteMethod: function () {
                     return !isDirty() && blade.published && !blade.hasChanges && !!blade.production &&
-                        blade.production.behind && !blade.production.pending;
+                        blade.production.behind && !inFlight(blade.production);
                 }
             };
 
@@ -384,8 +404,8 @@ angular.module('virtoCommerce.pageBuilderModule')
                     var dialogKey = draft.differsFromCurrent ? 'delete-legacy-draft-unsaved' : 'delete-legacy-draft';
                     dialogService.showConfirmationDialog({
                         id: "confirmDeleteLegacyDraft",
-                        title: 'pageBuilder.dialogs.' + dialogKey + '.title',
-                        message: 'pageBuilder.dialogs.' + dialogKey + '.message',
+                        title: `pageBuilder.dialogs.${dialogKey}.title`,
+                        message: `pageBuilder.dialogs.${dialogKey}.message`,
                         messageValues: { path: draft.blobPath },
                         callback: function (confirmed) {
                             if (confirmed) {
@@ -448,9 +468,9 @@ angular.module('virtoCommerce.pageBuilderModule')
                         blade.parentBlade.refresh();
                     });
                 },
-                // a pull request for this page is already open — the page is on its way somewhere, and
-                // shipping a second commit for it would only race with the first
-                canExecuteMethod: function () { return !isDirty() && !blade.pending; }
+                // a pull request that is merging itself has the page on its way somewhere, and shipping
+                // a second commit for it would only race with the first
+                canExecuteMethod: function () { return !isDirty() && !inFlight(blade); }
             };
 
             function fillMetadata() {

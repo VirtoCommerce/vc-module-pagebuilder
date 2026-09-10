@@ -14,6 +14,11 @@ export interface PublishStatus {
     /** Only the git flow reports this: a pull request for the page is open and has not merged yet. */
     pending?: boolean;
     /**
+     * That pull request needs another Publish to finish: nothing will merge it on its own, because
+     * the content repository does not allow auto-merge.
+     */
+    awaitingMerge?: boolean;
+    /**
      * Where the page stands on the production branch, or null where the installation has none.
      * Reported apart from the fields above because a page can be published and production still
      * be serving last week's copy of it — the in-between state that makes an editor say the site

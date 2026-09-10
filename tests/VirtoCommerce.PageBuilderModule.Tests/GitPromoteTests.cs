@@ -271,8 +271,10 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 return Task.FromResult(new GitPublishResult { State = state, PullRequestNumber = 7 });
             }
 
-            public Task<int?> GetOpenPullRequestNumberAsync(string branch, CancellationToken cancellationToken = default) =>
-                Task.FromResult(openPullRequest);
+            public Task<GitPendingPublish> GetOpenPullRequestAsync(string branch, CancellationToken cancellationToken = default) =>
+                Task.FromResult(openPullRequest == null
+                    ? null
+                    : new GitPendingPublish { Number = openPullRequest.Value, AutoMerging = true });
         }
 
         private sealed class RecordingRepository : IGitContentRepository

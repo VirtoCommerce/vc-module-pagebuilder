@@ -91,6 +91,29 @@ describe('editorDomainReducers', () => {
             expect(state.states['home'].hasChanges).toBe(true);
             expect(state.states['home'].published).toBe(false);
         });
+
+        it('records that the open pull request will not merge itself', () => {
+            const prev = {
+                ...initialState,
+                states: { home: { isLoading: false, sections: {} } as any },
+            };
+            const state = editorDomainReducers(prev, actions.getTemplatePublishStatusSuccess({
+                templateKey: 'home', hasChanges: true, published: false, pending: true, awaitingMerge: true,
+            }));
+            expect(state.states['home'].pending).toBe(true);
+            expect(state.states['home'].awaitingMerge).toBe(true);
+        });
+
+        it('an omitted awaitingMerge is not awaiting anything', () => {
+            const prev = {
+                ...initialState,
+                states: { home: { isLoading: false, sections: {} } as any },
+            };
+            const state = editorDomainReducers(prev, actions.getTemplatePublishStatusSuccess({
+                templateKey: 'home', hasChanges: true, published: false, pending: true,
+            }));
+            expect(state.states['home'].awaitingMerge).toBe(false);
+        });
     });
 
     // ── sectionStateChangedAction ─────────────────────────────────

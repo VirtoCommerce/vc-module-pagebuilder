@@ -61,6 +61,10 @@
       }
     },
     "dialogs": {
+      "git-awaiting-merge": {
+        "title": "Publiceringen behöver ett steg till",
+        "message": "Pull requesten för den här sidan är öppen men slås inte samman av sig själv: det här repot tillåter inte auto-merge och en obligatorisk kontroll har inte godkänts. Publicera igen när kontrollerna är gröna, eller slå samman den i GitHub. {{url}}"
+      },
       "git-publish-pending": {
         "title": "Publicering pågår",
         "message": "Sidan är inte publicerad än: en pull request är öppen och slås samman när dess kontroller har godkänts. {{url}}"

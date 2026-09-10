@@ -118,20 +118,23 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         [Fact]
-        public async Task A_blocked_merge_is_pending_never_published()
+        public async Task A_blocked_merge_is_never_published_and_never_merges_itself()
         {
-            // 405: a required check has not passed. Reporting "published" here would be a lie.
+            // 405: a required check has not passed, and auto-merge was refused a moment earlier — the
+            // repository does not allow it. Reporting "published" here would be a lie, and so would
+            // Pending: nothing is going to merge this pull request when the check goes green.
             var handler = new ScriptedHandler(
                 ("POST", "repos/o/r/pulls", _ => RespondJson(PullRequest(), HttpStatusCode.Created)),
                 ("GET", "repos/o/r/pulls/7", _ => RespondJson(PullRequest(mergeable: true))),
-                ("POST", "graphql", _ => RespondJson("""{ "errors": [ { "message": "nope" } ] }""")),
+                ("POST", "graphql", _ => RespondJson("""{ "errors": [ { "message": "Auto merge is not allowed for this repository" } ] }""")),
                 ("PUT", "repos/o/r/pulls/7/merge", _ => Respond(HttpStatusCode.MethodNotAllowed)),
                 // the refusal is re-read: 405 is also what a conflict answers, and the two mean opposite things
                 ("GET", "repos/o/r/pulls/7", _ => RespondJson(PullRequest(mergeable: true))));
 
             var result = await Create(handler).MergeBranchAsync(Branch, "publish foo", TestContext.Current.CancellationToken);
 
-            Assert.Equal(GitPublishState.Pending, result.State);
+            Assert.Equal(GitPublishState.AwaitingMerge, result.State);
+            Assert.Equal(7, result.PullRequestNumber);
             handler.AssertDone();
         }
 
@@ -173,21 +176,41 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         [Fact]
-        public async Task GetOpenPullRequestNumberAsync_finds_the_page_on_its_way_to_production()
+        public async Task GetOpenPullRequestAsync_finds_the_page_on_its_way_to_production()
+        {
+            var handler = new ScriptedHandler(
+                ("GET", $"repos/o/r/pulls?state=open&head={Uri.EscapeDataString($"o:{Branch}")}", _ => RespondJson($"[{PullRequest(autoMerging: true)}]")));
+
+            var pending = await Create(handler).GetOpenPullRequestAsync(Branch, TestContext.Current.CancellationToken);
+
+            Assert.Equal(7, pending.Number);
+            Assert.True(pending.AutoMerging);
+        }
+
+        /// <summary>
+        /// An open pull request with no auto-merge armed is the one an editor has to come back to: the
+        /// page is not on its way anywhere until someone publishes it again. Reported as "in flight"
+        /// it would sit behind a disabled Publish button for good.
+        /// </summary>
+        [Fact]
+        public async Task GetOpenPullRequestAsync_says_when_nothing_will_merge_it()
         {
             var handler = new ScriptedHandler(
                 ("GET", $"repos/o/r/pulls?state=open&head={Uri.EscapeDataString($"o:{Branch}")}", _ => RespondJson($"[{PullRequest()}]")));
 
-            Assert.Equal(7, await Create(handler).GetOpenPullRequestNumberAsync(Branch, TestContext.Current.CancellationToken));
+            var pending = await Create(handler).GetOpenPullRequestAsync(Branch, TestContext.Current.CancellationToken);
+
+            Assert.Equal(7, pending.Number);
+            Assert.False(pending.AutoMerging);
         }
 
         [Fact]
-        public async Task GetOpenPullRequestNumberAsync_is_null_when_nothing_is_in_flight()
+        public async Task GetOpenPullRequestAsync_is_null_when_nothing_is_in_flight()
         {
             var handler = new ScriptedHandler(
                 ("GET", $"repos/o/r/pulls?state=open&head={Uri.EscapeDataString($"o:{Branch}")}", _ => RespondJson("[]")));
 
-            Assert.Null(await Create(handler).GetOpenPullRequestNumberAsync(Branch, TestContext.Current.CancellationToken));
+            Assert.Null(await Create(handler).GetOpenPullRequestAsync(Branch, TestContext.Current.CancellationToken));
         }
 
         [Fact]
@@ -269,7 +292,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             return new GitHubContentPublisher(new FakeHttpClientFactory(handler), options);
         }
 
-        private static string PullRequest(bool? mergeable = null)
+        private static string PullRequest(bool? mergeable = null, bool autoMerging = false)
         {
             var json = new JObject
             {
@@ -278,6 +301,10 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 ["html_url"] = "https://github.test/pr/7",
                 ["merged"] = false,
                 ["mergeable"] = mergeable.HasValue ? mergeable.Value : JValue.CreateNull(),
+                // GitHub sends the armed auto-merge as an object, and null when there is none
+                ["auto_merge"] = autoMerging
+                    ? new JObject { ["merge_method"] = "squash" }
+                    : JValue.CreateNull(),
             };
             return json.ToString();
         }

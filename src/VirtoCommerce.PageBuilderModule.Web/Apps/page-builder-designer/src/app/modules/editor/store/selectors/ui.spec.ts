@@ -315,6 +315,16 @@ describe('selectToolbarButtonsState', () => {
         expect(publishBtn!.title).toBe('Publishing…');
     });
 
+    it('offers publish again when the open pull request will not merge itself', () => {
+        // the content repository does not allow auto-merge and a required check blocked the merge, so
+        // nothing is going to finish this publish: leaving the button disabled would strand the page
+        const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: true, useUnpublish: false, useExternalPreview: false });
+        const state = { isLoading: false, published: false, hasChanges: true, pending: true, awaitingMerge: true } as any;
+        const publishBtn = selector.projector(false, state).flat().find(b => b.alias === 'publish');
+        expect(publishBtn!.canAction).toBe(true);
+        expect(publishBtn!.title).toBe('Retry publish');
+    });
+
     // ── promotion to production ──
     //
     // The second step of shipping. It exists only where the server offered the descriptor AND said
@@ -345,6 +355,14 @@ describe('selectToolbarButtonsState', () => {
         const promoteBtn = selector.projector(false, state).flat().find(b => b.alias === 'promote');
         expect(promoteBtn!.canAction).toBeFalsy();
         expect(promoteBtn!.title).toBe('Promoting…');
+    });
+
+    it('offers promotion again when the promotion pull request will not merge itself', () => {
+        const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: true, useUnpublish: false, useExternalPreview: false, usePromote: true });
+        const state = { ...promoted, production: { published: true, behind: true, pending: true, awaitingMerge: true } } as any;
+        const promoteBtn = selector.projector(false, state).flat().find(b => b.alias === 'promote');
+        expect(promoteBtn!.canAction).toBe(true);
+        expect(promoteBtn!.title).toBe('Retry promote');
     });
 
     it('will not promote a page that has unpublished changes', () => {
