@@ -20,6 +20,13 @@ describe('app initializator', () => {
     let httpController: HttpTestingController;
     let session: SessionService;
 
+    // The platform shell leaves a token here before the app boots. Without one, init() asks
+    // /connect/token for a fresh one first, and the config request these tests expect never goes out.
+    const storeValidToken = () => localStorage.setItem('ls.authenticationData', JSON.stringify({
+        token: 'test-token',
+        expiresAt: Date.now() + 3600_000,
+    }));
+
     beforeEach(() => {
         // a valid token keeps init() from asking the platform for one, which these tests do not cover
         localStorage.setItem('ls.authenticationData', JSON.stringify({ token: 'test-token', expiresAt: Date.now() + 60000 }));
@@ -27,6 +34,8 @@ describe('app initializator', () => {
         cookies = <any>{};
         // evaluator = <any>jasmine.createSpyObj('evaluator', ['evaluate']);
         // evaluator.evaluate.and.callFake((x: any) => x);
+
+        storeValidToken();
 
         envRef = <any>{
             nativeWindow: {
@@ -57,6 +66,10 @@ describe('app initializator', () => {
         localStorage.removeItem('ls.authenticationData');
     });
 
+    afterEach(() => {
+        localStorage.removeItem('ls.authenticationData');
+    });
+
     it('simple scenario', () => {
         const response = {
             key: "value"
@@ -72,32 +85,32 @@ describe('app initializator', () => {
         request.flush(response);
     });
 
-    it('reports an expired session when a token cannot be obtained', () => {
-        localStorage.removeItem('ls.authenticationData');
+    describe('bearer token', () => {
+        it('is obtained from the cookie session when the shell left none', async () => {
+            localStorage.removeItem('ls.authenticationData');
 
-        initializator.init();
+            const done = initializator.init();
 
-        const tokenRequest = httpController.expectOne('/connect/token');
-        expect(tokenRequest.request.method).toBe('POST');
-        tokenRequest.flush('', { status: 401, statusText: 'Unauthorized' });
+            const tokenRequest = httpController.expectOne('/connect/token');
+            expect(tokenRequest.request.method).toBe('POST');
+            tokenRequest.flush({ access_token: 'fresh', expires_in: 3600 });
 
-        expect(session.expired()).toBe(true);
-    });
+            // the config is only fetched once the app can authenticate for it
+            httpController.expectOne('data/settings.json').flush({ key: 'value' });
+            httpController.expectOne(r => r.url.startsWith('/api/pagebuilder/settings')).flush({});
 
-    it('leaves the session alone while a refresh token is still worth trying', () => {
-        // an overnight reload: the access token is stale, the cookie session may well be gone too,
-        // but the refresh token the interceptor is about to use can still restore everything
-        localStorage.setItem('ls.authenticationData', JSON.stringify({
-            token: 'expired-token',
-            refreshToken: 'refresh-token',
-            expiresAt: Date.now() - 1000
-        }));
+            await expect(done).resolves.toEqual({ key: 'value' });
+            expect(JSON.parse(localStorage.getItem('ls.authenticationData')!).token).toBe('fresh');
+        });
 
-        initializator.init();
+        it('is reused while it is still valid', () => {
+            storeValidToken();
 
-        httpController.expectOne('/connect/token').flush('', { status: 401, statusText: 'Unauthorized' });
+            initializator.init();
 
-        expect(session.expired()).toBe(false);
+            httpController.expectNone('/connect/token');
+            httpController.expectOne('data/settings.json').flush({});
+        });
     });
 
     it('override config via get parameter', () => {

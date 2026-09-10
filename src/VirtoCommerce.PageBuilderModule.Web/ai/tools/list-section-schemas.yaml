@@ -1,0 +1,40 @@
+name: pagebuilder_list_section_schemas
+description: |
+  Return the catalog of schemas exposed by the current PageBuilder theme: which sections, templates, blocks, objects, and shared field lists exist. Catalog entries are `{ key, name, description? }` only, where `description` is a SHORT summary (what the entry is) for picking — the full description (usage guidance + per-field notes) and the field schema come from `pagebuilder_get_section_schema`, which you call for any entry you plan to use.
+
+  Use when: starting work on a page (create or edit) and you need to know what's available in this theme.
+  Skip when: the catalog has already been fetched in this session — its content is stable per (store, theme).
+require_approval: false
+
+parameters:
+  type: object
+  properties:
+    storeId:
+      type: string
+      description: |
+        ID of the store whose theme schemas should be loaded. Required.
+        Read it from the chat context: the host shell pushes an item with `objectType: "pagebuilder.store"` — use that item's `id`. Do not ask the user and do not invent a value.
+    theme:
+      type: string
+      description: Optional theme name. If omitted, the backend falls back to the store's default theme.
+  required:
+    - storeId
+
+execution:
+  endpoint: /api/pagebuilder/schemas
+  method: GET
+  mappings:
+    request:
+      query:
+        storeId: "{{storeId}}"
+        theme: "{{theme}}"
+    response:
+      catalog: "$"
+
+permission:
+  - builder:read
+
+tags:
+  - pagebuilder
+  - schema
+  - read

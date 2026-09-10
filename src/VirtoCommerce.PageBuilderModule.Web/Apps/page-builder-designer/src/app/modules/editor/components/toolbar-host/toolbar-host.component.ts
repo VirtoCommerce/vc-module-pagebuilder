@@ -25,7 +25,16 @@ export class ToolbarHostComponent {
         {
             useTheme: !this.appConfig.getValue('skipTheme'),
             useDrafts: !!this.appConfig.getValue('publish'),
-            useExternalPreview: !!this.appConfig.getValue('externalPreview')
+            // The descriptor is what says this store can take a page down at all — on the git flow it
+            // points at the endpoint that deletes the page from the production branch.
+            useUnpublish: !!this.appConfig.getValue('publish')?.unpublish,
+            // Promotion to production, offered only on the git flow — and, like unpublish, the
+            // descriptor's presence is what says the store has it.
+            usePromote: !!this.appConfig.getValue('publish')?.promote,
+            useExternalPreview: !!this.appConfig.getValue('externalPreview'),
+            // pages kept in git have versions; a store on blob storage has none, and the server withholds
+            // the descriptor for it
+            useHistory: !!this.appConfig.getValue('history')
         }
     )), { initialValue: null });
 

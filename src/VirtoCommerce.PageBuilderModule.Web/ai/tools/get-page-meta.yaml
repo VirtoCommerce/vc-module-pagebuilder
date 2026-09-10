@@ -1,0 +1,34 @@
+name: pagebuilder_get_page_meta
+description: |
+  Load the metadata of a PageBuilder page (status, visibility, schedule window, user groups, version list) without loading its JSON content. Cheap alternative to `pagebuilder_get_page_content` for diagnostics and for filtering bulk operations before fetching content.
+
+  Use when: diagnosing visibility ("why isn't /X showing"), or you need fields that `pagebuilder_search_pages` strips out of its result (`userGroups`, `startDate`, `endDate`). Also use when checking whether a Draft exists alongside a Published version before deciding to publish/unpublish.
+
+  Skip when: you need the actual section content — use `pagebuilder_get_page_content` instead.
+
+  `status` is computed: `Archived` if every version is archived, else `Published` if any version is published, else `Draft`. `hasChanges` is `true` when a Draft exists (regardless of whether a Published version also exists).
+require_approval: false
+
+parameters:
+  type: object
+  properties:
+    groupId:
+      type: string
+      description: ID of the grouped page. Required.
+  required:
+    - groupId
+
+execution:
+  endpoint: /api/page-builder-pages/grouped/{groupId}
+  method: GET
+  mappings:
+    response:
+      meta: "{ groupId: id, storeId: storeId, name: name, permalink: permalink, cultureName: cultureName, organizationId: organizationId, status: status, visibility: visibility, userGroups: userGroups, startDate: startDate, endDate: endDate, hasChanges: hasChanges, modifiedDate: modifiedDate, pages: pages[*].{ id: id, status: status } }"
+
+permission:
+  - builder:read
+
+tags:
+  - pagebuilder
+  - page
+  - read

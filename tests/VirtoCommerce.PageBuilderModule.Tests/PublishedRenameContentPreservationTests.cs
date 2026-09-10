@@ -183,6 +183,17 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                         }
                         page.GroupId = model.Id;
                         page.ModifiedDate = DateTime.UtcNow.AddTicks(++_idSeq);
+
+                        // Table splitting: PageBuilderPage.Content is a transient write-only field that the real
+                        // SaveChangesAsync persists into the content column in the same INSERT as the row, then
+                        // never populates again ("always null on read paths"). Modelling it matters — a fake that
+                        // drops it reports an empty content column for every atomically created page, which reads
+                        // exactly like the blanking these tests exist to catch.
+                        if (page.Content != null)
+                        {
+                            _content[page.Id] = page.Content;
+                            page.Content = null;
+                        }
                     }
 
                     NormalizePublishedPages(model);

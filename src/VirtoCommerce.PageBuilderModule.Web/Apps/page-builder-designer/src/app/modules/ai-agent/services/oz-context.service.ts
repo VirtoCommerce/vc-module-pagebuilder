@@ -1,0 +1,97 @@
+import { computed, inject, Injectable, Signal } from '@angular/core';
+import { Store } from '@ngrx/store';
+import { AppConfig, JwtStorageService } from '@integration/services';
+import { BuilderState, selectGroupIdParameter, selectPathParameter } from '@shared/routing';
+import type { OzBladeContext, OzInitContextPayload } from '../types';
+
+// OZ requires a non-empty accessToken (Zod min(1)); keep handshake working in dev
+// even when the user is not logged in yet.
+const FALLBACK_ACCESS_TOKEN = 'dev';
+const FALLBACK_USER_ID = 'pagebuilder-user';
+
+// Object types the agent's pagebuilder tools match on — the same ones the shell sends,
+// so a tool cannot tell which app the context came from.
+const STORE_OBJECT_TYPE = 'pagebuilder.store';
+const PAGE_OBJECT_TYPE = 'pagebuilder.page';
+
+// Designer has no blades, but OZ requires the field as a context identifier.
+// Static marker saying "I am the page-builder app".
+const PAGE_BUILDER_BLADE: OzBladeContext = {
+    id: 'page-builder',
+    name: 'page-builder',
+    title: 'Page Builder',
+};
+
+@Injectable({ providedIn: 'root' })
+export class OzContextService {
+
+    private readonly jwt = inject(JwtStorageService);
+    private readonly appConfig = inject(AppConfig);
+    private readonly store = inject(Store<BuilderState>);
+
+    // The router feature lives in the root store, so these resolve before the lazy editor module is
+    // loaded — the chat can be opened from anywhere in the app.
+    private readonly path = this.store.selectSignal(selectPathParameter);
+    private readonly groupId = this.store.selectSignal(selectGroupIdParameter);
+
+    /**
+     * What the agent is looking at: the store, then the open page. Reactive, because the page changes
+     * under a chat that stays open — the transport re-sends it on every change.
+     *
+     * Store first, page second. Without the store item the agent has no store id at all and has to ask
+     * for one (or guess); without the page item "edit this page" has nothing to act on. Either is
+     * omitted when unknown rather than sent empty — an item with no id is worse than no item.
+     */
+    readonly items: Signal<Record<string, unknown>[]> = computed(() => {
+        const items: Record<string, unknown>[] = [];
+
+        const storeId = this.getStoreId();
+        if (storeId) {
+            items.push({
+                id: storeId,
+                objectType: STORE_OBJECT_TYPE,
+                name: `Current store: ${storeId}`,
+            });
+        }
+
+        // Every page tool the agent has addresses a page by its group id — /grouped/{groupId}/content and
+        // the rest — so a file path is not an identifier any of them can resolve. A session opened by path
+        // alone therefore contributes no page item at all: the agent then asks which page is meant, which
+        // is recoverable, where an id that resolves to nothing is a failed tool call.
+        const groupId = this.groupId();
+        if (groupId) {
+            items.push({
+                id: groupId,
+                objectType: PAGE_OBJECT_TYPE,
+                name: this.pageNameFrom(this.path()) || groupId,
+            });
+        }
+
+        return items;
+    });
+
+    buildInitPayload(): OzInitContextPayload {
+        const info = this.jwt.getInfo();
+        const accessToken = (info?.token as string | undefined) || FALLBACK_ACCESS_TOKEN;
+        const userId = (info?.userName as string | undefined) || FALLBACK_USER_ID;
+        return {
+            accessToken,
+            userId,
+            locale: (navigator.language || 'en').slice(0, 2),
+            blade: PAGE_BUILDER_BLADE,
+            contextType: 'list',
+            items: this.items(),
+        };
+    }
+
+    private getStoreId(): string | null {
+        const context = this.appConfig.getContext() as { location?: { params?: { storeId?: string } } } | null;
+        return context?.location?.params?.storeId || null;
+    }
+
+    // "pages/blogs/foo.page" -> "foo"; the designer knows the page by its path, and the bare file
+    // name is what the editor shows the user.
+    private pageNameFrom(path: string): string {
+        return path?.split('/').pop()?.split('.').slice(0, -1).join('.') || '';
+    }
+}

@@ -37,11 +37,19 @@ export class AppInitializator {
                 // override properties from config in theme
                 const configInThemeUrl = result.rel ?? '/api/pagebuilder/settings?storeId={{location.params.storeId}}&theme={{config.themeName}}';
                 return this.loadSettingsFrom(configInThemeUrl, result, {}).pipe(
+                    map(configInTheme => ({ ...result, ...configInTheme })),
                     catchError(error => {
-                        console.log(error);
-                        return of({});
-                    }),
-                    map(configInTheme => ({ ...result, ...configInTheme }))
+                        // The server's answer is what says where shipping goes: on the git flow it
+                        // replaces the bundled blob urls with git ones. Falling back to the bundle
+                        // would leave a git store's Unpublish renaming the live page into a
+                        // ".page-draft" blob nothing serves — the exact failure the git flow exists
+                        // to end. So the actions that ship are dropped instead of guessed at:
+                        // editing and saving still work (the save endpoint decides the flow
+                        // server-side), and buttons that are missing are noticed in a way a button
+                        // pointing at the wrong endpoint is not.
+                        console.error('Could not load the builder configuration from the server; publishing is unavailable for this session', error);
+                        return of({ ...result, publish: null, history: null, externalPreview: null });
+                    })
                 );
             }),
             tap(result => {

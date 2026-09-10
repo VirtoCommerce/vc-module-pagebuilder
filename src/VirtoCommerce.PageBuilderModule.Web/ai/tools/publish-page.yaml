@@ -1,0 +1,42 @@
+name: pagebuilder_publish_page
+description: |
+  Publish or unpublish a PageBuilder page. **Irreversible from this tool — there is no rollback API.** End-users see the change on the next request.
+
+  Use when: the user has explicitly confirmed publishing (or unpublishing) in the conversation. The tool also gates on `require_approval`, but the agent must surface in plain language what is about to change before calling — never rely on the approval dialog alone.
+
+  Skip when: as a side-effect of another operation (e.g. immediately after an Edit, even if the user originally said "fix and publish" — the edit lands as Draft, then re-confirm before publishing). Never call inside a bulk loop.
+
+  Side effects:
+  - `publish: true` — promotes the current Draft to Published and **deletes the previously Published version**. Requires a Draft to exist; returns 400 otherwise.
+  - `publish: false` — demotes the current Published version back to Draft. Returns 400 if a Draft already exists alongside the Published version (the user must resolve the draft first).
+require_approval: true
+
+parameters:
+  type: object
+  properties:
+    groupId:
+      type: string
+      description: ID of the grouped page. Required.
+    publish:
+      type: boolean
+      description: "`true` to publish the Draft, `false` to unpublish the Published version. No default — be explicit."
+  required:
+    - groupId
+    - publish
+
+execution:
+  endpoint: /api/page-builder-pages/grouped/publishing/{groupId}
+  method: POST
+  mappings:
+    request:
+      query:
+        publish: "{{publish}}"
+
+permission:
+  - builder:publish
+
+tags:
+  - pagebuilder
+  - page
+  - publish
+  - write

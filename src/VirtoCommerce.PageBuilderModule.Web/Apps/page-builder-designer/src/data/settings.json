@@ -61,9 +61,9 @@
         "default": "/api/pagebuilder/template?storeId={{location.params.storeId}}&theme={{config.themeName}}&path={{path}}&type={{type}}&draft=true",
         "pages": [
             {
-                "url": "/api/page-builder-pages/grouped/{{location.params.groupId}}/content",
+                "url": "@{{this.groupId ? '/api/page-builder-pages/grouped/' + this.groupId + '/content' : null}}",
                 "method": "GET",
-                "fallbackValue": "{\"settings\":{},\"content\": []}"
+                "fallbackValue": "@{{this.groupId ? '{\"settings\":{},\"content\": []}' : null}}"
             },
             "/api/pagebuilder/template?storeId={{location.params.storeId}}&theme={{config.themeName}}&path={{path}}&type=pages&draft=true"
         ],
@@ -182,5 +182,29 @@
             "selector": "this.response.permissions.indexOf('builder:templates') === -1",
             "isArray": false
         }
+    },
+    "ozAgentUrl-disabled": {
+      "init": "requests",
+      "requests": [
+        {
+          "url": "/api/platform/settings/VirtoCommerce.PageBuilderModule.General.OzAgentUrl",
+          "method": "GET",
+          "cacheable": true,
+          "response": {
+            "result": "$.value",
+            "isArray": false
+          }
+        },
+        {
+          "url": "/api/platform/settings/VirtoCommerce.PageBuilderModule.General.OzAgentUrl",
+          "method": "GET",
+          "cacheable": true,
+          "response": {
+            "result": "$.defaultValue",
+            "isArray": false
+          }
+        }
+      ],
+      "fallbackValue": ""
     }
 }

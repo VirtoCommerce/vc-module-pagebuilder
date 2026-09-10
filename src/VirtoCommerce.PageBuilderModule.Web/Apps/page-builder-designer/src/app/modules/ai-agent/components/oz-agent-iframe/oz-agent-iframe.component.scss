@@ -1,0 +1,22 @@
+@use '../../../../../layout/variables' as *;
+
+:host {
+    @apply block w-full h-full;
+}
+
+iframe {
+    @apply w-full h-full;
+    border: 0;
+}
+
+.placeholder {
+    @apply flex flex-col items-center justify-center h-full p-6 text-center gap-2;
+    color: $info-color;
+    font-size: $default-font-size;
+
+    code {
+        background: $hover-color;
+        padding: 0 4px;
+        border-radius: 3px;
+    }
+}

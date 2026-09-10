@@ -6,7 +6,7 @@
     </VcCol>
 
     <VcSwitch
-      :model-value="modelValue"
+      :model-value="modelValue ?? false"
       @update:model-value="emit('update:model-value', !!$event)"
     />
   </VcRow>

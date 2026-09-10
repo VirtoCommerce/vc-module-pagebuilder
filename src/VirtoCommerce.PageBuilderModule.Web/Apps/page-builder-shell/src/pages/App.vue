@@ -11,7 +11,6 @@
 <script lang="ts" setup>
 import { useUser } from "@vc-shell/framework";
 import { onMounted, ref } from "vue";
-// eslint-disable-next-line import/no-unresolved
 import logoImage from "/assets/logo.svg";
 import { refreshMenuBadges } from "../modules/page-builder/composables";
 
