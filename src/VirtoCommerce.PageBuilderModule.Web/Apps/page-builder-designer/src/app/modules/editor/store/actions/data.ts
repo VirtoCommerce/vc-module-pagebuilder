@@ -8,7 +8,8 @@ export const raiseLoadData = createAction('[template editor] raise load data');
 
 export const loadTemplateModel = createAction('[template editor] load template model', props<{ templateKey: string }>());
 export const loadTemplateModelSuccess = createAction('[template editor] load template model success', props<{ template: TemplateModel, templateKey: string }>());
-export const loadTemplateModelFails = createAction('[template editor] load template model fails', props<{ error: HttpErrorResponse, templateKey: string }>());
+// the builder http client turns some failures into an empty result, so the reason is not always an http response
+export const loadTemplateModelFails = createAction('[template editor] load template model fails', props<{ error: HttpErrorResponse | Error, templateKey: string }>());
 
 export const reloadTemplateModel = createAction('[template editor] reload template model', props<{ templateKey: string }>());
 export const reloadTemplateModelSuccess = createAction('[template editor] reload template model success', props<{ template: TemplateModel, templateKey: string }>());
@@ -20,7 +21,7 @@ export const getTemplatePublishStatusFails = createAction('[template editor] get
 
 export const loadTemplateSchemas = createAction('[template editor] load template schemas');
 export const loadTemplateSchemasSuccess = createAction('[template editor] load template schemas success', props<{ schemas: SchemasList | null }>());
-export const loadTemplateSchemasFails = createAction('[template editor] load template schemas fails', props<{ error: HttpErrorResponse }>());
+export const loadTemplateSchemasFails = createAction('[template editor] load template schemas fails', props<{ error: HttpErrorResponse | Error }>());
 
 export const useSchemasAction = createAction('[template editor] merge schemas', props<{ schemas: SchemasList }>());
 

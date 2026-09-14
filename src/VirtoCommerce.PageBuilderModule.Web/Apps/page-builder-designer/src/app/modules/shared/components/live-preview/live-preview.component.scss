@@ -46,3 +46,38 @@
 iframe {
     @apply w-full h-full;
 }
+
+.preview-placeholder {
+    color: $info-color;
+    background-color: #ffffff;
+    border: 1px dashed $controls-border-color;
+    @apply h-full w-full flex flex-col items-center justify-center text-center rounded-lg p-8 space-y-3;
+
+    app-icon {
+        color: $disable-icon-color;
+        font-size: 2.5rem;
+
+        ::ng-deep mat-icon.app-icon {
+            height: 2.5rem;
+            width: 2.5rem;
+        }
+    }
+
+    .placeholder-title {
+        color: $heading-color;
+        font-size: $middle-font-size;
+        font-weight: 600;
+    }
+
+    .placeholder-info {
+        max-width: 28rem;
+        font-size: $default-font-size;
+    }
+
+    .setting {
+        color: $content-color;
+        font-size: $default-font-size;
+        max-width: 100%;
+        @apply break-all;
+    }
+}

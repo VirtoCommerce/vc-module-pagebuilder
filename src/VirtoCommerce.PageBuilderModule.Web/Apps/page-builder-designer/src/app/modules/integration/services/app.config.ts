@@ -1,4 +1,4 @@
-import { inject, Injectable } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
 
 import { CookieService } from 'ngx-cookie-service';
 
@@ -21,16 +21,28 @@ export class AppConfig {
   private mergedConfig: any = {}; // raw config values exposed as 'config' in context
   private settings: any = {}; // evaluated proxy exposed as 'settings' in context
 
+  private readonly _version = signal(0);
+
+  /**
+   * Bumped on every (re)load of the configuration. Values are resolved lazily and are not
+   * signals themselves, so consumers depend on this counter to recompute after the settings
+   * have been reloaded - for example once an expired session has been restored.
+   */
+  readonly version = this._version.asReadonly();
+
   initConfigWith(config: any) {
     Object.assign(this.mergedConfig, config);
     this._cachedContext = null; // reset context to new values
     for (const property of Object.keys(this.mergedConfig)) {
       Object.defineProperty(this.settings, property, {
+        // the configuration may be loaded more than once, so the accessors must stay redefinable
+        configurable: true,
         get: () => {
           return this.evaluator.evaluateProperty(this.mergedConfig, property, this.getContext());
         }
       });
     }
+    this._version.update(value => value + 1);
   }
 
   getValueByEntryType(property: OptionName, context: any = null, type: string | null = null): any {

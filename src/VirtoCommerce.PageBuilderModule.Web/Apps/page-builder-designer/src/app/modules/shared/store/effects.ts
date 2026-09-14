@@ -178,8 +178,15 @@ export class SharedEffects {
         ),
         filter(([{ templateKey }]) => !!templateKey),
         map(([{ templateKey, onInit }, entries, currentFilter]) => ({ templateEntry: entries[templateKey], onInit, entries, currentFilter, templateKey })),
-        filter(({ templateEntry }) => !!templateEntry),
         switchMap(({ templateEntry, onInit, entries, currentFilter, templateKey }) => {
+            // the action already marked this branch as loading; dropping an unknown entry left that
+            // flag set, and with it the fullscreen loader, forever (VCST-5847)
+            if (!templateEntry) {
+                return of(actions.loadChildrenTemplatesFails({
+                    error: new Error(`Template entry '${templateKey}' is not available`),
+                    parentTemplate: templateKey
+                }));
+            }
             const context = { item: templateEntry, filter: currentFilter, templates: entries };
             return this.templatesService.getChildrenTemplates(templateEntry!, context).pipe(
                 switchMap(childrenEntries => {

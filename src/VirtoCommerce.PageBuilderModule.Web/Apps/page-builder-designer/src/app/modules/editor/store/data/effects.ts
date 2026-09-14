@@ -3,7 +3,7 @@ import { validateItemUnderEdit, useSchemasAction } from './../actions/data';
 import { ModalService } from '@core/services';
 import { Injectable, inject } from "@angular/core";
 
-import { of } from "rxjs";
+import { defer, of } from "rxjs";
 import { withLatestFrom, filter, map, catchError, switchMap, exhaustMap, tap } from "rxjs/operators";
 
 import { Store } from "@ngrx/store";
@@ -84,9 +84,14 @@ export class TemplateEditorDataEffects {
 
     loadSchemas$ = createEffect(() => this.actions$.pipe(
         ofType(actions.loadTemplateSchemas),
-        exhaustMap(() => this.schemas.getSchemas().pipe(
-            filter(schemas => !!schemas),
-            map(schemas => actions.loadTemplateSchemasSuccess({ schemas })),
+        // defer, so that a configuration that cannot be resolved fails the stream instead of
+        // throwing out of the effect and leaving the schemas loading forever (VCST-5847)
+        exhaustMap(() => defer(() => this.schemas.getSchemas()).pipe(
+            // the http client reports a failed request as an empty result. Dropping it left the
+            // schemas marked as loading forever, and with them the fullscreen loader (VCST-5847).
+            map(schemas => schemas
+                ? actions.loadTemplateSchemasSuccess({ schemas })
+                : actions.loadTemplateSchemasFails({ error: new Error('Section schemas are not available') })),
             catchError(error => of(actions.loadTemplateSchemasFails({ error })))
         ))
     ));
@@ -131,26 +136,34 @@ export class TemplateEditorDataEffects {
             this.store$.select(fromRoute.selectSectionIdParameter),
             this.store$.select(fromRoute.selectCultureNameParameter),
         ),
-        switchMap(([{ templateKey }, templateEntry, path, type, groupId, sectionId, cultureName]) => this.templates.getTemplate(path, type, templateEntry, groupId).pipe(
-            filter(template => !!template),
-            map(template => editorHelpers.prepareTemplate(template)),
-            switchMap(template => [
-                actions.getTemplatePublishStatus({ templateKey }),
-                actions.loadTemplateModelSuccess({ template, templateKey }),
-                actions.validateItemUnderEdit(),
-                broadcastPreviewMessage({
-                    msg: {
-                        type: 'page',
-                        template,
-                        // Pass the edited page's language (from the designer URL) to the storefront
-                        // preview so it renders in that language instead of the store default (VCST-5219).
-                        // Omit when empty so it never overrides an already-applied preview language.
-                        cultureName: cultureName || undefined,
-                        sectionId,
-                        ...templateEntry?.previewMessage
-                    }
-                })
-            ]),
+        // defer, so that a configuration that cannot be resolved fails the stream instead of
+        // throwing out of the effect and leaving the template loading forever (VCST-5847)
+        switchMap(([{ templateKey }, templateEntry, path, type, groupId, sectionId, cultureName]) => defer(() => this.templates.getTemplate(path, type, templateEntry, groupId)).pipe(
+            switchMap(loadedTemplate => {
+                // There may be nothing to load at all. Dropping that case left the template marked
+                // as loading forever, and with it the fullscreen loader (VCST-5847).
+                if (!loadedTemplate) {
+                    return [actions.loadTemplateModelFails({ error: new Error('Template is not available'), templateKey })];
+                }
+                const template = editorHelpers.prepareTemplate(loadedTemplate);
+                return [
+                    actions.getTemplatePublishStatus({ templateKey }),
+                    actions.loadTemplateModelSuccess({ template, templateKey }),
+                    actions.validateItemUnderEdit(),
+                    broadcastPreviewMessage({
+                        msg: {
+                            type: 'page',
+                            template,
+                            // Pass the edited page's language (from the designer URL) to the storefront
+                            // preview so it renders in that language instead of the store default (VCST-5219).
+                            // Omit when empty so it never overrides an already-applied preview language.
+                            cultureName: cultureName || undefined,
+                            sectionId,
+                            ...templateEntry?.previewMessage
+                        }
+                    })
+                ];
+            }),
             catchError(error => [
                 actions.loadTemplateModelFails({ error, templateKey }),
                 shared.showNotification({
@@ -349,7 +362,9 @@ export class TemplateEditorDataEffects {
         ),
         switchMap(([{ templates }, state]) => {
             const templatesToSave = templates.filter(x => !!x.content);
-            return this.templates.saveTemplates(templatesToSave).pipe(
+            // defer for the same reason as in loadTemplate$: a synchronous failure has to reach
+            // catchError, otherwise the save never ends and the loader stays up (VCST-5847)
+            return defer(() => this.templates.saveTemplates(templatesToSave)).pipe(
                 switchMap(() => templates.map(x => [
                     actions.saveTemplateSuccess({ templateKey: x.info.key, parentKey: x.info.parent, template: x.content }),
                     actions.getTemplatePublishStatusSuccess({ templateKey: x.info.key, hasChanges: true, published: false }),

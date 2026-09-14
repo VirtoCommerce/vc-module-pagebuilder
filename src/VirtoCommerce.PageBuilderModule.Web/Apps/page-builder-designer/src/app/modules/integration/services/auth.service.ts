@@ -21,6 +21,21 @@ export class AuthService {
     }
 
     /**
+     * Sign in with platform credentials. Lets the user restore an expired session without
+     * leaving the designer and losing unsaved changes (VCST-5847). Mirrors the password grant
+     * used by the platform admin, so the token ends up in the same shape.
+     */
+    login(userName: string, password: string): Observable<any> {
+        const url = '/connect/token';
+        const headers = new HttpHeaders({
+            'x-refresh': 'true',
+            'content-type': 'application/x-www-form-urlencoded'
+        });
+        const body = `grant_type=password&scope=offline_access&username=${encodeURIComponent(userName)}&password=${encodeURIComponent(password)}`;
+        return this.http.post<any>(url, body, { headers });
+    }
+
+    /**
      * Obtain a Bearer token from the current cookie session via the impersonate grant.
      * Calling without user_id resets impersonation and returns a token for the logged-in user.
      */

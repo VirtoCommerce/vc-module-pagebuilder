@@ -5,6 +5,9 @@ import { ReplaySubject, of, firstValueFrom, throwError } from 'rxjs';
 import { take, toArray } from 'rxjs/operators';
 import { Action } from '@ngrx/store';
 
+import * as fromRoute from '@shared/routing';
+import * as shared from '@shared/store/actions';
+
 import { ThemeDataEffects } from './effects';
 import * as actions from '../actions';
 import * as selectors from '../selectors';
@@ -34,7 +37,9 @@ describe('ThemeDataEffects', () => {
                 provideMockStore({
                     selectors: [
                         { selector: selectors.selectCurrentSettings, value: null },
+                        { selector: selectors.selectLoadedSettingsSchema, value: null },
                         { selector: selectors.selectCurrentSettingsDataModel, value: { current: {}, presets: {} } },
+                        { selector: fromRoute.selectDataParams, value: { module: 'theme' } },
                     ],
                 }),
                 { provide: 'ThemeSettingsService', useValue: service },
@@ -68,6 +73,40 @@ describe('ThemeDataEffects', () => {
             // Effect should filter out — give it time to process
             const results: Action[] = [];
             const sub = effects.raiseLoadData$.subscribe(a => results.push(a));
+            await new Promise(r => setTimeout(r, 50));
+            sub.unsubscribe();
+            expect(results.length).toBe(0);
+        });
+    });
+
+    // Restoring an expired session does not change the route, so nothing re-enters the module and
+    // the requests dropped with the session have to be repeated explicitly (VCST-5847).
+    describe('reloadAfterSignIn$', () => {
+        it('repeats both requests when neither of them made it', async () => {
+            actions$.next(shared.initShared());
+            const results = await firstValueFrom(effects.reloadAfterSignIn$.pipe(take(2), toArray()));
+            const types = results.map(r => r.type);
+            expect(types).toContain(actions.loadSettingsData.type);
+            expect(types).toContain(actions.loadSettingsSchema.type);
+        });
+
+        it('repeats only the request that is still missing', async () => {
+            store.overrideSelector(selectors.selectCurrentSettings, { color: 'blue' });
+            store.refreshState();
+
+            actions$.next(shared.initShared());
+            const results = await firstValueFrom(effects.reloadAfterSignIn$.pipe(take(1), toArray()));
+            expect(results.map(r => r.type)).toEqual([actions.loadSettingsSchema.type]);
+        });
+
+        it('stays out of the way while another module is on screen', async () => {
+            store.overrideSelector(fromRoute.selectDataParams, { module: 'editor' });
+            store.refreshState();
+
+            actions$.next(shared.initShared());
+
+            const results: Action[] = [];
+            const sub = effects.reloadAfterSignIn$.subscribe(a => results.push(a));
             await new Promise(r => setTimeout(r, 50));
             sub.unsubscribe();
             expect(results.length).toBe(0);

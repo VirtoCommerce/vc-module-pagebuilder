@@ -29,6 +29,16 @@ export class BuilderHttpClient extends HttpClient {
         super(inject(HttpHandler));
     }
 
+    /**
+     * Drops every cached response. The store request behind the settings is cacheable, so a store
+     * URL that has just been corrected in the Manager would otherwise stay invisible to a reload
+     * of the configuration and the designer would keep computing the same broken address
+     * (VCST-5847).
+     */
+    clearCache(): void {
+        this._cache.clear();
+    }
+
     doRequest<T>(request: CustomRequests, additionalOptions: any = null, context: any = null): Observable<T | null> {
         if (!request) {
             return of(null);

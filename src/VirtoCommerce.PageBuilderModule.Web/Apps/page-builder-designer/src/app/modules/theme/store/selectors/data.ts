@@ -46,3 +46,10 @@ export const selectCurrentSettingsDataModel = createSelector(
     current: current!
   })
 );
+
+// Unlike selectSettingsSchema this does not hide the schema until the settings data has arrived,
+// so the recovery after a sign in can tell which of the two requests still has to be repeated.
+export const selectLoadedSettingsSchema = createSelector(
+  selectThemeDataState,
+  state => state?.settingsSchema ?? null
+);

@@ -310,6 +310,17 @@ describe('SharedEffects', () => {
             expect(result.type).toBe(actions.loadChildrenTemplatesFails.type);
         });
 
+        // the action already marked the branch as loading, so an unknown entry must still end it
+        it('dispatches fails for an unknown template entry', async () => {
+            store.overrideSelector(fromState.selectTemplatesEntries, {} as any);
+            store.refreshState();
+
+            actions$.next(actions.loadChildrenTemplates({ templateKey: 'parent', onInit: false }));
+            const result = await firstValueFrom(effects.loadChildrenTemplates$);
+            expect(result.type).toBe(actions.loadChildrenTemplatesFails.type);
+            expect((result as any).parentTemplate).toBe('parent');
+        });
+
         it('does not dispatch for empty templateKey', async () => {
             actions$.next(actions.loadChildrenTemplates({ templateKey: '', onInit: false }));
             const results: Action[] = [];

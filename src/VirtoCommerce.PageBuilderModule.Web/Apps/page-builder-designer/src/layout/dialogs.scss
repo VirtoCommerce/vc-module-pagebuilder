@@ -1,3 +1,10 @@
+.login-dialog {
+    .mat-mdc-dialog-surface {
+        border-radius: 0.75rem;
+        padding: 0;
+    }
+}
+
 .confirm-dialog {
     mat-dialog-container {
         border: 1px solid #E0B3B2;
