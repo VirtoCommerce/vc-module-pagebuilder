@@ -6,6 +6,16 @@ namespace VirtoCommerce.PageBuilderModule.Core
     {
         public const string DefaultPageContent = "{ \"settings\": {}, \"content\": [] }";
 
+        public static class ContentProviders
+        {
+            /// <summary>
+            /// <see cref="VirtoCommerce.Pages.Core.ContentProviders.IPageContentProvider.ProviderName"/> of the Page Builder
+            /// content provider. Consumers (for example, the standalone preview in XCMS) select the provider by this name,
+            /// so it is a public contract and must not change.
+            /// </summary>
+            public const string PageBuilder = "PageBuilder";
+        }
+
         public static class SharedComponents
         {
             public const string ReferenceType = "componentRef";

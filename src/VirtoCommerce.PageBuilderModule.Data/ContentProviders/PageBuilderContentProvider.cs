@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Data.Extensions;
@@ -18,7 +19,7 @@ public class PageBuilderContentProvider(
     ILogger<PageBuilderContentProvider> logger)
     : IPageContentProvider
 {
-    public string ProviderName => "PageBuilder";
+    public string ProviderName => ModuleConstants.ContentProviders.PageBuilder;
     public bool SupportsReindexation => true;
 
     public async Task<PageChangesSearchResult> SearchChangesAsync(PageChangesSearchCriteria criteria)
