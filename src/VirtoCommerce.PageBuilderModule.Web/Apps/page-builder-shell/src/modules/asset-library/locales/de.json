@@ -40,14 +40,17 @@
     "DETAILS": {
       "EMPTY": "Wählen Sie eine Datei aus, um Details anzuzeigen.",
       "FILE_DETAILS": "Dateidetails",
+      "CLOSE": "Schließen",
       "SIZE": "Größe",
       "DIMENSIONS": "Abmessungen",
       "TYPE": "Typ",
       "MODIFIED": "Geändert",
       "UPLOADED": "Hochgeladen",
       "PATH": "Pfad",
-      "USED_ON": "Verwendet auf ({count} Seiten)",
-      "NO_REFERENCES": "Auf keiner Page Builder-Seite verwendet.",
+      "USED_ON": "Verwendet in ({count})",
+      "PAGES": "Seiten",
+      "SHARED_COMPONENTS": "Geteilte Komponenten",
+      "NO_REFERENCES": "Weder auf Page Builder-Seiten noch in geteilten Komponenten verwendet.",
       "URL": "URL",
       "COPY_URL": "URL kopieren",
       "REPLACE": "Ersetzen",
@@ -77,8 +80,8 @@
     "CONFIRM": {
       "DELETE_SINGLE": "{name} löschen?",
       "DELETE_SELECTED": "{count} ausgewählte Asset(s) löschen?",
-      "DELETE_USED_ONE": "{name} löschen? Es wird auf 1 Page Builder-Seite verwendet.",
-      "DELETE_USED_MANY": "{name} löschen? Es wird auf {count} Page Builder-Seiten verwendet."
+      "DELETE_USED_ONE": "{name} löschen? Es wird in 1 Page Builder-Element verwendet.",
+      "DELETE_USED_MANY": "{name} löschen? Es wird in {count} Page Builder-Elementen verwendet."
     },
     "NOTIFICATIONS": {
       "FOLDER_CREATED": "Ordner erfolgreich erstellt",

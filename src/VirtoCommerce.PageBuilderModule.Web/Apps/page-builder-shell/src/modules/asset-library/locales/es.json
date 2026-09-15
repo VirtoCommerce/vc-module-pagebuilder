@@ -40,14 +40,17 @@
     "DETAILS": {
       "EMPTY": "Selecciona un archivo para ver sus detalles.",
       "FILE_DETAILS": "Detalles del archivo",
+      "CLOSE": "Cerrar",
       "SIZE": "Tamaño",
       "DIMENSIONS": "Dimensiones",
       "TYPE": "Tipo",
       "MODIFIED": "Modificado",
       "UPLOADED": "Subido",
       "PATH": "Ruta",
-      "USED_ON": "Usado en ({count} páginas)",
-      "NO_REFERENCES": "No se usa en ninguna página de Page Builder.",
+      "USED_ON": "Usado en ({count})",
+      "PAGES": "Páginas",
+      "SHARED_COMPONENTS": "Componentes compartidos",
+      "NO_REFERENCES": "No se usa en páginas de Page Builder ni en componentes compartidos.",
       "URL": "URL",
       "COPY_URL": "Copiar URL",
       "REPLACE": "Reemplazar",
@@ -77,8 +80,8 @@
     "CONFIRM": {
       "DELETE_SINGLE": "¿Eliminar {name}?",
       "DELETE_SELECTED": "¿Eliminar {count} activo(s) seleccionado(s)?",
-      "DELETE_USED_ONE": "¿Eliminar {name}? Se usa en 1 página de Page Builder.",
-      "DELETE_USED_MANY": "¿Eliminar {name}? Se usa en {count} páginas de Page Builder."
+      "DELETE_USED_ONE": "¿Eliminar {name}? Se usa en 1 elemento de Page Builder.",
+      "DELETE_USED_MANY": "¿Eliminar {name}? Se usa en {count} elementos de Page Builder."
     },
     "NOTIFICATIONS": {
       "FOLDER_CREATED": "Carpeta creada correctamente",

@@ -2,6 +2,7 @@ import { pasteDataIntoTemplate } from './clipboard.helpers';
 import { createTemplate, createSection, createBlock, createSchema } from '@app/testing';
 import * as actions from '@editor/store/actions';
 import * as sharedActions from '@shared/store/actions';
+import { createSharedComponentReference } from './shared-component.helpers';
 
 function createContext(overrides: any = {}) {
     return {
@@ -75,7 +76,7 @@ describe('pasteDataIntoTemplate', () => {
         const result = pasteDataIntoTemplate(action, createContext());
 
         const actionTypes = result.map(a => a.type);
-        expect(actionTypes).toContain(sharedActions.broadcastPreviewMessage.type);
+        expect(actionTypes).toContain(actions.broadcastResolvedPreview.type);
         expect(actionTypes).toContain(actions.updateTemplateAction.type);
         expect(actionTypes).toContain(sharedActions.showNotification.type);
     });
@@ -132,6 +133,26 @@ describe('pasteDataIntoTemplate', () => {
 
     // ── paste section: accepted ───────────────────────────────────
 
+    it('asks whether a copied Shared Component stays linked or becomes independent', () => {
+        const action = {
+            value: {
+                type: 'section',
+                content: createSharedComponentReference('component-1', 'source-placement'),
+            },
+            section: createSection({ id: 's1', type: 'hero' }),
+            action: 'paste-after',
+            source: 'list',
+        };
+
+        expect(pasteDataIntoTemplate(action, createContext())).toEqual([
+            actions.chooseSharedComponentInsertionMode({
+                componentId: 'component-1',
+                insertIndex: 1,
+                defaultMode: 'copy',
+            }),
+        ]);
+    });
+
     it('pastes section into template', () => {
         const action = {
             value: { type: 'section', content: { type: 'banner' } },
@@ -143,7 +164,7 @@ describe('pasteDataIntoTemplate', () => {
         const result = pasteDataIntoTemplate(action, createContext());
 
         const actionTypes = result.map(a => a.type);
-        expect(actionTypes).toContain(sharedActions.broadcastPreviewMessage.type);
+        expect(actionTypes).toContain(actions.broadcastResolvedPreview.type);
         expect(actionTypes).toContain(actions.updateTemplateAction.type);
         expect(actionTypes).toContain(sharedActions.showNotification.type);
     });

@@ -1,23 +1,24 @@
-<div cdkDropList class="blocks-container" (cdkDropListDropped)="onReorderBlocks($event)">
+<div cdkDropList [cdkDropListDisabled]="readOnly()" class="blocks-container" (cdkDropListDropped)="onReorderBlocks($event)">
   @for (block of section().blocks; track block) {
     <div class="block-item"
       cdkDragBoundary=".blocks-container"
       cdkDragLockAxis="y"
       cdkDrag
+      [cdkDragDisabled]="readOnly()"
       [ngClass]="{ 'selected': states()[block.id]?.selected }"
       (cdkDragStarted)="blockDragStarted($event)"
       (cdkDragReleased)="blockDragCompleted()"
       (mouseenter)="currentHoverId.set(block.id)"
       (mouseleave)="currentHoverId.set(null)">
       <app-section-item [sectionSchema]="blocksSchemas()[block.type]"
-        [selectable]="states()[block.id]?.selectable || false"
+        [selectable]="!readOnly() && (states()[block.id]?.selectable || false)"
         [selected]="states()[block.id]?.selected || false"
-        [hasContextMenu]="!selectMode()"
+        [hasContextMenu]="!readOnly() && !selectMode()"
         [section]="block"
         (itemClick)="onItemClick(block)"
         (actionClick)="onActionExecuted($event, block)"
         (itemSelectChanged)="onItemSelectChanged($event, block.id)" />
-      @let isDragHandleActive = (!selectMode() && block.id === currentHoverId()) || !!states()[block.id]?.selected;
+      @let isDragHandleActive = !readOnly() && ((!selectMode() && block.id === currentHoverId()) || !!states()[block.id]?.selected);
       <app-drag-handle cdkDragHandle
         [cdkDragHandleDisabled]="!isDragHandleActive"
         [visible]="isDragHandleActive" />
@@ -30,7 +31,9 @@
     </div>
   }
 </div>
-<app-icon-button icon="add"
-  skin="blue"
-  text="Add block"
-  (click)="onAddBlockClick()" />
+@if (!readOnly()) {
+  <app-icon-button icon="add"
+    skin="blue"
+    text="Add block"
+    (click)="onAddBlockClick()" />
+}

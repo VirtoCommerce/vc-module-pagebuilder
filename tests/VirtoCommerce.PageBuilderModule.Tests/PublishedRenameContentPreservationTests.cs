@@ -13,11 +13,12 @@ using Microsoft.Extensions.Logging.Abstractions;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
+using VirtoCommerce.PageBuilderModule.Web.Services;
 using VirtoCommerce.Pages.Core.Models;
 using VirtoCommerce.Pages.Core.Search;
 using VirtoCommerce.Platform.Core.Common;
-using VirtoCommerce.SearchModule.Core.Model;
 using VirtoCommerce.Platform.Core.Events;
+using VirtoCommerce.SearchModule.Core.Model;
 using Xunit;
 using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 
@@ -130,13 +131,20 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
         private static PageBuilderPageController CreateController(FakeGroupedPageService service)
         {
+            var pageService = new FakePageBuilderPageService(service);
+            var pageContentService = new PageBuilderPageContentService(
+                pageService,
+                service,
+                new NoopSharedComponentReferenceIndexService(),
+                new NoopEventPublisher(),
+                NullLogger<PageBuilderPageContentService>.Instance);
             var controller = new PageBuilderPageController(
-                crudService: new FakePageBuilderPageService(service),
+                crudService: pageService,
                 groupedPageService: service,
                 groupedPageSearchService: new FakeGroupedPageSearchService(),
                 authorizationService: new AllowAllAuthorizationService(),
                 pageDocumentSearchService: new NoopPageDocumentSearchService(),
-                eventPublisher: new NoopEventPublisher(),
+                pageContentService: pageContentService,
                 logger: NullLogger<PageBuilderPageController>.Instance);
 
             var httpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity()) };
@@ -153,6 +161,11 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             private readonly Dictionary<string, GroupedPageBuilderPage> _groups = new();
             private readonly Dictionary<string, string> _content = new();
             private int _idSeq;
+
+            internal Exception SaveContentException { get; set; }
+            internal string ConcurrentContentBeforeSaveFailure { get; set; }
+            internal int EmptyDraftCleanupAttempts { get; private set; }
+            internal string ReplaceNewDraftAfterSaveWithPageId { get; set; }
 
             public void SeedGroup(GroupedPageBuilderPage group) => _groups[group.Id] = DeepClone(group);
             public void SeedContent(string pageId, string content) => _content[pageId] = content;
@@ -188,6 +201,16 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                     NormalizePublishedPages(model);
 
                     _groups[model.Id] = DeepClone(model);
+                    if (!string.IsNullOrWhiteSpace(ReplaceNewDraftAfterSaveWithPageId))
+                    {
+                        var storedDraft = _groups[model.Id].Pages.FirstOrDefault(x => x.Status == Draft);
+                        if (storedDraft != null)
+                        {
+                            storedDraft.Id = ReplaceNewDraftAfterSaveWithPageId;
+                        }
+
+                        ReplaceNewDraftAfterSaveWithPageId = null;
+                    }
                 }
 
                 return Task.CompletedTask;
@@ -252,6 +275,16 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
             public Task SaveContent(string pageId, string content, CancellationToken cancellationToken = default)
             {
+                if (SaveContentException != null)
+                {
+                    if (ConcurrentContentBeforeSaveFailure != null)
+                    {
+                        _content[pageId] = ConcurrentContentBeforeSaveFailure;
+                    }
+
+                    throw SaveContentException;
+                }
+
                 _content[pageId] = content;
                 return Task.CompletedTask;
             }
@@ -291,6 +324,21 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 }
 
                 return Task.CompletedTask;
+            }
+
+            public async Task<bool> TryDeleteEmptyDraftAsync(
+                string pageId,
+                CancellationToken cancellationToken = default)
+            {
+                EmptyDraftCleanupAttempts++;
+                var page = GetStoredPage(pageId);
+                if (page == null || page.Status != Draft || _content.ContainsKey(pageId))
+                {
+                    return false;
+                }
+
+                await DeleteAsync([pageId]);
+                return true;
             }
 
             internal PageBuilderPage GetStoredPage(string pageId)

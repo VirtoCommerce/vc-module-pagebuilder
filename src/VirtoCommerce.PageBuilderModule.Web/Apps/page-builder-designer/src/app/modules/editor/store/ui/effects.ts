@@ -3,7 +3,6 @@ import { Actions, createEffect, ofType } from "@ngrx/effects";
 import { Store } from "@ngrx/store";
 import { withLatestFrom, filter, tap, map, switchMap } from "rxjs/operators";
 
-import { broadcastPreviewMessage } from '@shared/store/actions';
 import * as routingActions from '@shared/routing/actions';
 import * as sharedSelectors from '@shared/store/selectors';
 
@@ -104,7 +103,7 @@ export class TemplateEditorUiEffects {
             this.store$.select(selectors.selectBlockModelFromRoute)
         ),
         switchMap(([, template, entry, parentKey, section, block]) => {
-            const message = [broadcastPreviewMessage({
+            const message = [actions.broadcastResolvedPreview({
                 msg: {
                     type: 'changed',
                     template, section, block,
@@ -129,20 +128,25 @@ export class TemplateEditorUiEffects {
 
     notifySuccessSave$ = createEffect(() => this.actions$.pipe(
         ofType(actions.saveTemplateSuccess),
-        switchMap(({ templateKey, parentKey, template }) => {
+        withLatestFrom(this.store$.select(selectors.selectSharedComponents)),
+        switchMap(([{ templateKey, parentKey, template, clearDirty }, sharedComponents]) => {
+            const sharedComponentId = templateKey.startsWith('shared-component::')
+                ? templateKey.substring('shared-component::'.length)
+                : '';
             const templateName = template.settings['name'] ? <string>template.settings['name'] : '';
-            if (!template.settings['name']) {
-                console.warn('Template name is empty. It may cause issues with notifications.', template);
-            }
+            const message = sharedComponentId
+                ? `Shared Component “${sharedComponents[sharedComponentId]?.name || sharedComponentId}” saved successfully`
+                : `Template ${templateName} saved successfully`;
+
             return [
                 sharedActions.showNotification({
-                    message: `Template ${templateName} saved successfully`,
+                    message,
                     msgType: 'success',
                     top: true
                 }),
-                parent
-                    ? sharedActions.setDirtyState({ parentKey, templateKey, dirty: false })
-                    : sharedActions.setRootDirtyState({ templateKey, dirty: false })
+                parentKey
+                    ? sharedActions.setDirtyState({ parentKey, templateKey, dirty: clearDirty === false })
+                    : sharedActions.setRootDirtyState({ templateKey, dirty: clearDirty === false })
             ];
         })
     ));
@@ -168,7 +172,7 @@ export class TemplateEditorUiEffects {
             const sharedSchemaName = !!section ? "_blocks" : "_sections";
             const fullSchema = editorHelpers.prepareSchema(item, shared, objects, sharedSchemaName, entry?.controls);
             const model = editorHelpers.generatePreviewBySchema(fullSchema);
-            return broadcastPreviewMessage({
+            return actions.broadcastResolvedPreview({
                 msg: {
                     type: 'preview',
                     template, section, model,
@@ -181,7 +185,7 @@ export class TemplateEditorUiEffects {
     hoverSection$ = createEffect(() => this.actions$.pipe(
         ofType(actions.hoverSection),
         map(({ sectionId }) =>
-            broadcastPreviewMessage({
+            sharedActions.broadcastPreviewMessage({
                 msg: {
                     type: 'hover',
                     sectionId
@@ -197,7 +201,7 @@ export class TemplateEditorUiEffects {
             this.store$.select(sharedSelectors.selectCurrentTemplateEntry)
         ),
         map(([{ sectionId }, template, entry]) =>
-            broadcastPreviewMessage({
+            actions.broadcastResolvedPreview({
                 msg: {
                     type: 'select',
                     template, sectionId,
@@ -216,7 +220,7 @@ export class TemplateEditorUiEffects {
             this.store$.select(selectors.selectSectionModelFromRoute)
         ),
         map(([{ sectionId, blockId }, template, entry, section]) =>
-            broadcastPreviewMessage({
+            actions.broadcastResolvedPreview({
                 msg: {
                     type: 'select',
                     template, section, sectionId, blockId,

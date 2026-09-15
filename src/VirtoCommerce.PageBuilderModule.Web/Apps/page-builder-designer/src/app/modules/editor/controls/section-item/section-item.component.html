@@ -16,6 +16,20 @@
     }
   </div>
   <div class="name" [title]="sectionName() + ' (' + section().id + ')'">{{ sectionName() }}</div>
+  @if (isShared()) {
+    <span class="shared-component-badge" [class.error]="sharedComponentError()"
+      [title]="sharedComponentError() || ('Used on ' + (sharedComponent()?.usageCount || 0) + ' page(s)')">
+      {{ sharedComponentError() ? 'Missing' : 'Shared' }}
+      @if (!sharedComponentError()) {
+        <span
+          class="shared-component-usage"
+          [attr.aria-label]="'Used on ' + (sharedComponent()?.usageCount || 0) + ' page(s)'">
+          <span aria-hidden="true">·</span>
+          {{ sharedComponent()?.usageCount || 0 }}
+        </span>
+      }
+    </span>
+  }
   @if (hasContextMenu()) {
     <app-context-menu
       [getActions]="getItemActions"
