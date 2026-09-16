@@ -239,6 +239,55 @@ describe('TemplateEditorDataEffects', () => {
 
             expect(result.type).toBe(actions.getTemplatePublishStatusFails.type);
         });
+
+        // ── a conflict with a way out ──
+        //
+        // The server refuses with 409 and canRebase when dev changed the same page since the draft
+        // began: git cannot merge the two, and the editor may publish their version on top of the
+        // current page instead. That replaces somebody's edit, so it is a question, never a default.
+
+        const conflict = () => ({ status: 409, error: { error: 'The page changed in dev.', canRebase: true } });
+        const modal = () => TestBed.inject(ModalService).show as ReturnType<typeof vi.fn>;
+
+        it('asks before publishing over a conflict, and on yes publishes the draft on top of the current page', async () => {
+            templatesService.publishTemplate
+                .mockReturnValueOnce(throwError(() => conflict()))
+                .mockReturnValueOnce(of(null));
+            modal().mockReturnValue(of(true));
+
+            actions$.next(actions.executeToolbarAction({ action: 'publish' }));
+            const results = await firstValueFrom(effects.publishTemplate$.pipe(take(2), toArray()));
+
+            expect(modal()).toHaveBeenCalledTimes(1);
+            expect(templatesService.publishTemplate).toHaveBeenCalledTimes(2);
+            expect(templatesService.publishTemplate.mock.calls[0][4]).toEqual({});
+            expect(templatesService.publishTemplate.mock.calls[1][4]).toEqual({ rebase: true });
+            expect(results.map(r => r.type)).toContain(actions.getTemplatePublishStatusSuccess.type);
+        });
+
+        it('publishes nothing when the editor declines, and says so', async () => {
+            templatesService.publishTemplate.mockReturnValue(throwError(() => conflict()));
+            modal().mockReturnValue(of(false));
+
+            actions$.next(actions.executeToolbarAction({ action: 'publish' }));
+            const results = await firstValueFrom(effects.publishTemplate$.pipe(take(2), toArray()));
+
+            expect(templatesService.publishTemplate).toHaveBeenCalledTimes(1);
+            expect(results.map(r => r.type)).toEqual([
+                actions.getTemplatePublishStatusFails.type,
+                sharedActions.showNotification.type,
+            ]);
+        });
+
+        it('does not offer a rebase for a conflict the server gives no way out of', async () => {
+            templatesService.publishTemplate.mockReturnValue(throwError(() => ({ status: 409, error: { error: 'conflict' } })));
+
+            actions$.next(actions.executeToolbarAction({ action: 'publish' }));
+            const result = await firstValueFrom(effects.publishTemplate$.pipe(take(1)));
+
+            expect(modal()).not.toHaveBeenCalled();
+            expect(result.type).toBe(actions.getTemplatePublishStatusFails.type);
+        });
     });
 
     // ── unpublishTemplate$ ────────────────────────────────────────

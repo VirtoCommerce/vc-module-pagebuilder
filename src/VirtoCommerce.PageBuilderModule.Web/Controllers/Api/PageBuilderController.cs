@@ -560,7 +560,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         /// </summary>
         [HttpPost]
         [Route("git/publish")]
-        public async Task<ActionResult> GitPublish(string storeId, string path, string type)
+        public async Task<ActionResult> GitPublish(string storeId, string path, string type, bool rebase = false)
         {
             if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
             {
@@ -591,9 +591,46 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 return BadRequest(new { errors });
             }
 
+            if (rebase)
+            {
+                await RebaseDraftAsync(location, draft, path, storeId);
+            }
+
             var result = await gitContentPublisher.MergeBranchAsync(location.Branch, $"publish {path} (store: {storeId})", HttpContext.RequestAborted);
 
-            return await RespondToPublishAsync(result, location, path);
+            return await RespondToPublishAsync(result, location, path, canRebase: true);
+        }
+
+        /// <summary>
+        /// The way out of a <see cref="GitPublishState.Conflict"/>: the draft, as a state, on top of today's
+        /// base branch.
+        /// <para>
+        /// A page is one JSON document, so when the base branch has changed it since this branch was cut,
+        /// git can rarely lay one edit over the other — and the work branch keeps its old merge base, so
+        /// every retry reproduces the same conflict. Restoring a version does not help either: it commits
+        /// onto the same branch. Before this, the only way out was someone closing the pull request and
+        /// deleting the branch by hand.
+        /// </para>
+        /// <para>
+        /// So the branch is cut again from the base branch and the draft's bytes become one commit on it —
+        /// the same idea promotion is built on: what is wanted is the file's state, not its history. The
+        /// other edits are replaced by this one; they stay in the base branch's history, and the old
+        /// branch's commits stay reachable by sha. Deleting the branch closes its pull request, and the
+        /// merge that follows opens a fresh one. Only on request — the editor was shown what they are
+        /// replacing — never as a default: silently taking either side would throw away someone's work.
+        /// </para>
+        /// </summary>
+        private async Task RebaseDraftAsync((string RepoPath, string Branch) location, string draft, string path, string storeId)
+        {
+            var options = gitContentOptions.Value;
+
+            await gitContentRepository.DeleteBranchAsync(location.Branch, location.RepoPath, HttpContext.RequestAborted);
+            await gitContentRepository.CreateBranchAsync(location.Branch, options.BaseBranch, HttpContext.RequestAborted);
+
+            var author = CurrentAuthor();
+            var message = CommitMessage($"designer: publish {path} on top of {options.BaseBranch}, replacing what changed there since this draft began (store: {storeId}, by: {author.Name})");
+            await gitContentRepository.CommitFileAsync(location.RepoPath, draft, location.Branch, message, author, HttpContext.RequestAborted);
+            gitContentHistory.Invalidate(location.RepoPath);
         }
 
         /// <summary>
@@ -1432,15 +1469,21 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             return authorization.Succeeded;
         }
 
-        private Task<ActionResult> RespondToPublishAsync(GitPublishResult result, (string RepoPath, string Branch) location, string path) =>
-            RespondToShipAsync(result, location.RepoPath, location.Branch, gitContentOptions.Value.BaseBranch, path);
+        private Task<ActionResult> RespondToPublishAsync(GitPublishResult result, (string RepoPath, string Branch) location, string path,
+            bool canRebase = false) =>
+            RespondToShipAsync(result, location.RepoPath, location.Branch, gitContentOptions.Value.BaseBranch, path, canRebase);
 
         /// <summary>
         /// The tail every shipping operation shares — publish, unpublish and promote differ in which
         /// branch they merged into, and in nothing else once the merge has happened.
+        /// <para>
+        /// <paramref name="canRebase"/> is whether a conflict has a way out from the builder: publishing
+        /// the draft again with <c>rebase=true</c> (see <see cref="RebaseDraftAsync"/>). Only a publish
+        /// offers it; an unpublish or a promotion that conflicts is a state for a person to look at.
+        /// </para>
         /// </summary>
         private async Task<ActionResult> RespondToShipAsync(GitPublishResult result, string repoPath, string branch,
-            string mergedInto, string path)
+            string mergedInto, string path, bool canRebase = false)
         {
             if (result.State == GitPublishState.Merged)
             {
@@ -1455,11 +1498,16 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
             if (result.State == GitPublishState.Conflict)
             {
+                var wayOut = canRebase
+                    ? " Re-read the page and apply the change again, or publish this draft as it is on top of the current page — that replaces what changed there."
+                    : " Re-read the page and apply the change again.";
+
                 return Conflict(new
                 {
-                    error = $"\"{path}\" changed in the production branch while this draft was being written. Re-read the page and apply the change again.",
+                    error = $"\"{path}\" changed in {mergedInto} while this draft was being written, and the two edits cannot be merged.{wayOut}",
                     pullRequest = result.PullRequestNumber,
                     url = result.Url,
+                    canRebase,
                 });
             }
 

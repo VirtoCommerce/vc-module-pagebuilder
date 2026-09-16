@@ -1,6 +1,7 @@
 import { SchemasList } from './../../models/schemas.model';
 import { validateItemUnderEdit, useSchemasAction } from './../actions/data';
 import { ModalService } from '@core/services';
+import { ConfirmComponent } from '@core/dialogs';
 import { Injectable, inject } from "@angular/core";
 
 import { defer, of } from "rxjs";
@@ -28,6 +29,25 @@ import * as fromShared from '@shared/store/selectors';
 import { EditorModuleInfo } from "@models/modules";
 
 import { PublishStatus, SchemasService, TemplatesService } from "@editor/services";
+import { TemplateEntry } from '@shared/models';
+
+/** What a toolbar action needs to know about the open page — the shape selectRunActionContext answers with. */
+interface RunActionContext {
+    templateKey: string;
+    entry: TemplateEntry;
+    path: string;
+    type: string;
+    groupId: string;
+}
+
+/**
+ * A refused publish with a way out: dev changed the same page since this draft began, git cannot
+ * merge the two, and the server says the draft may be published on top of the current page instead.
+ * Duck-typed on purpose — an HttpErrorResponse carries the body as `error`, and a test can throw a
+ * plain object shaped the same way.
+ */
+const isConflictWithAWayOut = (error: any): boolean =>
+    error?.status === 409 && !!error?.error?.canRebase;
 
 @Injectable({
     providedIn: 'root'
@@ -236,7 +256,17 @@ export class TemplateEditorDataEffects {
         // waiting on a CI check, or refuse outright because the page changed in production while this
         // draft was being written — reporting "published" for either would send the editor away
         // believing the page is live.
-        switchMap(([, { templateKey, entry, path, type, groupId }]) => this.templates.publishTemplate(path, type, entry, groupId).pipe(
+        switchMap(([, context]) => this.publish(context).pipe(
+            catchError(error => isConflictWithAWayOut(error)
+                ? this.offerToPublishOverTheConflict(context, error)
+                : of(actions.getTemplatePublishStatusFails({ error, templateKey: context.templateKey })))
+        ))
+    ));
+
+    /** Publish, then ask the server where the page stands — one pipeline for the first attempt and for the retry over a conflict. */
+    private publish(context: RunActionContext, options: { rebase?: boolean } = {}) {
+        const { templateKey, entry, path, type, groupId } = context;
+        return this.templates.publishTemplate(path, type, entry, groupId, options).pipe(
             switchMap(() => this.templates.getTemplatePublishStatus(path, type, entry, groupId)),
             filter((status): status is PublishStatus => !!status),
             switchMap(({ hasChanges, published, pending, awaitingMerge, production }) => [
@@ -252,9 +282,48 @@ export class TemplateEditorDataEffects {
                     }
                 }),
             ]),
-            catchError(error => of(actions.getTemplatePublishStatusFails({ error, templateKey })))
-        ))
-    ));
+        );
+    }
+
+    /**
+     * The conflict used to be a dead end: every Publish reused the same pull request and met the same
+     * refusal, and restoring a version committed onto the same branch. The server now offers to
+     * publish the draft on top of the current page — which replaces somebody's edit, so it is asked
+     * for in so many words and never done by default. Declining publishes nothing and says so.
+     */
+    private offerToPublishOverTheConflict(context: RunActionContext, error: any) {
+        const { templateKey } = context;
+        const reason = error?.error?.error ?? 'The page changed while this draft was being written.';
+
+        return this.modals.show<boolean>(ConfirmComponent, {
+            data: {
+                title: `${reason} Publish your version of the page anyway?`,
+                icon: 'error',
+                confirmText: 'Publish my version',
+                declineText: 'Cancel',
+            },
+            panelClass: 'confirm-dialog',
+        }).pipe(
+            switchMap(confirmed => confirmed
+                ? this.publish(context, { rebase: true }).pipe(
+                    catchError(retryError => of(
+                        actions.getTemplatePublishStatusFails({ error: retryError, templateKey }),
+                        shared.showNotification({
+                            message: `Could not publish: ${retryError?.error?.error ?? retryError?.message ?? 'request failed'}`,
+                            msgType: 'error',
+                            top: true,
+                        }),
+                    )))
+                : of(
+                    actions.getTemplatePublishStatusFails({ error, templateKey }),
+                    shared.showNotification({
+                        message: 'Nothing was published. Reload the page to see what changed, then apply your edit again.',
+                        msgType: 'info',
+                        top: true,
+                    }),
+                )),
+        );
+    }
 
     unpublishTemplate$ = createEffect(() => this.actions$.pipe(
         ofType(actions.executeToolbarAction),

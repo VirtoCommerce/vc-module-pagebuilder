@@ -69,11 +69,19 @@ export class TemplatesService {
         );
     }
 
-    publishTemplate(path: string, type: string, entry: TemplateEntry, groupId: string): Observable<any> {
+    /**
+     * `rebase` is the way out of a conflict the server has offered (a 409 with `canRebase`): the draft
+     * is published as it is on top of the current page, replacing what changed there. Never sent on the
+     * first attempt — it is the editor's answer to a question, not a default.
+     */
+    publishTemplate(path: string, type: string, entry: TemplateEntry, groupId: string, options: { rebase?: boolean } = {}): Observable<any> {
         const value = groupId ? 'publishPages' : 'publish';
         const publishStatusUrls = this.appConfig.getValueByEntryType(value, { item: entry, type, path, groupId }, entry.type || type);
         const statusUrl = publishStatusUrls['publish'];
         const request = this.http.generateRequest(statusUrl, { item: entry });
+        if (options.rebase && request && typeof request === 'object' && !Array.isArray(request)) {
+            request.url = `${request.url}${request.url.includes('?') ? '&' : '?'}rebase=true`;
+        }
         return this.http.doRequest(request, { nullWhenError: false }, null);
     }
 
