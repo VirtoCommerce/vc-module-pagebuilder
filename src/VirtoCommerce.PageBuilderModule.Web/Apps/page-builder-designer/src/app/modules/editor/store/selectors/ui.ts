@@ -6,7 +6,7 @@ import {
   selectCurrentSectionsFilter
 } from './common';
 
-import { SectionStatesList, SectionState } from '@editor/models';
+import { PageVersion, PageVersionGroup, ProductionStatus, SectionStatesList, SectionState } from '@editor/models';
 import { EditorModuleInfo } from '@models/modules';
 
 import * as fromRoute from '@shared/routing';
@@ -264,7 +264,107 @@ export const changeTemplateContext = createSelector(
     ({ template, section, block, sectionsSchemas, blocksSchemas, templateKey, sectionId, blockId, insertIndex, templateEntry })
 );
 
-export const selectToolbarButtonsState = (context: { useTheme: boolean, useDrafts: boolean, useExternalPreview: boolean }) => createSelector(
+/** What the server says this store's toolbar offers, one flag per descriptor it sent. */
+interface ToolbarContext {
+  useTheme: boolean;
+  useDrafts: boolean;
+  useUnpublish: boolean;
+  useExternalPreview: boolean;
+  useHistory?: boolean;
+  usePromote?: boolean;
+}
+
+/** The part of the open page's state the publishing buttons read. */
+interface ToolbarPageState {
+  published?: boolean;
+  hasChanges?: boolean;
+  pending?: boolean;
+  awaitingMerge?: boolean;
+  production?: ProductionStatus | null;
+}
+
+/**
+ * An open pull request that nothing is going to merge — the content repository does not allow
+ * auto-merge, so the merge stayed blocked on a check — is not progress: the page ships when someone
+ * asks for it again. Both shipping buttons therefore stay available in that state, and rest only
+ * while GitHub is actually going to finish the job.
+ */
+const inFlight = (status: { pending?: boolean, awaitingMerge?: boolean } | null | undefined) =>
+  !!status?.pending && !status?.awaitingMerge;
+
+const publishButtonTitle = (state: ToolbarPageState | null | undefined) => {
+  if (state?.awaitingMerge) {
+    return 'Retry publish';
+  }
+  return state?.pending ? 'Publishing…' : 'Publish';
+};
+
+/**
+ * The promote button's title doubles as the production stage indicator, because "published to dev,
+ * production still behind" had no way of showing before and is exactly the state that makes an
+ * editor say the site did not update.
+ */
+const promoteButtonTitle = (production: ProductionStatus) => {
+  if (production.awaitingMerge) {
+    return 'Retry promote';
+  }
+  if (production.pending) {
+    return 'Promoting…';
+  }
+  return production.behind ? 'Promote to production' : 'In sync with production';
+};
+
+/** Unpublish / publish / promote — the actions that move the page between branches. */
+const buildPublishingButtons = (context: ToolbarContext, state: ToolbarPageState | null | undefined, hasDirty: boolean) => {
+  const buttons = <ActionButtonDescriptor[]>[];
+
+  // Both flows can take a page down — with pages in git that means deleting it from the production
+  // branch — but only a store configured for it gets the button, and the server says so by whether
+  // it offers the descriptor at all.
+  //
+  // An unpublish awaiting a merge is the one case where this is the button that finishes the job:
+  // the page is off the work branch already, so Publish has nothing to offer, and reading `pending`
+  // alone here would leave every button off with the page still live.
+  if (context.useUnpublish) {
+    buttons.push({
+      canAction: !hasDirty && state?.published && !state?.hasChanges && !inFlight(state),
+      icon: 'unpublished',
+      alias: 'unpublish',
+      // it is THIS operation that is awaiting a merge when the work branch no longer differs from
+      // production — an awaiting publish leaves changes behind and is retried by its own button
+      title: state?.awaitingMerge && !state?.hasChanges ? 'Retry unpublish' : 'Unpublish',
+      type: 'outline'
+    });
+  }
+
+  buttons.push({
+    // a pull request that is merging itself is already publishing this page — pressing the button
+    // again would achieve nothing; one that is awaiting a merge needs exactly that press
+    canAction: !hasDirty && state?.hasChanges && !inFlight(state),
+    icon: 'publish',
+    alias: 'publish',
+    title: publishButtonTitle(state),
+    type: 'outline'
+  });
+
+  // The second step, and the only one that reaches the public site. It appears where the server
+  // offered the descriptor AND told us this page has a production side at all.
+  const production = state?.production;
+  if (context.usePromote && production) {
+    buttons.push({
+      canAction: !hasDirty && state?.published && !state?.hasChanges &&
+        production.behind && !inFlight(production),
+      icon: 'rocket_launch',
+      alias: 'promote',
+      title: promoteButtonTitle(production),
+      type: 'outline'
+    });
+  }
+
+  return buttons;
+};
+
+export const selectToolbarButtonsState = (context: ToolbarContext) => createSelector(
   // fromDomain.selectCurrentTemplateState,
   fromShared.hasDirty,
   fromDomain.selectCurrentTemplateState,
@@ -293,23 +393,24 @@ export const selectToolbarButtonsState = (context: { useTheme: boolean, useDraft
       ]);
     }
 
-    if (context.useDrafts && !state?.isLoading && !state?.error) {
+    // Only a store whose pages live in git has versions to show, and the server says so by offering the
+    // "history" descriptor. The count is of unpublished versions that are neither mine nor bulk imports:
+    // it means "somebody else has work here that production does not have", which is the case this whole
+    // feature exists for — an edit made outside the builder used to be invisible until it was published.
+    if (context.useHistory) {
+      const otherDrafts = state?.history?.otherDraftCount ?? 0;
       result.push([
         {
-          canAction: !hasDirty && state?.published && !state?.hasChanges,
-          icon: 'unpublished',
-          alias: 'unpublish',
-          title: 'Unpublish',
+          icon: 'history',
+          alias: 'history',
+          title: otherDrafts > 0 ? `Version history (${otherDrafts})` : 'Version history',
           type: 'outline'
-        },
-        {
-          canAction: !hasDirty && state?.hasChanges,
-          icon: 'publish',
-          alias: 'publish',
-          title: 'Publish',
-          type: 'outline'
-        },
+        }
       ]);
+    }
+
+    if (context.useDrafts && !state?.isLoading && !state?.error) {
+      result.push(buildPublishingButtons(context, state, hasDirty));
     }
 
     // [
@@ -344,3 +445,50 @@ export const selectToolbarButtonsState = (context: { useTheme: boolean, useDraft
     return result;
   }
 );
+
+/**
+ * The open page's versions, with runs of consecutive commits by the same author on the same branch folded
+ * into one row.
+ *
+ * Every save is a commit, so an afternoon of editing arrives as a stack of near-identical entries — twelve
+ * within three hours on one page of the content repository. Unfolded, the list buries the versions somebody
+ * would actually want to go back to.
+ */
+export const selectPageHistory = createSelector(
+  fromDomain.selectCurrentTemplateState,
+  fromShared.hasDirty,
+  (state, hasDirty) => {
+    const history = state?.history;
+    if (!history) {
+      return null;
+    }
+
+    const groups: PageVersionGroup[] = [];
+    for (const version of history.versions) {
+      const previous = groups[groups.length - 1];
+      if (previous && sameRun(previous.version, version)) {
+        previous.older.push(version);
+      } else {
+        groups.push({ version, older: [] });
+      }
+    }
+
+    // unsaved edits block a restore: it re-reads the page from the branch, which would drop them
+    return { ...history, groups, hasDirty };
+  }
+);
+
+const RunWindowMs = 15 * 60 * 1000;
+
+function sameRun(head: PageVersion, next: PageVersion): boolean {
+  // published and unpublished versions are never folded together: whether a version is live is the first
+  // thing the panel says about it
+  if (head.published !== next.published || head.bulk !== next.bulk) {
+    return false;
+  }
+  if ((head.author?.email ?? '') !== (next.author?.email ?? '') || head.branches[0] !== next.branches[0]) {
+    return false;
+  }
+  const gap = Date.parse(head.date ?? '') - Date.parse(next.date ?? '');
+  return Number.isFinite(gap) && gap >= 0 && gap <= RunWindowMs;
+}

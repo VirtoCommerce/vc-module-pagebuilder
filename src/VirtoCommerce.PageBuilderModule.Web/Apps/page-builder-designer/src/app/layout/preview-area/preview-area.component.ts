@@ -4,13 +4,14 @@ import { Store } from '@ngrx/store';
 import { BuilderState } from '@shared/routing';
 import * as fromRoute from '@shared/routing';
 import { LivePreviewComponent } from '@shared/components/live-preview/live-preview.component';
+import { OzAgentPanelComponent } from '@ai-agent/components/oz-agent-panel/oz-agent-panel.component';
 
 @Component({
     selector: 'app-preview-area',
     templateUrl: './preview-area.component.html',
     styleUrls: ['./preview-area.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [LivePreviewComponent],
+    imports: [LivePreviewComponent, OzAgentPanelComponent],
     host: {
         '[class.desktop-50]': 'desktop50()',
     },

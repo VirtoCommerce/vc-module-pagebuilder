@@ -1,0 +1,20 @@
+@if (ui.agentUrl && ui.isOpen()) {
+  <header>
+    <h2>Virto OZ</h2>
+    <div class="actions">
+      <button
+        type="button"
+        class="pin-button"
+        [class.is-active]="ui.isPinned()"
+        [attr.aria-pressed]="ui.isPinned()"
+        [attr.title]="ui.isPinned() ? 'Unpin' : 'Pin side-by-side'"
+        (click)="togglePin()">
+        <app-icon>push_pin</app-icon>
+      </button>
+      <app-icon-button icon="close" skin="link" (click)="close()" />
+    </div>
+  </header>
+  <div class="body">
+    <app-oz-agent-iframe [url]="ui.agentUrl" />
+  </div>
+}

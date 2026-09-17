@@ -1,0 +1,34 @@
+name: pagebuilder_get_page_content
+description: |
+  Load the full JSON content of a PageBuilder page (page-level settings + ordered list of sections) for editing. Always loads the latest content (draft if present, otherwise published or archived). Returns the raw JSON document as a string — parse it before mutating, then save back via `pagebuilder_save_page_content`.
+
+  Use when: editing an existing page — need its current state before mutating.
+  Skip when: creating a fresh page (no existing content to load).
+require_approval: false
+
+parameters:
+  type: object
+  properties:
+    groupId:
+      type: string
+      description: ID of the grouped page. Required.
+  required:
+    - groupId
+
+execution:
+  endpoint: /api/page-builder-pages/grouped/{groupId}/content
+  method: GET
+  mappings:
+    request:
+      query:
+        draft: "true"
+    response:
+      content: "@"
+
+permission:
+  - builder:read
+
+tags:
+  - pagebuilder
+  - page
+  - read

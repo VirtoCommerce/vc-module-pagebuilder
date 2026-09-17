@@ -5,9 +5,8 @@
       <VcRow class="tw-gap-2 tw-items-center">
         <div class="tw-font-bold tw-text-sm">{{ title }}</div>
         <Tag
-          v-if="!!tagText"
-          :text="tagText"
-        />
+             v-if="!!tagText"
+             :text="tagText" />
       </VcRow>
       <VcHint>{{ description }}</VcHint>
     </VcCol>

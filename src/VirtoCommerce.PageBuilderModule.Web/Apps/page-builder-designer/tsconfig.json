@@ -47,6 +47,9 @@
             "@models/*": [
                 "src/app/modules/models/*"
             ],
+            "@ai-agent/*": [
+                "src/app/modules/ai-agent/*"
+            ],
             "ngv-markdown": [
                 ".dist-libs/ngv-markdown/ngv-markdown",
                 ".dist-libs/ngv-markdown"

@@ -1,7 +1,12 @@
 :host {
-    @apply w-full flex items-stretch;
+    @apply w-full flex items-stretch relative;
 
     &.desktop-50 {
         width: 50%;
     }
+}
+
+app-live-preview {
+    flex: 1 1 0;
+    min-width: 0;
 }

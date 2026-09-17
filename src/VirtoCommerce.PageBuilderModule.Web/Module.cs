@@ -9,14 +9,17 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Options;
 using VirtoCommerce.ContentModule.Core.Extensions;
 using VirtoCommerce.ContentModule.Core.Search;
 using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Events;
+using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Data.Authorization;
 using VirtoCommerce.PageBuilderModule.Data.ContentProviders;
 using VirtoCommerce.PageBuilderModule.Data.ExportImport;
+using VirtoCommerce.PageBuilderModule.Data.GitContent;
 using VirtoCommerce.PageBuilderModule.Data.Handlers;
 using VirtoCommerce.PageBuilderModule.Data.MySql;
 using VirtoCommerce.PageBuilderModule.Data.PostgreSql;
@@ -33,7 +36,6 @@ using VirtoCommerce.Platform.Core.Settings;
 using VirtoCommerce.Platform.Data.MySql.Extensions;
 using VirtoCommerce.Platform.Data.PostgreSql.Extensions;
 using VirtoCommerce.Platform.Data.SqlServer.Extensions;
-using VirtoCommerce.StoreModule.Core.Model;
 
 namespace VirtoCommerce.PageBuilderModule.Web
 {
@@ -87,6 +89,34 @@ namespace VirtoCommerce.PageBuilderModule.Web
             serviceCollection.AddTransient<IPageBuilderAssetReferenceMigrationService, PageBuilderAssetReferenceMigrationService>();
             serviceCollection.AddTransient<PageBuilderExportImport>();
 
+            // Git content flow (disabled until PageBuilder:GitContent:Enabled is set AND a store opts in
+            // — see IGitContentPolicy, GitContentOptions and vc-content/.github/git-flow-setup.md).
+            var gitContentSection = Configuration.GetSection(GitContentOptions.SectionName);
+            serviceCollection.Configure<GitContentOptions>(gitContentSection);
+            // Fail fast: a half-configured flow must not boot, or publishing would silently keep writing
+            // straight to production on an installation whose operator expects pull requests.
+            gitContentSection.Get<GitContentOptions>()?.Validate();
+            serviceCollection.AddHttpClient(GitHubContentRepository.HttpClientName)
+                .ConfigureHttpClient((provider, httpClient) =>
+                {
+                    var gitContentOptions = provider.GetRequiredService<IOptions<GitContentOptions>>().Value;
+                    // Relative request uris are combined against BaseAddress, so it must end with '/'.
+                    httpClient.BaseAddress = new Uri(gitContentOptions.ApiUrl.AbsoluteUri.TrimEnd('/') + "/");
+                    httpClient.Timeout = gitContentOptions.RequestTimeout;
+                    httpClient.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
+                    httpClient.DefaultRequestHeaders.Add("X-GitHub-Api-Version", "2022-11-28");
+                    // GitHub rejects requests without a User-Agent.
+                    httpClient.DefaultRequestHeaders.Add("User-Agent", "vc-pagebuilder-module");
+                    if (!string.IsNullOrEmpty(gitContentOptions.Token))
+                    {
+                        httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + gitContentOptions.Token);
+                    }
+                });
+            serviceCollection.AddTransient<IGitContentRepository, GitHubContentRepository>();
+            serviceCollection.AddTransient<IGitContentHistory, GitHubContentHistory>();
+            serviceCollection.AddTransient<IGitContentPublisher, GitHubContentPublisher>();
+            serviceCollection.AddTransient<IGitContentPolicy, GitContentPolicy>();
+
             var isFullTextSearchEnabled = Configuration.IsContentFullTextSearchEnabled();
 
             if (isFullTextSearchEnabled)
@@ -116,7 +146,7 @@ namespace VirtoCommerce.PageBuilderModule.Web
 
             var settingsRegistrar = serviceProvider.GetRequiredService<ISettingsRegistrar>();
             settingsRegistrar.RegisterSettings(ModuleConstants.Settings.AllSettings, ModuleInfo.Id);
-            settingsRegistrar.RegisterSettingsForType(ModuleConstants.Settings.StoreLevelSettings.AllStoreLevelSettings, nameof(Store));
+            settingsRegistrar.RegisterSettingsForType(ModuleConstants.Settings.StoreLevelSettings.AllStoreLevelSettings, ModuleConstants.Settings.StoreSettingsObjectType);
 
             var permissionsProvider = serviceProvider.GetRequiredService<IPermissionsRegistrar>();
             permissionsProvider.RegisterPermissions(ModuleInfo.Id, "Page builder", ModuleConstants.Security.Permissions.AllPermissions);

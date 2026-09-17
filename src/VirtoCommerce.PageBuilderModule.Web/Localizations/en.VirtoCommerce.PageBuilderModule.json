@@ -34,9 +34,16 @@
         "validations": {
           "pageName-invalid": "Page name can contain alphanumeric, \"_\", \"-\" and \".\" characters only",
           "permalink-invalid": "Other pages have the same permalink"
+        },
+        "hints": {
+          "rename-in-git": "This store publishes pages through Git, where the file name is the page's address in the repository. Rename it there, through a pull request."
         }
       },
       "pageBuilderEditor": {
+        "duplicate": {
+          "title": "Duplicate page",
+          "description": "Copy the page into the content repository under a new name"
+        },
         "create": {
           "title": "Design page",
           "description": "Use designer to create a new page"
@@ -48,9 +55,41 @@
       }
     },
     "commands": {
+      "promote": "Promote to production",
+      "delete-legacy-draft": "Delete old draft file",
       "open-designer": "Design",
       "publish": "Publish",
       "unpublish": "Unpublish"
+    },
+    "dialogs": {
+      "git-promote-pending": {
+        "title": "Promotion in progress",
+        "message": "Production is not updated yet: a pull request is open and will merge once its checks pass. {{url}}"
+      },
+      "delete-legacy-draft": {
+        "title": "Delete the old draft file?",
+        "message": "\"{{path}}\" is left over from before this store moved to the content repository. The page itself is not touched."
+      },
+      "delete-legacy-draft-unsaved": {
+        "title": "Delete the old draft file?",
+        "message": "\"{{path}}\" still holds changes that are not in the content repository. Deleting it loses them. The published page is not touched."
+      },
+      "legacy-draft-kept": {
+        "title": "The draft file was kept",
+        "message": "Nothing else holds this page: it is in neither the content repository nor a published file, so deleting the draft would delete the page. Save it from the designer once, then delete the draft."
+      },
+      "git-awaiting-merge": {
+        "title": "Publishing needs one more step",
+        "message": "The pull request for this page is open but will not merge on its own: this repository does not allow auto-merge and a required check has not passed. Publish again once the checks are green, or merge it in GitHub. {{url}}"
+      },
+      "git-publish-pending": {
+        "title": "Publishing in progress",
+        "message": "The page is not live yet: a pull request is open and will merge once its checks pass. {{url}}"
+      },
+      "git-unpublish-pending": {
+        "title": "Unpublishing in progress",
+        "message": "The page is still live: a pull request that removes it is open and will merge once its checks pass. {{url}}"
+      }
     },
     "widgets": {
       "pageBuilder-app": {
@@ -69,12 +108,20 @@
           "StorePreviewPath": {
             "description": "Relative path for preview page",
             "title": "Store preview path"
+          },
+          "OzAgentUrl": {
+            "title": "Virto OZ agent URL",
+            "description": "URL of the Virto OZ AI agent iframe embedded into Page Builder. Leave empty to disable the AI assistant."
           }
         },
         "Store": {
           "PreviewUserIds": {
             "title": "Preview user IDs",
             "description": "List of user IDs for page preview impersonation (one per line)"
+          },
+          "GitContentEnabled": {
+            "title": "Publish pages through Git",
+            "description": "When enabled, saving a page commits it to a work branch in the configured content repository and publishing opens and merges a pull request, instead of writing to blob storage directly. Requires the Git content connection to be configured on the server (PageBuilder:GitContent)."
           }
         },
         "Migration": {
@@ -88,7 +135,7 @@
   },
   "permissions": {
     "builder:theme": "Allow to edit theme settings",
-    "builder:templates": "Allow to change template during editing"
+    "builder:templates": "Allow to change template during editing",
+    "builder:promote": "Allow to promote a page to production. Separate from publishing, which only reaches the environment editors work against."
   }
 }
-
