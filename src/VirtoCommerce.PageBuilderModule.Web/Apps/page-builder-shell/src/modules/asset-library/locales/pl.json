@@ -80,9 +80,28 @@
       "DELETE_USED_ONE": "Usunąć {name}? Jest używany na 1 stronie Page Builder.",
       "DELETE_USED_MANY": "Usunąć {name}? Jest używany na {count} stronach Page Builder."
     },
+    "OVERWRITE": {
+      "TITLE": "Konflikt nazwy pliku",
+      "MESSAGE_UNUSED": "{name} nie jest używany na żadnej stronie Page Builder. Zastąpienie go zaktualizuje istniejący plik.",
+      "MESSAGE_USED_ONE": "{name} jest używany na 1 stronie Page Builder. Zastąpienie go zmieni zasób na tej stronie.",
+      "MESSAGE_USED_MANY": "{name} jest używany na {count} stronach Page Builder. Zastąpienie go zmieni zasób na wszystkich tych stronach.",
+      "MESSAGE_BATCH_DUPLICATE": "Inny plik w tym przesyłaniu ma już nazwę {name}. Zachowanie tej samej nazwy spowoduje przesłanie tylko ostatniego pliku.",
+      "MESSAGE_USAGE_UNKNOWN": "Nie udało się ustalić, czy plik {name} jest używany na stronach Page Builder. Zastąpienie go może zmienić strony korzystające z tego zasobu.",
+      "AFFECTED_PAGES": "Strony Page Builder, których dotyczy zmiana",
+      "UPLOAD_AS_LABEL": "Prześlij jako",
+      "UPLOAD_AS": "Prześlij jako",
+      "REPLACE": "Zastąp",
+      "CANCEL": "Anuluj",
+      "VALIDATION": {
+        "REQUIRED": "Nazwa pliku jest wymagana.",
+        "INVALID": "Nazwa pliku nie może zawierać separatorów ścieżki.",
+        "COLLISION": "{name} już istnieje w tym folderze. Wprowadź inną nazwę pliku."
+      }
+    },
     "NOTIFICATIONS": {
       "FOLDER_CREATED": "Folder został utworzony",
       "UPLOADED": "Zasoby zostały przesłane",
+      "UPLOAD_CANCELED": "Przesyłanie anulowane. Nie przesłano żadnych plików.",
       "REPLACED": "Zasób został zastąpiony",
       "DELETED": "Zasoby zostały usunięte",
       "URL_COPIED": "URL zasobu został skopiowany",

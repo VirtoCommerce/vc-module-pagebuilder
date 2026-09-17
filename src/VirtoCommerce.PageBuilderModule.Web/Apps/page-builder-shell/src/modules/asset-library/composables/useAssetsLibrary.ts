@@ -11,6 +11,7 @@ import { useUrlParams } from "../../page-builder";
 import type { AssetEntry } from "../types";
 import { useAssetsLibraryApi } from "./useAssetsLibraryApi";
 import { formatAssetDate, getAssetPath, getAssetPublicUrl, getPreviewUrl, safeDecode } from "../utilities/assetUrl";
+import { normalizeAssetFileName } from "../utilities/assetUpload";
 import { getAssetKey, getEntryIcon, getFolderUrl, getReferencesCount, isImageEntry } from "../utilities/assetEntry";
 import { useAssetReferences } from "./useAssetReferences";
 import type { DeleteAssetReferences } from "./useAssetReferences";
@@ -43,6 +44,7 @@ export interface IUseAssetsLibrary {
   getReferencesCount: (entry: AssetEntry) => number;
   getReferencePages: (entry: AssetEntry | undefined) => NonNullable<AssetEntry["referencePages"]>;
   getDeleteReferences: (entry: AssetEntry) => Promise<DeleteAssetReferences>;
+  findAssetByName: (folderUrl: string, fileName: string) => Promise<AssetEntry | undefined>;
   formatFileSize: (size?: number) => string;
   formatDate: (value?: string) => string;
   getAssetPath: (entry: AssetEntry) => string;
@@ -256,6 +258,17 @@ export function useAssetsLibrary(): IUseAssetsLibrary {
     await loadAssetReferencePages(entry);
   }
 
+  async function findAssetByName(folderUrl: string, fileName: string): Promise<AssetEntry | undefined> {
+    if (!folderUrl || !fileName) {
+      return undefined;
+    }
+
+    const result = await searchAssets(folderUrl, fileName);
+    return result.results.find(
+      (entry) => entry.type === "blob" && normalizeAssetFileName(entry.name) === normalizeAssetFileName(fileName),
+    );
+  }
+
   async function initialize() {
     initUrlParams();
     currentFolderUrl.value = rootFolderUrl.value;
@@ -287,6 +300,7 @@ export function useAssetsLibrary(): IUseAssetsLibrary {
     getReferencesCount,
     getReferencePages,
     getDeleteReferences,
+    findAssetByName,
     formatFileSize: readableSize,
     formatDate,
     getAssetPath,
