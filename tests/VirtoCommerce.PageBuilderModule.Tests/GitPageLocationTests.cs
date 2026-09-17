@@ -16,6 +16,21 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.Equal(expected, GitPageLocation.RepoPath(root, page));
         }
 
+        /// <summary>
+        /// A repository whose pages sit at its top level configures no root, and that must not become a
+        /// leading slash: the content endpoints trim one back off, but the history query does not, so the
+        /// page would read and write correctly while showing no versions at all.
+        /// </summary>
+        [Theory]
+        [InlineData(null, "docs/foo.page", "docs/foo.page")]
+        [InlineData("", "/docs/foo.page", "docs/foo.page")]
+        [InlineData("   ", "docs/foo.page", "docs/foo.page")]
+        [InlineData("/", "foo.page", "foo.page")]
+        public void RepoPath_without_a_pages_root_is_the_page_path_itself(string root, string page, string expected)
+        {
+            Assert.Equal(expected, GitPageLocation.RepoPath(root, page));
+        }
+
         [Theory]
         [InlineData("/foo.page-draft", "pages/foo.page")]
         [InlineData("/docs/foo.page-draft", "pages/docs/foo.page")]

@@ -29,7 +29,16 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(pagePath);
 
-            return $"{(pagesRoot ?? string.Empty).Trim('/')}/{Normalize(pagePath)}";
+            // Trimmed of whitespace as well as slashes: this comes from configuration, where "" and a
+            // stray space mean the same thing to whoever wrote it.
+            var root = (pagesRoot ?? string.Empty).Trim().Trim('/');
+            var path = Normalize(pagePath);
+
+            // No root at all is a layout, not a mistake: a repository whose pages sit at its top level.
+            // Joining unconditionally would give "/foo.page", and a leading slash is not the same path —
+            // the content endpoints trim it back off, but the history query does not, so a page would
+            // read and write correctly while having no versions at all.
+            return root.Length == 0 ? path : $"{root}/{path}";
         }
 
         /// <summary>

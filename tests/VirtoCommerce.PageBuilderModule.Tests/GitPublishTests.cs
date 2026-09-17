@@ -124,6 +124,30 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         /// <summary>
+        /// The cancellation the undo exists for. An editor closing the tab while the commit is in flight
+        /// aborts the request, and the rebuild fails exactly where the draft is only reachable by sha. If
+        /// the undo were given the request's token — the one that has just been cancelled — it could not
+        /// run at all, and the next publish would read no draft and answer AlreadyPublished.
+        /// </summary>
+        [Fact]
+        public async Task Publish_WithRebase_WhenTheRequestIsAborted_StillPutsTheDraftBranchBack()
+        {
+            var repository = Repository();
+            var aborted = new CancellationTokenSource();
+            repository.CancelOnCommit = aborted;
+
+            var controller = Controller(repository, Publisher(GitPublishState.Merged));
+            controller.ControllerContext.HttpContext.RequestAborted = aborted.Token;
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+                controller.GitPublish("vccom", Page, "pages", rebase: true));
+
+            Assert.Equal([(MyBranch, BaseHead), (MyBranch, DraftHead)], repository.MovedBranches);
+            Assert.Equal(DraftHead, repository.BranchHeads[MyBranch]);
+            Assert.Equal(Draft, repository.Files[(RepoPath, MyBranch)]);
+        }
+
+        /// <summary>
         /// And when even putting it back fails, the sha is the only way left to find the draft — so it is
         /// in the message rather than in a log nobody reads.
         /// </summary>
@@ -287,6 +311,13 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             /// <summary>And the undo fails too — the draft is then only findable by its sha.</summary>
             public bool FailRestore { get; set; }
 
+            /// <summary>
+            /// The request is aborted while the commit is in flight: the token is cancelled and the call
+            /// throws, the way an HTTP client does. Every method here honours the token it is given, so a
+            /// caller that hands the cancelled one to its own cleanup cannot clean up.
+            /// </summary>
+            public CancellationTokenSource CancelOnCommit { get; set; }
+
             public Task<string> ReadFileAsync(string path, string gitRef, CancellationToken cancellationToken = default) =>
                 Task.FromResult(Files.GetValueOrDefault((path, gitRef)));
 
@@ -309,6 +340,8 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             /// </summary>
             public Task SetBranchAsync(string branch, string sha, string pagePath, CancellationToken cancellationToken = default)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 if (FailRestore && MovedBranches.Count > 0)
                 {
                     throw new HttpRequestException($"could not move \"{branch}\"");
@@ -336,6 +369,12 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
             public Task<string> CommitFileAsync(string path, string content, string branch, string message, GitCommitAuthor author, CancellationToken cancellationToken = default)
             {
+                if (CancelOnCommit != null)
+                {
+                    CancelOnCommit.Cancel();
+                    throw new OperationCanceledException(CancelOnCommit.Token);
+                }
+
                 if (FailNextCommit)
                 {
                     FailNextCommit = false;

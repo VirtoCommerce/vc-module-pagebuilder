@@ -651,7 +651,13 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             {
                 try
                 {
-                    await gitContentRepository.SetBranchAsync(location.Branch, draftHead, location.RepoPath, cancellationToken);
+                    // Deliberately not the request's token. What is being undone here includes the request
+                    // being cancelled — the editor closing the tab while the commit was in flight — and
+                    // passing the token that has just been cancelled would mean the undo cannot run in
+                    // exactly the case it exists for, leaving the branch on the base commit with the draft
+                    // reachable only by a sha nobody is left to read. The call is bounded by the HTTP
+                    // client's own timeout.
+                    await gitContentRepository.SetBranchAsync(location.Branch, draftHead, location.RepoPath, CancellationToken.None);
                 }
                 catch (Exception restoreFailure)
                 {
