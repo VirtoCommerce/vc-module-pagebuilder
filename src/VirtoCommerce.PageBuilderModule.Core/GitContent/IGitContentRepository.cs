@@ -32,6 +32,23 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
         Task CreateBranchAsync(string branch, string fromRef, CancellationToken cancellationToken = default);
 
         /// <summary>
+        /// Points the branch at <paramref name="sha"/> whatever it pointed at before, creating it when
+        /// it does not exist yet.
+        /// <para>
+        /// Distinct from <see cref="CreateBranchAsync"/>, which only guarantees that a branch exists:
+        /// asked for one that is already there, it leaves it where it is. Rebuilding a draft on top of
+        /// the production branch needs the opposite guarantee — that the branch IS at the given commit —
+        /// and doing it as delete-then-create leaves a moment with no branch at all, which a failure in
+        /// between turns into a draft nothing points at.
+        /// </para>
+        /// <para>
+        /// <paramref name="pagePath"/> is the page the branch carries: moving the branch changes what
+        /// reading it answers, so its cached read goes with it.
+        /// </para>
+        /// </summary>
+        Task SetBranchAsync(string branch, string sha, string pagePath, CancellationToken cancellationToken = default);
+
+        /// <summary>
         /// Deletes the branch. Succeeds quietly when it is already gone.
         /// <para>
         /// <paramref name="pagePath"/> is the page the branch was cut for, and its cached read is dropped

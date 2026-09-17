@@ -301,6 +301,12 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 return Task.CompletedTask;
             }
 
+            public Task SetBranchAsync(string branch, string sha, string pagePath, CancellationToken cancellationToken = default)
+            {
+                BranchHeads[branch] = sha;
+                return Task.CompletedTask;
+            }
+
             public Task DeleteBranchAsync(string branch, string pagePath, CancellationToken cancellationToken = default)
             {
                 DeletedBranches.Add(branch);

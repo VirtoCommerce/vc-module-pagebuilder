@@ -612,25 +612,63 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         /// deleting the branch by hand.
         /// </para>
         /// <para>
-        /// So the branch is cut again from the base branch and the draft's bytes become one commit on it —
-        /// the same idea promotion is built on: what is wanted is the file's state, not its history. The
-        /// other edits are replaced by this one; they stay in the base branch's history, and the old
-        /// branch's commits stay reachable by sha. Deleting the branch closes its pull request, and the
-        /// merge that follows opens a fresh one. Only on request — the editor was shown what they are
-        /// replacing — never as a default: silently taking either side would throw away someone's work.
+        /// So the branch is moved to the base branch and the draft's bytes become one commit on it — the
+        /// same idea promotion is built on: what is wanted is the file's state, not its history. The other
+        /// edits are replaced by this one; they stay in the base branch's history, and the old branch's
+        /// commits stay reachable by sha. The open pull request is kept and recomputed against the moved
+        /// branch rather than closed and opened again. Only on request — the editor was shown what they
+        /// are replacing — never as a default: silently taking either side would throw away someone's work.
+        /// </para>
+        /// <para>
+        /// Moved, not deleted and cut again. Delete-then-create leaves a moment with no branch at all, and
+        /// a failure in that moment leaves the draft as a commit nothing points at — while the next publish
+        /// reads no draft and reports the page as already published, which is the one answer this flow must
+        /// never give wrongly. It also cannot be done reliably: <see cref="IGitContentRepository.CreateBranchAsync"/>
+        /// treats an existing ref as success without moving it, and GitHub can still report the deleted ref
+        /// for a moment, so the branch would keep its old merge base and meet the same conflict again.
         /// </para>
         /// </summary>
         private async Task RebaseDraftAsync((string RepoPath, string Branch) location, string draft, string path, string storeId)
         {
             var options = gitContentOptions.Value;
+            var cancellationToken = HttpContext.RequestAborted;
 
-            await gitContentRepository.DeleteBranchAsync(location.Branch, location.RepoPath, HttpContext.RequestAborted);
-            await gitContentRepository.CreateBranchAsync(location.Branch, options.BaseBranch, HttpContext.RequestAborted);
+            var baseSha = await gitContentRepository.GetBranchHeadShaAsync(options.BaseBranch, cancellationToken)
+                ?? throw new InvalidOperationException($"Could not resolve \"{options.BaseBranch}\" to a commit.");
 
-            var author = CurrentAuthor();
-            var message = CommitMessage($"designer: publish {path} on top of {options.BaseBranch}, replacing what changed there since this draft began (store: {storeId}, by: {author.Name})");
-            await gitContentRepository.CommitFileAsync(location.RepoPath, draft, location.Branch, message, author, HttpContext.RequestAborted);
-            gitContentHistory.Invalidate(location.RepoPath);
+            // Where the draft is now, so it can be put back if what follows does not finish.
+            var draftHead = await gitContentRepository.GetBranchHeadShaAsync(location.Branch, cancellationToken);
+
+            try
+            {
+                await gitContentRepository.SetBranchAsync(location.Branch, baseSha, location.RepoPath, cancellationToken);
+
+                var author = CurrentAuthor();
+                var message = CommitMessage($"designer: publish {path} on top of {options.BaseBranch}, replacing what changed there since this draft began (store: {storeId}, by: {author.Name})");
+                await gitContentRepository.CommitFileAsync(location.RepoPath, draft, location.Branch, message, author, cancellationToken);
+            }
+            catch (Exception failure) when (draftHead != null)
+            {
+                try
+                {
+                    await gitContentRepository.SetBranchAsync(location.Branch, draftHead, location.RepoPath, cancellationToken);
+                }
+                catch (Exception restoreFailure)
+                {
+                    // Both the rebuild and the undo failed. The draft is still a commit in the repository
+                    // and nothing but its sha can find it now, so the sha goes in the message.
+                    throw new InvalidOperationException(
+                        $"Publishing \"{path}\" on top of {options.BaseBranch} failed, and moving the draft branch back failed too. " +
+                        $"The draft is commit {draftHead}; it can be restored with: git branch {location.Branch} {draftHead}",
+                        new AggregateException(failure, restoreFailure));
+                }
+
+                throw;
+            }
+            finally
+            {
+                gitContentHistory.Invalidate(location.RepoPath);
+            }
         }
 
         /// <summary>

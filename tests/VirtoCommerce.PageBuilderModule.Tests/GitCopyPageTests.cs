@@ -237,6 +237,9 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 return Task.FromResult("abcdef0123456789abcdef0123456789abcdef01");
             }
 
+            public Task SetBranchAsync(string branch, string sha, string pagePath, CancellationToken cancellationToken = default) =>
+                throw new NotSupportedException();
+
             public Task DeleteBranchAsync(string branch, string pagePath, CancellationToken cancellationToken = default) =>
                 throw new NotSupportedException();
 

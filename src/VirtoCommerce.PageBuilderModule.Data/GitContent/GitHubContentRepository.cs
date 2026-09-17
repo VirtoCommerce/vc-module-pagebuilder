@@ -16,6 +16,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
     /// IGitContentRepository over the GitHub REST API:
     ///   GET    /repos/{repo}/git/ref/heads/{branch}   — where a branch points
     ///   POST   /repos/{repo}/git/refs                 — cut a branch
+    ///   PATCH  /repos/{repo}/git/refs/heads/{branch}  — move one that already exists
     ///   DELETE /repos/{repo}/git/refs/heads/{branch}  — remove it once the page is published
     ///   GET    /repos/{repo}/contents/{path}?ref=     — read a page (and the file sha updates need)
     ///   PUT    /repos/{repo}/contents/{path}          — create or update it
@@ -112,6 +113,40 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             }
 
             await ThrowIfFailedAsync(response, $"create branch \"{branch}\" from \"{fromRef}\"");
+        }
+
+        public async Task SetBranchAsync(string branch, string sha, string pagePath, CancellationToken cancellationToken = default)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(branch);
+            ArgumentException.ThrowIfNullOrWhiteSpace(sha);
+            ArgumentException.ThrowIfNullOrWhiteSpace(pagePath);
+            EnsureConfigured();
+
+            var client = _httpClientFactory.CreateClient(HttpClientName);
+
+            // force: the new commit is deliberately not a descendant of the old one — that is the whole
+            // point of rebuilding a draft on top of the production branch. Without it GitHub refuses
+            // anything but a fast-forward.
+            var body = new JObject
+            {
+                ["sha"] = sha,
+                ["force"] = true,
+            };
+
+            using var request = new HttpRequestMessage(HttpMethod.Patch, MutableRefUrl(branch)) { Content = JsonContent(body) };
+            using var response = await client.SendAsync(request, cancellationToken);
+
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                // no such branch yet: "point it here" and "cut it here" are the same request then
+                await CreateBranchAsync(branch, sha, cancellationToken);
+            }
+            else
+            {
+                await ThrowIfFailedAsync(response, $"move branch \"{branch}\" to {sha}");
+            }
+
+            InvalidateRead(pagePath, branch);
         }
 
         public async Task DeleteBranchAsync(string branch, string pagePath, CancellationToken cancellationToken = default)

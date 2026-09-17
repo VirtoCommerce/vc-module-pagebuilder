@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
@@ -32,7 +34,8 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         private const string RepoPath = "pages/about-us.page";
         private const string Published = """{ "settings": { "type": "settings", "name": "About" }, "content": [] }""";
         private const string Draft = """{ "settings": { "type": "settings", "name": "About, rewritten" }, "content": [] }""";
-        private const string BranchHead = "9111111111111111111111111111111111111111";
+        private const string BaseHead = "9111111111111111111111111111111111111111";
+        private const string DraftHead = "7222222222222222222222222222222222222222";
 
         private static string MyBranch => GitPageLocation.BranchFor("designer/{user}/{slug}", Login, "about-us.page");
 
@@ -48,6 +51,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.Equal("Merged", JObject.FromObject(ok.Value)["state"]?.Value<string>());
             Assert.Equal((MyBranch, "master"), Assert.Single(publisher.Merges));
             Assert.Empty(repository.CreatedBranches);
+            Assert.Empty(repository.MovedBranches);
             Assert.Empty(repository.Commits);
         }
 
@@ -69,12 +73,12 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         /// <summary>
-        /// The way out. The old branch goes (and its pull request with it), a fresh one is cut from the
-        /// base branch, and the draft — exactly its bytes, not a merge of anything — is the one commit on
-        /// it. Only then is the merge asked for.
+        /// The way out. The branch is moved onto the base branch — not deleted and cut again, which would
+        /// leave a moment with no branch at all — and the draft, exactly its bytes and not a merge of
+        /// anything, becomes the one commit on it. Only then is the merge asked for.
         /// </summary>
         [Fact]
-        public async Task Publish_WithRebase_CutsTheBranchAgainFromTheBaseBranch_AndCommitsTheDraftAsItIs()
+        public async Task Publish_WithRebase_MovesTheBranchOntoTheBaseBranch_AndCommitsTheDraftAsItIs()
         {
             var repository = Repository();
             var publisher = Publisher(GitPublishState.Merged);
@@ -82,8 +86,8 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             var result = await Controller(repository, publisher).GitPublish("vccom", Page, "pages", rebase: true);
 
             Assert.IsType<OkObjectResult>(result);
-            Assert.Contains(MyBranch, repository.DeletedBranches);
-            Assert.Equal((MyBranch, "master"), Assert.Single(repository.CreatedBranches));
+            Assert.Equal((MyBranch, BaseHead), Assert.Single(repository.MovedBranches));
+            Assert.Empty(repository.CreatedBranches);
 
             var commit = Assert.Single(repository.Commits);
             Assert.Equal(RepoPath, commit.Path);
@@ -92,8 +96,50 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.Contains("replacing what changed", commit.Message);
 
             Assert.Equal((MyBranch, "master"), Assert.Single(publisher.Merges));
-            Assert.True(repository.Order.IndexOf("delete") < repository.Order.IndexOf("create"), "the branch is deleted before it is cut again");
-            Assert.True(repository.Order.IndexOf("create") < repository.Order.IndexOf("commit"), "the draft is committed onto the fresh branch");
+            Assert.True(repository.Order.IndexOf("move") < repository.Order.IndexOf("commit"), "the draft is committed after the branch has moved");
+            // The branch is deleted here too, but only at the end: that is the published branch being
+            // cleaned up after the merge, not the rebuild taking it away before the draft is safe.
+            Assert.True(repository.Order.IndexOf("delete") > repository.Order.IndexOf("commit"),
+                "nothing deletes the branch while the draft is only on it");
+        }
+
+        /// <summary>
+        /// The window that makes the order matter: between moving the branch and committing the draft onto
+        /// it, the draft is a commit nothing points at. If the commit fails there, the branch goes back
+        /// where it was — otherwise the next publish would read no draft and answer AlreadyPublished, which
+        /// tells an editor their page is live while their version is gone.
+        /// </summary>
+        [Fact]
+        public async Task Publish_WithRebase_WhenTheCommitFails_PutsTheDraftBranchBack()
+        {
+            var repository = Repository();
+            repository.FailNextCommit = true;
+
+            await Assert.ThrowsAsync<HttpRequestException>(() =>
+                Controller(repository, Publisher(GitPublishState.Merged)).GitPublish("vccom", Page, "pages", rebase: true));
+
+            Assert.Equal([(MyBranch, BaseHead), (MyBranch, DraftHead)], repository.MovedBranches);
+            Assert.Equal(DraftHead, repository.BranchHeads[MyBranch]);
+            Assert.Equal(Draft, repository.Files[(RepoPath, MyBranch)]);
+        }
+
+        /// <summary>
+        /// And when even putting it back fails, the sha is the only way left to find the draft — so it is
+        /// in the message rather than in a log nobody reads.
+        /// </summary>
+        [Fact]
+        public async Task Publish_WithRebase_WhenTheUndoFailsToo_NamesTheCommitTheDraftIsAt()
+        {
+            var repository = Repository();
+            repository.FailNextCommit = true;
+            repository.FailRestore = true;
+
+            var failure = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                Controller(repository, Publisher(GitPublishState.Merged)).GitPublish("vccom", Page, "pages", rebase: true));
+
+            Assert.Contains(DraftHead, failure.Message);
+            Assert.Contains($"git branch {MyBranch} {DraftHead}", failure.Message);
+            Assert.IsType<AggregateException>(failure.InnerException);
         }
 
         [Fact]
@@ -129,12 +175,12 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         {
             var repository = new RecordingRepository();
             repository.Files[(RepoPath, "master")] = Published;
-            repository.BranchHeads["master"] = BranchHead;
+            repository.BranchHeads["master"] = BaseHead;
 
             if (withDraft)
             {
                 repository.Files[(RepoPath, MyBranch)] = Draft;
-                repository.BranchHeads[MyBranch] = BranchHead;
+                repository.BranchHeads[MyBranch] = DraftHead;
             }
 
             return repository;
@@ -230,9 +276,16 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             public Dictionary<string, string> BranchHeads { get; } = [];
 
             public List<(string Branch, string FromRef)> CreatedBranches { get; } = [];
+            public List<(string Branch, string Sha)> MovedBranches { get; } = [];
             public List<string> DeletedBranches { get; } = [];
             public List<(string Path, string Branch, string Content, string Message)> Commits { get; } = [];
             public List<string> Order { get; } = [];
+
+            /// <summary>The rebuild fails where it hurts: after the branch has moved, before the draft is on it.</summary>
+            public bool FailNextCommit { get; set; }
+
+            /// <summary>And the undo fails too — the draft is then only findable by its sha.</summary>
+            public bool FailRestore { get; set; }
 
             public Task<string> ReadFileAsync(string path, string gitRef, CancellationToken cancellationToken = default) =>
                 Task.FromResult(Files.GetValueOrDefault((path, gitRef)));
@@ -249,6 +302,27 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 return Task.CompletedTask;
             }
 
+            /// <summary>
+            /// Moves the ref, and with it what reading the branch answers — the real repository is a
+            /// pointer to a commit, and the file on the branch is whatever that commit holds. Here that is
+            /// the base branch's copy on the way out, and the draft again on the way back.
+            /// </summary>
+            public Task SetBranchAsync(string branch, string sha, string pagePath, CancellationToken cancellationToken = default)
+            {
+                if (FailRestore && MovedBranches.Count > 0)
+                {
+                    throw new HttpRequestException($"could not move \"{branch}\"");
+                }
+
+                Order.Add("move");
+                MovedBranches.Add((branch, sha));
+                BranchHeads[branch] = sha;
+
+                var at = BranchHeads.FirstOrDefault(head => head.Value == sha && head.Key != branch).Key;
+                Files[(pagePath, branch)] = at != null ? Files.GetValueOrDefault((pagePath, at)) : Draft;
+                return Task.CompletedTask;
+            }
+
             public Task DeleteBranchAsync(string branch, string pagePath, CancellationToken cancellationToken = default)
             {
                 Order.Add("delete");
@@ -262,6 +336,12 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
             public Task<string> CommitFileAsync(string path, string content, string branch, string message, GitCommitAuthor author, CancellationToken cancellationToken = default)
             {
+                if (FailNextCommit)
+                {
+                    FailNextCommit = false;
+                    throw new HttpRequestException($"could not commit \"{path}\" to branch \"{branch}\"");
+                }
+
                 if (!BranchHeads.ContainsKey(branch))
                 {
                     throw new InvalidOperationException($"Cannot commit to \"{branch}\": the branch does not exist.");
