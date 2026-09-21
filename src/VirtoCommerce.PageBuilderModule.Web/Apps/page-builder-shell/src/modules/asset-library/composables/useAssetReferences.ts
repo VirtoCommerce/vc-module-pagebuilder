@@ -9,7 +9,9 @@ type AssetReferenceState = Pick<
   "referencesCount" | "pageReferencesCount" | "sharedComponentReferencesCount"
 > &
   Partial<Pick<AssetReferenceDetails, "referencePages" | "referenceSharedComponents">>;
-export type DeleteAssetReferences = AssetReferenceDetails;
+export type DeleteAssetReferences = AssetReferenceDetails & {
+  usageKnown: boolean;
+};
 
 export function useAssetReferences(storeId: Ref<string | null | undefined>) {
   const { searchAssetReferences, searchFolderReferences } = useAssetsLibraryApi();
@@ -124,7 +126,7 @@ export function useAssetReferences(storeId: Ref<string | null | undefined>) {
     const folderUrl = getAssetKey(entry);
 
     if (!folderUrl || !storeId.value) {
-      return emptyDeleteReferences();
+      return emptyDeleteReferences(false);
     }
 
     if (entry.type === "blob") {
@@ -136,6 +138,7 @@ export function useAssetReferences(storeId: Ref<string | null | undefined>) {
           sharedComponentReferencesCount: entry.sharedComponentReferencesCount ?? 0,
           referencePages: entry.referencePages ?? [],
           referenceSharedComponents: entry.referenceSharedComponents ?? [],
+          usageKnown: true,
         },
         true,
       );
@@ -165,7 +168,7 @@ export function useAssetReferences(storeId: Ref<string | null | undefined>) {
 
   function toDeleteReferences(references: AssetReference[], includeDetails: boolean): DeleteAssetReferences {
     return includeDetails
-      ? createAssetReferenceDetails(references)
+      ? { ...createAssetReferenceDetails(references), usageKnown: true }
       : {
           referencesCount: references.reduce((count, reference) => count + (reference.referencesCount ?? 0), 0),
           pageReferencesCount: references.reduce((count, reference) => count + (reference.pageReferencesCount ?? 0), 0),
@@ -175,6 +178,7 @@ export function useAssetReferences(storeId: Ref<string | null | undefined>) {
           ),
           referencePages: [],
           referenceSharedComponents: [],
+          usageKnown: true,
         };
   }
 
@@ -194,8 +198,8 @@ export function useAssetReferences(storeId: Ref<string | null | undefined>) {
     return [entry?.relativeUrl, entry?.url].filter((url): url is string => !!url);
   }
 
-  function emptyDeleteReferences(): DeleteAssetReferences {
-    return createAssetReferenceDetails([]);
+  function emptyDeleteReferences(usageKnown = true): DeleteAssetReferences {
+    return { ...createAssetReferenceDetails([]), usageKnown };
   }
 
   function getReferenceDetails(entry: AssetEntry | undefined): AssetReferenceDetails {
