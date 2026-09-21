@@ -1,6 +1,7 @@
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using VirtoCommerce.PageBuilderModule.Core.Services;
+using VirtoCommerce.PageBuilderModule.Data.Models;
 using VirtoCommerce.PageBuilderModule.Data.Repositories;
 using VirtoCommerce.Platform.Core.Settings;
 using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants;
@@ -9,8 +10,6 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services;
 
 public class PageBuilderAssetReferenceMigrationService(
     Func<IPageBuilderModuleRepository> repositoryFactory,
-    IGroupedPageService groupedPageService,
-    IPageBuilderAssetReferenceIndexService assetReferenceIndexService,
     ISettingsManager settingsManager)
     : IPageBuilderAssetReferenceMigrationService
 {
@@ -22,8 +21,8 @@ public class PageBuilderAssetReferenceMigrationService(
     {
         lock (LockObject)
         {
-            var migrationCompleted = settingsManager.GetValue<bool>(Settings.Migration.AssetReferenceIndexMigrated);
-            if (!migrationCompleted)
+            var pageMigrationCompleted = settingsManager.GetValue<bool>(Settings.Migration.AssetReferenceIndexMigrated);
+            if (!pageMigrationCompleted)
             {
                 BackgroundJob.Enqueue(() => RebuildAssetReferenceIndex());
             }
@@ -33,40 +32,73 @@ public class PageBuilderAssetReferenceMigrationService(
     [DisableConcurrentExecution(_concurrentExecutionTimeoutInSeconds)]
     public async Task RebuildAssetReferenceIndex()
     {
-        var migrationCompleted = settingsManager.GetValue<bool>(Settings.Migration.AssetReferenceIndexMigrated);
-        if (migrationCompleted)
+        var pageMigrationCompleted = settingsManager.GetValue<bool>(Settings.Migration.AssetReferenceIndexMigrated);
+        if (!pageMigrationCompleted)
         {
-            return;
+            await RebuildPageAssetReferenceIndex();
+            await settingsManager.SetValueAsync(Settings.Migration.AssetReferenceIndexMigrated.Name, true);
         }
-
-        var skip = 0;
-        var pageIds = await GetPageIds(skip);
-
-        while (pageIds.Count > 0)
-        {
-            foreach (var pageId in pageIds)
-            {
-                var content = await groupedPageService.LoadContent(pageId);
-                await assetReferenceIndexService.RebuildPageIndexAsync(pageId, content);
-            }
-
-            skip += pageIds.Count;
-            pageIds = await GetPageIds(skip);
-        }
-
-        await settingsManager.SetValueAsync(Settings.Migration.AssetReferenceIndexMigrated.Name, true);
     }
 
-    private async Task<IList<string>> GetPageIds(int skip)
+    internal async Task RebuildPageAssetReferenceIndex()
+    {
+        PageCursor cursor = null;
+        var pages = await GetPages(cursor);
+
+        while (pages.Count > 0)
+        {
+            foreach (var pageId in pages.Select(page => page.Id))
+            {
+                await RebuildPageAssetReferenceIndexAsync(pageId);
+            }
+
+            cursor = pages[^1];
+            pages = await GetPages(cursor);
+        }
+    }
+
+    private async Task RebuildPageAssetReferenceIndexAsync(string pageId)
+    {
+        using var repository = repositoryFactory();
+        await repository.RebuildPageAssetReferenceIndexAsync(pageId);
+    }
+
+    private async Task<IList<PageCursor>> GetPages(PageCursor cursor)
     {
         using var repository = repositoryFactory();
 
-        return await repository.PageBuilderPages
+        var query = repository.PageBuilderPages;
+        if (cursor != null)
+        {
+            query = ApplyPageCursor(query, cursor.CreatedDate, cursor.Id);
+        }
+
+        return await query
             .OrderBy(x => x.CreatedDate)
             .ThenBy(x => x.Id)
-            .Skip(skip)
             .Take(_batchSize)
-            .Select(x => x.Id)
+            .Select(x => new PageCursor
+            {
+                Id = x.Id,
+                CreatedDate = x.CreatedDate,
+            })
             .ToListAsync();
+    }
+
+    internal static IQueryable<PageBuilderPageEntity> ApplyPageCursor(
+        IQueryable<PageBuilderPageEntity> query,
+        DateTime createdDate,
+        string id)
+    {
+        return query.Where(x =>
+            x.CreatedDate > createdDate ||
+            x.CreatedDate == createdDate && string.Compare(x.Id, id) > 0);
+    }
+
+    private sealed class PageCursor
+    {
+        public string Id { get; init; }
+
+        public DateTime CreatedDate { get; init; }
     }
 }

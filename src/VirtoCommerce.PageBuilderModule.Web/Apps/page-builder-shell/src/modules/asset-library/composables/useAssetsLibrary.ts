@@ -1,6 +1,8 @@
 import { computed, onScopeDispose, ref, watch, type ComputedRef, type Ref } from "vue";
 import { useI18n } from "vue-i18n";
 import {
+  notification,
+  parseError,
   type Breadcrumbs,
   readableSize,
   useAsync,
@@ -8,11 +10,13 @@ import {
   useLoading,
 } from "@vc-shell/framework";
 import { useUrlParams } from "../../page-builder";
-import type { AssetEntry } from "../types";
+import type { AssetEntry, AssetReferenceDetails } from "../types";
 import { useAssetsLibraryApi } from "./useAssetsLibraryApi";
 import { formatAssetDate, getAssetPath, getAssetPublicUrl, getPreviewUrl, safeDecode } from "../utilities/assetUrl";
+import { getAssetKey, getEntryIcon, getFolderUrl, isImageEntry } from "../utilities/assetEntry";
+import { createAssetEntriesLoader, type AssetEntriesLoadRequest } from "../utilities/assetEntriesLoader";
+import { createLatestRequestTracker } from "../../../utilities/latestRequest";
 import { normalizeAssetFileName } from "../utilities/assetUpload";
-import { getAssetKey, getEntryIcon, getFolderUrl, getReferencesCount, isImageEntry } from "../utilities/assetEntry";
 import { useAssetReferences } from "./useAssetReferences";
 import type { DeleteAssetReferences } from "./useAssetReferences";
 import { useAssetSelection } from "./useAssetSelection";
@@ -42,7 +46,8 @@ export interface IUseAssetsLibrary {
   isImage: (entry: AssetEntry | undefined) => boolean;
   getEntryIcon: (entry: AssetEntry) => string;
   getReferencesCount: (entry: AssetEntry) => number;
-  getReferencePages: (entry: AssetEntry | undefined) => NonNullable<AssetEntry["referencePages"]>;
+  areReferencesAvailable: (entry: AssetEntry | undefined) => boolean;
+  getReferenceDetails: (entry: AssetEntry | undefined) => AssetReferenceDetails;
   getDeleteReferences: (entry: AssetEntry) => Promise<DeleteAssetReferences>;
   findAssetByName: (folderUrl: string, fileName: string) => Promise<AssetEntry | undefined>;
   formatFileSize: (size?: number) => string;
@@ -64,21 +69,49 @@ export function useAssetsLibrary(): IUseAssetsLibrary {
   const totalCount = ref(0);
   const currentFolderUrl = ref("");
   const searchValue = ref<string>();
-  const {
-    selectedAsset,
-    selectedAssetDimensions,
-    clearSelection,
-    selectAsset,
-    refreshSelection,
-  } = useAssetSelection();
+  const loadingEntries = ref(false);
+  const assetDetailsRequests = createLatestRequestTracker(() => undefined);
+  const { selectedAsset, selectedAssetDimensions, clearSelection, selectAsset, refreshSelection } = useAssetSelection();
   const {
     resetAssetReferences,
     loadAssetReferences,
-    loadAssetReferencePages,
+    loadAssetReferenceDetails,
     applyAssetReferences,
-    getReferencePages,
+    getReferenceDetails,
+    getReferencesCount,
+    areReferencesAvailable,
     getDeleteReferences,
   } = useAssetReferences(storeId);
+  const entriesLoader = createAssetEntriesLoader({
+    search: searchAssets,
+    loadReferences: loadAssetReferences,
+    clear: () => {
+      entries.value = [];
+      totalCount.value = 0;
+      resetAssetReferences();
+    },
+    apply: async (result, preferredSelectionUrl, isCurrent) => {
+      entries.value = result.results.map(applyAssetReferences);
+      totalCount.value = result.totalCount;
+      refreshSelection(entries.value, preferredSelectionUrl);
+
+      if (selectedAsset.value?.type === "blob" && isCurrent()) {
+        const detailsRequest = assetDetailsRequests.begin();
+        try {
+          await loadAssetReferenceDetails(selectedAsset.value, () => isCurrent() && detailsRequest.isCurrent());
+        } catch (error) {
+          if (isCurrent() && detailsRequest.isCurrent()) {
+            throw error;
+          }
+        } finally {
+          detailsRequest.complete();
+        }
+      }
+    },
+    onLoadingChange: (loading) => {
+      loadingEntries.value = loading;
+    },
+  });
   const currentBreadcrumbIds = ref<string[]>([]);
   const { breadcrumbs, push: pushBreadcrumb, remove: removeBreadcrumbs } = useBreadcrumbs();
 
@@ -97,7 +130,7 @@ export function useAssetsLibrary(): IUseAssetsLibrary {
     items.push({
       id: rootFolderUrl.value,
       title: t("ASSET_LIBRARY.BREADCRUMBS.ROOT"),
-      clickHandler: navigateToFolder,
+      clickHandler: navigateFromBreadcrumb,
     });
 
     if (currentSegments.length <= baseSegments.length) {
@@ -111,7 +144,7 @@ export function useAssetsLibrary(): IUseAssetsLibrary {
       items.push({
         id: accumulated,
         title: safeDecode(segment),
-        clickHandler: navigateToFolder,
+        clickHandler: navigateFromBreadcrumb,
       });
     });
 
@@ -133,30 +166,35 @@ export function useAssetsLibrary(): IUseAssetsLibrary {
   }
 
   watch([currentFolderUrl, rootFolderUrl], syncBreadcrumbs, { immediate: true });
-  onScopeDispose(clearTrackedBreadcrumbs);
+  onScopeDispose(() => {
+    entriesLoader.dispose();
+    assetDetailsRequests.dispose();
+    clearTrackedBreadcrumbs();
+  });
 
   function formatDate(value?: string): string {
     return formatAssetDate(value) ?? t("ASSET_LIBRARY.DETAILS.NOT_AVAILABLE");
   }
 
-  const { action: loadEntries, loading: loadingEntries } = useAsync<string | undefined>(async (preferredSelectionUrl) => {
-    if (!currentFolderUrl.value) {
-      entries.value = [];
-      totalCount.value = 0;
-      resetAssetReferences();
-      return;
-    }
+  const { action: loadEntriesAction } = useAsync<AssetEntriesLoadRequest>(
+    async (request) => {
+      if (!request) {
+        return;
+      }
 
-    const result = await searchAssets(currentFolderUrl.value, searchValue.value?.trim());
-    await loadAssetReferences(result.results);
-    entries.value = result.results.map(applyAssetReferences);
-    totalCount.value = result.totalCount;
-    refreshSelection(entries.value, preferredSelectionUrl);
+      assetDetailsRequests.invalidate();
+      await entriesLoader.load(request);
+    },
+    { notify: false },
+  );
 
-    if (selectedAsset.value?.type === "blob") {
-      await loadAssetReferencePages(selectedAsset.value);
-    }
-  });
+  async function loadEntries(preferredSelectionUrl?: string) {
+    await loadEntriesAction({
+      folderUrl: currentFolderUrl.value,
+      keyword: searchValue.value?.trim(),
+      preferredSelectionUrl,
+    });
+  }
 
   const { action: createFolderAction, loading: loadingCreateFolder } = useAsync<string>(async (name) => {
     if (!name || !currentFolderUrl.value) {
@@ -222,6 +260,8 @@ export function useAssetsLibrary(): IUseAssetsLibrary {
   });
 
   function resetContent() {
+    entriesLoader.invalidate();
+    assetDetailsRequests.invalidate();
     currentFolderUrl.value = "";
     selectedAsset.value = undefined;
     entries.value = [];
@@ -243,9 +283,16 @@ export function useAssetsLibrary(): IUseAssetsLibrary {
   }
 
   async function navigateToFolder(folderUrl: string) {
+    assetDetailsRequests.invalidate();
     currentFolderUrl.value = folderUrl;
     selectedAsset.value = undefined;
     await reload();
+  }
+
+  function navigateFromBreadcrumb(folderUrl: string): void {
+    void navigateToFolder(folderUrl).catch((error) => {
+      notification.error(parseError(error).message);
+    });
   }
 
   async function onEntryClick(entry: AssetEntry) {
@@ -254,8 +301,18 @@ export function useAssetsLibrary(): IUseAssetsLibrary {
       return;
     }
 
+    const request = assetDetailsRequests.begin();
     selectAsset(entry);
-    await loadAssetReferencePages(entry);
+
+    try {
+      await loadAssetReferenceDetails(entry, request.isCurrent);
+    } catch (error) {
+      if (request.isCurrent()) {
+        throw error;
+      }
+    } finally {
+      request.complete();
+    }
   }
 
   async function findAssetByName(folderUrl: string, fileName: string): Promise<AssetEntry | undefined> {
@@ -298,7 +355,8 @@ export function useAssetsLibrary(): IUseAssetsLibrary {
     isImage: isImageEntry,
     getEntryIcon,
     getReferencesCount,
-    getReferencePages,
+    areReferencesAvailable,
+    getReferenceDetails,
     getDeleteReferences,
     findAssetByName,
     formatFileSize: readableSize,

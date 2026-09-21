@@ -1,4 +1,5 @@
 import type { AssetEntry } from "../types";
+import { createAssetReferenceDetails } from "./assetReferences";
 import type { DeleteAssetReferences } from "../composables/useAssetReferences";
 
 export interface AssetUploadConflict {
@@ -130,14 +131,14 @@ async function getConflictReferences(
   dependencies: PrepareAssetUploadDependencies,
 ): Promise<{ references: DeleteAssetReferences; usageKnown: boolean }> {
   if (!storedEntry) {
-    return { references: { referencesCount: 0, referencePages: [], usageKnown: true }, usageKnown: true };
+    return { references: { ...createAssetReferenceDetails([]), usageKnown: true }, usageKnown: true };
   }
 
   try {
     const references = await dependencies.getReferences(existingEntry);
     return { references, usageKnown: references.usageKnown };
   } catch {
-    return { references: { referencesCount: 0, referencePages: [], usageKnown: false }, usageKnown: false };
+    return { references: { ...createAssetReferenceDetails([]), usageKnown: false }, usageKnown: false };
   }
 }
 

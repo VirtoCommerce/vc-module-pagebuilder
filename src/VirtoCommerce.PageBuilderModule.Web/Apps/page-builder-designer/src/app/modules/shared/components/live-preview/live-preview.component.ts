@@ -1,4 +1,14 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, computed, effect, signal, viewChild, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  ElementRef,
+  computed,
+  effect,
+  signal,
+  viewChild,
+  inject,
+} from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { Store } from '@ngrx/store';
 
@@ -10,6 +20,9 @@ import { BuilderState } from '@shared/store';
 import * as fromRoute from '@shared/routing';
 import { NgClass } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { PreviewBridgeService } from '@shared/services';
+import { isPreviewOutboundMessage } from '@shared/models';
+import type { PreviewOutboundMessage } from '@shared/models';
 
 import { IconComponent } from '@core/components/icon/icon.component';
 import { IconButtonComponent } from '@core/components/icon-button/icon-button.component';
@@ -20,24 +33,35 @@ import { isUsablePreviewUrl } from './live-preview.utils';
   templateUrl: './live-preview.component.html',
   styleUrls: ['./live-preview.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NgClass, IconComponent, IconButtonComponent]
+  imports: [NgClass, IconComponent, IconButtonComponent],
 })
 export class LivePreviewComponent {
-
   private readonly destroyRef = inject(DestroyRef);
   private readonly store = inject(Store<BuilderState>);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly eventsBus = inject(EventsBusService);
+  private readonly previewBridge = inject(PreviewBridgeService);
   private readonly config = inject(AppConfig);
   private readonly env = inject(EnvironmentRef);
   private readonly session = inject(SessionService);
   private readonly initializator = inject(AppInitializator);
   private readonly http = inject(BuilderHttpClient);
 
-  readonly frame = viewChild<ElementRef>('frame');
+  readonly frame = viewChild<ElementRef<HTMLIFrameElement>>('frame');
 
   private readonly previewLoaded = signal(false);
-  private readonly pendingMessages: any[] = [];
+  private readonly pendingMessages: PreviewOutboundMessage[] = [];
+  private readonly registerPreviewFrame = effect((onCleanup) => {
+    const frame = this.frame()?.nativeElement;
+    if (!frame) {
+      return;
+    }
+
+    this.previewLoaded.set(false);
+    this.previewBridge.registerFrame(frame);
+    this.requestPreviewConnection();
+    onCleanup(() => this.previewBridge.unregisterFrame(frame));
+  });
 
   isPresetPreviewMode = toSignal(this.store.select(fromRoute.isPresetPreviewMode), { initialValue: false });
   previewPresetName = toSignal(this.store.select(fromRoute.selectPresetParameter), { initialValue: null });
@@ -59,54 +83,63 @@ export class LivePreviewComponent {
   readonly reloading = signal(false);
 
   constructor() {
-    const sub = this.eventsBus.on(args => args.target === 'preview', msg => {
-      if (msg.payload?.type === 'preview-loaded') {
-        this.previewLoaded.set(true);
-        this.pendingMessages.splice(0).forEach(x => this.doSend(x));
-      }
-      else {
-        this.sendMessage(msg.payload);
-      }
-    });
-    this.destroyRef.onDestroy(() => sub.unsubscribe());
+    const sub = this.eventsBus.on(
+      (args) => args.target === 'preview',
+      (msg) => {
+        if (!isPreviewOutboundMessage(msg.payload)) {
+          return;
+        }
 
-    // a new address means a new document in the frame, which reports itself as loaded again
+        if (msg.payload.type === 'preview-loaded') {
+          this.previewLoaded.set(true);
+          this.pendingMessages.splice(0).forEach((x) => this.doSend(x));
+        } else {
+          this.sendMessage(msg.payload);
+        }
+      },
+    );
+    this.destroyRef.onDestroy(() => sub.unsubscribe());
+    // A changed storefront address starts a new preview handshake.
     effect(() => {
       this.url();
       this.previewLoaded.set(false);
     });
   }
 
-  /** Resolves the store settings again, for example after the store URL has been filled in. */
+  /** Resolves the store settings again after the storefront address has been corrected. */
   reload() {
     if (this.reloading()) {
       return;
     }
     this.reloading.set(true);
-    // the store response is cacheable, so retrying without dropping it would resolve the same
-    // broken address the user has just gone and fixed (VCST-5847)
     this.http.clearCache();
     this.initializator.init()
       .catch(error => console.warn('Failed to reload the configuration:', error))
       .finally(() => this.reloading.set(false));
   }
 
-  private sendMessage(msg: any) {
+  onPreviewFrameLoaded(frame: HTMLIFrameElement): void {
+    this.previewLoaded.set(false);
+    this.previewBridge.registerFrame(frame);
+    this.requestPreviewConnection();
+  }
+
+  private sendMessage(msg: PreviewOutboundMessage) {
     if (this.previewLoaded()) {
       this.doSend(msg);
     } else {
       this.pendingMessages.push(msg);
+      this.requestPreviewConnection();
     }
   }
 
-  private doSend(msg: any) {
-    const frame = this.frame()?.nativeElement as HTMLIFrameElement | undefined;
-    const url = this.url();
-    if (!frame || !url) return;
-    const message = { ...msg, source: 'builder' };
-    if (message.type !== 'hover') {
-      console.log(message);
+  private requestPreviewConnection(): void {
+    this.doSend({ type: 'connect' });
+  }
+
+  private doSend(msg: PreviewOutboundMessage) {
+    if (this.url()) {
+      this.previewBridge.send(msg);
     }
-    frame.contentWindow?.postMessage(message, url);
   }
 }

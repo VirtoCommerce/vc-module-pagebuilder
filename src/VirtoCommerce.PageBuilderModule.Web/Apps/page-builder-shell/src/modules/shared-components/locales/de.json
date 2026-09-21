@@ -1,0 +1,66 @@
+{
+  "SHARED_COMPONENTS": {
+    "MENU": {
+      "TITLE": "Geteilte Komponenten"
+    },
+    "TITLE": "Geteilte Komponenten",
+    "SEARCH": {
+      "PLACEHOLDER": "Geteilte Komponenten durchsuchen..."
+    },
+    "TABLE": {
+      "NAME": "Name",
+      "USAGE": "Verwendet auf",
+      "MODIFIED": "Geändert",
+      "MODIFIED_BY": "Geändert von"
+    },
+    "TOOLBAR": {
+      "REFRESH": "Aktualisieren"
+    },
+    "ACTIONS": {
+      "RENAME": "Umbenennen",
+      "DELETE": "Löschen",
+      "DELETE_BLOCKED": "Diese Komponente wird verwendet und kann nicht gelöscht werden",
+      "CLOSE": "Schließen"
+    },
+    "DETAILS": {
+      "COMPONENT_DETAILS": "Komponentendetails",
+      "STORE": "Store",
+      "MODIFIED": "Geändert",
+      "MODIFIED_BY": "Geändert von",
+      "USED_ON_ONE": "Verwendet auf (1 Seite)",
+      "USED_ON_MANY": "Verwendet auf ({count} Seiten)",
+      "LOADING_USAGE": "Seitennutzung wird geladen...",
+      "NO_USAGE": "Auf keiner Page Builder-Seite verwendet.",
+      "DELETE_BLOCKED_ONE": "Entfernen Sie diese Komponente vor dem Löschen von der Seite.",
+      "DELETE_BLOCKED_MANY": "Entfernen Sie diese Komponente vor dem Löschen von allen {count} Seiten.",
+      "NOT_AVAILABLE": "Nicht verfügbar",
+      "OPEN_UNAVAILABLE_PERMISSION": "Sie sind nicht berechtigt, diese Seite im Designer zu öffnen.",
+      "OPEN_UNAVAILABLE_ARCHIVED": "Archivierte Seiten können im Designer nicht geöffnet werden.",
+      "OPEN_UNAVAILABLE_IDENTITY": "Diese Seite kann nicht geöffnet werden, da ihre Kennung nicht verfügbar ist."
+    },
+    "EMPTY": {
+      "TITLE": "Noch keine geteilten Komponenten",
+      "DESCRIPTION": "Erstellen Sie im Page Builder Designer eine geteilte Komponente aus ausgewählten Abschnitten.",
+      "NOT_FOUND_TITLE": "Keine geteilten Komponenten gefunden",
+      "NOT_FOUND_DESCRIPTION": "Versuchen Sie es mit einem anderen Suchbegriff."
+    },
+    "RENAME": {
+      "TITLE": "Geteilte Komponente umbenennen",
+      "NAME_LABEL": "Name",
+      "NAME_PLACEHOLDER": "Komponentennamen eingeben",
+      "CANCEL": "Abbrechen",
+      "SAVE": "Speichern"
+    },
+    "CONFIRM": {
+      "DELETE": "{name} löschen? Diese Aktion kann nicht rückgängig gemacht werden."
+    },
+    "NOTIFICATIONS": {
+      "RENAMED": "Geteilte Komponente wurde erfolgreich umbenannt",
+      "DELETED": "Geteilte Komponente wurde erfolgreich gelöscht",
+      "DELETE_BLOCKED_ONE": "Diese Komponente wird auf 1 Seite verwendet und kann nicht gelöscht werden.",
+      "DELETE_BLOCKED_MANY": "Diese Komponente wird auf {count} Seiten verwendet und kann nicht gelöscht werden.",
+      "DELETE_CONFLICT": "Die Komponente wird inzwischen verwendet und kann nicht gelöscht werden. Aktualisieren Sie die Liste, um ihre Verwendungen zu sehen.",
+      "ERROR_GENERIC": "Aktion für die geteilte Komponente fehlgeschlagen"
+    }
+  }
+}

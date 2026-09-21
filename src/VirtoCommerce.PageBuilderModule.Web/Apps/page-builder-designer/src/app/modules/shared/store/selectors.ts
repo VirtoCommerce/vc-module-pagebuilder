@@ -3,7 +3,7 @@ import { createSelector } from '@ngrx/store';
 import { TemplateEntry, TemplateEntryList, TemplateEntryState } from '@shared/models';
 import { BuilderState } from './state';
 
-import { selectPathParameter, selectTypeParameter, selectParentTemplateParameter, selectTemplateKeyParameter, selectGroupIdParameter } from '../routing';
+import { selectPathParameter, selectTypeParameter, selectParentTemplateParameter, selectTemplateKeyParameter, selectGroupIdParameter, selectSharedComponentIdParameter } from '../routing';
 
 export const selectSharedFeature = (state: BuilderState) => state.shared;
 
@@ -86,7 +86,29 @@ export const selectCurrentTemplateEntry = createSelector(
     selectTypeParameter,
     selectPathParameter,
     selectTemplateKeyParameter,
-    (templates, childrenTemplates, type, path, key) => searchTemplate(templates, childrenTemplates, type, path, key)
+    selectSharedComponentIdParameter,
+    (templates, childrenTemplates, type, path, key, sharedComponentId) => {
+        if (sharedComponentId) {
+            const fallback = templates.find(entry => entry.type === 'pages') || templates[0];
+            return {
+                ...fallback,
+                name: 'Shared component',
+                key,
+                type: 'shared-components',
+                path: sharedComponentId,
+                previewUrl: fallback?.previewUrl || '/',
+                previewRule: fallback?.previewRule || '',
+                hasChildren: false,
+            } as TemplateEntry;
+        }
+        return searchTemplate(templates, childrenTemplates, type, path, key);
+    }
+);
+
+export const selectCurrentTemplateDirty = createSelector(
+    selectTemplatesStates,
+    selectTemplateKeyParameter,
+    (states, templateKey) => !!templateKey && !!states[templateKey]?.isDirty,
 );
 
 
@@ -142,9 +164,10 @@ export const selectParentTemplateKey = createSelector(
     selectTypeParameter,
     selectTemplateKeyParameter,
     selectParentTemplateParameter,
+    selectSharedComponentIdParameter,
     // state => state.templateSelected
-    (templates, stateTemplateKey, type, urlTemplateKey, parent) =>
-        searchParentTemplate(templates, stateTemplateKey, type, urlTemplateKey, parent)
+    (templates, stateTemplateKey, type, urlTemplateKey, parent, sharedComponentId) =>
+        sharedComponentId ? null : searchParentTemplate(templates, stateTemplateKey, type, urlTemplateKey, parent)
 );
 
 export const selectParentTemplate = createSelector(

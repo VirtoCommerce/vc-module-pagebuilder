@@ -4,6 +4,9 @@
       <ul class="flex flex-col">
         @if (viewModel(); as vm) {
           @let currentFilter = filter();
+          @if (isReadOnly()) {
+            <li class="p-4 text-gray-300">You do not have permission to edit this Shared Component.</li>
+          } @else {
           <li class="search-holder">
             <input placeholder="Search in library"
               class="search"
@@ -12,6 +15,11 @@
               (keyup)="applySectionsFilter($event)"
               (search)="applySectionsFilter($event)" />
             </li>
+            @if (!vm.parentSection && !vm.isSharedComponentDocument) {
+              <li>
+                <app-shared-components-library />
+              </li>
+            }
             @for (group of vm.groups; track group) {
               <li class="border-b">
                 @defer (on viewport; prefetch on idle) {
@@ -45,6 +53,7 @@
                 {{ !!vm.parentSection ? 'No blocks found' : 'No sections found' }}
               </li>
             }
+          }
           }
         </ul>
       </div>
