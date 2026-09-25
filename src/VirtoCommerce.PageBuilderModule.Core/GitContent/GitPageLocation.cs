@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -139,10 +140,20 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
         /// "foo.page-draft" while production holds "foo.page", publishing would ship a file no storefront
         /// serves, and the storefront preview (which strips the suffix) would find neither.
         /// </para>
+        /// <para>
+        /// A dot segment is refused rather than resolved: the path comes from the caller and ends up in a
+        /// contents API url, where "../" would climb out of the pages root — and HttpClient resolves it
+        /// before GitHub sees it — letting an editor read or write any file the token can reach.
+        /// </para>
         /// </summary>
         private static string Normalize(string pagePath)
         {
             var normalized = pagePath.Replace('\\', '/').TrimStart('/');
+
+            if (normalized.Split('/').Any(segment => segment is "." or ".."))
+            {
+                throw new ArgumentException($"Page path \"{pagePath}\" must not contain \".\" or \"..\" segments.", nameof(pagePath));
+            }
 
             return normalized.Length > DraftSuffix.Length && normalized.EndsWith(DraftSuffix, StringComparison.OrdinalIgnoreCase)
                 ? normalized[..^DraftSuffix.Length]

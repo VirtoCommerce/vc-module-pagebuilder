@@ -252,6 +252,57 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         [Fact]
+        public async Task CommitFileAsync_UnchangedContent_SkipsThePutAndReturnsTheBranchHead()
+        {
+            // GitHub refuses a PUT whose bytes match the file already on the branch; a no-op save or a
+            // restore of the current draft must not surface as a failed write
+            var handler = new ScriptedHandler(
+                // `printf '{}' | git hash-object --stdin`
+                ("GET", "repos/o/r/contents/pages/foo.page?ref=work", _ => RespondJson("""{ "sha": "9e26dfeeb6e641a33dae4961196235bdb965b21b" }""")),
+                ("GET", "repos/o/r/git/ref/heads/work", _ => RespondJson($$"""{ "object": { "sha": "{{Sha}}" } }""")));
+
+            var commit = await Create(handler).CommitFileAsync("pages/foo.page", "{}", "work", "msg", Author, TestContext.Current.CancellationToken);
+
+            Assert.Equal(Sha, commit);
+            handler.AssertDone(); // no PUT in the script
+        }
+
+        [Fact]
+        public async Task CommitFileAsync_RetryFindsTheContentAlreadyWritten_IsNotAnError()
+        {
+            var handler = new ScriptedHandler(
+                ("GET", "repos/o/r/contents/pages/foo.page?ref=work", _ => RespondJson("""{ "sha": "stale" }""")),
+                ("PUT", "repos/o/r/contents/pages/foo.page", _ => Respond(HttpStatusCode.Conflict)),
+                ("GET", "repos/o/r/contents/pages/foo.page?ref=work", _ => RespondJson("""{ "sha": "9e26dfeeb6e641a33dae4961196235bdb965b21b" }""")),
+                ("GET", "repos/o/r/git/ref/heads/work", _ => RespondJson($$"""{ "object": { "sha": "{{Sha}}" } }""")));
+
+            var commit = await Create(handler).CommitFileAsync("pages/foo.page", "{}", "work", "msg", Author, TestContext.Current.CancellationToken);
+
+            Assert.Equal(Sha, commit);
+            handler.AssertDone();
+        }
+
+        [Theory]
+        [InlineData("pages/../../contents/.github/workflows/x.yml")]
+        [InlineData("pages/./foo.page")]
+        public async Task A_dot_segment_path_is_refused_before_any_request(string path)
+        {
+            // HttpClient resolves "../" itself, so such a path would reach a different contents url than
+            // the one built for it — anywhere in the repository the token can write
+            var handler = new ScriptedHandler();
+            var repository = Create(handler);
+
+            await Assert.ThrowsAsync<ArgumentException>(() =>
+                repository.CommitFileAsync(path, "{}", "work", "msg", Author, TestContext.Current.CancellationToken));
+            await Assert.ThrowsAsync<ArgumentException>(() =>
+                repository.ReadFileAsync(path, "work", TestContext.Current.CancellationToken));
+            await Assert.ThrowsAsync<ArgumentException>(() =>
+                repository.DeleteFileAsync(path, "work", "msg", Author, TestContext.Current.CancellationToken));
+
+            handler.AssertDone();
+        }
+
+        [Fact]
         public async Task CommitFileAsync_DoesNotCreateTheBranch()
         {
             // publishing a page must ship that page and nothing else, so the work branch is cut

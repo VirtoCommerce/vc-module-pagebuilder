@@ -1,3 +1,4 @@
+using System;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using Xunit;
 
@@ -39,6 +40,30 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         {
             // the blade and the designer open a draft by its "-draft" blob name; in git that is the same
             // file on a work branch, and production only ever holds the canonical page
+            Assert.Equal(expected, GitPageLocation.RepoPath("pages", page));
+        }
+
+        /// <summary>
+        /// The page path comes from the caller and becomes part of a contents API url, where a dot segment
+        /// would climb out of the pages root — to workflow files, for one.
+        /// </summary>
+        [Theory]
+        [InlineData("../../contents/.github/workflows/x.yml")]
+        [InlineData("/docs/../../secret.page")]
+        [InlineData("docs\\..\\foo.page")]
+        [InlineData("./foo.page")]
+        public void A_dot_segment_is_refused_rather_than_resolved(string page)
+        {
+            Assert.Throws<ArgumentException>(() => GitPageLocation.RepoPath("pages", page));
+            Assert.Throws<ArgumentException>(() => GitPageLocation.ContentPath("pages", page));
+            Assert.Throws<ArgumentException>(() => GitPageLocation.BranchFor(Template, "john", page));
+        }
+
+        [Theory]
+        [InlineData("docs/..foo.page", "pages/docs/..foo.page")]
+        [InlineData("docs/foo..page", "pages/docs/foo..page")]
+        public void Dots_inside_a_name_are_not_a_dot_segment(string page, string expected)
+        {
             Assert.Equal(expected, GitPageLocation.RepoPath("pages", page));
         }
 

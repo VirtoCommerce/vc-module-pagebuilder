@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -179,7 +180,18 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             var client = _httpClientFactory.CreateClient(HttpClientName);
             var escapedPath = EscapePath(path);
 
+            // The branch already holding exactly these bytes is a save that has nothing to write: GitHub
+            // answers such a PUT with 422, which reads as a stale sha, and the retry fails the same way —
+            // so a no-op save or a restore of the current draft would surface as a failed write. The
+            // commit that holds them is the branch head, and that is the answer.
+            var blobSha = BlobSha(PageJson.Encoding.GetBytes(content ?? string.Empty));
+
             var sha = await GetFileShaAsync(client, escapedPath, branch, cancellationToken);
+            if (string.Equals(sha, blobSha, StringComparison.OrdinalIgnoreCase))
+            {
+                return await GetBranchHeadShaAsync(branch, cancellationToken);
+            }
+
             var response = await PutContentAsync(client, escapedPath, content, branch, message, author, sha, cancellationToken);
 
             // A stale sha (the file changed on the branch between GET and PUT) comes back as 409/422 —
@@ -189,6 +201,14 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             {
                 response.Dispose();
                 sha = await GetFileShaAsync(client, escapedPath, branch, cancellationToken);
+
+                // the write that raced with this one may have been this very content
+                if (string.Equals(sha, blobSha, StringComparison.OrdinalIgnoreCase))
+                {
+                    InvalidateRead(path, branch);
+                    return await GetBranchHeadShaAsync(branch, cancellationToken);
+                }
+
                 response = await PutContentAsync(client, escapedPath, content, branch, message, author, sha, cancellationToken);
             }
 
@@ -328,7 +348,25 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
 
         private static string EscapePath(string path)
         {
-            return string.Join("/", path.Replace('\\', '/').TrimStart('/').Split('/').Select(Uri.EscapeDataString));
+            var segments = path.Replace('\\', '/').TrimStart('/').Split('/');
+
+            // Uri.EscapeDataString leaves dots alone, and HttpClient resolves "../" before the request
+            // leaves: a dot segment would address a different endpoint than the one this url was built for
+            if (segments.Any(segment => segment is "." or ".."))
+            {
+                throw new ArgumentException($"\"{path}\" must not contain \".\" or \"..\" segments.", nameof(path));
+            }
+
+            return string.Join("/", segments.Select(Uri.EscapeDataString));
+        }
+
+        /// <summary>
+        /// The id git gives a file with these bytes — what the contents API reports as a file's "sha".
+        /// </summary>
+        private static string BlobSha(byte[] bytes)
+        {
+            var header = Encoding.ASCII.GetBytes($"blob {bytes.Length}\0");
+            return Convert.ToHexStringLower(SHA1.HashData([.. header, .. bytes]));
         }
 
         private static StringContent JsonContent(JObject body)
