@@ -2,10 +2,9 @@ import { createReducer, on } from '@ngrx/store';
 
 import * as actions from '../actions';
 
-import { PageHistory, PageHistoryState, PageVersion } from '@editor/models';
+import { PageHistory, PageHistoryState, PageVersion, SectionStatesList } from '@editor/models';
 
 import { EditorDomainState, initialState } from './state';
-import { SectionStatesList } from '@editor/models';
 import { TemplateModel } from '@models/document';
 
 export const editorDomainReducers = createReducer<EditorDomainState>(

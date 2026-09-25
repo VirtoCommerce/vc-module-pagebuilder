@@ -257,8 +257,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             // GitHub refuses a PUT whose bytes match the file already on the branch; a no-op save or a
             // restore of the current draft must not surface as a failed write
             var handler = new ScriptedHandler(
-                // `printf '{}' | git hash-object --stdin`
-                ("GET", "repos/o/r/contents/pages/foo.page?ref=work", _ => RespondJson("""{ "sha": "9e26dfeeb6e641a33dae4961196235bdb965b21b" }""")),
+                ("GET", "repos/o/r/contents/pages/foo.page?ref=work", _ => RespondJson(FilePayload("file-sha", "{}"))),
                 ("GET", "repos/o/r/git/ref/heads/work", _ => RespondJson($$"""{ "object": { "sha": "{{Sha}}" } }""")));
 
             var commit = await Create(handler).CommitFileAsync("pages/foo.page", "{}", "work", "msg", Author, TestContext.Current.CancellationToken);
@@ -268,12 +267,27 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         [Fact]
+        public async Task CommitFileAsync_ChangedContent_PutsEvenWhenTheFileIsInlined()
+        {
+            var handler = new ScriptedHandler(
+                ("GET", "repos/o/r/contents/pages/foo.page?ref=work", _ => RespondJson(FilePayload("file-sha", "{ \"a\": 1 }"))),
+                ("PUT", "repos/o/r/contents/pages/foo.page", body =>
+                {
+                    Assert.Equal("file-sha", JObject.Parse(body)["sha"]?.Value<string>());
+                    return RespondJson(CommitPayload());
+                }));
+
+            await Create(handler).CommitFileAsync("pages/foo.page", "{}", "work", "msg", Author, TestContext.Current.CancellationToken);
+            handler.AssertDone();
+        }
+
+        [Fact]
         public async Task CommitFileAsync_RetryFindsTheContentAlreadyWritten_IsNotAnError()
         {
             var handler = new ScriptedHandler(
                 ("GET", "repos/o/r/contents/pages/foo.page?ref=work", _ => RespondJson("""{ "sha": "stale" }""")),
                 ("PUT", "repos/o/r/contents/pages/foo.page", _ => Respond(HttpStatusCode.Conflict)),
-                ("GET", "repos/o/r/contents/pages/foo.page?ref=work", _ => RespondJson("""{ "sha": "9e26dfeeb6e641a33dae4961196235bdb965b21b" }""")),
+                ("GET", "repos/o/r/contents/pages/foo.page?ref=work", _ => RespondJson(FilePayload("fresh", "{}"))),
                 ("GET", "repos/o/r/git/ref/heads/work", _ => RespondJson($$"""{ "object": { "sha": "{{Sha}}" } }""")));
 
             var commit = await Create(handler).CommitFileAsync("pages/foo.page", "{}", "work", "msg", Author, TestContext.Current.CancellationToken);
@@ -376,6 +390,14 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
         private static string ContentsPayload(string content) =>
             new JObject { ["content"] = Convert.ToBase64String(Encoding.UTF8.GetBytes(content)) }.ToString();
+
+        // GitHub inlines content as line-wrapped base64; the payload is wrapped too, so decoding has to cope
+        private static string FilePayload(string sha, string content) =>
+            new JObject
+            {
+                ["sha"] = sha,
+                ["content"] = Convert.ToBase64String(Encoding.UTF8.GetBytes(content), Base64FormattingOptions.InsertLineBreaks) + "\n",
+            }.ToString();
 
         private static string CommitPayload() => $$"""{ "commit": { "sha": "{{Sha}}" } }""";
 

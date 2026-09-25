@@ -2,7 +2,6 @@ using System;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -184,15 +183,15 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             // answers such a PUT with 422, which reads as a stale sha, and the retry fails the same way —
             // so a no-op save or a restore of the current draft would surface as a failed write. The
             // commit that holds them is the branch head, and that is the answer.
-            var blobSha = BlobSha(PageJson.Encoding.GetBytes(content ?? string.Empty));
+            var bytes = PageJson.Encoding.GetBytes(content ?? string.Empty);
 
-            var sha = await GetFileShaAsync(client, escapedPath, branch, cancellationToken);
-            if (string.Equals(sha, blobSha, StringComparison.OrdinalIgnoreCase))
+            var current = await GetFileAsync(client, escapedPath, branch, cancellationToken);
+            if (current?.Holds(bytes) == true)
             {
                 return await GetBranchHeadShaAsync(branch, cancellationToken);
             }
 
-            var response = await PutContentAsync(client, escapedPath, content, branch, message, author, sha, cancellationToken);
+            var response = await PutContentAsync(client, escapedPath, content, branch, message, author, current?.Sha, cancellationToken);
 
             // A stale sha (the file changed on the branch between GET and PUT) comes back as 409/422 —
             // refresh it once and retry. A branch belongs to one editor and one page, so the only writer
@@ -200,16 +199,16 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             if (response.StatusCode is HttpStatusCode.Conflict or HttpStatusCode.UnprocessableEntity)
             {
                 response.Dispose();
-                sha = await GetFileShaAsync(client, escapedPath, branch, cancellationToken);
+                current = await GetFileAsync(client, escapedPath, branch, cancellationToken);
 
                 // the write that raced with this one may have been this very content
-                if (string.Equals(sha, blobSha, StringComparison.OrdinalIgnoreCase))
+                if (current?.Holds(bytes) == true)
                 {
                     InvalidateRead(path, branch);
                     return await GetBranchHeadShaAsync(branch, cancellationToken);
                 }
 
-                response = await PutContentAsync(client, escapedPath, content, branch, message, author, sha, cancellationToken);
+                response = await PutContentAsync(client, escapedPath, content, branch, message, author, current?.Sha, cancellationToken);
             }
 
             using (response)
@@ -229,7 +228,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             var client = _httpClientFactory.CreateClient(HttpClientName);
             var escapedPath = EscapePath(path);
 
-            var sha = await GetFileShaAsync(client, escapedPath, branch, cancellationToken)
+            var sha = (await GetFileAsync(client, escapedPath, branch, cancellationToken))?.Sha
                       ?? throw new InvalidOperationException($"Cannot delete \"{path}\": it does not exist on branch \"{branch}\".");
 
             var body = new JObject
@@ -278,7 +277,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             return PageJson.Encoding.GetString(Convert.FromBase64String(encoded));
         }
 
-        private async Task<string> GetFileShaAsync(HttpClient client, string escapedPath, string branch, CancellationToken cancellationToken)
+        private async Task<RemoteFile> GetFileAsync(HttpClient client, string escapedPath, string branch, CancellationToken cancellationToken)
         {
             using var response = await client.GetAsync(
                 $"repos/{_options.Repository}/contents/{escapedPath}?ref={Uri.EscapeDataString(branch)}",
@@ -289,7 +288,19 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             }
 
             await ThrowIfFailedAsync(response, $"read current sha of \"{escapedPath}\"");
-            return JObject.Parse(await response.Content.ReadAsStringAsync(cancellationToken))["sha"]?.Value<string>();
+            var body = JObject.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+            var encoded = body["content"]?.Value<string>();
+
+            return new RemoteFile(
+                body["sha"]?.Value<string>(),
+                // not inlined above 1 MB: such a file is simply never taken for "unchanged"
+                encoded == null ? null : Convert.FromBase64String(encoded));
+        }
+
+        /// <summary>A file as it stands on a branch: the sha an update must name, and its bytes when GitHub inlined them.</summary>
+        private sealed record RemoteFile(string Sha, byte[] Content)
+        {
+            public bool Holds(byte[] bytes) => Content != null && Content.AsSpan().SequenceEqual(bytes);
         }
 
         private Task<HttpResponseMessage> PutContentAsync(HttpClient client, string escapedPath, string content, string branch, string message, GitCommitAuthor author, string sha, CancellationToken cancellationToken)
@@ -359,16 +370,6 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
 
             return string.Join("/", segments.Select(Uri.EscapeDataString));
         }
-
-        /// <summary>
-        /// The id git gives a file with these bytes — what the contents API reports as a file's "sha".
-        /// </summary>
-        private static string BlobSha(byte[] bytes)
-        {
-            var header = Encoding.ASCII.GetBytes($"blob {bytes.Length}\0");
-            return Convert.ToHexStringLower(SHA1.HashData([.. header, .. bytes]));
-        }
-
         private static StringContent JsonContent(JObject body)
         {
             return new StringContent(body.ToString(), Encoding.UTF8, "application/json");
