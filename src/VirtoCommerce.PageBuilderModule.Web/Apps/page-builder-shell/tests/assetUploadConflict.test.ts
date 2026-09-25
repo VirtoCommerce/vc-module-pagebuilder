@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { AssetEntry } from "../src/modules/asset-library/types";
+import { createAssetReferenceDetails } from "../src/modules/asset-library/utilities/assetReferences";
 import {
   getAssetOverwriteMessageKey,
   normalizeAssetFileName,
@@ -198,6 +199,9 @@ function createDependencies(overrides: Partial<PrepareAssetUploadDependencies>):
     findAssetByName: async () => undefined,
     getReferences: async () => ({
       referencesCount: 2,
+      pageReferencesCount: 2,
+      sharedComponentReferencesCount: 0,
+      referenceSharedComponents: [],
       referencePages: [{ id: "page-1" }, { id: "page-2" }],
       usageKnown: true,
     }),
@@ -207,4 +211,40 @@ function createDependencies(overrides: Partial<PrepareAssetUploadDependencies>):
     getCollisionError: (fileName) => `${fileName} collides`,
     ...overrides,
   };
+}
+
+for (const includePage of [false, true]) {
+  test(`overwrite warning includes shared component usage with page usage: ${includePage}`, async () => {
+    const details = createAssetReferenceDetails([
+      {
+        assetUrl: existingEntry.relativeUrl,
+        referencesCount: includePage ? 2 : 1,
+        pageReferencesCount: includePage ? 1 : 0,
+        sharedComponentReferencesCount: 1,
+        pages: includePage ? [{ id: "page-1", name: "Homepage" }] : [],
+        sharedComponents: [{ id: "component-1", name: "Hero" }],
+      },
+    ]);
+    let confirmations = 0;
+    await prepareAssetUploadFiles(
+      [createFile("hero.jpg")],
+      folderUrl,
+      createDependencies({
+        findAssetByName: async () => existingEntry,
+        getReferences: async () => ({ ...details, usageKnown: true }),
+        requestDecision: async (conflict) => {
+          confirmations += 1;
+          assert.equal(conflict.usageKnown, true);
+          assert.equal(conflict.references.referencesCount, includePage ? 2 : 1);
+          assert.deepEqual(conflict.references.referenceSharedComponents, [{ id: "component-1", name: "Hero" }]);
+          assert.equal(
+            getAssetOverwriteMessageKey(conflict),
+            includePage ? "ASSET_LIBRARY.OVERWRITE.MESSAGE_USED_MANY" : "ASSET_LIBRARY.OVERWRITE.MESSAGE_USED_ONE",
+          );
+          return { action: "cancel" };
+        },
+      }),
+    );
+    assert.equal(confirmations, 1);
+  });
 }

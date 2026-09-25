@@ -6,6 +6,23 @@ namespace VirtoCommerce.PageBuilderModule.Core
     {
         public const string DefaultPageContent = "{ \"settings\": {}, \"content\": [] }";
 
+        public static class ContentProviders
+        {
+            /// <summary>
+            /// <see cref="VirtoCommerce.Pages.Core.ContentProviders.IPageContentProvider.ProviderName"/> of the Page Builder
+            /// content provider. Consumers (for example, the standalone preview in XCMS) select the provider by this name,
+            /// so it is a public contract and must not change.
+            /// </summary>
+            public const string PageBuilder = "PageBuilder";
+        }
+
+        public static class SharedComponents
+        {
+            public const string ReferenceType = "componentRef";
+            public const string ReferenceProperty = "componentRef";
+            public const int NameMaxLength = 128;
+        }
+
         public static class PageStatuses
         {
             public const string Draft = "Draft";
@@ -33,6 +50,10 @@ namespace VirtoCommerce.PageBuilderModule.Core
                 public const string Update = "builder:update";
                 public const string Delete = "builder:delete";
                 public const string Publish = "builder:publish";
+                public const string SharedComponentsRead = "builder:shared-components:read";
+                public const string SharedComponentsCreate = "builder:shared-components:create";
+                public const string SharedComponentsUpdate = "builder:shared-components:update";
+                public const string SharedComponentsDelete = "builder:shared-components:delete";
 
                 /// <summary>
                 /// Promoting a page to production. Deliberately separate from <see cref="Publish"/>: that
@@ -52,6 +73,10 @@ namespace VirtoCommerce.PageBuilderModule.Core
                     Delete,
                     Publish,
                     Promote,
+                    SharedComponentsRead,
+                    SharedComponentsCreate,
+                    SharedComponentsUpdate,
+                    SharedComponentsDelete,
                 ];
             }
         }

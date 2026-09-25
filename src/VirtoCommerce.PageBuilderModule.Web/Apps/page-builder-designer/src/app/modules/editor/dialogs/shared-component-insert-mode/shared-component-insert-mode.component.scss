@@ -1,0 +1,55 @@
+.insert-dialog {
+  @apply w-[34rem] max-w-full;
+}
+
+.dialog-title {
+  @apply text-lg font-semibold;
+}
+
+.description {
+  @apply mb-4 mt-1 text-sm text-gray-600;
+}
+
+.mode-options {
+  @apply space-y-3;
+}
+
+.mode-option {
+  @apply flex w-full cursor-pointer gap-3 rounded-lg border border-gray-300 bg-white p-4 text-left transition-colors hover:border-blue-300 hover:bg-blue-50;
+
+  &.disabled {
+    cursor: not-allowed;
+    opacity: .7;
+    pointer-events: none;
+  }
+
+  &.selected {
+    @apply border-blue-500 bg-blue-50 ring-1 ring-blue-500;
+  }
+
+  strong,
+  small {
+    @apply block;
+  }
+
+  strong {
+    @apply font-semibold text-gray-900;
+  }
+
+  small {
+    @apply mt-1 text-sm leading-5 text-gray-600;
+  }
+}
+
+.mode-input {
+  @apply mt-0.5 h-5 w-5 shrink-0 accent-blue-500;
+
+  &:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+  }
+}
+
+.dialog-actions {
+  @apply flex flex-row gap-2;
+}

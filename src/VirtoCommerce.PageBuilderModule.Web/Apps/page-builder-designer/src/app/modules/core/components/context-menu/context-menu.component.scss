@@ -8,7 +8,8 @@
 .panel {
     box-shadow: 0px 0px 2px rgba(0, 0, 0, 0.2), 0px 2px 10px rgba(0, 0, 0, 0.1);
     border-radius: .5rem;
-    @apply bg-white flex flex-col w-40;
+    @apply bg-white flex flex-col min-w-40 w-max;
+    max-width: calc(100vw - 2rem);
 
     li {
         padding: 0 1px;
@@ -43,6 +44,11 @@ app-icon {
     }
     span {
         color: $text-color;
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+    app-icon, .action-image {
+        flex-shrink: 0;
     }
     &.inactive {
         opacity: 0.5;

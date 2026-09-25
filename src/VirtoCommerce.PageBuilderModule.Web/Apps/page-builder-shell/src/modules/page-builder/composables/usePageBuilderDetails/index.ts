@@ -10,6 +10,7 @@ import useUserGroups, { IUserGroupsResult } from "./../useUserGroups";
 import useOrganizations, { IOrganizationsResult } from "./../useOrganizations";
 import useUrlParams from "../useStoreParams";
 import { downloadPageContent, uploadPageContent, PageExportData } from "../usePageContentApi";
+import { openPageDesigner } from "../../../../utilities/pageDesigner";
 
 const { getApiClient } = useApiClient(PageBuilderPageClient);
 
@@ -191,26 +192,12 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
   });
 
   function openDraftDesigner() {
-    // Get platform URL from env
-    const platformUrl: string = (
-      (import.meta.env.DEV && import.meta.env.APP_PLATFORM_URL) ||
-      globalThis.location.origin
-    ).replace(/\/$/, "");
-    const designerUrl = `${platformUrl}/Modules/$(VirtoCommerce.PageBuilderModule)/Content/page-builder-designer/index.html`;
-    const groupId = item.value?.id;
-    const pageStoreId = item.value?.storeId;
-    const cultureName = item.value?.cultureName;
-
-    if (groupId && pageStoreId) {
-      let url = `${designerUrl}?storeId=${pageStoreId}#/pages?type=pages&groupId=${groupId}`;
-      // Pass the page language so the designer preview renders in that language (VCST-5219).
-      if (cultureName) {
-        url += `&cultureName=${encodeURIComponent(cultureName)}`;
-      }
-      window.open(url, "_blank");
-    } else {
-      throw new Error("Can't open page.");
-    }
+    openPageDesigner({
+      groupId: item.value?.id,
+      storeId: item.value?.storeId,
+      cultureName: item.value?.cultureName,
+      status: item.value?.status,
+    });
   }
 
   async function loadUserGroupsAsync() {

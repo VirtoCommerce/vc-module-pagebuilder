@@ -5,9 +5,11 @@ import { Store } from '@ngrx/store';
 import { AppConfig } from '@integration/services';
 
 import { BuilderState } from '@editor/store/state';
+import { canEditSharedComponentOriginal } from '@editor/helpers';
 import * as actions from '@editor/store/actions';
 import * as selectors from '@editor/store/selectors';
 import { DefaultToolbarComponent } from '@shared/components/default-toolbar/default-toolbar.component';
+import * as routingSelectors from '@shared/routing/selectors';
 
 @Component({
     selector: 'app-toolbar-host',
@@ -34,11 +36,21 @@ export class ToolbarHostComponent {
             useExternalPreview: !!this.appConfig.getValue('externalPreview'),
             // pages kept in git have versions; a store on blob storage has none, and the server withholds
             // the descriptor for it
-            useHistory: !!this.appConfig.getValue('history')
+            useHistory: !!this.appConfig.getValue('history'),
+            canEditSharedComponents: canEditSharedComponentOriginal(this.appConfig),
         }
     )), { initialValue: null });
+    readonly sharedComponentId = toSignal(
+        this.store$.select(routingSelectors.selectSharedComponentIdParameter),
+        { initialValue: '' },
+    );
 
     onActionExecuted(action: string) {
+        if (action === 'save'
+            && this.sharedComponentId()
+            && !canEditSharedComponentOriginal(this.appConfig)) {
+            return;
+        }
         this.store$.dispatch(actions.executeToolbarAction({ action }));
     }
 

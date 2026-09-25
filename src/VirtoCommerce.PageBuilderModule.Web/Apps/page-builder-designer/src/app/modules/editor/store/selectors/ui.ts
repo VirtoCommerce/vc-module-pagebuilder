@@ -120,14 +120,32 @@ export const selectSectionsState = createSelector(
   }
 );
 
-const templateDataContext = createSelector(
-  fromData.selectCurrentTemplateModel,
+const templateSchemasContext = createSelector(
   fromData.selectSectionsSchemas,
   fromData.selectBlocksSchemas,
-  fromData.selectTemplateSettings,
   fromData.selectCurrentTemplateSettingsSchemas,
-  (template, sectionsSchemas, blocksSchemas, settings, settingsSchemas) => ({
-    template, sectionsSchemas, blocksSchemas, settings, settingsSchemas
+  (sectionsSchemas, blocksSchemas, settingsSchemas) => ({ sectionsSchemas, blocksSchemas, settingsSchemas })
+);
+
+const sharedComponentDataContext = createSelector(
+  fromData.selectSharedComponents,
+  fromData.selectSharedComponentErrors,
+  fromData.selectCurrentSharedComponent,
+  fromRoute.selectSharedComponentIdParameter,
+  (sharedComponents, sharedComponentErrors, currentSharedComponent, sharedComponentId) => ({
+    sharedComponents, sharedComponentErrors, currentSharedComponent,
+    sharedComponentId, isSharedComponentDocument: !!sharedComponentId,
+  })
+);
+
+const templateDataContext = createSelector(
+  fromData.selectCurrentTemplateModel,
+  fromData.selectTemplateSettings,
+  templateSchemasContext,
+  sharedComponentDataContext,
+  (template, settings, { sectionsSchemas, blocksSchemas, settingsSchemas }, sharedComponentContext) => ({
+    template, sectionsSchemas, blocksSchemas, settings, settingsSchemas,
+    ...sharedComponentContext,
   })
 );
 
@@ -139,10 +157,13 @@ export const editTemplateContext = createSelector(
   (templateState, dataContext, sectionsState, currentDragSection) => {
     const selectedSectionsCount = Object.values(sectionsState).filter(x => x.selected).length;
     const selectedBlocksCount = Object.values(sectionsState).reduce((acc, value) => acc + Object.values(value.blocks || {}).filter(x => x.selected).length, 0);
-    const { template, sectionsSchemas, blocksSchemas, settings, settingsSchemas } = dataContext;
+    const { template, sectionsSchemas, blocksSchemas, settings } = dataContext;
+    const settingsSchemas = dataContext.isSharedComponentDocument
+      ? { top: [], bottom: [] }
+      : dataContext.settingsSchemas;
     return template && sectionsSchemas && blocksSchemas
       ? {
-        template, templateState, sectionsState, sectionsSchemas, blocksSchemas, settings, settingsSchemas,
+        ...dataContext, template, templateState, sectionsState, sectionsSchemas, blocksSchemas, settings, settingsSchemas,
         selectedSectionsCount, selectedBlocksCount,
         currentDragSection,
         selectMode: selectedSectionsCount > 0 || selectedBlocksCount > 0
@@ -157,10 +178,12 @@ export const selectAddItemContext = createSelector(
   selectPreviewItemType,
   selectCurrentSectionsFilter,
   fromData.selectSectionModelFromRoute,
-  ({ groups, items }, states, previewItemType, filter, section) => ({
+  fromRoute.selectSharedComponentIdParameter,
+  ({ groups, items }, states, previewItemType, filter, section, sharedComponentId) => ({
     groups,
     items,
     parentSection: section,
+    isSharedComponentDocument: !!sharedComponentId,
     states: {
       groups: groups.reduce((acc, value) => ({
         ...acc,
@@ -217,8 +240,9 @@ export const selectEditSectionContext = createSelector(
   fromData.selectCurrentTemplateModel,
   fromData.selectObjectsSchemas,
   isEditSettings,
-  (sectionContext, blockContext, { model, schema }, template, objects, isSettings) =>
-    !!schema && !!model
+  fromRoute.selectSharedComponentIdParameter,
+  (sectionContext, blockContext, { model, schema }, template, objects, isSettings, sharedComponentId) =>
+    !!schema && !!model && !(isSettings && sharedComponentId)
       ? <any>{
         section: sectionContext.section,
         sectionSchema: sectionContext.sectionSchema,
@@ -272,6 +296,7 @@ interface ToolbarContext {
   useExternalPreview: boolean;
   useHistory?: boolean;
   usePromote?: boolean;
+  canEditSharedComponents?: boolean;
 }
 
 /** The part of the open page's state the publishing buttons read. */
@@ -368,9 +393,12 @@ export const selectToolbarButtonsState = (context: ToolbarContext) => createSele
   // fromDomain.selectCurrentTemplateState,
   fromShared.hasDirty,
   fromDomain.selectCurrentTemplateState,
-  (hasDirty, state) => {
+  fromRoute.selectSharedComponentIdParameter,
+  fromShared.selectCurrentTemplateDirty,
+  (hasDirty, state, sharedComponentId, currentTemplateDirty) => {
+    const effectiveDirty = sharedComponentId ? currentTemplateDirty : hasDirty;
     const result = <ActionButtonDescriptor[][]>[];
-    if (context.useTheme) {
+    if (context.useTheme && !sharedComponentId) {
       result.push([
         {
           icon: 'settings',
@@ -381,10 +409,10 @@ export const selectToolbarButtonsState = (context: ToolbarContext) => createSele
       ]);
     }
 
-    if (context.useExternalPreview) {
+    if (context.useExternalPreview && !sharedComponentId) {
       result.push([
         {
-          canAction: !hasDirty,
+          canAction: !effectiveDirty,
           icon: 'visibility',
           alias: 'external-preview',
           title: 'Preview',
@@ -397,7 +425,7 @@ export const selectToolbarButtonsState = (context: ToolbarContext) => createSele
     // "history" descriptor. The count is of unpublished versions that are neither mine nor bulk imports:
     // it means "somebody else has work here that production does not have", which is the case this whole
     // feature exists for — an edit made outside the builder used to be invisible until it was published.
-    if (context.useHistory) {
+    if (context.useHistory && !sharedComponentId) {
       const otherDrafts = state?.history?.otherDraftCount ?? 0;
       result.push([
         {
@@ -409,8 +437,8 @@ export const selectToolbarButtonsState = (context: ToolbarContext) => createSele
       ]);
     }
 
-    if (context.useDrafts && !state?.isLoading && !state?.error) {
-      result.push(buildPublishingButtons(context, state, hasDirty));
+    if (context.useDrafts && !sharedComponentId && !state?.isLoading && !state?.error) {
+      result.push(buildPublishingButtons(context, state, effectiveDirty));
     }
 
     // [
@@ -435,7 +463,7 @@ export const selectToolbarButtonsState = (context: ToolbarContext) => createSele
 
     result.push([
       {
-        canAction: hasDirty,
+        canAction: effectiveDirty && (!sharedComponentId || context.canEditSharedComponents === true),
         title: 'Save',
         alias: 'save',
         type: 'primary'
