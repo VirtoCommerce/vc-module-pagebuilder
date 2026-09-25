@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "from": "1.2.4-beta.8",
+  "to": "2.0.3",
+  "completedAt": "2026-05-01",
+  "topics": {
+    "nswag-class-to-interface": {
+      "status": "completed",
+      "files": [
+        "src/modules/page-builder/composables/usePageBuilderDetails/index.ts",
+        "src/modules/page-builder/composables/usePageBuilderList/index.ts"
+      ]
+    },
+    "use-blade-form": {
+      "status": "completed",
+      "files": [
+        "src/modules/page-builder/composables/usePageBuilderDetails/index.ts",
+        "src/modules/page-builder/pages/PageDetails.vue"
+      ]
+    },
+    "blade-props-simplification": {
+      "status": "completed",
+      "files": [
+        "src/modules/page-builder/components/pagesList.vue",
+        "src/modules/page-builder/pages/ActivePagesList.vue",
+        "src/modules/page-builder/pages/AllPagesList.vue",
+        "src/modules/page-builder/pages/ArchivedPagesList.vue",
+        "src/modules/page-builder/pages/DraftPagesList.vue",
+        "src/modules/page-builder/pages/PendingPagesList.vue"
+      ]
+    },
+    "vctable-audit": {
+      "status": "completed",
+      "files": ["src/modules/page-builder/components/pagesList.vue"]
+    },
+    "use-data-table-pagination-audit": {
+      "status": "completed",
+      "files": [
+        "src/modules/page-builder/composables/usePageBuilderList/index.ts",
+        "src/modules/page-builder/components/pagesList.vue"
+      ]
+    },
+    "icon-audit": {
+      "status": "completed",
+      "files": [
+        "src/modules/page-builder/composables/usePagesListToolbar/index.ts",
+        "src/modules/page-builder/pages/ActivePagesList.vue",
+        "src/modules/page-builder/pages/AllPagesList.vue",
+        "src/modules/page-builder/pages/ArchivedPagesList.vue",
+        "src/modules/page-builder/pages/DraftPagesList.vue",
+        "src/modules/page-builder/pages/PageDetails.vue",
+        "src/modules/page-builder/pages/PendingPagesList.vue"
+      ]
+    }
+  },
+  "postMigrationFixes": [
+    "Switched useOrganizations and useUserGroups to PageBuilderPageSettingsClient (methods relocated by Interface-style regeneration)",
+    "Replaced legacy <Type>(<unknown>x) prefix cast in usePagesListToolbar with (x as unknown as Type)"
+  ],
+  "verification": {
+    "typeCheck": "pass",
+    "build": "pass"
+  }
+}

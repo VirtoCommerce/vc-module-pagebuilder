@@ -1,6 +1,7 @@
 import { SchemasList } from './../../models/schemas.model';
 import { validateItemUnderEdit, useSchemasAction } from './../actions/data';
 import { ModalService } from '@core/services';
+import { ConfirmComponent } from '@core/dialogs';
 import { Injectable, inject } from "@angular/core";
 
 import { defer, forkJoin, of } from "rxjs";
@@ -12,6 +13,7 @@ import { Actions, createEffect, ofType } from "@ngrx/effects";
 import { RouterStateUrl } from '@shared/routing';
 
 import { SaveTemplateComponent } from '@shared/dialogs';
+import { PageHistoryComponent } from '@editor/dialogs';
 
 import { BuilderState } from "../state";
 import { canEditSharedComponentOriginal, helpers as editorHelpers } from '@editor/helpers';
@@ -25,9 +27,28 @@ import * as fromShared from '@shared/store/selectors';
 
 import { EditorModuleInfo } from "@models/modules";
 
-import { SharedComponentsService, SchemasService, TemplatesService } from "@editor/services";
+import { PublishStatus, SharedComponentsService, SchemasService, TemplatesService } from "@editor/services";
 import { SharedComponent } from '@editor/models';
 import { AppConfig } from '@integration/services';
+import { TemplateEntry } from '@shared/models';
+
+/** What a toolbar action needs to know about the open page — the shape selectRunActionContext answers with. */
+interface RunActionContext {
+    templateKey: string;
+    entry: TemplateEntry;
+    path: string;
+    type: string;
+    groupId: string;
+}
+
+/**
+ * A refused publish with a way out: dev changed the same page since this draft began, git cannot
+ * merge the two, and the server says the draft may be published on top of the current page instead.
+ * Duck-typed on purpose — an HttpErrorResponse carries the body as `error`, and a test can throw a
+ * plain object shaped the same way.
+ */
+const isConflictWithAWayOut = (error: any): boolean =>
+    error?.status === 409 && !!error?.error?.canRebase;
 
 @Injectable({
     providedIn: 'root'
@@ -260,8 +281,8 @@ export class TemplateEditorDataEffects {
         ),
         filter(([, , , , , sharedComponentId]) => !sharedComponentId),
         switchMap(([{ templateKey }, entry, path, type, groupId]) => this.templates.getTemplatePublishStatus(path, type, entry || {}, groupId).pipe(
-            filter(status => !!status),
-            map(({ hasChanges, published }) => actions.getTemplatePublishStatusSuccess({ templateKey, hasChanges, published })),
+            filter((status): status is PublishStatus => !!status),
+            map(({ hasChanges, published, pending, awaitingMerge, production }) => actions.getTemplatePublishStatusSuccess({ templateKey, hasChanges, published, pending, awaitingMerge, production })),
             catchError(error => of(actions.getTemplatePublishStatusFails({ error, templateKey })))
         ))
     ));
@@ -273,13 +294,29 @@ export class TemplateEditorDataEffects {
         withLatestFrom(
             this.store$.select(selectors.selectRunActionContext),
         ),
-        switchMap(([, { templateKey, entry, path, type, groupId }]) => this.templates.publishTemplate(path, type, entry, groupId).pipe(
-            switchMap(() => [
-                actions.getTemplatePublishStatusSuccess({ templateKey, hasChanges: false, published: true }),
+        // Ask the server what happened instead of assuming it went well. Publishing a page can end up
+        // waiting on a CI check, or refuse outright because the page changed in production while this
+        // draft was being written — reporting "published" for either would send the editor away
+        // believing the page is live.
+        switchMap(([, context]) => this.publish(context).pipe(
+            catchError(error => isConflictWithAWayOut(error)
+                ? this.offerToPublishOverTheConflict(context, error)
+                : of(actions.getTemplatePublishStatusFails({ error, templateKey: context.templateKey })))
+        ))
+    ));
+
+    /** Publish, then ask the server where the page stands — one pipeline for the first attempt and for the retry over a conflict. */
+    private publish(context: RunActionContext, options: { rebase?: boolean } = {}) {
+        const { templateKey, entry, path, type, groupId } = context;
+        return this.templates.publishTemplate(path, type, entry, groupId, options).pipe(
+            switchMap(() => this.templates.getTemplatePublishStatus(path, type, entry, groupId)),
+            filter((status): status is PublishStatus => !!status),
+            switchMap(({ hasChanges, published, pending, awaitingMerge, production }) => [
+                actions.getTemplatePublishStatusSuccess({ templateKey, hasChanges, published, pending, awaitingMerge, production }),
                 shared.broadcastPlatformMessage({
                     msg: {
-                        hasChanges: false,
-                        published: true,
+                        hasChanges,
+                        published,
                         source: 'builder',
                         relativeUrl: path,
                         contentType: type,
@@ -287,8 +324,48 @@ export class TemplateEditorDataEffects {
                     }
                 }),
             ]),
-        ))
-    ));
+        );
+    }
+
+    /**
+     * The conflict used to be a dead end: every Publish reused the same pull request and met the same
+     * refusal, and restoring a version committed onto the same branch. The server now offers to
+     * publish the draft on top of the current page — which replaces somebody's edit, so it is asked
+     * for in so many words and never done by default. Declining publishes nothing and says so.
+     */
+    private offerToPublishOverTheConflict(context: RunActionContext, error: any) {
+        const { templateKey } = context;
+        const reason = error?.error?.error ?? 'The page changed while this draft was being written.';
+
+        return this.modals.show<boolean>(ConfirmComponent, {
+            data: {
+                title: `${reason} Publish your version of the page anyway?`,
+                icon: 'error',
+                confirmText: 'Publish my version',
+                declineText: 'Cancel',
+            },
+            panelClass: 'confirm-dialog',
+        }).pipe(
+            switchMap(confirmed => confirmed
+                ? this.publish(context, { rebase: true }).pipe(
+                    catchError(retryError => of(
+                        actions.getTemplatePublishStatusFails({ error: retryError, templateKey }),
+                        shared.showNotification({
+                            message: `Could not publish: ${retryError?.error?.error ?? retryError?.message ?? 'request failed'}`,
+                            msgType: 'error',
+                            top: true,
+                        }),
+                    )))
+                : of(
+                    actions.getTemplatePublishStatusFails({ error, templateKey }),
+                    shared.showNotification({
+                        message: 'Nothing was published. Reload the page to see what changed, then apply your edit again.',
+                        msgType: 'info',
+                        top: true,
+                    }),
+                )),
+        );
+    }
 
     unpublishTemplate$ = createEffect(() => this.actions$.pipe(
         ofType(actions.executeToolbarAction),
@@ -297,12 +374,14 @@ export class TemplateEditorDataEffects {
             this.store$.select(selectors.selectRunActionContext),
         ),
         switchMap(([, { templateKey, entry, path, type, groupId }]) => this.templates.unpublishTemplate(path, type, entry, groupId).pipe(
-            switchMap(() => [
-                actions.getTemplatePublishStatusSuccess({ templateKey, hasChanges: true, published: false }),
+            switchMap(() => this.templates.getTemplatePublishStatus(path, type, entry, groupId)),
+            filter((status): status is PublishStatus => !!status),
+            switchMap(({ hasChanges, published, pending, awaitingMerge, production }) => [
+                actions.getTemplatePublishStatusSuccess({ templateKey, hasChanges, published, pending, awaitingMerge, production }),
                 shared.broadcastPlatformMessage({
                     msg: {
-                        hasChanges: true,
-                        published: false,
+                        hasChanges,
+                        published,
                         source: 'builder',
                         relativeUrl: path,
                         contentType: type,
@@ -310,6 +389,27 @@ export class TemplateEditorDataEffects {
                     }
                 }),
             ]),
+            catchError(error => of(actions.getTemplatePublishStatusFails({ error, templateKey })))
+        ))
+    ));
+
+    // The second step. It ships like a publish — a commit, then a merge that can land straight
+    // away or wait on CI checks — so the state comes from the server afterwards rather than from
+    // an assumption that production is now up to date.
+    promoteTemplate$ = createEffect(() => this.actions$.pipe(
+        ofType(actions.executeToolbarAction),
+        filter(({ action }) => action === 'promote'),
+        withLatestFrom(
+            this.store$.select(selectors.selectRunActionContext),
+        ),
+        switchMap(([, { templateKey, entry, path, type, groupId }]) => this.templates.promoteTemplate(path, type, entry, groupId).pipe(
+            switchMap(() => this.templates.getTemplatePublishStatus(path, type, entry, groupId)),
+            filter((status): status is PublishStatus => !!status),
+            map(({ hasChanges, published, pending, awaitingMerge, production }) =>
+                actions.getTemplatePublishStatusSuccess({ templateKey, hasChanges, published, pending, awaitingMerge, production })),
+            // No platform broadcast here: promotion does not change whether the page is published
+            // or has changes, which is all the admin blade listens for on that channel.
+            catchError(error => of(actions.getTemplatePublishStatusFails({ error, templateKey })))
         ))
     ));
 
@@ -458,6 +558,79 @@ export class TemplateEditorDataEffects {
         })
     ));
 
+
+    // One request per opened page, so the toolbar can say that unpublished versions exist somewhere —
+    // the case this feature exists for is an edit made outside the builder that used to stay invisible
+    // until it was published. The versions themselves are only read when the panel is opened.
+    loadPageHistoryWithTemplate$ = createEffect(() => this.actions$.pipe(
+        ofType(actions.loadTemplateModelSuccess),
+        map(({ templateKey }) => actions.loadPageHistory({ templateKey }))
+    ));
+
+    loadPageHistory$ = createEffect(() => this.actions$.pipe(
+        ofType(actions.loadPageHistory),
+        withLatestFrom(
+            this.store$.select(fromShared.selectCurrentTemplateEntry),
+            this.store$.select(fromRoute.selectPathParameter),
+            this.store$.select(fromRoute.selectTypeParameter),
+            this.store$.select(fromRoute.selectGroupIdParameter),
+        ),
+        switchMap(([{ templateKey, after }, entry, path, type, groupId]) => this.templates.getPageHistory(path, type, entry || {}, groupId, after).pipe(
+            // no descriptor, no history: a store outside the git flow keeps no versions, and that is an
+            // answer rather than an error
+            filter(history => !!history),
+            map(history => actions.loadPageHistorySuccess({ templateKey, history: history!, after })),
+            catchError(error => of(actions.loadPageHistoryFails({ error, templateKey })))
+        ))
+    ));
+
+    openPageHistory$ = createEffect(() => this.actions$.pipe(
+        ofType(actions.executeToolbarAction),
+        filter(({ action }) => action === 'history'),
+        withLatestFrom(this.store$.select(fromRoute.selectTemplateKeyParameter)),
+        switchMap(([, templateKey]) => [
+            // reloaded on every open: somebody else may have pushed a version since the page was opened
+            actions.loadPageHistory({ templateKey }),
+            actions.showPageHistoryPanel({ templateKey }),
+        ])
+    ));
+
+    showPageHistoryPanel$ = createEffect(() => this.actions$.pipe(
+        ofType(actions.showPageHistoryPanel),
+        exhaustMap(({ templateKey }) => this.modals.show<void>(PageHistoryComponent, {
+            data: { templateKey },
+            panelClass: 'page-history-dialog',
+            autoFocus: false,
+        })),
+        map(() => shared.empty())
+    ));
+
+    previewVersion$ = createEffect(() => this.actions$.pipe(
+        ofType(actions.previewVersion),
+        withLatestFrom(this.store$.select(selectors.selectRunActionContext)),
+        tap(([{ sha }, { entry, path, type, groupId }]) => this.templates.previewVersion(path, type, entry, groupId, sha))
+    ), { dispatch: false });
+
+    restoreVersion$ = createEffect(() => this.actions$.pipe(
+        ofType(actions.restoreVersion),
+        withLatestFrom(this.store$.select(selectors.selectRunActionContext)),
+        // The restore appends a commit to my own branch, so afterwards the editor has to be shown what it
+        // now holds: the page is re-read, the publish status recomputed, and the version list reloaded so
+        // the restore itself appears in it.
+        switchMap(([{ templateKey, sha }, { entry, path, type, groupId }]) => this.templates.restoreVersion(path, type, entry, groupId, sha).pipe(
+            switchMap(result => [
+                actions.restoreVersionSuccess({ templateKey, sha, branch: result?.branch ?? '', commitSha: result?.commitSha ?? '' }),
+                actions.reloadTemplateModel({ templateKey }),
+                actions.getTemplatePublishStatus({ templateKey }),
+                actions.loadPageHistory({ templateKey }),
+                shared.showNotification({ message: `Continuing from version ${sha.substring(0, 7)}`, msgType: 'success', top: true }),
+            ]),
+            catchError(error => of(
+                actions.restoreVersionFails({ error, templateKey, sha }),
+                shared.showNotification({ message: `Could not continue from ${sha.substring(0, 7)}: ${error?.message ?? 'request failed'}`, msgType: 'error', top: true })
+            ))
+        ))
+    ));
 
     resetTemplate$ = createEffect(() => this.actions$.pipe(
         ofType(actions.executeContextMenuAction),

@@ -24,6 +24,7 @@ Page Builder offers the following benefits:
 ## Key features
 - Visual landing page creation without developer involvement.
 - Theme editor for easy styling adjustments.
+- Page version history with preview and one-click rollback, for stores whose pages are kept in git.
 - eCommerce-focused page customization with real-time previews.
 - Mobile responsiveness built in by default.
 - SEO-friendly page structures.
