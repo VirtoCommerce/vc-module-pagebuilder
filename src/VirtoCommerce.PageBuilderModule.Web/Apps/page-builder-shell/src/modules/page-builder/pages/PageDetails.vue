@@ -46,6 +46,7 @@
                 <template #prepend-inner>
                   <div
                        v-if="storeUrl"
+                       data-test-id="permalink-prefix"
                        class="permalink-prefix tw-self-stretch tw-flex tw-items-center tw-text-sm">
                     {{ storeUrl }}
                   </div>
