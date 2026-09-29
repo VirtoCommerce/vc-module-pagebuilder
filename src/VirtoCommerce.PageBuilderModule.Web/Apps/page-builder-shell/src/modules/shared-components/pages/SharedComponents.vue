@@ -109,9 +109,9 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, nextTick, onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import { useBlade, usePermissions, type IBladeToolbar } from "@vc-shell/framework";
+import { focusFallbackTarget, focusIfLoose, useBlade, usePermissions, type IBladeToolbar } from "@vc-shell/framework";
 import { VcBlade, VcButton, VcHint, VcIcon } from "@vc-shell/framework/ui";
 import { SharedComponentDetails, SharedComponentsTable, RenameSharedComponentPopup } from "../components";
 import { useSharedComponentActions, useSharedComponents } from "../composables";
@@ -210,16 +210,14 @@ function clearDetailsSelection() {
   detailsReturnFocusTo = null;
   detailsReturnFocusIndex = null;
   clearSelection();
-  void nextTick(() => {
-    if (document.activeElement === document.body) {
-      const rows = document.querySelectorAll<HTMLElement>('[role="row"][tabindex], .vc-data-table-mobile-card');
-      const fallback = rows[returnFocusIndex ?? 0];
-      const target = returnFocusTo?.isConnected ? returnFocusTo : fallback;
-      if (target?.matches(".vc-data-table-mobile-card") && !target.hasAttribute("tabindex")) {
-        target.tabIndex = -1;
-      }
-      target?.focus({ preventScroll: true });
+  focusIfLoose(() => {
+    const rows = document.querySelectorAll<HTMLElement>('[role="row"][tabindex], .vc-data-table-mobile-card');
+    const fallback = rows[returnFocusIndex ?? 0] ?? focusFallbackTarget();
+    const target = returnFocusTo?.isConnected ? returnFocusTo : fallback;
+    if (target?.matches(".vc-data-table-mobile-card") && !target.hasAttribute("tabindex")) {
+      target.tabIndex = -1;
     }
+    return target;
   });
 }
 
@@ -247,11 +245,7 @@ function closeRenamePopup() {
   renameReturnFocusTo = null;
   clearRenameError();
   renameTarget.value = undefined;
-  void nextTick(() => {
-    if (returnFocusTo?.isConnected && document.activeElement === document.body) {
-      returnFocusTo.focus();
-    }
-  });
+  focusIfLoose(() => (returnFocusTo?.isConnected ? returnFocusTo : focusFallbackTarget()));
 }
 
 function clearRenameError() {

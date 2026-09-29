@@ -15,7 +15,7 @@ export class CollapsibleListItemComponent {
     readonly expandable = input(false);
     readonly hovered = input(false);
     readonly highlight = input(false);
-    readonly accessibleLabel = input('section');
+    readonly accessibleLabel = input('item');
 
     readonly openChanged = output<boolean>();
 

@@ -1,7 +1,7 @@
 <div class="item-holder" [ngClass]="{ 'hovered': hovered(), 'highlighted': highlight() }">
   <button type="button" [style.visibility]="expandable() ? 'visible' : 'hidden'"
     [disabled]="!expandable()" [attr.aria-expanded]="opened()"
-    [attr.aria-label]="(opened() ? 'Collapse ' : 'Expand ') + accessibleLabel()"
+    [attr.aria-label]="'Toggle ' + accessibleLabel()"
     (click)="onChevronClick()">
     <app-chevron aria-hidden="true" [opened]="opened()" />
   </button>

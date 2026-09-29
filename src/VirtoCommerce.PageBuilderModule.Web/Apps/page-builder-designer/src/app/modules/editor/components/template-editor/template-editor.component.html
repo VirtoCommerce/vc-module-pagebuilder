@@ -86,7 +86,7 @@
         }
         @for (section of vm.template!.content; track section.id; let index = $index) {
           <app-collapsible-list-item [expandable]="vm.sectionsState[section.id]?.canHaveChildren || false"
-            [accessibleLabel]="vm.sectionsSchemas[section.type]?.name || 'section'"
+            [accessibleLabel]="getSectionLabel(section, vm.sectionsSchemas[section.type])"
             [opened]="vm.sectionsState[section.id]?.expanded || false"
             [hovered]="hoveredSectionId() === section.id"
             [highlight]="vm.sectionsState[section.id]?.selected || false"

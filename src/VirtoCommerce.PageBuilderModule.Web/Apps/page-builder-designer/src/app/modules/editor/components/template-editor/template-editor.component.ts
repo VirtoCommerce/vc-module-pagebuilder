@@ -30,7 +30,7 @@ import * as actions from '@editor/store/actions';
 import * as routingSelectors from '@shared/routing/selectors';
 import { BlockState } from '../../models';
 import { domHelpers } from '@core/helpers';
-import { getKeyboardReorderIndices } from '@editor/helpers/editor.helpers';
+import { getKeyboardReorderIndices, getSectionName } from '@editor/helpers/editor.helpers';
 
 @Component({
     selector: 'app-template-editor',
@@ -61,6 +61,10 @@ export class TemplateEditorComponent {
 
     canMutate(): boolean {
         return !this.isReadOnly();
+    }
+
+    getSectionLabel(section: SectionModel, schema?: SectionSchema): string {
+        return getSectionName(section, schema ?? null, 'section');
     }
 
     readonly moveAnnouncement = signal('');
