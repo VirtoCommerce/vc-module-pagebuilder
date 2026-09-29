@@ -52,16 +52,16 @@ export class SectionChildrenListComponent {
         if (selectedIndexes.length && !selectedIndexes.includes(previousIndex)) {
             return;
         }
-        const anchor = selectedIndexes.length
-            ? (offset < 0 ? selectedIndexes[0] : selectedIndexes[selectedIndexes.length - 1])
-            : previousIndex;
+        const selectedAnchor = offset < 0 ? selectedIndexes[0] : selectedIndexes[selectedIndexes.length - 1];
+        const anchor = selectedIndexes.length ? selectedAnchor : previousIndex;
         const currentIndex = anchor + offset;
         if (this.readOnly() || currentIndex < 0 || currentIndex >= blocks.length) {
             return;
         }
         this.reorderBlocks.emit({ item: blocks[previousIndex], currentIndex, previousIndex, parent: this.section() });
+        const direction = offset < 0 ? 'up' : 'down';
         this.moveAnnouncement.set(selectedIndexes.length > 1
-            ? `Selected blocks moved ${offset < 0 ? 'up' : 'down'}`
+            ? `Selected blocks moved ${direction}`
             : `Block moved to position ${currentIndex + 1} of ${blocks.length}`);
     }
 

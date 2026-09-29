@@ -209,16 +209,16 @@ export class TemplateEditorComponent {
         if (selectedIndexes.length && !selectedIndexes.includes(previousIndex)) {
             return;
         }
-        const anchor = selectedIndexes.length
-            ? (offset < 0 ? selectedIndexes[0] : selectedIndexes[selectedIndexes.length - 1])
-            : previousIndex;
+        const selectedAnchor = offset < 0 ? selectedIndexes[0] : selectedIndexes[selectedIndexes.length - 1];
+        const anchor = selectedIndexes.length ? selectedAnchor : previousIndex;
         const currentIndex = anchor + offset;
         if (!this.canMutate() || currentIndex < 0 || currentIndex >= content.length) {
             return;
         }
         this.store.dispatch(actions.sortItems({ options: { item: content[previousIndex], previousIndex, currentIndex } }));
+        const direction = offset < 0 ? 'up' : 'down';
         this.moveAnnouncement.set(selectedIndexes.length > 1
-            ? `Selected sections moved ${offset < 0 ? 'up' : 'down'}`
+            ? `Selected sections moved ${direction}`
             : `Section moved to position ${currentIndex + 1} of ${content.length}`);
     }
 }
