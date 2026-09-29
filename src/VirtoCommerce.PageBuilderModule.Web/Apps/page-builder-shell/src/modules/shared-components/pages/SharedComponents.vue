@@ -2,7 +2,7 @@
   <VcBlade
     width="100%"
     :title="bladeTitle"
-    :toolbar-items="bladeToolbar"
+    :toolbar-items="selectedComponent ? [] : bladeToolbar"
   >
     <div
       class="tw-flex tw-h-full tw-flex-col tw-bg-[color:var(--neutrals-50)] tw-text-sm tw-text-[color:var(--neutrals-800)]"
@@ -30,7 +30,7 @@
       >
         <section
           class="tw-flex tw-min-h-0 tw-grow tw-basis-0 tw-flex-col"
-          @click.self="clearSelection"
+          @click.self="clearDetailsSelection"
         >
           <div
             v-if="loadError"
@@ -87,7 +87,7 @@
           :can-open-designer="canOpenDesigner"
           :loading="loading"
           :details-loading="detailsLoading"
-          @close="clearSelection"
+          @close="clearDetailsSelection"
           @rename="openRenamePopup"
           @delete="handleDelete"
           @open-designer="openUsagePageDesigner"
@@ -136,6 +136,8 @@ const { t } = useI18n({ useScope: "global" });
 const { hasAccess } = usePermissions();
 const renameTarget = ref<SharedComponent>();
 let renameReturnFocusTo: HTMLElement | null = null;
+let detailsReturnFocusTo: HTMLElement | null = null;
+let detailsReturnFocusIndex: number | null = null;
 const renameError = ref<string>();
 
 const {
@@ -164,13 +166,19 @@ const bladeTitle = computed(() => t("SHARED_COMPONENTS.TITLE"));
 const isStoreContextReady = computed(() => storeContextStatus.value === "ready");
 const isStoreContextInvalid = computed(() => ["missing", "notFound", "error"].includes(storeContextStatus.value));
 const contentLoading = computed(() => loading.value || ["idle", "loading"].includes(storeContextStatus.value));
-const bladeToolbar = computed((): IBladeToolbar[] => loadError.value ? [] : [{
-  id: "refresh",
-  title: t("SHARED_COMPONENTS.TOOLBAR.REFRESH"),
-  icon: "lucide-refresh-cw",
-  disabled: contentLoading.value,
-  clickHandler: reloadContent,
-}]);
+const bladeToolbar = computed((): IBladeToolbar[] =>
+  loadError.value
+    ? []
+    : [
+        {
+          id: "refresh",
+          title: t("SHARED_COMPONENTS.TOOLBAR.REFRESH"),
+          icon: "lucide-refresh-cw",
+          disabled: contentLoading.value,
+          clickHandler: reloadContent,
+        },
+      ],
+);
 const canUpdate = computed(() => hasAccess("builder:shared-components:update") && isStoreContextReady.value);
 const canDelete = computed(() => hasAccess("builder:shared-components:delete") && isStoreContextReady.value);
 const canOpenDesigner = computed(
@@ -193,7 +201,26 @@ function closeDetails(event: KeyboardEvent) {
   }
   event.preventDefault();
   event.stopPropagation();
+  clearDetailsSelection();
+}
+
+function clearDetailsSelection() {
+  const returnFocusTo = detailsReturnFocusTo;
+  const returnFocusIndex = detailsReturnFocusIndex;
+  detailsReturnFocusTo = null;
+  detailsReturnFocusIndex = null;
   clearSelection();
+  void nextTick(() => {
+    if (document.activeElement === document.body) {
+      const rows = document.querySelectorAll<HTMLElement>('[role="row"][tabindex], .vc-data-table-mobile-card');
+      const fallback = rows[returnFocusIndex ?? 0];
+      const target = returnFocusTo?.isConnected ? returnFocusTo : fallback;
+      if (target?.matches(".vc-data-table-mobile-card") && !target.hasAttribute("tabindex")) {
+        target.tabIndex = -1;
+      }
+      target?.focus({ preventScroll: true });
+    }
+  });
 }
 
 const { notifyError, rename, confirmDelete } = useSharedComponentActions({
@@ -247,7 +274,9 @@ async function handleRename(name: string) {
   renameError.value = result.errorMessage;
 }
 
-async function handleSelect(component: SharedComponent) {
+async function handleSelect(component: SharedComponent, opener: HTMLElement | null, index: number) {
+  detailsReturnFocusTo = opener;
+  detailsReturnFocusIndex = index;
   try {
     await selectComponent(component);
   } catch (error) {

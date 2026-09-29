@@ -143,7 +143,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, onBeforeUnmount, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { VcButton, VcHint, VcIcon, VcSkeleton } from "@vc-shell/framework/ui";
 import type { SharedComponent, SharedComponentUsagePage } from "../types";
@@ -169,17 +169,8 @@ const props = defineProps<Props>();
 defineEmits<Emits>();
 
 const detailsElement = ref<HTMLElement>();
-let returnFocusTo: HTMLElement | null = null;
-
 onMounted(() => {
-  returnFocusTo = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   detailsElement.value?.focus({ preventScroll: true });
-});
-
-onBeforeUnmount(() => {
-  if (detailsElement.value?.contains(document.activeElement) && returnFocusTo?.isConnected) {
-    returnFocusTo.focus({ preventScroll: true });
-  }
 });
 
 const { t, locale } = useI18n({ useScope: "global" });

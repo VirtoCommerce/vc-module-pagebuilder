@@ -14,7 +14,7 @@
     :not-found-state="notFoundState"
     :show-all-columns="true"
     state-key="page_builder_shared_components"
-    @row-click="$emit('select', $event.data)"
+    @row-click="onRowClick"
     @search="$emit('search', $event || undefined)"
     @pagination-click="$emit('page-change', $event)"
     @click.stop
@@ -75,7 +75,7 @@ interface Props {
 }
 
 interface Emits {
-  (event: "select", component: SharedComponent): void;
+  (event: "select", component: SharedComponent, opener: HTMLElement | null, index: number): void;
   (event: "search", keyword?: string): void;
   (event: "page-change", page: number): void;
   (event: "rename", component: SharedComponent): void;
@@ -85,6 +85,18 @@ interface Emits {
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 const { t } = useI18n({ useScope: "global" });
+function onRowClick(event: { data: SharedComponent; index: number; originalEvent: Event }) {
+  const target = event.originalEvent.target;
+  const activeElement = document.activeElement;
+  let opener =
+    target instanceof Element
+      ? target.closest<HTMLElement>('[role="row"][tabindex], .vc-data-table-mobile-card')
+      : null;
+  if (!opener && activeElement instanceof HTMLElement && activeElement.matches('[role="row"][tabindex]')) {
+    opener = activeElement;
+  }
+  emit("select", event.data, opener, event.index);
+}
 
 const emptyState = computed(() => ({
   icon: "lucide-blocks",
