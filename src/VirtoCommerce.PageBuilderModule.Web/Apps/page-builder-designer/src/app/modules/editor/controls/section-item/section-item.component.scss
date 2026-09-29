@@ -1,5 +1,5 @@
 .section-item {
-    @apply flex flex-row items-center space-x-1 w-full cursor-pointer;
+    @apply flex flex-row items-center space-x-1 w-full;
     &.hidden {
         opacity: 0.5;
     }
@@ -9,7 +9,7 @@
 }
 
 .section-item-leading {
-  @apply relative w-6 h-6 shrink-0;
+  @apply relative w-6 h-6 shrink-0 cursor-pointer;
 
   app-icon {
     @apply absolute inset-0;
@@ -37,6 +37,10 @@
 
 .section-edit-button {
   @apply flex grow min-w-0 items-center gap-1 text-left rounded;
+
+  &:not(:disabled) {
+    @apply cursor-pointer;
+  }
 }
 
 .shared-component-badge {
