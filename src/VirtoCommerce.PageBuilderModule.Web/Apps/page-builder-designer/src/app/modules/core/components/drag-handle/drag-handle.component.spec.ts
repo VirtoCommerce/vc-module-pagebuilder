@@ -5,6 +5,7 @@ describe('DragHandleComponent keyboard movement', () => {
   it('moves with arrow keys, prevents scrolling and respects read-only access', async () => {
     const fixture = TestBed.createComponent(DragHandleComponent);
     fixture.componentRef.setInput('info', 'Move Text');
+    fixture.componentRef.setInput('keyboardMove', true);
     await fixture.whenStable();
     const move = vi.fn();
     fixture.componentInstance.move.subscribe(move);

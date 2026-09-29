@@ -1,7 +1,7 @@
 import { CdkConnectedOverlay, CdkOverlayOrigin, ConnectedPosition } from '@angular/cdk/overlay';
 import { CdkTrapFocus } from '@angular/cdk/a11y';
 import { Component, input, output, signal, ChangeDetectionStrategy, viewChild, contentChild, ElementRef } from '@angular/core';
-import { NgClass, NgStyle } from '@angular/common';
+import { NgClass } from '@angular/common';
 import { ContextMenuAction, ContextMenuActionType } from '@core/models';
 import { IconComponent } from '../icon/icon.component';
 
@@ -10,7 +10,7 @@ import { IconComponent } from '../icon/icon.component';
   templateUrl: './context-menu.component.html',
   styleUrls: ['./context-menu.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NgClass, NgStyle, CdkConnectedOverlay, CdkOverlayOrigin, CdkTrapFocus, IconComponent]
+  imports: [NgClass, CdkConnectedOverlay, CdkOverlayOrigin, CdkTrapFocus, IconComponent]
 })
 export class ContextMenuComponent {
 
@@ -25,6 +25,7 @@ export class ContextMenuComponent {
   readonly onAction = output<ContextMenuActionType>();
 
   private readonly _cachedActions = signal<ContextMenuAction[] | null>(null);
+  private loadId = 0;
   readonly isOpen = signal(false);
   positions: ConnectedPosition[] = [];
 
@@ -44,18 +45,27 @@ export class ContextMenuComponent {
   }
 
   async showActions() {
+    const loadId = ++this.loadId;
     try {
       const getActions = this.getActions();
       if (!this.actions() && getActions) {
-        this._cachedActions.set(await getActions());
+        const actions = await getActions();
+        if (loadId !== this.loadId) {
+          return;
+        }
+        this._cachedActions.set(actions);
       }
       this.isOpen.set(true);
-    } catch {
-      this.isOpen.set(false);
+    } catch (error) {
+      if (loadId === this.loadId) {
+        console.error('Could not load context menu actions', error);
+        this.isOpen.set(false);
+      }
     }
   }
 
   hideActions() {
+    this.loadId++;
     if (this.getActions()) {
       this._cachedActions.set(null);
     }
@@ -64,7 +74,9 @@ export class ContextMenuComponent {
 
   gearClick(event: MouseEvent | KeyboardEvent) {
     const target = event.target as HTMLElement;
-    const y = 'pageY' in event ? event.pageY : target.getBoundingClientRect().top + target.offsetHeight / 2;
+    const y = event instanceof MouseEvent && event.detail > 0
+      ? event.clientY
+      : target.getBoundingClientRect().top + target.offsetHeight / 2;
     if (y > window.innerHeight / 2) {
       this.positions = [
         {
@@ -72,6 +84,9 @@ export class ContextMenuComponent {
           originY: 'top',
           overlayX: 'start',
           overlayY: 'bottom',
+        },
+        {
+          originX: 'start', originY: 'bottom', overlayX: 'start', overlayY: 'top',
         },
       ];
     } else {
@@ -81,6 +96,9 @@ export class ContextMenuComponent {
           originY: 'bottom',
           overlayX: 'start',
           overlayY: 'top',
+        },
+        {
+          originX: 'start', originY: 'top', overlayX: 'start', overlayY: 'bottom',
         },
       ];
     }
@@ -98,6 +116,25 @@ export class ContextMenuComponent {
       event.preventDefault();
       event.stopPropagation();
       this.hideActions();
+      return;
+    }
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp' || event.key === 'Home' || event.key === 'End') {
+      const menu = (event.target as HTMLElement).closest('.panel');
+      const items = Array.from(menu?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') || []);
+      if (!items.length) {
+        return;
+      }
+      const index = items.indexOf(event.target as HTMLButtonElement);
+      let next = 0;
+      if (event.key === 'End') {
+        next = items.length - 1;
+      } else if (event.key !== 'Home') {
+        const step = event.key === 'ArrowDown' ? 1 : -1;
+        next = (index + step + items.length) % items.length;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      items[next].focus();
     }
   }
 

@@ -16,10 +16,11 @@ export class DragHandleComponent {
     readonly visible = input(false);
     readonly info = input('');
     readonly disabled = input(false);
+    readonly keyboardMove = input(false);
     readonly move = output<number>();
 
     onKeydown(event: KeyboardEvent) {
-        if (!this.disabled() && (event.key === 'ArrowUp' || event.key === 'ArrowDown')) {
+        if (this.keyboardMove() && !this.disabled() && !event.repeat && (event.key === 'ArrowUp' || event.key === 'ArrowDown')) {
             event.preventDefault();
             event.stopPropagation();
             this.move.emit(event.key === 'ArrowUp' ? -1 : 1);

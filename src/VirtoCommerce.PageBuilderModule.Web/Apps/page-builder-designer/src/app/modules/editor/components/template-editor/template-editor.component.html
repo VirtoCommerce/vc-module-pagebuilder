@@ -79,8 +79,9 @@
       }
       <div cdkDropList #container class="sections-container" role="group" aria-label="Page sections"
         (cdkDropListDropped)="reorderSections($event)">
-        @if (canMutate() && !vm.selectMode && vm.currentDragSection.length === 0) {
-          <button type="button" class="insert-section-button" aria-label="Insert block at the beginning"
+        @if (canMutate() && !vm.selectMode) {
+          <button type="button" class="insert-section-button" aria-label="Insert section at the beginning"
+            [disabled]="vm.currentDragSection.length > 0"
             (click)="addSectionClick(0)"><app-icon aria-hidden="true">add_circle</app-icon></button>
         }
         @for (section of vm.template!.content; track section.id; let index = $index) {
@@ -117,7 +118,9 @@
                   (itemSelectChanged)="onItemSelectChanged($event, section, vm.templateState!.key)" />
                 @let isDragHandleActive = canMutate() && ((!vm.selectMode && section.id === currentHoverId()) || !!vm.sectionsState[section.id]?.selected);
                 <app-drag-handle cdkDragHandle
-                  [info]="'Move section ' + (index + 1) + '. Use Up and Down arrow keys.'"
+                  [attr.data-section-id]="section.id"
+                  [info]="'Move section ' + (index + 1)"
+                  [keyboardMove]="true"
                   [disabled]="!canMutate() || (vm.selectMode && !vm.sectionsState[section.id]?.selected)"
                   (move)="moveSection(index, $event)"
                   [cdkDragHandleDisabled]="!isDragHandleActive"
@@ -139,8 +142,9 @@
               vm.selectedSectionsCount <= 1 ? '1 section' : (vm.selectedSectionsCount + ' sections')
             }}</span>
           </app-collapsible-list-item>
-          @if (canMutate() && !vm.selectMode && vm.currentDragSection.length === 0) {
-            <button type="button" class="insert-section-button" [attr.aria-label]="'Insert block after section ' + (index + 1)"
+          @if (canMutate() && !vm.selectMode) {
+            <button type="button" class="insert-section-button" [attr.aria-label]="'Insert section after section ' + (index + 1)"
+              [disabled]="vm.currentDragSection.length > 0"
               (click)="addSectionClick(index + 1)"><app-icon aria-hidden="true">add_circle</app-icon></button>
           }
         }

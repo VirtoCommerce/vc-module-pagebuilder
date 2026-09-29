@@ -72,6 +72,33 @@ function reorderSectionsInList(list: SectionModel[], currentIndex: number, previ
   }
 }
 
+export function getKeyboardReorderIndices(
+  itemCount: number, selectedIndexes: number[], sourceIndex: number, offset: -1 | 1,
+): { previousIndex: number; currentIndex: number } | null {
+  if (selectedIndexes.length && !selectedIndexes.includes(sourceIndex)) {
+    return null;
+  }
+
+  const selected = new Set(selectedIndexes);
+  let anchor = sourceIndex;
+  if (selectedIndexes.length) {
+    const edgeIndex = selectedIndexes.find(index => {
+      if (offset < 0) {
+        return index > 0 && !selected.has(index - 1);
+      }
+      return index < itemCount - 1 && !selected.has(index + 1);
+    });
+    if (edgeIndex === undefined) {
+      return null;
+    }
+    anchor = edgeIndex;
+  }
+  if (anchor + offset < 0 || anchor + offset >= itemCount) {
+    return null;
+  }
+  return { previousIndex: anchor, currentIndex: anchor + offset };
+}
+
 export function reorderSections(template: TemplateModel, currentIndex: number, previousIndex: number, sectionIds: string[]): TemplateModel {
   return {
     ...template,

@@ -2,21 +2,11 @@
   <VcBlade
     width="100%"
     :title="bladeTitle"
+    :toolbar-items="bladeToolbar"
   >
     <div
       class="tw-flex tw-h-full tw-flex-col tw-bg-[color:var(--neutrals-50)] tw-text-sm tw-text-[color:var(--neutrals-800)]"
-      @keydown.esc="closeDetails"
     >
-      <div class="tw-flex tw-shrink-0 tw-justify-end tw-px-4 tw-py-2">
-        <VcButton
-          variant="secondary"
-          icon="lucide-refresh-cw"
-          :disabled="contentLoading"
-          @click="reloadContent"
-        >
-          {{ $t("SHARED_COMPONENTS.TOOLBAR.REFRESH") }}
-        </VcButton>
-      </div>
       <div
         v-if="isStoreContextInvalid"
         class="tw-flex tw-h-full tw-flex-1 tw-flex-col tw-items-center tw-justify-center tw-gap-3 tw-p-8 tw-text-center"
@@ -90,6 +80,7 @@
 
         <SharedComponentDetails
           v-if="selectedComponent"
+          :key="selectedComponent.id"
           :component="selectedComponent"
           :can-update="canUpdate"
           :can-delete="canDelete"
@@ -100,6 +91,7 @@
           @rename="openRenamePopup"
           @delete="handleDelete"
           @open-designer="openUsagePageDesigner"
+          @keydown.esc="closeDetails"
         />
       </div>
     </div>
@@ -119,7 +111,7 @@
 <script lang="ts" setup>
 import { computed, nextTick, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import { useBlade, usePermissions } from "@vc-shell/framework";
+import { useBlade, usePermissions, type IBladeToolbar } from "@vc-shell/framework";
 import { VcBlade, VcButton, VcHint, VcIcon } from "@vc-shell/framework/ui";
 import { SharedComponentDetails, SharedComponentsTable, RenameSharedComponentPopup } from "../components";
 import { useSharedComponentActions, useSharedComponents } from "../composables";
@@ -172,6 +164,13 @@ const bladeTitle = computed(() => t("SHARED_COMPONENTS.TITLE"));
 const isStoreContextReady = computed(() => storeContextStatus.value === "ready");
 const isStoreContextInvalid = computed(() => ["missing", "notFound", "error"].includes(storeContextStatus.value));
 const contentLoading = computed(() => loading.value || ["idle", "loading"].includes(storeContextStatus.value));
+const bladeToolbar = computed((): IBladeToolbar[] => loadError.value ? [] : [{
+  id: "refresh",
+  title: t("SHARED_COMPONENTS.TOOLBAR.REFRESH"),
+  icon: "lucide-refresh-cw",
+  disabled: contentLoading.value,
+  clickHandler: reloadContent,
+}]);
 const canUpdate = computed(() => hasAccess("builder:shared-components:update") && isStoreContextReady.value);
 const canDelete = computed(() => hasAccess("builder:shared-components:delete") && isStoreContextReady.value);
 const canOpenDesigner = computed(

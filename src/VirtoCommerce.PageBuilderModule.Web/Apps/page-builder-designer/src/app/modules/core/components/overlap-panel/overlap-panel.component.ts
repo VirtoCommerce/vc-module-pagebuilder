@@ -10,7 +10,6 @@ import {
   signal,
 } from '@angular/core';
 import { EnvironmentRef } from '@integration/services';
-import { CdkTrapFocus } from '@angular/cdk/a11y';
 import { NgClass } from '@angular/common';
 import { IconComponent } from '../icon/icon.component';
 
@@ -19,7 +18,7 @@ import { IconComponent } from '../icon/icon.component';
   templateUrl: './overlap-panel.component.html',
   styleUrls: ['./overlap-panel.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NgClass, IconComponent, CdkTrapFocus],
+  imports: [NgClass, IconComponent],
   host: {
     '[class.inplace]': 'skipTranslate()',
     '(window:resize)': 'onResize()',
@@ -38,7 +37,12 @@ export class OverlapPanelComponent {
   readonly dismissed = output();
 
   onKeydown(event: KeyboardEvent) {
-    if (this.dismissible() && event.key === 'Escape' && !event.defaultPrevented) {
+    if (this.dismissible() && event.key === 'Escape') {
+      const select = (event.target as HTMLElement).closest('ng-select');
+      // ng-select prevents Escape even when its dropdown is already closed.
+      if (event.defaultPrevented && (!select || select.classList.contains('ng-select-opened'))) {
+        return;
+      }
       event.preventDefault();
       event.stopPropagation();
       this.dismissed.emit();

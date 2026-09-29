@@ -173,12 +173,12 @@ let returnFocusTo: HTMLElement | null = null;
 
 onMounted(() => {
   returnFocusTo = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-  detailsElement.value?.focus();
+  detailsElement.value?.focus({ preventScroll: true });
 });
 
 onBeforeUnmount(() => {
   if (detailsElement.value?.contains(document.activeElement) && returnFocusTo?.isConnected) {
-    returnFocusTo.focus();
+    returnFocusTo.focus({ preventScroll: true });
   }
 });
 

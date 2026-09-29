@@ -19,10 +19,11 @@
 .operation {
     color: rgba(22, 101, 216, 1);
     opacity: 0;
-    &:focus-visible { opacity: 1; }
+    pointer-events: none;
+    &:focus-visible { opacity: 1; pointer-events: auto; }
 }
 
-.item:hover .operation, .item:focus-within .operation { opacity: 1; }
+.item:hover .operation, .item:focus-within .operation { opacity: 1; pointer-events: auto; }
 .preview-button { @apply flex grow items-center gap-1 text-left; }
 
 .name {

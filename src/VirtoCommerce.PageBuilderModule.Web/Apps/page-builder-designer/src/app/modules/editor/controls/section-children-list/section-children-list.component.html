@@ -20,7 +20,9 @@
         (itemSelectChanged)="onItemSelectChanged($event, block.id)" />
       @let isDragHandleActive = !readOnly() && ((!selectMode() && block.id === currentHoverId()) || !!states()[block.id]?.selected);
       <app-drag-handle cdkDragHandle
-        [info]="'Move block ' + (index + 1) + '. Use Up and Down arrow keys.'"
+        [attr.data-block-id]="block.id"
+        [info]="'Move block ' + (index + 1)"
+        [keyboardMove]="true"
         [disabled]="readOnly() || (selectMode() && !states()[block.id]?.selected)"
         (move)="moveBlock(index, $event)"
         [cdkDragHandleDisabled]="!isDragHandleActive"

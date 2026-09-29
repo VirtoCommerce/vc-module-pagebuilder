@@ -1,4 +1,4 @@
-<app-overlap-panel>
+<app-overlap-panel [dismissible]="true" accessibleLabel="Theme settings" (dismissed)="onBackClick()">
     <app-panel>
         <app-dynamic-form [context]="context()"
                           [descriptors]="group().settings"

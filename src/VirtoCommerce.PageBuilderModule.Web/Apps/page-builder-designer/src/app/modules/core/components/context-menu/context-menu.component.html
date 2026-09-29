@@ -1,8 +1,8 @@
-<div class="wrapper" [ngStyle]="{ opacity: isOpen() || visible() || customTrigger() ? '1' : '0' }">
+<div class="wrapper" [class.visible]="isOpen() || visible() || customTrigger()">
 
   <button type="button" cdkOverlayOrigin #trigger="cdkOverlayOrigin"
     [attr.aria-label]="customTrigger() ? null : accessibleLabel()"
-    [attr.aria-expanded]="isOpen()" (click)="gearClick($event)">
+    [attr.aria-expanded]="isOpen()" aria-haspopup="menu" (click)="gearClick($event)">
     @if (customTrigger()) {
     <ng-content />
     } @else {
@@ -15,12 +15,12 @@
                (detach)="hideActions()"
                (overlayKeydown)="onOverlayKeydown($event)"
                (overlayOutsideClick)="outsideClick($event)">
-    <ul class="panel" cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
+    <ul class="panel" role="menu" cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
       @for (action of getActionsList(); track action) {
-      <li [ngClass]="{ separator: action === '|' }">
+      <li role="none" [ngClass]="{ separator: action === '|' }">
         @if (action !== '|') {
-        <button type="button" class="action-item"
-             [disabled]="evaluateFunction(action.inactive)"
+        <button type="button" role="menuitem" class="action-item"
+             [attr.aria-disabled]="evaluateFunction(action.inactive)"
              [class.inactive]="evaluateFunction(action.inactive)"
              (click)="raiseOnAction(action)">
           @if (action.imageUrl) {

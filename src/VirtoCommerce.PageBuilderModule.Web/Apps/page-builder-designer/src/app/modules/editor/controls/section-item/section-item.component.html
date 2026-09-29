@@ -3,16 +3,19 @@
   (contextmenu)="onContextMenu($event)"
   (mouseenter)="onItemHover()"
   (mouseleave)="onItemLeave()">
-  @if (selectable()) {
-    <app-checkbox
-      class="section-item-checkbox"
-      [accessibleLabel]="'Select ' + sectionName()"
-      [controlValue]="selected()"
-      (valueChanged)="onCheckboxValueChanged($event)" />
-  }
+  <div class="section-item-leading" [class.selected]="selected()" (click)="onItemClick($event)">
+    <app-icon aria-hidden="true">{{ sectionIcon() }}</app-icon>
+    @if (selectable()) {
+      <app-checkbox
+        class="section-item-checkbox"
+        [accessibleLabel]="'Select ' + sectionName()"
+        [controlValue]="selected()"
+        (click)="$event.stopPropagation()"
+        (valueChanged)="onCheckboxValueChanged($event)" />
+    }
+  </div>
   <button #editButton type="button" class="section-edit-button" [disabled]="!sectionSchema() && !isShared()"
     [title]="sectionTitle()" (click)="onItemClick($event)">
-    <app-icon aria-hidden="true">{{ sectionIcon() }}</app-icon>
     <span class="name">{{ sectionName() }}</span>
     @if (isShared()) {
       <span class="shared-component-badge" [class.error]="sharedComponentError()"

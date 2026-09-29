@@ -70,7 +70,7 @@ describe('TemplateEditorComponent', () => {
     expect(fixture.nativeElement.querySelector('app-shared-components-library')).toBeNull();
   });
 
-  it('inserts at each explicit gap, appends from the footer and limits keyboard reorder to the page', () => {
+  it('inserts at each explicit gap, appends from the footer and limits keyboard reorder to the page', async () => {
     const content = [{ id: 'first', type: 'text', hidden: false, blocks: [] }, { id: 'last', type: 'text', hidden: false, blocks: [] }];
     const context = {
       template: { content }, templateState: { key: 'page-1' },
@@ -97,11 +97,21 @@ describe('TemplateEditorComponent', () => {
     fixture.componentInstance.moveSection(0, -1);
     fixture.componentInstance.moveSection(1, 1);
     expect(dispatch).not.toHaveBeenCalled();
-    fixture.nativeElement.querySelector('app-drag-handle button').dispatchEvent(
+    const movingHandle = fixture.nativeElement.querySelector('[data-section-id="first"] button') as HTMLButtonElement;
+    movingHandle.focus();
+    movingHandle.dispatchEvent(
       new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
     expect(dispatch).toHaveBeenCalledWith(actions.sortItems({
       options: { item: content[0], previousIndex: 0, currentIndex: 1 },
     }));
+    store.overrideSelector(selectors.editTemplateContext, {
+      ...context,
+      template: { ...context.template!, content: [content[1], content[0]] },
+    });
+    store.refreshState();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(document.activeElement).toBe(fixture.nativeElement.querySelector('[data-section-id="first"] button'));
     expect(fixture.componentInstance.moveAnnouncement()).toBe('Section moved to position 2 of 2');
 
     const third = { id: 'third', type: 'text', hidden: false, blocks: [] };
@@ -120,7 +130,7 @@ describe('TemplateEditorComponent', () => {
     fixture.detectChanges();
     dispatch.mockClear();
     fixture.componentInstance.moveSection(0, 1);
-    const reorder = actions.sortItems({ options: { item: content[0], previousIndex: 0, currentIndex: 2 } });
+    const reorder = actions.sortItems({ options: { item: content[1], previousIndex: 1, currentIndex: 2 } });
     expect(dispatch).toHaveBeenCalledWith(reorder);
     const result = helpers.reorderSections({ content: [...content, third], settings: content[0] },
       reorder.options.currentIndex, reorder.options.previousIndex, ['first', 'last']);
