@@ -3,6 +3,9 @@
 .wrapper {
     transition: opacity .2s;
     @apply flex flex-col;
+    &:focus-within {
+        opacity: 1 !important;
+    }
 }
 
 .panel {
@@ -35,6 +38,7 @@ app-icon {
 }
 
 .action-item {
+    text-align: left;
     @apply flex flex-row w-full rounded items-center p-2 space-x-1 cursor-pointer;
     &:hover {
         background-color: #f6f6f6;

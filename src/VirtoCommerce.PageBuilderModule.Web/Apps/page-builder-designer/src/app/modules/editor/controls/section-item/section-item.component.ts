@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, input, output, signal, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, ElementRef, input, output, signal, inject, viewChild } from '@angular/core';
 import { IconComponent } from '@core/components/icon/icon.component';
 import { CheckboxComponent } from '@core/controls/checkbox/checkbox.component';
 import { ContextMenuComponent } from '@core/components/context-menu/context-menu.component';
@@ -17,9 +17,10 @@ import { SharedComponent } from '@editor/models';
 export class SectionItemComponent {
 
   private readonly helper = inject(ContextMenuHelper);
+  private readonly contextMenu = viewChild(ContextMenuComponent);
+  private readonly editButton = viewChild<ElementRef<HTMLButtonElement>>('editButton');
 
   readonly isHover = signal(false);
-  readonly isIconHover = signal(false);
 
   readonly section = input.required<SectionModel>();
   readonly sectionSchema = input<SectionSchema | null>(null);
@@ -34,7 +35,6 @@ export class SectionItemComponent {
   readonly itemHover = output<boolean>();
   readonly itemSelectChanged = output<boolean>();
 
-  readonly displayCheckbox = computed(() => (this.isIconHover() && this.selectable()) || this.selected());
   readonly isShared = computed(() => isSharedComponentReference(this.section()));
   readonly sectionIcon = computed(() => {
     if (!this.isShared()) {
@@ -50,6 +50,9 @@ export class SectionItemComponent {
     const schema = this.sectionSchema();
     return helpers.getSectionName(this.section(), schema);
   });
+  readonly sectionTitle = computed(() => this.section().id
+    ? `${this.sectionName()} (${this.section().id})`
+    : this.sectionName());
 
   onItemClick(_event: MouseEvent) {
     if (this.sectionSchema() || this.isShared()) {
@@ -59,6 +62,17 @@ export class SectionItemComponent {
 
   onCheckboxValueChanged(value: boolean) {
     this.itemSelectChanged.emit(value);
+  }
+
+  onContextMenu(event: MouseEvent) {
+    const menu = this.contextMenu();
+    if (!menu) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    this.editButton()?.nativeElement.focus();
+    menu.gearClick(event);
   }
 
   onActionClick(event: ContextMenuAction) {
@@ -74,7 +88,6 @@ export class SectionItemComponent {
 
   onItemLeave() {
     this.isHover.set(false);
-    this.isIconHover.set(false);
     this.itemHover.emit(false);
   }
 

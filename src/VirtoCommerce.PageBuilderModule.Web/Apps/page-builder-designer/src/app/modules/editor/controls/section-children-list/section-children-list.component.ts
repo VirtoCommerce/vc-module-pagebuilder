@@ -21,6 +21,7 @@ export class SectionChildrenListComponent {
     private _fakeElement: HTMLElement | null = null;
 
     readonly currentHoverId = signal<string | null>(null);
+    readonly moveAnnouncement = signal('');
 
     readonly section = input.required<SectionModel>();
     readonly blocksSchemas = input.required<SectionsSchemasList>();
@@ -42,6 +43,26 @@ export class SectionChildrenListComponent {
             return;
         }
         this.reorderBlocks.emit({ item: event.item.data, currentIndex: event.currentIndex, previousIndex: event.previousIndex, parent: this.section() });
+    }
+
+    moveBlock(previousIndex: number, offset: number) {
+        const blocks = this.section().blocks || [];
+        const selectedIndexes = blocks.map((block, index) => this.states()[block.id]?.selected ? index : -1)
+            .filter(index => index >= 0);
+        if (selectedIndexes.length && !selectedIndexes.includes(previousIndex)) {
+            return;
+        }
+        const anchor = selectedIndexes.length
+            ? (offset < 0 ? selectedIndexes[0] : selectedIndexes[selectedIndexes.length - 1])
+            : previousIndex;
+        const currentIndex = anchor + offset;
+        if (this.readOnly() || currentIndex < 0 || currentIndex >= blocks.length) {
+            return;
+        }
+        this.reorderBlocks.emit({ item: blocks[previousIndex], currentIndex, previousIndex, parent: this.section() });
+        this.moveAnnouncement.set(selectedIndexes.length > 1
+            ? `Selected blocks moved ${offset < 0 ? 'up' : 'down'}`
+            : `Block moved to position ${currentIndex + 1} of ${blocks.length}`);
     }
 
     onItemClick(block: SectionModel) {

@@ -1,4 +1,5 @@
 import { CdkConnectedOverlay, CdkOverlayOrigin, ConnectedPosition } from '@angular/cdk/overlay';
+import { CdkTrapFocus } from '@angular/cdk/a11y';
 import { Component, input, output, signal, ChangeDetectionStrategy, viewChild, contentChild, ElementRef } from '@angular/core';
 import { NgClass, NgStyle } from '@angular/common';
 import { ContextMenuAction, ContextMenuActionType } from '@core/models';
@@ -9,12 +10,13 @@ import { IconComponent } from '../icon/icon.component';
   templateUrl: './context-menu.component.html',
   styleUrls: ['./context-menu.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NgClass, NgStyle, CdkConnectedOverlay, CdkOverlayOrigin, IconComponent]
+  imports: [NgClass, NgStyle, CdkConnectedOverlay, CdkOverlayOrigin, CdkTrapFocus, IconComponent]
 })
 export class ContextMenuComponent {
 
   readonly actions = input<ContextMenuAction[] | null>(null);
   readonly visible = input(false);
+  readonly accessibleLabel = input('Actions');
   readonly getActions = input<(() => Promise<ContextMenuAction[]>) | null>(null);
 
   readonly overlay = viewChild.required(CdkConnectedOverlay);
@@ -23,7 +25,7 @@ export class ContextMenuComponent {
   readonly onAction = output<ContextMenuActionType>();
 
   private readonly _cachedActions = signal<ContextMenuAction[] | null>(null);
-  isOpen = false;
+  readonly isOpen = signal(false);
   positions: ConnectedPosition[] = [];
 
   evaluateFunction(func: boolean | (() => boolean) | undefined): boolean {
@@ -38,23 +40,26 @@ export class ContextMenuComponent {
     if (staticActions) {
       return staticActions;
     }
-    const getActionsFn = this.getActions();
-    if (!this._cachedActions() && getActionsFn) {
-      getActionsFn().then(actions => this._cachedActions.set(actions))
-        .catch(() => { });
-    }
     return this._cachedActions() || [];
   }
 
-  showActions() {
-    this.isOpen = true;
+  async showActions() {
+    try {
+      const getActions = this.getActions();
+      if (!this.actions() && getActions) {
+        this._cachedActions.set(await getActions());
+      }
+      this.isOpen.set(true);
+    } catch {
+      this.isOpen.set(false);
+    }
   }
 
   hideActions() {
     if (this.getActions()) {
       this._cachedActions.set(null);
     }
-    this.isOpen = false;
+    this.isOpen.set(false);
   }
 
   gearClick(event: MouseEvent | KeyboardEvent) {
@@ -86,6 +91,14 @@ export class ContextMenuComponent {
   outsideClick(event: MouseEvent) {
     event.stopPropagation();
     this.hideActions();
+  }
+
+  onOverlayKeydown(event: KeyboardEvent) {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      this.hideActions();
+    }
   }
 
   raiseOnAction(action: ContextMenuAction) {

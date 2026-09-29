@@ -6,9 +6,11 @@ import {
   ElementRef,
   inject,
   input,
+  output,
   signal,
 } from '@angular/core';
 import { EnvironmentRef } from '@integration/services';
+import { CdkTrapFocus } from '@angular/cdk/a11y';
 import { NgClass } from '@angular/common';
 import { IconComponent } from '../icon/icon.component';
 
@@ -17,7 +19,7 @@ import { IconComponent } from '../icon/icon.component';
   templateUrl: './overlap-panel.component.html',
   styleUrls: ['./overlap-panel.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NgClass, IconComponent],
+  imports: [NgClass, IconComponent, CdkTrapFocus],
   host: {
     '[class.inplace]': 'skipTranslate()',
     '(window:resize)': 'onResize()',
@@ -31,6 +33,17 @@ export class OverlapPanelComponent {
 
   readonly expandable = input(true);
   readonly skipTranslate = input<boolean | null>(false);
+  readonly dismissible = input(false);
+  readonly accessibleLabel = input('Editor panel');
+  readonly dismissed = output();
+
+  onKeydown(event: KeyboardEvent) {
+    if (this.dismissible() && event.key === 'Escape' && !event.defaultPrevented) {
+      event.preventDefault();
+      event.stopPropagation();
+      this.dismissed.emit();
+    }
+  }
 
   readonly contentWidth = signal<number | null>(null);
   readonly expanderPosition = signal<number | null>(null);

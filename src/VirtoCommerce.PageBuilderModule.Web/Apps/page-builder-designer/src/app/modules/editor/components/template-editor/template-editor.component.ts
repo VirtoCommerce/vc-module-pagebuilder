@@ -1,6 +1,6 @@
-import { Component, computed, ElementRef, signal, viewChild, inject } from '@angular/core';
+import { Component, computed, signal, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { NgClass, NgStyle } from '@angular/common';
+import { NgClass } from '@angular/common';
 import { CdkDragRelease, CdkDragSortEvent, CdkDragStart, DragDropModule } from '@angular/cdk/drag-drop';
 import { Store } from '@ngrx/store';
 import { PanelComponent } from '@core/components/panel/panel.component';
@@ -35,15 +35,13 @@ import { domHelpers } from '@core/helpers';
     selector: 'app-template-editor',
     templateUrl: './template-editor.component.html',
     styleUrls: ['./template-editor.component.scss'],
-    imports: [NgClass, NgStyle, DragDropModule, PanelComponent, CollapsibleListItemComponent, IconComponent, IconButtonComponent, ContextMenuComponent, DragHandleComponent, SectionItemComponent, SectionChildrenListComponent]
+    imports: [NgClass, DragDropModule, PanelComponent, CollapsibleListItemComponent, IconComponent, IconButtonComponent, ContextMenuComponent, DragHandleComponent, SectionItemComponent, SectionChildrenListComponent]
 })
 export class TemplateEditorComponent {
 
     private readonly store = inject(Store<BuilderState>);
     private readonly helper = inject(ContextMenuHelper);
     private readonly appConfig = inject(AppConfig);
-
-    readonly container = viewChild.required<ElementRef<HTMLDivElement>>('container');
 
     readonly viewModel = toSignal(this.store.select(fromState.editTemplateContext));
     readonly loadState = toSignal(this.store.select(fromState.selectCurrentTemplateState));
@@ -62,17 +60,14 @@ export class TemplateEditorComponent {
         return !this.isReadOnly();
     }
 
-    readonly addButtonTop = signal('0');
-    readonly addLineTop = signal('0');
-    readonly addButtonOpacity = signal(0);
-    readonly currentInsertIndex = signal(0);
+    readonly moveAnnouncement = signal('');
     readonly currentHoverId = signal<string | null>(null);
 
-    addSectionClick() {
+    addSectionClick(positionIndex = this.viewModel()?.template?.content.length || 0) {
         if (!this.canMutate()) {
             return;
         }
-        this.store.dispatch(actions.showBlankSections({ sectionId: null, positionIndex: this.currentInsertIndex() }));
+        this.store.dispatch(actions.showBlankSections({ sectionId: null, positionIndex }));
     }
 
     onSettingsClick(schema: SectionSchema) {
@@ -206,41 +201,24 @@ export class TemplateEditorComponent {
         return this.viewModel()?.sharedComponentErrors[section.componentRef] || null;
     }
 
-    onMouseMove(args: MouseEvent) {
-        let target = this.container().nativeElement;
-        const rect = target.getBoundingClientRect();
-        const top = args.clientY - rect.top;
-
-        const w2 = rect.width / 2;
-        this.addButtonOpacity.set(1 - Math.abs(w2 - args.clientX - rect.left) / w2);
-
-        if (top < 0) {
-            this.currentInsertIndex.set(0);
-            this.addButtonTop.set('-18px');
-            this.addLineTop.set('-6px');
+    moveSection(previousIndex: number, offset: number) {
+        const vm = this.viewModel();
+        const content = vm?.template?.content || [];
+        const selectedIndexes = content.map((section, index) => vm?.sectionsState[section.id]?.selected ? index : -1)
+            .filter(index => index >= 0);
+        if (selectedIndexes.length && !selectedIndexes.includes(previousIndex)) {
             return;
         }
-
-        for (let i = 0; i < target.children.length; i++) {
-            const childRect = target.children[i].getBoundingClientRect();
-            const childTop = childRect.top - rect.top;
-            const childBottom = childRect.bottom - rect.top;
-            if (top >= childTop && top < childBottom + 10) {
-                this.currentInsertIndex.set(i + 1);
-                const position = childBottom - 14;
-                this.addButtonTop.set(`${position}px`);
-                this.addLineTop.set(`${position + 12}px`);
-                return;
-            }
+        const anchor = selectedIndexes.length
+            ? (offset < 0 ? selectedIndexes[0] : selectedIndexes[selectedIndexes.length - 1])
+            : previousIndex;
+        const currentIndex = anchor + offset;
+        if (!this.canMutate() || currentIndex < 0 || currentIndex >= content.length) {
+            return;
         }
-
-        this.currentInsertIndex.set(target.children.length);
-        this.addButtonTop.set(`${rect.height - 14}px`);
-        this.addLineTop.set(`${rect.height - 2}px`);
-    }
-
-    onMouseLeave() {
-        this.addButtonOpacity.set(0);
-        this.currentInsertIndex.set(this.container().nativeElement.children.length);
+        this.store.dispatch(actions.sortItems({ options: { item: content[previousIndex], previousIndex, currentIndex } }));
+        this.moveAnnouncement.set(selectedIndexes.length > 1
+            ? `Selected sections moved ${offset < 0 ? 'up' : 'down'}`
+            : `Section moved to position ${currentIndex + 1} of ${content.length}`);
     }
 }

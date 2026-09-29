@@ -8,3 +8,11 @@ app-icon {
     color: $secondary-element-color;
     transition: opacity .2s;
 }
+
+button {
+    opacity: 0;
+    cursor: move;
+    &:focus-visible { opacity: 1; }
+}
+
+:host.visible button { opacity: 1; }

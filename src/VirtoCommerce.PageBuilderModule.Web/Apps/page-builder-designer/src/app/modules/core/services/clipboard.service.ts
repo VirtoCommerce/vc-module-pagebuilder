@@ -22,8 +22,19 @@ export class ClipboardService {
         }
     }
 
-    async getData(): Promise<ClipboardModel | null> {
+    async getData(requestPermission = true): Promise<ClipboardModel | null> {
         try {
+            // Checking menu availability must not wait for an interactive permission prompt.
+            if (!requestPermission) {
+                const permissions = this.environment.navigator.permissions;
+                if (!permissions) {
+                    return null;
+                }
+                const permission = await permissions.query({ name: 'clipboard-read' as PermissionName });
+                if (permission.state !== 'granted') {
+                    return null;
+                }
+            }
             const data = await this.environment.navigator.clipboard.readText();
             if (!data) {
                 return null;

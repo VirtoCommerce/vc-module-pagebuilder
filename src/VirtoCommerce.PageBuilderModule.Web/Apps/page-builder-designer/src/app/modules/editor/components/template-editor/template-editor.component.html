@@ -77,12 +77,15 @@
           }
         </div>
       }
-      <div cdkDropList #container class="sections-container"
-        (cdkDropListDropped)="reorderSections($event)"
-        (mousemove)="onMouseMove($event)"
-        (mouseleave)="onMouseLeave()">
-        @for (section of vm.template!.content; track section) {
+      <div cdkDropList #container class="sections-container" role="group" aria-label="Page sections"
+        (cdkDropListDropped)="reorderSections($event)">
+        @if (canMutate() && !vm.selectMode && vm.currentDragSection.length === 0) {
+          <button type="button" class="insert-section-button" aria-label="Insert block at the beginning"
+            (click)="addSectionClick(0)"><app-icon aria-hidden="true">add_circle</app-icon></button>
+        }
+        @for (section of vm.template!.content; track section.id; let index = $index) {
           <app-collapsible-list-item [expandable]="vm.sectionsState[section.id]?.canHaveChildren || false"
+            [accessibleLabel]="vm.sectionsSchemas[section.type]?.name || 'section'"
             [opened]="vm.sectionsState[section.id]?.expanded || false"
             [hovered]="hoveredSectionId() === section.id"
             [highlight]="vm.sectionsState[section.id]?.selected || false"
@@ -114,6 +117,9 @@
                   (itemSelectChanged)="onItemSelectChanged($event, section, vm.templateState!.key)" />
                 @let isDragHandleActive = canMutate() && ((!vm.selectMode && section.id === currentHoverId()) || !!vm.sectionsState[section.id]?.selected);
                 <app-drag-handle cdkDragHandle
+                  [info]="'Move section ' + (index + 1) + '. Use Up and Down arrow keys.'"
+                  [disabled]="!canMutate() || (vm.selectMode && !vm.sectionsState[section.id]?.selected)"
+                  (move)="moveSection(index, $event)"
                   [cdkDragHandleDisabled]="!isDragHandleActive"
                   [visible]="isDragHandleActive" />
               </div>
@@ -133,12 +139,10 @@
               vm.selectedSectionsCount <= 1 ? '1 section' : (vm.selectedSectionsCount + ' sections')
             }}</span>
           </app-collapsible-list-item>
-        }
-        @if (!isReadOnly() && !vm.selectMode && vm.currentDragSection.length === 0) {
-          <div [ngStyle]="{ top: addLineTop(), opacity: addButtonOpacity() }" class="line"></div>
-          <div [ngStyle]="{ top: addLineTop(), opacity: addButtonOpacity() }" class="line right-line"></div>
-          <app-icon [ngStyle]="{ top: addButtonTop(), opacity: addButtonOpacity() }" class="add-button"
-          (click)="addSectionClick()">add_circle</app-icon>
+          @if (canMutate() && !vm.selectMode && vm.currentDragSection.length === 0) {
+            <button type="button" class="insert-section-button" [attr.aria-label]="'Insert block after section ' + (index + 1)"
+              (click)="addSectionClick(index + 1)"><app-icon aria-hidden="true">add_circle</app-icon></button>
+          }
         }
       </div>
       @if (!vm.isSharedComponentDocument && vm.settingsSchemas.bottom.length) {
@@ -157,11 +161,15 @@
     }
   </div>
   <div title-content class="w-full">
+    <span class="sr-only" aria-live="polite">{{ moveAnnouncement() }}</span>
     <div class="w-full flex flex-row pl-2">
       <div [attr.title]="templateName()" class="template-name">{{ templateName() }}</div>
-      <app-context-menu [visible]="!!viewModel() && !isReadOnly()"
+      @if (viewModel() && !isReadOnly()) {
+      <app-context-menu [visible]="true"
+        accessibleLabel="Page actions"
         [getActions]="getPageActions"
         (onAction)="onActionClick($event.action)" />
+      }
     </div>
   </div>
   @if (!isReadOnly()) {

@@ -183,7 +183,7 @@ export class ContextMenuHelper {
     }
 
     private async hasClipboardData(): Promise<boolean> {
-        const clipboardData = await this.clipboard.getData();
+        const clipboardData = await this.clipboard.getData(false);
         return clipboardData != null && clipboardData.wrongData !== true;
     }
 

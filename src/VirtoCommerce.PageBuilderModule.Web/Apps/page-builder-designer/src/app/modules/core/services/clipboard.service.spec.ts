@@ -55,6 +55,39 @@ describe('ClipboardService', () => {
     // ── getData ───────────────────────────────────────────────────
 
     describe('getData', () => {
+        it('keeps clipboard availability unavailable without the Permissions API', async () => {
+            expect(await service.getData(false)).toBeNull();
+            expect(navigatorClipboard.readText).not.toHaveBeenCalled();
+        });
+
+        it('keeps clipboard availability unavailable when clipboard-read permission is unsupported', async () => {
+            Object.defineProperty(TestBed.inject(EnvironmentRef).navigator, 'permissions', {
+                value: { query: vi.fn().mockRejectedValue(new TypeError('Unsupported permission')) },
+                configurable: true,
+            });
+            expect(await service.getData(false)).toBeNull();
+            expect(navigatorClipboard.readText).not.toHaveBeenCalled();
+        });
+
+        it.each(['prompt', 'denied'])('does not request clipboard access while permission is %s', async (state) => {
+            const query = vi.fn().mockResolvedValue({ state });
+            Object.defineProperty(TestBed.inject(EnvironmentRef).navigator, 'permissions', {
+                value: { query }, configurable: true,
+            });
+            expect(await service.getData(false)).toBeNull();
+            expect(query).toHaveBeenCalledWith({ name: 'clipboard-read' });
+            expect(navigatorClipboard.readText).not.toHaveBeenCalled();
+        });
+
+        it('reads clipboard availability when permission is already granted', async () => {
+            Object.defineProperty(TestBed.inject(EnvironmentRef).navigator, 'permissions', {
+                value: { query: vi.fn().mockResolvedValue({ state: 'granted' }) }, configurable: true,
+            });
+            navigatorClipboard.readText.mockResolvedValue('');
+            expect(await service.getData(false)).toBeNull();
+            expect(navigatorClipboard.readText).toHaveBeenCalledOnce();
+        });
+
         it('parses valid JSON from clipboard', async () => {
             const data = { content: { type: 'hero' }, type: 'section' };
             navigatorClipboard.readText.mockResolvedValue(JSON.stringify(data));

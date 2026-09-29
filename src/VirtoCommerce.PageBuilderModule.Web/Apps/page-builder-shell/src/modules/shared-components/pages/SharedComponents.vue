@@ -2,11 +2,21 @@
   <VcBlade
     width="100%"
     :title="bladeTitle"
-    :toolbar-items="bladeToolbar"
   >
     <div
       class="tw-flex tw-h-full tw-flex-col tw-bg-[color:var(--neutrals-50)] tw-text-sm tw-text-[color:var(--neutrals-800)]"
+      @keydown.esc="closeDetails"
     >
+      <div class="tw-flex tw-shrink-0 tw-justify-end tw-px-4 tw-py-2">
+        <VcButton
+          variant="secondary"
+          icon="lucide-refresh-cw"
+          :disabled="contentLoading"
+          @click="reloadContent"
+        >
+          {{ $t("SHARED_COMPONENTS.TOOLBAR.REFRESH") }}
+        </VcButton>
+      </div>
       <div
         v-if="isStoreContextInvalid"
         class="tw-flex tw-h-full tw-flex-1 tw-flex-col tw-items-center tw-justify-center tw-gap-3 tw-p-8 tw-text-center"
@@ -107,9 +117,9 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, ref } from "vue";
+import { computed, nextTick, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import { type IBladeToolbar, useBlade, usePermissions } from "@vc-shell/framework";
+import { useBlade, usePermissions } from "@vc-shell/framework";
 import { VcBlade, VcButton, VcHint, VcIcon } from "@vc-shell/framework/ui";
 import { SharedComponentDetails, SharedComponentsTable, RenameSharedComponentPopup } from "../components";
 import { useSharedComponentActions, useSharedComponents } from "../composables";
@@ -133,6 +143,7 @@ const { exposeToChildren } = useBlade();
 const { t } = useI18n({ useScope: "global" });
 const { hasAccess } = usePermissions();
 const renameTarget = ref<SharedComponent>();
+let renameReturnFocusTo: HTMLElement | null = null;
 const renameError = ref<string>();
 
 const {
@@ -177,14 +188,14 @@ const storeContextDescription = computed(() =>
     : t("COMMON.STORE_CONTEXT.INVALID_DESCRIPTION", { storeId: storeId.value }),
 );
 
-const bladeToolbar = ref<IBladeToolbar[]>([
-  {
-    id: "refresh",
-    title: computed(() => t("SHARED_COMPONENTS.TOOLBAR.REFRESH")),
-    icon: "lucide-refresh-cw",
-    clickHandler: reloadContent,
-  },
-]);
+function closeDetails(event: KeyboardEvent) {
+  if (event.defaultPrevented || renameTarget.value || !selectedComponent.value) {
+    return;
+  }
+  event.preventDefault();
+  event.stopPropagation();
+  clearSelection();
+}
 
 const { notifyError, rename, confirmDelete } = useSharedComponentActions({
   canUpdate,
@@ -201,12 +212,20 @@ function openRenamePopup(component: SharedComponent) {
   }
 
   clearRenameError();
+  renameReturnFocusTo = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   renameTarget.value = component;
 }
 
 function closeRenamePopup() {
+  const returnFocusTo = renameReturnFocusTo;
+  renameReturnFocusTo = null;
   clearRenameError();
   renameTarget.value = undefined;
+  void nextTick(() => {
+    if (returnFocusTo?.isConnected && document.activeElement === document.body) {
+      returnFocusTo.focus();
+    }
+  });
 }
 
 function clearRenameError() {

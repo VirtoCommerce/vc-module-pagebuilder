@@ -1,5 +1,5 @@
 <div cdkDropList [cdkDropListDisabled]="readOnly()" class="blocks-container" (cdkDropListDropped)="onReorderBlocks($event)">
-  @for (block of section().blocks; track block) {
+  @for (block of section().blocks; track block.id; let index = $index) {
     <div class="block-item"
       cdkDragBoundary=".blocks-container"
       cdkDragLockAxis="y"
@@ -20,6 +20,9 @@
         (itemSelectChanged)="onItemSelectChanged($event, block.id)" />
       @let isDragHandleActive = !readOnly() && ((!selectMode() && block.id === currentHoverId()) || !!states()[block.id]?.selected);
       <app-drag-handle cdkDragHandle
+        [info]="'Move block ' + (index + 1) + '. Use Up and Down arrow keys.'"
+        [disabled]="readOnly() || (selectMode() && !states()[block.id]?.selected)"
+        (move)="moveBlock(index, $event)"
         [cdkDragHandleDisabled]="!isDragHandleActive"
         [visible]="isDragHandleActive" />
       <div class="section-placeholder" *cdkDragPlaceholder></div>
@@ -31,6 +34,7 @@
     </div>
   }
 </div>
+<span class="sr-only" aria-live="polite">{{ moveAnnouncement() }}</span>
 @if (!readOnly()) {
   <app-icon-button icon="add"
     skin="blue"

@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
-import { NgClass, NgStyle } from '@angular/common';
+import { NgClass } from '@angular/common';
 import { ChevronComponent } from '../chevron/chevron.component';
 
 @Component({
@@ -7,7 +7,7 @@ import { ChevronComponent } from '../chevron/chevron.component';
     templateUrl: './collapsible-list-item.component.html',
     styleUrls: ['./collapsible-list-item.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [NgClass, NgStyle, ChevronComponent]
+    imports: [NgClass, ChevronComponent]
 })
 export class CollapsibleListItemComponent {
 
@@ -15,6 +15,7 @@ export class CollapsibleListItemComponent {
     readonly expandable = input(false);
     readonly hovered = input(false);
     readonly highlight = input(false);
+    readonly accessibleLabel = input('section');
 
     readonly openChanged = output<boolean>();
 

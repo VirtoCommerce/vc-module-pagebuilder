@@ -46,33 +46,17 @@ div[item] {
     }
 }
 
-.add-button {
-    @apply absolute;
-    color: rgba(22, 101, 216, 1);
-    left: 0;
-    right: 0;
-    margin-inline: auto;
-    width: fit-content;
-    cursor: pointer;
-    transition: opacity .2s;
-
-    &:hover {
-        opacity: 1 !important;
+.insert-section-button {
+    @apply flex w-full items-center justify-center gap-1 rounded text-blue-700;
+    min-height: 24px;
+    &::before, &::after {
+        content: '';
+        height: 1px;
+        flex: 1;
+        background: #d1d5db;
+        pointer-events: none;
     }
 }
-
-.line {
-    @apply absolute;
-    left: 0;
-    right: calc(50% + 12px);
-    background-color: black;
-    height: 1px;
-    &.right-line {
-        right: 0;
-        left: calc(50% + 12px);
-    }
-}
-
 .drag-preview {
     @apply p-2 text-white block;
     background-color: rgba(22, 101, 216, 1);

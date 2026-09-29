@@ -1,5 +1,7 @@
 <template>
   <aside
+    ref="detailsElement"
+    tabindex="-1"
     class="tw-flex tw-w-full tw-shrink-0 tw-flex-col tw-border-0 tw-border-t tw-border-solid tw-border-t-[color:var(--neutrals-200)] tw-bg-[color:var(--additional-50)] tw-p-4 lg:tw-w-[420px] lg:tw-border-l lg:tw-border-t-0 lg:tw-border-l-[color:var(--neutrals-200)]"
     :aria-label="$t('SHARED_COMPONENTS.DETAILS.COMPONENT_DETAILS')"
     @click.stop
@@ -141,7 +143,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed } from "vue";
+import { computed, onMounted, onBeforeUnmount, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { VcButton, VcHint, VcIcon, VcSkeleton } from "@vc-shell/framework/ui";
 import type { SharedComponent, SharedComponentUsagePage } from "../types";
@@ -165,6 +167,20 @@ interface Emits {
 
 const props = defineProps<Props>();
 defineEmits<Emits>();
+
+const detailsElement = ref<HTMLElement>();
+let returnFocusTo: HTMLElement | null = null;
+
+onMounted(() => {
+  returnFocusTo = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  detailsElement.value?.focus();
+});
+
+onBeforeUnmount(() => {
+  if (detailsElement.value?.contains(document.activeElement) && returnFocusTo?.isConnected) {
+    returnFocusTo.focus();
+  }
+});
 
 const { t, locale } = useI18n({ useScope: "global" });
 const usedOnTranslationKey = computed(() =>
