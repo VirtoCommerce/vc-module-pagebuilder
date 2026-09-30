@@ -1,25 +1,21 @@
 import { TestBed } from '@angular/core/testing';
 
-import { ClipboardService } from '@core/services';
 import { ContextMenuAction } from '@core/models';
 import { AppConfig } from '@integration/services';
+import { SectionModel } from '@models/document';
 
 import { ContextMenuHelper } from './context-menu.helper';
 import { createSharedComponentReference } from './shared-component.helpers';
 
 describe('ContextMenuHelper Shared Components', () => {
-    const clipboard = { getData: vi.fn() };
     const appConfig = { getValue: vi.fn() };
 
     beforeEach(() => {
-        clipboard.getData.mockReset();
-        clipboard.getData.mockResolvedValue({ type: 'section' });
         appConfig.getValue.mockReset();
         appConfig.getValue.mockReturnValue(true);
         TestBed.configureTestingModule({
             providers: [
                 ContextMenuHelper,
-                { provide: ClipboardService, useValue: clipboard },
                 { provide: AppConfig, useValue: appConfig },
             ],
         });
@@ -57,14 +53,13 @@ describe('ContextMenuHelper Shared Components', () => {
         expect(findAction(actions, 'detach-shared-component').inactive).toBe(false);
     });
 
-    it('disables paste for unrelated clipboard text in page and instance menus', async () => {
-        clipboard.getData.mockResolvedValue({ wrongData: true, sourceContent: 'ordinary text' });
+    it('keeps paste available without reading the clipboard when the menu opens', async () => {
         const helper = TestBed.inject(ContextMenuHelper);
         const page = await helper.getPageActions();
         const instance = await helper.getSectionsActions(createSharedComponentReference('component-1'), false);
-        expect(findAction(page, 'paste-section').inactive).toBe(true);
-        expect(findAction(instance, 'paste-before').inactive).toBe(true);
-        expect(findAction(instance, 'paste-after').inactive).toBe(true);
+        expect(findAction(page, 'paste-section').inactive).toBeFalsy();
+        expect(findAction(instance, 'paste-before').inactive).toBeFalsy();
+        expect(findAction(instance, 'paste-after').inactive).toBeFalsy();
     });
 
     it('does not expose the original without read permission', async () => {
@@ -78,6 +73,40 @@ describe('ContextMenuHelper Shared Components', () => {
         expect(findAction(actions, 'edit-shared-component').inactive).toBe(true);
         expect(findAction(actions, 'edit-shared-component').title).toBe('View original');
         expect(findAction(actions, 'detach-shared-component').inactive).toBe(true);
+    });
+});
+
+describe('ContextMenuHelper without clipboard access', () => {
+    it('returns available paste actions without a clipboard service', async () => {
+            TestBed.configureTestingModule({
+                providers: [
+                    ContextMenuHelper,
+                    { provide: AppConfig, useValue: { getValue: () => true } },
+                ],
+            });
+            const helper = TestBed.inject(ContextMenuHelper);
+            const page = await helper.getPageActions(true, true);
+            const section = await helper.getSectionsActions({ id: 'section-1', type: 'text' } as SectionModel, false);
+            const shared = await helper.getSectionsActions(createSharedComponentReference('component-1'), false);
+
+            expect(page.filter(action => action !== '|').map(action => action.action)).toEqual([
+                'paste-section', 'delete-selected', 'save-as-shared-component', 'reset-template', 'refresh-preview',
+            ]);
+            expect(findAction(page, 'paste-section').inactive).toBeFalsy();
+            expect(findAction(page, 'save-as-shared-component').inactive).toBe(false);
+            expect(findAction(page, 'delete-selected').inactive).toBe(false);
+            expect(section.filter(action => action !== '|').map(action => action.action)).toEqual([
+                'hide', 'copy', 'paste-before', 'paste-after', 'duplicate', 'delete',
+            ]);
+            for (const actions of [section, shared]) {
+                expect(findAction(actions, 'paste-before').inactive).toBeFalsy();
+                expect(findAction(actions, 'paste-after').inactive).toBeFalsy();
+                expect(findAction(actions, 'copy').inactive).toBeFalsy();
+                expect(findAction(actions, 'delete').inactive).toBeFalsy();
+            }
+            expect(findAction(section, 'duplicate').inactive).toBeFalsy();
+            expect(findAction(shared, 'edit-shared-component').inactive).toBe(false);
+            expect(findAction(shared, 'detach-shared-component').inactive).toBe(false);
     });
 });
 

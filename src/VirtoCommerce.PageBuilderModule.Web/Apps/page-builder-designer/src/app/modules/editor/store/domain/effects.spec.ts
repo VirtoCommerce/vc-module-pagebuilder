@@ -341,15 +341,11 @@ describe('TemplateEditorDomainEffects', () => {
             expect((result as any).value).toBe(clipData);
         });
 
-        it('does not dispatch when clipboard is empty', async () => {
+        it('opens manual paste when clipboard is empty or unavailable', async () => {
             clipboardService.getData.mockResolvedValue(null);
-
             actions$.next(actions.executeContextMenuAction({ action: 'paste-after', source: 'list' }));
-            const results: Action[] = [];
-            const sub = effects.pasteItemFromClipboardAction$.subscribe(a => results.push(a));
-            await new Promise(r => setTimeout(r, 100));
-            sub.unsubscribe();
-            expect(results.length).toBe(0);
+            const result = await firstValueFrom(effects.pasteItemFromClipboardAction$);
+            expect(result.type).toBe(actions.showClipboardModal.type);
         });
     });
 

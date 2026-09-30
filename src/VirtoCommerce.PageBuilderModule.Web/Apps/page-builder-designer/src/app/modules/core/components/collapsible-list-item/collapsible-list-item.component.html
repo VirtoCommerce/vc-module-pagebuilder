@@ -1,6 +1,10 @@
 <div class="item-holder" [ngClass]="{ 'hovered': hovered(), 'highlighted': highlight() }">
-  <app-chevron [ngStyle]="{ visibility: expandable() ? 'visible' : 'hidden' }"
-  (click)="onChevronClick()" [opened]="opened()" />
+  <button type="button" [style.visibility]="expandable() ? 'visible' : 'hidden'"
+    [disabled]="!expandable()" [attr.aria-expanded]="opened()"
+    [attr.aria-label]="'Toggle ' + accessibleLabel()"
+    (click)="onChevronClick()">
+    <app-chevron aria-hidden="true" [opened]="opened()" />
+  </button>
   <ng-content select="[item]" />
 </div>
 @if (opened()) {

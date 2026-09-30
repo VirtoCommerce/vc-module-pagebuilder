@@ -1,5 +1,9 @@
-<div class="item" [ngClass]="{ current: inPreview(), child: child() }" (click)="raiseOnPreview()">
-    <app-icon>{{ section().icon }}</app-icon>
-    <div class="name">{{ getSectionName() }}</div>
-    <app-icon class="operation" (click)="raiseOnAdd($event)">add_box</app-icon>
+<div class="item" [ngClass]="{ current: inPreview(), child: child() }">
+    <button type="button" class="preview-button" (click)="raiseOnPreview()" [attr.aria-pressed]="inPreview()">
+      <app-icon aria-hidden="true">{{ section().icon }}</app-icon>
+      <span class="name">{{ getSectionName() }}</span>
+    </button>
+    <button type="button" class="operation" [attr.aria-label]="'Add ' + getSectionName()" (click)="raiseOnAdd($event)">
+      <app-icon aria-hidden="true">add_box</app-icon>
+    </button>
 </div>

@@ -11,10 +11,10 @@
       [actions]="contextMenuActions()"
       [visible]="true"
       (onAction)="onContextMenuSelected($event)">
-      <div class="impersonate-trigger" #contextMenuTrigger>
-        <app-icon class="trigger-icon">person</app-icon>
+      <span class="impersonate-trigger" #contextMenuTrigger>
+        <app-icon class="trigger-icon" aria-hidden="true">person</app-icon>
         <span class="label">{{ currentLabel() }}</span>
-      </div>
+      </span>
     </app-context-menu>
   }
 }
