@@ -65,6 +65,18 @@ describe('TemplateEditorComponent', () => {
     return { fixture, dispatch, context, content };
   }
 
+  it('uses the visible section name for its disclosure label', async () => {
+    const { fixture } = await renderPage([
+      createSection({ id: 'unnamed', type: 'text' }),
+      createSection({ id: 'named', type: 'text', name: 'Hero banner' }),
+    ]);
+    const rows = [...fixture.nativeElement.querySelectorAll('app-collapsible-list-item')] as HTMLElement[];
+    expect(rows.map(row => row.querySelector('.section-edit-button .name')?.textContent?.trim())).toEqual(['Text', 'Hero banner']);
+    expect(rows.map(row => row.querySelector('.item-holder > button')?.getAttribute('aria-label'))).toEqual([
+      'Toggle Text', 'Toggle Hero banner',
+    ]);
+  });
+
   it('keeps a failed Shared Component load recoverable with Back and Retry actions', async () => {
     const dispatch = vi.spyOn(store, 'dispatch');
     const fixture = TestBed.createComponent(TemplateEditorComponent);

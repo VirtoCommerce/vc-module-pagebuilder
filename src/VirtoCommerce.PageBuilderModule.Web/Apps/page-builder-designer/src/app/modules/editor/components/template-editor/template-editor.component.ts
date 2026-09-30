@@ -66,7 +66,7 @@ export class TemplateEditorComponent {
     }
 
     getSectionLabel(section: SectionModel, schema?: SectionSchema): string {
-        return getSectionName(section, schema ?? null, 'section');
+        return getSectionName(section, schema ?? null);
     }
 
     readonly currentHoverId = signal<string | null>(null);

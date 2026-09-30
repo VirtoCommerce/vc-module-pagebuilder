@@ -62,6 +62,7 @@
 
           <SharedComponentsTable
             v-if="!loadError || items.length > 0"
+            ref="tableRef"
             :components="items"
             :total-count="totalCount"
             :pagination="pagination"
@@ -137,6 +138,7 @@ const detailsStacked = useBreakpoints(breakpointsTailwind).smaller("lg");
 const { t } = useI18n({ useScope: "global" });
 const { hasAccess } = usePermissions();
 const renameTarget = ref<SharedComponent>();
+const tableRef = ref<InstanceType<typeof SharedComponentsTable> | null>(null);
 let renameReturnFocusTo: HTMLElement | null = null;
 let detailsReturnFocusTo: HTMLElement | null = null;
 let detailsReturnFocusIndex: number | null = null;
@@ -213,13 +215,7 @@ function clearDetailsSelection() {
   detailsReturnFocusIndex = null;
   clearSelection();
   focusIfLoose(() => {
-    const rows = document.querySelectorAll<HTMLElement>('[role="row"][tabindex], .vc-data-table-mobile-card');
-    const fallback = rows[returnFocusIndex ?? 0] ?? focusFallbackTarget();
-    const target = returnFocusTo?.isConnected ? returnFocusTo : fallback;
-    if (target?.matches(".vc-data-table-mobile-card") && !target.hasAttribute("tabindex")) {
-      target.tabIndex = -1;
-    }
-    return target;
+    return tableRef.value?.getRowFocusTarget(returnFocusIndex, returnFocusTo) ?? focusFallbackTarget();
   });
 }
 
