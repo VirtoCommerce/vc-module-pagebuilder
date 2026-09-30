@@ -22,13 +22,15 @@ import { IconComponent } from '../icon/icon.component';
   host: {
     '[class.inplace]': 'skipTranslate()',
     '(window:resize)': 'onResize()',
+    '(keydown)': 'onKeydown($event)',
   },
 })
 export class OverlapPanelComponent {
 
   private readonly windowRef = inject(EnvironmentRef);
-  private readonly elementRef = inject(ElementRef);
+  private readonly elementRef = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly returnFocusTo = this.elementRef.nativeElement.ownerDocument.activeElement;
 
   readonly expandable = input(true);
   readonly skipTranslate = input<boolean | null>(false);
@@ -54,7 +56,19 @@ export class OverlapPanelComponent {
   readonly isOpened = signal(false);
 
   constructor() {
+    this.destroyRef.onDestroy(() => {
+      const host = this.elementRef.nativeElement;
+      const document = host.ownerDocument;
+      if (this.dismissible() && this.returnFocusTo instanceof HTMLElement && this.returnFocusTo.isConnected
+        && (host.contains(document.activeElement) || document.activeElement === document.body)) {
+        this.returnFocusTo.focus({ preventScroll: true });
+      }
+    });
     afterNextRender(() => {
+      const host = this.elementRef.nativeElement;
+      if (this.dismissible() && host.ownerDocument.activeElement === this.returnFocusTo) {
+        host.querySelector<HTMLElement>('[role="region"]')?.focus({ preventScroll: true });
+      }
       const interval = setInterval(() => this.changeWidth(), 1000);
       this.destroyRef.onDestroy(() => clearInterval(interval));
     });

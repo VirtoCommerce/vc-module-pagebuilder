@@ -4,7 +4,7 @@
     transition: opacity .2s;
     opacity: 0;
     @apply flex flex-col;
-    &.visible, &:focus-within {
+    &.visible, &:has(:focus-visible) {
         opacity: 1;
     }
 }

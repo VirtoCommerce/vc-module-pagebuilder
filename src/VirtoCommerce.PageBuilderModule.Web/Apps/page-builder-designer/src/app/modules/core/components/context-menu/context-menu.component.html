@@ -12,14 +12,15 @@
   <ng-template cdkConnectedOverlay [cdkConnectedOverlayOrigin]="trigger"
                [cdkConnectedOverlayPositions]="positions"
                [cdkConnectedOverlayOpen]="isOpen()"
+               (attach)="focusFirstAction()"
                (detach)="hideActions()"
                (overlayKeydown)="onOverlayKeydown($event)"
                (overlayOutsideClick)="outsideClick($event)">
-    <ul class="panel" role="menu" cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
+    <ul #menuPanel class="panel" role="menu" [attr.aria-label]="accessibleLabel()">
       @for (action of getActionsList(); track action) {
       <li role="none" [ngClass]="{ separator: action === '|' }">
         @if (action !== '|') {
-        <button type="button" role="menuitem" class="action-item"
+        <button type="button" role="menuitem" class="action-item" tabindex="-1"
              [attr.aria-disabled]="evaluateFunction(action.inactive)"
              [class.inactive]="evaluateFunction(action.inactive)"
              (click)="raiseOnAction(action)">

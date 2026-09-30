@@ -1,4 +1,5 @@
 import { CdkDragSortEvent, CdkDragStart, DragDropModule } from '@angular/cdk/drag-drop';
+import { LiveAnnouncer } from '@angular/cdk/a11y';
 import { afterNextRender, ChangeDetectionStrategy, Component, computed, ElementRef, inject, Injector, input, output, signal } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { BlockStatesList, SectionsSchemasList } from '@editor/models';
@@ -20,11 +21,11 @@ import { IconButtonComponent } from '@core/components/icon-button/icon-button.co
 export class SectionChildrenListComponent {
     private readonly elementRef = inject<ElementRef<HTMLElement>>(ElementRef);
     private readonly injector = inject(Injector);
+    private readonly liveAnnouncer = inject(LiveAnnouncer);
 
     private _fakeElement: HTMLElement | null = null;
 
     readonly currentHoverId = signal<string | null>(null);
-    readonly moveAnnouncement = signal('');
 
     readonly section = input.required<SectionModel>();
     readonly blocksSchemas = input.required<SectionsSchemasList>();
@@ -66,7 +67,7 @@ export class SectionChildrenListComponent {
         const announcement = selectedIndexes.length > 1
             ? `Selected blocks moved ${direction}`
             : `Block moved to position ${currentIndex + 1} of ${blocks.length}`;
-        this.moveAnnouncement.set('');
+        void this.liveAnnouncer.announce(announcement);
         afterNextRender(() => {
             if (shouldRestoreFocus && (document.activeElement === document.body || document.activeElement === focusedHandle)) {
                 const handle = Array.from(this.elementRef.nativeElement.querySelectorAll<HTMLElement>('[data-block-id]'))
@@ -74,7 +75,6 @@ export class SectionChildrenListComponent {
                     ?.querySelector<HTMLButtonElement>('button');
                 handle?.focus({ preventScroll: true });
             }
-            this.moveAnnouncement.set(announcement);
         }, { injector: this.injector });
     }
 

@@ -1,45 +1,99 @@
+import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
+import { NgSelectComponent } from '@ng-select/ng-select';
 import { OverlapPanelComponent } from './overlap-panel.component';
 
+@Component({
+  imports: [OverlapPanelComponent, NgSelectComponent],
+  template: '<app-overlap-panel [dismissible]="true" (dismissed)="dismissed = dismissed + 1"><ng-select [items]="items" /></app-overlap-panel>',
+})
+class SelectPanelFixture {
+  items = ['One', 'Two'];
+  dismissed = 0;
+}
+
 describe('OverlapPanelComponent dismissal', () => {
-  it('dismisses a labelled panel with Escape but leaves an already-handled Escape alone', async () => {
+  async function renderPanel() {
     const fixture = TestBed.createComponent(OverlapPanelComponent);
     fixture.componentRef.setInput('dismissible', true);
     fixture.componentRef.setInput('accessibleLabel', 'Add block');
     await fixture.whenStable();
     const dismissed = vi.fn();
     fixture.componentInstance.dismissed.subscribe(dismissed);
-    const content = fixture.nativeElement.querySelector('[role="region"]') as HTMLElement;
+    return { fixture, dismissed, content: fixture.nativeElement.querySelector('[role="region"]') as HTMLElement };
+  }
+
+  it('labels an editing region without trapping focus', async () => {
+    const { fixture, content } = await renderPanel();
     expect(content.getAttribute('aria-label')).toBe('Add block');
-    content.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    expect(fixture.nativeElement.querySelector('[cdkTrapFocus]')).toBeNull();
+  });
+
+  it('focuses a nonmodal region and restores the opener when removed', async () => {
+    const opener = document.createElement('button');
+    document.body.append(opener);
+    try {
+      opener.focus();
+      const { fixture, content } = await renderPanel();
+      expect(document.activeElement).toBe(content);
+      fixture.destroy();
+      expect(document.activeElement).toBe(opener);
+    } finally {
+      opener.remove();
+    }
+  });
+
+  it('does not steal focus from another control when removed', async () => {
+    const other = document.createElement('button');
+    document.body.append(other);
+    try {
+      const { fixture } = await renderPanel();
+      other.focus();
+      fixture.destroy();
+      expect(document.activeElement).toBe(other);
+    } finally {
+      other.remove();
+    }
+  });
+
+  it('dismisses and contains Escape from its content', async () => {
+    const { content, dismissed } = await renderPanel();
+    const event = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+    content.dispatchEvent(event);
     expect(dismissed).toHaveBeenCalledOnce();
-    const handled = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
-    handled.preventDefault();
-    content.dispatchEvent(handled);
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  it('dismisses when Escape is pressed on the panel width button', async () => {
+    const { fixture, dismissed } = await renderPanel();
+    fixture.nativeElement.querySelector('.expand').dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
     expect(dismissed).toHaveBeenCalledOnce();
   });
 
-  it('lets an open ng-select consume Escape and dismisses after the dropdown is closed', async () => {
-    const fixture = TestBed.createComponent(OverlapPanelComponent);
-    fixture.componentRef.setInput('dismissible', true);
-    await fixture.whenStable();
-    const dismissed = vi.fn();
-    fixture.componentInstance.dismissed.subscribe(dismissed);
-    const select = document.createElement('ng-select');
-    const input = document.createElement('input');
-    select.append(input);
-    fixture.nativeElement.querySelector('.content').append(select);
-
-    select.classList.add('ng-select-opened');
-    const first = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
-    first.preventDefault();
-    input.dispatchEvent(first);
+  it('leaves an Escape consumed by a nested control alone', async () => {
+    const { content, dismissed } = await renderPanel();
+    const event = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+    event.preventDefault();
+    content.dispatchEvent(event);
     expect(dismissed).not.toHaveBeenCalled();
+  });
 
-    select.classList.remove('ng-select-opened');
-    const second = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
-    second.preventDefault();
-    input.dispatchEvent(second);
-    expect(dismissed).toHaveBeenCalledOnce();
+  it('lets the real ng-select consume the first Escape and dismisses on the second', async () => {
+    const fixture = TestBed.createComponent(SelectPanelFixture);
+    await fixture.whenStable();
+    const select = fixture.debugElement.query(By.directive(NgSelectComponent)).componentInstance as NgSelectComponent;
+    select.open();
+    await fixture.whenStable();
+    const input = fixture.nativeElement.querySelector('ng-select input') as HTMLInputElement;
+    input.focus();
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    await fixture.whenStable();
+    expect(select.isOpen()).toBe(false);
+    expect(fixture.componentInstance.dismissed).toBe(0);
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    await fixture.whenStable();
+    expect(fixture.componentInstance.dismissed).toBe(1);
   });
 });

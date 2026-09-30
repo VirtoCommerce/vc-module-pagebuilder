@@ -2,7 +2,7 @@
   <VcBlade
     width="100%"
     :title="bladeTitle"
-    :toolbar-items="selectedComponent ? [] : bladeToolbar"
+    :toolbar-items="selectedComponent && detailsStacked ? [] : bladeToolbar"
   >
     <div
       class="tw-flex tw-h-full tw-flex-col tw-bg-[color:var(--neutrals-50)] tw-text-sm tw-text-[color:var(--neutrals-800)]"
@@ -110,6 +110,7 @@
 
 <script lang="ts" setup>
 import { computed, onMounted, ref } from "vue";
+import { breakpointsTailwind, useBreakpoints } from "@vueuse/core";
 import { useI18n } from "vue-i18n";
 import { focusFallbackTarget, focusIfLoose, useBlade, usePermissions, type IBladeToolbar } from "@vc-shell/framework";
 import { VcBlade, VcButton, VcHint, VcIcon } from "@vc-shell/framework/ui";
@@ -132,6 +133,7 @@ defineBlade({
 });
 
 const { exposeToChildren } = useBlade();
+const detailsStacked = useBreakpoints(breakpointsTailwind).smaller("lg");
 const { t } = useI18n({ useScope: "global" });
 const { hasAccess } = usePermissions();
 const renameTarget = ref<SharedComponent>();

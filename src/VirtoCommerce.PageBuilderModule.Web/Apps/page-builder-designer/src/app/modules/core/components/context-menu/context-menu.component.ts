@@ -1,6 +1,5 @@
 import { CdkConnectedOverlay, CdkOverlayOrigin, ConnectedPosition } from '@angular/cdk/overlay';
-import { CdkTrapFocus } from '@angular/cdk/a11y';
-import { Component, input, output, signal, ChangeDetectionStrategy, viewChild, contentChild, ElementRef } from '@angular/core';
+import { afterNextRender, Component, input, output, signal, ChangeDetectionStrategy, viewChild, contentChild, ElementRef, inject, Injector, DestroyRef } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { ContextMenuAction, ContextMenuActionType } from '@core/models';
 import { IconComponent } from '../icon/icon.component';
@@ -10,9 +9,11 @@ import { IconComponent } from '../icon/icon.component';
   templateUrl: './context-menu.component.html',
   styleUrls: ['./context-menu.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NgClass, CdkConnectedOverlay, CdkOverlayOrigin, CdkTrapFocus, IconComponent]
+  imports: [NgClass, CdkConnectedOverlay, CdkOverlayOrigin, IconComponent]
 })
 export class ContextMenuComponent {
+  private readonly injector = inject(Injector);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly actions = input<ContextMenuAction[] | null>(null);
   readonly visible = input(false);
@@ -20,14 +21,30 @@ export class ContextMenuComponent {
   readonly getActions = input<(() => Promise<ContextMenuAction[]>) | null>(null);
 
   readonly overlay = viewChild.required(CdkConnectedOverlay);
+  readonly trigger = viewChild.required(CdkOverlayOrigin);
+  readonly menuPanel = viewChild<ElementRef<HTMLElement>>('menuPanel');
   readonly customTrigger = contentChild<ElementRef>('contextMenuTrigger');
 
   readonly onAction = output<ContextMenuActionType>();
 
   private readonly _cachedActions = signal<ContextMenuAction[] | null>(null);
   private loadId = 0;
+  private returnFocusTo: HTMLElement | null = null;
   readonly isOpen = signal(false);
   positions: ConnectedPosition[] = [];
+
+  constructor() {
+    this.destroyRef.onDestroy(() => this.loadId++);
+  }
+
+  focusFirstAction() {
+    afterNextRender(() => {
+      if (this.isOpen()) {
+        this.menuPanel()?.nativeElement.querySelector<HTMLButtonElement>('[role="menuitem"]')
+          ?.focus({ preventScroll: true });
+      }
+    }, { injector: this.injector });
+  }
 
   evaluateFunction(func: boolean | (() => boolean) | undefined): boolean {
     if (typeof func === 'function') {
@@ -46,6 +63,10 @@ export class ContextMenuComponent {
 
   async showActions() {
     const loadId = ++this.loadId;
+    if (!this.isOpen()) {
+      const activeElement = this.trigger().elementRef.nativeElement.ownerDocument.activeElement;
+      this.returnFocusTo = activeElement instanceof HTMLElement ? activeElement : null;
+    }
     try {
       const getActions = this.getActions();
       if (!this.actions() && getActions) {
@@ -66,6 +87,13 @@ export class ContextMenuComponent {
 
   hideActions() {
     this.loadId++;
+    const panel = this.menuPanel()?.nativeElement;
+    const document = this.trigger().elementRef.nativeElement.ownerDocument;
+    if (panel?.contains(document.activeElement) || (this.isOpen() && document.activeElement === document.body)) {
+      const target = this.returnFocusTo?.isConnected && this.returnFocusTo !== document.body
+        ? this.returnFocusTo : this.trigger().elementRef.nativeElement;
+      target.focus({ preventScroll: true });
+    }
     if (this.getActions()) {
       this._cachedActions.set(null);
     }
@@ -113,8 +141,12 @@ export class ContextMenuComponent {
 
   onOverlayKeydown(event: KeyboardEvent) {
     if (event.key === 'Escape') {
-      event.preventDefault();
+      // CDK owns Escape dismissal through (detach). Contain it to this menu.
       event.stopPropagation();
+      return;
+    }
+    if (event.key === 'Tab') {
+      // Restore the trigger before the browser advances to the next/previous control.
       this.hideActions();
       return;
     }

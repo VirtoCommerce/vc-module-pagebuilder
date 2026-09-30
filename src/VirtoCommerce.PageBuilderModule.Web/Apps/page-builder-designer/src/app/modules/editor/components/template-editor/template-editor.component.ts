@@ -1,5 +1,6 @@
 import { afterNextRender, Component, computed, ElementRef, signal, inject, Injector } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { LiveAnnouncer } from '@angular/cdk/a11y';
 import { NgClass } from '@angular/common';
 import { CdkDragRelease, CdkDragSortEvent, CdkDragStart, DragDropModule } from '@angular/cdk/drag-drop';
 import { Store } from '@ngrx/store';
@@ -45,6 +46,7 @@ export class TemplateEditorComponent {
     private readonly appConfig = inject(AppConfig);
     private readonly elementRef = inject<ElementRef<HTMLElement>>(ElementRef);
     private readonly injector = inject(Injector);
+    private readonly liveAnnouncer = inject(LiveAnnouncer);
 
     readonly viewModel = toSignal(this.store.select(fromState.editTemplateContext));
     readonly loadState = toSignal(this.store.select(fromState.selectCurrentTemplateState));
@@ -67,7 +69,6 @@ export class TemplateEditorComponent {
         return getSectionName(section, schema ?? null, 'section');
     }
 
-    readonly moveAnnouncement = signal('');
     readonly currentHoverId = signal<string | null>(null);
 
     addSectionClick(positionIndex?: number) {
@@ -230,7 +231,7 @@ export class TemplateEditorComponent {
         const announcement = selectedIndexes.length > 1
             ? `Selected sections moved ${direction}`
             : `Section moved to position ${currentIndex + 1} of ${content.length}`;
-        this.moveAnnouncement.set('');
+        void this.liveAnnouncer.announce(announcement);
         afterNextRender(() => {
             if (shouldRestoreFocus && (document.activeElement === document.body || document.activeElement === focusedHandle)) {
                 const handle = Array.from(this.elementRef.nativeElement.querySelectorAll<HTMLElement>('[data-section-id]'))
@@ -238,7 +239,6 @@ export class TemplateEditorComponent {
                     ?.querySelector<HTMLButtonElement>('button');
                 handle?.focus({ preventScroll: true });
             }
-            this.moveAnnouncement.set(announcement);
         }, { injector: this.injector });
     }
 }

@@ -23,7 +23,7 @@
     &:focus-visible { opacity: 1; pointer-events: auto; }
 }
 
-.item:hover .operation, .item:focus-within .operation { opacity: 1; pointer-events: auto; }
+.item:hover .operation, .item:has(:focus-visible) .operation { opacity: 1; pointer-events: auto; }
 .preview-button { @apply flex grow items-center gap-1 text-left; }
 
 .name {

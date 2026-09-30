@@ -1,7 +1,7 @@
 <div class="background"></div>
 <div class="content" [style.width.px]="contentWidth()"
   [attr.role]="dismissible() ? 'region' : null" [attr.aria-label]="dismissible() ? accessibleLabel() : null"
-  (keydown)="onKeydown($event)">
+  [attr.tabindex]="dismissible() ? -1 : null">
   <ng-content />
 </div>
 @if (expandable()) {
