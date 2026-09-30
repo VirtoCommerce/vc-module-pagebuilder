@@ -12,6 +12,7 @@ import {
     AssetPickerGridItem,
 } from './asset-picker.models';
 import { AssetPickerSelectionState, getAssetPickerEntryKey } from './asset-picker-selection.state';
+import { getFolderNameError } from './asset-picker-folder-name';
 
 @Injectable()
 export class AssetPickerStateService {
@@ -45,6 +46,19 @@ export class AssetPickerStateService {
     readonly dragging = signal(false);
     readonly folderDropTarget = signal<string | null>(null);
     readonly error = signal<string | null>(null);
+    readonly folderFormOpen = signal(false);
+    readonly folderName = signal('');
+    readonly creatingFolder = signal(false);
+    readonly folderCreateError = signal<string | null>(null);
+    private readonly folderNameRule = computed(() => getFolderNameError(this.folderName()));
+    readonly folderNameError = computed(() => {
+        const rule = this.folderNameRule();
+        return this.folderCreateError() || (rule
+            ? this.labels.folderNameErrors[rule].replace('{count}', this.folderName().trim().length.toString())
+            : null);
+    });
+    readonly canCreateFolder = computed(() => !!this.folderName().trim()
+        && !this.folderNameRule() && !this.creatingFolder() && !this.uploading());
     readonly acceptAttribute = computed(() => this.acceptedTypes.length ? this.acceptedTypes.join(',') : null);
     readonly breadcrumbs = computed(() => this.buildBreadcrumbs());
     readonly visibleEntries = computed(() => this.entries()
@@ -164,6 +178,49 @@ export class AssetPickerStateService {
         return this.selection.getSelectionResult();
     }
 
+    openFolderForm() {
+        if (this.folderFormOpen() || this.creatingFolder() || this.uploading() || this.loading()) {
+            return;
+        }
+        this.folderName.set('');
+        this.folderCreateError.set(null);
+        this.folderFormOpen.set(true);
+    }
+
+    onFolderNameChange(value: string) {
+        this.folderName.set(value);
+        this.folderCreateError.set(null);
+    }
+
+    createFolder() {
+        if (!this.canCreateFolder()) {
+            return;
+        }
+
+        const name = this.folderName().trim();
+        const parentUrl = this.currentFolderUrl().replace(/\/$/, '');
+        this.folderCreateError.set(null);
+        this.creatingFolder.set(true);
+        this.assets.createFolder(parentUrl, name).pipe(
+            takeUntilDestroyed(this.destroyRef)
+        ).subscribe({
+            next: () => {
+                this.creatingFolder.set(false);
+                this.folderFormOpen.set(false);
+                this.searchValue.set('');
+                if (this.searchTimeout) {
+                    clearTimeout(this.searchTimeout);
+                    this.searchTimeout = null;
+                }
+                this.navigateTo({ type: 'folder', name, relativeUrl: `${parentUrl}/${name}` });
+            },
+            error: error => {
+                this.creatingFolder.set(false);
+                this.folderCreateError.set(error?.error?.message || error?.message || this.labels.folderCreateError);
+            }
+        });
+    }
+
     uploadFiles(files: File[], folderUrl = this.currentFolderUrl()) {
         const acceptedFiles = files.filter(file => this.matchesAcceptFile(file));
         const oversizedFiles = acceptedFiles.filter(file => this.isFileTooLarge(file));
@@ -176,7 +233,7 @@ export class AssetPickerStateService {
             return;
         }
 
-        if (!uploadFiles.length || this.uploading()) {
+        if (!uploadFiles.length || this.uploading() || this.creatingFolder()) {
             return;
         }
 

@@ -249,6 +249,28 @@
         }
     }
 
+    .folder-form {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        padding: 0.75rem;
+        border-bottom: 1px solid $border;
+        background: $surface;
+
+        input {
+            min-width: 0;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid $border;
+            border-radius: 0.25rem;
+        }
+
+        .folder-form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+        }
+    }
+
     .counter,
     .size {
         color: $muted;
