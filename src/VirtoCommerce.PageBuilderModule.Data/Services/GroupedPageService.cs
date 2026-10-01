@@ -230,16 +230,13 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
                 .Distinct()
                 .ToList();
 
-            if (pageIds.Count == 0)
-            {
-                return;
-            }
-
             foreach (var id in pageIds)
             {
                 GenericCachingRegion<PageBuilderPage>.ExpireTokenForKey(id);
             }
 
+            // A conditional first save can create a draft absent from the caller's group snapshot.
+            // Expire search results even when that snapshot had no child pages.
             GenericSearchCachingRegion<PageBuilderPage>.ExpireRegion();
         }
 
@@ -334,6 +331,16 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
         {
             await using var memoryStream = new MemoryStream(Encoding.UTF8.GetBytes(content));
             await SaveStreamAsContentAsync(pageId, memoryStream, cancellationToken);
+        }
+
+        public async Task<PageBuilderConditionalContentWriteResult> SaveGroupContentAsync(
+            GroupedPageBuilderPage authorizedGroup, string content, string expectedETag,
+            CancellationToken cancellationToken = default)
+        {
+            await using var repository = _contentStreamRepositoryFactory();
+            var result = await repository.SaveGroupContentAsync(authorizedGroup, content, expectedETag, cancellationToken);
+            ClearCache([authorizedGroup]);
+            return result;
         }
 
         public async Task<bool> LoadContentToStreamAsync(string pageId, Stream stream, CancellationToken cancellationToken = default)

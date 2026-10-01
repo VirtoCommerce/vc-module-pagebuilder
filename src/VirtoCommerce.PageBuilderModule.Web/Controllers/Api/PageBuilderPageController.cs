@@ -426,7 +426,8 @@ public class PageBuilderPageController : Controller
 
     [HttpGet("grouped/{groupId}/content")]
     [Authorize(ModuleConstants.Security.Permissions.Read)]
-    public async Task GetPageContent([FromRoute] string groupId, [FromQuery] bool draft = true, CancellationToken cancellationToken = default)
+    public async Task GetPageContent([FromRoute] string groupId, [FromQuery] bool draft = true,
+        CancellationToken cancellationToken = default, [FromQuery] bool includeVersion = false)
     {
         Response.ContentType = "application/json; charset=utf-8";
         var group = await groupedPageService.GetByIdAsync(groupId);
@@ -451,13 +452,42 @@ public class PageBuilderPageController : Controller
         // lists deleted pages.
         foreach (var pageId in GetContentCandidates(group, draft))
         {
-            if (await groupedPageService.LoadContentToStreamAsync(pageId, Response.Body, cancellationToken))
+            await using var buffer = new MemoryStream();
+            if (await groupedPageService.LoadContentToStreamAsync(pageId, buffer, cancellationToken))
             {
+                var bytes = buffer.GetBuffer();
+                var length = checked((int)buffer.Length);
+                // LoadContentToStreamAsync writes UTF-8 with a preamble; it is not part of the document.
+                var offset = bytes.AsSpan(0, length).StartsWith(Encoding.UTF8.Preamble) ? Encoding.UTF8.Preamble.Length : 0;
+                Response.Headers.ETag = PageBuilderContentVersion.CreateFromUtf8(group, bytes.AsSpan(offset, length - offset));
+                Response.Headers.CacheControl = "no-store";
+                if (includeVersion)
+                {
+                    var content = Encoding.UTF8.GetString(bytes, offset, length - offset);
+                    await WriteVersionedContentResponseAsync(content, Response.Headers.ETag.ToString(), cancellationToken);
+                }
+                else
+                {
+                    buffer.Position = offset;
+                    await buffer.CopyToAsync(Response.Body, cancellationToken);
+                }
                 return;
             }
         }
 
+        Response.Headers.ETag = PageBuilderContentVersion.Create(group, null);
+        Response.Headers.CacheControl = "no-store";
+        if (includeVersion)
+        {
+            await WriteVersionedContentResponseAsync(ModuleConstants.DefaultPageContent, Response.Headers.ETag.ToString(), cancellationToken);
+            return;
+        }
         Response.StatusCode = (int)HttpStatusCode.NotFound;
+    }
+
+    private Task WriteVersionedContentResponseAsync(string content, string eTag, CancellationToken cancellationToken)
+    {
+        return Response.WriteAsync(JsonSerializer.Serialize(new { content, eTag }), cancellationToken);
     }
 
     // Draft is the working copy and wins when requested; Published is the live page; Archived is the last
@@ -466,18 +496,18 @@ public class PageBuilderPageController : Controller
     {
         if (draft)
         {
-            foreach (var page in group.Pages.Where(x => x.Status == Draft))
+            foreach (var page in group.Pages.Where(x => x.Status == Draft).OrderByDescending(x => x.ModifiedDate).ThenBy(x => x.Id))
             {
                 yield return page.Id;
             }
         }
 
-        foreach (var page in group.Pages.Where(x => x.Status == Published))
+        foreach (var page in group.Pages.Where(x => x.Status == Published).OrderByDescending(x => x.ModifiedDate).ThenBy(x => x.Id))
         {
             yield return page.Id;
         }
 
-        foreach (var page in group.Pages.Where(x => x.Status == Archived).OrderByDescending(x => x.ModifiedDate))
+        foreach (var page in group.Pages.Where(x => x.Status == Archived).OrderByDescending(x => x.ModifiedDate).ThenBy(x => x.Id))
         {
             yield return page.Id;
         }
@@ -485,7 +515,8 @@ public class PageBuilderPageController : Controller
 
     [HttpPost("grouped/{groupId}/content")]
     [Authorize(ModuleConstants.Security.Permissions.Update)]
-    public async Task<IActionResult> SavePageContent([FromRoute] string groupId, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> SavePageContent([FromRoute] string groupId, CancellationToken cancellationToken = default,
+        [FromHeader(Name = "If-Match")] string ifMatch = null)
     {
         var groupedPage = await groupedPageService.GetByIdAsync(groupId);
 
@@ -516,17 +547,7 @@ public class PageBuilderPageController : Controller
             return validationError;
         }
 
-        var writeResult = await pageContentService.SaveContentAsync(
-            groupId,
-            groupedPage,
-            content,
-            cancellationToken);
-        if (writeResult.ErrorMessage != null)
-        {
-            return BadRequest(writeResult.ErrorMessage);
-        }
-
-        return NoContent();
+        return await SaveConditionalContentAsync(groupedPage, content, cancellationToken, ifMatch);
     }
 
     /// <summary>
@@ -539,7 +560,8 @@ public class PageBuilderPageController : Controller
     public async Task<IActionResult> SavePageContentJson(
         [FromRoute] string groupId,
         [FromBody] UpdatePageContentRequest model,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        [FromHeader(Name = "If-Match")] string ifMatch = null)
     {
         if (model == null || string.IsNullOrWhiteSpace(model.Content))
         {
@@ -573,17 +595,51 @@ public class PageBuilderPageController : Controller
             return validationError;
         }
 
-        var writeResult = await pageContentService.SaveContentAsync(
-            groupId,
-            groupedPage,
-            model.Content,
-            cancellationToken);
-        if (writeResult.ErrorMessage != null)
+        var headerVersion = ifMatch ?? Request.Headers.IfMatch.ToString();
+        if (!string.IsNullOrWhiteSpace(headerVersion) && !string.IsNullOrWhiteSpace(model.ETag) &&
+            !string.Equals(headerVersion.Trim(), model.ETag.Trim(), StringComparison.Ordinal))
         {
-            return BadRequest(writeResult.ErrorMessage);
+            return BadRequest("If-Match and the body ETag must identify the same content version.");
+        }
+        return await SaveConditionalContentAsync(groupedPage, model.Content, cancellationToken,
+            string.IsNullOrWhiteSpace(headerVersion) ? model.ETag : headerVersion);
+    }
+
+    private async Task<IActionResult> SaveConditionalContentAsync(
+        GroupedPageBuilderPage group, string content, CancellationToken cancellationToken, string ifMatch = null)
+    {
+        var expectedETag = (ifMatch ?? Request.Headers.IfMatch.ToString()).Trim();
+        if (string.IsNullOrEmpty(expectedETag))
+        {
+            return StatusCode(StatusCodes.Status428PreconditionRequired,
+                "Read the page content and send its ETag in If-Match before saving.");
         }
 
-        return NoContent();
+        // Require one concrete strong version. A wildcard does not protect an author's work.
+        if (expectedETag.Length != 66 || expectedETag[0] != '"' || expectedETag[^1] != '"' ||
+            expectedETag.AsSpan(1, 64).ContainsAnyExcept("0123456789ABCDEF"))
+        {
+            return BadRequest("If-Match must contain the single strong ETag returned by the content GET.");
+        }
+
+        try
+        {
+            var result = await pageContentService.SaveConditionalContentAsync(group, content, expectedETag, cancellationToken);
+            Response.Headers.ETag = result.ETag;
+            return NoContent();
+        }
+        catch (PageBuilderContentConflictException ex)
+        {
+            return StatusCode(StatusCodes.Status412PreconditionFailed, ex.Message);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (InvalidDataException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
     [HttpPost("grouped/{targetGroupId}/content/{sourceGroupId}")]

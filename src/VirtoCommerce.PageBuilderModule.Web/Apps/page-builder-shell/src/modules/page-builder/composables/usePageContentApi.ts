@@ -83,22 +83,3 @@ export async function parseImportFile(file: File): Promise<PageExportData> {
     content: data.content,
   };
 }
-
-/** Upload content to a page */
-export async function uploadPageContent(groupId: string, content: unknown): Promise<void> {
-  const headers = await getAuthHeaders();
-  const url = `/api/page-builder-pages/grouped/${encodeURIComponent(groupId)}/content`;
-  const body = typeof content === "string" ? content : JSON.stringify(content);
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      ...headers,
-      "Content-Type": "text/plain; charset=utf-8",
-    },
-    body,
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to upload content: ${response.status}`);
-  }
-}

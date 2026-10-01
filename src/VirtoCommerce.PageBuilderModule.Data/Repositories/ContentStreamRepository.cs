@@ -2,7 +2,10 @@ using System.Data;
 using System.Data.Common;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Data.Models;
+using VirtoCommerce.Platform.Core.Common;
+using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Repositories;
 
@@ -41,6 +44,66 @@ public abstract class ContentStreamRepository(PageBuilderModuleDbContext dbConte
     protected virtual string CopyContentSql =>
         $"UPDATE {Table} SET {ContentColumn} = (SELECT {ContentColumn} FROM {Table} WHERE {IdColumn} = @sourceId) " +
         $"WHERE {IdColumn} = @id";
+
+    public async Task<PageBuilderConditionalContentWriteResult> SaveGroupContentAsync(
+        GroupedPageBuilderPage authorizedGroup,
+        string content,
+        string expectedETag,
+        CancellationToken cancellationToken = default)
+    {
+        PageBuilderConditionalContentWriteResult result = null;
+        await ExecuteInTransactionAsync(async ct =>
+        {
+            await PageBuilderWriteLock.AcquireGroupedPageLocksAsync(dbContext, [authorizedGroup.Id], ct);
+            var group = await dbContext.Set<GroupedPageBuilderPageEntity>().AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == authorizedGroup.Id, ct);
+            if (group == null || group.StoreId != authorizedGroup.StoreId || group.CreatedDate != authorizedGroup.CreatedDate)
+            {
+                throw new KeyNotFoundException("The authorized page group no longer exists.");
+            }
+
+            var pages = await dbContext.Set<PageBuilderPageEntity>().AsNoTracking()
+                .Where(x => x.GroupId == group.Id).ToListAsync(ct);
+            await PageBuilderWriteLock.AcquirePageLocksAsync(dbContext, pages.Select(x => x.Id), null, ct);
+            var candidates = pages.Where(x => x.Status is Draft or Published or Archived)
+                .OrderBy(x => x.Status == Draft ? 0 : x.Status == Published ? 1 : 2)
+                .ThenByDescending(x => x.ModifiedDate).ThenBy(x => x.Id).Select(x => x.Id).ToArray();
+            string currentContent = null;
+            // Read only the authoritative document, rather than materializing every archived payload.
+            foreach (var candidateId in candidates)
+            {
+                currentContent = await dbContext.Set<PageBuilderContentEntity>().AsNoTracking()
+                    .Where(x => x.Id == candidateId).Select(x => x.PageContent).FirstOrDefaultAsync(ct);
+                if (currentContent != null)
+                {
+                    break;
+                }
+            }
+            if (!string.Equals(PageBuilderContentVersion.Create(authorizedGroup, currentContent), expectedETag, StringComparison.Ordinal))
+            {
+                throw new PageBuilderContentConflictException();
+            }
+
+            var draft = pages.Where(x => x.Status == Draft).OrderByDescending(x => x.ModifiedDate).ThenBy(x => x.Id).FirstOrDefault();
+            if (draft == null)
+            {
+                draft = AbstractTypeFactory<PageBuilderPageEntity>.TryCreateInstance();
+                draft.Id = Guid.NewGuid().ToString("N");
+                draft.GroupId = group.Id;
+                draft.StoreId = group.StoreId;
+                draft.Status = Draft;
+                draft.CreatedDate = DateTime.UtcNow;
+                dbContext.Add(draft);
+                await dbContext.SaveChangesAsync(ct);
+            }
+
+            using var reader = new StringReader(content);
+            await SaveBinaryInternalAsync(draft.Id, reader, ct);
+            await RebuildIndexesAfterRawContentWriteAsync(draft.Id, content, group.StoreId, ct);
+            result = new(draft.Id, PageBuilderContentVersion.Create(authorizedGroup, content));
+        }, cancellationToken);
+        return result;
+    }
 
     internal Task SaveRawContentAsync(string pageId, TextReader reader, CancellationToken cancellationToken = default)
     {

@@ -227,14 +227,14 @@ Ask only for essentials that are blocking and missing: `storeId` (don't guess), 
 
 1. Phase A — `pagebuilder_list_section_schemas` if not already this session. Defer Phase B.
 2. Resolve target `groupId` (see "Identifying the target page").
-3. `pagebuilder_get_page_content` with the `groupId`. Parse the returned JSON string into an object — same `{settings, content}` shape as create.
+3. `pagebuilder_get_page_content` with the `groupId`. Parse the returned `content` JSON string into an object — same `{settings, content}` shape as create. Keep its `eTag` with that document.
 4. Plan concrete operations on the parsed object: add/remove section, replace field, reorder. If ambiguous (which section? which field?), ask before mutating. Fetch schemas via `pagebuilder_get_section_schema` only for sections you'll add or whose fields you'll edit (plus their composition deps).
 5. Mutate in place, preserving identity:
    - Existing section `id`s stay as-is. Generate fresh ids only for sections you add.
    - Sections you weren't asked to change stay byte-for-byte intact — no silent rewrites or reordering.
    - Updating a markdown field regenerates BOTH `markdown` and `html` from the new source.
 6. Self-validate as in Create step 6. Don't restructure `settings` keys against a template — preserve what was loaded; only change keys the user asked for.
-7. `pagebuilder_save_page_content` with `groupId` and JSON-stringified content.
+7. `pagebuilder_save_page_content` with `groupId`, JSON-stringified content, and the original `eTag`. On 412, stop and report that another author changed the page. Never replace the token on a stale document; a new read requires reapplying the requested edit to the new content.
 8. Confirm what changed ("Added an FAQ section after the hero on '<name>', saved as draft."). If the page already had a draft before your edit, mention you wrote into it — the user may have unrelated changes there.
 
 ---
@@ -265,7 +265,7 @@ Use when the user asks for an operation that spans more than one page ("all page
 
 1. **Enumerate.** `pagebuilder_search_pages` with `take: 100`, `statuses: "Draft,Published"` (exclude Archived unless asked). If `totalCount > 100`, **stop and ask the user to narrow the scope** (keyword, status). Do not paginate silently — the user should approve the working set.
 2. **Pre-filter cheaply.** If the predicate is decidable from search results (name pattern, status, permalink shape), apply it now and skip step 3 for non-candidates. Use `pagebuilder_get_page_meta` if you need metadata fields that `search_pages` strips.
-3. **Content-aware filter.** For predicates that require inspecting sections ("pages containing a CTA section", "pages whose first section is hero"), call `pagebuilder_get_page_content` on each remaining candidate, parse, test the predicate. Cache parsed content for step 5.
+3. **Content-aware filter.** For predicates that require inspecting sections ("pages containing a CTA section", "pages whose first section is hero"), call `pagebuilder_get_page_content` on each remaining candidate, parse, test the predicate. Cache parsed content and its matching `eTag` for step 5.
 4. **Preview & confirm.** Present two lists explicitly:
    - **Will change** — `name (permalink)` for each target.
    - **Skipped** — one-line reason per skipped candidate.
@@ -275,7 +275,7 @@ Use when the user asks for an operation that spans more than one page ("all page
    - Mutate the cached in-memory content per Edit rules: leave untouched sections (and their `id`s) identical, change only what the predicate calls for.
    - Re-fetch matching section schemas via `pagebuilder_get_section_schema` only for sections you are actually editing (cache across iterations).
    - Self-validate as in Create step 6.
-   - `pagebuilder_save_page_content` for that page. Report one-line progress: "✓ Updated 'name' (permalink)".
+   - `pagebuilder_save_page_content` for that page with its cached `eTag`. Report one-line progress: "✓ Updated 'name' (permalink)". A 412 stops the operation; do not retry with a new token attached to stale content.
 6. **Hard cap — 20 pages per turn.** If the confirmed list has more than 20 targets, process in waves of 20. After each wave, summarize and ask "Continue with the next 20?" before proceeding. This makes runaway loops cheap to interrupt.
 7. **Failure policy.** On the first 4xx / 5xx response, **stop**. Show the failing page, the backend error, and how many pages already saved. Ask: continue with the rest, stop here, or revert manually in the UI. Do not retry silently. Do not attempt to undo prior saves automatically — there is no rollback.
 8. **Summary.** "Updated K of N pages as drafts. Skipped: …. Failed: …." Bulk operations **never publish** — see "Publishing rules".

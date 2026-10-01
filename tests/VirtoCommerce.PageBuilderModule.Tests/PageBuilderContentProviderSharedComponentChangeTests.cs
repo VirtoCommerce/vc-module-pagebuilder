@@ -301,6 +301,10 @@ public class PageBuilderContentProviderSharedComponentChangeTests
 
     private sealed class TestGroupedPageService(TestDatabase database) : IGroupedPageService
     {
+        public Task<PageBuilderConditionalContentWriteResult> SaveGroupContentAsync(
+            GroupedPageBuilderPage authorizedGroup, string content, string expectedETag, CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
         public Task<IList<GroupedPageBuilderPage>> GetAsync(
             IList<string> ids,
             string responseGroup = null,

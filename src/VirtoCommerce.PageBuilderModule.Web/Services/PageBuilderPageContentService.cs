@@ -115,6 +115,14 @@ public sealed class PageBuilderPageContentService(
         return PageBuilderPageContentWriteResult.Success;
     }
 
+    public async Task<PageBuilderConditionalContentWriteResult> SaveConditionalContentAsync(
+        GroupedPageBuilderPage group, string content, string expectedETag, CancellationToken cancellationToken)
+    {
+        var result = await groupedPageService.SaveGroupContentAsync(group, content, expectedETag, cancellationToken);
+        await RaisePageContentChangedAsync(result.PageId, cancellationToken);
+        return result;
+    }
+
     public async Task<PageBuilderPageContentWriteResult> CopyContentAsync(
         string targetGroupId,
         GroupedPageBuilderPage targetGroup,

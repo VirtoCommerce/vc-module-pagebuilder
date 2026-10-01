@@ -263,6 +263,8 @@ public class PageBuilderPageControllerSharedComponentPreflightTests
             User = new ClaimsPrincipal(new ClaimsIdentity()),
         };
         httpContext.Request.Body = new MemoryStream(Encoding.UTF8.GetBytes(requestBody ?? string.Empty));
+        httpContext.Request.Headers.IfMatch = PageBuilderContentVersion.Create(
+            new GroupedPageBuilderPage { Id = "group", StoreId = StoreId }, "{ \"settings\": {}, \"content\": [] }");
         httpContext.Response.Body = new MemoryStream();
         controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
         return controller;
