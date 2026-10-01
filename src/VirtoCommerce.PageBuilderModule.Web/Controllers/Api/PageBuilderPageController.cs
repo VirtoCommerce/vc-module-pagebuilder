@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -28,6 +29,10 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 [Authorize]
 public class PageBuilderPageController : Controller
 {
+    private const int ContentVersionHashLength = 64;
+    private const int QuotedContentVersionLength = ContentVersionHashLength + 2;
+    private static readonly SearchValues<char> ContentVersionCharacters = SearchValues.Create("0123456789ABCDEF");
+
     private readonly IPageBuilderPageService crudService;
     private readonly IGroupedPageService groupedPageService;
     private readonly IGroupedPageSearchService groupedPageSearchService;
@@ -596,13 +601,18 @@ public class PageBuilderPageController : Controller
         }
 
         var headerVersion = ifMatch ?? Request.Headers.IfMatch.ToString();
-        if (!string.IsNullOrWhiteSpace(headerVersion) && !string.IsNullOrWhiteSpace(model.ETag) &&
-            !string.Equals(headerVersion.Trim(), model.ETag.Trim(), StringComparison.Ordinal))
+        if (HasConflictingContentVersions(headerVersion, model.ETag))
         {
             return BadRequest("If-Match and the body ETag must identify the same content version.");
         }
         return await SaveConditionalContentAsync(groupedPage, model.Content, cancellationToken,
             string.IsNullOrWhiteSpace(headerVersion) ? model.ETag : headerVersion);
+    }
+
+    private static bool HasConflictingContentVersions(string headerVersion, string bodyVersion)
+    {
+        return !string.IsNullOrWhiteSpace(headerVersion) && !string.IsNullOrWhiteSpace(bodyVersion) &&
+            !string.Equals(headerVersion.Trim(), bodyVersion.Trim(), StringComparison.Ordinal);
     }
 
     private async Task<IActionResult> SaveConditionalContentAsync(
@@ -616,8 +626,8 @@ public class PageBuilderPageController : Controller
         }
 
         // Require one concrete strong version. A wildcard does not protect an author's work.
-        if (expectedETag.Length != 66 || expectedETag[0] != '"' || expectedETag[^1] != '"' ||
-            expectedETag.AsSpan(1, 64).ContainsAnyExcept("0123456789ABCDEF"))
+        if (expectedETag.Length != QuotedContentVersionLength || expectedETag[0] != '"' || expectedETag[^1] != '"' ||
+            expectedETag.AsSpan(1, ContentVersionHashLength).ContainsAnyExcept(ContentVersionCharacters))
         {
             return BadRequest("If-Match must contain the single strong ETag returned by the content GET.");
         }

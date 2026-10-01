@@ -65,20 +65,7 @@ public abstract class ContentStreamRepository(PageBuilderModuleDbContext dbConte
             var pages = await dbContext.Set<PageBuilderPageEntity>().AsNoTracking()
                 .Where(x => x.GroupId == group.Id).ToListAsync(ct);
             await PageBuilderWriteLock.AcquirePageLocksAsync(dbContext, pages.Select(x => x.Id), null, ct);
-            var candidates = pages.Where(x => x.Status is Draft or Published or Archived)
-                .OrderBy(x => x.Status == Draft ? 0 : x.Status == Published ? 1 : 2)
-                .ThenByDescending(x => x.ModifiedDate).ThenBy(x => x.Id).Select(x => x.Id).ToArray();
-            string currentContent = null;
-            // Read only the authoritative document, rather than materializing every archived payload.
-            foreach (var candidateId in candidates)
-            {
-                currentContent = await dbContext.Set<PageBuilderContentEntity>().AsNoTracking()
-                    .Where(x => x.Id == candidateId).Select(x => x.PageContent).FirstOrDefaultAsync(ct);
-                if (currentContent != null)
-                {
-                    break;
-                }
-            }
+            var currentContent = await LoadAuthoringContentAsync(pages, ct);
             if (!string.Equals(PageBuilderContentVersion.Create(authorizedGroup, currentContent), expectedETag, StringComparison.Ordinal))
             {
                 throw new PageBuilderContentConflictException();
@@ -103,6 +90,26 @@ public abstract class ContentStreamRepository(PageBuilderModuleDbContext dbConte
             result = new(draft.Id, PageBuilderContentVersion.Create(authorizedGroup, content));
         }, cancellationToken);
         return result;
+    }
+
+    private async Task<string> LoadAuthoringContentAsync(IEnumerable<PageBuilderPageEntity> pages, CancellationToken cancellationToken)
+    {
+        var candidates = pages.Where(x => x.Status is Draft or Published or Archived)
+            .OrderBy(x => x.Status switch { Draft => 0, Published => 1, _ => 2 })
+            .ThenByDescending(x => x.ModifiedDate).ThenBy(x => x.Id).Select(x => x.Id);
+
+        // Read only the authoritative document, rather than materializing every archived payload.
+        foreach (var candidateId in candidates)
+        {
+            var content = await dbContext.Set<PageBuilderContentEntity>().AsNoTracking()
+                .Where(x => x.Id == candidateId).Select(x => x.PageContent).FirstOrDefaultAsync(cancellationToken);
+            if (content != null)
+            {
+                return content;
+            }
+        }
+
+        return null;
     }
 
     internal Task SaveRawContentAsync(string pageId, TextReader reader, CancellationToken cancellationToken = default)
