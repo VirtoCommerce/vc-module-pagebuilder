@@ -429,10 +429,17 @@ public class PageBuilderPageController : Controller
         return Ok(result);
     }
 
+    // Retain the published direct-call signature without exposing a second HTTP action.
+    [NonAction]
+    public Task GetPageContent(string groupId, bool draft, CancellationToken cancellationToken)
+    {
+        return GetPageContent(groupId, draft, includeVersion: false, cancellationToken);
+    }
+
     [HttpGet("grouped/{groupId}/content")]
     [Authorize(ModuleConstants.Security.Permissions.Read)]
     public async Task GetPageContent([FromRoute] string groupId, [FromQuery] bool draft = true,
-        CancellationToken cancellationToken = default, [FromQuery] bool includeVersion = false)
+        [FromQuery] bool includeVersion = false, CancellationToken cancellationToken = default)
     {
         Response.ContentType = "application/json; charset=utf-8";
         var group = await groupedPageService.GetByIdAsync(groupId);
@@ -518,10 +525,16 @@ public class PageBuilderPageController : Controller
         }
     }
 
+    [NonAction]
+    public Task<IActionResult> SavePageContent(string groupId, CancellationToken cancellationToken)
+    {
+        return SavePageContent(groupId, ifMatch: null, cancellationToken);
+    }
+
     [HttpPost("grouped/{groupId}/content")]
     [Authorize(ModuleConstants.Security.Permissions.Update)]
-    public async Task<IActionResult> SavePageContent([FromRoute] string groupId, CancellationToken cancellationToken = default,
-        [FromHeader(Name = "If-Match")] string ifMatch = null)
+    public async Task<IActionResult> SavePageContent([FromRoute] string groupId,
+        [FromHeader(Name = "If-Match")] string ifMatch = null, CancellationToken cancellationToken = default)
     {
         var groupedPage = await groupedPageService.GetByIdAsync(groupId);
 
@@ -555,8 +568,14 @@ public class PageBuilderPageController : Controller
         return await SaveConditionalContentAsync(groupedPage, content, cancellationToken, ifMatch);
     }
 
+    [NonAction]
+    public Task<IActionResult> SavePageContentJson(string groupId, UpdatePageContentRequest model, CancellationToken cancellationToken)
+    {
+        return SavePageContentJson(groupId, model, ifMatch: null, cancellationToken);
+    }
+
     /// <summary>
-    /// Save page content from a JSON body. Mirror of <see cref="SavePageContent"/> but accepts the page JSON
+    /// Save page content from a JSON body. Mirror of <see cref="SavePageContent(string, string, CancellationToken)"/> but accepts the page JSON
     /// inside a wrapping JSON object (<c>{ "content": "..." }</c>) instead of as a raw stream, so it is callable
     /// from generic JSON-body API tools (e.g. the AI agent tool runner).
     /// </summary>
@@ -565,8 +584,8 @@ public class PageBuilderPageController : Controller
     public async Task<IActionResult> SavePageContentJson(
         [FromRoute] string groupId,
         [FromBody] UpdatePageContentRequest model,
-        CancellationToken cancellationToken = default,
-        [FromHeader(Name = "If-Match")] string ifMatch = null)
+        [FromHeader(Name = "If-Match")] string ifMatch = null,
+        CancellationToken cancellationToken = default)
     {
         if (model == null || string.IsNullOrWhiteSpace(model.Content))
         {

@@ -36,11 +36,9 @@ public class PageContentConcurrencyContractTests
         var builder = WebApplication.CreateBuilder();
         builder.Logging.ClearProviders();
         builder.WebHost.UseUrls("http://127.0.0.1:0");
-        builder.Services.AddAuthorization(options =>
-        {
-            options.AddPolicy(ModuleConstants.Security.Permissions.Read, policy => policy.RequireAssertion(_ => true));
-            options.AddPolicy(ModuleConstants.Security.Permissions.Update, policy => policy.RequireAssertion(_ => true));
-        });
+        builder.Services.AddAuthorizationBuilder()
+            .AddPolicy(ModuleConstants.Security.Permissions.Read, policy => policy.RequireAssertion(_ => true))
+            .AddPolicy(ModuleConstants.Security.Permissions.Update, policy => policy.RequireAssertion(_ => true));
         builder.Services.AddControllers(options => options.Filters.Add(new AllowAnonymousFilter()))
             .AddApplicationPart(typeof(PageBuilderPageController).Assembly).AddControllersAsServices();
         builder.Services.AddTransient(_ => CreateController(service));
@@ -107,7 +105,7 @@ public class PageContentConcurrencyContractTests
     public async Task JsonToolCannotSendDifferentHeaderAndBodyVersions()
     {
         var controller = CreateController(CreateService());
-        await controller.GetPageContent("group", cancellationToken: TestContext.Current.CancellationToken);
+        await controller.GetPageContent("group", true, TestContext.Current.CancellationToken);
         controller.Request.Headers.IfMatch = controller.Response.Headers.ETag;
         var result = await controller.SavePageContentJson("group",
             new UpdatePageContentRequest { Content = AuthorA, ETag = $"\"{new string('A', 64)}\"" },
