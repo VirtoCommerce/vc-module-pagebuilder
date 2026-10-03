@@ -26,7 +26,9 @@ public class PageBuilderAssetReferenceMigrationService(
             if (!pageMigrationCompleted)
             {
                 // Waits for the enqueue: StartMigration runs synchronously at startup, and a failed enqueue must surface there.
+#pragma warning disable S4462 // Calls to "async" methods should not be blocking - StartMigration is void by contract and runs from the synchronous Module.PostInitialize
                 backgroundJob.Enqueue<AssetReferenceIndexRebuildJob>(new AssetReferenceIndexRebuildJobPayload()).GetAwaiter().GetResult();
+#pragma warning restore S4462
             }
         }
     }

@@ -26,7 +26,9 @@ public class PagesMigrationService(
             if (!migrationCompleted)
             {
                 // Waits for the enqueue: StartMigration runs synchronously at startup, and a failed enqueue must surface there.
+#pragma warning disable S4462 // Calls to "async" methods should not be blocking - StartMigration is void by contract and runs from the synchronous Module.PostInitialize
                 backgroundJob.Enqueue<PagesMigrationJob>(new PagesMigrationJobPayload()).GetAwaiter().GetResult();
+#pragma warning restore S4462
             }
         }
     }
