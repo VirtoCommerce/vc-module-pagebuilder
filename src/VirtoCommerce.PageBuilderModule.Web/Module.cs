@@ -16,6 +16,7 @@ using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Data.Authorization;
+using VirtoCommerce.PageBuilderModule.Data.BackgroundJobs;
 using VirtoCommerce.PageBuilderModule.Data.ContentProviders;
 using VirtoCommerce.PageBuilderModule.Data.ExportImport;
 using VirtoCommerce.PageBuilderModule.Data.GitContent;
@@ -27,6 +28,7 @@ using VirtoCommerce.PageBuilderModule.Web.Services;
 using VirtoCommerce.Pages.Core.ContentProviders;
 using VirtoCommerce.Platform.Core.Events;
 using VirtoCommerce.Platform.Core.ExportImport;
+using VirtoCommerce.Platform.Core.Jobs;
 using VirtoCommerce.Platform.Core.Modularity;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.Platform.Core.Settings;
@@ -72,12 +74,17 @@ namespace VirtoCommerce.PageBuilderModule.Web
 
             serviceCollection.AddTransient<GroupedPageBuilderPageChangedEventHandler>();
             serviceCollection.AddTransient<PageBuilderSharedComponentContentChangedEventHandler>();
-            serviceCollection.AddTransient<PageBuilderSharedComponentContentPropagationJob>();
+            serviceCollection.AddBackgroundJob<PageBuilderSharedComponentContentPropagationJob, PageBuilderSharedComponentContentPropagationJobPayload>(triggerable: false);
 
             serviceCollection.AddTransient<IAuthorizationHandler, PageBuilderAuthorizationHandler>();
             serviceCollection.AddTransient<IPageContentProvider, PageBuilderContentProvider>();
             serviceCollection.AddTransient<IPagesMigrationService, PagesMigrationService>();
             serviceCollection.AddTransient<IPageBuilderAssetReferenceMigrationService, PageBuilderAssetReferenceMigrationService>();
+            // The one-time startup migrations run as background jobs; their handlers call the concrete services.
+            serviceCollection.AddTransient<PagesMigrationService>();
+            serviceCollection.AddTransient<PageBuilderAssetReferenceMigrationService>();
+            serviceCollection.AddBackgroundJob<PagesMigrationJob, PagesMigrationJobPayload>(triggerable: false);
+            serviceCollection.AddBackgroundJob<AssetReferenceIndexRebuildJob, AssetReferenceIndexRebuildJobPayload>(triggerable: false);
             serviceCollection.AddTransient<PageBuilderSharedComponentExportImport>();
             serviceCollection.AddTransient<PageBuilderExportImport>();
 
