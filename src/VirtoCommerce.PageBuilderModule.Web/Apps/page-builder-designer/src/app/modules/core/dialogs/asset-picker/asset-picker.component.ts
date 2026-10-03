@@ -40,6 +40,9 @@ export class AssetPickerComponent {
     readonly state = inject(AssetPickerStateService);
 
     confirm() {
+        if (this.state.creatingFolder() || this.state.uploading()) {
+            return;
+        }
         const result = this.state.getSelectionResult();
         if (result) {
             this.dialogRef.close(result);

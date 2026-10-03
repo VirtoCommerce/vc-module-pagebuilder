@@ -13,12 +13,14 @@ export class AssetPickerToolbarComponent {
     readonly labels = input.required<AssetLibraryLabels>();
     readonly uploading = input(false);
     readonly loading = input(false);
+    readonly creatingFolder = input(false);
     readonly multiple = input(false);
     readonly acceptAttribute = input<string | null>(null);
     readonly searchValue = input('');
     readonly counterText = input('');
     readonly searchValueChange = output<string>();
     readonly upload = output<File[]>();
+    readonly newFolder = output<void>();
 
     onUpload(event: Event) {
         const inputElement = event.target as HTMLInputElement;
