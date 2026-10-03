@@ -236,6 +236,11 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             httpContext.Response.Body = new MemoryStream();
             controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
 
+            await controller.GetPageContent(groupId, cancellationToken: TestContext.Current.CancellationToken);
+            httpContext.Request.Headers.IfMatch = httpContext.Response.Headers.ETag;
+            httpContext.Response.Body.SetLength(0);
+            httpContext.Response.StatusCode = StatusCodes.Status200OK;
+
             var result = await controller.SavePageContent(groupId, TestContext.Current.CancellationToken);
             return (result, controller);
         }

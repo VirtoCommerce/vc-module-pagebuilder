@@ -203,7 +203,7 @@ export class TemplateEditorDataEffects {
                     if (!loadedTemplate) {
                         return [actions.loadTemplateModelFails({ error: new Error('Template is not available'), templateKey })];
                     }
-                    const template = editorHelpers.prepareTemplate(loadedTemplate);
+                    const template = sharedComponentId ? editorHelpers.prepareTemplate(loadedTemplate) : loadedTemplate;
                     return [
                         sharedComponentId && component
                             ? actions.cacheSharedComponent({ component, content: template })
@@ -470,25 +470,31 @@ export class TemplateEditorDataEffects {
             this.store$.select(selectors.selectChangedTemplates),
             this.store$.select(fromRoute.selectGroupIdParameter),
             this.store$.select(fromRoute.selectSharedComponentIdParameter),
+            this.store$.select(fromRoute.selectTemplateKeyParameter),
         ),
-        filter(([, changedTemplates, groupId, sharedComponentId]) =>
-            changedTemplates.length > 0 && !!groupId && !sharedComponentId),
-        switchMap(([, changedTemplates, groupId]) => {
-            const groupedPageContent = changedTemplates[0].content;
-            return this.templates.saveGroupedPage(groupId!, groupedPageContent).pipe(
-                switchMap(() => [
+        map(([, changedTemplates, groupId, sharedComponentId, templateKey]) => ({
+            changedTemplates, groupId, sharedComponentId,
+            currentTemplate: changedTemplates.find(x => x.info.key === templateKey),
+        })),
+        filter(({ currentTemplate, groupId, sharedComponentId }) => !!currentTemplate && !!groupId && !sharedComponentId),
+        exhaustMap(({ changedTemplates, groupId, currentTemplate }) => {
+            const savedTemplate = currentTemplate!;
+            return defer(() => this.templates.saveGroupedPage(groupId!, savedTemplate.content)).pipe(
+                withLatestFrom(this.store$.select(selectors.selectLoadedTemplates)),
+                switchMap(([, loadedTemplates]) => [
                     actions.saveTemplateSuccess({
-                        templateKey: changedTemplates[0].info.key,
-                        parentKey: changedTemplates[0].info.parent,
-                        template: changedTemplates[0].content
+                        templateKey: savedTemplate.info.key,
+                        parentKey: savedTemplate.info.parent,
+                        template: savedTemplate.content,
+                        clearDirty: loadedTemplates[savedTemplate.info.key] === savedTemplate.content,
                     }),
-                    actions.getTemplatePublishStatusSuccess({ templateKey: changedTemplates[0].info.key, hasChanges: true, published: false }),
+                    actions.getTemplatePublishStatusSuccess({ templateKey: savedTemplate.info.key, hasChanges: true, published: false }),
                     shared.broadcastPlatformMessage({
                         msg: {
                             hasChanges: true,
-                            relativeUrl: changedTemplates[0].entry.path,
-                            contentType: changedTemplates[0].entry.type,
-                            template: changedTemplates[0].content,
+                            relativeUrl: savedTemplate.entry.path,
+                            contentType: savedTemplate.entry.type,
+                            template: savedTemplate.content,
                             published: false,
                             source: 'builder'
                         }
@@ -652,7 +658,7 @@ export class TemplateEditorDataEffects {
             ? this.sharedComponents.getContent(sharedComponentId)
             : this.templates.getTemplate(path, type, entry, groupId)).pipe(
             filter(template => !!template),
-            map(template => editorHelpers.prepareTemplate(template!)),
+            map(template => sharedComponentId ? editorHelpers.prepareTemplate(template!) : template!),
             switchMap((template) => [
                 actions.reloadTemplateModelSuccess({ templateKey, template }),
                 actions.refreshPreview(),

@@ -38,6 +38,18 @@ The page is created in the builder as a list of blocks with specific settings ap
 * Permissions.
 * Platform Backup & Restore support.
 
+## Concurrent page editing
+
+Grouped-page content saves require the version the author originally read. `GET /api/page-builder-pages/grouped/{groupId}/content?draft=true` returns an `ETag`; send that exact value in `If-Match` when posting the edited document to the same URL. A successful save returns `204` and the next `ETag`. A stale version returns `412` without changing content or reference indexes. A missing version returns `428`; wildcard and weak tokens are rejected.
+
+JSON clients can read `?draft=true&includeVersion=true` to receive `{ "content": "<page JSON>", "eTag": "<version>" }`, then post both fields to `/api/page-builder-pages/grouped/{groupId}/content-json`. An existing unseeded group has its own empty-state version: the raw GET returns `404` with an `ETag`, while the versioned GET returns a blank document and that token. A missing group has no token.
+
+The Designer keeps local edits after a conflict and asks the author to copy them before reloading. Integrations must handle `412` the same way: read the new document and reapply the edit, rather than attach a fresh token to stale content. Update existing clients to send a version when upgrading the module. This contract covers grouped-page content editing; blob/theme content and Shared Component originals use their existing APIs.
+
+## Shared Component creation
+
+`POST /api/page-builder-shared-components` requires an existing store. An authorized request with an unknown `storeId` returns `400` naming that store, before any component, content, or asset references are written. Store-scoped authorization still runs first; requests outside the user's store return `403`.
+
 ## Backup & Restore
 
 Page Builder pages are included in the platform-wide backup and restore process.

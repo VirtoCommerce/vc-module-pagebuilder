@@ -67,7 +67,7 @@ tool that writes requires approval **and** is gated by a platform permission.
 | `pagebuilder_get_section_schema` | Load the full schema of one catalog entry by `kind` + `key`. | `GET /api/pagebuilder/schemas/{kind}/{key}` | `builder:read` | — |
 | `pagebuilder_search_pages` | Find pages in a store by keyword; returns `groupId`, name, permalink, status. | `POST /api/page-builder-pages/search` | `builder:read` | — |
 | `pagebuilder_get_page_meta` | Load page metadata only (status, visibility, schedule, user groups, version list) — no content. | `GET /api/page-builder-pages/grouped/{groupId}` | `builder:read` | — |
-| `pagebuilder_get_page_content` | Load the full page JSON (latest draft if present) for editing. | `GET /api/page-builder-pages/grouped/{groupId}/content` | `builder:read` | — |
+| `pagebuilder_get_page_content` | Load the full page JSON and its matching version for editing. | `GET /api/page-builder-pages/grouped/{groupId}/content?includeVersion=true` | `builder:read` | — |
 | `pagebuilder_create_page` | Create a new page with full content in one call. Always `Draft`. | `POST /api/page-builder-pages/create-group-page` | `builder:create` | ✔ |
 | `pagebuilder_save_page_content` | Replace the full content of an existing page; saved as a draft. | `POST /api/page-builder-pages/grouped/{groupId}/content-json` | `builder:update` | ✔ |
 | `pagebuilder_publish_page` | Publish a draft, or unpublish the live version. **Irreversible — no rollback API.** | `POST /api/page-builder-pages/grouped/publishing/{groupId}` | `builder:publish` | ✔ |
@@ -139,7 +139,7 @@ only if ambiguous). Permalinks are generated from the name.
 
 1. Resolve the target page's `groupId` — from the active-page context, from a page list in
    context, or via `pagebuilder_search_pages`.
-2. `pagebuilder_get_page_content` to load the current JSON.
+2. `pagebuilder_get_page_content` to load the current JSON and keep its matching `eTag`.
 3. Plan concrete operations (add / remove / replace field / reorder). Ambiguity ("which
    section?") triggers a clarifying question before any mutation.
 4. Mutate **in place, preserving identity**:
@@ -147,7 +147,7 @@ only if ambiguous). Permalinks are generated from the name.
    - Sections the user did not ask to change stay byte-for-byte intact — no silent
      rewrites or reordering.
    - Editing a `markdown` field regenerates both `markdown` and `html`.
-5. Self-validate, then `pagebuilder_save_page_content` → saved as a **Draft**.
+5. Self-validate, then `pagebuilder_save_page_content` with the original `eTag` → saved as a **Draft**. A `412` means another author changed the page; stop and report the conflict. Read and edit the new document before any retry, keeping its version paired with its content.
 6. Confirm what changed; if a draft already existed, the assistant notes it wrote into it
    (the user may have unrelated changes there).
 

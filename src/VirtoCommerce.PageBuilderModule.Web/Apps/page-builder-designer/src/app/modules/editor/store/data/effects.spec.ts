@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { HttpErrorResponse } from '@angular/common/http';
 import { provideMockActions } from '@ngrx/effects/testing';
 import { provideMockStore, MockStore } from '@ngrx/store/testing';
 import { ReplaySubject, Subject, of, firstValueFrom, throwError } from 'rxjs';
@@ -611,6 +612,70 @@ describe('TemplateEditorDataEffects', () => {
     });
 
     describe('saveGroupedPage$', () => {
+        it('saves the current page rather than the first dirty document', async () => {
+            const other = createTemplate({ content: [createSection({ id: 'other-page' })] });
+            store.overrideSelector(fromRoute.selectGroupIdParameter, 'page-group-1');
+            store.overrideSelector(selectors.selectChangedTemplates, [
+                { entry: { path: '/other.json', type: 'pages' }, info: { key: 'other' }, content: other },
+                { entry: { path: '/home.json', type: 'pages' }, info: { key: 'home' }, content: template },
+            ] as any);
+            store.refreshState();
+            const resultPromise = firstValueFrom(effects.saveGroupedPage$);
+            actions$.next(actions.executeToolbarAction({ action: 'save' }));
+            const result = await resultPromise as ReturnType<typeof actions.saveTemplateSuccess>;
+            expect(templatesService.saveGroupedPage).toHaveBeenCalledWith('page-group-1', template);
+            expect(result.templateKey).toBe('home');
+            expect(result.clearDirty).toBe(true);
+        });
+
+        it('keeps newer local edits dirty and ignores repeat saves while a request is pending', async () => {
+            const response$ = new Subject<void>();
+            templatesService.saveGroupedPage.mockReturnValue(response$);
+            store.overrideSelector(fromRoute.selectGroupIdParameter, 'page-group-1');
+            store.overrideSelector(selectors.selectChangedTemplates, [
+                { entry: { path: '/home.json', type: 'pages' }, info: { key: 'home' }, content: template },
+            ] as any);
+            store.refreshState();
+            const resultPromise = firstValueFrom(effects.saveGroupedPage$);
+            actions$.next(actions.executeToolbarAction({ action: 'save' }));
+            const newer = createTemplate({ content: [...template.content, createSection({ id: 'unsaved' })] });
+            store.overrideSelector(selectors.selectLoadedTemplates, { home: newer });
+            store.refreshState();
+            actions$.next(actions.executeToolbarAction({ action: 'save' }));
+            expect(templatesService.saveGroupedPage).toHaveBeenCalledTimes(1);
+            response$.next();
+            response$.complete();
+            const result = await resultPromise as ReturnType<typeof actions.saveTemplateSuccess>;
+            expect(result.clearDirty).toBe(false);
+            expect(result.template).toBe(template);
+        });
+
+        it('turns a synchronous configuration error into a save failure', async () => {
+            store.overrideSelector(fromRoute.selectGroupIdParameter, 'page-group-1');
+            store.overrideSelector(selectors.selectChangedTemplates, [
+                { entry: { path: '/home.json', type: 'pages' }, info: { key: 'home' }, content: template },
+            ] as any);
+            store.refreshState();
+            const error = new Error('Invalid save configuration');
+            templatesService.saveGroupedPage.mockImplementation(() => { throw error; });
+            const resultPromise = firstValueFrom(effects.saveGroupedPage$);
+            actions$.next(actions.executeToolbarAction({ action: 'save' }));
+            expect(await resultPromise).toEqual({ type: actions.saveTemplateFails.type, error });
+        });
+
+        it('dispatches only failure for a stale save, preserving the local document', async () => {
+            const changed = [{ entry: { path: '/home.json', type: 'pages' }, info: { key: 'home', parent: null }, content: template }];
+            store.overrideSelector(fromRoute.selectGroupIdParameter, 'page-group-1');
+            store.overrideSelector(selectors.selectChangedTemplates, changed as any);
+            store.refreshState();
+            const error = new HttpErrorResponse({ status: 412 });
+            templatesService.saveGroupedPage.mockReturnValue(throwError(() => error));
+            actions$.next(actions.executeToolbarAction({ action: 'save' }));
+            const result = await firstValueFrom(effects.saveGroupedPage$);
+            expect(result).toEqual(actions.saveTemplateFails({ error }));
+            expect(changed[0].content).toBe(template);
+        });
+
         it('does not dereference an empty changed-template list', () => {
             store.overrideSelector(fromRoute.selectGroupIdParameter, 'page-group-1');
             store.overrideSelector(selectors.selectChangedTemplates, []);

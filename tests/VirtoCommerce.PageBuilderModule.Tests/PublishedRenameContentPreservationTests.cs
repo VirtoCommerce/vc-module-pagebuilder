@@ -158,6 +158,32 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         // ---------------------------------------------------------------------------------------
         internal sealed class FakeGroupedPageService : IGroupedPageService
         {
+            public async Task<PageBuilderConditionalContentWriteResult> SaveGroupContentAsync(
+                GroupedPageBuilderPage authorizedGroup, string content, string expectedETag, CancellationToken cancellationToken = default)
+            {
+                var current = _groups[authorizedGroup.Id];
+                var currentContent = current.Pages
+                    .Where(x => x.Status is Draft or Published or Archived)
+                    .OrderBy(x => x.Status == Draft ? 0 : x.Status == Published ? 1 : 2)
+                    .ThenByDescending(x => x.ModifiedDate).ThenBy(x => x.Id)
+                    .Select(x => _content.GetValueOrDefault(x.Id)).FirstOrDefault(x => x != null);
+                if (PageBuilderContentVersion.Create(current, currentContent) != expectedETag)
+                {
+                    throw new PageBuilderContentConflictException();
+                }
+
+                var service = new PageBuilderPageContentService(
+                    new FakePageBuilderPageService(this), this, new NoopSharedComponentReferenceIndexService(),
+                    new NoopEventPublisher(), NullLogger<PageBuilderPageContentService>.Instance);
+                var result = await service.SaveContentAsync(current.Id, DeepClone(current), content, cancellationToken);
+                if (result.ErrorMessage != null)
+                {
+                    throw new InvalidDataException(result.ErrorMessage);
+                }
+                return new(_groups[current.Id].Pages.First(x => x.Status == Draft).Id,
+                    PageBuilderContentVersion.Create(current, content));
+            }
+
             private readonly Dictionary<string, GroupedPageBuilderPage> _groups = new();
             private readonly Dictionary<string, string> _content = new();
             private int _idSeq;

@@ -1,7 +1,13 @@
+using VirtoCommerce.PageBuilderModule.Core.Models;
+
 namespace VirtoCommerce.PageBuilderModule.Data.Repositories;
 
 public interface IContentStreamRepository : IAsyncDisposable
 {
+    Task<PageBuilderConditionalContentWriteResult> SaveGroupContentAsync(
+        GroupedPageBuilderPage authorizedGroup, string content, string expectedETag,
+        CancellationToken cancellationToken = default);
+
     /// <summary>
     /// Writes the page content to <paramref name="writer"/> and reports whether the page actually has content.
     /// </summary>
