@@ -3,7 +3,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { provideMockActions } from '@ngrx/effects/testing';
 import { provideMockStore, MockStore } from '@ngrx/store/testing';
 import { ReplaySubject, Subject, of, firstValueFrom, throwError } from 'rxjs';
-import { take, toArray } from 'rxjs/operators';
+import { filter, take, toArray } from 'rxjs/operators';
 import { Action } from '@ngrx/store';
 
 import { TemplateEditorDataEffects } from './effects';
@@ -13,7 +13,7 @@ import * as selectors from '../selectors';
 import * as fromRoute from '@shared/routing';
 import * as fromShared from '@shared/store/selectors';
 import { ModalService } from '@core/services';
-import { createTemplate, createSection } from '@app/testing';
+import { createTemplate, createSection, createEntry } from '@app/testing';
 
 describe('TemplateEditorDataEffects', () => {
     let effects: TemplateEditorDataEffects;
@@ -620,7 +620,7 @@ describe('TemplateEditorDataEffects', () => {
                 { entry: { path: '/home.json', type: 'pages' }, info: { key: 'home' }, content: template },
             ] as any);
             store.refreshState();
-            const resultPromise = firstValueFrom(effects.saveGroupedPage$);
+            const resultPromise = firstValueFrom(effects.saveGroupedPage$.pipe(filter(action => action.type !== actions.pageSaveStarted.type)));
             actions$.next(actions.executeToolbarAction({ action: 'save' }));
             const result = await resultPromise as ReturnType<typeof actions.saveTemplateSuccess>;
             expect(templatesService.saveGroupedPage).toHaveBeenCalledWith('page-group-1', template);
@@ -636,7 +636,7 @@ describe('TemplateEditorDataEffects', () => {
                 { entry: { path: '/home.json', type: 'pages' }, info: { key: 'home' }, content: template },
             ] as any);
             store.refreshState();
-            const resultPromise = firstValueFrom(effects.saveGroupedPage$);
+            const resultPromise = firstValueFrom(effects.saveGroupedPage$.pipe(filter(action => action.type !== actions.pageSaveStarted.type)));
             actions$.next(actions.executeToolbarAction({ action: 'save' }));
             const newer = createTemplate({ content: [...template.content, createSection({ id: 'unsaved' })] });
             store.overrideSelector(selectors.selectLoadedTemplates, { home: newer });
@@ -658,22 +658,24 @@ describe('TemplateEditorDataEffects', () => {
             store.refreshState();
             const error = new Error('Invalid save configuration');
             templatesService.saveGroupedPage.mockImplementation(() => { throw error; });
-            const resultPromise = firstValueFrom(effects.saveGroupedPage$);
+            const resultPromise = firstValueFrom(effects.saveGroupedPage$.pipe(filter(action => action.type !== actions.pageSaveStarted.type)));
             actions$.next(actions.executeToolbarAction({ action: 'save' }));
             expect(await resultPromise).toEqual({ type: actions.saveTemplateFails.type, error });
         });
 
-        it('dispatches only failure for a stale save, preserving the local document', async () => {
-            const changed = [{ entry: { path: '/home.json', type: 'pages' }, info: { key: 'home', parent: null }, content: template }];
+        it.each([412, 428])('emits no success or broadcast after a %s failure', status => {
+            const changed = [{ entry: createEntry({ path: '/home.json', type: 'pages' }), info: { key: 'home', name: 'Home', entry: createEntry(), state: { id: 'home', isDirty: true } }, content: template }];
             store.overrideSelector(fromRoute.selectGroupIdParameter, 'page-group-1');
-            store.overrideSelector(selectors.selectChangedTemplates, changed as any);
+            store.overrideSelector(selectors.selectChangedTemplates, changed);
             store.refreshState();
-            const error = new HttpErrorResponse({ status: 412 });
+            const error = new HttpErrorResponse({ status });
             templatesService.saveGroupedPage.mockReturnValue(throwError(() => error));
+            const emitted: Action[] = [];
+            const subscription = effects.saveGroupedPage$.subscribe(action => emitted.push(action));
             actions$.next(actions.executeToolbarAction({ action: 'save' }));
-            const result = await firstValueFrom(effects.saveGroupedPage$);
-            expect(result).toEqual(actions.saveTemplateFails({ error }));
+            expect(emitted).toEqual([actions.pageSaveStarted(), actions.saveTemplateFails({ error })]);
             expect(changed[0].content).toBe(template);
+            subscription.unsubscribe();
         });
 
         it('does not dereference an empty changed-template list', () => {
@@ -692,6 +694,26 @@ describe('TemplateEditorDataEffects', () => {
     });
 
     // ── externalPreviewAction$ ────────────────────────────────────
+
+    describe('refreshFromAssistant$', () => {
+        it.each([
+            { dirty: false, saving: false, loading: false, reload: true },
+            { dirty: true, saving: false, loading: false, reload: false },
+            { dirty: false, saving: true, loading: false, reload: false },
+            { dirty: false, saving: false, loading: true, reload: false },
+        ])('reloads only a clean idle document: %j', async ({ dirty, saving, loading, reload }) => {
+            store.overrideSelector(fromRoute.selectGroupIdParameter, 'page-group-1');
+            store.overrideSelector(fromShared.selectChangedTemplates, dirty
+                ? [{ key: 'home', parent: 'pages', name: 'Home', entry: createEntry(), state: { id: 'home', isDirty: true } }]
+                : []);
+            store.overrideSelector(selectors.isPageSaving, saving);
+            store.overrideSelector(selectors.isLoading, loading);
+            store.refreshState();
+            const result = firstValueFrom(effects.refreshFromAssistant$);
+            actions$.next(actions.refreshTemplateFromAssistant());
+            expect((await result).type).toBe(reload ? actions.loadTemplateModel.type : sharedActions.showNotification.type);
+        });
+    });
 
     describe('externalPreviewAction$', () => {
         it('calls externalPreview on service', () => {

@@ -39,6 +39,9 @@ export const useSchemasAction = createAction('[template editor] merge schemas', 
 
 export const updateTemplateAction = createAction('[template editor] update template', props<{ template: TemplateModel, templateKey: string }>());
 
+export const pageSaveStarted = createAction('[template editor] page save started');
+export const refreshTemplateFromAssistant = createAction('[template editor] refresh template from assistant');
+
 export const saveTemplates = createAction('[template editor] save templates', props<{ templates: { entry: TemplateEntry , content: TemplateModel, info: TemplateEntryInfo }[] }>());
 export const saveTemplateSuccess = createAction('[template editor] save template success', props<{
     templateKey: string;

@@ -33,7 +33,7 @@ export interface OzUpdateContextMessage {
 
 export type OzParentToChatMessage = OzInitContextMessage | OzUpdateContextMessage;
 
-// Chat -> Parent. MVP only handles CHAT_READY; others are logged.
+// Chat -> Parent. Designer handles CHAT_READY and RELOAD_BLADE.
 export type OzChatToParentMessageType =
     | 'CHAT_READY'
     | 'CHAT_ERROR'

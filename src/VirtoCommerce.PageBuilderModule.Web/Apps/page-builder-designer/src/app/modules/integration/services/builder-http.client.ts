@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpErrorResponse, HttpHandler, HttpResponse } from '@angular/common/http';
+import { HttpClient, HttpHandler } from '@angular/common/http';
 import { tap, catchError, map, Observable, of, switchMap } from 'rxjs';
 
 import { AppConfig, EvaluatorService } from '@integration/services';
@@ -8,14 +8,6 @@ import { appHelpers } from '@integration/helpers';
 
 type CustomRequest = string | ServerRequestDescriptor | null;
 type CustomRequests = CustomRequest | CustomRequest[] | null;
-
-export interface BuilderRequestOptions {
-    nullWhenError?: boolean;
-    /** Observe the network response before descriptor mapping; bypasses the body-only cache. */
-    onResponse?: (url: string, response: HttpResponse<unknown>) => void;
-    /** Return undefined to propagate the error, or a body to recover this request. */
-    errorFallback?: (url: string, error: HttpErrorResponse) => unknown;
-}
 
 @Injectable({
     providedIn: 'root'
@@ -47,7 +39,7 @@ export class BuilderHttpClient extends HttpClient {
         this._cache.clear();
     }
 
-    doRequest<T>(request: CustomRequests, additionalOptions: BuilderRequestOptions | null = null, context: any = null): Observable<T | null> {
+    doRequest<T>(request: CustomRequests, additionalOptions: any = null, context: any = null): Observable<T | null> {
         if (!request) {
             return of(null);
         }
@@ -55,7 +47,7 @@ export class BuilderHttpClient extends HttpClient {
         return this.queueRequests(requests.shift(), requests, additionalOptions, context);
     }
 
-    private queueRequests<T>(request: CustomRequest | undefined, requests: CustomRequests, additionalOptions: BuilderRequestOptions | null = null, context: any = null): Observable<T | null> {
+    private queueRequests<T>(request: CustomRequest | undefined, requests: CustomRequests, additionalOptions: any = null, context: any = null): Observable<T | null> {
         if (!request) {
             return of(null);
         }
@@ -84,7 +76,7 @@ export class BuilderHttpClient extends HttpClient {
         );
     }
 
-    private doRequestInternal<T>(request: ServerRequestDescriptor | null, additionalOptions: BuilderRequestOptions | null = null, context: any = null): Observable<T | null> {
+    private doRequestInternal<T>(request: ServerRequestDescriptor | null, additionalOptions: any = null, context: any = null): Observable<T | null> {
         if (!request) {
             return of(null);
         }
@@ -97,37 +89,23 @@ export class BuilderHttpClient extends HttpClient {
 
         let result;
 
-        const cacheKey = JSON.stringify({ method, url, body, options });
-        if (!opts.onResponse && this._cache.has(cacheKey)) {
+        const cacheKey = request.cacheable ? JSON.stringify({ method, url, body, options }) : null;
+        if (cacheKey && this._cache.has(cacheKey)) {
             result = of(this._cache.get(cacheKey));
         } else {
             const uppercaseMethod = method?.toUpperCase();
             switch (uppercaseMethod) {
                 case 'POST':
-                    result = super.post<T>(url, body, opts.onResponse ? { ...options, observe: 'response' } : options);
+                    result = super.post<T>(url, body, options);
                     break;
                 case 'GET':
                 default:
-                    result = super.get<T>(url, opts.onResponse ? { ...options, observe: 'response' } : options);
+                    result = super.get<T>(url, options);
                     break;
             }
             result = result.pipe(
-                map((response: any) => {
-                    if (opts.onResponse && response instanceof HttpResponse) {
-                        opts.onResponse(url, response);
-                        return response.body;
-                    }
-                    return response;
-                }),
-                catchError(error => {
-                    const fallback = opts.errorFallback?.(url, error);
-                    if (fallback !== undefined) {
-                        return of(fallback);
-                    }
-                    throw error;
-                }),
                 tap(x => {
-                    if (request.cacheable && !opts.onResponse) {
+                    if (cacheKey) {
                         this._cache.set(cacheKey, x);
                     }
                     if (this._cache.size > this.cacheSize) {
@@ -181,6 +159,7 @@ export class BuilderHttpClient extends HttpClient {
         const result = {
             url: evaluatedRequest.url,
             cacheable: evaluatedRequest.cacheable,
+            versioned: evaluatedRequest.versioned,
             method: evaluatedRequest.method || 'GET',
             body: evaluatedRequest.body,
             response: evaluatedRequest.response,

@@ -5,7 +5,7 @@ import { ConfirmComponent } from '@core/dialogs';
 import { Injectable, inject } from "@angular/core";
 
 import { defer, forkJoin, of } from "rxjs";
-import { withLatestFrom, filter, map, catchError, switchMap, exhaustMap, tap, distinctUntilChanged } from "rxjs/operators";
+import { withLatestFrom, filter, map, catchError, switchMap, exhaustMap, tap, distinctUntilChanged, startWith } from "rxjs/operators";
 
 import { Store } from "@ngrx/store";
 import { Actions, createEffect, ofType } from "@ngrx/effects";
@@ -507,7 +507,8 @@ export class TemplateEditorDataEffects {
                         })
                         : shared.empty()
                 ]),
-                catchError(error => of(actions.saveTemplateFails({ error })))
+                catchError(error => of(actions.saveTemplateFails({ error }))),
+                startWith(actions.pageSaveStarted()),
             );
         })
     ));
@@ -636,6 +637,24 @@ export class TemplateEditorDataEffects {
                 shared.showNotification({ message: `Could not continue from ${sha.substring(0, 7)}: ${error?.message ?? 'request failed'}`, msgType: 'error', top: true })
             ))
         ))
+    ));
+
+    refreshFromAssistant$ = createEffect(() => this.actions$.pipe(
+        ofType(actions.refreshTemplateFromAssistant),
+        withLatestFrom(
+            this.store$.select(fromRoute.selectTemplateKeyParameter),
+            this.store$.select(fromRoute.selectGroupIdParameter),
+            this.store$.select(fromShared.selectChangedTemplates),
+            this.store$.select(selectors.isPageSaving),
+            this.store$.select(selectors.isLoading),
+        ),
+        filter(([, templateKey, groupId]) => !!templateKey && !!groupId),
+        map(([, templateKey, , changedTemplates, saving, loading]) => changedTemplates.some(x => x.key === templateKey) || saving || loading
+            ? shared.showNotification({
+                message: 'The assistant may have updated this page. Keep a copy of your edits, then reload the page to review and combine the changes.',
+                msgType: 'warning', top: true,
+            })
+            : actions.loadTemplateModel({ templateKey })),
     ));
 
     resetTemplate$ = createEffect(() => this.actions$.pipe(

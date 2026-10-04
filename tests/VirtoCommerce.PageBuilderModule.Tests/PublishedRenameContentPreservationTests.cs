@@ -156,32 +156,62 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         // ---------------------------------------------------------------------------------------
         // Faithful in-memory IGroupedPageService.
         // ---------------------------------------------------------------------------------------
-        internal sealed class FakeGroupedPageService : IGroupedPageService
+        internal sealed class FakeGroupedPageService : IGroupedPageService, IGroupedPageContentService
         {
+            // Controller-only fake. Transaction, index, and GET/save token guarantees are tested
+            // against the real GroupedPageService in PageContentAtomicWriteTests.
+            public Task<PageBuilderContentSnapshot> LoadGroupContentAsync(
+                GroupedPageBuilderPage group, bool draft = true, CancellationToken cancellationToken = default)
+            {
+                var current = _groups[group.Id];
+                var page = PageBuilderPageSelection.Order(current.Pages, draft)
+                    .FirstOrDefault(x => _content.GetValueOrDefault(x.Id) != null);
+                var content = page == null ? null : _content[page.Id];
+                return Task.FromResult(new PageBuilderContentSnapshot(page?.Id, content, PageBuilderContentVersion.Create(current, content)));
+            }
+
             public async Task<PageBuilderConditionalContentWriteResult> SaveGroupContentAsync(
                 GroupedPageBuilderPage authorizedGroup, string content, string expectedETag, CancellationToken cancellationToken = default)
             {
-                var current = _groups[authorizedGroup.Id];
-                var currentContent = current.Pages
-                    .Where(x => x.Status is Draft or Published or Archived)
-                    .OrderBy(x => x.Status == Draft ? 0 : x.Status == Published ? 1 : 2)
-                    .ThenByDescending(x => x.ModifiedDate).ThenBy(x => x.Id)
-                    .Select(x => _content.GetValueOrDefault(x.Id)).FirstOrDefault(x => x != null);
-                if (PageBuilderContentVersion.Create(current, currentContent) != expectedETag)
+                var current = DeepClone(_groups[authorizedGroup.Id]);
+                var snapshot = await LoadGroupContentAsync(current, cancellationToken: cancellationToken);
+                if (snapshot.ETag != expectedETag)
                 {
+                    if (snapshot.Content == content)
+                    {
+                        return new(snapshot.PageId, snapshot.ETag);
+                    }
                     throw new PageBuilderContentConflictException();
                 }
-
-                var service = new PageBuilderPageContentService(
-                    new FakePageBuilderPageService(this), this, new NoopSharedComponentReferenceIndexService(),
-                    new NoopEventPublisher(), NullLogger<PageBuilderPageContentService>.Instance);
-                var result = await service.SaveContentAsync(current.Id, DeepClone(current), content, cancellationToken);
-                if (result.ErrorMessage != null)
+                if (SaveContentException != null) throw SaveContentException;
+                var draft = PageBuilderPageSelection.Order(current.Pages).FirstOrDefault(x => x.Status == Draft);
+                if (draft == null)
                 {
-                    throw new InvalidDataException(result.ErrorMessage);
+                    draft = new PageBuilderPage { Id = $"page-new-{++_idSeq}", StoreId = current.StoreId, Status = Draft };
+                    current.Pages.Add(draft);
                 }
-                return new(_groups[current.Id].Pages.First(x => x.Status == Draft).Id,
-                    PageBuilderContentVersion.Create(current, content));
+                draft.Content = content;
+                await SaveChangesAsync([current]);
+                return new(draft.Id, PageBuilderContentVersion.Create(current, content));
+            }
+
+            public async Task SaveGroupSettingsAsync(GroupedPageBuilderPage group, CancellationToken cancellationToken = default)
+            {
+                var snapshot = _groups.ContainsKey(group.Id ?? "")
+                    ? await LoadGroupContentAsync(group, cancellationToken: cancellationToken)
+                    : new PageBuilderContentSnapshot(null, null, null);
+                var content = VirtoCommerce.PageBuilderModule.Data.Services.GroupedPageService.SynchronizeContentSettings(snapshot.Content, group);
+                if (content != snapshot.Content)
+                {
+                    var draft = PageBuilderPageSelection.Order(group.Pages).FirstOrDefault(x => x.Status == Draft);
+                    if (draft == null)
+                    {
+                        draft = new PageBuilderPage { StoreId = group.StoreId, Status = Draft };
+                        group.Pages.Add(draft);
+                    }
+                    draft.Content = content;
+                }
+                await SaveChangesAsync([group]);
             }
 
             private readonly Dictionary<string, GroupedPageBuilderPage> _groups = new();

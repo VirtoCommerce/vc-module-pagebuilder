@@ -6,16 +6,16 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core;
+using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using VirtoCommerce.PageBuilderModule.Web.Services;
 using VirtoCommerce.Platform.Core.Common;
@@ -136,7 +136,7 @@ public class PageContentConcurrencyContractTests
         second.Request.Headers.IfMatch = version;
         var conflict = Assert.IsType<ObjectResult>(await SaveAsync(second, AuthorB, jsonBody));
         Assert.Equal(StatusCodes.Status412PreconditionFailed, conflict.StatusCode);
-        Assert.Contains("Copy your changes", Assert.IsType<string>(conflict.Value));
+        Assert.Contains("content version does not match", Assert.IsType<string>(conflict.Value));
         var group = await service.GetByIdAsync("group");
         var draft = Assert.Single(group.Pages, x => x.Status == "Draft");
         Assert.Equal(AuthorA, await service.LoadContent(draft.Id, TestContext.Current.CancellationToken));
@@ -232,7 +232,8 @@ public class PageContentConcurrencyContractTests
         var service = new PublishedRenameContentPreservationTests.FakeGroupedPageService();
         service.SeedGroup(new GroupedPageBuilderPage
         {
-            Id = "group", StoreId = "store",
+            Id = "group",
+            StoreId = "store",
             Pages = [new PageBuilderPage { Id = "published", Status = "Published" }],
         });
         service.SeedContent("published", Original);

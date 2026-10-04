@@ -173,3 +173,14 @@ describe('editorUIReducers', () => {
         });
     });
 });
+
+
+describe('grouped page saving state', () => {
+    it('shows saving without blocking editing and clears it on either outcome', () => {
+        const saving = editorUIReducers(initialState, actions.pageSaveStarted());
+        expect(saving.isPageSaving).toBe(true);
+        expect(saving.isTemplateLoading).toBe(false);
+        expect(editorUIReducers(saving, actions.saveTemplateSuccess({ templateKey: 'home', template: {} as any })).isPageSaving).toBe(false);
+        expect(editorUIReducers(saving, actions.saveTemplateFails({ error: {} as any })).isPageSaving).toBe(false);
+    });
+});

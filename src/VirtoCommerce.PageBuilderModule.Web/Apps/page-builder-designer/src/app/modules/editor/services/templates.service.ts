@@ -1,12 +1,13 @@
 import { Injectable, inject } from "@angular/core";
-import { HttpErrorResponse, HttpHeaders, HttpResponse } from '@angular/common/http';
+import { HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 
 import { BuilderHttpClient, AppConfig } from '@integration/services';
 import { PageModel, SectionModel, TemplateModel } from '@models/document';
-import { Observable, catchError, defer, map, of, throwError } from "rxjs";
+import { Observable, defer, map, of, tap, throwError } from "rxjs";
 
 import { helpers } from '@editor/helpers';
 import { PageHistory, ProductionStatus } from '@editor/models';
+import { ServerRequestDescriptor } from '@models/http';
 import { TemplateEntry } from '@shared/models';
 
 export interface PublishStatus {
@@ -48,38 +49,24 @@ export class TemplatesService {
         const templateUrl = this.appConfig.getValueByEntryType('templateUrl', { item: entry, type, path, groupId }, entry.type || type);
         return defer(() => {
             const request = this.http.generateRequest(templateUrl, { item: entry });
-            let loadedVersion: string | null = null;
-            const options = groupId ? {
-                nullWhenError: false,
-                onResponse: (url: string, response: HttpResponse<unknown>) => {
-                    loadedVersion = this.isGroupedContentUrl(groupId, url) ? response.headers.get('ETag') : null;
-                },
-                errorFallback: (url: string, error: HttpErrorResponse) => {
-                    if (this.isGroupedContentUrl(groupId, url) && error.status === 404 && error.headers?.get('ETag')) {
-                        loadedVersion = error.headers.get('ETag');
-                        return { settings: {}, content: [] };
-                    }
-                    return undefined;
-                },
-            } : { nullWhenError: false };
-            return this.http.doRequest<TemplateModel | SectionModel[] | PageModel>(request, options, null).pipe(
+            // Reloads own a new document/version pair, including while a save is pending.
+            this.pageVersions.delete(groupId);
+            for (const item of Array.isArray(request) ? request : [request]) {
+                if (item && typeof item !== 'string' && item.versioned) {
+                    item.cacheable = false;
+                }
+            }
+            return this.http.doRequest<TemplateModel | SectionModel[] | PageModel | { content: string, eTag: string }>(
+                request, { nullWhenError: false }, null).pipe(
                 map(result => {
-                    const converted = helpers.convertTemplateIntoCorrectVersion(result);
+                    const versioned = groupId && result && 'eTag' in result && typeof result.content === 'string';
+                    const document = versioned ? JSON.parse(result.content) : result;
+                    const converted = helpers.convertTemplateIntoCorrectVersion(document);
                     const model = converted ? helpers.prepareTemplate(converted) : null;
-                    // Accept the version only after conversion and editor preparation both succeed.
-                    if (groupId) {
-                        if (model && loadedVersion) {
-                            this.pageVersions.set(groupId, { eTag: loadedVersion });
-                        } else {
-                            this.pageVersions.delete(groupId);
-                        }
-                    }
+                    this.setPageVersion(groupId, model && versioned ? result.eTag : null);
                     return model;
                 }),
-                catchError(error => {
-                    this.pageVersions.delete(groupId);
-                    return throwError(() => error);
-                }),
+                tap({ error: () => this.pageVersions.delete(groupId) }),
             );
         });
     }
@@ -178,52 +165,46 @@ export class TemplatesService {
 
     saveGroupedPage(groupId: string, pageContent: any): Observable<any> {
         const context = { groupId, content: pageContent };
-        const saveGroupedPage = this.appConfig.getValue('saveGroupedPage', context);
-        const request = this.http.generateRequest(saveGroupedPage, null, context);
+        // Evaluate the descriptor once. A second evaluation would execute template syntax in page text.
+        const descriptor = this.appConfig.getContext().config.saveGroupedPage;
+        const request = this.http.generateRequest(descriptor, null, context);
         const requests = Array.isArray(request) ? request : [request];
-        if (!requests.length || requests.some(value => !value || typeof value === 'string' || !value.url)) {
+        const isDescriptor = (value: unknown): value is ServerRequestDescriptor =>
+            !!value && typeof value === 'object' && 'url' in value && !!value.url;
+        if (!requests.length || !requests.every(isDescriptor)) {
             return throwError(() => new Error('The page save request is unavailable.'));
         }
-        if (!requests.some(value => value && typeof value !== 'string' && this.isGroupedContentUrl(groupId, value.url))) {
-            // Configured external content backends retain their own save contract.
+        if (!requests.some(value => value.versioned)) {
             return this.http.doRequest(request, { nullWhenError: false }, null);
         }
+        if (Array.isArray(request)) {
+            return throwError(() => new Error('A versioned page save requires one request.'));
+        }
+        const versionedRequest = requests[0];
         const version = this.pageVersions.get(groupId);
         if (!version) {
             return throwError(() => new HttpErrorResponse({ status: 428, error: 'The page version is unavailable.' }));
         }
-        if (!request || typeof request === 'string' || Array.isArray(request)) {
-            return throwError(() => new Error('The page save request is unavailable.'));
-        }
-        const headers = request.options?.headers instanceof HttpHeaders
-            ? request.options.headers : new HttpHeaders(request.options?.headers);
-        request.options = { ...request.options, headers: headers.set('If-Match', version.eTag) };
-        return this.http.doRequest(request, {
-            nullWhenError: false,
-            onResponse: (url: string, response: HttpResponse<unknown>) => {
+        const headers = versionedRequest.options?.headers instanceof HttpHeaders
+            ? versionedRequest.options.headers : new HttpHeaders(versionedRequest.options?.headers);
+        versionedRequest.options = { ...versionedRequest.options, headers: headers.set('If-Match', version.eTag) };
+        versionedRequest.cacheable = false;
+        return this.http.doRequest<{ eTag: string }>(versionedRequest, { nullWhenError: false }, null).pipe(
+            tap(result => {
                 // A reload owns its own version, even if it read the same ETag while this save was pending.
-                // Advancing that document to this save's version would allow it to overwrite the saved work.
                 if (this.pageVersions.get(groupId) === version) {
-                    this.capturePageVersion(groupId, url, response);
+                    this.setPageVersion(groupId, result?.eTag);
                 }
-            },
-        }, null);
+            }),
+        );
     }
 
-    private capturePageVersion(groupId: string, url: string, response: HttpResponse<unknown>): void {
-        if (!this.isGroupedContentUrl(groupId, url)) {
-            return;
-        }
-        const version = response.headers?.get('ETag');
-        if (version) {
-            this.pageVersions.set(groupId, { eTag: version });
+    private setPageVersion(groupId: string, eTag: string | null | undefined): void {
+        if (eTag) {
+            this.pageVersions.set(groupId, { eTag });
         } else {
             this.pageVersions.delete(groupId);
         }
-    }
-
-    private isGroupedContentUrl(groupId: string, url: string | null | undefined): boolean {
-        return url?.split('?')[0].replace(/\/$/, '').endsWith(`/api/page-builder-pages/grouped/${groupId}/content`) ?? false;
     }
 
     saveTemplates(templates: { entry: TemplateEntry, content: TemplateModel }[]): Observable<any> {

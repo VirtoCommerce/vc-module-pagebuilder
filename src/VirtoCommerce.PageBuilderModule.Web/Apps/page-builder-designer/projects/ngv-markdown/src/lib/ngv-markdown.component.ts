@@ -4,6 +4,7 @@ import {
   DestroyRef,
   inject,
   afterNextRender,
+  effect,
   input,
   output,
 } from '@angular/core';
@@ -32,6 +33,7 @@ export class NgvMarkdownComponent {
   private readonly destroyRef = inject(DestroyRef);
 
   private easyMDE: EasyMDE | null = null;
+  private applyingExternalValue = false;
   private resizeObserver: ResizeObserver | null = null;
   private readonly turndown = new TurndownService({
     headingStyle: 'atx',
@@ -54,6 +56,7 @@ export class NgvMarkdownComponent {
   readonly valueChanged = output<MarkdownModel>();
 
   constructor() {
+    effect(() => this.setValue(this.value()));
     afterNextRender(() => {
       const element = document.createElement('textarea');
       this.elementRef.nativeElement.appendChild(element);
@@ -93,7 +96,7 @@ export class NgvMarkdownComponent {
         spellChecker: false,
         ...this.options() || {}
       });
-      this.setValue();
+      this.setValue(this.value());
       this.prepareEditor();
       this.handlePasteValue();
       this.handleChangeValue();
@@ -109,13 +112,19 @@ export class NgvMarkdownComponent {
     });
   }
 
-  private setValue(): void {
+  private setValue(value: MarkdownModel): void {
     if (this.easyMDE) {
-      const v = this.value();
-      const mdValue = !!v?.markdown
-        ? v.markdown
-        : this.turndown.turndown(v?.html || '');
-      this.easyMDE.value(mdValue);
+      const mdValue = value?.markdown || this.turndown.turndown(value?.html || '');
+      if (this.easyMDE.value() === mdValue) {
+        return;
+      }
+      this.applyingExternalValue = true;
+      try {
+        this.easyMDE.value(mdValue);
+        this.easyMDE.codemirror.clearHistory();
+      } finally {
+        this.applyingExternalValue = false;
+      }
     }
   }
 
@@ -167,6 +176,9 @@ export class NgvMarkdownComponent {
 
   private handleChangeValue() {
     this.easyMDE?.codemirror.on("change", () => {
+      if (this.applyingExternalValue) {
+        return;
+      }
       const markdown: string | null = this.easyMDE?.value() || null;
       const html = markdown ? marked(markdown) as unknown as string : null;
       this.valueChanged.emit({ markdown, html });

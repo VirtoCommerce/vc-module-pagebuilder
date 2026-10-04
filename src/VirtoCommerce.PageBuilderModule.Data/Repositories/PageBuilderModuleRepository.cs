@@ -7,7 +7,7 @@ using VirtoCommerce.Platform.Data.Infrastructure;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Repositories;
 
-public class PageBuilderModuleRepository : DbContextRepositoryBase<PageBuilderModuleDbContext>, IPageBuilderModuleRepository
+public class PageBuilderModuleRepository : DbContextRepositoryBase<PageBuilderModuleDbContext>, IPageBuilderModuleRepository, IPageBuilderContentIndexRepository
 {
     private const int GroupQueryBatchSize = 500;
 
@@ -33,6 +33,11 @@ public class PageBuilderModuleRepository : DbContextRepositoryBase<PageBuilderMo
     public IQueryable<PageBuilderSharedComponentReferenceEntity> PageBuilderSharedComponentReferences => DbContext.Set<PageBuilderSharedComponentReferenceEntity>();
 
     public IQueryable<PageBuilderSharedComponentAssetReferenceEntity> PageBuilderSharedComponentAssetReferences => DbContext.Set<PageBuilderSharedComponentAssetReferenceEntity>();
+
+    public virtual Task RebuildPageContentIndexesAsync(string pageId, string content, string storeId, CancellationToken cancellationToken = default)
+    {
+        return PageBuilderPageIndexing.RebuildAfterRawContentWriteAsync(DbContext, pageId, content, storeId, cancellationToken);
+    }
 
     public virtual async Task<IList<PageBuilderPageEntity>> GetPageBuilderPagesByIdsAsync(IList<string> ids, string responseGroup)
     {

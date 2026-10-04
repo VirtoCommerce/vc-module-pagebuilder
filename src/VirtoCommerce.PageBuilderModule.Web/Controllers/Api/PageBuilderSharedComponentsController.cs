@@ -17,7 +17,6 @@ using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Data.Authorization;
 using VirtoCommerce.PageBuilderModule.Web.Models;
 using VirtoCommerce.Platform.Core.Common;
-using VirtoCommerce.StoreModule.Core.Services;
 
 namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 
@@ -28,8 +27,7 @@ public class PageBuilderSharedComponentsController(
     IPageBuilderSharedComponentSearchService sharedComponentSearchService,
     IPageBuilderSharedComponentContentService sharedComponentContentService,
     IPageBuilderSharedComponentUsageService sharedComponentUsageService,
-    IAuthorizationService authorizationService,
-    IStoreService storeService)
+    IAuthorizationService authorizationService)
     : Controller
 {
     [HttpPost("search")]
@@ -105,11 +103,6 @@ public class PageBuilderSharedComponentsController(
         if (!await IsAuthorizedAsync(component))
         {
             return Forbidden;
-        }
-
-        if (await storeService.GetByIdAsync(request.StoreId) == null)
-        {
-            return BadRequest($"Store '{request.StoreId}' does not exist.");
         }
 
         try

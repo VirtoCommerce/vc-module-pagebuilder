@@ -46,9 +46,15 @@ JSON clients can read `?draft=true&includeVersion=true` to receive `{ "content":
 
 The Designer keeps local edits after a conflict and asks the author to copy them before reloading. Integrations must handle `412` the same way: read the new document and reapply the edit, rather than attach a fresh token to stale content. Update existing clients to send a version when upgrading the module. This contract covers grouped-page content editing; blob/theme content and Shared Component originals use their existing APIs.
 
-## Shared Component creation
+### Upgrade notes
 
-`POST /api/page-builder-shared-components` requires an existing store. An authorized request with an unknown `storeId` returns `400` naming that store, before any component, content, or asset references are written. Store-scoped authorization still runs first; requests outside the user's store return `403`.
+Grouped-page content POSTs now require a version. Deploy updated integrations together with this module. For proxies that transform HTTP ETag headers, use `includeVersion=true` on both GET and POST: GET returns `{ content, eTag }`, and a successful POST returns `200` with `{ eTag }`. The Designer uses these body tokens. Without that option, successful POSTs retain `204` plus the ETag header. An identical retry of an already accepted document succeeds with its current version, without a second persistence or index write.
+
+`POST /api/page-builder-pages/create-group-page` now accepts a JSON object with a `content` array, or a legacy top-level array. Empty objects, legacy `{ pageContent: ... }` envelopes, null content, and sections without a type return `400`; empty or invalid JSON fails client parsing or server validation; integrations importing those shapes must convert them to a supported document before submitting. Creation writes component and asset reference indexes in the same transaction as content.
+
+The existing `IGroupedPageService` and `IContentStreamRepository` contracts remain unchanged. Custom grouped-page service implementations used for authoring must also implement the new `IGroupedPageContentService` capability; custom repositories that write supplied page content must implement `IPageBuilderContentIndexRepository`. The built-in implementations provide both. Shell settings updates read the current document inside the same write lock; visibility-only updates preserve its bytes and version.
+
+Closing the AI panel or receiving its `RELOAD_BLADE` message refreshes a clean, idle grouped page. When the page is dirty or busy, the Designer asks the author to keep a copy and reload, preserving local work. Older assistants without save notifications therefore refresh when their panel closes. Copy, publish, and legacy direct content service calls retain their existing contracts.
 
 ## Backup & Restore
 

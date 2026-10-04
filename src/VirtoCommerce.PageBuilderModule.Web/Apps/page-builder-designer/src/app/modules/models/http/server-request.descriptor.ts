@@ -8,6 +8,8 @@ export interface ServerRequestDescriptor {
     options?: any;
     response?: ServerResponseDescriptor;
     cacheable?: boolean;
+    /** The content endpoint returns a document/version envelope and requires If-Match on save. */
+    versioned?: boolean;
 
     init?: boolean | string;
     fallbackValue?: any; // value to use when request failed

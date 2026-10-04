@@ -34,8 +34,7 @@ public class PageBuilderSharedComponentUsageAuthorizationTests
             sharedComponentSearchService: null,
             sharedComponentContentService: null,
             usageService,
-            new StubAuthorizationService(canReadPages),
-            storeService: null)
+            new StubAuthorizationService(canReadPages))
         {
             ControllerContext = new ControllerContext
             {
@@ -81,8 +80,7 @@ public class PageBuilderSharedComponentUsageAuthorizationTests
             sharedComponentSearchService: null,
             sharedComponentContentService: null,
             new StubUsageService(),
-            new StubAuthorizationService(canReadPages: true),
-            storeService: null)
+            new StubAuthorizationService(canReadPages: true))
         {
             ControllerContext = new ControllerContext
             {
@@ -189,8 +187,7 @@ public class PageBuilderSharedComponentUsageAuthorizationTests
             sharedComponentSearchService: null,
             contentService,
             usageService,
-            new StubAuthorizationService(canReadPages: true),
-            storeService: null)
+            new StubAuthorizationService(canReadPages: true))
         {
             ControllerContext = new ControllerContext
             {

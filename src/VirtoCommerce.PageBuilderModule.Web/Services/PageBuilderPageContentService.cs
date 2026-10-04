@@ -1,11 +1,9 @@
 using System;
 using System.IO;
 using System.Linq;
-using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
@@ -39,48 +37,25 @@ public sealed class PageBuilderPageContentService(
             cancellationToken);
     }
 
+    private IGroupedPageContentService VersionedContent => groupedPageService as IGroupedPageContentService
+        ?? throw new NotSupportedException("The grouped page service must implement IGroupedPageContentService.");
+
     public async Task<PageBuilderPageContentWriteResult> SaveGroupUpdateAsync(
         GroupedPageBuilderPage groupedPage,
         string sourcePageId,
         CancellationToken cancellationToken)
     {
-        var draftPage = groupedPage.Pages.FirstOrDefault(x => x.Status == Draft);
-        var createdDraftPageId = (string)null;
-
-        if (draftPage == null)
-        {
-            draftPage = CreateDraft(groupedPage.StoreId);
-            groupedPage.Pages.Add(draftPage);
-            createdDraftPageId = draftPage.Id;
-        }
-
         try
         {
-            await groupedPageService.SaveChangesAsync([groupedPage]);
+            // The service reads the authoritative source under the group lock; a previously selected
+            // sourcePageId can be stale by the time a Shell settings update reaches persistence.
+            await UpdateGroupSettingsAsync(null, groupedPage, cancellationToken);
+            return PageBuilderPageContentWriteResult.Success;
         }
         catch (InvalidDataException ex)
         {
             return PageBuilderPageContentWriteResult.Invalid(ex.Message);
         }
-
-        if (sourcePageId != null)
-        {
-            var errorMessage = await TryWriteContentAsync(
-                draftPage.Id,
-                createdDraftPageId,
-                () => groupedPageService.CopyPageContentAsync(
-                    sourcePageId,
-                    draftPage.Id,
-                    cancellationToken));
-            if (errorMessage != null)
-            {
-                return PageBuilderPageContentWriteResult.Invalid(errorMessage);
-            }
-        }
-
-        await UpdateGroupSettingsAsync(draftPage.Id, groupedPage, cancellationToken);
-
-        return PageBuilderPageContentWriteResult.Success;
     }
 
     public async Task UpdateGroupSettingsAsync(
@@ -88,8 +63,9 @@ public sealed class PageBuilderPageContentService(
         GroupedPageBuilderPage groupedPage,
         CancellationToken cancellationToken)
     {
-        await SyncGroupSettingsToContentAsync(pageId, groupedPage, cancellationToken);
-        await RaisePageContentChangedAsync(pageId, cancellationToken);
+        await VersionedContent.SaveGroupSettingsAsync(groupedPage, cancellationToken);
+        var updatedPage = PageBuilderPageSelection.Order(groupedPage.Pages).FirstOrDefault();
+        await RaisePageContentChangedAsync(updatedPage?.Id, cancellationToken);
     }
 
     public async Task<PageBuilderPageContentWriteResult> SaveContentAsync(
@@ -118,7 +94,7 @@ public sealed class PageBuilderPageContentService(
     public async Task<PageBuilderConditionalContentWriteResult> SaveConditionalContentAsync(
         GroupedPageBuilderPage group, string content, string expectedETag, CancellationToken cancellationToken)
     {
-        var result = await groupedPageService.SaveGroupContentAsync(group, content, expectedETag, cancellationToken);
+        var result = await VersionedContent.SaveGroupContentAsync(group, content, expectedETag, cancellationToken);
         await RaisePageContentChangedAsync(result.PageId, cancellationToken);
         return result;
     }
@@ -156,7 +132,7 @@ public sealed class PageBuilderPageContentService(
         string groupId,
         GroupedPageBuilderPage groupedPage)
     {
-        var draftPage = groupedPage.Pages.FirstOrDefault(x => x.Status == Draft);
+        var draftPage = PageBuilderPageSelection.Order(groupedPage.Pages).FirstOrDefault(x => x.Status == Draft);
         if (draftPage != null)
         {
             return new DraftPage(draftPage, null);
@@ -167,7 +143,7 @@ public sealed class PageBuilderPageContentService(
         await groupedPageService.SaveChangesAsync([groupedPage]);
 
         groupedPage = await groupedPageService.GetByIdAsync(groupId);
-        draftPage = groupedPage.Pages.FirstOrDefault(x => x.Status == Draft);
+        draftPage = PageBuilderPageSelection.Order(groupedPage.Pages).FirstOrDefault(x => x.Status == Draft);
 
         return new DraftPage(draftPage, createdDraftPage.Id);
     }
@@ -232,36 +208,6 @@ public sealed class PageBuilderPageContentService(
                     originalException.Message);
             }
         }
-    }
-
-    private async Task SyncGroupSettingsToContentAsync(
-        string pageId,
-        GroupedPageBuilderPage group,
-        CancellationToken cancellationToken)
-    {
-        var content = await groupedPageService.LoadContent(pageId, cancellationToken);
-        if (string.IsNullOrWhiteSpace(content))
-        {
-            content = ModuleConstants.DefaultPageContent;
-        }
-
-        var node = JsonNode.Parse(content);
-        if (node is not JsonObject root)
-        {
-            return;
-        }
-
-        if (root["settings"] is not JsonObject settings)
-        {
-            settings = new JsonObject();
-            root["settings"] = settings;
-        }
-
-        settings["name"] = group.Name;
-        settings["permalink"] = group.Permalink;
-        settings["cultureName"] = group.CultureName;
-
-        await groupedPageService.SaveContent(pageId, root.ToJsonString(), cancellationToken);
     }
 
     private async Task RaisePageContentChangedAsync(string pageId, CancellationToken cancellationToken)

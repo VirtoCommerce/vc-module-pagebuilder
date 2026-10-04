@@ -1,5 +1,4 @@
 using System;
-using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -29,10 +28,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 [Authorize]
 public class PageBuilderPageController : Controller
 {
-    private const int ContentVersionHashLength = 64;
-    private const int QuotedContentVersionLength = ContentVersionHashLength + 2;
-    private static readonly SearchValues<char> ContentVersionCharacters = SearchValues.Create("0123456789ABCDEF");
-
     private readonly IPageBuilderPageService crudService;
     private readonly IGroupedPageService groupedPageService;
     private readonly IGroupedPageSearchService groupedPageSearchService;
@@ -225,7 +220,14 @@ public class PageBuilderPageController : Controller
         draftPage.Content = model.Content;
         groupedPage.Pages.Add(draftPage);
 
-        await groupedPageService.SaveChangesAsync([groupedPage]);
+        try
+        {
+            await groupedPageService.SaveChangesAsync([groupedPage]);
+        }
+        catch (InvalidDataException ex)
+        {
+            return BadRequest(ex.Message);
+        }
 
         return Ok(groupedPage);
     }
@@ -334,7 +336,7 @@ public class PageBuilderPageController : Controller
 
         if (publish)
         {
-            var pageToPublish = groupedPage.Pages.FirstOrDefault(x => x.Status == Draft);
+            var pageToPublish = PageBuilderPageSelection.Order(groupedPage.Pages).FirstOrDefault(x => x.Status == Draft);
             if (pageToPublish == null)
             {
                 return BadRequest("Draft page not found.");
@@ -345,7 +347,7 @@ public class PageBuilderPageController : Controller
         }
         else
         {
-            var pageToUnpublish = groupedPage.Pages.FirstOrDefault(x => x.Status == Published);
+            var pageToUnpublish = PageBuilderPageSelection.Order(groupedPage.Pages).FirstOrDefault(x => x.Status == Published);
             if (pageToUnpublish == null)
             {
                 return BadRequest("Published page not found.");
@@ -456,85 +458,58 @@ public class PageBuilderPageController : Controller
             return;
         }
 
-        // Walk the candidates in order of authority and serve the first one that actually has content.
-        // Picking by newest ModifiedDate instead used to hand out the wrong page: a draft that UpdateGroup had
-        // just created but not yet seeded is the newest row while its content is still NULL, and pages demoted
-        // to Archived by NormalizePublishedPages share the Published page's timestamp, so the winner of that
-        // comparison was undefined. Falling through on "no content" also covers a stale cached group that still
-        // lists deleted pages.
-        foreach (var pageId in GetContentCandidates(group, draft))
+        PageBuilderContentSnapshot snapshot;
+        try
         {
-            await using var buffer = new MemoryStream();
-            if (await groupedPageService.LoadContentToStreamAsync(pageId, buffer, cancellationToken))
-            {
-                var bytes = buffer.GetBuffer();
-                var length = checked((int)buffer.Length);
-                // LoadContentToStreamAsync writes UTF-8 with a preamble; it is not part of the document.
-                var offset = bytes.AsSpan(0, length).StartsWith(Encoding.UTF8.Preamble) ? Encoding.UTF8.Preamble.Length : 0;
-                Response.Headers.ETag = PageBuilderContentVersion.CreateFromUtf8(group, bytes.AsSpan(offset, length - offset));
-                Response.Headers.CacheControl = "no-store";
-                if (includeVersion)
-                {
-                    var content = Encoding.UTF8.GetString(bytes, offset, length - offset);
-                    await WriteVersionedContentResponseAsync(content, Response.Headers.ETag.ToString(), cancellationToken);
-                }
-                else
-                {
-                    buffer.Position = offset;
-                    await buffer.CopyToAsync(Response.Body, cancellationToken);
-                }
-                return;
-            }
+            var versioned = groupedPageService as IGroupedPageContentService
+                ?? throw new NotSupportedException("The grouped page service must implement IGroupedPageContentService.");
+            snapshot = await versioned.LoadGroupContentAsync(group, draft, cancellationToken);
+        }
+        catch (KeyNotFoundException)
+        {
+            Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
         }
 
-        Response.Headers.ETag = PageBuilderContentVersion.Create(group, null);
+        Response.Headers.ETag = snapshot.ETag;
         Response.Headers.CacheControl = "no-store";
         if (includeVersion)
         {
-            await WriteVersionedContentResponseAsync(ModuleConstants.DefaultPageContent, Response.Headers.ETag.ToString(), cancellationToken);
-            return;
+            await WriteVersionedContentResponseAsync(snapshot.Content ?? ModuleConstants.DefaultPageContent, snapshot.ETag, cancellationToken);
         }
-        Response.StatusCode = (int)HttpStatusCode.NotFound;
+        else if (snapshot.Content != null)
+        {
+            await Response.WriteAsync(snapshot.Content, cancellationToken);
+        }
+        else
+        {
+            Response.StatusCode = StatusCodes.Status404NotFound;
+        }
     }
 
-    private Task WriteVersionedContentResponseAsync(string content, string eTag, CancellationToken cancellationToken)
+    private async Task WriteVersionedContentResponseAsync(string content, string eTag, CancellationToken cancellationToken)
     {
-        return Response.WriteAsync(JsonSerializer.Serialize(new { content, eTag }), cancellationToken);
-    }
-
-    // Draft is the working copy and wins when requested; Published is the live page; Archived is the last
-    // resort so that fully archived groups (ArchiveGroups sets every page to Archived) still render.
-    private static IEnumerable<string> GetContentCandidates(GroupedPageBuilderPage group, bool draft)
-    {
-        if (draft)
+        await using (var json = new Utf8JsonWriter(Response.BodyWriter))
         {
-            foreach (var page in group.Pages.Where(x => x.Status == Draft).OrderByDescending(x => x.ModifiedDate).ThenBy(x => x.Id))
-            {
-                yield return page.Id;
-            }
+            json.WriteStartObject();
+            json.WriteString("content", content);
+            json.WriteString("eTag", eTag);
+            json.WriteEndObject();
         }
-
-        foreach (var page in group.Pages.Where(x => x.Status == Published).OrderByDescending(x => x.ModifiedDate).ThenBy(x => x.Id))
-        {
-            yield return page.Id;
-        }
-
-        foreach (var page in group.Pages.Where(x => x.Status == Archived).OrderByDescending(x => x.ModifiedDate).ThenBy(x => x.Id))
-        {
-            yield return page.Id;
-        }
+        await Response.BodyWriter.FlushAsync(cancellationToken);
     }
 
     [NonAction]
     public Task<IActionResult> SavePageContent(string groupId, CancellationToken cancellationToken)
     {
-        return SavePageContent(groupId, ifMatch: null, cancellationToken);
+        return SavePageContent(groupId, Request.Headers.IfMatch.ToString(), includeVersion: false, cancellationToken);
     }
 
     [HttpPost("grouped/{groupId}/content")]
     [Authorize(ModuleConstants.Security.Permissions.Update)]
     public async Task<IActionResult> SavePageContent([FromRoute] string groupId,
-        [FromHeader(Name = "If-Match")] string ifMatch = null, CancellationToken cancellationToken = default)
+        [FromHeader(Name = "If-Match")] string ifMatch = null, [FromQuery] bool includeVersion = false,
+        CancellationToken cancellationToken = default)
     {
         var groupedPage = await groupedPageService.GetByIdAsync(groupId);
 
@@ -565,17 +540,17 @@ public class PageBuilderPageController : Controller
             return validationError;
         }
 
-        return await SaveConditionalContentAsync(groupedPage, content, cancellationToken, ifMatch);
+        return await SaveConditionalContentAsync(groupedPage, content, ifMatch, includeVersion, cancellationToken);
     }
 
     [NonAction]
     public Task<IActionResult> SavePageContentJson(string groupId, UpdatePageContentRequest model, CancellationToken cancellationToken)
     {
-        return SavePageContentJson(groupId, model, ifMatch: null, cancellationToken);
+        return SavePageContentJson(groupId, model, Request.Headers.IfMatch.ToString(), includeVersion: false, cancellationToken);
     }
 
     /// <summary>
-    /// Save page content from a JSON body. Mirror of <see cref="SavePageContent(string, string, CancellationToken)"/> but accepts the page JSON
+    /// Save page content from a JSON body. Mirror of <see cref="SavePageContent(string, string, bool, CancellationToken)"/> but accepts the page JSON
     /// inside a wrapping JSON object (<c>{ "content": "..." }</c>) instead of as a raw stream, so it is callable
     /// from generic JSON-body API tools (e.g. the AI agent tool runner).
     /// </summary>
@@ -585,6 +560,7 @@ public class PageBuilderPageController : Controller
         [FromRoute] string groupId,
         [FromBody] UpdatePageContentRequest model,
         [FromHeader(Name = "If-Match")] string ifMatch = null,
+        [FromQuery] bool includeVersion = false,
         CancellationToken cancellationToken = default)
     {
         if (model == null || string.IsNullOrWhiteSpace(model.Content))
@@ -619,13 +595,13 @@ public class PageBuilderPageController : Controller
             return validationError;
         }
 
-        var headerVersion = ifMatch ?? Request.Headers.IfMatch.ToString();
+        var headerVersion = ifMatch;
         if (HasConflictingContentVersions(headerVersion, model.ETag))
         {
             return BadRequest("If-Match and the body ETag must identify the same content version.");
         }
-        return await SaveConditionalContentAsync(groupedPage, model.Content, cancellationToken,
-            string.IsNullOrWhiteSpace(headerVersion) ? model.ETag : headerVersion);
+        return await SaveConditionalContentAsync(groupedPage, model.Content,
+            string.IsNullOrWhiteSpace(headerVersion) ? model.ETag : headerVersion, includeVersion, cancellationToken);
     }
 
     private static bool HasConflictingContentVersions(string headerVersion, string bodyVersion)
@@ -635,18 +611,17 @@ public class PageBuilderPageController : Controller
     }
 
     private async Task<IActionResult> SaveConditionalContentAsync(
-        GroupedPageBuilderPage group, string content, CancellationToken cancellationToken, string ifMatch = null)
+        GroupedPageBuilderPage group, string content, string expectedETag, bool includeVersion, CancellationToken cancellationToken)
     {
-        var expectedETag = (ifMatch ?? Request.Headers.IfMatch.ToString()).Trim();
+        expectedETag = expectedETag?.Trim();
         if (string.IsNullOrEmpty(expectedETag))
         {
             return StatusCode(StatusCodes.Status428PreconditionRequired,
-                "Read the page content and send its ETag in If-Match before saving.");
+                "Read the page content and send its ETag in If-Match or in the content-json body before saving.");
         }
 
         // Require one concrete strong version. A wildcard does not protect an author's work.
-        if (expectedETag.Length != QuotedContentVersionLength || expectedETag[0] != '"' || expectedETag[^1] != '"' ||
-            expectedETag.AsSpan(1, ContentVersionHashLength).ContainsAnyExcept(ContentVersionCharacters))
+        if (!PageBuilderContentVersion.IsWellFormed(expectedETag))
         {
             return BadRequest("If-Match must contain the single strong ETag returned by the content GET.");
         }
@@ -655,7 +630,7 @@ public class PageBuilderPageController : Controller
         {
             var result = await pageContentService.SaveConditionalContentAsync(group, content, expectedETag, cancellationToken);
             Response.Headers.ETag = result.ETag;
-            return NoContent();
+            return includeVersion ? Ok(new { eTag = result.ETag }) : NoContent();
         }
         catch (PageBuilderContentConflictException ex)
         {
@@ -849,14 +824,12 @@ public class PageBuilderPageController : Controller
     {
         return groupedPage.Pages.Any(x => x.Status == Draft)
             ? null
-            : groupedPage.Pages.FirstOrDefault(x => x.Status == Published)?.Id;
+            : PageBuilderPageSelection.Order(groupedPage.Pages).FirstOrDefault(x => x.Status == Published)?.Id;
     }
 
     private static string GetCopySourcePageId(GroupedPageBuilderPage sourceGroup)
     {
-        return sourceGroup.Pages
-            .Where(x => x.Status == Draft || x.Status == Published)
-            .OrderByDescending(x => x.ModifiedDate)
+        return PageBuilderPageSelection.Order(sourceGroup.Pages)
             .Select(x => x.Id)
             .FirstOrDefault();
     }
@@ -869,7 +842,7 @@ public class PageBuilderPageController : Controller
     // Only well-formedness is checked, not the document's shape: content stored by older designer versions can
     // be an array rather than the current { settings, content } object, and both still load. What this rules
     // out is a payload that never parses at all — a truncated upload, which is indistinguishable from a real
-    // save once written, and which every reader downstream chokes on (SyncGroupSettingsToContent parses it).
+    // save once written, and which every reader downstream chokes on (settings synchronization parses it).
     private static bool IsWellFormedJson(string content)
     {
         try

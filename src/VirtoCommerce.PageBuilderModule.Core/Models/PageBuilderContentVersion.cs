@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -6,28 +7,20 @@ namespace VirtoCommerce.PageBuilderModule.Core.Models;
 
 public static class PageBuilderContentVersion
 {
+    private const int HashLength = 64;
+    private static readonly SearchValues<char> HexCharacters = SearchValues.Create("0123456789ABCDEF");
+
+    public static bool IsWellFormed(string eTag)
+    {
+        return eTag is { Length: HashLength + 2 } && eTag[0] == '"' && eTag[^1] == '"'
+            && !eTag.AsSpan(1, HashLength).ContainsAnyExcept(HexCharacters);
+    }
+
     // Bind the content to the authorized aggregate, including its lifetime and store.
     // NULL (never seeded) and an intentionally empty document must have distinct versions.
     public static string Create(GroupedPageBuilderPage group, string content)
     {
-        if (content == null)
-        {
-            return CreateFromContentHash(group, null);
-        }
-
-        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-        var encoder = Encoding.UTF8.GetEncoder();
-        Span<byte> buffer = stackalloc byte[4096];
-        var remaining = content.AsSpan();
-        bool completed;
-        do
-        {
-            encoder.Convert(remaining, buffer, flush: true, out var charsUsed, out var bytesUsed, out completed);
-            hash.AppendData(buffer[..bytesUsed]);
-            remaining = remaining[charsUsed..];
-        } while (!completed);
-
-        return CreateFromContentHash(group, Convert.ToHexString(hash.GetHashAndReset()));
+        return content == null ? CreateFromContentHash(group, null) : CreateFromUtf8(group, Encoding.UTF8.GetBytes(content));
     }
 
     public static string CreateFromUtf8(GroupedPageBuilderPage group, ReadOnlySpan<byte> content)
@@ -47,7 +40,3 @@ public static class PageBuilderContentVersion
         return $"\"{Convert.ToHexString(SHA256.HashData(bytes))}\"";
     }
 }
-
-public sealed class PageBuilderContentConflictException() : Exception("This page changed while you were editing. Your changes have not been saved. Copy your changes before reloading the page.");
-
-public sealed record PageBuilderConditionalContentWriteResult(string PageId, string ETag);

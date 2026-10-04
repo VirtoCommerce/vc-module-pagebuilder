@@ -8,10 +8,6 @@ namespace VirtoCommerce.PageBuilderModule.Core.Services
         Task<string> LoadContent(string pageId, CancellationToken cancellationToken = default);
         Task SaveContent(string pageId, string content, CancellationToken cancellationToken = default);
 
-        Task<PageBuilderConditionalContentWriteResult> SaveGroupContentAsync(
-            GroupedPageBuilderPage authorizedGroup, string content, string expectedETag,
-            CancellationToken cancellationToken = default);
-
         /// <returns>
         /// <c>false</c> when the page has no content at all — it was deleted, or it is a draft that was created
         /// but never seeded. Callers must not treat that as empty content; nothing is written to

@@ -2583,7 +2583,6 @@ export interface SortInfo {
 }
 
 export interface UpdatePageContentRequest {
-    eTag?: string | undefined;
     content?: string | undefined;
 }
 

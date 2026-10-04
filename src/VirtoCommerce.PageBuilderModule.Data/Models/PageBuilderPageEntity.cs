@@ -63,5 +63,10 @@ public class PageBuilderPageEntity : AuditableEntity, IDataEntity<PageBuilderPag
         target.GroupId = GroupId;
         target.StoreId = StoreId;
         target.Status = Status;
+        if (Content != null)
+        {
+            target.Content ??= new PageBuilderContentEntity();
+            target.Content.PageContent = Content.PageContent;
+        }
     }
 }

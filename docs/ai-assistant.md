@@ -286,3 +286,6 @@ Not yet included (tracked separately):
 - [Block library](block-library.md)
 - [Schemas](schemas.md)
 - [Theme editor](theme-editor.md)
+
+
+For grouped-page edits, retain the `eTag` returned with the document and send it with the edited content. Add `includeVersion=true` to a content POST to receive the next token in its JSON body (`200 { eTag }`), avoiding dependence on proxy-transformed ETag headers. A `412` requires reading the current document and reconciling changes; do not attach a new token to stale content. An identical retry after a lost response is accepted without rewriting content. Notify the Designer with the existing `RELOAD_BLADE` message after an assistant save; a clean page reloads its document and version together, while a dirty page preserves local work and prompts the author to reconcile.

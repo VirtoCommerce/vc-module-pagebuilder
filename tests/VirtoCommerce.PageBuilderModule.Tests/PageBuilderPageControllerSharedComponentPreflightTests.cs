@@ -51,19 +51,18 @@ public class PageBuilderPageControllerSharedComponentPreflightTests
     }
 
     [Fact]
-    public async Task SavePageContent_FailedWriterDoesNotDeleteDraftFilledByConcurrentWriter()
+    public async Task LegacySaveContent_FailedWriterDoesNotDeleteDraftFilledByConcurrentWriter()
     {
         var service = CreateServiceWithPublishedGroup("group", "published");
         service.ConcurrentContentBeforeSaveFailure = "{ \"concurrent\": true }";
         service.SaveContentException = new InvalidDataException("Shared Component 'deleted' was not found.");
-        var controller = CreateController(
-            service,
-            new NoopSharedComponentReferenceIndexService(),
-            ComponentReferenceContent);
+        var writer = new PageBuilderPageContentService(new PublishedRenameContentPreservationTests.FakePageBuilderPageService(service),
+            service, new NoopSharedComponentReferenceIndexService(), new PublishedRenameContentPreservationTests.NoopEventPublisher(),
+            NullLogger<PageBuilderPageContentService>.Instance);
 
-        var result = await controller.SavePageContent("group", TestContext.Current.CancellationToken);
+        var result = await writer.SaveContentAsync("group", await service.GetByIdAsync("group"), ComponentReferenceContent, TestContext.Current.CancellationToken);
 
-        Assert.IsType<BadRequestObjectResult>(result);
+        Assert.NotNull(result.ErrorMessage);
         var draft = Assert.Single((await service.GetByIdAsync("group")).Pages, x => x.Status == Draft);
         Assert.Equal(
             "{ \"concurrent\": true }",
@@ -72,19 +71,18 @@ public class PageBuilderPageControllerSharedComponentPreflightTests
     }
 
     [Fact]
-    public async Task SavePageContent_DoesNotCleanupDifferentDraftReturnedAfterSave()
+    public async Task LegacySaveContent_DoesNotCleanupDifferentDraftReturnedAfterSave()
     {
         var service = CreateServiceWithPublishedGroup("group", "published");
         service.ReplaceNewDraftAfterSaveWithPageId = "concurrent-draft";
         service.SaveContentException = new InvalidDataException("Shared Component 'deleted' was not found.");
-        var controller = CreateController(
-            service,
-            new NoopSharedComponentReferenceIndexService(),
-            ComponentReferenceContent);
+        var writer = new PageBuilderPageContentService(new PublishedRenameContentPreservationTests.FakePageBuilderPageService(service),
+            service, new NoopSharedComponentReferenceIndexService(), new PublishedRenameContentPreservationTests.NoopEventPublisher(),
+            NullLogger<PageBuilderPageContentService>.Instance);
 
-        var result = await controller.SavePageContent("group", TestContext.Current.CancellationToken);
+        var result = await writer.SaveContentAsync("group", await service.GetByIdAsync("group"), ComponentReferenceContent, TestContext.Current.CancellationToken);
 
-        Assert.IsType<BadRequestObjectResult>(result);
+        Assert.NotNull(result.ErrorMessage);
         var draft = Assert.Single((await service.GetByIdAsync("group")).Pages, x => x.Status == Draft);
         Assert.Equal("concurrent-draft", draft.Id);
         Assert.Equal(0, service.EmptyDraftCleanupAttempts);

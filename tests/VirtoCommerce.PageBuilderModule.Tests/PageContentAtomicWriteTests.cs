@@ -8,7 +8,6 @@ using System.Threading.Tasks;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Data.Models;
@@ -21,7 +20,7 @@ using Xunit;
 
 namespace VirtoCommerce.PageBuilderModule.Tests;
 
-public class PageContentAtomicWriteTests
+public partial class PageContentAtomicWriteTests
 {
     [Fact]
     public async Task ConditionalSave_FirstDraftInvalidatesPreviouslyEmptyPageSearch()
@@ -75,6 +74,8 @@ public class PageContentAtomicWriteTests
         Assert.Equal(UpdatedPageContent, await LoadContentAsync(database.ConnectionString));
     }
 
+    // SQLite serializes whole transactions: these races prove transaction-level atomicity.
+    // Provider row-lock behavior is exercised separately against a live SQL Server.
     [Fact]
     public async Task ConditionalSave_ConcurrentAuthorsWithSameVersionHaveOneWinner()
     {
@@ -114,7 +115,7 @@ public class PageContentAtomicWriteTests
         var writes = Enumerable.Range(0, authors).Select(index => Task.Run(async () =>
         {
             await start.Task.WaitAsync(TestContext.Current.CancellationToken);
-            var content = index % 2 == 0 ? ComponentBContent : UpdatedPageContent;
+            var content = (index % 2 == 0 ? ComponentBContent : UpdatedPageContent) + new string(' ', index);
             try
             {
                 await SaveConditionalAsync(database.ConnectionString, group, content, version);
@@ -129,7 +130,7 @@ public class PageContentAtomicWriteTests
 
         var winner = Assert.Single(await Task.WhenAll(writes), x => x != null);
         Assert.Equal(winner, await LoadContentAsync(database.ConnectionString));
-        Assert.Equal([winner == ComponentBContent ? ComponentBId : ComponentAId],
+        Assert.Equal([winner.TrimEnd() == ComponentBContent ? ComponentBId : ComponentAId],
             await LoadReferenceIdsAsync(database.ConnectionString));
         Assert.Equal([AssetBUrl], await LoadAssetUrlsAsync(database.ConnectionString));
     }
@@ -259,8 +260,12 @@ public class PageContentAtomicWriteTests
         string connectionString, GroupedPageBuilderPage group, string content, string version,
         Func<CancellationToken, Task> afterIndex = null)
     {
-        await using var repository = new SqliteContentStreamRepository(CreateContext(connectionString), afterIndex);
-        return await repository.SaveGroupContentAsync(group, content, version, TestContext.Current.CancellationToken);
+        using var cache = new TestPlatformMemoryCache();
+        var service = new GroupedPageService(
+            () => new IndexCallbackRepository(CreateContext(connectionString), afterIndex),
+            () => new SqliteContentStreamRepository(CreateContext(connectionString)),
+            cache, new NoopEventPublisher(), NullLogger<GroupedPageService>.Instance);
+        return await service.SaveGroupContentAsync(group, content, version, TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -564,14 +569,17 @@ public class PageContentAtomicWriteTests
             where T : IEvent => Task.CompletedTask;
     }
 
-    private sealed class TestPlatformMemoryCache : IPlatformMemoryCache
+
+
+    private sealed class IndexCallbackRepository(PageBuilderModuleDbContext context, Func<CancellationToken, Task> afterIndex)
+        : PageBuilderModuleRepository(context)
     {
-        private readonly MemoryCache _cache = new(new MemoryCacheOptions());
-        public ICacheEntry CreateEntry(object key) => _cache.CreateEntry(key);
-        public void Remove(object key) => _cache.Remove(key);
-        public bool TryGetValue(object key, out object value) => _cache.TryGetValue(key, out value);
-        public MemoryCacheEntryOptions GetDefaultCacheEntryOptions() => new();
-        public void Dispose() => _cache.Dispose();
+        public override async Task RebuildPageContentIndexesAsync(string pageId, string content, string storeId, CancellationToken cancellationToken = default)
+        {
+            await base.RebuildPageContentIndexesAsync(pageId, content, storeId, cancellationToken);
+            if (afterIndex != null)
+                await afterIndex(cancellationToken);
+        }
     }
 
     private sealed class SqliteContentStreamRepository(
