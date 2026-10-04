@@ -63,7 +63,6 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
             var changedEntries = new GenericChangedEntry<GroupedPageBuilderPage>[models.Count];
             var changedEntities = new GroupedPageBuilderPageEntity[models.Count];
             var originalModels = new List<GroupedPageBuilderPage>();
-            var saveRequired = true;
 
             using (var repository = _repositoryFactory())
             {
@@ -77,7 +76,6 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
                     var existingEntities = await LoadExistingEntities(repository, models);
                     if (prepare != null && !await prepare(repository, existingEntities, ct))
                     {
-                        saveRequired = false;
                         return;
                     }
                     await PrepareModelsForSaveAsync(
@@ -138,7 +136,8 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
                     cancellationToken);
             }
 
-            if (!saveRequired)
+            // A no-op conditional retry leaves the entries unset and must not publish save events.
+            if (models.Count > 0 && changedEntries[0] == null)
             {
                 return;
             }
@@ -155,7 +154,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
             }
 
             await AfterSaveChangesAsync(models, changedEntries);
-            await _eventPublisher.Publish(EventFactory<GroupedPageBuilderPageChangedEvent>(changedEntries));
+            await _eventPublisher.Publish(EventFactory<GroupedPageBuilderPageChangedEvent>(changedEntries), CancellationToken.None);
         }
 
         private static async Task RebuildWrittenContentIndexesAsync(
@@ -474,13 +473,13 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
         private static async Task<PageBuilderContentSnapshot> ReadContentAsync(
             IPageBuilderModuleRepository repository, GroupedPageBuilderPage group, bool draft, CancellationToken cancellationToken)
         {
-            foreach (var page in PageBuilderPageSelection.Order(group.Pages, draft))
+            foreach (var pageId in PageBuilderPageSelection.Order(group.Pages, draft).Select(page => page.Id))
             {
                 var content = await repository.PageBuilderContents.AsNoTracking()
-                    .Where(x => x.Id == page.Id).Select(x => x.PageContent).FirstOrDefaultAsync(cancellationToken);
+                    .Where(x => x.Id == pageId).Select(x => x.PageContent).FirstOrDefaultAsync(cancellationToken);
                 if (content != null)
                 {
-                    return new(page.Id, content, PageBuilderContentVersion.Create(group, content));
+                    return new(pageId, content, PageBuilderContentVersion.Create(group, content));
                 }
             }
             return new(null, null, PageBuilderContentVersion.Create(group, null));

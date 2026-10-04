@@ -8,11 +8,12 @@ namespace VirtoCommerce.PageBuilderModule.Core.Models;
 public static class PageBuilderContentVersion
 {
     private const int HashLength = 64;
+    private const int SurroundingQuoteCount = 2;
     private static readonly SearchValues<char> HexCharacters = SearchValues.Create("0123456789ABCDEF");
 
     public static bool IsWellFormed(string eTag)
     {
-        return eTag is { Length: HashLength + 2 } && eTag[0] == '"' && eTag[^1] == '"'
+        return eTag is { Length: HashLength + SurroundingQuoteCount } && eTag[0] == '"' && eTag[^1] == '"'
             && !eTag.AsSpan(1, HashLength).ContainsAnyExcept(HexCharacters);
     }
 

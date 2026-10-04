@@ -124,6 +124,11 @@ public partial class PageContentAtomicWriteTests
         Assert.Contains(Assert.Single(changing.ChangedEntries).NewEntry.Pages, x => x.Id == result.PageId);
         Assert.Contains(Assert.Single(changed.ChangedEntries).NewEntry.Pages, x => x.Id == result.PageId);
         Assert.NotNull((await service.GetByIdAsync(GroupId)).ModifiedDate);
+
+        events.Events.Clear();
+        var retry = await service.SaveGroupContentAsync(group, ComponentAContent, PageBuilderContentVersion.Create(group, null), TestContext.Current.CancellationToken);
+        Assert.Equal(result, retry);
+        Assert.Empty(events.Events);
     }
 
     [Fact]
