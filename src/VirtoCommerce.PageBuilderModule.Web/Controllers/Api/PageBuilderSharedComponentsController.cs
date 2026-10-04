@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using VirtoCommerce.PageBuilderModule.Core;
@@ -17,19 +18,34 @@ using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Data.Authorization;
 using VirtoCommerce.PageBuilderModule.Web.Models;
 using VirtoCommerce.Platform.Core.Common;
+using VirtoCommerce.StoreModule.Core.Services;
 
 namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 
 [Route("api/page-builder-shared-components")]
 [Authorize]
+[method: ActivatorUtilitiesConstructor]
 public class PageBuilderSharedComponentsController(
     IPageBuilderSharedComponentService sharedComponentService,
     IPageBuilderSharedComponentSearchService sharedComponentSearchService,
     IPageBuilderSharedComponentContentService sharedComponentContentService,
     IPageBuilderSharedComponentUsageService sharedComponentUsageService,
-    IAuthorizationService authorizationService)
+    IAuthorizationService authorizationService,
+    IStoreService storeService)
     : Controller
 {
+    // Preserve the published constructor for extensions; request services supply the new dependency.
+    public PageBuilderSharedComponentsController(
+        IPageBuilderSharedComponentService sharedComponentService,
+        IPageBuilderSharedComponentSearchService sharedComponentSearchService,
+        IPageBuilderSharedComponentContentService sharedComponentContentService,
+        IPageBuilderSharedComponentUsageService sharedComponentUsageService,
+        IAuthorizationService authorizationService)
+        : this(sharedComponentService, sharedComponentSearchService, sharedComponentContentService,
+            sharedComponentUsageService, authorizationService, null)
+    {
+    }
+
     [HttpPost("search")]
     [Authorize(ModuleConstants.Security.Permissions.SharedComponentsRead)]
     public async Task<ActionResult<PageBuilderSharedComponentSearchResult>> Search(
@@ -103,6 +119,12 @@ public class PageBuilderSharedComponentsController(
         if (!await IsAuthorizedAsync(component))
         {
             return Forbidden;
+        }
+
+        var stores = storeService ?? HttpContext.RequestServices.GetRequiredService<IStoreService>();
+        if (await stores.GetNoCloneAsync(request.StoreId) == null)
+        {
+            return BadRequest($"Store '{request.StoreId}' does not exist.");
         }
 
         try
