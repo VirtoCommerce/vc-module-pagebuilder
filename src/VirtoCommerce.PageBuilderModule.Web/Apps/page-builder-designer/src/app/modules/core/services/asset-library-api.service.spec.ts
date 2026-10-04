@@ -2,15 +2,12 @@ import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { CookieService } from 'ngx-cookie-service';
-import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 
 import { AppConfig, EnvironmentRef, EvaluatorService } from '@integration/services';
 import settings from '../../../../data/settings.json';
 import { AssetLibraryApiService } from './asset-library-api.service';
-import { AssetLibraryUploadCoordinatorService } from './asset-library-upload-coordinator.service';
-import { AssetPickerStateService } from '../dialogs/asset-picker/asset-picker-state.service';
 
-describe('Asset library folder API', () => {
+describe('AssetLibraryApiService', () => {
     let api: AssetLibraryApiService;
     let http: HttpTestingController;
 
@@ -20,9 +17,6 @@ describe('Asset library folder API', () => {
             { provide: EnvironmentRef, useValue: { nativeWindow: { location: { search: '' } } } },
             { provide: CookieService, useValue: {} },
             EvaluatorService, AppConfig,
-            AssetPickerStateService,
-            { provide: MAT_DIALOG_DATA, useValue: { rootFolderUrl: '/stores/store/Page Builder', multiple: true } },
-            { provide: AssetLibraryUploadCoordinatorService, useValue: {} },
         ] });
         TestBed.inject(AppConfig).initConfigWith(settings);
         api = TestBed.inject(AssetLibraryApiService);
@@ -63,7 +57,8 @@ describe('Asset library folder API', () => {
     });
 
     it.each([
-        {}, [], { url: '', method: 'POST' }, '/api/assets/folder',
+        {}, [], [settings.assetLibraryCreateFolderRequest, settings.assetLibraryCreateFolderRequest],
+        { url: '', method: 'POST' }, '/api/assets/folder',
         { url: '/api/assets/folder', method: 'GET' },
         { url: 42, method: 'POST' }, { url: '/api/assets/folder', method: 42 },
     ])('rejects an invalid folder mutation descriptor: %j', descriptor => {
@@ -78,46 +73,6 @@ describe('Asset library folder API', () => {
         http.expectNone('/api/assets/folder');
     });
 
-    it('delivers request preparation failures through the observable error handler', () => {
-        vi.spyOn(TestBed.inject(AppConfig), 'getValue').mockImplementation(() => {
-            throw new Error('Unable to evaluate folder request.');
-        });
-        const next = vi.fn();
-        const error = vi.fn();
-
-        expect(() => api.createFolder('/stores/store/Page Builder', 'new folder').subscribe({ next, error })).not.toThrow();
-
-        expect(error).toHaveBeenCalledWith(expect.objectContaining({ message: 'Unable to evaluate folder request.' }));
-        expect(next).not.toHaveBeenCalled();
-        http.expectNone('/api/assets/folder');
-    });
-
-    it('keeps the real picker state retryable after invalid request configuration', () => {
-        const root = '/stores/store/Page Builder';
-        const config = TestBed.inject(AppConfig);
-        config.initConfigWith({ assetLibraryCreateFolderRequest: { url: 42, method: 'POST' } });
-        const state = TestBed.inject(AssetPickerStateService);
-        http.expectOne(request => request.url.startsWith('/api/assets?')).flush({ results: [] });
-        state.openFolderForm();
-        state.onFolderNameChange('new folder');
-
-        state.createFolder();
-
-        expect(state.creatingFolder()).toBe(false);
-        expect(state.folderFormOpen()).toBe(true);
-        expect(state.currentFolderUrl()).toBe(root);
-        expect(state.folderNameError()).toBe('Folder creation requires a configured POST request.');
-        expect(state.canCreateFolder()).toBe(true);
-        http.expectNone('/api/assets/folder');
-
-        config.initConfigWith(settings);
-        state.createFolder();
-        http.expectOne('/api/assets/folder').flush(null, { status: 204, statusText: 'No Content' });
-        http.expectOne(request => request.url.startsWith('/api/assets?')).flush({ results: [] });
-        expect(state.currentFolderUrl()).toBe(`${root}/new folder`);
-        expect(state.folderNameError()).toBeNull();
-    });
-
     it('honours a custom POST URL while preserving the request body', () => {
         TestBed.inject(AppConfig).initConfigWith({ assetLibraryCreateFolderRequest: {
             ...settings.assetLibraryCreateFolderRequest, url: '/custom/assets/folder',
@@ -128,5 +83,54 @@ describe('Asset library folder API', () => {
         expect(request.request.body).toEqual({ name: 'new-folder', parentUrl: '/stores/store/Page Builder/nested' });
         request.flush(null, { status: 204, statusText: 'No Content' });
         expect(next).toHaveBeenCalledExactlyOnceWith(undefined);
+    });
+
+    it.each([
+        '/stores/store/Page Builder/{{draft}}',
+        "/stores/store/Page Builder/{{='draft'}}",
+    ])('preserves a literal folder path in the request body: %s', parentUrl => {
+        api.createFolder(parentUrl, 'child').subscribe();
+        const request = http.expectOne('/api/assets/folder');
+        expect(request.request.body).toEqual({ parentUrl, name: 'child' });
+        request.flush(null, { status: 204, statusText: 'No Content' });
+    });
+
+    it('preserves literal reference URLs without a second evaluation', () => {
+        const assetUrls = ["/assets/{{='draft'}}/image.jpg", '/assets/{{draft}}/image.jpg'];
+        api.searchReferences('store', assetUrls).subscribe();
+        const request = http.expectOne(settings.assetLibraryReferencesRequest.url);
+        expect(request.request.body).toEqual({ storeId: 'store', assetUrls, includePages: true });
+        request.flush({ results: [], totalCount: 0 });
+    });
+
+    it('still encodes folder search paths and builds upload form data', () => {
+        const folderUrl = '/stores/store/Page Builder/{{draft}}';
+        api.search(folderUrl, 'a & b').subscribe();
+        http.expectOne(`/api/assets?folderUrl=${encodeURIComponent(folderUrl)}&keyword=a%20%26%20b`).flush({ results: [] });
+        const file = new File(['image'], 'image.jpg', { type: 'image/jpeg' });
+        api.upload(folderUrl, file).subscribe();
+        const request = http.expectOne(`/api/assets?folderUrl=${encodeURIComponent(folderUrl)}`);
+        expect(request.request.method).toBe('POST');
+        expect(request.request.body.get('file')).toBe(file);
+        request.flush([]);
+    });
+
+    it.each([false, undefined, null, 'true'])('hides mutations without an explicit permission: %s', canCreateAssets => {
+        TestBed.inject(AppConfig).initConfigWith({ canCreateAssets });
+        expect(api.canCreateFolder()).toBe(false);
+        expect(api.canUpload()).toBe(false);
+    });
+
+    it('requires both permission and configured requests and responds to config reload', () => {
+        const config = TestBed.inject(AppConfig);
+        config.initConfigWith({ canCreateAssets: true });
+        expect(api.canCreateFolder()).toBe(true);
+        expect(api.canUpload()).toBe(true);
+        config.initConfigWith({ assetLibraryCreateFolderRequest: null, assetLibraryUploadRequest: null });
+        expect(api.canCreateFolder()).toBe(false);
+        expect(api.canUpload()).toBe(false);
+        config.initConfigWith({ ...settings, canCreateAssets: true });
+        expect(api.canCreateFolder()).toBe(true);
+        expect(api.canUpload()).toBe(true);
     });
 });

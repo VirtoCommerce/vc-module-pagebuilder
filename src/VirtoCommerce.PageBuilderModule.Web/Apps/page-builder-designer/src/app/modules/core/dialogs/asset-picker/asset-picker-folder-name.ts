@@ -1,6 +1,6 @@
 import type { AssetLibraryLabels } from '@core/services';
 
-// Keep the rule order and accepted names aligned with Admin's CreateFolderPopup.
+// Keep the rule order and accepted names aligned with vc-module-assets' BlobFolderValidator.
 export function getFolderNameError(name: string): keyof AssetLibraryLabels['folderNameErrors'] | null {
     const value = name.trim();
     if (!value) return null;

@@ -234,6 +234,16 @@
             "isArray": false
         }
     },
+    "canCreateAssets": {
+        "init": true,
+        "url": "/api/platform/security/currentuser",
+        "method": "GET",
+        "cacheable": true,
+        "response": {
+            "selector": "this.response.isAdministrator === true || (this.response.permissions || []).indexOf('platform:asset:create') !== -1",
+            "isArray": false
+        }
+    },
     "canCreateSharedComponents": {
         "init": true,
         "url": "/api/platform/security/currentuser",

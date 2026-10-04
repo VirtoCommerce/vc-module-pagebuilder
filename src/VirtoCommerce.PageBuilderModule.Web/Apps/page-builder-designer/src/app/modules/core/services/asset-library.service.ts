@@ -33,6 +33,7 @@ const fallbackLabels: AssetLibraryLabels = {
     uploading: 'Uploading...',
     newFolder: 'New folder',
     createFolder: 'Create',
+    cancelFolder: 'Cancel folder',
     folderName: 'Folder name',
     folderNamePlaceholder: 'Enter folder name',
     folderCreateError: 'Unable to create folder.',
@@ -91,6 +92,14 @@ export class AssetLibraryService {
 
     createFolder(parentUrl: string, name: string): Observable<void> {
         return this.api.createFolder(parentUrl, name);
+    }
+
+    canCreateFolder(): boolean {
+        return this.api.canCreateFolder();
+    }
+
+    canUpload(): boolean {
+        return this.api.canUpload();
     }
 
     upload(folderUrl: string, file: File): Observable<AssetLibraryEntry | null> {

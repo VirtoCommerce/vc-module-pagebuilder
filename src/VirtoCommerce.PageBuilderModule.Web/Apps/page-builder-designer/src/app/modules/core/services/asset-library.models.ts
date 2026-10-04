@@ -54,6 +54,7 @@ export interface AssetLibraryLabels {
     uploading: string;
     newFolder: string;
     createFolder: string;
+    cancelFolder: string;
     folderName: string;
     folderNamePlaceholder: string;
     folderCreateError: string;

@@ -23,6 +23,8 @@
       [uploading]="state.uploading()"
       [loading]="state.loading()"
       [creatingFolder]="state.creatingFolder()"
+      [canCreateFolder]="state.folderCreationAvailable()"
+      [canUpload]="state.uploadAvailable()"
       [multiple]="state.multiple"
       [acceptAttribute]="state.acceptAttribute()"
       [searchValue]="state.searchValue()"
@@ -32,21 +34,19 @@
       (newFolder)="state.openFolderForm()" />
 
     @if (state.folderFormOpen()) {
-      <form class="folder-form" (submit)="$event.preventDefault(); state.createFolder()">
+      <form class="folder-form" (submit)="$event.preventDefault(); state.createFolder()" (keydown.escape)="closeFolderForm($event)">
         <label for="asset-picker-folder-name">{{ state.labels.folderName }}</label>
-        <input id="asset-picker-folder-name" type="text" autocomplete="off"
+        <input #folderInput id="asset-picker-folder-name" type="text" autocomplete="off"
           [placeholder]="state.labels.folderNamePlaceholder"
-          [value]="state.folderName()"
-          [disabled]="state.creatingFolder()"
+          [formField]="state.folderForm.name"
           [attr.aria-invalid]="!!state.folderNameError()"
-          [attr.aria-describedby]="state.folderNameError() ? 'asset-picker-folder-error' : null"
-          (input)="state.onFolderNameChange($any($event.target).value)" />
+          [attr.aria-describedby]="state.folderNameError() ? 'asset-picker-folder-error' : null" />
         @if (state.folderNameError()) {
-          <div id="asset-picker-folder-error" class="message--error" role="alert">{{ state.folderNameError() }}</div>
+          <div id="asset-picker-folder-error" class="folder-form-error" role="alert">{{ state.folderNameError() }}</div>
         }
         <div class="folder-form-actions">
-          <button class="upload" type="button" [disabled]="state.creatingFolder()" (click)="state.folderFormOpen.set(false)">{{ state.labels.cancel }}</button>
-          <button class="upload" type="submit" [disabled]="!state.canCreateFolder()">{{ state.labels.createFolder }}</button>
+          <app-icon-button skin="outline" [text]="state.labels.cancelFolder" [disabled]="state.creatingFolder()" (click)="closeFolderForm()" />
+          <app-icon-button skin="primary" [text]="state.labels.createFolder" [disabled]="!state.canCreateFolder()" (click)="state.createFolder()" />
         </div>
       </form>
     }

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, input, output, viewChild } from '@angular/core';
 
 import { IconComponent } from '@core/components/icon/icon.component';
 import { AssetLibraryLabels } from '@core/services';
@@ -14,6 +14,9 @@ export class AssetPickerToolbarComponent {
     readonly uploading = input(false);
     readonly loading = input(false);
     readonly creatingFolder = input(false);
+    readonly canCreateFolder = input(false);
+    readonly canUpload = input(false);
+    private readonly newFolderButton = viewChild<ElementRef<HTMLButtonElement>>('newFolderButton');
     readonly multiple = input(false);
     readonly acceptAttribute = input<string | null>(null);
     readonly searchValue = input('');
@@ -21,6 +24,10 @@ export class AssetPickerToolbarComponent {
     readonly searchValueChange = output<string>();
     readonly upload = output<File[]>();
     readonly newFolder = output<void>();
+
+    focusNewFolder() {
+        this.newFolderButton()?.nativeElement.focus();
+    }
 
     onUpload(event: Event) {
         const inputElement = event.target as HTMLInputElement;

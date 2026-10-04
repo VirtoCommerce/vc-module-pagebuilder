@@ -1,4 +1,7 @@
-import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
+import { DestroyRef, Injectable, computed, inject, linkedSignal, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
+import { form, readonly, submit, validate } from '@angular/forms/signals';
+import { firstValueFrom, map } from 'rxjs';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
@@ -47,18 +50,24 @@ export class AssetPickerStateService {
     readonly folderDropTarget = signal<string | null>(null);
     readonly error = signal<string | null>(null);
     readonly folderFormOpen = signal(false);
-    readonly folderName = signal('');
-    readonly creatingFolder = signal(false);
-    readonly folderCreateError = signal<string | null>(null);
-    private readonly folderNameRule = computed(() => getFolderNameError(this.folderName()));
-    readonly folderNameError = computed(() => {
-        const rule = this.folderNameRule();
-        return this.folderCreateError() || (rule
-            ? this.labels.folderNameErrors[rule].replace('{count}', this.folderName().trim().length.toString())
-            : null);
+    readonly folderModel = signal({ name: '' });
+    readonly folderForm = form(this.folderModel, path => {
+        validate(path.name, ({ value }) => {
+            const name = value().trim();
+            const rule = getFolderNameError(name);
+            if (!name) return { kind: 'required' };
+            return rule ? { kind: rule, message: this.labels.folderNameErrors[rule].replace('{count}', name.length.toString()) } : undefined;
+        });
+        readonly(path.name, () => this.creatingFolder());
     });
-    readonly canCreateFolder = computed(() => !!this.folderName().trim()
-        && !this.folderNameRule() && !this.creatingFolder() && !this.uploading());
+    readonly folderName = this.folderForm.name().value;
+    readonly creatingFolder = computed(() => this.folderForm().submitting());
+    readonly folderCreateError = linkedSignal<string, string | null>({ source: this.folderName, computation: () => null });
+    readonly folderNameError = computed(() => this.folderCreateError() || this.folderForm.name().errors()[0]?.message || null);
+    readonly folderCreationAvailable = computed(() => this.assets.canCreateFolder());
+    readonly uploadAvailable = computed(() => this.assets.canUpload());
+    readonly canCreateFolder = computed(() => this.folderCreationAvailable()
+        && this.folderForm().valid() && !this.creatingFolder() && !this.uploading());
     readonly acceptAttribute = computed(() => this.acceptedTypes.length ? this.acceptedTypes.join(',') : null);
     readonly breadcrumbs = computed(() => this.buildBreadcrumbs());
     readonly visibleEntries = computed(() => this.entries()
@@ -179,17 +188,12 @@ export class AssetPickerStateService {
     }
 
     openFolderForm() {
-        if (this.folderFormOpen() || this.creatingFolder() || this.uploading() || this.loading()) {
+        if (!this.folderCreationAvailable() || this.folderFormOpen() || this.creatingFolder() || this.uploading() || this.loading()) {
             return;
         }
-        this.folderName.set('');
+        this.folderForm().reset({ name: '' });
         this.folderCreateError.set(null);
         this.folderFormOpen.set(true);
-    }
-
-    onFolderNameChange(value: string) {
-        this.folderName.set(value);
-        this.folderCreateError.set(null);
     }
 
     createFolder() {
@@ -197,15 +201,17 @@ export class AssetPickerStateService {
             return;
         }
 
-        const name = this.folderName().trim();
-        const parentUrl = this.currentFolderUrl().replace(/\/$/, '');
         this.folderCreateError.set(null);
-        this.creatingFolder.set(true);
-        this.assets.createFolder(parentUrl, name).pipe(
-            takeUntilDestroyed(this.destroyRef)
-        ).subscribe({
-            next: () => {
-                this.creatingFolder.set(false);
+        return submit(this.folderForm, async () => {
+            const name = this.folderName().trim();
+            const parentUrl = this.currentFolderUrl().replace(/\/$/, '');
+            try {
+                const created = await firstValueFrom(this.assets.createFolder(parentUrl, name).pipe(
+                    map(() => true),
+                    takeUntilDestroyed(this.destroyRef)
+                ), { defaultValue: false });
+                if (!created || this.destroyRef.destroyed) return;
+
                 this.folderFormOpen.set(false);
                 this.searchValue.set('');
                 if (this.searchTimeout) {
@@ -213,10 +219,10 @@ export class AssetPickerStateService {
                     this.searchTimeout = null;
                 }
                 this.navigateTo({ type: 'folder', name, relativeUrl: `${parentUrl}/${name}` });
-            },
-            error: error => {
-                this.creatingFolder.set(false);
-                this.folderCreateError.set(error?.error?.message || error?.message || this.labels.folderCreateError);
+            } catch (error) {
+                if (!this.destroyRef.destroyed) {
+                    this.folderCreateError.set(this.getErrorMessage(error, this.labels.folderCreateError));
+                }
             }
         });
     }
@@ -233,7 +239,7 @@ export class AssetPickerStateService {
             return;
         }
 
-        if (!uploadFiles.length || this.uploading() || this.creatingFolder()) {
+        if (!this.uploadAvailable() || !uploadFiles.length || this.uploading() || this.creatingFolder()) {
             return;
         }
 
@@ -260,7 +266,7 @@ export class AssetPickerStateService {
             },
             error: error => {
                 this.uploading.set(false);
-                this.error.set(error?.message || this.labels.uploadError);
+                this.error.set(this.getErrorMessage(error, this.labels.uploadError));
             }
         });
     }
@@ -318,11 +324,16 @@ export class AssetPickerStateService {
                 if (requestId !== this.requestId) {
                     return;
                 }
-                this.error.set(error?.message || this.labels.loadError);
+                this.error.set(this.getErrorMessage(error, this.labels.loadError));
                 this.entries.set([]);
                 this.loading.set(false);
             }
         });
+    }
+
+    private getErrorMessage(error: unknown, fallback: string): string {
+        const message = error instanceof HttpErrorResponse ? error.error?.message : (error as Error)?.message;
+        return typeof message === 'string' && message.trim() ? message : fallback;
     }
 
     private matchesAcceptFile(file: File): boolean {

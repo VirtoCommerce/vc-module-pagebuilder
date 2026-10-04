@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { afterRenderEffect, ChangeDetectionStrategy, Component, ElementRef, inject, viewChild } from '@angular/core';
 import { NgClass } from '@angular/common';
+import { FormField } from '@angular/forms/signals';
 import { MatDialogActions, MatDialogContent, MatDialogRef } from '@angular/material/dialog';
 
 import { IconComponent } from '@core/components/icon/icon.component';
@@ -25,6 +26,7 @@ export type {
     providers: [AssetPickerStateService],
     imports: [
         NgClass,
+        FormField,
         MatDialogContent,
         MatDialogActions,
         IconComponent,
@@ -38,6 +40,30 @@ export class AssetPickerComponent {
 
     private readonly dialogRef = inject(MatDialogRef<AssetPickerComponent, AssetPickerDialogResult | null>);
     readonly state = inject(AssetPickerStateService);
+    private readonly folderInput = viewChild<ElementRef<HTMLInputElement>>('folderInput');
+    private readonly toolbar = viewChild(AssetPickerToolbarComponent);
+    private restoreFolderFocus = false;
+
+    constructor() {
+        afterRenderEffect(() => {
+            const input = this.folderInput();
+            if (input) {
+                input.nativeElement.focus();
+                this.restoreFolderFocus = true;
+            } else if (this.restoreFolderFocus && !this.state.creatingFolder() && !this.state.loading() && !this.state.uploading()) {
+                this.toolbar()?.focusNewFolder();
+                this.restoreFolderFocus = false;
+            }
+        });
+    }
+
+    closeFolderForm(event?: Event) {
+        event?.preventDefault();
+        event?.stopPropagation();
+        if (!this.state.creatingFolder()) {
+            this.state.folderFormOpen.set(false);
+        }
+    }
 
     confirm() {
         if (this.state.creatingFolder() || this.state.uploading()) {

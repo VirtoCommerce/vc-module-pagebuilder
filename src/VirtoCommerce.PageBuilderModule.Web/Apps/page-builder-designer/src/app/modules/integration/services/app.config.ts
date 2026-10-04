@@ -154,5 +154,6 @@ export type OptionName = 'templatesListUrl'
   | 'ozAgentUrl'
   | 'canInsertSharedComponents'
   | 'canCreateSharedComponents'
+  | 'canCreateAssets'
   | 'canEditSharedComponents'
   ;

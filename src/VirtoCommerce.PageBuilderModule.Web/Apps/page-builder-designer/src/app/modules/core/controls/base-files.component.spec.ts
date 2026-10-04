@@ -7,6 +7,7 @@ import { ClipboardService } from '@core/services/clipboard.service';
 import { ModalService } from '@core/services/modal.service';
 import { AssetLibraryUploadCoordinatorService } from '@core/services/asset-library-upload-coordinator.service';
 import { AssetPickerComponent, AssetPickerDialogResult } from '@core/dialogs/asset-picker/asset-picker.component';
+import { createAssetLibraryMock } from '@app/testing/asset-library';
 import { FilesDescriptor } from '@models/controls';
 import { FilesComponent } from './files/files.component';
 import { ImagesComponent } from './images/images.component';
@@ -14,7 +15,7 @@ import { ImagesComponent } from './images/images.component';
 describe.each([
     { name: 'Images', component: ImagesComponent, type: 'images', extension: 'jpg', accept: ['image/*'] },
     { name: 'Files', component: FilesComponent, type: 'files', extension: 'pdf', accept: [] },
-])('$name Asset Library contract', ({ component: componentType, type, extension, accept }) => {
+])('$nameComponent', ({ component: componentType, type, extension, accept }) => {
     const urls = [`/assets/stores/store/Page Builder/one.${extension}`, `/assets/stores/store/Page Builder/two.${extension}`];
     const results = urls.map(url => ({
         entry: { type: 'blob' as const, name: url.slice(url.lastIndexOf('/') + 1), url },
@@ -31,10 +32,7 @@ describe.each([
                 { provide: ModalService, useValue: modals },
                 { provide: AssetsService, useValue: { getPreviewUrl: () => null, isInlineUpload: () => false } },
                 { provide: ClipboardService, useValue: {} },
-                { provide: AssetLibraryService, useValue: {
-                    getLabels: () => AssetLibraryService.prototype.getLabels(),
-                    getRootFolderUrl: () => '/stores/store/Page Builder',
-                } },
+                { provide: AssetLibraryService, useValue: createAssetLibraryMock() },
                 { provide: AssetLibraryUploadCoordinatorService, useValue: uploads },
             ],
         });

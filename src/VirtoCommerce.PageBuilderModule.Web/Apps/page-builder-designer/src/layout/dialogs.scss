@@ -118,6 +118,19 @@
         }
     }
 
+    .toolbar input,
+    .folder-form input {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid $border;
+        border-radius: 0.25rem;
+        outline: 0;
+        color: $text;
+
+        &:focus {
+            border-color: $primary;
+        }
+    }
+
     .close,
     .upload {
         border: 1px solid $border;
@@ -225,15 +238,6 @@
         input {
             flex: 1 1 15rem;
             min-width: 15rem;
-            padding: 0.5rem 0.75rem;
-            border: 1px solid $border;
-            border-radius: 0.25rem;
-            outline: 0;
-            color: $text;
-
-            &:focus {
-                border-color: $primary;
-            }
         }
     }
 
@@ -259,9 +263,11 @@
 
         input {
             min-width: 0;
-            padding: 0.5rem 0.75rem;
-            border: 1px solid $border;
-            border-radius: 0.25rem;
+        }
+
+        .folder-form-error {
+            color: #b91c1c;
+            font-size: 0.875rem;
         }
 
         .folder-form-actions {

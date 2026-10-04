@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { defer, map, Observable, throwError } from 'rxjs';
+import { map, Observable, throwError } from 'rxjs';
 
 import { AppConfig, BuilderHttpClient } from '@integration/services';
 
@@ -27,10 +27,32 @@ export class AssetLibraryApiService {
     }
 
     createFolder(parentUrl: string, name: string): Observable<void> {
-        // Request preparation failures must reach the picker's error handler too.
-        return defer(() => this.doConfiguredRequest<void>('assetLibraryCreateFolderRequest', { parentUrl, name })).pipe(
+        const context = { parentUrl, name };
+        const request = this.http.generateRequest(this.appConfig.getContext().config.assetLibraryCreateFolderRequest, null, context);
+        // A fallback chain can repeat the POST after an empty 204 response.
+        if (!request || typeof request === 'string' || Array.isArray(request)
+            || typeof request.url !== 'string' || !request.url.trim()
+            || typeof request.method !== 'string' || request.method.toUpperCase() !== 'POST') {
+            return throwError(() => new Error('Folder creation requires a configured POST request.'));
+        }
+        return this.http.doRequest<void>(request, { nullWhenError: false }, context).pipe(
             map(() => undefined)
         );
+    }
+
+    canCreateFolder(): boolean {
+        this.appConfig.version();
+        const request = this.appConfig.getContext().config.assetLibraryCreateFolderRequest;
+        return this.appConfig.getValue('canCreateAssets') === true
+            && !!request && !Array.isArray(request)
+            && typeof request.url === 'string' && !!request.url.trim()
+            && typeof request.method === 'string' && request.method.toUpperCase() === 'POST';
+    }
+
+    canUpload(): boolean {
+        this.appConfig.version();
+        return this.appConfig.getValue('canCreateAssets') === true
+            && !!this.appConfig.getContext().config.assetLibraryUploadRequest;
     }
 
     searchReferences(storeId: string, assetUrls: string[]): Observable<AssetLibraryReferencesSearchResult> {
@@ -39,17 +61,9 @@ export class AssetLibraryApiService {
         );
     }
 
-    private doConfiguredRequest<T>(property: 'assetLibrarySearchRequest' | 'assetLibraryUploadRequest' | 'assetLibraryReferencesRequest' | 'assetLibraryCreateFolderRequest', context: any, data: any = null): Observable<T | null> {
-        const request = this.appConfig.getValue(property, context);
+    private doConfiguredRequest<T>(property: 'assetLibrarySearchRequest' | 'assetLibraryUploadRequest' | 'assetLibraryReferencesRequest', context: any, data: any = null): Observable<T | null> {
+        const request = this.appConfig.getContext().config[property];
         const serverRequest = this.http.generateRequest(request, data, context);
-        // A missing request emits null in BuilderHttpClient, indistinguishable from HTTP 204.
-        // Require one POST so a no-op or a fallback GET cannot masquerade as folder creation.
-        if (property === 'assetLibraryCreateFolderRequest'
-            && (!serverRequest || typeof serverRequest === 'string' || Array.isArray(serverRequest)
-                || typeof serverRequest.url !== 'string' || !serverRequest.url.trim()
-                || typeof serverRequest.method !== 'string' || serverRequest.method.toUpperCase() !== 'POST')) {
-            return throwError(() => new Error('Folder creation requires a configured POST request.'));
-        }
         return this.http.doRequest<T>(serverRequest, { nullWhenError: false }, context);
     }
 
