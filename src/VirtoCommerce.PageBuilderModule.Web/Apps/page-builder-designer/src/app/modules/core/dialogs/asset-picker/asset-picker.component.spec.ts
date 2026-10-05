@@ -205,6 +205,27 @@ describe('AssetPickerComponent', () => {
         expect(document.activeElement).toBe(fixture.nativeElement.querySelector('.toolbar button:last-of-type'));
     });
 
+    it.each([false, true])('restores delayed folder focus only when focus is still lost (search focused: %s)', async focusSearch => {
+        const { fixture, state, uploaded } = setup();
+        state.openFolderForm();
+        await fixture.whenStable();
+        state.uploadFiles([new File(['image'], 'new.jpg', { type: 'image/jpeg' })]);
+        await fixture.whenStable();
+        fixture.componentInstance.closeFolderForm();
+        await fixture.whenStable();
+        const newFolder = fixture.nativeElement.querySelector('.toolbar button:last-of-type') as HTMLButtonElement;
+        expect(document.activeElement).toBe(document.body);
+        expect(newFolder.disabled).toBe(true);
+        const search = fixture.nativeElement.querySelector('.toolbar input[type="text"]') as HTMLInputElement;
+        if (focusSearch) search.focus();
+
+        uploaded.next([]);
+        await fixture.whenStable();
+
+        expect(newFolder.disabled).toBe(false);
+        expect(document.activeElement).toBe(focusSearch ? search : newFolder);
+    });
+
     it('hides unavailable mutation actions and blocks their state entry points', async () => {
         const createFolder = vi.fn();
         const { fixture, state } = setup(true, { canCreateFolder: () => false, canUpload: () => false, createFolder });

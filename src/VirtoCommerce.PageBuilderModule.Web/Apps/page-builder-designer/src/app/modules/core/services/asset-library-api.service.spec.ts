@@ -1,11 +1,14 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { CookieService } from 'ngx-cookie-service';
 
 import { AppConfig, EnvironmentRef, EvaluatorService } from '@integration/services';
 import settings from '../../../../data/settings.json';
 import { AssetLibraryApiService } from './asset-library-api.service';
+import { AssetLibraryUploadCoordinatorService } from './asset-library-upload-coordinator.service';
+import { AssetPickerStateService } from '../dialogs/asset-picker/asset-picker-state.service';
 
 describe('AssetLibraryApiService', () => {
     let api: AssetLibraryApiService;
@@ -17,6 +20,9 @@ describe('AssetLibraryApiService', () => {
             { provide: EnvironmentRef, useValue: { nativeWindow: { location: { search: '' } } } },
             { provide: CookieService, useValue: {} },
             EvaluatorService, AppConfig,
+            AssetPickerStateService,
+            { provide: MAT_DIALOG_DATA, useValue: { rootFolderUrl: '/stores/store/Page Builder' } },
+            { provide: AssetLibraryUploadCoordinatorService, useValue: {} },
         ] });
         TestBed.inject(AppConfig).initConfigWith(settings);
         api = TestBed.inject(AssetLibraryApiService);
@@ -115,22 +121,35 @@ describe('AssetLibraryApiService', () => {
         request.flush([]);
     });
 
-    it.each([false, undefined, null, 'true'])('hides mutations without an explicit permission: %s', canCreateAssets => {
+    it.each([false, undefined, null, 'true'])('requires explicit permission for the new folder action: %s', canCreateAssets => {
         TestBed.inject(AppConfig).initConfigWith({ canCreateAssets });
         expect(api.canCreateFolder()).toBe(false);
+        expect(api.canUpload()).toBe(canCreateAssets !== false);
+    });
+
+    it('preserves uploads for a legacy config without the new permission flag', () => {
+        const config = TestBed.inject(AppConfig);
+        config.initConfigWith({ canCreateAssets: undefined });
+        expect(api.canUpload()).toBe(true);
+        config.initConfigWith({ assetLibraryUploadRequest: null });
         expect(api.canUpload()).toBe(false);
     });
 
-    it('requires both permission and configured requests and responds to config reload', () => {
+    it('refreshes cached picker capabilities after permissions and descriptors reload', () => {
         const config = TestBed.inject(AppConfig);
+        const state = TestBed.inject(AssetPickerStateService);
+        http.expectOne('/api/assets?folderUrl=%2Fstores%2Fstore%2FPage%20Builder').flush({ results: [] });
+        config.initConfigWith({ canCreateAssets: false });
+        expect(state.folderCreationAvailable()).toBe(false);
+        expect(state.uploadAvailable()).toBe(false);
         config.initConfigWith({ canCreateAssets: true });
-        expect(api.canCreateFolder()).toBe(true);
-        expect(api.canUpload()).toBe(true);
+        expect(state.folderCreationAvailable()).toBe(true);
+        expect(state.uploadAvailable()).toBe(true);
         config.initConfigWith({ assetLibraryCreateFolderRequest: null, assetLibraryUploadRequest: null });
-        expect(api.canCreateFolder()).toBe(false);
-        expect(api.canUpload()).toBe(false);
+        expect(state.folderCreationAvailable()).toBe(false);
+        expect(state.uploadAvailable()).toBe(false);
         config.initConfigWith({ ...settings, canCreateAssets: true });
-        expect(api.canCreateFolder()).toBe(true);
-        expect(api.canUpload()).toBe(true);
+        expect(state.folderCreationAvailable()).toBe(true);
+        expect(state.uploadAvailable()).toBe(true);
     });
 });

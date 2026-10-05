@@ -99,21 +99,16 @@ export class AssetPickerStateService {
     }
 
     onDragEnter(event: DragEvent) {
-        if (!this.hasDraggedFiles(event)) {
+        if (!this.acceptFileDrag(event)) {
             return;
         }
 
-        this.preventDragDefaults(event);
         this.dragDepth += 1;
         this.dragging.set(true);
     }
 
     onDragOver(event: DragEvent) {
-        if (!this.hasDraggedFiles(event)) {
-            return;
-        }
-
-        this.preventDragDefaults(event);
+        this.acceptFileDrag(event);
     }
 
     onDragLeave(event: DragEvent) {
@@ -136,11 +131,10 @@ export class AssetPickerStateService {
     }
 
     onFolderDragOver(event: DragEvent, folder: AssetLibraryEntry) {
-        if (!this.hasDraggedFiles(event)) {
+        if (!this.acceptFileDrag(event)) {
             return;
         }
 
-        this.preventDragDefaults(event);
         this.folderDropTarget.set(getAssetPickerEntryKey(folder));
     }
 
@@ -348,11 +342,23 @@ export class AssetPickerStateService {
         return Array.from(event.dataTransfer?.types ?? []).includes('Files');
     }
 
+    private acceptFileDrag(event: DragEvent): boolean {
+        if (!this.hasDraggedFiles(event)) {
+            return false;
+        }
+        this.preventDragDefaults(event);
+        if (!this.uploadAvailable()) {
+            this.resetDragState();
+            return false;
+        }
+        return true;
+    }
+
     private preventDragDefaults(event: DragEvent) {
         event.preventDefault();
         event.stopPropagation();
         if (event.dataTransfer) {
-            event.dataTransfer.dropEffect = 'copy';
+            event.dataTransfer.dropEffect = this.uploadAvailable() ? 'copy' : 'none';
         }
     }
 

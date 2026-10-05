@@ -2,6 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { map, Observable, throwError } from 'rxjs';
 
 import { AppConfig, BuilderHttpClient } from '@integration/services';
+import { ServerRequestDescriptor } from '@models/http';
 
 import { AssetLibraryEntry, AssetLibraryReferencesSearchResult, AssetLibrarySearchResult } from './asset-library.models';
 
@@ -30,9 +31,7 @@ export class AssetLibraryApiService {
         const context = { parentUrl, name };
         const request = this.http.generateRequest(this.appConfig.getContext().config.assetLibraryCreateFolderRequest, null, context);
         // A fallback chain can repeat the POST after an empty 204 response.
-        if (!request || typeof request === 'string' || Array.isArray(request)
-            || typeof request.url !== 'string' || !request.url.trim()
-            || typeof request.method !== 'string' || request.method.toUpperCase() !== 'POST') {
+        if (!this.isFolderRequest(request)) {
             return throwError(() => new Error('Folder creation requires a configured POST request.'));
         }
         return this.http.doRequest<void>(request, { nullWhenError: false }, context).pipe(
@@ -44,15 +43,20 @@ export class AssetLibraryApiService {
         this.appConfig.version();
         const request = this.appConfig.getContext().config.assetLibraryCreateFolderRequest;
         return this.appConfig.getValue('canCreateAssets') === true
-            && !!request && !Array.isArray(request)
-            && typeof request.url === 'string' && !!request.url.trim()
-            && typeof request.method === 'string' && request.method.toUpperCase() === 'POST';
+            && this.isFolderRequest(request);
     }
 
     canUpload(): boolean {
         this.appConfig.version();
-        return this.appConfig.getValue('canCreateAssets') === true
+        // Upload predates this flag; legacy custom configurations still rely on server authorization.
+        return this.appConfig.getValue('canCreateAssets') !== false
             && !!this.appConfig.getContext().config.assetLibraryUploadRequest;
+    }
+
+    private isFolderRequest(request: unknown): request is ServerRequestDescriptor {
+        return !!request && typeof request === 'object' && !Array.isArray(request)
+            && 'url' in request && typeof request.url === 'string' && !!request.url.trim()
+            && 'method' in request && typeof request.method === 'string' && request.method.toUpperCase() === 'POST';
     }
 
     searchReferences(storeId: string, assetUrls: string[]): Observable<AssetLibraryReferencesSearchResult> {

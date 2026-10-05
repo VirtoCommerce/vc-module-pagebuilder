@@ -1,5 +1,5 @@
 import { afterRenderEffect, ChangeDetectionStrategy, Component, ElementRef, inject, viewChild } from '@angular/core';
-import { NgClass } from '@angular/common';
+import { DOCUMENT, NgClass } from '@angular/common';
 import { FormField } from '@angular/forms/signals';
 import { MatDialogActions, MatDialogContent, MatDialogRef } from '@angular/material/dialog';
 
@@ -39,6 +39,7 @@ export type {
 export class AssetPickerComponent {
 
     private readonly dialogRef = inject(MatDialogRef<AssetPickerComponent, AssetPickerDialogResult | null>);
+    private readonly document = inject(DOCUMENT);
     readonly state = inject(AssetPickerStateService);
     private readonly folderInput = viewChild<ElementRef<HTMLInputElement>>('folderInput');
     private readonly toolbar = viewChild(AssetPickerToolbarComponent);
@@ -51,7 +52,9 @@ export class AssetPickerComponent {
                 input.nativeElement.focus();
                 this.restoreFolderFocus = true;
             } else if (this.restoreFolderFocus && !this.state.creatingFolder() && !this.state.loading() && !this.state.uploading()) {
-                this.toolbar()?.focusNewFolder();
+                if (this.document.activeElement === this.document.body) {
+                    this.toolbar()?.focusNewFolder();
+                }
                 this.restoreFolderFocus = false;
             }
         });

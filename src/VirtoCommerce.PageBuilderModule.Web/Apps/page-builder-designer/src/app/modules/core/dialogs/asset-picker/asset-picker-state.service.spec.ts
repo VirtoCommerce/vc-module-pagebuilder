@@ -8,7 +8,7 @@ import { AssetPickerStateService } from './asset-picker-state.service';
 import { createAssetLibraryMock } from '@app/testing/asset-library';
 import { getFolderNameError } from './asset-picker-folder-name';
 
-describe('AssetPickerStateService', async () => {
+describe('AssetPickerStateService', () => {
     const root = '/stores/store/Page Builder';
     const image = { type: 'blob' as const, name: 'image.jpg', relativeUrl: `${root}/image.jpg`, contentType: 'image/jpeg' };
     let created: Subject<void>;
@@ -31,6 +31,53 @@ describe('AssetPickerStateService', async () => {
         ] });
         state = TestBed.inject(AssetPickerStateService);
     }
+
+    function fileDragEvent(type: string) {
+        const event = new MouseEvent(type, { cancelable: true });
+        Object.defineProperty(event, 'dataTransfer', {
+            value: { types: ['Files'], files: [new File(['image'], 'dragged.jpg', { type: 'image/jpeg' })], dropEffect: 'copy' },
+        });
+        return event as DragEvent;
+    }
+
+    it('rejects file drags without advertising picker or folder drop targets when upload is unavailable', () => {
+        setup();
+        assets.canUpload.mockReturnValue(false);
+        const folder = { type: 'folder' as const, name: 'nested', relativeUrl: `${root}/nested` };
+        const enter = fileDragEvent('dragenter');
+        const over = fileDragEvent('dragover');
+        const folderOver = fileDragEvent('dragover');
+        state.onDragEnter(enter);
+        state.onDragOver(over);
+        state.onFolderDragOver(folderOver, folder);
+        for (const event of [enter, over, folderOver]) {
+            expect(event.defaultPrevented).toBe(true);
+            expect(event.dataTransfer?.dropEffect).toBe('none');
+        }
+        expect(state.dragging()).toBe(false);
+        expect(state.folderDropTarget()).toBeNull();
+        const drop = fileDragEvent('drop');
+        state.onDrop(drop);
+        state.onFolderDrop(drop, folder);
+        expect(drop.defaultPrevented).toBe(true);
+        expect(uploads.uploadFiles).not.toHaveBeenCalled();
+    });
+
+    it('keeps permitted file drops targeted at the hovered folder', () => {
+        setup();
+        const folder = { type: 'folder' as const, name: 'nested', relativeUrl: `${root}/nested` };
+        const event = fileDragEvent('dragover');
+        state.onDragEnter(event);
+        state.onFolderDragOver(event, folder);
+        expect(event.defaultPrevented).toBe(true);
+        expect(event.dataTransfer?.dropEffect).toBe('copy');
+        expect(state.dragging()).toBe(true);
+        expect(state.folderDropTarget()).toBe(folder.relativeUrl);
+        state.onFolderDrop(event, folder);
+        expect(uploads.uploadFiles).toHaveBeenCalledExactlyOnceWith(folder.relativeUrl, Array.from(event.dataTransfer!.files), null);
+        expect(state.dragging()).toBe(false);
+        expect(state.folderDropTarget()).toBeNull();
+    });
 
     it('keeps selection, clears search, enters the created folder and uploads there', async () => {
         setup();
@@ -254,7 +301,7 @@ describe('AssetPickerStateService', async () => {
 
 });
 
-describe('getFolderNameError', async () => {
+describe('getFolderNameError', () => {
     it.each(['abc', 'a b', 'a-b', '123', 'a'.repeat(63), '  abc  ', 'a - b'])('accepts %s', name => {
         expect(getFolderNameError(name)).toBeNull();
     });
