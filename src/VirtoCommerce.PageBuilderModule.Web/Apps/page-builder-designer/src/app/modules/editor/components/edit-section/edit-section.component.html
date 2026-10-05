@@ -1,4 +1,5 @@
-<app-overlap-panel [skipTranslate]="isHalfScreen()" [expandable]="!isHalfScreen()">
+<app-overlap-panel [skipTranslate]="isHalfScreen()" [expandable]="!isHalfScreen()"
+  [dismissible]="true" [accessibleLabel]="sectionName() || 'Edit section'" (dismissed)="onBackClick()">
   @let vm = viewModel();
   @let instance = sharedComponentInstance();
   @let original = sharedComponentDocument();
@@ -107,8 +108,9 @@
     }
     <ng-container title-content>
       <div class="title pl-2">
-        <app-icon class="back-icon" (click)="onBackClick()" [hoverable]="true" title="Back">chevron_left
-        </app-icon>
+        <button type="button" aria-label="Back" (click)="onBackClick()">
+          <app-icon aria-hidden="true" class="back-icon" [hoverable]="true">chevron_left</app-icon>
+        </button>
         @if (instance) {
           <div class="edit-section-title flex-row items-center gap-2">
             <div class="whitespace-normal">{{ instance.component?.name || 'Shared Component' }}</div>

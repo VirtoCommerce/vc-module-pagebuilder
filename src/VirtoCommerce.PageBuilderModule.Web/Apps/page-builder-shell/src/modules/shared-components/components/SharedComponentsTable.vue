@@ -1,63 +1,68 @@
 <template>
-  <VcDataTable
-    class="tw-min-h-0 tw-flex-1"
-    :items="components"
-    :loading="loading"
-    :total-count="totalCount"
-    :pagination="pagination"
-    :active-item-id="selectedComponentId"
-    :row-actions="tableActionBuilder"
-    :searchable="true"
-    :search-value="searchValue"
-    :search-placeholder="t('SHARED_COMPONENTS.SEARCH.PLACEHOLDER')"
-    :empty-state="emptyState"
-    :not-found-state="notFoundState"
-    :show-all-columns="true"
-    state-key="page_builder_shared_components"
-    @row-click="$emit('select', $event.data)"
-    @search="$emit('search', $event || undefined)"
-    @pagination-click="$emit('page-change', $event)"
-    @click.stop
+  <div
+    ref="tableRoot"
+    class="tw-flex tw-min-h-0 tw-w-full tw-flex-1 tw-flex-col"
   >
-    <VcColumn
-      id="name"
-      field="name"
-      :title="t('SHARED_COMPONENTS.TABLE.NAME')"
-      :always-visible="true"
-      mobile-role="title"
-    />
+    <VcDataTable
+      class="tw-min-h-0 tw-flex-1"
+      :items="components"
+      :loading="loading"
+      :total-count="totalCount"
+      :pagination="pagination"
+      :active-item-id="selectedComponentId"
+      :row-actions="tableActionBuilder"
+      :searchable="true"
+      :search-value="searchValue"
+      :search-placeholder="t('SHARED_COMPONENTS.SEARCH.PLACEHOLDER')"
+      :empty-state="emptyState"
+      :not-found-state="notFoundState"
+      :show-all-columns="true"
+      state-key="page_builder_shared_components"
+      @row-click="onRowClick"
+      @search="$emit('search', $event || undefined)"
+      @pagination-click="$emit('page-change', $event)"
+      @click.stop
+    >
+      <VcColumn
+        id="name"
+        field="name"
+        :title="t('SHARED_COMPONENTS.TABLE.NAME')"
+        :always-visible="true"
+        mobile-role="title"
+      />
 
-    <VcColumn
-      id="usageCount"
-      field="usageCount"
-      :title="t('SHARED_COMPONENTS.TABLE.USAGE')"
-      width="20%"
-      :always-visible="true"
-      mobile-role="field"
-    />
+      <VcColumn
+        id="usageCount"
+        field="usageCount"
+        :title="t('SHARED_COMPONENTS.TABLE.USAGE')"
+        width="20%"
+        :always-visible="true"
+        mobile-role="field"
+      />
 
-    <VcColumn
-      id="modifiedDate"
-      field="modifiedDate"
-      type="date-ago"
-      :title="t('SHARED_COMPONENTS.TABLE.MODIFIED')"
-      width="25%"
-      :always-visible="true"
-      mobile-role="field"
-    />
+      <VcColumn
+        id="modifiedDate"
+        field="modifiedDate"
+        type="date-ago"
+        :title="t('SHARED_COMPONENTS.TABLE.MODIFIED')"
+        width="25%"
+        :always-visible="true"
+        mobile-role="field"
+      />
 
-    <VcColumn
-      id="modifiedBy"
-      field="modifiedBy"
-      :title="t('SHARED_COMPONENTS.TABLE.MODIFIED_BY')"
-      width="22%"
-      mobile-role="field"
-    />
-  </VcDataTable>
+      <VcColumn
+        id="modifiedBy"
+        field="modifiedBy"
+        :title="t('SHARED_COMPONENTS.TABLE.MODIFIED_BY')"
+        width="22%"
+        mobile-role="field"
+      />
+    </VcDataTable>
+  </div>
 </template>
 
 <script lang="ts" setup>
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import type { TableAction, UseDataTablePaginationReturn } from "@vc-shell/framework";
 import { VcColumn, VcDataTable } from "@vc-shell/framework/ui";
@@ -75,7 +80,7 @@ interface Props {
 }
 
 interface Emits {
-  (event: "select", component: SharedComponent): void;
+  (event: "select", component: SharedComponent, opener: HTMLElement | null, index: number): void;
   (event: "search", keyword?: string): void;
   (event: "page-change", page: number): void;
   (event: "rename", component: SharedComponent): void;
@@ -85,6 +90,40 @@ interface Emits {
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 const { t } = useI18n({ useScope: "global" });
+const tableRoot = ref<HTMLElement | null>(null);
+const rowSelector = '[role="row"][tabindex]';
+
+function getRowFocusTarget(index: number | null, opener: HTMLElement | null): HTMLElement | null {
+  const root = tableRoot.value;
+  if (!root) {
+    return null;
+  }
+  if (opener?.isConnected && root.contains(opener) && opener.matches(rowSelector)) {
+    return opener;
+  }
+  return root.querySelectorAll<HTMLElement>(rowSelector)[index ?? 0] ?? null;
+}
+
+defineExpose({ getRowFocusTarget });
+
+function onRowClick(event: { data: SharedComponent; index: number; originalEvent: Event }) {
+  const target = event.originalEvent.target;
+  const activeElement = document.activeElement;
+  const root = tableRoot.value;
+  let opener = target instanceof Element && root?.contains(target) ? target.closest<HTMLElement>(rowSelector) : null;
+  if (opener && !root?.contains(opener)) {
+    opener = null;
+  }
+  if (
+    !opener &&
+    activeElement instanceof HTMLElement &&
+    root?.contains(activeElement) &&
+    activeElement.matches(rowSelector)
+  ) {
+    opener = activeElement;
+  }
+  emit("select", event.data, opener, event.index);
+}
 
 const emptyState = computed(() => ({
   icon: "lucide-blocks",

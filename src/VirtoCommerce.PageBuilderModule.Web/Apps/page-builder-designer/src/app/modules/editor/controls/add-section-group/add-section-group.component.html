@@ -1,11 +1,11 @@
 <div class="container">
-  <div class="group" (click)="raiseOnOpened()">
+  <button type="button" class="group w-full text-left" [attr.aria-expanded]="opened()" (click)="raiseOnOpened()">
     @if (group().icon) {
-      <app-icon>{{ group().icon }}</app-icon>
+      <app-icon aria-hidden="true">{{ group().icon }}</app-icon>
     }
     <div class="name">{{ group().name }}</div>
-    <app-chevron [opened]="opened()" [vertical]="true" />
-  </div>
+    <app-chevron aria-hidden="true" [opened]="opened()" [vertical]="true" />
+  </button>
   @if (opened()) {
     <ul>
       @for (item of group().items; track item) {

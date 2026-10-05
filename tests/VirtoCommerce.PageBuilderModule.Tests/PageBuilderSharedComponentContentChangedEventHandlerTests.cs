@@ -1,18 +1,16 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using Hangfire;
-using Hangfire.Common;
-using Hangfire.States;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Data.Handlers;
 using VirtoCommerce.Platform.Core.Events;
+using VirtoCommerce.Platform.Core.Jobs;
 using Xunit;
 
 namespace VirtoCommerce.PageBuilderModule.Tests;
@@ -35,9 +33,8 @@ public class PageBuilderSharedComponentContentChangedEventHandlerTests
     [Fact]
     public async Task Handle_EnqueueFailureDoesNotFailCommittedRequest()
     {
-        var handler = new PageBuilderSharedComponentContentChangedEventHandler(
-            new ThrowingBackgroundJobClient(),
-            NullLogger<PageBuilderSharedComponentContentChangedEventHandler>.Instance);
+        UseBackgroundJob(new FakeBackgroundJob(throwOnEnqueue: true));
+        var handler = CreateHandler();
 
         var exception = await Record.ExceptionAsync(() =>
             handler.Handle(new PageBuilderSharedComponentContentChangedEvent(["component"])));
@@ -46,7 +43,22 @@ public class PageBuilderSharedComponentContentChangedEventHandlerTests
     }
 
     [Fact]
-    public async Task PropagationJob_EventFailureEscapesForHangfireRetry()
+    public async Task Handle_EnqueuesPropagationWithThreeRetries()
+    {
+        var backgroundJob = new FakeBackgroundJob();
+        UseBackgroundJob(backgroundJob);
+        var handler = CreateHandler();
+
+        await handler.Handle(new PageBuilderSharedComponentContentChangedEvent(["component"]));
+
+        var (handlerType, payload, options) = Assert.Single(backgroundJob.Enqueued);
+        Assert.Equal(typeof(PageBuilderSharedComponentContentPropagationJob), handlerType);
+        Assert.Equal(["component"], Assert.IsType<PageBuilderSharedComponentContentPropagationJobPayload>(payload).SharedComponentIds);
+        Assert.Equal(3, options?.MaxRetryAttempts);
+    }
+
+    [Fact]
+    public async Task PropagationJob_EventFailureEscapesForRetry()
     {
         var job = new PageBuilderSharedComponentContentPropagationJob(
             new ReferenceIndexService(["page"]),
@@ -54,13 +66,7 @@ public class PageBuilderSharedComponentContentChangedEventHandlerTests
             new ThrowingEventPublisher());
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            job.ProcessAsync(["component"], NoopJobCancellationToken.Instance));
-
-        var retry = typeof(PageBuilderSharedComponentContentPropagationJob)
-            .GetMethod(nameof(PageBuilderSharedComponentContentPropagationJob.ProcessAsync))!
-            .GetCustomAttribute<AutomaticRetryAttribute>();
-        Assert.NotNull(retry);
-        Assert.Equal(3, retry.Attempts);
+            job.ProcessAsync(["component"], TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -98,22 +104,27 @@ public class PageBuilderSharedComponentContentChangedEventHandlerTests
         }
     }
 
-    private sealed class ThrowingBackgroundJobClient : IBackgroundJobClient
+    private static PageBuilderSharedComponentContentChangedEventHandler CreateHandler() =>
+        new(NullLogger<PageBuilderSharedComponentContentChangedEventHandler>.Instance);
+
+    // The handler enqueues through the static BackgroundJob facade, which resolves IBackgroundJob from this provider.
+    private static void UseBackgroundJob(IBackgroundJob backgroundJob) =>
+        BackgroundJob.Initialize(new ServiceCollection().AddScoped(_ => backgroundJob).BuildServiceProvider());
+
+    private sealed class FakeBackgroundJob(bool throwOnEnqueue = false) : IBackgroundJob
     {
-        public string Create(Job job, IState state) =>
-            throw new InvalidOperationException("Simulated Hangfire storage outage.");
+        public List<(Type HandlerType, object Payload, EnqueueOptions Options)> Enqueued { get; } = [];
 
-        public bool ChangeState(string jobId, IState state, string expectedState) => false;
-    }
-
-    private sealed class NoopJobCancellationToken : IJobCancellationToken
-    {
-        public static readonly NoopJobCancellationToken Instance = new();
-
-        public CancellationToken ShutdownToken => CancellationToken.None;
-
-        public void ThrowIfCancellationRequested()
+        public Task<string> Enqueue<THandler>(object payload, EnqueueOptions options = null, CancellationToken cancellationToken = default)
+            where THandler : class
         {
+            if (throwOnEnqueue)
+            {
+                throw new InvalidOperationException("Simulated background job storage outage.");
+            }
+
+            Enqueued.Add((typeof(THandler), payload, options));
+            return Task.FromResult("job-id");
         }
     }
 

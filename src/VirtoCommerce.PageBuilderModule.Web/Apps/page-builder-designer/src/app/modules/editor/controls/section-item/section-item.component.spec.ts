@@ -14,6 +14,37 @@ describe('SectionItemComponent', () => {
     });
   });
 
+  it('opens section actions on right click without opening the editor', async () => {
+    vi.mocked(TestBed.inject(ContextMenuHelper).getSectionsActions).mockResolvedValue([
+      { title: 'Copy', action: 'copy', icon: 'content_copy' },
+    ]);
+    const fixture = TestBed.createComponent(SectionItemComponent);
+    fixture.componentRef.setInput('section', { id: 'section-1', type: 'text' } as SectionModel);
+    fixture.componentRef.setInput('sectionSchema', { name: 'Text' });
+    fixture.componentRef.setInput('hasContextMenu', true);
+    await fixture.whenStable();
+    const edit = vi.fn();
+    fixture.componentInstance.itemClick.subscribe(edit);
+    const event = new MouseEvent('contextmenu', { bubbles: true, cancelable: true, button: 2 });
+    fixture.nativeElement.querySelector('.section-edit-button').dispatchEvent(event);
+    await fixture.whenStable();
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(document.querySelector('.cdk-overlay-container .action-item')?.textContent).toContain('Copy');
+    expect(edit).not.toHaveBeenCalled();
+  });
+
+  it('does not intercept right click when section actions are unavailable', async () => {
+    const fixture = TestBed.createComponent(SectionItemComponent);
+    fixture.componentRef.setInput('section', { id: 'section-1', type: 'text' } as SectionModel);
+    await fixture.whenStable();
+    const event = new MouseEvent('contextmenu', { bubbles: true, cancelable: true, button: 2 });
+    fixture.nativeElement.querySelector('.section-item').dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(false);
+    expect(TestBed.inject(ContextMenuHelper).getSectionsActions).not.toHaveBeenCalled();
+  });
+
   it('emits hover enter and leave', async () => {
     const fixture = TestBed.createComponent(SectionItemComponent);
     fixture.componentRef.setInput('section', { id: 'section-1', type: 'text' } as SectionModel);
@@ -43,8 +74,29 @@ describe('SectionItemComponent', () => {
     await fixture.whenStable();
 
     const badge = fixture.nativeElement.querySelector('.shared-component-badge') as HTMLElement;
-    expect(badge.textContent?.replace(/\s+/g, ' ').trim()).toBe('Shared · 4');
+    expect(badge.textContent).toContain('Shared');
+    expect(badge.querySelector('[aria-hidden="true"]')?.textContent).toBe('· 4');
     expect(badge.title).toBe('Used on 4 page(s)');
-    expect(badge.querySelector('.shared-component-usage')?.getAttribute('aria-label')).toBe('Used on 4 page(s)');
+    expect(badge.querySelector('.sr-only')?.textContent).toBe('Used on 4 page(s)');
+    expect(badge.querySelector('[aria-label]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.section-edit-button').textContent).toContain('Used on 4 page(s)');
+  });
+
+  it('exposes a native edit button, named selection and actions without an undefined settings id', async () => {
+    const fixture = TestBed.createComponent(SectionItemComponent);
+    fixture.componentRef.setInput('section', {} as SectionModel);
+    fixture.componentRef.setInput('sectionSchema', { name: 'Settings' });
+    fixture.componentRef.setInput('hasContextMenu', true);
+    await fixture.whenStable();
+    const edit = fixture.nativeElement.querySelector('.section-edit-button') as HTMLButtonElement;
+    const click = vi.fn();
+    fixture.componentInstance.itemClick.subscribe(click);
+
+    expect(edit.title).toBe('Settings');
+    expect(edit.disabled).toBe(false);
+    edit.click();
+    expect(click).toHaveBeenCalledOnce();
+    expect(fixture.nativeElement.querySelector('input[type="checkbox"]').getAttribute('aria-label')).toBe('Select Settings');
+    expect(fixture.nativeElement.querySelector('app-context-menu button').getAttribute('aria-label')).toBe('Actions for Settings');
   });
 });

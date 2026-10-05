@@ -1,13 +1,15 @@
 <div class="background"></div>
-<div class="content" [style.width.px]="contentWidth()">
+<div class="content" [style.width.px]="contentWidth()"
+  [attr.role]="dismissible() ? 'region' : null" [attr.aria-label]="dismissible() ? accessibleLabel() : null"
+  [attr.tabindex]="dismissible() ? -1 : null">
   <ng-content />
 </div>
 @if (expandable()) {
-  <div
-    class="expand"
-    [style.left.px]="expanderPosition()"
-    [ngClass]="{ expanded: isOpened() }"
-    (click)="toggle()">
-    <app-icon [ngClass]="{ inverted: isOpened() }">chevron_right</app-icon>
-  </div>
+    <button type="button" [attr.aria-label]="isOpened() ? 'Reduce panel width' : 'Expand panel width'"
+      class="expand"
+      [style.left.px]="expanderPosition()"
+      [ngClass]="{ expanded: isOpened() }"
+      (click)="toggle()">
+      <app-icon aria-hidden="true" [ngClass]="{ inverted: isOpened() }">chevron_right</app-icon>
+    </button>
 }

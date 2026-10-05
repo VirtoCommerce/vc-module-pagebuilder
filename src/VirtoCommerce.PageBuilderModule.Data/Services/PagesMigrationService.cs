@@ -1,8 +1,9 @@
-using Hangfire;
 using Newtonsoft.Json.Linq;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
+using VirtoCommerce.PageBuilderModule.Data.BackgroundJobs;
 using VirtoCommerce.Platform.Core.Common;
+using VirtoCommerce.Platform.Core.Jobs;
 using VirtoCommerce.Platform.Core.Settings;
 using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants;
 
@@ -11,7 +12,8 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services;
 public class PagesMigrationService(
     IGroupedPageSearchService groupedPageSearchService,
     IGroupedPageService groupedPageService,
-    ISettingsManager settingsManager
+    ISettingsManager settingsManager,
+    IBackgroundJob backgroundJob
     ) : IPagesMigrationService
 {
     private static readonly object LockObject = new();
@@ -23,7 +25,10 @@ public class PagesMigrationService(
             var migrationCompleted = settingsManager.GetValue<bool>(Settings.Migration.MetadataFromContentMigrated);
             if (!migrationCompleted)
             {
-                BackgroundJob.Enqueue(() => MigratePages());
+                // Waits for the enqueue: StartMigration runs synchronously at startup, and a failed enqueue must surface there.
+#pragma warning disable S4462 // Calls to "async" methods should not be blocking - StartMigration is void by contract and runs from the synchronous Module.PostInitialize
+                backgroundJob.Enqueue<PagesMigrationJob>(new PagesMigrationJobPayload()).GetAwaiter().GetResult();
+#pragma warning restore S4462
             }
         }
     }

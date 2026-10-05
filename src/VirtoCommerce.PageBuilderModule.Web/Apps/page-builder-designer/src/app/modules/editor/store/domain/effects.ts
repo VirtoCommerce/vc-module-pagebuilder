@@ -226,8 +226,9 @@ export class TemplateEditorDomainEffects {
         filter(([, { template }]) => !!template),
         switchMap(([{ section, block, action, source }]) =>
             from(this.clipboard.getData()).pipe(
-                filter(x => !!x),
-                map(data => actions.pasteFromClipboard({ value: data!, section, block, action, source }))
+                map(data => data
+                    ? actions.pasteFromClipboard({ value: data, section, block, action, source })
+                    : actions.showClipboardModal({ value: {}, section, block, action, source }))
             )
         )
     ));
