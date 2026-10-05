@@ -2,9 +2,6 @@
     @apply flex flex-row items-center space-x-1 cursor-pointer px-2.5;
     &:hover {
         background: rgba(246, 246, 246, 1);
-        .operation {
-            visibility: visible;
-        }
     }
     &.current {
         background: rgba(22, 101, 216, 0.1);
@@ -21,8 +18,13 @@
 
 .operation {
     color: rgba(22, 101, 216, 1);
-    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    &:focus-visible { opacity: 1; pointer-events: auto; }
 }
+
+.item:hover .operation, .item:has(:focus-visible) .operation { opacity: 1; pointer-events: auto; }
+.preview-button { @apply flex grow items-center gap-1 text-left; }
 
 .name {
     @apply grow py-3;

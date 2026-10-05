@@ -55,6 +55,17 @@ describe('ClipboardService', () => {
     // ── getData ───────────────────────────────────────────────────
 
     describe('getData', () => {
+        it('reads on the user action without querying browser permissions', async () => {
+            const query = vi.fn().mockRejectedValue(new TypeError('Unsupported permission'));
+            Object.defineProperty(TestBed.inject(EnvironmentRef).navigator, 'permissions', {
+                value: { query }, configurable: true,
+            });
+            navigatorClipboard.readText.mockResolvedValue('');
+            expect(await service.getData()).toBeNull();
+            expect(query).not.toHaveBeenCalled();
+            expect(navigatorClipboard.readText).toHaveBeenCalledOnce();
+        });
+
         it('parses valid JSON from clipboard', async () => {
             const data = { content: { type: 'hero' }, type: 'section' };
             navigatorClipboard.readText.mockResolvedValue(JSON.stringify(data));

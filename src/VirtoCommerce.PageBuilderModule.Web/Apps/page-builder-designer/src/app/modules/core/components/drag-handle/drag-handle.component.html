@@ -1,1 +1,10 @@
-<app-icon [title]="info()" [ngStyle]="{ opacity: visible() ? '1' : '0' }" (click)="onClick($event)">drag_indicator</app-icon>
+@if (keyboardMove()) {
+  <button type="button" [disabled]="disabled()"
+    [attr.aria-label]="info() || 'Move item'"
+    title="Use the Up and Down arrow keys to move this item"
+    (keydown)="onKeydown($event)" (click)="onClick($event)">
+    <app-icon aria-hidden="true">drag_indicator</app-icon>
+  </button>
+} @else {
+  <app-icon [title]="info()" [style.opacity]="visible() ? '1' : '0'" (click)="onClick($event)">drag_indicator</app-icon>
+}

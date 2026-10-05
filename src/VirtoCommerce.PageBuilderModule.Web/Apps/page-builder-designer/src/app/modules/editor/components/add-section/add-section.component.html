@@ -1,4 +1,5 @@
-<app-overlap-panel [skipTranslate]="isHalfScreen()" [expandable]="false">
+<app-overlap-panel [skipTranslate]="isHalfScreen()" [expandable]="false"
+  [dismissible]="true" accessibleLabel="Add block" (dismissed)="onCancelClick()">
   <app-panel>
     <div>
       <ul class="flex flex-col">
@@ -59,8 +60,9 @@
       </div>
       <ng-container title-content>
         <div class="title">
-          <app-icon class="back-icon" [hoverable]="true" (click)="onCancelClick()" title="Cancel">chevron_left
-          </app-icon>
+          <button type="button" aria-label="Cancel" (click)="onCancelClick()">
+            <app-icon aria-hidden="true" class="back-icon" [hoverable]="true">chevron_left</app-icon>
+          </button>
           <div>{{ title() }}</div>
         </div>
       </ng-container>
