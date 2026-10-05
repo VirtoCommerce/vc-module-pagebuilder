@@ -37,7 +37,8 @@ public class PageBuilderAssetReferenceMigrationServiceTests
                 });
         var migration = new PageBuilderAssetReferenceMigrationService(
             repositoryFactory,
-            settingsManager: null);
+            settingsManager: null,
+            backgroundJob: null);
 
         await migration.RebuildPageAssetReferenceIndex();
 
@@ -83,7 +84,8 @@ public class PageBuilderAssetReferenceMigrationServiceTests
                 });
         var migration = new PageBuilderAssetReferenceMigrationService(
             repositoryFactory,
-            settingsManager: null);
+            settingsManager: null,
+            backgroundJob: null);
 
         var migrationTask = migration.RebuildPageAssetReferenceIndex();
         await migrationHasPageLock.Task.WaitAsync(
