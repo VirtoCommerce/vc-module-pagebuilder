@@ -135,10 +135,14 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
             }
 
             await AfterSaveChangesAsync(models, changedEntries);
-            if (groupedEventEntries.Count > 0)
-            {
-                await _eventPublisher.Publish(EventFactory<GroupedPageBuilderPageChangedEvent>(groupedEventEntries), CancellationToken.None);
-            }
+            await PublishGroupedChangedEventAsync(groupedEventEntries);
+        }
+
+        private Task PublishGroupedChangedEventAsync(IList<GenericChangedEntry<GroupedPageBuilderPage>> entries)
+        {
+            return entries.Count == 0
+                ? Task.CompletedTask
+                : _eventPublisher.Publish(EventFactory<GroupedPageBuilderPageChangedEvent>(entries), CancellationToken.None);
         }
 
         private void ApplyEntityChanges(
