@@ -1,27 +1,36 @@
-using Hangfire;
 using Microsoft.Extensions.Logging;
 using VirtoCommerce.PageBuilderModule.Core.Events;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Events;
+using VirtoCommerce.Platform.Core.Jobs;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Handlers;
 
 public class PageBuilderSharedComponentContentChangedEventHandler(
-    IBackgroundJobClient backgroundJobClient,
     ILogger<PageBuilderSharedComponentContentChangedEventHandler> logger)
     : IEventHandler<PageBuilderSharedComponentContentChangedEvent>
 {
-    public Task Handle(PageBuilderSharedComponentContentChangedEvent message)
+    private static readonly EnqueueOptions _enqueueOptions = new()
+    {
+        MaxRetryAttempts = PageBuilderSharedComponentContentPropagationJob.MaxRetryAttempts,
+    };
+
+    public async Task Handle(PageBuilderSharedComponentContentChangedEvent message)
     {
         var sharedComponentIds = message.SharedComponentIds.ToArray();
         if (sharedComponentIds.Length == 0)
         {
-            return Task.CompletedTask;
+            return;
         }
 
         try
         {
-            backgroundJobClient.Enqueue<PageBuilderSharedComponentContentPropagationJob>(
-                job => job.ProcessAsync(sharedComponentIds, JobCancellationToken.Null));
+            var payload = AbstractTypeFactory<PageBuilderSharedComponentContentPropagationJobPayload>.TryCreateInstance();
+            payload.SharedComponentIds = sharedComponentIds;
+
+            // The static facade, not an injected IBackgroundJob: RegisterEventHandler resolves this handler once from
+            // the root provider and holds it for the process lifetime, so it must not capture a Scoped dependency.
+            await BackgroundJob.Enqueue<PageBuilderSharedComponentContentPropagationJob>(payload, _enqueueOptions);
         }
         catch (Exception ex)
         {
@@ -30,7 +39,5 @@ public class PageBuilderSharedComponentContentChangedEventHandler(
                 "Failed to enqueue Shared Component propagation for {SharedComponentIds}",
                 sharedComponentIds);
         }
-
-        return Task.CompletedTask;
     }
 }

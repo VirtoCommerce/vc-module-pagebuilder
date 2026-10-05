@@ -1,3 +1,5 @@
+@use '../../../../../layout/variables' as *;
+
 div[item] {
     @apply grow min-w-0;
 
@@ -19,7 +21,11 @@ div[item] {
 }
 
 .sections-container {
-    @apply flex flex-col space-y-1 w-full relative;
+    @apply flex flex-col w-full relative;
+
+    > app-collapsible-list-item ~ app-collapsible-list-item {
+        margin-top: 4px;
+    }
 }
 
 .template-name {
@@ -46,36 +52,31 @@ div[item] {
     }
 }
 
-.add-button {
-    @apply absolute;
-    color: rgba(22, 101, 216, 1);
-    left: 0;
-    right: 0;
-    margin-inline: auto;
-    width: fit-content;
-    cursor: pointer;
-    transition: opacity .2s;
+.insert-section-button {
+    @apply flex items-center justify-center rounded text-blue-700 self-center;
+    width: 28px;
+    height: 24px;
+    margin-block: -12px;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 2;
 
-    &:hover {
-        opacity: 1 !important;
+    &:focus-visible,
+    &:hover,
+    .sections-container > app-collapsible-list-item:hover + &,
+    &:has(+ app-collapsible-list-item:hover) {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    &:disabled {
+        opacity: 0;
+        pointer-events: none;
     }
 }
-
-.line {
-    @apply absolute;
-    left: 0;
-    right: calc(50% + 12px);
-    background-color: black;
-    height: 1px;
-    &.right-line {
-        right: 0;
-        left: calc(50% + 12px);
-    }
-}
-
 .drag-preview {
     @apply p-2 text-white block;
-    background-color: rgba(22, 101, 216, 1);
+    background-color: $active-color;
 }
 
 .section-placeholder {
