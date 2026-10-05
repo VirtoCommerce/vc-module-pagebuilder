@@ -10,6 +10,11 @@
 @tailwind components;
 @tailwind utilities;
 
+button:focus-visible {
+  outline: 2px solid $active-color;
+  outline-offset: 2px;
+}
+
 ng-scrollbar {
   --scrollbar-thumb-color: rgba(0, 0, 0, 0.2);
     --scrollbar-thumb-hover-color: rgba(0, 0, 0, 0.35);

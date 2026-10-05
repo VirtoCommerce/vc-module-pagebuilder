@@ -19,10 +19,23 @@ import {
   prepareSchema,
   generateModelBySchema,
   generateSectionId,
+  getKeyboardReorderIndices,
 } from './editor.helpers';
 import { createTemplate, createSection, createBlock, createSchema } from '@app/testing';
 import { SectionModel } from '@models/document/section.model';
 import { SchemasList } from '@editor/models';
+
+describe('getKeyboardReorderIndices', () => {
+  it('gathers a non-contiguous selection even when selected items touch both ends', () => {
+    expect(getKeyboardReorderIndices(3, [0, 2], 0, -1)).toEqual({ previousIndex: 2, currentIndex: 1 });
+    expect(getKeyboardReorderIndices(3, [0, 2], 2, 1)).toEqual({ previousIndex: 0, currentIndex: 1 });
+  });
+
+  it('does not move an unselected item or a contiguous selection past a boundary', () => {
+    expect(getKeyboardReorderIndices(3, [0, 2], 1, 1)).toBeNull();
+    expect(getKeyboardReorderIndices(3, [0, 1], 0, -1)).toBeNull();
+  });
+});
 
 // ── addItemToTemplate ──────────────────────────────────────────────
 

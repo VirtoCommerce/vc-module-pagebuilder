@@ -1,4 +1,5 @@
 <mat-checkbox
+  [aria-label]="accessibleLabel() || descriptor?.label || ''"
   [checked]="controlValue()"
   [title]="descriptor?.hint || ''"
   (change)="raiseValueChanged($event.checked)">

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 
 import { MatCheckbox } from '@angular/material/checkbox';
 
@@ -13,6 +13,7 @@ import { CheckboxDescriptor } from '@models/controls';
     imports: [MatCheckbox]
 })
 export class CheckboxComponent extends BaseControlDirective<CheckboxDescriptor> {
+    readonly accessibleLabel = input('');
     raiseValueChanged(value: boolean) {
         this.onValueChanged(value);
     }

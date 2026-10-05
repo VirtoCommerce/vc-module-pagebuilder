@@ -1,5 +1,5 @@
 .section-item {
-    @apply flex flex-row items-center space-x-1 w-full cursor-pointer;
+    @apply flex flex-row items-center space-x-1 w-full;
     &.hidden {
         opacity: 0.5;
     }
@@ -8,8 +8,39 @@
     @apply whitespace-nowrap truncate grow min-w-0;
 }
 
+.section-item-leading {
+  @apply relative w-6 h-6 shrink-0 cursor-pointer;
+
+  app-icon {
+    @apply absolute inset-0;
+  }
+}
+
 .section-item-checkbox {
-  @apply block -m-2;
+  @apply absolute inset-0 block -m-2;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.section-item-leading.selected,
+.section-item-leading:focus-within,
+.section-item:hover .section-item-leading {
+  .section-item-checkbox {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  app-icon {
+    opacity: 0;
+  }
+}
+
+.section-edit-button {
+  @apply flex grow min-w-0 items-center gap-1 text-left rounded;
+
+  &:not(:disabled) {
+    @apply cursor-pointer;
+  }
 }
 
 .shared-component-badge {

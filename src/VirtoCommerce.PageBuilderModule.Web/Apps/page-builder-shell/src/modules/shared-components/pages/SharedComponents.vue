@@ -2,7 +2,7 @@
   <VcBlade
     width="100%"
     :title="bladeTitle"
-    :toolbar-items="bladeToolbar"
+    :toolbar-items="selectedComponent && detailsStacked ? [] : bladeToolbar"
   >
     <div
       class="tw-flex tw-h-full tw-flex-col tw-bg-[color:var(--neutrals-50)] tw-text-sm tw-text-[color:var(--neutrals-800)]"
@@ -30,7 +30,7 @@
       >
         <section
           class="tw-flex tw-min-h-0 tw-grow tw-basis-0 tw-flex-col"
-          @click.self="clearSelection"
+          @click.self="clearDetailsSelection"
         >
           <div
             v-if="loadError"
@@ -62,6 +62,7 @@
 
           <SharedComponentsTable
             v-if="!loadError || items.length > 0"
+            ref="tableRef"
             :components="items"
             :total-count="totalCount"
             :pagination="pagination"
@@ -80,16 +81,18 @@
 
         <SharedComponentDetails
           v-if="selectedComponent"
+          :key="selectedComponent.id"
           :component="selectedComponent"
           :can-update="canUpdate"
           :can-delete="canDelete"
           :can-open-designer="canOpenDesigner"
           :loading="loading"
           :details-loading="detailsLoading"
-          @close="clearSelection"
+          @close="clearDetailsSelection"
           @rename="openRenamePopup"
           @delete="handleDelete"
           @open-designer="openUsagePageDesigner"
+          @keydown.esc="closeDetails"
         />
       </div>
     </div>
@@ -108,8 +111,9 @@
 
 <script lang="ts" setup>
 import { computed, onMounted, ref } from "vue";
+import { breakpointsTailwind, useBreakpoints } from "@vueuse/core";
 import { useI18n } from "vue-i18n";
-import { type IBladeToolbar, useBlade, usePermissions } from "@vc-shell/framework";
+import { focusFallbackTarget, focusIfLoose, useBlade, usePermissions, type IBladeToolbar } from "@vc-shell/framework";
 import { VcBlade, VcButton, VcHint, VcIcon } from "@vc-shell/framework/ui";
 import { SharedComponentDetails, SharedComponentsTable, RenameSharedComponentPopup } from "../components";
 import { useSharedComponentActions, useSharedComponents } from "../composables";
@@ -130,9 +134,14 @@ defineBlade({
 });
 
 const { exposeToChildren } = useBlade();
+const detailsStacked = useBreakpoints(breakpointsTailwind).smaller("lg");
 const { t } = useI18n({ useScope: "global" });
 const { hasAccess } = usePermissions();
 const renameTarget = ref<SharedComponent>();
+const tableRef = ref<InstanceType<typeof SharedComponentsTable> | null>(null);
+let renameReturnFocusTo: HTMLElement | null = null;
+let detailsReturnFocusTo: HTMLElement | null = null;
+let detailsReturnFocusIndex: number | null = null;
 const renameError = ref<string>();
 
 const {
@@ -161,6 +170,19 @@ const bladeTitle = computed(() => t("SHARED_COMPONENTS.TITLE"));
 const isStoreContextReady = computed(() => storeContextStatus.value === "ready");
 const isStoreContextInvalid = computed(() => ["missing", "notFound", "error"].includes(storeContextStatus.value));
 const contentLoading = computed(() => loading.value || ["idle", "loading"].includes(storeContextStatus.value));
+const bladeToolbar = computed((): IBladeToolbar[] =>
+  loadError.value
+    ? []
+    : [
+        {
+          id: "refresh",
+          title: t("SHARED_COMPONENTS.TOOLBAR.REFRESH"),
+          icon: "lucide-refresh-cw",
+          disabled: contentLoading.value,
+          clickHandler: reloadContent,
+        },
+      ],
+);
 const canUpdate = computed(() => hasAccess("builder:shared-components:update") && isStoreContextReady.value);
 const canDelete = computed(() => hasAccess("builder:shared-components:delete") && isStoreContextReady.value);
 const canOpenDesigner = computed(
@@ -177,14 +199,25 @@ const storeContextDescription = computed(() =>
     : t("COMMON.STORE_CONTEXT.INVALID_DESCRIPTION", { storeId: storeId.value }),
 );
 
-const bladeToolbar = ref<IBladeToolbar[]>([
-  {
-    id: "refresh",
-    title: computed(() => t("SHARED_COMPONENTS.TOOLBAR.REFRESH")),
-    icon: "lucide-refresh-cw",
-    clickHandler: reloadContent,
-  },
-]);
+function closeDetails(event: KeyboardEvent) {
+  if (event.defaultPrevented || renameTarget.value || !selectedComponent.value) {
+    return;
+  }
+  event.preventDefault();
+  event.stopPropagation();
+  clearDetailsSelection();
+}
+
+function clearDetailsSelection() {
+  const returnFocusTo = detailsReturnFocusTo;
+  const returnFocusIndex = detailsReturnFocusIndex;
+  detailsReturnFocusTo = null;
+  detailsReturnFocusIndex = null;
+  clearSelection();
+  focusIfLoose(() => {
+    return tableRef.value?.getRowFocusTarget(returnFocusIndex, returnFocusTo) ?? focusFallbackTarget();
+  });
+}
 
 const { notifyError, rename, confirmDelete } = useSharedComponentActions({
   canUpdate,
@@ -201,12 +234,16 @@ function openRenamePopup(component: SharedComponent) {
   }
 
   clearRenameError();
+  renameReturnFocusTo = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   renameTarget.value = component;
 }
 
 function closeRenamePopup() {
+  const returnFocusTo = renameReturnFocusTo;
+  renameReturnFocusTo = null;
   clearRenameError();
   renameTarget.value = undefined;
+  focusIfLoose(() => (returnFocusTo?.isConnected ? returnFocusTo : focusFallbackTarget()));
 }
 
 function clearRenameError() {
@@ -229,7 +266,9 @@ async function handleRename(name: string) {
   renameError.value = result.errorMessage;
 }
 
-async function handleSelect(component: SharedComponent) {
+async function handleSelect(component: SharedComponent, opener: HTMLElement | null, index: number) {
+  detailsReturnFocusTo = opener;
+  detailsReturnFocusIndex = index;
   try {
     await selectComponent(component);
   } catch (error) {
