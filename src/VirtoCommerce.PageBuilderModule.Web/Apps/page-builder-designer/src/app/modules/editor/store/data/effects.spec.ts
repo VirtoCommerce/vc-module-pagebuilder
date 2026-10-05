@@ -698,6 +698,20 @@ describe('TemplateEditorDataEffects', () => {
     // ── externalPreviewAction$ ────────────────────────────────────
 
     describe('refreshFromAssistant$', () => {
+        it('survives a synchronous descriptor error and handles the next refresh', () => {
+            store.overrideSelector(fromRoute.selectGroupIdParameter, 'page-group-1');
+            store.overrideSelector(fromShared.selectChangedTemplates, []);
+            store.overrideSelector(selectors.isPageSaving, false);
+            store.overrideSelector(selectors.isLoading, false);
+            store.refreshState();
+            templatesService.hasPageChanged.mockImplementationOnce(() => { throw new TypeError('Missing descriptor'); });
+            const emitted: Action[] = [];
+            const subscription = effects.refreshFromAssistant$.subscribe(action => emitted.push(action));
+            actions$.next(actions.refreshTemplateFromAssistant());
+            actions$.next(actions.refreshTemplateFromAssistant());
+            expect(emitted).toEqual([sharedActions.empty(), actions.loadTemplateModel({ templateKey: 'home', useProbedContent: true })]);
+            subscription.unsubscribe();
+        });
         it.each([
             { dirty: false, saving: false, loading: false, reload: true },
             { dirty: true, saving: false, loading: false, reload: false },

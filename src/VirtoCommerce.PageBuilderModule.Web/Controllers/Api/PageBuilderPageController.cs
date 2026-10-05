@@ -155,16 +155,7 @@ public class PageBuilderPageController : Controller
         draftPage.Id = null;
         draftPage.Status = Draft; // always create a new page in draft status
         draftPage.StoreId = model.StoreId;
-        draftPage.Content = new JsonObject
-        {
-            ["settings"] = new JsonObject
-            {
-                ["name"] = model.Name,
-                ["permalink"] = model.Permalink,
-                ["cultureName"] = model.CultureName,
-            },
-            ["content"] = new JsonArray(),
-        }.ToJsonString();
+        draftPage.Content = PageBuilderContentSettings.Synchronize(null, model);
 
         model.Pages.Add(draftPage);
 

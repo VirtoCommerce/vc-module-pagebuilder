@@ -6,7 +6,7 @@ import { TemplateModel } from '@models/document';
 
 export const raiseLoadData = createAction('[template editor] raise load data');
 
-export const loadTemplateModel = createAction('[template editor] load template model', props<{ templateKey: string }>());
+export const loadTemplateModel = createAction('[template editor] load template model', props<{ templateKey: string, useProbedContent?: boolean }>());
 export const loadTemplateModelSuccess = createAction('[template editor] load template model success', props<{ template: TemplateModel, templateKey: string }>());
 // the builder http client turns some failures into an empty result, so the reason is not always an http response
 export const loadTemplateModelFails = createAction('[template editor] load template model fails', props<{ error: HttpErrorResponse | Error, templateKey: string }>());

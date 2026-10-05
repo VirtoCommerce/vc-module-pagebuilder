@@ -37,18 +37,22 @@ export class TemplatesService {
     private readonly http = inject(BuilderHttpClient);
     private readonly appConfig = inject(AppConfig);
     private readonly pageVersions = new Map<string, { eTag: string }>();
+    private readonly probedPages = new Map<string, { version: { eTag: string }, response: { content: string, eTag: string } }>();
 
     // this method requires templateId and parent to identify template, end template entry to fill out a request
-    getTemplate(path: string, type: string, template: TemplateEntry, groupId: string): Observable<TemplateModel | null> {
+    getTemplate(path: string, type: string, template: TemplateEntry, groupId: string, useProbedContent = false): Observable<TemplateModel | null> {
         const entry = { ...template, path, groupId }
         if (!entry.groupId && !entry.path) {
             return of(null);
         }
 
         // get template depends of its type. If no such type, use '__template' entry
-        const templateUrl = this.appConfig.getValueByEntryType('templateUrl', { item: entry, type, path, groupId }, entry.type || type);
+        const templateUrl = this.appConfig.getRawValueByEntryType('templateUrl', entry.type || type);
         return defer(() => {
-            const request = this.http.generateRequest(templateUrl, { item: entry });
+            const probe = this.probedPages.get(groupId);
+            this.probedPages.delete(groupId);
+            const response = useProbedContent && probe?.version === this.pageVersions.get(groupId) ? probe?.response : null;
+            const request = this.http.generateRequest(templateUrl, null, { item: entry, type, path, groupId });
             // Reloads own a new document/version pair, including while a save is pending.
             this.pageVersions.delete(groupId);
             for (const item of Array.isArray(request) ? request : [request]) {
@@ -56,8 +60,8 @@ export class TemplatesService {
                     item.cacheable = false;
                 }
             }
-            return this.http.doRequest<TemplateModel | SectionModel[] | PageModel | { content: string, eTag: string }>(
-                request, { nullWhenError: false }, null).pipe(
+            return (response ? of(response) : this.http.doRequest<TemplateModel | SectionModel[] | PageModel | { content: string, eTag: string }>(
+                request, { nullWhenError: false }, null)).pipe(
                 map(result => {
                     const versioned = groupId && result && 'eTag' in result && typeof result.content === 'string';
                     const document = versioned ? JSON.parse(result.content) : result;
@@ -72,22 +76,29 @@ export class TemplatesService {
     }
 
     hasPageChanged(path: string, type: string, template: TemplateEntry, groupId: string): Observable<boolean> {
+        this.probedPages.delete(groupId);
         const version = this.pageVersions.get(groupId);
         if (!version) return of(false);
         const entry = { ...template, path, groupId };
-        const descriptor = this.appConfig.getValueByEntryType('templateUrl', { item: entry, type, path, groupId }, entry.type || type);
-        const request = this.http.generateRequest(descriptor, { item: entry });
+        const descriptor = this.appConfig.getRawValueByEntryType('templateUrl', entry.type || type);
+        const request = this.http.generateRequest(descriptor, null, { item: entry, type, path, groupId });
         for (const item of Array.isArray(request) ? request : [request]) {
             if (item && typeof item !== 'string') item.cacheable = false;
         }
-        return this.http.doRequest<{ eTag?: string }>(request, { nullWhenError: false }, null).pipe(
-            map(result => this.pageVersions.get(groupId) === version && !!result?.eTag && result.eTag !== version.eTag),
+        return this.http.doRequest<{ content: string, eTag: string }>(request, { nullWhenError: false }, null).pipe(
+            map(result => {
+                const changed = this.pageVersions.get(groupId) === version && !!result?.eTag && result.eTag !== version.eTag;
+                if (changed && typeof result?.content === 'string') {
+                    this.probedPages.set(groupId, { version, response: result });
+                }
+                return changed;
+            }),
         );
     }
 
     getTemplatePublishStatus(path: string, type: string, entry: TemplateEntry, groupId: string): Observable<PublishStatus | null> {
         const value = groupId ? 'publishPages' : 'publish';
-        const publishStatusUrls = this.appConfig.getValueByEntryType(value, { item: entry, type, path, groupId }, entry.type || type);
+        const publishStatusUrls = this.appConfig.getRawValueByEntryType(value, entry.type || type);
         // No descriptor at all: this store has no publishing surface, or the configuration could
         // not be read. Either way there is no status to report, and inventing one would put a
         // Publish button on a page whose flow we do not know.
@@ -95,7 +106,7 @@ export class TemplatesService {
             return of(null);
         }
         const statusUrl = publishStatusUrls['status'];
-        const request = this.http.generateRequest(statusUrl, { item: entry });
+        const request = this.http.generateRequest(statusUrl, null, { item: entry, type, path, groupId });
         return this.http.doRequest<PublishStatus>(request, { nullWhenError: false }, null).pipe(
             map(result => result || { published: true, hasChanges: false })
         );
@@ -108,9 +119,9 @@ export class TemplatesService {
      */
     publishTemplate(path: string, type: string, entry: TemplateEntry, groupId: string, options: { rebase?: boolean } = {}): Observable<any> {
         const value = groupId ? 'publishPages' : 'publish';
-        const publishStatusUrls = this.appConfig.getValueByEntryType(value, { item: entry, type, path, groupId }, entry.type || type);
+        const publishStatusUrls = this.appConfig.getRawValueByEntryType(value, entry.type || type);
         const statusUrl = publishStatusUrls['publish'];
-        const request = this.http.generateRequest(statusUrl, { item: entry });
+        const request = this.http.generateRequest(statusUrl, null, { item: entry, type, path, groupId });
         if (options.rebase && request && typeof request === 'object' && !Array.isArray(request)) {
             request.url = `${request.url}${request.url.includes('?') ? '&' : '?'}rebase=true`;
         }
@@ -119,9 +130,9 @@ export class TemplatesService {
 
     unpublishTemplate(path: string, type: string, entry: TemplateEntry, groupId: string): Observable<any> {
         const value = groupId ? 'publishPages' : 'publish';
-        const publishStatusUrls = this.appConfig.getValueByEntryType(value, { item: entry, type, path, groupId }, entry.type || type);
+        const publishStatusUrls = this.appConfig.getRawValueByEntryType(value, entry.type || type);
         const statusUrl = publishStatusUrls['unpublish'];
-        const request = this.http.generateRequest(statusUrl, { item: entry });
+        const request = this.http.generateRequest(statusUrl, null, { item: entry, type, path, groupId });
         return this.http.doRequest(request, { nullWhenError: false }, null);
     }
 
@@ -131,9 +142,9 @@ export class TemplatesService {
      */
     promoteTemplate(path: string, type: string, entry: TemplateEntry, groupId: string): Observable<any> {
         const value = groupId ? 'publishPages' : 'publish';
-        const publishStatusUrls = this.appConfig.getValueByEntryType(value, { item: entry, type, path, groupId }, entry.type || type);
+        const publishStatusUrls = this.appConfig.getRawValueByEntryType(value, entry.type || type);
         const statusUrl = publishStatusUrls['promote'];
-        const request = this.http.generateRequest(statusUrl, { item: entry });
+        const request = this.http.generateRequest(statusUrl, null, { item: entry, type, path, groupId });
         return this.http.doRequest(request, { nullWhenError: false }, null);
     }
 

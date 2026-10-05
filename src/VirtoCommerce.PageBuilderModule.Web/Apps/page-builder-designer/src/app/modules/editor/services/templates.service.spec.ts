@@ -9,6 +9,7 @@ import { createEntry, createSection, createTemplate } from '@app/testing';
 
 import { TemplatesService } from './templates.service';
 import settings from '../../../../data/settings.json';
+import { ThemeSettingsService } from '@theme/services/theme-settings.service';
 
 describe('TemplatesService page versions', () => {
     let service: TemplatesService;
@@ -217,7 +218,7 @@ describe('TemplatesService page versions', () => {
     });
 
     it('does not pair a grouped version with a fallback document', () => {
-        vi.spyOn(TestBed.inject(AppConfig), 'getValueByEntryType').mockReturnValue([
+        vi.spyOn(TestBed.inject(AppConfig), 'getRawValueByEntryType').mockReturnValue([
             { url: url('one'), method: 'GET' }, { url: '/fallback', method: 'GET' },
         ]);
         service.getTemplate('', 'pages', createEntry({ type: 'pages' }), 'one').subscribe();
@@ -301,6 +302,80 @@ describe('TemplatesService page versions', () => {
         requests.expectOne(url('one')).flush({ eTag: '"v2"' });
         probe.flush({ content: JSON.stringify(document), eTag: '"old-probe"' });
         expect(changed).toBe(false);
+    });
+
+    it('reuses a changed probe document and accepts its version only on reload', () => {
+        load('one', '"v1"');
+        service.hasPageChanged('', 'pages', createEntry({ type: 'pages' }), 'one').subscribe();
+        const remote = { settings: { name: 'Assistant' }, content: [] };
+        requests.expectOne(url('one')).flush({ content: JSON.stringify(remote), eTag: '"v2"' });
+        let loaded: any;
+        service.getTemplate('', 'pages', createEntry({ type: 'pages' }), 'one', true).subscribe(value => loaded = value);
+        requests.expectNone(url('one'));
+        expect(loaded.settings.name).toBe('Assistant');
+        service.saveGroupedPage('one', remote).subscribe();
+        const save = requests.expectOne(url('one'));
+        expect(save.request.headers.get('If-Match')).toBe('"v2"');
+        save.flush({ eTag: '"v3"' });
+    });
+
+    it('does not reuse a probe after a save has taken ownership of the version', () => {
+        load('one', '"v1"');
+        service.hasPageChanged('', 'pages', createEntry({ type: 'pages' }), 'one').subscribe();
+        requests.expectOne(url('one')).flush({ content: JSON.stringify(document), eTag: '"v2"' });
+        service.saveGroupedPage('one', document).subscribe();
+        requests.expectOne(url('one')).flush({ eTag: '"v3"' });
+        service.getTemplate('', 'pages', createEntry({ type: 'pages' }), 'one', true).subscribe();
+        requests.expectOne(url('one')).flush({ content: JSON.stringify(document), eTag: '"v3"' });
+    });
+
+    it('preserves literal request values across reads, probes and publishing', () => {
+        const literal = 'page{{=1+1}}';
+        const entry = createEntry({ type: 'pages', path: literal });
+        config.initConfigWith({
+            templateUrl: { pages: { url: '/read/{{path}}/{{item.path}}', versioned: true } },
+            publishPages: { pages: Object.fromEntries(['status', 'publish', 'unpublish', 'promote'].map(action =>
+                [action, { url: '/' + action + '/{{path}}/{{item.path}}' }])) },
+        });
+        service.getTemplate(literal, 'pages', entry, 'one').subscribe();
+        requests.expectOne(`/read/${literal}/${literal}`).flush({ content: JSON.stringify(document), eTag: '"v1"' });
+        service.hasPageChanged(literal, 'pages', entry, 'one').subscribe();
+        requests.expectOne(`/read/${literal}/${literal}`).flush({ content: JSON.stringify(document), eTag: '"v1"' });
+        for (const [action, method] of [
+            ['status', 'getTemplatePublishStatus'], ['publish', 'publishTemplate'],
+            ['unpublish', 'unpublishTemplate'], ['promote', 'promoteTemplate'],
+        ] as const) {
+            service[method](literal, 'pages', entry, 'one').subscribe();
+            const request = requests.expectOne(`/${action}/${literal}/${literal}`);
+            expect(request.request.body).toBeNull();
+            request.flush({});
+        }
+    });
+
+    it('evaluates theme settings once and preserves authored literal values', () => {
+        config.initConfigWith({ saveSettings: { url: '/settings', method: 'POST', body: '{{item}}' } });
+        const data = { current: { text: '{{=1+1}}' } };
+        TestBed.inject(ThemeSettingsService).saveSettings(data as any).subscribe();
+        const request = requests.expectOne('/settings');
+        expect(JSON.parse(request.request.body)).toEqual(data);
+        request.flush(true);
+    });
+
+    it('resolves sessionId lazily for raw save, history and restore descriptors', () => {
+        const session = vi.spyOn(config, 'getCurrentSessionId').mockReturnValue('session-one');
+        config.initConfigWith({
+            saveTemplates: { url: '/save/{{sessionId}}', method: 'POST' },
+            history: { url: '/history/{{sessionId}}', restore: { url: '/restore/{{sessionId}}' } },
+        });
+        expect(session).not.toHaveBeenCalled();
+        service.saveTemplates([]).subscribe();
+        requests.expectOne('/save/session-one').flush(null);
+        session.mockReturnValue('session-two');
+        service.getPageHistory('', 'pages', createEntry(), '').subscribe();
+        requests.expectOne('/history/session-two').flush({});
+        service.restoreVersion('', 'pages', createEntry(), '', 'sha').subscribe();
+        requests.expectOne('/restore/session-two').flush({});
+        expect(session).toHaveBeenCalled();
     });
 
 });

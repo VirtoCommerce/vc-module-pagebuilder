@@ -200,7 +200,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 var snapshot = _groups.ContainsKey(group.Id ?? "")
                     ? await LoadGroupContentAsync(group, cancellationToken: cancellationToken)
                     : new PageBuilderContentSnapshot(null, null, null);
-                var content = VirtoCommerce.PageBuilderModule.Data.Services.GroupedPageService.SynchronizeContentSettings(snapshot.Content, group);
+                var content = VirtoCommerce.PageBuilderModule.Core.Models.PageBuilderContentSettings.Synchronize(snapshot.Content, group);
                 if (content != snapshot.Content)
                 {
                     var draft = PageBuilderPageSelection.Order(group.Pages).FirstOrDefault(x => x.Status == Draft);

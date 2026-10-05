@@ -32,6 +32,42 @@ namespace VirtoCommerce.PageBuilderModule.Tests;
 public partial class PageContentAtomicWriteTests
 {
     [Fact]
+    public void InitialContent_AlwaysCreatesDocumentEvenWithoutOptionalSettings()
+    {
+        var document = JsonNode.Parse(PageBuilderContentSettings.Synchronize(null, new GroupedPageBuilderPage()));
+        Assert.IsType<JsonObject>(document["settings"]);
+        Assert.Empty(document["content"].AsArray());
+    }
+
+    [Theory]
+    [InlineData("missing-page")]
+    [InlineData("missing-store")]
+    [InlineData("missing-component")]
+    [InlineData("different-store")]
+    public async Task ContentIndexRebuild_OriginalRepositoryContractMatchesBuiltInValidation(string scenario)
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        await using var context = CreateContext(database.ConnectionString);
+        var token = TestContext.Current.CancellationToken;
+        var pageId = scenario == "missing-page" ? "absent-page" : PageId;
+        var content = scenario == "missing-component" ? ComponentAContent.Replace(ComponentAId, "absent-component") : ComponentAContent;
+        if (scenario is "missing-store" or "different-store")
+        {
+            var page = await context.Set<PageBuilderPageEntity>().SingleAsync(x => x.Id == PageId, token);
+            page.StoreId = scenario == "missing-store" ? " " : "another-store";
+            await context.SaveChangesAsync(token);
+        }
+        await using var transaction = await context.Database.BeginTransactionAsync(token);
+        using var repository = new PageBuilderModuleRepository(context);
+        var builtIn = await Record.ExceptionAsync(() => PageBuilderPageIndexing.RebuildAfterRawContentWriteAsync(context, pageId, content, StoreId, token));
+        var originalContract = await Record.ExceptionAsync(() => PageBuilderPageIndexing.RebuildAfterRawContentWriteAsync(repository, pageId, content, StoreId, token));
+        Assert.NotNull(builtIn);
+        Assert.NotNull(originalContract);
+        Assert.Equal(builtIn.GetType(), originalContract.GetType());
+        Assert.Equal(builtIn.Message, originalContract.Message);
+    }
+
+    [Fact]
     public async Task ModuleRegistration_OriginalGroupedServiceDecoratorCanReadAndSaveContent()
     {
         await using var database = await TestDatabase.CreateAsync();
@@ -207,7 +243,7 @@ public partial class PageContentAtomicWriteTests
     {
         var group = new GroupedPageBuilderPage { Name = "Name", Permalink = "slug", CultureName = "en-US" };
         var content = "{\"settings\":{\"name\":" + value + ",\"permalink\":" + value + ",\"cultureName\":" + value + "},\"content\":[]}";
-        var updated = JsonNode.Parse(GroupedPageService.SynchronizeContentSettings(content, group));
+        var updated = JsonNode.Parse(PageBuilderContentSettings.Synchronize(content, group));
         Assert.Equal("Name", updated["settings"]["name"].GetValue<string>());
         Assert.Equal("slug", updated["settings"]["permalink"].GetValue<string>());
         Assert.Equal("en-US", updated["settings"]["cultureName"].GetValue<string>());
@@ -281,7 +317,7 @@ public partial class PageContentAtomicWriteTests
             _ => throw new InvalidOperationException("An identical retry must not write or rebuild indexes."));
         Assert.Equal(saved.PageId, retried.PageId);
         Assert.Equal(saved.ETag, retried.ETag);
-        Assert.False(retried.ContentChanged);
+        Assert.False(retried.ContentWritten);
     }
 
     [Fact]
@@ -320,7 +356,7 @@ public partial class PageContentAtomicWriteTests
         var retry = await service.SaveGroupContentAsync(group, ComponentAContent, PageBuilderContentVersion.Create(group, null), TestContext.Current.CancellationToken);
         Assert.Equal(result.PageId, retry.PageId);
         Assert.Equal(result.ETag, retry.ETag);
-        Assert.False(retry.ContentChanged);
+        Assert.False(retry.ContentWritten);
         Assert.Empty(events.Events);
     }
 

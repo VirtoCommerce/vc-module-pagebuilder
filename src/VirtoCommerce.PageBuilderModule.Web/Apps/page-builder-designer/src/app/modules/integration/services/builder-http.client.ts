@@ -230,6 +230,8 @@ export class BuilderHttpClient extends HttpClient {
 
     private getCurrentContext(context: any): any {
         const config = this.appConfig;
-        return { ...config.getContext(), ...context };
+        const result = { ...config.getContext(), ...context };
+        Object.defineProperty(result, 'sessionId', { get: () => config.getCurrentSessionId() });
+        return result;
     }
 }

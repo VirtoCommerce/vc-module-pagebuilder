@@ -52,6 +52,12 @@ export class AppConfig {
     return source[type ?? 'default'] ?? source['default'] ?? source;
   }
 
+  /** Select a descriptor before evaluating it with the request context. */
+  getRawValueByEntryType(property: OptionName, type: string | null = null): any {
+    const source = this.mergedConfig[property];
+    return source?.[type ?? 'default'] ?? source?.['default'] ?? source;
+  }
+
   getValue(property: OptionName, context: any = null): any {
     if (!context) {
       return this.settings[property];

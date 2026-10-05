@@ -187,14 +187,14 @@ export class TemplateEditorDataEffects {
             this.store$.select(fromRoute.selectCultureNameParameter),
             this.store$.select(fromRoute.selectSharedComponentIdParameter),
         ),
-        switchMap(([{ templateKey }, templateEntry, path, type, groupId, sectionId, cultureName, sharedComponentId]) => {
+        switchMap(([{ templateKey, useProbedContent }, templateEntry, path, type, groupId, sectionId, cultureName, sharedComponentId]) => {
             // Capture synchronous configuration errors for both page and shared component requests.
             const request = defer(() => sharedComponentId
                 ? forkJoin({
                     template: this.sharedComponents.getContent(sharedComponentId),
                     component: this.sharedComponents.get(sharedComponentId),
                 })
-                : this.templates.getTemplate(path, type, templateEntry, groupId).pipe(
+                : this.templates.getTemplate(path, type, templateEntry, groupId, useProbedContent).pipe(
                     map(template => ({ template, component: null as SharedComponent | null })),
                 ));
 
@@ -651,7 +651,7 @@ export class TemplateEditorDataEffects {
             this.store$.select(selectors.isLoading),
         ),
         filter(([, templateKey, groupId, , , , saving, loading]) => !!templateKey && !!groupId && !saving && !loading),
-        switchMap(([, templateKey, groupId, entry, path, type]) => this.templates.hasPageChanged(path, type, entry || {}, groupId).pipe(
+        switchMap(([, templateKey, groupId, entry, path, type]) => defer(() => this.templates.hasPageChanged(path, type, entry || {}, groupId)).pipe(
             filter(changed => changed),
             withLatestFrom(
                 this.store$.select(fromRoute.selectTemplateKeyParameter),
@@ -665,7 +665,7 @@ export class TemplateEditorDataEffects {
                     message: 'This page has changed on the server. Keep a copy of your edits, then reload the page to review and combine the changes.',
                     msgType: 'warning', top: true,
                 })
-                : actions.loadTemplateModel({ templateKey })),
+                : actions.loadTemplateModel({ templateKey, useProbedContent: true })),
             catchError(() => of(shared.empty())),
         )),
     ));

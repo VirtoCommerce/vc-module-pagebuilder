@@ -1,5 +1,4 @@
 using System.Text;
-using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using VirtoCommerce.PageBuilderModule.Core.Events;
@@ -188,40 +187,9 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
                     }
                     else
                     {
-                        await RebuildIndexesWithRepositoryAsync(repository, page, group.StoreId, cancellationToken);
+                        await PageBuilderPageIndexing.RebuildAfterRawContentWriteAsync(repository, page.Id, page.Content, group.StoreId, cancellationToken);
                     }
                 }
-            }
-        }
-
-        // Older repository decorators expose the original query, lock and indexing contracts.
-        private static async Task RebuildIndexesWithRepositoryAsync(
-            IPageBuilderModuleRepository repository, PageBuilderPage page, string storeId, CancellationToken cancellationToken)
-        {
-            var componentIds = PageBuilderWriteLock.OrderIds(PageBuilderSharedComponentReferenceMatcher.ExtractReferences(page.Content));
-            var rebuilt = await repository.ExecuteUnderSharedComponentWriteLocksAsync(componentIds, async ct =>
-            {
-                await PageBuilderSharedComponentReferenceIndexService.ValidateComponentsAsync(repository, componentIds, page.StoreId ?? storeId, ct);
-                var references = await repository.PageBuilderSharedComponentReferences.Where(x => x.PageId == page.Id).ToListAsync(ct);
-                foreach (var reference in references)
-                {
-                    repository.Remove(reference);
-                }
-                foreach (var componentId in componentIds)
-                {
-                    repository.Add(new PageBuilderSharedComponentReferenceEntity
-                    {
-                        Id = Guid.NewGuid().ToString("N"),
-                        PageId = page.Id,
-                        SharedComponentId = componentId,
-                    });
-                }
-                await repository.RebuildPageAssetReferenceIndexAsync(page.Id, ct);
-                await repository.UnitOfWork.CommitAsync();
-            }, cancellationToken);
-            if (!rebuilt)
-            {
-                throw new InvalidDataException("A referenced Shared Component no longer exists.");
             }
         }
 
@@ -438,8 +406,8 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
         {
             GroupedPageBuilderPage savedGroup = authorizedGroup;
             string pageId = null;
-            var contentChanged = false;
-            var groupEventsPublished = false;
+            var contentWritten = false;
+            var groupedEventsPublished = false;
             await SaveChangesInternalAsync([authorizedGroup], async (repository, entities, ct) =>
             {
                 var current = GetAuthorizedGroup(authorizedGroup, entities);
@@ -457,20 +425,20 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
                     return null;
                 }
 
-                groupEventsPublished = !current.Pages.Any(x => x.Status == Draft);
+                groupedEventsPublished = !current.Pages.Any(x => x.Status == Draft);
                 var target = GetOrAddDraft(current);
                 target.Content = content;
                 pageId = target.Id;
-                contentChanged = true;
-                return new PreparedSave(current, groupEventsPublished);
+                contentWritten = true;
+                return new PreparedSave(current, groupedEventsPublished);
             }, cancellationToken);
 
             // The token depends only on the locked group's identity and the submitted document.
             // Hashing the next version does not need to keep database locks held.
             return new(pageId, PageBuilderContentVersion.Create(savedGroup, content))
             {
-                ContentChanged = contentChanged,
-                GroupEventsPublished = groupEventsPublished,
+                ContentWritten = contentWritten,
+                GroupedEventsPublished = groupedEventsPublished,
             };
         }
 
@@ -504,7 +472,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
                 {
                     return new PreparedSave(group);
                 }
-                var updated = SynchronizeContentSettings(snapshot.Content, group);
+                var updated = PageBuilderContentSettings.Synchronize(snapshot.Content, group);
                 if (!string.Equals(updated, snapshot.Content, StringComparison.Ordinal))
                 {
                     GetOrAddDraft(group).Content = updated;
@@ -554,30 +522,6 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
             }
             return draft;
         }
-
-        internal static string SynchronizeContentSettings(string content, GroupedPageBuilderPage group)
-        {
-            var source = string.IsNullOrWhiteSpace(content) ? Core.ModuleConstants.DefaultPageContent : content;
-            if (JsonNode.Parse(source) is not JsonObject root)
-            {
-                return content;
-            }
-            var settings = root["settings"] as JsonObject;
-            if (settings != null && HasStringValue(settings["name"], group.Name)
-                && HasStringValue(settings["permalink"], group.Permalink) && HasStringValue(settings["cultureName"], group.CultureName))
-            {
-                return content;
-            }
-            settings ??= new JsonObject();
-            root["settings"] = settings;
-            settings["name"] = group.Name;
-            settings["permalink"] = group.Permalink;
-            settings["cultureName"] = group.CultureName;
-            return root.ToJsonString();
-        }
-
-        private static bool HasStringValue(JsonNode node, string expected)
-            => node == null ? expected == null : node is JsonValue value && value.TryGetValue<string>(out var text) && text == expected;
 
         private sealed record PreparedSave(GroupedPageBuilderPage Model, bool PublishGroupedEvents = true);
 

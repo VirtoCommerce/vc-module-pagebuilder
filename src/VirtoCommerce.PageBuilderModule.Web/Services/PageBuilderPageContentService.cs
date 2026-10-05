@@ -113,7 +113,7 @@ public sealed class PageBuilderPageContentService(
         GroupedPageBuilderPage group, string content, string expectedETag, CancellationToken cancellationToken)
     {
         var result = await VersionedContent.SaveGroupContentAsync(group, content, expectedETag, cancellationToken);
-        if (result.ContentChanged && !result.GroupEventsPublished)
+        if (result.ContentWritten && !result.GroupedEventsPublished)
         {
             await RaisePageContentChangedAsync(result.PageId, cancellationToken);
         }

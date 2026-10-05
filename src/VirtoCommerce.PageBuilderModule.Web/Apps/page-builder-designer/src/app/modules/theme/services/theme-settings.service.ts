@@ -13,20 +13,20 @@ export class ThemeSettingsService {
     private readonly appConfig = inject(AppConfig);
 
     loadSettingsData(): Observable<SettingsDataModel | null> {
-        const requestDescriptor = this.appConfig.getValue('settingsDataRequest');
+        const requestDescriptor = this.appConfig.getContext().config.settingsDataRequest;
         const request = this.http.generateRequest(requestDescriptor);
         return this.http.doRequest<SettingsDataModel>(request);
     }
 
     loadSettingsSchema(): Observable<SettingsSchemaModel | null> {
-        const requestDescriptor = this.appConfig.getValue('settingsSchemaRequest')
+        const requestDescriptor = this.appConfig.getContext().config.settingsSchemaRequest;
         const request = this.http.generateRequest(requestDescriptor);
         return this.http.doRequest<SettingsSchemaModel>(request);
     }
 
     saveSettings(settings: SettingsDataModel): Observable<boolean> {
         const context = { item: JSON.stringify(settings), data: settings };
-        const requestDescriptor = this.appConfig.getValue('saveSettings', context);
+        const requestDescriptor = this.appConfig.getContext().config.saveSettings;
         const request = this.http.generateRequest(requestDescriptor, null, context);
         return this.http.doRequest(request).pipe(map(x => !!x));
     }
