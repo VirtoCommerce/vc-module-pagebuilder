@@ -59,7 +59,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
             Func<IPageBuilderModuleRepository, IList<GroupedPageBuilderPageEntity>, CancellationToken, Task<PreparedSave>> prepare = null,
             CancellationToken cancellationToken = default)
         {
-            var publishGroupedEvents = true;
+            var groupedEventEntries = new List<GenericChangedEntry<GroupedPageBuilderPage>>();
             var primaryKeyMap = new PrimaryKeyResolvingMap();
             var changedEntries = new GenericChangedEntry<GroupedPageBuilderPage>[models.Count];
             var changedEntities = new GroupedPageBuilderPageEntity[models.Count];
@@ -74,6 +74,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
 
                 async Task SaveInternalAsync(CancellationToken ct)
                 {
+                    var publishGroupedEvents = true;
                     var existingEntities = await LoadExistingEntities(repository, models);
                     if (prepare != null)
                     {
@@ -105,6 +106,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
 
                     if (publishGroupedEvents)
                     {
+                        groupedEventEntries.AddRange(changedEntries);
                         await _eventPublisher.Publish(EventFactory<GroupedPageBuilderPageChangingEvent>(changedEntries), ct);
                     }
                     await CommitAsync(repository);
@@ -133,9 +135,9 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
             }
 
             await AfterSaveChangesAsync(models, changedEntries);
-            if (publishGroupedEvents)
+            if (groupedEventEntries.Count > 0)
             {
-                await _eventPublisher.Publish(EventFactory<GroupedPageBuilderPageChangedEvent>(changedEntries), CancellationToken.None);
+                await _eventPublisher.Publish(EventFactory<GroupedPageBuilderPageChangedEvent>(groupedEventEntries), CancellationToken.None);
             }
         }
 
