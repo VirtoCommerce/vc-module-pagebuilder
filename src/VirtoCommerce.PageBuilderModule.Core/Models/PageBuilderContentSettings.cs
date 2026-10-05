@@ -15,8 +15,9 @@ public static class PageBuilderContentSettings
             return content;
         }
         var settings = root["settings"] as JsonObject;
-        if (!string.IsNullOrWhiteSpace(content) && settings != null && HasStringValue(settings["name"], group.Name)
-            && HasStringValue(settings["permalink"], group.Permalink) && HasStringValue(settings["cultureName"], group.CultureName))
+        var settingsMatch = settings != null && HasStringValue(settings["name"], group.Name)
+            && HasStringValue(settings["permalink"], group.Permalink) && HasStringValue(settings["cultureName"], group.CultureName);
+        if (!string.IsNullOrWhiteSpace(content) && settingsMatch)
         {
             return content;
         }

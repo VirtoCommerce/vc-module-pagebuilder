@@ -325,8 +325,11 @@ describe('TemplatesService page versions', () => {
         requests.expectOne(url('one')).flush({ content: JSON.stringify(document), eTag: '"v2"' });
         service.saveGroupedPage('one', document).subscribe();
         requests.expectOne(url('one')).flush({ eTag: '"v3"' });
-        service.getTemplate('', 'pages', createEntry({ type: 'pages' }), 'one', true).subscribe();
-        requests.expectOne(url('one')).flush({ content: JSON.stringify(document), eTag: '"v3"' });
+        let loaded: any;
+        service.getTemplate('', 'pages', createEntry({ type: 'pages' }), 'one', true).subscribe(value => loaded = value);
+        const latestDocument = { settings: { name: 'After save' }, content: [] };
+        requests.expectOne(url('one')).flush({ content: JSON.stringify(latestDocument), eTag: '"v3"' });
+        expect(loaded.settings.name).toBe('After save');
     });
 
     it('preserves literal request values across reads, probes and publishing', () => {
