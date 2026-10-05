@@ -138,7 +138,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
             await PublishGroupedChangedEventAsync(groupedEventEntries);
         }
 
-        private Task PublishGroupedChangedEventAsync(IList<GenericChangedEntry<GroupedPageBuilderPage>> entries)
+        private Task PublishGroupedChangedEventAsync(List<GenericChangedEntry<GroupedPageBuilderPage>> entries)
         {
             return entries.Count == 0
                 ? Task.CompletedTask
