@@ -8,6 +8,8 @@ using VirtoCommerce.StoreModule.Core.Services;
 
 namespace VirtoCommerce.PageBuilderModule.Tests;
 
+// Only store lookup is supported: any new use of the store service must fail here
+// instead of silently passing a test with an incomplete fake.
 internal sealed class FakeStoreService(Store store) : IStoreService
 {
     public string LastRequestedId { get; private set; }

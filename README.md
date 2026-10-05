@@ -40,7 +40,7 @@ The page is created in the builder as a list of blocks with specific settings ap
 
 ## Shared Component creation
 
-`POST /api/page-builder-shared-components` requires an existing store. An authorized request with an unknown `storeId` returns `400` naming that store, before any component, content, or asset references are written. Store-scoped authorization runs first; requests outside the user's store return `403`. The original controller constructor remains available for existing integrations; the active HTTP context supplies `IStoreService` when it is used.
+`POST /api/page-builder-shared-components` requires an existing store. An authorized request with an unknown `storeId` returns `400` naming that store, before any component, content, or asset references are written. Store-scoped authorization runs first; requests outside the user's store return `403`.
 
 ## Backup & Restore
 
