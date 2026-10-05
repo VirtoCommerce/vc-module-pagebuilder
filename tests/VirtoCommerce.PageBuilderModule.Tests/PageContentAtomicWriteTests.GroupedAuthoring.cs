@@ -2,21 +2,28 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
+using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
 using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.Models;
+using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Data.Models;
 using VirtoCommerce.PageBuilderModule.Data.Repositories;
 using VirtoCommerce.PageBuilderModule.Data.Services;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using VirtoCommerce.PageBuilderModule.Web.Services;
 using VirtoCommerce.Platform.Core.Common;
+using VirtoCommerce.Platform.Core.Caching;
+using VirtoCommerce.Platform.Core.Modularity;
 using VirtoCommerce.Platform.Core.Events;
 using Xunit;
 
@@ -24,6 +31,188 @@ namespace VirtoCommerce.PageBuilderModule.Tests;
 
 public partial class PageContentAtomicWriteTests
 {
+    [Fact]
+    public async Task ModuleRegistration_OriginalGroupedServiceDecoratorCanReadAndSaveContent()
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        await SaveAsync(database.ConnectionString, ComponentAContent);
+        using var cache = new TestPlatformMemoryCache();
+        var original = CreateGroupedService(database.ConnectionString, cache);
+        var decorated = DispatchProxy.Create<IGroupedPageService, ServiceContractProxy>();
+        ((ServiceContractProxy)decorated).Target = original;
+        var services = new ServiceCollection();
+        new Web.Module { Configuration = new ConfigurationBuilder().Build(), ModuleInfo = new ManifestModuleInfo() }.Initialize(services);
+        services.AddLogging();
+        services.AddSingleton<Func<IPageBuilderModuleRepository>>(() => new PageBuilderModuleRepository(CreateContext(database.ConnectionString)));
+        services.AddSingleton<Func<IContentStreamRepository>>(() => new SqliteContentStreamRepository(CreateContext(database.ConnectionString)));
+        services.AddSingleton<IPlatformMemoryCache>(cache);
+        services.AddSingleton<IEventPublisher>(new NoopEventPublisher());
+        services.AddSingleton<IGroupedPageService>(decorated);
+        using var provider = services.BuildServiceProvider();
+        var content = provider.GetRequiredService<PageBuilderPageContentService>();
+        var group = await decorated.GetByIdAsync(GroupId);
+        var snapshot = await content.LoadGroupContentAsync(group, true, TestContext.Current.CancellationToken);
+        Assert.Equal(ComponentAContent, snapshot.Content);
+        await content.SaveConditionalContentAsync(group, ComponentBContent, snapshot.ETag, TestContext.Current.CancellationToken);
+        Assert.Equal(ComponentBContent, await LoadContentAsync(database.ConnectionString));
+        Assert.Same(decorated, provider.GetRequiredService<IGroupedPageService>());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Copy_UsesNewestActivePageAndRejectsArchivedOnlyGroup(bool archivedOnly)
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        await SaveRawAsync(database.ConnectionString, PageId, ComponentAContent);
+        await SaveRawAsync(database.ConnectionString, SourcePageId, ComponentBContent);
+        await using (var context = CreateContext(database.ConnectionString))
+        {
+            var pages = await context.Set<PageBuilderPageEntity>().ToArrayAsync(TestContext.Current.CancellationToken);
+            pages.Single(x => x.Id == PageId).ModifiedDate = DateTime.UtcNow.AddDays(-1);
+            pages.Single(x => x.Id == SourcePageId).ModifiedDate = DateTime.UtcNow.AddDays(1);
+            if (archivedOnly)
+            {
+                foreach (var page in pages)
+                {
+                    page.Status = "Archived";
+                }
+            }
+            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+        using var cache = new TestPlatformMemoryCache();
+        var service = CreateGroupedService(database.ConnectionString, cache);
+        var target = new GroupedPageBuilderPage { StoreId = StoreId, Name = "Copy" };
+        await service.SaveChangesAsync([target]);
+        var controller = CreateContentController(database.ConnectionString, cache, service);
+        var result = await controller.CopyPageContent(target.Id, GroupId, TestContext.Current.CancellationToken);
+        if (archivedOnly)
+        {
+            Assert.IsType<NotFoundResult>(result);
+            Assert.Empty((await service.GetByIdAsync(target.Id)).Pages);
+        }
+        else
+        {
+            Assert.IsType<NoContentResult>(result);
+            var snapshot = await service.LoadGroupContentAsync(await service.GetByIdAsync(target.Id), cancellationToken: TestContext.Current.CancellationToken);
+            Assert.Equal(ComponentBContent, snapshot.Content);
+        }
+    }
+
+    [Fact]
+    public async Task CreateGroup_CommitsInitialSettingsOnceDespiteProviderTimestampPrecision()
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        using var cache = new TestPlatformMemoryCache();
+        var service = new TimestampPrecisionGroupedService(database.ConnectionString, cache);
+        var controller = CreateContentController(database.ConnectionString, cache, service);
+        var group = new GroupedPageBuilderPage { StoreId = StoreId, Name = "New page", Permalink = "new-page", CultureName = "en-US" };
+
+        Assert.IsType<OkObjectResult>((await controller.CreateGroup(group, TestContext.Current.CancellationToken)).Result);
+
+        Assert.Equal(1, service.SaveCount);
+        var persisted = await service.GetByIdAsync(group.Id);
+        Assert.NotEqual(persisted.CreatedDate, group.CreatedDate);
+        var snapshot = await service.LoadGroupContentAsync(persisted, cancellationToken: TestContext.Current.CancellationToken);
+        var document = JsonNode.Parse(snapshot.Content);
+        Assert.Equal("New page", document["settings"]["name"].GetValue<string>());
+        Assert.Equal("new-page", document["settings"]["permalink"].GetValue<string>());
+        Assert.Equal("en-US", document["settings"]["cultureName"].GetValue<string>());
+        Assert.Empty(document["content"].AsArray());
+    }
+
+    [Fact]
+    public async Task ContentGet_DoesNotWriteOrAcquireWriteLocks()
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        await SaveAsync(database.ConnectionString, ComponentAContent);
+        using var cache = new TestPlatformMemoryCache();
+        var recorder = new LockCommandRecorder();
+        var service = new GroupedPageService(() => new PageBuilderModuleRepository(CreateContext(database.ConnectionString, recorder)),
+            () => new SqliteContentStreamRepository(CreateContext(database.ConnectionString)), cache, new NoopEventPublisher(), NullLogger<GroupedPageService>.Instance);
+        var group = await LoadGroupAsync(database.ConnectionString);
+        var result = await service.LoadGroupContentAsync(group, cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Equal(ComponentAContent, result.Content);
+        Assert.Empty(recorder.LockedTables);
+    }
+
+    [Fact]
+    public async Task ConditionalSave_ExistingDraftRaisesOnlyOnePageEventAndRetryRaisesNone()
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        await SaveAsync(database.ConnectionString, ComponentAContent);
+        using var cache = new TestPlatformMemoryCache();
+        var events = new RecordingEventPublisher();
+        var service = CreateGroupedService(database.ConnectionString, cache, events);
+        var controller = CreateContentController(database.ConnectionString, cache, service, events);
+        var version = PageBuilderContentVersion.Create(await LoadGroupAsync(database.ConnectionString), ComponentAContent);
+        for (var attempt = 0; attempt < 2; attempt++)
+        {
+            events.Events.Clear();
+            controller.Request.Headers.IfMatch = version;
+            controller.Request.Body = new MemoryStream(Encoding.UTF8.GetBytes(ComponentBContent));
+            Assert.IsType<NoContentResult>(await controller.SavePageContent(GroupId, TestContext.Current.CancellationToken));
+            Assert.Empty(events.Events.OfType<GroupedPageBuilderPageChangingEvent>());
+            Assert.Empty(events.Events.OfType<GroupedPageBuilderPageChangedEvent>());
+            if (attempt == 0)
+            {
+                var changed = Assert.Single(events.Events.OfType<PageBuilderPageChangedEvent>());
+                Assert.Equal(PageId, Assert.Single(changed.ChangedEntries).NewEntry.Id);
+            }
+            else
+            {
+                Assert.Empty(events.Events);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task GroupedSave_NullPagesPreservesExistingMembership()
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        using var cache = new TestPlatformMemoryCache();
+        var service = CreateGroupedService(database.ConnectionString, cache);
+        var group = await service.GetByIdAsync(GroupId);
+        group.Name = "Metadata only";
+        group.Pages = null;
+        await service.SaveChangesAsync([group]);
+        var saved = await service.GetByIdAsync(GroupId);
+        Assert.Equal("Metadata only", saved.Name);
+        Assert.Equal(2, saved.Pages.Count);
+    }
+
+    [Fact]
+    public async Task GroupedSave_OriginalRepositoryContractMaintainsContentIndexes()
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        using var cache = new TestPlatformMemoryCache();
+        var service = new GroupedPageService(() =>
+        {
+            var proxy = DispatchProxy.Create<IPageBuilderModuleRepository, ServiceContractProxy>();
+            ((ServiceContractProxy)proxy).Target = new PageBuilderModuleRepository(CreateContext(database.ConnectionString));
+            return proxy;
+        }, () => new SqliteContentStreamRepository(CreateContext(database.ConnectionString)), cache, new NoopEventPublisher(), NullLogger<GroupedPageService>.Instance);
+        var group = await service.GetByIdAsync(GroupId);
+        group.Pages.Single(x => x.Id == PageId).Content = ComponentAContent;
+        await service.SaveChangesAsync([group]);
+        Assert.Equal([ComponentAId], await LoadReferenceIdsAsync(database.ConnectionString));
+        Assert.Equal([AssetAUrl], await LoadAssetUrlsAsync(database.ConnectionString));
+    }
+
+    [Theory]
+    [InlineData("42")]
+    [InlineData("true")]
+    [InlineData("{}")]
+    public void GroupSettings_RepairsNonStringMetadata(string value)
+    {
+        var group = new GroupedPageBuilderPage { Name = "Name", Permalink = "slug", CultureName = "en-US" };
+        var content = "{\"settings\":{\"name\":" + value + ",\"permalink\":" + value + ",\"cultureName\":" + value + "},\"content\":[]}";
+        var updated = JsonNode.Parse(GroupedPageService.SynchronizeContentSettings(content, group));
+        Assert.Equal("Name", updated["settings"]["name"].GetValue<string>());
+        Assert.Equal("slug", updated["settings"]["permalink"].GetValue<string>());
+        Assert.Equal("en-US", updated["settings"]["cultureName"].GetValue<string>());
+    }
+
     [Fact]
     public async Task ContentGet_RealServiceTokenSupportsTwoSuccessiveSaves()
     {
@@ -59,7 +248,7 @@ public partial class PageContentAtomicWriteTests
         {
             context.Add(new PageBuilderPageEntity
             {
-                Id = "newer-draft",
+                Id = "z-newer-draft",
                 GroupId = GroupId,
                 StoreId = StoreId,
                 Status = "Draft",
@@ -68,9 +257,9 @@ public partial class PageContentAtomicWriteTests
             });
             await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
-        Assert.DoesNotContain(cached.Pages, x => x.Id == "newer-draft");
+        Assert.DoesNotContain(cached.Pages, x => x.Id == "z-newer-draft");
         var snapshot = await service.LoadGroupContentAsync(cached, cancellationToken: TestContext.Current.CancellationToken);
-        Assert.Equal("newer-draft", snapshot.PageId);
+        Assert.Equal("z-newer-draft", snapshot.PageId);
         var written = await service.SaveGroupContentAsync(cached, UpdatedPageContent, snapshot.ETag, TestContext.Current.CancellationToken);
         Assert.Equal(snapshot.PageId, written.PageId);
         var controller = CreateContentController(database.ConnectionString, cache, service);
@@ -90,7 +279,9 @@ public partial class PageContentAtomicWriteTests
         var saved = await SaveConditionalAsync(database.ConnectionString, group, ComponentBContent, version);
         var retried = await SaveConditionalAsync(database.ConnectionString, group, ComponentBContent, version,
             _ => throw new InvalidOperationException("An identical retry must not write or rebuild indexes."));
-        Assert.Equal(saved, retried);
+        Assert.Equal(saved.PageId, retried.PageId);
+        Assert.Equal(saved.ETag, retried.ETag);
+        Assert.False(retried.ContentChanged);
     }
 
     [Fact]
@@ -116,7 +307,7 @@ public partial class PageContentAtomicWriteTests
         }
         var group = await LoadGroupAsync(database.ConnectionString);
         using var cache = new TestPlatformMemoryCache();
-        var events = new ReviewEventPublisher();
+        var events = new RecordingEventPublisher();
         var service = CreateGroupedService(database.ConnectionString, cache, events);
         var result = await service.SaveGroupContentAsync(group, ComponentAContent, PageBuilderContentVersion.Create(group, null), TestContext.Current.CancellationToken);
         var changing = Assert.Single(events.Events.OfType<GroupedPageBuilderPageChangingEvent>());
@@ -127,7 +318,9 @@ public partial class PageContentAtomicWriteTests
 
         events.Events.Clear();
         var retry = await service.SaveGroupContentAsync(group, ComponentAContent, PageBuilderContentVersion.Create(group, null), TestContext.Current.CancellationToken);
-        Assert.Equal(result, retry);
+        Assert.Equal(result.PageId, retry.PageId);
+        Assert.Equal(result.ETag, retry.ETag);
+        Assert.False(retry.ContentChanged);
         Assert.Empty(events.Events);
     }
 
@@ -176,9 +369,13 @@ public partial class PageContentAtomicWriteTests
     public async Task GroupSettings_VisibilityOnlyPreservesDocumentBytesAndVersion(bool differentContentSettings)
     {
         await using var database = await TestDatabase.CreateAsync();
-        var content = differentContentSettings
-            ? ComponentAContent.Replace("\"settings\":{}", "\"settings\":{\"name\":\"Content-owned name\"}")
-            : ComponentAContent;
+        var document = JsonNode.Parse(ComponentAContent);
+        if (differentContentSettings)
+        {
+            document["settings"]["name"] = "Content-owned name";
+        }
+        var content = document.ToJsonString();
+        Assert.Equal(differentContentSettings, content.Contains("Content-owned name", StringComparison.Ordinal));
         await SaveAsync(database.ConnectionString, content);
         using var cache = new TestPlatformMemoryCache();
         var service = CreateGroupedService(database.ConnectionString, cache);
@@ -205,7 +402,9 @@ public partial class PageContentAtomicWriteTests
             await SaveRawAsync(database.ConnectionString, SourcePageId, ComponentAContent);
         }
         else
+        {
             await SaveAsync(database.ConnectionString, ComponentAContent);
+        }
         using var cache = new TestPlatformMemoryCache();
         var service = CreateGroupedService(database.ConnectionString, cache);
         var shellModel = await service.GetByIdAsync(GroupId);
@@ -228,9 +427,9 @@ public partial class PageContentAtomicWriteTests
             () => new SqliteContentStreamRepository(CreateContext(connectionString)), cache, events ?? new NoopEventPublisher(),
             NullLogger<GroupedPageService>.Instance);
 
-    private static PageBuilderPageController CreateContentController(string connectionString, TestPlatformMemoryCache cache, GroupedPageService service)
+    private static PageBuilderPageController CreateContentController(string connectionString, TestPlatformMemoryCache cache, GroupedPageService service, IEventPublisher events = null)
     {
-        var events = new NoopEventPublisher();
+        events ??= new NoopEventPublisher();
         var pages = new PageBuilderPageService(() => new PageBuilderModuleRepository(CreateContext(connectionString)), cache, events);
         var content = new PageBuilderPageContentService(pages, service, new NoopSharedComponentReferenceIndexService(), events,
             NullLogger<PageBuilderPageContentService>.Instance);
@@ -241,7 +440,7 @@ public partial class PageContentAtomicWriteTests
         };
     }
 
-    private sealed class ReviewEventPublisher : IEventPublisher
+    private sealed class RecordingEventPublisher : IEventPublisher
     {
         public List<IEvent> Events { get; } = [];
         public Task Publish<T>(T @event, CancellationToken cancellationToken = default) where T : IEvent
@@ -249,5 +448,27 @@ public partial class PageContentAtomicWriteTests
             Events.Add(@event);
             return Task.CompletedTask;
         }
+    }
+
+    private sealed class TimestampPrecisionGroupedService(string connectionString, TestPlatformMemoryCache cache)
+        : GroupedPageService(() => new PageBuilderModuleRepository(CreateContext(connectionString)),
+            () => new SqliteContentStreamRepository(CreateContext(connectionString)), cache, new NoopEventPublisher(), NullLogger<GroupedPageService>.Instance)
+    {
+        public int SaveCount { get; private set; }
+        public override async Task SaveChangesAsync(IList<GroupedPageBuilderPage> models)
+        {
+            SaveCount++;
+            await base.SaveChangesAsync(models);
+            foreach (var model in models)
+            {
+                model.CreatedDate = model.CreatedDate.AddTicks(7);
+            }
+        }
+    }
+
+    public class ServiceContractProxy : DispatchProxy
+    {
+        public object Target { get; set; }
+        protected override object Invoke(MethodInfo targetMethod, object[] args) => targetMethod.Invoke(Target, args);
     }
 }

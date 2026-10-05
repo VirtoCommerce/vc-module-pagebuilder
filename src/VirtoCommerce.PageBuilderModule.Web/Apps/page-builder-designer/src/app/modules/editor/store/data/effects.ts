@@ -644,17 +644,30 @@ export class TemplateEditorDataEffects {
         withLatestFrom(
             this.store$.select(fromRoute.selectTemplateKeyParameter),
             this.store$.select(fromRoute.selectGroupIdParameter),
-            this.store$.select(fromShared.selectChangedTemplates),
+            this.store$.select(fromShared.selectCurrentTemplateEntry),
+            this.store$.select(fromRoute.selectPathParameter),
+            this.store$.select(fromRoute.selectTypeParameter),
             this.store$.select(selectors.isPageSaving),
             this.store$.select(selectors.isLoading),
         ),
-        filter(([, templateKey, groupId]) => !!templateKey && !!groupId),
-        map(([, templateKey, , changedTemplates, saving, loading]) => changedTemplates.some(x => x.key === templateKey) || saving || loading
-            ? shared.showNotification({
-                message: 'The assistant may have updated this page. Keep a copy of your edits, then reload the page to review and combine the changes.',
-                msgType: 'warning', top: true,
-            })
-            : actions.loadTemplateModel({ templateKey })),
+        filter(([, templateKey, groupId, , , , saving, loading]) => !!templateKey && !!groupId && !saving && !loading),
+        switchMap(([, templateKey, groupId, entry, path, type]) => this.templates.hasPageChanged(path, type, entry || {}, groupId).pipe(
+            filter(changed => changed),
+            withLatestFrom(
+                this.store$.select(fromRoute.selectTemplateKeyParameter),
+                this.store$.select(fromShared.selectChangedTemplates),
+                this.store$.select(selectors.isPageSaving),
+                this.store$.select(selectors.isLoading),
+            ),
+            filter(([, currentKey, , saving, loading]) => currentKey === templateKey && !saving && !loading),
+            map(([, , changedTemplates]) => changedTemplates.some(x => x.key === templateKey)
+                ? shared.showNotification({
+                    message: 'This page has changed on the server. Keep a copy of your edits, then reload the page to review and combine the changes.',
+                    msgType: 'warning', top: true,
+                })
+                : actions.loadTemplateModel({ templateKey })),
+            catchError(() => of(shared.empty())),
+        )),
     ));
 
     resetTemplate$ = createEffect(() => this.actions$.pipe(

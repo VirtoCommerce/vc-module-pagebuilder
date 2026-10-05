@@ -28,6 +28,7 @@ describe('TemplateEditorDataEffects', () => {
     let appConfig: { getValue: ReturnType<typeof vi.fn> };
     let templatesService: {
         getTemplate: ReturnType<typeof vi.fn>;
+        hasPageChanged: ReturnType<typeof vi.fn>;
         saveTemplates: ReturnType<typeof vi.fn>;
         getTemplatePublishStatus: ReturnType<typeof vi.fn>;
         publishTemplate: ReturnType<typeof vi.fn>;
@@ -51,6 +52,7 @@ describe('TemplateEditorDataEffects', () => {
         appConfig = { getValue: vi.fn().mockReturnValue(true) };
         templatesService = {
             getTemplate: vi.fn().mockReturnValue(of(template)),
+            hasPageChanged: vi.fn().mockReturnValue(of(true)),
             saveTemplates: vi.fn().mockReturnValue(of(null)),
             getTemplatePublishStatus: vi.fn().mockReturnValue(of({ hasChanges: false, published: true })),
             publishTemplate: vi.fn().mockReturnValue(of(null)),
@@ -699,8 +701,6 @@ describe('TemplateEditorDataEffects', () => {
         it.each([
             { dirty: false, saving: false, loading: false, reload: true },
             { dirty: true, saving: false, loading: false, reload: false },
-            { dirty: false, saving: true, loading: false, reload: false },
-            { dirty: false, saving: false, loading: true, reload: false },
         ])('reloads only a clean idle document: %j', async ({ dirty, saving, loading, reload }) => {
             store.overrideSelector(fromRoute.selectGroupIdParameter, 'page-group-1');
             store.overrideSelector(fromShared.selectChangedTemplates, dirty
@@ -712,6 +712,41 @@ describe('TemplateEditorDataEffects', () => {
             const result = firstValueFrom(effects.refreshFromAssistant$);
             actions$.next(actions.refreshTemplateFromAssistant());
             expect((await result).type).toBe(reload ? actions.loadTemplateModel.type : sharedActions.showNotification.type);
+        });
+
+        it.each([
+            { changed: false, saving: false, loading: false },
+            { changed: true, saving: true, loading: false },
+            { changed: true, saving: false, loading: true },
+        ])('does not warn or reload an unchanged or busy page: %j', ({ changed, saving, loading }) => {
+            store.overrideSelector(fromRoute.selectGroupIdParameter, 'page-group-1');
+            store.overrideSelector(fromShared.selectChangedTemplates, []);
+            store.overrideSelector(selectors.isPageSaving, saving);
+            store.overrideSelector(selectors.isLoading, loading);
+            store.refreshState();
+            templatesService.hasPageChanged.mockReturnValue(of(changed));
+            const emitted: Action[] = [];
+            const subscription = effects.refreshFromAssistant$.subscribe(action => emitted.push(action));
+            actions$.next(actions.refreshTemplateFromAssistant());
+            expect(emitted).toEqual([]);
+            expect(templatesService.hasPageChanged).toHaveBeenCalledTimes(saving || loading ? 0 : 1);
+            subscription.unsubscribe();
+        });
+
+        it('checks dirty state again after the version request completes', async () => {
+            const changed = new Subject<boolean>();
+            templatesService.hasPageChanged.mockReturnValue(changed);
+            store.overrideSelector(fromRoute.selectGroupIdParameter, 'page-group-1');
+            store.overrideSelector(fromShared.selectChangedTemplates, []);
+            store.overrideSelector(selectors.isPageSaving, false);
+            store.overrideSelector(selectors.isLoading, false);
+            store.refreshState();
+            const result = firstValueFrom(effects.refreshFromAssistant$);
+            actions$.next(actions.refreshTemplateFromAssistant());
+            store.overrideSelector(fromShared.selectChangedTemplates, [{ key: 'home', parent: 'pages', name: 'Home', entry: createEntry(), state: { id: 'home', isDirty: true } }]);
+            store.refreshState();
+            changed.next(true);
+            expect((await result).type).toBe(sharedActions.showNotification.type);
         });
     });
 

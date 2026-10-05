@@ -62,4 +62,21 @@ describe('NgvMarkdownComponent document refresh', () => {
         expect(editor.setValue).toHaveBeenCalledTimes(1);
         expect(editor.clearHistory).toHaveBeenCalledTimes(1);
     });
+
+    it.each([' ', '\n', 'Hello ', '#', '-', '*', '1.', 'Hello\n-', 'a_'])('retains literal typing and undo when HTML echoes back: %s', async markdown => {
+        fixture.componentInstance.valueChanged.subscribe(value => {
+            fixture.componentRef.setInput('value', { markdown: '', html: value.html });
+        });
+        editor.value = markdown;
+        editor.change?.();
+        await fixture.whenStable();
+        expect(editor.value).toBe(markdown);
+        expect(editor.setValue).toHaveBeenCalledTimes(1);
+        expect(editor.clearHistory).toHaveBeenCalledTimes(1);
+
+        fixture.componentRef.setInput('value', { markdown: '', html: '<p>External update</p>' });
+        await fixture.whenStable();
+        expect(editor.value).toBe('External update');
+        expect(editor.clearHistory).toHaveBeenCalledTimes(2);
+    });
 });

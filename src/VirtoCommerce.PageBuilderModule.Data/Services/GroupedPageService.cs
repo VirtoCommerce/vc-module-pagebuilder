@@ -56,9 +56,10 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
 
         private async Task SaveChangesInternalAsync(
             IList<GroupedPageBuilderPage> models,
-            Func<IPageBuilderModuleRepository, IList<GroupedPageBuilderPageEntity>, CancellationToken, Task<bool>> prepare = null,
+            Func<IPageBuilderModuleRepository, IList<GroupedPageBuilderPageEntity>, CancellationToken, Task<PreparedSave>> prepare = null,
             CancellationToken cancellationToken = default)
         {
+            var publishGroupedEvents = true;
             var primaryKeyMap = new PrimaryKeyResolvingMap();
             var changedEntries = new GenericChangedEntry<GroupedPageBuilderPage>[models.Count];
             var changedEntities = new GroupedPageBuilderPageEntity[models.Count];
@@ -74,9 +75,15 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
                 async Task SaveInternalAsync(CancellationToken ct)
                 {
                     var existingEntities = await LoadExistingEntities(repository, models);
-                    if (prepare != null && !await prepare(repository, existingEntities, ct))
+                    if (prepare != null)
                     {
-                        return;
+                        var prepared = await prepare(repository, existingEntities, ct);
+                        if (prepared == null)
+                        {
+                            return;
+                        }
+                        models = [prepared.Model];
+                        publishGroupedEvents = prepared.PublishGroupedEvents;
                     }
                     await PrepareModelsForSaveAsync(
                         models,
@@ -87,44 +94,19 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
 
                     // Load only the content explicitly supplied for update, so Patch changes the tracked
                     // table-split dependent rather than inserting a second one for the same page.
-                    var contentPageIds = models.SelectMany(x => x.Pages)
+                    var contentPageIds = models.SelectMany(x => x.Pages ?? [])
                         .Where(x => x.Content != null && !string.IsNullOrEmpty(x.Id)).Select(x => x.Id).ToArray();
-                    await repository.PageBuilderContents.Where(x => contentPageIds.Contains(x.Id)).LoadAsync(ct);
-
-                    for (var index = 0; index < models.Count; index++)
+                    if (contentPageIds.Length > 0)
                     {
-                        var model = models[index];
-                        var originalEntity = FindExistingEntity(existingEntities, model);
-                        var modifiedEntity = FromModel(model, primaryKeyMap);
-
-                        if (originalEntity != null)
-                        {
-                            repository.TrackModifiedAsAddedForNewChildEntities(originalEntity);
-
-                            var originalModel = ToModel(originalEntity, model: null);
-                            originalModels.Add(originalModel);
-                            changedEntries[index] = new GenericChangedEntry<GroupedPageBuilderPage>(
-                                model,
-                                originalModel,
-                                EntryState.Modified);
-                            modifiedEntity.Patch(originalEntity);
-                            originalEntity.ModifiedDate = DateTime.UtcNow;
-
-                            changedEntities[index] = originalEntity;
-                        }
-                        else
-                        {
-                            repository.Add(modifiedEntity);
-                            changedEntries[index] = new GenericChangedEntry<GroupedPageBuilderPage>(
-                                model,
-                                EntryState.Added);
-                            changedEntities[index] = modifiedEntity;
-                        }
+                        await repository.PageBuilderContents.Where(x => contentPageIds.Contains(x.Id)).LoadAsync(ct);
                     }
 
-                    await _eventPublisher.Publish(
-                        EventFactory<GroupedPageBuilderPageChangingEvent>(changedEntries),
-                        ct);
+                    ApplyEntityChanges(repository, models, existingEntities, primaryKeyMap, changedEntries, changedEntities, originalModels);
+
+                    if (publishGroupedEvents)
+                    {
+                        await _eventPublisher.Publish(EventFactory<GroupedPageBuilderPageChangingEvent>(changedEntries), ct);
+                    }
                     await CommitAsync(repository);
                     primaryKeyMap.ResolvePrimaryKeys();
                     await RebuildWrittenContentIndexesAsync(repository, models, ct);
@@ -136,13 +118,10 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
                     cancellationToken);
             }
 
-            // A no-op conditional retry leaves the entries unset and must not publish save events.
-            if (models.Count > 0 && changedEntries[0] == null)
+            if (changedEntries.All(x => x == null))
             {
                 return;
             }
-
-            primaryKeyMap.ResolvePrimaryKeys();
 
             ClearCache(originalModels);
             ClearCache(models);
@@ -154,7 +133,40 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
             }
 
             await AfterSaveChangesAsync(models, changedEntries);
-            await _eventPublisher.Publish(EventFactory<GroupedPageBuilderPageChangedEvent>(changedEntries), CancellationToken.None);
+            if (publishGroupedEvents)
+            {
+                await _eventPublisher.Publish(EventFactory<GroupedPageBuilderPageChangedEvent>(changedEntries), CancellationToken.None);
+            }
+        }
+
+        private void ApplyEntityChanges(
+            IPageBuilderModuleRepository repository, IList<GroupedPageBuilderPage> models,
+            IList<GroupedPageBuilderPageEntity> existingEntities, PrimaryKeyResolvingMap primaryKeyMap,
+            GenericChangedEntry<GroupedPageBuilderPage>[] changedEntries, GroupedPageBuilderPageEntity[] changedEntities,
+            List<GroupedPageBuilderPage> originalModels)
+        {
+            for (var index = 0; index < models.Count; index++)
+            {
+                var model = models[index];
+                var originalEntity = FindExistingEntity(existingEntities, model);
+                var modifiedEntity = FromModel(model, primaryKeyMap);
+                if (originalEntity != null)
+                {
+                    repository.TrackModifiedAsAddedForNewChildEntities(originalEntity);
+                    var originalModel = ToModel(originalEntity, model: null);
+                    originalModels.Add(originalModel);
+                    changedEntries[index] = new GenericChangedEntry<GroupedPageBuilderPage>(model, originalModel, EntryState.Modified);
+                    modifiedEntity.Patch(originalEntity);
+                    originalEntity.ModifiedDate = DateTime.UtcNow;
+                    changedEntities[index] = originalEntity;
+                }
+                else
+                {
+                    repository.Add(modifiedEntity);
+                    changedEntries[index] = new GenericChangedEntry<GroupedPageBuilderPage>(model, EntryState.Added);
+                    changedEntities[index] = modifiedEntity;
+                }
+            }
         }
 
         private static async Task RebuildWrittenContentIndexesAsync(
@@ -162,14 +174,48 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
         {
             foreach (var group in models)
             {
-                foreach (var page in group.Pages.Where(x => x.Content != null))
+                foreach (var page in (group.Pages ?? []).Where(x => x.Content != null))
                 {
-                    if (repository is not IPageBuilderContentIndexRepository indexes)
+                    if (repository is IPageBuilderContentIndexRepository indexes)
                     {
-                        throw new NotSupportedException("The page repository must support transactional content reference indexing.");
+                        await indexes.RebuildPageContentIndexesAsync(page.Id, page.Content, group.StoreId, cancellationToken);
                     }
-                    await indexes.RebuildPageContentIndexesAsync(page.Id, page.Content, group.StoreId, cancellationToken);
+                    else
+                    {
+                        await RebuildIndexesWithRepositoryAsync(repository, page, group.StoreId, cancellationToken);
+                    }
                 }
+            }
+        }
+
+        // Older repository decorators expose the original query, lock and indexing contracts.
+        private static async Task RebuildIndexesWithRepositoryAsync(
+            IPageBuilderModuleRepository repository, PageBuilderPage page, string storeId, CancellationToken cancellationToken)
+        {
+            var componentIds = PageBuilderWriteLock.OrderIds(PageBuilderSharedComponentReferenceMatcher.ExtractReferences(page.Content));
+            var rebuilt = await repository.ExecuteUnderSharedComponentWriteLocksAsync(componentIds, async ct =>
+            {
+                await PageBuilderSharedComponentReferenceIndexService.ValidateComponentsAsync(repository, componentIds, page.StoreId ?? storeId, ct);
+                var references = await repository.PageBuilderSharedComponentReferences.Where(x => x.PageId == page.Id).ToListAsync(ct);
+                foreach (var reference in references)
+                {
+                    repository.Remove(reference);
+                }
+                foreach (var componentId in componentIds)
+                {
+                    repository.Add(new PageBuilderSharedComponentReferenceEntity
+                    {
+                        Id = Guid.NewGuid().ToString("N"),
+                        PageId = page.Id,
+                        SharedComponentId = componentId,
+                    });
+                }
+                await repository.RebuildPageAssetReferenceIndexAsync(page.Id, ct);
+                await repository.UnitOfWork.CommitAsync();
+            }, cancellationToken);
+            if (!rebuilt)
+            {
+                throw new InvalidDataException("A referenced Shared Component no longer exists.");
             }
         }
 
@@ -248,7 +294,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
                     continue;
                 }
 
-                foreach (var page in group.Pages)
+                foreach (var page in group.Pages ?? [])
                 {
                     page.StoreId = group.StoreId;
                 }
@@ -380,16 +426,18 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
             await SaveStreamAsContentAsync(pageId, memoryStream, cancellationToken);
         }
 
-        public async Task<PageBuilderConditionalContentWriteResult> SaveGroupContentAsync(
+        public virtual async Task<PageBuilderConditionalContentWriteResult> SaveGroupContentAsync(
             GroupedPageBuilderPage authorizedGroup, string content, string expectedETag,
             CancellationToken cancellationToken = default)
         {
-            var models = new List<GroupedPageBuilderPage> { authorizedGroup };
+            GroupedPageBuilderPage savedGroup = authorizedGroup;
             string pageId = null;
-            await SaveChangesInternalAsync(models, async (repository, entities, ct) =>
+            var contentChanged = false;
+            var groupEventsPublished = false;
+            await SaveChangesInternalAsync([authorizedGroup], async (repository, entities, ct) =>
             {
                 var current = GetAuthorizedGroup(authorizedGroup, entities);
-                models[0] = current;
+                savedGroup = current;
                 var snapshot = await ReadContentAsync(repository, current, draft: true, ct);
                 if (!string.Equals(snapshot.ETag, expectedETag, StringComparison.Ordinal))
                 {
@@ -400,35 +448,36 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
                         throw new PageBuilderContentConflictException();
                     }
                     pageId = snapshot.PageId;
-                    return false;
+                    return null;
                 }
 
+                groupEventsPublished = !current.Pages.Any(x => x.Status == Draft);
                 var target = GetOrAddDraft(current);
                 target.Content = content;
                 pageId = target.Id;
-                return true;
+                contentChanged = true;
+                return new PreparedSave(current, groupEventsPublished);
             }, cancellationToken);
 
             // The token depends only on the locked group's identity and the submitted document.
             // Hashing the next version does not need to keep database locks held.
-            return new(pageId, PageBuilderContentVersion.Create(models[0], content));
+            return new(pageId, PageBuilderContentVersion.Create(savedGroup, content))
+            {
+                ContentChanged = contentChanged,
+                GroupEventsPublished = groupEventsPublished,
+            };
         }
 
-        public async Task<PageBuilderContentSnapshot> LoadGroupContentAsync(
+        public virtual async Task<PageBuilderContentSnapshot> LoadGroupContentAsync(
             GroupedPageBuilderPage authorizedGroup, bool draft = true, CancellationToken cancellationToken = default)
         {
             using var repository = _repositoryFactory();
-            PageBuilderContentSnapshot result = null;
-            await repository.ExecuteUnderGroupedPageWriteLocksAsync([authorizedGroup.Id], async ct =>
-            {
-                var entities = await repository.GetGroupedPageBuilderPagesByIdsAsync([authorizedGroup.Id], null);
-                var current = GetAuthorizedGroup(authorizedGroup, entities);
-                result = await ReadContentAsync(repository, current, draft, ct);
-            }, cancellationToken);
-            return result;
+            var entities = await repository.GetGroupedPageBuilderPagesByIdsAsync([authorizedGroup.Id], null);
+            var current = GetAuthorizedGroup(authorizedGroup, entities);
+            return await ReadContentAsync(repository, current, draft, cancellationToken);
         }
 
-        public Task SaveGroupSettingsAsync(GroupedPageBuilderPage group, CancellationToken cancellationToken = default)
+        public virtual Task SaveGroupSettingsAsync(GroupedPageBuilderPage group, CancellationToken cancellationToken = default)
         {
             return SaveChangesInternalAsync([group], async (repository, entities, ct) =>
             {
@@ -447,14 +496,14 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
                 var snapshot = await ReadContentAsync(repository, group, draft: true, ct);
                 if (!settingsChanged && snapshot.Content != null)
                 {
-                    return true;
+                    return new PreparedSave(group);
                 }
                 var updated = SynchronizeContentSettings(snapshot.Content, group);
                 if (!string.Equals(updated, snapshot.Content, StringComparison.Ordinal))
                 {
                     GetOrAddDraft(group).Content = updated;
                 }
-                return true;
+                return new PreparedSave(group);
             }, cancellationToken);
         }
 
@@ -508,8 +557,8 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
                 return content;
             }
             var settings = root["settings"] as JsonObject;
-            if (settings != null && (string)settings["name"] == group.Name
-                && (string)settings["permalink"] == group.Permalink && (string)settings["cultureName"] == group.CultureName)
+            if (settings != null && HasStringValue(settings["name"], group.Name)
+                && HasStringValue(settings["permalink"], group.Permalink) && HasStringValue(settings["cultureName"], group.CultureName))
             {
                 return content;
             }
@@ -520,6 +569,11 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
             settings["cultureName"] = group.CultureName;
             return root.ToJsonString();
         }
+
+        private static bool HasStringValue(JsonNode node, string expected)
+            => node == null ? expected == null : node is JsonValue value && value.TryGetValue<string>(out var text) && text == expected;
+
+        private sealed record PreparedSave(GroupedPageBuilderPage Model, bool PublishGroupedEvents = true);
 
         public async Task<bool> LoadContentToStreamAsync(string pageId, Stream stream, CancellationToken cancellationToken = default)
         {

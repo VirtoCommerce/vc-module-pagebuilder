@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.Models;
@@ -14,13 +15,26 @@ using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 
 namespace VirtoCommerce.PageBuilderModule.Web.Services;
 
+[method: ActivatorUtilitiesConstructor]
 public sealed class PageBuilderPageContentService(
     IPageBuilderPageService pageService,
     IGroupedPageService groupedPageService,
     IPageBuilderSharedComponentReferenceIndexService sharedComponentReferenceIndexService,
     IEventPublisher eventPublisher,
-    ILogger<PageBuilderPageContentService> logger)
+    ILogger<PageBuilderPageContentService> logger,
+    IGroupedPageContentService versionedContent)
 {
+    public PageBuilderPageContentService(
+        IPageBuilderPageService pageService,
+        IGroupedPageService groupedPageService,
+        IPageBuilderSharedComponentReferenceIndexService sharedComponentReferenceIndexService,
+        IEventPublisher eventPublisher,
+        ILogger<PageBuilderPageContentService> logger)
+        : this(pageService, groupedPageService, sharedComponentReferenceIndexService, eventPublisher, logger,
+            groupedPageService as IGroupedPageContentService)
+    {
+    }
+
     public bool HasSharedComponentReferences(string content)
     {
         return PageBuilderSharedComponentReferenceMatcher.HasReferences(content);
@@ -37,9 +51,14 @@ public sealed class PageBuilderPageContentService(
             cancellationToken);
     }
 
-    private IGroupedPageContentService VersionedContent => groupedPageService as IGroupedPageContentService
-        ?? throw new NotSupportedException("The grouped page service must implement IGroupedPageContentService.");
+    private IGroupedPageContentService VersionedContent => versionedContent
+        ?? throw new InvalidOperationException("Supply IGroupedPageContentService when constructing a custom content service.");
 
+    public Task<PageBuilderContentSnapshot> LoadGroupContentAsync(
+        GroupedPageBuilderPage group, bool draft, CancellationToken cancellationToken)
+        => VersionedContent.LoadGroupContentAsync(group, draft, cancellationToken);
+
+    /// <summary>The source page is selected from current membership under the group lock; sourcePageId is retained for compatibility.</summary>
     public async Task<PageBuilderPageContentWriteResult> SaveGroupUpdateAsync(
         GroupedPageBuilderPage groupedPage,
         string sourcePageId,
@@ -58,14 +77,13 @@ public sealed class PageBuilderPageContentService(
         }
     }
 
+    /// <summary>The draft is selected under the group lock; pageId is retained for compatibility.</summary>
     public async Task UpdateGroupSettingsAsync(
         string pageId,
         GroupedPageBuilderPage groupedPage,
         CancellationToken cancellationToken)
     {
         await VersionedContent.SaveGroupSettingsAsync(groupedPage, cancellationToken);
-        var updatedPage = PageBuilderPageSelection.Order(groupedPage.Pages).FirstOrDefault();
-        await RaisePageContentChangedAsync(updatedPage?.Id, cancellationToken);
     }
 
     public async Task<PageBuilderPageContentWriteResult> SaveContentAsync(
@@ -95,7 +113,10 @@ public sealed class PageBuilderPageContentService(
         GroupedPageBuilderPage group, string content, string expectedETag, CancellationToken cancellationToken)
     {
         var result = await VersionedContent.SaveGroupContentAsync(group, content, expectedETag, cancellationToken);
-        await RaisePageContentChangedAsync(result.PageId, cancellationToken);
+        if (result.ContentChanged && !result.GroupEventsPublished)
+        {
+            await RaisePageContentChangedAsync(result.PageId, cancellationToken);
+        }
         return result;
     }
 

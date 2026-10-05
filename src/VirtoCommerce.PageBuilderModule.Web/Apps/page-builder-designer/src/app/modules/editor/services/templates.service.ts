@@ -71,6 +71,20 @@ export class TemplatesService {
         });
     }
 
+    hasPageChanged(path: string, type: string, template: TemplateEntry, groupId: string): Observable<boolean> {
+        const version = this.pageVersions.get(groupId);
+        if (!version) return of(false);
+        const entry = { ...template, path, groupId };
+        const descriptor = this.appConfig.getValueByEntryType('templateUrl', { item: entry, type, path, groupId }, entry.type || type);
+        const request = this.http.generateRequest(descriptor, { item: entry });
+        for (const item of Array.isArray(request) ? request : [request]) {
+            if (item && typeof item !== 'string') item.cacheable = false;
+        }
+        return this.http.doRequest<{ eTag?: string }>(request, { nullWhenError: false }, null).pipe(
+            map(result => this.pageVersions.get(groupId) === version && !!result?.eTag && result.eTag !== version.eTag),
+        );
+    }
+
     getTemplatePublishStatus(path: string, type: string, entry: TemplateEntry, groupId: string): Observable<PublishStatus | null> {
         const value = groupId ? 'publishPages' : 'publish';
         const publishStatusUrls = this.appConfig.getValueByEntryType(value, { item: entry, type, path, groupId }, entry.type || type);
@@ -135,13 +149,15 @@ export class TemplatesService {
      */
     getPageHistory(path: string, type: string, entry: TemplateEntry, groupId: string, after?: string): Observable<PageHistory | null> {
         const context = { item: entry, type, path, groupId };
-        const history = this.appConfig.getValue('history', context);
+        const history = this.http.generateRequest(this.appConfig.getContext().config.history, null, context);
+        if (!history || typeof history === 'string' || Array.isArray(history)) {
+            return of(null);
+        }
         if (!history?.url) {
             return of(null);
         }
         const url = after ? `${history.url}&after=${encodeURIComponent(after)}` : history.url;
-        const request = this.http.generateRequest(url, null, context);
-        return this.http.doRequest<PageHistory>(request, { nullWhenError: false }, null);
+        return this.http.doRequest<PageHistory>({ ...history, url }, { nullWhenError: false }, null);
     }
 
     /**
@@ -150,7 +166,7 @@ export class TemplatesService {
      */
     restoreVersion(path: string, type: string, entry: TemplateEntry, groupId: string, sha: string): Observable<{ branch: string, commitSha: string } | null> {
         const context = { item: entry, type, path, groupId, sha };
-        const restore = this.appConfig.getValue('history', context)?.restore;
+        const restore = this.appConfig.getContext().config.history?.restore;
         const request = this.http.generateRequest(restore, null, context);
         return this.http.doRequest<{ branch: string, commitSha: string }>(request, { nullWhenError: false }, null);
     }
@@ -165,7 +181,7 @@ export class TemplatesService {
 
     saveGroupedPage(groupId: string, pageContent: any): Observable<any> {
         const context = { groupId, content: pageContent };
-        // Evaluate the descriptor once. A second evaluation would execute template syntax in page text.
+        // Evaluate the raw descriptor once.
         const descriptor = this.appConfig.getContext().config.saveGroupedPage;
         const request = this.http.generateRequest(descriptor, null, context);
         const requests = Array.isArray(request) ? request : [request];
@@ -214,7 +230,7 @@ export class TemplatesService {
                 content: helpers.prepareTemplateForSave(template.content)
             }));
         const context = { templatesToSave };
-        const saveTemplates = this.appConfig.getValue('saveTemplates', context);
+        const saveTemplates = this.appConfig.getContext().config.saveTemplates;
         const request = this.http.generateRequest(saveTemplates, null, context);
         return this.http.doRequest(request);
     }

@@ -34,6 +34,7 @@ export class NgvMarkdownComponent {
 
   private easyMDE: EasyMDE | null = null;
   private applyingExternalValue = false;
+  private lastEmittedValue: MarkdownModel | null = null;
   private resizeObserver: ResizeObserver | null = null;
   private readonly turndown = new TurndownService({
     headingStyle: 'atx',
@@ -114,6 +115,12 @@ export class NgvMarkdownComponent {
 
   private setValue(value: MarkdownModel): void {
     if (this.easyMDE) {
+      if (this.lastEmittedValue && (value?.markdown
+        ? value.markdown === this.lastEmittedValue.markdown
+        : (value?.html || null) === (this.lastEmittedValue.html || null))) {
+        return;
+      }
+      this.lastEmittedValue = null;
       const mdValue = value?.markdown || this.turndown.turndown(value?.html || '');
       if (this.easyMDE.value() === mdValue) {
         return;
@@ -181,7 +188,8 @@ export class NgvMarkdownComponent {
       }
       const markdown: string | null = this.easyMDE?.value() || null;
       const html = markdown ? marked(markdown) as unknown as string : null;
-      this.valueChanged.emit({ markdown, html });
+      this.lastEmittedValue = { markdown, html };
+      this.valueChanged.emit(this.lastEmittedValue);
     });
   }
 

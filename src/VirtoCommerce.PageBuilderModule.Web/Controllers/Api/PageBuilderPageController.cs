@@ -155,11 +155,20 @@ public class PageBuilderPageController : Controller
         draftPage.Id = null;
         draftPage.Status = Draft; // always create a new page in draft status
         draftPage.StoreId = model.StoreId;
+        draftPage.Content = new JsonObject
+        {
+            ["settings"] = new JsonObject
+            {
+                ["name"] = model.Name,
+                ["permalink"] = model.Permalink,
+                ["cultureName"] = model.CultureName,
+            },
+            ["content"] = new JsonArray(),
+        }.ToJsonString();
 
         model.Pages.Add(draftPage);
 
         await groupedPageService.SaveChangesAsync([model]);
-        await pageContentService.UpdateGroupSettingsAsync(draftPage.Id, model, cancellationToken);
 
         return Ok(model);
     }
@@ -461,9 +470,7 @@ public class PageBuilderPageController : Controller
         PageBuilderContentSnapshot snapshot;
         try
         {
-            var versioned = groupedPageService as IGroupedPageContentService
-                ?? throw new NotSupportedException("The grouped page service must implement IGroupedPageContentService.");
-            snapshot = await versioned.LoadGroupContentAsync(group, draft, cancellationToken);
+            snapshot = await pageContentService.LoadGroupContentAsync(group, draft, cancellationToken);
         }
         catch (KeyNotFoundException)
         {
@@ -829,7 +836,9 @@ public class PageBuilderPageController : Controller
 
     private static string GetCopySourcePageId(GroupedPageBuilderPage sourceGroup)
     {
-        return PageBuilderPageSelection.Order(sourceGroup.Pages)
+        return sourceGroup.Pages.Where(x => x.Status == Draft || x.Status == Published)
+            .OrderByDescending(x => x.ModifiedDate)
+            .ThenBy(x => x.Id, StringComparer.Ordinal)
             .Select(x => x.Id)
             .FirstOrDefault();
     }

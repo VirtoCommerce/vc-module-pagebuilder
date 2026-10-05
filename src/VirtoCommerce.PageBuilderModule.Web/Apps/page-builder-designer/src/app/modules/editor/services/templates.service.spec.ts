@@ -5,9 +5,10 @@ import { AppConfig, BuilderHttpClient, EvaluatorService } from '@integration/ser
 
 import { CookieService } from 'ngx-cookie-service';
 import { EnvironmentRef } from '@integration/services/environment.ref';
-import { createEntry } from '@app/testing';
+import { createEntry, createSection, createTemplate } from '@app/testing';
 
 import { TemplatesService } from './templates.service';
+import settings from '../../../../data/settings.json';
 
 describe('TemplatesService page versions', () => {
     let service: TemplatesService;
@@ -248,6 +249,58 @@ describe('TemplatesService page versions', () => {
         const retry = requests.expectOne(url('one'));
         expect(retry.request.headers.get('If-Match')).toBe('"v2"');
         retry.flush({ eTag: '"v3"' });
+    });
+
+    it('preserves literal expressions in theme template content', () => {
+        config.initConfigWith({ saveTemplates: { ...settings.saveTemplates, url: '/theme/save' } });
+        const text = '{{=1+1}} {{config.secret}} @{{1+1}}';
+        service.saveTemplates([{ entry: createEntry({ path: 'page.json', type: 'pages' }), content: createTemplate({
+            content: [createSection({ id: 'text', type: 'text', text })],
+        }) }]).subscribe();
+        const save = requests.expectOne('/theme/save');
+        const files = JSON.parse(save.request.body.files);
+        expect(files[0].content.content[0].text).toBe(text);
+        save.flush(null);
+    });
+
+    it('preserves literal path and revision values in history requests', () => {
+        config.initConfigWith({ history: {
+            url: '/history?path={{path}}',
+            restore: { url: '/restore/{{sha}}', method: 'POST' },
+            preview: { url: '/preview/{{sha}}' },
+        } });
+        const literal = 'literal{{=1+1}}';
+        service.getPageHistory(literal, 'pages', createEntry(), '', 'next').subscribe();
+        requests.expectOne('/history?path=' + literal + '&after=next').flush({ items: [] });
+        service.restoreVersion('', 'pages', createEntry(), '', literal).subscribe();
+        requests.expectOne('/restore/' + literal).flush({ branch: 'branch', commitSha: literal });
+        const open = vi.spyOn(window, 'open').mockReturnValue(null);
+        service.previewVersion('', 'pages', createEntry(), '', literal);
+        expect(open).toHaveBeenCalledWith('/preview/' + literal, '_blank');
+        open.mockRestore();
+    });
+
+    it.each(['"v1"', '"v2"'])('compares the remote version without replacing the local document token: %s', remoteVersion => {
+        load('one', '"v1"');
+        let changed: boolean | undefined;
+        service.hasPageChanged('', 'pages', createEntry({ type: 'pages' }), 'one').subscribe(value => changed = value);
+        requests.expectOne(url('one')).flush({ content: JSON.stringify(document), eTag: remoteVersion });
+        expect(changed).toBe(remoteVersion !== '"v1"');
+        service.saveGroupedPage('one', document).subscribe();
+        const save = requests.expectOne(url('one'));
+        expect(save.request.headers.get('If-Match')).toBe('"v1"');
+        save.flush({ eTag: '"v3"' });
+    });
+
+    it('discards a version probe if the document was saved while it was pending', () => {
+        load('one', '"v1"');
+        let changed: boolean | undefined;
+        service.hasPageChanged('', 'pages', createEntry({ type: 'pages' }), 'one').subscribe(value => changed = value);
+        const probe = requests.expectOne(url('one'));
+        service.saveGroupedPage('one', document).subscribe();
+        requests.expectOne(url('one')).flush({ eTag: '"v2"' });
+        probe.flush({ content: JSON.stringify(document), eTag: '"old-probe"' });
+        expect(changed).toBe(false);
     });
 
 });

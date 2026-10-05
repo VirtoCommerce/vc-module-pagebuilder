@@ -75,7 +75,7 @@ public partial class PageContentAtomicWriteTests
     }
 
     // SQLite serializes whole transactions: these races prove transaction-level atomicity.
-    // Provider row-lock behavior is exercised separately against a live SQL Server.
+    // Provider row-lock behavior was checked manually against SQL Server; this suite does not cover it.
     [Fact]
     public async Task ConditionalSave_ConcurrentAuthorsWithSameVersionHaveOneWinner()
     {

@@ -6,7 +6,7 @@ public static class PageBuilderPageSelection
 {
     private const int ArchivedPriority = 2;
 
-    // Use the same authority and tie-break order for reading, saving, publishing and copying.
+    // Use the same authority and tie-break order for authoring reads, saves, publishing and migration.
     public static IOrderedEnumerable<PageBuilderPage> Order(IEnumerable<PageBuilderPage> pages, bool draft = true)
     {
         return pages.Where(x => (draft && x.Status == Draft) || x.Status is Published or Archived)
