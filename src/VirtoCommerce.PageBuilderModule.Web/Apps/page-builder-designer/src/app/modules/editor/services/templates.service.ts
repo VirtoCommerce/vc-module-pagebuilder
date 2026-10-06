@@ -51,7 +51,7 @@ export class TemplatesService {
         return defer(() => {
             const probe = this.probedPages.get(groupId);
             this.probedPages.delete(groupId);
-            const response = useProbedContent && probe?.version === this.pageVersions.get(groupId) ? probe?.response : null;
+            const response = useProbedContent && probe && probe.version === this.pageVersions.get(groupId) ? probe.response : null;
             const request = this.http.generateRequest(templateUrl, null, { item: entry, type, path, groupId });
             // Reloads own a new document/version pair, including while a save is pending.
             this.pageVersions.delete(groupId);

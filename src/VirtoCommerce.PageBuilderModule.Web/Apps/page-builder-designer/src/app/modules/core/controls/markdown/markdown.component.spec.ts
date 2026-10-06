@@ -4,7 +4,22 @@ import { AssetsService } from '@core/services';
 import { MarkdownComponent } from './markdown.component';
 
 describe('MarkdownComponent HTML form feedback', () => {
-    afterEach(() => { TestBed.resetTestingModule(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+    const rangeMethods = ['getBoundingClientRect', 'getClientRects'] as const;
+    const originalRangeDescriptors = rangeMethods.map(method => Object.getOwnPropertyDescriptor(Range.prototype, method));
+
+    afterEach(() => {
+        TestBed.resetTestingModule();
+        rangeMethods.forEach((method, index) => {
+            const descriptor = originalRangeDescriptors[index];
+            if (descriptor) {
+                Object.defineProperty(Range.prototype, method, descriptor);
+            } else {
+                Reflect.deleteProperty(Range.prototype, method);
+            }
+        });
+        vi.restoreAllMocks();
+        vi.unstubAllGlobals();
+    });
 
     it('retains Enter, blank lines and undo when an equal HTML string is not written back by the form', async () => {
         vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} });

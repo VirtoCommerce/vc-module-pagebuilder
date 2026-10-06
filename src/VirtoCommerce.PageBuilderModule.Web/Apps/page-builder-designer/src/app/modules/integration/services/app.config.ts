@@ -52,7 +52,11 @@ export class AppConfig {
     return source[type ?? 'default'] ?? source['default'] ?? source;
   }
 
-  /** Select a descriptor before evaluating it with the request context. */
+  /**
+   * Select a descriptor before evaluating it with the request context.
+   * Type entries must be literal descriptors: fallback uses raw null/undefined entries,
+   * not expressions that evaluate to null. Expressions inside the selected descriptor resolve later.
+   */
   getRawValueByEntryType(property: OptionName, type: string | null = null): any {
     const source = this.mergedConfig[property];
     return source?.[type ?? 'default'] ?? source?.['default'] ?? source;

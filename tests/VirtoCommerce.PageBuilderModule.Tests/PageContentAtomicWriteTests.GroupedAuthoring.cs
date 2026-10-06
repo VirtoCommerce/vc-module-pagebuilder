@@ -68,6 +68,50 @@ public partial class PageContentAtomicWriteTests
     }
 
     [Fact]
+    public async Task ContentIndexRebuild_OriginalRepositoryLockRefusalIsAValidationError()
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        await using var context = CreateContext(database.ConnectionString);
+        using var repository = new RefusedSharedComponentLocksRepository(context);
+        var error = await Assert.ThrowsAsync<InvalidDataException>(() => PageBuilderPageIndexing.RebuildAfterRawContentWriteAsync(
+            repository, PageId, ComponentAContent, StoreId, TestContext.Current.CancellationToken));
+        Assert.Equal("Shared Component write locks could not be acquired.", error.Message);
+    }
+
+    [Theory]
+    [InlineData("different-store")]
+    [InlineData("missing-content")]
+    [InlineData("multiple-missing")]
+    public async Task ContentIndexRebuild_ReportsFirstMissingLockBeforeOtherValidationErrors(string scenario)
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        await using var context = CreateContext(database.ConnectionString);
+        var token = TestContext.Current.CancellationToken;
+        if (scenario == "different-store")
+        {
+            await context.Set<PageBuilderSharedComponentEntity>().Where(x => x.Id == ComponentAId)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.StoreId, "another-store"), token);
+        }
+        else if (scenario == "missing-content")
+        {
+            await context.Set<PageBuilderSharedComponentContentEntity>().Where(x => x.Id == ComponentAId).ExecuteDeleteAsync(token);
+        }
+        var document = JsonNode.Parse(ComponentAContent);
+        var references = document["content"].AsArray();
+        references.Insert(0, new JsonObject { ["id"] = "placement-z", ["type"] = "componentRef", ["componentRef"] = "missing-z" });
+        references.Add(new JsonObject { ["id"] = "placement-missing-a", ["type"] = "componentRef", ["componentRef"] = "missing-a" });
+        var content = document.ToJsonString();
+        await using var transaction = await context.Database.BeginTransactionAsync(token);
+        using var repository = new PageBuilderModuleRepository(context);
+        var builtIn = await Assert.ThrowsAsync<InvalidDataException>(() => PageBuilderPageIndexing.RebuildAfterRawContentWriteAsync(
+            context, PageId, content, StoreId, token));
+        var originalContract = await Assert.ThrowsAsync<InvalidDataException>(() => PageBuilderPageIndexing.RebuildAfterRawContentWriteAsync(
+            repository, PageId, content, StoreId, token));
+        Assert.Equal("Shared Component 'missing-a' was not found.", builtIn.Message);
+        Assert.Equal(builtIn.Message, originalContract.Message);
+    }
+
+    [Fact]
     public async Task ModuleRegistration_OriginalGroupedServiceDecoratorCanReadAndSaveContent()
     {
         await using var database = await TestDatabase.CreateAsync();
@@ -499,6 +543,15 @@ public partial class PageContentAtomicWriteTests
             {
                 model.CreatedDate = model.CreatedDate.AddTicks(7);
             }
+        }
+    }
+
+    private sealed class RefusedSharedComponentLocksRepository(PageBuilderModuleDbContext context) : PageBuilderModuleRepository(context)
+    {
+        public override Task<bool> ExecuteUnderSharedComponentWriteLocksAsync(
+            IEnumerable<string> sharedComponentIds, Func<CancellationToken, Task> operation, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(false);
         }
     }
 
