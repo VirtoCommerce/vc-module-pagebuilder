@@ -48,8 +48,8 @@ export class AssetLibraryApiService {
         if (response.skip !== undefined || (results.length <= (options.take ?? 20) && totalCount > results.length)) {
             return { ...response, totalCount, results };
         }
-        const filtered = results.filter(entry => this.matchesSearch(entry, options));
-        const sorted = filtered.sort((a, b) => this.compareEntries(a, b, options.sort ?? 'name'));
+        const sorted = results.filter(entry => this.matchesSearch(entry, options));
+        sorted.sort((a, b) => this.compareEntries(a, b, options.sort ?? 'name'));
         const take = options.take ?? 20;
         let skip = Math.min(options.skip ?? 0, Math.max(0, Math.ceil(sorted.length / take) - 1) * take);
         const preferredIndex = options.preferredAssetUrl

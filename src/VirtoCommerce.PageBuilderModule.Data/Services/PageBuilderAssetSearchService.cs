@@ -83,7 +83,7 @@ public class PageBuilderAssetSearchService(IBlobStorageProvider blobProvider) : 
         }
         if (acceptedType.EndsWith("/*", StringComparison.Ordinal))
         {
-            return contentType.StartsWith(acceptedType[..^1], StringComparison.OrdinalIgnoreCase) == true;
+            return contentType.StartsWith(acceptedType[..^1], StringComparison.OrdinalIgnoreCase);
         }
         return string.Equals(contentType, acceptedType, StringComparison.OrdinalIgnoreCase);
     }
