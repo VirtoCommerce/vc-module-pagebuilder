@@ -118,7 +118,7 @@ public class PageBuilderAssetSearchServiceTests
     }
 
     [Fact]
-    public async Task SearchAsync_BeyondLastPage_ReturnsEmptyPageWithRealTotal()
+    public async Task SearchAsync_BeyondLastPage_ReturnsLastPageWithRealTotal()
     {
         var (service, _) = CreateService();
         var result = await service.SearchAsync(new PageBuilderAssetSearchCriteria
@@ -126,7 +126,9 @@ public class PageBuilderAssetSearchServiceTests
             FolderUrl = "/folder", Skip = 500, Take = 20,
         }, TestContext.Current.CancellationToken);
 
-        Assert.Empty(result.Results);
+        Assert.Equal(20, result.Results.Count);
+        Assert.Equal(480, result.Skip);
+        Assert.Equal("asset-480.png", result.Results[0].Name);
         Assert.Equal(500, result.TotalCount);
     }
 
@@ -140,6 +142,90 @@ public class PageBuilderAssetSearchServiceTests
             FolderUrl = "/folder", ExactName = "É.png", Take = 1,
         }, TestContext.Current.CancellationToken);
         Assert.Equal(" e\u0301.png ", Assert.Single(result.Results).Name);
+    }
+
+    [Theory]
+    [InlineData("name")]
+    [InlineData("size:desc")]
+    public async Task SearchAsync_FoldersPrecedeFilesRegardlessOfTheirNamesAndSizes(string sort)
+    {
+        var (service, provider) = CreateService();
+        provider.Listing.Results = [new BlobInfo { Name = "a.png", Size = 100 }, new BlobFolder { Name = "z-folder" }];
+        var result = await service.SearchAsync(new PageBuilderAssetSearchCriteria { FolderUrl = "/folder", Sort = sort, Take = 1 }, TestContext.Current.CancellationToken);
+        Assert.Equal("z-folder", Assert.Single(result.Results).Name);
+    }
+
+    [Fact]
+    public async Task SearchAsync_DoesNotMutateProviderMimeMetadata()
+    {
+        var (service, provider) = CreateService();
+        var blob = new BlobInfo { Name = "photo.png" };
+        provider.Listing.Results = [blob];
+        await service.SearchAsync(new PageBuilderAssetSearchCriteria { FolderUrl = "/folder", AcceptedTypes = ["image/*"] }, TestContext.Current.CancellationToken);
+        Assert.Null(blob.ContentType);
+    }
+
+    [Fact]
+    public async Task SearchAsync_ReturnsPageContainingPreferredUploadAndCountsOnlyFiles()
+    {
+        var (service, provider) = CreateService();
+        provider.Listing.Results.Add(new BlobFolder { Name = "z-folder" });
+        var result = await service.SearchAsync(new PageBuilderAssetSearchCriteria
+        {
+            FolderUrl = "/folder", PreferredAssetUrl = "/folder/asset-499.png", Take = 20,
+        }, TestContext.Current.CancellationToken);
+        Assert.Equal(501, result.TotalCount);
+        Assert.Equal(500, result.FileCount);
+        Assert.Equal(500, result.Skip);
+        Assert.Equal("asset-499.png", Assert.Single(result.Results).Name);
+        Assert.Equal(1, provider.ListCalls);
+    }
+
+    [Fact]
+    public async Task SearchAsync_UsesOrdinalSortAcrossCultures()
+    {
+        var culture = System.Globalization.CultureInfo.CurrentCulture;
+        try
+        {
+            var (service, provider) = CreateService();
+            provider.Listing.Results = [new BlobInfo { Name = "\u00e4.png" }, new BlobInfo { Name = "z.png" }];
+            foreach (var name in new[] { "en-US", "sv-SE" })
+            {
+                System.Globalization.CultureInfo.CurrentCulture = new System.Globalization.CultureInfo(name);
+                var result = await service.SearchAsync(new PageBuilderAssetSearchCriteria { FolderUrl = "/folder" }, TestContext.Current.CancellationToken);
+                Assert.Equal(["z.png", "\u00e4.png"], result.Results.Select(x => x.Name));
+            }
+        }
+        finally
+        {
+            System.Globalization.CultureInfo.CurrentCulture = culture;
+        }
+    }
+
+    [Theory]
+    [InlineData("apng")]
+    [InlineData("avif")]
+    [InlineData("bmp")]
+    [InlineData("gif")]
+    [InlineData("ico")]
+    [InlineData("jpg")]
+    [InlineData("jpeg")]
+    [InlineData("png")]
+    [InlineData("svg")]
+    [InlineData("webp")]
+    public async Task SearchAsync_AllPickerImageExtensionsHaveNormalizedImageMime(string extension)
+    {
+        var (service, provider) = CreateService();
+        var blob = new BlobInfo { Name = $"photo.{extension}", ContentType = "application/octet-stream" };
+        provider.Listing.Results = [blob];
+        var criteria = new PageBuilderAssetSearchCriteria { FolderUrl = "/folder", AcceptedTypes = ["image/*"] };
+        var filtered = await service.SearchAsync(criteria, TestContext.Current.CancellationToken);
+        criteria.AcceptedTypes = null;
+        var unfiltered = await service.SearchAsync(criteria, TestContext.Current.CancellationToken);
+        var mime = Assert.IsType<BlobInfo>(Assert.Single(filtered.Results)).ContentType;
+        Assert.StartsWith("image/", mime);
+        Assert.Equal(mime, Assert.IsType<BlobInfo>(Assert.Single(unfiltered.Results)).ContentType);
+        Assert.Equal("application/octet-stream", blob.ContentType);
     }
 
     private static (PageBuilderAssetSearchService Service, BlobProviderProxy Provider) CreateService()

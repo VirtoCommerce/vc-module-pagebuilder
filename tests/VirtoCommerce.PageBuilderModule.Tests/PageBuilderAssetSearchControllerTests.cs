@@ -21,24 +21,24 @@ public class PageBuilderAssetSearchControllerTests
     [InlineData(0, 20, "referencesCount")]
     public async Task Search_RejectsInvalidPagingOrSortBeforeCallingProvider(int skip, int take, string sort)
     {
-        var controller = new PageBuilderAssetSearchController(new UnexpectedSearch());
+        var controller = new PageBuilderAssetsController(null, null);
         var response = await controller.Search(new PageBuilderAssetSearchCriteria
         {
             FolderUrl = "/folder", Skip = skip, Take = take, Sort = sort,
-        }, TestContext.Current.CancellationToken);
+        }, new UnexpectedSearch(), TestContext.Current.CancellationToken);
         Assert.IsType<BadRequestObjectResult>(response.Result);
     }
 
     [Fact]
     public void Search_RequiresTheExistingAssetsReadPermission()
     {
-        var attribute = Assert.Single(typeof(PageBuilderAssetSearchController).GetCustomAttributes(typeof(AuthorizeAttribute), true));
+        var attribute = Assert.Single(typeof(PageBuilderAssetsController).GetMethod(nameof(PageBuilderAssetsController.Search))!.GetCustomAttributes(typeof(AuthorizeAttribute), true));
         Assert.Equal(PlatformConstants.Security.Permissions.AssetRead, ((AuthorizeAttribute)attribute).Policy);
     }
 
     private sealed class UnexpectedSearch : IPageBuilderAssetSearchService
     {
-        public Task<BlobEntrySearchResult> SearchAsync(PageBuilderAssetSearchCriteria criteria, CancellationToken cancellationToken = default)
+        public Task<PageBuilderAssetSearchResult> SearchAsync(PageBuilderAssetSearchCriteria criteria, CancellationToken cancellationToken = default)
             => throw new InvalidOperationException("Invalid input must be rejected before the provider is called.");
     }
 }

@@ -6,7 +6,6 @@ import {
   type FileParameter,
 } from "../../../api_client/virtocommerce.assets";
 import { PageBuilderAssetsClient } from "../../../api_client/virtocommerce.pagebuildermodule";
-import { PageBuilderAssetSearchClient } from "../../../api_client/pagebuilderAssetSearch";
 
 import type { AssetEntry, AssetReference, AssetSearchResult, CreateFolderPayload } from "../types";
 import type { AssetSearchOptions } from "../utilities/assetEntriesLoader";
@@ -14,17 +13,18 @@ import type { AssetSearchOptions } from "../utilities/assetEntriesLoader";
 export function useAssetsLibraryApi() {
   const { getApiClient: getAssetsClient } = useApiClient(AssetsClient);
   const { getApiClient: getPageBuilderAssetsClient } = useApiClient(PageBuilderAssetsClient);
-  const { getApiClient: getSearchClient } = useApiClient(PageBuilderAssetSearchClient);
 
   async function searchAssets(
     folderUrl: string,
     keyword?: string,
     options?: AssetSearchOptions,
   ): Promise<AssetSearchResult> {
-    const client = await getSearchClient();
+    const client = await getPageBuilderAssetsClient();
     const result = await client.search({ folderUrl, keyword, skip: 0, take: 20, ...options });
 
     return {
+      fileCount: result.fileCount,
+      skip: result.skip,
       totalCount: result.totalCount ?? result.results?.length ?? 0,
       results: (result.results ?? []).map(mapBlobEntry),
     };

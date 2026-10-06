@@ -5,7 +5,7 @@
       v-model:sort="sort"
       :can-create="canCreate"
       :search-value="searchValue"
-      :total-count="totalCount"
+      :total-count="fileCount"
       @upload="openUploadDialog"
       @create-folder="openCreateFolderPopup"
       @search-change="onSearchChange"
@@ -106,7 +106,8 @@
             v-model="pageSize"
             class="tw-w-40"
             :label="$t('ASSET_LIBRARY.PAGINATION.PAGE_SIZE')"
-            :options="[20, 50, 100]"
+            :options="pageSizeOptions"
+            :clearable="false"
           />
           <VcPagination
             :current-page="pagination.currentPage"
@@ -228,7 +229,7 @@ let uploadNameValidator: ((fileName: string) => Promise<string | undefined>) | u
 const {
   entries,
   loading,
-  totalCount,
+  fileCount,
   pagination,
   pageSize,
   sort,
@@ -261,6 +262,8 @@ const {
   replaceSelectedAsset,
   deleteEntry,
 } = useAssetsLibrary();
+
+const pageSizeOptions = [20, 50, 100];
 
 const isStoreContextReady = computed(() => storeContextStatus.value === "ready");
 const isStoreContextInvalid = computed(() => ["missing", "notFound", "error"].includes(storeContextStatus.value));

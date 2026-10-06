@@ -86,4 +86,22 @@ describe('Asset picker server pagination', () => {
             skip: 20, take: 20, sort: 'name', acceptedTypes: ['image/*', '.pdf'],
         });
     });
+    it('uses the returned offset without fetching the folder twice and counts files separately', () => {
+        state.onPage(4, 20);
+        responses[1].next({ totalCount: 23, fileCount: 18, skip: 20, results: [{ type: 'folder', name: 'last' }] });
+        expect(state.pageIndex()).toBe(1);
+        expect(state.fileCount()).toBe(18);
+        expect(assets.search).toHaveBeenCalledTimes(2);
+    });
+
+    it('clears pagination and counters with the grid after a load failure', () => {
+        responses[0].next({ totalCount: 500, fileCount: 499, results: [] });
+        state.onPage(4, 20);
+        responses[1].error(new Error('Failed to list'));
+        expect(state.entries()).toEqual([]);
+        expect(state.totalCount()).toBe(0);
+        expect(state.fileCount()).toBe(0);
+        expect(state.pageIndex()).toBe(0);
+    });
+
 });

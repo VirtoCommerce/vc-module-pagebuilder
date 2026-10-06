@@ -2,7 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { map, Observable } from 'rxjs';
 
 import { AppConfig, BuilderHttpClient } from '@integration/services';
-import { ServerRequestDescriptor } from '@models/http';
+import { assetLibraryHelpers } from '@core/helpers';
 
 import { AssetLibraryEntry, AssetLibraryReferencesSearchResult, AssetLibrarySearchResult, AssetLibrarySearchOptions } from './asset-library.models';
 
@@ -16,10 +16,9 @@ export class AssetLibraryApiService {
 
     search(folderUrl: string, keyword?: string, options: AssetLibrarySearchOptions = {}): Observable<AssetLibrarySearchResult> {
         const searchTerm = keyword?.trim() ?? '';
-        return this.doConfiguredRequest<Partial<AssetLibrarySearchResult>>('assetLibrarySearchRequest', {
-            folderUrl, keyword: searchTerm, skip: 0, take: 20, sort: 'name', acceptedTypes: [], ...options,
-        }).pipe(
-            map(response => this.toSearchResult(response ?? {}))
+        const context = { folderUrl, keyword: searchTerm, skip: 0, take: 20, sort: 'name', acceptedTypes: [], ...options };
+        return this.doConfiguredRequest<Partial<AssetLibrarySearchResult>>('assetLibrarySearchRequest', context).pipe(
+            map(response => this.toSearchResult(response ?? {}, context))
         );
     }
 
@@ -36,47 +35,75 @@ export class AssetLibraryApiService {
     }
 
     private doConfiguredRequest<T>(property: 'assetLibrarySearchRequest' | 'assetLibraryUploadRequest' | 'assetLibraryReferencesRequest', context: any, data: any = null): Observable<T | null> {
-        const request = this.appConfig.getValue(property, context);
-        let serverRequest = this.http.generateRequest(request, data, context);
-        if (property === 'assetLibrarySearchRequest') {
-            serverRequest = Array.isArray(serverRequest)
-                ? serverRequest.map(item => this.migrateLegacySearchRequest(item, context))
-                : this.migrateLegacySearchRequest(serverRequest, context);
-        }
+        const request = this.appConfig.getContext().config[property];
+        const serverRequest = this.http.generateRequest(request, data, context);
         return this.http.doRequest<T>(serverRequest, { nullWhenError: false }, context);
     }
 
-    private migrateLegacySearchRequest(request: string | ServerRequestDescriptor | null, context: any): string | ServerRequestDescriptor | null {
-        if (!request || typeof request === 'string' || request.method.toUpperCase() !== 'GET') {
-            return request;
+    private toSearchResult(response: Partial<AssetLibrarySearchResult>, options: AssetLibrarySearchOptions & { keyword: string }): AssetLibrarySearchResult {
+        const results = response.results ?? [];
+        const totalCount = response.totalCount ?? results.length;
+        // Old/custom descriptors may return the entire listing. Preserve their route and adapt
+        // the complete response before filtering, counting and paging. Paged responses stay intact.
+        if (response.skip !== undefined || (results.length <= (options.take ?? 20) && totalCount > results.length)) {
+            return { ...response, totalCount, results };
         }
-        const [url, query] = request.url.split('?');
-        if (!/\/api\/assets\/?$/i.test(url)) {
-            return request;
+        const filtered = results.filter(entry => this.matchesSearch(entry, options));
+        const sorted = filtered.sort((a, b) => this.compareEntries(a, b, options.sort ?? 'name'));
+        const take = options.take ?? 20;
+        let skip = Math.min(options.skip ?? 0, Math.max(0, Math.ceil(sorted.length / take) - 1) * take);
+        const preferredIndex = options.preferredAssetUrl
+            ? sorted.findIndex(entry => entry.relativeUrl === options.preferredAssetUrl || entry.url === options.preferredAssetUrl)
+            : -1;
+        if (preferredIndex >= 0) {
+            skip = Math.floor(preferredIndex / take) * take;
         }
-        const params = new URLSearchParams(query);
-        const folderUrl = params.get('folderUrl') ?? context.folderUrl;
-        const keyword = params.get('keyword') ?? context.keyword;
-        params.delete('folderUrl');
-        params.delete('keyword');
-        const remainingQuery = params.toString();
         return {
-            ...request,
-            url: url.replace(/\/api\/assets\/?$/i, '/api/page-builder-assets/search') + (remainingQuery ? `?${remainingQuery}` : ''),
-            method: 'POST',
-            body: { ...context, folderUrl, keyword },
+            totalCount: sorted.length,
+            fileCount: sorted.filter(entry => entry.type === 'blob').length,
+            skip,
+            results: sorted.slice(skip, skip + take),
         };
     }
 
-    private toSearchResult(response: Partial<AssetLibrarySearchResult>): AssetLibrarySearchResult {
-        const results = (response.results ?? [])
-            .map(entry => this.normalizeEntry(entry))
-            .filter((entry): entry is AssetLibraryEntry => !!entry);
+    private matchesSearch(entry: AssetLibraryEntry, options: AssetLibrarySearchOptions & { keyword: string }): boolean {
+        if (entry.type !== 'folder' && !assetLibraryHelpers.matchesAcceptFile(
+            { name: entry.name, type: entry.contentType ?? '' }, options.acceptedTypes ?? [])) {
+            return false;
+        }
+        if (options.exactName) {
+            return entry.type === 'blob' && assetLibraryHelpers.normalizeAssetFileName(entry.name)
+                === assetLibraryHelpers.normalizeAssetFileName(options.exactName);
+        }
+        return !options.keyword || entry.name.toLowerCase().includes(options.keyword.toLowerCase());
+    }
 
-        return {
-            totalCount: response.totalCount ?? results.length,
-            results
-        };
+    private compareEntries(a: AssetLibraryEntry, b: AssetLibraryEntry, sort: string): number {
+        const folderOrder = Number(b.type === 'folder') - Number(a.type === 'folder');
+        if (folderOrder) {
+            return folderOrder;
+        }
+        for (const field of sort.split(';')) {
+            const [column, direction] = field.split(':');
+            const aValue = this.sortValue(a, column);
+            const bValue = this.sortValue(b, column);
+            const order = aValue < bValue ? -1 : Number(aValue > bValue);
+            if (order) {
+                return direction?.toLowerCase() === 'desc' ? -order : order;
+            }
+        }
+        const aKey = `${a.name.toLowerCase()}\0${a.relativeUrl ?? a.url ?? ''}`;
+        const bKey = `${b.name.toLowerCase()}\0${b.relativeUrl ?? b.url ?? ''}`;
+        return aKey < bKey ? -1 : Number(aKey > bKey);
+    }
+
+    private sortValue(entry: AssetLibraryEntry, column: string): string | number {
+        switch (column.toLowerCase()) {
+            case 'size': return entry.size ?? 0;
+            case 'modifieddate': return Date.parse(entry.modifiedDate ?? '') || 0;
+            case 'type': return entry.type;
+            default: return entry.name.toLowerCase();
+        }
     }
 
     private normalizeEntry(entry: AssetLibraryEntry | null | undefined): AssetLibraryEntry | null {

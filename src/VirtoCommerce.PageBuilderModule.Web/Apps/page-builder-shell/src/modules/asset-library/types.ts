@@ -33,6 +33,8 @@ export interface AssetEntry {
 }
 
 export interface AssetSearchResult {
+  fileCount?: number;
+  skip?: number;
   totalCount: number;
   results: AssetEntry[];
 }

@@ -11,7 +11,7 @@ import {
   useDataTablePagination,
   type UseDataTablePaginationReturn,
 } from "@vc-shell/framework";
-import useUrlParams from "../../page-builder/composables/useStoreParams";
+import { useUrlParams } from "../../page-builder/composables";
 import type { AssetEntry, AssetReferenceDetails } from "../types";
 import { useAssetsLibraryApi } from "./useAssetsLibraryApi";
 import { formatAssetDate, getAssetPath, getAssetPublicUrl, getPreviewUrl, safeDecode } from "../utilities/assetUrl";
@@ -32,6 +32,7 @@ export interface IUseAssetsLibrary {
   entries: Ref<AssetEntry[]>;
   loading: ComputedRef<boolean>;
   totalCount: Ref<number>;
+  fileCount: Ref<number>;
   pagination: UseDataTablePaginationReturn;
   pageSize: Ref<number>;
   sort: Ref<string>;
@@ -74,6 +75,7 @@ export function useAssetsLibrary(): IUseAssetsLibrary {
   const { storeId, storeContextStatus, initUrlParams, validateStoreContext } = useUrlParams();
   const entries = ref<AssetEntry[]>([]);
   const totalCount = ref(0);
+  const fileCount = ref(0);
   const pageSize = ref(20);
   const sort = ref("name");
   const currentFolderUrl = ref("");
@@ -98,11 +100,16 @@ export function useAssetsLibrary(): IUseAssetsLibrary {
     clear: () => {
       entries.value = [];
       totalCount.value = 0;
+      fileCount.value = 0;
       resetAssetReferences();
     },
     apply: async (result, preferredSelectionUrl, isCurrent) => {
       entries.value = result.results.map(applyAssetReferences);
       totalCount.value = result.totalCount;
+      fileCount.value = result.fileCount ?? result.results.filter((entry) => entry.type === "blob").length;
+      if (result.skip !== undefined) {
+        pagination.setPage(Math.floor(result.skip / pagination.pageSize) + 1);
+      }
       refreshSelection(entries.value, preferredSelectionUrl);
 
       if (selectedAsset.value?.type === "blob" && isCurrent()) {
@@ -248,11 +255,18 @@ export function useAssetsLibrary(): IUseAssetsLibrary {
       return;
     }
 
+    let uploaded: AssetEntry | undefined;
     for (const file of files) {
-      await uploadAsset(targetFolderUrl, file);
+      uploaded = await uploadAsset(targetFolderUrl, file);
     }
 
-    await reload();
+    if (targetFolderUrl === currentFolderUrl.value && uploaded) {
+      searchValue.value = undefined;
+      pagination.reset();
+      await reload(getAssetKey(uploaded));
+    } else {
+      await reload();
+    }
   });
 
   const { action: replaceSelectedAssetAction, loading: loadingReplace } = useAsync<File>(async (replacement) => {
@@ -296,6 +310,7 @@ export function useAssetsLibrary(): IUseAssetsLibrary {
     selectedAsset.value = undefined;
     entries.value = [];
     totalCount.value = 0;
+    fileCount.value = 0;
     pagination.reset();
     resetAssetReferences();
   }
@@ -410,6 +425,7 @@ export function useAssetsLibrary(): IUseAssetsLibrary {
     entries,
     loading: useLoading(loadingEntries, loadingCreateFolder, loadingUpload, loadingReplace, loadingDelete),
     totalCount,
+    fileCount,
     pagination,
     pageSize,
     sort,

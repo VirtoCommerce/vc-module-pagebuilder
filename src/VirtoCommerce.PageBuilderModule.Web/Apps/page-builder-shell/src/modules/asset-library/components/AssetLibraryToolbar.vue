@@ -33,6 +33,7 @@
       class="tw-w-52"
       :label="$t('ASSET_LIBRARY.SORT.LABEL')"
       :options="sortOptions"
+      :clearable="false"
       option-value="value"
       option-label="label"
       emit-value

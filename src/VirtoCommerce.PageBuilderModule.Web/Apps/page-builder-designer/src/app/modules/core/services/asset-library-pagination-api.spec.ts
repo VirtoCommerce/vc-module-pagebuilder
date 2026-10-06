@@ -30,7 +30,7 @@ describe('Asset library pagination HTTP configuration', () => {
         const request = http.expectOne('/api/page-builder-assets/search');
         expect(request.request.method).toBe('POST');
         expect(request.request.body).toEqual({
-            folderUrl: '/folder', keyword: 'hero', skip: 80, take: 50, sort: 'name:desc', exactName: '', acceptedTypes: [],
+            folderUrl: '/folder', keyword: 'hero', skip: 80, take: 50, sort: 'name:desc', exactName: '', preferredAssetUrl: '', acceptedTypes: [],
         });
         request.flush({ totalCount: 500, results: [] });
     });
@@ -50,31 +50,67 @@ describe('Asset library pagination HTTP configuration', () => {
         request.flush({ totalCount: 25, results: [] });
     });
 
-    it('migrates the legacy standard URL from an external configuration', () => {
+    it('preserves a legacy GET descriptor and locally pages its complete response', () => {
         TestBed.inject(AppConfig).initConfigWith({
-            assetLibrarySearchRequest: '/api/assets?folderUrl={{=encodeURIComponent(this.folderUrl)}}{{=this.keyword ? "&keyword=" + encodeURIComponent(this.keyword) : ""}}',
+            assetLibrarySearchRequest: '/api/assets?folderUrl={{=encodeURIComponent(this.folderUrl)}}',
         });
-        api.search('/folder with spaces', 'photo', { skip: 40, take: 20, acceptedTypes: ['image/*'] }).subscribe();
-        const request = http.expectOne('/api/page-builder-assets/search');
-        expect(request.request.method).toBe('POST');
-        expect(request.request.body).toMatchObject({
-            folderUrl: '/folder with spaces', keyword: 'photo', skip: 40, take: 20, acceptedTypes: ['image/*'],
-        });
-        request.flush({ totalCount: 500, results: [] });
+        let result: any;
+        api.search('/folder with spaces', '', { skip: 20, take: 20, acceptedTypes: ['image/*'] }).subscribe(value => result = value);
+        const request = http.expectOne('/api/assets?folderUrl=%2Ffolder%20with%20spaces');
+        expect(request.request.method).toBe('GET');
+        request.flush({ totalCount: 51, results: [
+            { type: 'folder', name: 'z-folder' },
+            ...Array.from({ length: 25 }, (_, i) => ({ type: 'blob', name: `image-${String(i).padStart(2, '0')}.png` })),
+            ...Array.from({ length: 25 }, (_, i) => ({ type: 'blob', name: `document-${i}.pdf` })),
+        ] });
+        expect(result.totalCount).toBe(26);
+        expect(result.fileCount).toBe(25);
+        expect(result.results).toHaveLength(6);
+        expect(result.results[0].name).toBe('image-19.png');
+        expect(result.skip).toBe(20);
     });
 
-    it('migrates a legacy theme descriptor and keeps the API prefix and request options', () => {
+    it('preserves the host, route, method and options of a theme descriptor', () => {
         TestBed.inject(AppConfig).initConfigWith({ assetLibrarySearchRequest: {
             url: 'https://platform.example/backend/api/assets?folderUrl={{=encodeURIComponent(this.folderUrl)}}',
             method: 'GET', options: { headers: { 'X-Fixture': 'test' }, withCredentials: true },
         } });
         api.search('/folder', '', { skip: 20, take: 50 }).subscribe();
-        const request = http.expectOne('https://platform.example/backend/api/page-builder-assets/search');
-        expect(request.request.method).toBe('POST');
+        const request = http.expectOne('https://platform.example/backend/api/assets?folderUrl=%2Ffolder');
+        expect(request.request.method).toBe('GET');
         expect(request.request.headers.get('X-Fixture')).toBe('test');
         expect(request.request.withCredentials).toBe(true);
-        expect(request.request.body).toMatchObject({ folderUrl: '/folder', skip: 20, take: 50 });
         request.flush({ totalCount: 500, results: [] });
+    });
+
+    it('keeps literal template delimiters in folder, keyword and exact-name data', () => {
+        const literal = '{{=1 + 2}}';
+        api.search(`/folder/${literal}`, literal, { exactName: `${literal}.png` }).subscribe();
+        const request = http.expectOne('/api/page-builder-assets/search');
+        expect(request.request.body.folderUrl).toBe(`/folder/${literal}`);
+        expect(request.request.body.keyword).toBe(literal);
+        expect(request.request.body.exactName).toBe(`${literal}.png`);
+        request.flush({ totalCount: 0, skip: 0, results: [] });
+    });
+
+    it('filters and sorts a small complete custom listing before clamping to its last page', () => {
+        TestBed.inject(AppConfig).initConfigWith({ assetLibrarySearchRequest: '/custom-assets' });
+        let result: any;
+        api.search('/folder', '', { skip: 40, take: 20, sort: 'size:desc' }).subscribe(value => result = value);
+        http.expectOne('/custom-assets').flush({ results: [
+            { type: 'blob', name: 'a.png', size: 10 }, { type: 'folder', name: 'z-folder' },
+        ] });
+        expect(result.skip).toBe(0);
+        expect(result.fileCount).toBe(1);
+        expect(result.results.map((entry: any) => entry.name)).toEqual(['z-folder', 'a.png']);
+    });
+
+    it('preserves the server-filtered page and its file count and offset', () => {
+        let result: any;
+        api.search('/folder', '', { acceptedTypes: ['image/*'] }).subscribe(value => result = value);
+        const response = { totalCount: 21, fileCount: 20, skip: 20, results: [{ type: 'blob', name: 'image.tif', contentType: 'image/tiff' }] };
+        http.expectOne('/api/page-builder-assets/search').flush(response);
+        expect(result).toEqual(response);
     });
 
     it('keeps a custom search endpoint unchanged', () => {

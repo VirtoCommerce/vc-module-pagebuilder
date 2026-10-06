@@ -23,6 +23,8 @@ describe('Asset picker loading during upload', () => {
             AssetPickerStateService,
             { provide: MAT_DIALOG_DATA, useValue: { rootFolderUrl: '/folder' } },
             { provide: AssetLibraryService, useValue: {
+                isImage: () => true,
+                getPreviewUrl: () => '/preview',
                 getLabels: () => ({ title: 'Assets', select: 'Select', uploadError: 'Upload failed' }),
                 search: vi.fn(() => {
                     const response = new Subject<AssetLibrarySearchResult>();
@@ -76,4 +78,25 @@ describe('Asset picker loading during upload', () => {
         expect(state.loading()).toBe(false);
         expect(state.totalCount()).toBe(0);
     });
+    it('preserves the displayed page and search when upload fails', () => {
+        state.searchValue.set('old');
+        state.onPage(3, 20);
+        lists[1].next({ totalCount: 100, results: [{ type: 'folder', name: 'old page' }] });
+        state.uploadFiles([new File(['image'], 'image.png', { type: 'image/png' })]);
+        uploads[0].error(new Error('Upload failed'));
+        expect(state.searchValue()).toBe('old');
+        expect(state.pageIndex()).toBe(3);
+        expect(state.entries()[0].name).toBe('old page');
+    });
+
+    it('moves to the returned page containing the successful upload', () => {
+        state.uploadFiles([new File(['image'], 'z.png', { type: 'image/png' })]);
+        const uploaded = { type: 'blob' as const, name: 'z.png', relativeUrl: '/folder/z.png', contentType: 'image/png' };
+        uploads[0].next([uploaded]);
+        lists[1].next({ totalCount: 101, fileCount: 101, skip: 100, results: [uploaded] });
+        expect(state.pageIndex()).toBe(5);
+        expect(state.entries()).toEqual([uploaded]);
+        expect(state.selectedAssets()).toEqual([uploaded]);
+    });
+
 });

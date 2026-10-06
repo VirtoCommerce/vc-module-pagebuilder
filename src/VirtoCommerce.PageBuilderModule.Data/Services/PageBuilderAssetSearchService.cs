@@ -3,26 +3,19 @@ using VirtoCommerce.AssetsModule.Core.Assets;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.Platform.Core.Common;
-using VirtoCommerce.Platform.Core.Extensions;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Services;
 
 public class PageBuilderAssetSearchService(IBlobStorageProvider blobProvider) : IPageBuilderAssetSearchService
 {
-    // Match the Designer's image filename fallback when a provider reports a generic MIME type.
-    private static readonly HashSet<string> _imageExtensions = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ".apng", ".avif", ".bmp", ".gif", ".ico", ".jpg", ".jpeg", ".png", ".svg", ".webp",
-    };
-
-    public Task<BlobEntrySearchResult> SearchAsync(PageBuilderAssetSearchCriteria criteria, CancellationToken cancellationToken = default)
+    public Task<PageBuilderAssetSearchResult> SearchAsync(PageBuilderAssetSearchCriteria criteria, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(criteria);
         cancellationToken.ThrowIfCancellationRequested();
         return SearchInternalAsync(criteria, cancellationToken);
     }
 
-    private async Task<BlobEntrySearchResult> SearchInternalAsync(PageBuilderAssetSearchCriteria criteria, CancellationToken cancellationToken)
+    private async Task<PageBuilderAssetSearchResult> SearchInternalAsync(PageBuilderAssetSearchCriteria criteria, CancellationToken cancellationToken)
     {
         // The Assets provider contract lists a location without paging. Passing no keyword avoids
         // its recursive search. Reuse that listing and page metadata here; never open file streams.
@@ -30,25 +23,23 @@ public class PageBuilderAssetSearchService(IBlobStorageProvider blobProvider) : 
         cancellationToken.ThrowIfCancellationRequested();
         var matches = FilterEntries(listing.Results, criteria).ToArray();
 
-        // Project the size so folders and blobs can share the same stable ordering.
-        var sorted = matches.Select(x => new
+        var sorted = PageBuilderAssetSort.Order(matches, criteria.SortInfos).ToArray();
+        var skip = Math.Min(criteria.Skip, Math.Max(0, (matches.Length - 1) / criteria.Take * criteria.Take));
+        if (!string.IsNullOrEmpty(criteria.PreferredAssetUrl))
         {
-            Entry = x,
-            x.Name,
-            x.Type,
-            Size = (x as BlobInfo)?.Size ?? 0,
-            x.ModifiedDate,
-            Url = x.RelativeUrl ?? x.Url,
-        }).AsQueryable().OrderBySortInfos(criteria.SortInfos.Count > 0
-            ? criteria.SortInfos
-            : [new SortInfo { SortColumn = "Name", SortDirection = SortDirection.Ascending }]);
+            var index = Array.FindIndex(sorted, x => x.RelativeUrl == criteria.PreferredAssetUrl || x.Url == criteria.PreferredAssetUrl);
+            if (index >= 0)
+            {
+                skip = index / criteria.Take * criteria.Take;
+            }
+        }
 
-        return new BlobEntrySearchResult
-        {
-            TotalCount = matches.Length,
-            Results = sorted.ThenBy(x => x.Name).ThenBy(x => x.Url)
-                .Skip(criteria.Skip).Take(criteria.Take).Select(x => x.Entry).ToList(),
-        };
+        var result = AbstractTypeFactory<PageBuilderAssetSearchResult>.TryCreateInstance();
+        result.TotalCount = matches.Length;
+        result.FileCount = matches.Count(x => x.Type == "blob");
+        result.Skip = skip;
+        result.Results = sorted.Skip(skip).Take(criteria.Take).Select(NormalizeEntry).ToList();
+        return result;
     }
 
     private static IEnumerable<BlobEntry> FilterEntries(IEnumerable<BlobEntry> source, PageBuilderAssetSearchCriteria criteria)
@@ -71,18 +62,12 @@ public class PageBuilderAssetSearchService(IBlobStorageProvider blobProvider) : 
         return entries;
     }
 
-    private static IEnumerable<BlobEntry> FilterAcceptedTypes(IEnumerable<BlobEntry> entries, string[] types)
+    private static IEnumerable<BlobEntry> FilterAcceptedTypes(IEnumerable<BlobEntry> entries, IList<string> types)
     {
         var acceptedTypes = types?.Where(x => !string.IsNullOrWhiteSpace(x))
             .Select(x => x.Trim()).ToArray() ?? [];
         if (acceptedTypes.Length > 0)
         {
-            // Some providers omit MIME metadata. Use Platform's resolver so the picker can
-            // apply the same selection checks to the returned entries as to uploaded files.
-            foreach (var blob in entries.OfType<BlobInfo>().Where(x => string.IsNullOrWhiteSpace(x.ContentType)))
-            {
-                blob.ContentType = MimeTypeResolver.ResolveContentType(blob.Name ?? string.Empty);
-            }
             entries = entries.Where(x => x.Type == "folder" || x is BlobInfo blob && acceptedTypes.Any(type => MatchesAcceptedType(blob, type)));
         }
 
@@ -91,15 +76,40 @@ public class PageBuilderAssetSearchService(IBlobStorageProvider blobProvider) : 
 
     private static bool MatchesAcceptedType(BlobInfo blob, string acceptedType)
     {
+        var contentType = ResolveContentType(blob);
         if (acceptedType.StartsWith('.'))
         {
             return blob.Name?.EndsWith(acceptedType, StringComparison.OrdinalIgnoreCase) == true;
         }
         if (acceptedType.EndsWith("/*", StringComparison.Ordinal))
         {
-            return blob.ContentType?.StartsWith(acceptedType[..^1], StringComparison.OrdinalIgnoreCase) == true
-                || string.Equals(acceptedType, "image/*", StringComparison.OrdinalIgnoreCase) && _imageExtensions.Contains(Path.GetExtension(blob.Name));
+            return contentType.StartsWith(acceptedType[..^1], StringComparison.OrdinalIgnoreCase) == true;
         }
-        return string.Equals(blob.ContentType, acceptedType, StringComparison.OrdinalIgnoreCase);
+        return string.Equals(contentType, acceptedType, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static BlobEntry NormalizeEntry(BlobEntry entry)
+    {
+        if (entry is not BlobInfo blob)
+        {
+            return entry;
+        }
+        var result = (BlobInfo)blob.Clone();
+        result.ContentType = ResolveContentType(blob);
+        return result;
+    }
+
+    private static string ResolveContentType(BlobInfo blob)
+    {
+        if (!string.IsNullOrWhiteSpace(blob.ContentType) && blob.ContentType != "application/octet-stream")
+        {
+            return blob.ContentType;
+        }
+        return Path.GetExtension(blob.Name)?.ToLowerInvariant() switch
+        {
+            ".apng" => "image/apng",
+            ".avif" => "image/avif",
+            _ => MimeTypeResolver.ResolveContentType(blob.Name ?? string.Empty),
+        };
     }
 }

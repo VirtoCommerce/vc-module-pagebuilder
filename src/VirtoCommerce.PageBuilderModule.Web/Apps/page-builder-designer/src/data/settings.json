@@ -130,7 +130,8 @@
             "take": "@{{this.take}}",
             "sort": "{{sort}}",
             "acceptedTypes": "@{{this.acceptedTypes}}",
-            "exactName": "{{exactName}}"
+            "exactName": "{{exactName}}",
+            "preferredAssetUrl": "{{preferredAssetUrl}}"
         }
     },
     "assetLibraryUploadRequest": {

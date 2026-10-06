@@ -15,6 +15,7 @@ export interface AssetSearchOptions {
   take?: number;
   sort?: string;
   exactName?: string;
+  preferredAssetUrl?: string;
 }
 
 interface AssetEntriesLoaderOptions {
@@ -53,6 +54,7 @@ export function createAssetEntriesLoader(options: AssetEntriesLoaderOptions): As
         skip: loadRequest.skip,
         take: loadRequest.take,
         sort: loadRequest.sort,
+        ...(loadRequest.preferredSelectionUrl ? { preferredAssetUrl: loadRequest.preferredSelectionUrl } : {}),
       });
       if (!request.isCurrent()) {
         return;

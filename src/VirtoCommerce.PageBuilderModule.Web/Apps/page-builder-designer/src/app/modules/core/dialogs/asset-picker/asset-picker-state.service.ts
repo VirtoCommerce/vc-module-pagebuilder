@@ -35,6 +35,7 @@ export class AssetPickerStateService {
     readonly currentFolderUrl = signal(this.data.rootFolderUrl);
     readonly entries = signal<AssetLibraryEntry[]>([]);
     readonly totalCount = signal(0);
+    readonly fileCount = signal(0);
     readonly pageIndex = signal(0);
     readonly pageSize = signal(20);
     readonly selectedAssets = this.selection.selectedAssets;
@@ -50,12 +51,7 @@ export class AssetPickerStateService {
     readonly error = signal<string | null>(null);
     readonly acceptAttribute = computed(() => this.acceptedTypes.length ? this.acceptedTypes.join(',') : null);
     readonly breadcrumbs = computed(() => this.buildBreadcrumbs());
-    readonly visibleEntries = computed(() => this.entries()
-        .filter(entry => entry.type === 'folder' || this.selection.matchesAccept(entry))
-        .map(entry => this.toGridItem(entry)));
-    readonly visibleAssetsCount = computed(() => this.entries()
-        .filter(entry => entry.type === 'blob' && this.selection.matchesAccept(entry))
-        .length);
+    readonly visibleEntries = computed(() => this.entries().map(entry => this.toGridItem(entry)));
 
     constructor() {
         this.destroyRef.onDestroy(() => {
@@ -194,8 +190,10 @@ export class AssetPickerStateService {
             return;
         }
 
-        this.searchValue.set('');
-        this.pageIndex.set(0);
+        if (this.searchTimeout) {
+            clearTimeout(this.searchTimeout);
+            this.searchTimeout = null;
+        }
         this.requestId++;
         this.loading.set(false);
         this.uploading.set(true);
@@ -207,6 +205,10 @@ export class AssetPickerStateService {
             next: uploaded => {
                 const preferredSelectionUrls = uploaded.map(entry => entry.relativeUrl || entry.url).filter((url): url is string => !!url);
                 this.uploading.set(false);
+                if (uploaded.length && folderUrl === this.currentFolderUrl()) {
+                    this.searchValue.set('');
+                    this.pageIndex.set(0);
+                }
                 if (uploaded.length) {
                     this.selectedAssets.set(this.multiple ? this.selection.mergeSelectedAssets(uploaded) : uploaded.slice(-1));
                 }
@@ -261,6 +263,7 @@ export class AssetPickerStateService {
         this.error.set(null);
         this.assets.search(this.currentFolderUrl(), this.searchValue(), {
             skip: this.pageIndex() * this.pageSize(), take: this.pageSize(), sort: 'name',
+            ...(preferredSelectionUrl ? { preferredAssetUrl: Array.isArray(preferredSelectionUrl) ? preferredSelectionUrl.at(-1) : preferredSelectionUrl } : {}),
             ...(this.acceptedTypes.length ? { acceptedTypes: this.acceptedTypes } : {}),
         }).pipe(
             takeUntilDestroyed(this.destroyRef)
@@ -271,6 +274,10 @@ export class AssetPickerStateService {
                 }
                 this.entries.set(result.results);
                 this.totalCount.set(result.totalCount);
+                this.fileCount.set(result.fileCount ?? result.results.filter(entry => entry.type === 'blob').length);
+                if (result.skip !== undefined) {
+                    this.pageIndex.set(Math.floor(result.skip / this.pageSize()));
+                }
                 const lastPage = Math.max(0, Math.ceil(result.totalCount / this.pageSize()) - 1);
                 if (this.pageIndex() > lastPage) {
                     this.pageIndex.set(lastPage);
@@ -296,6 +303,9 @@ export class AssetPickerStateService {
                 }
                 this.error.set(error?.message || this.labels.loadError);
                 this.entries.set([]);
+                this.totalCount.set(0);
+                this.fileCount.set(0);
+                this.pageIndex.set(0);
                 this.loading.set(false);
             }
         });
