@@ -15,43 +15,21 @@ public class PageBuilderAssetSearchService(IBlobStorageProvider blobProvider) : 
         ".apng", ".avif", ".bmp", ".gif", ".ico", ".jpg", ".jpeg", ".png", ".svg", ".webp",
     };
 
-    public async Task<BlobEntrySearchResult> SearchAsync(PageBuilderAssetSearchCriteria criteria, CancellationToken cancellationToken = default)
+    public Task<BlobEntrySearchResult> SearchAsync(PageBuilderAssetSearchCriteria criteria, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(criteria);
         cancellationToken.ThrowIfCancellationRequested();
+        return SearchInternalAsync(criteria, cancellationToken);
+    }
 
+    private async Task<BlobEntrySearchResult> SearchInternalAsync(PageBuilderAssetSearchCriteria criteria, CancellationToken cancellationToken)
+    {
         // The Assets provider contract lists a location without paging. Passing no keyword avoids
         // its recursive search. Reuse that listing and page metadata here; never open file streams.
         var listing = await blobProvider.SearchAsync(criteria.FolderUrl, null);
         cancellationToken.ThrowIfCancellationRequested();
-        IEnumerable<BlobEntry> entries = listing.Results;
+        var matches = FilterEntries(listing.Results, criteria).ToArray();
 
-        var acceptedTypes = criteria.AcceptedTypes?.Where(x => !string.IsNullOrWhiteSpace(x))
-            .Select(x => x.Trim()).ToArray() ?? [];
-        if (acceptedTypes.Length > 0)
-        {
-            // Some providers omit MIME metadata. Use Platform's resolver so the picker can
-            // apply the same selection checks to the returned entries as to uploaded files.
-            foreach (var blob in listing.Results.OfType<BlobInfo>().Where(x => string.IsNullOrWhiteSpace(x.ContentType)))
-            {
-                blob.ContentType = MimeTypeResolver.ResolveContentType(blob.Name ?? string.Empty);
-            }
-            entries = entries.Where(x => x.Type == "folder" || x is BlobInfo blob && acceptedTypes.Any(type => MatchesAcceptedType(blob, type)));
-        }
-
-        if (!string.IsNullOrEmpty(criteria.ExactName))
-        {
-            var exactName = criteria.ExactName.Trim().Normalize(NormalizationForm.FormC);
-            entries = entries.Where(x => x.Type == "blob" && string.Equals(
-                x.Name?.Trim().Normalize(NormalizationForm.FormC), exactName, StringComparison.OrdinalIgnoreCase));
-        }
-        else if (!string.IsNullOrWhiteSpace(criteria.Keyword))
-        {
-            var keyword = criteria.Keyword.Trim();
-            entries = entries.Where(x => x.Name?.Contains(keyword, StringComparison.OrdinalIgnoreCase) == true);
-        }
-
-        var matches = entries.ToArray();
         // Project the size so folders and blobs can share the same stable ordering.
         var sorted = matches.Select(x => new
         {
@@ -71,6 +49,44 @@ public class PageBuilderAssetSearchService(IBlobStorageProvider blobProvider) : 
             Results = sorted.ThenBy(x => x.Name).ThenBy(x => x.Url)
                 .Skip(criteria.Skip).Take(criteria.Take).Select(x => x.Entry).ToList(),
         };
+    }
+
+    private static IEnumerable<BlobEntry> FilterEntries(IEnumerable<BlobEntry> source, PageBuilderAssetSearchCriteria criteria)
+    {
+        var entries = FilterAcceptedTypes(source, criteria.AcceptedTypes);
+
+        if (!string.IsNullOrEmpty(criteria.ExactName))
+        {
+            var exactName = criteria.ExactName.Trim().Normalize(NormalizationForm.FormC);
+            return entries.Where(x => x.Type == "blob" && string.Equals(
+                x.Name?.Trim().Normalize(NormalizationForm.FormC), exactName, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (!string.IsNullOrWhiteSpace(criteria.Keyword))
+        {
+            var keyword = criteria.Keyword.Trim();
+            return entries.Where(x => x.Name?.Contains(keyword, StringComparison.OrdinalIgnoreCase) == true);
+        }
+
+        return entries;
+    }
+
+    private static IEnumerable<BlobEntry> FilterAcceptedTypes(IEnumerable<BlobEntry> entries, string[] types)
+    {
+        var acceptedTypes = types?.Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x.Trim()).ToArray() ?? [];
+        if (acceptedTypes.Length > 0)
+        {
+            // Some providers omit MIME metadata. Use Platform's resolver so the picker can
+            // apply the same selection checks to the returned entries as to uploaded files.
+            foreach (var blob in entries.OfType<BlobInfo>().Where(x => string.IsNullOrWhiteSpace(x.ContentType)))
+            {
+                blob.ContentType = MimeTypeResolver.ResolveContentType(blob.Name ?? string.Empty);
+            }
+            entries = entries.Where(x => x.Type == "folder" || x is BlobInfo blob && acceptedTypes.Any(type => MatchesAcceptedType(blob, type)));
+        }
+
+        return entries;
     }
 
     private static bool MatchesAcceptedType(BlobInfo blob, string acceptedType)

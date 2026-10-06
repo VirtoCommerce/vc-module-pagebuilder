@@ -15,6 +15,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 [Authorize(PlatformConstants.Security.Permissions.AssetRead)]
 public class PageBuilderAssetSearchController(IPageBuilderAssetSearchService assetSearchService) : Controller
 {
+    private const int MaximumPageSize = 100;
+
     [HttpPost]
     public async Task<ActionResult<BlobEntrySearchResult>> Search(
         [FromBody] PageBuilderAssetSearchCriteria criteria,
@@ -25,9 +27,9 @@ public class PageBuilderAssetSearchController(IPageBuilderAssetSearchService ass
             return BadRequest("FolderUrl is required.");
         }
 
-        if (criteria.Skip < 0 || criteria.Take is < 1 or > 100)
+        if (criteria.Skip < 0 || criteria.Take is < 1 or > MaximumPageSize)
         {
-            return BadRequest("Skip must be non-negative and Take must be between 1 and 100.");
+            return BadRequest($"Skip must be non-negative and Take must be between 1 and {MaximumPageSize}.");
         }
 
         string[] sortableColumns = ["Name", "Type", "Size", "ModifiedDate"];
