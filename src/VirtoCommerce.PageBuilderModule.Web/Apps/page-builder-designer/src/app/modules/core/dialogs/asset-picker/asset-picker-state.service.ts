@@ -34,6 +34,9 @@ export class AssetPickerStateService {
     readonly rootFolderUrl = this.data.rootFolderUrl;
     readonly currentFolderUrl = signal(this.data.rootFolderUrl);
     readonly entries = signal<AssetLibraryEntry[]>([]);
+    readonly totalCount = signal(0);
+    readonly pageIndex = signal(0);
+    readonly pageSize = signal(20);
     readonly selectedAssets = this.selection.selectedAssets;
     readonly selectedCount = this.selection.selectedCount;
     readonly selectButtonText = computed(() => this.multiple && this.selectedCount() > 1
@@ -68,11 +71,20 @@ export class AssetPickerStateService {
     }
 
     onSearch(value: string) {
+        this.requestId++;
+        this.pageIndex.set(0);
         this.searchValue.set(value);
         if (this.searchTimeout) {
             clearTimeout(this.searchTimeout);
         }
         this.searchTimeout = setTimeout(() => this.loadEntries(), 300);
+    }
+
+    onPage(pageIndex: number, pageSize: number) {
+        this.pageIndex.set(pageSize === this.pageSize() ? pageIndex : 0);
+        this.pageSize.set(pageSize);
+        this.selection.clearSingleSelection();
+        this.loadEntries();
     }
 
     onDragEnter(event: DragEvent) {
@@ -146,12 +158,14 @@ export class AssetPickerStateService {
         }
 
         this.currentFolderUrl.set(entry.relativeUrl || entry.url || this.currentFolderUrl());
+        this.pageIndex.set(0);
         this.selection.clearSingleSelection();
         this.loadEntries();
     }
 
     navigateToBreadcrumb(url: string) {
         this.currentFolderUrl.set(url);
+        this.pageIndex.set(0);
         this.selection.clearSingleSelection();
         this.loadEntries();
     }
@@ -181,6 +195,9 @@ export class AssetPickerStateService {
         }
 
         this.searchValue.set('');
+        this.pageIndex.set(0);
+        this.requestId++;
+        this.loading.set(false);
         this.uploading.set(true);
         this.error.set(null);
 
@@ -235,10 +252,17 @@ export class AssetPickerStateService {
     }
 
     private loadEntries(preferredSelectionUrl?: string | string[]) {
+        if (this.searchTimeout) {
+            clearTimeout(this.searchTimeout);
+            this.searchTimeout = null;
+        }
         const requestId = ++this.requestId;
         this.loading.set(true);
         this.error.set(null);
-        this.assets.search(this.currentFolderUrl(), this.searchValue()).pipe(
+        this.assets.search(this.currentFolderUrl(), this.searchValue(), {
+            skip: this.pageIndex() * this.pageSize(), take: this.pageSize(), sort: 'name',
+            ...(this.acceptedTypes.length ? { acceptedTypes: this.acceptedTypes } : {}),
+        }).pipe(
             takeUntilDestroyed(this.destroyRef)
         ).subscribe({
             next: result => {
@@ -246,12 +270,21 @@ export class AssetPickerStateService {
                     return;
                 }
                 this.entries.set(result.results);
+                this.totalCount.set(result.totalCount);
+                const lastPage = Math.max(0, Math.ceil(result.totalCount / this.pageSize()) - 1);
+                if (this.pageIndex() > lastPage) {
+                    this.pageIndex.set(lastPage);
+                    this.loadEntries(preferredSelectionUrl);
+                    return;
+                }
                 if (preferredSelectionUrl) {
                     const preferredSelectionUrls = Array.isArray(preferredSelectionUrl) ? preferredSelectionUrl : [preferredSelectionUrl];
                     const selected = preferredSelectionUrls
                         .map(url => this.selection.findEntry(result.results, url))
                         .filter((entry): entry is AssetLibraryEntry => !!entry);
-                    this.selectedAssets.set(this.multiple ? this.selection.mergeSelectedAssets(selected) : selected.slice(-1));
+                    if (selected.length) {
+                        this.selectedAssets.set(this.multiple ? this.selection.mergeSelectedAssets(selected) : selected.slice(-1));
+                    }
                 } else {
                     this.selection.restoreSelection(result.results);
                 }

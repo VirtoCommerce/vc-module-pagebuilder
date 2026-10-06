@@ -1,5 +1,15 @@
 {
   "ASSET_LIBRARY": {
+    "PAGINATION": {
+      "PAGE_SIZE": "Kohteita sivulla"
+    },
+    "SORT": {
+      "LABEL": "Järjestä",
+      "NAME_ASC": "Nimi (A-Z)",
+      "NAME_DESC": "Nimi (Z-A)",
+      "MODIFIED": "Viimeksi muokattu",
+      "SIZE": "Suurimmat ensin"
+    },
     "MENU": {
       "TITLE": "Resurssikirjasto"
     },

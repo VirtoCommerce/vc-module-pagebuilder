@@ -25,7 +25,7 @@
       [multiple]="state.multiple"
       [acceptAttribute]="state.acceptAttribute()"
       [searchValue]="state.searchValue()"
-      [counterText]="state.formatAssetsCounter(state.visibleAssetsCount())"
+      [counterText]="state.formatAssetsCounter(state.totalCount())"
       (searchValueChange)="state.onSearch($event)"
       (upload)="state.uploadFiles($event)" />
 
@@ -46,6 +46,14 @@
         (folderDrop)="state.onFolderDrop($event.event, $event.entry)" />
     }
   </div>
+
+  <mat-paginator
+    [length]="state.totalCount()"
+    [pageIndex]="state.pageIndex()"
+    [pageSize]="state.pageSize()"
+    [pageSizeOptions]="[20, 50, 100]"
+    [showFirstLastButtons]="true"
+    (page)="state.onPage($event.pageIndex, $event.pageSize)" />
 
   <div mat-dialog-actions>
     <app-icon-button skin="outline" [text]="state.labels.cancel" (click)="decline()" />

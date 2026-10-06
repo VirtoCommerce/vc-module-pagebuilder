@@ -1,5 +1,15 @@
 {
   "ASSET_LIBRARY": {
+    "PAGINATION": {
+      "PAGE_SIZE": "Objekt per sida"
+    },
+    "SORT": {
+      "LABEL": "Sortera efter",
+      "NAME_ASC": "Namn (A-Z)",
+      "NAME_DESC": "Namn (Z-A)",
+      "MODIFIED": "Senast ändrade",
+      "SIZE": "Största först"
+    },
     "MENU": {
       "TITLE": "Resursbibliotek"
     },

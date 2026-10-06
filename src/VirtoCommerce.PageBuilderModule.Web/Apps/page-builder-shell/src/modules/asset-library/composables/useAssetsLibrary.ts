@@ -8,8 +8,10 @@ import {
   useAsync,
   useBreadcrumbs,
   useLoading,
+  useDataTablePagination,
+  type UseDataTablePaginationReturn,
 } from "@vc-shell/framework";
-import { useUrlParams } from "../../page-builder";
+import useUrlParams from "../../page-builder/composables/useStoreParams";
 import type { AssetEntry, AssetReferenceDetails } from "../types";
 import { useAssetsLibraryApi } from "./useAssetsLibraryApi";
 import { formatAssetDate, getAssetPath, getAssetPublicUrl, getPreviewUrl, safeDecode } from "../utilities/assetUrl";
@@ -30,6 +32,11 @@ export interface IUseAssetsLibrary {
   entries: Ref<AssetEntry[]>;
   loading: ComputedRef<boolean>;
   totalCount: Ref<number>;
+  pagination: UseDataTablePaginationReturn;
+  pageSize: Ref<number>;
+  sort: Ref<string>;
+  search: (keyword?: string) => Promise<void>;
+  invalidate: () => void;
   currentFolderUrl: Ref<string>;
   searchValue: Ref<string | undefined>;
   selectedAsset: Ref<AssetEntry | undefined>;
@@ -67,10 +74,13 @@ export function useAssetsLibrary(): IUseAssetsLibrary {
   const { storeId, storeContextStatus, initUrlParams, validateStoreContext } = useUrlParams();
   const entries = ref<AssetEntry[]>([]);
   const totalCount = ref(0);
+  const pageSize = ref(20);
+  const sort = ref("name");
   const currentFolderUrl = ref("");
   const searchValue = ref<string>();
   const loadingEntries = ref(false);
   const assetDetailsRequests = createLatestRequestTracker(() => undefined);
+  const reloadRequests = createLatestRequestTracker(() => undefined);
   const { selectedAsset, selectedAssetDimensions, clearSelection, selectAsset, refreshSelection } = useAssetSelection();
   const {
     resetAssetReferences,
@@ -114,6 +124,22 @@ export function useAssetsLibrary(): IUseAssetsLibrary {
   });
   const currentBreadcrumbIds = ref<string[]>([]);
   const { breadcrumbs, push: pushBreadcrumb, remove: removeBreadcrumbs } = useBreadcrumbs();
+  const pagination = useDataTablePagination({
+    pageSize,
+    totalCount,
+    onPageChange: () => {
+      clearSelection();
+      entries.value = [];
+      void reload().catch((error) => notification.error(parseError(error).message));
+    },
+  });
+
+  watch([pageSize, sort], () => {
+    pagination.reset();
+    clearSelection();
+    entries.value = [];
+    void reload().catch((error) => notification.error(parseError(error).message));
+  });
 
   const rootFolderUrl = computed(() => (storeId.value ? `/stores/${storeId.value}/Page Builder` : ""));
 
@@ -169,6 +195,7 @@ export function useAssetsLibrary(): IUseAssetsLibrary {
   onScopeDispose(() => {
     entriesLoader.dispose();
     assetDetailsRequests.dispose();
+    reloadRequests.dispose();
     clearTrackedBreadcrumbs();
   });
 
@@ -193,6 +220,9 @@ export function useAssetsLibrary(): IUseAssetsLibrary {
       folderUrl: currentFolderUrl.value,
       keyword: searchValue.value?.trim(),
       preferredSelectionUrl,
+      skip: pagination.skip,
+      take: pagination.pageSize,
+      sort: sort.value,
     });
   }
 
@@ -266,25 +296,66 @@ export function useAssetsLibrary(): IUseAssetsLibrary {
     selectedAsset.value = undefined;
     entries.value = [];
     totalCount.value = 0;
+    pagination.reset();
     resetAssetReferences();
   }
 
   async function reload(preferredSelectionUrl?: string) {
-    if (!(await validateStoreContext())) {
-      resetContent();
-      return;
-    }
+    const request = reloadRequests.begin();
+    entriesLoader.invalidate();
+    assetDetailsRequests.invalidate();
+    try {
+      const valid = await validateStoreContext();
+      if (!request.isCurrent()) {
+        return;
+      }
+      if (!valid) {
+        resetContent();
+        return;
+      }
 
-    if (!currentFolderUrl.value) {
-      currentFolderUrl.value = rootFolderUrl.value;
-    }
+      if (!currentFolderUrl.value) {
+        currentFolderUrl.value = rootFolderUrl.value;
+      }
 
-    await loadEntries(preferredSelectionUrl);
+      await loadEntries(preferredSelectionUrl);
+      if (!request.isCurrent()) {
+        return;
+      }
+      const lastPage = Math.max(1, Math.ceil(totalCount.value / pagination.pageSize));
+      if (pagination.currentPage > lastPage) {
+        pagination.setPage(lastPage);
+        await loadEntries(preferredSelectionUrl);
+      }
+    } catch (error) {
+      if (request.isCurrent()) {
+        throw error;
+      }
+    } finally {
+      request.complete();
+    }
+  }
+
+  function invalidate() {
+    reloadRequests.invalidate();
+    entriesLoader.invalidate();
+    assetDetailsRequests.invalidate();
+  }
+
+  async function search(keyword?: string) {
+    invalidate();
+    searchValue.value = keyword;
+    pagination.reset();
+    clearSelection();
+    entries.value = [];
+    await reload();
   }
 
   async function navigateToFolder(folderUrl: string) {
     assetDetailsRequests.invalidate();
     currentFolderUrl.value = folderUrl;
+    pagination.reset();
+    entries.value = [];
     selectedAsset.value = undefined;
     await reload();
   }
@@ -320,7 +391,7 @@ export function useAssetsLibrary(): IUseAssetsLibrary {
       return undefined;
     }
 
-    const result = await searchAssets(folderUrl, fileName);
+    const result = await searchAssets(folderUrl, undefined, { exactName: fileName, take: 1 });
     return result.results.find(
       (entry) => entry.type === "blob" && normalizeAssetFileName(entry.name) === normalizeAssetFileName(fileName),
     );
@@ -339,6 +410,11 @@ export function useAssetsLibrary(): IUseAssetsLibrary {
     entries,
     loading: useLoading(loadingEntries, loadingCreateFolder, loadingUpload, loadingReplace, loadingDelete),
     totalCount,
+    pagination,
+    pageSize,
+    sort,
+    search,
+    invalidate,
     currentFolderUrl,
     searchValue,
     selectedAsset,

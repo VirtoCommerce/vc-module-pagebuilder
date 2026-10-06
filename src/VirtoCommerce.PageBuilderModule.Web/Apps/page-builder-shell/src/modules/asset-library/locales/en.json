@@ -1,5 +1,15 @@
 {
   "ASSET_LIBRARY": {
+    "PAGINATION": {
+      "PAGE_SIZE": "Items per page"
+    },
+    "SORT": {
+      "LABEL": "Sort by",
+      "NAME_ASC": "Name (A-Z)",
+      "NAME_DESC": "Name (Z-A)",
+      "MODIFIED": "Recently modified",
+      "SIZE": "Largest first"
+    },
     "MENU": {
       "TITLE": "Assets Library"
     },

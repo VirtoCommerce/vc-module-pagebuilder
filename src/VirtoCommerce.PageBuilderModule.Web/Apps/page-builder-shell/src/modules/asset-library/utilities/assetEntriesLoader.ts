@@ -5,10 +5,20 @@ export interface AssetEntriesLoadRequest {
   folderUrl: string;
   keyword?: string;
   preferredSelectionUrl?: string;
+  skip?: number;
+  take?: number;
+  sort?: string;
+}
+
+export interface AssetSearchOptions {
+  skip?: number;
+  take?: number;
+  sort?: string;
+  exactName?: string;
 }
 
 interface AssetEntriesLoaderOptions {
-  search: (folderUrl: string, keyword?: string) => Promise<AssetSearchResult>;
+  search: (folderUrl: string, keyword?: string, options?: AssetSearchOptions) => Promise<AssetSearchResult>;
   loadReferences: (entries: AssetEntry[], isCurrent: () => boolean) => Promise<boolean>;
   apply: (
     result: AssetSearchResult,
@@ -39,7 +49,11 @@ export function createAssetEntriesLoader(options: AssetEntriesLoaderOptions): As
         return;
       }
 
-      const result = await options.search(loadRequest.folderUrl, loadRequest.keyword);
+      const result = await options.search(loadRequest.folderUrl, loadRequest.keyword, {
+        skip: loadRequest.skip,
+        take: loadRequest.take,
+        sort: loadRequest.sort,
+      });
       if (!request.isCurrent()) {
         return;
       }

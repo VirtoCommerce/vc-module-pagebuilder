@@ -25,6 +25,14 @@ export interface AssetLibrarySearchResult {
     results: AssetLibraryEntry[];
 }
 
+export interface AssetLibrarySearchOptions {
+    acceptedTypes?: string[];
+    skip?: number;
+    take?: number;
+    sort?: string;
+    exactName?: string;
+}
+
 export interface AssetLibraryReferencePage {
     id?: string;
     name?: string;
