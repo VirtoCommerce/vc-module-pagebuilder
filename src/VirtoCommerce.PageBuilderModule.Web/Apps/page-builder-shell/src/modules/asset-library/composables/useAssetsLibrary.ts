@@ -334,14 +334,6 @@ export function useAssetsLibrary(): IUseAssetsLibrary {
       }
 
       await loadEntries(preferredSelectionUrl);
-      if (!request.isCurrent()) {
-        return;
-      }
-      const lastPage = Math.max(1, Math.ceil(totalCount.value / pagination.pageSize));
-      if (pagination.currentPage > lastPage) {
-        pagination.setPage(lastPage);
-        await loadEntries(preferredSelectionUrl);
-      }
     } catch (error) {
       if (request.isCurrent()) {
         throw error;

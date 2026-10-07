@@ -24,7 +24,7 @@ export class AssetLibraryApiService {
 
     upload(folderUrl: string, file: File): Observable<AssetLibraryEntry | null> {
         return this.doConfiguredRequest<AssetLibraryEntry[]>('assetLibraryUploadRequest', { folderUrl, file }, file).pipe(
-            map(response => this.normalizeEntry(response?.[0] ?? null))
+            map(response => response?.[0] ?? null)
         );
     }
 
@@ -41,12 +41,15 @@ export class AssetLibraryApiService {
     }
 
     private toSearchResult(response: Partial<AssetLibrarySearchResult>, options: AssetLibrarySearchOptions & { keyword: string }): AssetLibrarySearchResult {
-        const results = response.results ?? [];
+        const results = (response.results ?? []).filter(entry => entry && typeof entry.name === 'string'
+            && (entry.type === 'blob' || entry.type === 'folder'));
         const totalCount = response.totalCount ?? results.length;
         // Old/custom descriptors may return the entire listing. Preserve their route and adapt
         // the complete response before filtering, counting and paging. Paged responses stay intact.
-        if (response.skip !== undefined || (results.length <= (options.take ?? 20) && totalCount > results.length)) {
-            return { ...response, totalCount, results };
+        if (response.skip !== undefined) {
+            // Custom paged endpoints should supply the full filtered fileCount. Without it,
+            // only the file count on the supplied page is known.
+            return { ...response, totalCount, fileCount: response.fileCount ?? results.filter(entry => entry.type === 'blob').length, results };
         }
         const sorted = results.filter(entry => this.matchesSearch(entry, options));
         sorted.sort((a, b) => this.compareEntries(a, b, options.sort ?? 'name'));
@@ -66,6 +69,9 @@ export class AssetLibraryApiService {
         };
     }
 
+    // Legacy local listings use JavaScript Unicode lowercasing; the server uses .NET
+    // OrdinalIgnoreCase. Non-ASCII casing/order can differ. Custom endpoints requiring
+    // identical semantics should implement server filtering/paging and return skip + fileCount.
     private matchesSearch(entry: AssetLibraryEntry, options: AssetLibrarySearchOptions & { keyword: string }): boolean {
         if (entry.type !== 'folder' && !assetLibraryHelpers.matchesAcceptFile(
             { name: entry.name, type: entry.contentType ?? '' }, options.acceptedTypes ?? [])) {
@@ -106,11 +112,4 @@ export class AssetLibraryApiService {
         }
     }
 
-    private normalizeEntry(entry: AssetLibraryEntry | null | undefined): AssetLibraryEntry | null {
-        if (!entry) {
-            return null;
-        }
-
-        return entry;
-    }
 }

@@ -20,7 +20,11 @@ public static class PageBuilderAssetSort
         var sorted = entries.OrderByDescending(x => x.Type == "folder");
         foreach (var sort in sortInfos)
         {
-            var comparer = Comparer<BlobEntry>.Create(Columns[sort.SortColumn]);
+            if (!Columns.TryGetValue(sort.SortColumn, out var comparison))
+            {
+                continue;
+            }
+            var comparer = Comparer<BlobEntry>.Create(comparison);
             sorted = sort.SortDirection == SortDirection.Descending
                 ? sorted.ThenByDescending(x => x, comparer)
                 : sorted.ThenBy(x => x, comparer);

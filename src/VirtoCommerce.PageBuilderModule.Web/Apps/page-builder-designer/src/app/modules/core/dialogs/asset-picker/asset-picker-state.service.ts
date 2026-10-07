@@ -278,12 +278,6 @@ export class AssetPickerStateService {
                 if (result.skip !== undefined) {
                     this.pageIndex.set(Math.floor(result.skip / this.pageSize()));
                 }
-                const lastPage = Math.max(0, Math.ceil(result.totalCount / this.pageSize()) - 1);
-                if (this.pageIndex() > lastPage) {
-                    this.pageIndex.set(lastPage);
-                    this.loadEntries(preferredSelectionUrl);
-                    return;
-                }
                 if (preferredSelectionUrl) {
                     const preferredSelectionUrls = Array.isArray(preferredSelectionUrl) ? preferredSelectionUrl : [preferredSelectionUrl];
                     const selected = preferredSelectionUrls

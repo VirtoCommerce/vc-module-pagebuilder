@@ -228,6 +228,47 @@ public class PageBuilderAssetSearchServiceTests
         Assert.Equal("application/octet-stream", blob.ContentType);
     }
 
+    [Fact]
+    public async Task SearchAsync_MimeCacheKeepsProviderEntriesWithTheSameIdIndependent()
+    {
+        var (service, provider) = CreateService();
+        provider.Listing.Results = [
+            new BlobInfo { Id = "shared", Name = "photo.png" },
+            new BlobInfo { Id = "shared", Name = "document.pdf" },
+        ];
+        var result = await service.SearchAsync(new PageBuilderAssetSearchCriteria { FolderUrl = "/folder", AcceptedTypes = ["image/*"] }, TestContext.Current.CancellationToken);
+        Assert.Equal("photo.png", Assert.Single(result.Results).Name);
+        Assert.Equal(1, result.FileCount);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public async Task SearchAsync_InvalidTakeRejectsBeforeListing(int take)
+    {
+        var (service, provider) = CreateService();
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => service.SearchAsync(new PageBuilderAssetSearchCriteria { Take = take }, TestContext.Current.CancellationToken));
+        Assert.Equal(0, provider.ListCalls);
+    }
+
+    [Fact]
+    public async Task SearchAsync_UnknownSortColumnKeepsStableFallback()
+    {
+        var (service, _) = CreateService();
+        var result = await service.SearchAsync(new PageBuilderAssetSearchCriteria { FolderUrl = "/folder", Sort = "unknown:desc", Take = 1 }, TestContext.Current.CancellationToken);
+        Assert.Equal("asset-000.png", Assert.Single(result.Results).Name);
+    }
+
+    [Fact]
+    public async Task SearchAsync_ExactNameIgnoresSameNamedFolder()
+    {
+        var (service, provider) = CreateService();
+        provider.Listing.Results = [new BlobFolder { Name = "photo.png" }, new BlobInfo { Name = "photo.png" }];
+        var result = await service.SearchAsync(new PageBuilderAssetSearchCriteria { FolderUrl = "/folder", ExactName = "photo.png", Take = 1 }, TestContext.Current.CancellationToken);
+        Assert.IsType<BlobInfo>(Assert.Single(result.Results));
+        Assert.Equal(1, result.TotalCount);
+    }
+
     private static (PageBuilderAssetSearchService Service, BlobProviderProxy Provider) CreateService()
     {
         var provider = DispatchProxy.Create<IBlobStorageProvider, BlobProviderProxy>();

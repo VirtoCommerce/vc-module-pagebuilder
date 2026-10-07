@@ -120,4 +120,37 @@ describe('Asset library pagination HTTP configuration', () => {
         expect(request.request.method).toBe('GET');
         request.flush({ totalCount: 500, results: [] });
     });
+    it('filters a partial custom response without skip instead of inferring server paging', () => {
+        TestBed.inject(AppConfig).initConfigWith({ assetLibrarySearchRequest: '/custom-assets' });
+        let result: any;
+        api.search('/folder', 'hero', { take: 20, acceptedTypes: ['image/*'] }).subscribe(value => result = value);
+        http.expectOne('/custom-assets').flush({ totalCount: 500, results: [
+            { type: 'blob', name: 'hero.png' }, { type: 'blob', name: 'hero.pdf' }, { type: 'blob', name: 'other.png' },
+        ] });
+        expect(result).toEqual({ totalCount: 1, fileCount: 1, skip: 0, results: [{ type: 'blob', name: 'hero.png' }] });
+    });
+
+    it('drops null and malformed entries before filtering or returning a server page', () => {
+        for (const skip of [undefined, 0]) {
+            let result: any;
+            api.search('/folder').subscribe(value => result = value);
+            http.expectOne('/api/page-builder-assets/search').flush({ skip, totalCount: 1, results: [
+                null, {}, { type: 'blob' }, { type: 'other', name: 'bad' }, { type: 'blob', name: 'photo.png' },
+            ] });
+            expect(result.results).toEqual([{ type: 'blob', name: 'photo.png' }]);
+            expect(result.fileCount).toBe(1);
+        }
+    });
+
+    it('backfills a missing file count for an explicitly paged custom response', () => {
+        let result: any;
+        api.search('/folder').subscribe(value => result = value);
+        http.expectOne('/api/page-builder-assets/search').flush({ skip: 20, totalCount: 100, results: [
+            { type: 'folder', name: 'folder' }, { type: 'blob', name: 'photo.png' },
+        ] });
+        expect(result.skip).toBe(20);
+        expect(result.totalCount).toBe(100);
+        expect(result.fileCount).toBe(1);
+    });
+
 });
