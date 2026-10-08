@@ -120,6 +120,7 @@ export function createEditorUIState(overrides: Partial<EditorUIState> = {}): Edi
     currentSectionsFilter: null,
     dragSectionIds: [],
     isTemplateLoading: false,
+    isPageSaving: false,
     isSchemasLoading: false,
     hoveredSectionId: null,
     ...overrides,

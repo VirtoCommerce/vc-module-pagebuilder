@@ -1,0 +1,563 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Text;
+using System.Text.Json.Nodes;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
+using VirtoCommerce.PageBuilderModule.Core.Events;
+using VirtoCommerce.PageBuilderModule.Core.Models;
+using VirtoCommerce.PageBuilderModule.Core.Services;
+using VirtoCommerce.PageBuilderModule.Data.Models;
+using VirtoCommerce.PageBuilderModule.Data.Repositories;
+using VirtoCommerce.PageBuilderModule.Data.Services;
+using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
+using VirtoCommerce.PageBuilderModule.Web.Services;
+using VirtoCommerce.Platform.Core.Common;
+using VirtoCommerce.Platform.Core.Caching;
+using VirtoCommerce.Platform.Core.Modularity;
+using VirtoCommerce.Platform.Core.Events;
+using Xunit;
+
+namespace VirtoCommerce.PageBuilderModule.Tests;
+
+public partial class PageContentAtomicWriteTests
+{
+    [Fact]
+    public void InitialContent_AlwaysCreatesDocumentEvenWithoutOptionalSettings()
+    {
+        var document = JsonNode.Parse(PageBuilderContentSettings.Synchronize(null, new GroupedPageBuilderPage()));
+        Assert.IsType<JsonObject>(document["settings"]);
+        Assert.Empty(document["content"].AsArray());
+    }
+
+    [Theory]
+    [InlineData("missing-page")]
+    [InlineData("missing-store")]
+    [InlineData("missing-component")]
+    [InlineData("different-store")]
+    public async Task ContentIndexRebuild_OriginalRepositoryContractMatchesBuiltInValidation(string scenario)
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        await using var context = CreateContext(database.ConnectionString);
+        var token = TestContext.Current.CancellationToken;
+        var pageId = scenario == "missing-page" ? "absent-page" : PageId;
+        var content = scenario == "missing-component" ? ComponentAContent.Replace(ComponentAId, "absent-component") : ComponentAContent;
+        if (scenario is "missing-store" or "different-store")
+        {
+            var page = await context.Set<PageBuilderPageEntity>().SingleAsync(x => x.Id == PageId, token);
+            page.StoreId = scenario == "missing-store" ? " " : "another-store";
+            await context.SaveChangesAsync(token);
+        }
+        await using var transaction = await context.Database.BeginTransactionAsync(token);
+        using var repository = new PageBuilderModuleRepository(context);
+        var builtIn = await Record.ExceptionAsync(() => PageBuilderPageIndexing.RebuildAfterRawContentWriteAsync(context, pageId, content, StoreId, token));
+        var originalContract = await Record.ExceptionAsync(() => PageBuilderPageIndexing.RebuildAfterRawContentWriteAsync(repository, pageId, content, StoreId, token));
+        Assert.NotNull(builtIn);
+        Assert.NotNull(originalContract);
+        Assert.Equal(builtIn.GetType(), originalContract.GetType());
+        Assert.Equal(builtIn.Message, originalContract.Message);
+    }
+
+    [Fact]
+    public async Task ContentIndexRebuild_OriginalRepositoryLockRefusalIsAValidationError()
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        await using var context = CreateContext(database.ConnectionString);
+        using var repository = new RefusedSharedComponentLocksRepository(context);
+        var error = await Assert.ThrowsAsync<InvalidDataException>(() => PageBuilderPageIndexing.RebuildAfterRawContentWriteAsync(
+            repository, PageId, ComponentAContent, StoreId, TestContext.Current.CancellationToken));
+        Assert.Equal("Shared Component write locks could not be acquired.", error.Message);
+    }
+
+    [Theory]
+    [InlineData("different-store")]
+    [InlineData("missing-content")]
+    [InlineData("multiple-missing")]
+    public async Task ContentIndexRebuild_ReportsFirstMissingLockBeforeOtherValidationErrors(string scenario)
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        await using var context = CreateContext(database.ConnectionString);
+        var token = TestContext.Current.CancellationToken;
+        if (scenario == "different-store")
+        {
+            await context.Set<PageBuilderSharedComponentEntity>().Where(x => x.Id == ComponentAId)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.StoreId, "another-store"), token);
+        }
+        else if (scenario == "missing-content")
+        {
+            await context.Set<PageBuilderSharedComponentContentEntity>().Where(x => x.Id == ComponentAId).ExecuteDeleteAsync(token);
+        }
+        var document = JsonNode.Parse(ComponentAContent);
+        var references = document["content"].AsArray();
+        references.Insert(0, new JsonObject { ["id"] = "placement-z", ["type"] = "componentRef", ["componentRef"] = "missing-z" });
+        references.Add(new JsonObject { ["id"] = "placement-missing-a", ["type"] = "componentRef", ["componentRef"] = "missing-a" });
+        var content = document.ToJsonString();
+        await using var transaction = await context.Database.BeginTransactionAsync(token);
+        using var repository = new PageBuilderModuleRepository(context);
+        var builtIn = await Assert.ThrowsAsync<InvalidDataException>(() => PageBuilderPageIndexing.RebuildAfterRawContentWriteAsync(
+            context, PageId, content, StoreId, token));
+        var originalContract = await Assert.ThrowsAsync<InvalidDataException>(() => PageBuilderPageIndexing.RebuildAfterRawContentWriteAsync(
+            repository, PageId, content, StoreId, token));
+        Assert.Equal("Shared Component 'missing-a' was not found.", builtIn.Message);
+        Assert.Equal(builtIn.Message, originalContract.Message);
+    }
+
+    [Fact]
+    public async Task ModuleRegistration_OriginalGroupedServiceDecoratorCanReadAndSaveContent()
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        await SaveAsync(database.ConnectionString, ComponentAContent);
+        using var cache = new TestPlatformMemoryCache();
+        var original = CreateGroupedService(database.ConnectionString, cache);
+        var decorated = DispatchProxy.Create<IGroupedPageService, ServiceContractProxy>();
+        ((ServiceContractProxy)decorated).Target = original;
+        var services = new ServiceCollection();
+        new Web.Module { Configuration = new ConfigurationBuilder().Build(), ModuleInfo = new ManifestModuleInfo() }.Initialize(services);
+        services.AddLogging();
+        services.AddSingleton<Func<IPageBuilderModuleRepository>>(() => new PageBuilderModuleRepository(CreateContext(database.ConnectionString)));
+        services.AddSingleton<Func<IContentStreamRepository>>(() => new SqliteContentStreamRepository(CreateContext(database.ConnectionString)));
+        services.AddSingleton<IPlatformMemoryCache>(cache);
+        services.AddSingleton<IEventPublisher>(new NoopEventPublisher());
+        services.AddSingleton<IGroupedPageService>(decorated);
+        using var provider = services.BuildServiceProvider();
+        var content = provider.GetRequiredService<PageBuilderPageContentService>();
+        var group = await decorated.GetByIdAsync(GroupId);
+        var snapshot = await content.LoadGroupContentAsync(group, true, TestContext.Current.CancellationToken);
+        Assert.Equal(ComponentAContent, snapshot.Content);
+        await content.SaveConditionalContentAsync(group, ComponentBContent, snapshot.ETag, TestContext.Current.CancellationToken);
+        Assert.Equal(ComponentBContent, await LoadContentAsync(database.ConnectionString));
+        Assert.Same(decorated, provider.GetRequiredService<IGroupedPageService>());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Copy_UsesNewestActivePageAndRejectsArchivedOnlyGroup(bool archivedOnly)
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        await SaveRawAsync(database.ConnectionString, PageId, ComponentAContent);
+        await SaveRawAsync(database.ConnectionString, SourcePageId, ComponentBContent);
+        await using (var context = CreateContext(database.ConnectionString))
+        {
+            var pages = await context.Set<PageBuilderPageEntity>().ToArrayAsync(TestContext.Current.CancellationToken);
+            pages.Single(x => x.Id == PageId).ModifiedDate = DateTime.UtcNow.AddDays(-1);
+            pages.Single(x => x.Id == SourcePageId).ModifiedDate = DateTime.UtcNow.AddDays(1);
+            if (archivedOnly)
+            {
+                foreach (var page in pages)
+                {
+                    page.Status = "Archived";
+                }
+            }
+            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+        using var cache = new TestPlatformMemoryCache();
+        var service = CreateGroupedService(database.ConnectionString, cache);
+        var target = new GroupedPageBuilderPage { StoreId = StoreId, Name = "Copy" };
+        await service.SaveChangesAsync([target]);
+        var controller = CreateContentController(database.ConnectionString, cache, service);
+        var result = await controller.CopyPageContent(target.Id, GroupId, TestContext.Current.CancellationToken);
+        if (archivedOnly)
+        {
+            Assert.IsType<NotFoundResult>(result);
+            Assert.Empty((await service.GetByIdAsync(target.Id)).Pages);
+        }
+        else
+        {
+            Assert.IsType<NoContentResult>(result);
+            var snapshot = await service.LoadGroupContentAsync(await service.GetByIdAsync(target.Id), cancellationToken: TestContext.Current.CancellationToken);
+            Assert.Equal(ComponentBContent, snapshot.Content);
+        }
+    }
+
+    [Fact]
+    public async Task CreateGroup_CommitsInitialSettingsOnceDespiteProviderTimestampPrecision()
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        using var cache = new TestPlatformMemoryCache();
+        var service = new TimestampPrecisionGroupedService(database.ConnectionString, cache);
+        var controller = CreateContentController(database.ConnectionString, cache, service);
+        var group = new GroupedPageBuilderPage { StoreId = StoreId, Name = "New page", Permalink = "new-page", CultureName = "en-US" };
+
+        Assert.IsType<OkObjectResult>((await controller.CreateGroup(group, TestContext.Current.CancellationToken)).Result);
+
+        Assert.Equal(1, service.SaveCount);
+        var persisted = await service.GetByIdAsync(group.Id);
+        Assert.NotEqual(persisted.CreatedDate, group.CreatedDate);
+        var snapshot = await service.LoadGroupContentAsync(persisted, cancellationToken: TestContext.Current.CancellationToken);
+        var document = JsonNode.Parse(snapshot.Content);
+        Assert.Equal("New page", document["settings"]["name"].GetValue<string>());
+        Assert.Equal("new-page", document["settings"]["permalink"].GetValue<string>());
+        Assert.Equal("en-US", document["settings"]["cultureName"].GetValue<string>());
+        Assert.Empty(document["content"].AsArray());
+    }
+
+    [Fact]
+    public async Task ContentGet_DoesNotWriteOrAcquireWriteLocks()
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        await SaveAsync(database.ConnectionString, ComponentAContent);
+        using var cache = new TestPlatformMemoryCache();
+        var recorder = new LockCommandRecorder();
+        var service = new GroupedPageService(() => new PageBuilderModuleRepository(CreateContext(database.ConnectionString, recorder)),
+            () => new SqliteContentStreamRepository(CreateContext(database.ConnectionString)), cache, new NoopEventPublisher(), NullLogger<GroupedPageService>.Instance);
+        var group = await LoadGroupAsync(database.ConnectionString);
+        var result = await service.LoadGroupContentAsync(group, cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Equal(ComponentAContent, result.Content);
+        Assert.Empty(recorder.LockedTables);
+    }
+
+    [Fact]
+    public async Task ConditionalSave_ExistingDraftRaisesOnlyOnePageEventAndRetryRaisesNone()
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        await SaveAsync(database.ConnectionString, ComponentAContent);
+        using var cache = new TestPlatformMemoryCache();
+        var events = new RecordingEventPublisher();
+        var service = CreateGroupedService(database.ConnectionString, cache, events);
+        var controller = CreateContentController(database.ConnectionString, cache, service, events);
+        var version = PageBuilderContentVersion.Create(await LoadGroupAsync(database.ConnectionString), ComponentAContent);
+        for (var attempt = 0; attempt < 2; attempt++)
+        {
+            events.Events.Clear();
+            controller.Request.Headers.IfMatch = version;
+            controller.Request.Body = new MemoryStream(Encoding.UTF8.GetBytes(ComponentBContent));
+            Assert.IsType<NoContentResult>(await controller.SavePageContent(GroupId, TestContext.Current.CancellationToken));
+            Assert.Empty(events.Events.OfType<GroupedPageBuilderPageChangingEvent>());
+            Assert.Empty(events.Events.OfType<GroupedPageBuilderPageChangedEvent>());
+            if (attempt == 0)
+            {
+                var changed = Assert.Single(events.Events.OfType<PageBuilderPageChangedEvent>());
+                Assert.Equal(PageId, Assert.Single(changed.ChangedEntries).NewEntry.Id);
+            }
+            else
+            {
+                Assert.Empty(events.Events);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task GroupedSave_NullPagesPreservesExistingMembership()
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        using var cache = new TestPlatformMemoryCache();
+        var service = CreateGroupedService(database.ConnectionString, cache);
+        var group = await service.GetByIdAsync(GroupId);
+        group.Name = "Metadata only";
+        group.Pages = null;
+        await service.SaveChangesAsync([group]);
+        var saved = await service.GetByIdAsync(GroupId);
+        Assert.Equal("Metadata only", saved.Name);
+        Assert.Equal(2, saved.Pages.Count);
+    }
+
+    [Fact]
+    public async Task GroupedSave_OriginalRepositoryContractMaintainsContentIndexes()
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        using var cache = new TestPlatformMemoryCache();
+        var service = new GroupedPageService(() =>
+        {
+            var proxy = DispatchProxy.Create<IPageBuilderModuleRepository, ServiceContractProxy>();
+            ((ServiceContractProxy)proxy).Target = new PageBuilderModuleRepository(CreateContext(database.ConnectionString));
+            return proxy;
+        }, () => new SqliteContentStreamRepository(CreateContext(database.ConnectionString)), cache, new NoopEventPublisher(), NullLogger<GroupedPageService>.Instance);
+        var group = await service.GetByIdAsync(GroupId);
+        group.Pages.Single(x => x.Id == PageId).Content = ComponentAContent;
+        await service.SaveChangesAsync([group]);
+        Assert.Equal([ComponentAId], await LoadReferenceIdsAsync(database.ConnectionString));
+        Assert.Equal([AssetAUrl], await LoadAssetUrlsAsync(database.ConnectionString));
+    }
+
+    [Theory]
+    [InlineData("42")]
+    [InlineData("true")]
+    [InlineData("{}")]
+    public void GroupSettings_RepairsNonStringMetadata(string value)
+    {
+        var group = new GroupedPageBuilderPage { Name = "Name", Permalink = "slug", CultureName = "en-US" };
+        var content = "{\"settings\":{\"name\":" + value + ",\"permalink\":" + value + ",\"cultureName\":" + value + "},\"content\":[]}";
+        var updated = JsonNode.Parse(PageBuilderContentSettings.Synchronize(content, group));
+        Assert.Equal("Name", updated["settings"]["name"].GetValue<string>());
+        Assert.Equal("slug", updated["settings"]["permalink"].GetValue<string>());
+        Assert.Equal("en-US", updated["settings"]["cultureName"].GetValue<string>());
+    }
+
+    [Fact]
+    public async Task ContentGet_RealServiceTokenSupportsTwoSuccessiveSaves()
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        await SaveAsync(database.ConnectionString, ComponentAContent);
+        using var cache = new TestPlatformMemoryCache();
+        var service = CreateGroupedService(database.ConnectionString, cache);
+        var controller = CreateContentController(database.ConnectionString, cache, service);
+
+        await controller.GetPageContent(GroupId, true, TestContext.Current.CancellationToken);
+        Assert.Equal(ComponentAContent, Encoding.UTF8.GetString(((MemoryStream)controller.Response.Body).ToArray()));
+        var eTag = controller.Response.Headers.ETag.ToString();
+        foreach (var content in new[] { ComponentBContent, UpdatedPageContent })
+        {
+            controller.Request.Body = new MemoryStream(Encoding.UTF8.GetBytes(content));
+            controller.Request.Headers.IfMatch = eTag;
+            Assert.IsType<NoContentResult>(await controller.SavePageContent(GroupId, TestContext.Current.CancellationToken));
+            eTag = controller.Response.Headers.ETag.ToString();
+        }
+        Assert.Equal(UpdatedPageContent, await LoadContentAsync(database.ConnectionString));
+        Assert.Equal(PageBuilderContentVersion.Create(await LoadGroupAsync(database.ConnectionString), UpdatedPageContent), eTag);
+    }
+
+    [Fact]
+    public async Task ContentGet_IgnoresCachedMembershipAndUsesSameDraftAsSaveAndPublish()
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        await SaveAsync(database.ConnectionString, ComponentAContent);
+        using var cache = new TestPlatformMemoryCache();
+        var service = CreateGroupedService(database.ConnectionString, cache);
+        var cached = await service.GetByIdAsync(GroupId);
+        await using (var context = CreateContext(database.ConnectionString))
+        {
+            context.Add(new PageBuilderPageEntity
+            {
+                Id = "z-newer-draft",
+                GroupId = GroupId,
+                StoreId = StoreId,
+                Status = "Draft",
+                ModifiedDate = DateTime.UtcNow.AddDays(1),
+                Content = new PageBuilderContentEntity { PageContent = ComponentBContent },
+            });
+            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+        Assert.DoesNotContain(cached.Pages, x => x.Id == "z-newer-draft");
+        var snapshot = await service.LoadGroupContentAsync(cached, cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Equal("z-newer-draft", snapshot.PageId);
+        var written = await service.SaveGroupContentAsync(cached, UpdatedPageContent, snapshot.ETag, TestContext.Current.CancellationToken);
+        Assert.Equal(snapshot.PageId, written.PageId);
+        var controller = CreateContentController(database.ConnectionString, cache, service);
+        Assert.IsType<OkResult>(await controller.PublishGroup(GroupId, true, TestContext.Current.CancellationToken));
+        var published = await service.LoadGroupContentAsync(cached, false, TestContext.Current.CancellationToken);
+        Assert.Equal(written.PageId, published.PageId);
+        Assert.Equal(UpdatedPageContent, published.Content);
+    }
+
+    [Fact]
+    public async Task ConditionalSave_IdenticalRetryReturnsCurrentVersionWithoutAnotherWrite()
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        await SaveAsync(database.ConnectionString, ComponentAContent);
+        var group = await LoadGroupAsync(database.ConnectionString);
+        var version = PageBuilderContentVersion.Create(group, ComponentAContent);
+        var saved = await SaveConditionalAsync(database.ConnectionString, group, ComponentBContent, version);
+        var retried = await SaveConditionalAsync(database.ConnectionString, group, ComponentBContent, version,
+            _ => throw new InvalidOperationException("An identical retry must not write or rebuild indexes."));
+        Assert.Equal(saved.PageId, retried.PageId);
+        Assert.Equal(saved.ETag, retried.ETag);
+        Assert.False(retried.ContentWritten);
+    }
+
+    [Fact]
+    public async Task ConditionalSave_CaseOnlyAuthorizedStoreDifferenceIsAccepted()
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        await SaveAsync(database.ConnectionString, ComponentAContent);
+        var group = await LoadGroupAsync(database.ConnectionString);
+        var eTag = PageBuilderContentVersion.Create(group, ComponentAContent);
+        group.StoreId = group.StoreId.ToUpperInvariant();
+        var result = await SaveConditionalAsync(database.ConnectionString, group, ComponentBContent, eTag);
+        Assert.Equal(PageBuilderContentVersion.Create(await LoadGroupAsync(database.ConnectionString), ComponentBContent), result.ETag);
+    }
+
+    [Fact]
+    public async Task ConditionalSave_FirstDraftRaisesGroupedEventsAndUpdatesGroupAuditDate()
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        await using (var context = CreateContext(database.ConnectionString))
+        {
+            context.Remove(await context.Set<PageBuilderPageEntity>().SingleAsync(x => x.Id == PageId, TestContext.Current.CancellationToken));
+            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+        var group = await LoadGroupAsync(database.ConnectionString);
+        using var cache = new TestPlatformMemoryCache();
+        var events = new RecordingEventPublisher();
+        var service = CreateGroupedService(database.ConnectionString, cache, events);
+        var result = await service.SaveGroupContentAsync(group, ComponentAContent, PageBuilderContentVersion.Create(group, null), TestContext.Current.CancellationToken);
+        var changing = Assert.Single(events.Events.OfType<GroupedPageBuilderPageChangingEvent>());
+        var changed = Assert.Single(events.Events.OfType<GroupedPageBuilderPageChangedEvent>());
+        Assert.Contains(Assert.Single(changing.ChangedEntries).NewEntry.Pages, x => x.Id == result.PageId);
+        Assert.Contains(Assert.Single(changed.ChangedEntries).NewEntry.Pages, x => x.Id == result.PageId);
+        Assert.NotNull((await service.GetByIdAsync(GroupId)).ModifiedDate);
+
+        events.Events.Clear();
+        var retry = await service.SaveGroupContentAsync(group, ComponentAContent, PageBuilderContentVersion.Create(group, null), TestContext.Current.CancellationToken);
+        Assert.Equal(result.PageId, retry.PageId);
+        Assert.Equal(result.ETag, retry.ETag);
+        Assert.False(retry.ContentWritten);
+        Assert.Empty(events.Events);
+    }
+
+    [Fact]
+    public async Task GroupedCreate_PersistsSharedComponentAndAssetIndexesWithContent()
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        using var cache = new TestPlatformMemoryCache();
+        var service = CreateGroupedService(database.ConnectionString, cache);
+        var group = new GroupedPageBuilderPage
+        {
+            StoreId = StoreId,
+            Name = "Imported",
+            Pages = [new PageBuilderPage { StoreId = StoreId, Status = "Draft", Content = ComponentAContent }],
+        };
+        await service.SaveChangesAsync([group]);
+        var pageId = Assert.Single(group.Pages).Id;
+        await using var context = CreateContext(database.ConnectionString);
+        Assert.Equal([ComponentAId], await context.Set<PageBuilderSharedComponentReferenceEntity>().Where(x => x.PageId == pageId)
+            .Select(x => x.SharedComponentId).ToArrayAsync(TestContext.Current.CancellationToken));
+        Assert.Equal([AssetAUrl], await context.Set<PageBuilderAssetReferenceEntity>().Where(x => x.PageId == pageId)
+            .Select(x => x.NormalizedAssetUrl).ToArrayAsync(TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task GroupedCreate_InvalidReferenceRollsBackMetadataContentAndIndexes()
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        using var cache = new TestPlatformMemoryCache();
+        var service = CreateGroupedService(database.ConnectionString, cache);
+        var group = new GroupedPageBuilderPage
+        {
+            Id = "invalid-import",
+            StoreId = StoreId,
+            Pages = [new PageBuilderPage { StoreId = StoreId, Status = "Draft", Content = ComponentAContent.Replace(ComponentAId, "missing") }],
+        };
+        await Assert.ThrowsAsync<InvalidDataException>(() => service.SaveChangesAsync([group]));
+        await using var context = CreateContext(database.ConnectionString);
+        Assert.False(await context.Set<GroupedPageBuilderPageEntity>().AnyAsync(x => x.Id == group.Id, TestContext.Current.CancellationToken));
+        Assert.False(await context.Set<PageBuilderPageEntity>().AnyAsync(x => x.GroupId == group.Id, TestContext.Current.CancellationToken));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task GroupSettings_VisibilityOnlyPreservesDocumentBytesAndVersion(bool differentContentSettings)
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        var document = JsonNode.Parse(ComponentAContent);
+        if (differentContentSettings)
+        {
+            document["settings"]["name"] = "Content-owned name";
+        }
+        var content = document.ToJsonString();
+        Assert.Equal(differentContentSettings, content.Contains("Content-owned name", StringComparison.Ordinal));
+        await SaveAsync(database.ConnectionString, content);
+        using var cache = new TestPlatformMemoryCache();
+        var service = CreateGroupedService(database.ConnectionString, cache);
+        var group = await service.GetByIdAsync(GroupId);
+        var before = await service.LoadGroupContentAsync(group, cancellationToken: TestContext.Current.CancellationToken);
+        group.Visibility = !group.Visibility;
+        await service.SaveGroupSettingsAsync(group, TestContext.Current.CancellationToken);
+        var after = await service.LoadGroupContentAsync(group, cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Equal(before, after);
+        await service.SaveGroupContentAsync(group, ComponentBContent, before.ETag, TestContext.Current.CancellationToken);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task GroupSettings_CachedShellModelPreservesLatestDesignerContent(bool firstDraft)
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        if (firstDraft)
+        {
+            await using var context = CreateContext(database.ConnectionString);
+            context.Remove(await context.Set<PageBuilderPageEntity>().SingleAsync(x => x.Id == PageId, TestContext.Current.CancellationToken));
+            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+            await SaveRawAsync(database.ConnectionString, SourcePageId, ComponentAContent);
+        }
+        else
+        {
+            await SaveAsync(database.ConnectionString, ComponentAContent);
+        }
+        using var cache = new TestPlatformMemoryCache();
+        var service = CreateGroupedService(database.ConnectionString, cache);
+        var shellModel = await service.GetByIdAsync(GroupId);
+        var snapshot = await service.LoadGroupContentAsync(shellModel, cancellationToken: TestContext.Current.CancellationToken);
+        var saved = await service.SaveGroupContentAsync(shellModel, ComponentBContent, snapshot.ETag, TestContext.Current.CancellationToken);
+        shellModel.Name = "Renamed";
+        await service.SaveGroupSettingsAsync(shellModel, TestContext.Current.CancellationToken);
+        var after = await service.LoadGroupContentAsync(shellModel, cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Equal(saved.PageId, after.PageId);
+        Assert.Contains(ComponentBId, after.Content);
+        Assert.Contains("Renamed", after.Content);
+        Assert.Single(shellModel.Pages, x => x.Status == "Draft");
+        await using var verify = CreateContext(database.ConnectionString);
+        Assert.Equal([ComponentBId], await verify.Set<PageBuilderSharedComponentReferenceEntity>().Where(x => x.PageId == saved.PageId)
+            .Select(x => x.SharedComponentId).ToArrayAsync(TestContext.Current.CancellationToken));
+    }
+
+    private static GroupedPageService CreateGroupedService(string connectionString, TestPlatformMemoryCache cache, IEventPublisher events = null)
+        => new(() => new PageBuilderModuleRepository(CreateContext(connectionString)),
+            () => new SqliteContentStreamRepository(CreateContext(connectionString)), cache, events ?? new NoopEventPublisher(),
+            NullLogger<GroupedPageService>.Instance);
+
+    private static PageBuilderPageController CreateContentController(string connectionString, TestPlatformMemoryCache cache, GroupedPageService service, IEventPublisher events = null)
+    {
+        events ??= new NoopEventPublisher();
+        var pages = new PageBuilderPageService(() => new PageBuilderModuleRepository(CreateContext(connectionString)), cache, events);
+        var content = new PageBuilderPageContentService(pages, service, new NoopSharedComponentReferenceIndexService(), events,
+            NullLogger<PageBuilderPageContentService>.Instance);
+        return new PageBuilderPageController(pages, service, null, new PublishedRenameContentPreservationTests.AllowAllAuthorizationService(),
+            null, content, NullLogger<PageBuilderPageController>.Instance)
+        {
+            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext { Response = { Body = new MemoryStream() } } },
+        };
+    }
+
+    private sealed class RecordingEventPublisher : IEventPublisher
+    {
+        public List<IEvent> Events { get; } = [];
+        public Task Publish<T>(T @event, CancellationToken cancellationToken = default) where T : IEvent
+        {
+            Events.Add(@event);
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class TimestampPrecisionGroupedService(string connectionString, TestPlatformMemoryCache cache)
+        : GroupedPageService(() => new PageBuilderModuleRepository(CreateContext(connectionString)),
+            () => new SqliteContentStreamRepository(CreateContext(connectionString)), cache, new NoopEventPublisher(), NullLogger<GroupedPageService>.Instance)
+    {
+        public int SaveCount { get; private set; }
+        public override async Task SaveChangesAsync(IList<GroupedPageBuilderPage> models)
+        {
+            SaveCount++;
+            await base.SaveChangesAsync(models);
+            foreach (var model in models)
+            {
+                model.CreatedDate = model.CreatedDate.AddTicks(7);
+            }
+        }
+    }
+
+    private sealed class RefusedSharedComponentLocksRepository(PageBuilderModuleDbContext context) : PageBuilderModuleRepository(context)
+    {
+        public override Task<bool> ExecuteUnderSharedComponentWriteLocksAsync(
+            IEnumerable<string> sharedComponentIds, Func<CancellationToken, Task> operation, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(false);
+        }
+    }
+
+    public class ServiceContractProxy : DispatchProxy
+    {
+        public object Target { get; set; }
+        protected override object Invoke(MethodInfo targetMethod, object[] args) => targetMethod.Invoke(Target, args);
+    }
+}

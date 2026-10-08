@@ -283,21 +283,21 @@ describe('editTemplateContext', () => {
 describe('selectToolbarButtonsState', () => {
     it('always includes Save button', () => {
         const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: false, useUnpublish: false, useExternalPreview: false });
-        const result = selector.projector(false, null, '', false);
+        const result = selector.projector(false, null, '', false, false);
         const allButtons = result.flat();
         expect(allButtons.find(b => b.alias === 'save')).toBeTruthy();
     });
 
     it('includes theme-settings when useTheme is true', () => {
         const selector = selectors.selectToolbarButtonsState({ useTheme: true, useDrafts: false, useUnpublish: false, useExternalPreview: false });
-        const result = selector.projector(false, null, '', false);
+        const result = selector.projector(false, null, '', false, false);
         const allButtons = result.flat();
         expect(allButtons.find(b => b.alias === 'theme-settings')).toBeTruthy();
     });
 
     it('includes preview when useExternalPreview is true', () => {
         const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: false, useUnpublish: false, useExternalPreview: true });
-        const result = selector.projector(false, null, '', false);
+        const result = selector.projector(false, null, '', false, false);
         const allButtons = result.flat();
         expect(allButtons.find(b => b.alias === 'external-preview')).toBeTruthy();
     });
@@ -305,7 +305,7 @@ describe('selectToolbarButtonsState', () => {
     it('includes publish/unpublish when useDrafts is true and not loading', () => {
         const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: true, useUnpublish: true, useExternalPreview: false });
         const state = { isLoading: false, error: undefined, published: true, hasChanges: false } as any;
-        const result = selector.projector(false, state, '', false);
+        const result = selector.projector(false, state, '', false, false);
         const allButtons = result.flat();
         expect(allButtons.find(b => b.alias === 'publish')).toBeTruthy();
         expect(allButtons.find(b => b.alias === 'unpublish')).toBeTruthy();
@@ -314,7 +314,7 @@ describe('selectToolbarButtonsState', () => {
     it('hides publish/unpublish when loading', () => {
         const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: true, useUnpublish: true, useExternalPreview: false });
         const state = { isLoading: true } as any;
-        const result = selector.projector(false, state, '', false);
+        const result = selector.projector(false, state, '', false, false);
         const allButtons = result.flat();
         expect(allButtons.find(b => b.alias === 'publish')).toBeFalsy();
     });
@@ -323,7 +323,7 @@ describe('selectToolbarButtonsState', () => {
         // pages in git: taking one down means deleting it from the production branch
         const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: true, useUnpublish: false, useExternalPreview: false });
         const state = { isLoading: false, published: true, hasChanges: false } as any;
-        const allButtons = selector.projector(false, state, '', false).flat();
+        const allButtons = selector.projector(false, state, '', false, false).flat();
         expect(allButtons.find(b => b.alias === 'publish')).toBeTruthy();
         expect(allButtons.find(b => b.alias === 'unpublish')).toBeFalsy();
     });
@@ -331,7 +331,7 @@ describe('selectToolbarButtonsState', () => {
     it('does not let a page be published again while its pull request is open', () => {
         const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: true, useUnpublish: false, useExternalPreview: false });
         const state = { isLoading: false, published: false, hasChanges: true, pending: true } as any;
-        const publishBtn = selector.projector(false, state, '', false).flat().find(b => b.alias === 'publish');
+        const publishBtn = selector.projector(false, state, '', false, false).flat().find(b => b.alias === 'publish');
         expect(publishBtn!.canAction).toBeFalsy();
         expect(publishBtn!.title).toBe('Publishing…');
     });
@@ -341,7 +341,7 @@ describe('selectToolbarButtonsState', () => {
         // alone here left every button off with the page still live on production
         const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: true, useUnpublish: true, useExternalPreview: false });
         const state = { isLoading: false, published: true, hasChanges: false, pending: true, awaitingMerge: true } as any;
-        const unpublishBtn = selector.projector(false, state, '', false).flat().find(b => b.alias === 'unpublish');
+        const unpublishBtn = selector.projector(false, state, '', false, false).flat().find(b => b.alias === 'unpublish');
         expect(unpublishBtn!.canAction).toBe(true);
         expect(unpublishBtn!.title).toBe('Retry unpublish');
     });
@@ -349,7 +349,7 @@ describe('selectToolbarButtonsState', () => {
     it('does not let a page be unpublished while its pull request is merging itself', () => {
         const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: true, useUnpublish: true, useExternalPreview: false });
         const state = { isLoading: false, published: true, hasChanges: false, pending: true } as any;
-        const unpublishBtn = selector.projector(false, state, '', false).flat().find(b => b.alias === 'unpublish');
+        const unpublishBtn = selector.projector(false, state, '', false, false).flat().find(b => b.alias === 'unpublish');
         expect(unpublishBtn!.canAction).toBeFalsy();
         expect(unpublishBtn!.title).toBe('Unpublish');
     });
@@ -358,7 +358,7 @@ describe('selectToolbarButtonsState', () => {
         // that pull request is a publish — it left changes behind, and its own button retries it
         const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: true, useUnpublish: true, useExternalPreview: false });
         const state = { isLoading: false, published: true, hasChanges: true, pending: true, awaitingMerge: true } as any;
-        const unpublishBtn = selector.projector(false, state, '', false).flat().find(b => b.alias === 'unpublish');
+        const unpublishBtn = selector.projector(false, state, '', false, false).flat().find(b => b.alias === 'unpublish');
         expect(unpublishBtn!.canAction).toBeFalsy();
         expect(unpublishBtn!.title).toBe('Unpublish');
     });
@@ -368,7 +368,7 @@ describe('selectToolbarButtonsState', () => {
         // nothing is going to finish this publish: leaving the button disabled would strand the page
         const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: true, useUnpublish: false, useExternalPreview: false });
         const state = { isLoading: false, published: false, hasChanges: true, pending: true, awaitingMerge: true } as any;
-        const publishBtn = selector.projector(false, state, '', false).flat().find(b => b.alias === 'publish');
+        const publishBtn = selector.projector(false, state, '', false, false).flat().find(b => b.alias === 'publish');
         expect(publishBtn!.canAction).toBe(true);
         expect(publishBtn!.title).toBe('Retry publish');
     });
@@ -384,7 +384,7 @@ describe('selectToolbarButtonsState', () => {
     it('offers promotion when production is behind', () => {
         const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: true, useUnpublish: false, useExternalPreview: false, usePromote: true });
         const state = { ...promoted, production: { published: true, behind: true, pending: false } } as any;
-        const promoteBtn = selector.projector(false, state, '', false).flat().find(b => b.alias === 'promote');
+        const promoteBtn = selector.projector(false, state, '', false, false).flat().find(b => b.alias === 'promote');
         expect(promoteBtn!.canAction).toBe(true);
         expect(promoteBtn!.title).toBe('Promote to production');
     });
@@ -392,7 +392,7 @@ describe('selectToolbarButtonsState', () => {
     it('shows production as in sync rather than offering a promotion that ships nothing', () => {
         const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: true, useUnpublish: false, useExternalPreview: false, usePromote: true });
         const state = { ...promoted, production: { published: true, behind: false, pending: false } } as any;
-        const promoteBtn = selector.projector(false, state, '', false).flat().find(b => b.alias === 'promote');
+        const promoteBtn = selector.projector(false, state, '', false, false).flat().find(b => b.alias === 'promote');
         expect(promoteBtn!.canAction).toBeFalsy();
         expect(promoteBtn!.title).toBe('In sync with production');
     });
@@ -400,7 +400,7 @@ describe('selectToolbarButtonsState', () => {
     it('does not let a page be promoted again while its promotion is open', () => {
         const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: true, useUnpublish: false, useExternalPreview: false, usePromote: true });
         const state = { ...promoted, production: { published: true, behind: true, pending: true } } as any;
-        const promoteBtn = selector.projector(false, state, '', false).flat().find(b => b.alias === 'promote');
+        const promoteBtn = selector.projector(false, state, '', false, false).flat().find(b => b.alias === 'promote');
         expect(promoteBtn!.canAction).toBeFalsy();
         expect(promoteBtn!.title).toBe('Promoting…');
     });
@@ -408,7 +408,7 @@ describe('selectToolbarButtonsState', () => {
     it('offers promotion again when the promotion pull request will not merge itself', () => {
         const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: true, useUnpublish: false, useExternalPreview: false, usePromote: true });
         const state = { ...promoted, production: { published: true, behind: true, pending: true, awaitingMerge: true } } as any;
-        const promoteBtn = selector.projector(false, state, '', false).flat().find(b => b.alias === 'promote');
+        const promoteBtn = selector.projector(false, state, '', false, false).flat().find(b => b.alias === 'promote');
         expect(promoteBtn!.canAction).toBe(true);
         expect(promoteBtn!.title).toBe('Retry promote');
     });
@@ -417,7 +417,7 @@ describe('selectToolbarButtonsState', () => {
         // production follows what has already been through the base branch
         const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: true, useUnpublish: false, useExternalPreview: false, usePromote: true });
         const state = { ...promoted, hasChanges: true, production: { published: false, behind: true, pending: false } } as any;
-        const promoteBtn = selector.projector(false, state, '', false).flat().find(b => b.alias === 'promote');
+        const promoteBtn = selector.projector(false, state, '', false, false).flat().find(b => b.alias === 'promote');
         expect(promoteBtn!.canAction).toBeFalsy();
     });
 
@@ -425,25 +425,25 @@ describe('selectToolbarButtonsState', () => {
         // the server reports production as null, and then the stage does not exist at all
         const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: true, useUnpublish: false, useExternalPreview: false, usePromote: true });
         const state = { ...promoted, production: null } as any;
-        expect(selector.projector(false, state, '', false).flat().find(b => b.alias === 'promote')).toBeFalsy();
+        expect(selector.projector(false, state, '', false, false).flat().find(b => b.alias === 'promote')).toBeFalsy();
     });
 
     it('hides promotion where the store does not offer the descriptor', () => {
         const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: true, useUnpublish: false, useExternalPreview: false });
         const state = { ...promoted, production: { published: true, behind: true, pending: false } } as any;
-        expect(selector.projector(false, state, '', false).flat().find(b => b.alias === 'promote')).toBeFalsy();
+        expect(selector.projector(false, state, '', false, false).flat().find(b => b.alias === 'promote')).toBeFalsy();
     });
 
     it('Save canAction is true when hasDirty', () => {
         const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: false, useUnpublish: false, useExternalPreview: false });
-        const result = selector.projector(true, null, '', false);
+        const result = selector.projector(true, null, '', false, false);
         const saveBtn = result.flat().find(b => b.alias === 'save');
         expect(saveBtn!.canAction).toBe(true);
     });
 
     it('Save canAction is false when not dirty', () => {
         const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: false, useUnpublish: false, useExternalPreview: false });
-        const result = selector.projector(false, null, '', false);
+        const result = selector.projector(false, null, '', false, false);
         const saveBtn = result.flat().find(b => b.alias === 'save');
         expect(saveBtn!.canAction).toBe(false);
     });
@@ -456,7 +456,7 @@ describe('selectToolbarButtonsState', () => {
             useExternalPreview: false,
             canEditSharedComponents: false,
         });
-        const result = selector.projector(false, null, 'component-1', true);
+        const result = selector.projector(false, null, 'component-1', true, false);
         const saveBtn = result.flat().find(b => b.alias === 'save');
         expect(saveBtn!.canAction).toBe(false);
     });
@@ -476,5 +476,14 @@ describe('selectCurrentItemName', () => {
         const settings = createSection({ type: 'settings' });
         const result = selectors.selectCurrentItemName.projector(null, null, settings, null);
         expect(result).toBe('Edit settings');
+    });
+});
+
+
+describe('page save toolbar feedback', () => {
+    it('disables Save and explains a pending request', () => {
+        const selector = selectors.selectToolbarButtonsState({ useTheme: false, useDrafts: false, useUnpublish: false, useExternalPreview: false });
+        const save = selector.projector(true, null, '', true, true).flat().find(button => button.alias === 'save');
+        expect(save).toMatchObject({ title: 'Saving...', canAction: false });
     });
 });

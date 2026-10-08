@@ -56,6 +56,26 @@ To run backup/restore:
 1. Ensure **Page Builder Module** is selected in the module list.
 1. Run the export/import process.
 
+## Concurrent page editing
+
+Grouped-page content saves require the version the author originally read. `GET /api/page-builder-pages/grouped/{groupId}/content?draft=true` returns an `ETag`; send that exact value in `If-Match` when posting the edited document to the same URL. A successful save returns `204` and the next `ETag`. A stale version returns `412` without changing content or reference indexes. A missing version returns `428`; wildcard and weak tokens are rejected.
+
+JSON clients can read `?draft=true&includeVersion=true` to receive `{ "content": "<page JSON>", "eTag": "<version>" }`, then post both fields to `/api/page-builder-pages/grouped/{groupId}/content-json`. An existing unseeded group has its own empty-state version: the raw GET returns `404` with an `ETag`, while the versioned GET returns a blank document and that token. A missing group has no token.
+
+The Designer keeps local edits after a conflict and asks the author to copy them before reloading. Integrations must handle `412` the same way: read the new document and reapply the edit, rather than attach a fresh token to stale content. Update existing clients to send a version when upgrading the module. This contract covers grouped-page content editing; blob/theme content and Shared Component originals use their existing APIs.
+
+### Upgrade notes
+
+Grouped-page content POSTs now require a version. Deploy updated integrations together with this module. For proxies that transform HTTP ETag headers, use `includeVersion=true` on both GET and POST: GET returns `{ content, eTag }`, and a successful POST returns `200` with `{ eTag }`. The Designer uses these body tokens. Without that option, successful POSTs retain `204` plus the ETag header. An identical retry of an already accepted document succeeds with its current version, without a second persistence or index write.
+
+`POST /api/page-builder-pages/create-group-page` requires a JSON object with a `content` array. The Shell import converts legacy top-level arrays to this object before submitting. Empty objects, legacy `{ pageContent: ... }` envelopes, null content, and sections without a type return `400`; empty or invalid JSON fails client parsing or server validation. Creation writes component and asset reference indexes in the same transaction as content. Add page also saves its initial settings and draft together.
+
+The existing `IGroupedPageService` and `IContentStreamRepository` contracts remain unchanged. `IGroupedPageContentService` is registered separately in DI: the default registration uses a capable grouped service or the built-in authoring implementation, so existing grouped-service decorators keep working. Replacements that change authoring persistence should register this capability too. Customize Shell settings saves by overriding `SaveGroupSettingsAsync`; they no longer dispatch through a `SaveChangesAsync` override. Existing repository decorators can use the original queries, locks and asset-index method; `IPageBuilderContentIndexRepository` is optional. Shell settings updates read the current document inside the same write lock; visibility-only updates preserve its bytes and version and do not create a draft when published content already exists.
+
+Custom `builder_settings.json` descriptors replace the bundled descriptor as a whole. Theme overrides of grouped `templateUrl` and `saveGroupedPage` must retain `versioned: true` and `includeVersion=true` on their URLs. External unversioned backends keep their existing contract.
+
+Closing the AI panel or receiving its `RELOAD_BLADE` message checks the current server version without replacing the local document's token. A changed, clean page reloads; a changed, dirty page keeps its edits and asks the author to reconcile. Unchanged pages produce no warning, and busy pages are left alone. Older assistants without save notifications are checked when their panel closes. Copy retains its newest Draft/Published source rule and rejects archived-only groups; publish and legacy direct content service calls retain their existing contracts.
+
 ## Getting started
 
 ### Prerequisites

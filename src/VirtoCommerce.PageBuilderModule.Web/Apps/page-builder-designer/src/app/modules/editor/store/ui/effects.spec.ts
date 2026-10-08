@@ -134,6 +134,20 @@ describe('TemplateEditorUiEffects', () => {
     // ── notifyFailsSave$ ──────────────────────────────────────────
 
     describe('notifyFailsSave$', () => {
+        it('explains a concurrency conflict without dispatching dirty-state changes', async () => {
+            actions$.next(actions.saveTemplateFails({ error: { status: 412 } as any }));
+            const result = await firstValueFrom(effects.notifyFailsSave$);
+            expect(result.type).toBe(sharedActions.showNotification.type);
+            expect((result as any).message).toContain('Copy your changes before reloading');
+        });
+
+        it('explains a missing version without clearing local changes', async () => {
+            actions$.next(actions.saveTemplateFails({ error: { status: 428 } as any }));
+            const result = await firstValueFrom(effects.notifyFailsSave$);
+            expect(result).toMatchObject({ type: sharedActions.showNotification.type, msgType: 'error' });
+            expect((result as any).message).toContain('Copy your changes');
+        });
+
         it('shows error notification', async () => {
             actions$.next(actions.saveTemplateFails({ error: {} as any }));
             const result = await firstValueFrom(effects.notifyFailsSave$);

@@ -8,17 +8,266 @@ using System.Threading.Tasks;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.Logging.Abstractions;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Data.Models;
 using VirtoCommerce.PageBuilderModule.Data.Repositories;
 using VirtoCommerce.PageBuilderModule.Data.Services;
+using VirtoCommerce.Platform.Caching;
+using VirtoCommerce.Platform.Core.Caching;
 using VirtoCommerce.Platform.Core.Events;
 using Xunit;
 
 namespace VirtoCommerce.PageBuilderModule.Tests;
 
-public class PageContentAtomicWriteTests
+public partial class PageContentAtomicWriteTests
 {
+    [Fact]
+    public async Task ConditionalSave_FirstDraftInvalidatesPreviouslyEmptyPageSearch()
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        await using (var context = CreateContext(database.ConnectionString))
+        {
+            context.RemoveRange(await context.Set<PageBuilderPageEntity>().Where(x => x.GroupId == GroupId)
+                .ToArrayAsync(TestContext.Current.CancellationToken));
+            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+        var group = await LoadGroupAsync(database.ConnectionString);
+        using var cache = new TestPlatformMemoryCache();
+        var service = new GroupedPageService(
+            () => new PageBuilderModuleRepository(CreateContext(database.ConnectionString)),
+            () => new SqliteContentStreamRepository(CreateContext(database.ConnectionString)),
+            cache, new NoopEventPublisher(), NullLogger<GroupedPageService>.Instance);
+        var searchKey = $"empty-page-search-{Guid.NewGuid():N}";
+        using (var entry = cache.CreateEntry(searchKey))
+        {
+            entry.Value = Array.Empty<string>();
+            entry.ExpirationTokens.Add(GenericSearchCachingRegion<PageBuilderPage>.CreateChangeToken());
+        }
+        Assert.True(cache.TryGetValue(searchKey, out _));
+
+        var result = await service.SaveGroupContentAsync(group, ComponentAContent,
+            PageBuilderContentVersion.Create(group, null), TestContext.Current.CancellationToken);
+
+        await using var verification = CreateContext(database.ConnectionString);
+        Assert.Equal(result.PageId, await verification.Set<PageBuilderPageEntity>()
+            .Where(x => x.GroupId == GroupId).Select(x => x.Id).SingleAsync(TestContext.Current.CancellationToken));
+        Assert.False(cache.TryGetValue(searchKey, out _));
+    }
+
+    [Fact]
+    public async Task ConditionalSave_StaleAuthorCannotReplaceContentOrIndexes()
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        await SaveAsync(database.ConnectionString, ComponentAContent);
+        var group = await LoadGroupAsync(database.ConnectionString);
+        var version = PageBuilderContentVersion.Create(group, ComponentAContent);
+        var result = await SaveConditionalAsync(database.ConnectionString, group, ComponentBContent, version);
+
+        await Assert.ThrowsAsync<PageBuilderContentConflictException>(() =>
+            SaveConditionalAsync(database.ConnectionString, group, UpdatedPageContent, version));
+        Assert.Equal(ComponentBContent, await LoadContentAsync(database.ConnectionString));
+        Assert.Equal([ComponentBId], await LoadReferenceIdsAsync(database.ConnectionString));
+        Assert.Equal([AssetBUrl], await LoadAssetUrlsAsync(database.ConnectionString));
+
+        await SaveConditionalAsync(database.ConnectionString, group, UpdatedPageContent, result.ETag);
+        Assert.Equal(UpdatedPageContent, await LoadContentAsync(database.ConnectionString));
+    }
+
+    // SQLite serializes whole transactions: these races prove transaction-level atomicity.
+    // Provider row-lock behavior was checked manually against SQL Server; this suite does not cover it.
+    [Fact]
+    public async Task ConditionalSave_ConcurrentAuthorsWithSameVersionHaveOneWinner()
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        await SaveAsync(database.ConnectionString, ComponentAContent);
+        var group = await LoadGroupAsync(database.ConnectionString);
+        var version = PageBuilderContentVersion.Create(group, ComponentAContent);
+        var atCommit = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var first = SaveConditionalAsync(database.ConnectionString, group, ComponentBContent, version, async ct =>
+        {
+            atCommit.SetResult();
+            await release.Task.WaitAsync(ct);
+        });
+        await atCommit.Task.WaitAsync(TestContext.Current.CancellationToken);
+        var second = Task.Run(() => SaveConditionalAsync(database.ConnectionString, group, UpdatedPageContent, version),
+            TestContext.Current.CancellationToken);
+        await Task.Delay(100, TestContext.Current.CancellationToken);
+        Assert.False(second.IsCompleted);
+        release.SetResult();
+        await first;
+        await Assert.ThrowsAsync<PageBuilderContentConflictException>(() => second);
+        Assert.Equal(ComponentBContent, await LoadContentAsync(database.ConnectionString));
+        Assert.Equal([ComponentBId], await LoadReferenceIdsAsync(database.ConnectionString));
+    }
+
+    [Theory]
+    [InlineData(2)]
+    [InlineData(6)]
+    public async Task ConditionalSave_SimultaneousAuthorsPreserveExactlyOneDocumentAndItsIndexes(int authors)
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        await SaveAsync(database.ConnectionString, ComponentAContent);
+        var group = await LoadGroupAsync(database.ConnectionString);
+        var version = PageBuilderContentVersion.Create(group, ComponentAContent);
+        var start = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var writes = Enumerable.Range(0, authors).Select(index => Task.Run(async () =>
+        {
+            await start.Task.WaitAsync(TestContext.Current.CancellationToken);
+            var content = (index % 2 == 0 ? ComponentBContent : UpdatedPageContent) + new string(' ', index);
+            try
+            {
+                await SaveConditionalAsync(database.ConnectionString, group, content, version);
+                return content;
+            }
+            catch (PageBuilderContentConflictException)
+            {
+                return null;
+            }
+        }, TestContext.Current.CancellationToken)).ToArray();
+        start.SetResult();
+
+        var winner = Assert.Single(await Task.WhenAll(writes), x => x != null);
+        Assert.Equal(winner, await LoadContentAsync(database.ConnectionString));
+        Assert.Equal([winner.TrimEnd() == ComponentBContent ? ComponentBId : ComponentAId],
+            await LoadReferenceIdsAsync(database.ConnectionString));
+        Assert.Equal([AssetBUrl], await LoadAssetUrlsAsync(database.ConnectionString));
+    }
+
+    [Fact]
+    public async Task ConditionalSave_FirstSaveCreatesOneDraftAndRejectsStalePublishedCopy()
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        await using (var context = CreateContext(database.ConnectionString))
+        {
+            context.Remove(await context.Set<PageBuilderPageEntity>().SingleAsync(x => x.Id == PageId, TestContext.Current.CancellationToken));
+            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+        await SaveRawAsync(database.ConnectionString, SourcePageId, ComponentAContent);
+        var group = await LoadGroupAsync(database.ConnectionString);
+        var version = PageBuilderContentVersion.Create(group, ComponentAContent);
+        var result = await SaveConditionalAsync(database.ConnectionString, group, ComponentBContent, version);
+        await Assert.ThrowsAsync<PageBuilderContentConflictException>(() =>
+            SaveConditionalAsync(database.ConnectionString, group, UpdatedPageContent, version));
+
+        await using var verification = CreateContext(database.ConnectionString);
+        var draft = Assert.Single(await verification.Set<PageBuilderPageEntity>()
+            .Where(x => x.GroupId == GroupId && x.Status == "Draft").ToArrayAsync(TestContext.Current.CancellationToken));
+        Assert.Equal(result.PageId, draft.Id);
+        Assert.Equal(ComponentBContent, await verification.Set<PageBuilderContentEntity>()
+            .Where(x => x.Id == draft.Id).Select(x => x.PageContent).SingleAsync(TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task ConditionalSave_UnseededDraftUsesPublishedContentVersion()
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        await SaveRawAsync(database.ConnectionString, SourcePageId, ComponentAContent);
+        var group = await LoadGroupAsync(database.ConnectionString);
+        var result = await SaveConditionalAsync(database.ConnectionString, group, ComponentBContent,
+            PageBuilderContentVersion.Create(group, ComponentAContent));
+        Assert.Equal(PageId, result.PageId);
+        Assert.Equal(ComponentBContent, await LoadContentAsync(database.ConnectionString));
+    }
+
+    [Fact]
+    public async Task ConditionalSave_IndexFailureRollsBackNewDraftAndLeavesVersionUsable()
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        await using (var context = CreateContext(database.ConnectionString))
+        {
+            context.Remove(await context.Set<PageBuilderPageEntity>().SingleAsync(x => x.Id == PageId, TestContext.Current.CancellationToken));
+            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+        var group = await LoadGroupAsync(database.ConnectionString);
+        var version = PageBuilderContentVersion.Create(group, null);
+        await Assert.ThrowsAsync<IOException>(() => SaveConditionalAsync(database.ConnectionString, group,
+            ComponentAContent, version, _ => throw new IOException("Index failed")));
+        await using var verification = CreateContext(database.ConnectionString);
+        Assert.False(await verification.Set<PageBuilderPageEntity>().AnyAsync(x => x.Status == "Draft", TestContext.Current.CancellationToken));
+        await SaveConditionalAsync(database.ConnectionString, group, ComponentBContent, version);
+    }
+
+    [Fact]
+    public async Task ConditionalSave_StoreChangedAfterAuthorizationCannotWrite()
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        var group = await LoadGroupAsync(database.ConnectionString);
+        await using (var context = CreateContext(database.ConnectionString))
+        {
+            await context.Set<GroupedPageBuilderPageEntity>().Where(x => x.Id == GroupId)
+                .ExecuteUpdateAsync(s => s.SetProperty(x => x.StoreId, "other-store"), TestContext.Current.CancellationToken);
+        }
+        await Assert.ThrowsAsync<KeyNotFoundException>(() => SaveConditionalAsync(database.ConnectionString,
+            group, ComponentAContent, PageBuilderContentVersion.Create(group, null)));
+    }
+
+    [Fact]
+    public async Task ConditionalSave_RecreatedGroupCannotUsePreviousAuthorization()
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        await SaveAsync(database.ConnectionString, ComponentAContent);
+        var group = await LoadGroupAsync(database.ConnectionString);
+        await using (var context = CreateContext(database.ConnectionString))
+        {
+            await context.Set<GroupedPageBuilderPageEntity>().Where(x => x.Id == GroupId)
+                .ExecuteUpdateAsync(s => s.SetProperty(x => x.CreatedDate, group.CreatedDate.AddDays(1)), TestContext.Current.CancellationToken);
+        }
+        await Assert.ThrowsAsync<KeyNotFoundException>(() => SaveConditionalAsync(database.ConnectionString,
+            group, ComponentBContent, PageBuilderContentVersion.Create(group, ComponentAContent)));
+        Assert.Equal(ComponentAContent, await LoadContentAsync(database.ConnectionString));
+    }
+
+    [Fact]
+    public async Task ConditionalSave_ArchivedContentIsTheFallbackVersion()
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        await SaveRawAsync(database.ConnectionString, SourcePageId, ComponentAContent);
+        await using (var context = CreateContext(database.ConnectionString))
+        {
+            await context.Set<PageBuilderPageEntity>().Where(x => x.Id == SourcePageId)
+                .ExecuteUpdateAsync(s => s.SetProperty(x => x.Status, "Archived"), TestContext.Current.CancellationToken);
+        }
+        var group = await LoadGroupAsync(database.ConnectionString);
+        await SaveConditionalAsync(database.ConnectionString, group, ComponentBContent,
+            PageBuilderContentVersion.Create(group, ComponentAContent));
+        Assert.Equal(ComponentBContent, await LoadContentAsync(database.ConnectionString));
+    }
+
+    [Fact]
+    public async Task ConditionalSave_EmptyDraftDoesNotFallBackToPublishedVersion()
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        await SaveRawAsync(database.ConnectionString, SourcePageId, ComponentAContent);
+        await SaveRawAsync(database.ConnectionString, PageId, "");
+        var group = await LoadGroupAsync(database.ConnectionString);
+        await Assert.ThrowsAsync<PageBuilderContentConflictException>(() => SaveConditionalAsync(database.ConnectionString,
+            group, ComponentBContent, PageBuilderContentVersion.Create(group, ComponentAContent)));
+        await SaveConditionalAsync(database.ConnectionString, group, ComponentBContent,
+            PageBuilderContentVersion.Create(group, ""));
+        Assert.Equal(ComponentBContent, await LoadContentAsync(database.ConnectionString));
+    }
+
+    private static async Task<GroupedPageBuilderPage> LoadGroupAsync(string connectionString)
+    {
+        await using var context = CreateContext(connectionString);
+        var entity = await context.Set<GroupedPageBuilderPageEntity>().SingleAsync(x => x.Id == GroupId, TestContext.Current.CancellationToken);
+        return new GroupedPageBuilderPage { Id = entity.Id, StoreId = entity.StoreId, CreatedDate = entity.CreatedDate };
+    }
+
+    private static async Task<PageBuilderConditionalContentWriteResult> SaveConditionalAsync(
+        string connectionString, GroupedPageBuilderPage group, string content, string version,
+        Func<CancellationToken, Task> afterIndex = null)
+    {
+        using var cache = new TestPlatformMemoryCache();
+        var service = new GroupedPageService(
+            () => new IndexCallbackRepository(CreateContext(connectionString), afterIndex),
+            () => new SqliteContentStreamRepository(CreateContext(connectionString)),
+            cache, new NoopEventPublisher(), NullLogger<GroupedPageService>.Instance);
+        return await service.SaveGroupContentAsync(group, content, version, TestContext.Current.CancellationToken);
+    }
+
     [Fact]
     public async Task SavePageContentAsync_ConcurrentWritersKeepRawContentAndReferenceIndexOnSameVersion()
     {
@@ -318,6 +567,19 @@ public class PageContentAtomicWriteTests
     {
         public Task Publish<T>(T @event, CancellationToken cancellationToken = default)
             where T : IEvent => Task.CompletedTask;
+    }
+
+
+
+    private sealed class IndexCallbackRepository(PageBuilderModuleDbContext context, Func<CancellationToken, Task> afterIndex)
+        : PageBuilderModuleRepository(context)
+    {
+        public override async Task RebuildPageContentIndexesAsync(string pageId, string content, string storeId, CancellationToken cancellationToken = default)
+        {
+            await base.RebuildPageContentIndexesAsync(pageId, content, storeId, cancellationToken);
+            if (afterIndex != null)
+                await afterIndex(cancellationToken);
+        }
     }
 
     private sealed class SqliteContentStreamRepository(
