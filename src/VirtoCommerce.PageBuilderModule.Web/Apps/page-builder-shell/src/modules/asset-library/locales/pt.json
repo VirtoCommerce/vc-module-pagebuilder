@@ -1,5 +1,15 @@
 {
   "ASSET_LIBRARY": {
+    "PAGINATION": {
+      "PAGE_SIZE": "Itens por página"
+    },
+    "SORT": {
+      "LABEL": "Ordenar por",
+      "NAME_ASC": "Nome (A-Z)",
+      "NAME_DESC": "Nome (Z-A)",
+      "MODIFIED": "Modificados recentemente",
+      "SIZE": "Maior tamanho primeiro"
+    },
     "MENU": {
       "TITLE": "Biblioteca de ativos"
     },

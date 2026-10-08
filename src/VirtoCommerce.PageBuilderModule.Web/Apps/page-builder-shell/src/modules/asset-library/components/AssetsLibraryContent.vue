@@ -1,10 +1,11 @@
 <template>
   <div class="assets-library tw-flex tw-h-full tw-flex-col">
     <AssetLibraryToolbar
+      v-model:view-mode="viewMode"
+      v-model:sort="sort"
       :can-create="canCreate"
       :search-value="searchValue"
-      :total-count="assetCount"
-      v-model:view-mode="viewMode"
+      :total-count="fileCount"
       @upload="openUploadDialog"
       @create-folder="openCreateFolderPopup"
       @search-change="onSearchChange"
@@ -95,6 +96,25 @@
             @upload="uploadAssets"
           />
         </div>
+
+        <div
+          v-if="isStoreContextReady"
+          class="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-3 tw-p-3"
+          @click.stop
+        >
+          <VcSelect
+            v-model="pageSize"
+            class="tw-w-40"
+            :label="$t('ASSET_LIBRARY.PAGINATION.PAGE_SIZE')"
+            :options="pageSizeOptions"
+            :clearable="false"
+          />
+          <VcPagination
+            :current-page="pagination.currentPage"
+            :pages="pagination.pages"
+            @item-click="pagination.goToPage"
+          />
+        </div>
       </section>
 
       <AssetLibraryDetails
@@ -119,8 +139,8 @@
 
   <VcPopup
     v-if="isUploadPopupOpen"
-    class="assets-library__upload-dialog"
     v-model="isUploadPopupOpen"
+    class="assets-library__upload-dialog"
     :title="$t('ASSET_LIBRARY.TOOLBAR.UPLOAD')"
     is-mobile-fullscreen
     @close="closeUploadPopup"
@@ -170,7 +190,7 @@ import { computed, onMounted, onUnmounted, ref } from "vue";
 import { debounce } from "lodash-es";
 import { useI18n } from "vue-i18n";
 import { usePermissions } from "@vc-shell/framework";
-import { VcBreadcrumbs, VcFileUpload, VcHint, VcIcon, VcPopup } from "@vc-shell/framework/ui";
+import { VcBreadcrumbs, VcFileUpload, VcHint, VcIcon, VcPopup, VcPagination, VcSelect } from "@vc-shell/framework/ui";
 import type { AssetEntry, AssetLibraryViewMode } from "../types";
 import { useAssetsLibrary } from "../composables/useAssetsLibrary";
 import { useAssetLibraryActions } from "../composables/useAssetLibraryActions";
@@ -209,6 +229,12 @@ let uploadNameValidator: ((fileName: string) => Promise<string | undefined>) | u
 const {
   entries,
   loading,
+  fileCount,
+  pagination,
+  pageSize,
+  sort,
+  search,
+  invalidate,
   currentFolderUrl,
   searchValue,
   selectedAsset,
@@ -237,10 +263,11 @@ const {
   deleteEntry,
 } = useAssetsLibrary();
 
+const pageSizeOptions = [20, 50, 100];
+
 const isStoreContextReady = computed(() => storeContextStatus.value === "ready");
 const isStoreContextInvalid = computed(() => ["missing", "notFound", "error"].includes(storeContextStatus.value));
 const contentLoading = computed(() => loading.value || storeContextStatus.value === "loading");
-const assetCount = computed(() => entries.value.filter((entry) => entry.type === "blob").length);
 const canCreate = computed(() => hasAccess("platform:asset:create") && isStoreContextReady.value);
 const canDelete = computed(() => hasAccess("platform:asset:delete") && isStoreContextReady.value);
 const { notifyError, uploadAssets, createAssetFolder, replaceAsset, copyAssetUrl, confirmDelete } =
@@ -330,15 +357,19 @@ const selectedAssetView = computed(() => {
     : undefined;
 });
 
-const onSearchChange = debounce(async (keyword: string | undefined) => {
-  searchValue.value = keyword;
-
+const debouncedSearch = debounce(async (keyword: string | undefined) => {
   try {
-    await reload();
+    await search(keyword);
   } catch (error) {
     notifyError(error);
   }
 }, 350);
+
+function onSearchChange(keyword: string | undefined) {
+  invalidate();
+  searchValue.value = keyword;
+  debouncedSearch(keyword);
+}
 
 function openUploadDialog() {
   isUploadPopupOpen.value = true;
@@ -473,6 +504,7 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  debouncedSearch.cancel();
   if (uploadConflictResolver) {
     resolveUploadConflict({ action: "cancel" });
   }

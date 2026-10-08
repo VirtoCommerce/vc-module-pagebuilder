@@ -120,7 +120,20 @@
     "assetLibraryRootFolderUrl": "/stores/{{storeId}}/Page Builder",
     "assetsUrlTemplate": "{{=(function(url) { if (!url) return ''; var trimmed = url.trim(); if (!trimmed) return ''; if (/^(?:[a-z][a-z\\d+\\-.]*:)?\\/\\//i.test(trimmed) || trimmed.indexOf('data:') === 0) return trimmed; var normalized = trimmed.charAt(0) === '/' ? trimmed : '/' + trimmed; return normalized.toLowerCase().indexOf('/assets/') === 0 ? normalized : combine('/assets', normalized); })(this.assetUrl)}}",
     "assetPreviewUrlTemplate": "{{=(function(publicUrl, modifiedDate) { if (!publicUrl || !modifiedDate) return publicUrl; return publicUrl + (publicUrl.indexOf('?') >= 0 ? '&' : '?') + 't=' + encodeURIComponent(modifiedDate); })(this.publicAssetUrl, this.modifiedDate)}}",
-    "assetLibrarySearchRequest": "/api/assets?folderUrl={{=encodeURIComponent(this.folderUrl)}}{{=this.keyword ? '&keyword=' + encodeURIComponent(this.keyword) : ''}}",
+    "assetLibrarySearchRequest": {
+        "url": "/api/page-builder-assets/search",
+        "method": "POST",
+        "body": {
+            "folderUrl": "{{folderUrl}}",
+            "keyword": "{{keyword}}",
+            "skip": "@{{this.skip}}",
+            "take": "@{{this.take}}",
+            "sort": "{{sort}}",
+            "acceptedTypes": "@{{this.acceptedTypes}}",
+            "exactName": "{{exactName}}",
+            "preferredAssetUrl": "{{preferredAssetUrl}}"
+        }
+    },
     "assetLibraryUploadRequest": {
         "url": "/api/assets?folderUrl={{=encodeURIComponent(this.folderUrl)}}",
         "method": "POST",

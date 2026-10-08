@@ -1,5 +1,6 @@
 import { computed, signal } from '@angular/core';
 
+import { assetLibraryHelpers } from '@core/helpers';
 import { AssetLibraryContext, AssetLibraryEntry, AssetLibraryService } from '@core/services';
 
 import { AssetPickerDialogItem, AssetPickerDialogResult } from './asset-picker.models';
@@ -105,24 +106,8 @@ export class AssetPickerSelectionState {
     }
 
     matchesAccept(entry: AssetLibraryEntry): boolean {
-        if (!this.acceptedTypes.length) {
-            return true;
-        }
-
-        const contentType = entry.contentType?.toLowerCase() || '';
-        const fileName = entry.name.toLowerCase();
-
-        return this.acceptedTypes.some(type => {
-            const accept = type.toLowerCase();
-            if (accept.endsWith('/*')) {
-                return contentType.startsWith(accept.slice(0, -1))
-                    || (accept === 'image/*' && this.assets.isImage(entry));
-            }
-            if (accept.startsWith('.')) {
-                return fileName.endsWith(accept);
-            }
-            return contentType === accept;
-        });
+        return assetLibraryHelpers.matchesAcceptFile(
+            { name: entry.name, type: entry.contentType ?? '' }, this.acceptedTypes);
     }
 
     private toDialogResult(entry: AssetLibraryEntry): AssetPickerDialogItem | null {

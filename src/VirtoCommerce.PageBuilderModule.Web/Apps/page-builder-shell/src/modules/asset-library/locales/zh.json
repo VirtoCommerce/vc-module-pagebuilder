@@ -1,5 +1,15 @@
 {
   "ASSET_LIBRARY": {
+    "PAGINATION": {
+      "PAGE_SIZE": "每页条目数"
+    },
+    "SORT": {
+      "LABEL": "排序方式",
+      "NAME_ASC": "名称升序",
+      "NAME_DESC": "名称降序",
+      "MODIFIED": "最近修改",
+      "SIZE": "大小降序"
+    },
     "MENU": {
       "TITLE": "资源库"
     },

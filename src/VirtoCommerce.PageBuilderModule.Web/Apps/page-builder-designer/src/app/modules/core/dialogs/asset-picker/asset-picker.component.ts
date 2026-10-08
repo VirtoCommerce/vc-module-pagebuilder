@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { MatDialogActions, MatDialogContent, MatDialogRef } from '@angular/material/dialog';
+import { MatPaginator } from '@angular/material/paginator';
 
 import { IconComponent } from '@core/components/icon/icon.component';
 import { IconButtonComponent } from '@core/components/icon-button/icon-button.component';
@@ -27,6 +28,7 @@ export type {
         NgClass,
         MatDialogContent,
         MatDialogActions,
+        MatPaginator,
         IconComponent,
         IconButtonComponent,
         AssetPickerBreadcrumbsComponent,
