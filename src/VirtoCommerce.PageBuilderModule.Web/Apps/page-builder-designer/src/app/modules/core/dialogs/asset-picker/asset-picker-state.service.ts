@@ -1,4 +1,7 @@
-import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
+import { DestroyRef, Injectable, computed, inject, linkedSignal, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
+import { form, readonly, submit, validate } from '@angular/forms/signals';
+import { firstValueFrom, map } from 'rxjs';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
@@ -12,6 +15,7 @@ import {
     AssetPickerGridItem,
 } from './asset-picker.models';
 import { AssetPickerSelectionState, getAssetPickerEntryKey } from './asset-picker-selection.state';
+import { getFolderNameError } from './asset-picker-folder-name';
 
 @Injectable()
 export class AssetPickerStateService {
@@ -45,6 +49,25 @@ export class AssetPickerStateService {
     readonly dragging = signal(false);
     readonly folderDropTarget = signal<string | null>(null);
     readonly error = signal<string | null>(null);
+    readonly folderFormOpen = signal(false);
+    readonly folderModel = signal({ name: '' });
+    readonly folderForm = form(this.folderModel, path => {
+        validate(path.name, ({ value }) => {
+            const name = value().trim();
+            const rule = getFolderNameError(name);
+            if (!name) return { kind: 'required' };
+            return rule ? { kind: rule, message: this.labels.folderNameErrors[rule].replace('{count}', name.length.toString()) } : undefined;
+        });
+        readonly(path.name, () => this.creatingFolder());
+    });
+    readonly folderName = this.folderForm.name().value;
+    readonly creatingFolder = computed(() => this.folderForm().submitting());
+    readonly folderCreateError = linkedSignal<string, string | null>({ source: this.folderName, computation: () => null });
+    readonly folderNameError = computed(() => this.folderCreateError() || this.folderForm.name().errors()[0]?.message || null);
+    readonly folderCreationAvailable = computed(() => this.assets.canCreateFolder());
+    readonly uploadAvailable = computed(() => this.assets.canUpload());
+    readonly canCreateFolder = computed(() => this.folderCreationAvailable()
+        && this.folderForm().valid() && !this.creatingFolder() && !this.uploading());
     readonly acceptAttribute = computed(() => this.acceptedTypes.length ? this.acceptedTypes.join(',') : null);
     readonly breadcrumbs = computed(() => this.buildBreadcrumbs());
     readonly visibleEntries = computed(() => this.entries()
@@ -76,21 +99,16 @@ export class AssetPickerStateService {
     }
 
     onDragEnter(event: DragEvent) {
-        if (!this.hasDraggedFiles(event)) {
+        if (!this.acceptFileDrag(event)) {
             return;
         }
 
-        this.preventDragDefaults(event);
         this.dragDepth += 1;
         this.dragging.set(true);
     }
 
     onDragOver(event: DragEvent) {
-        if (!this.hasDraggedFiles(event)) {
-            return;
-        }
-
-        this.preventDragDefaults(event);
+        this.acceptFileDrag(event);
     }
 
     onDragLeave(event: DragEvent) {
@@ -113,11 +131,10 @@ export class AssetPickerStateService {
     }
 
     onFolderDragOver(event: DragEvent, folder: AssetLibraryEntry) {
-        if (!this.hasDraggedFiles(event)) {
+        if (!this.acceptFileDrag(event)) {
             return;
         }
 
-        this.preventDragDefaults(event);
         this.folderDropTarget.set(getAssetPickerEntryKey(folder));
     }
 
@@ -164,6 +181,46 @@ export class AssetPickerStateService {
         return this.selection.getSelectionResult();
     }
 
+    openFolderForm() {
+        if (!this.folderCreationAvailable() || this.folderFormOpen() || this.creatingFolder() || this.uploading() || this.loading()) {
+            return;
+        }
+        this.folderForm().reset({ name: '' });
+        this.folderCreateError.set(null);
+        this.folderFormOpen.set(true);
+    }
+
+    createFolder() {
+        if (!this.canCreateFolder()) {
+            return;
+        }
+
+        this.folderCreateError.set(null);
+        return submit(this.folderForm, async () => {
+            const name = this.folderName().trim();
+            const parentUrl = this.currentFolderUrl().replace(/\/$/, '');
+            try {
+                const created = await firstValueFrom(this.assets.createFolder(parentUrl, name).pipe(
+                    map(() => true),
+                    takeUntilDestroyed(this.destroyRef)
+                ), { defaultValue: false });
+                if (!created || this.destroyRef.destroyed) return;
+
+                this.folderFormOpen.set(false);
+                this.searchValue.set('');
+                if (this.searchTimeout) {
+                    clearTimeout(this.searchTimeout);
+                    this.searchTimeout = null;
+                }
+                this.navigateTo({ type: 'folder', name, relativeUrl: `${parentUrl}/${name}` });
+            } catch (error) {
+                if (!this.destroyRef.destroyed) {
+                    this.folderCreateError.set(this.getErrorMessage(error, this.labels.folderCreateError));
+                }
+            }
+        });
+    }
+
     uploadFiles(files: File[], folderUrl = this.currentFolderUrl()) {
         const acceptedFiles = files.filter(file => this.matchesAcceptFile(file));
         const oversizedFiles = acceptedFiles.filter(file => this.isFileTooLarge(file));
@@ -176,7 +233,7 @@ export class AssetPickerStateService {
             return;
         }
 
-        if (!uploadFiles.length || this.uploading()) {
+        if (!this.uploadAvailable() || !uploadFiles.length || this.uploading() || this.creatingFolder()) {
             return;
         }
 
@@ -203,7 +260,7 @@ export class AssetPickerStateService {
             },
             error: error => {
                 this.uploading.set(false);
-                this.error.set(error?.message || this.labels.uploadError);
+                this.error.set(this.getErrorMessage(error, this.labels.uploadError));
             }
         });
     }
@@ -261,11 +318,16 @@ export class AssetPickerStateService {
                 if (requestId !== this.requestId) {
                     return;
                 }
-                this.error.set(error?.message || this.labels.loadError);
+                this.error.set(this.getErrorMessage(error, this.labels.loadError));
                 this.entries.set([]);
                 this.loading.set(false);
             }
         });
+    }
+
+    private getErrorMessage(error: unknown, fallback: string): string {
+        const message = error instanceof HttpErrorResponse ? error.error?.message : (error as Error)?.message;
+        return typeof message === 'string' && message.trim() ? message : fallback;
     }
 
     private matchesAcceptFile(file: File): boolean {
@@ -280,11 +342,23 @@ export class AssetPickerStateService {
         return Array.from(event.dataTransfer?.types ?? []).includes('Files');
     }
 
+    private acceptFileDrag(event: DragEvent): boolean {
+        if (!this.hasDraggedFiles(event)) {
+            return false;
+        }
+        this.preventDragDefaults(event);
+        if (!this.uploadAvailable()) {
+            this.resetDragState();
+            return false;
+        }
+        return true;
+    }
+
     private preventDragDefaults(event: DragEvent) {
         event.preventDefault();
         event.stopPropagation();
         if (event.dataTransfer) {
-            event.dataTransfer.dropEffect = 'copy';
+            event.dataTransfer.dropEffect = this.uploadAvailable() ? 'copy' : 'none';
         }
     }
 

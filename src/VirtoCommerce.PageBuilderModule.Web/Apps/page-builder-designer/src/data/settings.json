@@ -121,6 +121,14 @@
     "assetsUrlTemplate": "{{=(function(url) { if (!url) return ''; var trimmed = url.trim(); if (!trimmed) return ''; if (/^(?:[a-z][a-z\\d+\\-.]*:)?\\/\\//i.test(trimmed) || trimmed.indexOf('data:') === 0) return trimmed; var normalized = trimmed.charAt(0) === '/' ? trimmed : '/' + trimmed; return normalized.toLowerCase().indexOf('/assets/') === 0 ? normalized : combine('/assets', normalized); })(this.assetUrl)}}",
     "assetPreviewUrlTemplate": "{{=(function(publicUrl, modifiedDate) { if (!publicUrl || !modifiedDate) return publicUrl; return publicUrl + (publicUrl.indexOf('?') >= 0 ? '&' : '?') + 't=' + encodeURIComponent(modifiedDate); })(this.publicAssetUrl, this.modifiedDate)}}",
     "assetLibrarySearchRequest": "/api/assets?folderUrl={{=encodeURIComponent(this.folderUrl)}}{{=this.keyword ? '&keyword=' + encodeURIComponent(this.keyword) : ''}}",
+    "assetLibraryCreateFolderRequest": {
+        "url": "/api/assets/folder",
+        "method": "POST",
+        "body": {
+            "name": "{{name}}",
+            "parentUrl": "{{parentUrl}}"
+        }
+    },
     "assetLibraryUploadRequest": {
         "url": "/api/assets?folderUrl={{=encodeURIComponent(this.folderUrl)}}",
         "method": "POST",
@@ -223,6 +231,16 @@
         "cacheable": true,
         "response": {
             "selector": "this.response.isAdministrator === true || (this.response.permissions || []).indexOf('builder:shared-components:read') !== -1",
+            "isArray": false
+        }
+    },
+    "canCreateAssets": {
+        "init": true,
+        "url": "/api/platform/security/currentuser",
+        "method": "GET",
+        "cacheable": true,
+        "response": {
+            "selector": "this.response.isAdministrator === true || (this.response.permissions || []).indexOf('platform:asset:create') !== -1",
             "isArray": false
         }
     },

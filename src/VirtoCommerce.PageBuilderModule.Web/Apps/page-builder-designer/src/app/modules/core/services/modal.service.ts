@@ -2,7 +2,8 @@ import { Injectable, inject } from '@angular/core';
 import { ComponentType } from '@angular/cdk/portal';
 import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
 import { Observable } from 'rxjs';
-import { ConfirmComponent, AlertComponent } from '../dialogs';
+import { ConfirmComponent } from '../dialogs/confirm/confirm.component';
+import { AlertComponent } from '../dialogs/alert/alert.component';
 
 @Injectable({
     providedIn: 'root'

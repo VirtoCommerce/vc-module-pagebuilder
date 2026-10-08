@@ -1,12 +1,20 @@
 <div class="toolbar">
-    <button
-        type="button"
-        class="upload"
-        [disabled]="uploading() || loading()"
-        (click)="uploadInput.click()">
-        <app-icon>upload</app-icon>
-        <span>{{ uploading() ? labels().uploading : labels().upload }}</span>
-    </button>
+    @if (canUpload()) {
+        <button
+            type="button"
+            class="upload"
+            [disabled]="uploading() || loading() || creatingFolder()"
+            (click)="uploadInput.click()">
+            <app-icon>upload</app-icon>
+            <span>{{ uploading() ? labels().uploading : labels().upload }}</span>
+        </button>
+    }
+    @if (canCreateFolder()) {
+        <button #newFolderButton type="button" class="upload" [disabled]="uploading() || loading() || creatingFolder()" (click)="newFolder.emit()">
+            <app-icon>create_new_folder</app-icon>
+            <span>{{ labels().newFolder }}</span>
+        </button>
+    }
     <input
         #uploadInput
         type="file"
