@@ -393,7 +393,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 gitContentHistory: null,
                 gitContentPublisher: null,
                 settingsManager: null,
-                authorizationService: new FakeAuthorization(allowed));
+                authorizationService: new FakeAuthorizationService(allowed));
 
             var identity = new ClaimsIdentity([new Claim(ClaimTypes.Name, "john")], "test");
             controller.ControllerContext = new ControllerContext
@@ -517,13 +517,5 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 Task.FromResult(enabled);
         }
 
-        private sealed class FakeAuthorization(bool allowed) : IAuthorizationService
-        {
-            public Task<AuthorizationResult> AuthorizeAsync(ClaimsPrincipal user, object resource, IEnumerable<IAuthorizationRequirement> requirements) =>
-                Task.FromResult(allowed ? AuthorizationResult.Success() : AuthorizationResult.Failed());
-
-            public Task<AuthorizationResult> AuthorizeAsync(ClaimsPrincipal user, object resource, string policyName) =>
-                Task.FromResult(allowed ? AuthorizationResult.Success() : AuthorizationResult.Failed());
-        }
     }
 }

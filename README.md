@@ -38,6 +38,10 @@ The page is created in the builder as a list of blocks with specific settings ap
 * Permissions.
 * Platform Backup & Restore support.
 
+## Shared Component creation
+
+`POST /api/page-builder-shared-components` requires an existing store. An authorized request with an unknown `storeId` returns `400` naming that store, before any component, content, or asset references are written. Store-scoped authorization runs first; requests outside the user's store return `403`.
+
 ## Backup & Restore
 
 Page Builder pages are included in the platform-wide backup and restore process.
