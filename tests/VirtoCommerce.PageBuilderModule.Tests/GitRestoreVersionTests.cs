@@ -398,24 +398,6 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             }
         }
         /// <summary>
-        /// Answers with one store, and nothing else: a change that starts using the store service for
-        /// something other than looking a store up fails here rather than passing quietly.
-        /// </summary>
-        private sealed class FakeStoreService(Store store) : IStoreService
-        {
-            public Task<IList<Store>> GetAsync(IList<string> ids, string responseGroup = null, bool clone = true) =>
-                Task.FromResult<IList<Store>>(store != null && ids.Contains(store.Id) ? [store] : []);
-
-            public Task<IList<Store>> GetByOuterIdsAsync(IList<string> outerIds, string responseGroup = null, bool clone = true) =>
-                throw new NotSupportedException();
-
-            public Task SaveChangesAsync(IList<Store> models) => throw new NotSupportedException();
-
-            public Task DeleteAsync(IList<string> ids, bool softDelete = false) => throw new NotSupportedException();
-
-            public Task<IList<string>> GetUserAllowedStoreIdsAsync(ApplicationUser user) => throw new NotSupportedException();
-        }
-        /// <summary>
         /// Answers per setting name, unlike the shared fake which returns one value for every lookup —
         /// the preview url is assembled from two settings, and a fake that conflates them hides that.
         /// </summary>
