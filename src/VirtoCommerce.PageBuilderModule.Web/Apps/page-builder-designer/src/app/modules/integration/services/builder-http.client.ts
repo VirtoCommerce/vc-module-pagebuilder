@@ -89,8 +89,8 @@ export class BuilderHttpClient extends HttpClient {
 
         let result;
 
-        const cacheKey = JSON.stringify({ method, url, body, options });
-        if (this._cache.has(cacheKey)) {
+        const cacheKey = request.cacheable ? JSON.stringify({ method, url, body, options }) : null;
+        if (cacheKey && this._cache.has(cacheKey)) {
             result = of(this._cache.get(cacheKey));
         } else {
             const uppercaseMethod = method?.toUpperCase();
@@ -105,7 +105,7 @@ export class BuilderHttpClient extends HttpClient {
             }
             result = result.pipe(
                 tap(x => {
-                    if (request.cacheable) {
+                    if (cacheKey) {
                         this._cache.set(cacheKey, x);
                     }
                     if (this._cache.size > this.cacheSize) {
@@ -159,6 +159,7 @@ export class BuilderHttpClient extends HttpClient {
         const result = {
             url: evaluatedRequest.url,
             cacheable: evaluatedRequest.cacheable,
+            versioned: evaluatedRequest.versioned,
             method: evaluatedRequest.method || 'GET',
             body: evaluatedRequest.body,
             response: evaluatedRequest.response,
@@ -229,6 +230,8 @@ export class BuilderHttpClient extends HttpClient {
 
     private getCurrentContext(context: any): any {
         const config = this.appConfig;
-        return { ...config.getContext(), ...context };
+        const result = { ...config.getContext(), ...context };
+        Object.defineProperty(result, 'sessionId', { get: () => config.getCurrentSessionId() });
+        return result;
     }
 }

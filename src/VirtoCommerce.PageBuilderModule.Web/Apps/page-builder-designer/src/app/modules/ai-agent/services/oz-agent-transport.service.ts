@@ -1,11 +1,14 @@
 import { DestroyRef, Injectable, effect, inject } from '@angular/core';
 import { AppConfig } from '@integration/services';
+import { Store } from '@ngrx/store';
+import { refreshTemplateFromAssistant } from '@editor/store/actions';
 import type { OzChatMessage, OzParentToChatMessage } from '../types';
 import { OzContextService } from './oz-context.service';
 
 @Injectable({ providedIn: 'root' })
 export class OzAgentTransportService {
 
+  private readonly store = inject(Store);
   private readonly destroyRef = inject(DestroyRef);
   private readonly config = inject(AppConfig);
   private readonly context = inject(OzContextService);
@@ -89,6 +92,9 @@ export class OzAgentTransportService {
       return;
     }
 
+    if (data.type === 'RELOAD_BLADE' && this.iframe?.contentWindow) {
+      this.store.dispatch(refreshTemplateFromAssistant());
+    }
     this.dispatch(data);
   }
 

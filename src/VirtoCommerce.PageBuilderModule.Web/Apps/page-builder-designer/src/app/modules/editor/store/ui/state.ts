@@ -8,6 +8,7 @@ export interface EditorUIState {
   currentSectionsFilter: string | null;
   dragSectionIds: string[];
   isTemplateLoading: boolean;
+  isPageSaving: boolean;
   isSchemasLoading: boolean;
   hoveredSectionId: string | null;
 }
@@ -18,6 +19,7 @@ export const initialState: EditorUIState = {
   currentSectionsFilter: null,
   dragSectionIds: [],
   isTemplateLoading: false,
+  isPageSaving: false,
   isSchemasLoading: false,
   hoveredSectionId: null,
 };

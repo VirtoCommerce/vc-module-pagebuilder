@@ -114,17 +114,17 @@ describe('selectToolbarButtonsState with history', () => {
 
     it('offers the button only when the store keeps history', () => {
         const withoutHistory = selectors.selectToolbarButtonsState({ ...context, useHistory: false })
-            .projector(false, null, '', false).flat();
+            .projector(false, null, '', false, false).flat();
         expect(withoutHistory.find(button => button.alias === 'history')).toBeFalsy();
 
-        const withHistory = selectors.selectToolbarButtonsState(context).projector(false, null, '', false).flat();
+        const withHistory = selectors.selectToolbarButtonsState(context).projector(false, null, '', false, false).flat();
         expect(withHistory.find(button => button.alias === 'history')).toBeTruthy();
     });
 
     it('counts other editors unpublished versions in the title', () => {
         // the case the feature exists for: an edit made outside the builder used to be invisible
         const result = selectors.selectToolbarButtonsState(context)
-            .projector(false, state([], { otherDraftCount: 2 }), '', false)
+            .projector(false, state([], { otherDraftCount: 2 }), '', false, false)
             .flat();
 
         expect(result.find(button => button.alias === 'history')!.title).toBe('Version history (2)');
@@ -132,7 +132,7 @@ describe('selectToolbarButtonsState with history', () => {
 
     it('says nothing about a count when there is none', () => {
         const result = selectors.selectToolbarButtonsState(context)
-            .projector(false, state([], { otherDraftCount: 0 }), '', false)
+            .projector(false, state([], { otherDraftCount: 0 }), '', false, false)
             .flat();
 
         expect(result.find(button => button.alias === 'history')!.title).toBe('Version history');
