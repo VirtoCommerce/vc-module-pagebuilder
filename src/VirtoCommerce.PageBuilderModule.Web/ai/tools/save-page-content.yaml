@@ -6,6 +6,7 @@ description: |
   Skip when: creating a fresh page — use `pagebuilder_create_page` instead.
 
   Pass the full page JSON (not a diff) as a string. Envelope must follow `{ settings: object, content: array }` from the system prompt — the backend validates it and returns 400 with a specific error pointer if malformed.
+  Pass the eTag returned with the document you edited. A 412 means another author changed the page; stop and report the conflict. Never fetch a fresh eTag and reuse it with stale content.
 require_approval: true
 
 parameters:
@@ -17,9 +18,13 @@ parameters:
     content:
       type: string
       description: Full page JSON document as a string (same shape produced by pagebuilder_create_page / returned by pagebuilder_get_page_content). Required.
+    eTag:
+      type: string
+      description: Exact eTag returned by pagebuilder_get_page_content together with the content being edited. Required.
   required:
     - groupId
     - content
+    - eTag
 
 execution:
   endpoint: /api/page-builder-pages/grouped/{groupId}/content-json
@@ -28,6 +33,7 @@ execution:
     request:
       body:
         content: "{{content}}"
+        eTag: "{{eTag}}"
 
 permission:
   - builder:update

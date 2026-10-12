@@ -59,6 +59,59 @@ internal static class PageBuilderPageIndexing
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
+    // Older repository decorators expose the original query, lock and indexing contracts.
+    internal static async Task RebuildAfterRawContentWriteAsync(
+        IPageBuilderModuleRepository repository, string pageId, string rawContent, string groupStoreId, CancellationToken cancellationToken)
+    {
+        var page = await repository.PageBuilderPages.Where(x => x.Id == pageId)
+            .Select(x => new { x.StoreId }).FirstOrDefaultAsync(cancellationToken);
+        if (page == null)
+        {
+            throw new KeyNotFoundException($"Page '{pageId}' was not found.");
+        }
+        var pageStoreId = page.StoreId ?? groupStoreId;
+        if (string.IsNullOrWhiteSpace(pageStoreId))
+        {
+            throw new InvalidDataException($"Page '{pageId}' has no store.");
+        }
+        var sharedComponentIds = PageBuilderWriteLock.OrderIds(PageBuilderSharedComponentReferenceMatcher.ExtractReferences(rawContent));
+        var rebuilt = await repository.ExecuteUnderSharedComponentWriteLocksAsync(sharedComponentIds, async ct =>
+        {
+            await PageBuilderSharedComponentReferenceIndexService.ValidateComponentsAsync(repository, sharedComponentIds, pageStoreId, ct);
+            var references = await repository.PageBuilderSharedComponentReferences.Where(x => x.PageId == pageId).ToListAsync(ct);
+            foreach (var reference in references)
+            {
+                repository.Remove(reference);
+            }
+            foreach (var sharedComponentId in sharedComponentIds)
+            {
+                repository.Add(new PageBuilderSharedComponentReferenceEntity
+                {
+                    Id = Guid.NewGuid().ToString("N"),
+                    PageId = pageId,
+                    SharedComponentId = sharedComponentId,
+                });
+            }
+            await repository.RebuildPageAssetReferenceIndexAsync(pageId, ct);
+            await repository.UnitOfWork.CommitAsync();
+        }, cancellationToken);
+        if (!rebuilt)
+        {
+            // The built-in path reports missing rows in lock order before validating store/content.
+            foreach (var batch in sharedComponentIds.Chunk(QueryBatchSize))
+            {
+                var existingIds = await repository.PageBuilderSharedComponents.Where(x => batch.Contains(x.Id))
+                    .Select(x => x.Id).ToListAsync(cancellationToken);
+                var missingId = batch.Except(existingIds, StringComparer.OrdinalIgnoreCase).FirstOrDefault();
+                if (missingId != null)
+                {
+                    throw new InvalidDataException($"Shared Component '{missingId}' was not found.");
+                }
+            }
+            throw new InvalidDataException("Shared Component write locks could not be acquired.");
+        }
+    }
+
     internal static async Task RebuildCurrentRawPageAssetIndexAsync(
         PageBuilderModuleDbContext dbContext,
         string pageId,

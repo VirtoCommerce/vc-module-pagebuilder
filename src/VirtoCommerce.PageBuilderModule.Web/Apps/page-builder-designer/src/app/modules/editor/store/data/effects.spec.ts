@@ -1,8 +1,9 @@
 import { TestBed } from '@angular/core/testing';
+import { HttpErrorResponse } from '@angular/common/http';
 import { provideMockActions } from '@ngrx/effects/testing';
 import { provideMockStore, MockStore } from '@ngrx/store/testing';
 import { ReplaySubject, Subject, of, firstValueFrom, throwError } from 'rxjs';
-import { take, toArray } from 'rxjs/operators';
+import { filter, take, toArray } from 'rxjs/operators';
 import { Action } from '@ngrx/store';
 
 import { TemplateEditorDataEffects } from './effects';
@@ -12,7 +13,7 @@ import * as selectors from '../selectors';
 import * as fromRoute from '@shared/routing';
 import * as fromShared from '@shared/store/selectors';
 import { ModalService } from '@core/services';
-import { createTemplate, createSection } from '@app/testing';
+import { createTemplate, createSection, createEntry } from '@app/testing';
 
 describe('TemplateEditorDataEffects', () => {
     let effects: TemplateEditorDataEffects;
@@ -27,6 +28,7 @@ describe('TemplateEditorDataEffects', () => {
     let appConfig: { getValue: ReturnType<typeof vi.fn> };
     let templatesService: {
         getTemplate: ReturnType<typeof vi.fn>;
+        hasPageChanged: ReturnType<typeof vi.fn>;
         saveTemplates: ReturnType<typeof vi.fn>;
         getTemplatePublishStatus: ReturnType<typeof vi.fn>;
         publishTemplate: ReturnType<typeof vi.fn>;
@@ -50,6 +52,7 @@ describe('TemplateEditorDataEffects', () => {
         appConfig = { getValue: vi.fn().mockReturnValue(true) };
         templatesService = {
             getTemplate: vi.fn().mockReturnValue(of(template)),
+            hasPageChanged: vi.fn().mockReturnValue(of(true)),
             saveTemplates: vi.fn().mockReturnValue(of(null)),
             getTemplatePublishStatus: vi.fn().mockReturnValue(of({ hasChanges: false, published: true })),
             publishTemplate: vi.fn().mockReturnValue(of(null)),
@@ -611,6 +614,72 @@ describe('TemplateEditorDataEffects', () => {
     });
 
     describe('saveGroupedPage$', () => {
+        it('saves the current page rather than the first dirty document', async () => {
+            const other = createTemplate({ content: [createSection({ id: 'other-page' })] });
+            store.overrideSelector(fromRoute.selectGroupIdParameter, 'page-group-1');
+            store.overrideSelector(selectors.selectChangedTemplates, [
+                { entry: { path: '/other.json', type: 'pages' }, info: { key: 'other' }, content: other },
+                { entry: { path: '/home.json', type: 'pages' }, info: { key: 'home' }, content: template },
+            ] as any);
+            store.refreshState();
+            const resultPromise = firstValueFrom(effects.saveGroupedPage$.pipe(filter(action => action.type !== actions.pageSaveStarted.type)));
+            actions$.next(actions.executeToolbarAction({ action: 'save' }));
+            const result = await resultPromise as ReturnType<typeof actions.saveTemplateSuccess>;
+            expect(templatesService.saveGroupedPage).toHaveBeenCalledWith('page-group-1', template);
+            expect(result.templateKey).toBe('home');
+            expect(result.clearDirty).toBe(true);
+        });
+
+        it('keeps newer local edits dirty and ignores repeat saves while a request is pending', async () => {
+            const response$ = new Subject<void>();
+            templatesService.saveGroupedPage.mockReturnValue(response$);
+            store.overrideSelector(fromRoute.selectGroupIdParameter, 'page-group-1');
+            store.overrideSelector(selectors.selectChangedTemplates, [
+                { entry: { path: '/home.json', type: 'pages' }, info: { key: 'home' }, content: template },
+            ] as any);
+            store.refreshState();
+            const resultPromise = firstValueFrom(effects.saveGroupedPage$.pipe(filter(action => action.type !== actions.pageSaveStarted.type)));
+            actions$.next(actions.executeToolbarAction({ action: 'save' }));
+            const newer = createTemplate({ content: [...template.content, createSection({ id: 'unsaved' })] });
+            store.overrideSelector(selectors.selectLoadedTemplates, { home: newer });
+            store.refreshState();
+            actions$.next(actions.executeToolbarAction({ action: 'save' }));
+            expect(templatesService.saveGroupedPage).toHaveBeenCalledTimes(1);
+            response$.next();
+            response$.complete();
+            const result = await resultPromise as ReturnType<typeof actions.saveTemplateSuccess>;
+            expect(result.clearDirty).toBe(false);
+            expect(result.template).toBe(template);
+        });
+
+        it('turns a synchronous configuration error into a save failure', async () => {
+            store.overrideSelector(fromRoute.selectGroupIdParameter, 'page-group-1');
+            store.overrideSelector(selectors.selectChangedTemplates, [
+                { entry: { path: '/home.json', type: 'pages' }, info: { key: 'home' }, content: template },
+            ] as any);
+            store.refreshState();
+            const error = new Error('Invalid save configuration');
+            templatesService.saveGroupedPage.mockImplementation(() => { throw error; });
+            const resultPromise = firstValueFrom(effects.saveGroupedPage$.pipe(filter(action => action.type !== actions.pageSaveStarted.type)));
+            actions$.next(actions.executeToolbarAction({ action: 'save' }));
+            expect(await resultPromise).toEqual({ type: actions.saveTemplateFails.type, error });
+        });
+
+        it.each([412, 428])('emits no success or broadcast after a %s failure', status => {
+            const changed = [{ entry: createEntry({ path: '/home.json', type: 'pages' }), info: { key: 'home', name: 'Home', entry: createEntry(), state: { id: 'home', isDirty: true } }, content: template }];
+            store.overrideSelector(fromRoute.selectGroupIdParameter, 'page-group-1');
+            store.overrideSelector(selectors.selectChangedTemplates, changed);
+            store.refreshState();
+            const error = new HttpErrorResponse({ status });
+            templatesService.saveGroupedPage.mockReturnValue(throwError(() => error));
+            const emitted: Action[] = [];
+            const subscription = effects.saveGroupedPage$.subscribe(action => emitted.push(action));
+            actions$.next(actions.executeToolbarAction({ action: 'save' }));
+            expect(emitted).toEqual([actions.pageSaveStarted(), actions.saveTemplateFails({ error })]);
+            expect(changed[0].content).toBe(template);
+            subscription.unsubscribe();
+        });
+
         it('does not dereference an empty changed-template list', () => {
             store.overrideSelector(fromRoute.selectGroupIdParameter, 'page-group-1');
             store.overrideSelector(selectors.selectChangedTemplates, []);
@@ -627,6 +696,73 @@ describe('TemplateEditorDataEffects', () => {
     });
 
     // ── externalPreviewAction$ ────────────────────────────────────
+
+    describe('refreshFromAssistant$', () => {
+        it('survives a synchronous descriptor error and handles the next refresh', () => {
+            store.overrideSelector(fromRoute.selectGroupIdParameter, 'page-group-1');
+            store.overrideSelector(fromShared.selectChangedTemplates, []);
+            store.overrideSelector(selectors.isPageSaving, false);
+            store.overrideSelector(selectors.isLoading, false);
+            store.refreshState();
+            templatesService.hasPageChanged.mockImplementationOnce(() => { throw new TypeError('Missing descriptor'); });
+            const emitted: Action[] = [];
+            const subscription = effects.refreshFromAssistant$.subscribe(action => emitted.push(action));
+            actions$.next(actions.refreshTemplateFromAssistant());
+            actions$.next(actions.refreshTemplateFromAssistant());
+            expect(emitted).toEqual([sharedActions.empty(), actions.loadTemplateModel({ templateKey: 'home', useProbedContent: true })]);
+            subscription.unsubscribe();
+        });
+        it.each([
+            { dirty: false, saving: false, loading: false, reload: true },
+            { dirty: true, saving: false, loading: false, reload: false },
+        ])('reloads only a clean idle document: %j', async ({ dirty, saving, loading, reload }) => {
+            store.overrideSelector(fromRoute.selectGroupIdParameter, 'page-group-1');
+            store.overrideSelector(fromShared.selectChangedTemplates, dirty
+                ? [{ key: 'home', parent: 'pages', name: 'Home', entry: createEntry(), state: { id: 'home', isDirty: true } }]
+                : []);
+            store.overrideSelector(selectors.isPageSaving, saving);
+            store.overrideSelector(selectors.isLoading, loading);
+            store.refreshState();
+            const result = firstValueFrom(effects.refreshFromAssistant$);
+            actions$.next(actions.refreshTemplateFromAssistant());
+            expect((await result).type).toBe(reload ? actions.loadTemplateModel.type : sharedActions.showNotification.type);
+        });
+
+        it.each([
+            { changed: false, saving: false, loading: false },
+            { changed: true, saving: true, loading: false },
+            { changed: true, saving: false, loading: true },
+        ])('does not warn or reload an unchanged or busy page: %j', ({ changed, saving, loading }) => {
+            store.overrideSelector(fromRoute.selectGroupIdParameter, 'page-group-1');
+            store.overrideSelector(fromShared.selectChangedTemplates, []);
+            store.overrideSelector(selectors.isPageSaving, saving);
+            store.overrideSelector(selectors.isLoading, loading);
+            store.refreshState();
+            templatesService.hasPageChanged.mockReturnValue(of(changed));
+            const emitted: Action[] = [];
+            const subscription = effects.refreshFromAssistant$.subscribe(action => emitted.push(action));
+            actions$.next(actions.refreshTemplateFromAssistant());
+            expect(emitted).toEqual([]);
+            expect(templatesService.hasPageChanged).toHaveBeenCalledTimes(saving || loading ? 0 : 1);
+            subscription.unsubscribe();
+        });
+
+        it('checks dirty state again after the version request completes', async () => {
+            const changed = new Subject<boolean>();
+            templatesService.hasPageChanged.mockReturnValue(changed);
+            store.overrideSelector(fromRoute.selectGroupIdParameter, 'page-group-1');
+            store.overrideSelector(fromShared.selectChangedTemplates, []);
+            store.overrideSelector(selectors.isPageSaving, false);
+            store.overrideSelector(selectors.isLoading, false);
+            store.refreshState();
+            const result = firstValueFrom(effects.refreshFromAssistant$);
+            actions$.next(actions.refreshTemplateFromAssistant());
+            store.overrideSelector(fromShared.selectChangedTemplates, [{ key: 'home', parent: 'pages', name: 'Home', entry: createEntry(), state: { id: 'home', isDirty: true } }]);
+            store.refreshState();
+            changed.next(true);
+            expect((await result).type).toBe(sharedActions.showNotification.type);
+        });
+    });
 
     describe('externalPreviewAction$', () => {
         it('calls externalPreview on service', () => {
