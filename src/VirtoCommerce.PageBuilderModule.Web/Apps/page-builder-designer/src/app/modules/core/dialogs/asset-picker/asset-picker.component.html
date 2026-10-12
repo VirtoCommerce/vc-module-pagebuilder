@@ -22,12 +22,34 @@
       [labels]="state.labels"
       [uploading]="state.uploading()"
       [loading]="state.loading()"
+      [creatingFolder]="state.creatingFolder()"
+      [canCreateFolder]="state.folderCreationAvailable()"
+      [canUpload]="state.uploadAvailable()"
       [multiple]="state.multiple"
       [acceptAttribute]="state.acceptAttribute()"
       [searchValue]="state.searchValue()"
       [counterText]="state.formatAssetsCounter(state.visibleAssetsCount())"
       (searchValueChange)="state.onSearch($event)"
-      (upload)="state.uploadFiles($event)" />
+      (upload)="state.uploadFiles($event)"
+      (newFolder)="state.openFolderForm()" />
+
+    @if (state.folderFormOpen()) {
+      <form class="folder-form" (submit)="$event.preventDefault(); state.createFolder()" (keydown.escape)="closeFolderForm($event)">
+        <label for="asset-picker-folder-name">{{ state.labels.folderName }}</label>
+        <input #folderInput id="asset-picker-folder-name" type="text" autocomplete="off"
+          [placeholder]="state.labels.folderNamePlaceholder"
+          [formField]="state.folderForm.name"
+          [attr.aria-invalid]="!!state.folderNameError()"
+          [attr.aria-describedby]="state.folderNameError() ? 'asset-picker-folder-error' : null" />
+        @if (state.folderNameError()) {
+          <div id="asset-picker-folder-error" class="folder-form-error" role="alert">{{ state.folderNameError() }}</div>
+        }
+        <div class="folder-form-actions">
+          <app-icon-button skin="outline" [text]="state.labels.cancelFolder" [disabled]="state.creatingFolder()" (click)="closeFolderForm()" />
+          <app-icon-button skin="primary" [text]="state.labels.createFolder" [disabled]="!state.canCreateFolder()" (click)="state.createFolder()" />
+        </div>
+      </form>
+    }
 
     @if (state.error()) {
       <div class="message message--error">{{ state.error() }}</div>
@@ -49,6 +71,6 @@
 
   <div mat-dialog-actions>
     <app-icon-button skin="outline" [text]="state.labels.cancel" (click)="decline()" />
-    <app-icon-button skin="primary" [text]="state.selectButtonText()" [disabled]="!state.selectedCount()" (click)="confirm()" />
+    <app-icon-button skin="primary" [text]="state.selectButtonText()" [disabled]="!state.selectedCount() || state.creatingFolder() || state.uploading()" (click)="confirm()" />
   </div>
 </div>

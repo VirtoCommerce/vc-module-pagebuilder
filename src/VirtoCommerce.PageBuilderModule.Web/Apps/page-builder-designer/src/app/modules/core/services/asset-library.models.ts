@@ -52,6 +52,13 @@ export interface AssetLibraryLabels {
     imageLabel: string;
     upload: string;
     uploading: string;
+    newFolder: string;
+    createFolder: string;
+    cancelFolder: string;
+    folderName: string;
+    folderNamePlaceholder: string;
+    folderCreateError: string;
+    folderNameErrors: Record<'minLength' | 'maxLength' | 'dashStart' | 'dashEnd' | 'dashConsecutive' | 'invalidCharacters', string>;
     searchPlaceholder: string;
     assetsCounter: string;
     loading: string;
