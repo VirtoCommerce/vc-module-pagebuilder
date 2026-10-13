@@ -336,14 +336,12 @@ public class PageBuilderPageController : Controller
 
         if (publish)
         {
-            var pageToPublish = PageBuilderPageSelection.Order(groupedPage.Pages).FirstOrDefault(x => x.Status == Draft);
-            if (pageToPublish == null)
+            if (!GroupedPagePublishing.TryPublishDraft(groupedPage, out var obsoletePageIds))
             {
                 return BadRequest("Draft page not found.");
             }
 
-            pageToPublish.Status = Published;
-            pagesToDelete = groupedPage.Pages.Where(x => x.Id != pageToPublish.Id).Select(x => x.Id).ToList();
+            pagesToDelete = obsoletePageIds.ToList();
         }
         else
         {

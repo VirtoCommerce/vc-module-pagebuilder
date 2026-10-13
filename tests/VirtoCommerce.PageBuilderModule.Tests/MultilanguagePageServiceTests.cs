@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using VirtoCommerce.PageBuilderModule.Core.Models;
+using VirtoCommerce.PageBuilderModule.Data.Extensions;
 using VirtoCommerce.PageBuilderModule.Data.Models;
 using VirtoCommerce.PageBuilderModule.Data.Repositories;
 using VirtoCommerce.PageBuilderModule.Data.Services;
@@ -130,6 +131,103 @@ public class MultilanguagePageServiceTests
         Assert.Equal(root.Permalink, entity.Permalink);
     }
 
+    [Fact]
+    public async Task GetLanguagesAsync_ListsStoreLanguagesDefaultFirst_ThenRemovedLanguages()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var root = await fixture.CreateRootAsync();
+        await fixture.CreateLanguageAsync(root, "nl-NL", draftContent: Content("nl"));
+        await fixture.CreateLanguageAsync(root, "fr-FR", permalink: "/a-propos", overriddenFields: "Permalink", draftContent: Content("fr"));
+
+        var languages = await fixture.Roots.GetLanguagesAsync(root.Id, TestContext.Current.CancellationToken);
+
+        Assert.Equal(
+            [
+                ("en-US", true, true, MultilanguagePageLanguage.Missing),
+                ("nl-NL", false, true, "Draft"),
+                ("de-DE", false, true, MultilanguagePageLanguage.Missing),
+                ("fr-FR", false, false, "Draft"),
+            ],
+            languages.Select(x => (x.CultureName, x.IsDefault, x.IsStoreLanguage, x.Status)));
+        Assert.Null(languages[0].Page);
+        Assert.NotNull(languages[1].Page);
+    }
+
+    [Fact]
+    public async Task CreateLanguageAsync_CopyContent_StartsFromDefaultLanguageWithOwnSettings()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var root = await fixture.CreateRootAsync();
+        await fixture.CreateLanguageAsync(root, "en-US", draftContent: Content("hero-en"));
+
+        var nl = await fixture.Roots.CreateLanguageAsync(root.Id, "nl-NL", copyContent: true, TestContext.Current.CancellationToken);
+
+        var content = (await fixture.Groups.LoadGroupContentAsync(nl, draft: true, TestContext.Current.CancellationToken)).Content;
+        Assert.Contains("hero-en", content);
+        Assert.Contains("\"cultureName\":\"nl-NL\"", content);
+        var entity = await fixture.LoadGroupAsync(nl.Id);
+        Assert.Equal((root.Id, root.Permalink, string.Empty), (entity.MultilanguagePageId, entity.Permalink, entity.OverriddenFields));
+    }
+
+    [Fact]
+    public async Task CreateLanguageAsync_NotAStoreLanguageOrAlreadyPresent_Throws()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var root = await fixture.CreateRootAsync();
+        await fixture.CreateLanguageAsync(root, "nl-NL");
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            fixture.Roots.CreateLanguageAsync(root.Id, "fr-FR", copyContent: false, TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            fixture.Roots.CreateLanguageAsync(root.Id, "nl-NL", copyContent: false, TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task PublishAllAsync_PublishesDraftsAndSkipsVersionsWithoutDraft()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var root = await fixture.CreateRootAsync();
+        var en = await fixture.CreateLanguageAsync(root, "en-US", draftContent: Content("en"));
+        await fixture.CreateLanguageAsync(root, "nl-NL");
+
+        var result = await fixture.Roots.PublishAllAsync(root.Id, TestContext.Current.CancellationToken);
+
+        Assert.Equal(["en-US"], result.ProcessedCultureNames);
+        Assert.Equal([("nl-NL", MultilanguagePageBatchResult.NoDraftReason)], result.Skipped.Select(x => (x.CultureName, x.Reason)));
+        Assert.Equal("Published", (await fixture.Groups.GetByIdAsync(en.Id)).Status);
+    }
+
+    [Fact]
+    public async Task ArchiveAllAsync_ArchivesEveryVersion()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var root = await fixture.CreateRootAsync();
+        var en = await fixture.CreateLanguageAsync(root, "en-US", draftContent: Content("en"));
+        var nl = await fixture.CreateLanguageAsync(root, "nl-NL", draftContent: Content("nl"));
+
+        var result = await fixture.Roots.ArchiveAllAsync(root.Id, TestContext.Current.CancellationToken);
+
+        Assert.Equal(["en-US", "nl-NL"], result.ProcessedCultureNames.Order());
+        Assert.Equal("Archived", (await fixture.Groups.GetByIdAsync(en.Id)).Status);
+        Assert.Equal("Archived", (await fixture.Groups.GetByIdAsync(nl.Id)).Status);
+    }
+
+    [Fact]
+    public void ToPageDocument_LanguageVersion_CarriesTranslationGroup()
+    {
+        var group = new GroupedPageBuilderPage { Id = "group", CultureName = "nl-NL", MultilanguagePageId = "root" };
+        var page = new PageBuilderPage { Id = "page", GroupId = "group" };
+
+        var document = page.ToPageDocument(group, Content("nl"));
+
+        Assert.Equal("root", document.TranslationGroupId);
+    }
+
+    private static string Content(string sectionType)
+    {
+        return $$"""{ "settings": {}, "content": [ { "type": "{{sectionType}}" } ] }""";
+    }
+
     private sealed class Fixture : IAsyncDisposable
     {
         private readonly SqliteConnection _anchorConnection;
@@ -157,7 +255,8 @@ public class MultilanguagePageServiceTests
                 Groups,
                 Groups,
                 groupSearch,
-                new FakeStoreService(new Store { Id = StoreId, DefaultLanguage = "en-US" }));
+                new FakeStoreService(new Store { Id = StoreId, DefaultLanguage = "en-US", Languages = ["en-US", "nl-NL", "de-DE"] }),
+                new PageBuilderPageService(repositoryFactory, _cache, events));
         }
 
         public GroupedPageService Groups { get; }
@@ -206,7 +305,8 @@ public class MultilanguagePageServiceTests
             string cultureName,
             string permalink = null,
             string name = null,
-            string overriddenFields = null)
+            string overriddenFields = null,
+            string draftContent = null)
         {
             var group = new GroupedPageBuilderPage
             {
@@ -223,6 +323,11 @@ public class MultilanguagePageServiceTests
             group.Name = name ?? group.Name ?? "Landing";
             group.Permalink = permalink ?? group.Permalink;
             group.OverriddenFields = overriddenFields;
+
+            if (draftContent != null)
+            {
+                group.Pages.Add(new PageBuilderPage { StoreId = StoreId, Status = "Draft", Content = draftContent });
+            }
 
             await Groups.SaveChangesAsync([group]);
             return group;
