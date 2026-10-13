@@ -19,6 +19,9 @@ using Xunit;
 
 namespace VirtoCommerce.PageBuilderModule.Tests;
 
+// Grouped saves expire the static grouped-page cache regions; running in parallel with tests that assert
+// on those regions (e.g. GroupedPageStoreMoveConcurrencyTests) makes them flaky.
+[Collection(nameof(MultilanguagePageServiceTests))]
 public class MultilanguagePageServiceTests
 {
     private const string StoreId = "store";
@@ -442,3 +445,6 @@ public class MultilanguagePageServiceTests
         }
     }
 }
+
+[CollectionDefinition(nameof(MultilanguagePageServiceTests), DisableParallelization = true)]
+public class MultilanguagePageServiceTestsCollection;
