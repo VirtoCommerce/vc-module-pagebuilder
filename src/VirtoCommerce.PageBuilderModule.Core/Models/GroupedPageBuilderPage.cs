@@ -20,6 +20,23 @@ public class GroupedPageBuilderPage : AuditableEntity, IHasStoreId, ICloneable
     public DateTime? StartDate { get; set; }
     public DateTime? EndDate { get; set; }
 
+    /// <summary>
+    /// The <see cref="MultilanguagePage"/> this page is a language version of; null for a Landing Page.
+    /// Changed only through <c>IMultilanguagePageService</c> link/unlink, a regular save keeps the stored value.
+    /// </summary>
+    public string MultilanguagePageId { get; set; }
+
+    /// <summary>
+    /// Comma-separated inheritable fields this language version overrides (see <see cref="MultilanguagePageInheritance"/>).
+    /// Null keeps the stored mask on save; an empty string clears it.
+    /// </summary>
+    public string OverriddenFields { get; set; }
+
+    /// <summary>
+    /// Publication date of the source language version this translation is based on. Used to detect outdated translations.
+    /// </summary>
+    public DateTime? SourceRevisionDate { get; set; }
+
     public string Status
     {
         get

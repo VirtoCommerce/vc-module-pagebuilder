@@ -44,6 +44,11 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
                 query = query.Where(x => x.CultureName == criteria.LanguageCode);
             }
 
+            if (!string.IsNullOrEmpty(criteria.MultilanguagePageId))
+            {
+                query = query.Where(x => x.MultilanguagePageId == criteria.MultilanguagePageId);
+            }
+
             return query;
         }
 

@@ -62,6 +62,8 @@ namespace VirtoCommerce.PageBuilderModule.Web
                 provider.GetRequiredService<IGroupedPageService>() as IGroupedPageContentService
                 ?? ActivatorUtilities.CreateInstance<GroupedPageService>(provider));
             serviceCollection.AddTransient<IGroupedPageSearchService, GroupedPageSearchService>();
+            serviceCollection.AddTransient<IMultilanguagePageService, MultilanguagePageService>();
+            serviceCollection.AddTransient<IMultilanguagePageSearchService, MultilanguagePageSearchService>();
             serviceCollection.AddTransient<IPageBuilderAssetReferenceService, PageBuilderAssetReferenceService>();
             serviceCollection.AddTransient<IPageBuilderAssetSearchService, PageBuilderAssetSearchService>();
             serviceCollection.AddTransient<IPageBuilderAssetReferenceIndexService, PageBuilderAssetReferenceIndexService>();

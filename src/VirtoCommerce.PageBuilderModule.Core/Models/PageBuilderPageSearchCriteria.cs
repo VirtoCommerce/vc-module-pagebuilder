@@ -18,4 +18,9 @@ public class PageBuilderPageSearchCriteria : SearchCriteriaBase, IHasStoreId
 
     public DateTime? ModifiedSince { get; set; }
     public DateTime? ModifiedBefore { get; set; }
+
+    /// <summary>
+    /// Grouped pages only: language versions of this <see cref="MultilanguagePage"/>.
+    /// </summary>
+    public string MultilanguagePageId { get; set; }
 }
