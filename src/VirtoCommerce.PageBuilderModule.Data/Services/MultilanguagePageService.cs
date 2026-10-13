@@ -114,9 +114,8 @@ public class MultilanguagePageService(
         await SetMultilanguagePageIdAsync(groupId, root.Id, cancellationToken);
 
         group = await groupedPageService.GetByIdAsync(groupId);
-        // Whatever differs from the root stays as it is, so the page keeps serving the same permalink and settings.
-        MultilanguagePageInheritance.SetOverriddenFields(group, MultilanguagePageInheritance.GetDifferingFields(root, group));
-        MultilanguagePageInheritance.Apply(root, group);
+        // The save takes the root name and marks whatever differs from the root as overridden, so the page keeps
+        // serving the same permalink and settings. It also reindexes the page with its translation group.
         await groupedPageContentService.SaveGroupSettingsAsync(group, cancellationToken);
 
         return group;
@@ -174,7 +173,6 @@ public class MultilanguagePageService(
         group.StoreId = root.StoreId;
         group.CultureName = language.CultureName;
         group.MultilanguagePageId = root.Id;
-        MultilanguagePageInheritance.SetOverriddenFields(group, []);
         MultilanguagePageInheritance.Apply(root, group);
 
         string sourceContent = null;

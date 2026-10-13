@@ -237,6 +237,43 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
                     ?.Pages;
                 NormalizePublishedPages(group, existingPages);
             }
+
+            await SynchronizeLanguageVersionsAsync(models, existingEntities, repository, cancellationToken);
+        }
+
+        // A language version shares the root name, and the fields it overrides are exactly the fields that differ
+        // from the root. Deriving the mask on every save keeps it right for any writer (the page blade, import,
+        // root propagation), and a field set back to the root value becomes inherited again.
+        private static async Task SynchronizeLanguageVersionsAsync(
+            IList<GroupedPageBuilderPage> models,
+            IList<GroupedPageBuilderPageEntity> existingEntities,
+            IPageBuilderModuleRepository repository,
+            CancellationToken cancellationToken)
+        {
+            // The link is never patched, so the stored value wins over the model for existing groups.
+            var rootIdsByGroup = models.ToDictionary(
+                x => x,
+                x => existingEntities.FirstOrDefault(e => string.Equals(e.Id, x.Id, StringComparison.OrdinalIgnoreCase)) is { } existing
+                    ? existing.MultilanguagePageId
+                    : x.MultilanguagePageId);
+            var rootIds = rootIdsByGroup.Values.Where(x => !string.IsNullOrEmpty(x)).Distinct().ToArray();
+            if (rootIds.Length == 0)
+            {
+                return;
+            }
+
+            var roots = await repository.MultilanguagePages.AsNoTracking()
+                .Where(x => rootIds.Contains(x.Id))
+                .ToDictionaryAsync(x => x.Id, x => x.ToModel(AbstractTypeFactory<MultilanguagePage>.TryCreateInstance()), cancellationToken);
+
+            foreach (var (group, rootId) in rootIdsByGroup)
+            {
+                if (rootId != null && roots.TryGetValue(rootId, out var root))
+                {
+                    group.Name = root.Name;
+                    MultilanguagePageInheritance.SetOverriddenFields(group, MultilanguagePageInheritance.GetDifferingFields(root, group));
+                }
+            }
         }
 
         internal static void ValidateStoreImmutability(

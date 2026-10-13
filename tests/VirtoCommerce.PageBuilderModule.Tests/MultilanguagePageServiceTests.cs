@@ -73,6 +73,28 @@ public class MultilanguagePageServiceTests
     }
 
     [Fact]
+    public async Task GroupSave_LanguageVersion_DerivesMaskFromRootAndKeepsSharedName()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var root = await fixture.CreateRootAsync();
+        var nl = await fixture.CreateLanguageAsync(root, "nl-NL");
+
+        var edited = await fixture.Groups.GetByIdAsync(nl.Id);
+        edited.Permalink = "/over-ons";
+        edited.Name = "Over ons";
+        await fixture.Groups.SaveChangesAsync([edited]);
+
+        var entity = await fixture.LoadGroupAsync(nl.Id);
+        Assert.Equal(("Permalink", "/over-ons", root.Name), (entity.OverriddenFields, entity.Permalink, entity.Name));
+
+        var reverted = await fixture.Groups.GetByIdAsync(nl.Id);
+        reverted.Permalink = root.Permalink;
+        await fixture.Groups.SaveChangesAsync([reverted]);
+
+        Assert.Equal(string.Empty, (await fixture.LoadGroupAsync(nl.Id)).OverriddenFields);
+    }
+
+    [Fact]
     public async Task LinkAsync_ExistingLandingPage_KeepsItsDifferingValuesAsOverrides()
     {
         await using var fixture = await Fixture.CreateAsync();
