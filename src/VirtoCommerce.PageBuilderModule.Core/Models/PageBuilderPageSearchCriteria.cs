@@ -23,4 +23,9 @@ public class PageBuilderPageSearchCriteria : SearchCriteriaBase, IHasStoreId
     /// Grouped pages only: language versions of this <see cref="MultilanguagePage"/>.
     /// </summary>
     public string MultilanguagePageId { get; set; }
+
+    /// <summary>
+    /// Pages list only: <see cref="PageTypes.Landing"/> or <see cref="PageTypes.Multilanguage"/>; empty lists both.
+    /// </summary>
+    public string PageType { get; set; }
 }

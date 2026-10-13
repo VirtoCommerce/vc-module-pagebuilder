@@ -30,6 +30,12 @@ namespace VirtoCommerce.PageBuilderModule.Core
             public const string Archived = "Archived";
         }
 
+        public static class PageTypes
+        {
+            public const string Landing = "Landing";
+            public const string Multilanguage = "Multilanguage";
+        }
+
         public static class PageLifecycleFilters
         {
             public const string Drafts = "drafts";

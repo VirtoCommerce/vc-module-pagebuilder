@@ -223,6 +223,88 @@ public class MultilanguagePageServiceTests
         Assert.Equal("root", document.TranslationGroupId);
     }
 
+    [Fact]
+    public async Task List_MultilanguagePageIsOneRowWithLanguages()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var root = await fixture.CreateRootAsync();
+        await fixture.CreateLanguageAsync(root, "en-US", draftContent: Content("en"));
+        await fixture.CreateLanguageAsync(root, "nl-NL", draftContent: Content("nl"));
+        var landing = await fixture.CreateLanguageAsync(null, "en-US", permalink: "/summer", name: "Summer", draftContent: Content("summer"));
+
+        var result = await fixture.List.SearchAsync(new PageBuilderPageSearchCriteria { StoreId = StoreId, Take = 10 }, TestContext.Current.CancellationToken);
+
+        Assert.Equal(2, result.TotalCount);
+        var multilanguage = result.Results.Single(x => x.Type == "Multilanguage");
+        Assert.Equal(root.Id, multilanguage.Id);
+        Assert.Equal(
+            [("en-US", "Draft"), ("nl-NL", "Draft"), ("de-DE", MultilanguagePageLanguage.Missing)],
+            multilanguage.Languages.Select(x => (x.CultureName, x.Status)));
+        var landingRow = result.Results.Single(x => x.Type == "Landing");
+        Assert.Equal(landing.Id, landingRow.Page.Id);
+        Assert.Null(landingRow.Languages);
+    }
+
+    [Fact]
+    public async Task List_VersionFilter_ListsRootWhenAnyLanguageMatches()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var withDraft = await fixture.CreateRootAsync("With draft");
+        await fixture.CreateLanguageAsync(withDraft, "nl-NL", draftContent: Content("nl"));
+        var archived = await fixture.CreateRootAsync("Archived");
+        var archivedEn = await fixture.CreateLanguageAsync(archived, "en-US", draftContent: Content("en"));
+        await fixture.Roots.ArchiveAllAsync(archived.Id, TestContext.Current.CancellationToken);
+        await fixture.CreateRootAsync("No languages");
+
+        var result = await fixture.List.SearchAsync(
+            new PageBuilderPageSearchCriteria { StoreId = StoreId, Lifecycle = "drafts", Take = 10 },
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal([withDraft.Id], result.Results.Select(x => x.Id));
+        Assert.NotNull(archivedEn);
+    }
+
+    [Fact]
+    public async Task List_NoVersionFilter_ListsRootWithoutLanguages()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var root = await fixture.CreateRootAsync("No languages");
+
+        var result = await fixture.List.SearchAsync(new PageBuilderPageSearchCriteria { StoreId = StoreId, Take = 10 }, TestContext.Current.CancellationToken);
+
+        Assert.Equal([root.Id], result.Results.Select(x => x.Id));
+    }
+
+    [Fact]
+    public async Task List_SortsAndPagesAcrossBothTypes_IgnoresUnknownSortColumn()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        await fixture.CreateRootAsync("B root");
+        await fixture.CreateLanguageAsync(null, "en-US", permalink: "/a", name: "A landing", draftContent: Content("a"));
+        await fixture.CreateLanguageAsync(null, "en-US", permalink: "/c", name: "C landing", draftContent: Content("c"));
+
+        var result = await fixture.List.SearchAsync(
+            new PageBuilderPageSearchCriteria { StoreId = StoreId, Sort = "name;status", Skip = 1, Take = 2 },
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(3, result.TotalCount);
+        Assert.Equal(["B root", "C landing"], result.Results.Select(x => x.Name));
+    }
+
+    [Fact]
+    public async Task List_PageTypeFilter()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var root = await fixture.CreateRootAsync();
+        await fixture.CreateLanguageAsync(null, "en-US", permalink: "/a", name: "A landing", draftContent: Content("a"));
+
+        var result = await fixture.List.SearchAsync(
+            new PageBuilderPageSearchCriteria { StoreId = StoreId, PageType = "Multilanguage", Take = 10 },
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal([root.Id], result.Results.Select(x => x.Id));
+    }
+
     private static string Content(string sectionType)
     {
         return $$"""{ "settings": {}, "content": [ { "type": "{{sectionType}}" } ] }""";
@@ -248,6 +330,7 @@ public class MultilanguagePageServiceTests
                 events,
                 NullLogger<GroupedPageService>.Instance);
             var groupSearch = new GroupedPageSearchService(repositoryFactory, _cache, Groups, Options.Create(new CrudOptions()));
+            var storeService = new FakeStoreService(new Store { Id = StoreId, DefaultLanguage = "en-US", Languages = ["en-US", "nl-NL", "de-DE"] });
             Roots = new MultilanguagePageService(
                 repositoryFactory,
                 _cache,
@@ -255,13 +338,16 @@ public class MultilanguagePageServiceTests
                 Groups,
                 Groups,
                 groupSearch,
-                new FakeStoreService(new Store { Id = StoreId, DefaultLanguage = "en-US", Languages = ["en-US", "nl-NL", "de-DE"] }),
+                storeService,
                 new PageBuilderPageService(repositoryFactory, _cache, events));
+            List = new PageBuilderPageListService(repositoryFactory, groupSearch, Groups, Roots, storeService);
         }
 
         public GroupedPageService Groups { get; }
 
         public MultilanguagePageService Roots { get; }
+
+        public PageBuilderPageListService List { get; }
 
         public static async Task<Fixture> CreateAsync()
         {
@@ -287,12 +373,12 @@ public class MultilanguagePageServiceTests
             return new PageBuilderModuleDbContext(options);
         }
 
-        public async Task<MultilanguagePage> CreateRootAsync()
+        public async Task<MultilanguagePage> CreateRootAsync(string name = "About us")
         {
             var root = new MultilanguagePage
             {
                 StoreId = StoreId,
-                Name = "About us",
+                Name = name,
                 Permalink = "/about-us",
                 Visibility = true,
             };

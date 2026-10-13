@@ -148,21 +148,8 @@ public class MultilanguagePageService(
     {
         var root = await GetRequiredAsync(multilanguagePageId);
         var store = await storeService.GetByIdAsync(root.StoreId);
-        var versions = (await GetLanguageVersionsAsync(root.Id))
-            .ToDictionary(x => x.CultureName ?? string.Empty, StringComparer.OrdinalIgnoreCase);
 
-        var storeLanguages = new[] { root.DefaultCultureName }
-            .Concat(store?.Languages ?? [])
-            .Where(x => !string.IsNullOrEmpty(x))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
-        var removedLanguages = versions.Keys
-            .Where(x => !storeLanguages.Contains(x, StringComparer.OrdinalIgnoreCase))
-            .Order(StringComparer.OrdinalIgnoreCase);
-
-        return storeLanguages.Select(x => CreateLanguage(root, x, versions.GetValueOrDefault(x), isStoreLanguage: true))
-            .Concat(removedLanguages.Select(x => CreateLanguage(root, x, versions[x], isStoreLanguage: false)))
-            .ToList();
+        return MultilanguagePageLanguages.Build(root, store?.Languages, await GetLanguageVersionsAsync(root.Id));
     }
 
     public virtual async Task<GroupedPageBuilderPage> CreateLanguageAsync(string multilanguagePageId, string cultureName, bool copyContent, CancellationToken cancellationToken = default)
@@ -267,19 +254,6 @@ public class MultilanguagePageService(
 
         return await this.GetByIdAsync(multilanguagePageId)
             ?? throw new KeyNotFoundException($"Multilanguage page '{multilanguagePageId}' not found.");
-    }
-
-    private static MultilanguagePageLanguage CreateLanguage(MultilanguagePage root, string cultureName, GroupedPageBuilderPage page, bool isStoreLanguage)
-    {
-        return new MultilanguagePageLanguage
-        {
-            CultureName = page?.CultureName ?? cultureName,
-            IsDefault = string.Equals(cultureName, root.DefaultCultureName, StringComparison.OrdinalIgnoreCase),
-            IsStoreLanguage = isStoreLanguage,
-            Status = page?.Status ?? MultilanguagePageLanguage.Missing,
-            HasChanges = page != null && page.Status == ModuleConstants.PageStatuses.Published && page.HasChanges,
-            Page = page,
-        };
     }
 
     protected virtual async Task<IList<GroupedPageBuilderPage>> GetLanguageVersionsAsync(string multilanguagePageId)

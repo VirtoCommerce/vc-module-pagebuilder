@@ -69,6 +69,25 @@ public class PageBuilderPageController : Controller
         return Ok(result);
     }
 
+    /// <summary>
+    /// Pages list where a Multilanguage Page is a single row with its language statuses.
+    /// </summary>
+    [HttpPost("list")]
+    [Authorize(ModuleConstants.Security.Permissions.Read)]
+    public async Task<ActionResult<PageBuilderPageListSearchResult>> SearchList(
+        [FromBody] PageBuilderPageSearchCriteria criteria,
+        [FromServices] IPageBuilderPageListService pageListService,
+        CancellationToken cancellationToken = default)
+    {
+        var authorizationResult = await authorizationService.AuthorizeAsync(User, criteria, new PageBuilderAuthorizationRequirement());
+        if (!authorizationResult.Succeeded)
+        {
+            return Forbidden;
+        }
+
+        return Ok(await pageListService.SearchAsync(criteria, cancellationToken));
+    }
+
     [HttpGet("grouped/{groupId}")]
     [Authorize(ModuleConstants.Security.Permissions.Read)]
     public async Task<ActionResult<GroupedPageBuilderPage>> GetGroup([FromRoute] string groupId, [FromQuery] string responseGroup = null)
