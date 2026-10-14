@@ -21,6 +21,14 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
                 GroupedPageBuilderPageEntity>(repositoryFactory, platformMemoryCache, crudService, crudOptions),
             IGroupedPageSearchService
     {
+        /// <summary>
+        /// The filtered grouped pages query, reused by the pages list so both apply the same filters.
+        /// </summary>
+        public virtual IQueryable<GroupedPageBuilderPageEntity> GetFilteredQuery(IPageBuilderModuleRepository repository, PageBuilderPageSearchCriteria criteria)
+        {
+            return BuildQuery(repository, criteria);
+        }
+
         protected override IQueryable<GroupedPageBuilderPageEntity> BuildQuery(IRepository repository, PageBuilderPageSearchCriteria criteria)
         {
             var query = ((IPageBuilderModuleRepository)repository).GroupedPageBuilderPages;
@@ -42,6 +50,11 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
             if (!string.IsNullOrEmpty(criteria.LanguageCode))
             {
                 query = query.Where(x => x.CultureName == criteria.LanguageCode);
+            }
+
+            if (!string.IsNullOrEmpty(criteria.MultilanguagePageId))
+            {
+                query = query.Where(x => x.MultilanguagePageId == criteria.MultilanguagePageId);
             }
 
             return query;

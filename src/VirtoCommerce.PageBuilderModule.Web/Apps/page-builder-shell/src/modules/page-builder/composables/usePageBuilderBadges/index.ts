@@ -41,27 +41,27 @@ export async function refreshMenuBadges(): Promise<void> {
   const apiClient = await getApiClient();
 
   const [draftResult, pendingResult, activeResult, archivedResult, allResult] = await Promise.all([
-    apiClient.searchGroups({
+    apiClient.searchList({
       storeId: storeId.value,
       take: 0,
       lifecycle: PageLifecycleFilters.Draft,
     } as PageBuilderPageSearchCriteria),
-    apiClient.searchGroups({
+    apiClient.searchList({
       storeId: storeId.value,
       take: 0,
       lifecycle: PageLifecycleFilters.Pending,
     } as PageBuilderPageSearchCriteria),
-    apiClient.searchGroups({
+    apiClient.searchList({
       storeId: storeId.value,
       take: 0,
       lifecycle: PageLifecycleFilters.Active,
     } as PageBuilderPageSearchCriteria),
-    apiClient.searchGroups({
+    apiClient.searchList({
       storeId: storeId.value,
       take: 0,
       lifecycle: PageLifecycleFilters.Archived,
     } as PageBuilderPageSearchCriteria),
-    apiClient.searchGroups({ storeId: storeId.value, take: 0 } as PageBuilderPageSearchCriteria),
+    apiClient.searchList({ storeId: storeId.value, take: 0 } as PageBuilderPageSearchCriteria),
   ]);
 
   draftCount.value = draftResult.totalCount || undefined;

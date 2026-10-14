@@ -33,6 +33,16 @@ namespace VirtoCommerce.PageBuilderModule.Data.Models
 
         public DateTime? EndDate { get; set; }
 
+        [StringLength(IdLength)]
+        public string MultilanguagePageId { get; set; }
+
+        [StringLength(512)]
+        public string OverriddenFields { get; set; }
+
+        public DateTime? SourceRevisionDate { get; set; }
+
+        public virtual MultilanguagePageEntity MultilanguagePage { get; set; }
+
         public virtual ObservableCollection<PageBuilderPageEntity> Pages { get; set; } = new NullCollection<PageBuilderPageEntity>();
 
         public GroupedPageBuilderPage ToModel(GroupedPageBuilderPage model)
@@ -53,7 +63,11 @@ namespace VirtoCommerce.PageBuilderModule.Data.Models
             model.StartDate = StartDate;
             model.EndDate = EndDate;
 
-            model.Pages = Pages.Select(x => x.ToModel(AbstractTypeFactory<PageBuilderPage>.TryCreateInstance())).ToList();
+            model.MultilanguagePageId = MultilanguagePageId;
+            model.OverriddenFields = OverriddenFields;
+            model.SourceRevisionDate = SourceRevisionDate;
+
+            model.Pages =Pages.Select(x => x.ToModel(AbstractTypeFactory<PageBuilderPage>.TryCreateInstance())).ToList();
 
             return model;
         }
@@ -79,6 +93,10 @@ namespace VirtoCommerce.PageBuilderModule.Data.Models
             StartDate = model.StartDate;
             EndDate = model.EndDate;
 
+            MultilanguagePageId = model.MultilanguagePageId;
+            OverriddenFields = model.OverriddenFields;
+            SourceRevisionDate = model.SourceRevisionDate;
+
             if (model.Pages != null)
             {
                 Pages = new ObservableCollection<PageBuilderPageEntity>(model.Pages.Select(x => AbstractTypeFactory<PageBuilderPageEntity>.TryCreateInstance().FromModel(x, pkMap)));
@@ -99,6 +117,18 @@ namespace VirtoCommerce.PageBuilderModule.Data.Models
             target.StartDate = StartDate;
             target.EndDate = EndDate;
             target.OrganizationId = OrganizationId;
+
+            // MultilanguagePageId is owned by the multilanguage page service and is never patched: clients that
+            // do not know it would otherwise unlink the page on every save. Null keeps the stored value of the others.
+            if (OverriddenFields != null)
+            {
+                target.OverriddenFields = OverriddenFields;
+            }
+
+            if (SourceRevisionDate != null)
+            {
+                target.SourceRevisionDate = SourceRevisionDate;
+            }
 
             if (!Pages.IsNullCollection())
             {

@@ -4,6 +4,7 @@ using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Data.Extensions;
 using VirtoCommerce.Pages.Core.Events;
 using VirtoCommerce.Pages.Core.Extensions;
+using VirtoCommerce.Pages.Core.Models;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Events;
 
@@ -30,6 +31,19 @@ namespace VirtoCommerce.PageBuilderModule.Data.Handlers
             }
 
             var group = await groupedPageService.GetByIdAsync(entry.GroupId);
+
+            // The group and its content are already gone when the group was deleted,
+            // so the page can only be removed from the index.
+            if (group == null)
+            {
+                var deleteEvent = AbstractTypeFactory<PagesDomainEvent>.TryCreateInstance();
+                deleteEvent.Id = entry.Id;
+                deleteEvent.Operation = PageOperation.Delete;
+                deleteEvent.Page = AbstractTypeFactory<PageDocument>.TryCreateInstance();
+                deleteEvent.Page.Id = entry.Id;
+                return deleteEvent;
+            }
+
             var rawContent = await groupedPageService.LoadContent(entry.Id);
 
             string content;

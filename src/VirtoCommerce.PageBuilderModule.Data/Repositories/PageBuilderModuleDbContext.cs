@@ -26,6 +26,14 @@ public class PageBuilderModuleDbContext : DbContextBase
 
         modelBuilder.Entity<GroupedPageBuilderPageEntity>().ToTable("GroupedPageBuilderPage").HasKey(x => x.Id);
         modelBuilder.Entity<GroupedPageBuilderPageEntity>().Property(x => x.Id).HasMaxLength(IdLength).ValueGeneratedOnAdd();
+        // Restrict: deleting a root must detach its language versions first (IMultilanguagePageService does).
+        modelBuilder.Entity<GroupedPageBuilderPageEntity>().HasOne(x => x.MultilanguagePage).WithMany()
+            .HasForeignKey(x => x.MultilanguagePageId).OnDelete(DeleteBehavior.Restrict).IsRequired(false);
+        modelBuilder.Entity<GroupedPageBuilderPageEntity>().HasIndex(x => x.MultilanguagePageId);
+
+        modelBuilder.Entity<MultilanguagePageEntity>().ToTable("PageBuilderMultilanguagePage").HasKey(x => x.Id);
+        modelBuilder.Entity<MultilanguagePageEntity>().Property(x => x.Id).HasMaxLength(IdLength).ValueGeneratedOnAdd();
+        modelBuilder.Entity<MultilanguagePageEntity>().HasIndex(x => x.StoreId);
 
         modelBuilder.Entity<PageBuilderPageEntity>().ToTable(PageBuilderPageTableName).HasKey(x => x.Id);
         modelBuilder.Entity<PageBuilderPageEntity>().Property(x => x.Id).HasMaxLength(IdLength).ValueGeneratedOnAdd();

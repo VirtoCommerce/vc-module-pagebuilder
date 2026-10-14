@@ -69,6 +69,45 @@ public class PageBuilderPageController : Controller
         return Ok(result);
     }
 
+    /// <summary>
+    /// Pages list where a Multilanguage Page is a single row with its language statuses.
+    /// </summary>
+    [HttpPost("list")]
+    [Authorize(ModuleConstants.Security.Permissions.Read)]
+    public async Task<ActionResult<PageBuilderPageListSearchResult>> SearchList(
+        [FromBody] PageBuilderPageSearchCriteria criteria,
+        [FromServices] IPageBuilderPageListService pageListService,
+        CancellationToken cancellationToken = default)
+    {
+        var authorizationResult = await authorizationService.AuthorizeAsync(User, criteria, new PageBuilderAuthorizationRequirement());
+        if (!authorizationResult.Succeeded)
+        {
+            return Forbidden;
+        }
+
+        return Ok(await pageListService.SearchAsync(criteria, cancellationToken));
+    }
+
+    /// <summary>
+    /// Pages that already serve the permalink in the given languages; shown as a warning before saving.
+    /// </summary>
+    [HttpPost("permalink-usage")]
+    [Authorize(ModuleConstants.Security.Permissions.Read)]
+    public async Task<ActionResult<IList<PermalinkUsage>>> FindPermalinkUsage(
+        [FromBody] PermalinkUsageRequest request,
+        [FromServices] IPageBuilderPageListService pageListService,
+        CancellationToken cancellationToken = default)
+    {
+        var authorizationResult = await authorizationService.AuthorizeAsync(
+            User, new PageBuilderPageSearchCriteria { StoreId = request?.StoreId }, new PageBuilderAuthorizationRequirement());
+        if (!authorizationResult.Succeeded)
+        {
+            return Forbidden;
+        }
+
+        return Ok(await pageListService.FindPermalinkUsageAsync(request, cancellationToken));
+    }
+
     [HttpGet("grouped/{groupId}")]
     [Authorize(ModuleConstants.Security.Permissions.Read)]
     public async Task<ActionResult<GroupedPageBuilderPage>> GetGroup([FromRoute] string groupId, [FromQuery] string responseGroup = null)
@@ -336,14 +375,12 @@ public class PageBuilderPageController : Controller
 
         if (publish)
         {
-            var pageToPublish = PageBuilderPageSelection.Order(groupedPage.Pages).FirstOrDefault(x => x.Status == Draft);
-            if (pageToPublish == null)
+            if (!GroupedPagePublishing.TryPublishDraft(groupedPage, out var obsoletePageIds))
             {
                 return BadRequest("Draft page not found.");
             }
 
-            pageToPublish.Status = Published;
-            pagesToDelete = groupedPage.Pages.Where(x => x.Id != pageToPublish.Id).Select(x => x.Id).ToList();
+            pagesToDelete = obsoletePageIds.ToList();
         }
         else
         {
