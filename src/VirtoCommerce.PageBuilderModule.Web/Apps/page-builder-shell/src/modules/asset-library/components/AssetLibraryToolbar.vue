@@ -28,6 +28,17 @@
       @update:model-value="$emit('search-change', ($event as string) || undefined)"
     />
 
+    <VcSelect
+      v-model="sort"
+      class="tw-w-52"
+      :label="$t('ASSET_LIBRARY.SORT.LABEL')"
+      :options="sortOptions"
+      :clearable="false"
+      option-value="value"
+      option-label="label"
+      emit-value
+    />
+
     <VcHint class="assets-library__counter">
       {{ $t("ASSET_LIBRARY.COUNTER", { count: totalCount }) }}
     </VcHint>
@@ -57,7 +68,9 @@
 </template>
 
 <script lang="ts" setup>
-import { VcButton, VcButtonGroup, VcHint, VcInput } from "@vc-shell/framework/ui";
+import { computed } from "vue";
+import { useI18n } from "vue-i18n";
+import { VcButton, VcButtonGroup, VcHint, VcInput, VcSelect } from "@vc-shell/framework/ui";
 import type { AssetLibraryViewMode } from "../types";
 
 interface Props {
@@ -73,6 +86,14 @@ interface Emits {
 }
 
 const viewMode = defineModel<AssetLibraryViewMode>("viewMode");
+const sort = defineModel<string>("sort");
+const { t } = useI18n({ useScope: "global" });
+const sortOptions = computed(() => [
+  { value: "name", label: t("ASSET_LIBRARY.SORT.NAME_ASC") },
+  { value: "name:desc", label: t("ASSET_LIBRARY.SORT.NAME_DESC") },
+  { value: "modifiedDate:desc", label: t("ASSET_LIBRARY.SORT.MODIFIED") },
+  { value: "size:desc", label: t("ASSET_LIBRARY.SORT.SIZE") },
+]);
 
 defineProps<Props>();
 

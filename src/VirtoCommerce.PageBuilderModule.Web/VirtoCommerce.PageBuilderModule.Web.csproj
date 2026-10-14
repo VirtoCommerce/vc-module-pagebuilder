@@ -16,6 +16,13 @@
   <ItemGroup>
     <InternalsVisibleTo Include="VirtoCommerce.PageBuilderModule.Tests" />
   </ItemGroup>
+
+  <ItemGroup>
+    <!-- NSwag emits repeated request/response plumbing; regenerate these clients instead of refactoring them. -->
+    <SonarQubeSetting Include="sonar.cpd.exclusions">
+      <Value>**/Apps/page-builder-shell/src/api_client/virtocommerce.*.ts</Value>
+    </SonarQubeSetting>
+  </ItemGroup>
   
   <ItemGroup>
     <Content Include="ai\**">

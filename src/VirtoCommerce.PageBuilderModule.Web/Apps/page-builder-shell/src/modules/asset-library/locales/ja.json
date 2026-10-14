@@ -1,5 +1,15 @@
 {
   "ASSET_LIBRARY": {
+    "PAGINATION": {
+      "PAGE_SIZE": "ページあたりの件数"
+    },
+    "SORT": {
+      "LABEL": "並べ替え",
+      "NAME_ASC": "名前 (A-Z)",
+      "NAME_DESC": "名前 (Z-A)",
+      "MODIFIED": "更新日時の新しい順",
+      "SIZE": "サイズの大きい順"
+    },
     "MENU": {
       "TITLE": "アセットライブラリ"
     },
