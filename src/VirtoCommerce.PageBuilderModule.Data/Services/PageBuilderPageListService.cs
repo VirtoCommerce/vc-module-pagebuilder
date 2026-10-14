@@ -167,6 +167,7 @@ public class PageBuilderPageListService(
                 g.MultilanguagePageId == x.Id &&
                 g.CultureName != x.DefaultCultureName &&
                 (languageCode == null || g.CultureName == languageCode) &&
+                g.Pages.Any(p => p.Status != PageStatuses.Archived) &&
                 versions.Any(source =>
                     source.MultilanguagePageId == x.Id &&
                     source.CultureName == x.DefaultCultureName &&

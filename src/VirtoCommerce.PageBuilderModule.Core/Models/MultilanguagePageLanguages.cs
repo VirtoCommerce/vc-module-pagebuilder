@@ -34,10 +34,12 @@ public static class MultilanguagePageLanguages
 
     /// <summary>
     /// A translation is outdated when the source language version was published after the source publication it is based on.
+    /// An archived translation is not served, so it is never outdated.
     /// </summary>
     public static bool IsOutdated(GroupedPageBuilderPage translation, DateTime? sourceRevisionDate)
     {
         return translation != null && sourceRevisionDate != null &&
+               translation.Status != ModuleConstants.PageStatuses.Archived &&
                (translation.SourceRevisionDate == null || translation.SourceRevisionDate < sourceRevisionDate);
     }
 
