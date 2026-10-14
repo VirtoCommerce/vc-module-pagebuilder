@@ -36,6 +36,15 @@ namespace VirtoCommerce.PageBuilderModule.Core
             public const string Multilanguage = "Multilanguage";
         }
 
+        public static class TranslationStatuses
+        {
+            /// <summary>A store language (or the requested one) has no version.</summary>
+            public const string Missing = "Missing";
+
+            /// <summary>A translation is behind the source language version.</summary>
+            public const string Outdated = "Outdated";
+        }
+
         public static class PageLifecycleFilters
         {
             public const string Drafts = "drafts";

@@ -23,9 +23,13 @@ public class PageBuilderPageListService(
         var result = AbstractTypeFactory<PageBuilderPageListSearchResult>.TryCreateInstance();
         IList<Row> rows;
 
+        var languagesToHave = criteria.TranslationStatus == TranslationStatuses.Missing
+            ? await GetLanguagesToHaveAsync(criteria)
+            : [];
+
         using (var repository = repositoryFactory())
         {
-            var query = BuildQuery(repository, criteria);
+            var query = BuildQuery(repository, criteria, languagesToHave);
 
             result.TotalCount = await query.CountAsync(cancellationToken);
             if (criteria.Take <= 0)
@@ -49,9 +53,22 @@ public class PageBuilderPageListService(
     /// <summary>
     /// Landing pages and multilanguage roots as one sortable, pageable query.
     /// </summary>
-    protected virtual IQueryable<Row> BuildQuery(IPageBuilderModuleRepository repository, PageBuilderPageSearchCriteria criteria)
+    /// <param name="languagesToHave">Languages a Multilanguage Page must have a version in, for the Missing translation status.</param>
+    protected virtual IQueryable<Row> BuildQuery(IPageBuilderModuleRepository repository, PageBuilderPageSearchCriteria criteria,
+        IList<string> languagesToHave)
     {
-        var groups = GetGroupSearchService().GetFilteredQuery(repository, criteria);
+        var translationStatus = criteria.TranslationStatus;
+        var languageCode = criteria.LanguageCode;
+
+        // A missing language has no version to match, so versions are matched in any language.
+        var versionCriteria = criteria;
+        if (translationStatus == TranslationStatuses.Missing)
+        {
+            versionCriteria = criteria.CloneTyped();
+            versionCriteria.LanguageCode = null;
+        }
+
+        var groups = GetGroupSearchService().GetFilteredQuery(repository, versionCriteria);
 
         var landingPages = groups
             .Where(x => x.MultilanguagePageId == null)
@@ -75,7 +92,7 @@ public class PageBuilderPageListService(
             roots = roots.Where(x => x.StoreId == criteria.StoreId);
         }
 
-        if (FiltersLanguageVersions(criteria))
+        if (FiltersLanguageVersions(versionCriteria))
         {
             roots = roots.Where(x => matchingRootIds.Contains(x.Id));
         }
@@ -89,6 +106,27 @@ public class PageBuilderPageListService(
                                      x.Permalink.Contains(keyword));
         }
 
+        if (translationStatus == TranslationStatuses.Missing)
+        {
+            // One version per language: fewer versions in these languages than languages means one is missing.
+            var versions = repository.GroupedPageBuilderPages;
+            roots = roots.Where(x =>
+                versions.Count(g => g.MultilanguagePageId == x.Id && languagesToHave.Contains(g.CultureName)) < languagesToHave.Count);
+        }
+        else if (translationStatus == TranslationStatuses.Outdated)
+        {
+            var versions = repository.GroupedPageBuilderPages;
+            roots = roots.Where(x => versions.Any(g =>
+                g.MultilanguagePageId == x.Id &&
+                g.CultureName != x.DefaultCultureName &&
+                (languageCode == null || g.CultureName == languageCode) &&
+                versions.Any(source =>
+                    source.MultilanguagePageId == x.Id &&
+                    source.CultureName == x.DefaultCultureName &&
+                    source.SourceRevisionDate != null &&
+                    (g.SourceRevisionDate == null || g.SourceRevisionDate < source.SourceRevisionDate))));
+        }
+
         var multilanguagePages = roots.Select(x => new Row
         {
             IsMultilanguage = true,
@@ -99,7 +137,10 @@ public class PageBuilderPageListService(
             ModifiedDate = x.ModifiedDate,
         });
 
-        return criteria.PageType switch
+        // A Landing Page has no translations to be missing or outdated.
+        var pageType = string.IsNullOrEmpty(translationStatus) ? criteria.PageType : PageTypes.Multilanguage;
+
+        return pageType switch
         {
             PageTypes.Landing => landingPages,
             PageTypes.Multilanguage => multilanguagePages,
@@ -183,6 +224,17 @@ public class PageBuilderPageListService(
         var stores = ids.Count == 0 ? [] : await storeService.GetNoCloneAsync(ids);
 
         return stores.ToDictionary(x => x.Id, x => x.Languages, StringComparer.OrdinalIgnoreCase);
+    }
+
+    private async Task<IList<string>> GetLanguagesToHaveAsync(PageBuilderPageSearchCriteria criteria)
+    {
+        if (!string.IsNullOrEmpty(criteria.LanguageCode))
+        {
+            return [criteria.LanguageCode];
+        }
+
+        var store = string.IsNullOrEmpty(criteria.StoreId) ? null : await storeService.GetNoCloneAsync(criteria.StoreId);
+        return store?.Languages?.ToList() ?? [];
     }
 
     private GroupedPageSearchService GetGroupSearchService()

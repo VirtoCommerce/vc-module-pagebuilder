@@ -183,6 +183,58 @@ public class MultilanguagePageServiceTests
     }
 
     [Fact]
+    public async Task List_MissingTranslation_ListsPagesWithoutAVersionInAStoreOrRequestedLanguage()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var complete = await fixture.CreateRootAsync("Complete");
+        foreach (var culture in new[] { "en-US", "nl-NL", "de-DE" })
+        {
+            await fixture.CreateLanguageAsync(complete, culture, draftContent: Content(culture));
+        }
+        var englishDutch = await fixture.CreateRootAsync("English and Dutch");
+        await fixture.CreateLanguageAsync(englishDutch, "en-US", draftContent: Content("en"));
+        await fixture.CreateLanguageAsync(englishDutch, "nl-NL", draftContent: Content("nl"));
+        var english = await fixture.CreateRootAsync("English");
+        await fixture.CreateLanguageAsync(english, "en-US", draftContent: Content("en"));
+        await fixture.CreateLanguageAsync(null, "en-US", permalink: "/landing", name: "Landing", draftContent: Content("landing"));
+
+        var anyLanguage = await ListIds(fixture, new PageBuilderPageSearchCriteria { TranslationStatus = "Missing" });
+        var dutch = await ListIds(fixture, new PageBuilderPageSearchCriteria { TranslationStatus = "Missing", LanguageCode = "nl-NL" });
+
+        Assert.Equal(new[] { englishDutch.Id, english.Id }.Order(), anyLanguage.Order());
+        Assert.Equal([english.Id], dutch);
+    }
+
+    [Fact]
+    public async Task List_OutdatedTranslation_ListsPagesWithATranslationBehindTheSource()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var outdated = await fixture.CreateRootAsync("Outdated");
+        var outdatedEn = await fixture.CreateLanguageAsync(outdated, "en-US", draftContent: Content("en"));
+        await fixture.CreateLanguageAsync(outdated, "nl-NL", draftContent: Content("nl"));
+        await fixture.Roots.PublishAllAsync(outdated.Id, TestContext.Current.CancellationToken);
+        var upToDate = await fixture.CreateRootAsync("Up to date");
+        await fixture.CreateLanguageAsync(upToDate, "en-US", draftContent: Content("en"));
+        await fixture.CreateLanguageAsync(upToDate, "nl-NL", draftContent: Content("nl"));
+        await fixture.Roots.PublishAllAsync(upToDate.Id, TestContext.Current.CancellationToken);
+
+        await Task.Delay(20, TestContext.Current.CancellationToken);
+        await fixture.PublishNewDraftAsync(outdatedEn.Id, Content("en-2"));
+
+        Assert.Equal([outdated.Id], await ListIds(fixture, new PageBuilderPageSearchCriteria { TranslationStatus = "Outdated" }));
+        Assert.Equal([outdated.Id], await ListIds(fixture, new PageBuilderPageSearchCriteria { TranslationStatus = "Outdated", LanguageCode = "nl-NL" }));
+        Assert.Empty(await ListIds(fixture, new PageBuilderPageSearchCriteria { TranslationStatus = "Outdated", LanguageCode = "de-DE" }));
+    }
+
+    private static async Task<IList<string>> ListIds(Fixture fixture, PageBuilderPageSearchCriteria criteria)
+    {
+        criteria.StoreId = StoreId;
+        criteria.Take = 20;
+        var result = await fixture.List.SearchAsync(criteria, TestContext.Current.CancellationToken);
+        return result.Results.Select(x => x.Id).ToList();
+    }
+
+    [Fact]
     public async Task LinkAsync_ExistingLandingPage_KeepsItsDifferingValuesAsOverrides()
     {
         await using var fixture = await Fixture.CreateAsync();

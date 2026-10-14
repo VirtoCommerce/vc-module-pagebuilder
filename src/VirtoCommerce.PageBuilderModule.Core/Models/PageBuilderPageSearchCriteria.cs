@@ -28,4 +28,10 @@ public class PageBuilderPageSearchCriteria : SearchCriteriaBase, IHasStoreId
     /// Pages list only: <see cref="PageTypes.Landing"/> or <see cref="PageTypes.Multilanguage"/>; empty lists both.
     /// </summary>
     public string PageType { get; set; }
+
+    /// <summary>
+    /// Pages list only: <see cref="TranslationStatuses.Missing"/> or <see cref="TranslationStatuses.Outdated"/>, in
+    /// <see cref="SearchCriteriaBase.LanguageCode"/> when set, otherwise in any store language. Lists Multilanguage Pages only.
+    /// </summary>
+    public string TranslationStatus { get; set; }
 }
