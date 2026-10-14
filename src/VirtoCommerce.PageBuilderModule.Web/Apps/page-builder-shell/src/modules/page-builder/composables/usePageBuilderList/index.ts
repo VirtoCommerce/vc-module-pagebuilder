@@ -26,6 +26,12 @@ export enum PageTypes {
   Multilanguage = "Multilanguage",
 }
 
+/** Translation problems a Multilanguage Page can be listed by. */
+export enum TranslationStatuses {
+  Missing = "Missing",
+  Outdated = "Outdated",
+}
+
 export enum PageStatuses {
   Draft = "Draft",
   Published = "Published",

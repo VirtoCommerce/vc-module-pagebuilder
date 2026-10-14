@@ -3912,6 +3912,7 @@ export interface PageBuilderPageSearchCriteria {
     modifiedBefore?: Date | undefined;
     multilanguagePageId?: string | undefined;
     pageType?: string | undefined;
+    translationStatus?: string | undefined;
     responseGroup?: string | undefined;
     objectType?: string | undefined;
     objectTypes?: string[] | undefined;

@@ -38,7 +38,10 @@
           "FILTER": {
             "STATUS": "Status",
             "APPLY": "Apply",
-            "RESET": "Reset"
+            "RESET": "Reset",
+            "PAGE_TYPE": "Page type",
+            "LANGUAGE": "Language",
+            "TRANSLATION_STATUS": "Translation status"
           },
           "EMPTY": {
             "TITLE": "There are no content yet",

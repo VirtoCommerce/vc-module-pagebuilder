@@ -38,7 +38,10 @@
           "FILTER": {
             "STATUS": "Статус",
             "APPLY": "Применить",
-            "RESET": "Сбросить"
+            "RESET": "Сбросить",
+            "PAGE_TYPE": "Тип страницы",
+            "LANGUAGE": "Язык",
+            "TRANSLATION_STATUS": "Статус перевода"
           },
           "EMPTY": {
             "TITLE": "Контент пока отсутствует",

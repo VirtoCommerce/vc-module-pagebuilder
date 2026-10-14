@@ -130,6 +130,7 @@ import {
 import {
   PageLifecycleFilters,
   PageTypes,
+  TranslationStatuses,
   usePageBuilderList,
   useUrlParams,
   useAiAgentContextWithStore,
@@ -185,6 +186,8 @@ const storeContextDescription = computed(() =>
     : t("COMMON.STORE_CONTEXT.INVALID_DESCRIPTION", { storeId: storeId.value }),
 );
 
+const storeLanguages = ref<string[]>([]);
+
 const computedGlobalFilters = computed(() => [
   {
     id: "statuses",
@@ -193,6 +196,36 @@ const computedGlobalFilters = computed(() => [
       options: pageStatuses.value.map((s) => ({
         value: s.value,
         label: s.label,
+      })),
+      multiple: false,
+    },
+  },
+  {
+    id: "pageType",
+    label: t("PAGE_BUILDER.PAGES.LIST.TABLE.FILTER.PAGE_TYPE"),
+    filter: {
+      options: Object.values(PageTypes).map((value) => ({
+        value,
+        label: t(`PAGE_BUILDER.PAGE_TYPES.${value.toUpperCase()}`),
+      })),
+      multiple: false,
+    },
+  },
+  {
+    id: "languageCode",
+    label: t("PAGE_BUILDER.PAGES.LIST.TABLE.FILTER.LANGUAGE"),
+    filter: {
+      options: storeLanguages.value.map((value) => ({ value, label: value })),
+      multiple: false,
+    },
+  },
+  {
+    id: "translationStatus",
+    label: t("PAGE_BUILDER.PAGES.LIST.TABLE.FILTER.TRANSLATION_STATUS"),
+    filter: {
+      options: Object.values(TranslationStatuses).map((value) => ({
+        value,
+        label: t(`PAGE_BUILDER.STATUS.${value.toUpperCase()}`),
       })),
       multiple: false,
     },
@@ -283,13 +316,19 @@ watch(
   { immediate: true },
 );
 
+function filterValue(value: unknown): string | undefined {
+  const joined = Array.isArray(value) ? value.join(",") : (value as string | undefined);
+  return joined || undefined;
+}
+
 async function onFilter(event: { filters: Record<string, unknown> }) {
-  const statusFilter = event.filters.statuses as string | string[] | undefined;
-  const statuses = Array.isArray(statusFilter) ? statusFilter.join(",") : statusFilter;
   pagination.reset();
   await loadPages({
     ...searchQuery.value,
-    statuses,
+    statuses: filterValue(event.filters.statuses),
+    pageType: filterValue(event.filters.pageType),
+    languageCode: filterValue(event.filters.languageCode),
+    translationStatus: filterValue(event.filters.translationStatus),
     skip: 0,
   });
 }
@@ -361,6 +400,7 @@ async function removeSelectedPages() {
 onMounted(async () => {
   initUrlParams();
   await loadPages();
+  storeLanguages.value = await getLanguages();
 });
 
 export interface ExposedPagesList {
