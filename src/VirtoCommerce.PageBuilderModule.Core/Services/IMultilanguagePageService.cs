@@ -27,6 +27,12 @@ public interface IMultilanguagePageService : ICrudService<MultilanguagePage>
     Task<MultilanguagePage> ConvertAsync(string groupId, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Copies the Multilanguage Page with every language version; versions start as drafts with the current content.
+    /// Name and permalinks get a copy suffix so the copy does not take over the original's addresses.
+    /// </summary>
+    Task<MultilanguagePage> CloneAsync(string multilanguagePageId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Marks a translation as matching the current source language publication, e.g. when the source change needs no translation.
     /// </summary>
     Task<GroupedPageBuilderPage> MarkUpToDateAsync(string groupId, CancellationToken cancellationToken = default);

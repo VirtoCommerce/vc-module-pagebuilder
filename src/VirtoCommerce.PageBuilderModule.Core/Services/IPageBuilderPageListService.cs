@@ -9,4 +9,10 @@ namespace VirtoCommerce.PageBuilderModule.Core.Services;
 public interface IPageBuilderPageListService
 {
     Task<PageBuilderPageListSearchResult> SearchAsync(PageBuilderPageSearchCriteria criteria, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Pages that are not archived and already serve the permalink in one of the languages: two pages with the same
+    /// permalink and language make the storefront pick one of them.
+    /// </summary>
+    Task<IList<PermalinkUsage>> FindPermalinkUsageAsync(PermalinkUsageRequest request, CancellationToken cancellationToken = default);
 }

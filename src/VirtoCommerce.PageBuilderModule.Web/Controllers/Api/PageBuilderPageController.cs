@@ -88,6 +88,26 @@ public class PageBuilderPageController : Controller
         return Ok(await pageListService.SearchAsync(criteria, cancellationToken));
     }
 
+    /// <summary>
+    /// Pages that already serve the permalink in the given languages; shown as a warning before saving.
+    /// </summary>
+    [HttpPost("permalink-usage")]
+    [Authorize(ModuleConstants.Security.Permissions.Read)]
+    public async Task<ActionResult<IList<PermalinkUsage>>> FindPermalinkUsage(
+        [FromBody] PermalinkUsageRequest request,
+        [FromServices] IPageBuilderPageListService pageListService,
+        CancellationToken cancellationToken = default)
+    {
+        var authorizationResult = await authorizationService.AuthorizeAsync(
+            User, new PageBuilderPageSearchCriteria { StoreId = request?.StoreId }, new PageBuilderAuthorizationRequirement());
+        if (!authorizationResult.Succeeded)
+        {
+            return Forbidden;
+        }
+
+        return Ok(await pageListService.FindPermalinkUsageAsync(request, cancellationToken));
+    }
+
     [HttpGet("grouped/{groupId}")]
     [Authorize(ModuleConstants.Security.Permissions.Read)]
     public async Task<ActionResult<GroupedPageBuilderPage>> GetGroup([FromRoute] string groupId, [FromQuery] string responseGroup = null)

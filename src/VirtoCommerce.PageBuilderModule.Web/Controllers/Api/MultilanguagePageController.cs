@@ -266,6 +266,16 @@ public class MultilanguagePageController(
         return ExecuteForRootAsync(id, () => multilanguagePageService.ResetOverridesAsync(id, fields, cancellationToken));
     }
 
+    /// <summary>
+    /// Copies the Multilanguage Page with every language version as drafts.
+    /// </summary>
+    [HttpPost("{id}/clone")]
+    [Authorize(ModuleConstants.Security.Permissions.Create)]
+    public Task<ActionResult<MultilanguagePage>> Clone([FromRoute] string id, CancellationToken cancellationToken = default)
+    {
+        return ExecuteForRootAsync(id, () => multilanguagePageService.CloneAsync(id, cancellationToken));
+    }
+
     [HttpPost("{id}/publish-all")]
     [Authorize(ModuleConstants.Security.Permissions.Publish)]
     public Task<ActionResult<MultilanguagePageBatchResult>> PublishAll([FromRoute] string id, CancellationToken cancellationToken = default)

@@ -50,6 +50,53 @@ public class PageBuilderPageListService(
         return result;
     }
 
+    public virtual async Task<IList<PermalinkUsage>> FindPermalinkUsageAsync(PermalinkUsageRequest request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        if (string.IsNullOrWhiteSpace(request.StoreId) || string.IsNullOrWhiteSpace(request.Permalink))
+        {
+            return [];
+        }
+
+        // Stored permalinks start with a slash, older ones may not.
+        var permalink = $"/{request.Permalink.Trim().TrimStart('/')}";
+        var permalinkWithoutSlash = permalink.TrimStart('/');
+        var cultureNames = request.CultureNames ?? [];
+        var excludeGroupIds = request.ExcludeGroupIds ?? [];
+        var excludeMultilanguagePageId = request.ExcludeMultilanguagePageId;
+
+        using var repository = repositoryFactory();
+
+        var query = repository.GroupedPageBuilderPages
+            .Where(x => x.StoreId == request.StoreId)
+            .Where(x => x.Permalink == permalink || x.Permalink == permalinkWithoutSlash)
+            .Where(x => x.Pages.Any(p => p.Status != PageStatuses.Archived))
+            .Where(x => !excludeGroupIds.Contains(x.Id));
+
+        if (cultureNames.Count > 0)
+        {
+            query = query.Where(x => cultureNames.Contains(x.CultureName));
+        }
+
+        if (!string.IsNullOrEmpty(excludeMultilanguagePageId))
+        {
+            query = query.Where(x => x.MultilanguagePageId == null || x.MultilanguagePageId != excludeMultilanguagePageId);
+        }
+
+        return await query
+            .OrderBy(x => x.CultureName)
+            .ThenBy(x => x.Name)
+            .Select(x => new PermalinkUsage
+            {
+                GroupId = x.Id,
+                Name = x.Name,
+                CultureName = x.CultureName,
+                MultilanguagePageId = x.MultilanguagePageId,
+            })
+            .ToListAsync(cancellationToken);
+    }
+
     /// <summary>
     /// Landing pages and multilanguage roots as one sortable, pageable query.
     /// </summary>

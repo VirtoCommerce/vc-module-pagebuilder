@@ -235,6 +235,55 @@ public class MultilanguagePageServiceTests
     }
 
     [Fact]
+    public async Task CloneAsync_CopiesEveryLanguageAsDraftWithCopyPermalinks()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var root = await fixture.CreateRootAsync();
+        var en = await fixture.CreateLanguageAsync(root, "en-US", draftContent: Content("hero-en"));
+        await fixture.CreateLanguageAsync(root, "nl-NL", permalink: "/over-ons", draftContent: Content("hero-nl"));
+        await fixture.Roots.PublishAllAsync(root.Id, TestContext.Current.CancellationToken);
+
+        var clone = await fixture.Roots.CloneAsync(root.Id, TestContext.Current.CancellationToken);
+
+        Assert.NotEqual(root.Id, clone.Id);
+        Assert.Equal(("About us (copy)", "/about-us-copy"), (clone.Name, clone.Permalink));
+        var languages = await fixture.Roots.GetLanguagesAsync(clone.Id, TestContext.Current.CancellationToken);
+        var versions = languages.Where(x => x.Page != null).ToDictionary(x => x.CultureName, x => x.Page);
+        Assert.Equal(("/about-us-copy", string.Empty, "Draft"), (versions["en-US"].Permalink, versions["en-US"].OverriddenFields, versions["en-US"].Status));
+        Assert.Equal(("/over-ons-copy", "Permalink", "Draft"), (versions["nl-NL"].Permalink, versions["nl-NL"].OverriddenFields, versions["nl-NL"].Status));
+        var content = (await fixture.Groups.LoadGroupContentAsync(versions["en-US"], draft: true, TestContext.Current.CancellationToken)).Content;
+        Assert.Contains("hero-en", content);
+        // The original keeps its addresses and published versions.
+        Assert.Equal(("/about-us", "Published"), ((await fixture.LoadGroupAsync(en.Id)).Permalink, (await fixture.Groups.GetByIdAsync(en.Id)).Status));
+    }
+
+    [Fact]
+    public async Task FindPermalinkUsageAsync_ReportsOtherActivePagesInTheSameLanguage()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var root = await fixture.CreateRootAsync();
+        var ownEn = await fixture.CreateLanguageAsync(root, "en-US", draftContent: Content("en"));
+        var otherEn = await fixture.CreateLanguageAsync(null, "en-US", permalink: "about-us", name: "Other", draftContent: Content("other"));
+        await fixture.CreateLanguageAsync(null, "de-DE", permalink: "/about-us", name: "German", draftContent: Content("de"));
+        var archived = await fixture.CreateLanguageAsync(null, "en-US", permalink: "/about-us", name: "Archived", draftContent: Content("old"));
+        var archivedGroup = await fixture.Groups.GetByIdAsync(archived.Id);
+        GroupedPagePublishing.Archive(archivedGroup);
+        await fixture.Groups.SaveChangesAsync([archivedGroup]);
+
+        var usage = await fixture.List.FindPermalinkUsageAsync(new PermalinkUsageRequest
+        {
+            StoreId = StoreId,
+            Permalink = "/about-us",
+            CultureNames = ["en-US"],
+            ExcludeMultilanguagePageId = root.Id,
+        }, TestContext.Current.CancellationToken);
+
+        // Its own versions, other languages and archived pages do not count; a permalink without the slash does.
+        Assert.Equal([otherEn.Id], usage.Select(x => x.GroupId));
+        Assert.NotNull(ownEn);
+    }
+
+    [Fact]
     public async Task LinkAsync_ExistingLandingPage_KeepsItsDifferingValuesAsOverrides()
     {
         await using var fixture = await Fixture.CreateAsync();

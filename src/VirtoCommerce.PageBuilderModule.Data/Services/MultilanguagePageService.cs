@@ -159,6 +159,52 @@ public class MultilanguagePageService(
         return group;
     }
 
+    public virtual async Task<MultilanguagePage> CloneAsync(string multilanguagePageId, CancellationToken cancellationToken = default)
+    {
+        var source = await GetRequiredAsync(multilanguagePageId);
+
+        var clone = (MultilanguagePage)source.Clone();
+        clone.Id = null;
+        clone.Name = $"{source.Name} (copy)";
+        clone.Permalink = WithCopySuffix(source.Permalink);
+        await SaveChangesAsync([clone]);
+
+        foreach (var version in await GetLanguageVersionsAsync(source.Id))
+        {
+            var content = (await groupedPageContentService.LoadGroupContentAsync(version, draft: true, cancellationToken)).Content;
+
+            var group = AbstractTypeFactory<GroupedPageBuilderPage>.TryCreateInstance();
+            group.StoreId = clone.StoreId;
+            group.CultureName = version.CultureName;
+            group.MultilanguagePageId = clone.Id;
+            group.Permalink = WithCopySuffix(version.Permalink);
+            group.Visibility = version.Visibility;
+            group.UserGroups = version.UserGroups;
+            group.OrganizationId = version.OrganizationId;
+            group.StartDate = version.StartDate;
+            group.EndDate = version.EndDate;
+            group.SourceRevisionDate = version.SourceRevisionDate;
+            // Overridden fields keep the version's values, the others follow the copy's root.
+            group.OverriddenFields = version.OverriddenFields;
+            MultilanguagePageInheritance.Apply(clone, group);
+
+            var draft = AbstractTypeFactory<PageBuilderPage>.TryCreateInstance();
+            draft.Status = ModuleConstants.PageStatuses.Draft;
+            draft.StoreId = clone.StoreId;
+            draft.Content = PageBuilderContentSettings.Synchronize(content, group);
+            group.Pages.Add(draft);
+
+            await groupedPageService.SaveChangesAsync([group]);
+        }
+
+        return clone;
+    }
+
+    private static string WithCopySuffix(string permalink)
+    {
+        return string.IsNullOrEmpty(permalink) ? permalink : $"{permalink.TrimEnd('/')}-copy";
+    }
+
     public virtual async Task<MultilanguagePage> ConvertAsync(string groupId, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(groupId);
