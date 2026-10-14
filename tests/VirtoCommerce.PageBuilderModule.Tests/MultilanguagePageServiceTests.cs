@@ -1,18 +1,23 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 using VirtoCommerce.PageBuilderModule.Core.Models;
+using VirtoCommerce.PageBuilderModule.Data.ExportImport;
 using VirtoCommerce.PageBuilderModule.Data.Extensions;
 using VirtoCommerce.PageBuilderModule.Data.Models;
 using VirtoCommerce.PageBuilderModule.Data.Repositories;
 using VirtoCommerce.PageBuilderModule.Data.Services;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Events;
+using VirtoCommerce.Platform.Core.ExportImport;
 using VirtoCommerce.Platform.Core.GenericCrud;
 using VirtoCommerce.StoreModule.Core.Model;
 using Xunit;
@@ -330,6 +335,71 @@ public class MultilanguagePageServiceTests
         Assert.Equal([root.Id], result.Results.Select(x => x.Id));
     }
 
+    [Fact]
+    public async Task Import_RestoresMultilanguagePagesAndLinks_RegardlessOfSectionOrder()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        // Pages come first on purpose: language versions must still find their root.
+        var payload = JsonConvert.SerializeObject(new
+        {
+            PageBuilderPages = new[]
+            {
+                ExportedPage("g-en", "en-US", "/faq", "root-1"),
+                ExportedPage("g-fr", "fr-FR", "/questions", "root-1"),
+                ExportedPage("g-orphan", "de-DE", "/faq", "missing-root"),
+            },
+            PageBuilderMultilanguagePages = new[]
+            {
+                new MultilanguagePage { Id = "root-1", StoreId = StoreId, Name = "FAQ", Permalink = "/faq", DefaultCultureName = "en-US", Visibility = true },
+            },
+        });
+
+        await using var input = new MemoryStream(Encoding.UTF8.GetBytes(payload));
+        await fixture.CreateExportImport().DoImportAsync(input, _ => { }, TestContext.Current.CancellationToken);
+
+        Assert.NotNull(await fixture.Roots.GetByIdAsync("root-1"));
+        var en = await fixture.LoadGroupAsync("g-en");
+        var fr = await fixture.LoadGroupAsync("g-fr");
+        Assert.Equal(("root-1", string.Empty, "FAQ"), (en.MultilanguagePageId, en.OverriddenFields, en.Name));
+        Assert.Equal(("root-1", "Permalink", "FAQ"), (fr.MultilanguagePageId, fr.OverriddenFields, fr.Name));
+        // A version whose root is not in the target becomes a Landing Page instead of failing the import.
+        Assert.Null((await fixture.LoadGroupAsync("g-orphan")).MultilanguagePageId);
+    }
+
+    [Fact]
+    public async Task Import_ExistingPage_FollowsExportedLink()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var root = await fixture.CreateRootAsync();
+        var landing = await fixture.CreateLanguageAsync(null, "nl-NL", permalink: "/over-ons", draftContent: Content("nl"));
+        var exported = ExportedPage(landing.Id, "nl-NL", "/over-ons", root.Id);
+        exported.Variants = [.. landing.Pages.Select(x => new PageBuilderExportPageVariant { PageId = x.Id, Status = x.Status })];
+        var payload = JsonConvert.SerializeObject(new { PageBuilderPages = new[] { exported } });
+
+        await using var input = new MemoryStream(Encoding.UTF8.GetBytes(payload));
+        var progress = new List<ExportImportProgressInfo>();
+        await fixture.CreateExportImport().DoImportAsync(input, progress.Add, TestContext.Current.CancellationToken);
+
+        var entity = await fixture.LoadGroupAsync(landing.Id);
+        Assert.Equal((root.Id, "Permalink"), (entity.MultilanguagePageId, entity.OverriddenFields));
+        Assert.All(progress, x => Assert.Empty(x.Errors));
+    }
+
+    private static PageBuilderExportPage ExportedPage(string groupId, string cultureName, string permalink, string multilanguagePageId)
+    {
+        return new PageBuilderExportPage
+        {
+            GroupId = groupId,
+            Name = $"Page {cultureName}",
+            Permalink = permalink,
+            StoreId = StoreId,
+            CultureName = cultureName,
+            Visibility = true,
+            MultilanguagePageId = multilanguagePageId,
+            Variants = [new PageBuilderExportPageVariant { PageId = $"{groupId}-page", Status = "Draft" }],
+        };
+    }
+
     private static string Content(string sectionType)
     {
         return $$"""{ "settings": {}, "content": [ { "type": "{{sectionType}}" } ] }""";
@@ -355,6 +425,7 @@ public class MultilanguagePageServiceTests
                 events,
                 NullLogger<GroupedPageService>.Instance);
             var groupSearch = new GroupedPageSearchService(repositoryFactory, _cache, Groups, Options.Create(new CrudOptions()));
+            GroupSearch = groupSearch;
             var storeService = new FakeStoreService(new Store { Id = StoreId, DefaultLanguage = "en-US", Languages = ["en-US", "nl-NL", "de-DE"] });
             Roots = new MultilanguagePageService(
                 repositoryFactory,
@@ -373,6 +444,17 @@ public class MultilanguagePageServiceTests
         public MultilanguagePageService Roots { get; }
 
         public PageBuilderPageListService List { get; }
+
+        public GroupedPageSearchService GroupSearch { get; }
+
+        public PageBuilderExportImport CreateExportImport()
+        {
+            var jsonSerializer = JsonSerializer.CreateDefault();
+            var sharedComponents = new PageBuilderSharedComponentExportImport(
+                new NoopSharedComponentReferenceIndexService(), null!, null!, null!, jsonSerializer);
+
+            return new PageBuilderExportImport(Groups, GroupSearch, null!, sharedComponents, null!, jsonSerializer, Roots, null);
+        }
 
         public static async Task<Fixture> CreateAsync()
         {
