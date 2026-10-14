@@ -9,6 +9,12 @@
     >
       {{ code(language.cultureName) }}
     </span>
+    <span
+      v-if="withStatus && languages.length === 1"
+      class="language-pills__status"
+    >
+      {{ statusText(languages[0]) }}
+    </span>
   </div>
 </template>
 
@@ -18,6 +24,8 @@ import { MultilanguagePageLanguage } from "../../../api_client/virtocommerce.pag
 
 interface Props {
   languages: MultilanguagePageLanguage[];
+  /** Shows the status text next to a single pill. */
+  withStatus?: boolean;
 }
 
 defineProps<Props>();
@@ -36,15 +44,18 @@ function variant(language: MultilanguagePageLanguage): string {
   return (language.status ?? "missing").toLowerCase();
 }
 
+function statusText(language: MultilanguagePageLanguage): string {
+  return t(`PAGE_BUILDER.STATUS.${(language.status ?? "Missing").toUpperCase()}`);
+}
+
 function tooltip(language: MultilanguagePageLanguage): string {
-  const status = t(`PAGE_BUILDER.STATUS.${(language.status ?? "Missing").toUpperCase()}`);
-  return `${language.cultureName}: ${status}`;
+  return `${language.cultureName}: ${statusText(language)}`;
 }
 </script>
 
 <style lang="scss" scoped>
 .language-pills {
-  @apply tw-flex tw-flex-wrap tw-gap-1;
+  @apply tw-flex tw-flex-wrap tw-items-center tw-gap-1;
 
   &__pill {
     @apply tw-inline-block tw-rounded tw-border tw-px-1.5 tw-text-xs tw-font-medium;
@@ -67,12 +78,23 @@ function tooltip(language: MultilanguagePageLanguage): string {
       border-color: var(--info-200);
     }
 
-    &--archived,
-    &--missing {
+    &--archived {
       color: var(--danger-700);
       background-color: var(--danger-50);
       border-color: var(--danger-200);
     }
+
+    // No version yet: not an error, just absent.
+    &--missing {
+      color: var(--neutrals-500);
+      border-style: dashed;
+      border-color: var(--neutrals-300);
+    }
+  }
+
+  &__status {
+    @apply tw-text-xs;
+    color: var(--neutrals-600);
   }
 }
 </style>

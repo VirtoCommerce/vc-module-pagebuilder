@@ -110,7 +110,10 @@
                   <template v-else>—</template>
                 </td>
                 <td>
-                  <LanguagePills :languages="[language]" />
+                  <LanguagePills
+                    :languages="[language]"
+                    with-status
+                  />
                 </td>
                 <td>
                   <div class="languages-table__actions">
@@ -214,7 +217,7 @@ defineBlade({
 
 const { t } = useI18n({ useScope: "global" });
 const { showConfirmation } = usePopup();
-const { param, options, callParent, closeSelf, openBlade, exposeToChildren } = useBlade();
+const { param, options, callParent, closeSelf, closeChildren, openBlade, exposeToChildren } = useBlade();
 const { storeId, getStoreUrl, getLanguages } = useUrlParams();
 
 const {
@@ -277,6 +280,8 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     isVisible: !isNew.value,
     disabled: !hasVersions.value || isModified.value,
     clickHandler: async () => {
+      // An open language version blade would keep showing the pre-publish status.
+      await closeChildren();
       notifyBatchResult(await publishAll(), "PUBLISH_ALL_RESULT");
       callParent("reload");
     },
@@ -289,6 +294,7 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     disabled: !hasVersions.value,
     clickHandler: async () => {
       if (await showConfirmation(t("PAGE_BUILDER.MULTILANGUAGE.ALERTS.ARCHIVE_ALL"))) {
+        await closeChildren();
         notifyBatchResult(await archiveAll(), "ARCHIVE_ALL_RESULT");
         callParent("reload");
       }
@@ -364,6 +370,7 @@ async function onUnlink(language: MultilanguagePageLanguage) {
     language.page?.id &&
     (await showConfirmation(t("PAGE_BUILDER.MULTILANGUAGE.ALERTS.UNLINK", { language: language.cultureName })))
   ) {
+    await closeChildren();
     await unlink(language.page.id);
     callParent("reload");
   }
