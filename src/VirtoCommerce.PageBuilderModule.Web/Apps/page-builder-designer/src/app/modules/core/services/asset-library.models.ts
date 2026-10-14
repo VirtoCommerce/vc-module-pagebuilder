@@ -21,8 +21,19 @@ export interface AssetLibraryEntry {
 }
 
 export interface AssetLibrarySearchResult {
+    fileCount?: number;
+    skip?: number;
     totalCount: number;
     results: AssetLibraryEntry[];
+}
+
+export interface AssetLibrarySearchOptions {
+    acceptedTypes?: string[];
+    skip?: number;
+    take?: number;
+    sort?: string;
+    exactName?: string;
+    preferredAssetUrl?: string;
 }
 
 export interface AssetLibraryReferencePage {

@@ -5,20 +5,26 @@ import {
   type BlobInfo,
   type FileParameter,
 } from "../../../api_client/virtocommerce.assets";
-import {
-  PageBuilderAssetsClient,
-} from "../../../api_client/virtocommerce.pagebuildermodule";
+import { PageBuilderAssetsClient } from "../../../api_client/virtocommerce.pagebuildermodule";
+
 import type { AssetEntry, AssetReference, AssetSearchResult, CreateFolderPayload } from "../types";
+import type { AssetSearchOptions } from "../utilities/assetEntriesLoader";
 
 export function useAssetsLibraryApi() {
   const { getApiClient: getAssetsClient } = useApiClient(AssetsClient);
   const { getApiClient: getPageBuilderAssetsClient } = useApiClient(PageBuilderAssetsClient);
 
-  async function searchAssets(folderUrl: string, keyword?: string): Promise<AssetSearchResult> {
-    const client = await getAssetsClient();
-    const result = await client.searchAssetItems(folderUrl, keyword);
+  async function searchAssets(
+    folderUrl: string,
+    keyword?: string,
+    options?: AssetSearchOptions,
+  ): Promise<AssetSearchResult> {
+    const client = await getPageBuilderAssetsClient();
+    const result = await client.search({ folderUrl, keyword, skip: 0, take: 20, ...options });
 
     return {
+      fileCount: result.fileCount,
+      skip: result.skip,
       totalCount: result.totalCount ?? result.results?.length ?? 0,
       results: (result.results ?? []).map(mapBlobEntry),
     };
@@ -40,7 +46,11 @@ export function useAssetsLibraryApi() {
     await client.deleteBlobs(urls);
   }
 
-  async function searchAssetReferences(storeId: string, assetUrls: string[], includePages = true): Promise<AssetReference[]> {
+  async function searchAssetReferences(
+    storeId: string,
+    assetUrls: string[],
+    includePages = true,
+  ): Promise<AssetReference[]> {
     const client = await getPageBuilderAssetsClient();
     const result = await client.searchReferences({
       storeId,
@@ -51,7 +61,11 @@ export function useAssetsLibraryApi() {
     return result.results ?? [];
   }
 
-  async function searchFolderReferences(storeId: string, folderUrl: string, includePages = true): Promise<AssetReference | undefined> {
+  async function searchFolderReferences(
+    storeId: string,
+    folderUrl: string,
+    includePages = true,
+  ): Promise<AssetReference | undefined> {
     const client = await getPageBuilderAssetsClient();
     const result = await client.searchReferences({
       storeId,

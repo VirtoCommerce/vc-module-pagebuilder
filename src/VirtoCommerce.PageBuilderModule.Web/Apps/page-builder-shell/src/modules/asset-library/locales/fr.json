@@ -1,5 +1,15 @@
 {
   "ASSET_LIBRARY": {
+    "PAGINATION": {
+      "PAGE_SIZE": "Éléments par page"
+    },
+    "SORT": {
+      "LABEL": "Trier par",
+      "NAME_ASC": "Nom (A-Z)",
+      "NAME_DESC": "Nom (Z-A)",
+      "MODIFIED": "Modifiés récemment",
+      "SIZE": "Taille décroissante"
+    },
     "MENU": {
       "TITLE": "Bibliothèque de ressources"
     },
