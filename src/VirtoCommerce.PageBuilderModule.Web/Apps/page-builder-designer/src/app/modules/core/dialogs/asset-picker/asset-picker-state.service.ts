@@ -34,6 +34,10 @@ export class AssetPickerStateService {
     readonly rootFolderUrl = this.data.rootFolderUrl;
     readonly currentFolderUrl = signal(this.data.rootFolderUrl);
     readonly entries = signal<AssetLibraryEntry[]>([]);
+    readonly totalCount = signal(0);
+    readonly fileCount = signal(0);
+    readonly pageIndex = signal(0);
+    readonly pageSize = signal(20);
     readonly selectedAssets = this.selection.selectedAssets;
     readonly selectedCount = this.selection.selectedCount;
     readonly selectButtonText = computed(() => this.multiple && this.selectedCount() > 1
@@ -47,12 +51,7 @@ export class AssetPickerStateService {
     readonly error = signal<string | null>(null);
     readonly acceptAttribute = computed(() => this.acceptedTypes.length ? this.acceptedTypes.join(',') : null);
     readonly breadcrumbs = computed(() => this.buildBreadcrumbs());
-    readonly visibleEntries = computed(() => this.entries()
-        .filter(entry => entry.type === 'folder' || this.selection.matchesAccept(entry))
-        .map(entry => this.toGridItem(entry)));
-    readonly visibleAssetsCount = computed(() => this.entries()
-        .filter(entry => entry.type === 'blob' && this.selection.matchesAccept(entry))
-        .length);
+    readonly visibleEntries = computed(() => this.entries().map(entry => this.toGridItem(entry)));
 
     constructor() {
         this.destroyRef.onDestroy(() => {
@@ -68,11 +67,20 @@ export class AssetPickerStateService {
     }
 
     onSearch(value: string) {
+        this.requestId++;
+        this.pageIndex.set(0);
         this.searchValue.set(value);
         if (this.searchTimeout) {
             clearTimeout(this.searchTimeout);
         }
         this.searchTimeout = setTimeout(() => this.loadEntries(), 300);
+    }
+
+    onPage(pageIndex: number, pageSize: number) {
+        this.pageIndex.set(pageSize === this.pageSize() ? pageIndex : 0);
+        this.pageSize.set(pageSize);
+        this.selection.clearSingleSelection();
+        this.loadEntries();
     }
 
     onDragEnter(event: DragEvent) {
@@ -146,12 +154,14 @@ export class AssetPickerStateService {
         }
 
         this.currentFolderUrl.set(entry.relativeUrl || entry.url || this.currentFolderUrl());
+        this.pageIndex.set(0);
         this.selection.clearSingleSelection();
         this.loadEntries();
     }
 
     navigateToBreadcrumb(url: string) {
         this.currentFolderUrl.set(url);
+        this.pageIndex.set(0);
         this.selection.clearSingleSelection();
         this.loadEntries();
     }
@@ -180,7 +190,12 @@ export class AssetPickerStateService {
             return;
         }
 
-        this.searchValue.set('');
+        if (this.searchTimeout) {
+            clearTimeout(this.searchTimeout);
+            this.searchTimeout = null;
+        }
+        this.requestId++;
+        this.loading.set(false);
         this.uploading.set(true);
         this.error.set(null);
 
@@ -190,6 +205,10 @@ export class AssetPickerStateService {
             next: uploaded => {
                 const preferredSelectionUrls = uploaded.map(entry => entry.relativeUrl || entry.url).filter((url): url is string => !!url);
                 this.uploading.set(false);
+                if (uploaded.length && folderUrl === this.currentFolderUrl()) {
+                    this.searchValue.set('');
+                    this.pageIndex.set(0);
+                }
                 if (uploaded.length) {
                     this.selectedAssets.set(this.multiple ? this.selection.mergeSelectedAssets(uploaded) : uploaded.slice(-1));
                 }
@@ -235,10 +254,18 @@ export class AssetPickerStateService {
     }
 
     private loadEntries(preferredSelectionUrl?: string | string[]) {
+        if (this.searchTimeout) {
+            clearTimeout(this.searchTimeout);
+            this.searchTimeout = null;
+        }
         const requestId = ++this.requestId;
         this.loading.set(true);
         this.error.set(null);
-        this.assets.search(this.currentFolderUrl(), this.searchValue()).pipe(
+        this.assets.search(this.currentFolderUrl(), this.searchValue(), {
+            skip: this.pageIndex() * this.pageSize(), take: this.pageSize(), sort: 'name',
+            ...(preferredSelectionUrl ? { preferredAssetUrl: Array.isArray(preferredSelectionUrl) ? preferredSelectionUrl.at(-1) : preferredSelectionUrl } : {}),
+            ...(this.acceptedTypes.length ? { acceptedTypes: this.acceptedTypes } : {}),
+        }).pipe(
             takeUntilDestroyed(this.destroyRef)
         ).subscribe({
             next: result => {
@@ -246,12 +273,19 @@ export class AssetPickerStateService {
                     return;
                 }
                 this.entries.set(result.results);
+                this.totalCount.set(result.totalCount);
+                this.fileCount.set(result.fileCount ?? result.results.filter(entry => entry.type === 'blob').length);
+                if (result.skip !== undefined) {
+                    this.pageIndex.set(Math.floor(result.skip / this.pageSize()));
+                }
                 if (preferredSelectionUrl) {
                     const preferredSelectionUrls = Array.isArray(preferredSelectionUrl) ? preferredSelectionUrl : [preferredSelectionUrl];
                     const selected = preferredSelectionUrls
                         .map(url => this.selection.findEntry(result.results, url))
                         .filter((entry): entry is AssetLibraryEntry => !!entry);
-                    this.selectedAssets.set(this.multiple ? this.selection.mergeSelectedAssets(selected) : selected.slice(-1));
+                    if (selected.length) {
+                        this.selectedAssets.set(this.multiple ? this.selection.mergeSelectedAssets(selected) : selected.slice(-1));
+                    }
                 } else {
                     this.selection.restoreSelection(result.results);
                 }
@@ -263,6 +297,9 @@ export class AssetPickerStateService {
                 }
                 this.error.set(error?.message || this.labels.loadError);
                 this.entries.set([]);
+                this.totalCount.set(0);
+                this.fileCount.set(0);
+                this.pageIndex.set(0);
                 this.loading.set(false);
             }
         });

@@ -1,5 +1,15 @@
 {
   "ASSET_LIBRARY": {
+    "PAGINATION": {
+      "PAGE_SIZE": "Elementer per side"
+    },
+    "SORT": {
+      "LABEL": "Sorter etter",
+      "NAME_ASC": "Navn (A-Z)",
+      "NAME_DESC": "Navn (Z-A)",
+      "MODIFIED": "Sist endret",
+      "SIZE": "Største først"
+    },
     "MENU": {
       "TITLE": "Ressursbibliotek"
     },
