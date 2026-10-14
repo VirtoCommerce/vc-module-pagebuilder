@@ -74,7 +74,8 @@
           "PUBLISH": "Publish",
           "UNPUBLISH": "Unpublish",
           "DOWNLOAD_CONTENT": "Save content",
-          "CLONE": "Clone"
+          "CLONE": "Clone",
+          "CONVERT": "Convert to multilanguage"
         },
         "FIELDS": {
           "NAME": "Name",
@@ -123,7 +124,9 @@
         "SAVE_SUCCESS": "Page saved successfully",
         "PUBLISH_SUCCESS": "Page published successfully",
         "UNPUBLISH_SUCCESS": "Page unpublished successfully",
-        "DELETE_SUCCESS": "Page archived successfully"
+        "DELETE_SUCCESS": "Page archived successfully",
+        "CONVERT_CONFIRMATION": "Convert this page to a Multilanguage Page? It becomes the version in its language and stays unchanged on the storefront.",
+        "CONVERT_SUCCESS": "Page converted to a Multilanguage Page"
       },
       "ADD_POPUP": {
         "TITLE": "Add page",
@@ -144,7 +147,8 @@
       "HAS_CHANGES": "Has draft with changes",
       "SCHEDULED": "Scheduled",
       "PERSONALIZED": "Personalized",
-      "MISSING": "Missing"
+      "MISSING": "Missing",
+      "OUTDATED": "Outdated"
     },
     "PAGE_TYPES": {
       "LANDING": "Landing Page",
@@ -173,7 +177,8 @@
         "OPEN": "Open",
         "UNLINK": "Unlink",
         "CREATE": "Create",
-        "LINK": "Link existing"
+        "LINK": "Link existing",
+        "MARK_UP_TO_DATE": "Mark up to date"
       },
       "TOOLBAR": {
         "PUBLISH_ALL": "Publish all",

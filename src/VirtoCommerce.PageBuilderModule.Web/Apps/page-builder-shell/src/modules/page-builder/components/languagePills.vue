@@ -37,6 +37,10 @@ function code(cultureName?: string): string {
 }
 
 function variant(language: MultilanguagePageLanguage): string {
+  if (language.isOutdated) {
+    return "outdated";
+  }
+
   if (language.status === "Published") {
     return language.hasChanges ? "changes" : "published";
   }
@@ -45,7 +49,8 @@ function variant(language: MultilanguagePageLanguage): string {
 }
 
 function statusText(language: MultilanguagePageLanguage): string {
-  return t(`PAGE_BUILDER.STATUS.${(language.status ?? "Missing").toUpperCase()}`);
+  const status = t(`PAGE_BUILDER.STATUS.${(language.status ?? "Missing").toUpperCase()}`);
+  return language.isOutdated ? `${status}, ${t("PAGE_BUILDER.STATUS.OUTDATED")}` : status;
 }
 
 function tooltip(language: MultilanguagePageLanguage): string {
@@ -64,6 +69,13 @@ function tooltip(language: MultilanguagePageLanguage): string {
       color: var(--success-700);
       background-color: var(--success-50);
       border-color: var(--success-200);
+    }
+
+    &--outdated {
+      color: var(--warning-700);
+      background-color: var(--warning-50);
+      border-color: var(--warning-500);
+      border-style: dashed;
     }
 
     &--changes {

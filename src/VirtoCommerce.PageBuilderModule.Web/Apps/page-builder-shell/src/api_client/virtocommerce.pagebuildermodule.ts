@@ -476,6 +476,104 @@ export class MultilanguagePageClient extends AuthApiBase {
     /**
      * @return OK
      */
+    convert(groupId: string): Promise<MultilanguagePage> {
+        let url_ = this.baseUrl + "/api/page-builder-multilanguage-pages/convert/{groupId}";
+        if (groupId === undefined || groupId === null)
+            throw new globalThis.Error("The parameter 'groupId' must be defined.");
+        url_ = url_.replace("{groupId}", encodeURIComponent("" + groupId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.transformOptions(options_).then(transformedOptions_ => {
+            return this.http.fetch(url_, transformedOptions_);
+        }).then((_response: Response) => {
+            return this.processConvert(_response);
+        });
+    }
+
+    protected processConvert(response: Response): Promise<MultilanguagePage> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as MultilanguagePage;
+            return result200;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            return throwException("Unauthorized", status, _responseText, _headers);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            return throwException("Forbidden", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<MultilanguagePage>(null as any);
+    }
+
+    /**
+     * @return OK
+     */
+    markUpToDate(groupId: string): Promise<GroupedPageBuilderPage> {
+        let url_ = this.baseUrl + "/api/page-builder-multilanguage-pages/mark-up-to-date/{groupId}";
+        if (groupId === undefined || groupId === null)
+            throw new globalThis.Error("The parameter 'groupId' must be defined.");
+        url_ = url_.replace("{groupId}", encodeURIComponent("" + groupId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.transformOptions(options_).then(transformedOptions_ => {
+            return this.http.fetch(url_, transformedOptions_);
+        }).then((_response: Response) => {
+            return this.processMarkUpToDate(_response);
+        });
+    }
+
+    protected processMarkUpToDate(response: Response): Promise<GroupedPageBuilderPage> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as GroupedPageBuilderPage;
+            return result200;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            return throwException("Unauthorized", status, _responseText, _headers);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            return throwException("Forbidden", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GroupedPageBuilderPage>(null as any);
+    }
+
+    /**
+     * @return OK
+     */
     unlink(groupId: string): Promise<GroupedPageBuilderPage> {
         let url_ = this.baseUrl + "/api/page-builder-multilanguage-pages/unlink/{groupId}";
         if (groupId === undefined || groupId === null)
@@ -3615,6 +3713,7 @@ export interface MultilanguagePageLanguage {
     isStoreLanguage?: boolean;
     status?: string | undefined;
     hasChanges?: boolean;
+    isOutdated?: boolean;
     page?: GroupedPageBuilderPage | undefined;
 }
 

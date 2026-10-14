@@ -134,6 +134,14 @@
                         {{ $t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.DESIGNER") }}
                       </VcButton>
                       <VcButton
+                        v-if="language.isOutdated"
+                        size="sm"
+                        variant="secondary"
+                        @click="onMarkUpToDate(language)"
+                      >
+                        {{ $t("PAGE_BUILDER.MULTILANGUAGE.LANGUAGES.MARK_UP_TO_DATE") }}
+                      </VcButton>
+                      <VcButton
                         size="sm"
                         variant="secondary"
                         @click="onUnlink(language)"
@@ -233,6 +241,7 @@ const {
   createLanguage,
   link,
   unlink,
+  markUpToDate,
   findLandingPages,
 } = useMultilanguagePageDetails({
   id: param.value as string | undefined,
@@ -372,6 +381,13 @@ async function onUnlink(language: MultilanguagePageLanguage) {
   ) {
     await closeChildren();
     await unlink(language.page.id);
+    callParent("reload");
+  }
+}
+
+async function onMarkUpToDate(language: MultilanguagePageLanguage) {
+  if (language.page?.id) {
+    await markUpToDate(language.page.id);
     callParent("reload");
   }
 }

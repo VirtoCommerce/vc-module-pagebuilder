@@ -31,6 +31,7 @@ export interface IUseMultilanguagePageDetails {
   createLanguage: (args: { cultureName: string; copyContent: boolean }) => Promise<void>;
   link: (groupId: string) => Promise<void>;
   unlink: (groupId: string) => Promise<void>;
+  markUpToDate: (groupId: string) => Promise<void>;
   findLandingPages: (cultureName: string, keyword?: string) => Promise<PageBuilderPageListItem[]>;
 }
 
@@ -94,6 +95,9 @@ export function useMultilanguagePageDetails(options: UseMultilanguagePageDetails
   const { action: unlink, loading: unlinking } = withReload<string, void>(async (apiClient, groupId) => {
     await apiClient.unlink(groupId);
   });
+  const { action: markUpToDate, loading: markingUpToDate } = withReload<string, void>(async (apiClient, groupId) => {
+    await apiClient.markUpToDate(groupId);
+  });
 
   async function findLandingPages(cultureName: string, keyword?: string): Promise<PageBuilderPageListItem[]> {
     const apiClient = await getPageApiClient();
@@ -111,7 +115,17 @@ export function useMultilanguagePageDetails(options: UseMultilanguagePageDetails
     item,
     languages,
     isNew: computed(() => !id.value),
-    loading: useLoading(loadingItem, saving, removing, publishing, archiving, creatingLanguage, linking, unlinking),
+    loading: useLoading(
+      loadingItem,
+      saving,
+      removing,
+      publishing,
+      archiving,
+      creatingLanguage,
+      linking,
+      unlinking,
+      markingUpToDate,
+    ),
     load,
     save: save as () => Promise<MultilanguagePage>,
     remove,
@@ -120,6 +134,7 @@ export function useMultilanguagePageDetails(options: UseMultilanguagePageDetails
     createLanguage: createLanguage as (args: { cultureName: string; copyContent: boolean }) => Promise<void>,
     link: link as (groupId: string) => Promise<void>,
     unlink: unlink as (groupId: string) => Promise<void>,
+    markUpToDate: markUpToDate as (groupId: string) => Promise<void>,
     findLandingPages,
   };
 }

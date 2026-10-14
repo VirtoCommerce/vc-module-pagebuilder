@@ -2,6 +2,8 @@ import { computed, ref, reactive, Ref, ComputedRef, onMounted } from "vue";
 import { useAsync, useLoading, useApiClient } from "@vc-shell/framework";
 import {
   FilePublishStatus,
+  MultilanguagePage,
+  MultilanguagePageClient,
   PageBuilderPageClient,
   GroupedPageBuilderPage,
 } from "../../../../api_client/virtocommerce.pagebuildermodule";
@@ -14,6 +16,7 @@ import { openPageDesigner } from "../../../../utilities/pageDesigner";
 import { serializeImportedPageContent } from "./importContent";
 
 const { getApiClient } = useApiClient(PageBuilderPageClient);
+const { getApiClient: getMultilanguageApiClient } = useApiClient(MultilanguagePageClient);
 
 export interface IUsePageBuilderDetails {
   item: Ref<GroupedPageBuilderPage>;
@@ -31,6 +34,7 @@ export interface IUsePageBuilderDetails {
   openDraftDesigner: () => void;
   downloadContent: () => Promise<void>;
   clonePage: () => Promise<GroupedPageBuilderPage>;
+  convertToMultilanguage: () => Promise<MultilanguagePage>;
 }
 
 export interface UsePageBuilderDetailsOptions {
@@ -193,6 +197,16 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
     return created;
   });
 
+  // The page becomes the default language version of a new Multilanguage Page, unchanged on the storefront.
+  const { action: convertToMultilanguage, loading: converting } = useAsync(async () => {
+    const groupId = item.value?.id;
+    if (!groupId) {
+      throw new Error("Can't convert page.");
+    }
+    const apiClient = await getMultilanguageApiClient();
+    return apiClient.convert(groupId);
+  });
+
   function openDraftDesigner() {
     openPageDesigner({
       groupId: item.value?.id,
@@ -242,6 +256,7 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
       unpublishingGroup,
       downloadingContent,
       cloningPage,
+      converting,
     ),
     loadGroup,
     saveGroup,
@@ -255,5 +270,6 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
     openDraftDesigner,
     downloadContent,
     clonePage,
+    convertToMultilanguage: convertToMultilanguage as () => Promise<MultilanguagePage>,
   };
 }

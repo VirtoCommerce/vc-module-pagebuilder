@@ -89,6 +89,7 @@ import useAiAgentContextWithStore from "../composables/useAiAgentContextWithStor
 import { usePageBuilderDetails } from "../composables/usePageBuilderDetails";
 import type { PageExportData } from "../composables/usePageContentApi";
 import PageAdvancedOptions from "../components/pageAdvancedOptions.vue";
+import { PageTypes } from "../composables";
 
 import { VcBanner, VcBlade, VcCard, VcCol, VcContainer, VcForm, VcInput, VcSelect } from "@vc-shell/framework/ui";
 
@@ -115,6 +116,7 @@ const {
   openDraftDesigner,
   downloadContent,
   clonePage,
+  convertToMultilanguage,
 } = usePageBuilderDetails({
   id: param.value as string | undefined,
   storeId: options.value?.storeId as string | undefined,
@@ -155,6 +157,9 @@ const storeUrl = ref<string | null>(null);
 
 // A language version of a Multilanguage Page: the name is shared and the language is fixed.
 const isLanguageVersion = computed(() => !!item.value?.multilanguagePageId);
+
+// Converting needs a second store language to translate into.
+const hasSeveralStoreLanguages = ref(false);
 
 // Toolbar
 const bladeToolbar = computed((): IBladeToolbar[] => [
@@ -221,6 +226,21 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     },
   },
   {
+    id: "convertToMultilanguage",
+    icon: "lucide-languages",
+    title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.CONVERT"),
+    isVisible: !!param.value && !isLanguageVersion.value && hasSeveralStoreLanguages.value,
+    disabled: isReadOnly.value || isModified.value,
+    clickHandler: async () => {
+      if (await showConfirmation(t("PAGE_BUILDER.PAGES.ALERTS.CONVERT_CONFIRMATION"))) {
+        const root = await convertToMultilanguage();
+        notification.success(t("PAGE_BUILDER.PAGES.ALERTS.CONVERT_SUCCESS"));
+        callParent("reload");
+        callParent("onItemClick", { type: PageTypes.Multilanguage, id: root.id });
+      }
+    },
+  },
+  {
     id: "publishPage",
     icon: "lucide-file-text",
     title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.PUBLISH"),
@@ -277,6 +297,7 @@ onMounted(async () => {
     setBaseline();
   }
   storeUrl.value = await getStoreUrl();
+  hasSeveralStoreLanguages.value = (await getLanguages()).length > 1;
 });
 </script>
 
