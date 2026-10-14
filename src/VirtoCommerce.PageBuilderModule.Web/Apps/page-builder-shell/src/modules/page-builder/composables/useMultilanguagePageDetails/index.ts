@@ -32,6 +32,7 @@ export interface IUseMultilanguagePageDetails {
   link: (groupId: string) => Promise<void>;
   unlink: (groupId: string) => Promise<void>;
   markUpToDate: (groupId: string) => Promise<void>;
+  resetOverrides: (fields: string[]) => Promise<void>;
   findLandingPages: (cultureName: string, keyword?: string) => Promise<PageBuilderPageListItem[]>;
 }
 
@@ -98,6 +99,11 @@ export function useMultilanguagePageDetails(options: UseMultilanguagePageDetails
   const { action: markUpToDate, loading: markingUpToDate } = withReload<string, void>(async (apiClient, groupId) => {
     await apiClient.markUpToDate(groupId);
   });
+  const { action: resetOverrides, loading: resettingOverrides } = withReload<string[], void>(
+    async (apiClient, fields) => {
+      await apiClient.resetOverrides(id.value!, fields);
+    },
+  );
 
   async function findLandingPages(cultureName: string, keyword?: string): Promise<PageBuilderPageListItem[]> {
     const apiClient = await getPageApiClient();
@@ -125,6 +131,7 @@ export function useMultilanguagePageDetails(options: UseMultilanguagePageDetails
       linking,
       unlinking,
       markingUpToDate,
+      resettingOverrides,
     ),
     load,
     save: save as () => Promise<MultilanguagePage>,
@@ -135,6 +142,7 @@ export function useMultilanguagePageDetails(options: UseMultilanguagePageDetails
     link: link as (groupId: string) => Promise<void>,
     unlink: unlink as (groupId: string) => Promise<void>,
     markUpToDate: markUpToDate as (groupId: string) => Promise<void>,
+    resetOverrides: resetOverrides as (fields: string[]) => Promise<void>,
     findLandingPages,
   };
 }

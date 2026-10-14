@@ -26,7 +26,7 @@
         <VcCol class="tw-gap-4 tw-p-4">
           <SwitchRow
             :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.VISIBILITY')"
-            :hint="$t('PAGE_BUILDER.PAGES.DETAILS.TOOLTIPS.VISIBILITY')"
+            :hint="withFieldHint($t('PAGE_BUILDER.PAGES.DETAILS.TOOLTIPS.VISIBILITY'), 'Visibility')"
             :model-value="item.visibility"
             @update:model-value="item.visibility = $event"
           />
@@ -34,6 +34,7 @@
           <VcSelect
             v-model="userGroups"
             :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.USER_GROUPS')"
+            :hint="fieldHints?.UserGroups"
             :options="getUserGroups"
             option-value="name"
             option-label="name"
@@ -46,6 +47,7 @@
           <VcSelect
             v-model="item.organizationId"
             :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.ORGANIZATION')"
+            :hint="fieldHints?.OrganizationId"
             :options="getOrganizations"
             option-value="id"
             option-label="name"
@@ -75,7 +77,7 @@
             type="datetime-local"
             clearable
             :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.START_DATE')"
-            :hint="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.START_DATE_HINT')"
+            :hint="withFieldHint($t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.START_DATE_HINT'), 'StartDate')"
             :disabled="disabled"
           />
 
@@ -84,7 +86,7 @@
             class="tw-flex-1"
             type="datetime-local"
             clearable
-            :hint="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.END_DATE_HINT')"
+            :hint="withFieldHint($t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.END_DATE_HINT'), 'EndDate')"
             :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.END_DATE')"
             :disabled="disabled"
           />
@@ -101,6 +103,7 @@ import useUserGroups from "../composables/useUserGroups";
 import useOrganizations from "../composables/useOrganizations";
 import CardHeader from "./cardHeader.vue";
 import SwitchRow from "./switchRow.vue";
+import type { InheritableField } from "../composables/useMultilanguageInheritance";
 
 /** Settings shared by Landing Pages, Multilanguage Pages and their language versions. */
 export interface PageAdvancedOptionsModel {
@@ -115,9 +118,16 @@ interface Props {
   disabled?: boolean;
   /** Overrides the Personalization & Access control description. */
   description?: string;
+  /** Language versions: whether each field is inherited from the Multilanguage Page or set for the language. */
+  fieldHints?: Partial<Record<InheritableField, string>>;
 }
 
-defineProps<Props>();
+const props = defineProps<Props>();
+
+function withFieldHint(hint: string, field: InheritableField): string {
+  const fieldHint = props.fieldHints?.[field];
+  return fieldHint ? `${hint} · ${fieldHint}` : hint;
+}
 
 const item = defineModel<PageAdvancedOptionsModel>("item", { required: true });
 

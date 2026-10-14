@@ -49,6 +49,7 @@
                        :error="errors.length > 0"
                        :error-message="errorMessage"
                        :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.PERMALINK')"
+                       :hint="fieldHints.Permalink"
                        :disabled="isReadOnly"
                        @update:model-value="handleChange">
                 <template #prepend-inner>
@@ -72,6 +73,7 @@
         <PageAdvancedOptions
           v-model:item="item"
           :disabled="isReadOnly"
+          :field-hints="fieldHints"
         />
       </VcForm>
     </VcContainer>
@@ -90,6 +92,11 @@ import { usePageBuilderDetails } from "../composables/usePageBuilderDetails";
 import type { PageExportData } from "../composables/usePageContentApi";
 import PageAdvancedOptions from "../components/pageAdvancedOptions.vue";
 import { PageTypes } from "../composables";
+import {
+  inheritableFields,
+  parseOverriddenFields,
+  type InheritableField,
+} from "../composables/useMultilanguageInheritance";
 
 import { VcBanner, VcBlade, VcCard, VcCol, VcContainer, VcForm, VcInput, VcSelect } from "@vc-shell/framework/ui";
 
@@ -157,6 +164,22 @@ const storeUrl = ref<string | null>(null);
 
 // A language version of a Multilanguage Page: the name is shared and the language is fixed.
 const isLanguageVersion = computed(() => !!item.value?.multilanguagePageId);
+
+// As saved: the backend marks a field overridden when its value differs from the Multilanguage Page.
+const fieldHints = computed<Partial<Record<InheritableField, string>>>(() => {
+  if (!isLanguageVersion.value) {
+    return {};
+  }
+  const overridden = parseOverriddenFields(item.value.overriddenFields);
+  return Object.fromEntries(
+    inheritableFields.map((field) => [
+      field,
+      overridden.includes(field)
+        ? t("PAGE_BUILDER.PAGES.DETAILS.FIELD_HINTS.CUSTOM")
+        : t("PAGE_BUILDER.PAGES.DETAILS.FIELD_HINTS.INHERITED"),
+    ]),
+  );
+});
 
 // Converting needs a second store language to translate into.
 const hasSeveralStoreLanguages = ref(false);

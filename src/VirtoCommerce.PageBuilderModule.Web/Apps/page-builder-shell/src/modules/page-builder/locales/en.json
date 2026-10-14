@@ -108,7 +108,11 @@
             "DESCRIPTION": "Set when this page should be visible"
           }
         },
-        "LANGUAGE_VERSION_HINT": "This page is a language version of a Multilanguage Page. The name is shared by all languages; permalink and advanced options set here override the Multilanguage Page values for this language."
+        "LANGUAGE_VERSION_HINT": "This page is a language version of a Multilanguage Page. The name is shared by all languages; permalink and advanced options set here override the Multilanguage Page values for this language.",
+        "FIELD_HINTS": {
+          "INHERITED": "Inherited from the multilanguage page",
+          "CUSTOM": "Set for this language; the multilanguage page value is not applied"
+        }
       },
       "ALERTS": {
         "CLOSE_CONFIRMATION": "You have unsaved changes. Close anyway?",
@@ -199,6 +203,13 @@
         "PAGE": "Landing Page",
         "CANCEL": "Cancel",
         "LINK": "Link"
+      },
+      "CONFLICT_POPUP": {
+        "TITLE": "Some languages have their own values",
+        "HINT": "You changed settings that these languages set themselves:",
+        "APPLY_ALL": "Apply to all languages",
+        "APPLY_INHERITED": "Apply to inheriting languages only",
+        "CANCEL": "Cancel"
       }
     }
   }

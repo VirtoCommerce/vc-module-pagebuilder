@@ -178,6 +178,14 @@
       </VcForm>
     </VcContainer>
 
+    <OverridesConflictPopup
+      v-if="conflicts.length"
+      :conflicts="conflicts"
+      @close="conflicts = []"
+      @apply-all="onApplyToAll"
+      @apply-inherited="onApplyToInherited"
+    />
+
     <LinkPagePopup
       v-if="linkCultureName"
       :culture-name="linkCultureName"
@@ -216,6 +224,12 @@ import { openPageDesigner } from "../../../utilities/pageDesigner";
 import PageAdvancedOptions from "../components/pageAdvancedOptions.vue";
 import LanguagePills from "../components/languagePills.vue";
 import LinkPagePopup from "../components/linkPagePopup.vue";
+import OverridesConflictPopup, { type IOverridesConflict } from "../components/overridesConflictPopup.vue";
+import {
+  getChangedFields,
+  parseOverriddenFields,
+  type IInheritableSettings,
+} from "../composables/useMultilanguageInheritance";
 import Tag from "../components/tag.vue";
 
 defineBlade({
@@ -242,6 +256,7 @@ const {
   link,
   unlink,
   markUpToDate,
+  resetOverrides,
   findLandingPages,
 } = useMultilanguagePageDetails({
   id: param.value as string | undefined,
@@ -254,6 +269,9 @@ const { canSave, isModified, setBaseline } = useBladeForm({
 });
 
 const storeUrl = ref<string | null>(null);
+// Settings as last loaded or saved: a change of an inherited field may conflict with language overrides.
+const savedSettings = ref<IInheritableSettings>({});
+const conflicts = ref<IOverridesConflict[]>([]);
 const linkCultureName = ref<string>();
 
 const bladeTitle = computed(() =>
@@ -271,14 +289,9 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.SAVE"),
     disabled: !canSave.value,
     clickHandler: async () => {
-      const wasNew = isNew.value;
-      const saved = await save();
-      setBaseline();
-      notification.success(t("PAGE_BUILDER.PAGES.ALERTS.SAVE_SUCCESS"));
-      callParent("reload");
-      if (wasNew && saved.id) {
-        // Reopen with an id, so the language table and batch actions become available.
-        callParent("onItemClick", { type: PageTypes.Multilanguage, id: saved.id });
+      conflicts.value = findConflicts();
+      if (!conflicts.value.length) {
+        await saveRoot();
       }
     },
   },
@@ -323,6 +336,56 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     },
   },
 ]);
+
+/** Languages that override a field changed on the root, with those fields. */
+function findConflicts(): IOverridesConflict[] {
+  if (isNew.value) {
+    return [];
+  }
+
+  const changed = getChangedFields(savedSettings.value, item.value);
+  return languages.value
+    .filter((language) => !!language.page)
+    .map((language) => ({
+      cultureName: language.cultureName!,
+      fields: parseOverriddenFields(language.page?.overriddenFields).filter((field) => changed.includes(field)),
+    }))
+    .filter((conflict) => conflict.fields.length > 0);
+}
+
+async function saveRoot(resetFields: string[] = []) {
+  const wasNew = isNew.value;
+  const saved = await save();
+  if (resetFields.length) {
+    await resetOverrides(resetFields);
+  }
+  rememberSavedSettings();
+  setBaseline();
+  notification.success(t("PAGE_BUILDER.PAGES.ALERTS.SAVE_SUCCESS"));
+  callParent("reload");
+  if (wasNew && saved.id) {
+    // Reopen with an id, so the language table and batch actions become available.
+    callParent("onItemClick", { type: PageTypes.Multilanguage, id: saved.id });
+  }
+}
+
+async function onApplyToAll() {
+  const fields = [...new Set(conflicts.value.flatMap((conflict) => conflict.fields))];
+  conflicts.value = [];
+  // Language version blades would show the overrides being dropped.
+  await closeChildren();
+  await saveRoot(fields);
+}
+
+async function onApplyToInherited() {
+  conflicts.value = [];
+  await saveRoot();
+}
+
+function rememberSavedSettings() {
+  const { permalink, visibility, userGroups, organizationId, startDate, endDate } = item.value;
+  savedSettings.value = { permalink, visibility, userGroups, organizationId, startDate, endDate };
+}
 
 function notifyBatchResult(result: MultilanguagePageBatchResult, key: string) {
   notification.success(
@@ -411,6 +474,7 @@ exposeToChildren({
 
 onMounted(async () => {
   await load();
+  rememberSavedSettings();
   setBaseline();
   storeUrl.value = await getStoreUrl();
 });
