@@ -1,0 +1,4 @@
+{
+  // Page Builder contributions to the Admin Shell (Admin Shell Module Federation remote): widgets on other modules' blades, no menu item
+  "remote": { "name": "pagebuilder_admin", "exposed": "./Module" }
+}
