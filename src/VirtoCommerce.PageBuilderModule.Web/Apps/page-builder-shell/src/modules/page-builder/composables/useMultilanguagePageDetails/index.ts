@@ -33,6 +33,7 @@ export interface IUseMultilanguagePageDetails {
   unlink: (groupId: string) => Promise<void>;
   markUpToDate: (groupId: string) => Promise<void>;
   resetOverrides: (fields: string[]) => Promise<void>;
+  clone: () => Promise<MultilanguagePage>;
   findLandingPages: (cultureName: string, keyword?: string) => Promise<PageBuilderPageListItem[]>;
 }
 
@@ -105,6 +106,11 @@ export function useMultilanguagePageDetails(options: UseMultilanguagePageDetails
     },
   );
 
+  const { action: clone, loading: cloning } = useAsync(async () => {
+    const apiClient = await getApiClient();
+    return apiClient.clone(id.value!);
+  });
+
   async function findLandingPages(cultureName: string, keyword?: string): Promise<PageBuilderPageListItem[]> {
     const apiClient = await getPageApiClient();
     const result = await apiClient.searchList({
@@ -132,6 +138,7 @@ export function useMultilanguagePageDetails(options: UseMultilanguagePageDetails
       unlinking,
       markingUpToDate,
       resettingOverrides,
+      cloning,
     ),
     load,
     save: save as () => Promise<MultilanguagePage>,
@@ -143,6 +150,7 @@ export function useMultilanguagePageDetails(options: UseMultilanguagePageDetails
     unlink: unlink as (groupId: string) => Promise<void>,
     markUpToDate: markUpToDate as (groupId: string) => Promise<void>,
     resetOverrides: resetOverrides as (fields: string[]) => Promise<void>,
+    clone: clone as () => Promise<MultilanguagePage>,
     findLandingPages,
   };
 }

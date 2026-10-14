@@ -133,7 +133,8 @@
         "UNPUBLISH_SUCCESS": "Page unpublished successfully",
         "DELETE_SUCCESS": "Page archived successfully",
         "CONVERT_CONFIRMATION": "Convert this page to a Multilanguage Page? It becomes the version in its language and stays unchanged on the storefront.",
-        "CONVERT_SUCCESS": "Page converted to a Multilanguage Page"
+        "CONVERT_SUCCESS": "Page converted to a Multilanguage Page",
+        "PERMALINK_IN_USE": "{permalink} is already used by: {pages}. The storefront shows only one page per permalink and language. Save anyway?"
       },
       "ADD_POPUP": {
         "TITLE": "Add page",

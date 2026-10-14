@@ -225,6 +225,7 @@ import PageAdvancedOptions from "../components/pageAdvancedOptions.vue";
 import LanguagePills from "../components/languagePills.vue";
 import LinkPagePopup from "../components/linkPagePopup.vue";
 import OverridesConflictPopup, { type IOverridesConflict } from "../components/overridesConflictPopup.vue";
+import { usePermalinkUsage } from "../composables/usePermalinkUsage";
 import {
   getChangedFields,
   parseOverriddenFields,
@@ -257,6 +258,7 @@ const {
   unlink,
   markUpToDate,
   resetOverrides,
+  clone,
   findLandingPages,
 } = useMultilanguagePageDetails({
   id: param.value as string | undefined,
@@ -272,6 +274,7 @@ const storeUrl = ref<string | null>(null);
 // Settings as last loaded or saved: a change of an inherited field may conflict with language overrides.
 const savedSettings = ref<IInheritableSettings>({});
 const conflicts = ref<IOverridesConflict[]>([]);
+const { confirmPermalinkUsage } = usePermalinkUsage();
 const linkCultureName = ref<string>();
 
 const bladeTitle = computed(() =>
@@ -289,6 +292,9 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.SAVE"),
     disabled: !canSave.value,
     clickHandler: async () => {
+      if (!(await confirmRootPermalinkUsage())) {
+        return;
+      }
       conflicts.value = findConflicts();
       if (!conflicts.value.length) {
         await saveRoot();
@@ -323,6 +329,19 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     },
   },
   {
+    id: "clone",
+    icon: "lucide-copy",
+    title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.CLONE"),
+    isVisible: !isNew.value,
+    disabled: isModified.value,
+    clickHandler: async () => {
+      const cloned = await clone();
+      notification.success(t("PAGE_BUILDER.PAGES.ALERTS.CLONE_SUCCESS"));
+      callParent("reload");
+      callParent("onItemClick", { type: PageTypes.Multilanguage, id: cloned.id });
+    },
+  },
+  {
     id: "delete",
     icon: "lucide-trash-2",
     title: t("PAGE_BUILDER.MULTILANGUAGE.TOOLBAR.DELETE"),
@@ -336,6 +355,24 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     },
   },
 ]);
+
+// The root permalink is served by every language version that inherits it.
+async function confirmRootPermalinkUsage(): Promise<boolean> {
+  const inheritingCultures = languages.value
+    .filter((language) => language.page && !parseOverriddenFields(language.page.overriddenFields).includes("Permalink"))
+    .map((language) => language.cultureName!);
+
+  if (isNew.value || !inheritingCultures.length) {
+    return true;
+  }
+
+  return confirmPermalinkUsage({
+    storeId: item.value.storeId,
+    permalink: item.value.permalink,
+    cultureNames: inheritingCultures,
+    excludeMultilanguagePageId: item.value.id,
+  });
+}
 
 /** Languages that override a field changed on the root, with those fields. */
 function findConflicts(): IOverridesConflict[] {

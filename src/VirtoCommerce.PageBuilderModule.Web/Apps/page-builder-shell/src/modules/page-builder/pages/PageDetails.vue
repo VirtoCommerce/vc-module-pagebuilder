@@ -92,6 +92,7 @@ import { usePageBuilderDetails } from "../composables/usePageBuilderDetails";
 import type { PageExportData } from "../composables/usePageContentApi";
 import PageAdvancedOptions from "../components/pageAdvancedOptions.vue";
 import { PageTypes } from "../composables";
+import { usePermalinkUsage } from "../composables/usePermalinkUsage";
 import {
   inheritableFields,
   parseOverriddenFields,
@@ -181,6 +182,8 @@ const fieldHints = computed<Partial<Record<InheritableField, string>>>(() => {
   );
 });
 
+const { confirmPermalinkUsage } = usePermalinkUsage();
+
 // Converting needs a second store language to translate into.
 const hasSeveralStoreLanguages = ref(false);
 
@@ -192,6 +195,15 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.SAVE"),
     disabled: !canSave.value,
     clickHandler: async () => {
+      const proceed = await confirmPermalinkUsage({
+        storeId: item.value.storeId ?? (options.value?.storeId as string | undefined),
+        permalink: item.value.permalink,
+        cultureNames: item.value.cultureName ? [item.value.cultureName] : [],
+        excludeGroupIds: item.value.id ? [item.value.id] : [],
+      });
+      if (!proceed) {
+        return;
+      }
       await handleSave();
       notification.success(t("PAGE_BUILDER.PAGES.ALERTS.SAVE_SUCCESS"));
     },
