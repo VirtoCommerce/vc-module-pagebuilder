@@ -121,6 +121,55 @@ public class MultilanguagePageService(
         return group;
     }
 
+    public virtual async Task<GroupedPageBuilderPage> MarkUpToDateAsync(string groupId, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(groupId);
+
+        var group = await groupedPageService.GetByIdAsync(groupId)
+            ?? throw new KeyNotFoundException($"Page '{groupId}' not found.");
+        var root = await GetRequiredAsync(group.MultilanguagePageId);
+
+        var source = (await GetLanguageVersionsAsync(root.Id))
+            .FirstOrDefault(x => string.Equals(x.CultureName, root.DefaultCultureName, StringComparison.OrdinalIgnoreCase));
+
+        if (source?.SourceRevisionDate != null && source.Id != group.Id)
+        {
+            group.SourceRevisionDate = source.SourceRevisionDate;
+            await groupedPageService.SaveChangesAsync([group]);
+        }
+
+        return group;
+    }
+
+    public virtual async Task<MultilanguagePage> ConvertAsync(string groupId, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(groupId);
+
+        var group = await groupedPageService.GetByIdAsync(groupId)
+            ?? throw new KeyNotFoundException($"Page '{groupId}' not found.");
+
+        if (!string.IsNullOrEmpty(group.MultilanguagePageId))
+        {
+            throw new InvalidOperationException($"Page '{groupId}' is already a language version of '{group.MultilanguagePageId}'.");
+        }
+
+        var root = AbstractTypeFactory<MultilanguagePage>.TryCreateInstance();
+        root.StoreId = group.StoreId;
+        root.Name = group.Name;
+        root.Permalink = group.Permalink;
+        root.DefaultCultureName = group.CultureName;
+        root.OrganizationId = group.OrganizationId;
+        root.Visibility = group.Visibility;
+        root.UserGroups = group.UserGroups;
+        root.StartDate = group.StartDate;
+        root.EndDate = group.EndDate;
+
+        await SaveChangesAsync([root]);
+        await LinkAsync(root.Id, groupId, cancellationToken);
+
+        return root;
+    }
+
     public virtual async Task<GroupedPageBuilderPage> UnlinkAsync(string groupId, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(groupId);
@@ -183,6 +232,8 @@ public class MultilanguagePageService(
             if (source != null)
             {
                 sourceContent = (await groupedPageContentService.LoadGroupContentAsync(source, draft: true, cancellationToken)).Content;
+                // A copy of the source is up to date with it.
+                group.SourceRevisionDate = source.SourceRevisionDate;
             }
         }
 
@@ -203,7 +254,11 @@ public class MultilanguagePageService(
         var root = await GetRequiredAsync(multilanguagePageId);
         var result = new MultilanguagePageBatchResult();
 
-        foreach (var group in await GetLanguageVersionsAsync(root.Id))
+        // The source language goes first: translations published in the same batch are based on its new revision.
+        var groups = (await GetLanguageVersionsAsync(root.Id))
+            .OrderByDescending(x => string.Equals(x.CultureName, root.DefaultCultureName, StringComparison.OrdinalIgnoreCase));
+
+        foreach (var group in groups)
         {
             if (!GroupedPagePublishing.TryPublishDraft(group, out var obsoletePageIds))
             {

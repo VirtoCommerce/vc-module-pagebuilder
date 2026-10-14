@@ -118,11 +118,16 @@ namespace VirtoCommerce.PageBuilderModule.Data.Models
             target.EndDate = EndDate;
             target.OrganizationId = OrganizationId;
 
-            // MultilanguagePageId and SourceRevisionDate are owned by the multilanguage page service and are
-            // never patched: clients that do not know them would otherwise unlink the page on every save.
+            // MultilanguagePageId is owned by the multilanguage page service and is never patched: clients that
+            // do not know it would otherwise unlink the page on every save. Null keeps the stored value of the others.
             if (OverriddenFields != null)
             {
                 target.OverriddenFields = OverriddenFields;
+            }
+
+            if (SourceRevisionDate != null)
+            {
+                target.SourceRevisionDate = SourceRevisionDate;
             }
 
             if (!Pages.IsNullCollection())

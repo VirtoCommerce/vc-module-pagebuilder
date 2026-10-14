@@ -23,6 +23,9 @@ public class MultilanguagePageLanguage
     /// <summary>A published version also has unpublished changes.</summary>
     public bool HasChanges { get; set; }
 
+    /// <summary>The source language version was published after this translation was.</summary>
+    public bool IsOutdated { get; set; }
+
     /// <summary>The language version; null when <see cref="Status"/> is <see cref="Missing"/>.</summary>
     public GroupedPageBuilderPage Page { get; set; }
 }

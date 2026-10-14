@@ -21,6 +21,17 @@ public interface IMultilanguagePageService : ICrudService<MultilanguagePage>
     Task<GroupedPageBuilderPage> UnlinkAsync(string groupId, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Turns a Landing Page into a Multilanguage Page: a new root takes the page's name, permalink and settings,
+    /// and the page becomes its default language version, so the storefront keeps serving it unchanged.
+    /// </summary>
+    Task<MultilanguagePage> ConvertAsync(string groupId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Marks a translation as matching the current source language publication, e.g. when the source change needs no translation.
+    /// </summary>
+    Task<GroupedPageBuilderPage> MarkUpToDateAsync(string groupId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Language table: every store language (default language first) with its version status,
     /// followed by versions whose language was removed from the store.
     /// </summary>

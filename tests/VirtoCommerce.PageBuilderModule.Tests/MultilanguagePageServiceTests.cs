@@ -100,6 +100,66 @@ public class MultilanguagePageServiceTests
     }
 
     [Fact]
+    public async Task ConvertAsync_LandingPage_BecomesDefaultLanguageVersionWithoutChanges()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var landing = await fixture.CreateLanguageAsync(null, "nl-NL", permalink: "/over-ons", name: "Over ons", draftContent: Content("nl"));
+
+        var root = await fixture.Roots.ConvertAsync(landing.Id, TestContext.Current.CancellationToken);
+
+        Assert.Equal(("Over ons", "/over-ons", "nl-NL"), (root.Name, root.Permalink, root.DefaultCultureName));
+        var entity = await fixture.LoadGroupAsync(landing.Id);
+        Assert.Equal((root.Id, string.Empty, "/over-ons", "Over ons"),
+            (entity.MultilanguagePageId, entity.OverriddenFields, entity.Permalink, entity.Name));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => fixture.Roots.ConvertAsync(landing.Id, TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task Outdated_SourcePublishedAfterTranslation_UntilTranslationRepublishedOrMarked()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var root = await fixture.CreateRootAsync();
+        var en = await fixture.CreateLanguageAsync(root, "en-US", draftContent: Content("en"));
+        var nl = await fixture.CreateLanguageAsync(root, "nl-NL", draftContent: Content("nl"));
+        await fixture.Roots.PublishAllAsync(root.Id, TestContext.Current.CancellationToken);
+        Assert.False(await IsOutdated(fixture, root, "nl-NL"));
+
+        await Task.Delay(20, TestContext.Current.CancellationToken);
+        await fixture.PublishNewDraftAsync(en.Id, Content("en-2"));
+        Assert.True(await IsOutdated(fixture, root, "nl-NL"));
+        Assert.False(await IsOutdated(fixture, root, "en-US"));
+
+        await fixture.PublishNewDraftAsync(nl.Id, Content("nl-2"));
+        Assert.False(await IsOutdated(fixture, root, "nl-NL"));
+
+        await Task.Delay(20, TestContext.Current.CancellationToken);
+        await fixture.PublishNewDraftAsync(en.Id, Content("en-3"));
+        Assert.True(await IsOutdated(fixture, root, "nl-NL"));
+
+        await fixture.Roots.MarkUpToDateAsync(nl.Id, TestContext.Current.CancellationToken);
+        Assert.False(await IsOutdated(fixture, root, "nl-NL"));
+    }
+
+    [Fact]
+    public async Task Outdated_CopyOfPublishedSource_IsUpToDate()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var root = await fixture.CreateRootAsync();
+        var en = await fixture.CreateLanguageAsync(root, "en-US", draftContent: Content("en"));
+        await fixture.PublishNewDraftAsync(en.Id, null);
+
+        await fixture.Roots.CreateLanguageAsync(root.Id, "nl-NL", copyContent: true, TestContext.Current.CancellationToken);
+
+        Assert.False(await IsOutdated(fixture, root, "nl-NL"));
+    }
+
+    private static async Task<bool> IsOutdated(Fixture fixture, MultilanguagePage root, string cultureName)
+    {
+        var languages = await fixture.Roots.GetLanguagesAsync(root.Id, TestContext.Current.CancellationToken);
+        return languages.Single(x => x.CultureName == cultureName).IsOutdated;
+    }
+
+    [Fact]
     public async Task LinkAsync_ExistingLandingPage_KeepsItsDifferingValuesAsOverrides()
     {
         await using var fixture = await Fixture.CreateAsync();
@@ -446,6 +506,21 @@ public class MultilanguagePageServiceTests
         public PageBuilderPageListService List { get; }
 
         public GroupedPageSearchService GroupSearch { get; }
+
+        /// <summary>Publishes the current draft like the page blade does; with content, adds a new draft first.</summary>
+        public async Task PublishNewDraftAsync(string groupId, string content)
+        {
+            var group = await Groups.GetByIdAsync(groupId);
+            if (content != null)
+            {
+                group.Pages.Add(new PageBuilderPage { StoreId = StoreId, Status = "Draft", Content = content });
+                await Groups.SaveChangesAsync([group]);
+                group = await Groups.GetByIdAsync(groupId);
+            }
+
+            Assert.True(GroupedPagePublishing.TryPublishDraft(group, out _));
+            await Groups.SaveChangesAsync([group]);
+        }
 
         public PageBuilderExportImport CreateExportImport()
         {

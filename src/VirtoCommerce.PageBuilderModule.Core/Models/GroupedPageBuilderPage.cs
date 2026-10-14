@@ -33,7 +33,8 @@ public class GroupedPageBuilderPage : AuditableEntity, IHasStoreId, ICloneable
     public string OverriddenFields { get; set; }
 
     /// <summary>
-    /// Publication date of the source language version this translation is based on. Used to detect outdated translations.
+    /// Source language version: when it was last published. Translation: the source publication it is based on;
+    /// a translation is outdated when the source has been published after it. Null keeps the stored value on save.
     /// </summary>
     public DateTime? SourceRevisionDate { get; set; }
 

@@ -181,6 +181,60 @@ public class MultilanguagePageController(
     }
 
     /// <summary>
+    /// Turns a Landing Page into a Multilanguage Page with the page as its default language version.
+    /// </summary>
+    [HttpPost("convert/{groupId}")]
+    [Authorize(ModuleConstants.Security.Permissions.Create)]
+    public async Task<ActionResult<MultilanguagePage>> Convert([FromRoute] string groupId, CancellationToken cancellationToken = default)
+    {
+        var group = await groupedPageService.GetNoCloneAsync(groupId);
+        if (group == null)
+        {
+            return NotFound();
+        }
+
+        if (!await IsAuthorizedAsync(group))
+        {
+            return Forbidden;
+        }
+
+        try
+        {
+            return Ok(await multilanguagePageService.ConvertAsync(groupId, cancellationToken));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Marks an outdated translation as matching the current source language publication.
+    /// </summary>
+    [HttpPost("mark-up-to-date/{groupId}")]
+    [Authorize(ModuleConstants.Security.Permissions.Update)]
+    public async Task<ActionResult<GroupedPageBuilderPage>> MarkUpToDate([FromRoute] string groupId, CancellationToken cancellationToken = default)
+    {
+        var group = await groupedPageService.GetNoCloneAsync(groupId);
+        if (group == null)
+        {
+            return NotFound();
+        }
+
+        if (!await IsAuthorizedAsync(group))
+        {
+            return Forbidden;
+        }
+
+        if (string.IsNullOrEmpty(group.MultilanguagePageId))
+        {
+            return BadRequest($"Page '{groupId}' is not a language version.");
+        }
+
+        return Ok(await multilanguagePageService.MarkUpToDateAsync(groupId, cancellationToken));
+    }
+
+    /// <summary>
     /// Turns a language version back into a Landing Page.
     /// </summary>
     [HttpPost("unlink/{groupId}")]

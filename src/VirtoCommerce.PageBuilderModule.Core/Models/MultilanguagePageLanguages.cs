@@ -25,20 +25,35 @@ public static class MultilanguagePageLanguages
             .Where(x => !languages.Contains(x, StringComparer.OrdinalIgnoreCase))
             .Order(StringComparer.OrdinalIgnoreCase);
 
-        return languages.Select(x => Create(root, x, versionsByCulture.GetValueOrDefault(x), isStoreLanguage: true))
-            .Concat(removedLanguages.Select(x => Create(root, x, versionsByCulture[x], isStoreLanguage: false)))
+        var sourceRevisionDate = versionsByCulture.GetValueOrDefault(root.DefaultCultureName ?? string.Empty)?.SourceRevisionDate;
+
+        return languages.Select(x => Create(root, x, versionsByCulture.GetValueOrDefault(x), isStoreLanguage: true, sourceRevisionDate))
+            .Concat(removedLanguages.Select(x => Create(root, x, versionsByCulture[x], isStoreLanguage: false, sourceRevisionDate)))
             .ToList();
     }
 
-    private static MultilanguagePageLanguage Create(MultilanguagePage root, string cultureName, GroupedPageBuilderPage page, bool isStoreLanguage)
+    /// <summary>
+    /// A translation is outdated when the source language version was published after the source publication it is based on.
+    /// </summary>
+    public static bool IsOutdated(GroupedPageBuilderPage translation, DateTime? sourceRevisionDate)
     {
+        return translation != null && sourceRevisionDate != null &&
+               (translation.SourceRevisionDate == null || translation.SourceRevisionDate < sourceRevisionDate);
+    }
+
+    private static MultilanguagePageLanguage Create(MultilanguagePage root, string cultureName, GroupedPageBuilderPage page, bool isStoreLanguage,
+        DateTime? sourceRevisionDate)
+    {
+        var isDefault = string.Equals(cultureName, root.DefaultCultureName, StringComparison.OrdinalIgnoreCase);
+
         return new MultilanguagePageLanguage
         {
             CultureName = page?.CultureName ?? cultureName,
-            IsDefault = string.Equals(cultureName, root.DefaultCultureName, StringComparison.OrdinalIgnoreCase),
+            IsDefault = isDefault,
             IsStoreLanguage = isStoreLanguage,
             Status = page?.Status ?? MultilanguagePageLanguage.Missing,
             HasChanges = page != null && page.Status == ModuleConstants.PageStatuses.Published && page.HasChanges,
+            IsOutdated = !isDefault && IsOutdated(page, sourceRevisionDate),
             Page = page,
         };
     }

@@ -272,8 +272,42 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
                 {
                     group.Name = root.Name;
                     MultilanguagePageInheritance.SetOverriddenFields(group, MultilanguagePageInheritance.GetDifferingFields(root, group));
+
+                    if (IsBeingPublished(group, existingEntities))
+                    {
+                        group.SourceRevisionDate = await GetPublishedSourceRevisionAsync(group, root, repository, cancellationToken);
+                    }
                 }
             }
+        }
+
+        // Publishing the source language starts a new revision; publishing a translation marks it as based on the current one.
+        private static async Task<DateTime?> GetPublishedSourceRevisionAsync(
+            GroupedPageBuilderPage group,
+            MultilanguagePage root,
+            IPageBuilderModuleRepository repository,
+            CancellationToken cancellationToken)
+        {
+            if (string.Equals(group.CultureName, root.DefaultCultureName, StringComparison.OrdinalIgnoreCase))
+            {
+                return DateTime.UtcNow;
+            }
+
+            return await repository.GroupedPageBuilderPages.AsNoTracking()
+                .Where(x => x.MultilanguagePageId == root.Id && x.CultureName == root.DefaultCultureName)
+                .Select(x => x.SourceRevisionDate)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        private static bool IsBeingPublished(GroupedPageBuilderPage group, IList<GroupedPageBuilderPageEntity> existingEntities)
+        {
+            var publishedBefore = existingEntities
+                .FirstOrDefault(x => string.Equals(x.Id, group.Id, StringComparison.OrdinalIgnoreCase))?.Pages
+                .Where(x => x.Status == Published)
+                .Select(x => x.Id)
+                .ToHashSet() ?? [];
+
+            return (group.Pages ?? []).Any(x => x.Status == Published && !publishedBefore.Contains(x.Id));
         }
 
         internal static void ValidateStoreImmutability(
