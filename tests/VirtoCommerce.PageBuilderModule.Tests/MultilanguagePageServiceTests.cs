@@ -226,6 +226,24 @@ public class MultilanguagePageServiceTests
         Assert.Empty(await ListIds(fixture, new PageBuilderPageSearchCriteria { TranslationStatus = "Outdated", LanguageCode = "de-DE" }));
     }
 
+    [Fact]
+    public async Task List_OutdatedTranslation_IgnoresArchivedTranslations()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var root = await fixture.CreateRootAsync();
+        var en = await fixture.CreateLanguageAsync(root, "en-US", draftContent: Content("en"));
+        var nl = await fixture.CreateLanguageAsync(root, "nl-NL", draftContent: Content("nl"));
+        await fixture.Roots.PublishAllAsync(root.Id, TestContext.Current.CancellationToken);
+        var archived = await fixture.Groups.GetByIdAsync(nl.Id);
+        Assert.True(GroupedPagePublishing.Archive(archived));
+        await fixture.Groups.SaveChangesAsync([archived]);
+
+        await Task.Delay(20, TestContext.Current.CancellationToken);
+        await fixture.PublishNewDraftAsync(en.Id, Content("en-2"));
+
+        Assert.Empty(await ListIds(fixture, new PageBuilderPageSearchCriteria { TranslationStatus = "Outdated" }));
+    }
+
     private static async Task<IList<string>> ListIds(Fixture fixture, PageBuilderPageSearchCriteria criteria)
     {
         criteria.StoreId = StoreId;
@@ -365,6 +383,29 @@ public class MultilanguagePageServiceTests
             languages.Select(x => (x.CultureName, x.IsDefault, x.IsStoreLanguage, x.Status)));
         Assert.Null(languages[0].Page);
         Assert.NotNull(languages[1].Page);
+    }
+
+    [Fact]
+    public async Task GetLanguagesAsync_ReportsEachVersionStatus()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var root = await fixture.CreateRootAsync();
+        var en = await fixture.CreateLanguageAsync(root, "en-US", draftContent: Content("en"));
+        var nl = await fixture.CreateLanguageAsync(root, "nl-NL", draftContent: Content("nl"));
+        var de = await fixture.CreateLanguageAsync(root, "de-DE", draftContent: Content("de"));
+        await fixture.Roots.PublishAllAsync(root.Id, TestContext.Current.CancellationToken);
+        var archived = await fixture.Groups.GetByIdAsync(de.Id);
+        Assert.True(GroupedPagePublishing.Archive(archived));
+        await fixture.Groups.SaveChangesAsync([archived]);
+        await Task.Delay(20, TestContext.Current.CancellationToken);
+        await fixture.PublishNewDraftAsync(en.Id, Content("en-2"));
+
+        var languages = await fixture.Roots.GetLanguagesAsync(root.Id, TestContext.Current.CancellationToken);
+
+        Assert.Equal(
+            [("en-US", "Published", false), ("nl-NL", "Published", true), ("de-DE", "Archived", false)],
+            languages.Select(x => (x.CultureName, x.Status, x.IsOutdated)));
+        Assert.NotNull(nl);
     }
 
     [Fact]
@@ -584,12 +625,12 @@ public class MultilanguagePageServiceTests
         };
     }
 
-    private static string Content(string sectionType)
+    internal static string Content(string sectionType)
     {
         return $$"""{ "settings": {}, "content": [ { "type": "{{sectionType}}" } ] }""";
     }
 
-    private sealed class Fixture : IAsyncDisposable
+    internal sealed class Fixture : IAsyncDisposable
     {
         private readonly SqliteConnection _anchorConnection;
         private readonly string _connectionString;
@@ -610,7 +651,7 @@ public class MultilanguagePageServiceTests
                 NullLogger<GroupedPageService>.Instance);
             var groupSearch = new GroupedPageSearchService(repositoryFactory, _cache, Groups, Options.Create(new CrudOptions()));
             GroupSearch = groupSearch;
-            var storeService = new FakeStoreService(new Store { Id = StoreId, DefaultLanguage = "en-US", Languages = ["en-US", "nl-NL", "de-DE"] });
+            var storeService = StoreService = new FakeStoreService(new Store { Id = StoreId, DefaultLanguage = "en-US", Languages = ["en-US", "nl-NL", "de-DE"] });
             Roots = new MultilanguagePageService(
                 repositoryFactory,
                 _cache,
@@ -622,6 +663,8 @@ public class MultilanguagePageServiceTests
                 new PageBuilderPageService(repositoryFactory, _cache, events));
             List = new PageBuilderPageListService(repositoryFactory, groupSearch, Groups, Roots, storeService);
         }
+
+        public FakeStoreService StoreService { get; }
 
         public GroupedPageService Groups { get; }
 
