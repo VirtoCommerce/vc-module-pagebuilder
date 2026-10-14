@@ -121,6 +121,24 @@ public class MultilanguagePageService(
         return group;
     }
 
+    public virtual async Task<IList<string>> ResetOverridesAsync(string multilanguagePageId, IList<string> fields, CancellationToken cancellationToken = default)
+    {
+        var root = await GetRequiredAsync(multilanguagePageId);
+        var changedCultureNames = new List<string>();
+
+        foreach (var group in await GetLanguageVersionsAsync(root.Id))
+        {
+            // The save derives the mask again, so the reset fields become inherited.
+            if (MultilanguagePageInheritance.Reset(root, group, fields ?? []))
+            {
+                await groupedPageContentService.SaveGroupSettingsAsync(group, cancellationToken);
+                changedCultureNames.Add(group.CultureName);
+            }
+        }
+
+        return changedCultureNames;
+    }
+
     public virtual async Task<GroupedPageBuilderPage> MarkUpToDateAsync(string groupId, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(groupId);

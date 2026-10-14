@@ -255,6 +255,17 @@ public class MultilanguagePageController(
         return Ok(await multilanguagePageService.UnlinkAsync(groupId, cancellationToken));
     }
 
+    /// <summary>
+    /// Applies the root values of the given fields (Permalink, Visibility, UserGroups, OrganizationId, StartDate, EndDate)
+    /// to every language version, dropping their overrides of those fields.
+    /// </summary>
+    [HttpPost("{id}/reset-overrides")]
+    [Authorize(ModuleConstants.Security.Permissions.Update)]
+    public Task<ActionResult<IList<string>>> ResetOverrides([FromRoute] string id, [FromBody] IList<string> fields, CancellationToken cancellationToken = default)
+    {
+        return ExecuteForRootAsync(id, () => multilanguagePageService.ResetOverridesAsync(id, fields, cancellationToken));
+    }
+
     [HttpPost("{id}/publish-all")]
     [Authorize(ModuleConstants.Security.Permissions.Publish)]
     public Task<ActionResult<MultilanguagePageBatchResult>> PublishAll([FromRoute] string id, CancellationToken cancellationToken = default)

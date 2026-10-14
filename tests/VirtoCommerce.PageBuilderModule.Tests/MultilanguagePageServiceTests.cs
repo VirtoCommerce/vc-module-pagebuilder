@@ -160,6 +160,29 @@ public class MultilanguagePageServiceTests
     }
 
     [Fact]
+    public async Task ResetOverridesAsync_AppliesRootValueToOverriddenLanguages_KeepsOtherOverrides()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var root = await fixture.CreateRootAsync();
+        var en = await fixture.CreateLanguageAsync(root, "en-US");
+        var nl = await fixture.CreateLanguageAsync(root, "nl-NL", permalink: "/over-ons");
+        var edited = await fixture.Groups.GetByIdAsync(nl.Id);
+        edited.Visibility = false;
+        await fixture.Groups.SaveChangesAsync([edited]);
+
+        root.Permalink = "/about";
+        await fixture.Roots.SaveChangesAsync([root]);
+        Assert.Equal("Permalink,Visibility", (await fixture.LoadGroupAsync(nl.Id)).OverriddenFields);
+
+        var changed = await fixture.Roots.ResetOverridesAsync(root.Id, ["permalink"], TestContext.Current.CancellationToken);
+
+        Assert.Equal(["nl-NL"], changed);
+        var entity = await fixture.LoadGroupAsync(nl.Id);
+        Assert.Equal(("/about", "Visibility", false), (entity.Permalink, entity.OverriddenFields, entity.Visibility));
+        Assert.Equal("/about", (await fixture.LoadGroupAsync(en.Id)).Permalink);
+    }
+
+    [Fact]
     public async Task LinkAsync_ExistingLandingPage_KeepsItsDifferingValuesAsOverrides()
     {
         await using var fixture = await Fixture.CreateAsync();

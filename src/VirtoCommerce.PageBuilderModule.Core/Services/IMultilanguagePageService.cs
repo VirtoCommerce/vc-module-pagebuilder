@@ -32,6 +32,12 @@ public interface IMultilanguagePageService : ICrudService<MultilanguagePage>
     Task<GroupedPageBuilderPage> MarkUpToDateAsync(string groupId, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Applies the root values of the given fields to every language version, dropping their overrides of those fields.
+    /// </summary>
+    /// <returns>Languages whose versions changed.</returns>
+    Task<IList<string>> ResetOverridesAsync(string multilanguagePageId, IList<string> fields, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Language table: every store language (default language first) with its version status,
     /// followed by versions whose language was removed from the store.
     /// </summary>

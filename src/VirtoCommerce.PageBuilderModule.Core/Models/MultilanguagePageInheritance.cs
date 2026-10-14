@@ -91,6 +91,30 @@ public static class MultilanguagePageInheritance
         return changed;
     }
 
+    /// <summary>
+    /// Gives the language version the root values of the given fields, overridden or not, so they become inherited again.
+    /// </summary>
+    /// <returns><c>true</c> when the language version changed.</returns>
+    public static bool Reset(MultilanguagePage root, GroupedPageBuilderPage group, IEnumerable<string> fields)
+    {
+        ArgumentNullException.ThrowIfNull(root);
+        ArgumentNullException.ThrowIfNull(group);
+
+        var changed = false;
+
+        foreach (var field in fields.Select(Normalize).Where(x => x != null).Distinct())
+        {
+            var value = GetRootValue(root, field);
+            if (!Equals(value, GetGroupValue(group, field)))
+            {
+                SetGroupValue(group, field, value);
+                changed = true;
+            }
+        }
+
+        return changed;
+    }
+
     private static string Normalize(string field)
     {
         return InheritableFields.FirstOrDefault(x => string.Equals(x, field, StringComparison.OrdinalIgnoreCase));
