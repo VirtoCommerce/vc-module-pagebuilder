@@ -181,7 +181,7 @@ const {
   importData: options.value?.importData as PageExportData | undefined,
 });
 
-const { canSave, isModified, setBaseline, formMeta } = useBladeForm({
+const { canSave, isModified, setBaseline, markReady, formMeta } = useBladeForm({
   data: item,
   closeConfirmMessage: () => t("PAGE_BUILDER.PAGES.ALERTS.CLOSE_CONFIRMATION"),
   canSaveOverride: computed(() => !isReadOnly.value),
@@ -344,7 +344,11 @@ async function handleSave() {
 // Lifecycle
 onMounted(async () => {
   await loadGroup();
-  setBaseline();
+  if (options.value?.importData) {
+    markReady();
+  } else {
+    setBaseline();
+  }
   storeUrl.value = await getStoreUrl();
 });
 </script>

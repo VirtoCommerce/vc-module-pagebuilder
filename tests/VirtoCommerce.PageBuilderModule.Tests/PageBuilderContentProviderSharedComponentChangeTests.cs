@@ -6,7 +6,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using VirtoCommerce.PageBuilderModule.Core.Models;
@@ -288,16 +287,7 @@ public class PageBuilderContentProviderSharedComponentChangeTests
             inner.TrySaveContentAsync(expectedComponent, content, cancellationToken);
     }
 
-    private sealed class TestPlatformMemoryCache : IPlatformMemoryCache
-    {
-        private readonly MemoryCache _cache = new(new MemoryCacheOptions());
 
-        public ICacheEntry CreateEntry(object key) => _cache.CreateEntry(key);
-        public void Remove(object key) => _cache.Remove(key);
-        public bool TryGetValue(object key, out object value) => _cache.TryGetValue(key, out value);
-        public MemoryCacheEntryOptions GetDefaultCacheEntryOptions() => new();
-        public void Dispose() => _cache.Dispose();
-    }
 
     private sealed class TestGroupedPageService(TestDatabase database) : IGroupedPageService
     {

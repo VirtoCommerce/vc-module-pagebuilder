@@ -63,8 +63,8 @@ public class PagesMigrationService(
     {
         foreach (var group in groups)
         {
-            var page = group.Pages.FirstOrDefault(x => x.Status == PageStatuses.Draft)
-                       ?? group.Pages.FirstOrDefault(x => x.Status == PageStatuses.Published);
+            var page = PageBuilderPageSelection.Order(group.Pages)
+                .FirstOrDefault(x => x.Status == PageStatuses.Draft || x.Status == PageStatuses.Published);
 
             if (page == null)
             {

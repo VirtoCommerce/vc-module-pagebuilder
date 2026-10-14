@@ -49,6 +49,7 @@ export class MarkdownComponent extends BaseControlDirective<MarkdownDescriptor> 
         } else {
             value = event;
         }
-        this.onValueChanged(value);
+        this.controlValue.set(event);
+        this.valueChanged.emit(value);
     }
 }
