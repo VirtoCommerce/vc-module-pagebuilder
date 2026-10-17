@@ -41,7 +41,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                     ("designer/john/about-us-1a2b3c4", [Commit(DesignerSave, "2026-08-11T14:40:10Z", "designer: save /about-us.page")]),
                 ]));
 
-            var history = await Create(handler).GetHistoryAsync(Path, Query(), TestContext.Current.CancellationToken);
+            var history = await Create(handler).GetHistoryAsync("o/r", Path, Query(), TestContext.Current.CancellationToken);
 
             Assert.Equal(1, handler.RequestCount);
             Assert.Collection(history.Versions,
@@ -72,7 +72,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 branches: branchNames.Select(name =>
                     (name, new[] { Commit(BulkImport, "2026-07-29T11:29:46Z", "pages from dev environment: content", files: 366) })).ToArray()));
 
-            var history = await Create(handler).GetHistoryAsync(Path, Query(), TestContext.Current.CancellationToken);
+            var history = await Create(handler).GetHistoryAsync("o/r", Path, Query(), TestContext.Current.CancellationToken);
 
             var version = Assert.Single(history.Versions);
             Assert.Equal(BulkImport, version.Sha);
@@ -89,7 +89,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 published: [Commit(PublishedSeed, "2026-07-09T15:39:24Z", "feat: seed pages from the dev environment", files: 252)],
                 branches: [("designer/john/about-us-1a2b3c4", [Commit(PublishedSeed, "2026-07-09T15:39:24Z", "feat: seed pages from the dev environment", files: 252)])]));
 
-            var history = await Create(handler).GetHistoryAsync(Path, Query(), TestContext.Current.CancellationToken);
+            var history = await Create(handler).GetHistoryAsync("o/r", Path, Query(), TestContext.Current.CancellationToken);
 
             var version = Assert.Single(history.Versions);
             Assert.True(version.Published);
@@ -105,7 +105,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 published: [Commit(PublishedCanonical, "2026-07-09T20:37:43Z", "chore: canonical form", files: 252)],
                 branches: [("master", [Commit(PublishedCanonical, "2026-07-09T20:37:43Z", "chore: canonical form", files: 252)])]));
 
-            var history = await Create(handler).GetHistoryAsync(Path, Query(), TestContext.Current.CancellationToken);
+            var history = await Create(handler).GetHistoryAsync("o/r", Path, Query(), TestContext.Current.CancellationToken);
 
             var version = Assert.Single(history.Versions);
             Assert.True(version.Published);
@@ -123,7 +123,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                     ("designer/john/about-us-1a2b3c4", [Commit(DesignerSave, "2026-08-11T14:40:10Z", "designer: save /about-us.page", files: 1)]),
                 ]));
 
-            var history = await Create(handler).GetHistoryAsync(Path, Query(), TestContext.Current.CancellationToken);
+            var history = await Create(handler).GetHistoryAsync("o/r", Path, Query(), TestContext.Current.CancellationToken);
 
             Assert.True(history.Versions.Single(version => version.Sha == BulkImport).Bulk);
             Assert.False(history.Versions.Single(version => version.Sha == DesignerSave).Bulk);
@@ -136,7 +136,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             commit["changedFilesIfAvailable"] = null;
             var handler = Handler(Payload(published: [], branches: [("designer/john/about-us-1a2b3c4", [commit])]));
 
-            var history = await Create(handler).GetHistoryAsync(Path, Query(), TestContext.Current.CancellationToken);
+            var history = await Create(handler).GetHistoryAsync("o/r", Path, Query(), TestContext.Current.CancellationToken);
 
             var version = Assert.Single(history.Versions);
             Assert.Null(version.ChangedFiles);
@@ -158,7 +158,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
             var handler = Handler(Payload(published: [], branches: [("content/hero-copy", [external]), ("designer/john/about-us-1a2b3c4", [module])]));
 
-            var history = await Create(handler).GetHistoryAsync(Path, Query(), TestContext.Current.CancellationToken);
+            var history = await Create(handler).GetHistoryAsync("o/r", Path, Query(), TestContext.Current.CancellationToken);
 
             var fromClaude = history.Versions.Single(version => version.Sha == ExternalEdit);
             Assert.Equal("svetlana.tumanova@virtoworks.com", fromClaude.AuthorEmail);
@@ -180,7 +180,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 hasNextPage: true,
                 endCursor: "Y3Vyc29yOnYyOpK5"));
 
-            var history = await Create(handler).GetHistoryAsync(Path, Query(), TestContext.Current.CancellationToken);
+            var history = await Create(handler).GetHistoryAsync("o/r", Path, Query(), TestContext.Current.CancellationToken);
 
             Assert.True(history.Truncated);
             Assert.Equal("Y3Vyc29yOnYyOpK5", history.EndCursor);
@@ -191,7 +191,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         {
             var handler = Handler(Payload(published: [], branches: [("dependabot/npm_and_yarn/vite-6", [])]));
 
-            var history = await Create(handler).GetHistoryAsync(Path, Query(), TestContext.Current.CancellationToken);
+            var history = await Create(handler).GetHistoryAsync("o/r", Path, Query(), TestContext.Current.CancellationToken);
 
             Assert.Empty(history.Versions);
         }
@@ -204,7 +204,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             payload["data"]["repository"]["published"] = null;
             var handler = Handler(payload);
 
-            var history = await Create(handler).GetHistoryAsync(Path, Query(), TestContext.Current.CancellationToken);
+            var history = await Create(handler).GetHistoryAsync("o/r", Path, Query(), TestContext.Current.CancellationToken);
 
             Assert.DoesNotContain(history.Versions, version => version.Published);
             Assert.Single(history.Versions);
@@ -221,7 +221,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 o.PublishedHistoryDepth = 25;
             });
 
-            await Create(handler, options).GetHistoryAsync(Path, new GitHistoryQuery { BaseBranch = "master", After = "cursor" }, TestContext.Current.CancellationToken);
+            await Create(handler, options).GetHistoryAsync("o/r", Path, new GitHistoryQuery { BaseBranch = "master", After = "cursor" }, TestContext.Current.CancellationToken);
 
             var variables = JObject.Parse(handler.LastBody)["variables"];
             Assert.Equal("o", variables["owner"]);
@@ -239,7 +239,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         {
             var handler = Handler(Payload(published: [], branches: []));
 
-            await Create(handler).GetHistoryAsync(Path, new GitHistoryQuery { BaseBranch = "master", PublishedDepth = 5 }, TestContext.Current.CancellationToken);
+            await Create(handler).GetHistoryAsync("o/r", Path, new GitHistoryQuery { BaseBranch = "master", PublishedDepth = 5 }, TestContext.Current.CancellationToken);
 
             Assert.Equal(5, JObject.Parse(handler.LastBody)["variables"]["take"]);
         }
@@ -250,8 +250,8 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             var handler = Handler(Payload(published: [], branches: []));
             var history = Create(handler);
 
-            await history.GetHistoryAsync(Path, Query(), TestContext.Current.CancellationToken);
-            await history.GetHistoryAsync(Path, Query(), TestContext.Current.CancellationToken);
+            await history.GetHistoryAsync("o/r", Path, Query(), TestContext.Current.CancellationToken);
+            await history.GetHistoryAsync("o/r", Path, Query(), TestContext.Current.CancellationToken);
 
             Assert.Equal(1, handler.RequestCount);
         }
@@ -266,10 +266,10 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 Payload(published: [], branches: [("designer/john/about-us-1a2b3c4", [Commit(DesignerSave, "2026-08-11T14:40:10Z", "designer: save")])]));
             var history = Create(handler);
 
-            Assert.Empty((await history.GetHistoryAsync(Path, Query(), TestContext.Current.CancellationToken)).Versions);
-            history.Invalidate(Path);
+            Assert.Empty((await history.GetHistoryAsync("o/r", Path, Query(), TestContext.Current.CancellationToken)).Versions);
+            history.Invalidate("o/r", Path);
 
-            Assert.Single((await history.GetHistoryAsync(Path, Query(), TestContext.Current.CancellationToken)).Versions);
+            Assert.Single((await history.GetHistoryAsync("o/r", Path, Query(), TestContext.Current.CancellationToken)).Versions);
             Assert.Equal(2, handler.RequestCount);
         }
 
@@ -279,10 +279,10 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             var handler = Handler(Payload(published: [], branches: []), Payload(published: [], branches: []));
             var history = Create(handler);
 
-            await history.GetHistoryAsync(Path, Query(), TestContext.Current.CancellationToken);
-            await history.GetHistoryAsync("pages/contact-us.page", Query(), TestContext.Current.CancellationToken);
-            history.Invalidate(Path);
-            await history.GetHistoryAsync("pages/contact-us.page", Query(), TestContext.Current.CancellationToken);
+            await history.GetHistoryAsync("o/r", Path, Query(), TestContext.Current.CancellationToken);
+            await history.GetHistoryAsync("o/r", "pages/contact-us.page", Query(), TestContext.Current.CancellationToken);
+            history.Invalidate("o/r", Path);
+            await history.GetHistoryAsync("o/r", "pages/contact-us.page", Query(), TestContext.Current.CancellationToken);
 
             Assert.Equal(2, handler.RequestCount);
         }
@@ -298,7 +298,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             });
 
             var error = await Assert.ThrowsAsync<HttpRequestException>(() =>
-                Create(handler).GetHistoryAsync(Path, Query(), TestContext.Current.CancellationToken));
+                Create(handler).GetHistoryAsync("o/r", Path, Query(), TestContext.Current.CancellationToken));
 
             Assert.Contains("Could not resolve to a Repository", error.Message);
         }
@@ -309,7 +309,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             var handler = new RecordingHandler((HttpStatusCode.Unauthorized, "{ \"message\": \"Bad credentials\" }"));
 
             var error = await Assert.ThrowsAsync<HttpRequestException>(() =>
-                Create(handler).GetHistoryAsync(Path, Query(), TestContext.Current.CancellationToken));
+                Create(handler).GetHistoryAsync("o/r", Path, Query(), TestContext.Current.CancellationToken));
 
             Assert.Contains("Bad credentials", error.Message);
         }
@@ -319,8 +319,8 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         {
             var handler = Handler(Payload(published: [], branches: []));
 
-            await Assert.ThrowsAsync<InvalidOperationException>(() =>
-                Create(handler, Options(repository: "vc-content")).GetHistoryAsync(Path, Query(), TestContext.Current.CancellationToken));
+            await Assert.ThrowsAsync<ArgumentException>(() =>
+                Create(handler).GetHistoryAsync("vc-content", Path, Query(), TestContext.Current.CancellationToken));
 
             Assert.Equal(0, handler.RequestCount);
         }
@@ -331,7 +331,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             var handler = Handler(Payload(published: [], branches: []));
 
             await Assert.ThrowsAnyAsync<ArgumentException>(() =>
-                Create(handler).GetHistoryAsync(Path, new GitHistoryQuery(), TestContext.Current.CancellationToken));
+                Create(handler).GetHistoryAsync("o/r", Path, new GitHistoryQuery(), TestContext.Current.CancellationToken));
         }
 
         // ── helpers ────────────────────────────────────────────────────────────────────────────────

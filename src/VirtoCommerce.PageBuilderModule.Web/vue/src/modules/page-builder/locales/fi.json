@@ -1,0 +1,381 @@
+{
+  "PAGE_BUILDER": {
+    "MENU": {
+      "DRAFT_TITLE": "Luonnos",
+      "PENDING_TITLE": "Odottaa",
+      "ACTIVE_TITLE": "Aktiivinen",
+      "ARCHIVED_TITLE": "Arkistoitu",
+      "TITLE": "Kaikki sivut"
+    },
+    "PAGES": {
+      "LIST": {
+        "DRAFT_TITLE": "Luonnossivut",
+        "PENDING_TITLE": "Odottavat sivut",
+        "ACTIVE_TITLE": "Aktiiviset sivut",
+        "ARCHIVED_TITLE": "Arkistoidut sivut",
+        "TITLE": "Kaikki sivut",
+        "TOOLBAR": {
+          "ADD": "Lisää",
+          "REFRESH": "Päivitä",
+          "REMOVE": "Arkistoi",
+          "LOAD": "Lataa sisältö",
+          "ASSETS": "Resurssit",
+          "SHARED_COMPONENTS": "Jaetut komponentit"
+        },
+        "SEARCH": {
+          "PLACEHOLDER": "Hae avainsanoja"
+        },
+        "TABLE": {
+          "TOTALS": "Määrä:",
+          "HEADER": {
+            "NAME": "Nimi",
+            "PERMALINK": "Pysyvä linkki",
+            "MODIFIED_DATE": "Muokattu",
+            "CULTURE_NAME": "Kieli",
+            "MODIFIED_BY": "Muokkaaja",
+            "STATUS": "Tila"
+          },
+          "FILTER": {
+            "STATUS": "Tila",
+            "APPLY": "Käytä",
+            "RESET": "Nollaa"
+          },
+          "EMPTY": {
+            "TITLE": "Sisältöä ei ole vielä",
+            "ACTION": "Lisää sisältöä"
+          },
+          "NOT_FOUND": {
+            "TITLE": "Sisältöä ei löytynyt.",
+            "ACTION": "Nollaa haku"
+          },
+          "ACTIONS": {
+            "DELETE": "Arkistoi"
+          }
+        },
+        "EMPTY": {
+          "NO_ITEMS": "Sivuja ei ole vielä"
+        },
+        "NOT_FOUND": {
+          "EMPTY": "Sivuja ei löytynyt",
+          "RESET": "Nollaa"
+        },
+        "STORE_TITLE": "Sivut: {store}"
+      },
+      "DETAILS": {
+        "TITLE": {
+          "DETAILS": "{name} tiedot",
+          "NEW": "Uusi sivu",
+          "LOADING": "Ladataan..."
+        },
+        "TOOLBAR": {
+          "SAVE": "Tallenna",
+          "DELETE": "Arkistoi",
+          "PREVIEW": "Esikatselu",
+          "DESIGNER": "Avaa suunnittelija",
+          "PUBLISH": "Julkaise",
+          "UNPUBLISH": "Peruuta julkaisu",
+          "DOWNLOAD_CONTENT": "Tallenna sisältö",
+          "CLONE": "Kloonaa"
+        },
+        "FIELDS": {
+          "NAME": "Nimi",
+          "PERMALINK": "Pysyvä linkki",
+          "CONTENT": "Sisältö",
+          "GUID": "GUID",
+          "CULTURE_NAME": "Kieli",
+          "SEO_TITLE": "Sivun otsikko",
+          "SEO_DESCRIPTION": "Metakuvaus",
+          "SEO_KEYWORDS": "Metasanat",
+          "VISIBILITY": "Näkyvyys",
+          "START_DATE": "Alkamispäivä",
+          "START_DATE_HINT": "Sivu tulee näkyviin",
+          "END_DATE": "Päättymispäivä",
+          "END_DATE_HINT": "Sivu piilotetaan",
+          "USER_GROUPS": "Käyttäjäryhmät",
+          "ORGANIZATION": "Organisaatio"
+        },
+        "TOOLTIPS": {
+          "VISIBILITY": "Jos näkyvyys on pois päältä, sivu on käytettävissä vain rekisteröityneille käyttäjille."
+        },
+        "SECTIONS": {
+          "BASIC_INFORMATION": "Perustiedot",
+          "SEO": "Hakukonelistaus",
+          "ADVANCED_OPTIONS": "Lisäasetukset",
+          "PERSONALIZATION_ACCESS_CONTROL": {
+            "TITLE": "Personointi ja käyttöoikeuksien hallinta",
+            "DESCRIPTION": "Rajoita sivun näkyvyys tietyille kohderyhmille",
+            "VISIBILITY_TAG": "Näkyvä"
+          },
+          "SCHEDULING": {
+            "TAG_TEXT": "Ajastettu",
+            "TITLE": "Ajastus",
+            "DESCRIPTION": "Määritä, milloin tämä sivu näytetään"
+          }
+        }
+      },
+      "ALERTS": {
+        "CLOSE_CONFIRMATION": "Sinulla on tallentamattomia muutoksia. Suljetaanko silti?",
+        "DELETE": "Haluatko varmasti arkistoida tämän sivun?",
+        "DELETE_SELECTED_CONFIRMATION": {
+          "MESSAGE": "Haluatko varmasti arkistoida {count} valittua sivua?",
+          "ALL": "kaikki {totalCount}"
+        },
+        "UNPUBLISH_WITH_DRAFT": "Sivua, jossa on muutoksia, ei voi peruuttaa julkaisusta.",
+        "DOWNLOAD_SUCCESS": "Sisältö tallennettu tiedostoon onnistuneesti",
+        "CLONE_SUCCESS": "Sivu kloonattu onnistuneesti",
+        "LOAD_CONTENT_SUCCESS": "Sisältö ladattu onnistuneesti",
+        "SAVE_SUCCESS": "Sivu tallennettu onnistuneesti",
+        "PUBLISH_SUCCESS": "Sivu julkaistu onnistuneesti",
+        "UNPUBLISH_SUCCESS": "Sivun julkaisu peruutettu onnistuneesti",
+        "DELETE_SUCCESS": "Sivu arkistoitu onnistuneesti"
+      }
+    },
+    "STATUS": {
+      "DRAFT": "Luonnos",
+      "ARCHIVED": "Arkistoitu",
+      "PUBLISHED": "Julkaistu",
+      "HAS_CHANGES": "Luonnos muutoksilla",
+      "SCHEDULED": "Ajastettu",
+      "PERSONALIZED": "Personoitu"
+    },
+    "LIFECYCLE": {
+      "DRAFT": "Luonnos",
+      "PENDING": "Tarkistettavana",
+      "ACTIVE": "Julkaistu",
+      "ARCHIVED": "Arkistoitu"
+    },
+    "SITE_TAB": {
+      "TITLE": "Sivut",
+      "SHOW": "Näytä",
+      "FILTER": {
+        "ALL": "Kaikki sivut",
+        "DRAFT": "Luonnokset",
+        "PENDING": "Tarkistettavana",
+        "ACTIVE": "Julkaistu",
+        "ARCHIVED": "Arkistoitu"
+      },
+      "NEW_PAGE": "Uusi sivu",
+      "EMPTY": "Täällä ei ole vielä sivuja.",
+      "DETAILS": "Sivun tiedot"
+    },
+    "DESIGNER": {
+      "TITLE": "Suunnittelija: {name}",
+      "SECTIONS": "Osiot",
+      "GROUPS": {
+        "HEADER": "Ylätunniste",
+        "TEMPLATE": "Malli",
+        "FOOTER": "Alatunniste"
+      },
+      "PAGE_SETTINGS": "Sivun asetukset",
+      "BLOCKS": "Lohkot",
+      "DRAG": "Järjestä vetämällä",
+      "SHOW": "Näytä",
+      "HIDE": "Piilota",
+      "ADD_SECTION": "Lisää osio",
+      "ADD_BLOCK": "Lisää lohko",
+      "BACK": "Takaisin",
+      "SEARCH_SECTIONS": "Hae osioita",
+      "NO_SECTIONS": "Ei vastaavia osioita",
+      "SHARED": "Jaettu",
+      "MISSING": "Puuttuu",
+      "SHARED_COMPONENT": "Jaettu komponentti",
+      "SHARED_INFO": "”{name}” on jaettu komponentti, jota käytetään {count} sivulla. Sen muokkaaminen muuttaa ne kaikki.",
+      "SHARED_MISSING": "Tätä jaettua komponenttia ei enää ole. Poista se sivulta.",
+      "DETACH": "Irrota",
+      "DETACH_HINT": "Korvaa sen kopiolla sen osioista, jota käyttää vain tämä sivu.",
+      "MORE": "Lisää toimintoja",
+      "CONTENT": "Sisältö",
+      "NO_SETTINGS": "Täällä ei ole asetettavaa.",
+      "DUPLICATE": "Monista",
+      "REMOVE": "Poista",
+      "REMOVE_SECTION": "Poista osio",
+      "REMOVE_BLOCK": "Poista lohko",
+      "ADD_ITEM": "Lisää",
+      "ITEM": "Kohde {number}",
+      "MOVE_UP": "Siirrä ylös",
+      "MOVE_DOWN": "Siirrä alas",
+      "SELECT_ASSET": "Valitse",
+      "ASSET_URL": "tai liitä URL-osoite",
+      "LINK_ANCHOR": "Linkki ankkuriin",
+      "STATUS": {
+        "UNSAVED": "Tallentamattomia muutoksia",
+        "DRAFT": "Luonnos",
+        "PUBLISHED": "Julkaistu",
+        "CHANGES": "Julkaistu · luonnosmuutoksia",
+        "PENDING": "Julkaistaan…",
+        "AWAITING": "Odottaa yhdistämistä",
+        "SHARED": "Jaettu komponentti"
+      },
+      "DEVICE": "Esikatselun koko",
+      "DESKTOP": "Työpöytä",
+      "TABLET": "Tabletti",
+      "PHONE": "Mobiili",
+      "FULLSCREEN": "Koko näyttö",
+      "FULL_VIEW": "Koko näkymä",
+      "EXIT_FULL_VIEW": "Poistu koko näkymästä",
+      "DESELECT": "Sulje",
+      "INSPECTOR_ON": "Ota tarkastin käyttöön",
+      "INSPECTOR_OFF": "Poista tarkastin käytöstä",
+      "PREVIEW": "Sivun esikatselu",
+      "PREVIEW_LOADING": "Sivustoa ladataan…",
+      "PREVIEW_SLOW": "Sivuston lataus kestää. Tarkista, että verkkokauppa osoitteessa {url} on käynnissä, ja lataa sitten uudelleen.",
+      "RELOAD_PREVIEW": "Lataa uudelleen",
+      "NO_STOREFRONT": "Ei esikatselua: sivustolla ei ole kaupan URL-osoitetta. Määritä se sivuston asetuksissa ja avaa sivu uudelleen.",
+      "LOAD_FAILED": "Sivua ei voitu ladata. Se on saatettu poistaa, tai sinulla ei ole siihen käyttöoikeutta.",
+      "SAVE": "Tallenna",
+      "SAVING": "Tallennetaan…",
+      "UNDO": "Kumoa",
+      "REDO": "Tee uudelleen",
+      "PUBLISH": "Julkaise",
+      "UNPUBLISH": "Peruuta julkaisu",
+      "OPEN_PREVIEW": "Esikatselu",
+      "CONFLICT": "Tätä sivua muutettiin, kun muokkasit sitä. Avaa se uudelleen saadaksesi uusimman version; muutoksiasi ei tallennettu.",
+      "NO_VERSION": "Tätä sivua ei voi tallentaa: sen versio on tuntematon. Avaa se uudelleen ja yritä uudelleen.",
+      "SAVE_FAILED": "Sivua ei voitu tallentaa.",
+      "PUBLISH_FAILED": "Sivua ei voitu julkaista.",
+      "DISCARD": "Sinulla on tallentamattomia muutoksia. Suljetaanko suunnittelija silti?",
+      "CONFIRM_DISCARD_UNSAVED": "Hylätäänkö tallentamattomat muutokset? Sivu palaa viimeksi tallennettuun tilaan.",
+      "PICK_ASSET": "Valitse tiedosto",
+      "CONFIRM_REMOVE": "Poistetaanko ”{name}” sivulta?",
+      "SHARED_COMPONENTS": "Jaetut komponentit",
+      "MODE_SHARED": "Jaetut",
+      "EDIT_SHARED": "Muokkaa jaettua komponenttia",
+      "EDITING_SHARED": "Muokkaat jaettua komponenttia: tallennus muuttaa sen kaikilla sivuilla, jotka käyttävät sitä.",
+      "SHARED_PANEL": {
+        "HINT": "Osiot, joita käytät useilla sivuilla. Muokkaa yhtä, niin se muuttuu kaikkialla.",
+        "SEARCH": "Hae jaettuja komponentteja",
+        "INSERT": "Lisää sivulle",
+        "EDIT": "Muokkaa",
+        "EMPTY": "Jaettuja komponentteja ei vielä ole. Valitse Osiot-kohdassa Valitse, merkitse osiot ja tallenna ne jaetuksi komponentiksi."
+      },
+      "USED_ON": "{count} sivu(a)",
+      "ARCHIVED": "Tämä sivu on arkistoitu. Palauta se muokataksesi sitä suunnittelijassa.",
+      "PUBLISHING": "Julkaistaan…",
+      "RETRY_PUBLISH": "Yritä julkaisua uudelleen",
+      "PROMOTE": "Siirrä tuotantoon",
+      "PROMOTE_FAILED": "Sivua ei voitu siirtää tuotantoon.",
+      "PUBLISH_CONFLICT": "Joku julkaisi sillä välin sivusta toisen version. Julkaistaanko versiosi sen päälle?",
+      "NOTHING_PUBLISHED": "Mitään ei julkaistu. Avaa sivu uudelleen nähdäksesi toisen version.",
+      "HISTORY": {
+        "TITLE": "Versiohistoria",
+        "OTHERS": "Muiden henkilöiden julkaisemattomat versiot: {count}",
+        "EMPTY": "Versioita ei ole vielä: tallenna sivu luodaksesi ensimmäisen.",
+        "FAILED": "Versioita ei voitu ladata.",
+        "PUBLISHED": "Julkaistu",
+        "YOUR_DRAFT": "Luonnoksesi",
+        "PREVIEW": "Esikatselu",
+        "RESTORE": "Palauta",
+        "SAVE_FIRST": "Tallenna tai kumoa muutokset ensin",
+        "MORE": "Näytä vanhemmat versiot",
+        "CONFIRM": "Tehdäänkö versiosta {version} luonnoksesi? Julkaise se sen jälkeen ottaaksesi sen käyttöön.",
+        "RESTORED": "Versio on nyt luonnoksesi",
+        "RESTORE_FAILED": "Versiota ei voitu palauttaa.",
+        "CLOSE": "Sulje",
+        "LATEST": "Uusin",
+        "PREVIEWING": "Esikatselussa",
+        "EXIT": "Poistu",
+        "DISCARD": "Hylkää kaikki muutokset",
+        "CONFIRM_DISCARD": "Hylätäänkö kaikki julkaisemattomat muutokset? Sivu palaa julkaistuun versioonsa.",
+        "DISCARDED": "Julkaisemattomat muutokset hylätty",
+        "DISCARD_FAILED": "Muutoksia ei voitu hylätä.",
+        "PREVIEW_FAILED": "Tätä versiota ei voitu näyttää.",
+        "VIEWING": "Katsellaan versiota {version} · {date}",
+        "BACK": "Takaisin luonnokseen"
+      },
+      "THEME": {
+        "TITLE": "Teema",
+        "PRESET": "Esiasetus",
+        "PRESET_PLACEHOLDER": "Valitse esiasetus",
+        "APPLY": "Käytä",
+        "EMPTY": "Tässä teemassa ei ole muokattavia asetuksia.",
+        "SAVE_FAILED": "Teeman asetuksia ei voitu tallentaa."
+      },
+      "CLIPBOARD": {
+        "COPY": "Kopioi",
+        "PASTE": "Liitä",
+        "COPIED": "Kopioitu: liitä se mille tahansa sivuston sivulle",
+        "COPY_FAILED": "Selain ei sallinut kopiointia.",
+        "PASTE_TITLE": "Liitä osio tai lohko",
+        "PASTE_HINT": "Selain ei sallinut sivun lukea leikepöytää: liitä kopioitu sisältö tähän.",
+        "INVALID": "Leikepöydällä ei ole kopioitua osiota tai lohkoa.",
+        "BLOCK_NEEDS_SECTION": "Valitse osio, johon lohko liitetään.",
+        "BLOCK_NOT_ALLOWED": "Valittuun osioon ei voi lisätä tätä lohkoa."
+      },
+      "SELECT_MODE": {
+        "SELECT": "Valitse",
+        "DONE": "Valmis",
+        "COUNT": "{count} valittu",
+        "DELETE": "Poista",
+        "CONFIRM_DELETE": "Poistetaanko {count} osiota sivulta?",
+        "SAVE_SHARED": "Tallenna jaettuna komponenttina",
+        "SAVE_SHARED_HINT": "Valitut osiot muuttuvat jaetuksi komponentiksi: muokkaa sitä kerran, ja kaikki sitä käyttävät sivut muuttuvat.",
+        "NAME": "Nimi",
+        "SHARED_SAVED": "”{name}” on nyt jaettu komponentti",
+        "SHARED_FAILED": "Jaettua komponenttia ei voitu luoda.",
+        "NOT_ADJACENT": "Valitse vierekkäiset osiot.",
+        "HAS_SHARED": "Jaettu komponentti ei voi sisältää toista: poista sen valinta."
+      }
+    },
+    "WIDGETS": {
+      "STORE": "Page Builder"
+    },
+    "GIT": {
+      "TITLE": "Versiohistoria",
+      "WIDGET": "Historia",
+      "ON": "Käytössä",
+      "OFF": "Pois käytöstä",
+      "STATUS": "Tila",
+      "REPOSITORY": "Tietovarasto",
+      "BRANCH": "Haara",
+      "LAST_CHANGE": "Viimeisin julkaistu muutos",
+      "NOT_CREATED": "(ei vielä luotu)",
+      "TEST": "Testaa yhteys",
+      "TURN_ON": "Ota historia käyttöön",
+      "TURN_OFF": "Poista historia käytöstä",
+      "CONFIRM_OFF": "Poistetaanko tämän sivuston versiohistoria käytöstä? Sivut tallennetaan taas alustan tallennustilaan. Repositorio ja sen historia säilyvät GitHubissa.",
+      "HINT": {
+        "OFF": "Ota historia käyttöön, niin tämän sivuston sivut säilytetään repositoriossa {repository}: jokainen tallennus säilyy versiona, julkaisu yhdistää sen ja minkä tahansa aiemman version voi palauttaa.",
+        "MISSING": "Sivuston repositoriota ei ole vielä olemassa. ”Ota historia käyttöön” luo sen.",
+        "ON": "Jokainen tämän sivuston sivujen versio säilytetään GitHubissa. Kun historia poistetaan käytöstä, sivut palaavat alustan tallennustilaan; repositorio ja sen historia säilyvät."
+      },
+      "SETUP": {
+        "INTRO": "Versiohistoria säilyttää jokaisen tämän sivuston sivuihin tehdyn muutoksen tekijöineen ja aikoineen, joten minkä tahansa aiemman version voi palauttaa. Sivut säilytetään sivuston omassa yksityisessä GitHub-repositoriossa.",
+        "CONFIGURATION": "Tämä alusta saa GitHub-yhteytensä asetuksistaan, jotka ovat puutteelliset. Pyydä alustan ylläpitäjää täydentämään ne.",
+        "ORGANIZATION": "GitHub-organisaatio",
+        "ORGANIZATION_HINT": "Sisältää yhden yksityisen repositorion sivustoa kohden. Käytä jokaiselle ympäristölle omaa organisaatiota, esimerkiksi acme-sites ja acme-sites-staging.",
+        "NEW_ORGANIZATION": "Eikö organisaatiota vielä ole? Luo se GitHubissa",
+        "STEP_CREATE": "GitHub avautuu uuteen välilehteen, jossa on organisaatiolle Page Builder -sovellus. Valitse ”Create GitHub App”.",
+        "STEP_INSTALL": "Asenna sovellus organisaatioon ja anna sille pääsy kaikkiin repositorioihin.",
+        "STEP_RETURN": "GitHub palauttaa sinut alustalle. Avaa sitten sivuston Historia ja valitse ”Ota historia käyttöön”.",
+        "CREATE_APP": "Luo GitHub-sovellus",
+        "INSTALL": "Asenna sovellus organisaatioon {organization}",
+        "AGAIN": "Määritä uudelleen"
+      },
+      "CONNECT_FIRST": "Tätä alustaa ei ole vielä yhdistetty GitHubiin. Yhdistä se kerran Sivustot-paneelista ja ota sitten historia käyttöön täällä.",
+      "OPEN_GITHUB": "GitHub-yhteys"
+    },
+    "GITHUB": {
+      "TITLE": "GitHub",
+      "INTRO": "Yhdistä alusta kerran GitHub-organisaatioon. Jokainen sivusto säilyttää sen jälkeen sivujensa versiot omassa yksityisessä repositoriossaan siellä.",
+      "CONNECTED_HINT": "Jokainen sivusto säilyttää sivujensa versiot omassa yksityisessä repositoriossaan organisaatiossa {organization}. Ota historia käyttöön sivuston Historia-paneelista.",
+      "STATUS": "Tila",
+      "CONNECTED": "Yhdistetty",
+      "FAILING": "Ei toimi",
+      "ORGANIZATION": "Organisaatio",
+      "APP": "GitHub-sovellus",
+      "FROM_CONFIGURATION": "Alustan asetuksista",
+      "NEW_SITES": "Uudet sivustot",
+      "NEW_SITES_ON": "Saavat historian automaattisesti",
+      "NEW_SITES_OFF": "Otetaan käyttöön sivusto kerrallaan",
+      "MANAGE_ACCESS": "Hallitse repositorioiden käyttöoikeuksia",
+      "CANCEL": "Peruuta",
+      "SITES": "Sivustot",
+      "HISTORY_ON": "Historia käytössä",
+      "HISTORY_OFF": "Historia pois käytöstä",
+      "NOT_CONNECTED": "Ei yhdistetty",
+      "WIDGET_ON": "Historia käytössä",
+      "WIDGET_OFF": "Ota historia käyttöön",
+      "ALL_SITES": "Kaikki sivustot"
+    }
+  }
+}

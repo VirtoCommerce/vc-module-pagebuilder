@@ -1,0 +1,129 @@
+{
+  "ASSET_LIBRARY": {
+    "PAGINATION": {
+      "PAGE_SIZE": "Éléments par page"
+    },
+    "SORT": {
+      "LABEL": "Trier par",
+      "NAME_ASC": "Nom (A-Z)",
+      "NAME_DESC": "Nom (Z-A)",
+      "MODIFIED": "Modifiés récemment",
+      "SIZE": "Taille décroissante"
+    },
+    "MENU": {
+      "TITLE": "Bibliothèque de ressources"
+    },
+    "TITLE": "Bibliothèque de ressources",
+    "COUNTER": "{count} ressources",
+    "BREADCRUMBS": {
+      "ROOT": "Page Builder"
+    },
+    "BADGES": {
+      "FOLDER": "Dossier",
+      "REFERENCES": "{count} réf."
+    },
+    "TABLE": {
+      "NAME": "Nom",
+      "TYPE": "Type",
+      "SIZE": "Taille",
+      "REFERENCES": "Réfs",
+      "MODIFIED": "Modifié"
+    },
+    "VIEW": {
+      "GRID": "Vue grille",
+      "TABLE": "Vue tableau"
+    },
+    "TOOLBAR": {
+      "REFRESH": "Actualiser",
+      "UPLOAD": "Téléverser",
+      "CREATE_FOLDER": "Créer un dossier",
+      "DELETE": "Supprimer",
+      "SEARCH_PLACEHOLDER": "Rechercher des ressources..."
+    },
+    "ACTIONS": {
+      "COPY_URL": "Copier l’URL",
+      "DELETE": "Supprimer"
+    },
+    "DROP": {
+      "UPLOAD_HERE": "Déposez les fichiers ici pour les téléverser"
+    },
+    "DETAILS": {
+      "EMPTY": "Sélectionnez un fichier pour afficher ses détails.",
+      "FILE_DETAILS": "Détails du fichier",
+      "CLOSE": "Fermer",
+      "SIZE": "Taille",
+      "DIMENSIONS": "Dimensions",
+      "TYPE": "Type",
+      "MODIFIED": "Modifié",
+      "UPLOADED": "Téléversé",
+      "PATH": "Chemin",
+      "USED_ON": "Utilisé dans ({count})",
+      "PAGES": "Pages",
+      "SHARED_COMPONENTS": "Composants partagés",
+      "NO_REFERENCES": "Non utilisé dans les pages Page Builder ni dans les composants partagés.",
+      "URL": "URL",
+      "COPY_URL": "Copier l’URL",
+      "REPLACE": "Remplacer",
+      "DELETE": "Supprimer",
+      "NOT_AVAILABLE": "N/D"
+    },
+    "EMPTY": {
+      "TITLE": "Aucune ressource dans ce dossier pour le moment",
+      "DESCRIPTION": "Téléversez des fichiers ou créez un dossier dans la zone de ressources Page Builder de la boutique.",
+      "NO_STORE": "Le contexte de la boutique est manquant"
+    },
+    "CREATE_FOLDER": {
+      "TITLE": "Créer un dossier",
+      "NAME_LABEL": "Nom du dossier",
+      "NAME_PLACEHOLDER": "Saisir le nom du dossier",
+      "CANCEL": "Annuler",
+      "CREATE": "Créer",
+      "VALIDATION": {
+        "DASH_CONSECUTIVE": "Le nom du dossier ne doit pas contenir de tirets consécutifs.",
+        "DASH_END": "Le nom du dossier ne doit pas se terminer par un tiret.",
+        "DASH_START": "Le nom du dossier ne doit pas commencer par un tiret.",
+        "INVALID_CHARACTERS": "Le nom du dossier ne peut contenir que des lettres minuscules, des chiffres, des espaces et des tirets simples.",
+        "MAX_LENGTH": "Le nom du dossier doit contenir au maximum 63 caractères. Vous avez saisi {count} caractères.",
+        "MIN_LENGTH": "Le nom du dossier doit contenir au moins 3 caractères. Vous avez saisi {count} caractères."
+      }
+    },
+    "CONFIRM": {
+      "DELETE_SINGLE": "Supprimer {name} ?",
+      "DELETE_SELECTED": "Supprimer {count} ressource(s) sélectionnée(s) ?",
+      "DELETE_USED_ONE": "Supprimer {name} ? Il est utilisé dans 1 élément Page Builder.",
+      "DELETE_USED_MANY": "Supprimer {name} ? Il est utilisé dans {count} éléments Page Builder."
+    },
+    "OVERWRITE": {
+      "TITLE": "Conflit de nom de fichier",
+      "MESSAGE_UNUSED": "{name} n'est utilisé sur aucune page Page Builder. Son remplacement mettra à jour le fichier existant.",
+      "MESSAGE_USED_ONE": "{name} est utilisé sur 1 page Page Builder. Son remplacement modifiera la ressource sur cette page.",
+      "MESSAGE_USED_MANY": "{name} est utilisé sur {count} pages Page Builder. Son remplacement modifiera la ressource sur toutes ces pages.",
+      "MESSAGE_BATCH_DUPLICATE": "Un autre fichier de ce téléversement porte déjà le nom {name}. Si vous conservez le même nom, seul le dernier fichier sera téléversé.",
+      "MESSAGE_USAGE_UNKNOWN": "Impossible de déterminer si {name} est utilisé sur des pages Page Builder. Son remplacement peut modifier les pages qui utilisent cette ressource.",
+      "AFFECTED_PAGES": "Pages Page Builder concernées",
+      "UPLOAD_AS_LABEL": "Téléverser sous",
+      "UPLOAD_AS": "Téléverser sous",
+      "REPLACE": "Remplacer",
+      "CANCEL": "Annuler",
+      "VALIDATION": {
+        "REQUIRED": "Le nom du fichier est obligatoire.",
+        "INVALID": "Le nom du fichier ne doit pas contenir de séparateurs de chemin.",
+        "COLLISION": "{name} existe déjà dans ce dossier. Saisissez un autre nom de fichier."
+      }
+    },
+    "NOTIFICATIONS": {
+      "FOLDER_CREATED": "Dossier créé avec succès",
+      "UPLOADED": "Ressources téléversées avec succès",
+      "UPLOAD_CANCELED": "Téléversement annulé. Aucun fichier n’a été téléversé.",
+      "REPLACED": "Ressource remplacée avec succès",
+      "DELETED": "Ressources supprimées avec succès",
+      "URL_COPIED": "URL de la ressource copiée avec succès",
+      "COPY_FAILED": "Impossible de copier l’URL dans le presse-papiers",
+      "ERROR_GENERIC": "Échec de l’opération sur les ressources"
+    },
+    "PICK": {
+      "HINT": "Choisissez un fichier ou importez-en un",
+      "SELECT": "Sélectionner"
+    }
+  }
+}

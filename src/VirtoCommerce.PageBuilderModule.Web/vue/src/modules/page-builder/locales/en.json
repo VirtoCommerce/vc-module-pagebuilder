@@ -1,0 +1,381 @@
+{
+  "PAGE_BUILDER": {
+    "MENU": {
+      "DRAFT_TITLE": "Draft",
+      "PENDING_TITLE": "Pending",
+      "ACTIVE_TITLE": "Active",
+      "ARCHIVED_TITLE": "Archived",
+      "TITLE": "All Pages"
+    },
+    "PAGES": {
+      "LIST": {
+        "DRAFT_TITLE": "Draft pages",
+        "PENDING_TITLE": "Pending pages",
+        "ACTIVE_TITLE": "Active pages",
+        "ARCHIVED_TITLE": "Archived pages",
+        "TITLE": "All pages",
+        "TOOLBAR": {
+          "ADD": "Add",
+          "REFRESH": "Refresh",
+          "REMOVE": "Archive",
+          "LOAD": "Load content",
+          "ASSETS": "Assets",
+          "SHARED_COMPONENTS": "Shared components"
+        },
+        "SEARCH": {
+          "PLACEHOLDER": "Search keywords"
+        },
+        "TABLE": {
+          "TOTALS": "Count:",
+          "HEADER": {
+            "NAME": "Name",
+            "PERMALINK": "Permalink",
+            "MODIFIED_DATE": "Modified",
+            "CULTURE_NAME": "Language",
+            "MODIFIED_BY": "Modified by",
+            "STATUS": "Status"
+          },
+          "FILTER": {
+            "STATUS": "Status",
+            "APPLY": "Apply",
+            "RESET": "Reset"
+          },
+          "EMPTY": {
+            "TITLE": "There are no content yet",
+            "ACTION": "Add content"
+          },
+          "NOT_FOUND": {
+            "TITLE": "No content found.",
+            "ACTION": "Reset search"
+          },
+          "ACTIONS": {
+            "DELETE": "Archive"
+          }
+        },
+        "EMPTY": {
+          "NO_ITEMS": "There are no pages yet"
+        },
+        "NOT_FOUND": {
+          "EMPTY": "No pages found",
+          "RESET": "Reset"
+        },
+        "STORE_TITLE": "{store} pages"
+      },
+      "DETAILS": {
+        "TITLE": {
+          "DETAILS": "{name} details",
+          "NEW": "New page",
+          "LOADING": "Loading..."
+        },
+        "TOOLBAR": {
+          "SAVE": "Save",
+          "DELETE": "Archive",
+          "PREVIEW": "Preview",
+          "DESIGNER": "Edit in designer",
+          "PUBLISH": "Publish",
+          "UNPUBLISH": "Unpublish",
+          "DOWNLOAD_CONTENT": "Save content",
+          "CLONE": "Clone"
+        },
+        "FIELDS": {
+          "NAME": "Name",
+          "PERMALINK": "Permalink",
+          "CONTENT": "Content",
+          "GUID": "GUID",
+          "CULTURE_NAME": "Language",
+          "SEO_TITLE": "Page title",
+          "SEO_DESCRIPTION": "Meta description",
+          "SEO_KEYWORDS": "Meta keywords",
+          "VISIBILITY": "Visibility",
+          "START_DATE": "Start date",
+          "START_DATE_HINT": "Page becomes visible",
+          "END_DATE": "End date",
+          "END_DATE_HINT": "Page becomes hidden",
+          "USER_GROUPS": "User groups",
+          "ORGANIZATION": "Organization"
+        },
+        "TOOLTIPS": {
+          "VISIBILITY": "If Visibility is off the page will be available only for registered users."
+        },
+        "SECTIONS": {
+          "BASIC_INFORMATION": "Basic information",
+          "SEO": "Search engine listing",
+          "ADVANCED_OPTIONS": "Advanced options",
+          "PERSONALIZATION_ACCESS_CONTROL": {
+            "TITLE": "Personalization & Access control",
+            "DESCRIPTION": "Limit page visibility to specific audiences",
+            "VISIBILITY_TAG": "Visible"
+          },
+          "SCHEDULING": {
+            "TAG_TEXT": "Scheduled",
+            "TITLE": "Scheduling",
+            "DESCRIPTION": "Set when this page should be visible"
+          }
+        }
+      },
+      "ALERTS": {
+        "CLOSE_CONFIRMATION": "You have unsaved changes. Close anyway?",
+        "DELETE": "Are you sure you want to archive this page?",
+        "DELETE_SELECTED_CONFIRMATION": {
+          "MESSAGE": "Are you sure you want to archive {count} selected pages?",
+          "ALL": "all {totalCount}"
+        },
+        "UNPUBLISH_WITH_DRAFT": "Can't unpublish a page that has changes.",
+        "DOWNLOAD_SUCCESS": "Content saved to file successfully",
+        "CLONE_SUCCESS": "Page cloned successfully",
+        "LOAD_CONTENT_SUCCESS": "Content loaded successfully",
+        "SAVE_SUCCESS": "Page saved successfully",
+        "PUBLISH_SUCCESS": "Page published successfully",
+        "UNPUBLISH_SUCCESS": "Page unpublished successfully",
+        "DELETE_SUCCESS": "Page archived successfully"
+      }
+    },
+    "STATUS": {
+      "DRAFT": "Draft",
+      "ARCHIVED": "Archived",
+      "PUBLISHED": "Published",
+      "HAS_CHANGES": "Has draft with changes",
+      "SCHEDULED": "Scheduled",
+      "PERSONALIZED": "Personalized"
+    },
+    "LIFECYCLE": {
+      "DRAFT": "Draft",
+      "PENDING": "In review",
+      "ACTIVE": "Published",
+      "ARCHIVED": "Archived"
+    },
+    "SITE_TAB": {
+      "TITLE": "Pages",
+      "SHOW": "Show",
+      "FILTER": {
+        "ALL": "All pages",
+        "DRAFT": "Drafts",
+        "PENDING": "In review",
+        "ACTIVE": "Published",
+        "ARCHIVED": "Archived"
+      },
+      "NEW_PAGE": "New page",
+      "EMPTY": "No pages here yet.",
+      "DETAILS": "Page details"
+    },
+    "DESIGNER": {
+      "TITLE": "Designer: {name}",
+      "SECTIONS": "Sections",
+      "GROUPS": {
+        "HEADER": "Header",
+        "TEMPLATE": "Template",
+        "FOOTER": "Footer"
+      },
+      "PAGE_SETTINGS": "Page settings",
+      "BLOCKS": "Blocks",
+      "DRAG": "Drag to reorder",
+      "SHOW": "Show",
+      "HIDE": "Hide",
+      "ADD_SECTION": "Add section",
+      "ADD_BLOCK": "Add block",
+      "BACK": "Back",
+      "SEARCH_SECTIONS": "Search sections",
+      "NO_SECTIONS": "No sections match",
+      "SHARED": "Shared",
+      "MISSING": "Missing",
+      "SHARED_COMPONENT": "Shared component",
+      "SHARED_INFO": "\"{name}\" is a shared component, used on {count} page(s). Editing it changes all of them.",
+      "SHARED_MISSING": "This shared component no longer exists. Remove it from the page.",
+      "DETACH": "Detach",
+      "DETACH_HINT": "Replaces it with a copy of its sections that only this page uses.",
+      "MORE": "More actions",
+      "CONTENT": "Content",
+      "NO_SETTINGS": "Nothing to set here.",
+      "DUPLICATE": "Duplicate",
+      "REMOVE": "Remove",
+      "REMOVE_SECTION": "Remove section",
+      "REMOVE_BLOCK": "Remove block",
+      "ADD_ITEM": "Add",
+      "ITEM": "Item {number}",
+      "MOVE_UP": "Move up",
+      "MOVE_DOWN": "Move down",
+      "SELECT_ASSET": "Select",
+      "ASSET_URL": "or paste a URL",
+      "LINK_ANCHOR": "Link to anchor",
+      "STATUS": {
+        "UNSAVED": "Unsaved changes",
+        "DRAFT": "Draft",
+        "PUBLISHED": "Published",
+        "CHANGES": "Published · draft changes",
+        "PENDING": "Publishing…",
+        "AWAITING": "Awaiting merge",
+        "SHARED": "Shared component"
+      },
+      "DEVICE": "Preview size",
+      "DESKTOP": "Desktop",
+      "TABLET": "Tablet",
+      "PHONE": "Mobile",
+      "FULLSCREEN": "Full screen",
+      "FULL_VIEW": "Full view",
+      "EXIT_FULL_VIEW": "Exit full view",
+      "DESELECT": "Close",
+      "INSPECTOR_ON": "Turn on the inspector",
+      "INSPECTOR_OFF": "Turn off the inspector",
+      "PREVIEW": "Page preview",
+      "PREVIEW_LOADING": "Loading the site…",
+      "PREVIEW_SLOW": "The site is taking a while to load. Check that the storefront at {url} is running, then reload.",
+      "RELOAD_PREVIEW": "Reload",
+      "NO_STOREFRONT": "No preview: the site has no storefront URL. Set it in the site's Settings, then reopen the page.",
+      "LOAD_FAILED": "The page couldn't be loaded. It may have been deleted, or you may not have access to it.",
+      "SAVE": "Save",
+      "SAVING": "Saving…",
+      "UNDO": "Undo",
+      "REDO": "Redo",
+      "PUBLISH": "Publish",
+      "UNPUBLISH": "Unpublish",
+      "OPEN_PREVIEW": "Preview",
+      "CONFLICT": "This page changed while you were editing it. Reopen it to get the latest version; your changes weren't saved.",
+      "NO_VERSION": "This page can't be saved: its version is unknown. Reopen it and try again.",
+      "SAVE_FAILED": "The page couldn't be saved.",
+      "PUBLISH_FAILED": "The page couldn't be published.",
+      "DISCARD": "You have unsaved changes. Close the designer anyway?",
+      "CONFIRM_DISCARD_UNSAVED": "Discard your unsaved changes? The page goes back to how it was last saved.",
+      "PICK_ASSET": "Choose a file",
+      "CONFIRM_REMOVE": "Remove \"{name}\" from the page?",
+      "SHARED_COMPONENTS": "Shared components",
+      "MODE_SHARED": "Shared",
+      "EDIT_SHARED": "Edit shared component",
+      "EDITING_SHARED": "You're editing a shared component: saving changes it on every page that uses it.",
+      "SHARED_PANEL": {
+        "HINT": "Sections you reuse across pages. Edit one to change it everywhere.",
+        "SEARCH": "Search shared components",
+        "INSERT": "Add to page",
+        "EDIT": "Edit",
+        "EMPTY": "No shared components yet. In Sections, choose Select, tick the sections and save them as a shared component."
+      },
+      "USED_ON": "{count} page(s)",
+      "ARCHIVED": "This page is archived. Restore it to edit it in the designer.",
+      "PUBLISHING": "Publishing…",
+      "RETRY_PUBLISH": "Retry publish",
+      "PROMOTE": "Promote to production",
+      "PROMOTE_FAILED": "The page couldn't be promoted to production.",
+      "PUBLISH_CONFLICT": "Someone published another version of this page meanwhile. Publish your version over it?",
+      "NOTHING_PUBLISHED": "Nothing was published. Reopen the page to see the other version.",
+      "HISTORY": {
+        "TITLE": "Version history",
+        "OTHERS": "{count} unpublished version(s) by other people",
+        "EMPTY": "No versions yet: save the page to make its first one.",
+        "FAILED": "The versions couldn't be loaded.",
+        "PUBLISHED": "Published",
+        "YOUR_DRAFT": "Your draft",
+        "PREVIEW": "Preview",
+        "RESTORE": "Restore",
+        "SAVE_FIRST": "Save or undo your changes first",
+        "MORE": "Show older versions",
+        "CONFIRM": "Make version {version} your draft? Publish it afterwards to put it live.",
+        "RESTORED": "The version is now your draft",
+        "RESTORE_FAILED": "The version couldn't be restored.",
+        "CLOSE": "Close",
+        "LATEST": "Latest",
+        "PREVIEWING": "Previewing",
+        "EXIT": "Exit",
+        "DISCARD": "Discard all changes",
+        "CONFIRM_DISCARD": "Discard all unpublished changes? The page goes back to its published version.",
+        "DISCARDED": "Unpublished changes discarded",
+        "DISCARD_FAILED": "The changes couldn't be discarded.",
+        "PREVIEW_FAILED": "This version couldn't be shown.",
+        "VIEWING": "Viewing version {version} · {date}",
+        "BACK": "Back to draft"
+      },
+      "THEME": {
+        "TITLE": "Theme",
+        "PRESET": "Preset",
+        "PRESET_PLACEHOLDER": "Choose a preset",
+        "APPLY": "Apply",
+        "EMPTY": "This theme has no settings to edit.",
+        "SAVE_FAILED": "The theme settings couldn't be saved."
+      },
+      "CLIPBOARD": {
+        "COPY": "Copy",
+        "PASTE": "Paste",
+        "COPIED": "Copied: paste it on any page of the site",
+        "COPY_FAILED": "The browser didn't allow copying.",
+        "PASTE_TITLE": "Paste a section or block",
+        "PASTE_HINT": "The browser didn't let the page read the clipboard: paste the copied content here.",
+        "INVALID": "The clipboard doesn't hold a copied section or block.",
+        "BLOCK_NEEDS_SECTION": "Select a section to paste a block into.",
+        "BLOCK_NOT_ALLOWED": "The selected section can't hold this block."
+      },
+      "SELECT_MODE": {
+        "SELECT": "Select",
+        "DONE": "Done",
+        "COUNT": "{count} selected",
+        "DELETE": "Delete",
+        "CONFIRM_DELETE": "Remove {count} section(s) from the page?",
+        "SAVE_SHARED": "Save as shared component",
+        "SAVE_SHARED_HINT": "The selected sections become a shared component: edit it once, and every page using it changes.",
+        "NAME": "Name",
+        "SHARED_SAVED": "\"{name}\" is now a shared component",
+        "SHARED_FAILED": "The shared component couldn't be created.",
+        "NOT_ADJACENT": "Select sections that are next to each other.",
+        "HAS_SHARED": "A shared component can't hold another one: unselect it."
+      }
+    },
+    "WIDGETS": {
+      "STORE": "Page Builder"
+    },
+    "GIT": {
+      "TITLE": "Version history",
+      "WIDGET": "History",
+      "ON": "On",
+      "OFF": "Off",
+      "STATUS": "Status",
+      "REPOSITORY": "Repository",
+      "BRANCH": "Branch",
+      "LAST_CHANGE": "Last published change",
+      "NOT_CREATED": "(not created yet)",
+      "TEST": "Test connection",
+      "TURN_ON": "Enable history",
+      "TURN_OFF": "Turn off history",
+      "CONFIRM_OFF": "Turn off version history for this site? Pages will be saved to the platform's storage again. The repository and its history stay on GitHub.",
+      "HINT": {
+        "OFF": "Enable history to keep this site's pages in {repository}: every save is kept as a version, publishing merges it, and any earlier version can be restored.",
+        "MISSING": "The site's repository doesn't exist yet. Enable history creates it.",
+        "ON": "Every version of this site's pages is kept on GitHub. Turning history off takes the pages back to the platform's storage; the repository and its history stay."
+      },
+      "SETUP": {
+        "INTRO": "Version history keeps every change to this site's pages, with who made it and when, so any earlier version can be restored. The pages are kept in a private GitHub repository of the site's own.",
+        "CONFIGURATION": "This platform takes its GitHub connection from its configuration, which isn't complete. Ask the platform's administrator to finish it.",
+        "ORGANIZATION": "GitHub organization",
+        "ORGANIZATION_HINT": "Holds one private repository per site. Use a separate organization for each environment, such as acme-sites and acme-sites-staging.",
+        "NEW_ORGANIZATION": "No organization yet? Create one on GitHub",
+        "STEP_CREATE": "GitHub opens in a new tab with a Page Builder App for the organization. Select “Create GitHub App”.",
+        "STEP_INSTALL": "Install the App on the organization, with access to all repositories.",
+        "STEP_RETURN": "GitHub brings you back to the platform. Then open a site's History and select “Enable history”.",
+        "CREATE_APP": "Create GitHub App",
+        "INSTALL": "Install the App on {organization}",
+        "AGAIN": "Set up again"
+      },
+      "CONNECT_FIRST": "This platform isn't connected to GitHub yet. Connect it once from the Sites panel, then turn history on here.",
+      "OPEN_GITHUB": "GitHub connection"
+    },
+    "GITHUB": {
+      "TITLE": "GitHub",
+      "INTRO": "Connect the platform to a GitHub organization once. Every site then keeps the versions of its pages in its own private repository there.",
+      "CONNECTED_HINT": "Each site keeps its pages' versions in its own private repository in {organization}. Turn history on for a site from its History panel.",
+      "STATUS": "Status",
+      "CONNECTED": "Connected",
+      "FAILING": "Not working",
+      "ORGANIZATION": "Organization",
+      "APP": "GitHub App",
+      "FROM_CONFIGURATION": "From the platform's configuration",
+      "NEW_SITES": "New sites",
+      "NEW_SITES_ON": "Get history automatically",
+      "NEW_SITES_OFF": "Turned on site by site",
+      "MANAGE_ACCESS": "Manage repository access",
+      "CANCEL": "Cancel",
+      "SITES": "Sites",
+      "HISTORY_ON": "History on",
+      "HISTORY_OFF": "History off",
+      "NOT_CONNECTED": "Not connected",
+      "WIDGET_ON": "History on",
+      "WIDGET_OFF": "Set up history",
+      "ALL_SITES": "All sites"
+    }
+  }
+}

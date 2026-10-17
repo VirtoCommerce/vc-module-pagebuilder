@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -35,6 +36,7 @@ using VirtoCommerce.Platform.Core.Settings;
 using VirtoCommerce.Platform.Data.MySql.Extensions;
 using VirtoCommerce.Platform.Data.PostgreSql.Extensions;
 using VirtoCommerce.Platform.Data.SqlServer.Extensions;
+using VirtoCommerce.StoreModule.Core.Events;
 using VirtoCommerce.StoreModule.Core.Model;
 
 namespace VirtoCommerce.PageBuilderModule.Web
@@ -92,33 +94,33 @@ namespace VirtoCommerce.PageBuilderModule.Web
             serviceCollection.AddTransient<PageBuilderSharedComponentExportImport>();
             serviceCollection.AddTransient<PageBuilderExportImport>();
 
-            // Git content flow (disabled until PageBuilder:GitContent:Enabled is set AND a store opts in
-            // — see IGitContentPolicy, GitContentOptions and vc-content/.github/git-flow-setup.md).
+            // Git content flow (off until the connection is set up — configuration or a site's one-click setup — AND a store opts in
+            // — see IGitContentPolicy, GitContentOptions and docs/sites-on-github.md).
             var gitContentSection = Configuration.GetSection(GitContentOptions.SectionName);
             serviceCollection.Configure<GitContentOptions>(gitContentSection);
             // Fail fast: a half-configured flow must not boot, or publishing would silently keep writing
             // straight to production on an installation whose operator expects pull requests.
             gitContentSection.Get<GitContentOptions>()?.Validate();
+            // configuration wins; without a complete one, the GitHub App of the site panel's one-click setup
+            serviceCollection.AddSingleton<GitContentConnection>();
+            serviceCollection.AddSingleton<IOptions<GitContentOptions>>(provider => provider.GetRequiredService<GitContentConnection>());
+            serviceCollection.AddTransient<GitHubAuthHandler>();
             serviceCollection.AddHttpClient(GitHubContentRepository.HttpClientName)
-                .ConfigureHttpClient((provider, httpClient) =>
-                {
-                    var gitContentOptions = provider.GetRequiredService<IOptions<GitContentOptions>>().Value;
-                    // Relative request uris are combined against BaseAddress, so it must end with '/'.
-                    httpClient.BaseAddress = new Uri(gitContentOptions.ApiUrl.AbsoluteUri.TrimEnd('/') + "/");
-                    httpClient.Timeout = gitContentOptions.RequestTimeout;
-                    httpClient.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
-                    httpClient.DefaultRequestHeaders.Add("X-GitHub-Api-Version", "2022-11-28");
-                    // GitHub rejects requests without a User-Agent.
-                    httpClient.DefaultRequestHeaders.Add("User-Agent", "vc-pagebuilder-module");
-                    if (!string.IsNullOrEmpty(gitContentOptions.Token))
-                    {
-                        httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + gitContentOptions.Token);
-                    }
-                });
+                .ConfigureHttpClient(ConfigureGitHubClient)
+                // per request: a GitHub App's token belongs to the organization the request acts on
+                .AddHttpMessageHandler<GitHubAuthHandler>();
+            // the setup's one call, which carries no credential
+            serviceCollection.AddHttpClient(GitContentConnection.HttpClientName).ConfigureHttpClient(ConfigureGitHubClient);
             serviceCollection.AddTransient<IGitContentRepository, GitHubContentRepository>();
             serviceCollection.AddTransient<IGitContentHistory, GitHubContentHistory>();
             serviceCollection.AddTransient<IGitContentPublisher, GitHubContentPublisher>();
             serviceCollection.AddTransient<IGitContentPolicy, GitContentPolicy>();
+            serviceCollection.AddTransient<IGitContentProvisioner, GitHubContentProvisioner>();
+            // a database page's version history, in the same site repository
+            serviceCollection.AddTransient<GroupedPageHistory>();
+            // site repositories follow their store: created for a new one, archived with a deleted one
+            serviceCollection.AddTransient<GitContentStoreChangedEventHandler>();
+            serviceCollection.AddBackgroundJob<GitContentRepositoryJob, GitContentRepositoryJobPayload>(triggerable: false);
 
             var isFullTextSearchEnabled = Configuration.IsContentFullTextSearchEnabled();
 
@@ -127,6 +129,18 @@ namespace VirtoCommerce.PageBuilderModule.Web
                 serviceCollection.AddTransient<PageBuilderContentItemBuilder>();
             }
 
+        }
+
+        private static void ConfigureGitHubClient(IServiceProvider provider, HttpClient httpClient)
+        {
+            var gitContentOptions = provider.GetRequiredService<IOptions<GitContentOptions>>().Value;
+            // Relative request uris are combined against BaseAddress, so it must end with '/'.
+            httpClient.BaseAddress = new Uri(gitContentOptions.ApiUrl.AbsoluteUri.TrimEnd('/') + "/");
+            httpClient.Timeout = gitContentOptions.RequestTimeout;
+            httpClient.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
+            httpClient.DefaultRequestHeaders.Add("X-GitHub-Api-Version", "2022-11-28");
+            // GitHub rejects requests without a User-Agent.
+            httpClient.DefaultRequestHeaders.Add("User-Agent", "vc-pagebuilder-module");
         }
 
         public void PostInitialize(IApplicationBuilder appBuilder)
@@ -152,6 +166,7 @@ namespace VirtoCommerce.PageBuilderModule.Web
             appBuilder.RegisterEventHandler<PageBuilderPageChangedEvent, PageBuilderPageChangedEventHandler>();
             appBuilder.RegisterEventHandler<GroupedPageBuilderPageChangedEvent, GroupedPageBuilderPageChangedEventHandler>();
             appBuilder.RegisterEventHandler<PageBuilderSharedComponentContentChangedEvent, PageBuilderSharedComponentContentChangedEventHandler>();
+            appBuilder.RegisterEventHandler<StoreChangedEvent, GitContentStoreChangedEventHandler>();
 
             // Apply migrations
             using var serviceScope = serviceProvider.CreateScope();

@@ -29,7 +29,8 @@ angular.module('virtoCommerce.pageBuilderModule')
             blade.initialize = function () {
                 channel = broadcastChannelFactory(blade);
                 var pathname = window.location.pathname === '/' ? '' : window.location.pathname;
-                blade.designerUrl = `${window.location.origin + pathname}/Modules/$(VirtoCommerce.PageBuilderModule)/Content/page-builder-designer/index.html`;
+                // the Page Builder app: its Vue designer opens the page from the link (see runDesigner)
+                blade.designerUrl = `${window.location.origin + pathname}/apps/page-builder-shell/`;
                 loadPublishStatus();
                 if (blade.isNew) {
                     blade.isLoading = false;
@@ -590,9 +591,10 @@ angular.module('virtoCommerce.pageBuilderModule')
 
             function runDesigner() {
                 if (blade.designerUrl) {
-                    var relativeUrl = filesDraftService.getDraftFileName(blade);
-                    var previewId = filesDraftService.getDocumentId(blade, true);
-                    var parameters = `storeId=${blade.storeId}#/pages?type=${blade.contentType}&path=${relativeUrl}&previewId=${encodeURIComponent(previewId)}`;
+                    // the page's own path: the designer reads its draft (or, in git, this editor's branch) itself
+                    var parameters = `storeId=${encodeURIComponent(blade.storeId)}` +
+                        `&designType=${encodeURIComponent(blade.contentType)}` +
+                        `&designPath=${encodeURIComponent(blade.currentEntity.relativeUrl)}`;
                     // Pass the page language so the designer preview renders in that language (VCST-5219).
                     var designerLanguage = blade.currentEntity && blade.currentEntity.language;
                     if (designerLanguage) {

@@ -1,0 +1,381 @@
+{
+  "PAGE_BUILDER": {
+    "MENU": {
+      "DRAFT_TITLE": "下書き",
+      "PENDING_TITLE": "保留中",
+      "ACTIVE_TITLE": "アクティブ",
+      "ARCHIVED_TITLE": "アーカイブ済み",
+      "TITLE": "すべてのページ"
+    },
+    "PAGES": {
+      "LIST": {
+        "DRAFT_TITLE": "下書きページ",
+        "PENDING_TITLE": "保留中のページ",
+        "ACTIVE_TITLE": "アクティブなページ",
+        "ARCHIVED_TITLE": "アーカイブ済みページ",
+        "TITLE": "すべてのページ",
+        "TOOLBAR": {
+          "ADD": "追加",
+          "REFRESH": "更新",
+          "REMOVE": "アーカイブ",
+          "LOAD": "コンテンツを読み込む",
+          "ASSETS": "アセット",
+          "SHARED_COMPONENTS": "共有コンポーネント"
+        },
+        "SEARCH": {
+          "PLACEHOLDER": "キーワードを検索"
+        },
+        "TABLE": {
+          "TOTALS": "件数:",
+          "HEADER": {
+            "NAME": "名前",
+            "PERMALINK": "パーマリンク",
+            "MODIFIED_DATE": "更新日",
+            "CULTURE_NAME": "言語",
+            "MODIFIED_BY": "更新者",
+            "STATUS": "ステータス"
+          },
+          "FILTER": {
+            "STATUS": "ステータス",
+            "APPLY": "適用",
+            "RESET": "リセット"
+          },
+          "EMPTY": {
+            "TITLE": "コンテンツはまだありません",
+            "ACTION": "コンテンツを追加"
+          },
+          "NOT_FOUND": {
+            "TITLE": "コンテンツが見つかりません。",
+            "ACTION": "検索をリセット"
+          },
+          "ACTIONS": {
+            "DELETE": "アーカイブ"
+          }
+        },
+        "EMPTY": {
+          "NO_ITEMS": "ページはまだありません"
+        },
+        "NOT_FOUND": {
+          "EMPTY": "ページが見つかりません",
+          "RESET": "リセット"
+        },
+        "STORE_TITLE": "{store} のページ"
+      },
+      "DETAILS": {
+        "TITLE": {
+          "DETAILS": "{name} 詳細",
+          "NEW": "新規ページ",
+          "LOADING": "読み込み中..."
+        },
+        "TOOLBAR": {
+          "SAVE": "保存",
+          "DELETE": "アーカイブ",
+          "PREVIEW": "プレビュー",
+          "DESIGNER": "デザイナーを開く",
+          "PUBLISH": "公開",
+          "UNPUBLISH": "公開取消",
+          "DOWNLOAD_CONTENT": "コンテンツを保存",
+          "CLONE": "複製"
+        },
+        "FIELDS": {
+          "NAME": "名前",
+          "PERMALINK": "パーマリンク",
+          "CONTENT": "コンテンツ",
+          "GUID": "GUID",
+          "CULTURE_NAME": "言語",
+          "SEO_TITLE": "ページタイトル",
+          "SEO_DESCRIPTION": "メタディスクリプション",
+          "SEO_KEYWORDS": "メタキーワード",
+          "VISIBILITY": "表示設定",
+          "START_DATE": "開始日",
+          "START_DATE_HINT": "ページが表示されます",
+          "END_DATE": "終了日",
+          "END_DATE_HINT": "ページが非表示になります",
+          "USER_GROUPS": "ユーザーグループ",
+          "ORGANIZATION": "組織"
+        },
+        "TOOLTIPS": {
+          "VISIBILITY": "表示設定がオフの場合、ページは登録ユーザーのみが利用できます。"
+        },
+        "SECTIONS": {
+          "BASIC_INFORMATION": "基本情報",
+          "SEO": "検索エンジンでの表示",
+          "ADVANCED_OPTIONS": "詳細オプション",
+          "PERSONALIZATION_ACCESS_CONTROL": {
+            "TITLE": "パーソナライズとアクセス制御",
+            "DESCRIPTION": "特定のオーディエンスにページの表示を制限",
+            "VISIBILITY_TAG": "表示中"
+          },
+          "SCHEDULING": {
+            "TAG_TEXT": "スケジュール済み",
+            "TITLE": "スケジュール",
+            "DESCRIPTION": "このページの表示期間を設定"
+          }
+        }
+      },
+      "ALERTS": {
+        "CLOSE_CONFIRMATION": "未保存の変更があります。閉じてもよろしいですか？",
+        "DELETE": "このページをアーカイブしてもよろしいですか？",
+        "DELETE_SELECTED_CONFIRMATION": {
+          "MESSAGE": "選択した {count} ページをアーカイブしてもよろしいですか？",
+          "ALL": "すべて {totalCount}"
+        },
+        "UNPUBLISH_WITH_DRAFT": "変更がある下書きのページは公開取消できません。",
+        "DOWNLOAD_SUCCESS": "コンテンツがファイルに正常に保存されました",
+        "CLONE_SUCCESS": "ページが正常に複製されました",
+        "LOAD_CONTENT_SUCCESS": "コンテンツが正常に読み込まれました",
+        "SAVE_SUCCESS": "ページが正常に保存されました",
+        "PUBLISH_SUCCESS": "ページが正常に公開されました",
+        "UNPUBLISH_SUCCESS": "ページの公開が正常に解除されました",
+        "DELETE_SUCCESS": "ページが正常にアーカイブされました"
+      }
+    },
+    "STATUS": {
+      "DRAFT": "下書き",
+      "ARCHIVED": "アーカイブ済み",
+      "PUBLISHED": "公開済み",
+      "HAS_CHANGES": "変更のある下書き",
+      "SCHEDULED": "スケジュール済み",
+      "PERSONALIZED": "パーソナライズ済み"
+    },
+    "LIFECYCLE": {
+      "DRAFT": "下書き",
+      "PENDING": "レビュー中",
+      "ACTIVE": "公開済み",
+      "ARCHIVED": "アーカイブ済み"
+    },
+    "SITE_TAB": {
+      "TITLE": "ページ",
+      "SHOW": "表示",
+      "FILTER": {
+        "ALL": "すべてのページ",
+        "DRAFT": "下書き",
+        "PENDING": "レビュー中",
+        "ACTIVE": "公開済み",
+        "ARCHIVED": "アーカイブ済み"
+      },
+      "NEW_PAGE": "新規ページ",
+      "EMPTY": "ここにはまだページがありません。",
+      "DETAILS": "ページの詳細"
+    },
+    "DESIGNER": {
+      "TITLE": "デザイナー: {name}",
+      "SECTIONS": "セクション",
+      "GROUPS": {
+        "HEADER": "ヘッダー",
+        "TEMPLATE": "テンプレート",
+        "FOOTER": "フッター"
+      },
+      "PAGE_SETTINGS": "ページ設定",
+      "BLOCKS": "ブロック",
+      "DRAG": "ドラッグして並べ替え",
+      "SHOW": "表示",
+      "HIDE": "非表示",
+      "ADD_SECTION": "セクションを追加",
+      "ADD_BLOCK": "ブロックを追加",
+      "BACK": "戻る",
+      "SEARCH_SECTIONS": "セクションを検索",
+      "NO_SECTIONS": "一致するセクションがありません",
+      "SHARED": "共有",
+      "MISSING": "欠落",
+      "SHARED_COMPONENT": "共有コンポーネント",
+      "SHARED_INFO": "「{name}」は共有コンポーネントで、{count} ページで使われています。編集すると、そのすべてのページが変わります。",
+      "SHARED_MISSING": "この共有コンポーネントは存在しなくなりました。ページから削除してください。",
+      "DETACH": "切り離す",
+      "DETACH_HINT": "このページ専用の、セクションのコピーに置き換えます。",
+      "MORE": "その他の操作",
+      "CONTENT": "コンテンツ",
+      "NO_SETTINGS": "ここで設定する項目はありません。",
+      "DUPLICATE": "複製",
+      "REMOVE": "削除",
+      "REMOVE_SECTION": "セクションを削除",
+      "REMOVE_BLOCK": "ブロックを削除",
+      "ADD_ITEM": "追加",
+      "ITEM": "項目 {number}",
+      "MOVE_UP": "上へ移動",
+      "MOVE_DOWN": "下へ移動",
+      "SELECT_ASSET": "選択",
+      "ASSET_URL": "または URL を貼り付け",
+      "LINK_ANCHOR": "アンカーへのリンク",
+      "STATUS": {
+        "UNSAVED": "未保存の変更",
+        "DRAFT": "下書き",
+        "PUBLISHED": "公開済み",
+        "CHANGES": "公開済み · 下書きに変更あり",
+        "PENDING": "公開中…",
+        "AWAITING": "マージ待ち",
+        "SHARED": "共有コンポーネント"
+      },
+      "DEVICE": "プレビューサイズ",
+      "DESKTOP": "デスクトップ",
+      "TABLET": "タブレット",
+      "PHONE": "モバイル",
+      "FULLSCREEN": "全画面",
+      "FULL_VIEW": "全画面表示",
+      "EXIT_FULL_VIEW": "全画面表示を終了",
+      "DESELECT": "閉じる",
+      "INSPECTOR_ON": "インスペクターをオンにする",
+      "INSPECTOR_OFF": "インスペクターをオフにする",
+      "PREVIEW": "ページのプレビュー",
+      "PREVIEW_LOADING": "サイトを読み込んでいます…",
+      "PREVIEW_SLOW": "サイトの読み込みに時間がかかっています。{url} のストアフロントが動作しているか確認してから、再読み込みしてください。",
+      "RELOAD_PREVIEW": "再読み込み",
+      "NO_STOREFRONT": "プレビューできません。サイトにストアフロントの URL がありません。サイトの設定で指定してから、ページを開き直してください。",
+      "LOAD_FAILED": "ページを読み込めませんでした。削除されたか、アクセス権がない可能性があります。",
+      "SAVE": "保存",
+      "SAVING": "保存中…",
+      "UNDO": "元に戻す",
+      "REDO": "やり直す",
+      "PUBLISH": "公開",
+      "UNPUBLISH": "公開取消",
+      "OPEN_PREVIEW": "プレビュー",
+      "CONFLICT": "編集中にこのページが変更されました。最新バージョンを取得するには開き直してください。変更は保存されていません。",
+      "NO_VERSION": "このページは保存できません。バージョンが不明です。開き直してもう一度お試しください。",
+      "SAVE_FAILED": "ページを保存できませんでした。",
+      "PUBLISH_FAILED": "ページを公開できませんでした。",
+      "DISCARD": "未保存の変更があります。デザイナーを閉じてもよろしいですか？",
+      "CONFIRM_DISCARD_UNSAVED": "保存していない変更を破棄しますか？ページは最後に保存した状態に戻ります。",
+      "PICK_ASSET": "ファイルを選択",
+      "CONFIRM_REMOVE": "「{name}」をページから削除しますか？",
+      "SHARED_COMPONENTS": "共有コンポーネント",
+      "MODE_SHARED": "共有",
+      "EDIT_SHARED": "共有コンポーネントを編集",
+      "EDITING_SHARED": "共有コンポーネントを編集しています。保存すると、これを使うすべてのページで変更されます。",
+      "SHARED_PANEL": {
+        "HINT": "複数のページで再利用するセクションです。1 つを編集すると、すべての場所で変わります。",
+        "SEARCH": "共有コンポーネントを検索",
+        "INSERT": "ページに追加",
+        "EDIT": "編集",
+        "EMPTY": "共有コンポーネントはまだありません。セクションで「選択」を選び、セクションにチェックを付けて共有コンポーネントとして保存してください。"
+      },
+      "USED_ON": "{count} ページ",
+      "ARCHIVED": "このページはアーカイブされています。デザイナーで編集するには復元してください。",
+      "PUBLISHING": "公開中…",
+      "RETRY_PUBLISH": "公開を再試行",
+      "PROMOTE": "本番に昇格",
+      "PROMOTE_FAILED": "ページを本番に昇格できませんでした。",
+      "PUBLISH_CONFLICT": "その間に、他のユーザーがこのページの別のバージョンを公開しました。あなたのバージョンで上書きして公開しますか？",
+      "NOTHING_PUBLISHED": "何も公開されませんでした。別のバージョンを確認するには、ページを開き直してください。",
+      "HISTORY": {
+        "TITLE": "バージョン履歴",
+        "OTHERS": "他のユーザーによる未公開バージョン: {count} 件",
+        "EMPTY": "バージョンはまだありません。ページを保存して最初のバージョンを作成します。",
+        "FAILED": "バージョンを読み込めませんでした。",
+        "PUBLISHED": "公開済み",
+        "YOUR_DRAFT": "あなたの下書き",
+        "PREVIEW": "プレビュー",
+        "RESTORE": "復元",
+        "SAVE_FIRST": "先に変更を保存するか元に戻してください",
+        "MORE": "以前のバージョンを表示",
+        "CONFIRM": "バージョン {version} を下書きにしますか？その後に公開すると反映されます。",
+        "RESTORED": "このバージョンがあなたの下書きになりました",
+        "RESTORE_FAILED": "バージョンを復元できませんでした。",
+        "CLOSE": "閉じる",
+        "LATEST": "最新",
+        "PREVIEWING": "プレビュー中",
+        "EXIT": "終了",
+        "DISCARD": "すべての変更を破棄",
+        "CONFIRM_DISCARD": "未公開の変更をすべて破棄しますか？ページは公開済みのバージョンに戻ります。",
+        "DISCARDED": "未公開の変更を破棄しました",
+        "DISCARD_FAILED": "変更を破棄できませんでした。",
+        "PREVIEW_FAILED": "このバージョンを表示できませんでした。",
+        "VIEWING": "バージョン {version} を表示中 · {date}",
+        "BACK": "下書きに戻る"
+      },
+      "THEME": {
+        "TITLE": "テーマ",
+        "PRESET": "プリセット",
+        "PRESET_PLACEHOLDER": "プリセットを選択",
+        "APPLY": "適用",
+        "EMPTY": "このテーマには編集できる設定がありません。",
+        "SAVE_FAILED": "テーマ設定を保存できませんでした。"
+      },
+      "CLIPBOARD": {
+        "COPY": "コピー",
+        "PASTE": "貼り付け",
+        "COPIED": "コピーしました。サイトの任意のページに貼り付けられます",
+        "COPY_FAILED": "ブラウザーがコピーを許可しませんでした。",
+        "PASTE_TITLE": "セクションまたはブロックを貼り付け",
+        "PASTE_HINT": "ブラウザーがクリップボードの読み取りを許可しませんでした。コピーした内容をここに貼り付けてください。",
+        "INVALID": "クリップボードにコピーされたセクションまたはブロックがありません。",
+        "BLOCK_NEEDS_SECTION": "ブロックを貼り付けるセクションを選択してください。",
+        "BLOCK_NOT_ALLOWED": "選択したセクションにはこのブロックを配置できません。"
+      },
+      "SELECT_MODE": {
+        "SELECT": "選択",
+        "DONE": "完了",
+        "COUNT": "{count} 件選択中",
+        "DELETE": "削除",
+        "CONFIRM_DELETE": "{count} 個のセクションをページから削除しますか？",
+        "SAVE_SHARED": "共有コンポーネントとして保存",
+        "SAVE_SHARED_HINT": "選択したセクションが共有コンポーネントになります。一度編集すれば、それを使うすべてのページに反映されます。",
+        "NAME": "名前",
+        "SHARED_SAVED": "「{name}」が共有コンポーネントになりました",
+        "SHARED_FAILED": "共有コンポーネントを作成できませんでした。",
+        "NOT_ADJACENT": "隣り合ったセクションを選択してください。",
+        "HAS_SHARED": "共有コンポーネントに別の共有コンポーネントは含められません。選択を解除してください。"
+      }
+    },
+    "WIDGETS": {
+      "STORE": "Page Builder"
+    },
+    "GIT": {
+      "TITLE": "バージョン履歴",
+      "WIDGET": "履歴",
+      "ON": "オン",
+      "OFF": "オフ",
+      "STATUS": "状態",
+      "REPOSITORY": "リポジトリ",
+      "BRANCH": "ブランチ",
+      "LAST_CHANGE": "最後に公開した変更",
+      "NOT_CREATED": "(未作成)",
+      "TEST": "接続をテスト",
+      "TURN_ON": "履歴を有効にする",
+      "TURN_OFF": "履歴を無効にする",
+      "CONFIRM_OFF": "このサイトのバージョン履歴を無効にしますか？ページは再びプラットフォームのストレージに保存されます。リポジトリとその履歴は GitHub に残ります。",
+      "HINT": {
+        "OFF": "履歴を有効にすると、このサイトのページが {repository} に保存されます。保存するたびにバージョンとして残り、公開時にマージされ、以前のどのバージョンにも戻せます。",
+        "MISSING": "サイトのリポジトリはまだありません。「履歴を有効にする」で作成されます。",
+        "ON": "このサイトのページのすべてのバージョンが GitHub に保存されています。履歴を無効にするとページはプラットフォームのストレージに戻ります。リポジトリとその履歴は残ります。"
+      },
+      "SETUP": {
+        "INTRO": "バージョン履歴は、このサイトのページへのすべての変更を変更者と日時とともに保存するため、以前のどのバージョンにも戻せます。ページはサイト専用の非公開 GitHub リポジトリに保存されます。",
+        "CONFIGURATION": "このプラットフォームは GitHub 接続を構成から取得しますが、その構成が不完全です。プラットフォームの管理者に完成を依頼してください。",
+        "ORGANIZATION": "GitHub 組織",
+        "ORGANIZATION_HINT": "サイトごとに 1 つの非公開リポジトリを保持します。環境ごとに別の組織を使用してください（例: acme-sites と acme-sites-staging）。",
+        "NEW_ORGANIZATION": "組織がまだありませんか？GitHub で作成する",
+        "STEP_CREATE": "新しいタブで GitHub が開き、組織用の Page Builder アプリが表示されます。「Create GitHub App」を選択します。",
+        "STEP_INSTALL": "すべてのリポジトリへのアクセスを許可して、アプリを組織にインストールします。",
+        "STEP_RETURN": "GitHub からプラットフォームに戻ります。その後、サイトの履歴を開き「履歴を有効にする」を選択します。",
+        "CREATE_APP": "GitHub アプリを作成",
+        "INSTALL": "{organization} にアプリをインストール",
+        "AGAIN": "もう一度設定する"
+      },
+      "CONNECT_FIRST": "このプラットフォームはまだ GitHub に接続されていません。サイトパネルから一度接続してから、ここで履歴を有効にしてください。",
+      "OPEN_GITHUB": "GitHub 接続"
+    },
+    "GITHUB": {
+      "TITLE": "GitHub",
+      "INTRO": "プラットフォームを GitHub 組織に一度だけ接続します。その後、各サイトはページのバージョンをその組織内の専用の非公開リポジトリに保存します。",
+      "CONNECTED_HINT": "各サイトはページのバージョンを {organization} 内の専用の非公開リポジトリに保存します。サイトの履歴パネルから履歴を有効にしてください。",
+      "STATUS": "状態",
+      "CONNECTED": "接続済み",
+      "FAILING": "動作していません",
+      "ORGANIZATION": "組織",
+      "APP": "GitHub アプリ",
+      "FROM_CONFIGURATION": "プラットフォームの構成から",
+      "NEW_SITES": "新しいサイト",
+      "NEW_SITES_ON": "自動的に履歴を取得",
+      "NEW_SITES_OFF": "サイトごとに有効化",
+      "MANAGE_ACCESS": "リポジトリへのアクセスを管理",
+      "CANCEL": "キャンセル",
+      "SITES": "サイト",
+      "HISTORY_ON": "履歴オン",
+      "HISTORY_OFF": "履歴オフ",
+      "NOT_CONNECTED": "未接続",
+      "WIDGET_ON": "履歴オン",
+      "WIDGET_OFF": "履歴を設定",
+      "ALL_SITES": "すべてのサイト"
+    }
+  }
+}

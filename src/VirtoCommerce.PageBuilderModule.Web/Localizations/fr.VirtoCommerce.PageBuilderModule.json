@@ -92,6 +92,10 @@
             "title": "Publier les pages via Git",
             "description": "Lorsque cette option est activée, l'enregistrement d'une page crée un commit dans une branche de travail du dépôt de contenu configuré, et la publication ouvre et fusionne une pull request, au lieu d'écrire directement dans le stockage blob. Nécessite une connexion de contenu Git configurée sur le serveur (PageBuilder:GitContent)."
           },
+          "GitContentRepository": {
+            "title": "Dépôt Git",
+            "description": "Un dépôt GitHub existant (owner/name) pour les pages de cette boutique. Laissez vide pour utiliser le dépôt propre à la boutique, que Page Builder crée dans l'organisation configurée."
+          },
           "PreviewUserIds": {
             "title": "IDs utilisateur pour l'aperçu",
             "description": "Liste des IDs utilisateur pour l'usurpation d'identité lors de l'aperçu (un par ligne)"

@@ -92,6 +92,10 @@
             "title": "Publicar páginas a través de Git",
             "description": "Cuando está habilitado, al guardar una página se confirma (commit) en una rama de trabajo del repositorio de contenido configurado, y al publicar se abre y fusiona una pull request, en lugar de escribir directamente en el almacenamiento blob. Requiere que la conexión de contenido Git esté configurada en el servidor (PageBuilder:GitContent)."
           },
+          "GitContentRepository": {
+            "title": "Repositorio Git",
+            "description": "Un repositorio de GitHub existente (owner/name) para las páginas de esta tienda. Déjelo vacío para usar el repositorio propio de la tienda, que Page Builder crea en la organización configurada."
+          },
           "PreviewUserIds": {
             "title": "IDs de usuario para vista previa",
             "description": "Lista de IDs de usuario para la suplantación en vista previa (uno por línea)"
