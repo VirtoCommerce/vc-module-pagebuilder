@@ -1,10 +1,17 @@
+using System.Text.RegularExpressions;
+
 namespace VirtoCommerce.PageBuilderModule.Core.GitContent
 {
     /// <summary>
-    /// Connection to the content repository for the git content flow: when it is on, a page save is a
+    /// Connection to the content repositories for the git content flow: when it is on, a page save is a
     /// commit on a work branch (git is the source of truth) and publishing is a merge into
-    /// <see cref="BaseBranch"/>, performed by CI. Direct live writes are restricted to callers holding
-    /// the publish permission (the CI deploy).
+    /// <see cref="BaseBranch"/>, after which the platform writes the merged page to the live storage
+    /// itself. Direct live writes are restricted to callers holding the publish permission.
+    /// <para>
+    /// Each site has its own repository: "{<see cref="Organization"/>}/{<see cref="RepositoryPrefix"/>}{storeId}",
+    /// created by the module, or one the store names in its own setting. <see cref="Repository"/> is the
+    /// single repository every store shared before, kept for installations that still use it.
+    /// </para>
     /// <para>
     /// <see cref="Enabled"/> is a global kill switch, not the whole answer: a store also has to opt in
     /// through its own setting. Ask <see cref="IGitContentPolicy"/> rather than reading this flag.
@@ -14,12 +21,50 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
     {
         public const string SectionName = "PageBuilder:GitContent";
 
+        /// <summary>GitHub's limit on a repository name.</summary>
+        public const int MaxRepositoryNameLength = 100;
+
+        // "owner/name" as GitHub allows them; anything else in a store's setting ends up in api urls
+        private static readonly Regex RepositoryPattern = new("^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$", RegexOptions.None, TimeSpan.FromSeconds(1));
+
         public bool Enabled { get; set; }
 
         /// <summary>
-        /// Content repository in "owner/name" form, e.g. "VirtoCommerce/vc-content".
+        /// The single content repository all stores share, in "owner/name" form — the setup before each
+        /// site had its own. Mutually exclusive with <see cref="Organization"/>.
         /// </summary>
         public string Repository { get; set; }
+
+        /// <summary>
+        /// The GitHub organization that holds one repository per site. One per environment. Set here, in the
+        /// environment's configuration, or by the one-click "Enable history" setup, which keeps it together
+        /// with its App in a platform setting protected with this server's data protection keys — a
+        /// production database restored into staging cannot read it there, so staging never creates or
+        /// archives repositories in production's organization.
+        /// </summary>
+        public string Organization { get; set; }
+
+        /// <summary>Prefix of the site repositories: "site-" names the repository of store "b2b-store" "site-b2b-store".</summary>
+        public string RepositoryPrefix { get; set; } = "site-";
+
+        /// <summary>
+        /// A store created on the platform gets its repository and the git flow straight away. Existing
+        /// stores are switched on one by one from their site page. Needs <see cref="Organization"/>.
+        /// </summary>
+        public bool AutoCreateRepositories { get; set; }
+
+        /// <summary>
+        /// Id of the GitHub App the module acts as. With <see cref="PrivateKey"/> it replaces
+        /// <see cref="Token"/>: each request carries a short-lived token of the App's installation on the
+        /// repository's owner, which is also what may create the site repositories.
+        /// </summary>
+        public string AppId { get; set; }
+
+        /// <summary>
+        /// The App's private key in PEM form. A platform secret — keep it in environment/secret storage.
+        /// "\n" escapes are accepted for environments that cannot hold line breaks.
+        /// </summary>
+        public string PrivateKey { get; set; }
 
         /// <summary>
         /// Base url of the GitHub REST API. Override for GitHub Enterprise.
@@ -40,8 +85,8 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
         public Uri GraphQlUrl { get; set; } = new("https://api.github.com/graphql");
 
         /// <summary>
-        /// Token with contents and pull-request read/write access to the repository (fine-grained PAT or
-        /// GitHub App installation token). A platform secret — keep it in environment/secret storage.
+        /// Personal access token with contents and pull-request read/write access to the repositories,
+        /// used when no GitHub App is configured. A platform secret — keep it in environment/secret storage.
         /// </summary>
         public string Token { get; set; }
 
@@ -157,12 +202,69 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
         public TimeSpan HistoryCacheExpiration { get; set; } = TimeSpan.FromMinutes(1);
 
         /// <summary>
+        /// GitHub's web site for <see cref="ApiUrl"/>: github.com for api.github.com, the server itself for
+        /// GitHub Enterprise ("https://ghe.example/api/v3/" → "https://ghe.example/").
+        /// </summary>
+        public Uri WebUrl => string.Equals(ApiUrl.Host, "api.github.com", StringComparison.OrdinalIgnoreCase)
+            ? new Uri("https://github.com/")
+            : new Uri(ApiUrl.GetLeftPart(UriPartial.Authority) + "/");
+
+        /// <summary>True when requests authenticate as a GitHub App rather than with <see cref="Token"/>.</summary>
+        public bool UsesApp => !string.IsNullOrWhiteSpace(AppId) && !string.IsNullOrWhiteSpace(PrivateKey);
+
+        /// <summary>
         /// True when the connection is filled in well enough to talk to GitHub at all.
         /// </summary>
         public bool IsConfigured =>
-            !string.IsNullOrWhiteSpace(Repository) &&
-            !string.IsNullOrWhiteSpace(Token) &&
+            (!string.IsNullOrWhiteSpace(Repository) || !string.IsNullOrWhiteSpace(Organization)) &&
+            (!string.IsNullOrWhiteSpace(Token) || UsesApp) &&
             !string.IsNullOrWhiteSpace(BaseBranch);
+
+        /// <summary>
+        /// The repository holding a store's pages: <paramref name="configured"/> (the store's own setting)
+        /// when set, else the store's repository in <see cref="Organization"/>, else the shared
+        /// <see cref="Repository"/>; <c>null</c> when there is none.
+        /// <para>
+        /// A configured value must be a plain "owner/name" and is refused otherwise, never replaced by the
+        /// computed name: it is typed by an administrator and ends up in api urls, where anything else
+        /// could address a different GitHub endpoint with the module's credentials.
+        /// </para>
+        /// </summary>
+        public string RepositoryFor(string storeId, string configured = null)
+        {
+            if (!string.IsNullOrWhiteSpace(configured))
+            {
+                var repository = configured.Trim();
+                var name = repository[(repository.IndexOf('/') + 1)..];
+                if (!RepositoryPattern.IsMatch(repository) || name is "." or "..")
+                {
+                    throw new InvalidOperationException($"\"{configured}\" is not a GitHub repository in \"owner/name\" form.");
+                }
+
+                return repository;
+            }
+
+            if (!string.IsNullOrWhiteSpace(Organization))
+            {
+                var name = GitPageLocation.SanitizeRefComponent($"{RepositoryPrefix}{storeId}") ?? "site";
+                if (name.Length > MaxRepositoryNameLength)
+                {
+                    name = name[..MaxRepositoryNameLength].Trim('-', '.');
+                }
+
+                return $"{Organization.Trim()}/{name}";
+            }
+
+            return string.IsNullOrWhiteSpace(Repository) ? null : Repository.Trim();
+        }
+
+        /// <summary>
+        /// True for a repository in <see cref="Organization"/> — the only place the module creates,
+        /// adopts or archives repositories.
+        /// </summary>
+        public bool IsInOrganization(string repository) =>
+            !string.IsNullOrWhiteSpace(Organization) &&
+            repository?.StartsWith($"{Organization.Trim()}/", StringComparison.OrdinalIgnoreCase) == true;
 
         /// <summary>
         /// Fail fast at start-up: a half-configured git flow must not boot. Silently falling back to the
@@ -174,6 +276,17 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
             if (!Enabled)
             {
                 return;
+            }
+
+            // Both would leave it to chance which repository a store's pages go to. Moving from the shared
+            // repository to one per site is done store by store, by naming the shared one in each store's
+            // own setting first.
+            if (!string.IsNullOrWhiteSpace(Repository) && !string.IsNullOrWhiteSpace(Organization))
+            {
+                throw new InvalidOperationException(
+                    $"{SectionName}:{nameof(Repository)} and {SectionName}:{nameof(Organization)} are both set. " +
+                    $"Use {nameof(Organization)} for one repository per site; to keep a store on the shared repository, " +
+                    $"set it as that store's Git repository, then remove {nameof(Repository)}.");
             }
 
             if (IsConfigured)
@@ -195,13 +308,13 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
             }
 
             var missing = new List<string>();
-            if (string.IsNullOrWhiteSpace(Repository))
+            if (string.IsNullOrWhiteSpace(Repository) && string.IsNullOrWhiteSpace(Organization))
             {
-                missing.Add(nameof(Repository));
+                missing.Add($"{nameof(Organization)} (or {nameof(Repository)})");
             }
-            if (string.IsNullOrWhiteSpace(Token))
+            if (string.IsNullOrWhiteSpace(Token) && !UsesApp)
             {
-                missing.Add(nameof(Token));
+                missing.Add($"{nameof(AppId)} and {nameof(PrivateKey)} (or {nameof(Token)})");
             }
             if (string.IsNullOrWhiteSpace(BaseBranch))
             {

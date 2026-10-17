@@ -66,7 +66,7 @@ Only ask the user if the index genuinely has nothing that fits the role. Never f
 
 ### Theme schema file format
 
-Each entry returned by `pagebuilder_get_section_schema` follows the format formally defined in `Apps/page-builder-designer/src/data/theme-schema.schema.json`. The shape you need to act on:
+Each entry returned by `pagebuilder_get_section_schema` follows the format formally defined in `vue/src/modules/designer/types.ts` (`ItemSchema`). The shape you need to act on:
 
 ```json
 {

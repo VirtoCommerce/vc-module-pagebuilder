@@ -25,12 +25,6 @@
       <iconUrl>/apps/page-builder-shell/assets/logo-only.svg</iconUrl>
       <placement>Hidden</placement>
     </app>
-    <app id="page-builder-designer">
-      <title>Page Builder Designer</title>
-      <description>Page Builder Designer</description>
-      <iconUrl>/apps/page-builder-designer/assets/images/logo-only.svg</iconUrl>
-      <placement>Hidden</placement>
-    </app>
   </apps>
 
   <authors>

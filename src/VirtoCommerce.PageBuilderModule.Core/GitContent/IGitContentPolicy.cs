@@ -21,5 +21,17 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
         /// A missing or unreadable store setting means "off".
         /// </summary>
         Task<bool> IsEnabledForStoreAsync(string storeId, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// The repository ("owner/name") holding the store's pages when the git content flow is on for the
+        /// store, <c>null</c> when it is off. What every git action starts from.
+        /// </summary>
+        Task<string> GetRepositoryAsync(string storeId, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// The store's repository whether or not the store has the flow switched on — what switching it on
+        /// would use — or <c>null</c> when the connection is not configured.
+        /// </summary>
+        Task<string> ResolveRepositoryAsync(string storeId, CancellationToken cancellationToken = default);
     }
 }

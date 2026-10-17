@@ -180,12 +180,52 @@ namespace VirtoCommerce.PageBuilderModule.Core
                     DefaultValue = false,
                 };
 
+                /// <summary>
+                /// An existing GitHub repository ("owner/name") for this store's pages, in place of the one
+                /// the module creates for it in the configured organization. Empty means "the store's own
+                /// repository". The module never archives a repository named here.
+                /// </summary>
+                public static SettingDescriptor GitContentRepository { get; } = new()
+                {
+                    Name = "VirtoCommerce.PageBuilderModule.Store.GitContentRepository",
+                    GroupName = "CMS|Page builder",
+                    ValueType = SettingValueType.ShortText,
+                    DefaultValue = "",
+                };
+
                 public static IEnumerable<SettingDescriptor> AllStoreLevelSettings
                 {
                     get
                     {
                         yield return PreviewUserIds;
                         yield return GitContentEnabled;
+                        yield return GitContentRepository;
+                    }
+                }
+            }
+
+            public static class GitHub
+            {
+                /// <summary>
+                /// The GitHub App the one-click setup created (<see cref="GitContent.GitHubAppConnection"/>), as
+                /// one value protected with the platform's data protection keys. Hidden: it is written only by
+                /// the setup, and configuration under <see cref="GitContent.GitContentOptions.SectionName"/>
+                /// takes precedence over it.
+                /// </summary>
+                public static SettingDescriptor AppConnection { get; } = new()
+                {
+                    Name = "VirtoCommerce.PageBuilderModule.GitHub.AppConnection",
+                    GroupName = "CMS|Page builder",
+                    ValueType = SettingValueType.LongText,
+                    DefaultValue = "",
+                    IsHidden = true,
+                };
+
+                public static IEnumerable<SettingDescriptor> AllGitHubSettings
+                {
+                    get
+                    {
+                        yield return AppConnection;
                     }
                 }
             }
@@ -193,6 +233,7 @@ namespace VirtoCommerce.PageBuilderModule.Core
             public static IEnumerable<SettingDescriptor> AllSettings =>
                 General.AllGeneralSettings
                     .Union(Migration.AllMigrationSettings)
+                    .Union(GitHub.AllGitHubSettings)
                     .Union(StoreLevelSettings.AllStoreLevelSettings);
         }
     }

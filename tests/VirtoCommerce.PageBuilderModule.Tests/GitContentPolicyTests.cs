@@ -171,5 +171,106 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
             options.Validate();
         }
+
+        // ── one repository per site ──────────────────────────────────────────────────────────────────
+
+        private static GitContentOptions PerSite() => new()
+        {
+            Enabled = true,
+            Organization = "VirtoCommerce-Sites",
+            AppId = "123",
+            PrivateKey = "-----BEGIN PRIVATE KEY-----",
+            BaseBranch = "main",
+        };
+
+        [Fact]
+        public async Task Per_site_a_store_gets_its_own_repository_in_the_organization()
+        {
+            var policy = Policy(PerSite(), new FakeSettingsManager(value: true));
+
+            Assert.Equal("VirtoCommerce-Sites/site-b2b-store", await policy.GetRepositoryAsync("B2B-store", TestContext.Current.CancellationToken));
+        }
+
+        [Fact]
+        public async Task Per_site_a_store_that_is_off_has_no_repository_to_use_but_one_to_switch_on_with()
+        {
+            var policy = Policy(PerSite(), new FakeSettingsManager(value: false));
+
+            Assert.Null(await policy.GetRepositoryAsync("b2b-store", TestContext.Current.CancellationToken));
+            Assert.Equal("VirtoCommerce-Sites/site-b2b-store", await policy.ResolveRepositoryAsync("b2b-store", TestContext.Current.CancellationToken));
+        }
+
+        [Fact]
+        public async Task A_store_that_names_its_own_repository_uses_it()
+        {
+            var policy = Policy(PerSite(), new FakeSettingsManager(value: true, repository: " acme/website "));
+
+            Assert.Equal("acme/website", await policy.GetRepositoryAsync("b2b-store", TestContext.Current.CancellationToken));
+        }
+
+        [Theory]
+        [InlineData("B2B Store", "VirtoCommerce-Sites/site-b2b-store")]
+        [InlineData("electronics", "VirtoCommerce-Sites/site-electronics")]
+        [InlineData("Shop #1", "VirtoCommerce-Sites/site-shop-1")]
+        public void RepositoryFor_names_the_site_repository_safely(string storeId, string expected)
+        {
+            Assert.Equal(expected, PerSite().RepositoryFor(storeId));
+        }
+
+        [Fact]
+        public void RepositoryFor_keeps_within_the_GitHub_name_limit()
+        {
+            var name = PerSite().RepositoryFor(new string('a', 200)).Split('/')[1];
+
+            Assert.Equal(GitContentOptions.MaxRepositoryNameLength, name.Length);
+        }
+
+        /// <summary>
+        /// The store's own setting ends up in api urls, so anything but a plain "owner/name" is refused — never
+        /// quietly replaced by the computed name, which would put the store's pages somewhere it did not ask for.
+        /// </summary>
+        [Theory]
+        [InlineData("../orgs/x")]
+        [InlineData("acme")]
+        [InlineData("acme/..")]
+        [InlineData("acme/web site")]
+        [InlineData("acme/website/contents")]
+        public void RepositoryFor_refuses_a_setting_that_is_not_owner_and_name(string configured)
+        {
+            Assert.Throws<InvalidOperationException>(() => PerSite().RepositoryFor("b2b-store", configured));
+        }
+
+        [Fact]
+        public void RepositoryFor_without_an_organization_is_the_shared_repository()
+        {
+            Assert.Equal("owner/repo", Configured().RepositoryFor("anything"));
+        }
+
+        [Fact]
+        public void Validate_refuses_the_shared_repository_and_an_organization_together()
+        {
+            var options = PerSite();
+            options.Repository = "owner/repo";
+
+            var error = Assert.Throws<InvalidOperationException>(options.Validate);
+
+            Assert.Contains(nameof(GitContentOptions.Organization), error.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Validate_passes_with_an_organization_and_a_GitHub_App()
+        {
+            PerSite().Validate();
+            Assert.True(PerSite().IsConfigured);
+        }
+
+        [Fact]
+        public void IsInOrganization_is_only_the_configured_organization()
+        {
+            Assert.True(PerSite().IsInOrganization("virtocommerce-sites/site-a"));
+            Assert.False(PerSite().IsInOrganization("acme/site-a"));
+            Assert.False(PerSite().IsInOrganization("VirtoCommerce-Sites-Staging/site-a"));
+            Assert.False(Configured().IsInOrganization("owner/repo"));
+        }
     }
 }

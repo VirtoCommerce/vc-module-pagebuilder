@@ -92,6 +92,10 @@
             "title": "Publikuj strony przez Git",
             "description": "Gdy włączone, zapisanie strony tworzy commit w gałęzi roboczej skonfigurowanego repozytorium treści, a publikowanie otwiera i scala pull request, zamiast zapisywać bezpośrednio do magazynu blob. Wymaga skonfigurowanego na serwerze połączenia z treścią Git (PageBuilder:GitContent)."
           },
+          "GitContentRepository": {
+            "title": "Repozytorium Git",
+            "description": "Istniejące repozytorium GitHub (owner/name) dla stron tego sklepu. Pozostaw puste, aby użyć własnego repozytorium sklepu, które Page Builder tworzy w skonfigurowanej organizacji."
+          },
           "PreviewUserIds": {
             "title": "ID użytkowników do podglądu",
             "description": "Lista ID użytkowników do podszywania się podczas podglądu stron (jeden na wiersz)"

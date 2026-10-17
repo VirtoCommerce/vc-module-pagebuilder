@@ -63,21 +63,22 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
 
         // The arguments are checked here rather than in the async part below, so a call that cannot work
         // throws where it was made instead of when its task is finally awaited.
-        public Task<GitPageHistory> GetHistoryAsync(string repoPath, GitHistoryQuery query, CancellationToken cancellationToken = default)
+        public Task<GitPageHistory> GetHistoryAsync(string repository, string repoPath, GitHistoryQuery query, CancellationToken cancellationToken = default)
         {
+            ArgumentException.ThrowIfNullOrWhiteSpace(repository);
             ArgumentException.ThrowIfNullOrWhiteSpace(repoPath);
             ArgumentNullException.ThrowIfNull(query);
             ArgumentException.ThrowIfNullOrWhiteSpace(query.BaseBranch);
 
-            return GetHistoryCoreAsync(repoPath, query, cancellationToken);
+            var (owner, name) = SplitRepository(repository);
+            return GetHistoryCoreAsync(repository, owner, name, repoPath, query, cancellationToken);
         }
 
-        private async Task<GitPageHistory> GetHistoryCoreAsync(string repoPath, GitHistoryQuery query, CancellationToken cancellationToken)
+        private async Task<GitPageHistory> GetHistoryCoreAsync(string repository, string owner, string name, string repoPath, GitHistoryQuery query, CancellationToken cancellationToken)
         {
-            var (owner, name) = SplitRepository();
             var depth = query.PublishedDepth ?? _options.PublishedHistoryDepth;
 
-            var cacheKey = CacheKey(repoPath, query, depth);
+            var cacheKey = CacheKey(repository, repoPath, query, depth);
             if (_memoryCache.TryGetValue<GitPageHistory>(cacheKey, out var cached))
             {
                 return cached;
@@ -91,9 +92,9 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             return history;
         }
 
-        public void Invalidate(string repoPath)
+        public void Invalidate(string repository, string repoPath)
         {
-            if (string.IsNullOrWhiteSpace(repoPath))
+            if (string.IsNullOrWhiteSpace(repository) || string.IsNullOrWhiteSpace(repoPath))
             {
                 return;
             }
@@ -101,7 +102,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             // The list is cached per base branch, depth and cursor, and IMemoryCache cannot drop a family
             // of keys — so the keys carry a generation number for the page and this moves it on. Bumping
             // a counter leaves the stale entries to expire on their own instead of being read again.
-            _memoryCache.Set(GenerationKey(repoPath), Generation(repoPath) + 1, NeverEvict);
+            _memoryCache.Set(GenerationKey(repository, repoPath), Generation(repository, repoPath) + 1, NeverEvict);
         }
 
         private async Task<JObject> PostQueryAsync(string owner, string name, string repoPath, GitHistoryQuery query, int depth, CancellationToken cancellationToken)
@@ -123,8 +124,14 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             };
 
             var client = _httpClientFactory.CreateClient(GitHubContentRepository.HttpClientName);
-            using var response = await client.PostAsync(_options.GraphQlUrl,
-                new StringContent(request.ToString(), Encoding.UTF8, "application/json"), cancellationToken);
+
+            // a GraphQL url names no repository: the owner tells the authentication which installation to use
+            using var message = new HttpRequestMessage(HttpMethod.Post, _options.GraphQlUrl)
+            {
+                Content = new StringContent(request.ToString(), Encoding.UTF8, "application/json"),
+            };
+            message.Options.Set(GitHubAuthHandler.Owner, owner);
+            using var response = await client.SendAsync(message, cancellationToken);
 
             var content = await response.Content.ReadAsStringAsync(cancellationToken);
             if (!response.IsSuccessStatusCode)
@@ -254,25 +261,23 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             _ => null,
         };
 
-        private (string Owner, string Name) SplitRepository()
+        private static (string Owner, string Name) SplitRepository(string repository)
         {
-            var repository = _options.Repository;
-            var separator = repository?.IndexOf('/') ?? -1;
+            var separator = repository.IndexOf('/');
             if (separator <= 0 || separator == repository.Length - 1)
             {
-                throw new InvalidOperationException(
-                    $"Git content is not configured: set {GitContentOptions.SectionName}:Repository to \"owner/name\".");
+                throw new ArgumentException($"\"{repository}\" is not a repository in \"owner/name\" form.", nameof(repository));
             }
 
             return (repository[..separator], repository[(separator + 1)..]);
         }
 
-        private string CacheKey(string repoPath, GitHistoryQuery query, int depth) =>
-            $"{nameof(GitHubContentHistory)}:{_options.Repository}:{Generation(repoPath)}:{query.BaseBranch}:{depth}:{query.After}:{repoPath}";
+        private string CacheKey(string repository, string repoPath, GitHistoryQuery query, int depth) =>
+            $"{nameof(GitHubContentHistory)}:{repository}:{Generation(repository, repoPath)}:{query.BaseBranch}:{depth}:{query.After}:{repoPath}";
 
-        private string GenerationKey(string repoPath) => $"{nameof(GitHubContentHistory)}:generation:{_options.Repository}:{repoPath}";
+        private static string GenerationKey(string repository, string repoPath) => $"{nameof(GitHubContentHistory)}:generation:{repository}:{repoPath}";
 
-        private long Generation(string repoPath) => _memoryCache.GetOrCreate(GenerationKey(repoPath), entry =>
+        private long Generation(string repository, string repoPath) => _memoryCache.GetOrCreate(GenerationKey(repository, repoPath), entry =>
         {
             entry.SetOptions(NeverEvict);
             return 0L;

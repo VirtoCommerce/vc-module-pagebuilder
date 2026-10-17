@@ -1,0 +1,6 @@
+/* The tw- utilities the moved Page Builder screens use, in a cascade layer: the shell's own CSS (unlayered) already has
+   most of them, and a second, later copy of e.g. .tw-flex-col would override the shell's responsive variants
+   (sm:tw-flex-row) by load order. Layered, they only fill in what the shell lacks. */
+@layer pagebuilder {
+  @tailwind utilities;
+}

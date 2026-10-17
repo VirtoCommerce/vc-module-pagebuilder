@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Security.Claims;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -26,6 +27,7 @@ using VirtoCommerce.Platform.Core.Events;
 using VirtoCommerce.Platform.Core.Settings;
 using VirtoCommerce.StoreModule.Core.Model;
 using VirtoCommerce.StoreModule.Core.Services;
+using StorePermissions = VirtoCommerce.StoreModule.Core.ModuleConstants.Security.Permissions;
 
 namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 {
@@ -41,6 +43,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             IGitContentRepository gitContentRepository,
             IGitContentHistory gitContentHistory,
             IGitContentPublisher gitContentPublisher,
+            IGitContentProvisioner gitContentProvisioner,
             ISettingsManager settingsManager,
             IAuthorizationService authorizationService
             )
@@ -80,10 +83,12 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         {
             // With the git flow on, a page is read from git: the caller's URL does not change, because
             // resolving "this editor's draft, else what is published" is the server's job.
-            if (GitPageLocation.IsPageContent(type) && !path.IsNullOrEmpty() &&
-                await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
+            var repository = GitPageLocation.IsPageContent(type) && !path.IsNullOrEmpty()
+                ? await gitContentPolicy.GetRepositoryAsync(storeId, HttpContext.RequestAborted)
+                : null;
+            if (repository != null)
             {
-                var fromGit = await ReadPageFromGitAsync(type, path, draft, gitRef);
+                var fromGit = await ReadPageFromGitAsync(repository, type, path, draft, gitRef);
                 if (fromGit != null)
                 {
                     return PageContent(fromGit);
@@ -142,39 +147,40 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         /// draft, else what is live" — intact, so the callers of this URL never learn that pages moved to
         /// git.
         /// </summary>
-        private async Task<string> ReadPageFromGitAsync(string type, string path, bool draft, string gitRef)
+        private async Task<string> ReadPageFromGitAsync(string repository, string type, string path, bool draft, string gitRef)
         {
-            var location = GitLocation(type, path);
+            var location = GitLocation(repository, type, path);
 
             if (!string.IsNullOrEmpty(gitRef))
             {
                 // an exact commit — what a preview link points at
-                return await gitContentRepository.ReadFileAsync(location.RepoPath, gitRef, HttpContext.RequestAborted);
+                return await gitContentRepository.ReadFileAsync(location.Repository, location.RepoPath, gitRef, HttpContext.RequestAborted);
             }
 
             if (draft)
             {
-                var onBranch = await gitContentRepository.ReadFileAsync(location.RepoPath, location.Branch, HttpContext.RequestAborted);
+                var onBranch = await gitContentRepository.ReadFileAsync(location.Repository, location.RepoPath, location.Branch, HttpContext.RequestAborted);
                 if (onBranch != null)
                 {
                     return onBranch;
                 }
             }
 
-            return await gitContentRepository.ReadFileAsync(location.RepoPath, gitContentOptions.Value.BaseBranch, HttpContext.RequestAborted);
+            return await gitContentRepository.ReadFileAsync(location.Repository, location.RepoPath, gitContentOptions.Value.BaseBranch, HttpContext.RequestAborted);
         }
 
         /// <summary>
-        /// Where this page lives in the repository and on which branch this editor drafts it. Both are
-        /// derived from the same content path, so a page and a blog article that happen to share a
-        /// relative url stay two files on two branches.
+        /// Where this page lives — the store's repository, the file in it, and the branch this editor drafts
+        /// it on. Path and branch are derived from the same content path, so a page and a blog article that
+        /// happen to share a relative url stay two files on two branches.
         /// </summary>
-        private (string RepoPath, string Branch) GitLocation(string type, string path)
+        private (string Repository, string RepoPath, string Branch) GitLocation(string repository, string type, string path)
         {
             var options = gitContentOptions.Value;
             var contentPath = GitPageLocation.ContentPath(type, path);
 
             return (
+                repository,
                 GitPageLocation.RepoPath(options.PagesRoot, contentPath),
                 GitPageLocation.BranchFor(options.BranchTemplate, User?.Identity?.Name, contentPath));
         }
@@ -503,7 +509,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         {
             var files = JsonConvert.DeserializeObject<List<SaveFileModel>>(value.Files);
 
-            if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
+            var repository = await gitContentPolicy.GetRepositoryAsync(storeId, HttpContext.RequestAborted);
+            if (repository == null)
             {
                 await SaveFilesTo(storeId, theme, files, draft);
                 return Ok();
@@ -511,9 +518,10 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
             if (!draft)
             {
-                // With the git flow on, live writes belong to the CI deploy (merge to the production
-                // branch): only callers holding the publish permission (the CI service account) may
-                // pass draft=false. Editors publish through PR + merge instead.
+                // With the git flow on, live writes follow a merge to the production branch — the platform
+                // makes them itself after publishing, and a content repository's own CI deploy may too: only
+                // callers holding the publish permission may pass draft=false. Editors publish through
+                // PR + merge instead.
                 var authorizationResult = await authorizationService.AuthorizeAsync(User, null, ModuleConstants.Security.Permissions.Publish);
                 if (!authorizationResult.Succeeded)
                 {
@@ -540,7 +548,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             var saved = new List<object>();
             foreach (var page in pages)
             {
-                saved.Add(await CommitPageToGitAsync(page, storeId));
+                saved.Add(await CommitPageToGitAsync(repository, page, storeId));
             }
 
             // Themes, schemas and everything else still live in blob storage — only pages and blogs moved
@@ -555,14 +563,16 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         }
 
         /// <summary>
-        /// Publishes a page: merges its work branch into the production branch, from where CI deploys it.
-        /// The editor's own draft is what ships — never the bytes the caller happens to send.
+        /// Publishes a page: merges its work branch into the production branch, then writes the page as the
+        /// branch now has it to the live storage. The editor's own draft is what ships — never the bytes the
+        /// caller happens to send.
         /// </summary>
         [HttpPost]
         [Route("git/publish")]
         public async Task<ActionResult> GitPublish(string storeId, string path, string type, bool rebase = false)
         {
-            if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
+            var repository = await gitContentPolicy.GetRepositoryAsync(storeId, HttpContext.RequestAborted);
+            if (repository == null)
             {
                 // the switch is off for this store: publish means what it always meant
                 await publishingService.PublishingAsync(type ?? PagesContentType, storeId, path, publish: true);
@@ -574,12 +584,16 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 return Forbid();
             }
 
-            var location = GitLocation(type, path);
+            var location = GitLocation(repository, type, path);
 
-            var draft = await gitContentRepository.ReadFileAsync(location.RepoPath, location.Branch, HttpContext.RequestAborted);
+            var draft = await gitContentRepository.ReadFileAsync(location.Repository, location.RepoPath, location.Branch, HttpContext.RequestAborted);
             if (draft == null)
             {
-                // no branch, or no such page on it: there is nothing of this editor's to publish
+                // No branch, or no such page on it: there is nothing of this editor's to publish. The live
+                // copy is written again from the production branch all the same — that is how publishing
+                // twice repairs a live write that failed after its merge, or catches up with a merge GitHub
+                // finished after the request.
+                await WriteLiveAsync(storeId, type, path, location, removeWhenGone: false);
                 return Ok(new { state = nameof(GitPublishState.AlreadyPublished) });
             }
 
@@ -596,9 +610,15 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 await RebaseDraftAsync(location, draft, path, storeId);
             }
 
-            var result = await gitContentPublisher.MergeBranchAsync(location.Branch, $"publish {path} (store: {storeId})", HttpContext.RequestAborted);
+            var result = await gitContentPublisher.MergeBranchAsync(location.Repository, location.Branch, $"publish {path} (store: {storeId})", HttpContext.RequestAborted);
 
-            return await RespondToPublishAsync(result, location, path, canRebase: true);
+            var response = await RespondToPublishAsync(result, location, path, canRebase: true);
+            if (result.State == GitPublishState.Merged)
+            {
+                await WriteLiveAsync(storeId, type, path, location, removeWhenGone: false);
+            }
+
+            return response;
         }
 
         /// <summary>
@@ -628,24 +648,24 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         /// for a moment, so the branch would keep its old merge base and meet the same conflict again.
         /// </para>
         /// </summary>
-        private async Task RebaseDraftAsync((string RepoPath, string Branch) location, string draft, string path, string storeId)
+        private async Task RebaseDraftAsync((string Repository, string RepoPath, string Branch) location, string draft, string path, string storeId)
         {
             var options = gitContentOptions.Value;
             var cancellationToken = HttpContext.RequestAborted;
 
-            var baseSha = await gitContentRepository.GetBranchHeadShaAsync(options.BaseBranch, cancellationToken)
+            var baseSha = await gitContentRepository.GetBranchHeadShaAsync(location.Repository, options.BaseBranch, cancellationToken)
                 ?? throw new InvalidOperationException($"Could not resolve \"{options.BaseBranch}\" to a commit.");
 
             // Where the draft is now, so it can be put back if what follows does not finish.
-            var draftHead = await gitContentRepository.GetBranchHeadShaAsync(location.Branch, cancellationToken);
+            var draftHead = await gitContentRepository.GetBranchHeadShaAsync(location.Repository, location.Branch, cancellationToken);
 
             try
             {
-                await gitContentRepository.SetBranchAsync(location.Branch, baseSha, location.RepoPath, cancellationToken);
+                await gitContentRepository.SetBranchAsync(location.Repository, location.Branch, baseSha, location.RepoPath, cancellationToken);
 
                 var author = CurrentAuthor();
                 var message = CommitMessage($"designer: publish {path} on top of {options.BaseBranch}, replacing what changed there since this draft began (store: {storeId}, by: {author.Name})");
-                await gitContentRepository.CommitFileAsync(location.RepoPath, draft, location.Branch, message, author, cancellationToken);
+                await gitContentRepository.CommitFileAsync(location.Repository, location.RepoPath, draft, location.Branch, message, author, cancellationToken);
             }
             catch (Exception failure) when (draftHead != null)
             {
@@ -657,7 +677,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                     // exactly the case it exists for, leaving the branch on the base commit with the draft
                     // reachable only by a sha nobody is left to read. The call is bounded by the HTTP
                     // client's own timeout.
-                    await gitContentRepository.SetBranchAsync(location.Branch, draftHead, location.RepoPath, CancellationToken.None);
+                    await gitContentRepository.SetBranchAsync(location.Repository, location.Branch, draftHead, location.RepoPath, CancellationToken.None);
                 }
                 catch (Exception restoreFailure)
                 {
@@ -673,7 +693,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             }
             finally
             {
-                gitContentHistory.Invalidate(location.RepoPath);
+                gitContentHistory.Invalidate(location.Repository, location.RepoPath);
             }
         }
 
@@ -692,7 +712,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("git/promote")]
         public async Task<ActionResult> GitPromote(string storeId, string path, string type)
         {
-            if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
+            var repository = await gitContentPolicy.GetRepositoryAsync(storeId, HttpContext.RequestAborted);
+            if (repository == null)
             {
                 // without git there is no second branch to promote into
                 return NotFound();
@@ -715,9 +736,9 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 return Forbid();
             }
 
-            var location = GitLocation(type, path);
+            var location = GitLocation(repository, type, path);
 
-            var onBase = await gitContentRepository.ReadFileAsync(location.RepoPath, options.BaseBranch, HttpContext.RequestAborted);
+            var onBase = await gitContentRepository.ReadFileAsync(location.Repository, location.RepoPath, options.BaseBranch, HttpContext.RequestAborted);
             if (onBase == null)
             {
                 return BadRequest(new
@@ -727,7 +748,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 });
             }
 
-            var onRelease = await gitContentRepository.ReadFileAsync(location.RepoPath, options.ReleaseBranch, HttpContext.RequestAborted);
+            var onRelease = await gitContentRepository.ReadFileAsync(location.Repository, location.RepoPath, options.ReleaseBranch, HttpContext.RequestAborted);
             if (onRelease != null && PageJson.AreSame(onBase, onRelease))
             {
                 // production already holds this exact page; opening a pull request would only produce an
@@ -736,11 +757,12 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             }
 
             var branch = PromoteBranch(type, path);
-            await PreparePromoteBranchAsync(branch, location.RepoPath, options.ReleaseBranch);
+            await PreparePromoteBranchAsync(location.Repository, branch, location.RepoPath, options.ReleaseBranch);
 
             // The bytes come from the base branch, never from the request: promotion ships what the dev
             // environment has been serving, not what a client happens to send along with the button press.
             await gitContentRepository.CommitFileAsync(
+                location.Repository,
                 location.RepoPath,
                 onBase,
                 branch,
@@ -749,22 +771,24 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 HttpContext.RequestAborted);
 
             var result = await gitContentPublisher.MergeBranchIntoAsync(
-                branch, $"promote {path} (store: {storeId})", options.ReleaseBranch, HttpContext.RequestAborted);
+                location.Repository, branch, $"promote {path} (store: {storeId})", options.ReleaseBranch, HttpContext.RequestAborted);
 
-            return await RespondToShipAsync(result, location.RepoPath, branch, options.ReleaseBranch, path);
+            // No live write: the release branch is what another environment serves, while this platform's
+            // live storage follows the base branch, which promotion does not change.
+            return await RespondToShipAsync(result, location.Repository, location.RepoPath, branch, options.ReleaseBranch, path);
         }
 
         /// <summary>
-        /// Unpublishes a page by removing it from the production branch. Deleting the file is the whole
-        /// operation here — the module never removes a page from blob storage itself, or production would
-        /// stop matching the branch and a revert would stop being a rollback. CI carries the deletion to
-        /// the environment on merge, the same way it carries every other change to the branch.
+        /// Unpublishes a page by removing it from the production branch, and — once that removal is merged —
+        /// from the live storage, the same way publishing writes it there. Only after the merge: live storage
+        /// follows the branch, so production keeps matching it and a revert stays a rollback.
         /// </summary>
         [HttpPost]
         [Route("git/unpublish")]
         public async Task<ActionResult> GitUnpublish(string storeId, string path, string type)
         {
-            if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
+            var repository = await gitContentPolicy.GetRepositoryAsync(storeId, HttpContext.RequestAborted);
+            if (repository == null)
             {
                 await publishingService.PublishingAsync(type ?? PagesContentType, storeId, path, publish: false);
                 return Ok();
@@ -776,17 +800,17 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             }
 
             var options = gitContentOptions.Value;
-            var location = GitLocation(type, path);
+            var location = GitLocation(repository, type, path);
 
-            if (await gitContentRepository.ReadFileAsync(location.RepoPath, options.BaseBranch, HttpContext.RequestAborted) == null)
+            if (await gitContentRepository.ReadFileAsync(location.Repository, location.RepoPath, options.BaseBranch, HttpContext.RequestAborted) == null)
             {
                 return NotFound(new { templatePath = path });
             }
 
-            var hadBranch = await gitContentRepository.GetBranchHeadShaAsync(location.Branch, HttpContext.RequestAborted) != null;
+            var hadBranch = await gitContentRepository.GetBranchHeadShaAsync(location.Repository, location.Branch, HttpContext.RequestAborted) != null;
             if (!hadBranch)
             {
-                await gitContentRepository.CreateBranchAsync(location.Branch, options.BaseBranch, HttpContext.RequestAborted);
+                await gitContentRepository.CreateBranchAsync(location.Repository, location.Branch, options.BaseBranch, HttpContext.RequestAborted);
             }
 
             // A branch cut from the production branch a moment ago still holds the page. One that was
@@ -794,15 +818,21 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             // has committed the deletion, and all that is left of this operation is the merge. Deleting
             // a file that is already gone is an error rather than a no-op, so that retry would fail here
             // instead of finishing the unpublish it is retrying.
-            if (!hadBranch || await gitContentRepository.ReadFileAsync(location.RepoPath, location.Branch, HttpContext.RequestAborted) != null)
+            if (!hadBranch || await gitContentRepository.ReadFileAsync(location.Repository, location.RepoPath, location.Branch, HttpContext.RequestAborted) != null)
             {
-                await gitContentRepository.DeleteFileAsync(location.RepoPath, location.Branch, CommitMessage($"unpublish {path} (store: {storeId})"), CurrentAuthor(), HttpContext.RequestAborted);
-                gitContentHistory.Invalidate(location.RepoPath);
+                await gitContentRepository.DeleteFileAsync(location.Repository, location.RepoPath, location.Branch, CommitMessage($"unpublish {path} (store: {storeId})"), CurrentAuthor(), HttpContext.RequestAborted);
+                gitContentHistory.Invalidate(location.Repository, location.RepoPath);
             }
 
-            var result = await gitContentPublisher.MergeBranchAsync(location.Branch, $"unpublish {path} (store: {storeId})", HttpContext.RequestAborted);
+            var result = await gitContentPublisher.MergeBranchAsync(location.Repository, location.Branch, $"unpublish {path} (store: {storeId})", HttpContext.RequestAborted);
 
-            return await RespondToPublishAsync(result, location, path);
+            var response = await RespondToPublishAsync(result, location, path);
+            if (result.State == GitPublishState.Merged)
+            {
+                await WriteLiveAsync(storeId, type, path, location, removeWhenGone: true);
+            }
+
+            return response;
         }
 
         /// <summary>
@@ -820,7 +850,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("git/publish-status")]
         public async Task<ActionResult> GitPublishStatus(string storeId, string path, string type)
         {
-            var gitFlow = await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted);
+            var repository = await gitContentPolicy.GetRepositoryAsync(storeId, HttpContext.RequestAborted);
+            var gitFlow = repository != null;
 
             // A page that does not exist yet — the blade asking about a page it is about to create — has
             // no status; what the caller is after in that case is the flow.
@@ -836,11 +867,11 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             }
 
             var options = gitContentOptions.Value;
-            var location = GitLocation(type, path);
+            var location = GitLocation(repository, type, path);
 
-            var published = await gitContentRepository.ReadFileAsync(location.RepoPath, options.BaseBranch, HttpContext.RequestAborted);
-            var draft = await gitContentRepository.ReadFileAsync(location.RepoPath, location.Branch, HttpContext.RequestAborted);
-            var pending = await gitContentPublisher.GetOpenPullRequestAsync(location.Branch, HttpContext.RequestAborted);
+            var published = await gitContentRepository.ReadFileAsync(location.Repository, location.RepoPath, options.BaseBranch, HttpContext.RequestAborted);
+            var draft = await gitContentRepository.ReadFileAsync(location.Repository, location.RepoPath, location.Branch, HttpContext.RequestAborted);
+            var pending = await gitContentPublisher.GetOpenPullRequestAsync(location.Repository, location.Branch, HttpContext.RequestAborted);
 
             return Ok(PublishStatus(
                 published: published != null,
@@ -850,7 +881,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 gitFlow: true,
                 // the pull request is open but nothing will merge it: publishing again is what finishes it
                 awaitingMerge: pending is { AutoMerging: false },
-                production: await ProductionStatusAsync(location.RepoPath, published, type, path)));
+                production: await ProductionStatusAsync(location.Repository, location.RepoPath, published, type, path)));
         }
 
         /// <summary>
@@ -861,7 +892,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         /// that makes an editor say the site did not update. Nothing before this could express it.
         /// </para>
         /// </summary>
-        private async Task<object> ProductionStatusAsync(string repoPath, string onBase, string type, string path)
+        private async Task<object> ProductionStatusAsync(string repository, string repoPath, string onBase, string type, string path)
         {
             var options = gitContentOptions.Value;
             if (string.IsNullOrWhiteSpace(options.ReleaseBranch))
@@ -869,8 +900,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 return null;
             }
 
-            var onRelease = await gitContentRepository.ReadFileAsync(repoPath, options.ReleaseBranch, HttpContext.RequestAborted);
-            var pending = await gitContentPublisher.GetOpenPullRequestAsync(PromoteBranch(type, path), HttpContext.RequestAborted);
+            var onRelease = await gitContentRepository.ReadFileAsync(repository, repoPath, options.ReleaseBranch, HttpContext.RequestAborted);
+            var pending = await gitContentPublisher.GetOpenPullRequestAsync(repository, PromoteBranch(type, path), HttpContext.RequestAborted);
 
             return new
             {
@@ -914,7 +945,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("git/history")]
         public async Task<ActionResult> GitHistory(string storeId, string path, string type, int? take = null, string after = null)
         {
-            if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
+            var repository = await gitContentPolicy.GetRepositoryAsync(storeId, HttpContext.RequestAborted);
+            if (repository == null)
             {
                 // there is no history to show: in the blob flow a draft overwrites the page and keeps no versions
                 return NotFound();
@@ -933,9 +965,9 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 return Ok(PageHistoryModel.Empty);
             }
 
-            var location = GitLocation(contentType, path);
+            var location = GitLocation(repository, contentType, path);
 
-            var history = await gitContentHistory.GetHistoryAsync(location.RepoPath, new GitHistoryQuery
+            var history = await gitContentHistory.GetHistoryAsync(location.Repository, location.RepoPath, new GitHistoryQuery
             {
                 BaseBranch = gitContentOptions.Value.BaseBranch,
                 PublishedDepth = take,
@@ -962,7 +994,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("git/restore-version")]
         public async Task<ActionResult> GitRestoreVersion(string storeId, string path, string type, string sha)
         {
-            if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
+            var repository = await gitContentPolicy.GetRepositoryAsync(storeId, HttpContext.RequestAborted);
+            if (repository == null)
             {
                 // without git there are no versions to continue from
                 return NotFound();
@@ -981,9 +1014,9 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             }
 
             var options = gitContentOptions.Value;
-            var location = GitLocation(contentType, path);
+            var location = GitLocation(repository, contentType, path);
 
-            var content = await gitContentRepository.ReadFileAsync(location.RepoPath, sha, HttpContext.RequestAborted);
+            var content = await gitContentRepository.ReadFileAsync(location.Repository, location.RepoPath, sha, HttpContext.RequestAborted);
             if (content == null)
             {
                 // no such commit, or the page did not exist in it
@@ -999,9 +1032,9 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 return BadRequest(new { errors });
             }
 
-            if (await gitContentRepository.GetBranchHeadShaAsync(location.Branch, HttpContext.RequestAborted) == null)
+            if (await gitContentRepository.GetBranchHeadShaAsync(location.Repository, location.Branch, HttpContext.RequestAborted) == null)
             {
-                await gitContentRepository.CreateBranchAsync(location.Branch, options.BaseBranch, HttpContext.RequestAborted);
+                await gitContentRepository.CreateBranchAsync(location.Repository, location.Branch, options.BaseBranch, HttpContext.RequestAborted);
             }
 
             var author = CurrentAuthor();
@@ -1011,8 +1044,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             // Canonical bytes, not the ones read from the commit: an older version may have been written
             // before the canonical form existed, and re-committing it verbatim would make publish-status
             // report changes that are only line endings.
-            var commitSha = await gitContentRepository.CommitFileAsync(location.RepoPath, PageJson.Serialize(page), location.Branch, message, author, HttpContext.RequestAborted);
-            gitContentHistory.Invalidate(location.RepoPath);
+            var commitSha = await gitContentRepository.CommitFileAsync(location.Repository, location.RepoPath, PageJson.Serialize(page), location.Branch, message, author, HttpContext.RequestAborted);
+            gitContentHistory.Invalidate(location.Repository, location.RepoPath);
 
             return Ok(new { branch = location.Branch, commitSha, restoredFrom = sha });
         }
@@ -1026,7 +1059,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("git/preview")]
         public async Task<ActionResult> GitPreview(string storeId, string path, string type, [FromQuery(Name = "ref")] string requestedRef = null)
         {
-            if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
+            var repository = await gitContentPolicy.GetRepositoryAsync(storeId, HttpContext.RequestAborted);
+            if (repository == null)
             {
                 return NotFound();
             }
@@ -1039,11 +1073,11 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 return BadRequest(new { error = $"\"{requestedRef}\" is not a commit sha." });
             }
 
-            var location = GitLocation(type, path);
+            var location = GitLocation(repository, type, path);
 
             var gitRef = requestedRef
-                         ?? await gitContentRepository.GetBranchHeadShaAsync(location.Branch, HttpContext.RequestAborted)
-                         ?? await gitContentRepository.GetBranchHeadShaAsync(gitContentOptions.Value.BaseBranch, HttpContext.RequestAborted);
+                         ?? await gitContentRepository.GetBranchHeadShaAsync(location.Repository, location.Branch, HttpContext.RequestAborted)
+                         ?? await gitContentRepository.GetBranchHeadShaAsync(location.Repository, gitContentOptions.Value.BaseBranch, HttpContext.RequestAborted);
             if (gitRef == null)
             {
                 return NotFound(new { templatePath = path });
@@ -1066,6 +1100,47 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         }
 
         /// <summary>
+        /// Throws a draft kept in blob storage (the file's "-draft" copy) away, so the file is what is published
+        /// again: a page of a store without git, or a theme file such as a section group. Refused when nothing is
+        /// published, as the draft is then the only copy; with git, a page's draft is a branch (git/discard-draft).
+        /// </summary>
+        [HttpPost]
+        [Route("discard-draft")]
+        public async Task<ActionResult> DiscardDraft(string storeId, string path, string type, string theme = null)
+        {
+            if (string.IsNullOrEmpty(storeId) || string.IsNullOrEmpty(path))
+            {
+                return BadRequest();
+            }
+
+            var contentType = string.IsNullOrEmpty(type) ? PagesContentType : type.ToLowerInvariant();
+            var repository = await gitContentPolicy.GetRepositoryAsync(storeId, HttpContext.RequestAborted);
+            if (repository != null && GitPageLocation.IsPageContent(contentType))
+            {
+                return BadRequest("The store's pages are in git: their drafts are discarded with git/discard-draft.");
+            }
+
+            var storageProvider = blobContentStorageProviderFactory.CreateProvider(
+                GetContentBasePath(storeId, contentType, await GetCurrentThemeName(storeId, theme)));
+            var draftPath = publishingService.GetRelativeDraftUrl(path, true);
+            if (await storageProvider.GetBlobInfoAsync(draftPath) == null)
+            {
+                return NoContent();
+            }
+
+            if (await storageProvider.GetBlobInfoAsync(publishingService.GetRelativeDraftUrl(path, false)) == null)
+            {
+                return Conflict("Nothing is published: the draft is the only copy.");
+            }
+
+            await storageProvider.RemoveAsync([draftPath]);
+            await eventPublisher.Publish(new PageBuilderContentChangedEvent(contentType,
+                [new GenericChangedEntry<FileEntity>(new FileEntity { Path = path, Type = contentType }, EntryState.Modified)]));
+
+            return NoContent();
+        }
+
+        /// <summary>
         /// Throws this editor's draft of the page away, so the next read starts from what is published.
         /// The way out of a conflict, and the only one that does not quietly pick a winner.
         /// </summary>
@@ -1073,16 +1148,17 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("git/discard-draft")]
         public async Task<ActionResult> GitDiscardDraft(string storeId, string path, string type)
         {
-            if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
+            var repository = await gitContentPolicy.GetRepositoryAsync(storeId, HttpContext.RequestAborted);
+            if (repository == null)
             {
                 return NotFound();
             }
 
-            var location = GitLocation(type, path);
+            var location = GitLocation(repository, type, path);
 
-            await gitContentRepository.DeleteBranchAsync(location.Branch, location.RepoPath, HttpContext.RequestAborted);
+            await gitContentRepository.DeleteBranchAsync(location.Repository, location.Branch, location.RepoPath, HttpContext.RequestAborted);
             // the draft is gone, and so are the versions that lived only on that branch
-            gitContentHistory.Invalidate(location.RepoPath);
+            gitContentHistory.Invalidate(location.Repository, location.RepoPath);
 
             return Ok();
         }
@@ -1108,7 +1184,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("git/legacy-drafts")]
         public async Task<ActionResult> GetLegacyDrafts(string storeId, string type, string theme, int skip = 0, int take = 50)
         {
-            if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
+            var repository = await gitContentPolicy.GetRepositoryAsync(storeId, HttpContext.RequestAborted);
+            if (repository == null)
             {
                 // On the blob flow a "-draft" file IS the draft, not a leftover. There is nothing to clean
                 // up here, and handing back a list would invite a caller to delete live content.
@@ -1132,7 +1209,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             var items = new List<LegacyDraftInfo>();
             foreach (var draft in window)
             {
-                items.Add(await DescribeLegacyDraftAsync(storageProvider, contentType, draft));
+                items.Add(await DescribeLegacyDraftAsync(repository, storageProvider, contentType, draft));
             }
 
             return Ok(new { totalCount = drafts.Count, skip, take, items });
@@ -1153,7 +1230,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         public async Task<ActionResult> DeleteLegacyDrafts(string storeId, string type, string theme,
             [FromBody] LegacyDraftsDeleteRequest request)
         {
-            if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
+            var repository = await gitContentPolicy.GetRepositoryAsync(storeId, HttpContext.RequestAborted);
+            if (repository == null)
             {
                 return NotFound();
             }
@@ -1183,7 +1261,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             var storageProvider = blobContentStorageProviderFactory.CreateProvider(
                 GetContentBasePath(storeId, contentType, await GetCurrentThemeName(storeId, theme)));
 
-            var (deletable, skipped) = await SortLegacyDraftsAsync(paths, storageProvider, contentType);
+            var (deletable, skipped) = await SortLegacyDraftsAsync(repository, paths, storageProvider, contentType);
 
             if (!request.DryRun && deletable.Count > 0)
             {
@@ -1198,15 +1276,15 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         /// and the ones that are the page's whole copy, which are reported back untouched.
         /// </summary>
         private async Task<(List<string> Deletable, List<object> Skipped)> SortLegacyDraftsAsync(
-            IEnumerable<string> paths, IBlobContentStorageProvider storageProvider, string contentType)
+            string repository, IEnumerable<string> paths, IBlobContentStorageProvider storageProvider, string contentType)
         {
             var deletable = new List<string>();
             var skipped = new List<object>();
 
             foreach (var path in paths)
             {
-                var repoPath = GitLocation(contentType, path).RepoPath;
-                var inGit = await gitContentRepository.ReadFileAsync(repoPath, gitContentOptions.Value.BaseBranch, HttpContext.RequestAborted) != null;
+                var repoPath = GitLocation(repository, contentType, path).RepoPath;
+                var inGit = await gitContentRepository.ReadFileAsync(repository, repoPath, gitContentOptions.Value.BaseBranch, HttpContext.RequestAborted) != null;
                 var isPublished = inGit || await storageProvider.GetBlobInfoAsync(WithoutDraftSuffix(path)) != null;
 
                 if (isPublished)
@@ -1249,7 +1327,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("git/copy")]
         public async Task<ActionResult> GitCopyPage(string storeId, string type, string srcPath, string destPath)
         {
-            if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
+            var repository = await gitContentPolicy.GetRepositoryAsync(storeId, HttpContext.RequestAborted);
+            if (repository == null)
             {
                 return NotFound();
             }
@@ -1268,14 +1347,14 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             // What the editor sees, which is their own draft of the source when they have one. Copying
             // the published version instead would silently duplicate something other than what is on
             // screen.
-            var source = await ReadPageFromGitAsync(contentType, srcPath, draft: true, gitRef: null);
+            var source = await ReadPageFromGitAsync(repository, contentType, srcPath, draft: true, gitRef: null);
             if (source == null)
             {
                 return BadRequest(new { error = $"\"{srcPath}\" is not in the content repository.", srcPath });
             }
 
             var target = destPath.IsNullOrEmpty()
-                ? await NextFreeCopyPathAsync(contentType, srcPath)
+                ? await NextFreeCopyPathAsync(repository, contentType, srcPath)
                 : destPath;
             if (target == null)
             {
@@ -1283,6 +1362,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             }
 
             var saved = await CommitPageToGitAsync(
+                repository,
                 new SaveFileModel { Path = target, Type = contentType, Content = JToken.Parse(source) },
                 storeId,
                 action: $"copy {WithoutDraftSuffix(srcPath)} to");
@@ -1299,7 +1379,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         /// one ("foo.de.page" becomes "foo_1.de.page"), because it is part of which page this is.
         /// </para>
         /// </summary>
-        private async Task<string> NextFreeCopyPathAsync(string contentType, string srcPath)
+        private async Task<string> NextFreeCopyPathAsync(string repository, string contentType, string srcPath)
         {
             var path = WithoutDraftSuffix(srcPath);
             var extension = Path.GetExtension(path);
@@ -1312,7 +1392,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             for (var index = 1; index <= MaxCopyIndex; index++)
             {
                 var candidate = $"{folder}{name}_{index}{languageSuffix}{extension}";
-                if (!await PageExistsInRepositoryAsync(contentType, candidate))
+                if (!await PageExistsInRepositoryAsync(repository, contentType, candidate))
                 {
                     return candidate;
                 }
@@ -1326,12 +1406,12 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         /// or on this editor's work branch. Leaving the branch out would hand the same name to two
         /// duplicates in a row, because a copy that has not been published lives only there.
         /// </summary>
-        private async Task<bool> PageExistsInRepositoryAsync(string contentType, string path)
+        private async Task<bool> PageExistsInRepositoryAsync(string repository, string contentType, string path)
         {
-            var location = GitLocation(contentType, path);
+            var location = GitLocation(repository, contentType, path);
 
-            return await gitContentRepository.ReadFileAsync(location.RepoPath, gitContentOptions.Value.BaseBranch, HttpContext.RequestAborted) != null
-                || await gitContentRepository.ReadFileAsync(location.RepoPath, location.Branch, HttpContext.RequestAborted) != null;
+            return await gitContentRepository.ReadFileAsync(location.Repository, location.RepoPath, gitContentOptions.Value.BaseBranch, HttpContext.RequestAborted) != null
+                || await gitContentRepository.ReadFileAsync(location.Repository, location.RepoPath, location.Branch, HttpContext.RequestAborted) != null;
         }
 
         /// <summary>The page's own name, whichever of the two names the caller happens to hold.</summary>
@@ -1357,7 +1437,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("git/legacy-draft")]
         public async Task<ActionResult> GetLegacyDraft(string storeId, string type, string path, string theme)
         {
-            if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
+            var repository = await gitContentPolicy.GetRepositoryAsync(storeId, HttpContext.RequestAborted);
+            if (repository == null)
             {
                 return NotFound();
             }
@@ -1378,7 +1459,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
             return Ok(blobInfo == null
                 ? new LegacyDraftInfo()
-                : await DescribeLegacyDraftAsync(storageProvider, contentType, blobInfo));
+                : await DescribeLegacyDraftAsync(repository, storageProvider, contentType, blobInfo));
         }
 
         /// <summary>The draft blob name of a page, whichever of the two names the caller already holds.</summary>
@@ -1394,11 +1475,11 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             path.EndsWith(DraftSuffix, StringComparison.OrdinalIgnoreCase) &&
             !path.Replace('\\', '/').Split('/').Contains("..");
 
-        private async Task<LegacyDraftInfo> DescribeLegacyDraftAsync(IBlobContentStorageProvider storageProvider,
+        private async Task<LegacyDraftInfo> DescribeLegacyDraftAsync(string repository, IBlobContentStorageProvider storageProvider,
             string contentType, BlobEntry draft)
         {
-            var repoPath = GitLocation(contentType, draft.RelativeUrl).RepoPath;
-            var inGit = await gitContentRepository.ReadFileAsync(repoPath, gitContentOptions.Value.BaseBranch, HttpContext.RequestAborted);
+            var repoPath = GitLocation(repository, contentType, draft.RelativeUrl).RepoPath;
+            var inGit = await gitContentRepository.ReadFileAsync(repository, repoPath, gitContentOptions.Value.BaseBranch, HttpContext.RequestAborted);
             var inBlob = await ReadBlobTextAsync(storageProvider, draft.RelativeUrl);
             // The published blob matters as much as the repository here. A store that opted in keeps
             // every page it had, and one never saved from the designer since is in blob storage only:
@@ -1513,9 +1594,40 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             return authorization.Succeeded;
         }
 
-        private Task<ActionResult> RespondToPublishAsync(GitPublishResult result, (string RepoPath, string Branch) location, string path,
+        private Task<ActionResult> RespondToPublishAsync(GitPublishResult result, (string Repository, string RepoPath, string Branch) location, string path,
             bool canRebase = false) =>
-            RespondToShipAsync(result, location.RepoPath, location.Branch, gitContentOptions.Value.BaseBranch, path, canRebase);
+            RespondToShipAsync(result, location.Repository, location.RepoPath, location.Branch, gitContentOptions.Value.BaseBranch, path, canRebase);
+
+        /// <summary>
+        /// Brings the live storage in line with the production branch for one page: the page as the branch has
+        /// it after the merge — not the draft, which a merge of somebody else's change to the same file can
+        /// differ from — or, when the branch no longer has it and <paramref name="removeWhenGone"/> says the
+        /// page was unpublished, nothing.
+        /// <para>
+        /// A page missing from the branch is otherwise left alone: a store that opted in keeps pages that only
+        /// exist in blob storage until their first save, and those must not disappear because somebody
+        /// pressed Publish.
+        /// </para>
+        /// </summary>
+        private async Task WriteLiveAsync(string storeId, string type, string path, (string Repository, string RepoPath, string Branch) location, bool removeWhenGone)
+        {
+            var contentType = type.IsNullOrEmpty() ? PagesContentType : type;
+            var published = await gitContentRepository.ReadFileAsync(location.Repository, location.RepoPath, gitContentOptions.Value.BaseBranch, HttpContext.RequestAborted);
+
+            if (published != null)
+            {
+                await SaveFilesTo(storeId, theme: null, [new SaveFileModel { Path = path, Type = contentType, Content = JToken.Parse(published) }], draft: false);
+                return;
+            }
+
+            if (removeWhenGone)
+            {
+                var storageProvider = blobContentStorageProviderFactory.CreateProvider(GetContentBasePath(storeId, contentType, theme: null));
+                await storageProvider.RemoveAsync([publishingService.GetRelativeDraftUrl(path, false)]);
+                await eventPublisher.Publish(new PageBuilderContentChangedEvent(contentType,
+                    [new GenericChangedEntry<FileEntity>(new FileEntity { Path = path, Type = contentType }, EntryState.Deleted)]));
+            }
+        }
 
         /// <summary>
         /// The tail every shipping operation shares — publish, unpublish and promote differ in which
@@ -1526,18 +1638,18 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         /// offers it; an unpublish or a promotion that conflicts is a state for a person to look at.
         /// </para>
         /// </summary>
-        private async Task<ActionResult> RespondToShipAsync(GitPublishResult result, string repoPath, string branch,
+        private async Task<ActionResult> RespondToShipAsync(GitPublishResult result, string repository, string repoPath, string branch,
             string mergedInto, string path, bool canRebase = false)
         {
             if (result.State == GitPublishState.Merged)
             {
-                await gitContentRepository.DeleteBranchAsync(branch, repoPath, HttpContext.RequestAborted);
+                await gitContentRepository.DeleteBranchAsync(repository, branch, repoPath, HttpContext.RequestAborted);
 
                 // the merge moved that branch, so what it said about this page a moment ago is the
                 // pre-merge content — status would report the page as still unshipped
-                gitContentRepository.InvalidateRead(repoPath, mergedInto);
+                gitContentRepository.InvalidateRead(repository, repoPath, mergedInto);
                 // and the draft version that just shipped is now a published one
-                gitContentHistory.Invalidate(repoPath);
+                gitContentHistory.Invalidate(repository, repoPath);
             }
 
             if (result.State == GitPublishState.Conflict)
@@ -1570,21 +1682,21 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         /// retry reproduces, since the stale merge base never moves.
         /// </para>
         /// </summary>
-        private async Task PreparePromoteBranchAsync(string branch, string repoPath, string releaseBranch)
+        private async Task PreparePromoteBranchAsync(string repository, string branch, string repoPath, string releaseBranch)
         {
-            var leftover = await gitContentRepository.GetBranchHeadShaAsync(branch, HttpContext.RequestAborted);
+            var leftover = await gitContentRepository.GetBranchHeadShaAsync(repository, branch, HttpContext.RequestAborted);
             if (leftover != null &&
-                await gitContentPublisher.GetOpenPullRequestAsync(branch, HttpContext.RequestAborted) != null)
+                await gitContentPublisher.GetOpenPullRequestAsync(repository, branch, HttpContext.RequestAborted) != null)
             {
                 return;
             }
 
             if (leftover != null)
             {
-                await gitContentRepository.DeleteBranchAsync(branch, repoPath, HttpContext.RequestAborted);
+                await gitContentRepository.DeleteBranchAsync(repository, branch, repoPath, HttpContext.RequestAborted);
             }
 
-            await gitContentRepository.CreateBranchAsync(branch, releaseBranch, HttpContext.RequestAborted);
+            await gitContentRepository.CreateBranchAsync(repository, branch, releaseBranch, HttpContext.RequestAborted);
         }
 
         private async Task<bool> IsAllowedToPromoteAsync()
@@ -1667,17 +1779,24 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             }
         }
 
-        private async Task<object> CommitPageToGitAsync(SaveFileModel file, string storeId, string action = "save")
+        private async Task<object> CommitPageToGitAsync(string repository, SaveFileModel file, string storeId, string action = "save")
         {
             var options = gitContentOptions.Value;
-            var (repoPath, branch) = GitLocation(file.Type, file.Path);
+            var (_, repoPath, branch) = GitLocation(repository, file.Type, file.Path);
 
             // Cut from the production branch at the first save of this page, so what a merge of this
             // branch ships is today's published page plus this edit — never a stale base, never another
             // page the editor happens to be working on.
-            if (await gitContentRepository.GetBranchHeadShaAsync(branch, HttpContext.RequestAborted) == null)
+            if (await gitContentRepository.GetBranchHeadShaAsync(repository, branch, HttpContext.RequestAborted) == null)
             {
-                await gitContentRepository.CreateBranchAsync(branch, options.BaseBranch, HttpContext.RequestAborted);
+                // No production branch either: the store was switched on before its repository was made.
+                // Making it here is what lets the first save succeed instead of failing on a missing branch.
+                if (await gitContentRepository.GetBranchHeadShaAsync(repository, options.BaseBranch, HttpContext.RequestAborted) == null)
+                {
+                    await gitContentProvisioner.EnsureRepositoryAsync(storeId, HttpContext.RequestAborted);
+                }
+
+                await gitContentRepository.CreateBranchAsync(repository, branch, options.BaseBranch, HttpContext.RequestAborted);
             }
 
             var author = CurrentAuthor();
@@ -1688,11 +1807,11 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
             // Authoritative, not best-effort: when the commit fails the save fails, because an editor
             // who was told their work is saved has to be able to find it.
-            var commitSha = await gitContentRepository.CommitFileAsync(repoPath, content, branch, message, author, HttpContext.RequestAborted);
+            var commitSha = await gitContentRepository.CommitFileAsync(repository, repoPath, content, branch, message, author, HttpContext.RequestAborted);
 
             // the page has a version it did not have a moment ago, and a cached list that omits the save
             // the editor has just been told succeeded is worse than a slow one
-            gitContentHistory.Invalidate(repoPath);
+            gitContentHistory.Invalidate(repository, repoPath);
 
             return new { path = file.Path, branch, commitSha };
         }

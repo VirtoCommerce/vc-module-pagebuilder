@@ -1,9 +1,0 @@
-{
-    "templatesUrl": "demo/templates.json",
-    "sectionsUrl": "demo/sections.json",
-    "blocksUrl": "demo/blocks.json",
-    "loadTemplateUrl": "demo/templates/",
-    "pagesUrl": "",
-    "searchPageUrl": "",
-    "storeUrl": "http://localhost:2082"
-}

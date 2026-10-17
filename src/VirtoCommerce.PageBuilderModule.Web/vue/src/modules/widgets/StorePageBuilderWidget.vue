@@ -9,17 +9,16 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { injectBladeContext } from "@vc-shell/framework";
+import { injectBladeContext, useBlade } from "@vc-shell/framework";
 import { VcWidget } from "@vc-shell/framework/ui";
 
 // the store shared by the Store module's blade via defineBladeContext({ item })
 const ctx = injectBladeContext();
 const storeId = computed(() => (ctx.value.item as { id?: string } | undefined)?.id);
 
-// the Page Builder is this module's own app (/apps/page-builder-shell); it reads the store from the query string.
-// The host uses hash routing, so the pathname is the deployment path: keep its prefix (e.g. /platform/), as the content module does
+// the store's pages, inline next to the store (the AngularJS admin's widget still opens the standalone app in a new tab)
+const { openBlade } = useBlade();
 function open() {
-  const prefix = window.location.pathname.replace(/\/apps\/.*$/, "").replace(/\/$/, "");
-  window.open(`${prefix}/apps/page-builder-shell/?storeId=${encodeURIComponent(storeId.value!)}`, "_blank");
+  if (storeId.value) openBlade({ name: "PageBuilderPages", param: storeId.value });
 }
 </script>

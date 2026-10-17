@@ -3,8 +3,7 @@
   "compilerOptions": {
     "baseUrl": ".",
     "outDir": "dist",
-    "rootDir": "src",
     "types": ["vite/client", "@vc-shell/framework/globals"]
   },
-  "include": ["./src/**/*.ts", "./src/**/*.vue", "./src/**/*.json"]
+  "include": ["./src/**/*.ts", "./src/**/*.vue", "./src/**/*.json", "./standalone/**/*.ts", "./standalone/**/*.vue"]
 }

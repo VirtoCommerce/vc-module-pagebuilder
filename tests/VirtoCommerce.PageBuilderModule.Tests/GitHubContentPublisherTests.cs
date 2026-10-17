@@ -31,7 +31,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 ("GET", "repos/o/r/pulls/7", _ => RespondJson(PullRequest(mergeable: true))),
                 ("POST", "graphql", _ => RespondJson("""{ "data": {} }""")));
 
-            var result = await Create(handler).MergeBranchAsync(Branch, "publish foo", TestContext.Current.CancellationToken);
+            var result = await Create(handler).MergeBranchAsync("o/r", Branch, "publish foo", TestContext.Current.CancellationToken);
 
             Assert.Equal(GitPublishState.Pending, result.State);
             Assert.Equal(7, result.PullRequestNumber);
@@ -46,7 +46,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 ("POST", "repos/o/r/pulls", _ => NothingToMerge()),
                 ("GET", $"repos/o/r/pulls?state=open&head={Uri.EscapeDataString($"o:{Branch}")}", _ => RespondJson("[]")));
 
-            var result = await Create(handler).MergeBranchAsync(Branch, "publish foo", TestContext.Current.CancellationToken);
+            var result = await Create(handler).MergeBranchAsync("o/r", Branch, "publish foo", TestContext.Current.CancellationToken);
 
             Assert.Equal(GitPublishState.AlreadyPublished, result.State);
             Assert.Null(result.PullRequestNumber);
@@ -62,7 +62,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 ("GET", "repos/o/r/pulls/7", _ => RespondJson(PullRequest(mergeable: true))),
                 ("POST", "graphql", _ => RespondJson("""{ "data": {} }""")));
 
-            var result = await Create(handler).MergeBranchAsync(Branch, "publish foo", TestContext.Current.CancellationToken);
+            var result = await Create(handler).MergeBranchAsync("o/r", Branch, "publish foo", TestContext.Current.CancellationToken);
 
             Assert.Equal(GitPublishState.Pending, result.State);
             handler.AssertDone();
@@ -76,7 +76,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 ("POST", "repos/o/r/pulls", _ => RespondJson(PullRequest(), HttpStatusCode.Created)),
                 ("GET", "repos/o/r/pulls/7", _ => RespondJson(PullRequest(mergeable: false))));
 
-            var result = await Create(handler).MergeBranchAsync(Branch, "publish foo", TestContext.Current.CancellationToken);
+            var result = await Create(handler).MergeBranchAsync("o/r", Branch, "publish foo", TestContext.Current.CancellationToken);
 
             Assert.Equal(GitPublishState.Conflict, result.State);
             Assert.Equal(7, result.PullRequestNumber);
@@ -91,7 +91,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 ("GET", "repos/o/r/pulls/7", _ => RespondJson(PullRequest())),               // mergeable: null
                 ("GET", "repos/o/r/pulls/7", _ => RespondJson(PullRequest(mergeable: false))));
 
-            var result = await Create(handler).MergeBranchAsync(Branch, "publish foo", TestContext.Current.CancellationToken);
+            var result = await Create(handler).MergeBranchAsync("o/r", Branch, "publish foo", TestContext.Current.CancellationToken);
 
             Assert.Equal(GitPublishState.Conflict, result.State);
             handler.AssertDone();
@@ -111,7 +111,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                     return RespondJson("""{ "merged": true }""");
                 }));
 
-            var result = await Create(handler).MergeBranchAsync(Branch, "publish foo", TestContext.Current.CancellationToken);
+            var result = await Create(handler).MergeBranchAsync("o/r", Branch, "publish foo", TestContext.Current.CancellationToken);
 
             Assert.Equal(GitPublishState.Merged, result.State);
             handler.AssertDone();
@@ -131,7 +131,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 // the refusal is re-read: 405 is also what a conflict answers, and the two mean opposite things
                 ("GET", "repos/o/r/pulls/7", _ => RespondJson(PullRequest(mergeable: true))));
 
-            var result = await Create(handler).MergeBranchAsync(Branch, "publish foo", TestContext.Current.CancellationToken);
+            var result = await Create(handler).MergeBranchAsync("o/r", Branch, "publish foo", TestContext.Current.CancellationToken);
 
             Assert.Equal(GitPublishState.AwaitingMerge, result.State);
             Assert.Equal(7, result.PullRequestNumber);
@@ -154,7 +154,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 ("PUT", "repos/o/r/pulls/7/merge", _ => Respond(HttpStatusCode.MethodNotAllowed)),
                 ("GET", "repos/o/r/pulls/7", _ => RespondJson(PullRequest(mergeable: false))));
 
-            var result = await Create(handler).MergeBranchAsync(Branch, "publish foo", TestContext.Current.CancellationToken);
+            var result = await Create(handler).MergeBranchAsync("o/r", Branch, "publish foo", TestContext.Current.CancellationToken);
 
             Assert.Equal(GitPublishState.Conflict, result.State);
             Assert.Equal(7, result.PullRequestNumber);
@@ -169,7 +169,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 ("GET", $"repos/o/r/pulls?state=open&head={Uri.EscapeDataString($"o:{Branch}")}", _ => RespondJson($"[{PullRequest()}]")),
                 ("GET", "repos/o/r/pulls/7", _ => RespondJson("""{ "number": 7, "merged": true }""")));
 
-            var result = await Create(handler).MergeBranchAsync(Branch, "publish foo", TestContext.Current.CancellationToken);
+            var result = await Create(handler).MergeBranchAsync("o/r", Branch, "publish foo", TestContext.Current.CancellationToken);
 
             Assert.Equal(GitPublishState.Merged, result.State);
             handler.AssertDone();
@@ -181,7 +181,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             var handler = new ScriptedHandler(
                 ("GET", $"repos/o/r/pulls?state=open&head={Uri.EscapeDataString($"o:{Branch}")}", _ => RespondJson($"[{PullRequest(autoMerging: true)}]")));
 
-            var pending = await Create(handler).GetOpenPullRequestAsync(Branch, TestContext.Current.CancellationToken);
+            var pending = await Create(handler).GetOpenPullRequestAsync("o/r", Branch, TestContext.Current.CancellationToken);
 
             Assert.Equal(7, pending.Number);
             Assert.True(pending.AutoMerging);
@@ -198,7 +198,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             var handler = new ScriptedHandler(
                 ("GET", $"repos/o/r/pulls?state=open&head={Uri.EscapeDataString($"o:{Branch}")}", _ => RespondJson($"[{PullRequest()}]")));
 
-            var pending = await Create(handler).GetOpenPullRequestAsync(Branch, TestContext.Current.CancellationToken);
+            var pending = await Create(handler).GetOpenPullRequestAsync("o/r", Branch, TestContext.Current.CancellationToken);
 
             Assert.Equal(7, pending.Number);
             Assert.False(pending.AutoMerging);
@@ -210,7 +210,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             var handler = new ScriptedHandler(
                 ("GET", $"repos/o/r/pulls?state=open&head={Uri.EscapeDataString($"o:{Branch}")}", _ => RespondJson("[]")));
 
-            Assert.Null(await Create(handler).GetOpenPullRequestAsync(Branch, TestContext.Current.CancellationToken));
+            Assert.Null(await Create(handler).GetOpenPullRequestAsync("o/r", Branch, TestContext.Current.CancellationToken));
         }
 
         [Fact]
@@ -220,7 +220,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 ("POST", "repos/o/r/pulls", _ => Respond(HttpStatusCode.InternalServerError)));
 
             await Assert.ThrowsAsync<HttpRequestException>(() =>
-                Create(handler).MergeBranchAsync(Branch, "publish foo", TestContext.Current.CancellationToken));
+                Create(handler).MergeBranchAsync("o/r", Branch, "publish foo", TestContext.Current.CancellationToken));
         }
 
         [Fact]
@@ -233,7 +233,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 ("POST", "repos/o/r/pulls", _ => Respond422("Base branch was modified. Review and try the merge again.")));
 
             await Assert.ThrowsAsync<HttpRequestException>(() =>
-                Create(handler).MergeBranchAsync(Branch, "publish foo", TestContext.Current.CancellationToken));
+                Create(handler).MergeBranchAsync("o/r", Branch, "publish foo", TestContext.Current.CancellationToken));
             handler.AssertDone();
         }
 
@@ -261,7 +261,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 ("POST", "graphql", _ => RespondJson("""{ "data": {} }""")));
 
             var result = await Create(handler)
-                .MergeBranchIntoAsync(promoteBranch, "promote foo", "release", TestContext.Current.CancellationToken);
+                .MergeBranchIntoAsync("o/r", promoteBranch, "promote foo", "release", TestContext.Current.CancellationToken);
 
             Assert.Equal(GitPublishState.Pending, result.State);
             handler.AssertDone();
@@ -277,7 +277,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             var publisher = Create(new ScriptedHandler());
 
             await Assert.ThrowsAsync<ArgumentException>(() =>
-                publisher.MergeBranchIntoAsync("promote/foo", "promote foo", "  ",
+                publisher.MergeBranchIntoAsync("o/r", "promote/foo", "promote foo", "  ",
                     TestContext.Current.CancellationToken));
         }
 

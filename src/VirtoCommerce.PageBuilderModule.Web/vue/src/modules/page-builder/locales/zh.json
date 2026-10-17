@@ -1,0 +1,381 @@
+{
+  "PAGE_BUILDER": {
+    "MENU": {
+      "DRAFT_TITLE": "草稿",
+      "PENDING_TITLE": "待审核",
+      "ACTIVE_TITLE": "已激活",
+      "ARCHIVED_TITLE": "已归档",
+      "TITLE": "所有页面"
+    },
+    "PAGES": {
+      "LIST": {
+        "DRAFT_TITLE": "草稿页面",
+        "PENDING_TITLE": "待审核页面",
+        "ACTIVE_TITLE": "已激活页面",
+        "ARCHIVED_TITLE": "已归档页面",
+        "TITLE": "所有页面",
+        "TOOLBAR": {
+          "ADD": "添加",
+          "REFRESH": "刷新",
+          "REMOVE": "归档",
+          "LOAD": "加载内容",
+          "ASSETS": "资源",
+          "SHARED_COMPONENTS": "共享组件"
+        },
+        "SEARCH": {
+          "PLACEHOLDER": "搜索关键词"
+        },
+        "TABLE": {
+          "TOTALS": "数量：",
+          "HEADER": {
+            "NAME": "名称",
+            "PERMALINK": "永久链接",
+            "MODIFIED_DATE": "修改时间",
+            "CULTURE_NAME": "语言",
+            "MODIFIED_BY": "修改者",
+            "STATUS": "状态"
+          },
+          "FILTER": {
+            "STATUS": "状态",
+            "APPLY": "应用",
+            "RESET": "重置"
+          },
+          "EMPTY": {
+            "TITLE": "暂无内容",
+            "ACTION": "添加内容"
+          },
+          "NOT_FOUND": {
+            "TITLE": "未找到内容。",
+            "ACTION": "重置搜索"
+          },
+          "ACTIONS": {
+            "DELETE": "归档"
+          }
+        },
+        "EMPTY": {
+          "NO_ITEMS": "暂无页面"
+        },
+        "NOT_FOUND": {
+          "EMPTY": "未找到页面",
+          "RESET": "重置"
+        },
+        "STORE_TITLE": "{store} 页面"
+      },
+      "DETAILS": {
+        "TITLE": {
+          "DETAILS": "{name} 详情",
+          "NEW": "新建页面",
+          "LOADING": "加载中..."
+        },
+        "TOOLBAR": {
+          "SAVE": "保存",
+          "DELETE": "归档",
+          "PREVIEW": "预览",
+          "DESIGNER": "打开设计器",
+          "PUBLISH": "发布",
+          "UNPUBLISH": "取消发布",
+          "DOWNLOAD_CONTENT": "保存内容",
+          "CLONE": "克隆"
+        },
+        "FIELDS": {
+          "NAME": "名称",
+          "PERMALINK": "永久链接",
+          "CONTENT": "内容",
+          "GUID": "GUID",
+          "CULTURE_NAME": "语言",
+          "SEO_TITLE": "页面标题",
+          "SEO_DESCRIPTION": "元描述",
+          "SEO_KEYWORDS": "元关键词",
+          "VISIBILITY": "可见性",
+          "START_DATE": "开始日期",
+          "START_DATE_HINT": "页面变为可见",
+          "END_DATE": "结束日期",
+          "END_DATE_HINT": "页面变为隐藏",
+          "USER_GROUPS": "用户组",
+          "ORGANIZATION": "组织"
+        },
+        "TOOLTIPS": {
+          "VISIBILITY": "如果关闭可见性，页面仅对注册用户可用。"
+        },
+        "SECTIONS": {
+          "BASIC_INFORMATION": "基本信息",
+          "SEO": "搜索引擎展示",
+          "ADVANCED_OPTIONS": "高级选项",
+          "PERSONALIZATION_ACCESS_CONTROL": {
+            "TITLE": "个性化与访问控制",
+            "DESCRIPTION": "限制页面对特定受众的可见性",
+            "VISIBILITY_TAG": "可见"
+          },
+          "SCHEDULING": {
+            "TAG_TEXT": "已计划",
+            "TITLE": "计划发布",
+            "DESCRIPTION": "设置此页面的可见时间"
+          }
+        }
+      },
+      "ALERTS": {
+        "CLOSE_CONFIRMATION": "您有未保存的更改。仍然关闭吗？",
+        "DELETE": "您确定要归档此页面吗？",
+        "DELETE_SELECTED_CONFIRMATION": {
+          "MESSAGE": "您确定要归档 {count} 个选中的页面吗？",
+          "ALL": "全部 {totalCount}"
+        },
+        "UNPUBLISH_WITH_DRAFT": "无法取消发布包含更改的页面。",
+        "DOWNLOAD_SUCCESS": "内容已成功保存到文件",
+        "CLONE_SUCCESS": "页面已成功克隆",
+        "LOAD_CONTENT_SUCCESS": "内容加载成功",
+        "SAVE_SUCCESS": "页面保存成功",
+        "PUBLISH_SUCCESS": "页面发布成功",
+        "UNPUBLISH_SUCCESS": "页面已成功取消发布",
+        "DELETE_SUCCESS": "页面已成功归档"
+      }
+    },
+    "STATUS": {
+      "DRAFT": "草稿",
+      "ARCHIVED": "已归档",
+      "PUBLISHED": "已发布",
+      "HAS_CHANGES": "有更改的草稿",
+      "SCHEDULED": "已计划",
+      "PERSONALIZED": "已个性化"
+    },
+    "LIFECYCLE": {
+      "DRAFT": "草稿",
+      "PENDING": "待审核",
+      "ACTIVE": "已发布",
+      "ARCHIVED": "已归档"
+    },
+    "SITE_TAB": {
+      "TITLE": "页面",
+      "SHOW": "显示",
+      "FILTER": {
+        "ALL": "所有页面",
+        "DRAFT": "草稿",
+        "PENDING": "待审核",
+        "ACTIVE": "已发布",
+        "ARCHIVED": "已归档"
+      },
+      "NEW_PAGE": "新建页面",
+      "EMPTY": "这里还没有页面。",
+      "DETAILS": "页面详情"
+    },
+    "DESIGNER": {
+      "TITLE": "设计器：{name}",
+      "SECTIONS": "区块",
+      "GROUPS": {
+        "HEADER": "页眉",
+        "TEMPLATE": "模板",
+        "FOOTER": "页脚"
+      },
+      "PAGE_SETTINGS": "页面设置",
+      "BLOCKS": "内容块",
+      "DRAG": "拖动以重新排序",
+      "SHOW": "显示",
+      "HIDE": "隐藏",
+      "ADD_SECTION": "添加区块",
+      "ADD_BLOCK": "添加内容块",
+      "BACK": "返回",
+      "SEARCH_SECTIONS": "搜索区块",
+      "NO_SECTIONS": "没有匹配的区块",
+      "SHARED": "共享",
+      "MISSING": "缺失",
+      "SHARED_COMPONENT": "共享组件",
+      "SHARED_INFO": "“{name}”是共享组件，已用于 {count} 个页面。编辑它会更改所有这些页面。",
+      "SHARED_MISSING": "此共享组件已不存在。请将其从页面中移除。",
+      "DETACH": "分离",
+      "DETACH_HINT": "用仅供此页面使用的区块副本替换它。",
+      "MORE": "更多操作",
+      "CONTENT": "内容",
+      "NO_SETTINGS": "这里没有可设置的项。",
+      "DUPLICATE": "创建副本",
+      "REMOVE": "移除",
+      "REMOVE_SECTION": "移除区块",
+      "REMOVE_BLOCK": "移除内容块",
+      "ADD_ITEM": "添加",
+      "ITEM": "项目 {number}",
+      "MOVE_UP": "上移",
+      "MOVE_DOWN": "下移",
+      "SELECT_ASSET": "选择",
+      "ASSET_URL": "或粘贴 URL",
+      "LINK_ANCHOR": "链接到锚点",
+      "STATUS": {
+        "UNSAVED": "有未保存的更改",
+        "DRAFT": "草稿",
+        "PUBLISHED": "已发布",
+        "CHANGES": "已发布 · 有草稿更改",
+        "PENDING": "正在发布…",
+        "AWAITING": "等待合并",
+        "SHARED": "共享组件"
+      },
+      "DEVICE": "预览尺寸",
+      "DESKTOP": "桌面端",
+      "TABLET": "平板",
+      "PHONE": "手机",
+      "FULLSCREEN": "全屏",
+      "FULL_VIEW": "全屏视图",
+      "EXIT_FULL_VIEW": "退出全屏视图",
+      "DESELECT": "关闭",
+      "INSPECTOR_ON": "开启检查器",
+      "INSPECTOR_OFF": "关闭检查器",
+      "PREVIEW": "页面预览",
+      "PREVIEW_LOADING": "正在加载网站…",
+      "PREVIEW_SLOW": "网站加载时间较长。请检查 {url} 上的店铺前端是否正在运行，然后重新加载。",
+      "RELOAD_PREVIEW": "重新加载",
+      "NO_STOREFRONT": "无法预览：站点未设置店铺前端 URL。请在站点的“设置”中设置后重新打开页面。",
+      "LOAD_FAILED": "无法加载页面。页面可能已被删除，或您无权访问。",
+      "SAVE": "保存",
+      "SAVING": "正在保存…",
+      "UNDO": "撤销",
+      "REDO": "重做",
+      "PUBLISH": "发布",
+      "UNPUBLISH": "取消发布",
+      "OPEN_PREVIEW": "预览",
+      "CONFLICT": "此页面在您编辑期间已被更改。请重新打开以获取最新版本；您的更改未保存。",
+      "NO_VERSION": "无法保存此页面：其版本未知。请重新打开后重试。",
+      "SAVE_FAILED": "无法保存页面。",
+      "PUBLISH_FAILED": "无法发布页面。",
+      "DISCARD": "您有未保存的更改。仍要关闭设计器吗？",
+      "CONFIRM_DISCARD_UNSAVED": "放弃未保存的更改？页面将恢复到上次保存的状态。",
+      "PICK_ASSET": "选择文件",
+      "CONFIRM_REMOVE": "要从页面中移除“{name}”吗？",
+      "SHARED_COMPONENTS": "共享组件",
+      "MODE_SHARED": "共享",
+      "EDIT_SHARED": "编辑共享组件",
+      "EDITING_SHARED": "你正在编辑共享组件：保存后，所有使用它的页面都会随之更改。",
+      "SHARED_PANEL": {
+        "HINT": "在多个页面中重复使用的区块。编辑其中一个，所有位置都会更改。",
+        "SEARCH": "搜索共享组件",
+        "INSERT": "添加到页面",
+        "EDIT": "编辑",
+        "EMPTY": "还没有共享组件。在“区块”中选择“选择”，勾选区块，然后将其保存为共享组件。"
+      },
+      "USED_ON": "{count} 个页面",
+      "ARCHIVED": "此页面已归档。请先恢复，才能在设计器中编辑。",
+      "PUBLISHING": "正在发布…",
+      "RETRY_PUBLISH": "重试发布",
+      "PROMOTE": "提升到生产环境",
+      "PROMOTE_FAILED": "无法将页面提升到生产环境。",
+      "PUBLISH_CONFLICT": "在此期间有人发布了此页面的另一个版本。要用您的版本覆盖它并发布吗？",
+      "NOTHING_PUBLISHED": "未发布任何内容。请重新打开页面以查看另一个版本。",
+      "HISTORY": {
+        "TITLE": "版本历史",
+        "OTHERS": "其他人的 {count} 个未发布版本",
+        "EMPTY": "暂无版本：保存页面即可创建第一个版本。",
+        "FAILED": "无法加载版本。",
+        "PUBLISHED": "已发布",
+        "YOUR_DRAFT": "您的草稿",
+        "PREVIEW": "预览",
+        "RESTORE": "恢复",
+        "SAVE_FIRST": "请先保存或撤销更改",
+        "MORE": "显示更早的版本",
+        "CONFIRM": "将版本 {version} 设为您的草稿吗？之后请发布它以使其上线。",
+        "RESTORED": "该版本现已成为您的草稿",
+        "RESTORE_FAILED": "无法恢复该版本。",
+        "CLOSE": "关闭",
+        "LATEST": "最新",
+        "PREVIEWING": "预览中",
+        "EXIT": "退出",
+        "DISCARD": "放弃所有更改",
+        "CONFIRM_DISCARD": "放弃所有未发布的更改？页面将恢复为已发布的版本。",
+        "DISCARDED": "已放弃未发布的更改",
+        "DISCARD_FAILED": "无法放弃更改。",
+        "PREVIEW_FAILED": "无法显示此版本。",
+        "VIEWING": "正在查看版本 {version} · {date}",
+        "BACK": "返回草稿"
+      },
+      "THEME": {
+        "TITLE": "主题",
+        "PRESET": "预设",
+        "PRESET_PLACEHOLDER": "选择预设",
+        "APPLY": "应用",
+        "EMPTY": "此主题没有可编辑的设置。",
+        "SAVE_FAILED": "无法保存主题设置。"
+      },
+      "CLIPBOARD": {
+        "COPY": "复制",
+        "PASTE": "粘贴",
+        "COPIED": "已复制：可粘贴到站点的任意页面",
+        "COPY_FAILED": "浏览器不允许复制。",
+        "PASTE_TITLE": "粘贴区块或内容块",
+        "PASTE_HINT": "浏览器不允许页面读取剪贴板：请在此粘贴复制的内容。",
+        "INVALID": "剪贴板中没有复制的区块或内容块。",
+        "BLOCK_NEEDS_SECTION": "请选择要粘贴内容块的区块。",
+        "BLOCK_NOT_ALLOWED": "所选区块无法容纳此内容块。"
+      },
+      "SELECT_MODE": {
+        "SELECT": "选择",
+        "DONE": "完成",
+        "COUNT": "已选 {count} 项",
+        "DELETE": "删除",
+        "CONFIRM_DELETE": "要从页面中移除 {count} 个区块吗？",
+        "SAVE_SHARED": "保存为共享组件",
+        "SAVE_SHARED_HINT": "所选区块将成为共享组件：只需编辑一次，所有使用它的页面都会随之更改。",
+        "NAME": "名称",
+        "SHARED_SAVED": "“{name}”现已成为共享组件",
+        "SHARED_FAILED": "无法创建共享组件。",
+        "NOT_ADJACENT": "请选择相邻的区块。",
+        "HAS_SHARED": "共享组件不能包含另一个共享组件：请取消选择它。"
+      }
+    },
+    "WIDGETS": {
+      "STORE": "Page Builder"
+    },
+    "GIT": {
+      "TITLE": "版本历史",
+      "WIDGET": "历史",
+      "ON": "已开启",
+      "OFF": "已关闭",
+      "STATUS": "状态",
+      "REPOSITORY": "仓库",
+      "BRANCH": "分支",
+      "LAST_CHANGE": "最近发布的更改",
+      "NOT_CREATED": "（尚未创建）",
+      "TEST": "测试连接",
+      "TURN_ON": "启用历史",
+      "TURN_OFF": "关闭历史",
+      "CONFIRM_OFF": "关闭此站点的版本历史？页面将重新保存到平台存储中。仓库及其历史会保留在 GitHub 上。",
+      "HINT": {
+        "OFF": "启用历史后，此站点的页面将保存在 {repository} 中：每次保存都会保留为一个版本，发布时合并，并且可以恢复任何以前的版本。",
+        "MISSING": "站点的仓库尚不存在。“启用历史”会创建它。",
+        "ON": "此站点页面的每个版本都保存在 GitHub 上。关闭历史会将页面移回平台存储；仓库及其历史会保留。"
+      },
+      "SETUP": {
+        "INTRO": "版本历史会保留对此站点页面的每次更改，包括更改人和时间，因此可以恢复任何以前的版本。页面保存在站点专属的私有 GitHub 仓库中。",
+        "CONFIGURATION": "此平台从其配置中获取 GitHub 连接，但配置不完整。请让平台管理员完成配置。",
+        "ORGANIZATION": "GitHub 组织",
+        "ORGANIZATION_HINT": "每个站点对应一个私有仓库。每个环境使用单独的组织，例如 acme-sites 和 acme-sites-staging。",
+        "NEW_ORGANIZATION": "还没有组织？在 GitHub 上创建一个",
+        "STEP_CREATE": "GitHub 会在新标签页中打开，显示该组织的 Page Builder 应用。选择“Create GitHub App”。",
+        "STEP_INSTALL": "将应用安装到该组织，并授予对所有仓库的访问权限。",
+        "STEP_RETURN": "GitHub 会将您带回平台。然后打开站点的“历史”并选择“启用历史”。",
+        "CREATE_APP": "创建 GitHub 应用",
+        "INSTALL": "将应用安装到 {organization}",
+        "AGAIN": "重新设置"
+      },
+      "CONNECT_FIRST": "此平台尚未连接到 GitHub。请先在“站点”面板中连接一次，然后在此处启用历史。",
+      "OPEN_GITHUB": "GitHub 连接"
+    },
+    "GITHUB": {
+      "TITLE": "GitHub",
+      "INTRO": "只需将平台连接到 GitHub 组织一次。之后每个站点都会将其页面的版本保存在该组织中自己的私有仓库里。",
+      "CONNECTED_HINT": "每个站点都会将其页面的版本保存在 {organization} 中自己的私有仓库里。请在站点的“历史”面板中为其启用历史。",
+      "STATUS": "状态",
+      "CONNECTED": "已连接",
+      "FAILING": "无法工作",
+      "ORGANIZATION": "组织",
+      "APP": "GitHub 应用",
+      "FROM_CONFIGURATION": "来自平台配置",
+      "NEW_SITES": "新站点",
+      "NEW_SITES_ON": "自动获得历史",
+      "NEW_SITES_OFF": "逐个站点启用",
+      "MANAGE_ACCESS": "管理仓库访问权限",
+      "CANCEL": "取消",
+      "SITES": "站点",
+      "HISTORY_ON": "历史已开启",
+      "HISTORY_OFF": "历史已关闭",
+      "NOT_CONNECTED": "未连接",
+      "WIDGET_ON": "历史已开启",
+      "WIDGET_OFF": "设置历史",
+      "ALL_SITES": "所有站点"
+    }
+  }
+}

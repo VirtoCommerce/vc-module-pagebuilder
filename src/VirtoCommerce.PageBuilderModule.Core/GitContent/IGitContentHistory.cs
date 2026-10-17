@@ -8,6 +8,10 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
     /// The versions of one page. Separate from <see cref="IGitContentRepository"/> on purpose: that one
     /// reads and writes a file at a ref, this one enumerates the repository to answer "where else does
     /// this page exist".
+    /// <para>
+    /// Every method names the repository ("owner/name") it works on: each site has its own, so there is
+    /// no repository this service could assume.
+    /// </para>
     /// </summary>
     public interface IGitContentHistory
     {
@@ -15,14 +19,14 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
         /// Every commit that touched the page, published and unpublished, newest first with unpublished
         /// versions on top. Deduplicated by sha.
         /// </summary>
-        Task<GitPageHistory> GetHistoryAsync(string repoPath, GitHistoryQuery query, CancellationToken cancellationToken = default);
+        Task<GitPageHistory> GetHistoryAsync(string repository, string repoPath, GitHistoryQuery query, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Forgets the cached history of the page. Called after this module commits to it: without it a
         /// save the editor just made would be missing from the version list until the cache expired, and
         /// the list would be denying work that is already in the repository.
         /// </summary>
-        void Invalidate(string repoPath);
+        void Invalidate(string repository, string repoPath);
     }
 
     /// <summary>What to look at when assembling a page's history.</summary>

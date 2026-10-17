@@ -1,0 +1,381 @@
+{
+  "PAGE_BUILDER": {
+    "MENU": {
+      "DRAFT_TITLE": "Bozza",
+      "PENDING_TITLE": "In attesa",
+      "ACTIVE_TITLE": "Attivo",
+      "ARCHIVED_TITLE": "Archiviato",
+      "TITLE": "Tutte le pagine"
+    },
+    "PAGES": {
+      "LIST": {
+        "DRAFT_TITLE": "Pagine in bozza",
+        "PENDING_TITLE": "Pagine in attesa",
+        "ACTIVE_TITLE": "Pagine attive",
+        "ARCHIVED_TITLE": "Pagine archiviate",
+        "TITLE": "Tutte le pagine",
+        "TOOLBAR": {
+          "ADD": "Aggiungi",
+          "REFRESH": "Aggiorna",
+          "REMOVE": "Archivia",
+          "LOAD": "Carica contenuto",
+          "ASSETS": "Risorse",
+          "SHARED_COMPONENTS": "Componenti condivisi"
+        },
+        "SEARCH": {
+          "PLACEHOLDER": "Cerca parole chiave"
+        },
+        "TABLE": {
+          "TOTALS": "Totale:",
+          "HEADER": {
+            "NAME": "Nome",
+            "PERMALINK": "Permalink",
+            "MODIFIED_DATE": "Modificato",
+            "CULTURE_NAME": "Lingua",
+            "MODIFIED_BY": "Modificato da",
+            "STATUS": "Stato"
+          },
+          "FILTER": {
+            "STATUS": "Stato",
+            "APPLY": "Applica",
+            "RESET": "Reimposta"
+          },
+          "EMPTY": {
+            "TITLE": "Non ci sono ancora contenuti",
+            "ACTION": "Aggiungi contenuto"
+          },
+          "NOT_FOUND": {
+            "TITLE": "Nessun contenuto trovato.",
+            "ACTION": "Reimposta ricerca"
+          },
+          "ACTIONS": {
+            "DELETE": "Archivia"
+          }
+        },
+        "EMPTY": {
+          "NO_ITEMS": "Non ci sono ancora pagine"
+        },
+        "NOT_FOUND": {
+          "EMPTY": "Nessuna pagina trovata",
+          "RESET": "Reimposta"
+        },
+        "STORE_TITLE": "Pagine di {store}"
+      },
+      "DETAILS": {
+        "TITLE": {
+          "DETAILS": "Dettagli di {name}",
+          "NEW": "Nuova pagina",
+          "LOADING": "Caricamento..."
+        },
+        "TOOLBAR": {
+          "SAVE": "Salva",
+          "DELETE": "Archivia",
+          "PREVIEW": "Anteprima",
+          "DESIGNER": "Apri designer",
+          "PUBLISH": "Pubblica",
+          "UNPUBLISH": "Annulla pubblicazione",
+          "DOWNLOAD_CONTENT": "Salva contenuto",
+          "CLONE": "Clona"
+        },
+        "FIELDS": {
+          "NAME": "Nome",
+          "PERMALINK": "Permalink",
+          "CONTENT": "Contenuto",
+          "GUID": "GUID",
+          "CULTURE_NAME": "Lingua",
+          "SEO_TITLE": "Titolo della pagina",
+          "SEO_DESCRIPTION": "Meta descrizione",
+          "SEO_KEYWORDS": "Meta parole chiave",
+          "VISIBILITY": "Visibilità",
+          "START_DATE": "Data di inizio",
+          "START_DATE_HINT": "La pagina diventa visibile",
+          "END_DATE": "Data di fine",
+          "END_DATE_HINT": "La pagina viene nascosta",
+          "USER_GROUPS": "Gruppi utenti",
+          "ORGANIZATION": "Organizzazione"
+        },
+        "TOOLTIPS": {
+          "VISIBILITY": "Se la visibilità è disattivata, la pagina sarà disponibile solo per gli utenti registrati."
+        },
+        "SECTIONS": {
+          "BASIC_INFORMATION": "Informazioni di base",
+          "SEO": "Scheda nei motori di ricerca",
+          "ADVANCED_OPTIONS": "Opzioni avanzate",
+          "PERSONALIZATION_ACCESS_CONTROL": {
+            "TITLE": "Personalizzazione e controllo degli accessi",
+            "DESCRIPTION": "Limita la visibilità della pagina a un pubblico specifico",
+            "VISIBILITY_TAG": "Visibile"
+          },
+          "SCHEDULING": {
+            "TAG_TEXT": "Programmato",
+            "TITLE": "Programmazione",
+            "DESCRIPTION": "Imposta quando questa pagina deve essere visibile"
+          }
+        }
+      },
+      "ALERTS": {
+        "CLOSE_CONFIRMATION": "Hai modifiche non salvate. Chiudere comunque?",
+        "DELETE": "Sei sicuro di voler archiviare questa pagina?",
+        "DELETE_SELECTED_CONFIRMATION": {
+          "MESSAGE": "Sei sicuro di voler archiviare {count} pagine selezionate?",
+          "ALL": "tutte {totalCount}"
+        },
+        "UNPUBLISH_WITH_DRAFT": "Non è possibile annullare la pubblicazione di una pagina con modifiche.",
+        "DOWNLOAD_SUCCESS": "Contenuto salvato su file con successo",
+        "CLONE_SUCCESS": "Pagina clonata con successo",
+        "LOAD_CONTENT_SUCCESS": "Contenuto caricato con successo",
+        "SAVE_SUCCESS": "Pagina salvata con successo",
+        "PUBLISH_SUCCESS": "Pagina pubblicata con successo",
+        "UNPUBLISH_SUCCESS": "Pubblicazione della pagina annullata con successo",
+        "DELETE_SUCCESS": "Pagina archiviata con successo"
+      }
+    },
+    "STATUS": {
+      "DRAFT": "Bozza",
+      "ARCHIVED": "Archiviato",
+      "PUBLISHED": "Pubblicato",
+      "HAS_CHANGES": "Bozza con modifiche",
+      "SCHEDULED": "Programmato",
+      "PERSONALIZED": "Personalizzato"
+    },
+    "LIFECYCLE": {
+      "DRAFT": "Bozza",
+      "PENDING": "In revisione",
+      "ACTIVE": "Pubblicato",
+      "ARCHIVED": "Archiviato"
+    },
+    "SITE_TAB": {
+      "TITLE": "Pagine",
+      "SHOW": "Mostra",
+      "FILTER": {
+        "ALL": "Tutte le pagine",
+        "DRAFT": "Bozze",
+        "PENDING": "In revisione",
+        "ACTIVE": "Pubblicate",
+        "ARCHIVED": "Archiviate"
+      },
+      "NEW_PAGE": "Nuova pagina",
+      "EMPTY": "Ancora nessuna pagina qui.",
+      "DETAILS": "Dettagli della pagina"
+    },
+    "DESIGNER": {
+      "TITLE": "Designer: {name}",
+      "SECTIONS": "Sezioni",
+      "GROUPS": {
+        "HEADER": "Intestazione",
+        "TEMPLATE": "Modello",
+        "FOOTER": "Piè di pagina"
+      },
+      "PAGE_SETTINGS": "Impostazioni pagina",
+      "BLOCKS": "Blocchi",
+      "DRAG": "Trascina per riordinare",
+      "SHOW": "Mostra",
+      "HIDE": "Nascondi",
+      "ADD_SECTION": "Aggiungi sezione",
+      "ADD_BLOCK": "Aggiungi blocco",
+      "BACK": "Indietro",
+      "SEARCH_SECTIONS": "Cerca sezioni",
+      "NO_SECTIONS": "Nessuna sezione corrisponde",
+      "SHARED": "Condiviso",
+      "MISSING": "Mancante",
+      "SHARED_COMPONENT": "Componente condiviso",
+      "SHARED_INFO": "«{name}» è un componente condiviso, usato in {count} pagina/e. Modificarlo le cambia tutte.",
+      "SHARED_MISSING": "Questo componente condiviso non esiste più. Rimuovilo dalla pagina.",
+      "DETACH": "Scollega",
+      "DETACH_HINT": "La sostituisce con una copia delle sue sezioni, usata solo da questa pagina.",
+      "MORE": "Altre azioni",
+      "CONTENT": "Contenuto",
+      "NO_SETTINGS": "Nessuna impostazione qui.",
+      "DUPLICATE": "Duplica",
+      "REMOVE": "Rimuovi",
+      "REMOVE_SECTION": "Rimuovi sezione",
+      "REMOVE_BLOCK": "Rimuovi blocco",
+      "ADD_ITEM": "Aggiungi",
+      "ITEM": "Elemento {number}",
+      "MOVE_UP": "Sposta su",
+      "MOVE_DOWN": "Sposta giù",
+      "SELECT_ASSET": "Seleziona",
+      "ASSET_URL": "oppure incolla un URL",
+      "LINK_ANCHOR": "Link a un'ancora",
+      "STATUS": {
+        "UNSAVED": "Modifiche non salvate",
+        "DRAFT": "Bozza",
+        "PUBLISHED": "Pubblicato",
+        "CHANGES": "Pubblicato · modifiche in bozza",
+        "PENDING": "Pubblicazione in corso…",
+        "AWAITING": "In attesa di unione",
+        "SHARED": "Componente condiviso"
+      },
+      "DEVICE": "Dimensione anteprima",
+      "DESKTOP": "Desktop",
+      "TABLET": "Tablet",
+      "PHONE": "Mobile",
+      "FULLSCREEN": "Schermo intero",
+      "FULL_VIEW": "Vista completa",
+      "EXIT_FULL_VIEW": "Esci dalla vista completa",
+      "DESELECT": "Chiudi",
+      "INSPECTOR_ON": "Attiva l'ispettore",
+      "INSPECTOR_OFF": "Disattiva l'ispettore",
+      "PREVIEW": "Anteprima della pagina",
+      "PREVIEW_LOADING": "Caricamento del sito…",
+      "PREVIEW_SLOW": "Il sito impiega molto a caricarsi. Verifica che lo storefront su {url} sia in esecuzione, poi ricarica.",
+      "RELOAD_PREVIEW": "Ricarica",
+      "NO_STOREFRONT": "Nessuna anteprima: il sito non ha un URL dello storefront. Impostalo nelle Impostazioni del sito, poi riapri la pagina.",
+      "LOAD_FAILED": "Impossibile caricare la pagina. Potrebbe essere stata eliminata o potresti non avere accesso.",
+      "SAVE": "Salva",
+      "SAVING": "Salvataggio…",
+      "UNDO": "Annulla",
+      "REDO": "Ripeti",
+      "PUBLISH": "Pubblica",
+      "UNPUBLISH": "Annulla pubblicazione",
+      "OPEN_PREVIEW": "Anteprima",
+      "CONFLICT": "Questa pagina è cambiata mentre la modificavi. Riaprila per ottenere l’ultima versione; le tue modifiche non sono state salvate.",
+      "NO_VERSION": "Impossibile salvare questa pagina: la sua versione è sconosciuta. Riaprila e riprova.",
+      "SAVE_FAILED": "Impossibile salvare la pagina.",
+      "PUBLISH_FAILED": "Impossibile pubblicare la pagina.",
+      "DISCARD": "Hai modifiche non salvate. Chiudere comunque il designer?",
+      "CONFIRM_DISCARD_UNSAVED": "Annullare le modifiche non salvate? La pagina torna all'ultimo salvataggio.",
+      "PICK_ASSET": "Scegli un file",
+      "CONFIRM_REMOVE": "Rimuovere «{name}» dalla pagina?",
+      "SHARED_COMPONENTS": "Componenti condivisi",
+      "MODE_SHARED": "Condivisi",
+      "EDIT_SHARED": "Modifica componente condiviso",
+      "EDITING_SHARED": "Stai modificando un componente condiviso: salvarlo lo cambia in tutte le pagine che lo usano.",
+      "SHARED_PANEL": {
+        "HINT": "Sezioni che riutilizzi in più pagine. Modificane una per cambiarla ovunque.",
+        "SEARCH": "Cerca componenti condivisi",
+        "INSERT": "Aggiungi alla pagina",
+        "EDIT": "Modifica",
+        "EMPTY": "Ancora nessun componente condiviso. In Sezioni scegli Seleziona, spunta le sezioni e salvale come componente condiviso."
+      },
+      "USED_ON": "{count} pagina/e",
+      "ARCHIVED": "Questa pagina è archiviata. Ripristinala per modificarla nel designer.",
+      "PUBLISHING": "Pubblicazione in corso…",
+      "RETRY_PUBLISH": "Riprova a pubblicare",
+      "PROMOTE": "Promuovi in produzione",
+      "PROMOTE_FAILED": "Impossibile promuovere la pagina in produzione.",
+      "PUBLISH_CONFLICT": "Nel frattempo qualcuno ha pubblicato un’altra versione di questa pagina. Pubblicare la tua versione al suo posto?",
+      "NOTHING_PUBLISHED": "Non è stato pubblicato nulla. Riapri la pagina per vedere l’altra versione.",
+      "HISTORY": {
+        "TITLE": "Cronologia versioni",
+        "OTHERS": "Versioni non pubblicate di altre persone: {count}",
+        "EMPTY": "Nessuna versione: salva la pagina per creare la prima.",
+        "FAILED": "Impossibile caricare le versioni.",
+        "PUBLISHED": "Pubblicata",
+        "YOUR_DRAFT": "La tua bozza",
+        "PREVIEW": "Anteprima",
+        "RESTORE": "Ripristina",
+        "SAVE_FIRST": "Prima salva o annulla le modifiche",
+        "MORE": "Mostra versioni precedenti",
+        "CONFIRM": "Impostare la versione {version} come tua bozza? Poi pubblicala per metterla online.",
+        "RESTORED": "La versione è ora la tua bozza",
+        "RESTORE_FAILED": "Impossibile ripristinare la versione.",
+        "CLOSE": "Chiudi",
+        "LATEST": "Più recente",
+        "PREVIEWING": "In anteprima",
+        "EXIT": "Esci",
+        "DISCARD": "Annulla tutte le modifiche",
+        "CONFIRM_DISCARD": "Annullare tutte le modifiche non pubblicate? La pagina torna alla sua versione pubblicata.",
+        "DISCARDED": "Modifiche non pubblicate annullate",
+        "DISCARD_FAILED": "Non è stato possibile annullare le modifiche.",
+        "PREVIEW_FAILED": "Non è stato possibile mostrare questa versione.",
+        "VIEWING": "Versione {version} in visualizzazione · {date}",
+        "BACK": "Torna alla bozza"
+      },
+      "THEME": {
+        "TITLE": "Tema",
+        "PRESET": "Preimpostazione",
+        "PRESET_PLACEHOLDER": "Scegli una preimpostazione",
+        "APPLY": "Applica",
+        "EMPTY": "Questo tema non ha impostazioni da modificare.",
+        "SAVE_FAILED": "Impossibile salvare le impostazioni del tema."
+      },
+      "CLIPBOARD": {
+        "COPY": "Copia",
+        "PASTE": "Incolla",
+        "COPIED": "Copiato: incollalo in qualsiasi pagina del sito",
+        "COPY_FAILED": "Il browser non ha consentito la copia.",
+        "PASTE_TITLE": "Incolla una sezione o un blocco",
+        "PASTE_HINT": "Il browser non ha consentito alla pagina di leggere gli appunti: incolla qui il contenuto copiato.",
+        "INVALID": "Gli appunti non contengono una sezione o un blocco copiati.",
+        "BLOCK_NEEDS_SECTION": "Seleziona una sezione in cui incollare il blocco.",
+        "BLOCK_NOT_ALLOWED": "La sezione selezionata non può contenere questo blocco."
+      },
+      "SELECT_MODE": {
+        "SELECT": "Seleziona",
+        "DONE": "Fine",
+        "COUNT": "Selezionati: {count}",
+        "DELETE": "Elimina",
+        "CONFIRM_DELETE": "Rimuovere dalla pagina le sezioni selezionate ({count})?",
+        "SAVE_SHARED": "Salva come componente condiviso",
+        "SAVE_SHARED_HINT": "Le sezioni selezionate diventano un componente condiviso: modificalo una volta e cambiano tutte le pagine che lo usano.",
+        "NAME": "Nome",
+        "SHARED_SAVED": "«{name}» è ora un componente condiviso",
+        "SHARED_FAILED": "Impossibile creare il componente condiviso.",
+        "NOT_ADJACENT": "Seleziona sezioni adiacenti.",
+        "HAS_SHARED": "Un componente condiviso non può contenerne un altro: deselezionalo."
+      }
+    },
+    "WIDGETS": {
+      "STORE": "Page Builder"
+    },
+    "GIT": {
+      "TITLE": "Cronologia delle versioni",
+      "WIDGET": "Cronologia",
+      "ON": "Attivo",
+      "OFF": "Disattivo",
+      "STATUS": "Stato",
+      "REPOSITORY": "Repository",
+      "BRANCH": "Branch",
+      "LAST_CHANGE": "Ultima modifica pubblicata",
+      "NOT_CREATED": "(non ancora creato)",
+      "TEST": "Verifica connessione",
+      "TURN_ON": "Attiva la cronologia",
+      "TURN_OFF": "Disattiva la cronologia",
+      "CONFIRM_OFF": "Disattivare la cronologia delle versioni per questo sito? Le pagine verranno di nuovo salvate nello storage della piattaforma. Il repository e la sua cronologia restano su GitHub.",
+      "HINT": {
+        "OFF": "Attiva la cronologia per conservare le pagine di questo sito in {repository}: ogni salvataggio viene conservato come versione, la pubblicazione la unisce e qualsiasi versione precedente può essere ripristinata.",
+        "MISSING": "Il repository del sito non esiste ancora. «Attiva la cronologia» lo crea.",
+        "ON": "Ogni versione delle pagine di questo sito è conservata su GitHub. Disattivando la cronologia le pagine tornano nello storage della piattaforma; il repository e la sua cronologia restano."
+      },
+      "SETUP": {
+        "INTRO": "La cronologia delle versioni conserva ogni modifica alle pagine di questo sito, con chi l'ha fatta e quando, così qualsiasi versione precedente può essere ripristinata. Le pagine sono conservate in un repository GitHub privato dedicato al sito.",
+        "CONFIGURATION": "Questa piattaforma prende la connessione a GitHub dalla propria configurazione, che è incompleta. Chiedi all'amministratore della piattaforma di completarla.",
+        "ORGANIZATION": "Organizzazione GitHub",
+        "ORGANIZATION_HINT": "Contiene un repository privato per ogni sito. Usa un'organizzazione diversa per ogni ambiente, ad esempio acme-sites e acme-sites-staging.",
+        "NEW_ORGANIZATION": "Non hai ancora un'organizzazione? Creala su GitHub",
+        "STEP_CREATE": "GitHub si apre in una nuova scheda con un'App Page Builder per l'organizzazione. Seleziona «Create GitHub App».",
+        "STEP_INSTALL": "Installa l'App nell'organizzazione, con accesso a tutti i repository.",
+        "STEP_RETURN": "GitHub ti riporta alla piattaforma. Poi apri la Cronologia di un sito e seleziona «Attiva la cronologia».",
+        "CREATE_APP": "Crea la GitHub App",
+        "INSTALL": "Installa l'App in {organization}",
+        "AGAIN": "Configura di nuovo"
+      },
+      "CONNECT_FIRST": "Questa piattaforma non è ancora collegata a GitHub. Collegala una volta dal pannello Siti, poi attiva qui la cronologia.",
+      "OPEN_GITHUB": "Connessione GitHub"
+    },
+    "GITHUB": {
+      "TITLE": "GitHub",
+      "INTRO": "Collega la piattaforma a un'organizzazione GitHub una sola volta. Ogni sito conserva poi le versioni delle sue pagine in un proprio repository privato.",
+      "CONNECTED_HINT": "Ogni sito conserva le versioni delle sue pagine in un proprio repository privato in {organization}. Attiva la cronologia di un sito dal suo pannello Cronologia.",
+      "STATUS": "Stato",
+      "CONNECTED": "Collegato",
+      "FAILING": "Non funziona",
+      "ORGANIZATION": "Organizzazione",
+      "APP": "GitHub App",
+      "FROM_CONFIGURATION": "Dalla configurazione della piattaforma",
+      "NEW_SITES": "Nuovi siti",
+      "NEW_SITES_ON": "Ricevono la cronologia automaticamente",
+      "NEW_SITES_OFF": "Attivati sito per sito",
+      "MANAGE_ACCESS": "Gestisci l'accesso ai repository",
+      "CANCEL": "Annulla",
+      "SITES": "Siti",
+      "HISTORY_ON": "Cronologia attiva",
+      "HISTORY_OFF": "Cronologia disattivata",
+      "NOT_CONNECTED": "Non collegato",
+      "WIDGET_ON": "Cronologia attiva",
+      "WIDGET_OFF": "Configura la cronologia",
+      "ALL_SITES": "Tutti i siti"
+    }
+  }
+}
