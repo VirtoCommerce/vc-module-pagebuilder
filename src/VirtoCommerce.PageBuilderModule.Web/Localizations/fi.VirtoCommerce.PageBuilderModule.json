@@ -40,6 +40,10 @@
         }
       },
       "pageBuilderEditor": {
+        "duplicate": {
+          "title": "Monista sivu",
+          "description": "Kopioi sivu sisältövarastoon uudella nimellä"
+        },
         "create": {
           "title": "Suunnittele sivu",
           "description": "Käytä suunnitteluohjelmaa uuden sivun luomiseen"
@@ -51,6 +55,8 @@
       }
     },
     "commands": {
+      "promote": "Siirrä tuotantoon",
+      "delete-legacy-draft": "Poista vanha luonnostiedosto",
       "open-designer": "Suunnittelu",
       "publish": "Julkaise",
       "unpublish": "Poista julkaisusta"
@@ -61,6 +67,22 @@
       }
     },
     "dialogs": {
+      "git-promote-pending": {
+        "title": "Siirto tuotantoon käynnissä",
+        "message": "Tuotantoa ei ole vielä päivitetty: pull request on avoinna ja yhdistetään, kun sen tarkistukset menevät läpi. {{url}}"
+      },
+      "delete-legacy-draft": {
+        "title": "Poistetaanko vanha luonnostiedosto?",
+        "message": "\"{{path}}\" on jäänyt ajalta ennen kuin tämä kauppa siirtyi sisältövarastoon. Itse sivuun ei kosketa."
+      },
+      "delete-legacy-draft-unsaved": {
+        "title": "Poistetaanko vanha luonnostiedosto?",
+        "message": "\"{{path}}\" sisältää vielä muutoksia, joita ei ole sisältövarastossa. Poistaminen hävittää ne. Julkaistuun sivuun ei kosketa."
+      },
+      "legacy-draft-kept": {
+        "title": "Luonnostiedosto säilytettiin",
+        "message": "Sivua ei ole tallessa missään muualla: se ei ole sisältövarastossa eikä julkaistussa tiedostossa, joten luonnoksen poistaminen poistaisi sivun. Tallenna sivu kerran suunnitteluohjelmasta ja poista sitten luonnos."
+      },
       "git-awaiting-merge": {
         "title": "Julkaisu vaatii vielä yhden askeleen",
         "message": "Tämän sivun pull request on avoinna, mutta se ei yhdisty itsestään: tämä repositorio ei salli automaattista yhdistämistä eikä vaadittu tarkistus ole mennyt läpi. Julkaise uudelleen, kun tarkistukset ovat vihreitä, tai yhdistä se GitHubissa. {{url}}"
@@ -117,6 +139,7 @@
   },
   "permissions": {
     "builder:theme": "Salli teeman asetusten muokkaus",
-    "builder:templates": "Salli mallin vaihto muokkauksen aikana"
+    "builder:templates": "Salli mallin vaihto muokkauksen aikana",
+    "builder:promote": "Salli sivun siirto tuotantoon. Erillään julkaisusta, joka ulottuu vain toimittajien käyttämään ympäristöön."
   }
 }

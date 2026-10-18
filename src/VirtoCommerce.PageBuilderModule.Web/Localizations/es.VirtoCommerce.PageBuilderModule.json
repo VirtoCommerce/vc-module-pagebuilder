@@ -40,6 +40,10 @@
         }
       },
       "pageBuilderEditor": {
+        "duplicate": {
+          "title": "Duplicar página",
+          "description": "Copiar la página en el repositorio de contenido con un nombre nuevo"
+        },
         "create": {
           "title": "Diseñar página",
           "description": "Usar el diseñador para crear una nueva página"
@@ -51,11 +55,29 @@
       }
     },
     "commands": {
+      "promote": "Promover a producción",
+      "delete-legacy-draft": "Eliminar el archivo de borrador antiguo",
       "open-designer": "Diseñar",
       "publish": "Publicar",
       "unpublish": "Despublicar"
     },
     "dialogs": {
+      "git-promote-pending": {
+        "title": "Promoción en curso",
+        "message": "Producción aún no está actualizada: hay un pull request abierto que se fusionará cuando pasen sus comprobaciones. {{url}}"
+      },
+      "delete-legacy-draft": {
+        "title": "¿Eliminar el archivo de borrador antiguo?",
+        "message": "\"{{path}}\" quedó de antes de que esta tienda pasara al repositorio de contenido. La página en sí no se modifica."
+      },
+      "delete-legacy-draft-unsaved": {
+        "title": "¿Eliminar el archivo de borrador antiguo?",
+        "message": "\"{{path}}\" todavía contiene cambios que no están en el repositorio de contenido. Si lo elimina, se perderán. La página publicada no se modifica."
+      },
+      "legacy-draft-kept": {
+        "title": "Se ha conservado el archivo de borrador",
+        "message": "Esta página no está guardada en ningún otro sitio: no está ni en el repositorio de contenido ni en un archivo publicado, por lo que eliminar el borrador eliminaría la página. Guárdela una vez desde el diseñador y después elimine el borrador."
+      },
       "git-awaiting-merge": {
         "title": "La publicación necesita un paso más",
         "message": "El pull request de esta página está abierto pero no se fusionará por sí solo: este repositorio no permite auto-merge y una comprobación obligatoria no ha pasado. Publique de nuevo cuando las comprobaciones estén en verde, o fusiónelo en GitHub. {{url}}"
@@ -67,6 +89,11 @@
       "git-unpublish-pending": {
         "title": "Retirada en curso",
         "message": "La página sigue publicada: hay un pull request abierto que la elimina y se fusionará cuando pasen sus comprobaciones. {{url}}"
+      }
+    },
+    "widgets": {
+      "pageBuilder-app": {
+        "title": "Page Builder"
       }
     }
   },
@@ -112,6 +139,7 @@
   },
   "permissions": {
     "builder:theme": "Permitir editar la configuración del tema",
-    "builder:templates": "Permitir cambiar la plantilla durante la edición"
+    "builder:templates": "Permitir cambiar la plantilla durante la edición",
+    "builder:promote": "Permitir promover una página a producción. Es independiente de la publicación, que solo llega al entorno con el que trabajan los editores."
   }
 }

@@ -40,6 +40,10 @@
         }
       },
       "pageBuilderEditor": {
+        "duplicate": {
+          "title": "Duplica pagina",
+          "description": "Copia la pagina nel repository di contenuti con un nuovo nome"
+        },
         "create": {
           "title": "Progetta pagina",
           "description": "Usa il designer per creare una nuova pagina"
@@ -51,11 +55,29 @@
       }
     },
     "commands": {
+      "promote": "Promuovi in produzione",
+      "delete-legacy-draft": "Elimina il vecchio file di bozza",
       "open-designer": "Progetta",
       "publish": "Pubblica",
       "unpublish": "Annulla pubblicazione"
     },
     "dialogs": {
+      "git-promote-pending": {
+        "title": "Promozione in corso",
+        "message": "La produzione non è ancora aggiornata: una pull request è aperta e verrà unita quando i suoi controlli saranno superati. {{url}}"
+      },
+      "delete-legacy-draft": {
+        "title": "Eliminare il vecchio file di bozza?",
+        "message": "\"{{path}}\" è rimasto da prima che questo negozio passasse al repository di contenuti. La pagina in sé non viene toccata."
+      },
+      "delete-legacy-draft-unsaved": {
+        "title": "Eliminare il vecchio file di bozza?",
+        "message": "\"{{path}}\" contiene ancora modifiche che non sono nel repository di contenuti. Eliminandolo andranno perse. La pagina pubblicata non viene toccata."
+      },
+      "legacy-draft-kept": {
+        "title": "Il file di bozza è stato mantenuto",
+        "message": "Questa pagina non è conservata altrove: non è né nel repository di contenuti né in un file pubblicato, quindi eliminare la bozza eliminerebbe la pagina. Salvala una volta dal designer, poi elimina la bozza."
+      },
       "git-awaiting-merge": {
         "title": "La pubblicazione richiede un altro passaggio",
         "message": "La pull request di questa pagina è aperta ma non verrà unita da sola: questo repository non consente l'auto-merge e un controllo obbligatorio non è passato. Pubblica di nuovo quando i controlli sono verdi, oppure uniscila in GitHub. {{url}}"
@@ -67,6 +89,11 @@
       "git-unpublish-pending": {
         "title": "Rimozione dalla pubblicazione in corso",
         "message": "La pagina è ancora online: una pull request che la rimuove è aperta e verrà unita quando i suoi controlli saranno superati. {{url}}"
+      }
+    },
+    "widgets": {
+      "pageBuilder-app": {
+        "title": "Page Builder"
       }
     }
   },
@@ -112,6 +139,7 @@
   },
   "permissions": {
     "builder:theme": "Consenti la modifica delle impostazioni del tema",
-    "builder:templates": "Consenti la modifica del modello durante la modifica"
+    "builder:templates": "Consenti la modifica del modello durante la modifica",
+    "builder:promote": "Consenti di promuovere una pagina in produzione. Separato dalla pubblicazione, che raggiunge solo l'ambiente su cui lavorano gli editor."
   }
 }
