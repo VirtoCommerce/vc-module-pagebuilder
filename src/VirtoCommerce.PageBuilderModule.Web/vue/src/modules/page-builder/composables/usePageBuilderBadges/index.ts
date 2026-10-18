@@ -1,0 +1,75 @@
+import { ref } from "vue";
+import { useApiClient } from "@vc-shell/framework";
+import {
+  PageBuilderPageClient,
+  PageBuilderPageSearchCriteria,
+} from "../../../../api_client/virtocommerce.pagebuildermodule";
+import { PageLifecycleFilters } from "../usePageBuilderList";
+import useUrlParams from "../useStoreParams";
+
+const { getApiClient } = useApiClient(PageBuilderPageClient);
+
+const draftCount = ref<number | undefined>(undefined);
+const pendingCount = ref<number | undefined>(undefined);
+const activeCount = ref<number | undefined>(undefined);
+const archivedCount = ref<number | undefined>(undefined);
+const allCount = ref<number | undefined>(undefined);
+
+/** Page counts of the current store per lifecycle (undefined = none): the standalone app's menu badges, the Admin Shell's status switch. */
+export const pageCounts = {
+  draft: draftCount,
+  pending: pendingCount,
+  active: activeCount,
+  archived: archivedCount,
+  all: allCount,
+};
+
+function clearMenuBadges() {
+  draftCount.value = undefined;
+  pendingCount.value = undefined;
+  activeCount.value = undefined;
+  archivedCount.value = undefined;
+  allCount.value = undefined;
+}
+
+export async function refreshMenuBadges(): Promise<void> {
+  const { storeId, initUrlParams, validateStoreContext } = useUrlParams();
+  initUrlParams();
+
+  if (!storeId.value || !(await validateStoreContext())) {
+    clearMenuBadges();
+    return;
+  }
+
+  const apiClient = await getApiClient();
+
+  const [draftResult, pendingResult, activeResult, archivedResult, allResult] = await Promise.all([
+    apiClient.searchGroups({
+      storeId: storeId.value,
+      take: 0,
+      lifecycle: PageLifecycleFilters.Draft,
+    } as PageBuilderPageSearchCriteria),
+    apiClient.searchGroups({
+      storeId: storeId.value,
+      take: 0,
+      lifecycle: PageLifecycleFilters.Pending,
+    } as PageBuilderPageSearchCriteria),
+    apiClient.searchGroups({
+      storeId: storeId.value,
+      take: 0,
+      lifecycle: PageLifecycleFilters.Active,
+    } as PageBuilderPageSearchCriteria),
+    apiClient.searchGroups({
+      storeId: storeId.value,
+      take: 0,
+      lifecycle: PageLifecycleFilters.Archived,
+    } as PageBuilderPageSearchCriteria),
+    apiClient.searchGroups({ storeId: storeId.value, take: 0 } as PageBuilderPageSearchCriteria),
+  ]);
+
+  draftCount.value = draftResult.totalCount || undefined;
+  pendingCount.value = pendingResult.totalCount || undefined;
+  activeCount.value = activeResult.totalCount || undefined;
+  archivedCount.value = archivedResult.totalCount || undefined;
+  allCount.value = allResult.totalCount || undefined;
+}

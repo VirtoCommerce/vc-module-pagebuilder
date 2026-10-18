@@ -40,6 +40,10 @@
         }
       },
       "pageBuilderEditor": {
+        "duplicate": {
+          "title": "Duplicar página",
+          "description": "Copiar a página para o repositório de conteúdo com um novo nome"
+        },
         "create": {
           "title": "Design de página",
           "description": "Use o designer para criar uma nova página"
@@ -51,11 +55,29 @@
       }
     },
     "commands": {
+      "promote": "Promover para produção",
+      "delete-legacy-draft": "Excluir o arquivo de rascunho antigo",
       "open-designer": "Design",
       "publish": "Publicar",
       "unpublish": "Despublicar"
     },
     "dialogs": {
+      "git-promote-pending": {
+        "title": "Promoção em andamento",
+        "message": "A produção ainda não foi atualizada: há um pull request aberto que será mesclado quando suas verificações passarem. {{url}}"
+      },
+      "delete-legacy-draft": {
+        "title": "Excluir o arquivo de rascunho antigo?",
+        "message": "\"{{path}}\" ficou de antes de esta loja passar a usar o repositório de conteúdo. A página em si não é alterada."
+      },
+      "delete-legacy-draft-unsaved": {
+        "title": "Excluir o arquivo de rascunho antigo?",
+        "message": "\"{{path}}\" ainda contém alterações que não estão no repositório de conteúdo. Se você excluí-lo, elas serão perdidas. A página publicada não é alterada."
+      },
+      "legacy-draft-kept": {
+        "title": "O arquivo de rascunho foi mantido",
+        "message": "Esta página não está guardada em nenhum outro lugar: ela não está no repositório de conteúdo nem em um arquivo publicado, então excluir o rascunho excluiria a página. Salve-a uma vez pelo designer e depois exclua o rascunho."
+      },
       "git-awaiting-merge": {
         "title": "A publicação precisa de mais um passo",
         "message": "O pull request desta página está aberto, mas não será mesclado por si só: este repositório não permite auto-merge e uma verificação obrigatória não passou. Publique novamente quando as verificações estiverem verdes, ou mescle-o no GitHub. {{url}}"
@@ -67,6 +89,11 @@
       "git-unpublish-pending": {
         "title": "Remoção da publicação em andamento",
         "message": "A página ainda está publicada: há um pull request aberto que a remove e será mesclado quando suas verificações passarem. {{url}}"
+      }
+    },
+    "widgets": {
+      "pageBuilder-app": {
+        "title": "Page Builder"
       }
     }
   },
@@ -92,6 +119,10 @@
             "title": "Publicar páginas através do Git",
             "description": "Quando ativado, guardar uma página cria um commit num ramo de trabalho do repositório de conteúdo configurado, e a publicação abre e integra uma pull request, em vez de escrever diretamente no armazenamento blob. Requer uma ligação de conteúdo Git configurada no servidor (PageBuilder:GitContent)."
           },
+          "GitContentRepository": {
+            "title": "Repositório Git",
+            "description": "Um repositório GitHub existente (owner/name) para as páginas desta loja. Deixe vazio para usar o repositório próprio da loja, que o Page Builder cria na organização configurada."
+          },
           "PreviewUserIds": {
             "title": "IDs de utilizador para pré-visualização",
             "description": "Lista de IDs de utilizador para personificação na pré-visualização (um por linha)"
@@ -108,6 +139,7 @@
   },
   "permissions": {
     "builder:theme": "Permitir editar as configurações do tema",
-    "builder:templates": "Permitir alterar o modelo durante a edição"
+    "builder:templates": "Permitir alterar o modelo durante a edição",
+    "builder:promote": "Permitir promover uma página para produção. Separado da publicação, que só alcança o ambiente com que os editores trabalham."
   }
 }

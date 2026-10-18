@@ -40,6 +40,10 @@
         }
       },
       "pageBuilderEditor": {
+        "duplicate": {
+          "title": "Seite duplizieren",
+          "description": "Seite unter einem neuen Namen in das Content-Repository kopieren"
+        },
         "create": {
           "title": "Seite gestalten",
           "description": "Designer verwenden, um eine neue Seite zu erstellen"
@@ -51,11 +55,29 @@
       }
     },
     "commands": {
+      "promote": "In Produktion übernehmen",
+      "delete-legacy-draft": "Alte Entwurfsdatei löschen",
       "open-designer": "Gestalten",
       "publish": "Veröffentlichen",
       "unpublish": "Nicht veröffentlichen"
     },
     "dialogs": {
+      "git-promote-pending": {
+        "title": "Übernahme in Produktion läuft",
+        "message": "Die Produktion ist noch nicht aktualisiert: Ein Pull Request ist offen und wird zusammengeführt, sobald seine Prüfungen erfolgreich sind. {{url}}"
+      },
+      "delete-legacy-draft": {
+        "title": "Alte Entwurfsdatei löschen?",
+        "message": "\"{{path}}\" stammt noch aus der Zeit, bevor dieses Geschäft auf das Content-Repository umgestellt wurde. Die Seite selbst bleibt unverändert."
+      },
+      "delete-legacy-draft-unsaved": {
+        "title": "Alte Entwurfsdatei löschen?",
+        "message": "\"{{path}}\" enthält noch Änderungen, die nicht im Content-Repository sind. Beim Löschen gehen sie verloren. Die veröffentlichte Seite bleibt unverändert."
+      },
+      "legacy-draft-kept": {
+        "title": "Die Entwurfsdatei wurde behalten",
+        "message": "Diese Seite ist nirgendwo sonst gespeichert: Sie ist weder im Content-Repository noch in einer veröffentlichten Datei, daher würde das Löschen des Entwurfs die Seite löschen. Speichern Sie sie einmal aus dem Designer und löschen Sie dann den Entwurf."
+      },
       "git-awaiting-merge": {
         "title": "Veröffentlichung braucht einen weiteren Schritt",
         "message": "Der Pull Request für diese Seite ist offen, wird aber nicht von selbst zusammengeführt: Dieses Repository erlaubt kein Auto-Merge und eine erforderliche Prüfung ist noch nicht erfolgreich. Veröffentlichen Sie erneut, sobald die Prüfungen grün sind, oder führen Sie ihn in GitHub zusammen. {{url}}"
@@ -67,6 +89,11 @@
       "git-unpublish-pending": {
         "title": "Zurückziehen läuft",
         "message": "Die Seite ist noch live: Ein Pull Request, der sie entfernt, ist offen und wird zusammengeführt, sobald seine Prüfungen erfolgreich sind. {{url}}"
+      }
+    },
+    "widgets": {
+      "pageBuilder-app": {
+        "title": "Page Builder"
       }
     }
   },
@@ -92,6 +119,10 @@
             "title": "Seiten über Git veröffentlichen",
             "description": "Wenn aktiviert, wird beim Speichern einer Seite ein Commit in einem Arbeitsbranch des konfigurierten Content-Repositorys erstellt, und beim Veröffentlichen wird ein Pull Request geöffnet und zusammengeführt — anstatt direkt in den Blob-Speicher zu schreiben. Erfordert eine auf dem Server konfigurierte Git-Content-Verbindung (PageBuilder:GitContent)."
           },
+          "GitContentRepository": {
+            "title": "Git-Repository",
+            "description": "Ein vorhandenes GitHub-Repository (owner/name) für die Seiten dieses Shops. Leer lassen, um das eigene Repository des Shops zu verwenden, das Page Builder in der konfigurierten Organisation anlegt."
+          },
           "PreviewUserIds": {
             "title": "Benutzer-IDs für Vorschau",
             "description": "Liste der Benutzer-IDs für die Vorschau-Imitation (eine pro Zeile)"
@@ -108,6 +139,7 @@
   },
   "permissions": {
     "builder:theme": "Erlaubnis, Theme-Einstellungen zu bearbeiten",
-    "builder:templates": "Erlaubnis, Vorlage während der Bearbeitung zu ändern"
+    "builder:templates": "Erlaubnis, Vorlage während der Bearbeitung zu ändern",
+    "builder:promote": "Erlaubnis, eine Seite in Produktion zu übernehmen. Getrennt vom Veröffentlichen, das nur die Umgebung erreicht, mit der Redakteure arbeiten."
   }
 }

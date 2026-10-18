@@ -1,0 +1,129 @@
+{
+  "ASSET_LIBRARY": {
+    "PAGINATION": {
+      "PAGE_SIZE": "Elementy na stronę"
+    },
+    "SORT": {
+      "LABEL": "Sortuj według",
+      "NAME_ASC": "Nazwa (A-Z)",
+      "NAME_DESC": "Nazwa (Z-A)",
+      "MODIFIED": "Ostatnio zmodyfikowane",
+      "SIZE": "Największe najpierw"
+    },
+    "MENU": {
+      "TITLE": "Biblioteka zasobów"
+    },
+    "TITLE": "Biblioteka zasobów",
+    "COUNTER": "{count} zasobów",
+    "BREADCRUMBS": {
+      "ROOT": "Page Builder"
+    },
+    "BADGES": {
+      "FOLDER": "Folder",
+      "REFERENCES": "{count} ref."
+    },
+    "TABLE": {
+      "NAME": "Nazwa",
+      "TYPE": "Typ",
+      "SIZE": "Rozmiar",
+      "REFERENCES": "Ref.",
+      "MODIFIED": "Zmodyfikowano"
+    },
+    "VIEW": {
+      "GRID": "Widok siatki",
+      "TABLE": "Widok tabeli"
+    },
+    "TOOLBAR": {
+      "REFRESH": "Odśwież",
+      "UPLOAD": "Prześlij",
+      "CREATE_FOLDER": "Utwórz folder",
+      "DELETE": "Usuń",
+      "SEARCH_PLACEHOLDER": "Szukaj zasobów..."
+    },
+    "ACTIONS": {
+      "COPY_URL": "Kopiuj URL",
+      "DELETE": "Usuń"
+    },
+    "DROP": {
+      "UPLOAD_HERE": "Upuść pliki tutaj, aby je przesłać"
+    },
+    "DETAILS": {
+      "EMPTY": "Wybierz plik, aby wyświetlić szczegóły.",
+      "FILE_DETAILS": "Szczegóły pliku",
+      "CLOSE": "Zamknij",
+      "SIZE": "Rozmiar",
+      "DIMENSIONS": "Wymiary",
+      "TYPE": "Typ",
+      "MODIFIED": "Zmodyfikowano",
+      "UPLOADED": "Przesłano",
+      "PATH": "Ścieżka",
+      "USED_ON": "Używane w ({count})",
+      "PAGES": "Strony",
+      "SHARED_COMPONENTS": "Współdzielone komponenty",
+      "NO_REFERENCES": "Nie używane na stronach Page Builder ani we współdzielonych komponentach.",
+      "URL": "URL",
+      "COPY_URL": "Kopiuj URL",
+      "REPLACE": "Zastąp",
+      "DELETE": "Usuń",
+      "NOT_AVAILABLE": "N/D"
+    },
+    "EMPTY": {
+      "TITLE": "Brak zasobów w tym folderze",
+      "DESCRIPTION": "Prześlij pliki lub utwórz folder w obszarze zasobów Page Builder sklepu.",
+      "NO_STORE": "Brak kontekstu sklepu"
+    },
+    "CREATE_FOLDER": {
+      "TITLE": "Utwórz folder",
+      "NAME_LABEL": "Nazwa folderu",
+      "NAME_PLACEHOLDER": "Wpisz nazwę folderu",
+      "CANCEL": "Anuluj",
+      "CREATE": "Utwórz",
+      "VALIDATION": {
+        "DASH_CONSECUTIVE": "Nazwa folderu nie może zawierać kolejnych znaków myślnika.",
+        "DASH_END": "Nazwa folderu nie może kończyć się myślnikiem.",
+        "DASH_START": "Nazwa folderu nie może zaczynać się od myślnika.",
+        "INVALID_CHARACTERS": "Nazwa folderu może zawierać tylko małe litery, cyfry, spacje i pojedyncze myślniki.",
+        "MAX_LENGTH": "Nazwa folderu może mieć maksymalnie 63 znaki. Wpisano {count} znaków.",
+        "MIN_LENGTH": "Nazwa folderu musi mieć co najmniej 3 znaki. Wpisano {count} znaków."
+      }
+    },
+    "CONFIRM": {
+      "DELETE_SINGLE": "Usunąć {name}?",
+      "DELETE_SELECTED": "Usunąć {count} wybranych zasobów?",
+      "DELETE_USED_ONE": "Usunąć {name}? Jest używany w 1 elemencie Page Builder.",
+      "DELETE_USED_MANY": "Usunąć {name}? Jest używany w {count} elementach Page Builder."
+    },
+    "OVERWRITE": {
+      "TITLE": "Konflikt nazwy pliku",
+      "MESSAGE_UNUSED": "{name} nie jest używany na żadnej stronie Page Builder. Zastąpienie go zaktualizuje istniejący plik.",
+      "MESSAGE_USED_ONE": "{name} jest używany na 1 stronie Page Builder. Zastąpienie go zmieni zasób na tej stronie.",
+      "MESSAGE_USED_MANY": "{name} jest używany na {count} stronach Page Builder. Zastąpienie go zmieni zasób na wszystkich tych stronach.",
+      "MESSAGE_BATCH_DUPLICATE": "Inny plik w tym przesyłaniu ma już nazwę {name}. Zachowanie tej samej nazwy spowoduje przesłanie tylko ostatniego pliku.",
+      "MESSAGE_USAGE_UNKNOWN": "Nie udało się ustalić, czy plik {name} jest używany na stronach Page Builder. Zastąpienie go może zmienić strony korzystające z tego zasobu.",
+      "AFFECTED_PAGES": "Strony Page Builder, których dotyczy zmiana",
+      "UPLOAD_AS_LABEL": "Prześlij jako",
+      "UPLOAD_AS": "Prześlij jako",
+      "REPLACE": "Zastąp",
+      "CANCEL": "Anuluj",
+      "VALIDATION": {
+        "REQUIRED": "Nazwa pliku jest wymagana.",
+        "INVALID": "Nazwa pliku nie może zawierać separatorów ścieżki.",
+        "COLLISION": "{name} już istnieje w tym folderze. Wprowadź inną nazwę pliku."
+      }
+    },
+    "NOTIFICATIONS": {
+      "FOLDER_CREATED": "Folder został utworzony",
+      "UPLOADED": "Zasoby zostały przesłane",
+      "UPLOAD_CANCELED": "Przesyłanie anulowane. Nie przesłano żadnych plików.",
+      "REPLACED": "Zasób został zastąpiony",
+      "DELETED": "Zasoby zostały usunięte",
+      "URL_COPIED": "URL zasobu został skopiowany",
+      "COPY_FAILED": "Nie udało się skopiować URL do schowka",
+      "ERROR_GENERIC": "Operacja na zasobach nie powiodła się"
+    },
+    "PICK": {
+      "HINT": "Wybierz plik lub prześlij nowy",
+      "SELECT": "Wybierz"
+    }
+  }
+}

@@ -40,6 +40,10 @@
         }
       },
       "pageBuilderEditor": {
+        "duplicate": {
+          "title": "Dupliquer la page",
+          "description": "Copier la page dans le dépôt de contenu sous un nouveau nom"
+        },
         "create": {
           "title": "Concevoir la page",
           "description": "Utilisez le concepteur pour créer une nouvelle page"
@@ -51,11 +55,29 @@
       }
     },
     "commands": {
+      "promote": "Promouvoir en production",
+      "delete-legacy-draft": "Supprimer l'ancien fichier de brouillon",
       "open-designer": "Concevoir",
       "publish": "Publier",
       "unpublish": "Dépublier"
     },
     "dialogs": {
+      "git-promote-pending": {
+        "title": "Promotion en cours",
+        "message": "La production n'est pas encore mise à jour : une pull request est ouverte et sera fusionnée une fois ses vérifications réussies. {{url}}"
+      },
+      "delete-legacy-draft": {
+        "title": "Supprimer l'ancien fichier de brouillon ?",
+        "message": "\"{{path}}\" date d'avant le passage de cette boutique au dépôt de contenu. La page elle-même n'est pas modifiée."
+      },
+      "delete-legacy-draft-unsaved": {
+        "title": "Supprimer l'ancien fichier de brouillon ?",
+        "message": "\"{{path}}\" contient encore des modifications absentes du dépôt de contenu. Si vous le supprimez, elles seront perdues. La page publiée n'est pas modifiée."
+      },
+      "legacy-draft-kept": {
+        "title": "Le fichier de brouillon a été conservé",
+        "message": "Cette page n'est conservée nulle part ailleurs : elle n'est ni dans le dépôt de contenu ni dans un fichier publié, donc supprimer le brouillon supprimerait la page. Enregistrez-la une fois depuis le concepteur, puis supprimez le brouillon."
+      },
       "git-awaiting-merge": {
         "title": "La publication demande une étape de plus",
         "message": "La pull request de cette page est ouverte mais ne sera pas fusionnée d'elle-même : ce dépôt n'autorise pas l'auto-merge et une vérification obligatoire n'est pas passée. Publiez à nouveau lorsque les vérifications sont vertes, ou fusionnez-la dans GitHub. {{url}}"
@@ -67,6 +89,11 @@
       "git-unpublish-pending": {
         "title": "Retrait en cours",
         "message": "La page est encore en ligne : une pull request qui la supprime est ouverte et sera fusionnée une fois ses vérifications réussies. {{url}}"
+      }
+    },
+    "widgets": {
+      "pageBuilder-app": {
+        "title": "Page Builder"
       }
     }
   },
@@ -92,6 +119,10 @@
             "title": "Publier les pages via Git",
             "description": "Lorsque cette option est activée, l'enregistrement d'une page crée un commit dans une branche de travail du dépôt de contenu configuré, et la publication ouvre et fusionne une pull request, au lieu d'écrire directement dans le stockage blob. Nécessite une connexion de contenu Git configurée sur le serveur (PageBuilder:GitContent)."
           },
+          "GitContentRepository": {
+            "title": "Dépôt Git",
+            "description": "Un dépôt GitHub existant (owner/name) pour les pages de cette boutique. Laissez vide pour utiliser le dépôt propre à la boutique, que Page Builder crée dans l'organisation configurée."
+          },
           "PreviewUserIds": {
             "title": "IDs utilisateur pour l'aperçu",
             "description": "Liste des IDs utilisateur pour l'usurpation d'identité lors de l'aperçu (un par ligne)"
@@ -108,6 +139,7 @@
   },
   "permissions": {
     "builder:theme": "Autoriser la modification des paramètres du thème",
-    "builder:templates": "Autoriser le changement de modèle pendant la modification"
+    "builder:templates": "Autoriser le changement de modèle pendant la modification",
+    "builder:promote": "Autoriser la promotion d'une page en production. Distinct de la publication, qui n'atteint que l'environnement sur lequel travaillent les éditeurs."
   }
 }

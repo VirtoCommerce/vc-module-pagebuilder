@@ -40,6 +40,10 @@
         }
       },
       "pageBuilderEditor": {
+        "duplicate": {
+          "title": "复制页面",
+          "description": "以新名称将页面复制到内容仓库"
+        },
         "create": {
           "title": "设计页面",
           "description": "使用设计器创建新页面"
@@ -51,11 +55,29 @@
       }
     },
     "commands": {
+      "promote": "提升到生产环境",
+      "delete-legacy-draft": "删除旧草稿文件",
       "open-designer": "设计",
       "publish": "发布",
       "unpublish": "取消发布"
     },
     "dialogs": {
+      "git-promote-pending": {
+        "title": "正在提升到生产环境",
+        "message": "生产环境尚未更新：pull request 已打开，检查通过后将合并。{{url}}"
+      },
+      "delete-legacy-draft": {
+        "title": "删除旧草稿文件？",
+        "message": "“{{path}}”是此店铺迁移到内容仓库之前遗留的文件。页面本身不受影响。"
+      },
+      "delete-legacy-draft-unsaved": {
+        "title": "删除旧草稿文件？",
+        "message": "“{{path}}”中仍有不在内容仓库中的更改。删除后这些更改将丢失。已发布的页面不受影响。"
+      },
+      "legacy-draft-kept": {
+        "title": "已保留草稿文件",
+        "message": "此页面未保存在其他任何地方：它既不在内容仓库中，也不在已发布的文件中，因此删除草稿会删除该页面。请先在设计器中保存一次，然后再删除草稿。"
+      },
       "git-awaiting-merge": {
         "title": "发布还需要一步",
         "message": "此页面的 pull request 已打开，但不会自动合并：该仓库未启用自动合并，且必需检查尚未通过。检查通过后再次发布，或在 GitHub 中合并。{{url}}"
@@ -67,6 +89,11 @@
       "git-unpublish-pending": {
         "title": "正在取消发布",
         "message": "页面仍在线：删除该页面的 pull request 已打开，检查通过后将合并。{{url}}"
+      }
+    },
+    "widgets": {
+      "pageBuilder-app": {
+        "title": "Page Builder"
       }
     }
   },
@@ -92,6 +119,10 @@
             "title": "通过 Git 发布页面",
             "description": "启用后，保存页面时会将其提交到已配置内容仓库的工作分支，发布时会打开并合并拉取请求（pull request），而不是直接写入 blob 存储。需要在服务器上配置 Git 内容连接（PageBuilder:GitContent）。"
           },
+          "GitContentRepository": {
+            "title": "Git 仓库",
+            "description": "用于此商店页面的现有 GitHub 仓库 (owner/name)。留空则使用 Page Builder 在配置的组织中为该商店创建的专属仓库。"
+          },
           "PreviewUserIds": {
             "title": "预览用户ID",
             "description": "用于页面预览模拟的用户ID列表（每行一个）"
@@ -108,6 +139,7 @@
   },
   "permissions": {
     "builder:theme": "允许编辑主题设置",
-    "builder:templates": "允许在编辑期间更改模板"
+    "builder:templates": "允许在编辑期间更改模板",
+    "builder:promote": "允许将页面提升到生产环境。此权限独立于发布，发布仅作用于编辑人员使用的环境。"
   }
 }

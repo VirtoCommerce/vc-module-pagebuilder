@@ -1,0 +1,11 @@
+{
+  "language_name": "עברית",
+  "COMMON": {
+    "STORE_CONTEXT": {
+      "MISSING_TITLE": "חסר הקשר של חנות",
+      "MISSING_DESCRIPTION": "יש לפתוח את Page Builder מתוך חנות כדי לנהל דפים ונכסים.",
+      "INVALID_TITLE": "החנות לא נמצאה",
+      "INVALID_DESCRIPTION": "החנות \"{storeId}\" אינה קיימת או אינה זמינה. יש לבדוק את הקשר החנות ולפתוח מחדש את Page Builder מתוך חנות תקינה."
+    }
+  }
+}

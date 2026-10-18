@@ -181,6 +181,84 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.Empty(publisher.Merges);
         }
 
+        /// <summary>
+        /// Once merged, the page goes live from the production branch: what the branch now holds, which a
+        /// merge of somebody else's change to the same file can make differ from this editor's draft.
+        /// </summary>
+        [Fact]
+        public async Task Publish_WhenMerged_WritesTheLivePageAsTheBaseBranchHasIt_NotTheDraft()
+        {
+            var repository = Repository();
+            var live = new FakeLiveStorage();
+
+            await Controller(repository, Publisher(GitPublishState.Merged), live: live).GitPublish("s1", Page, "pages");
+
+            Assert.True(JToken.DeepEquals(JToken.Parse(Published), JToken.Parse(live.Files[Page])));
+            Assert.Single(live.Events);
+            Assert.Equal(["o/r"], repository.Repositories);
+        }
+
+        [Theory]
+        [InlineData(GitPublishState.Pending)]
+        [InlineData(GitPublishState.AwaitingMerge)]
+        [InlineData(GitPublishState.Conflict)]
+        public async Task Publish_WhenNotMerged_LeavesTheLivePageAlone(GitPublishState state)
+        {
+            var live = new FakeLiveStorage();
+
+            await Controller(Repository(), Publisher(state), live: live).GitPublish("s1", Page, "pages");
+
+            Assert.Empty(live.Files);
+            Assert.Empty(live.Events);
+        }
+
+        /// <summary>Publishing again repairs a live write that failed after its merge: the page is on the branch, so it is written.</summary>
+        [Fact]
+        public async Task Publish_WithNothingOfMine_StillWritesTheLivePageFromTheBaseBranch()
+        {
+            var live = new FakeLiveStorage();
+
+            await Controller(Repository(withDraft: false), Publisher(GitPublishState.Merged), live: live).GitPublish("s1", Page, "pages");
+
+            Assert.True(JToken.DeepEquals(JToken.Parse(Published), JToken.Parse(live.Files[Page])));
+        }
+
+        /// <summary>
+        /// The other half of that, and the one that matters: a page the branch does not have is a page that
+        /// only lives in blob storage — a store that opted in keeps those until their first save. Publish
+        /// must never take it down.
+        /// </summary>
+        [Fact]
+        public async Task Publish_OfAPageTheBranchDoesNotHave_NeverRemovesItsLiveCopy()
+        {
+            var repository = Repository(withDraft: false);
+            repository.Files.Remove((RepoPath, "master"));
+            var live = new FakeLiveStorage();
+            live.Files[Page] = Published;
+
+            await Controller(repository, Publisher(GitPublishState.Merged), live: live).GitPublish("s1", Page, "pages");
+
+            Assert.Equal(Published, live.Files[Page]);
+            Assert.Empty(live.Removed);
+            Assert.Empty(live.Events);
+        }
+
+        /// <summary>The first save of a store switched on before its repository existed makes the repository.</summary>
+        [Fact]
+        public async Task Save_WhenTheRepositoryHasNoBaseBranch_HasItMadeFirst()
+        {
+            var repository = new RecordingRepository();
+            var provisioner = new FakeGitContentProvisioner();
+            var files = new JArray { new JObject { ["path"] = Page, ["type"] = "pages", ["content"] = JObject.Parse(Draft) } };
+
+            await Controller(repository, Publisher(GitPublishState.Merged), provisioner: provisioner)
+                .SaveTemplates("s1", null, new PageBuilderController.SaveFilesModel { Files = files.ToString() }, draft: true);
+
+            Assert.Equal(["s1"], provisioner.Ensured);
+            Assert.Equal((MyBranch, "master"), Assert.Single(repository.CreatedBranches));
+            Assert.Single(repository.Commits);
+        }
+
         [Fact]
         public async Task Publish_WithoutThePublishPermission_IsForbidden_RebaseOrNot()
         {
@@ -213,7 +291,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         private static RecordingPublisher Publisher(GitPublishState state) => new(state);
 
         private static PageBuilderController Controller(RecordingRepository repository, RecordingPublisher publisher,
-            bool allowed = true)
+            bool allowed = true, FakeLiveStorage live = null, FakeGitContentProvisioner provisioner = null)
         {
             var options = Options.Create(new GitContentOptions
             {
@@ -223,19 +301,20 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 BaseBranch = "master",
             });
 
-            // Only the git dependencies take part in this path; the rest are left null on purpose, so a
-            // change that starts reaching for blob storage fails loudly here.
+            // Live storage takes part once a merge is done — the platform writes the page there itself.
+            live ??= new FakeLiveStorage();
             var controller = new PageBuilderController(
-                storeService: null,
-                pathResolver: null,
-                blobContentStorageProviderFactory: null,
-                publishingService: null,
-                eventPublisher: null,
+                storeService: live.StoreService,
+                pathResolver: live,
+                blobContentStorageProviderFactory: live,
+                publishingService: live,
+                eventPublisher: live,
                 gitContentOptions: options,
                 gitContentPolicy: new FakePolicy(),
                 gitContentRepository: repository,
                 gitContentHistory: new SilentHistory(),
                 gitContentPublisher: publisher,
+                gitContentProvisioner: provisioner ?? new FakeGitContentProvisioner(),
                 settingsManager: null,
                 authorizationService: new FakeAuthorizationService(allowed));
 
@@ -252,31 +331,37 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         {
             public Task<bool> IsEnabledForStoreAsync(string storeId, CancellationToken cancellationToken = default) =>
                 Task.FromResult(true);
+
+            public Task<string> GetRepositoryAsync(string storeId, CancellationToken cancellationToken = default) =>
+                Task.FromResult<string>("o/r");
+
+            public Task<string> ResolveRepositoryAsync(string storeId, CancellationToken cancellationToken = default) =>
+                Task.FromResult("o/r");
         }
 
 
         private sealed class SilentHistory : IGitContentHistory
         {
-            public Task<GitPageHistory> GetHistoryAsync(string repoPath, GitHistoryQuery query, CancellationToken cancellationToken = default) =>
+            public Task<GitPageHistory> GetHistoryAsync(string repository, string repoPath, GitHistoryQuery query, CancellationToken cancellationToken = default) =>
                 Task.FromResult(new GitPageHistory());
 
-            public void Invalidate(string repoPath) { }
+            public void Invalidate(string repository, string repoPath) { }
         }
 
         private sealed class RecordingPublisher(GitPublishState state) : IGitContentPublisher
         {
             public List<(string Branch, string Into)> Merges { get; } = [];
 
-            public Task<GitPublishResult> MergeBranchAsync(string branch, string title, CancellationToken cancellationToken = default) =>
-                MergeBranchIntoAsync(branch, title, "master", cancellationToken);
+            public Task<GitPublishResult> MergeBranchAsync(string repository, string branch, string title, CancellationToken cancellationToken = default) =>
+                MergeBranchIntoAsync(repository, branch, title, "master", cancellationToken);
 
-            public Task<GitPublishResult> MergeBranchIntoAsync(string branch, string title, string baseBranch, CancellationToken cancellationToken = default)
+            public Task<GitPublishResult> MergeBranchIntoAsync(string repository, string branch, string title, string baseBranch, CancellationToken cancellationToken = default)
             {
                 Merges.Add((branch, baseBranch));
                 return Task.FromResult(new GitPublishResult { State = state, PullRequestNumber = 7, Url = "https://github.com/o/r/pull/7" });
             }
 
-            public Task<GitPendingPublish> GetOpenPullRequestAsync(string branch, CancellationToken cancellationToken = default) =>
+            public Task<GitPendingPublish> GetOpenPullRequestAsync(string repository, string branch, CancellationToken cancellationToken = default) =>
                 Task.FromResult<GitPendingPublish>(null);
         }
 
@@ -310,14 +395,24 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             /// </summary>
             public CancellationTokenSource CancelOnCommit { get; set; }
 
-            public Task<string> ReadFileAsync(string path, string gitRef, CancellationToken cancellationToken = default) =>
-                Task.FromResult(Files.GetValueOrDefault((path, gitRef)));
+            /// <summary>Every repository a call named: the store's, and nothing else, is the point of the per-site flow.</summary>
+            public HashSet<string> Repositories { get; } = [];
 
-            public Task<string> GetBranchHeadShaAsync(string branch, CancellationToken cancellationToken = default) =>
-                Task.FromResult(BranchHeads.GetValueOrDefault(branch));
-
-            public Task CreateBranchAsync(string branch, string fromRef, CancellationToken cancellationToken = default)
+            public Task<string> ReadFileAsync(string repository, string path, string gitRef, CancellationToken cancellationToken = default)
             {
+                Repositories.Add(repository);
+                return Task.FromResult(Files.GetValueOrDefault((path, gitRef)));
+            }
+
+            public Task<string> GetBranchHeadShaAsync(string repository, string branch, CancellationToken cancellationToken = default)
+            {
+                Repositories.Add(repository);
+                return Task.FromResult(BranchHeads.GetValueOrDefault(branch));
+            }
+
+            public Task CreateBranchAsync(string repository, string branch, string fromRef, CancellationToken cancellationToken = default)
+            {
+                Repositories.Add(repository);
                 Order.Add("create");
                 CreatedBranches.Add((branch, fromRef));
                 BranchHeads[branch] = BranchHeads.GetValueOrDefault(fromRef, NewCommitSha);
@@ -330,7 +425,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             /// pointer to a commit, and the file on the branch is whatever that commit holds. Here that is
             /// the base branch's copy on the way out, and the draft again on the way back.
             /// </summary>
-            public Task SetBranchAsync(string branch, string sha, string pagePath, CancellationToken cancellationToken = default)
+            public Task SetBranchAsync(string repository, string branch, string sha, string pagePath, CancellationToken cancellationToken = default)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
@@ -348,7 +443,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 return Task.CompletedTask;
             }
 
-            public Task DeleteBranchAsync(string branch, string pagePath, CancellationToken cancellationToken = default)
+            public Task DeleteBranchAsync(string repository, string branch, string pagePath, CancellationToken cancellationToken = default)
             {
                 Order.Add("delete");
                 DeletedBranches.Add(branch);
@@ -357,9 +452,9 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 return Task.CompletedTask;
             }
 
-            public void InvalidateRead(string path, string gitRef) { }
+            public void InvalidateRead(string repository, string path, string gitRef) { }
 
-            public Task<string> CommitFileAsync(string path, string content, string branch, string message, GitCommitAuthor author, CancellationToken cancellationToken = default)
+            public Task<string> CommitFileAsync(string repository, string path, string content, string branch, string message, GitCommitAuthor author, CancellationToken cancellationToken = default)
             {
                 if (CancelOnCommit != null)
                 {
@@ -378,13 +473,14 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                     throw new InvalidOperationException($"Cannot commit to \"{branch}\": the branch does not exist.");
                 }
 
+                Repositories.Add(repository);
                 Order.Add("commit");
                 Commits.Add((path, branch, content, message));
                 Files[(path, branch)] = content;
                 return Task.FromResult(NewCommitSha);
             }
 
-            public Task<string> DeleteFileAsync(string path, string branch, string message, GitCommitAuthor author, CancellationToken cancellationToken = default)
+            public Task<string> DeleteFileAsync(string repository, string path, string branch, string message, GitCommitAuthor author, CancellationToken cancellationToken = default)
             {
                 Files.Remove((path, branch));
                 return Task.FromResult(NewCommitSha);

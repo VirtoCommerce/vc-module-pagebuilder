@@ -392,6 +392,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 gitContentRepository: git ?? new FakeGitRepository(),
                 gitContentHistory: null,
                 gitContentPublisher: null,
+                gitContentProvisioner: new FakeGitContentProvisioner(),
                 settingsManager: null,
                 authorizationService: new FakeAuthorizationService(allowed));
 
@@ -485,28 +486,28 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         {
             public Dictionary<string, string> Files { get; } = [];
 
-            public Task<string> ReadFileAsync(string path, string gitRef, CancellationToken cancellationToken = default) =>
+            public Task<string> ReadFileAsync(string repository, string path, string gitRef, CancellationToken cancellationToken = default) =>
                 Task.FromResult(Files.GetValueOrDefault(path));
 
-            public Task<string> GetBranchHeadShaAsync(string branch, CancellationToken cancellationToken = default) =>
+            public Task<string> GetBranchHeadShaAsync(string repository, string branch, CancellationToken cancellationToken = default) =>
                 throw new NotSupportedException();
 
-            public Task CreateBranchAsync(string branch, string fromRef, CancellationToken cancellationToken = default) =>
+            public Task CreateBranchAsync(string repository, string branch, string fromRef, CancellationToken cancellationToken = default) =>
                 throw new NotSupportedException();
 
-            public Task SetBranchAsync(string branch, string sha, string pagePath, CancellationToken cancellationToken = default) =>
+            public Task SetBranchAsync(string repository, string branch, string sha, string pagePath, CancellationToken cancellationToken = default) =>
                 throw new NotSupportedException();
 
-            public Task DeleteBranchAsync(string branch, string pagePath, CancellationToken cancellationToken = default) =>
+            public Task DeleteBranchAsync(string repository, string branch, string pagePath, CancellationToken cancellationToken = default) =>
                 throw new NotSupportedException();
 
-            public void InvalidateRead(string path, string gitRef) => throw new NotSupportedException();
+            public void InvalidateRead(string repository, string path, string gitRef) => throw new NotSupportedException();
 
-            public Task<string> CommitFileAsync(string path, string content, string branch, string message,
+            public Task<string> CommitFileAsync(string repository, string path, string content, string branch, string message,
                 GitCommitAuthor author, CancellationToken cancellationToken = default) =>
                 throw new NotSupportedException();
 
-            public Task<string> DeleteFileAsync(string path, string branch, string message, GitCommitAuthor author,
+            public Task<string> DeleteFileAsync(string repository, string path, string branch, string message, GitCommitAuthor author,
                 CancellationToken cancellationToken = default) =>
                 throw new NotSupportedException();
         }
@@ -515,6 +516,12 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         {
             public Task<bool> IsEnabledForStoreAsync(string storeId, CancellationToken cancellationToken = default) =>
                 Task.FromResult(enabled);
+
+            public Task<string> GetRepositoryAsync(string storeId, CancellationToken cancellationToken = default) =>
+                Task.FromResult<string>(enabled ? "o/r" : null);
+
+            public Task<string> ResolveRepositoryAsync(string storeId, CancellationToken cancellationToken = default) =>
+                Task.FromResult("o/r");
         }
 
     }

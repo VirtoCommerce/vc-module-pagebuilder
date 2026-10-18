@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 
 namespace VirtoCommerce.PageBuilderModule.Core.GitContent
 {
@@ -24,6 +25,29 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
         /// </summary>
         public static string WithVcUser(string message, string vcUser) =>
             string.IsNullOrWhiteSpace(vcUser) ? message : $"{message}\n\n{VcUserTrailer}: {vcUser.Trim()}";
+
+        /// <summary>
+        /// The designer action a commit belongs to: one Save (or Restore, or Discard) writes several files — a page,
+        /// its header, its footer — each its own commit, and the version history shows them as one change.
+        /// </summary>
+        public const string VcSaveTrailer = "VC-Save";
+
+        /// <summary>
+        /// The message with a trailer added: to the trailers it already ends with, else as a trailer paragraph of its
+        /// own. Untouched when there is no value.
+        /// </summary>
+        public static string WithTrailer(string message, string name, string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return message;
+            }
+
+            var lastParagraph = message[(message.LastIndexOf("\n\n", StringComparison.Ordinal) + 1)..];
+            var endsWithTrailers = message.Contains("\n\n", StringComparison.Ordinal) &&
+                lastParagraph.Split('\n', StringSplitOptions.RemoveEmptyEntries).All(line => line.Contains(": ", StringComparison.Ordinal));
+            return $"{message}{(endsWithTrailers ? "\n" : "\n\n")}{name}: {value.Trim()}";
+        }
 
         /// <summary>
         /// Reads a trailer out of a commit message body, or <c>null</c> when it carries none. Commits

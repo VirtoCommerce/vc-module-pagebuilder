@@ -223,6 +223,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 gitContentRepository: repository,
                 gitContentHistory: new SilentHistory(),
                 gitContentPublisher: publisher,
+                gitContentProvisioner: new FakeGitContentProvisioner(),
                 settingsManager: null,
                 authorizationService: new FakeAuthorizationService(allowed));
 
@@ -239,31 +240,37 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         {
             public Task<bool> IsEnabledForStoreAsync(string storeId, CancellationToken cancellationToken = default) =>
                 Task.FromResult(enabled);
+
+            public Task<string> GetRepositoryAsync(string storeId, CancellationToken cancellationToken = default) =>
+                Task.FromResult<string>(enabled ? "o/r" : null);
+
+            public Task<string> ResolveRepositoryAsync(string storeId, CancellationToken cancellationToken = default) =>
+                Task.FromResult("o/r");
         }
 
 
         private sealed class SilentHistory : IGitContentHistory
         {
-            public Task<GitPageHistory> GetHistoryAsync(string repoPath, GitHistoryQuery query, CancellationToken cancellationToken = default) =>
+            public Task<GitPageHistory> GetHistoryAsync(string repository, string repoPath, GitHistoryQuery query, CancellationToken cancellationToken = default) =>
                 Task.FromResult(new GitPageHistory());
 
-            public void Invalidate(string repoPath) { }
+            public void Invalidate(string repository, string repoPath) { }
         }
 
         private sealed class RecordingPublisher(GitPublishState state, int? openPullRequest) : IGitContentPublisher
         {
             public List<(string Branch, string Into)> Merges { get; } = [];
 
-            public Task<GitPublishResult> MergeBranchAsync(string branch, string title, CancellationToken cancellationToken = default) =>
-                MergeBranchIntoAsync(branch, title, "master", cancellationToken);
+            public Task<GitPublishResult> MergeBranchAsync(string repository, string branch, string title, CancellationToken cancellationToken = default) =>
+                MergeBranchIntoAsync(repository, branch, title, "master", cancellationToken);
 
-            public Task<GitPublishResult> MergeBranchIntoAsync(string branch, string title, string baseBranch, CancellationToken cancellationToken = default)
+            public Task<GitPublishResult> MergeBranchIntoAsync(string repository, string branch, string title, string baseBranch, CancellationToken cancellationToken = default)
             {
                 Merges.Add((branch, baseBranch));
                 return Task.FromResult(new GitPublishResult { State = state, PullRequestNumber = 7 });
             }
 
-            public Task<GitPendingPublish> GetOpenPullRequestAsync(string branch, CancellationToken cancellationToken = default) =>
+            public Task<GitPendingPublish> GetOpenPullRequestAsync(string repository, string branch, CancellationToken cancellationToken = default) =>
                 Task.FromResult(openPullRequest == null
                     ? null
                     : new GitPendingPublish { Number = openPullRequest.Value, AutoMerging = true });
@@ -280,41 +287,41 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             public List<(string Branch, string FromRef)> CreatedBranches { get; } = [];
             public List<string> DeletedBranches { get; } = [];
 
-            public Task<string> ReadFileAsync(string path, string gitRef, CancellationToken cancellationToken = default) =>
+            public Task<string> ReadFileAsync(string repository, string path, string gitRef, CancellationToken cancellationToken = default) =>
                 Task.FromResult(Files.GetValueOrDefault((path, gitRef)));
 
-            public Task<string> GetBranchHeadShaAsync(string branch, CancellationToken cancellationToken = default) =>
+            public Task<string> GetBranchHeadShaAsync(string repository, string branch, CancellationToken cancellationToken = default) =>
                 Task.FromResult(BranchHeads.GetValueOrDefault(branch));
 
-            public Task CreateBranchAsync(string branch, string fromRef, CancellationToken cancellationToken = default)
+            public Task CreateBranchAsync(string repository, string branch, string fromRef, CancellationToken cancellationToken = default)
             {
                 CreatedBranches.Add((branch, fromRef));
                 BranchHeads[branch] = BranchHeads.GetValueOrDefault(fromRef, NewCommitSha);
                 return Task.CompletedTask;
             }
 
-            public Task SetBranchAsync(string branch, string sha, string pagePath, CancellationToken cancellationToken = default)
+            public Task SetBranchAsync(string repository, string branch, string sha, string pagePath, CancellationToken cancellationToken = default)
             {
                 BranchHeads[branch] = sha;
                 return Task.CompletedTask;
             }
 
-            public Task DeleteBranchAsync(string branch, string pagePath, CancellationToken cancellationToken = default)
+            public Task DeleteBranchAsync(string repository, string branch, string pagePath, CancellationToken cancellationToken = default)
             {
                 DeletedBranches.Add(branch);
                 BranchHeads.Remove(branch);
                 return Task.CompletedTask;
             }
 
-            public void InvalidateRead(string path, string gitRef) { }
+            public void InvalidateRead(string repository, string path, string gitRef) { }
 
-            public Task<string> CommitFileAsync(string path, string content, string branch, string message, GitCommitAuthor author, CancellationToken cancellationToken = default)
+            public Task<string> CommitFileAsync(string repository, string path, string content, string branch, string message, GitCommitAuthor author, CancellationToken cancellationToken = default)
             {
                 Commits.Add((path, content, branch, message, author));
                 return Task.FromResult(NewCommitSha);
             }
 
-            public Task<string> DeleteFileAsync(string path, string branch, string message, GitCommitAuthor author, CancellationToken cancellationToken = default) =>
+            public Task<string> DeleteFileAsync(string repository, string path, string branch, string message, GitCommitAuthor author, CancellationToken cancellationToken = default) =>
                 throw new NotSupportedException();
         }
     }

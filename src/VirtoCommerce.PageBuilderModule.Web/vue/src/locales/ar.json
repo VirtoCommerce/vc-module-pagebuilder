@@ -1,0 +1,11 @@
+{
+  "language_name": "العربية",
+  "COMMON": {
+    "STORE_CONTEXT": {
+      "MISSING_TITLE": "سياق المتجر غير موجود",
+      "MISSING_DESCRIPTION": "افتح Page Builder من متجر لإدارة الصفحات والأصول.",
+      "INVALID_TITLE": "لم يتم العثور على المتجر",
+      "INVALID_DESCRIPTION": "المتجر «{storeId}» غير موجود أو غير متاح. تحقق من سياق المتجر وأعد فتح Page Builder من متجر صالح."
+    }
+  }
+}

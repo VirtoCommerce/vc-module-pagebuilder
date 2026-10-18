@@ -199,6 +199,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 gitContentRepository: repository,
                 gitContentHistory: new SilentHistory(),
                 gitContentPublisher: null,
+                gitContentProvisioner: new FakeGitContentProvisioner(),
                 settingsManager: null,
                 authorizationService: new FakeAuthorizationService(allowed));
 
@@ -217,19 +218,19 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             public Dictionary<string, string> BranchHeads { get; } = [];
             public List<(string Path, string Content, string Branch)> Commits { get; } = [];
 
-            public Task<string> ReadFileAsync(string path, string gitRef, CancellationToken cancellationToken = default) =>
+            public Task<string> ReadFileAsync(string repository, string path, string gitRef, CancellationToken cancellationToken = default) =>
                 Task.FromResult(Files.GetValueOrDefault((path, gitRef)));
 
-            public Task<string> GetBranchHeadShaAsync(string branch, CancellationToken cancellationToken = default) =>
+            public Task<string> GetBranchHeadShaAsync(string repository, string branch, CancellationToken cancellationToken = default) =>
                 Task.FromResult(BranchHeads.GetValueOrDefault(branch));
 
-            public Task CreateBranchAsync(string branch, string fromRef, CancellationToken cancellationToken = default)
+            public Task CreateBranchAsync(string repository, string branch, string fromRef, CancellationToken cancellationToken = default)
             {
                 BranchHeads[branch] = "abcdef0123456789abcdef0123456789abcdef01";
                 return Task.CompletedTask;
             }
 
-            public Task<string> CommitFileAsync(string path, string content, string branch, string message,
+            public Task<string> CommitFileAsync(string repository, string path, string content, string branch, string message,
                 GitCommitAuthor author, CancellationToken cancellationToken = default)
             {
                 Commits.Add((path, content, branch));
@@ -237,31 +238,37 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 return Task.FromResult("abcdef0123456789abcdef0123456789abcdef01");
             }
 
-            public Task SetBranchAsync(string branch, string sha, string pagePath, CancellationToken cancellationToken = default) =>
+            public Task SetBranchAsync(string repository, string branch, string sha, string pagePath, CancellationToken cancellationToken = default) =>
                 throw new NotSupportedException();
 
-            public Task DeleteBranchAsync(string branch, string pagePath, CancellationToken cancellationToken = default) =>
+            public Task DeleteBranchAsync(string repository, string branch, string pagePath, CancellationToken cancellationToken = default) =>
                 throw new NotSupportedException();
 
-            public void InvalidateRead(string path, string gitRef) { }
+            public void InvalidateRead(string repository, string path, string gitRef) { }
 
-            public Task<string> DeleteFileAsync(string path, string branch, string message, GitCommitAuthor author,
+            public Task<string> DeleteFileAsync(string repository, string path, string branch, string message, GitCommitAuthor author,
                 CancellationToken cancellationToken = default) =>
                 throw new NotSupportedException();
         }
 
         private sealed class SilentHistory : IGitContentHistory
         {
-            public Task<GitPageHistory> GetHistoryAsync(string repoPath, GitHistoryQuery query, CancellationToken cancellationToken = default) =>
+            public Task<GitPageHistory> GetHistoryAsync(string repository, string repoPath, GitHistoryQuery query, CancellationToken cancellationToken = default) =>
                 Task.FromResult(new GitPageHistory());
 
-            public void Invalidate(string repoPath) { }
+            public void Invalidate(string repository, string repoPath) { }
         }
 
         private sealed class FakePolicy(bool enabled) : IGitContentPolicy
         {
             public Task<bool> IsEnabledForStoreAsync(string storeId, CancellationToken cancellationToken = default) =>
                 Task.FromResult(enabled);
+
+            public Task<string> GetRepositoryAsync(string storeId, CancellationToken cancellationToken = default) =>
+                Task.FromResult<string>(enabled ? "o/r" : null);
+
+            public Task<string> ResolveRepositoryAsync(string storeId, CancellationToken cancellationToken = default) =>
+                Task.FromResult("o/r");
         }
 
     }

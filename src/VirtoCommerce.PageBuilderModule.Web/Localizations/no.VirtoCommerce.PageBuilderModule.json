@@ -40,6 +40,10 @@
         }
       },
       "pageBuilderEditor": {
+        "duplicate": {
+          "title": "Dupliser side",
+          "description": "Kopier siden til innholdsrepositoriet under et nytt navn"
+        },
         "create": {
           "title": "Design side",
           "description": "Bruk designeren til å lage en ny side"
@@ -51,6 +55,8 @@
       }
     },
     "commands": {
+      "promote": "Overfør til produksjon",
+      "delete-legacy-draft": "Slett gammel utkastfil",
       "open-designer": "Design",
       "publish": "Publiser",
       "unpublish": "Avpubliser"
@@ -61,6 +67,22 @@
       }
     },
     "dialogs": {
+      "git-promote-pending": {
+        "title": "Overføring til produksjon pågår",
+        "message": "Produksjon er ikke oppdatert ennå: en pull request er åpen og blir flettet når kontrollene passerer. {{url}}"
+      },
+      "delete-legacy-draft": {
+        "title": "Slette den gamle utkastfilen?",
+        "message": "\"{{path}}\" er igjen fra før denne butikken gikk over til innholdsrepositoriet. Selve siden berøres ikke."
+      },
+      "delete-legacy-draft-unsaved": {
+        "title": "Slette den gamle utkastfilen?",
+        "message": "\"{{path}}\" inneholder fortsatt endringer som ikke finnes i innholdsrepositoriet. Hvis du sletter den, går de tapt. Den publiserte siden berøres ikke."
+      },
+      "legacy-draft-kept": {
+        "title": "Utkastfilen ble beholdt",
+        "message": "Denne siden er ikke lagret noe annet sted: den finnes verken i innholdsrepositoriet eller i en publisert fil, så å slette utkastet ville slette siden. Lagre den én gang fra designeren, og slett deretter utkastet."
+      },
       "git-awaiting-merge": {
         "title": "Publisering trenger ett steg mer",
         "message": "Pull requesten for denne siden er åpen, men blir ikke flettet av seg selv: dette repositoriet tillater ikke auto-merge, og en påkrevd kontroll har ikke passert. Publiser på nytt når kontrollene er grønne, eller flett den i GitHub. {{url}}"
@@ -97,6 +119,10 @@
             "title": "Publiser sider via Git",
             "description": "Når aktivert, committes en side til en arbeidsgren i det konfigurerte innholdsrepositoriet når den lagres, og publisering åpner og fletter en pull request i stedet for å skrive direkte til blob-lagring. Krever at Git-innholdstilkoblingen er konfigurert på serveren (PageBuilder:GitContent)."
           },
+          "GitContentRepository": {
+            "title": "Git-repositorium",
+            "description": "Et eksisterende GitHub-repositorium (owner/name) for sidene i denne butikken. La feltet stå tomt for å bruke butikkens eget repositorium, som Page Builder oppretter i den konfigurerte organisasjonen."
+          },
           "PreviewUserIds": {
             "title": "Bruker-IDer for forhåndsvisning",
             "description": "Liste over bruker-IDer for forhåndsvisning som en annen bruker (én per linje)"
@@ -113,6 +139,7 @@
   },
   "permissions": {
     "builder:theme": "Tillat redigering av temainnstillinger",
-    "builder:templates": "Tillat bytte av mal under redigering"
+    "builder:templates": "Tillat bytte av mal under redigering",
+    "builder:promote": "Tillat overføring av en side til produksjon. Atskilt fra publisering, som bare når miljøet redaktørene arbeider mot."
   }
 }

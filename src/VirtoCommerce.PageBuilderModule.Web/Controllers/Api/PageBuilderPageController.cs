@@ -17,6 +17,7 @@ using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Data.Authorization;
+using VirtoCommerce.PageBuilderModule.Data.GitContent;
 using VirtoCommerce.PageBuilderModule.Web.Services;
 using VirtoCommerce.Pages.Core.Search;
 using VirtoCommerce.Platform.Core.Common;
@@ -35,6 +36,7 @@ public class PageBuilderPageController : Controller
     private readonly IPageDocumentSearchService pageDocumentSearchService;
     private readonly PageBuilderPageContentService pageContentService;
     private readonly ILogger<PageBuilderPageController> logger;
+    private readonly GroupedPageHistory pageHistory;
 
     public PageBuilderPageController(
         IPageBuilderPageService crudService,
@@ -43,7 +45,8 @@ public class PageBuilderPageController : Controller
         IAuthorizationService authorizationService,
         IPageDocumentSearchService pageDocumentSearchService,
         PageBuilderPageContentService pageContentService,
-        ILogger<PageBuilderPageController> logger)
+        ILogger<PageBuilderPageController> logger,
+        GroupedPageHistory pageHistory = null)
     {
         this.crudService = crudService;
         this.groupedPageService = groupedPageService;
@@ -52,6 +55,7 @@ public class PageBuilderPageController : Controller
         this.pageDocumentSearchService = pageDocumentSearchService;
         this.pageContentService = pageContentService;
         this.logger = logger;
+        this.pageHistory = pageHistory;
     }
 
     [HttpPost("search")]
@@ -333,6 +337,7 @@ public class PageBuilderPageController : Controller
         }
 
         List<string> pagesToDelete;
+        string publishedPageId = null;
 
         if (publish)
         {
@@ -343,6 +348,7 @@ public class PageBuilderPageController : Controller
             }
 
             pageToPublish.Status = Published;
+            publishedPageId = pageToPublish.Id;
             pagesToDelete = groupedPage.Pages.Where(x => x.Id != pageToPublish.Id).Select(x => x.Id).ToList();
         }
         else
@@ -365,6 +371,13 @@ public class PageBuilderPageController : Controller
 
         await groupedPageService.SaveChangesAsync([groupedPage]);
         await crudService.DeleteAsync(pagesToDelete);
+
+        if (publishedPageId != null && pageHistory != null)
+        {
+            // usually the latest change already: covers pages saved before history was on, copies and imports.
+            // Read by id: the group in hand still lists the published row this publish just deleted.
+            await pageHistory.RecordAsync(groupedPage, await groupedPageService.LoadContent(publishedPageId, cancellationToken), "Published", User, SiteSave.Of(Request), cancellationToken);
+        }
 
         return Ok();
     }
@@ -627,6 +640,11 @@ public class PageBuilderPageController : Controller
         try
         {
             var result = await pageContentService.SaveConditionalContentAsync(group, content, expectedETag, cancellationToken);
+            if (result.ContentWritten && pageHistory != null)
+            {
+                await pageHistory.RecordAsync(group, content, "Saved", User, SiteSave.Of(Request), cancellationToken);
+            }
+
             Response.Headers.ETag = result.ETag;
             return includeVersion ? Ok(new { eTag = result.ETag }) : NoContent();
         }

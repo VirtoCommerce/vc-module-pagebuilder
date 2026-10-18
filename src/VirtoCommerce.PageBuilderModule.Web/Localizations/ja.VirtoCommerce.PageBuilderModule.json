@@ -40,6 +40,10 @@
         }
       },
       "pageBuilderEditor": {
+        "duplicate": {
+          "title": "ページを複製",
+          "description": "新しい名前でページをコンテンツリポジトリにコピー"
+        },
         "create": {
           "title": "ページデザイン",
           "description": "デザイナーを使用して新しいページを作成"
@@ -51,11 +55,29 @@
       }
     },
     "commands": {
+      "promote": "本番に昇格",
+      "delete-legacy-draft": "古い下書きファイルを削除",
       "open-designer": "デザイン",
       "publish": "公開",
       "unpublish": "公開停止"
     },
     "dialogs": {
+      "git-promote-pending": {
+        "title": "本番への昇格処理中",
+        "message": "本番環境はまだ更新されていません: プルリクエストが開いており、チェックが通るとマージされます。{{url}}"
+      },
+      "delete-legacy-draft": {
+        "title": "古い下書きファイルを削除しますか？",
+        "message": "「{{path}}」は、このストアがコンテンツリポジトリに移行する前から残っているファイルです。ページ自体には影響しません。"
+      },
+      "delete-legacy-draft-unsaved": {
+        "title": "古い下書きファイルを削除しますか？",
+        "message": "「{{path}}」には、コンテンツリポジトリにない変更がまだ含まれています。削除するとその変更は失われます。公開済みのページには影響しません。"
+      },
+      "legacy-draft-kept": {
+        "title": "下書きファイルは保持されました",
+        "message": "このページは他のどこにも保存されていません: コンテンツリポジトリにも公開済みファイルにも存在しないため、下書きを削除するとページ自体が削除されます。一度デザイナーから保存してから、下書きを削除してください。"
+      },
       "git-awaiting-merge": {
         "title": "公開にはもう一手間が必要です",
         "message": "このページのプルリクエストは開いていますが、自動ではマージされません: このリポジトリは自動マージを許可しておらず、必須チェックが通っていません。チェックが通ってから再度公開するか、GitHub でマージしてください。{{url}}"
@@ -67,6 +89,11 @@
       "git-unpublish-pending": {
         "title": "非公開処理中",
         "message": "ページはまだ公開されています: 削除するプルリクエストが開いており、チェックが通るとマージされます。{{url}}"
+      }
+    },
+    "widgets": {
+      "pageBuilder-app": {
+        "title": "Page Builder"
       }
     }
   },
@@ -92,6 +119,10 @@
             "title": "Git経由でページを公開",
             "description": "有効にすると、ページの保存時に設定されたコンテンツリポジトリの作業ブランチへコミットし、公開時にはBlobストレージへ直接書き込む代わりにプルリクエストを作成してマージします。サーバーでGitコンテンツ接続が設定されている必要があります（PageBuilder:GitContent）。"
           },
+          "GitContentRepository": {
+            "title": "Git リポジトリ",
+            "description": "このストアのページに使う既存の GitHub リポジトリ (owner/name)。空のままにすると、Page Builder が設定済みの組織に作成するストア専用のリポジトリを使用します。"
+          },
           "PreviewUserIds": {
             "title": "プレビュー用ユーザーID",
             "description": "ページプレビューのなりすまし用ユーザーIDリスト（1行に1つ）"
@@ -108,6 +139,7 @@
   },
   "permissions": {
     "builder:theme": "テーマ設定を編集する許可",
-    "builder:templates": "編集中にテンプレートを変更する許可"
+    "builder:templates": "編集中にテンプレートを変更する許可",
+    "builder:promote": "ページを本番に昇格する許可。公開とは別の権限で、公開は編集者が作業する環境にのみ反映されます。"
   }
 }
