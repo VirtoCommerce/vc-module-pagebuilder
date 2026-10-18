@@ -1,4 +1,5 @@
 import en from "./en.json";
+import he from "./he.json";
 import de from "./de.json";
 import es from "./es.json";
 import fi from "./fi.json";
@@ -12,4 +13,4 @@ import ru from "./ru.json";
 import sv from "./sv.json";
 import zh from "./zh.json";
 
-export { en, de, es, fi, fr, it, ja, no, pl, pt, ru, sv, zh };
+export { en, he, de, es, fi, fr, it, ja, no, pl, pt, ru, sv, zh };

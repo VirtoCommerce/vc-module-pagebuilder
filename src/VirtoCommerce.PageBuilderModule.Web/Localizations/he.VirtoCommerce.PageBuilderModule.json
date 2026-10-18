@@ -1,0 +1,145 @@
+{
+  "module": {
+    "VirtoCommerce.PageBuilderModule": {
+      "description": "ייצוא וייבוא של דפי Page Builder"
+    }
+  },
+  "pageBuilder": {
+    "blades": {
+      "edit-page": {
+        "title": "עריכת '{{name}}'",
+        "subtitle": "עריכת דף",
+        "title-new": "דף חדש",
+        "subtitle-new": "יצירת דף חדש",
+        "subtitle-post": "עריכת פוסט בבלוג",
+        "title-new-post": "פוסט חדש",
+        "subtitle-new-post": "יצירת פוסט חדש בבלוג",
+        "labels": {
+          "filename": "שם הקובץ",
+          "name": "שם",
+          "language": "שפה",
+          "permalink": "קישור קבוע",
+          "drag-note": "יש לגרור ולשחרר קובץ כאן",
+          "progress": "התקדמות",
+          "markdown": "Markdown",
+          "metadata": "מטא-נתונים",
+          "relativePath": "נתיב יחסי"
+        },
+        "placeholders": {
+          "filename": "יש להזין שם קובץ",
+          "name": "יש להזין שם",
+          "language": "בחירה...",
+          "permalink": "יש להזין קישור קבוע"
+        },
+        "validations": {
+          "pageName-invalid": "שם הדף יכול להכיל רק אותיות, ספרות והתווים \"_\", \"-\" ו-\".\"",
+          "permalink-invalid": "לדפים אחרים יש אותו קישור קבוע"
+        },
+        "hints": {
+          "rename-in-git": "חנות זו מפרסמת דפים דרך Git, שבו שם הקובץ הוא הכתובת של הדף במאגר. יש לשנות את השם שם, באמצעות Pull Request."
+        }
+      },
+      "pageBuilderEditor": {
+        "duplicate": {
+          "title": "שכפול דף",
+          "description": "העתקת הדף למאגר התוכן בשם חדש"
+        },
+        "create": {
+          "title": "עיצוב דף",
+          "description": "יצירת דף חדש במעצב"
+        },
+        "edit": {
+          "title": "עיצוב דף",
+          "description": "עריכת הדף במעצב"
+        }
+      }
+    },
+    "commands": {
+      "promote": "קידום לסביבת הייצור",
+      "delete-legacy-draft": "מחיקת קובץ הטיוטה הישן",
+      "open-designer": "עיצוב",
+      "publish": "פרסום",
+      "unpublish": "ביטול פרסום"
+    },
+    "dialogs": {
+      "git-promote-pending": {
+        "title": "הקידום מתבצע",
+        "message": "סביבת הייצור עדיין לא עודכנה: Pull Request פתוח וימוזג לאחר שהבדיקות שלו יעברו. {{url}}"
+      },
+      "delete-legacy-draft": {
+        "title": "האם למחוק את קובץ הטיוטה הישן?",
+        "message": "\"{{path}}\" נשאר מהתקופה שלפני המעבר של חנות זו למאגר התוכן. הדף עצמו לא ישתנה."
+      },
+      "delete-legacy-draft-unsaved": {
+        "title": "האם למחוק את קובץ הטיוטה הישן?",
+        "message": "\"{{path}}\" עדיין מכיל שינויים שאינם במאגר התוכן. מחיקתו תגרום לאובדן השינויים. הדף שפורסם לא ישתנה."
+      },
+      "legacy-draft-kept": {
+        "title": "קובץ הטיוטה נשמר",
+        "message": "שום דבר אחר אינו מכיל את הדף: הוא אינו נמצא במאגר התוכן ואינו קובץ שפורסם, ולכן מחיקת הטיוטה תמחק את הדף. יש לשמור אותו פעם אחת מהמעצב ואז למחוק את הטיוטה."
+      },
+      "git-awaiting-merge": {
+        "title": "לפרסום נדרש שלב נוסף",
+        "message": "ה-Pull Request של דף זה פתוח אך לא ימוזג מעצמו: המאגר אינו מאפשר מיזוג אוטומטי ובדיקה נדרשת לא עברה. יש לפרסם שוב לאחר שהבדיקות יעברו, או למזג אותו ב-GitHub. {{url}}"
+      },
+      "git-publish-pending": {
+        "title": "הפרסום מתבצע",
+        "message": "הדף עדיין לא באוויר: Pull Request פתוח וימוזג לאחר שהבדיקות שלו יעברו. {{url}}"
+      },
+      "git-unpublish-pending": {
+        "title": "ביטול הפרסום מתבצע",
+        "message": "הדף עדיין באוויר: Pull Request שמסיר אותו פתוח וימוזג לאחר שהבדיקות שלו יעברו. {{url}}"
+      }
+    },
+    "widgets": {
+      "pageBuilder-app": {
+        "title": "Page Builder"
+      }
+    }
+  },
+  "settings": {
+    "VirtoCommerce": {
+      "PageBuilderModule": {
+        "General": {
+          "StoreUrl": {
+            "description": "כתובת URL של החנות עם מטפל התצוגה המקדימה של Page Builder",
+            "title": "כתובת URL של החנות"
+          },
+          "StorePreviewPath": {
+            "description": "נתיב יחסי לדף התצוגה המקדימה",
+            "title": "נתיב התצוגה המקדימה בחנות"
+          },
+          "OzAgentUrl": {
+            "title": "כתובת URL של סוכן Virto OZ",
+            "description": "כתובת ה-URL של ה-iframe של סוכן ה-AI של Virto OZ המוטמע ב-Page Builder. יש להשאיר ריק כדי להשבית את עוזר ה-AI."
+          }
+        },
+        "Store": {
+          "PreviewUserIds": {
+            "title": "מזהי משתמשים לתצוגה מקדימה",
+            "description": "רשימת מזהי משתמשים להתחזות בתצוגה מקדימה של דפים (אחד בכל שורה)"
+          },
+          "GitContentEnabled": {
+            "title": "פרסום דפים דרך Git",
+            "description": "כאשר האפשרות מופעלת, שמירת דף מבצעת Commit שלו לענף עבודה במאגר התוכן שהוגדר, והפרסום פותח וממזג Pull Request, במקום לכתוב ישירות לאחסון Blob. נדרש להגדיר בשרת את החיבור לתוכן ב-Git (PageBuilder:GitContent)."
+          },
+          "GitContentRepository": {
+            "title": "מאגר Git",
+            "description": "מאגר GitHub קיים (owner/name) לדפים של חנות זו. יש להשאיר ריק כדי להשתמש במאגר של החנות עצמה, ש-Page Builder יוצר בארגון שהוגדר."
+          }
+        },
+        "Migration": {
+          "MetadataFromContentMigrated": {
+            "title": "העברת המטא-נתונים מהתוכן הושלמה",
+            "description": "העברת המטא-נתונים מפריטי תוכן לדפי Page Builder הושלמה בהצלחה."
+          }
+        }
+      }
+    }
+  },
+  "permissions": {
+    "builder:theme": "הרשאה לערוך הגדרות של ערכת הנושא",
+    "builder:templates": "הרשאה לשנות תבנית במהלך העריכה",
+    "builder:promote": "הרשאה לקדם דף לסביבת הייצור. נפרדת מהפרסום, שמגיע רק לסביבה שבה העורכים עובדים."
+  }
+}
