@@ -1,7 +1,7 @@
 <template>
   <VcBlade
     :width="sitePanel ? '60%' : '100%'"
-    :class="{ 'pd-full-view': fullView }"
+    :class="{ 'pd-full-view': fullView, 'pd-own-actions': ownActions }"
     :title="title"
     :subtitle="subtitle"
     :toolbar-items="toolbar"
@@ -36,6 +36,16 @@
             size="s"
           />
           {{ $t("PAGE_BUILDER.DESIGNER.EDITING_SHARED") }}
+        </p>
+        <p
+          v-else-if="designer.templateIsNew.value"
+          class="pd__notice"
+        >
+          <VcIcon
+            icon="lucide-info"
+            size="s"
+          />
+          {{ $t("PAGE_BUILDER.DESIGNER.TEMPLATES.NEW") }}
         </p>
         <div
           role="tablist"
@@ -117,11 +127,40 @@
                 />
               </template>
             </nav>
-            <span class="pd__name">
+            <!-- the switcher names what is open; without it, the page's name -->
+            <span
+              v-if="!switcherShown"
+              class="pd__name"
+            >
               <strong>{{ title }}</strong>
               <small>{{ subtitle }}</small>
             </span>
           </template>
+          <TemplateSwitcher
+            v-if="switcherShown"
+            :current="designer.templateKey.value ?? null"
+            :page="homeTitle"
+            :keys="templateKeyList"
+            :rule-count="(key) => rulesFor(rules.rules.value, key).length"
+            :disabled="!!designer.busy.value"
+            @open="switchTo"
+            @create="startCreate"
+          />
+          <EntityPicker
+            v-if="designer.pageType.value && catalog"
+            :model-value="previewed?.id"
+            :type="designer.pageType.value"
+            :catalog="catalog"
+            @picked="pickEntity"
+          />
+          <span
+            v-if="inEffect"
+            class="pd__status"
+            :class="inEffect.other ? 'pd__status--changes' : 'pd__status--pending'"
+            :title="inEffect.title"
+          >
+            {{ inEffect.text }}
+          </span>
           <template v-if="previewing">
             <span
               class="pd__status pd__status--viewing"
@@ -202,7 +241,7 @@
             </button>
           </div>
           <div
-            v-if="fullView"
+            v-if="ownActions"
             class="pd__actions"
           >
             <VcButton
@@ -286,6 +325,8 @@
         <VersionHistory
           ref="versionHistory"
           :source="historySource"
+          :describe="describeVersion"
+          :previewable="previewableVersion"
           :previewing="previewing?.sha"
           :dirty="unsaved"
           :busy="!!designer.busy.value"
@@ -294,6 +335,22 @@
           @preview="previewVersion"
           @restore="restoreVersion"
           @discard="discardChanges"
+        />
+      </div>
+      <div
+        v-else-if="rulesOpen && designer.templateKey.value && catalog && themeName"
+        class="pd__right"
+      >
+        <RulesPanel
+          :rules="rules"
+          :type="designer.pageType.value!"
+          :template-key="designer.templateKey.value"
+          :keys="templateKeyList"
+          :catalog="catalog"
+          :theme="themeName"
+          :previewed="previewed"
+          :resolved="resolved"
+          @close="rulesOpen = false"
         />
       </div>
       <div
@@ -361,6 +418,35 @@
 
 
     <VcPopup
+      v-if="creating"
+      :model-value="true"
+      :title="$t('PAGE_BUILDER.DESIGNER.TEMPLATES.CREATE_TITLE')"
+      @close="creating = undefined"
+    >
+      <template #content>
+        <div class="pd-dialog pd-dialog--fit">
+          <p>{{ $t("PAGE_BUILDER.DESIGNER.TEMPLATES.CREATE_HINT") }}</p>
+          <VcInput
+            v-model="creating.name"
+            :label="$t('PAGE_BUILDER.DESIGNER.TEMPLATES.NAME')"
+            :hint="newKey ? $t('PAGE_BUILDER.DESIGNER.TEMPLATES.SAVED_AS', { path: templatePath(themeName ?? '', newKey) }) : undefined"
+            :error="newKeyTaken"
+            :error-message="newKeyTaken ? $t('PAGE_BUILDER.DESIGNER.TEMPLATES.EXISTS') : undefined"
+            :maxlength="64"
+            required
+            @keydown.enter="createTemplate"
+          />
+          <VcButton
+            :disabled="!newKey || newKeyTaken || !!designer.busy.value"
+            @click="createTemplate"
+          >
+            {{ $t("PAGE_BUILDER.DESIGNER.TEMPLATES.CREATE_BUTTON") }}
+          </VcButton>
+        </div>
+      </template>
+    </VcPopup>
+
+    <VcPopup
       v-if="picking"
       v-model="picking"
       class="pd-picker"
@@ -383,11 +469,13 @@
 
 <script lang="ts" setup>
 import { computed, inject, onBeforeUnmount, onMounted, provide, ref, watch, watchEffect } from "vue";
-import { useEventListener, useLocalStorage } from "@vueuse/core";
+import { useEventListener, useLocalStorage, useMediaQuery } from "@vueuse/core";
 import { useI18n } from "vue-i18n";
+import { useRouter } from "vue-router";
 import { debounce } from "lodash-es";
 import {
   BladeMaximizedKey,
+  BladeStackKey,
   hotkey,
   notification,
   useApiClient,
@@ -395,6 +483,7 @@ import {
   useBlade,
   useBladeStack,
   usePopup,
+  useResponsive,
   type BladeDescriptor,
   type IBladeToolbar,
 } from "@vc-shell/framework";
@@ -407,7 +496,7 @@ import AssetsLibraryContent from "../asset-library/components/AssetsLibraryConte
 import { PageAnchorsKey, PickAssetKey } from "../designer/types";
 import { pageAnchors } from "../designer/anchors";
 import { useDesigner } from "../designer/useDesigner";
-import { resolveRefs } from "../designer/document";
+import { resolveRefs, toDocument } from "../designer/document";
 import { pageOnly } from "../designer/groups";
 import { previewUrl, usePreviewBridge } from "../designer/preview";
 import {
@@ -419,8 +508,22 @@ import {
   groupHistory,
   groupVersion,
   restoreGroupVersion,
+  themeFileHistory,
+  themeFileVersion,
+  restoreThemeFileVersion,
+  asOneSave,
   ApiError, type FilePage, type PageVersion, type SharedComponent } from "../designer/api";
 import { newItem } from "../designer/schema";
+import { searchCategories, searchPages, searchProducts, templateKeys, findFilePage, saveFilePage, type CatalogContext, type NamedEntity } from "../designer/api";
+import { PAGE_CONTENT, alternateKey, alternateName, entityUrl, pageTypeOf, startingTemplate, templateEntry, templatePath, type PageType } from "../designer/templates";
+import { rulesFor } from "../designer/rules";
+import { useTemplateRules } from "../designer/templateRules";
+import { historyFiles, historyPath as themeFileOf, savesHistory, type HistoryFile } from "../designer/history";
+import type { Field, Item, SectionGroup } from "../designer/types";
+import type { Resolved } from "../designer/preview";
+import TemplateSwitcher from "../designer/components/TemplateSwitcher.vue";
+import EntityPicker from "../designer/components/EntityPicker.vue";
+import RulesPanel from "../designer/components/RulesPanel.vue";
 import SectionTree from "../designer/components/SectionTree.vue";
 import SettingsPanel from "../designer/components/SettingsPanel.vue";
 import ThemePanel from "../designer/components/ThemePanel.vue";
@@ -438,7 +541,7 @@ defineBlade({
 });
 
 const { t } = useI18n({ useScope: "global" });
-const { param, query, onBeforeClose, openBlade } = useBlade();
+const { id: bladeId, param, query, onBeforeClose, openBlade } = useBlade();
 const { showConfirmation } = usePopup();
 const designer = useDesigner();
 // Shopify's left rail: the page's sections, the theme's settings, or the site's shared components
@@ -451,14 +554,22 @@ const modes = [
 const mode = ref<(typeof modes)[number]["id"]>("sections");
 // a shared component can't hold another one
 const shownModes = computed(() => (designer.shared.value ? modes.filter((m) => m.id !== "shared") : modes));
-/** unsaved page or theme edits */
-const unsaved = computed(() => designer.dirty.value || theme.dirty.value);
+// the store's template rules, edited while a template is open: saved with Save, put live with the template's Publish
+const rules = useTemplateRules();
+const rulesActive = computed(() => !!designer.templateKey.value && rules.loaded.value);
+/** unsaved page, theme or rules edits */
+const unsaved = computed(() => designer.dirty.value || theme.dirty.value || rules.dirty.value);
 
 const maximized = inject(BladeMaximizedKey, null);
 if (maximized) maximized.value = true;
 // full view: the designer covers the whole window, without the shell's menu and header; remembered for next time.
 // Over the shell's chrome (z-index 40-60), under its dropdowns (100+) and popups (9000+).
 const fullView = useLocalStorage("vc-page-designer-full-view", false);
+// the shell's narrow mode folds a blade's toolbar into a floating button: while the preview still shows (768px and up,
+// the panels' own breakpoint), the designer's bar carries the actions instead, as in full view
+const { isMobile } = useResponsive();
+const previewShown = useMediaQuery("(min-width: 768px)");
+const ownActions = computed(() => fullView.value || (isMobile.value && previewShown.value));
 // full view's path back: the open blades before this one (Sites › B2B-store …); going back closes the designer, which
 // asks first about unsaved edits
 const { blades, closeChildren } = useBladeStack();
@@ -481,9 +592,19 @@ const FULL_VIEW_STYLE: Record<string, string> = {
 
 const group = ref<GroupedPageBuilderPage>();
 const fileName = computed(() => designer.file.value?.path.split("/").pop()?.replace(/\.page(-draft)?$/, ""));
-const title = computed(
-  () => designer.shared.value?.name ?? group.value?.name ?? ((designer.doc.value.settings.name as string | undefined) || fileName.value || ""),
-);
+const TYPE_TITLES: Record<PageType, string> = {
+  product: "PAGE_BUILDER.DESIGNER.TEMPLATES.PRODUCT_TITLE",
+  category: "PAGE_BUILDER.DESIGNER.TEMPLATES.CATEGORY_TITLE",
+  page: "PAGE_BUILDER.DESIGNER.TEMPLATES.PAGE_TITLE",
+};
+const templateName = (key: string) => (key.includes(".") ? alternateName(key) : t("PAGE_BUILDER.DESIGNER.TEMPLATES.DEFAULT"));
+/** the page the blade was opened with (the switcher's way back to it); none when it opened a template or a shared component */
+const homeTitle = ref<string>();
+const title = computed(() => {
+  const key = designer.templateKey.value;
+  if (key) return t(TYPE_TITLES[pageTypeOf(key)!], { name: templateName(key) });
+  return designer.shared.value?.name ?? group.value?.name ?? ((designer.doc.value.settings.name as string | undefined) || fileName.value || "");
+});
 const cultureName = computed(() => group.value?.cultureName ?? query.value?.cultureName);
 // an archived page isn't edited (as before): restore it first
 const archived = computed(() => group.value?.status === "Archived");
@@ -498,7 +619,7 @@ const statusKind = computed<StatusKind>(() => {
   if (status.awaitingMerge) return "awaiting";
   if (status.pending) return "pending";
   if (!status.published) return "draft";
-  return status.hasChanges ? "changes" : "published";
+  return status.hasChanges || (rulesActive.value && rules.hasDraft.value) ? "changes" : "published";
 });
 const subtitle = computed(() => {
   const shared = designer.shared.value;
@@ -531,6 +652,8 @@ const selectedSectionId = () => {
 // a render: the page, its language, the section names the preview outlines, and the selection it outlines
 const renderMessage = () => ({
   ...designer.preview.value,
+  // a template: the preview shows it on the page it navigated to (a page has none: the preview's own page)
+  ...(designer.templateKey.value ? { templateKey: designer.templateKey.value } : {}),
   cultureName: cultureName.value,
   sectionLabels: designer.sectionLabels.value,
   sectionId: selectedSectionId() ?? "",
@@ -540,7 +663,15 @@ const bridge = usePreviewBridge({
   frame,
   url,
   onLoaded: (schemas) => {
-    designer.schemas.value = schemas;
+    // a new document: what its rules picked is reported again
+    resolved.value = undefined;
+    // a page template's "Page content" (where a page's own sections go), unless the storefront describes it itself
+    designer.schemas.value = {
+      ...schemas,
+      sections: { [PAGE_CONTENT]: { name: t("PAGE_BUILDER.DESIGNER.TEMPLATES.PAGE_CONTENT"), icon: "lucide-file-text", targetTemplates: ["page", "page-template"] }, ...schemas.sections },
+    };
+    // a template shows on a real page: there first
+    if (designer.templateKey.value && previewUrlOf.value) bridge.send({ type: "navigate", url: previewUrlOf.value });
     // the header and footer first: the page's outlines take theirs in
     if (designer.groupsPreview.value) bridge.send({ type: "groups", ...designer.groupsPreview.value });
     bridge.send({ type: "page", ...renderMessage() });
@@ -554,6 +685,8 @@ const bridge = usePreviewBridge({
     designer.selection.value = { kind: "section", id };
   },
   onHover: (id) => (designer.hovered.value = id),
+  // the template the store's rules pick for the page shown
+  onResolved: (value) => (resolved.value = value),
   // a text edited on the page: the setting changes, and its section or block is selected (the preview stays put)
   onEdit: ({ itemId, path, value }) => {
     const target = designer.setText(itemId, path, value);
@@ -686,11 +819,20 @@ provide(PickAssetKey, () => {
 
 // ── actions ──────────────────────────────────────────────────────────────────
 
-async function save() {
+/** Saves what changed (the theme settings, the rules, the page or template, the header and footer): one version */
+const save = () => asOneSave(saveChanges);
+
+async function saveChanges() {
   try {
     if (theme.dirty.value) await theme.save();
   } catch {
     notification.error(t("PAGE_BUILDER.DESIGNER.THEME.SAVE_FAILED"));
+    return;
+  }
+  try {
+    if (rules.dirty.value) await rules.save();
+  } catch {
+    notification.error(t("PAGE_BUILDER.DESIGNER.RULES.SAVE_FAILED"));
     return;
   }
   if (!designer.dirty.value) return;
@@ -706,6 +848,7 @@ async function save() {
 async function publish(live: boolean, rebase = false) {
   try {
     await designer.publish(live, rebase);
+    if (live && rulesActive.value) await rules.publish();
     notifyPagesChanged();
   } catch (e) {
     // git: someone published another version meanwhile; publishing ours over it is the editor's call
@@ -729,7 +872,9 @@ async function promote() {
 
 function openPreview() {
   const file = designer.file.value;
-  if (file) {
+  if (designer.templateKey.value) {
+    if (storefront.value?.url && previewUrlOf.value) window.open(`${storefront.value.url.replace(/\/+$/, "")}${previewUrlOf.value}`, "_blank");
+  } else if (file) {
     const href = filePreviewUrl(file, designer.gitFlow.value, storefront.value?.url, !!designer.status.value.hasChanges);
     if (href) window.open(href, "_blank");
   } else if (storefront.value?.url && designer.groupId.value) {
@@ -818,20 +963,57 @@ async function saveShared() {
   }
 }
 
-// ── version history: a file page in git, or a database page of a site that keeps its versions ──────────────
+// ── version history: a file page in git; else, for a site that keeps its versions, what a Save writes (a database
+// page or a template, the template's rules, the header and footer), a version per Save ──────────────
 
 const historyOpen = ref(false);
-/** the site keeps its database pages' versions (a file page's are there when it is in git) */
+/** the site keeps its database pages' and theme files' versions (a file page's are there when it is in git) */
 const historyOn = ref(false);
-const historyAvailable = computed(() => designer.gitFlow.value || (!!designer.groupId.value && historyOn.value));
+const historyAvailable = computed(() =>
+  designer.templateKey.value ? historyOn.value : designer.gitFlow.value || (!!designer.groupId.value && historyOn.value),
+);
 /** a version the preview shows instead of the page */
 const previewing = ref<PageVersion>();
 const versionHistory = ref<{ reload: () => Promise<void> }>();
 
+const FILE_LABELS: Record<HistoryFile, string> = {
+  page: "PAGE_BUILDER.DESIGNER.HISTORY.PAGE",
+  rules: "PAGE_BUILDER.DESIGNER.HISTORY.RULES",
+  header: "PAGE_BUILDER.DESIGNER.GROUPS.HEADER",
+  footer: "PAGE_BUILDER.DESIGNER.GROUPS.FOOTER",
+};
+/** What a version changed: "Template, Header" */
+const describeVersion = (version: PageVersion) =>
+  version.files
+    ?.map(({ file }) => t(file === "page" && designer.templateKey.value ? "PAGE_BUILDER.DESIGNER.GROUPS.TEMPLATE" : FILE_LABELS[file]))
+    .join(", ");
+/** A version that changed only the rules shows nothing else in the preview: it is restored, not previewed */
+const previewableVersion = (version: PageVersion) => !version.files || version.files.some((x) => x.file !== "rules");
+
+/** The theme file a file of the history is; undefined: the database page's own history */
+const historyPathOf = (file: HistoryFile) =>
+  themeFileOf(file, themeName.value, designer.templateKey.value ? designer.file.value?.path : undefined);
+
+let saves: ReturnType<typeof savesHistory> | undefined;
+
+/** A file page in git: its own history. Else the Saves of what is open, read a page of each file's history at a time. */
 function historySource(after?: string) {
   const file = designer.file.value;
-  if (file) return fileHistory(file, after).then((x) => ({ versions: x.versions, hasMore: x.truncated, endCursor: x.endCursor }));
-  return groupHistory(designer.groupId.value!, after);
+  if (file && !designer.templateKey.value) {
+    return fileHistory(file, after).then((x) => ({ versions: x.versions, hasMore: x.truncated, endCursor: x.endCursor }));
+  }
+  if (!after || !saves) {
+    const storeId = designer.storeId.value!;
+    const files = historyFiles({ versioned: historyOn.value && !!themeName.value, rules: rulesActive.value, groups: !!designer.groupsPreview.value });
+    saves = savesHistory(
+      files.map((x) => {
+        const path = historyPathOf(x);
+        return { file: x, read: (cursor?: string) => (path ? themeFileHistory(storeId, path, cursor) : groupHistory(designer.groupId.value!, cursor)) };
+      }),
+    );
+  }
+  // the list is made again from all that was read: a Save split by a page of one file's history comes together
+  return saves(!!after).then((x) => ({ versions: x.versions, hasMore: x.hasMore, endCursor: x.hasMore ? "more" : undefined, complete: true }));
 }
 
 function openHistory() {
@@ -849,33 +1031,55 @@ watch(
   (selection) => {
     if (!selection) return;
     historyOpen.value = false;
+    rulesOpen.value = false;
     if (previewing.value) previewVersion(null);
   },
 );
 
-/** Shows a version in the preview (a database page), or the page again; a file page's version opens on the storefront */
+/**
+ * Shows a version in the preview (what a Save left of the page or template, the header and the footer; the others as
+ * they are now), or the page again; a file page's version opens on the storefront
+ */
 async function previewVersion(version: PageVersion | null) {
   const file = designer.file.value;
-  if (version && file) {
+  if (version && file && !version.files) {
     window.open(filePreviewUrl(file, true, undefined, false, version.sha), "_blank");
     return;
   }
   sendChanged.cancel();
   if (!version) {
     previewing.value = undefined;
+    if (designer.groupsPreview.value) bridge.send({ type: "groups", ...designer.groupsPreview.value });
     bridge.send({ type: "page", ...renderMessage() });
     bridge.send({ type: "inspector", enabled: inspector.value });
     return;
   }
   try {
-    const saved = await groupVersion(designer.groupId.value!, version.sha);
+    const storeId = designer.storeId.value!;
+    const at = (file: HistoryFile) => version.files?.find((x) => x.file === file)?.sha;
+    const groupAt = async (group: SectionGroup) => {
+      const sha = at(group);
+      if (!sha) return undefined;
+      const saved = (await themeFileVersion(storeId, historyPathOf(group)!, sha)) as { content?: unknown } | undefined;
+      return Array.isArray(saved?.content) ? (saved.content as Item[]) : [];
+    };
+    const pageSha = at("page");
+    const pagePath = historyPathOf("page");
+    const [saved, header, footer] = await Promise.all([
+      // a template's version is sent as the edited template (the render message names it)
+      pageSha && (pagePath ? themeFileVersion(storeId, pagePath, pageSha).then(toDocument) : groupVersion(designer.groupId.value!, pageSha)),
+      groupAt("header"),
+      groupAt("footer"),
+    ]);
     previewing.value = version;
+    const groups = designer.groupsPreview.value;
+    if (groups && (header || footer)) bridge.send({ type: "groups", ...groups, ...(header ? { header } : {}), ...(footer ? { footer } : {}) });
     // as the page's own render is made: without the header and footer sections (the preview shows the site's), with
     // shared components filled in from the ones the designer has
     const shared = new Map([...designer.components].map(([id, x]) => [id, x && { content: x.content, label: x.name }]));
     // the version first (it ends any text being edited in the preview), then a look-only preview: no outlines,
     // no clicks, nothing typed into a version that is not the page
-    bridge.send({ type: "page", ...renderMessage(), ...resolveRefs(pageOnly(saved), shared), sectionId: "" });
+    bridge.send({ type: "page", ...renderMessage(), ...(saved ? resolveRefs(pageOnly(saved), shared) : {}), sectionId: "" });
     bridge.send({ type: "inspector", enabled: false });
   } catch {
     notification.error(t("PAGE_BUILDER.DESIGNER.HISTORY.PREVIEW_FAILED"));
@@ -902,10 +1106,23 @@ async function restoreVersion(version: PageVersion) {
   const label = version.shortSha ?? version.sha.slice(0, 7);
   if (!(await showConfirmation(t("PAGE_BUILDER.DESIGNER.HISTORY.CONFIRM", { version: label })))) return;
   try {
-    if (designer.file.value) await designer.restore(version.sha);
+    const files = version.files;
+    if (!files) await designer.restore(version.sha);
     else {
-      await restoreGroupVersion(designer.groupId.value!, version.sha);
-      await reopen();
+      const storeId = designer.storeId.value!;
+      // each file back as that Save left it, as drafts: one version on top, named after the one picked
+      await asOneSave(() =>
+        Promise.all(
+          files.map(({ file, sha }) => {
+            const path = historyPathOf(file);
+            return path ? restoreThemeFileVersion(storeId, path, sha, label) : restoreGroupVersion(designer.groupId.value!, sha, label);
+          }),
+        ),
+      );
+      if (files.some((x) => x.file === "rules")) await rules.load(storeId, themeName.value!);
+      // the page or template, the header or footer: the designer opens them again from their new drafts
+      if (files.some((x) => x.file !== "rules")) await reopen();
+      else await versionHistory.value?.reload();
     }
     notification.success(t("PAGE_BUILDER.DESIGNER.HISTORY.RESTORED"));
   } catch {
@@ -916,14 +1133,20 @@ async function restoreVersion(version: PageVersion) {
 // saved drafts to throw away: a header or footer draft, or the draft of a published page (one never published has
 // nothing to go back to); else only the unsaved edits go, back to the last save
 const hasDraft = computed(
-  () => designer.groupDrafts.value.length > 0 || (!!designer.status.value.hasChanges && !!designer.status.value.published),
+  () =>
+    designer.groupDrafts.value.length > 0 ||
+    (!!designer.status.value.hasChanges && !!designer.status.value.published) ||
+    (rulesActive.value && rules.hasDraft.value),
 );
 
 async function discardChanges() {
   const drafts = hasDraft.value;
   if (!(await showConfirmation(t(drafts ? "PAGE_BUILDER.DESIGNER.HISTORY.CONFIRM_DISCARD" : "PAGE_BUILDER.DESIGNER.CONFIRM_DISCARD_UNSAVED")))) return;
   try {
-    if (drafts) await designer.discardDrafts();
+    await asOneSave(async () => {
+      if (drafts) await designer.discardDrafts();
+      if (rulesActive.value) await rules.discard();
+    });
     theme.revert();
     await reopen();
     if (drafts) notification.success(t("PAGE_BUILDER.DESIGNER.HISTORY.DISCARDED"));
@@ -958,7 +1181,7 @@ function enableHistory() {
       if (maximized) maximized.value = true;
       const on = await isGitFlow(storeId, file?.theme ?? (await storeTheme(storeId)));
       historyOn.value = on;
-      if (!on || !file) return;
+      if (!on || !file || file.type === "themes") return;
       // unsaved edits stay on screen; their save goes to git now, and so does publishing
       if (unsaved.value) designer.gitFlow.value = true;
       else await designer.open(file);
@@ -994,7 +1217,8 @@ const toolbar = computed<IBladeToolbar[]>(() => [
     title: t(publishTitle.value),
     icon: "lucide-upload",
     isVisible: !designer.shared.value,
-    disabled: !designer.canPublish.value,
+    // the template's draft, or only the rules' (they go live with it)
+    disabled: !designer.canPublish.value && !(rulesActive.value && rules.hasDraft.value && !unsaved.value && !designer.busy.value),
     clickHandler: () => publish(true),
   },
   {
@@ -1032,6 +1256,14 @@ const toolbar = computed<IBladeToolbar[]>(() => [
     clickHandler: openPreview,
   },
   {
+    // a template's rules: where the store uses it
+    id: "rules",
+    title: t("PAGE_BUILDER.DESIGNER.RULES.TITLE"),
+    icon: "lucide-split",
+    isVisible: !!designer.templateKey.value,
+    clickHandler: () => (rulesOpen.value ? (rulesOpen.value = false) : openRules()),
+  },
+  {
     id: "history",
     title: t("PAGE_BUILDER.DESIGNER.HISTORY.TITLE"),
     icon: "lucide-history",
@@ -1054,10 +1286,11 @@ const toolbar = computed<IBladeToolbar[]>(() => [
   },
 ]);
 
-// full view's bar: the toolbar's actions, small; Publish and Save with their names, the others as icons
+// full view's bar (and the narrow shell's): the toolbar's actions, small; Publish and Save with their names, the others
+// as icons. Full view has its own way out, so its toggle shows only outside it.
 const barActions = computed(() =>
   toolbar.value
-    .filter((item) => item.isVisible !== false && item.id !== "full-view")
+    .filter((item) => item.isVisible !== false && (item.id !== "full-view" || !fullView.value))
     .map((item) => {
       const named = item.id === "publish" || item.id === "save";
       let variant: "primary" | "secondary" | "ghost" = "ghost";
@@ -1080,13 +1313,15 @@ onMounted(async () => {
     group.value = await (await getApiClient()).getGroup(param.value);
     if (archived.value) return;
     storeId = group.value.storeId!;
-    open = designer.open({ groupId: param.value, storeId });
+    home = { groupId: param.value, storeId };
+    open = designer.open(home);
   } else if (query.value?.storeId && query.value.sharedComponentId) {
     storeId = query.value.storeId;
     open = designer.open({ sharedComponentId: query.value.sharedComponentId, storeId });
   } else if (query.value?.storeId && query.value.path) {
     storeId = query.value.storeId;
     const page: FilePage = { storeId, path: query.value.path, type: query.value.type || "pages", theme: await storeTheme(storeId) };
+    if (page.type !== "themes") home = page;
     open = designer.open(page);
   } else {
     return;
@@ -1095,15 +1330,215 @@ onMounted(async () => {
   useUrlParams().setStoreId(storeId);
   await Promise.all([
     open,
-    storeTheme(storeId).then((name) =>
-      Promise.all([theme.load(storeId, name), param.value ? isGitFlow(storeId, name).then((on) => (historyOn.value = on)) : undefined]),
-    ),
+    storeTheme(storeId).then((name) => {
+      themeName.value = name;
+      return Promise.all([
+        theme.load(storeId, name),
+        // whether the site keeps versions: a page's, a template's and its header's and footer's
+        query.value?.sharedComponentId ? undefined : isGitFlow(storeId, name).then((on) => (historyOn.value = on)),
+        query.value?.sharedComponentId ? undefined : loadTemplateKeys(),
+      ]);
+    }),
     loadStorefront(storeId).then((x) => {
       storefront.value = x;
+      catalog.value = x.catalog;
       url.value = previewUrl(x.url, x.previewPath);
       storefrontChecked.value = true;
     }),
   ]);
+  homeTitle.value = home && !designer.templateKey.value ? title.value : undefined;
+  // the template that was open when the page was reloaded (the URL keeps it), else a template opened directly
+  const reloaded = templateInUrl();
+  if (reloaded && reloaded !== designer.templateKey.value && pageTypeOf(reloaded)) await switchTo(reloaded);
+  else if (designer.templateKey.value) await enterTemplate();
+});
+
+// the template being edited goes in the blade's URL (?template=product.bundle), so a reload opens it again
+const bladeStack = inject(BladeStackKey, null);
+const router = useRouter();
+/**
+ * The URL's ?template=, read once the designer has loaded: on a reload the shell opens this blade from the address
+ * without its query, and while its navigation there is still under way (the address then still reads "#/").
+ */
+function templateInUrl(): string | undefined {
+  const value = query.value?.template ?? router.currentRoute.value.query.template;
+  return typeof value === "string" ? value : undefined;
+}
+watch(designer.templateKey, (key) => {
+  bladeStack?.updateBladeQuery(bladeId.value, { template: key ?? "" });
+  // the stack only keeps it for its next URL write: write it now, as the shell's table state does
+  const urlQuery = { ...router.currentRoute.value.query };
+  if (key) urlQuery.template = key;
+  else delete urlQuery.template;
+  void router.replace({ query: urlQuery });
+});
+
+// ── theme templates: product, category and page templates, and the rules that pick them ──────────────
+
+/** the page the blade was opened with: the switcher's "Pages" goes back to it */
+let home: { groupId: string; storeId: string } | FilePage | undefined;
+const themeName = ref<string>();
+const templateKeyList = ref<string[]>([]);
+const catalog = ref<CatalogContext>();
+const rulesOpen = ref(false);
+const switcherShown = computed(() => !designer.shared.value && !!themeName.value);
+/** the template the store's rules pick for what the preview shows, as the preview reports it */
+const resolved = ref<Resolved>();
+
+async function loadTemplateKeys() {
+  const storeId = designer.storeId.value;
+  if (storeId && themeName.value) templateKeyList.value = await templateKeys(storeId, themeName.value).catch(() => []);
+}
+
+function openRules() {
+  designer.selection.value = null;
+  historyOpen.value = false;
+  rulesOpen.value = true;
+}
+
+// what a template previews with, per store and page type (remembered): a product, a category, a page
+const previewPicks = useLocalStorage<Record<string, NamedEntity>>("vc-page-designer-preview-with", {});
+const pickKey = (type: PageType) => `${designer.storeId.value}:${type}`;
+const previewed = computed(() => (designer.pageType.value ? previewPicks.value[pickKey(designer.pageType.value)] : undefined));
+/** where the preview shows the open template: the picked entity's page, else the descriptor's sample page */
+const previewUrlOf = computed(() => {
+  const type = designer.pageType.value;
+  if (!type) return undefined;
+  return previewed.value ? entityUrl(type, previewed.value.id) : templateEntry(designer.schemas.value, type).entry.previewUrl;
+});
+
+function pickEntity(entity: NamedEntity) {
+  const type = designer.pageType.value;
+  if (!type || entity.id === previewed.value?.id) return;
+  previewPicks.value = { ...previewPicks.value, [pickKey(type)]: entity };
+}
+// another entity: the preview goes to its page, and shows the template there
+watch(previewUrlOf, (to) => {
+  if (!to || !designer.templateKey.value) return;
+  resolved.value = undefined;
+  sendChanged.cancel();
+  bridge.send({ type: "navigate", url: to });
+  bridge.send({ type: "page", ...renderMessage() });
+});
+
+/** a template opened: something to preview it with, and the rules */
+async function enterTemplate() {
+  const type = designer.pageType.value;
+  const ctx = catalog.value;
+  const storeId = designer.storeId.value;
+  if (!type || !ctx || !storeId) return;
+  await Promise.all([
+    rules.loaded.value || !themeName.value ? undefined : rules.load(storeId, themeName.value).catch(() => undefined),
+    previewed.value
+      ? undefined
+      : (async () => {
+          const first =
+            type === "product"
+              ? (await searchProducts(ctx))[0]
+              : type === "category"
+                ? (await searchCategories(ctx))[0]
+                : (await searchPages(storeId)).map((x) => ({ id: x.permalink, name: x.name }))[0];
+          if (first) previewPicks.value = { ...previewPicks.value, [pickKey(type)]: first };
+        })().catch(() => undefined),
+  ]);
+}
+
+/** Opens a template (or the page again: null) in this designer; unsaved edits are lost, after asking */
+async function switchTo(key: string | null) {
+  const storeId = designer.storeId.value;
+  if (!storeId || !themeName.value || (key === null && !home)) return;
+  if (unsaved.value && !(await showConfirmation(t("PAGE_BUILDER.DESIGNER.TEMPLATES.CONFIRM_SWITCH")))) return;
+  theme.revert();
+  if (rules.dirty.value) await rules.load(storeId, themeName.value).catch(() => undefined);
+  historyOpen.value = false;
+  previewing.value = undefined;
+  resolved.value = undefined;
+  await designer.open(key ? { storeId, theme: themeName.value, type: "themes", path: templatePath(themeName.value, key) } : home!);
+  if (key) await enterTemplate();
+  else rulesOpen.value = false;
+  // a new page in the preview: the template's entity page, or the preview's own for a page
+  reloadPreview();
+}
+
+// Create template (copy of default): a named alternate, saved as a draft from the type's default template
+const creating = ref<{ type: PageType; name: string }>();
+const newKey = computed(() => (creating.value ? alternateKey(creating.value.type, creating.value.name) : undefined));
+const newKeyTaken = computed(() => !!newKey.value && templateKeyList.value.includes(newKey.value));
+const startCreate = (type: PageType) => (creating.value = { type, name: "" });
+async function createTemplate() {
+  const key = newKey.value;
+  const storeId = designer.storeId.value;
+  const target = creating.value;
+  if (!key || !target || newKeyTaken.value || !storeId || !themeName.value) return;
+  if (unsaved.value && !(await showConfirmation(t("PAGE_BUILDER.DESIGNER.TEMPLATES.CONFIRM_SWITCH")))) return;
+  const file = (k: string): FilePage => ({ storeId, theme: themeName.value!, type: "themes", path: templatePath(themeName.value!, k) });
+  try {
+    const base = await findFilePage(file(target.type));
+    const doc = startingTemplate(target.type, base, templateEntry(designer.schemas.value, target.type).entry);
+    await saveFilePage(file(key), { ...doc, settings: { ...doc.settings, name: target.name.trim() } });
+  } catch {
+    notification.error(t("PAGE_BUILDER.DESIGNER.TEMPLATES.CREATE_FAILED"));
+    return;
+  }
+  creating.value = undefined;
+  templateKeyList.value = [...new Set([...templateKeyList.value, key])].sort();
+  // the new one opens as it is saved: nothing unsaved to ask about
+  theme.revert();
+  if (rules.dirty.value) await rules.load(storeId, themeName.value).catch(() => undefined);
+  await designer.open(file(key));
+  await enterTemplate();
+  reloadPreview();
+}
+
+/** "Rules pick: Printer · rule 2" for the entity the preview shows (the site's choice, not the template edited) */
+const inEffect = computed(() => {
+  const key = designer.templateKey.value;
+  const r = resolved.value;
+  if (!key || !r || r.pageType !== designer.pageType.value) return undefined;
+  const why = r.rule === null ? t("PAGE_BUILDER.DESIGNER.RULES.TEST_DEFAULT") : t("PAGE_BUILDER.DESIGNER.RULES.TEST_RULE", { number: r.rule + 1 });
+  const other = r.template !== key;
+  return {
+    text: t("PAGE_BUILDER.DESIGNER.TEMPLATES.IN_EFFECT", { name: templateName(r.template), why }),
+    other,
+    title: other ? t("PAGE_BUILDER.DESIGNER.TEMPLATES.IN_EFFECT_OTHER", { name: previewed.value?.name ?? "", template: templateName(r.template) }) : undefined,
+  };
+});
+
+// page-level fields the storefront's descriptors don't have: a page's own Template choice (stored as
+// settings.template; none: the rules decide), with the one in effect; a page template's Layout
+watchEffect(() => {
+  const type = designer.pageType.value;
+  const page = !designer.shared.value && !type && (!!designer.groupId.value || designer.file.value?.type === "pages");
+  const fields: Field[] = [];
+  if (type === "page") {
+    fields.push({
+      id: "layout",
+      type: "select",
+      label: t("PAGE_BUILDER.DESIGNER.TEMPLATES.LAYOUT"),
+      required: true,
+      default: "full",
+      options: ["full", "minimal", "blank"].map((value) => ({ value, label: t(`PAGE_BUILDER.DESIGNER.TEMPLATES.LAYOUTS.${value.toUpperCase()}`) })),
+    });
+  } else if (page) {
+    const chosen = designer.doc.value.settings.template;
+    const r = resolved.value?.pageType === "page" ? resolved.value : undefined;
+    let info = t("PAGE_BUILDER.DESIGNER.TEMPLATES.TEMPLATE_HINT");
+    if (typeof chosen === "string" && chosen) info = t("PAGE_BUILDER.DESIGNER.TEMPLATES.TEMPLATE_CHOSEN", { name: templateName(chosen) });
+    else if (r)
+      info = t("PAGE_BUILDER.DESIGNER.TEMPLATES.TEMPLATE_IN_EFFECT", {
+        name: templateName(r.template),
+        why: r.rule === null ? t("PAGE_BUILDER.DESIGNER.RULES.TEST_DEFAULT") : t("PAGE_BUILDER.DESIGNER.RULES.TEST_RULE", { number: r.rule + 1 }),
+      });
+    fields.push({
+      id: "template",
+      type: "select",
+      label: t("PAGE_BUILDER.DESIGNER.TEMPLATES.TEMPLATE"),
+      placeholder: t("PAGE_BUILDER.DESIGNER.TEMPLATES.BY_RULES"),
+      info,
+      options: ["page", ...templateKeyList.value.filter((key) => key !== "page" && pageTypeOf(key) === "page")].map((value) => ({ value, label: templateName(value) })),
+    });
+  }
+  designer.extraPageFields.value = fields;
 });
 </script>
 
@@ -1111,7 +1546,8 @@ onMounted(async () => {
 // full view: the bar in the designer replaces the blade's header and toolbar (on phones the header stays: no bar there)
 @media (min-width: 768px) {
   .pd-full-view :deep(.vc-blade__header),
-  .pd-full-view :deep(.vc-blade__toolbar) {
+  .pd-full-view :deep(.vc-blade__toolbar),
+  .pd-own-actions :deep(.vc-blade__toolbar) {
     display: none;
   }
 
@@ -1324,7 +1760,11 @@ onMounted(async () => {
   }
 
   &__canvas-bar {
+    // its own height, however many lines it wraps to: a squeezed bar spilled its controls under the preview
+    flex: none;
     display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
     align-items: center;
     gap: 8px;
     padding: 8px 16px;
@@ -1334,6 +1774,11 @@ onMounted(async () => {
       flex: none;
       white-space: nowrap;
     }
+
+    // the shell's dropdown is 100% high: in a bar sized by its content that ran away (150px) once the bar wrapped
+    :deep(.vc-dropdown) {
+      height: auto;
+    }
   }
 
   &__spacer {
@@ -1341,7 +1786,9 @@ onMounted(async () => {
   }
 
   &__status {
+    flex: none;
     padding: 2px 10px;
+    white-space: nowrap;
     border-radius: 999px;
     font-size: 12px;
     font-weight: 500;
@@ -1476,6 +1923,11 @@ onMounted(async () => {
 
   > :last-child {
     align-self: flex-end;
+  }
+
+  // as wide as the popup it is in
+  &--fit {
+    width: auto;
   }
 
   &__code :deep(textarea) {

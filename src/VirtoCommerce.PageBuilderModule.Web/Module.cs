@@ -118,6 +118,8 @@ namespace VirtoCommerce.PageBuilderModule.Web
             serviceCollection.AddTransient<IGitContentProvisioner, GitHubContentProvisioner>();
             // a database page's version history, in the same site repository
             serviceCollection.AddTransient<GroupedPageHistory>();
+            // and a theme file's: templates, template rules, section groups, theme settings
+            serviceCollection.AddTransient<ThemeFileHistory>();
             // site repositories follow their store: created for a new one, archived with a deleted one
             serviceCollection.AddTransient<GitContentStoreChangedEventHandler>();
             serviceCollection.AddBackgroundJob<GitContentRepositoryJob, GitContentRepositoryJobPayload>(triggerable: false);

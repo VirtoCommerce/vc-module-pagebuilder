@@ -1,12 +1,13 @@
 import { computed, reactive, ref, shallowRef, watch } from "vue";
 import { useManualRefHistory } from "@vueuse/core";
 import { debounce } from "lodash-es";
-import type { Field, Item, ItemSchema, PageDocument, Schemas, SectionGroup, Selection, TemplateEntry } from "./types";
+import type { Field, Item, ItemSchema, PageDocument, Schemas, SectionGroup, Selection } from "./types";
 import { copyItem, fieldsOf, itemTitle, newId, newItem, withTextAt } from "./schema";
 import { chromeToSections, isComponentRef, resolveRefs } from "./document";
 import type { ClipboardItem } from "./clipboard";
 import * as api from "./api";
 import { GROUPS, groupItems, groupOf, pageOnly, withGroups } from "./groups";
+import { PAGE_CONTENT, pageTypeOf, startingTemplate, templateEntry, templateKeyOf } from "./templates";
 
 const EMPTY_SCHEMAS: Schemas = { sections: {}, blocks: {}, shared: {}, objects: {} };
 /** A page-level row of the tree: the page template's own fields, or a static section's (Page Header: SEO). */
@@ -79,18 +80,26 @@ export function useDesigner() {
   // a block's schema is looked up in blocks, then sections (as the Angular designer did)
   const blockSchema = (type?: string): ItemSchema | undefined => (type ? (schemas.value.blocks[type] ?? schemas.value.sections[type]) : undefined);
 
-  /** The page template entry: its key ("page") restricts section targetTemplates, its settings are the page fields. */
-  const template = computed(() => {
-    const entries = Object.entries(schemas.value.templates ?? {});
-    const [key, entry] = entries.find(([, x]) => x.type === "pages") ?? ["page", {} as TemplateEntry];
-    return { key, entry };
-  });
+  /** The theme template open (a theme file under templates/): its key ("product.printer") and page type */
+  const templateKey = computed(() => (file.value?.type === "themes" ? templateKeyOf(file.value.path) : undefined));
+  const pageType = computed(() => (templateKey.value ? pageTypeOf(templateKey.value) : undefined));
 
-  /** Section types that can be added: not page-level, not hidden, and meant for pages. */
+  /**
+   * The template entry of what is open (a page, or a product, category or page template): its key restricts section
+   * targetTemplates, its settings are the page fields.
+   */
+  const template = computed(() => templateEntry(schemas.value, pageType.value));
+  /** page-level fields the storefront's descriptors don't have: a page's Template, a page template's Layout */
+  const extraPageFields = ref<Field[]>([]);
+
+  /** Section types that can be added: not page-level, not hidden, and meant for this kind of page. */
   const sectionTypes = computed(() => {
     const { key, entry } = template.value;
+    // where the page's own sections go: on a page template, once
+    const pageContent = pageType.value === "page" && !doc.value.content.some((x) => x.type === PAGE_CONTENT);
     return Object.entries(schemas.value.sections)
       .filter(([, schema]) => !schema.static && !schema.hidden && !schema.groups?.length)
+      .filter(([type]) => type !== PAGE_CONTENT || pageContent)
       .filter(([type, schema]) => (entry.sections ? entry.sections.includes(type) : !schema.targetTemplates?.length || schema.targetTemplates.includes(key)))
       .map(([type, schema]) => ({ type, schema }))
       .sort((a, b) => (a.schema.name ?? a.type).localeCompare(b.schema.name ?? b.type));
@@ -115,7 +124,9 @@ export function useDesigner() {
     const rows: PageRow[] = [];
     // a shared component has only its sections: no page settings, no header or footer
     if (shared.value) return rows;
-    const own = template.value.entry.settings ?? [];
+    const described = template.value.entry.settings ?? [];
+    // a field the storefront's descriptor has itself is its own
+    const own = [...described, ...extraPageFields.value.filter((x) => !described.some((d) => d.id === x.id))];
     if (own.length) rows.push({ key: "settings", name: "", icon: "lucide-file-cog", fields: own, position: "top" });
     for (const [type, schema] of Object.entries(schemas.value.sections)) {
       if (schema.static) rows.push({ key: type, name: schema.name ?? type, icon: schema.icon, fields: schema.settings ?? [], position: schema.static === "bottom" ? "bottom" : "top" });
@@ -452,8 +463,35 @@ export function useDesigner() {
     history.clear();
   }
 
-  /** Opens a page: a database page (`groupId`) or a file page. */
+  // A template with no theme file yet opens as the storefront's built-in one (its descriptor's `default` document),
+  // once the preview's schemas say what that is; a page template always has the page's content in it. As the saved
+  // baseline, like the seeding above.
+  const templateIsNew = ref(false);
+  function seedTemplate() {
+    const type = pageType.value;
+    if (!templateIsNew.value || !type || dirty.value || pageOnly(doc.value).content.length) return;
+    const start = startingTemplate(type, undefined, template.value.entry);
+    if (start.content.length) reset(start);
+  }
+  watch(schemas, seedTemplate);
+
+  /** Opens a page: a database page (`groupId`), a file page, a theme template (a file page of type "themes"). */
   async function open(source: { groupId: string; storeId: string } | { sharedComponentId: string; storeId: string } | api.FilePage) {
+    // what was open before (the designer switches between a page and the templates) is forgotten
+    groupId.value = undefined;
+    file.value = undefined;
+    shared.value = undefined;
+    eTag.value = undefined;
+    gitFlow.value = false;
+    groupsLoaded.value = false;
+    templateIsNew.value = false;
+    selection.value = null;
+    hovered.value = null;
+    checked.value = [];
+    components.clear();
+    status.value = {};
+    groupDrafts.value = [];
+    pageStatus = {};
     storeId.value = source.storeId;
     busy.value = "loading";
     loadError.value = undefined;
@@ -469,16 +507,21 @@ export function useDesigner() {
         reset(content);
       } else {
         file.value = source;
+        const themeFile = source.type === "themes";
+        // a template shows with the theme's header and footer, as a page does (another theme file has none)
         const [git, page, groups] = await Promise.all([
-          api.isGitFlow(source.storeId, source.theme),
-          api.loadFilePage(source),
-          source.type === "themes" ? undefined : loadGroups(source.storeId, source.theme),
+          themeFile ? false : api.isGitFlow(source.storeId, source.theme),
+          api.findFilePage(source),
+          themeFile && !templateKey.value ? undefined : loadGroups(source.storeId, source.theme),
         ]);
+        // theme files are never in git, even when the store's pages are: they are saved, published and discarded as blobs
         gitFlow.value = git;
-        reset(page, groups);
+        templateIsNew.value = !page && !!templateKey.value;
+        reset(page ?? (pageType.value ? startingTemplate(pageType.value) : { settings: { type: "settings" } as Item, content: [] }), groups);
       }
       // the preview's schemas may be in already
       seedGroups();
+      seedTemplate();
       chromeAsSections();
       await Promise.all([loadComponents(true), refreshStatus()]);
     } catch (e) {
@@ -539,7 +582,10 @@ export function useDesigner() {
         // nothing of the page's own to save
       } else if (groupId.value) eTag.value = (await api.savePage(groupId.value, sent, eTag.value!)) ?? eTag.value;
       else if (shared.value) await api.saveSharedComponentContent(shared.value.id, sent);
-      else await api.saveFilePage(file.value!, sent);
+      else {
+        await api.saveFilePage(file.value!, sent);
+        templateIsNew.value = false;
+      }
       savedJson.value = JSON.stringify(sent);
       if (Object.keys(groups).length) {
         await api.saveSectionGroups(storeId.value!, theme.value!, groups);
@@ -629,6 +675,10 @@ export function useDesigner() {
     canUnpublish,
     canPromote,
     template,
+    templateKey,
+    pageType,
+    templateIsNew,
+    extraPageFields,
     sectionSchema,
     blockSchema,
     sectionTypes,

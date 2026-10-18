@@ -21,6 +21,7 @@ using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Core.Models;
+using VirtoCommerce.PageBuilderModule.Data.GitContent;
 using VirtoCommerce.PageBuilderModule.Web.Models;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Events;
@@ -45,7 +46,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             IGitContentPublisher gitContentPublisher,
             IGitContentProvisioner gitContentProvisioner,
             ISettingsManager settingsManager,
-            IAuthorizationService authorizationService
+            IAuthorizationService authorizationService,
+            ThemeFileHistory themeFileHistory = null
             )
         : Controller
     {
@@ -1137,6 +1139,12 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             await eventPublisher.Publish(new PageBuilderContentChangedEvent(contentType,
                 [new GenericChangedEntry<FileEntity>(new FileEntity { Path = path, Type = contentType }, EntryState.Modified)]));
 
+            if (contentType == Themes && themeFileHistory != null)
+            {
+                var live = await ReadTextAsync(storageProvider, publishingService.GetRelativeDraftUrl(path, false));
+                await themeFileHistory.RecordAsync(storeId, path, live, "Discarded unpublished changes", User, SiteSave.Of(Request), HttpContext.RequestAborted);
+            }
+
             return NoContent();
         }
 
@@ -1848,6 +1856,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             var themeName = await GetCurrentThemeName(storeId, theme);
 
             var changedFiles = new Dictionary<string, List<GenericChangedEntry<FileEntity>>>();
+            var themeFiles = new List<(string Path, string Content)>();
 
             foreach (var file in files)
             {
@@ -1863,6 +1872,10 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 await using var writer = new StreamWriter(targetStream);
                 var stringContent = JsonConvert.SerializeObject(content, settings);
                 await writer.WriteAsync(stringContent);
+                if (type == Themes)
+                {
+                    themeFiles.Add((file.Path, stringContent));
+                }
 
                 if (!changedFiles.TryGetValue(type, out var entries))
                 {
@@ -1880,6 +1893,27 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             {
                 await eventPublisher.Publish(new PageBuilderContentChangedEvent(x, changedFiles[x]), cancellationToken);
             });
+
+            if (themeFileHistory != null)
+            {
+                foreach (var (path, content) in themeFiles)
+                {
+                    await themeFileHistory.RecordAsync(storeId, path, content, draft ? "Saved" : "Published", User, SiteSave.Of(Request), cancellationToken);
+                }
+            }
+        }
+
+        /// <summary>A blob's text, or <c>null</c> when there is no such blob.</summary>
+        internal static async Task<string> ReadTextAsync(IBlobContentStorageProvider storageProvider, string path)
+        {
+            if (await storageProvider.GetBlobInfoAsync(path) == null)
+            {
+                return null;
+            }
+
+            await using var stream = await storageProvider.OpenReadAsync(path);
+            using var reader = new StreamReader(stream);
+            return await reader.ReadToEndAsync();
         }
 
         private async Task<string> GetSettingsFilesFromFolder(string storeId, string theme, string folder)

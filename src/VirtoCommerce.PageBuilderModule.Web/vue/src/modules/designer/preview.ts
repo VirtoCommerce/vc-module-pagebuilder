@@ -8,11 +8,15 @@ import type { Item, PageDocument, Schemas } from "./types";
  *    preview answers {source:'preview', type:'loaded', data:<schemas>};
  *  - messages wait in a queue until 'loaded', then go out in order with source:'builder';
  *  - the preview stays blank until its first message after 'connect', so 'page' goes out right after 'loaded';
- *  - the preview sends 'select' / 'hover' ({data:{sectionId}}) for shared-component placements only.
+ *  - the preview sends 'select' / 'hover' ({data:{sectionId}}) for shared-component placements only;
+ *  - a theme template (product, category, page) shows on a real page: 'navigate' to it, then renders that carry the
+ *    template's key; the preview answers 'resolved' with the template the store's rules pick there.
  */
 export type PreviewMessage =
-  | { type: "page" | "changed" | "reload"; template: PageDocument; cultureName?: string; sectionId?: string; sectionLabels?: Record<string, string> }
-  | { type: "preview"; template: PageDocument; model: Record<string, unknown>; cultureName?: string; sectionLabels?: Record<string, string> }
+  | { type: "page" | "changed" | "reload"; template: PageDocument; templateKey?: string; cultureName?: string; sectionId?: string; sectionLabels?: Record<string, string> }
+  | { type: "preview"; template: PageDocument; templateKey?: string; model: Record<string, unknown>; cultureName?: string; sectionLabels?: Record<string, string> }
+  /** the page the next render with a templateKey shows (a storefront route: /product/{id}, /category/{id}, a permalink) */
+  | { type: "navigate"; url: string }
   | { type: "select"; sectionId: string }
   | { type: "hover"; sectionId: string | null }
   | { type: "settings"; settings: Record<string, unknown> }
@@ -20,7 +24,14 @@ export type PreviewMessage =
   | { type: "inspector"; enabled: boolean }
   /** the theme's header and footer sections as they are edited (Shopify's section groups) */
   | { type: "groups"; header: Item[]; footer: Item[] };
-// from the preview: 'loaded', 'select', 'hover', and 'edit' {itemId, path, value} (a text edited on the page)
+// from the preview: 'loaded', 'select', 'hover', 'edit' {itemId, path, value} (a text edited on the page), 'resolved'
+
+/** The template the store's rules pick for the page the preview shows: `rule` is the winning rule's index, null for the default */
+export interface Resolved {
+  pageType: string;
+  template: string;
+  rule: number | null;
+}
 
 export function usePreviewBridge(options: {
   frame: Ref<HTMLIFrameElement | undefined>;
@@ -31,6 +42,7 @@ export function usePreviewBridge(options: {
   onHover?: (sectionId: string | null) => void;
   /** a text edited on the page: the string at the path of that section or block */
   onEdit?: (edit: { itemId: string; path: (string | number)[]; value: string }) => void;
+  onResolved?: (resolved: Resolved) => void;
 }) {
   const connected = ref(false);
   const schemas = shallowRef<Schemas>();
@@ -54,7 +66,9 @@ export function usePreviewBridge(options: {
   /** Sends now, or once the preview is ready. A newer full render replaces queued renders. */
   function send(message: PreviewMessage) {
     if (connected.value) return post(message);
+    // only the last of each kind counts: the render the page needs, and the page it shows on
     if ("template" in message) queue = queue.filter((x) => !("template" in x));
+    if (message.type === "navigate") queue = queue.filter((x) => x.type !== "navigate");
     queue.push(message);
   }
 
@@ -82,6 +96,10 @@ export function usePreviewBridge(options: {
       const path = Array.isArray(edit?.path) ? (edit.path as unknown[]) : [];
       if (typeof edit?.itemId === "string" && typeof edit.value === "string" && path.length && path.every((x) => typeof x === "string" || typeof x === "number"))
         options.onEdit?.({ itemId: edit.itemId, path: path as (string | number)[], value: edit.value });
+    } else if (data.type === "resolved") {
+      const resolved = data.data as Partial<Resolved> | undefined;
+      if (typeof resolved?.template === "string" && (typeof resolved.rule === "number" || resolved.rule === null))
+        options.onResolved?.({ pageType: String(resolved.pageType ?? ""), template: resolved.template, rule: resolved.rule });
     }
   }
 

@@ -188,7 +188,7 @@ defineBlade({
 const { t } = useI18n({ useScope: "global" });
 const { showConfirmation } = usePopup();
 const { param, options, closeSelf, replaceWith } = useBlade();
-const { getStoreUrl, getLanguages } = useUrlParams();
+const { storeId, setStoreId, getStoreUrl, getLanguages } = useUrlParams();
 
 const {
   item,
@@ -405,6 +405,8 @@ onMounted(async () => {
   } else {
     setBaseline();
   }
+  // opened by a link or a reload, with no opener to say: the page names its own store (its address, the permalink's)
+  if (!storeId.value && item.value.storeId) setStoreId(item.value.storeId);
   storeUrl.value = await getStoreUrl();
 });
 </script>

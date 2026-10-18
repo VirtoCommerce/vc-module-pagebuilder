@@ -108,6 +108,14 @@ export interface TemplateEntry {
   sections?: string[];
   /** the page-level fields (header, hideBreadcrumbs, …) */
   settings?: Field[];
+  /** a theme template's file (the designer keeps them at {theme}/templates/{key}.json) */
+  path?: string;
+  /** a page the preview can show the template on, when none is picked */
+  previewUrl?: string;
+  /** what render messages carry for the template: its key */
+  previewMessage?: { templateKey?: string };
+  /** the default entry, or the document a new page (template) starts from */
+  default?: unknown;
 }
 
 /** Opens the store's assets library as a picker; resolves to the chosen file's URL, or undefined when cancelled */

@@ -45,7 +45,7 @@
       </p>
       <div
         v-for="(version, index) in versions"
-        :key="version.sha"
+        :key="version.id ?? version.sha"
         class="vh__row"
         :class="{ 'vh__row--live': version.sha === liveSha, 'vh__row--previewing': version.sha === previewing }"
       >
@@ -53,9 +53,15 @@
         <div class="vh__line">
           <p
             class="vh__message"
-            :title="version.message"
+            :title="[version.message, describe?.(version)].filter(Boolean).join(' · ')"
           >
             {{ version.message || version.shortSha || version.sha.slice(0, 7) }}
+            <!-- what the Save wrote: "Template, Header" -->
+            <span
+              v-if="describe?.(version)"
+              class="vh__files"
+              >· {{ describe(version) }}</span
+            >
           </p>
           <span
             v-if="version.sha === previewing"
@@ -87,6 +93,7 @@
             · {{ when(version.date) }}<template v-if="who(version)"> · {{ who(version) }}</template>
           </p>
           <button
+            v-if="!previewable || previewable(version)"
             type="button"
             class="vh__action"
             :class="{ 'vh__action--on': version.sha === previewing }"
@@ -158,6 +165,8 @@ export interface VersionPage {
   versions: PageVersion[];
   hasMore?: boolean;
   endCursor?: string;
+  /** the versions are all of them so far, not the next ones */
+  complete?: boolean;
 }
 
 const props = defineProps<{
@@ -169,6 +178,10 @@ const props = defineProps<{
   busy: boolean;
   /** there are unpublished changes to throw away */
   canDiscard: boolean;
+  /** what a version changed, after its message */
+  describe?: (version: PageVersion) => string | undefined;
+  /** whether a version can be shown in the preview (all can, without it) */
+  previewable?: (version: PageVersion) => boolean;
 }>();
 const emit = defineEmits<{ close: []; preview: [version: PageVersion | null]; restore: [version: PageVersion]; discard: [] }>();
 
@@ -192,8 +205,9 @@ async function load(after?: string) {
   failed.value = false;
   try {
     const page = await props.source(after);
-    const known = new Set(after ? versions.value.map((x) => x.sha) : []);
-    versions.value = [...(after ? versions.value : []), ...page.versions.filter((x) => !known.has(x.sha))];
+    const key = (x: PageVersion) => x.id ?? x.sha;
+    const known = new Set(after && !page.complete ? versions.value.map(key) : []);
+    versions.value = [...(after && !page.complete ? versions.value : []), ...page.versions.filter((x) => !known.has(key(x)))];
     hasMore.value = !!page.hasMore && !!page.endCursor;
     cursor.value = page.endCursor;
   } catch {
@@ -304,6 +318,11 @@ defineExpose({ reload: () => load() });
     text-overflow: ellipsis;
     font-weight: 500;
     color: var(--neutrals-900);
+  }
+
+  &__files {
+    font-weight: 400;
+    color: var(--neutrals-500);
   }
 
   &__meta {

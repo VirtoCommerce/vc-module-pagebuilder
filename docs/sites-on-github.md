@@ -12,6 +12,17 @@ panel.
 - **File pages** (a site's Files › Pages) move into the repository entirely: a save is a commit on the editor's work
   branch, publishing merges it into the base branch, and the platform then writes the published page to the live
   storage itself, so the repositories need no CI.
+- **Theme files** (product, category and page templates, the template rules, the header and footer groups, the theme
+  settings) stay in the theme storage, like database pages. Each save, restore and discard is also committed to the base
+  branch as `theme/{path}`, e.g. `theme/default/templates/product.json`, with the bytes the storage holds. Publishing
+  moves the saved draft live byte for byte, so the published version is again the newest commit holding the live
+  file's content.
+- **One version per Save.** A designer Save (or Restore, or Discard) writes several files: the page or template, its
+  rules, the header, the footer. Each file still gets its own commit, but they share a `VC-Save: {id}` trailer (the
+  designer sends the id in the `X-PageBuilder-Save` header). The Version history panel merges the files' histories by
+  that id, so one Save is one version, such as "Saved · Template, Header". Restoring it brings back each file it wrote,
+  as drafts, and Publish then puts them live. Theme settings are recorded too, but they aren't listed in the panel:
+  they save straight to live, with no draft to restore into.
 
 ## How it is organised
 

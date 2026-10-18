@@ -90,7 +90,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                     return GitHubScript.Json("""{ "commit": { "sha": "c9" } }""", HttpStatusCode.Created);
                 }));
 
-            await History(github, published: null).RecordAsync(Group(), Live, "Saved", Alice(), TestContext.Current.CancellationToken);
+            await History(github, published: null).RecordAsync(Group(), Live, "Saved", Alice(), null, TestContext.Current.CancellationToken);
 
             github.AssertDone();
         }
@@ -101,7 +101,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             var github = new GitHubScript();
             var history = History(github, published: Live, enabled: false);
 
-            await history.RecordAsync(Group(), Live, "Save", Alice(), TestContext.Current.CancellationToken);
+            await history.RecordAsync(Group(), Live, "Save", Alice(), null, TestContext.Current.CancellationToken);
 
             Assert.Null(await history.GetAsync(Group(), cancellationToken: TestContext.Current.CancellationToken));
             Assert.Equal(0, github.Requests);
@@ -112,7 +112,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         {
             var github = new GitHubScript(("GET", "repos/acme/site-s1/contents/database-pages/g1.json?ref=main", (_, _) => GitHubScript.Status(HttpStatusCode.BadGateway)));
 
-            await History(github, published: null).RecordAsync(Group(), Live, "Save", Alice(), TestContext.Current.CancellationToken);
+            await History(github, published: null).RecordAsync(Group(), Live, "Save", Alice(), null, TestContext.Current.CancellationToken);
 
             github.AssertDone();
         }

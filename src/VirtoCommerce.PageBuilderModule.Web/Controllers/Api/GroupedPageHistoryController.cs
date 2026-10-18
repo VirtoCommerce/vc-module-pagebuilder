@@ -74,7 +74,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         /// </summary>
         [HttpPost("{sha}/restore")]
         [Authorize(ModuleConstants.Security.Permissions.Update)]
-        public async Task<ActionResult> Restore([FromRoute] string groupId, [FromRoute] string sha, CancellationToken cancellationToken = default)
+        public async Task<ActionResult> Restore([FromRoute] string groupId, [FromRoute] string sha, [FromQuery] string version = null, CancellationToken cancellationToken = default)
         {
             var group = await AuthorizedGroupAsync(groupId);
             if (group == null || !GitCommitSha.IsSha(sha))
@@ -91,7 +91,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             // the editor asked for exactly this version: over whatever the draft holds now
             var current = await groupedPageContentService.LoadGroupContentAsync(group, draft: true, cancellationToken);
             var result = await pageContentService.SaveConditionalContentAsync(group, content, current.ETag, cancellationToken);
-            await pageHistory.RecordAsync(group, content, $"Restored {sha[..7]}", User, cancellationToken);
+            await pageHistory.RecordAsync(group, content, $"Restored {SiteSave.Version(version, sha)}", User, SiteSave.Of(Request), cancellationToken);
 
             return Ok(new { eTag = result.ETag });
         }
@@ -116,7 +116,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             if (drafts.Count > 0)
             {
                 await crudService.DeleteAsync(drafts);
-                await pageHistory.RecordAsync(group, await pageHistory.LoadPublishedContentAsync(group, cancellationToken), "Discarded unpublished changes", User, cancellationToken);
+                await pageHistory.RecordAsync(group, await pageHistory.LoadPublishedContentAsync(group, cancellationToken), "Discarded unpublished changes", User, SiteSave.Of(Request), cancellationToken);
             }
 
             return Ok();

@@ -376,7 +376,7 @@ public class PageBuilderPageController : Controller
         {
             // usually the latest change already: covers pages saved before history was on, copies and imports.
             // Read by id: the group in hand still lists the published row this publish just deleted.
-            await pageHistory.RecordAsync(groupedPage, await groupedPageService.LoadContent(publishedPageId, cancellationToken), "Published", User, cancellationToken);
+            await pageHistory.RecordAsync(groupedPage, await groupedPageService.LoadContent(publishedPageId, cancellationToken), "Published", User, SiteSave.Of(Request), cancellationToken);
         }
 
         return Ok();
@@ -642,7 +642,7 @@ public class PageBuilderPageController : Controller
             var result = await pageContentService.SaveConditionalContentAsync(group, content, expectedETag, cancellationToken);
             if (result.ContentWritten && pageHistory != null)
             {
-                await pageHistory.RecordAsync(group, content, "Saved", User, cancellationToken);
+                await pageHistory.RecordAsync(group, content, "Saved", User, SiteSave.Of(Request), cancellationToken);
             }
 
             Response.Headers.ETag = result.ETag;
