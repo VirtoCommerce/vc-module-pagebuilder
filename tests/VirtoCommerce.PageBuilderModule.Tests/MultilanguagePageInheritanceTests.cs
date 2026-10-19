@@ -87,6 +87,22 @@ public class MultilanguagePageInheritanceTests
         Assert.Equal([Permalink, UserGroups], GetDifferingFields(root, group));
     }
 
+    [Fact]
+    public void EmptyAndMissingText_AreTheSameValue()
+    {
+        var root = CreateRoot();
+        root.UserGroups = null;
+        root.OrganizationId = string.Empty;
+        var group = new GroupedPageBuilderPage();
+        Apply(root, group);
+        // The page blade sends an empty string for a cleared selector.
+        group.UserGroups = string.Empty;
+        group.OrganizationId = null;
+
+        Assert.Empty(GetDifferingFields(root, group));
+        Assert.False(Apply(root, group));
+    }
+
     private static MultilanguagePage CreateRoot()
     {
         return new MultilanguagePage

@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.Extensions.Logging.Abstractions;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using VirtoCommerce.Platform.Core.Common;
@@ -119,7 +120,7 @@ public class MultilanguagePageControllerTests
     }
 
     [Fact]
-    public async Task Delete_KeepsLanguageVersionsAsLandingPages()
+    public async Task Delete_RootWithLanguageVersions_IsBadRequest()
     {
         await using var fixture = await Fixture.CreateAsync();
         var root = await fixture.CreateRootAsync();
@@ -128,9 +129,96 @@ public class MultilanguagePageControllerTests
 
         var result = await controller.Delete(root.Id);
 
+        // A Multilanguage Page with versions is archived (archive-all), like a Landing Page.
+        Assert.IsType<BadRequestObjectResult>(result);
+        Assert.NotNull(await fixture.Roots.GetByIdAsync(root.Id));
+        Assert.Equal(root.Id, (await fixture.LoadGroupAsync(en.Id)).MultilanguagePageId);
+    }
+
+    [Fact]
+    public async Task Delete_RootWithoutLanguageVersions_IsDeleted()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var root = await fixture.CreateRootAsync();
+        var controller = CreateController(fixture);
+
+        var result = await controller.Delete(root.Id);
+
         Assert.IsType<NoContentResult>(result);
         Assert.Null(await fixture.Roots.GetByIdAsync(root.Id));
-        Assert.Null((await fixture.LoadGroupAsync(en.Id)).MultilanguagePageId);
+    }
+
+    [Fact]
+    public async Task CreateGroup_IgnoresClientMultilanguageFields()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var root = await fixture.CreateRootAsync();
+        var controller = CreatePagesController(fixture);
+
+        var result = await controller.CreateGroup(new GroupedPageBuilderPage
+        {
+            StoreId = StoreId,
+            CultureName = "nl-NL",
+            Name = "Over ons",
+            Permalink = "/over-ons",
+            MultilanguagePageId = root.Id,
+            OverriddenFields = "Permalink",
+            SourceRevisionDate = DateTime.UtcNow,
+        }, TestContext.Current.CancellationToken);
+
+        var created = Assert.IsType<GroupedPageBuilderPage>(Assert.IsType<OkObjectResult>(result.Result).Value);
+        var entity = await fixture.LoadGroupAsync(created.Id);
+        Assert.Equal((null, null, "Over ons"), (entity.MultilanguagePageId, entity.SourceRevisionDate, entity.Name));
+    }
+
+    [Fact]
+    public async Task MissingBody_IsBadRequest()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var controller = CreateController(fixture);
+        var pagesController = CreatePagesController(fixture);
+
+        Assert.IsType<BadRequestObjectResult>((await controller.Search(null)).Result);
+        Assert.IsType<BadRequestObjectResult>((await pagesController.SearchList(null, fixture.List, TestContext.Current.CancellationToken)).Result);
+        Assert.IsType<BadRequestObjectResult>((await pagesController.FindPermalinkUsage(null, fixture.List, TestContext.Current.CancellationToken)).Result);
+    }
+
+    [Fact]
+    public async Task Update_WithoutId_IsBadRequest()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var controller = CreateController(fixture);
+
+        var result = await controller.Update(new MultilanguagePage { Name = "FAQ", Permalink = "/faq" });
+
+        Assert.IsType<BadRequestObjectResult>(result.Result);
+    }
+
+    [Fact]
+    public async Task InvalidArgument_IsBadRequest()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var root = await fixture.CreateRootAsync();
+        var controller = CreateController(fixture);
+
+        var result = await controller.CreateLanguage(root.Id, " ", copyContent: false, TestContext.Current.CancellationToken);
+
+        Assert.IsType<BadRequestObjectResult>(result.Result);
+    }
+
+    private static PageBuilderPageController CreatePagesController(Fixture fixture)
+    {
+        return new PageBuilderPageController(
+            null!,
+            fixture.Groups,
+            fixture.GroupSearch,
+            new PredicateAuthorizationService(_ => true),
+            null!,
+            null!,
+            NullLogger<PageBuilderPageController>.Instance)
+        {
+            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() },
+        };
     }
 
     private static MultilanguagePageController CreateController(Fixture fixture, Func<object, bool> isAllowed = null)

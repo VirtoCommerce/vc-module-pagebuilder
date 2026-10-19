@@ -79,6 +79,11 @@ public class PageBuilderPageController : Controller
         [FromServices] IPageBuilderPageListService pageListService,
         CancellationToken cancellationToken = default)
     {
+        if (criteria == null)
+        {
+            return BadRequest("Search criteria are required.");
+        }
+
         var authorizationResult = await authorizationService.AuthorizeAsync(User, criteria, new PageBuilderAuthorizationRequirement());
         if (!authorizationResult.Succeeded)
         {
@@ -98,8 +103,13 @@ public class PageBuilderPageController : Controller
         [FromServices] IPageBuilderPageListService pageListService,
         CancellationToken cancellationToken = default)
     {
+        if (request == null)
+        {
+            return BadRequest("Request is required.");
+        }
+
         var authorizationResult = await authorizationService.AuthorizeAsync(
-            User, new PageBuilderPageSearchCriteria { StoreId = request?.StoreId }, new PageBuilderAuthorizationRequirement());
+            User, new PageBuilderPageSearchCriteria { StoreId = request.StoreId }, new PageBuilderAuthorizationRequirement());
         if (!authorizationResult.Succeeded)
         {
             return Forbidden;
@@ -188,6 +198,11 @@ public class PageBuilderPageController : Controller
         {
             return Forbidden;
         }
+
+        // A page becomes a language version only through the multilanguage page endpoints, which check the root.
+        model.MultilanguagePageId = null;
+        model.OverriddenFields = null;
+        model.SourceRevisionDate = null;
 
         var draftPage = AbstractTypeFactory<PageBuilderPage>.TryCreateInstance();
 

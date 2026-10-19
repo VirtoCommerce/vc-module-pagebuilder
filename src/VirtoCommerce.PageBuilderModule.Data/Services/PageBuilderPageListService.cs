@@ -296,7 +296,8 @@ public class PageBuilderPageListService(
         return !string.IsNullOrEmpty(criteria.Statuses) ||
                !string.IsNullOrEmpty(criteria.Lifecycle) ||
                criteria.ActiveOn.HasValue ||
-               !string.IsNullOrEmpty(criteria.LanguageCode);
+               !string.IsNullOrEmpty(criteria.LanguageCode) ||
+               criteria.ObjectIds is { Count: > 0 };
     }
 
     /// <summary>

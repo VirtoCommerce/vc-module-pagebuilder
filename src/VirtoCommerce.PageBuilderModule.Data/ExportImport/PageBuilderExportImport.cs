@@ -99,6 +99,7 @@ public sealed class PageBuilderExportImport(
         cancellationToken.ThrowIfCancellationRequested();
 
         var progressInfo = new ExportImportProgressInfo();
+        var hasMultilanguagePages = false;
         var pageBufferPath = Path.Combine(
             Path.GetTempPath(),
             $"page-builder-import-{Guid.NewGuid():N}.json");
@@ -135,6 +136,7 @@ public sealed class PageBuilderExportImport(
                 }
                 else if (reader.Value?.ToString() == MultilanguagePagesProperty)
                 {
+                    hasMultilanguagePages = true;
                     await ImportMultilanguagePagesAsync(reader, progressInfo, progressCallback, cancellationToken);
                 }
                 else if (reader.Value?.ToString() == "PageBuilderPages")
@@ -150,10 +152,13 @@ public sealed class PageBuilderExportImport(
         pageBuffer.Position = 0;
         using var pageBufferStreamReader = new StreamReader(pageBuffer, leaveOpen: true);
         using var pageBufferReader = new JsonTextReader(pageBufferStreamReader);
-        await ImportPagesArrayAsync(pageBufferReader, progressInfo, progressCallback, cancellationToken);
+        await ImportPagesArrayAsync(pageBufferReader, progressInfo, progressCallback, hasMultilanguagePages, cancellationToken);
     }
 
-    private async Task ImportPagesArrayAsync(JsonTextReader reader, ExportImportProgressInfo progressInfo, Action<ExportImportProgressInfo> progressCallback, CancellationToken cancellationToken)
+    /// <param name="hasMultilanguagePages">The file was exported with multilanguage pages, so a page without a link is a Landing Page.
+    /// A file exported before them carries no links at all and must not unlink the existing language versions.</param>
+    private async Task ImportPagesArrayAsync(JsonTextReader reader, ExportImportProgressInfo progressInfo, Action<ExportImportProgressInfo> progressCallback,
+        bool hasMultilanguagePages, CancellationToken cancellationToken)
     {
         if (!await reader.ReadAsync(cancellationToken) || reader.TokenType != JsonToken.StartArray)
         {
@@ -169,7 +174,7 @@ public sealed class PageBuilderExportImport(
             var exportPage = jsonSerializer.Deserialize<PageBuilderExportPage>(reader);
             if (exportPage != null)
             {
-                await ImportPageAsync(exportPage, progressInfo, cancellationToken);
+                await ImportPageAsync(exportPage, progressInfo, hasMultilanguagePages, cancellationToken);
                 processedCount++;
 
                 progressInfo.Description = $"{processedCount} page builder pages have been imported";
@@ -179,7 +184,8 @@ public sealed class PageBuilderExportImport(
         }
     }
 
-    private async Task ImportPageAsync(PageBuilderExportPage exportPage, ExportImportProgressInfo progressInfo, CancellationToken cancellationToken)
+    private async Task ImportPageAsync(PageBuilderExportPage exportPage, ExportImportProgressInfo progressInfo, bool hasMultilanguagePages,
+        CancellationToken cancellationToken)
     {
         // Validate the union once, before replacing group metadata or variants. Deterministic content errors
         // must not leave an existing group partially replaced; batching also avoids one component query per variant.
@@ -198,11 +204,14 @@ public sealed class PageBuilderExportImport(
         if (existingGroup != null)
         {
             await UpdateExistingGroupAsync(existingGroup, exportPage, cancellationToken);
-            await SyncMultilanguageLinkAsync(existingGroup, exportPage, progressInfo, cancellationToken);
+            if (hasMultilanguagePages || !string.IsNullOrEmpty(exportPage.MultilanguagePageId))
+            {
+                await SyncMultilanguageLinkAsync(existingGroup, exportPage, progressInfo, cancellationToken);
+            }
         }
         else
         {
-            await CreateNewGroupAsync(exportPage, cancellationToken);
+            await CreateNewGroupAsync(exportPage, progressInfo, cancellationToken);
         }
     }
 
@@ -325,7 +334,7 @@ public sealed class PageBuilderExportImport(
         await SaveVariantsContentAsync(exportPage.Variants, cancellationToken);
     }
 
-    private async Task CreateNewGroupAsync(PageBuilderExportPage exportPage, CancellationToken cancellationToken)
+    private async Task CreateNewGroupAsync(PageBuilderExportPage exportPage, ExportImportProgressInfo progressInfo, CancellationToken cancellationToken)
     {
         var newGroup = AbstractTypeFactory<GroupedPageBuilderPage>.TryCreateInstance();
         newGroup.Id = exportPage.GroupId;
@@ -342,7 +351,17 @@ public sealed class PageBuilderExportImport(
             newGroup.Pages.Add(page);
         }
 
-        await groupedPageService.SaveChangesAsync([newGroup]);
+        try
+        {
+            await groupedPageService.SaveChangesAsync([newGroup]);
+        }
+        catch (InvalidDataException ex) when (!string.IsNullOrEmpty(newGroup.MultilanguagePageId))
+        {
+            // The root already has this language (or is in another store): the page is kept as a Landing Page.
+            progressInfo.Errors.Add($"Page '{newGroup.Id}' was imported without its multilanguage page link: {ex.Message}");
+            newGroup.MultilanguagePageId = null;
+            await groupedPageService.SaveChangesAsync([newGroup]);
+        }
 
         await SaveVariantsContentAsync(exportPage.Variants, cancellationToken);
     }

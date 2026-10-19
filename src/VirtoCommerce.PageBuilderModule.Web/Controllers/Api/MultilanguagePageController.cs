@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
@@ -29,6 +31,11 @@ public class MultilanguagePageController(
     [Authorize(ModuleConstants.Security.Permissions.Read)]
     public async Task<ActionResult<MultilanguagePageSearchResult>> Search([FromBody] MultilanguagePageSearchCriteria criteria)
     {
+        if (criteria == null)
+        {
+            return BadRequest("Search criteria are required.");
+        }
+
         if (!await IsAuthorizedAsync(criteria))
         {
             return Forbidden;
@@ -86,10 +93,11 @@ public class MultilanguagePageController(
     public async Task<ActionResult<MultilanguagePage>> Update([FromBody] MultilanguagePage model)
     {
         if (model == null ||
+            string.IsNullOrWhiteSpace(model.Id) ||
             string.IsNullOrWhiteSpace(model.Name) ||
             string.IsNullOrWhiteSpace(model.Permalink))
         {
-            return BadRequest("Name and Permalink are required.");
+            return BadRequest("Id, Name and Permalink are required.");
         }
 
         var existing = await multilanguagePageService.GetByIdAsync(model.Id);
@@ -111,7 +119,7 @@ public class MultilanguagePageController(
     }
 
     /// <summary>
-    /// Deletes the root. Its language versions are kept as Landing Pages.
+    /// Deletes a root that has no language versions. A root with versions is archived with archive-all instead.
     /// </summary>
     [HttpDelete("{id}")]
     [Authorize(ModuleConstants.Security.Permissions.Delete)]
@@ -127,6 +135,12 @@ public class MultilanguagePageController(
         if (!await IsAuthorizedAsync(page))
         {
             return Forbidden;
+        }
+
+        var languages = await multilanguagePageService.GetLanguagesAsync(id);
+        if (languages.Any(x => x.Page != null))
+        {
+            return BadRequest($"Multilanguage page '{id}' has language versions: archive them instead.");
         }
 
         await multilanguagePageService.DeleteAsync([id]);
@@ -307,7 +321,11 @@ public class MultilanguagePageController(
         {
             return Ok(await action());
         }
-        catch (InvalidOperationException ex)
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException or InvalidDataException)
         {
             return BadRequest(ex.Message);
         }

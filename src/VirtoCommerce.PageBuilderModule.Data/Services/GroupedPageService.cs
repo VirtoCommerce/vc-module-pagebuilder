@@ -266,6 +266,8 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
                 .Where(x => rootIds.Contains(x.Id))
                 .ToDictionaryAsync(x => x.Id, x => x.ToModel(AbstractTypeFactory<MultilanguagePage>.TryCreateInstance()), cancellationToken);
 
+            await ValidateLanguageVersionsAsync(rootIdsByGroup, roots, repository, cancellationToken);
+
             foreach (var (group, rootId) in rootIdsByGroup)
             {
                 if (rootId != null && roots.TryGetValue(rootId, out var root))
@@ -278,6 +280,52 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
                         group.SourceRevisionDate = await GetPublishedSourceRevisionAsync(group, root, repository, cancellationToken);
                     }
                 }
+            }
+        }
+
+        // A language version stays in the store of its root and is the only version of its language there,
+        // whichever writer saves it (the page blade, import, a client sending a link with a new page).
+        private static async Task ValidateLanguageVersionsAsync(
+            IDictionary<GroupedPageBuilderPage, string> rootIdsByGroup,
+            IDictionary<string, MultilanguagePage> roots,
+            IPageBuilderModuleRepository repository,
+            CancellationToken cancellationToken)
+        {
+            var linkedGroups = rootIdsByGroup.Where(x => !string.IsNullOrEmpty(x.Value)).ToList();
+            var rootIds = linkedGroups.Select(x => x.Value).Distinct().ToArray();
+            var storedVersions = await repository.GroupedPageBuilderPages.AsNoTracking()
+                .Where(x => rootIds.Contains(x.MultilanguagePageId))
+                .Select(x => new { x.Id, x.MultilanguagePageId, x.CultureName })
+                .ToListAsync(cancellationToken);
+            var savedIds = linkedGroups.Select(x => x.Key.Id).Where(x => x != null).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var versions = storedVersions
+                .Where(x => !savedIds.Contains(x.Id))
+                .Select(x => (x.MultilanguagePageId, x.CultureName))
+                .ToList();
+
+            foreach (var (group, rootId) in linkedGroups)
+            {
+                if (!roots.TryGetValue(rootId, out var root))
+                {
+                    throw new InvalidDataException($"Multilanguage page '{rootId}' not found.");
+                }
+
+                if (!string.Equals(group.StoreId, root.StoreId, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidDataException($"A language version of multilanguage page '{rootId}' must belong to store '{root.StoreId}'.");
+                }
+
+                if (string.IsNullOrWhiteSpace(group.CultureName))
+                {
+                    throw new InvalidDataException($"A language version of multilanguage page '{rootId}' must have a language.");
+                }
+
+                if (versions.Any(x => x.MultilanguagePageId == rootId && string.Equals(x.CultureName, group.CultureName, StringComparison.OrdinalIgnoreCase)))
+                {
+                    throw new InvalidDataException($"Multilanguage page '{rootId}' already has a '{group.CultureName}' version.");
+                }
+
+                versions.Add((rootId, group.CultureName));
             }
         }
 

@@ -55,7 +55,7 @@ public static class MultilanguagePageInheritance
     public static IList<string> GetDifferingFields(MultilanguagePage root, GroupedPageBuilderPage group)
     {
         return InheritableFields
-            .Where(field => !Equals(GetRootValue(root, field), GetGroupValue(group, field)))
+            .Where(field => !AreEqual(GetRootValue(root, field), GetGroupValue(group, field)))
             .ToList();
     }
 
@@ -81,7 +81,7 @@ public static class MultilanguagePageInheritance
         foreach (var field in InheritableFields.Where(x => !overridden.Contains(x)))
         {
             var value = GetRootValue(root, field);
-            if (!Equals(value, GetGroupValue(group, field)))
+            if (!AreEqual(value, GetGroupValue(group, field)))
             {
                 SetGroupValue(group, field, value);
                 changed = true;
@@ -105,7 +105,7 @@ public static class MultilanguagePageInheritance
         foreach (var field in fields.Select(Normalize).Where(x => x != null).Distinct())
         {
             var value = GetRootValue(root, field);
-            if (!Equals(value, GetGroupValue(group, field)))
+            if (!AreEqual(value, GetGroupValue(group, field)))
             {
                 SetGroupValue(group, field, value);
                 changed = true;
@@ -113,6 +113,17 @@ public static class MultilanguagePageInheritance
         }
 
         return changed;
+    }
+
+    // Clients send an empty string for a cleared text field, the root may store null: both mean "no value".
+    private static bool AreEqual(object left, object right)
+    {
+        if (left is null or string && right is null or string)
+        {
+            return string.Equals((string)left ?? string.Empty, (string)right ?? string.Empty, StringComparison.Ordinal);
+        }
+
+        return Equals(left, right);
     }
 
     private static string Normalize(string field)

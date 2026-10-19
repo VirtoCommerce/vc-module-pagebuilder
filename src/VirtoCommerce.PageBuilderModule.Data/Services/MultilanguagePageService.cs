@@ -42,6 +42,12 @@ public class MultilanguagePageService(
                 throw new InvalidOperationException("Multilanguage page must belong to a store.");
             }
 
+            if (string.IsNullOrWhiteSpace(model.DefaultCultureName) && !string.IsNullOrEmpty(model.Id))
+            {
+                // A client that does not send the source language keeps it.
+                model.DefaultCultureName = (await this.GetNoCloneAsync(model.Id))?.DefaultCultureName;
+            }
+
             if (string.IsNullOrWhiteSpace(model.DefaultCultureName))
             {
                 var store = await storeService.GetByIdAsync(model.StoreId)
@@ -217,6 +223,14 @@ public class MultilanguagePageService(
             throw new InvalidOperationException($"Page '{groupId}' is already a language version of '{group.MultilanguagePageId}'.");
         }
 
+        // The page becomes the source language, so its language must be one the store serves.
+        var store = await storeService.GetByIdAsync(group.StoreId);
+        if (string.IsNullOrWhiteSpace(group.CultureName) ||
+            store?.Languages?.Contains(group.CultureName, StringComparer.OrdinalIgnoreCase) != true)
+        {
+            throw new InvalidOperationException($"Page '{groupId}' must have a language of store '{group.StoreId}'.");
+        }
+
         var root = AbstractTypeFactory<MultilanguagePage>.TryCreateInstance();
         root.StoreId = group.StoreId;
         root.Name = group.Name;
@@ -229,7 +243,17 @@ public class MultilanguagePageService(
         root.EndDate = group.EndDate;
 
         await SaveChangesAsync([root]);
-        await LinkAsync(root.Id, groupId, cancellationToken);
+
+        try
+        {
+            await LinkAsync(root.Id, groupId, cancellationToken);
+        }
+        catch
+        {
+            // The root exists only for this page; without it the root would stay as an empty Multilanguage Page.
+            await base.DeleteAsync([root.Id]);
+            throw;
+        }
 
         return root;
     }
@@ -330,7 +354,20 @@ public class MultilanguagePageService(
                 continue;
             }
 
-            await groupedPageService.SaveChangesAsync([group]);
+            try
+            {
+                await groupedPageService.SaveChangesAsync([group]);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                // One failing language does not stop the others; the summary reports it.
+                // The publish changed a shared cached copy of the version, so the cache must not serve it.
+                GenericCachingRegion<GroupedPageBuilderPage>.ExpireTokenForKey(group.Id);
+                GenericSearchCachingRegion<GroupedPageBuilderPage>.ExpireRegion();
+                result.Skipped.Add(new MultilanguagePageBatchSkip { CultureName = group.CultureName, Reason = MultilanguagePageBatchResult.FailedReason });
+                continue;
+            }
+
             await pageService.DeleteAsync(obsoletePageIds);
             result.ProcessedCultureNames.Add(group.CultureName);
         }
@@ -394,6 +431,8 @@ public class MultilanguagePageService(
                     var entity = await repository.GroupedPageBuilderPages.FirstOrDefaultAsync(x => x.Id == groupId, ct)
                         ?? throw new KeyNotFoundException($"Page '{groupId}' not found.");
                     entity.MultilanguagePageId = multilanguagePageId;
+                    // The revision a translation was based on belongs to the previous root, if any.
+                    entity.SourceRevisionDate = null;
                     await repository.UnitOfWork.CommitAsync();
                 },
                 cancellationToken);
