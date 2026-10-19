@@ -9,6 +9,7 @@ import {
 import { useI18n } from "vue-i18n";
 
 import useUrlParams from "../useStoreParams";
+import { hasLanguageVersions } from "../useMultilanguagePageDetails/helpers";
 
 import {
   MultilanguagePageClient,
@@ -102,7 +103,12 @@ export function usePageBuilderList(options?: UsePageBuilderListOptions): IUsePag
     async (_query) => {
       const items = _query?.items ?? [];
       const landingIds = items.filter((x) => x.type !== PageTypes.Multilanguage && x.id).map((x) => x.id!);
-      const multilanguageIds = items.filter((x) => x.type === PageTypes.Multilanguage && x.id).map((x) => x.id!);
+      const multilanguageItems = items.filter((x) => x.type === PageTypes.Multilanguage && x.id);
+      // A Multilanguage Page is archived through its versions; one without versions has nothing to archive.
+      const multilanguageIds = multilanguageItems.filter((x) => hasLanguageVersions(x.languages)).map((x) => x.id!);
+      const emptyMultilanguageIds = multilanguageItems
+        .filter((x) => !hasLanguageVersions(x.languages))
+        .map((x) => x.id!);
 
       if (landingIds.length) {
         const apiClient = await getApiClient();
@@ -112,6 +118,11 @@ export function usePageBuilderList(options?: UsePageBuilderListOptions): IUsePag
       if (multilanguageIds.length) {
         const apiClient = await getMultilanguageApiClient();
         await Promise.all(multilanguageIds.map((id) => apiClient.archiveAll(id)));
+      }
+
+      if (emptyMultilanguageIds.length) {
+        const apiClient = await getMultilanguageApiClient();
+        await Promise.all(emptyMultilanguageIds.map((id) => apiClient.delete(id)));
       }
     },
   );

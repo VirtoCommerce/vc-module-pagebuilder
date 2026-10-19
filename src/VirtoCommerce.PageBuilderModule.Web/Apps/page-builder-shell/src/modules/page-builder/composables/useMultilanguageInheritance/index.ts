@@ -47,6 +47,10 @@ export function parseOverriddenFields(mask?: string): InheritableField[] {
     .filter((x): x is InheritableField => (inheritableFields as string[]).includes(x));
 }
 
+export function isFieldOverridden(mask: string | undefined, field: InheritableField): boolean {
+  return parseOverriddenFields(mask).includes(field);
+}
+
 // Empty values ("", null, undefined) are the same "not set"; dates compare by instant.
 function normalize(value: unknown): string {
   if (value === undefined || value === null || value === "") {

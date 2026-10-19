@@ -18,8 +18,16 @@ export function usePermalinkUsage() {
       return true;
     }
 
-    const apiClient = await getApiClient();
-    const usage = await apiClient.findPermalinkUsage(request);
+    let usage;
+    try {
+      const apiClient = await getApiClient();
+      usage = await apiClient.findPermalinkUsage(request);
+    } catch (error) {
+      // The check only warns: a failed check must not block saving the page.
+      console.warn("Permalink usage check failed", error);
+      return true;
+    }
+
     if (!usage.length) {
       return true;
     }

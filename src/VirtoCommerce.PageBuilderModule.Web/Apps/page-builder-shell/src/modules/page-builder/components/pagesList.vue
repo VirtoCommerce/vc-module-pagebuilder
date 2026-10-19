@@ -137,6 +137,7 @@ import {
   refreshMenuBadges,
 } from "../composables";
 import { parseImportFile } from "../composables/usePageContentApi";
+import { hasLanguageVersions, isMultilanguageRowArchived } from "../composables/useMultilanguagePageDetails/helpers";
 import PageStatus from "./pageStatus.vue";
 import LanguagePills from "./languagePills.vue";
 import AddPagePopup from "./addPagePopup.vue";
@@ -274,7 +275,7 @@ function rowLanguages(item: PageBuilderPageListItem): MultilanguagePageLanguage[
 
 function isArchived(item: PageBuilderPageListItem): boolean {
   return item.type === PageTypes.Multilanguage
-    ? !(item.languages ?? []).some((x) => x.page && x.status !== "Archived")
+    ? isMultilanguageRowArchived(item.languages)
     : item.page?.status === "Archived";
 }
 
@@ -282,12 +283,19 @@ const actionBuilder = (item: PageBuilderPageListItem) => {
   const result: IActionBuilderResult[] = [];
 
   if (!isArchived(item)) {
+    // A Multilanguage Page without versions has nothing to archive and is deleted.
+    const isEmptyMultilanguage = item.type === PageTypes.Multilanguage && !hasLanguageVersions(item.languages);
     result.push({
       icon: "lucide-trash-2",
-      title: t("PAGE_BUILDER.PAGES.LIST.TABLE.ACTIONS.DELETE"),
+      title: isEmptyMultilanguage
+        ? t("PAGE_BUILDER.MULTILANGUAGE.TOOLBAR.DELETE")
+        : t("PAGE_BUILDER.PAGES.LIST.TABLE.ACTIONS.DELETE"),
       type: "danger",
       clickHandler: async () => {
-        if (item.id && (await showConfirmation(t("PAGE_BUILDER.PAGES.ALERTS.DELETE")))) {
+        const confirmation = isEmptyMultilanguage
+          ? t("PAGE_BUILDER.MULTILANGUAGE.ALERTS.DELETE")
+          : t("PAGE_BUILDER.PAGES.ALERTS.DELETE");
+        if (item.id && (await showConfirmation(confirmation))) {
           await removePages({ items: [item] });
           await reload();
         }

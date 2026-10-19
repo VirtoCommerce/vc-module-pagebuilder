@@ -101,7 +101,7 @@
                     <Tag
                       class="tw-ml-2"
                       :text="
-                        isOverridden(language, 'Permalink')
+                        isFieldOverridden(language.page.overriddenFields, 'Permalink')
                           ? $t('PAGE_BUILDER.MULTILANGUAGE.LANGUAGES.CUSTOM')
                           : $t('PAGE_BUILDER.MULTILANGUAGE.LANGUAGES.INHERITED')
                       "
@@ -228,9 +228,16 @@ import OverridesConflictPopup, { type IOverridesConflict } from "../components/o
 import { usePermalinkUsage } from "../composables/usePermalinkUsage";
 import {
   getChangedFields,
+  isFieldOverridden,
   parseOverriddenFields,
   type IInheritableSettings,
 } from "../composables/useMultilanguageInheritance";
+import {
+  hasLanguageVersions,
+  isMultilanguageRowArchived,
+  isPermalinkCheckNeeded,
+  summarizeBatchResult,
+} from "../composables/useMultilanguagePageDetails/helpers";
 import Tag from "../components/tag.vue";
 
 defineBlade({
@@ -240,7 +247,8 @@ defineBlade({
 
 const { t } = useI18n({ useScope: "global" });
 const { showConfirmation } = usePopup();
-const { param, options, callParent, closeSelf, closeChildren, openBlade, exposeToChildren } = useBlade();
+const { param, options, activeChildParam, callParent, closeSelf, closeChildren, openBlade, exposeToChildren } =
+  useBlade();
 const { storeId, getStoreUrl, getLanguages } = useUrlParams();
 
 const {
@@ -249,6 +257,7 @@ const {
   isNew,
   loading,
   load,
+  loadLanguages,
   save,
   remove,
   publishAll,
@@ -283,7 +292,8 @@ const bladeTitle = computed(() =>
     : t("PAGE_BUILDER.MULTILANGUAGE.TITLE.DETAILS", { name: item.value.name }),
 );
 
-const hasVersions = computed(() => languages.value.some((x) => !!x.page));
+const hasVersions = computed(() => hasLanguageVersions(languages.value));
+const isArchived = computed(() => isMultilanguageRowArchived(languages.value));
 
 const bladeToolbar = computed((): IBladeToolbar[] => [
   {
@@ -292,7 +302,8 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.SAVE"),
     disabled: !canSave.value,
     clickHandler: async () => {
-      if (!(await confirmRootPermalinkUsage())) {
+      // Language version blades show the values the save changes; saved later, they would turn them into overrides.
+      if (!(await closeChildrenOrCancel()) || !(await confirmRootPermalinkUsage())) {
         return;
       }
       conflicts.value = findConflicts();
@@ -309,7 +320,9 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     disabled: !hasVersions.value || isModified.value,
     clickHandler: async () => {
       // An open language version blade would keep showing the pre-publish status.
-      await closeChildren();
+      if (!(await closeChildrenOrCancel())) {
+        return;
+      }
       notifyBatchResult(await publishAll(), "PUBLISH_ALL_RESULT");
       callParent("reload");
     },
@@ -319,10 +332,12 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     icon: "lucide-archive",
     title: t("PAGE_BUILDER.MULTILANGUAGE.TOOLBAR.ARCHIVE_ALL"),
     isVisible: !isNew.value,
-    disabled: !hasVersions.value,
+    disabled: !hasVersions.value || isArchived.value,
     clickHandler: async () => {
-      if (await showConfirmation(t("PAGE_BUILDER.MULTILANGUAGE.ALERTS.ARCHIVE_ALL"))) {
-        await closeChildren();
+      if (
+        (await showConfirmation(t("PAGE_BUILDER.MULTILANGUAGE.ALERTS.ARCHIVE_ALL"))) &&
+        (await closeChildrenOrCancel())
+      ) {
         notifyBatchResult(await archiveAll(), "ARCHIVE_ALL_RESULT");
         callParent("reload");
       }
@@ -335,6 +350,9 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     isVisible: !isNew.value,
     disabled: isModified.value,
     clickHandler: async () => {
+      if (loading.value) {
+        return;
+      }
       const cloned = await clone();
       notification.success(t("PAGE_BUILDER.PAGES.ALERTS.CLONE_SUCCESS"));
       callParent("reload");
@@ -345,10 +363,12 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     id: "delete",
     icon: "lucide-trash-2",
     title: t("PAGE_BUILDER.MULTILANGUAGE.TOOLBAR.DELETE"),
-    isVisible: !isNew.value,
+    // A page with language versions is archived (Archive all), like a Landing Page.
+    isVisible: !isNew.value && !hasVersions.value,
     clickHandler: async () => {
       if (await showConfirmation(t("PAGE_BUILDER.MULTILANGUAGE.ALERTS.DELETE"))) {
         await remove();
+        notification.success(t("PAGE_BUILDER.MULTILANGUAGE.ALERTS.DELETE_SUCCESS"));
         callParent("reload");
         closeSelf();
       }
@@ -356,20 +376,34 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
   },
 ]);
 
-// The root permalink is served by every language version that inherits it.
+// Closing asks about unsaved changes; an action must not run while the user keeps a child blade open.
+async function closeChildrenOrCancel(): Promise<boolean> {
+  await closeChildren();
+  return !activeChildParam.value;
+}
+
+// The root permalink is served by every language version that inherits it. A new root has no versions yet.
 async function confirmRootPermalinkUsage(): Promise<boolean> {
   const inheritingCultures = languages.value
-    .filter((language) => language.page && !parseOverriddenFields(language.page.overriddenFields).includes("Permalink"))
+    .filter((language) => language.page && !isFieldOverridden(language.page.overriddenFields, "Permalink"))
     .map((language) => language.cultureName!);
 
-  if (isNew.value || !inheritingCultures.length) {
+  if (
+    isNew.value ||
+    !inheritingCultures.length ||
+    !isPermalinkCheckNeeded({ permalink: savedSettings.value.permalink }, { permalink: item.value.permalink })
+  ) {
     return true;
   }
 
+  return confirmRootPermalinkUsageFor(inheritingCultures);
+}
+
+function confirmRootPermalinkUsageFor(cultureNames: string[]): Promise<boolean> {
   return confirmPermalinkUsage({
     storeId: item.value.storeId,
     permalink: item.value.permalink,
-    cultureNames: inheritingCultures,
+    cultureNames,
     excludeMultilanguagePageId: item.value.id,
   });
 }
@@ -409,8 +443,6 @@ async function saveRoot(resetFields: string[] = []) {
 async function onApplyToAll() {
   const fields = [...new Set(conflicts.value.flatMap((conflict) => conflict.fields))];
   conflicts.value = [];
-  // Language version blades would show the overrides being dropped.
-  await closeChildren();
   await saveRoot(fields);
 }
 
@@ -425,16 +457,11 @@ function rememberSavedSettings() {
 }
 
 function notifyBatchResult(result: MultilanguagePageBatchResult, key: string) {
-  notification.success(
-    t(`PAGE_BUILDER.MULTILANGUAGE.ALERTS.${key}`, {
-      processed: result.processedCultureNames?.join(", ") || "—",
-      skipped: result.skipped?.map((x) => x.cultureName).join(", ") || "—",
-    }),
-  );
-}
-
-function isOverridden(language: MultilanguagePageLanguage, field: string): boolean {
-  return (language.page?.overriddenFields ?? "").split(",").includes(field);
+  const summary = summarizeBatchResult(result);
+  notification.success(t(`PAGE_BUILDER.MULTILANGUAGE.ALERTS.${key}`, summary));
+  if (summary.failed) {
+    notification.error(t("PAGE_BUILDER.MULTILANGUAGE.ALERTS.BATCH_FAILED", { failed: summary.failed }));
+  }
 }
 
 function openLanguage(language: MultilanguagePageLanguage) {
@@ -463,6 +490,10 @@ function openDesigner(language: MultilanguagePageLanguage) {
 }
 
 async function onCreateLanguage(language: MultilanguagePageLanguage) {
+  // The new version inherits the root permalink in its language.
+  if (!(await confirmRootPermalinkUsageFor([language.cultureName!]))) {
+    return;
+  }
   await createLanguage({ cultureName: language.cultureName!, copyContent: true });
   notification.success(t("PAGE_BUILDER.MULTILANGUAGE.ALERTS.LANGUAGE_CREATED", { language: language.cultureName }));
   callParent("reload");
@@ -479,7 +510,9 @@ async function onUnlink(language: MultilanguagePageLanguage) {
     language.page?.id &&
     (await showConfirmation(t("PAGE_BUILDER.MULTILANGUAGE.ALERTS.UNLINK", { language: language.cultureName })))
   ) {
-    await closeChildren();
+    if (!(await closeChildrenOrCancel())) {
+      return;
+    }
     await unlink(language.page.id);
     callParent("reload");
   }
@@ -503,10 +536,14 @@ async function loadCultureNames() {
 // Language version blades opened from the table report back here.
 exposeToChildren({
   reload: async () => {
-    await load();
+    await loadLanguages();
     callParent("reload");
   },
-  onItemClick: (page: GroupedPageBuilderPage) => openPage(page),
+  // A version of this page reopens here; anything else (a clone, a converted page) belongs to the list.
+  onItemClick: (page: GroupedPageBuilderPage & { type?: string }) =>
+    page.type !== PageTypes.Multilanguage && page.multilanguagePageId === item.value.id
+      ? openPage(page)
+      : callParent("onItemClick", page),
 });
 
 onMounted(async () => {

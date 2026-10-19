@@ -98,6 +98,7 @@ import {
   parseOverriddenFields,
   type InheritableField,
 } from "../composables/useMultilanguageInheritance";
+import { isPermalinkCheckNeeded, type IPermalinkTarget } from "../composables/useMultilanguagePageDetails/helpers";
 
 import { VcBanner, VcBlade, VcCard, VcCol, VcContainer, VcForm, VcInput, VcSelect } from "@vc-shell/framework/ui";
 
@@ -183,6 +184,27 @@ const fieldHints = computed<Partial<Record<InheritableField, string>>>(() => {
 });
 
 const { confirmPermalinkUsage } = usePermalinkUsage();
+// Permalink and language as saved: an unchanged permalink was already confirmed.
+const savedPermalinkTarget = ref<IPermalinkTarget>();
+
+function rememberPermalinkTarget() {
+  savedPermalinkTarget.value = item.value?.id
+    ? { permalink: item.value.permalink, cultureName: item.value.cultureName }
+    : undefined;
+}
+
+async function confirmPagePermalinkUsage(): Promise<boolean> {
+  if (!isPermalinkCheckNeeded(savedPermalinkTarget.value, item.value)) {
+    return true;
+  }
+
+  return confirmPermalinkUsage({
+    storeId: item.value.storeId ?? (options.value?.storeId as string | undefined),
+    permalink: item.value.permalink,
+    cultureNames: item.value.cultureName ? [item.value.cultureName] : [],
+    excludeGroupIds: item.value.id ? [item.value.id] : [],
+  });
+}
 
 // Converting needs a second store language to translate into.
 const hasSeveralStoreLanguages = ref(false);
@@ -195,13 +217,7 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.SAVE"),
     disabled: !canSave.value,
     clickHandler: async () => {
-      const proceed = await confirmPermalinkUsage({
-        storeId: item.value.storeId ?? (options.value?.storeId as string | undefined),
-        permalink: item.value.permalink,
-        cultureNames: item.value.cultureName ? [item.value.cultureName] : [],
-        excludeGroupIds: item.value.id ? [item.value.id] : [],
-      });
-      if (!proceed) {
+      if (!(await confirmPagePermalinkUsage())) {
         return;
       }
       await handleSave();
@@ -315,6 +331,7 @@ async function loadCultureNamesAsync() {
 async function handleSave() {
   const group = await saveGroup();
   setBaseline();
+  rememberPermalinkTarget();
 
   callParent("reload");
 
@@ -326,6 +343,7 @@ async function handleSave() {
 // Lifecycle
 onMounted(async () => {
   await loadGroup();
+  rememberPermalinkTarget();
   if (options.value?.importData) {
     markReady();
   } else {

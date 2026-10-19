@@ -24,6 +24,7 @@ export interface IUseMultilanguagePageDetails {
   isNew: ComputedRef<boolean>;
   loading: ComputedRef<boolean>;
   load: () => Promise<void>;
+  loadLanguages: () => Promise<void>;
   save: () => Promise<MultilanguagePage>;
   remove: () => Promise<void>;
   publishAll: () => Promise<MultilanguagePageBatchResult>;
@@ -34,7 +35,11 @@ export interface IUseMultilanguagePageDetails {
   markUpToDate: (groupId: string) => Promise<void>;
   resetOverrides: (fields: string[]) => Promise<void>;
   clone: () => Promise<MultilanguagePage>;
-  findLandingPages: (cultureName: string, keyword?: string) => Promise<PageBuilderPageListItem[]>;
+  findLandingPages: (
+    cultureName: string,
+    keyword?: string,
+    skip?: number,
+  ) => Promise<{ totalCount: number; results: PageBuilderPageListItem[] }>;
 }
 
 export function useMultilanguagePageDetails(options: UseMultilanguagePageDetailsOptions): IUseMultilanguagePageDetails {
@@ -54,6 +59,13 @@ export function useMultilanguagePageDetails(options: UseMultilanguagePageDetails
     languages.value = pageLanguages;
   });
 
+  const { action: loadLanguages, loading: loadingLanguages } = useAsync(async () => {
+    if (id.value) {
+      const apiClient = await getApiClient();
+      languages.value = await apiClient.getLanguages(id.value);
+    }
+  });
+
   const { action: save, loading: saving } = useAsync(async () => {
     const apiClient = await getApiClient();
     const result = id.value ? await apiClient.update(item.value) : await apiClient.create(item.value);
@@ -69,12 +81,13 @@ export function useMultilanguagePageDetails(options: UseMultilanguagePageDetails
     }
   });
 
-  // Batch and per-language actions refresh the language table; their result is returned to show a summary.
+  // Batch and per-language actions refresh the language table only: the root form may hold unsaved edits.
+  // Their result is returned to show a summary.
   function withReload<TArgs, TResult>(action: (apiClient: MultilanguagePageClient, args: TArgs) => Promise<TResult>) {
     return useAsync<TArgs, TResult>(async (args) => {
       const apiClient = await getApiClient();
       const result = await action(apiClient, args as TArgs);
-      await load();
+      await loadLanguages();
       return result;
     });
   }
@@ -111,16 +124,19 @@ export function useMultilanguagePageDetails(options: UseMultilanguagePageDetails
     return apiClient.clone(id.value!);
   });
 
-  async function findLandingPages(cultureName: string, keyword?: string): Promise<PageBuilderPageListItem[]> {
+  // Archived pages are left out: they cannot serve a language.
+  async function findLandingPages(cultureName: string, keyword?: string, skip = 0) {
     const apiClient = await getPageApiClient();
     const result = await apiClient.searchList({
       storeId: item.value.storeId,
       pageType: PageTypes.Landing,
       languageCode: cultureName,
+      statuses: "Draft,Published",
       keyword,
+      skip,
       take: 50,
     });
-    return result.results ?? [];
+    return { totalCount: result.totalCount ?? 0, results: result.results ?? [] };
   }
 
   return {
@@ -129,6 +145,7 @@ export function useMultilanguagePageDetails(options: UseMultilanguagePageDetails
     isNew: computed(() => !id.value),
     loading: useLoading(
       loadingItem,
+      loadingLanguages,
       saving,
       removing,
       publishing,
@@ -141,6 +158,7 @@ export function useMultilanguagePageDetails(options: UseMultilanguagePageDetails
       cloning,
     ),
     load,
+    loadLanguages,
     save: save as () => Promise<MultilanguagePage>,
     remove,
     publishAll: publishAll as () => Promise<MultilanguagePageBatchResult>,

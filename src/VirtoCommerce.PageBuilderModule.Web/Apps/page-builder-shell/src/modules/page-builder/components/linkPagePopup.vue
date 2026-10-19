@@ -47,7 +47,11 @@ import { PageBuilderPageListItem } from "../../../api_client/virtocommerce.pageb
 interface Props {
   cultureName: string;
   /** Landing Pages of the language that can become its version. */
-  findPages: (cultureName: string, keyword?: string) => Promise<PageBuilderPageListItem[]>;
+  findPages: (
+    cultureName: string,
+    keyword?: string,
+    skip?: number,
+  ) => Promise<{ totalCount: number; results: PageBuilderPageListItem[] }>;
 }
 
 interface Emits {
@@ -60,11 +64,11 @@ defineEmits<Emits>();
 
 const groupId = ref<string>();
 
-async function loadPages(keyword?: string) {
-  const pages = await props.findPages(props.cultureName, keyword);
+async function loadPages(keyword?: string, skip?: number) {
+  const pages = await props.findPages(props.cultureName, keyword, skip);
   return {
-    totalCount: pages.length,
-    results: pages.map((x) => ({ id: x.id, title: `${x.name} (${x.permalink})` })),
+    totalCount: pages.totalCount,
+    results: pages.results.map((x) => ({ id: x.id, title: `${x.name} (${x.permalink})` })),
   };
 }
 </script>

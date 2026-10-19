@@ -195,9 +195,11 @@
       },
       "ALERTS": {
         "PUBLISH_ALL_RESULT": "Published: {processed}. Skipped (no draft): {skipped}.",
+        "BATCH_FAILED": "Failed: {failed}. Try these languages again.",
         "ARCHIVE_ALL_RESULT": "Archived: {processed}. Already archived: {skipped}.",
         "ARCHIVE_ALL": "Archive every language version of this page?",
-        "DELETE": "Delete this multilanguage page? Its language versions are kept as separate Landing Pages.",
+        "DELETE": "Delete this multilanguage page? It has no language versions.",
+        "DELETE_SUCCESS": "Multilanguage page deleted",
         "LANGUAGE_CREATED": "{language} version created as a draft",
         "UNLINK": "Unlink the {language} version? It is kept as a separate Landing Page."
       },
