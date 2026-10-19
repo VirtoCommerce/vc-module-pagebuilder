@@ -38,9 +38,12 @@ public static class MultilanguagePageLanguages
     /// </summary>
     public static bool IsOutdated(GroupedPageBuilderPage translation, DateTime? sourceRevisionDate)
     {
-        return translation != null && sourceRevisionDate != null &&
-               translation.Status != ModuleConstants.PageStatuses.Archived &&
-               (translation.SourceRevisionDate == null || translation.SourceRevisionDate < sourceRevisionDate);
+        if (translation == null || sourceRevisionDate == null || translation.Status == ModuleConstants.PageStatuses.Archived)
+        {
+            return false;
+        }
+
+        return translation.SourceRevisionDate == null || translation.SourceRevisionDate < sourceRevisionDate;
     }
 
     private static MultilanguagePageLanguage Create(MultilanguagePage root, string cultureName, GroupedPageBuilderPage page, bool isStoreLanguage,

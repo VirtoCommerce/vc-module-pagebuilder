@@ -93,6 +93,7 @@ namespace VirtoCommerce.PageBuilderModule.Web
             serviceCollection.AddBackgroundJob<PagesMigrationJob, PagesMigrationJobPayload>(triggerable: false);
             serviceCollection.AddBackgroundJob<AssetReferenceIndexRebuildJob, AssetReferenceIndexRebuildJobPayload>(triggerable: false);
             serviceCollection.AddTransient<PageBuilderSharedComponentExportImport>();
+            serviceCollection.AddTransient<MultilanguagePageExportImport>();
             serviceCollection.AddTransient<PageBuilderExportImport>();
 
             // Git content flow (disabled until PageBuilder:GitContent:Enabled is set AND a store opts in

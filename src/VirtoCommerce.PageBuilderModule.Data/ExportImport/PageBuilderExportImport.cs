@@ -23,11 +23,8 @@ public sealed class PageBuilderExportImport(
     PageBuilderSharedComponentExportImport sharedComponentExportImport,
     IEventPublisher eventPublisher,
     JsonSerializer jsonSerializer,
-    IMultilanguagePageService multilanguagePageService = null,
-    IMultilanguagePageSearchService multilanguagePageSearchService = null)
+    MultilanguagePageExportImport multilanguagePageExportImport = null)
 {
-    private const string MultilanguagePagesProperty = "PageBuilderMultilanguagePages";
-
     private const int BatchSize = 50;
 
     public async Task DoExportAsync(Stream outStream, Action<ExportImportProgressInfo> progressCallback, CancellationToken cancellationToken)
@@ -49,7 +46,10 @@ public sealed class PageBuilderExportImport(
             cancellationToken);
 
         // Roots go before pages: a language version can only be imported once its root exists.
-        await ExportMultilanguagePagesAsync(writer, progressInfo, progressCallback, cancellationToken);
+        if (multilanguagePageExportImport != null)
+        {
+            await multilanguagePageExportImport.ExportAsync(writer, progressInfo, progressCallback, cancellationToken);
+        }
 
         progressInfo.Description = "Page Builder pages are started to export";
         progressCallback(progressInfo);
@@ -134,10 +134,10 @@ public sealed class PageBuilderExportImport(
                         progressCallback,
                         cancellationToken);
                 }
-                else if (reader.Value?.ToString() == MultilanguagePagesProperty)
+                else if (reader.Value?.ToString() == MultilanguagePageExportImport.PropertyName && multilanguagePageExportImport != null)
                 {
                     hasMultilanguagePages = true;
-                    await ImportMultilanguagePagesAsync(reader, progressInfo, progressCallback, cancellationToken);
+                    await multilanguagePageExportImport.ImportAsync(reader, progressInfo, progressCallback, cancellationToken);
                 }
                 else if (reader.Value?.ToString() == "PageBuilderPages")
                 {
@@ -204,111 +204,15 @@ public sealed class PageBuilderExportImport(
         if (existingGroup != null)
         {
             await UpdateExistingGroupAsync(existingGroup, exportPage, cancellationToken);
-            if (hasMultilanguagePages || !string.IsNullOrEmpty(exportPage.MultilanguagePageId))
+            if (multilanguagePageExportImport != null && (hasMultilanguagePages || !string.IsNullOrEmpty(exportPage.MultilanguagePageId)))
             {
-                await SyncMultilanguageLinkAsync(existingGroup, exportPage, progressInfo, cancellationToken);
+                await multilanguagePageExportImport.SyncLinkAsync(existingGroup, exportPage.MultilanguagePageId, progressInfo, cancellationToken);
             }
         }
         else
         {
             await CreateNewGroupAsync(exportPage, progressInfo, cancellationToken);
         }
-    }
-
-    private async Task ExportMultilanguagePagesAsync(JsonTextWriter writer, ExportImportProgressInfo progressInfo,
-        Action<ExportImportProgressInfo> progressCallback, CancellationToken cancellationToken)
-    {
-        if (multilanguagePageSearchService == null)
-        {
-            return;
-        }
-
-        progressInfo.Description = "Page Builder multilanguage pages are started to export";
-        progressCallback(progressInfo);
-
-        await writer.WritePropertyNameAsync(MultilanguagePagesProperty, cancellationToken);
-        await writer.WriteStartArrayAsync(cancellationToken);
-
-        var criteria = AbstractTypeFactory<MultilanguagePageSearchCriteria>.TryCreateInstance();
-        foreach (var page in await multilanguagePageSearchService.SearchAllNoCloneAsync(criteria))
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            jsonSerializer.Serialize(writer, page);
-        }
-
-        await writer.WriteEndArrayAsync(cancellationToken);
-        await writer.FlushAsync(cancellationToken);
-    }
-
-    private async Task ImportMultilanguagePagesAsync(JsonTextReader reader, ExportImportProgressInfo progressInfo,
-        Action<ExportImportProgressInfo> progressCallback, CancellationToken cancellationToken)
-    {
-        if (!await reader.ReadAsync(cancellationToken) || reader.TokenType != JsonToken.StartArray)
-        {
-            return;
-        }
-
-        var pages = new List<MultilanguagePage>();
-        while (await reader.ReadAsync(cancellationToken) && reader.TokenType != JsonToken.EndArray)
-        {
-            var page = jsonSerializer.Deserialize<MultilanguagePage>(reader);
-            if (page != null)
-            {
-                pages.Add(page);
-            }
-        }
-
-        if (multilanguagePageService == null || pages.Count == 0)
-        {
-            return;
-        }
-
-        foreach (var batch in pages.Chunk(BatchSize))
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            await multilanguagePageService.SaveChangesAsync(batch);
-        }
-
-        progressInfo.Description = $"{pages.Count} page builder multilanguage pages have been imported";
-        progressCallback(progressInfo);
-    }
-
-    // A regular save never changes the link, so an existing page follows the exported one through link/unlink.
-    private async Task SyncMultilanguageLinkAsync(GroupedPageBuilderPage group, PageBuilderExportPage exportPage,
-        ExportImportProgressInfo progressInfo, CancellationToken cancellationToken)
-    {
-        if (multilanguagePageService == null || group.MultilanguagePageId == exportPage.MultilanguagePageId)
-        {
-            return;
-        }
-
-        try
-        {
-            if (!string.IsNullOrEmpty(group.MultilanguagePageId))
-            {
-                await multilanguagePageService.UnlinkAsync(group.Id, cancellationToken);
-            }
-
-            if (!string.IsNullOrEmpty(exportPage.MultilanguagePageId))
-            {
-                await multilanguagePageService.LinkAsync(exportPage.MultilanguagePageId, group.Id, cancellationToken);
-            }
-        }
-        catch (Exception ex) when (ex is InvalidOperationException or KeyNotFoundException)
-        {
-            progressInfo.Errors.Add($"Page '{group.Id}' was imported without its multilanguage page link: {ex.Message}");
-        }
-    }
-
-    // A page referencing a multilanguage page that is not in the target is imported as a Landing Page.
-    private async Task<string> GetExistingMultilanguagePageIdAsync(string multilanguagePageId)
-    {
-        if (multilanguagePageService == null || string.IsNullOrEmpty(multilanguagePageId))
-        {
-            return null;
-        }
-
-        return (await multilanguagePageService.GetByIdAsync(multilanguagePageId))?.Id;
     }
 
     private async Task UpdateExistingGroupAsync(
@@ -339,7 +243,10 @@ public sealed class PageBuilderExportImport(
         var newGroup = AbstractTypeFactory<GroupedPageBuilderPage>.TryCreateInstance();
         newGroup.Id = exportPage.GroupId;
         ApplyMetadata(newGroup, exportPage);
-        newGroup.MultilanguagePageId = await GetExistingMultilanguagePageIdAsync(exportPage.MultilanguagePageId);
+        if (multilanguagePageExportImport != null)
+        {
+            newGroup.MultilanguagePageId = await multilanguagePageExportImport.GetExistingIdAsync(exportPage.MultilanguagePageId);
+        }
 
         foreach (var variant in exportPage.Variants)
         {

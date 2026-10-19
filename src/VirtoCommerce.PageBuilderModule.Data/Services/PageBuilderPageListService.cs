@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
+using VirtoCommerce.PageBuilderModule.Data.Models;
 using VirtoCommerce.PageBuilderModule.Data.Repositories;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.StoreModule.Core.Services;
@@ -16,10 +17,22 @@ public class PageBuilderPageListService(
     IStoreService storeService)
     : IPageBuilderPageListService
 {
-    public virtual async Task<PageBuilderPageListSearchResult> SearchAsync(PageBuilderPageSearchCriteria criteria, CancellationToken cancellationToken = default)
+    public virtual Task<PageBuilderPageListSearchResult> SearchAsync(PageBuilderPageSearchCriteria criteria, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(criteria);
 
+        return SearchCoreAsync(criteria, cancellationToken);
+    }
+
+    public virtual Task<IList<PermalinkUsage>> FindPermalinkUsageAsync(PermalinkUsageRequest request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        return FindPermalinkUsageCoreAsync(request, cancellationToken);
+    }
+
+    protected virtual async Task<PageBuilderPageListSearchResult> SearchCoreAsync(PageBuilderPageSearchCriteria criteria, CancellationToken cancellationToken)
+    {
         var result = AbstractTypeFactory<PageBuilderPageListSearchResult>.TryCreateInstance();
         IList<Row> rows;
 
@@ -50,10 +63,8 @@ public class PageBuilderPageListService(
         return result;
     }
 
-    public virtual async Task<IList<PermalinkUsage>> FindPermalinkUsageAsync(PermalinkUsageRequest request, CancellationToken cancellationToken = default)
+    protected virtual async Task<IList<PermalinkUsage>> FindPermalinkUsageCoreAsync(PermalinkUsageRequest request, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(request);
-
         if (string.IsNullOrWhiteSpace(request.StoreId) || string.IsNullOrWhiteSpace(request.Permalink))
         {
             return [];
@@ -105,7 +116,6 @@ public class PageBuilderPageListService(
         IList<string> languagesToHave)
     {
         var translationStatus = criteria.TranslationStatus;
-        var languageCode = criteria.LanguageCode;
 
         // A missing language has no version to match, so versions are matched in any language.
         var versionCriteria = criteria;
@@ -129,51 +139,8 @@ public class PageBuilderPageListService(
                 ModifiedDate = x.ModifiedDate,
             });
 
-        var matchingRootIds = groups
-            .Where(x => x.MultilanguagePageId != null)
-            .Select(x => x.MultilanguagePageId);
-
-        var roots = repository.MultilanguagePages.AsQueryable();
-        if (!string.IsNullOrEmpty(criteria.StoreId))
-        {
-            roots = roots.Where(x => x.StoreId == criteria.StoreId);
-        }
-
-        if (FiltersLanguageVersions(versionCriteria))
-        {
-            roots = roots.Where(x => matchingRootIds.Contains(x.Id));
-        }
-        else
-        {
-            // Without version filters a root is listed even before it has any language version.
-            var keyword = criteria.Keyword;
-            roots = roots.Where(x => matchingRootIds.Contains(x.Id) ||
-                                     string.IsNullOrEmpty(keyword) ||
-                                     x.Name.Contains(keyword) ||
-                                     x.Permalink.Contains(keyword));
-        }
-
-        if (translationStatus == TranslationStatuses.Missing)
-        {
-            // One version per language: fewer versions in these languages than languages means one is missing.
-            var versions = repository.GroupedPageBuilderPages;
-            roots = roots.Where(x =>
-                versions.Count(g => g.MultilanguagePageId == x.Id && languagesToHave.Contains(g.CultureName)) < languagesToHave.Count);
-        }
-        else if (translationStatus == TranslationStatuses.Outdated)
-        {
-            var versions = repository.GroupedPageBuilderPages;
-            roots = roots.Where(x => versions.Any(g =>
-                g.MultilanguagePageId == x.Id &&
-                g.CultureName != x.DefaultCultureName &&
-                (languageCode == null || g.CultureName == languageCode) &&
-                g.Pages.Any(p => p.Status != PageStatuses.Archived) &&
-                versions.Any(source =>
-                    source.MultilanguagePageId == x.Id &&
-                    source.CultureName == x.DefaultCultureName &&
-                    source.SourceRevisionDate != null &&
-                    (g.SourceRevisionDate == null || g.SourceRevisionDate < source.SourceRevisionDate))));
-        }
+        var roots = FilterRoots(repository, criteria, versionCriteria, groups);
+        roots = FilterByTranslationStatus(repository, roots, criteria, languagesToHave);
 
         var multilanguagePages = roots.Select(x => new Row
         {
@@ -194,6 +161,71 @@ public class PageBuilderPageListService(
             PageTypes.Multilanguage => multilanguagePages,
             _ => landingPages.Concat(multilanguagePages),
         };
+    }
+
+    /// <summary>
+    /// Roots of the store; with version filters, only the roots with a matching language version.
+    /// </summary>
+    protected virtual IQueryable<MultilanguagePageEntity> FilterRoots(IPageBuilderModuleRepository repository, PageBuilderPageSearchCriteria criteria,
+        PageBuilderPageSearchCriteria versionCriteria, IQueryable<GroupedPageBuilderPageEntity> groups)
+    {
+        var matchingRootIds = groups
+            .Where(x => x.MultilanguagePageId != null)
+            .Select(x => x.MultilanguagePageId);
+
+        var roots = repository.MultilanguagePages.AsQueryable();
+        if (!string.IsNullOrEmpty(criteria.StoreId))
+        {
+            roots = roots.Where(x => x.StoreId == criteria.StoreId);
+        }
+
+        if (FiltersLanguageVersions(versionCriteria))
+        {
+            return roots.Where(x => matchingRootIds.Contains(x.Id));
+        }
+
+        // Without version filters a root is listed even before it has any language version.
+        var keyword = criteria.Keyword;
+        if (string.IsNullOrEmpty(keyword))
+        {
+            return roots;
+        }
+
+        return roots.Where(x => matchingRootIds.Contains(x.Id) || x.Name.Contains(keyword) || x.Permalink.Contains(keyword));
+    }
+
+    protected virtual IQueryable<MultilanguagePageEntity> FilterByTranslationStatus(IPageBuilderModuleRepository repository,
+        IQueryable<MultilanguagePageEntity> roots, PageBuilderPageSearchCriteria criteria, IList<string> languagesToHave)
+    {
+        var versions = repository.GroupedPageBuilderPages;
+
+        if (criteria.TranslationStatus == TranslationStatuses.Missing)
+        {
+            // One version per language: fewer versions in these languages than languages means one is missing.
+            return roots.Where(x =>
+                versions.Count(g => g.MultilanguagePageId == x.Id && languagesToHave.Contains(g.CultureName)) < languagesToHave.Count);
+        }
+
+        if (criteria.TranslationStatus != TranslationStatuses.Outdated)
+        {
+            return roots;
+        }
+
+        // A served (not archived) translation based on an older publication of the source language than its latest one.
+        var translations = versions.Where(g => g.Pages.Any(p => p.Status != PageStatuses.Archived));
+        var languageCode = criteria.LanguageCode;
+        if (!string.IsNullOrEmpty(languageCode))
+        {
+            translations = translations.Where(g => g.CultureName == languageCode);
+        }
+
+        var publishedSources = versions.Where(source => source.SourceRevisionDate != null);
+
+        return roots.Where(x => translations
+            .Where(g => g.MultilanguagePageId == x.Id && g.CultureName != x.DefaultCultureName)
+            .Any(g => publishedSources
+                .Where(source => source.MultilanguagePageId == x.Id && source.CultureName == x.DefaultCultureName)
+                .Any(source => g.SourceRevisionDate == null || g.SourceRevisionDate < source.SourceRevisionDate)));
     }
 
     protected virtual IList<SortInfo> BuildSortExpression(PageBuilderPageSearchCriteria criteria)
@@ -293,11 +325,9 @@ public class PageBuilderPageListService(
 
     private static bool FiltersLanguageVersions(PageBuilderPageSearchCriteria criteria)
     {
-        return !string.IsNullOrEmpty(criteria.Statuses) ||
-               !string.IsNullOrEmpty(criteria.Lifecycle) ||
-               criteria.ActiveOn.HasValue ||
-               !string.IsNullOrEmpty(criteria.LanguageCode) ||
-               criteria.ObjectIds is { Count: > 0 };
+        var filtersByStatus = !string.IsNullOrEmpty(criteria.Statuses) || !string.IsNullOrEmpty(criteria.Lifecycle) || criteria.ActiveOn.HasValue;
+
+        return filtersByStatus || !string.IsNullOrEmpty(criteria.LanguageCode) || criteria.ObjectIds is { Count: > 0 };
     }
 
     /// <summary>

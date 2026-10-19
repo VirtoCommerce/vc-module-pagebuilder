@@ -845,7 +845,8 @@ public class MultilanguagePageServiceTests
             var sharedComponents = new PageBuilderSharedComponentExportImport(
                 new NoopSharedComponentReferenceIndexService(), null!, null!, null!, jsonSerializer);
 
-            return new PageBuilderExportImport(Groups, GroupSearch, null!, sharedComponents, null!, jsonSerializer, Roots, null);
+            return new PageBuilderExportImport(Groups, GroupSearch, null!, sharedComponents, null!, jsonSerializer,
+                new MultilanguagePageExportImport(Roots, null, jsonSerializer));
         }
 
         /// <param name="failPublishingCultureName">Saving a published version of this language fails, like a storage error would.</param>

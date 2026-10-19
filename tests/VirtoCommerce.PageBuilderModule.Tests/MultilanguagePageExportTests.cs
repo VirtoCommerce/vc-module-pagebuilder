@@ -33,8 +33,10 @@ public class MultilanguagePageExportTests
             sharedComponents,
             null!,
             jsonSerializer,
-            null,
-            new FakeMultilanguagePageSearchService([new MultilanguagePage { Id = "root-1", Name = "FAQ" }]));
+            new MultilanguagePageExportImport(
+                null,
+                new FakeMultilanguagePageSearchService([new MultilanguagePage { Id = "root-1", Name = "FAQ" }]),
+                jsonSerializer));
 
         await using var output = new MemoryStream();
         await exportImport.DoExportAsync(output, _ => { }, TestContext.Current.CancellationToken);
