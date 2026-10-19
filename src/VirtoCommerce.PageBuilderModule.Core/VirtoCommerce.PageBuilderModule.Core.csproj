@@ -7,14 +7,9 @@
     <PackageReference Include="VirtoCommerce.AssetsModule.Core" Version="3.1010.0" />
     <PackageReference Include="VirtoCommerce.ContentModule.Core" Version="3.1006.0" />
     <PackageReference Include="VirtoCommerce.CustomerModule.Core" Version="3.1028.0" />
-    <!-- TEMP (VCST-4935): local vc-module-pages until a release with PageDocument.TranslationGroupId. Revert to the package before the PR. -->
-    <!-- <PackageReference Include="VirtoCommerce.Pages.Core" Version="3.1010.0" /> -->
+    <PackageReference Include="VirtoCommerce.Pages.Core" Version="3.1011.0-alpha.88-vcst-4935" />
     <PackageReference Include="VirtoCommerce.Platform.Core" Version="3.1083.0" />
     <PackageReference Include="VirtoCommerce.StoreModule.Core" Version="3.1009.0" />
     <PackageReference Include="VirtoCommerce.SearchModule.Core" Version="3.1010.0" />
-  </ItemGroup>
-  <ItemGroup>
-    <!-- TEMP (VCST-4935): see the commented-out Pages.Core package above. -->
-    <ProjectReference Include="..\..\..\vc-module-pages\src\VirtoCommerce.Pages.Core\VirtoCommerce.Pages.Core.csproj" />
   </ItemGroup>
 </Project>
