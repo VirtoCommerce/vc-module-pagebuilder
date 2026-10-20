@@ -185,13 +185,14 @@ public class PageBuilderPageListService(
         }
 
         // Without version filters a root is listed even before it has any language version.
-        var keyword = criteria.Keyword;
-        if (string.IsNullOrEmpty(keyword))
+        if (string.IsNullOrEmpty(criteria.Keyword))
         {
             return roots;
         }
 
-        return roots.Where(x => matchingRootIds.Contains(x.Id) || x.Name.Contains(keyword) || x.Permalink.Contains(keyword));
+        // Ignores case like the language versions filter (see GroupedPageSearchService).
+        var keyword = criteria.Keyword.ToLower();
+        return roots.Where(x => matchingRootIds.Contains(x.Id) || x.Name.ToLower().Contains(keyword) || x.Permalink.ToLower().Contains(keyword));
     }
 
     protected virtual IQueryable<MultilanguagePageEntity> FilterByTranslationStatus(IPageBuilderModuleRepository repository,

@@ -742,6 +742,23 @@ public class MultilanguagePageServiceTests
     }
 
     [Fact]
+    public async Task Search_KeywordIgnoresCase_ForLandingAndMultilanguagePages()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var root = await fixture.CreateRootAsync("Searchable root");
+        var landing = await fixture.CreateLanguageAsync(null, "en-US", permalink: "/summer", name: "qa-searchable-landing", draftContent: Content("summer"));
+
+        // Upper case first: a search answered from the cache must not hide a case-sensitive query.
+        var list = await fixture.List.SearchAsync(
+            new PageBuilderPageSearchCriteria { StoreId = StoreId, Keyword = "SEARCHABLE", Take = 10 },
+            TestContext.Current.CancellationToken);
+        var groups = await fixture.GroupSearch.SearchAsync(new PageBuilderPageSearchCriteria { StoreId = StoreId, Keyword = "SEARCHABLE", Take = 10 });
+
+        Assert.Equal([landing.Id, root.Id], list.Results.Select(x => x.Id).Order());
+        Assert.Equal([landing.Id], groups.Results.Select(x => x.Id));
+    }
+
+    [Fact]
     public async Task PublishAllAsync_LanguageFails_PublishesOthersAndReportsFailure()
     {
         await using var fixture = await Fixture.CreateAsync(failPublishingCultureName: "nl-NL");

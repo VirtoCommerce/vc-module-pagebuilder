@@ -40,7 +40,9 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
 
             if (!criteria.Keyword.IsNullOrEmpty())
             {
-                query = query.Where(x => x.Name.Contains(criteria.Keyword) || x.Permalink.Contains(criteria.Keyword));
+                // PostgreSQL compares case-sensitively; lower case on both sides ignores case on every provider.
+                var keyword = criteria.Keyword.ToLower();
+                query = query.Where(x => x.Name.ToLower().Contains(keyword) || x.Permalink.ToLower().Contains(keyword));
             }
 
             query = ApplyStatusFilter(query, criteria);
