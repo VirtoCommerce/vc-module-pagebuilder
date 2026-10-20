@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.Models;
@@ -23,7 +24,8 @@ public class MultilanguagePageService(
     IGroupedPageContentService groupedPageContentService,
     IGroupedPageSearchService groupedPageSearchService,
     IStoreService storeService,
-    IPageBuilderPageService pageService)
+    IPageBuilderPageService pageService,
+    ILogger<MultilanguagePageService> logger)
     : CrudService<MultilanguagePage, MultilanguagePageEntity, MultilanguagePageChangingEvent, MultilanguagePageChangedEvent>(
         repositoryFactory, platformMemoryCache, eventPublisher),
       IMultilanguagePageService
@@ -88,6 +90,35 @@ public class MultilanguagePageService(
         await base.DeleteAsync(ids, softDelete);
     }
 
+    public virtual async Task<MultilanguagePage> UpdateAsync(MultilanguagePage model, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(model);
+
+        var existing = await GetRequiredAsync(model.Id);
+        // A multilanguage page never moves to another store.
+        model.StoreId = existing.StoreId;
+
+        if (!string.IsNullOrWhiteSpace(model.DefaultCultureName) &&
+            !string.Equals(model.DefaultCultureName, existing.DefaultCultureName, StringComparison.OrdinalIgnoreCase))
+        {
+            // The source language must be served by the store and have a version, like the page a convert starts from.
+            var store = await storeService.GetByIdAsync(existing.StoreId);
+            if (store?.Languages?.Contains(model.DefaultCultureName, StringComparer.OrdinalIgnoreCase) != true)
+            {
+                throw new InvalidOperationException($"'{model.DefaultCultureName}' is not a language of store '{existing.StoreId}'.");
+            }
+
+            var source = (await GetLanguageVersionsAsync(existing.Id))
+                .FirstOrDefault(x => string.Equals(x.CultureName, model.DefaultCultureName, StringComparison.OrdinalIgnoreCase))
+                ?? throw new InvalidOperationException($"Multilanguage page '{existing.Id}' has no '{model.DefaultCultureName}' version.");
+            model.DefaultCultureName = source.CultureName;
+        }
+
+        await SaveChangesAsync([model]);
+
+        return model;
+    }
+
     public virtual async Task<GroupedPageBuilderPage> LinkAsync(string multilanguagePageId, string groupId, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(groupId);
@@ -117,12 +148,27 @@ public class MultilanguagePageService(
             throw new InvalidOperationException($"Multilanguage page '{root.Id}' already has a '{group.CultureName}' version.");
         }
 
+        // Checked before the link is written: the save below would reject the page, leaving it linked.
+        if (string.IsNullOrWhiteSpace(group.CultureName))
+        {
+            throw new InvalidOperationException($"Page '{groupId}' must have a language to become a language version.");
+        }
+
         await SetMultilanguagePageIdAsync(groupId, root.Id, cancellationToken);
 
-        group = await groupedPageService.GetByIdAsync(groupId);
-        // The save takes the root name and marks whatever differs from the root as overridden, so the page keeps
-        // serving the same permalink and settings. It also reindexes the page with its translation group.
-        await groupedPageContentService.SaveGroupSettingsAsync(group, cancellationToken);
+        try
+        {
+            group = await groupedPageService.GetByIdAsync(groupId);
+            // The save takes the root name and marks whatever differs from the root as overridden, so the page keeps
+            // serving the same permalink and settings. It also reindexes the page with its translation group.
+            await groupedPageContentService.SaveGroupSettingsAsync(group, cancellationToken);
+        }
+        catch
+        {
+            // A failed or cancelled save (e.g. a concurrent version of the same language) must not leave the page linked.
+            await TryRollbackAsync(() => SetMultilanguagePageIdAsync(groupId, null, CancellationToken.None), $"unlink page '{groupId}'");
+            throw;
+        }
 
         return group;
     }
@@ -169,7 +215,7 @@ public class MultilanguagePageService(
     {
         var source = await GetRequiredAsync(multilanguagePageId);
 
-        var clone = (MultilanguagePage)source.Clone();
+        var clone = source.CloneTyped();
         clone.Id = null;
         clone.Name = $"{source.Name} (copy)";
         clone.Permalink = WithCopySuffix(source.Permalink);
@@ -251,7 +297,7 @@ public class MultilanguagePageService(
         catch
         {
             // The root exists only for this page; without it the root would stay as an empty Multilanguage Page.
-            await base.DeleteAsync([root.Id]);
+            await TryRollbackAsync(() => base.DeleteAsync([root.Id]), $"delete multilanguage page '{root.Id}'");
             throw;
         }
 
@@ -354,21 +400,29 @@ public class MultilanguagePageService(
                 continue;
             }
 
+            var published = false;
             try
             {
                 await groupedPageService.SaveChangesAsync([group]);
+                published = true;
+                await pageService.DeleteAsync(obsoletePageIds);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 // One failing language does not stop the others; the summary reports it.
+                logger.LogError(ex, "Publishing the {CultureName} version '{GroupId}' of multilanguage page '{MultilanguagePageId}' failed.",
+                    group.CultureName, group.Id, root.Id);
                 // The publish changed a shared cached copy of the version, so the cache must not serve it.
                 GenericCachingRegion<GroupedPageBuilderPage>.ExpireTokenForKey(group.Id);
                 GenericSearchCachingRegion<GroupedPageBuilderPage>.ExpireRegion();
-                result.Skipped.Add(new MultilanguagePageBatchSkip { CultureName = group.CultureName, Reason = MultilanguagePageBatchResult.FailedReason });
-                continue;
+                if (!published)
+                {
+                    result.Skipped.Add(new MultilanguagePageBatchSkip { CultureName = group.CultureName, Reason = MultilanguagePageBatchResult.FailedReason });
+                    continue;
+                }
             }
 
-            await pageService.DeleteAsync(obsoletePageIds);
+            // A version whose obsolete pages were not removed is still published; they are cleaned up on its next publish.
             result.ProcessedCultureNames.Add(group.CultureName);
         }
 
@@ -400,6 +454,19 @@ public class MultilanguagePageService(
         }
 
         return result;
+    }
+
+    // A failing rollback is logged, so the caller still gets the error that caused it.
+    private async Task TryRollbackAsync(Func<Task> rollback, string description)
+    {
+        try
+        {
+            await rollback();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Rollback failed: could not {Rollback}.", description);
+        }
     }
 
     private async Task<MultilanguagePage> GetRequiredAsync(string multilanguagePageId)

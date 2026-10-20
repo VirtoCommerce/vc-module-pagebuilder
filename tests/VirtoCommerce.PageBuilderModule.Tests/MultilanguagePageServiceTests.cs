@@ -333,6 +333,18 @@ public class MultilanguagePageServiceTests
     }
 
     [Fact]
+    public async Task LinkAsync_PageWithoutLanguage_ThrowsAndKeepsItUnlinked()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var root = await fixture.CreateRootAsync();
+        var noLanguage = await fixture.CreateLanguageAsync(null, null, permalink: "/faq");
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => fixture.Roots.LinkAsync(root.Id, noLanguage.Id, TestContext.Current.CancellationToken));
+
+        Assert.Null((await fixture.LoadGroupAsync(noLanguage.Id)).MultilanguagePageId);
+    }
+
+    [Fact]
     public async Task UnlinkAsync_KeepsValuesAndClearsMask()
     {
         await using var fixture = await Fixture.CreateAsync();
@@ -713,6 +725,42 @@ public class MultilanguagePageServiceTests
     }
 
     [Fact]
+    public async Task UpdateAsync_DefaultCultureWithoutVersionOrNotAStoreLanguage_ThrowsAndKeepsStoredValue()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var root = await fixture.CreateRootAsync();
+        await fixture.CreateLanguageAsync(root, "en-US");
+        await fixture.CreateLanguageAsync(null, "fr-FR", permalink: "/faq");
+
+        var noVersion = await fixture.Roots.GetByIdAsync(root.Id);
+        noVersion.DefaultCultureName = "nl-NL";
+        var notAStoreLanguage = await fixture.Roots.GetByIdAsync(root.Id);
+        notAStoreLanguage.DefaultCultureName = "fr-FR";
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => fixture.Roots.UpdateAsync(noVersion, TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => fixture.Roots.UpdateAsync(notAStoreLanguage, TestContext.Current.CancellationToken));
+
+        Assert.Equal("en-US", (await fixture.Roots.GetByIdAsync(root.Id)).DefaultCultureName);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_DefaultCultureWithVersion_IsSaved()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var root = await fixture.CreateRootAsync();
+        await fixture.CreateLanguageAsync(root, "en-US");
+        await fixture.CreateLanguageAsync(root, "nl-NL");
+
+        var update = await fixture.Roots.GetByIdAsync(root.Id);
+        update.DefaultCultureName = "NL-nl";
+        update.StoreId = "another-store";
+        await fixture.Roots.UpdateAsync(update, TestContext.Current.CancellationToken);
+
+        var saved = await fixture.Roots.GetByIdAsync(root.Id);
+        Assert.Equal(("nl-NL", StoreId), (saved.DefaultCultureName, saved.StoreId));
+    }
+
+    [Fact]
     public async Task UnlinkAsync_ClearsSourceRevision()
     {
         await using var fixture = await Fixture.CreateAsync();
@@ -754,8 +802,22 @@ public class MultilanguagePageServiceTests
             TestContext.Current.CancellationToken);
         var groups = await fixture.GroupSearch.SearchAsync(new PageBuilderPageSearchCriteria { StoreId = StoreId, Keyword = "SEARCHABLE", Take = 10 });
 
-        Assert.Equal([landing.Id, root.Id], list.Results.Select(x => x.Id).Order());
+        Assert.Equal(new[] { landing.Id, root.Id }.Order(), list.Results.Select(x => x.Id).Order());
         Assert.Equal([landing.Id], groups.Results.Select(x => x.Id));
+    }
+
+    [Fact]
+    public async Task MultilanguagePageSearch_KeywordIgnoresCase()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var root = await fixture.CreateRootAsync("Searchable root");
+        await fixture.CreateRootAsync("Other");
+
+        var byName = await fixture.RootSearch.SearchAsync(new MultilanguagePageSearchCriteria { StoreId = StoreId, Keyword = "SEARCHABLE", Take = 10 });
+        var byPermalink = await fixture.RootSearch.SearchAsync(new MultilanguagePageSearchCriteria { StoreId = StoreId, Keyword = "ABOUT-US", Take = 10 });
+
+        Assert.Equal([root.Id], byName.Results.Select(x => x.Id));
+        Assert.Equal(2, byPermalink.TotalCount);
     }
 
     [Fact]
@@ -827,7 +889,9 @@ public class MultilanguagePageServiceTests
                 Groups,
                 groupSearch,
                 storeService,
-                new PageBuilderPageService(repositoryFactory, _cache, events));
+                new PageBuilderPageService(repositoryFactory, _cache, events),
+                NullLogger<MultilanguagePageService>.Instance);
+            RootSearch = new MultilanguagePageSearchService(repositoryFactory, _cache, Roots, Options.Create(new CrudOptions()));
             List = new PageBuilderPageListService(repositoryFactory, groupSearch, Groups, Roots, storeService);
         }
 
@@ -836,6 +900,8 @@ public class MultilanguagePageServiceTests
         public GroupedPageService Groups { get; }
 
         public MultilanguagePageService Roots { get; }
+
+        public MultilanguagePageSearchService RootSearch { get; }
 
         public PageBuilderPageListService List { get; }
 

@@ -30,6 +30,8 @@ public class PageBuilderModuleDbContext : DbContextBase
         modelBuilder.Entity<GroupedPageBuilderPageEntity>().HasOne(x => x.MultilanguagePage).WithMany()
             .HasForeignKey(x => x.MultilanguagePageId).OnDelete(DeleteBehavior.Restrict).IsRequired(false);
         modelBuilder.Entity<GroupedPageBuilderPageEntity>().HasIndex(x => x.MultilanguagePageId);
+        // One version per language: the services check it before saving, the index keeps concurrent writers from both passing.
+        modelBuilder.Entity<GroupedPageBuilderPageEntity>().HasIndex(x => new { x.MultilanguagePageId, x.CultureName }).IsUnique();
 
         modelBuilder.Entity<MultilanguagePageEntity>().ToTable("PageBuilderMultilanguagePage").HasKey(x => x.Id);
         modelBuilder.Entity<MultilanguagePageEntity>().Property(x => x.Id).HasMaxLength(IdLength).ValueGeneratedOnAdd();

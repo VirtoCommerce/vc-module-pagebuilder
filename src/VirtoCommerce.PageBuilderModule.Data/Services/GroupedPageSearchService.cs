@@ -41,7 +41,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
             if (!criteria.Keyword.IsNullOrEmpty())
             {
                 // PostgreSQL compares case-sensitively; lower case on both sides ignores case on every provider.
-                var keyword = criteria.Keyword.ToLower();
+                var keyword = criteria.Keyword.ToLowerInvariant();
                 query = query.Where(x => x.Name.ToLower().Contains(keyword) || x.Permalink.ToLower().Contains(keyword));
             }
 

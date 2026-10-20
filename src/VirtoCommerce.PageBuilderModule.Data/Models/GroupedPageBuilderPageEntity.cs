@@ -67,7 +67,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Models
             model.OverriddenFields = OverriddenFields;
             model.SourceRevisionDate = SourceRevisionDate;
 
-            model.Pages =Pages.Select(x => x.ToModel(AbstractTypeFactory<PageBuilderPage>.TryCreateInstance())).ToList();
+            model.Pages = Pages.Select(x => x.ToModel(AbstractTypeFactory<PageBuilderPage>.TryCreateInstance())).ToList();
 
             return model;
         }

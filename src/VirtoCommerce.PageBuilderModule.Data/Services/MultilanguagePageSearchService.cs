@@ -30,7 +30,9 @@ public class MultilanguagePageSearchService(
 
         if (!string.IsNullOrWhiteSpace(criteria.Keyword))
         {
-            query = query.Where(x => x.Name.Contains(criteria.Keyword) || x.Permalink.Contains(criteria.Keyword));
+            // Ignores case on every provider, like the page search (see GroupedPageSearchService).
+            var keyword = criteria.Keyword.ToLowerInvariant();
+            query = query.Where(x => x.Name.ToLower().Contains(keyword) || x.Permalink.ToLower().Contains(keyword));
         }
 
         if (!criteria.ObjectIds.IsNullOrEmpty())

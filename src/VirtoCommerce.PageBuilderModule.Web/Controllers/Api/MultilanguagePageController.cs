@@ -111,11 +111,14 @@ public class MultilanguagePageController(
             return Forbidden;
         }
 
-        // A multilanguage page never moves to another store.
-        model.StoreId = existing.StoreId;
-        await multilanguagePageService.SaveChangesAsync([model]);
-
-        return Ok(model);
+        try
+        {
+            return Ok(await multilanguagePageService.UpdateAsync(model));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
     /// <summary>

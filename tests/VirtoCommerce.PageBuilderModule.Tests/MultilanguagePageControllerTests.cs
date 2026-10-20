@@ -88,6 +88,21 @@ public class MultilanguagePageControllerTests
     }
 
     [Fact]
+    public async Task Update_DefaultCultureWithoutVersion_IsBadRequest()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var root = await fixture.CreateRootAsync();
+        await fixture.CreateLanguageAsync(root, "en-US");
+        var controller = CreateController(fixture);
+
+        root.DefaultCultureName = "nl-NL";
+        var result = await controller.Update(root);
+
+        Assert.IsType<BadRequestObjectResult>(result.Result);
+        Assert.Equal("en-US", (await fixture.Roots.GetByIdAsync(root.Id)).DefaultCultureName);
+    }
+
+    [Fact]
     public async Task ServiceRejection_IsBadRequest()
     {
         await using var fixture = await Fixture.CreateAsync();

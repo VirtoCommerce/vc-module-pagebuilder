@@ -265,9 +265,10 @@ public sealed class PageBuilderExportImport(
         catch (InvalidDataException ex) when (!string.IsNullOrEmpty(newGroup.MultilanguagePageId))
         {
             // The root already has this language (or is in another store): the page is kept as a Landing Page.
-            progressInfo.Errors.Add($"Page '{newGroup.Id}' was imported without its multilanguage page link: {ex.Message}");
+            // The link is the only difference, so an error unrelated to it fails the retry and is not reported as a link error.
             newGroup.MultilanguagePageId = null;
             await groupedPageService.SaveChangesAsync([newGroup]);
+            progressInfo.Errors.Add($"Page '{newGroup.Id}' was imported without its multilanguage page link: {ex.Message}");
         }
 
         await SaveVariantsContentAsync(exportPage.Variants, cancellationToken);

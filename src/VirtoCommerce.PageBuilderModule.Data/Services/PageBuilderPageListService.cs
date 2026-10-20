@@ -191,7 +191,7 @@ public class PageBuilderPageListService(
         }
 
         // Ignores case like the language versions filter (see GroupedPageSearchService).
-        var keyword = criteria.Keyword.ToLower();
+        var keyword = criteria.Keyword.ToLowerInvariant();
         return roots.Where(x => matchingRootIds.Contains(x.Id) || x.Name.ToLower().Contains(keyword) || x.Permalink.ToLower().Contains(keyword));
     }
 

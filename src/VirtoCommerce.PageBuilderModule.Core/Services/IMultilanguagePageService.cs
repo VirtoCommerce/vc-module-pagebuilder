@@ -10,6 +10,11 @@ namespace VirtoCommerce.PageBuilderModule.Core.Services;
 public interface IMultilanguagePageService : ICrudService<MultilanguagePage>
 {
     /// <summary>
+    /// Saves an existing root in its own store. A new default language must be a store language with a version.
+    /// </summary>
+    Task<MultilanguagePage> UpdateAsync(MultilanguagePage model, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Makes an existing page a language version of the root. Fields whose value differs from the root become overridden,
     /// so linking never changes how the page is served.
     /// </summary>
