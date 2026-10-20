@@ -32,7 +32,9 @@ public class MultilanguagePageSearchService(
         {
             // Ignores case on every provider, like the page search (see GroupedPageSearchService).
             var keyword = criteria.Keyword.ToLowerInvariant();
+#pragma warning disable CA1862 // IQueryable: the StringComparison overload does not translate to SQL
             query = query.Where(x => x.Name.ToLower().Contains(keyword) || x.Permalink.ToLower().Contains(keyword));
+#pragma warning restore CA1862
         }
 
         if (!criteria.ObjectIds.IsNullOrEmpty())

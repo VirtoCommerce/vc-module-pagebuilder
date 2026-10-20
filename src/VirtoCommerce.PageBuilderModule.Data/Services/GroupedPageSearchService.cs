@@ -42,7 +42,9 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
             {
                 // PostgreSQL compares case-sensitively; lower case on both sides ignores case on every provider.
                 var keyword = criteria.Keyword.ToLowerInvariant();
+#pragma warning disable CA1862 // IQueryable: the StringComparison overload does not translate to SQL
                 query = query.Where(x => x.Name.ToLower().Contains(keyword) || x.Permalink.ToLower().Contains(keyword));
+#pragma warning restore CA1862
             }
 
             query = ApplyStatusFilter(query, criteria);

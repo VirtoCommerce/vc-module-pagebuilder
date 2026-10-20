@@ -192,7 +192,9 @@ public class PageBuilderPageListService(
 
         // Ignores case like the language versions filter (see GroupedPageSearchService).
         var keyword = criteria.Keyword.ToLowerInvariant();
+#pragma warning disable CA1862 // IQueryable: the StringComparison overload does not translate to SQL
         return roots.Where(x => matchingRootIds.Contains(x.Id) || x.Name.ToLower().Contains(keyword) || x.Permalink.ToLower().Contains(keyword));
+#pragma warning restore CA1862
     }
 
     protected virtual IQueryable<MultilanguagePageEntity> FilterByTranslationStatus(IPageBuilderModuleRepository repository,
@@ -280,7 +282,7 @@ public class PageBuilderPageListService(
             .ToList();
     }
 
-    private async Task<IList<GroupedPageBuilderPage>> GetLanguageVersionsAsync(IList<string> rootIds)
+    private async Task<IList<GroupedPageBuilderPage>> GetLanguageVersionsAsync(List<string> rootIds)
     {
         if (rootIds.Count == 0)
         {

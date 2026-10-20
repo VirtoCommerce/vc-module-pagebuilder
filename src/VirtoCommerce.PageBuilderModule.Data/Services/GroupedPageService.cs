@@ -287,7 +287,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
         // whichever writer saves it (the page blade, import, a client sending a link with a new page).
         private static async Task ValidateLanguageVersionsAsync(
             IDictionary<GroupedPageBuilderPage, string> rootIdsByGroup,
-            IDictionary<string, MultilanguagePage> roots,
+            Dictionary<string, MultilanguagePage> roots,
             IPageBuilderModuleRepository repository,
             CancellationToken cancellationToken)
         {

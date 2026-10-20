@@ -67,6 +67,7 @@ public class MultilanguagePageService(
 
         foreach (var root in changedEntries.Where(x => x.EntryState == EntryState.Modified).Select(x => x.NewEntry))
         {
+    #pragma warning disable S3267 // Apply changes the group; a Where predicate should not have side effects
             foreach (var group in await GetLanguageVersionsAsync(root.Id))
             {
                 if (MultilanguagePageInheritance.Apply(root, group))
@@ -74,6 +75,7 @@ public class MultilanguagePageService(
                     await groupedPageContentService.SaveGroupSettingsAsync(group);
                 }
             }
+#pragma warning restore S3267
         }
     }
 
@@ -90,10 +92,15 @@ public class MultilanguagePageService(
         await base.DeleteAsync(ids, softDelete);
     }
 
-    public virtual async Task<MultilanguagePage> UpdateAsync(MultilanguagePage model, CancellationToken cancellationToken = default)
+    public virtual Task<MultilanguagePage> UpdateAsync(MultilanguagePage model, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(model);
 
+        return UpdateCheckedAsync(model);
+    }
+
+    private async Task<MultilanguagePage> UpdateCheckedAsync(MultilanguagePage model)
+    {
         var existing = await GetRequiredAsync(model.Id);
         // A multilanguage page never moves to another store.
         model.StoreId = existing.StoreId;
@@ -178,6 +185,7 @@ public class MultilanguagePageService(
         var root = await GetRequiredAsync(multilanguagePageId);
         var changedCultureNames = new List<string>();
 
+#pragma warning disable S3267 // Reset changes the group; a Where predicate should not have side effects
         foreach (var group in await GetLanguageVersionsAsync(root.Id))
         {
             // The save derives the mask again, so the reset fields become inherited.
@@ -187,6 +195,7 @@ public class MultilanguagePageService(
                 changedCultureNames.Add(group.CultureName);
             }
         }
+#pragma warning restore S3267
 
         return changedCultureNames;
     }
