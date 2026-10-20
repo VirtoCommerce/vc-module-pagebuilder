@@ -48,9 +48,14 @@ export class AssetLibraryApiService {
 
     canUpload(): boolean {
         this.appConfig.version();
-        // Upload predates this flag; legacy custom configurations still rely on server authorization.
-        return this.appConfig.getValue('canCreateAssets') !== false
-            && !!this.appConfig.getContext().config.assetLibraryUploadRequest;
+        const config = this.appConfig.getContext().config;
+        // Upload predates this flag; legacy custom configurations without it still rely on server authorization.
+        // getValue() reports both a missing key and a denied init check (stored as null) as null,
+        // so the raw config tells them apart.
+        const legacyConfig = config.canCreateAssets === undefined;
+        const canCreateAssets = this.appConfig.getValue('canCreateAssets');
+        return (legacyConfig || (canCreateAssets !== false && canCreateAssets !== null))
+            && !!config.assetLibraryUploadRequest;
     }
 
     private isFolderRequest(request: unknown): request is ServerRequestDescriptor {

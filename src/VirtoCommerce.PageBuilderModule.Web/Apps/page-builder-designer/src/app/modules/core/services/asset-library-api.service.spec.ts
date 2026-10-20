@@ -124,7 +124,15 @@ describe('AssetLibraryApiService', () => {
     it.each([false, undefined, null, 'true'])('requires explicit permission for the new folder action: %s', canCreateAssets => {
         TestBed.inject(AppConfig).initConfigWith({ canCreateAssets });
         expect(api.canCreateFolder()).toBe(false);
-        expect(api.canUpload()).toBe(canCreateAssets !== false);
+        expect(api.canUpload()).toBe(canCreateAssets !== false && canCreateAssets !== null);
+    });
+
+    it('denies upload when the init permission check stored a denied result as null', () => {
+        const config = TestBed.inject(AppConfig);
+        config.initConfigWith({ canCreateAssets: null });
+        expect(api.canUpload()).toBe(false);
+        config.initConfigWith({ canCreateAssets: true });
+        expect(api.canUpload()).toBe(true);
     });
 
     it('preserves uploads for a legacy config without the new permission flag', () => {

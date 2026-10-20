@@ -75,6 +75,8 @@ describe('AssetPickerComponent', () => {
         expect(fixture.nativeElement.querySelector('.folder-form .btn-skin-primary').disabled).toBe(true);
         expect(input.getAttribute('aria-describedby')).toBe('asset-picker-folder-error');
         expect(fixture.nativeElement.querySelector('[role="alert"]').textContent).toContain('lowercase');
+        // Rendered in the actions row so the error does not grow the form and shift the grid.
+        expect(fixture.nativeElement.querySelector('.folder-form-actions [role="alert"]')).not.toBeNull();
         fixture.nativeElement.querySelector('.folder-form').dispatchEvent(new Event('submit', { cancelable: true }));
         expect(state.creatingFolder()).toBe(false);
     });

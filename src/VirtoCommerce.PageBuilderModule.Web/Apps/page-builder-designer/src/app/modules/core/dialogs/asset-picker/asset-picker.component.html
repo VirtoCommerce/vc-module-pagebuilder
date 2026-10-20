@@ -41,12 +41,16 @@
           [formField]="state.folderForm.name"
           [attr.aria-invalid]="!!state.folderNameError()"
           [attr.aria-describedby]="state.folderNameError() ? 'asset-picker-folder-error' : null" />
-        @if (state.folderNameError()) {
-          <div id="asset-picker-folder-error" class="folder-form-error" role="alert">{{ state.folderNameError() }}</div>
-        }
         <div class="folder-form-actions">
-          <app-icon-button skin="outline" [text]="state.labels.cancelFolder" [disabled]="state.creatingFolder()" (click)="closeFolderForm()" />
-          <app-icon-button skin="primary" [text]="state.labels.createFolder" [disabled]="!state.canCreateFolder()" (click)="state.createFolder()" />
+          <div class="folder-form-message">
+            @if (state.folderNameError()) {
+              <div id="asset-picker-folder-error" class="folder-form-error" role="alert">{{ state.folderNameError() }}</div>
+            }
+          </div>
+          <div class="folder-form-buttons">
+            <app-icon-button skin="outline" [text]="state.labels.cancelFolder" [disabled]="state.creatingFolder()" (click)="closeFolderForm()" />
+            <app-icon-button skin="primary" [text]="state.labels.createFolder" [disabled]="!state.canCreateFolder()" (click)="state.createFolder()" />
+          </div>
         </div>
       </form>
     }

@@ -265,14 +265,30 @@
             min-width: 0;
         }
 
+        // The error shares the row with the buttons, and the row reserves two lines of error text,
+        // so showing an error does not push the asset grid down.
+        .folder-form-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            min-height: calc(2 * 1.25 * 0.875rem);
+        }
+
+        .folder-form-message {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
         .folder-form-error {
             color: #b91c1c;
             font-size: 0.875rem;
+            line-height: 1.25;
+            overflow-wrap: anywhere;
         }
 
-        .folder-form-actions {
+        .folder-form-buttons {
             display: flex;
-            justify-content: flex-end;
+            flex: none;
             gap: 0.5rem;
         }
     }
