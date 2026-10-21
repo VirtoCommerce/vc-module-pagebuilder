@@ -155,11 +155,17 @@ angular.module('virtoCommerce.pageBuilderModule')
 
             // Mirrors PageBuilderPermalink.IsValid on the server: the permalink is opened as written, so '?' and
             // '#' would start the query and the fragment, '&' separates query parameters and whitespace must be
-            // encoded. Unicode letters and percent-encoded sequences are allowed.
+            // encoded. Letters of any language and '%' are allowed; percent-escape sequences are not checked.
+            // This blade saves through the Content module, which does not check permalinks: only this check applies.
             var forbiddenPermalinkCharacters = /[\s\u0000-\u001F\u007F-\u009F?#&\\]/;
 
             $scope.isValidPermalink = function (value) {
                 if (!value) {
+                    return true;
+                }
+                // A permalink saved before the rule existed must not block saving the page's other fields.
+                var storedSettings = blade.origEntity && blade.origEntity.settings;
+                if (storedSettings && value === storedSettings.permalink) {
                     return true;
                 }
                 if (forbiddenPermalinkCharacters.test(value) || value.indexOf('//') >= 0) {

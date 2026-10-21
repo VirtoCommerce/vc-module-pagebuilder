@@ -1,4 +1,7 @@
+using System;
+using System.IO;
 using System.Security.Claims;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -14,39 +17,20 @@ namespace VirtoCommerce.PageBuilderModule.Tests;
 
 public class PageBuilderPermalinkTests
 {
+    public static TheoryData<string> ValidPermalinks => LoadCases("valid");
+
+    public static TheoryData<string> InvalidPermalinks => LoadCases("invalid");
+
     [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("/")]
-    [InlineData("/test-page")]
-    [InlineData("test-page")]
-    [InlineData("/catalog/summer_sale.2026/")]
-    [InlineData("/test%20page")]
-    [InlineData("/страница")]
-    [InlineData("/ページ")]
-    public void IsValid_UrlPath_ReturnsTrue(string permalink)
+    [MemberData(nameof(ValidPermalinks))]
+    public void IsValid_AllowedPermalink_ReturnsTrue(string permalink)
     {
         Assert.True(PageBuilderPermalink.IsValid(permalink));
     }
 
     [Theory]
-    [InlineData("/test page")]
-    [InlineData(" /test-page")]
-    [InlineData("/test-page ")]
-    [InlineData("/test\tpage")]
-    [InlineData("/test page")]
-    [InlineData("/test\npage")]
-    [InlineData("/test\u0001page")]
-    [InlineData("/test&page")]
-    [InlineData("/test?x")]
-    [InlineData("/test#y")]
-    [InlineData("/test&page?x#y")]
-    [InlineData("/test\\page")]
-    [InlineData("//test")]
-    [InlineData("/test//page")]
-    [InlineData("/./test")]
-    [InlineData("/test/..")]
-    public void IsValid_NotAUrlPath_ReturnsFalse(string permalink)
+    [MemberData(nameof(InvalidPermalinks))]
+    public void IsValid_ForbiddenPermalink_ReturnsFalse(string permalink)
     {
         Assert.False(PageBuilderPermalink.IsValid(permalink));
     }
@@ -125,6 +109,37 @@ public class PageBuilderPermalinkTests
 
         Assert.IsType<OkObjectResult>(result.Result);
         Assert.Equal("Renamed", (await service.GetByIdAsync(GroupId)).Name);
+    }
+
+    [Fact]
+    public async Task UpdateGroup_NewGroupWithInvalidPermalink_ReturnsBadRequestAndDoesNotSave()
+    {
+        var service = new PublishedRenameContentPreservationTests.FakeGroupedPageService();
+        var controller = CreateController(service);
+
+        var result = await controller.UpdateGroup(new GroupedPageBuilderPage
+        {
+            Id = GroupId,
+            StoreId = StoreId,
+            Name = "Test page",
+            Permalink = "/test page",
+        }, TestContext.Current.CancellationToken);
+
+        Assert.IsType<BadRequestObjectResult>(result.Result);
+        Assert.Null(await service.GetByIdAsync(GroupId));
+    }
+
+    // Cases shared with the page builder shell tests (tests/TestData/permalink-cases.json).
+    private static TheoryData<string> LoadCases(string kind)
+    {
+        var path = Path.Combine(AppContext.BaseDirectory, "TestData", "permalink-cases.json");
+        using var document = JsonDocument.Parse(File.ReadAllText(path));
+        var cases = new TheoryData<string>();
+        foreach (var item in document.RootElement.GetProperty(kind).EnumerateArray())
+        {
+            cases.Add(item.GetString());
+        }
+        return cases;
     }
 
     private static PublishedRenameContentPreservationTests.FakeGroupedPageService CreateServiceWithPublishedGroup(string permalink)

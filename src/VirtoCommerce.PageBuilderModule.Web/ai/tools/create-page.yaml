@@ -23,7 +23,7 @@ parameters:
       type: string
       description: |
         URL slug for the page (e.g. "/blog/my-new-post"). Recommended.
-        Must be a URL path: no whitespace, no `?`, `#`, `&` or `\` characters, no `//` and no `.` or `..` segments — otherwise the request is rejected. Letters of any language and percent-encoded sequences are allowed.
+        Must not contain whitespace, control characters, the characters `?`, `#`, `&` or `\`, `//`, or `.` and `..` segments — otherwise the request is rejected. Letters of any language and `%` are allowed.
     cultureName:
       type: string
       description: Culture/locale code (e.g. "en-US"). Optional.

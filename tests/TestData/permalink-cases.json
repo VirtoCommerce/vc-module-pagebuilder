@@ -1,0 +1,35 @@
+{
+  "valid": [
+    null,
+    "",
+    "/",
+    "/test-page",
+    "test-page",
+    "/catalog/summer_sale.2026/",
+    "/test%20page",
+    "/\u0441\u0442\u0440\u0430\u043d\u0438\u0446\u0430",
+    "/\u30da\u30fc\u30b8"
+  ],
+  "invalid": [
+    "/test page",
+    " /test-page",
+    "/test-page ",
+    "/test\tpage",
+    "/test\u00a0page",
+    "/test\u3000page",
+    "/test\npage",
+    "/test\u0001page",
+    "/test\u0085page",
+    "/test\ufeffpage",
+    "/test&page",
+    "/test?x",
+    "/test#y",
+    "/test&page?x#y",
+    "/test\\page",
+    "//test",
+    "/test//page",
+    "/./test",
+    "/test/..",
+    "."
+  ]
+}
