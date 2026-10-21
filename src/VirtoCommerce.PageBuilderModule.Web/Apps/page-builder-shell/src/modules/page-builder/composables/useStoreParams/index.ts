@@ -3,6 +3,7 @@ import { readonly, ref } from "vue";
 interface IStoreItem {
   url: string;
   languages: string[];
+  defaultLanguage?: string;
 }
 
 export type StoreContextStatus = "idle" | "missing" | "loading" | "ready" | "notFound" | "error";
@@ -57,6 +58,11 @@ export default () => {
       return store.languages ?? [];
     }
     return [];
+  }
+
+  async function getDefaultLanguage(): Promise<string | undefined> {
+    const store = await getStore();
+    return store?.defaultLanguage ?? undefined;
   }
 
   async function validateStoreContext(): Promise<boolean> {
@@ -138,5 +144,6 @@ export default () => {
     validateStoreContext,
     getStoreUrl,
     getLanguages,
+    getDefaultLanguage,
   };
 };

@@ -249,7 +249,7 @@ const { t } = useI18n({ useScope: "global" });
 const { showConfirmation } = usePopup();
 const { param, options, activeChildParam, callParent, closeSelf, closeChildren, openBlade, exposeToChildren } =
   useBlade();
-const { storeId, getStoreUrl, getLanguages } = useUrlParams();
+const { storeId, getStoreUrl, getLanguages, getDefaultLanguage } = useUrlParams();
 
 const {
   item,
@@ -548,6 +548,10 @@ exposeToChildren({
 
 onMounted(async () => {
   await load();
+  // A new page starts with the store default language, the one the backend would pick on save.
+  if (isNew.value && !item.value.defaultCultureName) {
+    item.value.defaultCultureName = await getDefaultLanguage();
+  }
   rememberSavedSettings();
   setBaseline();
   storeUrl.value = await getStoreUrl();
