@@ -63,7 +63,7 @@ When you change a setting of the Multilanguage Page that some languages set them
 
 * **Publish all** publishes the draft of every language version that has one; the others are reported as skipped. The source language is published first.
 * **Archive all** archives every language version.
-* **Delete** deletes the Multilanguage Page and keeps its language versions as separate Landing Pages.
+* **Delete** is available only for a Multilanguage Page without language versions. A Multilanguage Page with versions is archived with **Archive all**, like a Landing Page; to keep a version as a separate Landing Page, **Unlink** it first.
 * Each version can still be published, unpublished, or archived on its own from its page blade.
 
 ## Outdated translations
@@ -112,7 +112,7 @@ All endpoints require the Page Builder permissions noted and are scoped to the u
 | `GET api/page-builder-multilanguage-pages/{id}` | `builder:read` | Get a Multilanguage Page. |
 | `POST api/page-builder-multilanguage-pages` | `builder:create` | Create. |
 | `PUT api/page-builder-multilanguage-pages` | `builder:update` | Update; inherited settings are applied to the language versions. |
-| `DELETE api/page-builder-multilanguage-pages/{id}` | `builder:delete` | Delete; versions become Landing Pages. |
+| `DELETE api/page-builder-multilanguage-pages/{id}` | `builder:delete` | Delete a Multilanguage Page without language versions (400 otherwise). |
 | `GET api/page-builder-multilanguage-pages/{id}/languages` | `builder:read` | Languages table. |
 | `POST api/page-builder-multilanguage-pages/{id}/languages/{cultureName}?copyContent=true` | `builder:create` | Create a missing language version. |
 | `POST api/page-builder-multilanguage-pages/{id}/link/{groupId}` | `builder:update` | Link an existing page. |
