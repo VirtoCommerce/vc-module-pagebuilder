@@ -62,6 +62,9 @@ namespace VirtoCommerce.PageBuilderModule.Web
                 provider.GetRequiredService<IGroupedPageService>() as IGroupedPageContentService
                 ?? ActivatorUtilities.CreateInstance<GroupedPageService>(provider));
             serviceCollection.AddTransient<IGroupedPageSearchService, GroupedPageSearchService>();
+            serviceCollection.AddTransient<IMultilanguagePageService, MultilanguagePageService>();
+            serviceCollection.AddTransient<IMultilanguagePageSearchService, MultilanguagePageSearchService>();
+            serviceCollection.AddTransient<IPageBuilderPageListService, PageBuilderPageListService>();
             serviceCollection.AddTransient<IPageBuilderAssetReferenceService, PageBuilderAssetReferenceService>();
             serviceCollection.AddTransient<IPageBuilderAssetSearchService, PageBuilderAssetSearchService>();
             serviceCollection.AddTransient<IPageBuilderAssetReferenceIndexService, PageBuilderAssetReferenceIndexService>();
@@ -90,6 +93,7 @@ namespace VirtoCommerce.PageBuilderModule.Web
             serviceCollection.AddBackgroundJob<PagesMigrationJob, PagesMigrationJobPayload>(triggerable: false);
             serviceCollection.AddBackgroundJob<AssetReferenceIndexRebuildJob, AssetReferenceIndexRebuildJobPayload>(triggerable: false);
             serviceCollection.AddTransient<PageBuilderSharedComponentExportImport>();
+            serviceCollection.AddTransient<MultilanguagePageExportImport>();
             serviceCollection.AddTransient<PageBuilderExportImport>();
 
             // Git content flow (disabled until PageBuilder:GitContent:Enabled is set AND a store opts in

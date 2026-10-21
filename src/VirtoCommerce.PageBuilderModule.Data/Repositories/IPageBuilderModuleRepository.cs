@@ -8,6 +8,7 @@ public interface IPageBuilderModuleRepository : IRepository
     IQueryable<PageBuilderPageEntity> PageBuilderPages { get; }
     IQueryable<PageBuilderContentEntity> PageBuilderContents { get; }
     IQueryable<GroupedPageBuilderPageEntity> GroupedPageBuilderPages { get; }
+    IQueryable<MultilanguagePageEntity> MultilanguagePages { get; }
     IQueryable<PageBuilderAssetReferenceEntity> PageBuilderAssetReferences { get; }
     IQueryable<PageBuilderSharedComponentEntity> PageBuilderSharedComponents { get; }
     IQueryable<PageBuilderSharedComponentContentEntity> PageBuilderSharedComponentContents { get; }
@@ -16,6 +17,7 @@ public interface IPageBuilderModuleRepository : IRepository
 
     Task<IList<PageBuilderPageEntity>> GetPageBuilderPagesByIdsAsync(IList<string> ids, string responseGroup);
     Task<IList<GroupedPageBuilderPageEntity>> GetGroupedPageBuilderPagesByIdsAsync(IList<string> ids, string responseGroup);
+    Task<IList<MultilanguagePageEntity>> GetMultilanguagePagesByIdsAsync(IList<string> ids, string responseGroup);
     Task<IList<PageBuilderSharedComponentEntity>> GetPageBuilderSharedComponentsByIdsAsync(
         IList<string> ids,
         string responseGroup);

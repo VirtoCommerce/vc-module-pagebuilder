@@ -50,6 +50,7 @@ public static class PagesExtensions
             .ToArray();
         pageDocument.StartDate = group.StartDate;
         pageDocument.EndDate = group.EndDate;
+        pageDocument.TranslationGroupId = group.MultilanguagePageId;
 
         pageDocument.Content = content;
         GetDataFromSettings(content, pageDocument);

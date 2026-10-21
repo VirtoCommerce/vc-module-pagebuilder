@@ -42,3 +42,21 @@ test("validateStoreContext marks a valid store as ready", async () => {
   assert.equal(await storeContext.validateStoreContext(), true);
   assert.equal(storeContext.storeContextStatus.value, "ready");
 });
+
+test("getDefaultLanguage returns the store default language", async () => {
+  setStoreSearch("multilanguage-store");
+  globalThis.fetch = async () => ({
+    ok: true,
+    status: 200,
+    json: async () => ({
+      url: "https://example.com",
+      languages: ["en-US", "fr-FR"],
+      defaultLanguage: "fr-FR",
+    }),
+  }) as Response;
+
+  const storeContext = useUrlParams();
+  storeContext.initUrlParams();
+
+  assert.equal(await storeContext.getDefaultLanguage(), "fr-FR");
+});

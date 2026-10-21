@@ -31,12 +31,17 @@
             "MODIFIED_DATE": "Modified",
             "CULTURE_NAME": "Language",
             "MODIFIED_BY": "Modified by",
-            "STATUS": "Status"
+            "STATUS": "Status",
+            "TYPE": "Type",
+            "LANGUAGES": "Languages"
           },
           "FILTER": {
             "STATUS": "Status",
             "APPLY": "Apply",
-            "RESET": "Reset"
+            "RESET": "Reset",
+            "PAGE_TYPE": "Page type",
+            "LANGUAGE": "Language",
+            "TRANSLATION_STATUS": "Translation status"
           },
           "EMPTY": {
             "TITLE": "There are no content yet",
@@ -72,7 +77,8 @@
           "PUBLISH": "Publish",
           "UNPUBLISH": "Unpublish",
           "DOWNLOAD_CONTENT": "Save content",
-          "CLONE": "Clone"
+          "CLONE": "Clone",
+          "CONVERT": "Convert to multilanguage"
         },
         "FIELDS": {
           "NAME": "Name",
@@ -104,6 +110,11 @@
             "TITLE": "Scheduling",
             "DESCRIPTION": "Set when this page should be visible"
           }
+        },
+        "LANGUAGE_VERSION_HINT": "This page is a language version of a Multilanguage Page. The name is shared by all languages; permalink and advanced options set here override the Multilanguage Page values for this language.",
+        "FIELD_HINTS": {
+          "INHERITED": "Inherited from the multilanguage page",
+          "CUSTOM": "Set for this language; the multilanguage page value is not applied"
         }
       },
       "ALERTS": {
@@ -120,7 +131,21 @@
         "SAVE_SUCCESS": "Page saved successfully",
         "PUBLISH_SUCCESS": "Page published successfully",
         "UNPUBLISH_SUCCESS": "Page unpublished successfully",
-        "DELETE_SUCCESS": "Page archived successfully"
+        "DELETE_SUCCESS": "Page archived successfully",
+        "CONVERT_CONFIRMATION": "Convert this page to a Multilanguage Page? It becomes the version in its language and stays unchanged on the storefront.",
+        "CONVERT_SUCCESS": "Page converted to a Multilanguage Page",
+        "PERMALINK_IN_USE": "{permalink} is already used by: {pages}. The storefront shows only one page per permalink and language. Save anyway?"
+      },
+      "ADD_POPUP": {
+        "TITLE": "Add page",
+        "MULTILANGUAGE": {
+          "TITLE": "Multilanguage Page",
+          "DESCRIPTION": "One page with a version for every store language. Switching the storefront language opens the version in that language."
+        },
+        "LANDING": {
+          "TITLE": "Landing Page",
+          "DESCRIPTION": "A page in a single language."
+        }
       }
     },
     "STATUS": {
@@ -129,7 +154,69 @@
       "PUBLISHED": "Published",
       "HAS_CHANGES": "Has draft with changes",
       "SCHEDULED": "Scheduled",
-      "PERSONALIZED": "Personalized"
+      "PERSONALIZED": "Personalized",
+      "MISSING": "Missing",
+      "OUTDATED": "Outdated"
+    },
+    "PAGE_TYPES": {
+      "LANDING": "Landing Page",
+      "MULTILANGUAGE": "Multilanguage"
+    },
+    "MULTILANGUAGE": {
+      "TITLE": {
+        "NEW": "New multilanguage page",
+        "DETAILS": "{name} (multilanguage)"
+      },
+      "FIELDS": {
+        "NAME_HINT": "Shared by all languages",
+        "PERMALINK_HINT": "Default permalink. A language can set its own.",
+        "DEFAULT_LANGUAGE": "Default language",
+        "DEFAULT_LANGUAGE_HINT": "Source language: new versions copy its content",
+        "ADVANCED_OPTIONS_HINT": "Defaults for all languages. A language can set its own."
+      },
+      "LANGUAGES": {
+        "TITLE": "Languages",
+        "LANGUAGE": "Language",
+        "ACTIONS": "Actions",
+        "DEFAULT": "default",
+        "NOT_IN_STORE": "not a store language",
+        "CUSTOM": "custom",
+        "INHERITED": "inherited",
+        "OPEN": "Open",
+        "UNLINK": "Unlink",
+        "CREATE": "Create",
+        "LINK": "Link existing",
+        "MARK_UP_TO_DATE": "Mark up to date"
+      },
+      "TOOLBAR": {
+        "PUBLISH_ALL": "Publish all",
+        "ARCHIVE_ALL": "Archive all",
+        "DELETE": "Delete"
+      },
+      "ALERTS": {
+        "PUBLISH_ALL_RESULT": "Published: {processed}. Skipped (no draft): {skipped}.",
+        "BATCH_FAILED": "Failed: {failed}. Try these languages again.",
+        "ARCHIVE_ALL_RESULT": "Archived: {processed}. Already archived: {skipped}.",
+        "ARCHIVE_ALL": "Archive every language version of this page?",
+        "DELETE": "Delete this multilanguage page? It has no language versions.",
+        "DELETE_SUCCESS": "Multilanguage page deleted",
+        "LANGUAGE_CREATED": "{language} version created as a draft",
+        "UNLINK": "Unlink the {language} version? It is kept as a separate Landing Page."
+      },
+      "LINK_POPUP": {
+        "TITLE": "Link an existing {language} page",
+        "HINT": "The page keeps its permalink and settings and takes the shared name.",
+        "PAGE": "Landing Page",
+        "CANCEL": "Cancel",
+        "LINK": "Link"
+      },
+      "CONFLICT_POPUP": {
+        "TITLE": "Some languages have their own values",
+        "HINT": "You changed settings that these languages set themselves:",
+        "APPLY_ALL": "Apply to all languages",
+        "APPLY_INHERITED": "Apply to inheriting languages only",
+        "CANCEL": "Cancel"
+      }
     }
   }
 }

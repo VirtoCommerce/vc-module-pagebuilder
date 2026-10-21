@@ -43,12 +43,27 @@
       field="name"
     />
     <VcColumn
-      id="cultureName"
-      :title="$t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.CULTURE_NAME')"
+      id="type"
+      :title="$t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.TYPE')"
       :always-visible="true"
-      :sortable="true"
-      field="cultureName"
-    />
+      :sortable="false"
+      field="type"
+    >
+      <template #body="{ data }">
+        <Tag :text="$t(`PAGE_BUILDER.PAGE_TYPES.${(data.type ?? PageTypes.Landing).toUpperCase()}`)" />
+      </template>
+    </VcColumn>
+    <VcColumn
+      id="languages"
+      :title="$t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.LANGUAGES')"
+      :always-visible="true"
+      :sortable="false"
+      field="languages"
+    >
+      <template #body="{ data }">
+        <LanguagePills :languages="rowLanguages(data)" />
+      </template>
+    </VcColumn>
     <VcColumn
       id="permalink"
       :title="$t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.PERMALINK')"
@@ -69,21 +84,31 @@
       :title="$t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.MODIFIED_BY')"
       :sortable="false"
       field="modifiedBy"
-    />
+    >
+      <template #body="{ data }">
+        {{ data.page?.modifiedBy ?? data.multilanguagePage?.modifiedBy }}
+      </template>
+    </VcColumn>
     <VcColumn
       id="status"
       :title="$t('PAGE_BUILDER.PAGES.LIST.TABLE.HEADER.STATUS')"
-      :sortable="true"
+      :sortable="false"
       field="status"
     >
       <template #body="{ data }">
         <PageStatus
+          v-if="data.page"
           extended
-          :item="data"
+          :item="data.page"
         />
       </template>
     </VcColumn>
   </VcDataTable>
+  <AddPagePopup
+    v-if="isAddPopupOpen"
+    @close="isAddPopupOpen = false"
+    @select="onAddTypeSelected"
+  />
   <input
     ref="fileInputRef"
     type="file"
@@ -97,16 +122,26 @@ import { ref, Ref, computed, watch, onMounted, readonly } from "vue";
 import { useI18n } from "vue-i18n";
 import { debounce } from "lodash-es";
 import { useBlade, usePopup, useDataTableSort, IActionBuilderResult, notification } from "@vc-shell/framework";
-import { GroupedPageBuilderPage } from "../../../api_client/virtocommerce.pagebuildermodule";
+import {
+  GroupedPageBuilderPage,
+  MultilanguagePageLanguage,
+  PageBuilderPageListItem,
+} from "../../../api_client/virtocommerce.pagebuildermodule";
 import {
   PageLifecycleFilters,
+  PageTypes,
+  TranslationStatuses,
   usePageBuilderList,
   useUrlParams,
   useAiAgentContextWithStore,
   refreshMenuBadges,
 } from "../composables";
 import { parseImportFile } from "../composables/usePageContentApi";
+import { hasLanguageVersions, isMultilanguageRowArchived } from "../composables/useMultilanguagePageDetails/helpers";
 import PageStatus from "./pageStatus.vue";
+import LanguagePills from "./languagePills.vue";
+import AddPagePopup from "./addPagePopup.vue";
+import Tag from "./tag.vue";
 
 import { VcColumn, VcDataTable, VcHint, VcIcon } from "@vc-shell/framework/ui";
 
@@ -119,7 +154,7 @@ const props = defineProps<Props>();
 const { t } = useI18n({ useScope: "global" });
 const { param, openBlade } = useBlade();
 const { showConfirmation } = usePopup();
-const { storeId, initUrlParams } = useUrlParams();
+const { storeId, initUrlParams, getLanguages } = useUrlParams();
 
 const { sortField, sortOrder, sortExpression } = useDataTableSort({
   initialDirection: "DESC",
@@ -133,7 +168,8 @@ const { items, pagination, searchQuery, loadPages, removePages, loading, pageSta
 });
 
 const selectedItemId = ref<string>();
-const localSelection = ref<GroupedPageBuilderPage[]>([]);
+const localSelection = ref<PageBuilderPageListItem[]>([]);
+const isAddPopupOpen = ref(false);
 const selectedItems = computed<string[]>(() =>
   localSelection.value.map((item) => item.id!).filter((id): id is string => !!id),
 );
@@ -151,6 +187,8 @@ const storeContextDescription = computed(() =>
     : t("COMMON.STORE_CONTEXT.INVALID_DESCRIPTION", { storeId: storeId.value }),
 );
 
+const storeLanguages = ref<string[]>([]);
+
 const computedGlobalFilters = computed(() => [
   {
     id: "statuses",
@@ -163,12 +201,46 @@ const computedGlobalFilters = computed(() => [
       multiple: false,
     },
   },
+  {
+    id: "pageType",
+    label: t("PAGE_BUILDER.PAGES.LIST.TABLE.FILTER.PAGE_TYPE"),
+    filter: {
+      options: Object.values(PageTypes).map((value) => ({
+        value,
+        label: t(`PAGE_BUILDER.PAGE_TYPES.${value.toUpperCase()}`),
+      })),
+      multiple: false,
+    },
+  },
+  {
+    id: "languageCode",
+    label: t("PAGE_BUILDER.PAGES.LIST.TABLE.FILTER.LANGUAGE"),
+    filter: {
+      options: storeLanguages.value.map((value) => ({ value, label: value })),
+      multiple: false,
+    },
+  },
+  {
+    id: "translationStatus",
+    label: t("PAGE_BUILDER.PAGES.LIST.TABLE.FILTER.TRANSLATION_STATUS"),
+    filter: {
+      options: Object.values(TranslationStatuses).map((value) => ({
+        value,
+        label: t(`PAGE_BUILDER.STATUS.${value.toUpperCase()}`),
+      })),
+      multiple: false,
+    },
+  },
 ]);
 
-function onItemClick(event: { data: GroupedPageBuilderPage }) {
+/** A list row, or a page reported back by a details blade. */
+export type PagesListClickItem = PageBuilderPageListItem | GroupedPageBuilderPage;
+
+function onItemClick(event: { data: PagesListClickItem }) {
   const item = event.data;
+  const isMultilanguage = "type" in item && item.type === PageTypes.Multilanguage;
   openBlade({
-    name: "PageDetails",
+    name: isMultilanguage ? "MultilanguagePageDetails" : "PageDetails",
     param: item.id,
     options: {
       storeId: storeId.value ?? undefined,
@@ -190,17 +262,41 @@ const onSearchList = debounce(async (keyword: string | undefined) => {
   });
 }, 1000);
 
-const actionBuilder = (item: GroupedPageBuilderPage) => {
+// A Landing Page row shows its own language and status.
+function rowLanguages(item: PageBuilderPageListItem): MultilanguagePageLanguage[] {
+  if (item.languages) {
+    return item.languages;
+  }
+
+  return item.page
+    ? [{ cultureName: item.page.cultureName, status: item.page.status, hasChanges: item.page.hasChanges }]
+    : [];
+}
+
+function isArchived(item: PageBuilderPageListItem): boolean {
+  return item.type === PageTypes.Multilanguage
+    ? isMultilanguageRowArchived(item.languages)
+    : item.page?.status === "Archived";
+}
+
+const actionBuilder = (item: PageBuilderPageListItem) => {
   const result: IActionBuilderResult[] = [];
 
-  if (item.status !== "Archived") {
+  if (!isArchived(item)) {
+    // A Multilanguage Page without versions has nothing to archive and is deleted.
+    const isEmptyMultilanguage = item.type === PageTypes.Multilanguage && !hasLanguageVersions(item.languages);
     result.push({
       icon: "lucide-trash-2",
-      title: t("PAGE_BUILDER.PAGES.LIST.TABLE.ACTIONS.DELETE"),
+      title: isEmptyMultilanguage
+        ? t("PAGE_BUILDER.MULTILANGUAGE.TOOLBAR.DELETE")
+        : t("PAGE_BUILDER.PAGES.LIST.TABLE.ACTIONS.DELETE"),
       type: "danger",
       clickHandler: async () => {
-        if (item.id && (await showConfirmation(t("PAGE_BUILDER.PAGES.ALERTS.DELETE")))) {
-          await removePages({ ids: [item.id] });
+        const confirmation = isEmptyMultilanguage
+          ? t("PAGE_BUILDER.MULTILANGUAGE.ALERTS.DELETE")
+          : t("PAGE_BUILDER.PAGES.ALERTS.DELETE");
+        if (item.id && (await showConfirmation(confirmation))) {
+          await removePages({ items: [item] });
           await reload();
         }
       },
@@ -228,13 +324,19 @@ watch(
   { immediate: true },
 );
 
+function filterValue(value: unknown): string | undefined {
+  const joined = Array.isArray(value) ? value.join(",") : (value as string | undefined);
+  return joined || undefined;
+}
+
 async function onFilter(event: { filters: Record<string, unknown> }) {
-  const statusFilter = event.filters.statuses as string | string[] | undefined;
-  const statuses = Array.isArray(statusFilter) ? statusFilter.join(",") : statusFilter;
   pagination.reset();
   await loadPages({
     ...searchQuery.value,
-    statuses,
+    statuses: filterValue(event.filters.statuses),
+    pageType: filterValue(event.filters.pageType),
+    languageCode: filterValue(event.filters.languageCode),
+    translationStatus: filterValue(event.filters.translationStatus),
     skip: 0,
   });
 }
@@ -262,8 +364,18 @@ async function onFileSelected(event: Event) {
 }
 
 async function openAddBlade() {
+  // A Multilanguage Page needs more than one store language.
+  if ((await getLanguages()).length > 1) {
+    isAddPopupOpen.value = true;
+  } else {
+    onAddTypeSelected(PageTypes.Landing);
+  }
+}
+
+function onAddTypeSelected(type: PageTypes) {
+  isAddPopupOpen.value = false;
   openBlade({
-    name: "PageDetails",
+    name: type === PageTypes.Multilanguage ? "MultilanguagePageDetails" : "PageDetails",
     options: {
       storeId: storeId.value ?? undefined,
     },
@@ -288,8 +400,7 @@ async function removeSelectedPages() {
       }),
     )
   ) {
-    const ids = localSelection.value.map((item) => item.id!).filter(Boolean);
-    await removePages({ ids });
+    await removePages({ items: localSelection.value });
     await reload();
   }
 }
@@ -297,13 +408,14 @@ async function removeSelectedPages() {
 onMounted(async () => {
   initUrlParams();
   await loadPages();
+  storeLanguages.value = await getLanguages();
 });
 
 export interface ExposedPagesList {
   selectedItems: Readonly<Ref<readonly string[]>>;
   reload: () => Promise<void>;
   removeSelectedPages: () => Promise<void>;
-  onItemClick: (event: { data: GroupedPageBuilderPage }) => void;
+  onItemClick: (event: { data: PagesListClickItem }) => void;
   openAddBlade: () => Promise<void>;
   openLoadFlow: () => void;
 }
