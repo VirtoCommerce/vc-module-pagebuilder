@@ -186,7 +186,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { debounce } from "lodash-es";
 import { useI18n } from "vue-i18n";
 import { usePermissions } from "@vc-shell/framework";
@@ -364,6 +364,8 @@ const debouncedSearch = debounce(async (keyword: string | undefined) => {
     notifyError(error);
   }
 }, 350);
+
+watch(currentFolderUrl, () => debouncedSearch.cancel());
 
 function onSearchChange(keyword: string | undefined) {
   invalidate();
