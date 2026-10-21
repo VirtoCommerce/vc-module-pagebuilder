@@ -88,6 +88,9 @@
           "USER_GROUPS": "Brukergrupper",
           "ORGANIZATION": "Organisasjon"
         },
+        "VALIDATION": {
+          "PERMALINK": "Permalinken kan ikke inneholde mellomrom, tegnene ? # & \\, doble skråstreker eller segmentene . og .."
+        },
         "TOOLTIPS": {
           "VISIBILITY": "Hvis synlighet er av, vil siden kun være tilgjengelig for registrerte brukere."
         },

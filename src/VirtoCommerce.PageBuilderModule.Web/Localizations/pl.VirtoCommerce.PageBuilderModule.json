@@ -33,7 +33,8 @@
         },
         "validations": {
           "pageName-invalid": "Nazwa strony może zawierać tylko znaki alfanumeryczne, \"_\", \"-\" i \".\"",
-          "permalink-invalid": "Inne strony mają ten sam permalink"
+          "permalink-invalid": "Inne strony mają ten sam permalink",
+          "permalink-format-invalid": "Permalink nie może zawierać spacji, znaków ? # & \\, podwójnych ukośników ani segmentów . i .."
         },
         "hints": {
           "rename-in-git": "Ten sklep publikuje strony przez Git, gdzie nazwa pliku jest adresem strony w repozytorium. Zmień jej nazwę tam, poprzez pull request."

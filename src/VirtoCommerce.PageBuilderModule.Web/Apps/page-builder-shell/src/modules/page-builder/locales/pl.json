@@ -88,6 +88,9 @@
           "USER_GROUPS": "Grupy użytkowników",
           "ORGANIZATION": "Organizacja"
         },
+        "VALIDATION": {
+          "PERMALINK": "Permalink nie może zawierać spacji, znaków ? # & \\, podwójnych ukośników ani segmentów . i .."
+        },
         "TOOLTIPS": {
           "VISIBILITY": "Jeśli widoczność jest wyłączona, strona będzie dostępna tylko dla zarejestrowanych użytkowników."
         },

@@ -33,7 +33,8 @@
         },
         "validations": {
           "pageName-invalid": "El nombre de la página solo puede contener caracteres alfanuméricos, \"_\", \"-\" y \".\"",
-          "permalink-invalid": "Otras páginas tienen el mismo enlace permanente"
+          "permalink-invalid": "Otras páginas tienen el mismo enlace permanente",
+          "permalink-format-invalid": "El enlace permanente no puede contener espacios, los caracteres ? # & \\, barras dobles ni los segmentos . y .."
         },
         "hints": {
           "rename-in-git": "Esta tienda publica las páginas a través de Git, donde el nombre del archivo es la dirección de la página en el repositorio. Renómbrela allí, mediante un pull request."

@@ -32,7 +32,7 @@
             <Field
                    v-slot="{ errorMessage, handleChange, errors }"
                    name="permalink"
-                   rules="required"
+                   rules="required|permalink"
                    :model-value="item.permalink"
                    :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.PERMALINK')">
               <VcInput

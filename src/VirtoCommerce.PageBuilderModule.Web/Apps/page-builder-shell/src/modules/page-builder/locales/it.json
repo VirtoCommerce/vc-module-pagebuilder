@@ -88,6 +88,9 @@
           "USER_GROUPS": "Gruppi utenti",
           "ORGANIZATION": "Organizzazione"
         },
+        "VALIDATION": {
+          "PERMALINK": "Il permalink non può contenere spazi, i caratteri ? # & \\, doppie barre o i segmenti . e .."
+        },
         "TOOLTIPS": {
           "VISIBILITY": "Se la visibilità è disattivata, la pagina sarà disponibile solo per gli utenti registrati."
         },

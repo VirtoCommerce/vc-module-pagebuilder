@@ -88,6 +88,9 @@
           "USER_GROUPS": "User groups",
           "ORGANIZATION": "Organization"
         },
+        "VALIDATION": {
+          "PERMALINK": "Permalink cannot contain spaces, the characters ? # & \\, double slashes, or . and .. segments"
+        },
         "TOOLTIPS": {
           "VISIBILITY": "If Visibility is off the page will be available only for registered users."
         },

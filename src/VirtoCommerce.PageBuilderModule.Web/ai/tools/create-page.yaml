@@ -21,7 +21,9 @@ parameters:
       description: Display name of the page (used as page title in lists and admin UI). Required.
     permalink:
       type: string
-      description: URL slug for the page (e.g. "/blog/my-new-post"). Recommended.
+      description: |
+        URL slug for the page (e.g. "/blog/my-new-post"). Recommended.
+        Must be a URL path: no whitespace, no `?`, `#`, `&` or `\` characters, no `//` and no `.` or `..` segments — otherwise the request is rejected. Letters of any language and percent-encoded sequences are allowed.
     cultureName:
       type: string
       description: Culture/locale code (e.g. "en-US"). Optional.

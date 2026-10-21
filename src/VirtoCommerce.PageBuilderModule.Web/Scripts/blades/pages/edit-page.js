@@ -153,6 +153,23 @@ angular.module('virtoCommerce.pageBuilderModule')
                 return $q.resolve();
             };
 
+            // Mirrors PageBuilderPermalink.IsValid on the server: the permalink is opened as written, so '?' and
+            // '#' would start the query and the fragment, '&' separates query parameters and whitespace must be
+            // encoded. Unicode letters and percent-encoded sequences are allowed.
+            var forbiddenPermalinkCharacters = /[\s\u0000-\u001F\u007F-\u009F?#&\\]/;
+
+            $scope.isValidPermalink = function (value) {
+                if (!value) {
+                    return true;
+                }
+                if (forbiddenPermalinkCharacters.test(value) || value.indexOf('//') >= 0) {
+                    return false;
+                }
+                return !_.some(value.split('/'), function (segment) {
+                    return segment === '.' || segment === '..';
+                });
+            };
+
             function compareFileNames(file1, file2) {
                 return undraftUrl(file1) === undraftUrl(file2);
             }

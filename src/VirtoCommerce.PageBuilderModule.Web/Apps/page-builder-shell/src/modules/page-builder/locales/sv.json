@@ -88,6 +88,9 @@
           "USER_GROUPS": "Användargrupper",
           "ORGANIZATION": "Organisation"
         },
+        "VALIDATION": {
+          "PERMALINK": "Permalänken får inte innehålla mellanslag, tecknen ? # & \\, dubbla snedstreck eller segmenten . och .."
+        },
         "TOOLTIPS": {
           "VISIBILITY": "Om synligheten är avstängd kommer sidan bara vara tillgänglig för registrerade användare."
         },

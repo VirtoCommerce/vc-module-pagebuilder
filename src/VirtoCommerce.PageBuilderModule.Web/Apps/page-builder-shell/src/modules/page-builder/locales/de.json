@@ -88,6 +88,9 @@
           "USER_GROUPS": "Benutzergruppen",
           "ORGANIZATION": "Organisation"
         },
+        "VALIDATION": {
+          "PERMALINK": "Der Permalink darf keine Leerzeichen, die Zeichen ? # & \\, doppelte Schrägstriche oder die Segmente . und .. enthalten"
+        },
         "TOOLTIPS": {
           "VISIBILITY": "Wenn die Sichtbarkeit deaktiviert ist, ist die Seite nur für registrierte Benutzer verfügbar."
         },

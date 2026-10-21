@@ -88,6 +88,9 @@
           "USER_GROUPS": "Groupes d'utilisateurs",
           "ORGANIZATION": "Organisation"
         },
+        "VALIDATION": {
+          "PERMALINK": "Le lien permanent ne peut pas contenir d'espaces, les caractères ? # & \\, de doubles barres obliques ni les segments . et .."
+        },
         "TOOLTIPS": {
           "VISIBILITY": "Si la visibilité est désactivée, la page ne sera accessible qu'aux utilisateurs enregistrés."
         },
