@@ -1,6 +1,8 @@
 import { effect, inject, Injectable, signal } from '@angular/core';
 import { LocalStorageService } from '@core/store/local-storage.service';
 import { AppConfig } from '@integration/services';
+import { Store } from '@ngrx/store';
+import { refreshTemplateFromAssistant } from '@editor/store/actions';
 
 const STORAGE_KEY = 'pbd.ozAgent.ui';
 
@@ -12,6 +14,7 @@ interface OzAgentUiState {
 @Injectable({ providedIn: 'root' })
 export class OzAgentUiService {
 
+    private readonly store = inject(Store);
     private readonly storage = inject(LocalStorageService);
     private readonly config = inject(AppConfig);
 
@@ -46,11 +49,18 @@ export class OzAgentUiService {
     }
 
     close() {
+        if (this._isOpen()) {
+            this.store.dispatch(refreshTemplateFromAssistant());
+        }
         this._isOpen.set(false);
     }
 
     toggle() {
-        this._isOpen.update(v => !v);
+        if (this._isOpen()) {
+            this.close();
+        } else {
+            this.open();
+        }
     }
 
     togglePin() {

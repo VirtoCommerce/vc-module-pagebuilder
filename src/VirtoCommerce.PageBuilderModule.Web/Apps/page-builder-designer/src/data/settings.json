@@ -61,9 +61,9 @@
         "default": "/api/pagebuilder/template?storeId={{location.params.storeId}}&theme={{config.themeName}}&path={{path}}&type={{type}}&draft=true",
         "pages": [
             {
-                "url": "@{{this.groupId ? '/api/page-builder-pages/grouped/' + this.groupId + '/content' : null}}",
+                "url": "@{{this.groupId ? '/api/page-builder-pages/grouped/' + this.groupId + '/content?includeVersion=true' : null}}",
                 "method": "GET",
-                "fallbackValue": "@{{this.groupId ? '{\"settings\":{},\"content\": []}' : null}}"
+                "versioned": true
             },
             "/api/pagebuilder/template?storeId={{location.params.storeId}}&theme={{config.themeName}}&path={{path}}&type=pages&draft=true"
         ],
@@ -77,8 +77,9 @@
         }
     },
     "saveGroupedPage": {
-        "url": "/api/page-builder-pages/grouped/{{location.params.groupId}}/content",
+        "url": "/api/page-builder-pages/grouped/{{groupId}}/content?includeVersion=true",
         "method": "POST",
+        "versioned": true,
         "body": "{{=JSON.stringify(this.content, null, 2)}}"
     },
     "publish": {
@@ -120,7 +121,20 @@
     "assetLibraryRootFolderUrl": "/stores/{{storeId}}/Page Builder",
     "assetsUrlTemplate": "{{=(function(url) { if (!url) return ''; var trimmed = url.trim(); if (!trimmed) return ''; if (/^(?:[a-z][a-z\\d+\\-.]*:)?\\/\\//i.test(trimmed) || trimmed.indexOf('data:') === 0) return trimmed; var normalized = trimmed.charAt(0) === '/' ? trimmed : '/' + trimmed; return normalized.toLowerCase().indexOf('/assets/') === 0 ? normalized : combine('/assets', normalized); })(this.assetUrl)}}",
     "assetPreviewUrlTemplate": "{{=(function(publicUrl, modifiedDate) { if (!publicUrl || !modifiedDate) return publicUrl; return publicUrl + (publicUrl.indexOf('?') >= 0 ? '&' : '?') + 't=' + encodeURIComponent(modifiedDate); })(this.publicAssetUrl, this.modifiedDate)}}",
-    "assetLibrarySearchRequest": "/api/assets?folderUrl={{=encodeURIComponent(this.folderUrl)}}{{=this.keyword ? '&keyword=' + encodeURIComponent(this.keyword) : ''}}",
+    "assetLibrarySearchRequest": {
+        "url": "/api/page-builder-assets/search",
+        "method": "POST",
+        "body": {
+            "folderUrl": "{{folderUrl}}",
+            "keyword": "{{keyword}}",
+            "skip": "@{{this.skip}}",
+            "take": "@{{this.take}}",
+            "sort": "{{sort}}",
+            "acceptedTypes": "@{{this.acceptedTypes}}",
+            "exactName": "{{exactName}}",
+            "preferredAssetUrl": "{{preferredAssetUrl}}"
+        }
+    },
     "assetLibraryCreateFolderRequest": {
         "url": "/api/assets/folder",
         "method": "POST",

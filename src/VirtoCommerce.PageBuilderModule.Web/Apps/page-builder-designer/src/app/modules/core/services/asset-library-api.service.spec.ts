@@ -109,10 +109,12 @@ describe('AssetLibraryApiService', () => {
         request.flush({ results: [], totalCount: 0 });
     });
 
-    it('still encodes folder search paths and builds upload form data', () => {
+    it('keeps literal folder search paths and builds upload form data', () => {
         const folderUrl = '/stores/store/Page Builder/{{draft}}';
         api.search(folderUrl, 'a & b').subscribe();
-        http.expectOne(`/api/assets?folderUrl=${encodeURIComponent(folderUrl)}&keyword=a%20%26%20b`).flush({ results: [] });
+        const search = http.expectOne(settings.assetLibrarySearchRequest.url);
+        expect(search.request.body).toMatchObject({ folderUrl, keyword: 'a & b' });
+        search.flush({ results: [] });
         const file = new File(['image'], 'image.jpg', { type: 'image/jpeg' });
         api.upload(folderUrl, file).subscribe();
         const request = http.expectOne(`/api/assets?folderUrl=${encodeURIComponent(folderUrl)}`);
@@ -146,7 +148,7 @@ describe('AssetLibraryApiService', () => {
     it('refreshes cached picker capabilities after permissions and descriptors reload', () => {
         const config = TestBed.inject(AppConfig);
         const state = TestBed.inject(AssetPickerStateService);
-        http.expectOne('/api/assets?folderUrl=%2Fstores%2Fstore%2FPage%20Builder').flush({ results: [] });
+        http.expectOne(settings.assetLibrarySearchRequest.url).flush({ results: [] });
         config.initConfigWith({ canCreateAssets: false });
         expect(state.folderCreationAvailable()).toBe(false);
         expect(state.uploadAvailable()).toBe(false);

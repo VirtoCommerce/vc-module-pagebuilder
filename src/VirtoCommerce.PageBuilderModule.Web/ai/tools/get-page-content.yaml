@@ -1,6 +1,6 @@
 name: pagebuilder_get_page_content
 description: |
-  Load the full JSON content of a PageBuilder page (page-level settings + ordered list of sections) for editing. Always loads the latest content (draft if present, otherwise published or archived). Returns the raw JSON document as a string — parse it before mutating, then save back via `pagebuilder_save_page_content`.
+  Load the full JSON content of a PageBuilder page (page-level settings + ordered list of sections) for editing. Always loads the latest content (draft if present, otherwise published or archived). Returns content as a JSON string and its eTag. Parse content before mutating, keep the eTag alongside that exact document, and pass both back via `pagebuilder_save_page_content`.
 
   Use when: editing an existing page — need its current state before mutating.
   Skip when: creating a fresh page (no existing content to load).
@@ -22,8 +22,10 @@ execution:
     request:
       query:
         draft: "true"
+        includeVersion: "true"
     response:
-      content: "@"
+      content: "$.content"
+      eTag: "$.eTag"
 
 permission:
   - builder:read

@@ -238,7 +238,7 @@ describe('AssetPickerStateService', () => {
             vi.advanceTimersByTime(300);
 
             expect(assets.search).toHaveBeenCalledTimes(2);
-            expect(assets.search).toHaveBeenLastCalledWith(`${root}/new folder`, '');
+            expect(assets.search).toHaveBeenLastCalledWith(`${root}/new folder`, '', expect.objectContaining({ skip: 0 }));
         } finally {
             vi.useRealTimers();
         }

@@ -9,8 +9,9 @@ import {
 import useUserGroups, { IUserGroupsResult } from "./../useUserGroups";
 import useOrganizations, { IOrganizationsResult } from "./../useOrganizations";
 import useUrlParams from "../useStoreParams";
-import { downloadPageContent, uploadPageContent, PageExportData } from "../usePageContentApi";
+import { downloadPageContent, PageExportData } from "../usePageContentApi";
 import { openPageDesigner } from "../../../../utilities/pageDesigner";
+import { serializeImportedPageContent } from "./importContent";
 
 const { getApiClient } = useApiClient(PageBuilderPageClient);
 
@@ -68,7 +69,6 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
   const status = ref<FilePublishStatus>({} as FilePublishStatus);
 
   let groupStoreId: string | undefined;
-  let pendingContentUpload = !!options?.importData?.content;
 
   const { action: loadGroup, loading: loadingGroup } = useAsync(async () => {
     if (options?.id) {
@@ -101,19 +101,21 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
 
     if (isNew.value) {
       group.storeId = groupStoreId;
-      result = await apiClient.createGroup(group);
+      const content = options?.importData?.content;
+      // Use the existing atomic creation API: a new import has no document version to edit yet.
+      result =
+        content !== undefined
+          ? await apiClient.createGroupPage({
+              ...group,
+              content: serializeImportedPageContent(content),
+            })
+          : await apiClient.createGroup(group);
 
-      // Update state before upload so a failed upload won't cause duplicate createGroup on retry
       item.value = reactive(result);
       isNew.value = false;
     } else {
       result = await apiClient.updateGroup(group);
       item.value = reactive(result);
-    }
-
-    if (pendingContentUpload && result.id && options?.importData?.content) {
-      await uploadPageContent(result.id, options.importData.content);
-      pendingContentUpload = false;
     }
 
     return result;

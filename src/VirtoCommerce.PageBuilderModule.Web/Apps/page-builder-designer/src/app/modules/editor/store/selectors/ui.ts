@@ -33,6 +33,8 @@ export const hoveredSectionId = createSelector(
   state => state.hoveredSectionId
 );
 
+export const isPageSaving = createSelector(selectTemplateUIState, state => !!state?.isPageSaving);
+
 export const isLoading = createSelector(
   selectTemplateUIState,
   state => !!(state?.isTemplateLoading || state?.isSchemasLoading)
@@ -395,7 +397,8 @@ export const selectToolbarButtonsState = (context: ToolbarContext) => createSele
   fromDomain.selectCurrentTemplateState,
   fromRoute.selectSharedComponentIdParameter,
   fromShared.selectCurrentTemplateDirty,
-  (hasDirty, state, sharedComponentId, currentTemplateDirty) => {
+  isPageSaving,
+  (hasDirty, state, sharedComponentId, currentTemplateDirty, saving = false) => {
     const effectiveDirty = sharedComponentId ? currentTemplateDirty : hasDirty;
     const result = <ActionButtonDescriptor[][]>[];
     if (context.useTheme && !sharedComponentId) {
@@ -463,8 +466,8 @@ export const selectToolbarButtonsState = (context: ToolbarContext) => createSele
 
     result.push([
       {
-        canAction: effectiveDirty && (!sharedComponentId || context.canEditSharedComponents === true),
-        title: 'Save',
+        canAction: !saving && effectiveDirty && (!sharedComponentId || context.canEditSharedComponents === true),
+        title: saving ? 'Saving...' : 'Save',
         alias: 'save',
         type: 'primary'
       }

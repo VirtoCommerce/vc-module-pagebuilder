@@ -181,7 +181,7 @@ const {
   importData: options.value?.importData as PageExportData | undefined,
 });
 
-const { canSave, isModified, setBaseline, formMeta } = useBladeForm({
+const { canSave, isModified, setBaseline, markReady, formMeta } = useBladeForm({
   data: item,
   closeConfirmMessage: () => t("PAGE_BUILDER.PAGES.ALERTS.CLOSE_CONFIRMATION"),
   canSaveOverride: computed(() => !isReadOnly.value),
@@ -252,6 +252,7 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     clickHandler: async () => {
       if (await showConfirmation(t("PAGE_BUILDER.PAGES.ALERTS.DELETE"))) {
         await deleteGroup();
+        notification.success(t("PAGE_BUILDER.PAGES.ALERTS.DELETE_SUCCESS"));
         callParent("reload");
         closeSelf();
       }
@@ -303,6 +304,7 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     disabled: isReadOnly.value || isModified.value || !formMeta.value.valid,
     clickHandler: async () => {
       await publishGroup();
+      notification.success(t("PAGE_BUILDER.PAGES.ALERTS.PUBLISH_SUCCESS"));
       setBaseline();
       callParent("reload");
     },
@@ -315,6 +317,7 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     disabled: isReadOnly.value,
     clickHandler: async () => {
       await unpublishGroup();
+      notification.success(t("PAGE_BUILDER.PAGES.ALERTS.UNPUBLISH_SUCCESS"));
       setBaseline();
       callParent("reload");
     },
@@ -344,7 +347,11 @@ async function handleSave() {
 // Lifecycle
 onMounted(async () => {
   await loadGroup();
-  setBaseline();
+  if (options.value?.importData) {
+    markReady();
+  } else {
+    setBaseline();
+  }
   storeUrl.value = await getStoreUrl();
 });
 </script>

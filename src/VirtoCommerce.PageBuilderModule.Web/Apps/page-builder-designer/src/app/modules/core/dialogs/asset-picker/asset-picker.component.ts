@@ -2,6 +2,7 @@ import { afterRenderEffect, ChangeDetectionStrategy, Component, ElementRef, inje
 import { DOCUMENT, NgClass } from '@angular/common';
 import { FormField } from '@angular/forms/signals';
 import { MatDialogActions, MatDialogContent, MatDialogRef } from '@angular/material/dialog';
+import { MatPaginator } from '@angular/material/paginator';
 
 import { IconComponent } from '@core/components/icon/icon.component';
 import { IconButtonComponent } from '@core/components/icon-button/icon-button.component';
@@ -29,6 +30,7 @@ export type {
         FormField,
         MatDialogContent,
         MatDialogActions,
+        MatPaginator,
         IconComponent,
         IconButtonComponent,
         AssetPickerBreadcrumbsComponent,

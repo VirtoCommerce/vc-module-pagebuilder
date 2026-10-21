@@ -1,5 +1,5 @@
-# v3.800.30
-# https://virtocommerce.atlassian.net/browse/VCST-4958
+# v3.1000.4
+# https://virtocommerce.atlassian.net/browse/VCST-6033
 name: Publish nuget
 
 on:
@@ -11,14 +11,18 @@ on:
         default: true
         type: boolean
 
+# Least-privilege default; jobs override below where they need more.
+permissions:
+  contents: read
+
 jobs:
   test:
-    uses: VirtoCommerce/.github/.github/workflows/test-and-sonar.yml@v3.800.42    
+    uses: VirtoCommerce/.github/.github/workflows/test-and-sonar.yml@v3.1000.4
     secrets:
       sonarToken: ${{ secrets.SONAR_TOKEN }}
 
   build:
-    uses: VirtoCommerce/.github/.github/workflows/build.yml@v3.800.42    
+    uses: VirtoCommerce/.github/.github/workflows/build.yml@v3.1000.4
     with:
       uploadPackage: 'true'
       uploadDocker: 'false'
@@ -26,9 +30,10 @@ jobs:
     secrets:
       envPAT: ${{ secrets.REPO_TOKEN }}
 
-  # Trusted Publishing: mint the OIDC key and push in ONE job. A short-lived key can't cross job
-  # boundaries (GitHub redacts masked job outputs), and the push can't move into the cross-repo
-  # publish-github.yml (its job_workflow_ref wouldn't match this repo's policy — NuGet/login #6/#9).
+  # Trusted Publishing: mint the OIDC key and push in ONE job. A short-lived key can't cross
+  # job boundaries (GitHub redacts masked values from job outputs), and the push can't move
+  # into the cross-repo publish-github.yml (its job_workflow_ref wouldn't match this repo's
+  # policy — NuGet/login issues #6/#9). job_workflow_ref here is publish-nugets.yml, which matches.
   publish-nuget:
     needs: [build, test]
     runs-on: ubuntu-24.04
@@ -39,9 +44,9 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.REPO_TOKEN }}
     steps:
       - name: Install VirtoCommerce.GlobalTool
-        uses: VirtoCommerce/vc-github-actions/setup-vcbuild@master
+        uses: VirtoCommerce/.github/actions/setup-vcbuild@v3.1000.4
 
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -72,19 +77,20 @@ jobs:
           user: virto
 
       - name: Publish Nuget
-        uses: VirtoCommerce/vc-github-actions/publish-nuget@master
+        uses: VirtoCommerce/.github/actions/publish-nuget@v3.1000.4
         with:
           skipString: 'Clean+Restore+Compile+Test+Pack'
         env:
           NUGET_KEY: ${{ steps.nuget_login.outputs.NUGET_API_KEY }}
 
-  # Blob upload only. forceNuget: false — the push is done by publish-nuget above.
+  # Blob upload + PR-body link. forceNuget: false — the push is done by publish-nuget above.
+  # publish-github.yml edits the PR via the passed GITHUB_TOKEN — grant write to both.
   publish-blob:
     needs: [build, test, publish-nuget]
     permissions:
       contents: write
       pull-requests: write
-    uses: VirtoCommerce/.github/.github/workflows/publish-github.yml@v3.800.42
+    uses: VirtoCommerce/.github/.github/workflows/publish-github.yml@v3.1000.4
     with:
       fullKey: ${{ needs.build.outputs.packageFullKey }}
       forceGithub: false

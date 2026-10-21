@@ -70,7 +70,7 @@ public class PageBuilderSharedComponentReferenceIndexService(
         return result.ToList();
     }
 
-    private static async Task ValidateComponentsAsync(
+    internal static async Task ValidateComponentsAsync(
         IPageBuilderModuleRepository repository,
         string[] sharedComponentIds,
         string pageStoreId,

@@ -156,7 +156,15 @@ export class TemplateEditorUiEffects {
         tap(({ error }) => {
             console.log(error)
         }),
-        map(() => sharedActions.showNotification({ message: 'Could not save template', msgType: 'error', top: true }))
+        map(({ error }) => {
+            let message = 'Could not save template';
+            if (error?.status === 412) {
+                message = 'This page changed while you were editing. Your changes have not been saved. Copy your changes before reloading the page.';
+            } else if (error?.status === 428) {
+                message = 'The page version is unavailable. Copy your changes before reloading the page.';
+            }
+            return sharedActions.showNotification({ message, msgType: 'error', top: true });
+        })
     ));
 
     previewItem$ = createEffect(() => this.actions$.pipe(

@@ -9,6 +9,7 @@ import {
     AssetLibraryLabels,
     AssetLibraryReferencesSearchResult,
     AssetLibrarySearchResult,
+    AssetLibrarySearchOptions,
 } from './asset-library.models';
 import { AssetUrlService } from './asset-url.service';
 
@@ -86,8 +87,8 @@ export class AssetLibraryService {
         return { ...fallbackLabels };
     }
 
-    search(folderUrl: string, keyword?: string): Observable<AssetLibrarySearchResult> {
-        return this.api.search(folderUrl, keyword);
+    search(folderUrl: string, keyword?: string, options?: AssetLibrarySearchOptions): Observable<AssetLibrarySearchResult> {
+        return this.api.search(folderUrl, keyword, options);
     }
 
     createFolder(parentUrl: string, name: string): Observable<void> {
@@ -119,7 +120,7 @@ export class AssetLibraryService {
 
     findByName(folderUrl: string, fileName: string): Observable<AssetLibraryEntry | null> {
         const normalized = assetLibraryHelpers.normalizeAssetFileName(fileName);
-        return this.search(folderUrl, fileName).pipe(
+        return this.search(folderUrl, undefined, { exactName: fileName, take: 1 }).pipe(
             map(result => result.results.find(item =>
                 item.type === 'blob' && assetLibraryHelpers.normalizeAssetFileName(item.name) === normalized) ?? null)
         );
