@@ -4,6 +4,7 @@ import {
   FilePublishStatus,
   PageBuilderPageClient,
   GroupedPageBuilderPage,
+  PageBuilderPermalinkUsage,
 } from "../../../../api_client/virtocommerce.pagebuildermodule";
 
 import useUserGroups, { IUserGroupsResult } from "./../useUserGroups";
@@ -26,7 +27,9 @@ export interface IUsePageBuilderDetails {
   loadOrganizations: (keyword?: string, skip?: number, objectIds?: string[]) => Promise<IOrganizationsResult>;
   isReadOnly: ComputedRef<boolean>;
   statusText: ComputedRef<string>;
-  publishGroup: () => Promise<void>;
+  // unpublishConflicting unpublishes the published pages that publishing this one conflicts with.
+  publishGroup: (unpublishConflicting?: boolean) => Promise<void>;
+  loadPermalinkUsages: () => Promise<PageBuilderPermalinkUsage[]>;
   unpublishGroup: () => Promise<void>;
   openDraftDesigner: () => void;
   downloadContent: () => Promise<void>;
@@ -128,13 +131,13 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
     }
   });
 
-  const { action: publishGroup, loading: publishingGroup } = useAsync(async () => {
+  const { action: publishGroup, loading: publishingGroup } = useAsync<boolean>(async (unpublishConflicting) => {
     const groupId = item.value?.id;
     if (!groupId) {
       throw new Error("Can't publish group.");
     }
     const apiClient = await getApiClient();
-    await apiClient.publishGroup(groupId, true);
+    await apiClient.publishGroup(groupId, true, unpublishConflicting || undefined);
 
     if (item.value) {
       await loadGroup();
@@ -202,6 +205,19 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
     });
   }
 
+  // The page is checked as edited, so the result follows changes that are not saved yet.
+  async function loadPermalinkUsages(): Promise<PageBuilderPermalinkUsage[]> {
+    if (!item.value?.permalink) {
+      return [];
+    }
+    const apiClient = await getApiClient();
+    const usages = await apiClient.getPermalinkUsages({
+      ...item.value,
+      storeId: item.value.storeId || groupStoreId,
+    });
+    return usages ?? [];
+  }
+
   async function loadUserGroupsAsync() {
     return getUserGroups();
   }
@@ -251,6 +267,7 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
     isReadOnly,
     statusText,
     publishGroup,
+    loadPermalinkUsages,
     unpublishGroup,
     openDraftDesigner,
     downloadContent,

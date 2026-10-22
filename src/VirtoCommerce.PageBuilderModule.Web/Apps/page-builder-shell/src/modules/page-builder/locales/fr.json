@@ -88,6 +88,9 @@
           "USER_GROUPS": "Groupes d'utilisateurs",
           "ORGANIZATION": "Organisation"
         },
+        "WARNINGS": {
+          "PERMALINK_USED": "D'autres pages utilisent ce lien permanent : {pages}. C'est possible pour d'autres visiteurs ou périodes ; la publication vérifie les conflits."
+        },
         "TOOLTIPS": {
           "VISIBILITY": "Si la visibilité est désactivée, la page ne sera accessible qu'aux utilisateurs enregistrés."
         },
@@ -113,6 +116,9 @@
           "MESSAGE": "Êtes-vous sûr de vouloir archiver {count} pages sélectionnées ?",
           "ALL": "toutes les {totalCount}"
         },
+        "PUBLISH_CONFLICT": "Déjà publiées avec ce lien permanent pour les mêmes visiteurs : {pages}. Les dépublier et publier cette page ?",
+        "PUBLISH_CONFLICT_HAS_CHANGES": "Déjà publiées avec ce lien permanent pour les mêmes visiteurs : {pages}. Elles ont des modifications non publiées ; publiez ou annulez d'abord ces modifications.",
+        "PUBLISH_POSSIBLE_CONFLICT": "Également publiées avec ce lien permanent pour d'autres groupes d'utilisateurs : {pages}. Un visiteur membre des deux groupes peut obtenir l'une ou l'autre. Publier quand même ?",
         "UNPUBLISH_WITH_DRAFT": "Impossible de dépublier une page qui comporte des modifications.",
         "DOWNLOAD_SUCCESS": "Contenu enregistré dans le fichier avec succès",
         "CLONE_SUCCESS": "Page clonée avec succès",
