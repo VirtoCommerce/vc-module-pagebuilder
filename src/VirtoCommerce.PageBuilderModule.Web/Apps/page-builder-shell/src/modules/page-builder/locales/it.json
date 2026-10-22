@@ -88,6 +88,9 @@
           "USER_GROUPS": "Gruppi utenti",
           "ORGANIZATION": "Organizzazione"
         },
+        "WARNINGS": {
+          "PERMALINK_USED": "Altre pagine usano questo permalink: {pages}. È consentito per altri visitatori o periodi; la pubblicazione verifica i conflitti."
+        },
         "TOOLTIPS": {
           "VISIBILITY": "Se la visibilità è disattivata, la pagina sarà disponibile solo per gli utenti registrati."
         },
@@ -113,6 +116,9 @@
           "MESSAGE": "Sei sicuro di voler archiviare {count} pagine selezionate?",
           "ALL": "tutte {totalCount}"
         },
+        "PUBLISH_CONFLICT": "Già pubblicate con questo permalink per gli stessi visitatori: {pages}. Annullarne la pubblicazione e pubblicare questa pagina?",
+        "PUBLISH_CONFLICT_HAS_CHANGES": "Già pubblicate con questo permalink per gli stessi visitatori: {pages}. Hanno modifiche non pubblicate; pubblica o scarta prima tali modifiche.",
+        "PUBLISH_POSSIBLE_CONFLICT": "Pubblicate con questo permalink anche per altri gruppi di utenti: {pages}. Un visitatore in entrambi i gruppi può ricevere l'una o l'altra. Pubblicare comunque?",
         "UNPUBLISH_WITH_DRAFT": "Non è possibile annullare la pubblicazione di una pagina con modifiche.",
         "DOWNLOAD_SUCCESS": "Contenuto salvato su file con successo",
         "CLONE_SUCCESS": "Pagina clonata con successo",

@@ -88,6 +88,9 @@
           "USER_GROUPS": "Grupy użytkowników",
           "ORGANIZATION": "Organizacja"
         },
+        "WARNINGS": {
+          "PERMALINK_USED": "Ten link stały jest używany przez inne strony: {pages}. Jest to dozwolone dla innych odwiedzających lub okresów; publikacja sprawdza konflikty."
+        },
         "TOOLTIPS": {
           "VISIBILITY": "Jeśli widoczność jest wyłączona, strona będzie dostępna tylko dla zarejestrowanych użytkowników."
         },
@@ -113,6 +116,9 @@
           "MESSAGE": "Czy na pewno chcesz zarchiwizować {count} wybranych stron?",
           "ALL": "wszystkie {totalCount}"
         },
+        "PUBLISH_CONFLICT": "Już opublikowane pod tym linkiem stałym dla tych samych odwiedzających: {pages}. Cofnąć ich publikację i opublikować tę stronę?",
+        "PUBLISH_CONFLICT_HAS_CHANGES": "Już opublikowane pod tym linkiem stałym dla tych samych odwiedzających: {pages}. Mają nieopublikowane zmiany; najpierw je opublikuj lub odrzuć.",
+        "PUBLISH_POSSIBLE_CONFLICT": "Opublikowane pod tym linkiem stałym również dla innych grup użytkowników: {pages}. Odwiedzający należący do obu grup może otrzymać dowolną z nich. Opublikować mimo to?",
         "UNPUBLISH_WITH_DRAFT": "Nie można cofnąć publikacji strony, która ma zmiany.",
         "DOWNLOAD_SUCCESS": "Treść pomyślnie zapisana do pliku",
         "CLONE_SUCCESS": "Strona pomyślnie sklonowana",

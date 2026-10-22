@@ -54,6 +54,19 @@
               </VcInput>
             </Field>
 
+            <VcBanner
+              v-if="permalinkUsagesInLanguage.length"
+              variant="warning"
+              icon="lucide-triangle-alert"
+              data-test-id="permalink-usages"
+            >
+              {{
+                $t("PAGE_BUILDER.PAGES.DETAILS.WARNINGS.PERMALINK_USED", {
+                  pages: formatPageNames(permalinkUsagesInLanguage),
+                })
+              }}
+            </VcBanner>
+
             <VcSelect option-value="name" option-label="name" v-model="item.cultureName"
                       :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.CULTURE_NAME')" :options="loadCultureNamesAsync"
                       :clearable="false"
@@ -139,6 +152,7 @@
 import { computed, onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { Field } from "vee-validate";
+import { watchDebounced } from "@vueuse/core";
 import { IBladeToolbar, useBlade, useBladeForm, usePopup, notification } from "@vc-shell/framework";
 import PageStatus from "../components/pageStatus.vue";
 import useUrlParams from "../composables/useStoreParams";
@@ -147,8 +161,25 @@ import { usePageBuilderDetails } from "../composables/usePageBuilderDetails";
 import type { PageExportData } from "../composables/usePageContentApi";
 import CardHeader from "./../components/cardHeader.vue";
 import SwitchRow from "./../components/switchRow.vue";
+import {
+  canUnpublishAll,
+  formatPageNames,
+  getPublishConflicts,
+  getUsagesInLanguage,
+} from "../utilities/permalinkUsages";
+import type { PageBuilderPermalinkUsage } from "../../../api_client/virtocommerce.pagebuildermodule";
 
-import { VcBlade, VcCard, VcCol, VcContainer, VcForm, VcInput, VcRow, VcSelect } from "@vc-shell/framework/ui";
+import {
+  VcBanner,
+  VcBlade,
+  VcCard,
+  VcCol,
+  VcContainer,
+  VcForm,
+  VcInput,
+  VcRow,
+  VcSelect,
+} from "@vc-shell/framework/ui";
 
 defineBlade({
   name: "PageDetails",
@@ -156,7 +187,7 @@ defineBlade({
 });
 
 const { t } = useI18n({ useScope: "global" });
-const { showConfirmation } = usePopup();
+const { showConfirmation, showError } = usePopup();
 const { param, options, callParent, closeSelf, exposeToChildren } = useBlade();
 const { getStoreUrl, getLanguages } = useUrlParams();
 
@@ -169,6 +200,7 @@ const {
   saveGroup,
   deleteGroup,
   publishGroup,
+  loadPermalinkUsages,
   unpublishGroup,
   openDraftDesigner,
   downloadContent,
@@ -212,6 +244,46 @@ const bladeTitle = computed(() => {
 });
 
 const storeUrl = ref<string | null>(null);
+
+// Other pages are allowed to use the same permalink, for another audience or period; the author is warned, and
+// publishing checks whether the storefront would offer both pages to the same visitors.
+const permalinkUsages = ref<PageBuilderPermalinkUsage[]>([]);
+const permalinkUsagesInLanguage = computed(() => getUsagesInLanguage(permalinkUsages.value, item.value?.cultureName));
+watchDebounced(
+  () => [item.value?.id, item.value?.permalink],
+  async () => {
+    permalinkUsages.value = await loadPermalinkUsages();
+  },
+  { debounce: 500 },
+);
+
+// Returns false when the author cancels or the conflict has to be resolved on the other page first.
+async function publishWithConflictCheck(): Promise<boolean> {
+  const conflicts = getPublishConflicts(await loadPermalinkUsages());
+  if (conflicts.blocking.length > 0) {
+    const pages = formatPageNames(conflicts.blocking);
+    if (!canUnpublishAll(conflicts.blocking)) {
+      showError(t("PAGE_BUILDER.PAGES.ALERTS.PUBLISH_CONFLICT_HAS_CHANGES", { pages }));
+      return false;
+    }
+    if (!(await showConfirmation(t("PAGE_BUILDER.PAGES.ALERTS.PUBLISH_CONFLICT", { pages })))) {
+      return false;
+    }
+    await publishGroup(true);
+    return true;
+  }
+
+  if (
+    conflicts.possible.length > 0 &&
+    !(await showConfirmation(
+      t("PAGE_BUILDER.PAGES.ALERTS.PUBLISH_POSSIBLE_CONFLICT", { pages: formatPageNames(conflicts.possible) }),
+    ))
+  ) {
+    return false;
+  }
+  await publishGroup();
+  return true;
+}
 
 const isScheduled = computed(() => {
   return !!item.value.startDate || !!item.value.endDate;
@@ -303,7 +375,9 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     isVisible: !!param.value && status.value?.hasChanges === true,
     disabled: isReadOnly.value || isModified.value || !formMeta.value.valid,
     clickHandler: async () => {
-      await publishGroup();
+      if (!(await publishWithConflictCheck())) {
+        return;
+      }
       notification.success(t("PAGE_BUILDER.PAGES.ALERTS.PUBLISH_SUCCESS"));
       setBaseline();
       callParent("reload");

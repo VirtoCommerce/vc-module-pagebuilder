@@ -1826,10 +1826,62 @@ export class PageBuilderPageClient extends AuthApiBase {
     }
 
     /**
-     * @param publish (optional) 
+     * @param body (optional) 
      * @return OK
      */
-    publishGroup(groupId: string, publish?: boolean | undefined): Promise<void> {
+    getPermalinkUsages(body?: GroupedPageBuilderPage | undefined): Promise<PageBuilderPermalinkUsage[]> {
+        let url_ = this.baseUrl + "/api/page-builder-pages/grouped/permalink-usages";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json-patch+json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.transformOptions(options_).then(transformedOptions_ => {
+            return this.http.fetch(url_, transformedOptions_);
+        }).then((_response: Response) => {
+            return this.processGetPermalinkUsages(_response);
+        });
+    }
+
+    protected processGetPermalinkUsages(response: Response): Promise<PageBuilderPermalinkUsage[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as PageBuilderPermalinkUsage[];
+            return result200;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            return throwException("Unauthorized", status, _responseText, _headers);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            return throwException("Forbidden", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<PageBuilderPermalinkUsage[]>(null as any);
+    }
+
+    /**
+     * @param publish (optional) 
+     * @param unpublishConflicting (optional) 
+     * @return OK
+     */
+    publishGroup(groupId: string, publish?: boolean | undefined, unpublishConflicting?: boolean | undefined): Promise<void> {
         let url_ = this.baseUrl + "/api/page-builder-pages/grouped/publishing/{groupId}?";
         if (groupId === undefined || groupId === null)
             throw new globalThis.Error("The parameter 'groupId' must be defined.");
@@ -1838,6 +1890,10 @@ export class PageBuilderPageClient extends AuthApiBase {
             throw new globalThis.Error("The parameter 'publish' cannot be null.");
         else if (publish !== undefined)
             url_ += "publish=" + encodeURIComponent("" + publish) + "&";
+        if (unpublishConflicting === null)
+            throw new globalThis.Error("The parameter 'unpublishConflicting' cannot be null.");
+        else if (unpublishConflicting !== undefined)
+            url_ += "unpublishConflicting=" + encodeURIComponent("" + unpublishConflicting) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -3043,6 +3099,7 @@ export interface PageBuilderPage {
 export interface PageBuilderPageSearchCriteria {
     storeId?: string | undefined;
     statuses?: string | undefined;
+    permalink?: string | undefined;
     lifecycle?: string | undefined;
     activeOn?: Date | undefined;
     modifiedSince?: Date | undefined;
@@ -3058,6 +3115,22 @@ export interface PageBuilderPageSearchCriteria {
     readonly sortInfos?: SortInfo[] | undefined;
     skip?: number;
     take?: number;
+}
+
+export enum PageBuilderPermalinkConflict {
+    None = "None",
+    Possible = "Possible",
+    Certain = "Certain",
+}
+
+export interface PageBuilderPermalinkUsage {
+    groupId?: string | undefined;
+    name?: string | undefined;
+    permalink?: string | undefined;
+    cultureName?: string | undefined;
+    status?: string | undefined;
+    conflict?: PageBuilderPermalinkConflict;
+    canUnpublish?: boolean;
 }
 
 export interface PageBuilderSharedComponent {
