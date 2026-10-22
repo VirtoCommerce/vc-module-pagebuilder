@@ -10,7 +10,7 @@ public static class PageBuilderPermalink
 
     // U+FEFF is not whitespace for char.IsWhiteSpace, but it is for the admin UI's /\s/: reject it here too,
     // so an API client cannot save a permalink the UI then reports as invalid.
-    private static readonly SearchValues<char> ReservedCharacters = SearchValues.Create("?#&\\﻿");
+    private static readonly SearchValues<char> ReservedCharacters = SearchValues.Create("?#&\\\uFEFF");
 
     // The permalink is opened as written: '?' and '#' would start the query and the fragment, '&' separates
     // query parameters and whitespace must be encoded. Letters of any language and '%' are allowed;

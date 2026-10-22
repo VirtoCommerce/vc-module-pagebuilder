@@ -111,8 +111,7 @@ public class PageBuilderPageController : Controller
             return BadRequest("Archived page cannot be updated.");
         }
 
-        // An unchanged permalink stored before validation existed must not block editing the page's other fields.
-        if (groupedPage?.Permalink != model.Permalink && !PageBuilderPermalink.IsValid(model.Permalink))
+        if (!IsPermalinkAccepted(groupedPage, model))
         {
             return BadRequest(PageBuilderPermalink.InvalidMessage);
         }
@@ -807,6 +806,14 @@ public class PageBuilderPageController : Controller
     {
         return groupedPage != null &&
             !string.Equals(groupedPage.StoreId, model.StoreId, StringComparison.OrdinalIgnoreCase);
+    }
+
+    // An unchanged permalink stored before validation existed must not block editing the page's other fields.
+    private static bool IsPermalinkAccepted(
+        GroupedPageBuilderPage groupedPage,
+        GroupedPageBuilderPage model)
+    {
+        return groupedPage?.Permalink == model.Permalink || PageBuilderPermalink.IsValid(model.Permalink);
     }
 
     private static void ApplyGroupChanges(
