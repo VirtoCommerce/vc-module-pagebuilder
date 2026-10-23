@@ -34,7 +34,7 @@
         "validations": {
           "pageName-invalid": "O nome da página pode conter apenas caracteres alfanuméricos, \"_\", \"-\" e \".\"",
           "permalink-invalid": "Outras páginas possuem o mesmo link permanente",
-          "permalink-format-invalid": "O link permanente não pode conter espaços, os caracteres ? # & \\, barras duplas nem os segmentos . e .."
+          "permalink-format-invalid": "O link permanente deve ter no máximo 2048 caracteres e não pode conter espaços ou caracteres invisíveis, os caracteres ? # & % \\ \" < > { } | ^ `, barras duplas nem os segmentos . e .."
         },
         "hints": {
           "rename-in-git": "Esta loja publica as páginas através do Git, onde o nome do arquivo é o endereço da página no repositório. Renomeie-a lá, através de um pull request."

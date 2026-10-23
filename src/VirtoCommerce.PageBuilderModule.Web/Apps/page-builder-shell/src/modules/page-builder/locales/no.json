@@ -89,7 +89,7 @@
           "ORGANIZATION": "Organisasjon"
         },
         "VALIDATION": {
-          "PERMALINK": "Permalinken kan ikke inneholde mellomrom, tegnene ? # & \\, doble skråstreker eller segmentene . og .."
+          "PERMALINK": "Permalinken kan være på høyst 2048 tegn og kan ikke inneholde mellomrom eller usynlige tegn, tegnene ? # & % \\ \" < > {'{'} {'}'} {'|'} ^ `, doble skråstreker eller segmentene . og .."
         },
         "TOOLTIPS": {
           "VISIBILITY": "Hvis synlighet er av, vil siden kun være tilgjengelig for registrerte brukere."

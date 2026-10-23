@@ -1,14 +1,16 @@
-// Mirrors PageBuilderPermalink.IsValid on the server: the permalink is opened as written, so '?' and '#' would
-// start the query and the fragment, '&' separates query parameters and whitespace must be encoded.
-// Letters of any language and '%' are allowed; percent-escape sequences are not checked.
-const forbiddenCharacters = /[\s\p{Cc}?#&\\]/u;
+// Mirrors PageBuilderPermalink.IsValid on the server: '?', '#', '&' and '%' would start the query, the fragment,
+// a query parameter or an escape sequence, so a permalink could not be opened as written; the other characters
+// are not allowed unencoded in a URL path, and whitespace, control and formatting characters cannot be seen.
+// Letters of any language are allowed as they are.
+const forbiddenCharacters = /[\s\p{Cc}\p{Cf}?#&%\\"<>{}|^`]/u;
+const maxLength = 2048;
 
 export function isValidPermalink(value: string | null | undefined): boolean {
   if (!value) {
     return true;
   }
 
-  if (forbiddenCharacters.test(value) || value.includes("//")) {
+  if (value.length > maxLength || forbiddenCharacters.test(value) || value.includes("//")) {
     return false;
   }
 

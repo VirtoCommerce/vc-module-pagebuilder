@@ -89,7 +89,7 @@
           "ORGANIZATION": "Organização"
         },
         "VALIDATION": {
-          "PERMALINK": "O link permanente não pode conter espaços, os caracteres ? # & \\, barras duplas nem os segmentos . e .."
+          "PERMALINK": "O link permanente deve ter no máximo 2048 caracteres e não pode conter espaços ou caracteres invisíveis, os caracteres ? # & % \\ \" < > {'{'} {'}'} {'|'} ^ `, barras duplas nem os segmentos . e .."
         },
         "TOOLTIPS": {
           "VISIBILITY": "Se a visibilidade estiver desativada, a página estará disponível apenas para utilizadores registados."

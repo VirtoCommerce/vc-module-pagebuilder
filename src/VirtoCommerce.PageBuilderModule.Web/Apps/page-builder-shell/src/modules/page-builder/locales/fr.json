@@ -89,7 +89,7 @@
           "ORGANIZATION": "Organisation"
         },
         "VALIDATION": {
-          "PERMALINK": "Le lien permanent ne peut pas contenir d'espaces, les caractères ? # & \\, de doubles barres obliques ni les segments . et .."
+          "PERMALINK": "Le lien permanent doit comporter au plus 2048 caractères et ne peut pas contenir d'espaces ni de caractères invisibles, les caractères ? # & % \\ \" < > {'{'} {'}'} {'|'} ^ `, de doubles barres obliques ni les segments . et .."
         },
         "TOOLTIPS": {
           "VISIBILITY": "Si la visibilité est désactivée, la page ne sera accessible qu'aux utilisateurs enregistrés."

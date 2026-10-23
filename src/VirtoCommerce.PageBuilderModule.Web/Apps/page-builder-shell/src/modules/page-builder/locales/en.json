@@ -89,7 +89,7 @@
           "ORGANIZATION": "Organization"
         },
         "VALIDATION": {
-          "PERMALINK": "Permalink cannot contain spaces, the characters ? # & \\, double slashes, or . and .. segments"
+          "PERMALINK": "Permalink must be at most 2048 characters and cannot contain spaces or invisible characters, the characters ? # & % \\ \" < > {'{'} {'}'} {'|'} ^ `, double slashes, or . and .. segments"
         },
         "TOOLTIPS": {
           "VISIBILITY": "If Visibility is off the page will be available only for registered users."

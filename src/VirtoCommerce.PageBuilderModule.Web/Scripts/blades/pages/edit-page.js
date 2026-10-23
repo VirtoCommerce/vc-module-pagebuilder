@@ -153,11 +153,13 @@ angular.module('virtoCommerce.pageBuilderModule')
                 return $q.resolve();
             };
 
-            // Mirrors PageBuilderPermalink.IsValid on the server: the permalink is opened as written, so '?' and
-            // '#' would start the query and the fragment, '&' separates query parameters and whitespace must be
-            // encoded. Letters of any language and '%' are allowed; percent-escape sequences are not checked.
-            // This blade saves through the Content module, which does not check permalinks: only this check applies.
-            var forbiddenPermalinkCharacters = /[\s\u0000-\u001F\u007F-\u009F?#&\\]/;
+            // Mirrors PageBuilderPermalink.IsValid on the server: '?', '#', '&' and '%' would start the query, the
+            // fragment, a query parameter or an escape sequence; the other characters are not allowed unencoded in a
+            // URL path, and whitespace, control and formatting characters cannot be seen. Letters of any language are
+            // allowed. This blade saves through the Content module, which does not check permalinks: only this
+            // check applies. The input keeps edge spaces (ng-trim="false"), so they are rejected, not trimmed.
+            var forbiddenPermalinkCharacters = /[\s\p{Cc}\p{Cf}?#&%\\"<>{}|^`]/u;
+            var permalinkMaxLength = 2048;
 
             $scope.isValidPermalink = function (value) {
                 if (!value) {
@@ -168,7 +170,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                 if (storedSettings && value === storedSettings.permalink) {
                     return true;
                 }
-                if (forbiddenPermalinkCharacters.test(value) || value.indexOf('//') >= 0) {
+                if (value.length > permalinkMaxLength || forbiddenPermalinkCharacters.test(value) || value.indexOf('//') >= 0) {
                     return false;
                 }
                 return !_.some(value.split('/'), function (segment) {

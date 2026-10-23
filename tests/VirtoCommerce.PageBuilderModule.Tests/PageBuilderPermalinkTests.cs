@@ -56,6 +56,25 @@ public class PageBuilderPermalinkTests
         Assert.Empty(await service.GetAsync(["group-new-1"]));
     }
 
+    // VCST-6513: a permalink longer than the column used to fail with 500 on the database write.
+    [Fact]
+    public async Task CreateGroupPage_PermalinkLongerThanTheColumn_ReturnsBadRequest()
+    {
+        var service = new PublishedRenameContentPreservationTests.FakeGroupedPageService();
+        var controller = CreateController(service);
+
+        var result = await controller.CreateGroupPage(new CreateGroupedPageRequest
+        {
+            StoreId = StoreId,
+            Name = "Test page",
+            Permalink = "/" + new string('a', PageBuilderPermalink.MaxLength),
+            Content = EmptyContent,
+        }, TestContext.Current.CancellationToken);
+
+        Assert.IsType<BadRequestObjectResult>(result.Result);
+        Assert.Empty(await service.GetAsync(["group-new-1"]));
+    }
+
     [Fact]
     public async Task CreateGroup_InvalidPermalink_ReturnsBadRequestAndDoesNotSave()
     {

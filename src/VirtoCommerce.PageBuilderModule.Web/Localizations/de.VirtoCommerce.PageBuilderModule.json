@@ -34,7 +34,7 @@
         "validations": {
           "pageName-invalid": "Der Seitenname darf nur alphanumerische Zeichen, \"_\", \"-\" und \".\" enthalten",
           "permalink-invalid": "Andere Seiten verwenden denselben Permalink",
-          "permalink-format-invalid": "Der Permalink darf keine Leerzeichen, die Zeichen ? # & \\, doppelte Schrägstriche oder die Segmente . und .. enthalten"
+          "permalink-format-invalid": "Der Permalink darf höchstens 2048 Zeichen lang sein und keine Leerzeichen oder unsichtbaren Zeichen, die Zeichen ? # & % \\ \" < > { } | ^ `, doppelte Schrägstriche oder die Segmente . und .. enthalten"
         },
         "hints": {
           "rename-in-git": "Dieses Geschäft veröffentlicht Seiten über Git, wo der Dateiname die Adresse der Seite im Repository ist. Benennen Sie sie dort um, über einen Pull Request."

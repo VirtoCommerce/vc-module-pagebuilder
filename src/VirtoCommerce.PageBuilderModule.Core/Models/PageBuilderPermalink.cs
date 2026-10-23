@@ -1,20 +1,22 @@
 using System.Buffers;
+using System.Globalization;
 
 namespace VirtoCommerce.PageBuilderModule.Core.Models;
 
 public static class PageBuilderPermalink
 {
+    // The length of the permalink column.
+    public const int MaxLength = 2048;
+
     public static readonly string InvalidMessage =
-        "Permalink cannot contain whitespace, control characters, the characters '?', '#', '&' or '\\', " +
-        "empty segments ('//') or '.' and '..' segments.";
+        "Permalink must be at most " + MaxLength + " characters and cannot contain whitespace, control or invisible " +
+        "formatting characters, the characters ? # & % \\ \" < > { } | ^ `, empty segments ('//') or '.' and '..' segments.";
 
-    // U+FEFF is not whitespace for char.IsWhiteSpace, but it is for the admin UI's /\s/: reject it here too,
-    // so an API client cannot save a permalink the UI then reports as invalid.
-    private static readonly SearchValues<char> ReservedCharacters = SearchValues.Create("?#&\\\uFEFF");
+    // '?', '#', '&' and '%' would start the query, the fragment, a query parameter or an escape sequence, so a
+    // permalink could not be opened as written; the others are not allowed unencoded in a URL path (RFC 3986).
+    private static readonly SearchValues<char> ReservedCharacters = SearchValues.Create("?#&%\\\"<>{}|^`");
 
-    // The permalink is opened as written: '?' and '#' would start the query and the fragment, '&' separates
-    // query parameters and whitespace must be encoded. Letters of any language and '%' are allowed;
-    // percent-escape sequences are not checked.
+    // Letters of any language are allowed as they are.
     public static bool IsValid(string permalink)
     {
         if (string.IsNullOrEmpty(permalink))
@@ -22,13 +24,22 @@ public static class PageBuilderPermalink
             return true;
         }
 
-        if (permalink.AsSpan().ContainsAny(ReservedCharacters) ||
-            permalink.Any(x => char.IsWhiteSpace(x) || char.IsControl(x)) ||
+        if (permalink.Length > MaxLength ||
+            permalink.AsSpan().ContainsAny(ReservedCharacters) ||
+            permalink.Any(IsInvisible) ||
             permalink.Contains("//", StringComparison.Ordinal))
         {
             return false;
         }
 
         return !permalink.Split('/').Any(x => x is "." or "..");
+    }
+
+    // Formatting characters, such as the zero-width space and the byte order mark, cannot be seen in the address bar.
+    private static bool IsInvisible(char character)
+    {
+        return char.IsWhiteSpace(character) ||
+            char.IsControl(character) ||
+            char.GetUnicodeCategory(character) == UnicodeCategory.Format;
     }
 }
