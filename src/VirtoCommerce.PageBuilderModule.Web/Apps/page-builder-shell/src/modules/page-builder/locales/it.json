@@ -88,6 +88,9 @@
           "USER_GROUPS": "Gruppi utenti",
           "ORGANIZATION": "Organizzazione"
         },
+        "VALIDATION": {
+          "PERMALINK": "Il permalink deve avere al massimo 2048 caratteri e non può contenere spazi o caratteri invisibili, i caratteri ? # & % \\ \" < > {'{'} {'}'} {'|'} ^ `, doppie barre o i segmenti . e .."
+        },
         "TOOLTIPS": {
           "VISIBILITY": "Se la visibilità è disattivata, la pagina sarà disponibile solo per gli utenti registrati."
         },

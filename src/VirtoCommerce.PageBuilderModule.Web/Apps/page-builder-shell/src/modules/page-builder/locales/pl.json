@@ -88,6 +88,9 @@
           "USER_GROUPS": "Grupy użytkowników",
           "ORGANIZATION": "Organizacja"
         },
+        "VALIDATION": {
+          "PERMALINK": "Link stały może mieć maksymalnie 2048 znaków i nie może zawierać spacji ani niewidocznych znaków, znaków ? # & % \\ \" < > {'{'} {'}'} {'|'} ^ `, podwójnych ukośników ani segmentów . i .."
+        },
         "TOOLTIPS": {
           "VISIBILITY": "Jeśli widoczność jest wyłączona, strona będzie dostępna tylko dla zarejestrowanych użytkowników."
         },
