@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.Globalization;
+using System.Text;
 
 namespace VirtoCommerce.PageBuilderModule.Core.Models;
 
@@ -26,7 +27,7 @@ public static class PageBuilderPermalink
 
         if (permalink.Length > MaxLength ||
             permalink.AsSpan().ContainsAny(ReservedCharacters) ||
-            permalink.Any(IsInvisible) ||
+            permalink.EnumerateRunes().Any(IsInvisible) ||
             permalink.Contains("//", StringComparison.Ordinal))
         {
             return false;
@@ -36,10 +37,12 @@ public static class PageBuilderPermalink
     }
 
     // Formatting characters, such as the zero-width space and the byte order mark, cannot be seen in the address bar.
-    private static bool IsInvisible(char character)
+    // Checked per code point: a formatting character outside the BMP (for example a tag character) is a surrogate
+    // pair, and each of its halves alone has the Surrogate category.
+    private static bool IsInvisible(Rune character)
     {
-        return char.IsWhiteSpace(character) ||
-            char.IsControl(character) ||
-            char.GetUnicodeCategory(character) == UnicodeCategory.Format;
+        return Rune.IsWhiteSpace(character) ||
+            Rune.IsControl(character) ||
+            Rune.GetUnicodeCategory(character) == UnicodeCategory.Format;
     }
 }

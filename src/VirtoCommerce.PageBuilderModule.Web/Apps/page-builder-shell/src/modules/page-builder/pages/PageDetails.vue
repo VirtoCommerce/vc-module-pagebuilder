@@ -38,6 +38,7 @@
               <VcInput
                        v-model="item.permalink"
                        required
+                       maxlength="2048"
                        :error="errors.length > 0"
                        :error-message="errorMessage"
                        :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.PERMALINK')"
