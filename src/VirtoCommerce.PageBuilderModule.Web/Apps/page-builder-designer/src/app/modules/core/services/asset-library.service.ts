@@ -33,7 +33,7 @@ const fallbackLabels: AssetLibraryLabels = {
     upload: 'Upload',
     uploading: 'Uploading...',
     newFolder: 'New folder',
-    createFolder: 'Create',
+    createFolder: 'Create folder',
     cancelFolder: 'Cancel new folder',
     folderName: 'Folder name',
     folderNamePlaceholder: 'Enter folder name',

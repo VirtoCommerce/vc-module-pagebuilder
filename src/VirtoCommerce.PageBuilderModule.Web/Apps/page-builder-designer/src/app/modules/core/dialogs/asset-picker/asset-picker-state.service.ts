@@ -234,9 +234,8 @@ export class AssetPickerStateService {
     uploadFiles(files: File[], folderUrl = this.currentFolderUrl()) {
         const acceptedFiles = files.filter(file => this.matchesAcceptFile(file));
         const oversizedFiles = acceptedFiles.filter(file => this.isFileTooLarge(file));
-        const uploadFiles = acceptedFiles
-            .filter(file => !this.isFileTooLarge(file))
-            .slice(0, this.multiple ? undefined : 1);
+        // Uploading fills the library, so several files are allowed even when the control takes one asset.
+        const uploadFiles = acceptedFiles.filter(file => !this.isFileTooLarge(file));
 
         if (oversizedFiles.length) {
             this.error.set(this.labels.fileTooLarge.replace('{maxSize}', assetLibraryHelpers.formatAssetSize(this.maxFileSize ?? 0)));

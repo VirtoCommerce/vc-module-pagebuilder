@@ -72,11 +72,11 @@ describe('AssetPickerComponent', () => {
         await fixture.whenStable();
         const input = fixture.nativeElement.querySelector('.folder-form input') as HTMLInputElement;
         expect(input.getAttribute('aria-invalid')).toBe('true');
-        expect(fixture.nativeElement.querySelector('.folder-form .btn-skin-primary').disabled).toBe(true);
+        expect(fixture.nativeElement.querySelector('.folder-form-action--confirm').disabled).toBe(true);
         expect(input.getAttribute('aria-describedby')).toBe('asset-picker-folder-error');
         expect(fixture.nativeElement.querySelector('[role="alert"]').textContent).toContain('lowercase');
-        // Rendered in the actions row so the error does not grow the form and shift the grid.
-        expect(fixture.nativeElement.querySelector('.folder-form-actions [role="alert"]')).not.toBeNull();
+        // Rendered in the reserved message area so the error does not grow the form and shift the grid.
+        expect(fixture.nativeElement.querySelector('.folder-form-message [role="alert"]')).not.toBeNull();
         fixture.nativeElement.querySelector('.folder-form').dispatchEvent(new Event('submit', { cancelable: true }));
         expect(state.creatingFolder()).toBe(false);
     });
@@ -89,7 +89,26 @@ describe('AssetPickerComponent', () => {
         created.error(new HttpErrorResponse({ status: 400, error: { message: 'Folder already exists.' } }));
         await fixture.whenStable();
         expect(fixture.nativeElement.querySelector('[role="alert"]').textContent).toBe('Folder already exists.');
-        expect(fixture.nativeElement.querySelector('.folder-form .btn-skin-primary').disabled).toBe(false);
+        expect(fixture.nativeElement.querySelector('.folder-form-action--confirm').disabled).toBe(false);
+    });
+
+    it('creates the folder from the confirm icon and names both icon actions', async () => {
+        const { fixture, state } = setup();
+        state.openFolderForm();
+        state.folderName.set('new folder');
+        await fixture.whenStable();
+        const confirm = fixture.nativeElement.querySelector('.folder-form-action--confirm') as HTMLButtonElement;
+        const cancel = fixture.nativeElement.querySelector('.folder-form-action--cancel') as HTMLButtonElement;
+        expect(confirm.getAttribute('aria-label')).toBe(state.labels.createFolder);
+        expect(cancel.getAttribute('aria-label')).toBe(state.labels.cancelFolder);
+        confirm.click();
+        expect(state.creatingFolder()).toBe(true);
+    });
+
+    it('lets Upload pick several files even for a single-asset control', async () => {
+        const { fixture } = setup(false);
+        await fixture.whenStable();
+        expect((fixture.nativeElement.querySelector('.toolbar input[type="file"]') as HTMLInputElement).multiple).toBe(true);
     });
 
     it('cancels only the form without discarding selection', async () => {
@@ -98,7 +117,7 @@ describe('AssetPickerComponent', () => {
         state.selectAsset(images[1]);
         state.openFolderForm();
         await fixture.whenStable();
-        fixture.nativeElement.querySelector('.folder-form [type="button"]').click();
+        fixture.nativeElement.querySelector('.folder-form-action--cancel').click();
         await fixture.whenStable();
         expect(fixture.nativeElement.querySelector('.folder-form')).toBeNull();
         expect(state.selectedAssets()).toEqual(images);
@@ -121,7 +140,7 @@ describe('AssetPickerComponent', () => {
 
         expect(input.value).toBe('my folder');
         expect(state.folderName()).toBe('my folder');
-        fixture.nativeElement.querySelector('.folder-form [type="button"]').click();
+        fixture.nativeElement.querySelector('.folder-form-action--cancel').click();
         await fixture.whenStable();
         newFolder.click();
         await fixture.whenStable();

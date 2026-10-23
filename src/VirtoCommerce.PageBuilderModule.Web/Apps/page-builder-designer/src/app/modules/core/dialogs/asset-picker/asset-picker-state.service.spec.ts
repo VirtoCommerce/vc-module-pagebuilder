@@ -98,6 +98,16 @@ describe('AssetPickerStateService', () => {
         expect(uploads.uploadFiles.mock.calls[0][0]).toBe(`${root}/new folder`);
     });
 
+    it('uploads every chosen file for a single-asset control and selects the last one', () => {
+        setup(false);
+        const files = ['one.jpg', 'two.jpg', 'three.jpg'].map(name => new File(['image'], name, { type: 'image/jpeg' }));
+        const uploaded = files.map(file => ({ ...image, name: file.name, relativeUrl: `${root}/${file.name}` }));
+        uploads.uploadFiles.mockReturnValue(of(uploaded));
+        state.uploadFiles(files);
+        expect(uploads.uploadFiles).toHaveBeenCalledExactlyOnceWith(root, files, null);
+        expect(state.selectedAssets()).toEqual([uploaded[2]]);
+    });
+
     it('keeps the form, folder and selection on failure and allows retry after editing', async () => {
         setup();
         state.selectAsset(image);

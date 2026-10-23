@@ -17,7 +17,6 @@ export class AssetPickerToolbarComponent {
     readonly canCreateFolder = input(false);
     readonly canUpload = input(false);
     private readonly newFolderButton = viewChild<ElementRef<HTMLButtonElement>>('newFolderButton');
-    readonly multiple = input(false);
     readonly acceptAttribute = input<string | null>(null);
     readonly searchValue = input('');
     readonly counterText = input('');

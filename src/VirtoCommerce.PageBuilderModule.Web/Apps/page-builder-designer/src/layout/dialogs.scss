@@ -261,22 +261,45 @@
         border-bottom: 1px solid $border;
         background: $surface;
 
-        input {
-            min-width: 0;
-        }
-
-        // The error shares the row with the buttons, and the row reserves two lines of error text,
-        // so showing an error does not push the asset grid down.
-        .folder-form-actions {
+        .folder-form-row {
             display: flex;
-            align-items: center;
+            align-items: stretch;
             gap: 0.5rem;
-            min-height: calc(2 * 1.25 * 0.875rem);
         }
 
-        .folder-form-message {
+        input {
             flex: 1 1 auto;
             min-width: 0;
+        }
+
+        .folder-form-action {
+            display: flex;
+            flex: none;
+            align-items: center;
+            justify-content: center;
+            aspect-ratio: 1 / 1;
+            padding: 0;
+            border: 1px solid $border;
+            border-radius: 0.25rem;
+            background: $surface;
+            color: $primary;
+            cursor: pointer;
+
+            &:disabled {
+                opacity: 0.6;
+                cursor: default;
+            }
+        }
+
+        .folder-form-action--confirm:not(:disabled) {
+            border-color: $primary;
+            background: $primary;
+            color: $surface;
+        }
+
+        // Reserves two lines of error text, so showing an error does not push the asset grid down.
+        .folder-form-message {
+            min-height: calc(2 * 1.25 * 0.875rem);
         }
 
         .folder-form-error {
@@ -284,12 +307,6 @@
             font-size: 0.875rem;
             line-height: 1.25;
             overflow-wrap: anywhere;
-        }
-
-        .folder-form-buttons {
-            display: flex;
-            flex: none;
-            gap: 0.5rem;
         }
     }
 
