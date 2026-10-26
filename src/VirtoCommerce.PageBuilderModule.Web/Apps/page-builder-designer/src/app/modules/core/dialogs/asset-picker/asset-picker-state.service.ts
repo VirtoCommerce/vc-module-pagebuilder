@@ -170,17 +170,11 @@ export class AssetPickerStateService {
             return;
         }
 
-        this.currentFolderUrl.set(entry.relativeUrl || entry.url || this.currentFolderUrl());
-        this.pageIndex.set(0);
-        this.selection.clearSingleSelection();
-        this.loadEntries();
+        this.openFolder(entry.relativeUrl || entry.url || this.currentFolderUrl());
     }
 
     navigateToBreadcrumb(url: string) {
-        this.currentFolderUrl.set(url);
-        this.pageIndex.set(0);
-        this.selection.clearSingleSelection();
-        this.loadEntries();
+        this.openFolder(url);
     }
 
     selectAsset(entry: AssetLibraryEntry) {
@@ -281,6 +275,14 @@ export class AssetPickerStateService {
                 this.error.set(this.getErrorMessage(error, this.labels.uploadError));
             }
         });
+    }
+
+    private openFolder(url: string) {
+        this.currentFolderUrl.set(url);
+        this.searchValue.set('');
+        this.pageIndex.set(0);
+        this.selection.clearSingleSelection();
+        this.loadEntries();
     }
 
     private buildBreadcrumbs(): AssetPickerBreadcrumb[] {
