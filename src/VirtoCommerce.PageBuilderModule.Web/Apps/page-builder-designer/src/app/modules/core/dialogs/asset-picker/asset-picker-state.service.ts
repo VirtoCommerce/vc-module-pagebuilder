@@ -44,9 +44,9 @@ export class AssetPickerStateService {
     readonly pageSize = signal(20);
     readonly selectedAssets = this.selection.selectedAssets;
     readonly selectedCount = this.selection.selectedCount;
-    readonly selectButtonText = computed(() => this.multiple && this.selectedCount() > 1
-        ? `${this.labels.select} (${this.selectedCount()})`
-        : this.labels.select);
+    readonly selectedCountText = computed(() => this.multiple && this.selectedCount()
+        ? this.labels.selectedCount.replace('{count}', this.selectedCount().toString())
+        : '');
     readonly searchValue = signal('');
     readonly loading = signal(false);
     readonly uploading = signal(false);

@@ -81,16 +81,19 @@
     }
   </div>
 
-  <mat-paginator
-    [length]="state.totalCount()"
-    [pageIndex]="state.pageIndex()"
-    [pageSize]="state.pageSize()"
-    [pageSizeOptions]="[20, 50, 100]"
-    [showFirstLastButtons]="true"
-    (page)="state.onPage($event.pageIndex, $event.pageSize)" />
+  <div class="pager">
+    <span class="selected-count" aria-live="polite">{{ state.selectedCountText() }}</span>
+    <mat-paginator
+      [length]="state.totalCount()"
+      [pageIndex]="state.pageIndex()"
+      [pageSize]="state.pageSize()"
+      [pageSizeOptions]="[20, 50, 100]"
+      [showFirstLastButtons]="true"
+      (page)="state.onPage($event.pageIndex, $event.pageSize)" />
+  </div>
 
   <div mat-dialog-actions>
     <app-icon-button skin="outline" [text]="state.labels.cancel" (click)="decline()" />
-    <app-icon-button skin="primary" [text]="state.selectButtonText()" [disabled]="!state.selectedCount() || state.creatingFolder() || state.uploading()" (click)="confirm()" />
+    <app-icon-button skin="primary" [text]="state.labels.select" [disabled]="!state.selectedCount() || state.creatingFolder() || state.uploading()" (click)="confirm()" />
   </div>
 </div>

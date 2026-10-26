@@ -76,6 +76,7 @@ export interface AssetLibraryLabels {
     empty: string;
     cancel: string;
     select: string;
+    selectedCount: string;
     storeRequired: string;
     uploadError: string;
     loadError: string;

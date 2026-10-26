@@ -105,6 +105,22 @@ describe('AssetPickerComponent', () => {
         expect(state.creatingFolder()).toBe(true);
     });
 
+    it('shows the selected count next to the pager and keeps the Select label plain', async () => {
+        const { fixture, state } = setup();
+        state.selectAsset(images[0]);
+        state.selectAsset(images[1]);
+        await fixture.whenStable();
+        expect(fixture.nativeElement.querySelector('.pager .selected-count').textContent.trim()).toBe('2 selected');
+        expect(fixture.nativeElement.querySelector('[mat-dialog-actions] .btn-skin-primary').textContent.trim()).toBe(state.labels.select);
+    });
+
+    it('does not show a selected count for a single-asset control', async () => {
+        const { fixture, state } = setup(false);
+        state.selectAsset(images[0]);
+        await fixture.whenStable();
+        expect(fixture.nativeElement.querySelector('.pager .selected-count').textContent.trim()).toBe('');
+    });
+
     it('lets Upload pick several files even for a single-asset control', async () => {
         const { fixture } = setup(false);
         await fixture.whenStable();

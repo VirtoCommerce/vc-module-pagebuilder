@@ -52,6 +52,7 @@ const fallbackLabels: AssetLibraryLabels = {
     empty: 'No assets found.',
     cancel: 'Cancel',
     select: 'Select',
+    selectedCount: '{count} selected',
     storeRequired: 'Store context is required to open Asset Library.',
     uploadError: 'Unable to upload asset.',
     loadError: 'Unable to load assets.',

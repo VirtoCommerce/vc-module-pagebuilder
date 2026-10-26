@@ -367,26 +367,45 @@
         height: 1.5rem;
         align-items: center;
         justify-content: center;
-        border: 1px solid rgba($primary, 0.45);
-        border-radius: 0.25rem;
-        background: rgba($surface, 0.92);
+        border: 2px solid $surface;
+        border-radius: 50%;
+        background: rgba($surface, 0.85);
         color: $surface;
-        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+        box-shadow: 0 1px 4px rgba(15, 23, 42, 0.35);
 
         &--selected {
-            border-color: $primary;
             background: $primary;
         }
 
+        // app-icon sets its own icon colour and mat-icon defaults to 24px; both would break the marker.
         app-icon {
-            display: flex;
-            width: 1rem;
-            height: 1rem;
-            align-items: center;
-            justify-content: center;
-            font-size: 1rem;
-            line-height: 1rem;
+            color: inherit;
+
+            .mat-icon {
+                width: 1rem;
+                height: 1rem;
+                font-size: 1rem;
+                font-weight: 700;
+                line-height: 1rem;
+            }
         }
+    }
+
+    .pager {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding-inline-start: 1rem;
+
+        mat-paginator {
+            margin-inline-start: auto;
+        }
+    }
+
+    .selected-count {
+        color: $text;
+        font-size: 0.875rem;
+        white-space: nowrap;
     }
 
     .preview {
