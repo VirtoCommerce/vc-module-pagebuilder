@@ -48,7 +48,6 @@
 }
 
 .asset-picker {
-    $bg: #f6f8fb;
     $surface: #fff;
     $border: #dde6f2;
     $text: #243447;
@@ -64,7 +63,7 @@
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background: $bg;
+    background: $surface;
     color: $text;
     font-size: 0.875rem;
     line-height: 1.125rem;
@@ -115,6 +114,19 @@
                 color: $muted;
                 cursor: default;
             }
+        }
+    }
+
+    .toolbar input,
+    .folder-form input {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid $border;
+        border-radius: 0.25rem;
+        outline: 0;
+        color: $text;
+
+        &:focus {
+            border-color: $primary;
         }
     }
 
@@ -225,15 +237,6 @@
         input {
             flex: 1 1 15rem;
             min-width: 15rem;
-            padding: 0.5rem 0.75rem;
-            border: 1px solid $border;
-            border-radius: 0.25rem;
-            outline: 0;
-            color: $text;
-
-            &:focus {
-                border-color: $primary;
-            }
         }
     }
 
@@ -246,6 +249,63 @@
         &:disabled {
             opacity: 0.6;
             cursor: default;
+        }
+    }
+
+    .folder-form {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        padding: 0.75rem;
+        border-bottom: 1px solid $border;
+        background: $surface;
+
+        .folder-form-row {
+            display: flex;
+            align-items: stretch;
+            gap: 0.5rem;
+        }
+
+        input {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        .folder-form-action {
+            display: flex;
+            flex: none;
+            align-items: center;
+            justify-content: center;
+            aspect-ratio: 1 / 1;
+            padding: 0;
+            border: 1px solid $border;
+            border-radius: 0.25rem;
+            background: $surface;
+            color: $primary;
+            cursor: pointer;
+
+            &:disabled {
+                opacity: 0.6;
+                cursor: default;
+            }
+        }
+
+        .folder-form-action--confirm:not(:disabled) {
+            border-color: $primary;
+            background: $primary;
+            color: $surface;
+        }
+
+        // Reserves two lines of error text, so showing an error does not push the asset grid down.
+        .folder-form-message {
+            min-height: calc(2 * 1.25 * 0.875rem);
+        }
+
+        .folder-form-error {
+            color: #b91c1c;
+            font-size: 0.875rem;
+            line-height: 1.25;
+            overflow-wrap: anywhere;
         }
     }
 
@@ -306,26 +366,45 @@
         height: 1.5rem;
         align-items: center;
         justify-content: center;
-        border: 1px solid rgba($primary, 0.45);
-        border-radius: 0.25rem;
-        background: rgba($surface, 0.92);
+        border: 2px solid $surface;
+        border-radius: 50%;
+        background: rgba($surface, 0.85);
         color: $surface;
-        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+        box-shadow: 0 1px 4px rgba(15, 23, 42, 0.35);
 
         &--selected {
-            border-color: $primary;
             background: $primary;
         }
 
+        // app-icon sets its own icon colour and mat-icon defaults to 24px; both would break the marker.
         app-icon {
-            display: flex;
-            width: 1rem;
-            height: 1rem;
-            align-items: center;
-            justify-content: center;
-            font-size: 1rem;
-            line-height: 1rem;
+            color: inherit;
+
+            .mat-icon {
+                width: 1rem;
+                height: 1rem;
+                font-size: 1rem;
+                font-weight: 700;
+                line-height: 1rem;
+            }
         }
+    }
+
+    .pager {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding-inline-start: 1rem;
+
+        mat-paginator {
+            margin-inline-start: auto;
+        }
+    }
+
+    .selected-count {
+        color: $text;
+        font-size: 0.875rem;
+        white-space: nowrap;
     }
 
     .preview {

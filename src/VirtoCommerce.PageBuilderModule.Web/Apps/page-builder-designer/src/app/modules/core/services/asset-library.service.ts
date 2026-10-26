@@ -32,12 +32,27 @@ const fallbackLabels: AssetLibraryLabels = {
     imageLabel: 'Image',
     upload: 'Upload',
     uploading: 'Uploading...',
+    newFolder: 'New folder',
+    createFolder: 'Create folder',
+    cancelFolder: 'Cancel new folder',
+    folderName: 'Folder name',
+    folderNamePlaceholder: 'Enter folder name',
+    folderCreateError: 'Unable to create folder.',
+    folderNameErrors: {
+        minLength: 'Folder name must be at least 3 characters long. You entered {count} characters.',
+        maxLength: 'Folder name must be at most 63 characters long. You entered {count} characters.',
+        dashStart: 'Folder name must not start with a dash symbol.',
+        dashEnd: 'Folder name must not end with a dash symbol.',
+        dashConsecutive: 'Folder name must not contain consecutive dash symbols.',
+        invalidCharacters: 'Folder name must only contain lowercase letters, numbers, spaces, and single dashes.',
+    },
     searchPlaceholder: 'Search assets...',
     assetsCounter: '{count} assets',
     loading: 'Loading assets...',
     empty: 'No assets found.',
     cancel: 'Cancel',
     select: 'Select',
+    selectedCount: '{count} selected',
     storeRequired: 'Store context is required to open Asset Library.',
     uploadError: 'Unable to upload asset.',
     loadError: 'Unable to load assets.',
@@ -75,6 +90,18 @@ export class AssetLibraryService {
 
     search(folderUrl: string, keyword?: string, options?: AssetLibrarySearchOptions): Observable<AssetLibrarySearchResult> {
         return this.api.search(folderUrl, keyword, options);
+    }
+
+    createFolder(parentUrl: string, name: string): Observable<void> {
+        return this.api.createFolder(parentUrl, name);
+    }
+
+    canCreateFolder(): boolean {
+        return this.api.canCreateFolder();
+    }
+
+    canUpload(): boolean {
+        return this.api.canUpload();
     }
 
     upload(folderUrl: string, file: File): Observable<AssetLibraryEntry | null> {

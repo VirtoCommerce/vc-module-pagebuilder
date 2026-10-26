@@ -24,6 +24,8 @@ describe('Asset picker loading during upload', () => {
             { provide: MAT_DIALOG_DATA, useValue: { rootFolderUrl: '/folder' } },
             { provide: AssetLibraryService, useValue: {
                 isImage: () => true,
+                canUpload: () => true,
+                canCreateFolder: () => false,
                 getPreviewUrl: () => '/preview',
                 getLabels: () => ({ title: 'Assets', select: 'Select', uploadError: 'Upload failed' }),
                 search: vi.fn(() => {

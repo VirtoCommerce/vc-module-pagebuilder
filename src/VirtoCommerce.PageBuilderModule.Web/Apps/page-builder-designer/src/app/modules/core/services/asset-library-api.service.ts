@@ -1,8 +1,9 @@
 import { inject, Injectable } from '@angular/core';
-import { map, Observable } from 'rxjs';
+import { map, Observable, throwError } from 'rxjs';
 
 import { AppConfig, BuilderHttpClient } from '@integration/services';
 import { assetLibraryHelpers } from '@core/helpers';
+import { ServerRequestDescriptor } from '@models/http';
 
 import { AssetLibraryEntry, AssetLibraryReferencesSearchResult, AssetLibrarySearchResult, AssetLibrarySearchOptions } from './asset-library.models';
 
@@ -26,6 +27,43 @@ export class AssetLibraryApiService {
         return this.doConfiguredRequest<AssetLibraryEntry[]>('assetLibraryUploadRequest', { folderUrl, file }, file).pipe(
             map(response => response?.[0] ?? null)
         );
+    }
+
+    createFolder(parentUrl: string, name: string): Observable<void> {
+        const context = { parentUrl, name };
+        const request = this.http.generateRequest(this.appConfig.getContext().config.assetLibraryCreateFolderRequest, null, context);
+        // A fallback chain can repeat the POST after an empty 204 response.
+        if (!this.isFolderRequest(request)) {
+            return throwError(() => new Error('Folder creation requires a configured POST request.'));
+        }
+        return this.http.doRequest<void>(request, { nullWhenError: false }, context).pipe(
+            map(() => undefined)
+        );
+    }
+
+    canCreateFolder(): boolean {
+        this.appConfig.version();
+        const request = this.appConfig.getContext().config.assetLibraryCreateFolderRequest;
+        return this.appConfig.getValue('canCreateAssets') === true
+            && this.isFolderRequest(request);
+    }
+
+    canUpload(): boolean {
+        this.appConfig.version();
+        const config = this.appConfig.getContext().config;
+        // Upload predates this flag; legacy custom configurations without it still rely on server authorization.
+        // getValue() reports both a missing key and a denied init check (stored as null) as null,
+        // so the raw config tells them apart.
+        const legacyConfig = config.canCreateAssets === undefined;
+        const canCreateAssets = this.appConfig.getValue('canCreateAssets');
+        return (legacyConfig || (canCreateAssets !== false && canCreateAssets !== null))
+            && !!config.assetLibraryUploadRequest;
+    }
+
+    private isFolderRequest(request: unknown): request is ServerRequestDescriptor {
+        return !!request && typeof request === 'object' && !Array.isArray(request)
+            && 'url' in request && typeof request.url === 'string' && !!request.url.trim()
+            && 'method' in request && typeof request.method === 'string' && request.method.toUpperCase() === 'POST';
     }
 
     searchReferences(storeId: string, assetUrls: string[]): Observable<AssetLibraryReferencesSearchResult> {
