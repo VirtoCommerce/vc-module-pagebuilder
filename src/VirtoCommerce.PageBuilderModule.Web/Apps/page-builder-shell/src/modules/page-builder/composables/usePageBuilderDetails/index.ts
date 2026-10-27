@@ -142,7 +142,7 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
       await apiClient.publishGroup(groupId, true, unpublishConflicting || undefined);
     } catch (error) {
       const conflicts = getConflictsOfRejectedPublish(error);
-      if (conflicts === null) {
+      if (conflicts === null || conflicts.length === 0) {
         throw error;
       }
       throw new Error(

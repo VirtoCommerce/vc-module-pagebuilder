@@ -122,7 +122,7 @@
         "PUBLISH_CONFLICT": "Redan publicerade med den här permalänken för samma besökare: {pages}. Avpublicera dem och publicera den här sidan?",
         "PUBLISH_CONFLICT_HAS_CHANGES": "Redan publicerade med den här permalänken för samma besökare: {pages}. De har opublicerade ändringar; publicera eller ignorera dem först.",
         "PUBLISH_POSSIBLE_CONFLICT": "Även publicerade med den här permalänken för andra användargrupper: {pages}. En besökare i båda grupperna kan få vilken som helst av sidorna. Publicera ändå?",
-        "PUBLISH_CONFLICT_CHANGED": "Under tiden publicerades en annan sida med den här permalänken för samma besökare: {pages}. Publicera igen för att granska konflikten.",
+        "PUBLISH_CONFLICT_CHANGED": "Publiceringen avvisades: dessa sidor är redan publicerade med den här permalänken för samma besökare: {pages}. Publicera igen för att lösa konflikten.",
         "UNPUBLISH_WITH_DRAFT": "Kan inte avpublicera en sida som har ändringar.",
         "DOWNLOAD_SUCCESS": "Innehåll sparat i fil",
         "CLONE_SUCCESS": "Sidan klonades",

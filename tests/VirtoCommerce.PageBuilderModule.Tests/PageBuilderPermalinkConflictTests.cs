@@ -71,19 +71,24 @@ public class PageBuilderPermalinkConflictTests
         Assert.Equal(PageBuilderPermalinkConflict.Certain, PageBuilderPermalinkConflicts.GetConflict(Group(), other));
     }
 
-    public static TheoryData<string, Action<GroupedPageBuilderPage>> NotOfferedTogether => new()
+    public static TheoryData<string, Action<GroupedPageBuilderPage>> NotConflicting => new()
     {
         { "other permalink", x => x.Permalink = "/contacts" },
         { "other store", x => x.StoreId = "other-store" },
         { "other language", x => x.CultureName = "de-DE" },
         { "other organization", x => x.OrganizationId = "org-b" },
+        // The storefront prefers the more specific page, so a general page next to it is intended.
+        { "any language", x => x.CultureName = null },
+        { "any organization", x => x.OrganizationId = null },
+        { "other visibility", x => x.Visibility = true },
+        { "for user groups", x => x.UserGroups = "vip" },
         { "ends before", x => { x.StartDate = Date(1); x.EndDate = Date(9); } },
         { "starts after", x => x.StartDate = Date(21) },
     };
 
     [Theory]
-    [MemberData(nameof(NotOfferedTogether))]
-    public void GetConflict_NotOfferedToTheSameVisitorAtTheSameTime_IsNone(string difference, Action<GroupedPageBuilderPage> changeOther)
+    [MemberData(nameof(NotConflicting))]
+    public void GetConflict_NotOfferedTogetherOrNotEquallySpecific_IsNone(string difference, Action<GroupedPageBuilderPage> changeOther)
     {
         var page = Group(x =>
         {
@@ -100,18 +105,18 @@ public class PageBuilderPermalinkConflictTests
         Assert.True(PageBuilderPermalinkConflicts.GetConflict(page, other, Now) == PageBuilderPermalinkConflict.None, difference);
     }
 
-    public static TheoryData<string, Action<GroupedPageBuilderPage>> OfferedTogether => new()
+    public static TheoryData<string, Action<GroupedPageBuilderPage>> Conflicting => new()
     {
-        { "any language", x => x.CultureName = null },
-        { "any organization", x => x.OrganizationId = null },
+        { "same page settings", _ => { } },
+        { "language in another case", x => x.CultureName = "EN-us" },
         { "no dates", x => { x.StartDate = null; x.EndDate = null; } },
         { "dates overlap", x => { x.StartDate = Date(15); x.EndDate = Date(30); } },
         { "ends on the start day", x => { x.StartDate = Date(1); x.EndDate = Date(10); } },
     };
 
     [Theory]
-    [MemberData(nameof(OfferedTogether))]
-    public void GetConflict_OfferedToTheSameVisitorAtTheSameTime_IsCertain(string difference, Action<GroupedPageBuilderPage> changeOther)
+    [MemberData(nameof(Conflicting))]
+    public void GetConflict_EquallySpecificAndOfferedTogether_IsCertain(string difference, Action<GroupedPageBuilderPage> changeOther)
     {
         var page = Group(x =>
         {
@@ -129,16 +134,19 @@ public class PageBuilderPermalinkConflictTests
     }
 
     [Theory]
-    // A page without user groups is offered to every visitor its visibility allows, so it meets any other page.
+    // Equally specific pages for the same audience.
     [InlineData(true, "", true, "", PageBuilderPermalinkConflict.Certain)]
-    [InlineData(true, "", false, "", PageBuilderPermalinkConflict.Certain)]
-    [InlineData(false, "", false, "gold", PageBuilderPermalinkConflict.Certain)]
-    [InlineData(true, "", false, "gold", PageBuilderPermalinkConflict.Certain)]
+    [InlineData(false, "", false, "", PageBuilderPermalinkConflict.Certain)]
     [InlineData(false, "vip, gold", false, "Gold", PageBuilderPermalinkConflict.Certain)]
-    // Only a visitor in both groups gets both pages; anonymous visitors get neither, whatever the visibility.
+    // Only a visitor in both groups gets both pages.
     [InlineData(false, "vip", false, "gold", PageBuilderPermalinkConflict.Possible)]
-    [InlineData(true, "vip", false, "gold", PageBuilderPermalinkConflict.Possible)]
     [InlineData(true, "vip", true, "gold", PageBuilderPermalinkConflict.Possible)]
+    // The more specific page wins for its audience: a page for user groups over one for everyone, a page for
+    // registered users over a public one.
+    [InlineData(false, "", false, "gold", PageBuilderPermalinkConflict.None)]
+    [InlineData(true, "", true, "gold", PageBuilderPermalinkConflict.None)]
+    [InlineData(true, "", false, "", PageBuilderPermalinkConflict.None)]
+    [InlineData(true, "vip", false, "vip", PageBuilderPermalinkConflict.None)]
     public void GetConflict_Audience(bool visibility, string userGroups, bool otherVisibility, string otherUserGroups, PageBuilderPermalinkConflict expected)
     {
         var page = Group(x =>
@@ -267,6 +275,44 @@ public class PageBuilderPermalinkConflictTests
         Assert.IsType<OkResult>(result);
         Assert.Equal(Published, (await service.GetByIdAsync("new")).Status);
         Assert.Equal(Published, (await service.GetByIdAsync("old")).Status);
+    }
+
+    [Fact]
+    public async Task PublishGroup_OtherPageGotDraftAfterTheSearch_ReturnsConflictAndChangesNothing()
+    {
+        var service = CreateService(
+            Group(x => x.Id = "new"),
+            Group(x =>
+            {
+                x.Id = "old";
+                x.Pages =
+                [
+                    new PageBuilderPage { Id = "old-published", Status = Published },
+                    new PageBuilderPage { Id = "old-draft", Status = Draft },
+                ];
+            }));
+        var staleSearchResult = PublishedGroup(x => x.Id = "old");
+        var controller = CreateController(service, new FixedGroupedPageSearchService([staleSearchResult]));
+
+        var result = await controller.PublishGroup("new", publish: true, unpublishConflicting: true, TestContext.Current.CancellationToken);
+
+        Assert.IsType<ConflictObjectResult>(result);
+        Assert.Equal(Draft, (await service.GetByIdAsync("new")).Status);
+        Assert.Contains((await service.GetByIdAsync("old")).Pages, x => x.Status == Published);
+    }
+
+    [Fact]
+    public async Task PublishGroup_OtherPageUnpublishedAfterTheSearch_PublishesAndLeavesItAlone()
+    {
+        var service = CreateService(Group(x => x.Id = "new"), Group(x => x.Id = "old"));
+        var staleSearchResult = PublishedGroup(x => x.Id = "old");
+        var controller = CreateController(service, new FixedGroupedPageSearchService([staleSearchResult]));
+
+        var result = await controller.PublishGroup("new", publish: true, cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.IsType<OkResult>(result);
+        Assert.Equal(Published, (await service.GetByIdAsync("new")).Status);
+        Assert.Equal(Draft, (await service.GetByIdAsync("old")).Status);
     }
 
     [Fact]

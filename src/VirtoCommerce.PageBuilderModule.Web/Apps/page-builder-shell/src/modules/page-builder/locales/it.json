@@ -122,7 +122,7 @@
         "PUBLISH_CONFLICT": "Già pubblicate con questo permalink per gli stessi visitatori: {pages}. Annullarne la pubblicazione e pubblicare questa pagina?",
         "PUBLISH_CONFLICT_HAS_CHANGES": "Già pubblicate con questo permalink per gli stessi visitatori: {pages}. Hanno modifiche non pubblicate; pubblica o scarta prima tali modifiche.",
         "PUBLISH_POSSIBLE_CONFLICT": "Pubblicate con questo permalink anche per altri gruppi di utenti: {pages}. Un visitatore in entrambi i gruppi può ricevere l'una o l'altra. Pubblicare comunque?",
-        "PUBLISH_CONFLICT_CHANGED": "Nel frattempo è stata pubblicata un'altra pagina con questo permalink per gli stessi visitatori: {pages}. Pubblica di nuovo per esaminare il conflitto.",
+        "PUBLISH_CONFLICT_CHANGED": "Pubblicazione rifiutata: queste pagine sono già pubblicate con questo permalink per gli stessi visitatori: {pages}. Pubblica di nuovo per risolvere il conflitto.",
         "UNPUBLISH_WITH_DRAFT": "Non è possibile annullare la pubblicazione di una pagina con modifiche.",
         "DOWNLOAD_SUCCESS": "Contenuto salvato su file con successo",
         "CLONE_SUCCESS": "Pagina clonata con successo",

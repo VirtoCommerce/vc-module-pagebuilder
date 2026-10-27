@@ -2,12 +2,13 @@ using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 
 namespace VirtoCommerce.PageBuilderModule.Core.Models;
 
-// Mirrors how the storefront (VirtoCommerce.Pages) picks published pages for a visitor: by store, permalink, language
-// (an empty one matches any), the dates the page is shown from now on, organization (an empty one matches any) and
-// user groups. Anonymous visitors get public pages for every user group; signed-in visitors get public and private
-// pages whose user groups are empty or include one of theirs. So visibility alone never separates two pages: only
-// disjoint user groups do. The storefront also offers a page in the store's default language for other languages,
-// but it resolves that case itself, so it is not a conflict here.
+// Mirrors how the storefront (VirtoCommerce.Pages) picks a published page for a visitor. It takes the pages with the
+// visitor's store and permalink that are shown now, in the visitor's language or any language, for the visitor's
+// organization or any organization, and for user groups that are empty or include one of the visitor's (anonymous
+// visitors get public pages only). Then the more specific page wins: the visitor's language and organization over
+// any, a page for user groups over a page for everyone, a page for registered users over a public one. So a general
+// page next to a specific one is intended personalization; only two equally specific pages are left to the date
+// they were last changed, and that is a conflict.
 public static class PageBuilderPermalinkConflicts
 {
     public static string Normalize(string permalink)
@@ -40,7 +41,10 @@ public static class PageBuilderPermalinkConflicts
     /// </summary>
     public static PageBuilderPermalinkConflict GetConflict(GroupedPageBuilderPage page, GroupedPageBuilderPage other, DateTime now)
     {
-        if (other.Status != Published || !AreOfferedTogether(page, other, now))
+        if (other.Status != Published ||
+            !HasSamePermalink(page, other) ||
+            !DatesOverlap(page, other, now) ||
+            !AreEquallySpecific(page, other))
         {
             return PageBuilderPermalinkConflict.None;
         }
@@ -50,19 +54,19 @@ public static class PageBuilderPermalinkConflicts
             : PageBuilderPermalinkConflict.Possible;
     }
 
-    private static bool AreOfferedTogether(GroupedPageBuilderPage page, GroupedPageBuilderPage other, DateTime now)
+    private static bool AreEquallySpecific(GroupedPageBuilderPage page, GroupedPageBuilderPage other)
     {
-        return HasSamePermalink(page, other) &&
-            MatchesAnyOrSame(page.CultureName, other.CultureName) &&
-            MatchesAnyOrSame(page.OrganizationId, other.OrganizationId) &&
-            DatesOverlap(page, other, now);
+        return AreSameOrBothAny(page.CultureName, other.CultureName) &&
+            AreSameOrBothAny(page.OrganizationId, other.OrganizationId) &&
+            page.Visibility == other.Visibility &&
+            (GetUserGroups(page).Count > 0) == (GetUserGroups(other).Count > 0);
     }
 
-    private static bool MatchesAnyOrSame(string value, string otherValue)
+    private static bool AreSameOrBothAny(string value, string otherValue)
     {
-        return string.IsNullOrEmpty(value) ||
-            string.IsNullOrEmpty(otherValue) ||
-            string.Equals(value, otherValue, StringComparison.OrdinalIgnoreCase);
+        return string.IsNullOrEmpty(value)
+            ? string.IsNullOrEmpty(otherValue)
+            : string.Equals(value, otherValue, StringComparison.OrdinalIgnoreCase);
     }
 
     // Both pages are shown at some moment from now on.
@@ -77,12 +81,13 @@ public static class PageBuilderPermalinkConflicts
 
     private static DateTime Min(DateTime value, DateTime other) => value < other ? value : other;
 
-    // A page without user groups is offered to every visitor its visibility allows.
+    // Two pages for everyone share their audience; two pages for disjoint user groups meet only for a visitor in
+    // both groups.
     private static bool UserGroupsOverlap(GroupedPageBuilderPage page, GroupedPageBuilderPage other)
     {
         var userGroups = GetUserGroups(page);
         var otherUserGroups = GetUserGroups(other);
-        return userGroups.Count == 0 || otherUserGroups.Count == 0 || userGroups.Overlaps(otherUserGroups);
+        return (userGroups.Count == 0 && otherUserGroups.Count == 0) || userGroups.Overlaps(otherUserGroups);
     }
 
     private static HashSet<string> GetUserGroups(GroupedPageBuilderPage page)

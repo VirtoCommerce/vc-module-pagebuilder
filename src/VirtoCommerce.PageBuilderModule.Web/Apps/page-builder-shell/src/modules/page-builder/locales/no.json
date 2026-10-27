@@ -122,7 +122,7 @@
         "PUBLISH_CONFLICT": "Allerede publisert med denne permalinken for de samme besøkende: {pages}. Avpublisere dem og publisere denne siden?",
         "PUBLISH_CONFLICT_HAS_CHANGES": "Allerede publisert med denne permalinken for de samme besøkende: {pages}. De har upubliserte endringer; publiser eller forkast dem først.",
         "PUBLISH_POSSIBLE_CONFLICT": "Også publisert med denne permalinken for andre brukergrupper: {pages}. En besøkende i begge gruppene kan få hvilken som helst av sidene. Publisere likevel?",
-        "PUBLISH_CONFLICT_CHANGED": "I mellomtiden ble en annen side publisert med denne permalinken for de samme besøkende: {pages}. Publiser på nytt for å se gjennom konflikten.",
+        "PUBLISH_CONFLICT_CHANGED": "Publiseringen ble avvist: disse sidene er allerede publisert med denne permalinken for de samme besøkende: {pages}. Publiser på nytt for å løse konflikten.",
         "UNPUBLISH_WITH_DRAFT": "Kan ikke avpublisere en side som har endringer.",
         "DOWNLOAD_SUCCESS": "Innhold lagret til fil",
         "CLONE_SUCCESS": "Siden ble klonet",

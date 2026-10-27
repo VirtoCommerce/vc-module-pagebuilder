@@ -254,7 +254,7 @@ const permalinkUsagesInLanguage = computed(() => getUsagesInLanguage(permalinkUs
 // Only the latest check counts: an earlier, slower response must not replace the warning for the current permalink.
 let latestPermalinkUsagesRequest = 0;
 watchDebounced(
-  () => [item.value?.id, item.value?.permalink],
+  [() => item.value?.id, () => item.value?.permalink],
   async () => {
     const request = ++latestPermalinkUsagesRequest;
     let usages: PageBuilderPermalinkUsage[] = [];

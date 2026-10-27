@@ -122,7 +122,7 @@
         "PUBLISH_CONFLICT": "Already published at this permalink for the same visitors: {pages}. Unpublish them and publish this page?",
         "PUBLISH_CONFLICT_HAS_CHANGES": "Already published at this permalink for the same visitors: {pages}. They have unpublished changes, so publish or discard those changes first.",
         "PUBLISH_POSSIBLE_CONFLICT": "Also published at this permalink for other user groups: {pages}. A visitor in both groups may get either page. Publish anyway?",
-        "PUBLISH_CONFLICT_CHANGED": "Another page was published at this permalink for the same visitors in the meantime: {pages}. Publish again to review the conflict.",
+        "PUBLISH_CONFLICT_CHANGED": "Publishing was refused: these pages are already published at this permalink for the same visitors: {pages}. Publish again to resolve the conflict.",
         "UNPUBLISH_WITH_DRAFT": "Can't unpublish a page that has changes.",
         "DOWNLOAD_SUCCESS": "Content saved to file successfully",
         "CLONE_SUCCESS": "Page cloned successfully",
