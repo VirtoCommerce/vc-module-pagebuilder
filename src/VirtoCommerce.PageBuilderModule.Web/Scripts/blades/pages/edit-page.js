@@ -153,6 +153,31 @@ angular.module('virtoCommerce.pageBuilderModule')
                 return $q.resolve();
             };
 
+            // Mirrors PageBuilderPermalink.IsValid on the server: '?', '#', '&' and '%' would start the query, the
+            // fragment, a query parameter or an escape sequence; the other characters are not allowed unencoded in a
+            // URL path, and whitespace, control and formatting characters cannot be seen. Letters of any language are
+            // allowed. This blade saves through the Content module, which does not check permalinks: only this
+            // check applies. The input keeps edge spaces (ng-trim="false"), so they are rejected, not trimmed.
+            var forbiddenPermalinkCharacters = /[\s\p{Cc}\p{Cf}?#&%\\"<>{}|^`]/u;
+            var permalinkMaxLength = 2048;
+
+            $scope.isValidPermalink = function (value) {
+                if (!value) {
+                    return true;
+                }
+                // A permalink saved before the rule existed must not block saving the page's other fields.
+                var storedSettings = blade.origEntity && blade.origEntity.settings;
+                if (storedSettings && value === storedSettings.permalink) {
+                    return true;
+                }
+                if (value.length > permalinkMaxLength || forbiddenPermalinkCharacters.test(value) || value.indexOf('//') >= 0) {
+                    return false;
+                }
+                return !_.some(value.split('/'), function (segment) {
+                    return segment === '.' || segment === '..';
+                });
+            };
+
             function compareFileNames(file1, file2) {
                 return undraftUrl(file1) === undraftUrl(file2);
             }

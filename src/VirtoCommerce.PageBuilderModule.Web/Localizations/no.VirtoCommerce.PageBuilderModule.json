@@ -33,7 +33,8 @@
         },
         "validations": {
           "pageName-invalid": "Sidenavnet kan kun inneholde alfanumeriske tegn, «_», «-» og «.»",
-          "permalink-invalid": "Andre sider har samme permalenke"
+          "permalink-invalid": "Andre sider har samme permalenke",
+          "permalink-format-invalid": "Permalinken kan være på høyst 2048 tegn og kan ikke inneholde mellomrom eller usynlige tegn, tegnene ? # & % \\ \" < > { } | ^ `, doble skråstreker eller segmentene . og .."
         },
         "hints": {
           "rename-in-git": "Denne butikken publiserer sider via Git, der filnavnet er sidens adresse i repositoriet. Gi den nytt navn der, via en pull request."

@@ -11,6 +11,10 @@
     <ProjectReference Include="..\..\src\VirtoCommerce.PageBuilderModule.Web\VirtoCommerce.PageBuilderModule.Web.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <!-- Shared with the page builder shell tests, so both implementations of the permalink rule check the same cases. -->
+    <None Include="..\TestData\permalink-cases.json" Link="TestData\permalink-cases.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="10.1.0">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>

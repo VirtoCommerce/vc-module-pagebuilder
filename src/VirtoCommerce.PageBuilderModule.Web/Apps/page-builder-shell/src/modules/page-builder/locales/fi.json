@@ -88,6 +88,9 @@
           "USER_GROUPS": "Käyttäjäryhmät",
           "ORGANIZATION": "Organisaatio"
         },
+        "VALIDATION": {
+          "PERMALINK": "Pysyvä linkki saa olla enintään 2048 merkkiä, eikä se saa sisältää välilyöntejä tai näkymättömiä merkkejä, merkkejä ? # & % \\ \" < > {'{'} {'}'} {'|'} ^ `, kaksoiskauttaviivoja eikä segmenttejä . ja .."
+        },
         "TOOLTIPS": {
           "VISIBILITY": "Jos näkyvyys on pois päältä, sivu on käytettävissä vain rekisteröityneille käyttäjille."
         },

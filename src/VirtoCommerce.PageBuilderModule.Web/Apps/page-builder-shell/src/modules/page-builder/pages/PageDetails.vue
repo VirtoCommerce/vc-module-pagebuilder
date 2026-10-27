@@ -32,12 +32,13 @@
             <Field
                    v-slot="{ errorMessage, handleChange, errors }"
                    name="permalink"
-                   rules="required"
+                   :rules="permalinkRules"
                    :model-value="item.permalink"
                    :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.PERMALINK')">
               <VcInput
                        v-model="item.permalink"
                        required
+                       maxlength="2048"
                        :error="errors.length > 0"
                        :error-message="errorMessage"
                        :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.PERMALINK')"
@@ -147,6 +148,7 @@ import { usePageBuilderDetails } from "../composables/usePageBuilderDetails";
 import type { PageExportData } from "../composables/usePageContentApi";
 import CardHeader from "./../components/cardHeader.vue";
 import SwitchRow from "./../components/switchRow.vue";
+import { getPermalinkRules } from "../utilities/permalink";
 
 import { VcBlade, VcCard, VcCol, VcContainer, VcForm, VcInput, VcRow, VcSelect } from "@vc-shell/framework/ui";
 
@@ -212,6 +214,17 @@ const bladeTitle = computed(() => {
 });
 
 const storeUrl = ref<string | null>(null);
+
+// item is replaced on every load and save, while edits change its fields, so this keeps the stored permalink.
+const storedPermalink = ref<string>();
+watch(
+  item,
+  (value) => {
+    storedPermalink.value = value?.id ? value.permalink : undefined;
+  },
+  { immediate: true },
+);
+const permalinkRules = computed(() => getPermalinkRules(item.value?.permalink, storedPermalink.value));
 
 const isScheduled = computed(() => {
   return !!item.value.startDate || !!item.value.endDate;
