@@ -206,15 +206,29 @@ public class MultilanguagePageControllerTests
     }
 
     [Fact]
-    public async Task UpdateGroup_BodyThatDoesNotBind_IsBadRequest()
+    public async Task GroupedEndpoints_BodyThatDoesNotBindOrTooLongName_IsBadRequest()
     {
         await using var fixture = await Fixture.CreateAsync();
+        var landing = await fixture.CreateLanguageAsync(null, "en-US", permalink: "/summer", name: "Summer");
         var controller = CreatePagesController(fixture);
+        var longName = new string('a', 1025);
 
         // MVC passes null when the body does not bind, e.g. userGroups sent as an array.
-        var result = await controller.UpdateGroup(null!, TestContext.Current.CancellationToken);
+        var results = new[]
+        {
+            (await controller.UpdateGroup(null!, TestContext.Current.CancellationToken)).Result,
+            (await controller.CreateGroup(null!, TestContext.Current.CancellationToken)).Result,
+            (await controller.CreateGroupPage(null!, TestContext.Current.CancellationToken)).Result,
+            (await controller.CreateGroup(new GroupedPageBuilderPage { StoreId = StoreId, Name = longName, Permalink = "/long" },
+                TestContext.Current.CancellationToken)).Result,
+            (await controller.CreateGroupPage(new CreateGroupedPageRequest { StoreId = StoreId, Name = longName, Permalink = "/long", Content = "{}" },
+                TestContext.Current.CancellationToken)).Result,
+            (await controller.UpdateGroup(new GroupedPageBuilderPage { Id = landing.Id, StoreId = StoreId, Name = longName, Permalink = "/summer" },
+                TestContext.Current.CancellationToken)).Result,
+        };
 
-        Assert.IsType<BadRequestObjectResult>(result.Result);
+        Assert.All(results, x => Assert.IsType<BadRequestObjectResult>(x));
+        Assert.Equal("Summer", (await fixture.LoadGroupAsync(landing.Id)).Name);
     }
 
     [Fact]

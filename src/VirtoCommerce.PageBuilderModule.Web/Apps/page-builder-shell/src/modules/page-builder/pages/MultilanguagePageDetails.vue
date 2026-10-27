@@ -33,13 +33,14 @@
             <Field
               v-slot="{ errorMessage, handleChange, errors }"
               name="permalink"
-              rules="required"
+              :rules="permalinkRules"
               :model-value="item.permalink"
               :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.PERMALINK')"
             >
               <VcInput
                 v-model="item.permalink"
                 required
+                maxlength="2048"
                 :error="errors.length > 0"
                 :error-message="errorMessage"
                 :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.PERMALINK')"
@@ -252,6 +253,7 @@ import {
   summarizeBatchResult,
 } from "../composables/useMultilanguagePageDetails/helpers";
 import Tag from "../components/tag.vue";
+import { getPermalinkRules } from "../utilities/permalink";
 
 defineBlade({
   name: "MultilanguagePageDetails",
@@ -304,6 +306,9 @@ const bladeTitle = computed(() =>
     ? t("PAGE_BUILDER.MULTILANGUAGE.TITLE.NEW")
     : t("PAGE_BUILDER.MULTILANGUAGE.TITLE.DETAILS", { name: item.value.name }),
 );
+
+// Like the Landing Page blade: a permalink saved before the rule existed does not block saving other fields.
+const permalinkRules = computed(() => getPermalinkRules(item.value.permalink, savedSettings.value.permalink));
 
 const hasVersions = computed(() => hasLanguageVersions(languages.value));
 const isArchived = computed(() => isMultilanguageRowArchived(languages.value));

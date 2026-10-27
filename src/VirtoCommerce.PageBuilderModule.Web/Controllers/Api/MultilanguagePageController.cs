@@ -27,9 +27,6 @@ public class MultilanguagePageController(
     IStoreService storeService)
     : Controller
 {
-    // The length of the name column.
-    private const int NameMaxLength = 1024;
-
     [HttpPost("search")]
     [Authorize(ModuleConstants.Security.Permissions.Read)]
     public async Task<ActionResult<MultilanguagePageSearchResult>> Search([FromBody] MultilanguagePageSearchCriteria criteria)
@@ -360,12 +357,11 @@ public class MultilanguagePageController(
         }
     }
 
-    // Checked before saving: a value longer than its column fails in the database with its SQL error text.
     private ActionResult Validate(MultilanguagePage model, MultilanguagePage existing)
     {
-        if (model.Name.Length > NameMaxLength)
+        if (!PageBuilderPageName.IsValid(model.Name))
         {
-            return BadRequest($"Name must be at most {NameMaxLength} characters.");
+            return BadRequest(PageBuilderPageName.InvalidMessage);
         }
 
         // An unchanged permalink stored before validation existed must not block editing the root's other fields.

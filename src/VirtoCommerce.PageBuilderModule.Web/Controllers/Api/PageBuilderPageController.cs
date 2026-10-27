@@ -196,6 +196,11 @@ public class PageBuilderPageController : Controller
             return BadRequest(PageBuilderPermalink.InvalidMessage);
         }
 
+        if (!PageBuilderPageName.IsValid(model.Name))
+        {
+            return BadRequest(PageBuilderPageName.InvalidMessage);
+        }
+
         groupedPage ??= AbstractTypeFactory<GroupedPageBuilderPage>.TryCreateInstance();
         ApplyGroupChanges(groupedPage, model, storeChanged);
 
@@ -229,9 +234,19 @@ public class PageBuilderPageController : Controller
     [Authorize(ModuleConstants.Security.Permissions.Create)]
     public async Task<ActionResult<GroupedPageBuilderPage>> CreateGroup([FromBody] GroupedPageBuilderPage model, CancellationToken cancellationToken = default)
     {
+        if (model == null)
+        {
+            return BadRequest("The page is missing or invalid.");
+        }
+
         if (!PageBuilderPermalink.IsValid(model.Permalink))
         {
             return BadRequest(PageBuilderPermalink.InvalidMessage);
+        }
+
+        if (!PageBuilderPageName.IsValid(model.Name))
+        {
+            return BadRequest(PageBuilderPageName.InvalidMessage);
         }
 
         var authorizationResult = await authorizationService.AuthorizeAsync(User, model, new PageBuilderAuthorizationRequirement());
@@ -268,7 +283,8 @@ public class PageBuilderPageController : Controller
         [FromBody] CreateGroupedPageRequest model,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(model.StoreId) ||
+        if (model == null ||
+            string.IsNullOrWhiteSpace(model.StoreId) ||
             string.IsNullOrWhiteSpace(model.Name) ||
             string.IsNullOrWhiteSpace(model.Content))
         {
@@ -278,6 +294,11 @@ public class PageBuilderPageController : Controller
         if (!PageBuilderPermalink.IsValid(model.Permalink))
         {
             return BadRequest(PageBuilderPermalink.InvalidMessage);
+        }
+
+        if (!PageBuilderPageName.IsValid(model.Name))
+        {
+            return BadRequest(PageBuilderPageName.InvalidMessage);
         }
 
         if (!TryValidatePageContentEnvelope(model.Content, out var envelopeError))
