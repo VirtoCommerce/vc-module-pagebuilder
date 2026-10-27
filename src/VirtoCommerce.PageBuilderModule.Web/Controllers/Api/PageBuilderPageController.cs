@@ -191,6 +191,11 @@ public class PageBuilderPageController : Controller
             return BadRequest("Archived page cannot be updated.");
         }
 
+        if (!IsPermalinkAccepted(groupedPage, model))
+        {
+            return BadRequest(PageBuilderPermalink.InvalidMessage);
+        }
+
         groupedPage ??= AbstractTypeFactory<GroupedPageBuilderPage>.TryCreateInstance();
         ApplyGroupChanges(groupedPage, model, storeChanged);
 
@@ -224,6 +229,11 @@ public class PageBuilderPageController : Controller
     [Authorize(ModuleConstants.Security.Permissions.Create)]
     public async Task<ActionResult<GroupedPageBuilderPage>> CreateGroup([FromBody] GroupedPageBuilderPage model, CancellationToken cancellationToken = default)
     {
+        if (!PageBuilderPermalink.IsValid(model.Permalink))
+        {
+            return BadRequest(PageBuilderPermalink.InvalidMessage);
+        }
+
         var authorizationResult = await authorizationService.AuthorizeAsync(User, model, new PageBuilderAuthorizationRequirement());
         if (!authorizationResult.Succeeded)
         {
@@ -263,6 +273,11 @@ public class PageBuilderPageController : Controller
             string.IsNullOrWhiteSpace(model.Content))
         {
             return BadRequest("StoreId, Name and Content are required.");
+        }
+
+        if (!PageBuilderPermalink.IsValid(model.Permalink))
+        {
+            return BadRequest(PageBuilderPermalink.InvalidMessage);
         }
 
         if (!TryValidatePageContentEnvelope(model.Content, out var envelopeError))
@@ -874,6 +889,14 @@ public class PageBuilderPageController : Controller
     {
         return groupedPage != null &&
             !string.Equals(groupedPage.StoreId, model.StoreId, StringComparison.OrdinalIgnoreCase);
+    }
+
+    // An unchanged permalink stored before validation existed must not block editing the page's other fields.
+    private static bool IsPermalinkAccepted(
+        GroupedPageBuilderPage groupedPage,
+        GroupedPageBuilderPage model)
+    {
+        return groupedPage?.Permalink == model.Permalink || PageBuilderPermalink.IsValid(model.Permalink);
     }
 
     private static void ApplyGroupChanges(

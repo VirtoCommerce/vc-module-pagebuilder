@@ -40,12 +40,13 @@
             <Field
                    v-slot="{ errorMessage, handleChange, errors }"
                    name="permalink"
-                   rules="required"
+                   :rules="permalinkRules"
                    :model-value="item.permalink"
                    :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.PERMALINK')">
               <VcInput
                        v-model="item.permalink"
                        required
+                       maxlength="2048"
                        :error="errors.length > 0"
                        :error-message="errorMessage"
                        :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.PERMALINK')"
@@ -99,6 +100,7 @@ import {
   type InheritableField,
 } from "../composables/useMultilanguageInheritance";
 import { isPermalinkCheckNeeded, type IPermalinkTarget } from "../composables/useMultilanguagePageDetails/helpers";
+import { getPermalinkRules } from "../utilities/permalink";
 
 import { VcBanner, VcBlade, VcCard, VcCol, VcContainer, VcForm, VcInput, VcSelect } from "@vc-shell/framework/ui";
 
@@ -163,6 +165,17 @@ const bladeTitle = computed(() => {
 });
 
 const storeUrl = ref<string | null>(null);
+
+// item is replaced on every load and save, while edits change its fields, so this keeps the stored permalink.
+const storedPermalink = ref<string>();
+watch(
+  item,
+  (value) => {
+    storedPermalink.value = value?.id ? value.permalink : undefined;
+  },
+  { immediate: true },
+);
+const permalinkRules = computed(() => getPermalinkRules(item.value?.permalink, storedPermalink.value));
 
 // A language version of a Multilanguage Page: the name is shared and the language is fixed.
 const isLanguageVersion = computed(() => !!item.value?.multilanguagePageId);

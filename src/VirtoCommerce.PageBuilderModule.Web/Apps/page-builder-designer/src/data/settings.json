@@ -135,6 +135,14 @@
             "preferredAssetUrl": "{{preferredAssetUrl}}"
         }
     },
+    "assetLibraryCreateFolderRequest": {
+        "url": "/api/assets/folder",
+        "method": "POST",
+        "body": {
+            "name": "{{name}}",
+            "parentUrl": "{{parentUrl}}"
+        }
+    },
     "assetLibraryUploadRequest": {
         "url": "/api/assets?folderUrl={{=encodeURIComponent(this.folderUrl)}}",
         "method": "POST",
@@ -237,6 +245,16 @@
         "cacheable": true,
         "response": {
             "selector": "this.response.isAdministrator === true || (this.response.permissions || []).indexOf('builder:shared-components:read') !== -1",
+            "isArray": false
+        }
+    },
+    "canCreateAssets": {
+        "init": true,
+        "url": "/api/platform/security/currentuser",
+        "method": "GET",
+        "cacheable": true,
+        "response": {
+            "selector": "this.response.isAdministrator === true || (this.response.permissions || []).indexOf('platform:asset:create') !== -1",
             "isArray": false
         }
     },

@@ -33,7 +33,8 @@
         },
         "validations": {
           "pageName-invalid": "Page name can contain alphanumeric, \"_\", \"-\" and \".\" characters only",
-          "permalink-invalid": "Other pages have the same permalink"
+          "permalink-invalid": "Other pages have the same permalink",
+          "permalink-format-invalid": "Permalink must be at most 2048 characters and cannot contain spaces or invisible characters, the characters ? # & % \\ \" < > { } | ^ `, double slashes, or . and .. segments"
         },
         "hints": {
           "rename-in-git": "This store publishes pages through Git, where the file name is the page's address in the repository. Rename it there, through a pull request."

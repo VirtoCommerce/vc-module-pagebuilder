@@ -33,7 +33,8 @@
         },
         "validations": {
           "pageName-invalid": "Sidnamnet får endast innehålla alfanumeriska tecken, \"_\", \"-\" och \".\"",
-          "permalink-invalid": "Andra sidor har samma permalänk"
+          "permalink-invalid": "Andra sidor har samma permalänk",
+          "permalink-format-invalid": "Permalänken får vara högst 2048 tecken och får inte innehålla mellanslag eller osynliga tecken, tecknen ? # & % \\ \" < > { } | ^ `, dubbla snedstreck eller segmenten . och .."
         },
         "hints": {
           "rename-in-git": "Den här butiken publicerar sidor via Git, där filnamnet är sidans adress i repositoryt. Byt namn på den där, via en pull request."
