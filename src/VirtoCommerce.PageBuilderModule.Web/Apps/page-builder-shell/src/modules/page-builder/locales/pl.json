@@ -121,7 +121,7 @@
         },
         "PUBLISH_CONFLICT": "Już opublikowane pod tym linkiem stałym dla tych samych odwiedzających: {pages}. Cofnąć ich publikację i opublikować tę stronę?",
         "PUBLISH_CONFLICT_HAS_CHANGES": "Już opublikowane pod tym linkiem stałym dla tych samych odwiedzających: {pages}. Mają nieopublikowane zmiany; najpierw je opublikuj lub odrzuć.",
-        "PUBLISH_POSSIBLE_CONFLICT": "Opublikowane pod tym linkiem stałym również dla innych grup użytkowników: {pages}. Odwiedzający należący do obu grup może otrzymać dowolną z nich. Opublikować mimo to?",
+        "PUBLISH_POSSIBLE_CONFLICT": "Opublikowane pod tym linkiem stałym również dla części tych samych odwiedzających lub dat: {pages}. Tam, gdzie obie strony mają zastosowanie, wyświetlana jest ostatnio opublikowana. Opublikować mimo to?",
         "PUBLISH_CONFLICT_CHANGED": "Publikacja została odrzucona: te strony są już opublikowane pod tym linkiem stałym dla tych samych odwiedzających: {pages}. Opublikuj ponownie, aby rozwiązać konflikt.",
         "UNPUBLISH_WITH_DRAFT": "Nie można cofnąć publikacji strony, która ma zmiany.",
         "DOWNLOAD_SUCCESS": "Treść pomyślnie zapisana do pliku",

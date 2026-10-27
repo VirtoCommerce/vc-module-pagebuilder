@@ -121,7 +121,7 @@
         },
         "PUBLISH_CONFLICT": "Ya publicadas en este enlace permanente para los mismos visitantes: {pages}. ¿Despublicarlas y publicar esta página?",
         "PUBLISH_CONFLICT_HAS_CHANGES": "Ya publicadas en este enlace permanente para los mismos visitantes: {pages}. Tienen cambios sin publicar; publique o descarte esos cambios primero.",
-        "PUBLISH_POSSIBLE_CONFLICT": "También publicadas en este enlace permanente para otros grupos de usuarios: {pages}. Un visitante de ambos grupos puede ver cualquiera de ellas. ¿Publicar de todos modos?",
+        "PUBLISH_POSSIBLE_CONFLICT": "También publicadas en este enlace permanente para parte de los mismos visitantes o fechas: {pages}. Donde se apliquen ambas, se muestra la última publicada. ¿Publicar de todos modos?",
         "PUBLISH_CONFLICT_CHANGED": "Se rechazó la publicación: estas páginas ya están publicadas en este enlace permanente para los mismos visitantes: {pages}. Vuelva a publicar para resolver el conflicto.",
         "UNPUBLISH_WITH_DRAFT": "No se puede despublicar una página que tiene cambios.",
         "DOWNLOAD_SUCCESS": "Contenido guardado en archivo correctamente",

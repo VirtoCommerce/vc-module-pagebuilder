@@ -121,7 +121,7 @@
         },
         "PUBLISH_CONFLICT": "Samoille kävijöille jo julkaistu tällä pysyvällä linkillä: {pages}. Peruutetaanko niiden julkaisu ja julkaistaanko tämä sivu?",
         "PUBLISH_CONFLICT_HAS_CHANGES": "Samoille kävijöille jo julkaistu tällä pysyvällä linkillä: {pages}. Niissä on julkaisemattomia muutoksia; julkaise tai hylkää ne ensin.",
-        "PUBLISH_POSSIBLE_CONFLICT": "Julkaistu tällä pysyvällä linkillä myös muille käyttäjäryhmille: {pages}. Molempiin ryhmiin kuuluva kävijä voi saada kumman tahansa sivun. Julkaistaanko silti?",
+        "PUBLISH_POSSIBLE_CONFLICT": "Julkaistu tällä pysyvällä linkillä myös osalle samoista kävijöistä tai päivistä: {pages}. Kun molemmat sivut ovat voimassa, näytetään viimeksi julkaistu. Julkaistaanko silti?",
         "PUBLISH_CONFLICT_CHANGED": "Julkaisu hylättiin: nämä sivut on jo julkaistu tällä pysyvällä linkillä samoille kävijöille: {pages}. Julkaise uudelleen ratkaistaksesi ristiriidan.",
         "UNPUBLISH_WITH_DRAFT": "Sivua, jossa on muutoksia, ei voi peruuttaa julkaisusta.",
         "DOWNLOAD_SUCCESS": "Sisältö tallennettu tiedostoon onnistuneesti",

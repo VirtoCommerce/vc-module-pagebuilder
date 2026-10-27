@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using VirtoCommerce.ContentModule.Core.Model;
 using VirtoCommerce.PageBuilderModule.Core;
@@ -20,6 +21,7 @@ using VirtoCommerce.PageBuilderModule.Data.Authorization;
 using VirtoCommerce.PageBuilderModule.Web.Services;
 using VirtoCommerce.Pages.Core.Search;
 using VirtoCommerce.Platform.Core.Common;
+using VirtoCommerce.StoreModule.Core.Services;
 using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 
 namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
@@ -35,7 +37,9 @@ public class PageBuilderPageController : Controller
     private readonly IPageDocumentSearchService pageDocumentSearchService;
     private readonly PageBuilderPageContentService pageContentService;
     private readonly ILogger<PageBuilderPageController> logger;
+    private readonly IStoreService storeService;
 
+    // Preserve the published constructor for extensions; request services supply the new dependency.
     public PageBuilderPageController(
         IPageBuilderPageService crudService,
         IGroupedPageService groupedPageService,
@@ -44,6 +48,21 @@ public class PageBuilderPageController : Controller
         IPageDocumentSearchService pageDocumentSearchService,
         PageBuilderPageContentService pageContentService,
         ILogger<PageBuilderPageController> logger)
+        : this(crudService, groupedPageService, groupedPageSearchService, authorizationService,
+            pageDocumentSearchService, pageContentService, logger, storeService: null)
+    {
+    }
+
+    [ActivatorUtilitiesConstructor]
+    public PageBuilderPageController(
+        IPageBuilderPageService crudService,
+        IGroupedPageService groupedPageService,
+        IGroupedPageSearchService groupedPageSearchService,
+        IAuthorizationService authorizationService,
+        IPageDocumentSearchService pageDocumentSearchService,
+        PageBuilderPageContentService pageContentService,
+        ILogger<PageBuilderPageController> logger,
+        IStoreService storeService)
     {
         this.crudService = crudService;
         this.groupedPageService = groupedPageService;
@@ -52,6 +71,7 @@ public class PageBuilderPageController : Controller
         this.pageDocumentSearchService = pageDocumentSearchService;
         this.pageContentService = pageContentService;
         this.logger = logger;
+        this.storeService = storeService;
     }
 
     [HttpPost("search")]
@@ -343,7 +363,7 @@ public class PageBuilderPageController : Controller
             return Forbidden;
         }
 
-        var usages = await groupedPageSearchService.FindPermalinkUsagesAsync(model);
+        var usages = await groupedPageSearchService.FindPermalinkUsagesAsync(model, await GetStoreDefaultLanguageAsync(model.StoreId));
 
         return Ok(usages);
     }
@@ -428,7 +448,8 @@ public class PageBuilderPageController : Controller
     private async Task<(IList<PageBuilderPermalinkUsage> Conflicts, IList<GroupedPageBuilderPage> Groups)> LoadBlockingConflictsAsync(
         GroupedPageBuilderPage groupedPage)
     {
-        var candidates = (await groupedPageSearchService.FindPermalinkUsagesAsync(groupedPage))
+        var storeDefaultLanguage = await GetStoreDefaultLanguageAsync(groupedPage.StoreId);
+        var candidates = (await groupedPageSearchService.FindPermalinkUsagesAsync(groupedPage, storeDefaultLanguage))
             .Where(x => x.Conflict == PageBuilderPermalinkConflict.Certain)
             .ToList();
         if (candidates.Count == 0)
@@ -437,7 +458,7 @@ public class PageBuilderPageController : Controller
         }
 
         var groups = (await groupedPageService.GetAsync(candidates.Select(x => x.GroupId).ToList()))
-            .Where(x => PageBuilderPermalinkConflicts.GetConflict(groupedPage, x) == PageBuilderPermalinkConflict.Certain)
+            .Where(x => PageBuilderPermalinkConflicts.GetConflict(groupedPage, x, DateTime.UtcNow, storeDefaultLanguage) == PageBuilderPermalinkConflict.Certain)
             .ToList();
         var conflicts = candidates
             .Where(usage => groups.Any(group => group.Id == usage.GroupId))
@@ -448,6 +469,19 @@ public class PageBuilderPageController : Controller
         }
 
         return (conflicts, groups);
+    }
+
+    // A page for any language competes with a page in the store's default language. Unknown without a store service.
+    private async Task<string> GetStoreDefaultLanguageAsync(string storeId)
+    {
+        var stores = storeService ?? HttpContext?.RequestServices?.GetService<IStoreService>();
+        if (stores == null || string.IsNullOrEmpty(storeId))
+        {
+            return null;
+        }
+
+        var store = await stores.GetNoCloneAsync(storeId);
+        return store?.DefaultLanguage;
     }
 
     private async Task<ActionResult> UnpublishAsync(GroupedPageBuilderPage groupedPage)

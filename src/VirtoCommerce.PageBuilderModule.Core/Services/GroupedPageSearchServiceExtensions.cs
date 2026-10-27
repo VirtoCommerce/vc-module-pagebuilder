@@ -9,11 +9,13 @@ public static class GroupedPageSearchServiceExtensions
 {
     /// <summary>
     /// Other pages of the same store that use the permalink of <paramref name="page"/>, except archived ones,
-    /// with the conflict that publishing <paramref name="page"/> creates with each of them.
+    /// with the conflict that publishing <paramref name="page"/> creates with each of them. Pass the store's default
+    /// language when it is known: a page for any language competes with a page in that language.
     /// </summary>
     public static async Task<IList<PageBuilderPermalinkUsage>> FindPermalinkUsagesAsync(
         this IGroupedPageSearchService searchService,
-        GroupedPageBuilderPage page)
+        GroupedPageBuilderPage page,
+        string storeDefaultLanguage = null)
     {
         if (PageBuilderPermalinkConflicts.Normalize(page.Permalink) == null || string.IsNullOrEmpty(page.StoreId))
         {
@@ -29,11 +31,12 @@ public static class GroupedPageSearchServiceExtensions
             .Where(x => !string.Equals(x.Id, page.Id, StringComparison.OrdinalIgnoreCase) &&
                 x.Status != Archived &&
                 PageBuilderPermalinkConflicts.HasSamePermalink(page, x))
-            .Select(x => ToPermalinkUsage(page, x))
+            .Select(x => ToPermalinkUsage(page, x, storeDefaultLanguage))
             .ToList();
     }
 
-    private static PageBuilderPermalinkUsage ToPermalinkUsage(GroupedPageBuilderPage page, GroupedPageBuilderPage other)
+    private static PageBuilderPermalinkUsage ToPermalinkUsage(GroupedPageBuilderPage page, GroupedPageBuilderPage other,
+        string storeDefaultLanguage)
     {
         var usage = AbstractTypeFactory<PageBuilderPermalinkUsage>.TryCreateInstance();
         usage.GroupId = other.Id;
@@ -41,7 +44,7 @@ public static class GroupedPageSearchServiceExtensions
         usage.Permalink = other.Permalink;
         usage.CultureName = other.CultureName;
         usage.Status = other.Status;
-        usage.Conflict = PageBuilderPermalinkConflicts.GetConflict(page, other);
+        usage.Conflict = PageBuilderPermalinkConflicts.GetConflict(page, other, DateTime.UtcNow, storeDefaultLanguage);
         // Unpublishing is refused while a draft exists alongside the published page.
         usage.CanUnpublish = !other.HasChanges;
         return usage;

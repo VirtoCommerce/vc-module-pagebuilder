@@ -121,7 +121,7 @@
         },
         "PUBLISH_CONFLICT": "Déjà publiées avec ce lien permanent pour les mêmes visiteurs : {pages}. Les dépublier et publier cette page ?",
         "PUBLISH_CONFLICT_HAS_CHANGES": "Déjà publiées avec ce lien permanent pour les mêmes visiteurs : {pages}. Elles ont des modifications non publiées ; publiez ou annulez d'abord ces modifications.",
-        "PUBLISH_POSSIBLE_CONFLICT": "Également publiées avec ce lien permanent pour d'autres groupes d'utilisateurs : {pages}. Un visiteur membre des deux groupes peut obtenir l'une ou l'autre. Publier quand même ?",
+        "PUBLISH_POSSIBLE_CONFLICT": "Également publiées avec ce lien permanent pour une partie des mêmes visiteurs ou dates : {pages}. Là où les deux pages s'appliquent, la dernière publiée est affichée. Publier quand même ?",
         "PUBLISH_CONFLICT_CHANGED": "Publication refusée : ces pages sont déjà publiées avec ce lien permanent pour les mêmes visiteurs : {pages}. Publiez à nouveau pour résoudre le conflit.",
         "UNPUBLISH_WITH_DRAFT": "Impossible de dépublier une page qui comporte des modifications.",
         "DOWNLOAD_SUCCESS": "Contenu enregistré dans le fichier avec succès",

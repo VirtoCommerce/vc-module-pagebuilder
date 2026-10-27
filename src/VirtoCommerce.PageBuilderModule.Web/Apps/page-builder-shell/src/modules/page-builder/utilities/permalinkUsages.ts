@@ -20,9 +20,9 @@ export function getConflictsOfRejectedPublish(error: unknown): PageBuilderPermal
 }
 
 export interface PublishConflicts {
-  // Published pages offered to the same visitors: publishing is refused while they stay published.
+  // Published pages this page replaces for all their visitors and dates: publishing is refused while they stay published.
   blocking: PageBuilderPermalinkUsage[];
-  // Published pages a visitor also gets only when they belong to user groups of both pages.
+  // Published pages this page meets for some of their visitors or dates only; elsewhere they are still shown.
   possible: PageBuilderPermalinkUsage[];
 }
 

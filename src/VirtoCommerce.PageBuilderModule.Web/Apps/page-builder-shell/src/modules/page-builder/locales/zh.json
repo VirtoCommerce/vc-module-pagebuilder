@@ -121,7 +121,7 @@
         },
         "PUBLISH_CONFLICT": "以下页面已以此永久链接向相同访问者发布：{pages}。是否取消发布它们并发布此页面？",
         "PUBLISH_CONFLICT_HAS_CHANGES": "以下页面已以此永久链接向相同访问者发布：{pages}。它们有未发布的更改，请先发布或放弃这些更改。",
-        "PUBLISH_POSSIBLE_CONFLICT": "以下页面也以此永久链接向其他用户组发布：{pages}。同时属于两个组的访问者可能看到其中任意一个页面。仍要发布吗？",
+        "PUBLISH_POSSIBLE_CONFLICT": "以下页面也以此永久链接面向部分相同的访问者或日期发布：{pages}。两者都适用时，将显示最后发布的页面。仍要发布吗？",
         "PUBLISH_CONFLICT_CHANGED": "发布被拒绝：以下页面已以此永久链接向相同访问者发布：{pages}。请再次发布以解决冲突。",
         "UNPUBLISH_WITH_DRAFT": "无法取消发布包含更改的页面。",
         "DOWNLOAD_SUCCESS": "内容已成功保存到文件",

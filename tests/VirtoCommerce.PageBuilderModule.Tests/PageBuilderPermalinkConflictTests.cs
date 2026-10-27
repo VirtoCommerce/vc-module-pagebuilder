@@ -13,6 +13,8 @@ using VirtoCommerce.PageBuilderModule.Data.Services;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using VirtoCommerce.PageBuilderModule.Web.Services;
 using VirtoCommerce.Platform.Core.Common;
+using VirtoCommerce.StoreModule.Core.Model;
+using VirtoCommerce.StoreModule.Core.Services;
 using Xunit;
 using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 
@@ -105,18 +107,46 @@ public class PageBuilderPermalinkConflictTests
         Assert.True(PageBuilderPermalinkConflicts.GetConflict(page, other, Now) == PageBuilderPermalinkConflict.None, difference);
     }
 
-    public static TheoryData<string, Action<GroupedPageBuilderPage>> Conflicting => new()
+    // The page is shown for the whole rest of the other page's period.
+    public static TheoryData<string, Action<GroupedPageBuilderPage>> Covered => new()
     {
         { "same page settings", _ => { } },
         { "language in another case", x => x.CultureName = "EN-us" },
+        { "within the page's dates", x => { x.StartDate = Date(12); x.EndDate = Date(18); } },
+    };
+
+    [Theory]
+    [MemberData(nameof(Covered))]
+    public void GetConflict_EquallySpecificAndCovered_IsCertain(string difference, Action<GroupedPageBuilderPage> changeOther)
+    {
+        var page = Group(x =>
+        {
+            x.OrganizationId = "org-a";
+            x.StartDate = Date(10);
+            x.EndDate = Date(20);
+        });
+        var other = PublishedGroup(x =>
+        {
+            x.OrganizationId = "org-a";
+            x.StartDate = Date(10);
+            x.EndDate = Date(20);
+            changeOther(x);
+        });
+
+        Assert.True(PageBuilderPermalinkConflicts.GetConflict(page, other, Now) == PageBuilderPermalinkConflict.Certain, difference);
+    }
+
+    // The other page is still shown on dates the page is not, so unpublishing it would leave those dates empty.
+    public static TheoryData<string, Action<GroupedPageBuilderPage>> PartlyCovered => new()
+    {
         { "no dates", x => { x.StartDate = null; x.EndDate = null; } },
         { "dates overlap", x => { x.StartDate = Date(15); x.EndDate = Date(30); } },
         { "ends on the start day", x => { x.StartDate = Date(1); x.EndDate = Date(10); } },
     };
 
     [Theory]
-    [MemberData(nameof(Conflicting))]
-    public void GetConflict_EquallySpecificAndOfferedTogether_IsCertain(string difference, Action<GroupedPageBuilderPage> changeOther)
+    [MemberData(nameof(PartlyCovered))]
+    public void GetConflict_EquallySpecificAndPartlyCovered_IsPossible(string difference, Action<GroupedPageBuilderPage> changeOther)
     {
         var page = Group(x =>
         {
@@ -130,15 +160,33 @@ public class PageBuilderPermalinkConflictTests
             changeOther(x);
         });
 
-        Assert.True(PageBuilderPermalinkConflicts.GetConflict(page, other, Now) == PageBuilderPermalinkConflict.Certain, difference);
+        Assert.True(PageBuilderPermalinkConflicts.GetConflict(page, other, Now) == PageBuilderPermalinkConflict.Possible, difference);
     }
 
     [Theory]
-    // Equally specific pages for the same audience.
+    // The storefront prefers the store's default language to any language for every visitor.
+    [InlineData("en-US", null, PageBuilderPermalinkConflict.Certain)]
+    [InlineData(null, "en-US", PageBuilderPermalinkConflict.Certain)]
+    // Visitors in other languages still get the page for any language.
+    [InlineData("de-DE", null, PageBuilderPermalinkConflict.None)]
+    [InlineData(null, "de-DE", PageBuilderPermalinkConflict.None)]
+    public void GetConflict_AnyLanguageAndStoreDefaultLanguage(string cultureName, string otherCultureName, PageBuilderPermalinkConflict expected)
+    {
+        var page = Group(x => x.CultureName = cultureName);
+        var other = PublishedGroup(x => x.CultureName = otherCultureName);
+
+        Assert.Equal(expected, PageBuilderPermalinkConflicts.GetConflict(page, other, Now, storeDefaultLanguage: "en-US"));
+    }
+
+    [Theory]
+    // The page reaches every visitor the other page is for. Pages for user groups go to signed-in members only,
+    // so their visibility does not matter.
     [InlineData(true, "", true, "", PageBuilderPermalinkConflict.Certain)]
     [InlineData(false, "", false, "", PageBuilderPermalinkConflict.Certain)]
     [InlineData(false, "vip, gold", false, "Gold", PageBuilderPermalinkConflict.Certain)]
-    // Only a visitor in both groups gets both pages.
+    [InlineData(true, "vip", false, "vip", PageBuilderPermalinkConflict.Certain)]
+    // The other page keeps members of its own: only a visitor in both pages' groups gets both.
+    [InlineData(false, "gold", false, "vip, gold", PageBuilderPermalinkConflict.Possible)]
     [InlineData(false, "vip", false, "gold", PageBuilderPermalinkConflict.Possible)]
     [InlineData(true, "vip", true, "gold", PageBuilderPermalinkConflict.Possible)]
     // The more specific page wins for its audience: a page for user groups over one for everyone, a page for
@@ -146,7 +194,6 @@ public class PageBuilderPermalinkConflictTests
     [InlineData(false, "", false, "gold", PageBuilderPermalinkConflict.None)]
     [InlineData(true, "", true, "gold", PageBuilderPermalinkConflict.None)]
     [InlineData(true, "", false, "", PageBuilderPermalinkConflict.None)]
-    [InlineData(true, "vip", false, "vip", PageBuilderPermalinkConflict.None)]
     public void GetConflict_Audience(bool visibility, string userGroups, bool otherVisibility, string otherUserGroups, PageBuilderPermalinkConflict expected)
     {
         var page = Group(x =>
@@ -316,6 +363,25 @@ public class PageBuilderPermalinkConflictTests
     }
 
     [Fact]
+    public async Task PublishGroup_PageForAnyLanguagePublishedInStoreDefaultLanguage_ReturnsConflict()
+    {
+        var service = CreateService(
+            Group(x => x.Id = "new"),
+            PublishedGroup(x =>
+            {
+                x.Id = "old";
+                x.CultureName = null;
+            }));
+        var store = new Store { Id = StoreId, DefaultLanguage = "en-US" };
+        var controller = CreateController(service, storeService: new FakeStoreService(store));
+
+        var result = await controller.PublishGroup("new", publish: true, cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.IsType<ConflictObjectResult>(result);
+        Assert.Equal(Published, (await service.GetByIdAsync("old")).Status);
+    }
+
+    [Fact]
     public async Task PublishGroup_PossibleConflict_Publishes()
     {
         var service = CreateService(
@@ -406,7 +472,8 @@ public class PageBuilderPermalinkConflictTests
 
     private static PageBuilderPageController CreateController(
         PublishedRenameContentPreservationTests.FakeGroupedPageService service,
-        IGroupedPageSearchService searchService = null)
+        IGroupedPageSearchService searchService = null,
+        IStoreService storeService = null)
     {
         var pageService = new PublishedRenameContentPreservationTests.FakePageBuilderPageService(service);
         var pageContentService = new PageBuilderPageContentService(
@@ -422,7 +489,8 @@ public class PageBuilderPermalinkConflictTests
             new PublishedRenameContentPreservationTests.AllowAllAuthorizationService(),
             new PublishedRenameContentPreservationTests.NoopPageDocumentSearchService(),
             pageContentService,
-            NullLogger<PageBuilderPageController>.Instance)
+            NullLogger<PageBuilderPageController>.Instance,
+            storeService)
         {
             ControllerContext = new ControllerContext
             {
