@@ -186,7 +186,9 @@
         "UNLINK": "Отвязать",
         "CREATE": "Создать",
         "LINK": "Привязать",
-        "MARK_UP_TO_DATE": "Перевод актуален"
+        "MARK_UP_TO_DATE": "Перевод актуален",
+        "ACTION_LABEL": "{action}: {language}",
+        "ANY_LANGUAGE": "Все языки"
       },
       "TOOLBAR": {
         "PUBLISH_ALL": "Опубликовать все",
@@ -203,10 +205,13 @@
         "LANGUAGE_CREATED": "Версия {language} создана как черновик",
         "UNLINK": "Отвязать версию {language}? Она останется отдельной Landing Page."
       },
-      "LINK_POPUP": {
-        "TITLE": "Привязать существующую страницу ({language})",
+      "LIST": {
+        "PUBLISHED_COUNT": "Опубликовано: {published} из {total}",
+        "OUTDATED_COUNT": "устарело: {outdated}"
+      },
+      "LINK_PAGE": {
         "HINT": "Страница сохранит свой permalink и настройки и получит общее название.",
-        "PAGE": "Landing Page",
+        "PAGE": "Существующая Landing Page ({language})",
         "CANCEL": "Отмена",
         "LINK": "Привязать"
       },

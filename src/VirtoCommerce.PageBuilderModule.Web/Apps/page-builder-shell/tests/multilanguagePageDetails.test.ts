@@ -2,10 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { isFieldOverridden } from "../src/modules/page-builder/composables/useMultilanguageInheritance";
 import {
+  getLanguagePillText,
   hasLanguageVersions,
   isMultilanguageRowArchived,
   isPermalinkCheckNeeded,
   summarizeBatchResult,
+  summarizeLanguageStatuses,
 } from "../src/modules/page-builder/composables/useMultilanguagePageDetails/helpers";
 
 test("isMultilanguageRowArchived needs at least one version, all archived", () => {
@@ -62,4 +64,27 @@ test("summarizeBatchResult reports failed languages apart from skipped ones", ()
     { processed: "en-US", skipped: "de-DE", failed: "nl-NL" },
   );
   assert.deepEqual(summarizeBatchResult({}), { processed: "—", skipped: "—", failed: "" });
+});
+
+test("getLanguagePillText shows the region only where the language part is ambiguous", () => {
+  const cultures = ["en-US", "en-GB", "de-DE", "nl-NL", "nl-BL"];
+  assert.deepEqual(
+    cultures.map((x) => getLanguagePillText(x, cultures)),
+    ["en-US", "en-GB", "DE", "nl-NL", "nl-BL"],
+  );
+  assert.equal(getLanguagePillText("en-GB", ["en-GB"]), "en-GB");
+  assert.equal(getLanguagePillText(undefined, [undefined]), "");
+});
+
+test("summarizeLanguageStatuses counts published and outdated languages", () => {
+  assert.deepEqual(summarizeLanguageStatuses(undefined), { published: 0, total: 0, outdated: 0 });
+  assert.deepEqual(
+    summarizeLanguageStatuses([
+      { cultureName: "en-US", status: "Published", page: { id: "en" } },
+      { cultureName: "nl-NL", status: "Published", isOutdated: true, page: { id: "nl" } },
+      { cultureName: "de-DE", status: "Draft", page: { id: "de" } },
+      { cultureName: "fr-FR", status: "Missing" },
+    ]),
+    { published: 2, total: 4, outdated: 1 },
+  );
 });

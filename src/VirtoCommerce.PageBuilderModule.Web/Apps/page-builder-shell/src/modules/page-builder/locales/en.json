@@ -186,7 +186,9 @@
         "UNLINK": "Unlink",
         "CREATE": "Create",
         "LINK": "Link existing",
-        "MARK_UP_TO_DATE": "Mark up to date"
+        "MARK_UP_TO_DATE": "Mark up to date",
+        "ACTION_LABEL": "{action}: {language}",
+        "ANY_LANGUAGE": "All languages"
       },
       "TOOLBAR": {
         "PUBLISH_ALL": "Publish all",
@@ -203,10 +205,13 @@
         "LANGUAGE_CREATED": "{language} version created as a draft",
         "UNLINK": "Unlink the {language} version? It is kept as a separate Landing Page."
       },
-      "LINK_POPUP": {
-        "TITLE": "Link an existing {language} page",
+      "LIST": {
+        "PUBLISHED_COUNT": "Published: {published} of {total}",
+        "OUTDATED_COUNT": "outdated: {outdated}"
+      },
+      "LINK_PAGE": {
         "HINT": "The page keeps its permalink and settings and takes the shared name.",
-        "PAGE": "Landing Page",
+        "PAGE": "Existing {language} Landing Page",
         "CANCEL": "Cancel",
         "LINK": "Link"
       },

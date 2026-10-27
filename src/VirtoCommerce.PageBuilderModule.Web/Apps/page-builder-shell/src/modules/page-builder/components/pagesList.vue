@@ -101,6 +101,12 @@
           extended
           :item="data.page"
         />
+        <span
+          v-else-if="data.languages"
+          class="tw-text-sm"
+        >
+          {{ multilanguageStatusText(data.languages) }}
+        </span>
       </template>
     </VcColumn>
   </VcDataTable>
@@ -137,7 +143,11 @@ import {
   refreshMenuBadges,
 } from "../composables";
 import { parseImportFile } from "../composables/usePageContentApi";
-import { hasLanguageVersions, isMultilanguageRowArchived } from "../composables/useMultilanguagePageDetails/helpers";
+import {
+  hasLanguageVersions,
+  isMultilanguageRowArchived,
+  summarizeLanguageStatuses,
+} from "../composables/useMultilanguagePageDetails/helpers";
 import PageStatus from "./pageStatus.vue";
 import LanguagePills from "./languagePills.vue";
 import AddPagePopup from "./addPagePopup.vue";
@@ -271,6 +281,13 @@ function rowLanguages(item: PageBuilderPageListItem): MultilanguagePageLanguage[
   return item.page
     ? [{ cultureName: item.page.cultureName, status: item.page.status, hasChanges: item.page.hasChanges }]
     : [];
+}
+
+// Each language has its own status in the pills; the row sums them up.
+function multilanguageStatusText(languages: MultilanguagePageLanguage[]): string {
+  const summary = summarizeLanguageStatuses(languages);
+  const published = t("PAGE_BUILDER.MULTILANGUAGE.LIST.PUBLISHED_COUNT", summary);
+  return summary.outdated ? `${published}, ${t("PAGE_BUILDER.MULTILANGUAGE.LIST.OUTDATED_COUNT", summary)}` : published;
 }
 
 function isArchived(item: PageBuilderPageListItem): boolean {

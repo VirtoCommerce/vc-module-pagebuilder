@@ -7,7 +7,7 @@
       :class="`language-pills__pill--${variant(language)}`"
       :title="tooltip(language)"
     >
-      {{ code(language.cultureName) }}
+      {{ text(language.cultureName) }}
     </span>
     <span
       v-if="withStatus && languages.length === 1"
@@ -21,6 +21,7 @@
 <script lang="ts" setup>
 import { useI18n } from "vue-i18n";
 import { MultilanguagePageLanguage } from "../../../api_client/virtocommerce.pagebuildermodule";
+import { getLanguagePillText } from "../composables/useMultilanguagePageDetails/helpers";
 
 interface Props {
   languages: MultilanguagePageLanguage[];
@@ -28,12 +29,18 @@ interface Props {
   withStatus?: boolean;
 }
 
-defineProps<Props>();
+const props = defineProps<Props>();
 
 const { t } = useI18n({ useScope: "global" });
 
-function code(cultureName?: string): string {
-  return (cultureName ?? "").split("-")[0].toUpperCase();
+// A page without a language is served in every language.
+function text(cultureName?: string): string {
+  return (
+    getLanguagePillText(
+      cultureName,
+      props.languages.map((x) => x.cultureName),
+    ) || t("PAGE_BUILDER.MULTILANGUAGE.LANGUAGES.ANY_LANGUAGE")
+  );
 }
 
 function variant(language: MultilanguagePageLanguage): string {
@@ -54,7 +61,7 @@ function statusText(language: MultilanguagePageLanguage): string {
 }
 
 function tooltip(language: MultilanguagePageLanguage): string {
-  return `${language.cultureName}: ${statusText(language)}`;
+  return `${language.cultureName || t("PAGE_BUILDER.MULTILANGUAGE.LANGUAGES.ANY_LANGUAGE")}: ${statusText(language)}`;
 }
 </script>
 

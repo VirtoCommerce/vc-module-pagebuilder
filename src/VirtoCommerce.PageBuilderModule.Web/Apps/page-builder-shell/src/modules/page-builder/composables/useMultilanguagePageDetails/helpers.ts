@@ -58,3 +58,34 @@ export function summarizeBatchResult(result: MultilanguagePageBatchResult): {
       .join(", "),
   };
 }
+
+/**
+ * Pill text: the language part of the culture ("DE"), or the whole culture when the pill is alone or another culture
+ * of the list has the same language part (en-US and en-GB). Empty for a page without a language.
+ */
+export function getLanguagePillText(cultureName: string | undefined, cultureNames: (string | undefined)[]): string {
+  if (!cultureName) {
+    return "";
+  }
+
+  const language = (name?: string) => (name ?? "").split("-")[0].toLowerCase();
+  const isShared = cultureNames.some(
+    (x) => x && x.toLowerCase() !== cultureName.toLowerCase() && language(x) === language(cultureName),
+  );
+
+  return cultureNames.length === 1 || isShared ? cultureName : language(cultureName).toUpperCase();
+}
+
+/** Status of a Multilanguage Page row: published languages out of the store languages, and outdated translations. */
+export function summarizeLanguageStatuses(languages?: MultilanguagePageLanguage[]): {
+  published: number;
+  total: number;
+  outdated: number;
+} {
+  const list = languages ?? [];
+  return {
+    published: list.filter((x) => x.status === "Published").length,
+    total: list.length,
+    outdated: list.filter((x) => x.isOutdated).length,
+  };
+}

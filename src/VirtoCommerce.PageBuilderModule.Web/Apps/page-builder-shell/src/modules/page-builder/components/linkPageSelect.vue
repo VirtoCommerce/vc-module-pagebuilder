@@ -1,47 +1,36 @@
 <template>
-  <VcPopup
-    :model-value="true"
-    :title="$t('PAGE_BUILDER.MULTILANGUAGE.LINK_POPUP.TITLE', { language: cultureName })"
-    is-mobile-fullscreen
-    @update:model-value="!$event && $emit('close')"
-    @close="$emit('close')"
-  >
-    <template #content>
-      <VcCol class="tw-gap-3">
-        <VcHint>{{ $t("PAGE_BUILDER.MULTILANGUAGE.LINK_POPUP.HINT") }}</VcHint>
-        <VcSelect
-          v-model="groupId"
-          :label="$t('PAGE_BUILDER.MULTILANGUAGE.LINK_POPUP.PAGE')"
-          :options="loadPages"
-          option-value="id"
-          option-label="title"
-          searchable
-        />
-      </VcCol>
-    </template>
-
-    <template #footer>
-      <div class="tw-flex tw-justify-end tw-gap-3">
-        <VcButton
-          variant="secondary"
-          @click="$emit('close')"
-        >
-          {{ $t("PAGE_BUILDER.MULTILANGUAGE.LINK_POPUP.CANCEL") }}
-        </VcButton>
-        <VcButton
-          :disabled="!groupId"
-          @click="groupId && $emit('link', groupId)"
-        >
-          {{ $t("PAGE_BUILDER.MULTILANGUAGE.LINK_POPUP.LINK") }}
-        </VcButton>
-      </div>
-    </template>
-  </VcPopup>
+  <!-- Shown in the language row, not in a popup: the select's option list opens in the app root, under a popup. -->
+  <VcCol class="tw-gap-2">
+    <div class="tw-flex tw-items-end tw-gap-3">
+      <VcSelect
+        v-model="groupId"
+        class="tw-grow"
+        :label="$t('PAGE_BUILDER.MULTILANGUAGE.LINK_PAGE.PAGE', { language: cultureName })"
+        :options="loadPages"
+        option-value="id"
+        option-label="title"
+        searchable
+      />
+      <VcButton
+        variant="secondary"
+        @click="$emit('close')"
+      >
+        {{ $t("PAGE_BUILDER.MULTILANGUAGE.LINK_PAGE.CANCEL") }}
+      </VcButton>
+      <VcButton
+        :disabled="!groupId"
+        @click="groupId && $emit('link', groupId)"
+      >
+        {{ $t("PAGE_BUILDER.MULTILANGUAGE.LINK_PAGE.LINK") }}
+      </VcButton>
+    </div>
+    <VcHint>{{ $t("PAGE_BUILDER.MULTILANGUAGE.LINK_PAGE.HINT") }}</VcHint>
+  </VcCol>
 </template>
 
 <script lang="ts" setup>
 import { ref } from "vue";
-import { VcButton, VcCol, VcHint, VcPopup, VcSelect } from "@vc-shell/framework/ui";
+import { VcButton, VcCol, VcHint, VcSelect } from "@vc-shell/framework/ui";
 import { PageBuilderPageListItem } from "../../../api_client/virtocommerce.pagebuildermodule";
 
 interface Props {

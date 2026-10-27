@@ -43,26 +43,6 @@ export interface UsePageBuilderDetailsOptions {
   importData?: PageExportData;
 }
 
-function incrementCopyName(name: string): string {
-  const match = /^(.*)\(copy(?:\s+(\d+))?\)$/.exec(name);
-  if (match) {
-    const base = match[1];
-    const num = match[2] ? Number.parseInt(match[2], 10) + 1 : 2;
-    return `${base}(copy ${num})`;
-  }
-  return `${name} (copy)`;
-}
-
-function incrementCopyPermalink(permalink: string): string {
-  const match = /^(.*)-copy(?:-(\d+))?$/.exec(permalink);
-  if (match) {
-    const base = match[1];
-    const num = match[2] ? Number.parseInt(match[2], 10) + 1 : 2;
-    return `${base}-copy-${num}`;
-  }
-  return `${permalink}-copy`;
-}
-
 export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): IUsePageBuilderDetails {
   const { getUserGroups } = useUserGroups();
   const { getOrganizations } = useOrganizations();
@@ -177,9 +157,12 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
       throw new Error("Can't clone page.");
     }
 
+    const apiClient = await getApiClient();
+    // The server picks a suffix no page of the store uses yet, so a second clone gets its own address.
+    const copyName = await apiClient.getCopyName(source.id);
     const clone: GroupedPageBuilderPage = {
-      name: incrementCopyName(source.name || ""),
-      permalink: incrementCopyPermalink(source.permalink || ""),
+      name: copyName.name,
+      permalink: copyName.permalink,
       cultureName: source.cultureName,
       storeId: source.storeId,
       visibility: source.visibility,
@@ -187,7 +170,6 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
       organizationId: source.organizationId,
     };
 
-    const apiClient = await getApiClient();
     const created = await apiClient.createGroup(clone);
 
     if (created.id && source.id) {

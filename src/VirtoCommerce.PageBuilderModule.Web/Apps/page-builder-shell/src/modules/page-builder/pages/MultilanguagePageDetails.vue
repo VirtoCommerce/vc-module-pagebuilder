@@ -84,89 +84,110 @@
               </tr>
             </thead>
             <tbody>
-              <tr
+              <template
                 v-for="language in languages"
                 :key="language.cultureName"
               >
-                <td>
-                  <span class="tw-font-semibold">{{ language.cultureName }}</span>
-                  <VcHint v-if="language.isDefault">{{ $t("PAGE_BUILDER.MULTILANGUAGE.LANGUAGES.DEFAULT") }}</VcHint>
-                  <VcHint v-if="!language.isStoreLanguage">{{
-                    $t("PAGE_BUILDER.MULTILANGUAGE.LANGUAGES.NOT_IN_STORE")
-                  }}</VcHint>
-                </td>
-                <td>
-                  <template v-if="language.page">
-                    <code>{{ language.page.permalink }}</code>
-                    <Tag
-                      class="tw-ml-2"
-                      :text="
-                        isFieldOverridden(language.page.overriddenFields, 'Permalink')
-                          ? $t('PAGE_BUILDER.MULTILANGUAGE.LANGUAGES.CUSTOM')
-                          : $t('PAGE_BUILDER.MULTILANGUAGE.LANGUAGES.INHERITED')
-                      "
-                    />
-                  </template>
-                  <template v-else>—</template>
-                </td>
-                <td>
-                  <LanguagePills
-                    :languages="[language]"
-                    with-status
-                  />
-                </td>
-                <td>
-                  <div class="languages-table__actions">
+                <tr>
+                  <td>
+                    <span class="tw-font-semibold">{{ language.cultureName }}</span>
+                    <VcHint v-if="language.isDefault">{{ $t("PAGE_BUILDER.MULTILANGUAGE.LANGUAGES.DEFAULT") }}</VcHint>
+                    <VcHint v-if="!language.isStoreLanguage">{{
+                      $t("PAGE_BUILDER.MULTILANGUAGE.LANGUAGES.NOT_IN_STORE")
+                    }}</VcHint>
+                  </td>
+                  <td>
                     <template v-if="language.page">
-                      <VcButton
-                        size="sm"
-                        variant="secondary"
-                        @click="openLanguage(language)"
-                      >
-                        {{ $t("PAGE_BUILDER.MULTILANGUAGE.LANGUAGES.OPEN") }}
-                      </VcButton>
-                      <VcButton
-                        size="sm"
-                        variant="secondary"
-                        :disabled="language.status === 'Archived'"
-                        @click="openDesigner(language)"
-                      >
-                        {{ $t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.DESIGNER") }}
-                      </VcButton>
-                      <VcButton
-                        v-if="language.isOutdated"
-                        size="sm"
-                        variant="secondary"
-                        @click="onMarkUpToDate(language)"
-                      >
-                        {{ $t("PAGE_BUILDER.MULTILANGUAGE.LANGUAGES.MARK_UP_TO_DATE") }}
-                      </VcButton>
-                      <VcButton
-                        size="sm"
-                        variant="secondary"
-                        @click="onUnlink(language)"
-                      >
-                        {{ $t("PAGE_BUILDER.MULTILANGUAGE.LANGUAGES.UNLINK") }}
-                      </VcButton>
+                      <code>{{ language.page.permalink }}</code>
+                      <Tag
+                        class="tw-ml-2"
+                        :text="
+                          isFieldOverridden(language.page.overriddenFields, 'Permalink')
+                            ? $t('PAGE_BUILDER.MULTILANGUAGE.LANGUAGES.CUSTOM')
+                            : $t('PAGE_BUILDER.MULTILANGUAGE.LANGUAGES.INHERITED')
+                        "
+                      />
                     </template>
-                    <template v-else-if="language.isStoreLanguage">
-                      <VcButton
-                        size="sm"
-                        @click="onCreateLanguage(language)"
-                      >
-                        {{ $t("PAGE_BUILDER.MULTILANGUAGE.LANGUAGES.CREATE") }}
-                      </VcButton>
-                      <VcButton
-                        size="sm"
-                        variant="secondary"
-                        @click="linkCultureName = language.cultureName"
-                      >
-                        {{ $t("PAGE_BUILDER.MULTILANGUAGE.LANGUAGES.LINK") }}
-                      </VcButton>
-                    </template>
-                  </div>
-                </td>
-              </tr>
+                    <template v-else>—</template>
+                  </td>
+                  <td>
+                    <LanguagePills
+                      :languages="[language]"
+                      with-status
+                    />
+                  </td>
+                  <td>
+                    <div class="languages-table__actions">
+                      <template v-if="language.page">
+                        <VcButton
+                          size="sm"
+                          variant="secondary"
+                          :aria-label="actionLabel('PAGE_BUILDER.MULTILANGUAGE.LANGUAGES.OPEN', language)"
+                          @click="openLanguage(language)"
+                        >
+                          {{ $t("PAGE_BUILDER.MULTILANGUAGE.LANGUAGES.OPEN") }}
+                        </VcButton>
+                        <VcButton
+                          size="sm"
+                          variant="secondary"
+                          :disabled="language.status === 'Archived'"
+                          :aria-label="actionLabel('PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.DESIGNER', language)"
+                          @click="openDesigner(language)"
+                        >
+                          {{ $t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.DESIGNER") }}
+                        </VcButton>
+                        <VcButton
+                          v-if="language.isOutdated"
+                          size="sm"
+                          variant="secondary"
+                          :aria-label="actionLabel('PAGE_BUILDER.MULTILANGUAGE.LANGUAGES.MARK_UP_TO_DATE', language)"
+                          @click="onMarkUpToDate(language)"
+                        >
+                          {{ $t("PAGE_BUILDER.MULTILANGUAGE.LANGUAGES.MARK_UP_TO_DATE") }}
+                        </VcButton>
+                        <VcButton
+                          size="sm"
+                          variant="secondary"
+                          :aria-label="actionLabel('PAGE_BUILDER.MULTILANGUAGE.LANGUAGES.UNLINK', language)"
+                          @click="onUnlink(language)"
+                        >
+                          {{ $t("PAGE_BUILDER.MULTILANGUAGE.LANGUAGES.UNLINK") }}
+                        </VcButton>
+                      </template>
+                      <template v-else-if="language.isStoreLanguage">
+                        <VcButton
+                          size="sm"
+                          :aria-label="actionLabel('PAGE_BUILDER.MULTILANGUAGE.LANGUAGES.CREATE', language)"
+                          @click="onCreateLanguage(language)"
+                        >
+                          {{ $t("PAGE_BUILDER.MULTILANGUAGE.LANGUAGES.CREATE") }}
+                        </VcButton>
+                        <VcButton
+                          size="sm"
+                          variant="secondary"
+                          :aria-label="actionLabel('PAGE_BUILDER.MULTILANGUAGE.LANGUAGES.LINK', language)"
+                          @click="linkCultureName = language.cultureName"
+                        >
+                          {{ $t("PAGE_BUILDER.MULTILANGUAGE.LANGUAGES.LINK") }}
+                        </VcButton>
+                      </template>
+                    </div>
+                  </td>
+                </tr>
+                <tr
+                  v-if="linkCultureName === language.cultureName"
+                  class="languages-table__link"
+                >
+                  <td colspan="4">
+                    <LinkPageSelect
+                      :culture-name="language.cultureName!"
+                      :find-pages="findLandingPages"
+                      @close="linkCultureName = undefined"
+                      @link="onLink"
+                    />
+                  </td>
+                </tr>
+              </template>
             </tbody>
           </table>
         </VcCard>
@@ -184,14 +205,6 @@
       @close="conflicts = []"
       @apply-all="onApplyToAll"
       @apply-inherited="onApplyToInherited"
-    />
-
-    <LinkPagePopup
-      v-if="linkCultureName"
-      :culture-name="linkCultureName"
-      :find-pages="findLandingPages"
-      @close="linkCultureName = undefined"
-      @link="onLink"
     />
   </VcBlade>
 </template>
@@ -223,7 +236,7 @@ import { useMultilanguagePageDetails } from "../composables/useMultilanguagePage
 import { openPageDesigner } from "../../../utilities/pageDesigner";
 import PageAdvancedOptions from "../components/pageAdvancedOptions.vue";
 import LanguagePills from "../components/languagePills.vue";
-import LinkPagePopup from "../components/linkPagePopup.vue";
+import LinkPageSelect from "../components/linkPageSelect.vue";
 import OverridesConflictPopup, { type IOverridesConflict } from "../components/overridesConflictPopup.vue";
 import { usePermalinkUsage } from "../composables/usePermalinkUsage";
 import {
@@ -525,6 +538,11 @@ async function onMarkUpToDate(language: MultilanguagePageLanguage) {
   }
 }
 
+// The buttons repeat in every row, so a screen reader needs the language they act on.
+function actionLabel(key: string, language: MultilanguagePageLanguage) {
+  return t("PAGE_BUILDER.MULTILANGUAGE.LANGUAGES.ACTION_LABEL", { action: t(key), language: language.cultureName });
+}
+
 async function loadCultureNames() {
   const cultureNames = await getLanguages();
   return {
@@ -536,8 +554,10 @@ async function loadCultureNames() {
 // Language version blades opened from the table report back here.
 exposeToChildren({
   reload: async () => {
-    await loadLanguages();
+    // The list first: the child may replace this blade right after (a clone opens from the list),
+    // and a blade that is no longer in the stack cannot call its parent.
     callParent("reload");
+    await loadLanguages();
   },
   // A version of this page reopens here; anything else (a clone, a converted page) belongs to the list.
   onItemClick: (page: GroupedPageBuilderPage & { type?: string }) =>
