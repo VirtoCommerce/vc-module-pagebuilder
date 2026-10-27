@@ -91,6 +91,9 @@
         "WARNINGS": {
           "PERMALINK_USED": "Andre sider bruker denne permalinken: {pages}. Det er tillatt for andre besøkende eller perioder; publisering sjekker for konflikter."
         },
+        "VALIDATION": {
+          "PERMALINK": "Permalinken kan være på høyst 2048 tegn og kan ikke inneholde mellomrom eller usynlige tegn, tegnene ? # & % \\ \" < > {'{'} {'}'} {'|'} ^ `, doble skråstreker eller segmentene . og .."
+        },
         "TOOLTIPS": {
           "VISIBILITY": "Hvis synlighet er av, vil siden kun være tilgjengelig for registrerte brukere."
         },

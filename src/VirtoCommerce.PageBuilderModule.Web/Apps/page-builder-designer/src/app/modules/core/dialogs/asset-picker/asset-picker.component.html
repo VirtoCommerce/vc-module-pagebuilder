@@ -22,12 +22,46 @@
       [labels]="state.labels"
       [uploading]="state.uploading()"
       [loading]="state.loading()"
-      [multiple]="state.multiple"
+      [creatingFolder]="state.creatingFolder()"
+      [canCreateFolder]="state.folderCreationAvailable()"
+      [canUpload]="state.uploadAvailable()"
       [acceptAttribute]="state.acceptAttribute()"
       [searchValue]="state.searchValue()"
       [counterText]="state.formatAssetsCounter(state.fileCount())"
       (searchValueChange)="state.onSearch($event)"
-      (upload)="state.uploadFiles($event)" />
+      (upload)="state.uploadFiles($event)"
+      (newFolder)="state.openFolderForm()" />
+
+    @if (state.folderFormOpen()) {
+      <form class="folder-form" (submit)="$event.preventDefault(); state.createFolder()" (keydown.escape)="closeFolderForm($event)">
+        <label for="asset-picker-folder-name">{{ state.labels.folderName }}</label>
+        <div class="folder-form-row">
+          <input #folderInput id="asset-picker-folder-name" type="text" autocomplete="off"
+            [placeholder]="state.labels.folderNamePlaceholder"
+            [formField]="state.folderForm.name"
+            [attr.aria-invalid]="!!state.folderNameError()"
+            [attr.aria-describedby]="state.folderNameError() ? 'asset-picker-folder-error' : null" />
+          <button type="submit" class="folder-form-action folder-form-action--confirm"
+            [title]="state.labels.createFolder"
+            [attr.aria-label]="state.labels.createFolder"
+            [disabled]="!state.canCreateFolder()">
+            <app-icon>check</app-icon>
+          </button>
+          <button type="button" class="folder-form-action folder-form-action--cancel"
+            [title]="state.labels.cancelFolder"
+            [attr.aria-label]="state.labels.cancelFolder"
+            [disabled]="state.creatingFolder()"
+            (click)="closeFolderForm()">
+            <app-icon>close</app-icon>
+          </button>
+        </div>
+        <div class="folder-form-message">
+          @if (state.folderNameError()) {
+            <div id="asset-picker-folder-error" class="folder-form-error" role="alert">{{ state.folderNameError() }}</div>
+          }
+        </div>
+      </form>
+    }
 
     @if (state.error()) {
       <div class="message message--error">{{ state.error() }}</div>
@@ -47,16 +81,19 @@
     }
   </div>
 
-  <mat-paginator
-    [length]="state.totalCount()"
-    [pageIndex]="state.pageIndex()"
-    [pageSize]="state.pageSize()"
-    [pageSizeOptions]="[20, 50, 100]"
-    [showFirstLastButtons]="true"
-    (page)="state.onPage($event.pageIndex, $event.pageSize)" />
+  <div class="pager">
+    <span class="selected-count" aria-live="polite">{{ state.selectedCountText() }}</span>
+    <mat-paginator
+      [length]="state.totalCount()"
+      [pageIndex]="state.pageIndex()"
+      [pageSize]="state.pageSize()"
+      [pageSizeOptions]="[20, 50, 100]"
+      [showFirstLastButtons]="true"
+      (page)="state.onPage($event.pageIndex, $event.pageSize)" />
+  </div>
 
   <div mat-dialog-actions>
     <app-icon-button skin="outline" [text]="state.labels.cancel" (click)="decline()" />
-    <app-icon-button skin="primary" [text]="state.selectButtonText()" [disabled]="!state.selectedCount()" (click)="confirm()" />
+    <app-icon-button skin="primary" [text]="state.labels.select" [disabled]="!state.selectedCount() || state.creatingFolder() || state.uploading()" (click)="confirm()" />
   </div>
 </div>

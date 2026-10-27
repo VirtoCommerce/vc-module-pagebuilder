@@ -91,6 +91,9 @@
         "WARNINGS": {
           "PERMALINK_USED": "D'autres pages utilisent ce lien permanent : {pages}. C'est possible pour d'autres visiteurs ou périodes ; la publication vérifie les conflits."
         },
+        "VALIDATION": {
+          "PERMALINK": "Le lien permanent doit comporter au plus 2048 caractères et ne peut pas contenir d'espaces ni de caractères invisibles, les caractères ? # & % \\ \" < > {'{'} {'}'} {'|'} ^ `, de doubles barres obliques ni les segments . et .."
+        },
         "TOOLTIPS": {
           "VISIBILITY": "Si la visibilité est désactivée, la page ne sera accessible qu'aux utilisateurs enregistrés."
         },

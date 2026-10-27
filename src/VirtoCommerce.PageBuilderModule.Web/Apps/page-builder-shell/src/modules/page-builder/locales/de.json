@@ -91,6 +91,9 @@
         "WARNINGS": {
           "PERMALINK_USED": "Andere Seiten verwenden diesen Permalink: {pages}. Das ist für andere Besucher oder Zeiträume zulässig; beim Veröffentlichen wird auf Konflikte geprüft."
         },
+        "VALIDATION": {
+          "PERMALINK": "Der Permalink darf höchstens 2048 Zeichen lang sein und keine Leerzeichen oder unsichtbaren Zeichen, die Zeichen ? # & % \\ \" < > {'{'} {'}'} {'|'} ^ `, doppelte Schrägstriche oder die Segmente . und .. enthalten"
+        },
         "TOOLTIPS": {
           "VISIBILITY": "Wenn die Sichtbarkeit deaktiviert ist, ist die Seite nur für registrierte Benutzer verfügbar."
         },

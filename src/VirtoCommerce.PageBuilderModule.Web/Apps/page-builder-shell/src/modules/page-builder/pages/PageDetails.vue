@@ -32,12 +32,13 @@
             <Field
                    v-slot="{ errorMessage, handleChange, errors }"
                    name="permalink"
-                   rules="required"
+                   :rules="permalinkRules"
                    :model-value="item.permalink"
                    :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.PERMALINK')">
               <VcInput
                        v-model="item.permalink"
                        required
+                       maxlength="2048"
                        :error="errors.length > 0"
                        :error-message="errorMessage"
                        :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.PERMALINK')"
@@ -168,6 +169,7 @@ import {
   getUsagesInLanguage,
 } from "../utilities/permalinkUsages";
 import type { PageBuilderPermalinkUsage } from "../../../api_client/virtocommerce.pagebuildermodule";
+import { getPermalinkRules } from "../utilities/permalink";
 
 import {
   VcBanner,
@@ -284,6 +286,17 @@ async function publishWithConflictCheck(): Promise<boolean> {
   await publishGroup();
   return true;
 }
+
+// item is replaced on every load and save, while edits change its fields, so this keeps the stored permalink.
+const storedPermalink = ref<string>();
+watch(
+  item,
+  (value) => {
+    storedPermalink.value = value?.id ? value.permalink : undefined;
+  },
+  { immediate: true },
+);
+const permalinkRules = computed(() => getPermalinkRules(item.value?.permalink, storedPermalink.value));
 
 const isScheduled = computed(() => {
   return !!item.value.startDate || !!item.value.endDate;

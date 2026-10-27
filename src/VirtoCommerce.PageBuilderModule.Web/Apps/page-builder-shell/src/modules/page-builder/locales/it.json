@@ -91,6 +91,9 @@
         "WARNINGS": {
           "PERMALINK_USED": "Altre pagine usano questo permalink: {pages}. È consentito per altri visitatori o periodi; la pubblicazione verifica i conflitti."
         },
+        "VALIDATION": {
+          "PERMALINK": "Il permalink deve avere al massimo 2048 caratteri e non può contenere spazi o caratteri invisibili, i caratteri ? # & % \\ \" < > {'{'} {'}'} {'|'} ^ `, doppie barre o i segmenti . e .."
+        },
         "TOOLTIPS": {
           "VISIBILITY": "Se la visibilità è disattivata, la pagina sarà disponibile solo per gli utenti registrati."
         },
