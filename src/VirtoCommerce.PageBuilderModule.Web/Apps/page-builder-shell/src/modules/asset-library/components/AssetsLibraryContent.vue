@@ -111,7 +111,7 @@
           />
           <VcPagination
             :current-page="pagination.currentPage"
-            :pages="pagination.pages"
+            :pages="Math.max(1, pagination.pages)"
             @item-click="pagination.goToPage"
           />
         </div>
