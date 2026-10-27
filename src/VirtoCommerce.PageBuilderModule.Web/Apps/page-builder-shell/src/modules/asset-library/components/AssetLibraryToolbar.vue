@@ -30,8 +30,8 @@
 
     <VcSelect
       v-model="sort"
-      class="tw-w-52"
-      :label="$t('ASSET_LIBRARY.SORT.LABEL')"
+      class="tw-w-64"
+      :prefix="$t('ASSET_LIBRARY.SORT.LABEL')"
       :options="sortOptions"
       :clearable="false"
       option-value="value"
