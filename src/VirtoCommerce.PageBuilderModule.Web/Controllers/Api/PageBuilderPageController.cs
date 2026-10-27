@@ -118,6 +118,31 @@ public class PageBuilderPageController : Controller
         return Ok(await pageListService.FindPermalinkUsageAsync(request, cancellationToken));
     }
 
+    /// <summary>
+    /// Name and permalink for a copy of the page that no page of the store uses yet; Clone saves the copy with them.
+    /// </summary>
+    [HttpGet("grouped/{groupId}/copy-name")]
+    [Authorize(ModuleConstants.Security.Permissions.Read)]
+    public async Task<ActionResult<PageCopyName>> GetCopyName(
+        [FromRoute] string groupId,
+        [FromServices] IPageBuilderPageListService pageListService,
+        CancellationToken cancellationToken = default)
+    {
+        var groupedPage = await groupedPageService.GetNoCloneAsync(groupId);
+        if (groupedPage == null)
+        {
+            return NotFound();
+        }
+
+        var authorizationResult = await authorizationService.AuthorizeAsync(User, groupedPage, new PageBuilderAuthorizationRequirement());
+        if (!authorizationResult.Succeeded)
+        {
+            return Forbidden;
+        }
+
+        return Ok(await pageListService.GetCopyNameAsync(groupedPage, cancellationToken));
+    }
+
     [HttpGet("grouped/{groupId}")]
     [Authorize(ModuleConstants.Security.Permissions.Read)]
     public async Task<ActionResult<GroupedPageBuilderPage>> GetGroup([FromRoute] string groupId, [FromQuery] string responseGroup = null)
@@ -147,6 +172,12 @@ public class PageBuilderPageController : Controller
     [Authorize(ModuleConstants.Security.Permissions.Update)]
     public async Task<ActionResult<GroupedPageBuilderPage>> UpdateGroup([FromBody] GroupedPageBuilderPage model, CancellationToken cancellationToken = default)
     {
+        // A body that does not bind (e.g. userGroups sent as an array instead of a comma-separated string) arrives as null.
+        if (model == null)
+        {
+            return BadRequest("The page is missing or invalid.");
+        }
+
         var groupedPage = await groupedPageService.GetByIdAsync(model.Id);
         var storeChanged = HasStoreChanged(groupedPage, model);
         var authorizationError = await AuthorizeGroupUpdateAsync(groupedPage, model, storeChanged);

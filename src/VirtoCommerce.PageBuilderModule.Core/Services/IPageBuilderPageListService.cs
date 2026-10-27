@@ -15,4 +15,10 @@ public interface IPageBuilderPageListService
     /// permalink and language make the storefront pick one of them.
     /// </summary>
     Task<IList<PermalinkUsage>> FindPermalinkUsageAsync(PermalinkUsageRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Name and permalink for a copy of the page: "(copy)" and "-copy", or the first numbered ones not used in the store,
+    /// so cloning a page twice does not give two pages the same address.
+    /// </summary>
+    Task<PageCopyName> GetCopyNameAsync(GroupedPageBuilderPage page, CancellationToken cancellationToken = default);
 }

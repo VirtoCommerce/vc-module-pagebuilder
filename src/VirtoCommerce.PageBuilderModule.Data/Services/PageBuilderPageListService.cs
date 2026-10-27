@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
+using VirtoCommerce.PageBuilderModule.Data.Extensions;
 using VirtoCommerce.PageBuilderModule.Data.Models;
 using VirtoCommerce.PageBuilderModule.Data.Repositories;
 using VirtoCommerce.Platform.Core.Common;
@@ -29,6 +30,22 @@ public class PageBuilderPageListService(
         ArgumentNullException.ThrowIfNull(request);
 
         return FindPermalinkUsageCoreAsync(request, cancellationToken);
+    }
+
+    public virtual async Task<PageCopyName> GetCopyNameAsync(GroupedPageBuilderPage page, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(page);
+
+        int number;
+        using (var repository = repositoryFactory())
+        {
+            number = await repository.FindFreeCopyNumberAsync(page.StoreId, [page.Permalink], cancellationToken);
+        }
+
+        var result = AbstractTypeFactory<PageCopyName>.TryCreateInstance();
+        result.Name = PageBuilderPageCopy.GetName(page.Name, number);
+        result.Permalink = PageBuilderPageCopy.GetPermalink(page.Permalink, number);
+        return result;
     }
 
     protected virtual async Task<PageBuilderPageListSearchResult> SearchCoreAsync(PageBuilderPageSearchCriteria criteria, CancellationToken cancellationToken)
@@ -179,22 +196,46 @@ public class PageBuilderPageListService(
             roots = roots.Where(x => x.StoreId == criteria.StoreId);
         }
 
+        // Ignores case like the language versions filter (see GroupedPageSearchService).
+        var keyword = string.IsNullOrEmpty(criteria.Keyword) ? null : criteria.Keyword.ToLowerInvariant();
+
         if (FiltersLanguageVersions(versionCriteria))
         {
-            return roots.Where(x => matchingRootIds.Contains(x.Id));
+            if (!ListsRootsWithoutVersions(versionCriteria))
+            {
+                return roots.Where(x => matchingRootIds.Contains(x.Id));
+            }
+
+            // A root without language versions is still being authored, like a new Landing Page with only a draft.
+            var rootIdsWithVersions = repository.GroupedPageBuilderPages
+                .Where(x => x.MultilanguagePageId != null)
+                .Select(x => x.MultilanguagePageId);
+#pragma warning disable CA1862 // IQueryable: the StringComparison overload does not translate to SQL
+            return roots.Where(x => matchingRootIds.Contains(x.Id) ||
+                (!rootIdsWithVersions.Contains(x.Id) &&
+                 (keyword == null || x.Name.ToLower().Contains(keyword) || x.Permalink.ToLower().Contains(keyword))));
+#pragma warning restore CA1862
         }
 
         // Without version filters a root is listed even before it has any language version.
-        if (string.IsNullOrEmpty(criteria.Keyword))
+        if (keyword == null)
         {
             return roots;
         }
 
-        // Ignores case like the language versions filter (see GroupedPageSearchService).
-        var keyword = criteria.Keyword.ToLowerInvariant();
 #pragma warning disable CA1862 // IQueryable: the StringComparison overload does not translate to SQL
         return roots.Where(x => matchingRootIds.Contains(x.Id) || x.Name.ToLower().Contains(keyword) || x.Permalink.ToLower().Contains(keyword));
 #pragma warning restore CA1862
+    }
+
+    // Only the drafts list: a status, language or date filter asks about versions a root without them does not have.
+    private static bool ListsRootsWithoutVersions(PageBuilderPageSearchCriteria criteria)
+    {
+        return criteria.Lifecycle == PageLifecycleFilters.Drafts &&
+               string.IsNullOrEmpty(criteria.Statuses) &&
+               string.IsNullOrEmpty(criteria.LanguageCode) &&
+               !criteria.ActiveOn.HasValue &&
+               criteria.ObjectIds is not { Count: > 0 };
     }
 
     protected virtual IQueryable<MultilanguagePageEntity> FilterByTranslationStatus(IPageBuilderModuleRepository repository,

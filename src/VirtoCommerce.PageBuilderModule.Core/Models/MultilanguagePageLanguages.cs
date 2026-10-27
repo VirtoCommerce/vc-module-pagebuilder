@@ -16,8 +16,9 @@ public static class MultilanguagePageLanguages
             .GroupBy(x => x.CultureName, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(x => x.Key, x => x.First(), StringComparer.OrdinalIgnoreCase);
 
+        var storeLanguageList = (storeLanguages ?? []).ToList();
         var languages = new[] { root.DefaultCultureName }
-            .Concat(storeLanguages ?? [])
+            .Concat(storeLanguageList)
             .Where(x => !string.IsNullOrEmpty(x))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
@@ -27,7 +28,9 @@ public static class MultilanguagePageLanguages
 
         var sourceRevisionDate = versionsByCulture.GetValueOrDefault(root.DefaultCultureName ?? string.Empty)?.SourceRevisionDate;
 
-        return languages.Select(x => Create(root, x, versionsByCulture.GetValueOrDefault(x), isStoreLanguage: true, sourceRevisionDate))
+        // The default language is listed first even when the store no longer serves it.
+        return languages.Select(x => Create(root, x, versionsByCulture.GetValueOrDefault(x),
+                isStoreLanguage: storeLanguageList.Contains(x, StringComparer.OrdinalIgnoreCase), sourceRevisionDate))
             .Concat(removedLanguages.Select(x => Create(root, x, versionsByCulture[x], isStoreLanguage: false, sourceRevisionDate)))
             .ToList();
     }

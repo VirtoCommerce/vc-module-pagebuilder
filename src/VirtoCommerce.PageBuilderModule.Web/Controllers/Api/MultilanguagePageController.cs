@@ -27,6 +27,9 @@ public class MultilanguagePageController(
     IStoreService storeService)
     : Controller
 {
+    // The length of the name column.
+    private const int NameMaxLength = 1024;
+
     [HttpPost("search")]
     [Authorize(ModuleConstants.Security.Permissions.Read)]
     public async Task<ActionResult<MultilanguagePageSearchResult>> Search([FromBody] MultilanguagePageSearchCriteria criteria)
@@ -69,6 +72,12 @@ public class MultilanguagePageController(
             return BadRequest("StoreId, Name and Permalink are required.");
         }
 
+        var validationError = Validate(model, existing: null);
+        if (validationError != null)
+        {
+            return validationError;
+        }
+
         if (!await IsAuthorizedAsync(model))
         {
             return Forbidden;
@@ -79,10 +88,14 @@ public class MultilanguagePageController(
             return BadRequest($"Store '{model.StoreId}' does not exist.");
         }
 
-        model.Id = null;
-        await multilanguagePageService.SaveChangesAsync([model]);
-
-        return Ok(model);
+        try
+        {
+            return Ok(await multilanguagePageService.CreateAsync(model));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
     /// <summary>
@@ -109,6 +122,12 @@ public class MultilanguagePageController(
         if (!await IsAuthorizedAsync(existing))
         {
             return Forbidden;
+        }
+
+        var validationError = Validate(model, existing);
+        if (validationError != null)
+        {
+            return validationError;
         }
 
         try
@@ -248,7 +267,14 @@ public class MultilanguagePageController(
             return BadRequest($"Page '{groupId}' is not a language version.");
         }
 
-        return Ok(await multilanguagePageService.MarkUpToDateAsync(groupId, cancellationToken));
+        try
+        {
+            return Ok(await multilanguagePageService.MarkUpToDateAsync(groupId, cancellationToken));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
     /// <summary>
@@ -332,6 +358,30 @@ public class MultilanguagePageController(
         {
             return BadRequest(ex.Message);
         }
+    }
+
+    // Checked before saving: a value longer than its column fails in the database with its SQL error text.
+    private ActionResult Validate(MultilanguagePage model, MultilanguagePage existing)
+    {
+        if (model.Name.Length > NameMaxLength)
+        {
+            return BadRequest($"Name must be at most {NameMaxLength} characters.");
+        }
+
+        // An unchanged permalink stored before validation existed must not block editing the root's other fields.
+        if (existing?.Permalink != model.Permalink && !PageBuilderPermalink.IsValid(model.Permalink))
+        {
+            return BadRequest(PageBuilderPermalink.InvalidMessage);
+        }
+
+        // A multilanguage page never moves to another store; a client asking for it is told so instead of being ignored.
+        if (existing != null && !string.IsNullOrEmpty(model.StoreId) &&
+            !string.Equals(model.StoreId, existing.StoreId, StringComparison.OrdinalIgnoreCase))
+        {
+            return BadRequest("The store of a multilanguage page cannot be changed.");
+        }
+
+        return null;
     }
 
     private async Task<bool> IsAuthorizedAsync(object resource)

@@ -276,6 +276,39 @@ public class MultilanguagePageServiceTests
     }
 
     [Fact]
+    public async Task CloneAsync_Twice_SecondCopyTakesTheNextFreeSuffixInEveryLanguage()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var root = await fixture.CreateRootAsync();
+        await fixture.CreateLanguageAsync(root, "en-US", draftContent: Content("en"));
+        await fixture.CreateLanguageAsync(root, "nl-NL", permalink: "/over-ons", overriddenFields: "Permalink", draftContent: Content("nl"));
+
+        var first = await fixture.Roots.CloneAsync(root.Id, TestContext.Current.CancellationToken);
+        var second = await fixture.Roots.CloneAsync(root.Id, TestContext.Current.CancellationToken);
+        // A copy of a copy counts on from the original.
+        var third = await fixture.Roots.CloneAsync(first.Id, TestContext.Current.CancellationToken);
+
+        Assert.Equal(("About us (copy)", "/about-us-copy"), (first.Name, first.Permalink));
+        Assert.Equal(("About us (copy 2)", "/about-us-copy-2"), (second.Name, second.Permalink));
+        Assert.Equal(("About us (copy 3)", "/about-us-copy-3"), (third.Name, third.Permalink));
+        var languages = await fixture.Roots.GetLanguagesAsync(second.Id, TestContext.Current.CancellationToken);
+        Assert.Equal(["/about-us-copy-2", "/over-ons-copy-2"], languages.Where(x => x.Page != null).Select(x => x.Page.Permalink).Order());
+    }
+
+    [Fact]
+    public async Task GetCopyNameAsync_LandingPage_TakesTheFirstSuffixNoPageOfTheStoreUses()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var landing = await fixture.CreateLanguageAsync(null, "en-US", permalink: "/summer", name: "Summer");
+        // A draft copy takes the address too.
+        await fixture.CreateLanguageAsync(null, "en-US", permalink: "/summer-copy", name: "Summer (copy)");
+
+        var copy = await fixture.List.GetCopyNameAsync(landing, TestContext.Current.CancellationToken);
+
+        Assert.Equal(("Summer (copy 2)", "/summer-copy-2"), (copy.Name, copy.Permalink));
+    }
+
+    [Fact]
     public async Task FindPermalinkUsageAsync_ReportsOtherActivePagesInTheSameLanguage()
     {
         await using var fixture = await Fixture.CreateAsync();
@@ -342,6 +375,46 @@ public class MultilanguagePageServiceTests
         await Assert.ThrowsAsync<InvalidOperationException>(() => fixture.Roots.LinkAsync(root.Id, noLanguage.Id, TestContext.Current.CancellationToken));
 
         Assert.Null((await fixture.LoadGroupAsync(noLanguage.Id)).MultilanguagePageId);
+    }
+
+    [Fact]
+    public async Task LinkAsync_PageInLanguageTheStoreDoesNotServe_ThrowsAndKeepsItUnlinked()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var root = await fixture.CreateRootAsync();
+        var unknownLanguage = await fixture.CreateLanguageAsync(null, "xx-XX", permalink: "/faq");
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => fixture.Roots.LinkAsync(root.Id, unknownLanguage.Id, TestContext.Current.CancellationToken));
+
+        Assert.Null((await fixture.LoadGroupAsync(unknownLanguage.Id)).MultilanguagePageId);
+    }
+
+    [Fact]
+    public async Task GetLanguagesAsync_DefaultLanguageTheStoreDoesNotServe_IsNotAStoreLanguage()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        // Stored before the check existed, or the language was removed from the store later.
+        var root = new MultilanguagePage { StoreId = StoreId, Name = "FAQ", Permalink = "/faq", DefaultCultureName = "fr-FR" };
+        await fixture.Roots.SaveChangesAsync([root]);
+
+        var languages = await fixture.Roots.GetLanguagesAsync(root.Id, TestContext.Current.CancellationToken);
+
+        Assert.Equal(("fr-FR", true, false), (languages[0].CultureName, languages[0].IsDefault, languages[0].IsStoreLanguage));
+        Assert.All(languages.Skip(1), x => Assert.True(x.IsStoreLanguage));
+    }
+
+    [Fact]
+    public async Task MarkUpToDateAsync_SourceNotPublishedOrSourceItself_Throws()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var root = await fixture.CreateRootAsync();
+        var en = await fixture.CreateLanguageAsync(root, "en-US", draftContent: Content("en"));
+        var nl = await fixture.CreateLanguageAsync(root, "nl-NL", draftContent: Content("nl"));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => fixture.Roots.MarkUpToDateAsync(nl.Id, TestContext.Current.CancellationToken));
+
+        await fixture.PublishNewDraftAsync(en.Id, null);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => fixture.Roots.MarkUpToDateAsync(en.Id, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -465,6 +538,27 @@ public class MultilanguagePageServiceTests
     }
 
     [Fact]
+    public async Task PublishAllAsync_DraftPublishedWhileWaitingForTheLock_IsNotPublishedAgain()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var root = await fixture.CreateRootAsync();
+        var en = await fixture.CreateLanguageAsync(root, "en-US", draftContent: Content("en"));
+        await fixture.CreateLanguageAsync(root, "nl-NL", draftContent: Content("nl"));
+
+        // A parallel publish-all holds the lock and publishes the source while this call waits.
+        fixture.Lock.Hold();
+        var waiting = fixture.Roots.PublishAllAsync(root.Id, TestContext.Current.CancellationToken);
+        await fixture.Lock.Waiting.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        await fixture.PublishNewDraftAsync(en.Id, null);
+        fixture.Lock.Release();
+        var result = await waiting;
+
+        // The versions are read under the lock, so the published source is not processed a second time.
+        Assert.Equal(["nl-NL"], result.ProcessedCultureNames);
+        Assert.Equal(["en-US"], result.Skipped.Where(x => x.Reason == MultilanguagePageBatchResult.NoDraftReason).Select(x => x.CultureName));
+    }
+
+    [Fact]
     public async Task ArchiveAllAsync_ArchivesEveryVersion()
     {
         await using var fixture = await Fixture.CreateAsync();
@@ -521,14 +615,37 @@ public class MultilanguagePageServiceTests
         var archived = await fixture.CreateRootAsync("Archived");
         var archivedEn = await fixture.CreateLanguageAsync(archived, "en-US", draftContent: Content("en"));
         await fixture.Roots.ArchiveAllAsync(archived.Id, TestContext.Current.CancellationToken);
-        await fixture.CreateRootAsync("No languages");
+        var noLanguages = await fixture.CreateRootAsync("No languages");
 
-        var result = await fixture.List.SearchAsync(
+        var drafts = await fixture.List.SearchAsync(
             new PageBuilderPageSearchCriteria { StoreId = StoreId, Lifecycle = "drafts", Take = 10 },
             TestContext.Current.CancellationToken);
+        var active = await fixture.List.SearchAsync(
+            new PageBuilderPageSearchCriteria { StoreId = StoreId, Lifecycle = "active", Take = 10 },
+            TestContext.Current.CancellationToken);
+        var draftsInLanguage = await fixture.List.SearchAsync(
+            new PageBuilderPageSearchCriteria { StoreId = StoreId, Lifecycle = "drafts", LanguageCode = "nl-NL", Take = 10 },
+            TestContext.Current.CancellationToken);
 
-        Assert.Equal([withDraft.Id], result.Results.Select(x => x.Id));
+        // A root without language versions is still being authored, so only the drafts list shows it.
+        Assert.Equal(new[] { noLanguages.Id, withDraft.Id }.Order(), drafts.Results.Select(x => x.Id).Order());
+        Assert.Empty(active.Results);
+        Assert.Equal([withDraft.Id], draftsInLanguage.Results.Select(x => x.Id));
         Assert.NotNull(archivedEn);
+    }
+
+    [Fact]
+    public async Task List_DraftsWithKeyword_ListsRootWithoutLanguagesByItsNameOrPermalink()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var faq = await fixture.CreateRootAsync("FAQ");
+        await fixture.CreateRootAsync("Contacts");
+
+        var result = await fixture.List.SearchAsync(
+            new PageBuilderPageSearchCriteria { StoreId = StoreId, Lifecycle = "drafts", Keyword = "faq", Take = 10 },
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal([faq.Id], result.Results.Select(x => x.Id));
     }
 
     [Fact]
@@ -890,12 +1007,15 @@ public class MultilanguagePageServiceTests
                 groupSearch,
                 storeService,
                 new PageBuilderPageService(repositoryFactory, _cache, events),
+                Lock,
                 NullLogger<MultilanguagePageService>.Instance);
             RootSearch = new MultilanguagePageSearchService(repositoryFactory, _cache, Roots, Options.Create(new CrudOptions()));
             List = new PageBuilderPageListService(repositoryFactory, groupSearch, Groups, Roots, storeService);
         }
 
         public FakeStoreService StoreService { get; }
+
+        public InProcessDistributedLock Lock { get; } = new();
 
         public GroupedPageService Groups { get; }
 

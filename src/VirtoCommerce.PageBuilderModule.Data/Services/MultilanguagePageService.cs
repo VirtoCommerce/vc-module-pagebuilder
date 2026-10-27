@@ -4,11 +4,13 @@ using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
+using VirtoCommerce.PageBuilderModule.Data.Extensions;
 using VirtoCommerce.PageBuilderModule.Data.Models;
 using VirtoCommerce.PageBuilderModule.Data.Repositories;
 using VirtoCommerce.Platform.Caching;
 using VirtoCommerce.Platform.Core.Caching;
 using VirtoCommerce.Platform.Core.Common;
+using VirtoCommerce.Platform.Core.DistributedLock;
 using VirtoCommerce.Platform.Core.Events;
 using VirtoCommerce.Platform.Core.GenericCrud;
 using VirtoCommerce.Platform.Data.GenericCrud;
@@ -25,6 +27,7 @@ public class MultilanguagePageService(
     IGroupedPageSearchService groupedPageSearchService,
     IStoreService storeService,
     IPageBuilderPageService pageService,
+    IDistributedLock distributedLock,
     ILogger<MultilanguagePageService> logger)
     : CrudService<MultilanguagePage, MultilanguagePageEntity, MultilanguagePageChangingEvent, MultilanguagePageChangedEvent>(
         repositoryFactory, platformMemoryCache, eventPublisher),
@@ -92,6 +95,21 @@ public class MultilanguagePageService(
         await base.DeleteAsync(ids, softDelete);
     }
 
+    public virtual async Task<MultilanguagePage> CreateAsync(MultilanguagePage model, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(model);
+
+        model.Id = null;
+        if (!string.IsNullOrWhiteSpace(model.DefaultCultureName))
+        {
+            model.DefaultCultureName = await GetStoreLanguageAsync(model.StoreId, model.DefaultCultureName);
+        }
+
+        await SaveChangesAsync([model]);
+
+        return model;
+    }
+
     public virtual Task<MultilanguagePage> UpdateAsync(MultilanguagePage model, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(model);
@@ -109,11 +127,8 @@ public class MultilanguagePageService(
             !string.Equals(model.DefaultCultureName, existing.DefaultCultureName, StringComparison.OrdinalIgnoreCase))
         {
             // The source language must be served by the store and have a version, like the page a convert starts from.
-            var store = await storeService.GetByIdAsync(existing.StoreId);
-            if (store?.Languages?.Contains(model.DefaultCultureName, StringComparer.OrdinalIgnoreCase) != true)
-            {
-                throw new InvalidOperationException($"'{model.DefaultCultureName}' is not a language of store '{existing.StoreId}'.");
-            }
+            // An unchanged one is not checked: a language removed from the store must not block editing the root.
+            await GetStoreLanguageAsync(existing.StoreId, model.DefaultCultureName);
 
             var source = (await GetLanguageVersionsAsync(existing.Id))
                 .FirstOrDefault(x => string.Equals(x.CultureName, model.DefaultCultureName, StringComparison.OrdinalIgnoreCase))
@@ -160,6 +175,9 @@ public class MultilanguagePageService(
         {
             throw new InvalidOperationException($"Page '{groupId}' must have a language to become a language version.");
         }
+
+        // A version in a language the store does not serve has no storefront address, like a version created for it.
+        await GetStoreLanguageAsync(root.StoreId, group.CultureName);
 
         await SetMultilanguagePageIdAsync(groupId, root.Id, cancellationToken);
 
@@ -211,11 +229,19 @@ public class MultilanguagePageService(
         var source = (await GetLanguageVersionsAsync(root.Id))
             .FirstOrDefault(x => string.Equals(x.CultureName, root.DefaultCultureName, StringComparison.OrdinalIgnoreCase));
 
-        if (source?.SourceRevisionDate != null && source.Id != group.Id)
+        if (source?.Id == group.Id)
         {
-            group.SourceRevisionDate = source.SourceRevisionDate;
-            await groupedPageService.SaveChangesAsync([group]);
+            throw new InvalidOperationException($"Page '{groupId}' is the source language version: it is never outdated.");
         }
+
+        // Without a source publication there is nothing to be up to date with, and the call would change nothing.
+        if (source?.SourceRevisionDate == null)
+        {
+            throw new InvalidOperationException($"The source language '{root.DefaultCultureName}' version has not been published yet.");
+        }
+
+        group.SourceRevisionDate = source.SourceRevisionDate;
+        await groupedPageService.SaveChangesAsync([group]);
 
         return group;
     }
@@ -223,14 +249,22 @@ public class MultilanguagePageService(
     public virtual async Task<MultilanguagePage> CloneAsync(string multilanguagePageId, CancellationToken cancellationToken = default)
     {
         var source = await GetRequiredAsync(multilanguagePageId);
+        var versions = await GetLanguageVersionsAsync(source.Id);
+
+        int number;
+        using (var repository = repositoryFactory())
+        {
+            number = await repository.FindFreeCopyNumberAsync(source.StoreId,
+                [source.Permalink, .. versions.Select(x => x.Permalink)], cancellationToken);
+        }
 
         var clone = source.CloneTyped();
         clone.Id = null;
-        clone.Name = $"{source.Name} (copy)";
-        clone.Permalink = WithCopySuffix(source.Permalink);
+        clone.Name = PageBuilderPageCopy.GetName(source.Name, number);
+        clone.Permalink = PageBuilderPageCopy.GetPermalink(source.Permalink, number);
         await SaveChangesAsync([clone]);
 
-        foreach (var version in await GetLanguageVersionsAsync(source.Id))
+        foreach (var version in versions)
         {
             var content = (await groupedPageContentService.LoadGroupContentAsync(version, draft: true, cancellationToken)).Content;
 
@@ -238,7 +272,7 @@ public class MultilanguagePageService(
             group.StoreId = clone.StoreId;
             group.CultureName = version.CultureName;
             group.MultilanguagePageId = clone.Id;
-            group.Permalink = WithCopySuffix(version.Permalink);
+            group.Permalink = PageBuilderPageCopy.GetPermalink(version.Permalink, number);
             group.Visibility = version.Visibility;
             group.UserGroups = version.UserGroups;
             group.OrganizationId = version.OrganizationId;
@@ -259,11 +293,6 @@ public class MultilanguagePageService(
         }
 
         return clone;
-    }
-
-    private static string WithCopySuffix(string permalink)
-    {
-        return string.IsNullOrEmpty(permalink) ? permalink : $"{permalink.TrimEnd('/')}-copy";
     }
 
     public virtual async Task<MultilanguagePage> ConvertAsync(string groupId, CancellationToken cancellationToken = default)
@@ -395,6 +424,13 @@ public class MultilanguagePageService(
     public virtual async Task<MultilanguagePageBatchResult> PublishAllAsync(string multilanguagePageId, CancellationToken cancellationToken = default)
     {
         var root = await GetRequiredAsync(multilanguagePageId);
+
+        return await distributedLock.ExecuteAsync(GetBatchLockResource(root.Id), _ => PublishAllUnderLockAsync(root),
+            cancellationToken: cancellationToken);
+    }
+
+    private async Task<MultilanguagePageBatchResult> PublishAllUnderLockAsync(MultilanguagePage root)
+    {
         var result = new MultilanguagePageBatchResult();
 
         // The source language goes first: translations published in the same batch are based on its new revision.
@@ -441,6 +477,13 @@ public class MultilanguagePageService(
     public virtual async Task<MultilanguagePageBatchResult> ArchiveAllAsync(string multilanguagePageId, CancellationToken cancellationToken = default)
     {
         var root = await GetRequiredAsync(multilanguagePageId);
+
+        return await distributedLock.ExecuteAsync(GetBatchLockResource(root.Id), _ => ArchiveAllUnderLockAsync(root),
+            cancellationToken: cancellationToken);
+    }
+
+    private async Task<MultilanguagePageBatchResult> ArchiveAllUnderLockAsync(MultilanguagePage root)
+    {
         var result = new MultilanguagePageBatchResult();
         var changed = new List<GroupedPageBuilderPage>();
 
@@ -465,6 +508,13 @@ public class MultilanguagePageService(
         return result;
     }
 
+    // Batches of one page run one at a time and read the versions under the lock: two parallel publish-all calls would
+    // otherwise both publish the same drafts, and the source revision of the second save would not mark translations outdated.
+    private static string GetBatchLockResource(string multilanguagePageId)
+    {
+        return $"pagebuilder:multilanguage-page:batch:{multilanguagePageId}";
+    }
+
     // A failing rollback is logged, so the caller still gets the error that caused it.
     private async Task TryRollbackAsync(Func<Task> rollback, string description)
     {
@@ -476,6 +526,15 @@ public class MultilanguagePageService(
         {
             logger.LogError(ex, "Rollback failed: could not {Rollback}.", description);
         }
+    }
+
+    // The store spelling of the language ("en-US" for "EN-us"): versions, the index and the storefront compare it as stored.
+    private async Task<string> GetStoreLanguageAsync(string storeId, string cultureName)
+    {
+        var store = await storeService.GetNoCloneAsync(storeId);
+
+        return store?.Languages?.FirstOrDefault(x => string.Equals(x, cultureName, StringComparison.OrdinalIgnoreCase))
+            ?? throw new InvalidOperationException($"'{cultureName}' is not a language of store '{storeId}'.");
     }
 
     private async Task<MultilanguagePage> GetRequiredAsync(string multilanguagePageId)

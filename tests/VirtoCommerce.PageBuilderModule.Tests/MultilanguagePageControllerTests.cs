@@ -72,7 +72,7 @@ public class MultilanguagePageControllerTests
     }
 
     [Fact]
-    public async Task Update_KeepsStore()
+    public async Task Update_AnotherStore_IsBadRequestAndKeepsStore()
     {
         await using var fixture = await Fixture.CreateAsync();
         var root = await fixture.CreateRootAsync();
@@ -80,11 +80,51 @@ public class MultilanguagePageControllerTests
 
         root.StoreId = "another-store";
         root.Name = "Renamed";
-        var result = await controller.Update(root);
+        var moved = await controller.Update(root);
+        root.StoreId = null;
+        var withoutStore = await controller.Update(root);
 
-        Assert.IsType<OkObjectResult>(result.Result);
+        Assert.IsType<BadRequestObjectResult>(moved.Result);
+        Assert.IsType<OkObjectResult>(withoutStore.Result);
         var saved = await fixture.Roots.GetByIdAsync(root.Id);
         Assert.Equal((StoreId, "Renamed"), (saved.StoreId, saved.Name));
+    }
+
+    [Fact]
+    public async Task Create_DefaultCulture_MustBeAStoreLanguageAndIsStoredAsTheStoreSpellsIt()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var controller = CreateController(fixture);
+
+        var unknown = await controller.Create(new MultilanguagePage { StoreId = StoreId, Name = "FAQ", Permalink = "/faq", DefaultCultureName = "xx-XX" });
+        var otherCase = await controller.Create(new MultilanguagePage { StoreId = StoreId, Name = "FAQ", Permalink = "/faq", DefaultCultureName = "NL-nl" });
+
+        Assert.IsType<BadRequestObjectResult>(unknown.Result);
+        var created = Assert.IsType<MultilanguagePage>(Assert.IsType<OkObjectResult>(otherCase.Result).Value);
+        Assert.Equal("nl-NL", (await fixture.Roots.GetByIdAsync(created.Id)).DefaultCultureName);
+    }
+
+    [Fact]
+    public async Task CreateOrUpdate_TooLongNameOrInvalidPermalink_IsBadRequest()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var root = await fixture.CreateRootAsync();
+        var controller = CreateController(fixture);
+        var longName = new string('a', 1025);
+        var longPermalink = "/" + new string('a', 2048);
+
+        var results = new[]
+        {
+            (await controller.Create(new MultilanguagePage { StoreId = StoreId, Name = longName, Permalink = "/faq" })).Result,
+            (await controller.Create(new MultilanguagePage { StoreId = StoreId, Name = "FAQ", Permalink = longPermalink })).Result,
+            (await controller.Create(new MultilanguagePage { StoreId = StoreId, Name = "FAQ", Permalink = "/100%-off" })).Result,
+            (await controller.Update(new MultilanguagePage { Id = root.Id, Name = longName, Permalink = root.Permalink })).Result,
+            (await controller.Update(new MultilanguagePage { Id = root.Id, Name = root.Name, Permalink = "/about us" })).Result,
+        };
+
+        Assert.All(results, x => Assert.IsType<BadRequestObjectResult>(x));
+        var saved = await fixture.Roots.GetByIdAsync(root.Id);
+        Assert.Equal(("About us", "/about-us"), (saved.Name, saved.Permalink));
     }
 
     [Fact]
@@ -114,10 +154,12 @@ public class MultilanguagePageControllerTests
         var notAStoreLanguage = await controller.CreateLanguage(root.Id, "fr-FR", copyContent: false, TestContext.Current.CancellationToken);
         var convertVersion = await controller.Convert(version.Id, TestContext.Current.CancellationToken);
         var markLanding = await controller.MarkUpToDate(landing.Id, TestContext.Current.CancellationToken);
+        var markWithoutPublishedSource = await controller.MarkUpToDate(version.Id, TestContext.Current.CancellationToken);
 
         Assert.IsType<BadRequestObjectResult>(notAStoreLanguage.Result);
         Assert.IsType<BadRequestObjectResult>(convertVersion.Result);
         Assert.IsType<BadRequestObjectResult>(markLanding.Result);
+        Assert.IsType<BadRequestObjectResult>(markWithoutPublishedSource.Result);
     }
 
     [Fact]
@@ -161,6 +203,18 @@ public class MultilanguagePageControllerTests
 
         Assert.IsType<NoContentResult>(result);
         Assert.Null(await fixture.Roots.GetByIdAsync(root.Id));
+    }
+
+    [Fact]
+    public async Task UpdateGroup_BodyThatDoesNotBind_IsBadRequest()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var controller = CreatePagesController(fixture);
+
+        // MVC passes null when the body does not bind, e.g. userGroups sent as an array.
+        var result = await controller.UpdateGroup(null!, TestContext.Current.CancellationToken);
+
+        Assert.IsType<BadRequestObjectResult>(result.Result);
     }
 
     [Fact]

@@ -10,6 +10,12 @@ namespace VirtoCommerce.PageBuilderModule.Core.Services;
 public interface IMultilanguagePageService : ICrudService<MultilanguagePage>
 {
     /// <summary>
+    /// Saves a new root. The default language must be a store language and is stored as the store spells it;
+    /// without one the root takes the store default language.
+    /// </summary>
+    Task<MultilanguagePage> CreateAsync(MultilanguagePage model, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Saves an existing root in its own store. A new default language must be a store language with a version.
     /// </summary>
     Task<MultilanguagePage> UpdateAsync(MultilanguagePage model, CancellationToken cancellationToken = default);
@@ -33,7 +39,8 @@ public interface IMultilanguagePageService : ICrudService<MultilanguagePage>
 
     /// <summary>
     /// Copies the Multilanguage Page with every language version; versions start as drafts with the current content.
-    /// Name and permalinks get a copy suffix so the copy does not take over the original's addresses.
+    /// Name and permalinks get the first copy suffix no page of the store uses yet ("-copy", "-copy-2"...),
+    /// so the copy takes over neither the original's addresses nor those of an earlier copy.
     /// </summary>
     Task<MultilanguagePage> CloneAsync(string multilanguagePageId, CancellationToken cancellationToken = default);
 

@@ -47,7 +47,7 @@ Actions for a language that has a version:
 Actions for a missing language:
 
 * **Create** – creates a draft version that starts from the default language content.
-* **Link existing** – makes an existing Landing Page in that language the version. The page keeps its permalink and settings and takes the shared name, so the storefront keeps serving it at the same address.
+* **Link existing** – makes an existing Landing Page in that language the version: pick the page in the row that opens under the language and click **Link**. The page keeps its permalink and settings and takes the shared name, so the storefront keeps serving it at the same address.
 
 ## Inherited and custom values
 
@@ -75,7 +75,7 @@ Pages published before this feature have no revision yet, so their translations 
 ## Convert, clone, and permalink check
 
 * **Convert to multilanguage** on a Landing Page makes it the default language version of a new Multilanguage Page. Nothing changes on the storefront.
-* **Clone** on a Multilanguage Page copies it with every language version as drafts; the name gets *(copy)* and permalinks a *-copy* suffix.
+* **Clone** on a Multilanguage Page copies it with every language version as drafts; the name gets *(copy)* and permalinks a *-copy* suffix. When an earlier copy already uses those permalinks, the next free number is taken in every language: *(copy 2)* and *-copy-2*. Clone of a Landing Page numbers its copies the same way.
 * Saving a page whose permalink is already used by another active page in the same language asks for confirmation: the storefront serves only one page per permalink and language.
 
 ## Pages list
