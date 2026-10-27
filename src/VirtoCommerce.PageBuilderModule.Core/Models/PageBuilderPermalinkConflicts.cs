@@ -3,10 +3,11 @@ using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 namespace VirtoCommerce.PageBuilderModule.Core.Models;
 
 // Mirrors how the storefront (VirtoCommerce.Pages) picks published pages for a visitor: by store, permalink, language
-// (an empty one matches any), the dates the page is shown, organization (an empty one matches any) and audience.
-// Anonymous visitors get public pages whatever their user groups; signed-in visitors get public and private pages
-// whose user groups are empty or include one of theirs. The storefront also offers a page in the store's default
-// language for other languages, but it resolves that case itself, so it is not a conflict here.
+// (an empty one matches any), the dates the page is shown from now on, organization (an empty one matches any) and
+// user groups. Anonymous visitors get public pages for every user group; signed-in visitors get public and private
+// pages whose user groups are empty or include one of theirs. So visibility alone never separates two pages: only
+// disjoint user groups do. The storefront also offers a page in the store's default language for other languages,
+// but it resolves that case itself, so it is not a conflict here.
 public static class PageBuilderPermalinkConflicts
 {
     public static string Normalize(string permalink)
@@ -30,14 +31,18 @@ public static class PageBuilderPermalinkConflicts
     /// </summary>
     public static PageBuilderPermalinkConflict GetConflict(GroupedPageBuilderPage page, GroupedPageBuilderPage other)
     {
-        if (other.Status != Published || !AreOfferedTogether(page, other))
+        return GetConflict(page, other, DateTime.UtcNow);
+    }
+
+    /// <summary>
+    /// The conflict as of <paramref name="now"/>: a page whose dates are over is never shown again, so it does not
+    /// conflict.
+    /// </summary>
+    public static PageBuilderPermalinkConflict GetConflict(GroupedPageBuilderPage page, GroupedPageBuilderPage other, DateTime now)
+    {
+        if (other.Status != Published || !AreOfferedTogether(page, other, now))
         {
             return PageBuilderPermalinkConflict.None;
-        }
-
-        if (page.Visibility && other.Visibility)
-        {
-            return PageBuilderPermalinkConflict.Certain;
         }
 
         return UserGroupsOverlap(page, other)
@@ -45,12 +50,12 @@ public static class PageBuilderPermalinkConflicts
             : PageBuilderPermalinkConflict.Possible;
     }
 
-    private static bool AreOfferedTogether(GroupedPageBuilderPage page, GroupedPageBuilderPage other)
+    private static bool AreOfferedTogether(GroupedPageBuilderPage page, GroupedPageBuilderPage other, DateTime now)
     {
         return HasSamePermalink(page, other) &&
             MatchesAnyOrSame(page.CultureName, other.CultureName) &&
             MatchesAnyOrSame(page.OrganizationId, other.OrganizationId) &&
-            DatesOverlap(page, other);
+            DatesOverlap(page, other, now);
     }
 
     private static bool MatchesAnyOrSame(string value, string otherValue)
@@ -60,13 +65,19 @@ public static class PageBuilderPermalinkConflicts
             string.Equals(value, otherValue, StringComparison.OrdinalIgnoreCase);
     }
 
-    private static bool DatesOverlap(GroupedPageBuilderPage page, GroupedPageBuilderPage other)
+    // Both pages are shown at some moment from now on.
+    private static bool DatesOverlap(GroupedPageBuilderPage page, GroupedPageBuilderPage other, DateTime now)
     {
-        return (page.StartDate ?? DateTime.MinValue) <= (other.EndDate ?? DateTime.MaxValue) &&
-            (other.StartDate ?? DateTime.MinValue) <= (page.EndDate ?? DateTime.MaxValue);
+        var from = Max(Max(page.StartDate ?? DateTime.MinValue, other.StartDate ?? DateTime.MinValue), now);
+        var to = Min(page.EndDate ?? DateTime.MaxValue, other.EndDate ?? DateTime.MaxValue);
+        return from <= to;
     }
 
-    // A page without user groups is offered to every signed-in visitor.
+    private static DateTime Max(DateTime value, DateTime other) => value > other ? value : other;
+
+    private static DateTime Min(DateTime value, DateTime other) => value < other ? value : other;
+
+    // A page without user groups is offered to every visitor its visibility allows.
     private static bool UserGroupsOverlap(GroupedPageBuilderPage page, GroupedPageBuilderPage other)
     {
         var userGroups = GetUserGroups(page);

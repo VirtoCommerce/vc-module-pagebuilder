@@ -251,17 +251,29 @@ const storeUrl = ref<string | null>(null);
 // publishing checks whether the storefront would offer both pages to the same visitors.
 const permalinkUsages = ref<PageBuilderPermalinkUsage[]>([]);
 const permalinkUsagesInLanguage = computed(() => getUsagesInLanguage(permalinkUsages.value, item.value?.cultureName));
+// Only the latest check counts: an earlier, slower response must not replace the warning for the current permalink.
+let latestPermalinkUsagesRequest = 0;
 watchDebounced(
   () => [item.value?.id, item.value?.permalink],
   async () => {
-    permalinkUsages.value = await loadPermalinkUsages();
+    const request = ++latestPermalinkUsagesRequest;
+    let usages: PageBuilderPermalinkUsage[] = [];
+    try {
+      usages = await loadPermalinkUsages();
+    } catch {
+      // The warning is advisory and publishing checks again, so a failed check only leaves it out.
+    }
+    if (request === latestPermalinkUsagesRequest) {
+      permalinkUsages.value = usages;
+    }
   },
   { debounce: 500 },
 );
 
 // Returns false when the author cancels or the conflict has to be resolved on the other page first.
+// If the check itself fails, publishing goes ahead: the server checks again and refuses a conflict.
 async function publishWithConflictCheck(): Promise<boolean> {
-  const conflicts = getPublishConflicts(await loadPermalinkUsages());
+  const conflicts = getPublishConflicts(await loadPermalinkUsages().catch(() => []));
   if (conflicts.blocking.length > 0) {
     const pages = formatPageNames(conflicts.blocking);
     if (!canUnpublishAll(conflicts.blocking)) {
@@ -271,8 +283,6 @@ async function publishWithConflictCheck(): Promise<boolean> {
     if (!(await showConfirmation(t("PAGE_BUILDER.PAGES.ALERTS.PUBLISH_CONFLICT", { pages })))) {
       return false;
     }
-    await publishGroup(true);
-    return true;
   }
 
   if (
@@ -283,7 +293,7 @@ async function publishWithConflictCheck(): Promise<boolean> {
   ) {
     return false;
   }
-  await publishGroup();
+  await publishGroup(conflicts.blocking.length > 0);
   return true;
 }
 

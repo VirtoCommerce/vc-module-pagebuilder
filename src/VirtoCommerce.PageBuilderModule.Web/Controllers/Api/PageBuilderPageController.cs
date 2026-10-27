@@ -363,6 +363,8 @@ public class PageBuilderPageController : Controller
     [HttpPost]
     [Route("grouped/publishing/{groupId}")]
     [Authorize(ModuleConstants.Security.Permissions.Publish)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PageBuilderPermalinkConflictResult), StatusCodes.Status409Conflict)]
     public async Task<ActionResult> PublishGroup([FromRoute] string groupId, [FromQuery] bool publish,
         [FromQuery] bool unpublishConflicting = false, CancellationToken cancellationToken = default)
     {
@@ -394,8 +396,7 @@ public class PageBuilderPageController : Controller
 
         var (conflicts, conflictingGroups) = await LoadBlockingConflictsAsync(groupedPage);
 
-        // A group that got a draft after the search cannot be unpublished either.
-        var hasUnpublishedChanges = conflicts.Any(x => !x.CanUnpublish) || conflictingGroups.Any(x => x.HasChanges);
+        var hasUnpublishedChanges = conflicts.Any(x => !x.CanUnpublish);
         if (conflicts.Count > 0 && (!unpublishConflicting || hasUnpublishedChanges))
         {
             return PermalinkConflict(conflicts, hasUnpublishedChanges);
@@ -421,18 +422,31 @@ public class PageBuilderPageController : Controller
     }
 
     // Published pages the storefront would offer to the same visitors as the page, and their groups as stored.
+    // The search results can be cached, so each group is checked again as reloaded: one that changed its permalink,
+    // dates or audience meanwhile, or was unpublished or deleted, is left alone, and one that got a draft cannot be
+    // unpublished.
     private async Task<(IList<PageBuilderPermalinkUsage> Conflicts, IList<GroupedPageBuilderPage> Groups)> LoadBlockingConflictsAsync(
         GroupedPageBuilderPage groupedPage)
     {
-        var conflicts = (await groupedPageSearchService.FindPermalinkUsagesAsync(groupedPage))
+        var candidates = (await groupedPageSearchService.FindPermalinkUsagesAsync(groupedPage))
             .Where(x => x.Conflict == PageBuilderPermalinkConflict.Certain)
             .ToList();
-        if (conflicts.Count == 0)
+        if (candidates.Count == 0)
         {
             return ([], []);
         }
 
-        var groups = await groupedPageService.GetAsync(conflicts.Select(x => x.GroupId).ToList());
+        var groups = (await groupedPageService.GetAsync(candidates.Select(x => x.GroupId).ToList()))
+            .Where(x => PageBuilderPermalinkConflicts.GetConflict(groupedPage, x) == PageBuilderPermalinkConflict.Certain)
+            .ToList();
+        var conflicts = candidates
+            .Where(usage => groups.Any(group => group.Id == usage.GroupId))
+            .ToList();
+        foreach (var usage in conflicts)
+        {
+            usage.CanUnpublish = !groups.First(group => group.Id == usage.GroupId).HasChanges;
+        }
+
         return (conflicts, groups);
     }
 
@@ -480,7 +494,11 @@ public class PageBuilderPageController : Controller
             ? $"Pages {names} are published with the same permalink for the same visitors, and some of them have unpublished changes. Publish or discard those changes first."
             : $"Pages {names} are published with the same permalink for the same visitors. Unpublish them first, or publish with unpublishConflicting=true.";
 
-        return Conflict(new { error, conflicts });
+        var result = AbstractTypeFactory<PageBuilderPermalinkConflictResult>.TryCreateInstance();
+        result.Error = error;
+        result.Conflicts = conflicts;
+
+        return Conflict(result);
     }
 
     [HttpDelete]

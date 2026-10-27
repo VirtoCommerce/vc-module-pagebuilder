@@ -39,6 +39,19 @@ public class PageBuilderPermalinkConflictTests
     }
 
     [Fact]
+    public void GetConflict_OtherPageIsOver_IsNoneOnlyAfterItsEnd()
+    {
+        var other = PublishedGroup(x =>
+        {
+            x.StartDate = Date(1);
+            x.EndDate = Date(31);
+        });
+
+        Assert.Equal(PageBuilderPermalinkConflict.Certain, PageBuilderPermalinkConflicts.GetConflict(Group(), other, Date(15)));
+        Assert.Equal(PageBuilderPermalinkConflict.None, PageBuilderPermalinkConflicts.GetConflict(Group(), other, Date(31).AddDays(1)));
+    }
+
+    [Fact]
     public void GetConflict_OtherIsDraft_IsNone()
     {
         var other = Group(x => x.Pages = [new PageBuilderPage { Id = "draft", Status = Draft }]);
@@ -84,7 +97,7 @@ public class PageBuilderPermalinkConflictTests
             changeOther(x);
         });
 
-        Assert.True(PageBuilderPermalinkConflicts.GetConflict(page, other) == PageBuilderPermalinkConflict.None, difference);
+        Assert.True(PageBuilderPermalinkConflicts.GetConflict(page, other, Now) == PageBuilderPermalinkConflict.None, difference);
     }
 
     public static TheoryData<string, Action<GroupedPageBuilderPage>> OfferedTogether => new()
@@ -112,18 +125,20 @@ public class PageBuilderPermalinkConflictTests
             changeOther(x);
         });
 
-        Assert.True(PageBuilderPermalinkConflicts.GetConflict(page, other) == PageBuilderPermalinkConflict.Certain, difference);
+        Assert.True(PageBuilderPermalinkConflicts.GetConflict(page, other, Now) == PageBuilderPermalinkConflict.Certain, difference);
     }
 
     [Theory]
-    // Public pages are offered to anonymous visitors whatever their user groups.
-    [InlineData(true, "vip", true, "gold", PageBuilderPermalinkConflict.Certain)]
+    // A page without user groups is offered to every visitor its visibility allows, so it meets any other page.
+    [InlineData(true, "", true, "", PageBuilderPermalinkConflict.Certain)]
+    [InlineData(true, "", false, "", PageBuilderPermalinkConflict.Certain)]
     [InlineData(false, "", false, "gold", PageBuilderPermalinkConflict.Certain)]
-    [InlineData(false, "vip, gold", false, "Gold", PageBuilderPermalinkConflict.Certain)]
     [InlineData(true, "", false, "gold", PageBuilderPermalinkConflict.Certain)]
-    // Only a visitor in both groups gets both pages.
+    [InlineData(false, "vip, gold", false, "Gold", PageBuilderPermalinkConflict.Certain)]
+    // Only a visitor in both groups gets both pages; anonymous visitors get neither, whatever the visibility.
     [InlineData(false, "vip", false, "gold", PageBuilderPermalinkConflict.Possible)]
     [InlineData(true, "vip", false, "gold", PageBuilderPermalinkConflict.Possible)]
+    [InlineData(true, "vip", true, "gold", PageBuilderPermalinkConflict.Possible)]
     public void GetConflict_Audience(bool visibility, string userGroups, bool otherVisibility, string otherUserGroups, PageBuilderPermalinkConflict expected)
     {
         var page = Group(x =>
@@ -235,6 +250,26 @@ public class PageBuilderPermalinkConflictTests
     }
 
     [Fact]
+    public async Task PublishGroup_OtherPageChangedAfterTheSearch_IsNotUnpublished()
+    {
+        var service = CreateService(
+            Group(x => x.Id = "new"),
+            PublishedGroup(x =>
+            {
+                x.Id = "old";
+                x.Permalink = "/about-us";
+            }));
+        var staleSearchResult = PublishedGroup(x => x.Id = "old");
+        var controller = CreateController(service, new FixedGroupedPageSearchService([staleSearchResult]));
+
+        var result = await controller.PublishGroup("new", publish: true, unpublishConflicting: true, TestContext.Current.CancellationToken);
+
+        Assert.IsType<OkResult>(result);
+        Assert.Equal(Published, (await service.GetByIdAsync("new")).Status);
+        Assert.Equal(Published, (await service.GetByIdAsync("old")).Status);
+    }
+
+    [Fact]
     public async Task PublishGroup_PossibleConflict_Publishes()
     {
         var service = CreateService(
@@ -306,6 +341,8 @@ public class PageBuilderPermalinkConflictTests
 
     private static DateTime Date(int day) => new(2026, 1, day, 0, 0, 0, DateTimeKind.Utc);
 
+    private static readonly DateTime Now = new(2025, 12, 1, 0, 0, 0, DateTimeKind.Utc);
+
     private static PublishedRenameContentPreservationTests.FakeGroupedPageService CreateService(params GroupedPageBuilderPage[] groups)
     {
         var service = new PublishedRenameContentPreservationTests.FakeGroupedPageService();
@@ -321,7 +358,9 @@ public class PageBuilderPermalinkConflictTests
         return service;
     }
 
-    private static PageBuilderPageController CreateController(PublishedRenameContentPreservationTests.FakeGroupedPageService service)
+    private static PageBuilderPageController CreateController(
+        PublishedRenameContentPreservationTests.FakeGroupedPageService service,
+        IGroupedPageSearchService searchService = null)
     {
         var pageService = new PublishedRenameContentPreservationTests.FakePageBuilderPageService(service);
         var pageContentService = new PageBuilderPageContentService(
@@ -333,7 +372,7 @@ public class PageBuilderPermalinkConflictTests
         return new PageBuilderPageController(
             pageService,
             service,
-            new SeededGroupedPageSearchService(service),
+            searchService ?? new SeededGroupedPageSearchService(service),
             new PublishedRenameContentPreservationTests.AllowAllAuthorizationService(),
             new PublishedRenameContentPreservationTests.NoopPageDocumentSearchService(),
             pageContentService,
@@ -363,6 +402,18 @@ public class PageBuilderPermalinkConflictTests
         }
 
         private static readonly string[] SeededIds = ["self", "new", "old", "published", "draft", "archived", "other-permalink"];
+    }
+
+    private sealed class FixedGroupedPageSearchService(IList<GroupedPageBuilderPage> groups) : IGroupedPageSearchService
+    {
+        public Task<GroupedPageBuilderPageSearchResult> SearchAsync(PageBuilderPageSearchCriteria criteria, bool clone = true)
+        {
+            return Task.FromResult(new GroupedPageBuilderPageSearchResult
+            {
+                TotalCount = groups.Count,
+                Results = groups.Skip(criteria.Skip).Take(criteria.Take).ToList(),
+            });
+        }
     }
 
     private const string StoreId = "store";

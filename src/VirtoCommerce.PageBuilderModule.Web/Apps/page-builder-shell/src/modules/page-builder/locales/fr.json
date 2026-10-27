@@ -122,6 +122,7 @@
         "PUBLISH_CONFLICT": "Déjà publiées avec ce lien permanent pour les mêmes visiteurs : {pages}. Les dépublier et publier cette page ?",
         "PUBLISH_CONFLICT_HAS_CHANGES": "Déjà publiées avec ce lien permanent pour les mêmes visiteurs : {pages}. Elles ont des modifications non publiées ; publiez ou annulez d'abord ces modifications.",
         "PUBLISH_POSSIBLE_CONFLICT": "Également publiées avec ce lien permanent pour d'autres groupes d'utilisateurs : {pages}. Un visiteur membre des deux groupes peut obtenir l'une ou l'autre. Publier quand même ?",
+        "PUBLISH_CONFLICT_CHANGED": "Entre-temps, une autre page a été publiée avec ce lien permanent pour les mêmes visiteurs : {pages}. Publiez à nouveau pour examiner le conflit.",
         "UNPUBLISH_WITH_DRAFT": "Impossible de dépublier une page qui comporte des modifications.",
         "DOWNLOAD_SUCCESS": "Contenu enregistré dans le fichier avec succès",
         "CLONE_SUCCESS": "Page clonée avec succès",

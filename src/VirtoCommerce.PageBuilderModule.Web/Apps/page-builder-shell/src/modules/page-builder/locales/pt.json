@@ -122,6 +122,7 @@
         "PUBLISH_CONFLICT": "Já publicadas neste link permanente para os mesmos visitantes: {pages}. Despublicá-las e publicar esta página?",
         "PUBLISH_CONFLICT_HAS_CHANGES": "Já publicadas neste link permanente para os mesmos visitantes: {pages}. Elas têm alterações não publicadas; publique ou descarte essas alterações primeiro.",
         "PUBLISH_POSSIBLE_CONFLICT": "Também publicadas neste link permanente para outros grupos de usuários: {pages}. Um visitante dos dois grupos pode receber qualquer uma delas. Publicar mesmo assim?",
+        "PUBLISH_CONFLICT_CHANGED": "Enquanto isso, outra página foi publicada neste link permanente para os mesmos visitantes: {pages}. Publique novamente para revisar o conflito.",
         "UNPUBLISH_WITH_DRAFT": "Não é possível despublicar uma página que tem alterações.",
         "DOWNLOAD_SUCCESS": "Conteúdo guardado em ficheiro com sucesso",
         "CLONE_SUCCESS": "Página clonada com sucesso",

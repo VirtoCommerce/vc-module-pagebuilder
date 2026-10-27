@@ -1,5 +1,5 @@
 import { computed, ref, reactive, Ref, ComputedRef, onMounted } from "vue";
-import { useAsync, useLoading, useApiClient } from "@vc-shell/framework";
+import { useAsync, useLoading, useApiClient, i18n } from "@vc-shell/framework";
 import {
   FilePublishStatus,
   PageBuilderPageClient,
@@ -13,6 +13,7 @@ import useUrlParams from "../useStoreParams";
 import { downloadPageContent, PageExportData } from "../usePageContentApi";
 import { openPageDesigner } from "../../../../utilities/pageDesigner";
 import { serializeImportedPageContent } from "./importContent";
+import { formatPageNames, getConflictsOfRejectedPublish } from "../../utilities/permalinkUsages";
 
 const { getApiClient } = useApiClient(PageBuilderPageClient);
 
@@ -137,7 +138,17 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
       throw new Error("Can't publish group.");
     }
     const apiClient = await getApiClient();
-    await apiClient.publishGroup(groupId, true, unpublishConflicting || undefined);
+    try {
+      await apiClient.publishGroup(groupId, true, unpublishConflicting || undefined);
+    } catch (error) {
+      const conflicts = getConflictsOfRejectedPublish(error);
+      if (conflicts === null) {
+        throw error;
+      }
+      throw new Error(
+        i18n.global.t("PAGE_BUILDER.PAGES.ALERTS.PUBLISH_CONFLICT_CHANGED", { pages: formatPageNames(conflicts) }),
+      );
+    }
 
     if (item.value) {
       await loadGroup();

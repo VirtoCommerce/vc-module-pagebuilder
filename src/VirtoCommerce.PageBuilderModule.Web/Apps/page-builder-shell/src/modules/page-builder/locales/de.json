@@ -122,6 +122,7 @@
         "PUBLISH_CONFLICT": "Für dieselben Besucher bereits unter diesem Permalink veröffentlicht: {pages}. Veröffentlichung dieser Seiten aufheben und diese Seite veröffentlichen?",
         "PUBLISH_CONFLICT_HAS_CHANGES": "Für dieselben Besucher bereits unter diesem Permalink veröffentlicht: {pages}. Diese Seiten haben unveröffentlichte Änderungen; veröffentlichen oder verwerfen Sie diese zuerst.",
         "PUBLISH_POSSIBLE_CONFLICT": "Unter diesem Permalink auch für andere Benutzergruppen veröffentlicht: {pages}. Ein Besucher in beiden Gruppen kann jede dieser Seiten erhalten. Trotzdem veröffentlichen?",
+        "PUBLISH_CONFLICT_CHANGED": "Inzwischen wurde unter diesem Permalink für dieselben Besucher eine andere Seite veröffentlicht: {pages}. Veröffentlichen Sie erneut, um den Konflikt zu prüfen.",
         "UNPUBLISH_WITH_DRAFT": "Eine Seite mit Änderungen kann nicht zurückgezogen werden.",
         "DOWNLOAD_SUCCESS": "Inhalt erfolgreich in Datei gespeichert",
         "CLONE_SUCCESS": "Seite erfolgreich geklont",
