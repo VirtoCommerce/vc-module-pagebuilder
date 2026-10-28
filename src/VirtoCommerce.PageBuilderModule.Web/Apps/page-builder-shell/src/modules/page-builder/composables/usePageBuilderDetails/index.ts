@@ -2,6 +2,8 @@ import { computed, ref, reactive, Ref, ComputedRef, onMounted } from "vue";
 import { useAsync, useLoading, useApiClient, i18n } from "@vc-shell/framework";
 import {
   FilePublishStatus,
+  MultilanguagePage,
+  MultilanguagePageClient,
   PageBuilderPageClient,
   GroupedPageBuilderPage,
   PageBuilderPermalinkUsage,
@@ -16,6 +18,7 @@ import { serializeImportedPageContent } from "./importContent";
 import { formatPageNames, getConflictsOfRejectedPublish } from "../../utilities/permalinkUsages";
 
 const { getApiClient } = useApiClient(PageBuilderPageClient);
+const { getApiClient: getMultilanguageApiClient } = useApiClient(MultilanguagePageClient);
 
 export interface IUsePageBuilderDetails {
   item: Ref<GroupedPageBuilderPage>;
@@ -35,32 +38,13 @@ export interface IUsePageBuilderDetails {
   openDraftDesigner: () => void;
   downloadContent: () => Promise<void>;
   clonePage: () => Promise<GroupedPageBuilderPage>;
+  convertToMultilanguage: () => Promise<MultilanguagePage>;
 }
 
 export interface UsePageBuilderDetailsOptions {
   id?: string;
   storeId?: string;
   importData?: PageExportData;
-}
-
-function incrementCopyName(name: string): string {
-  const match = /^(.*)\(copy(?:\s+(\d+))?\)$/.exec(name);
-  if (match) {
-    const base = match[1];
-    const num = match[2] ? Number.parseInt(match[2], 10) + 1 : 2;
-    return `${base}(copy ${num})`;
-  }
-  return `${name} (copy)`;
-}
-
-function incrementCopyPermalink(permalink: string): string {
-  const match = /^(.*)-copy(?:-(\d+))?$/.exec(permalink);
-  if (match) {
-    const base = match[1];
-    const num = match[2] ? Number.parseInt(match[2], 10) + 1 : 2;
-    return `${base}-copy-${num}`;
-  }
-  return `${permalink}-copy`;
 }
 
 export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): IUsePageBuilderDetails {
@@ -187,9 +171,12 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
       throw new Error("Can't clone page.");
     }
 
+    const apiClient = await getApiClient();
+    // The server picks a suffix no page of the store uses yet, so a second clone gets its own address.
+    const copyName = await apiClient.getCopyName(source.id);
     const clone: GroupedPageBuilderPage = {
-      name: incrementCopyName(source.name || ""),
-      permalink: incrementCopyPermalink(source.permalink || ""),
+      name: copyName.name,
+      permalink: copyName.permalink,
       cultureName: source.cultureName,
       storeId: source.storeId,
       visibility: source.visibility,
@@ -197,7 +184,6 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
       organizationId: source.organizationId,
     };
 
-    const apiClient = await getApiClient();
     const created = await apiClient.createGroup(clone);
 
     if (created.id && source.id) {
@@ -205,6 +191,16 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
     }
 
     return created;
+  });
+
+  // The page becomes the default language version of a new Multilanguage Page, unchanged on the storefront.
+  const { action: convertToMultilanguage, loading: converting } = useAsync(async () => {
+    const groupId = item.value?.id;
+    if (!groupId) {
+      throw new Error("Can't convert page.");
+    }
+    const apiClient = await getMultilanguageApiClient();
+    return apiClient.convert(groupId);
   });
 
   function openDraftDesigner() {
@@ -269,6 +265,7 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
       unpublishingGroup,
       downloadingContent,
       cloningPage,
+      converting,
     ),
     loadGroup,
     saveGroup,
@@ -283,5 +280,6 @@ export function usePageBuilderDetails(options?: UsePageBuilderDetailsOptions): I
     openDraftDesigner,
     downloadContent,
     clonePage,
+    convertToMultilanguage: convertToMultilanguage as () => Promise<MultilanguagePage>,
   };
 }

@@ -17,7 +17,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.PostgreSql.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.9")
+                .HasAnnotation("ProductVersion", "10.0.13")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -50,6 +50,10 @@ namespace VirtoCommerce.PageBuilderModule.Data.PostgreSql.Migrations
                     b.Property<DateTime?>("ModifiedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("MultilanguagePageId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
                     b.Property<string>("Name")
                         .HasMaxLength(1024)
                         .HasColumnType("character varying(1024)");
@@ -58,9 +62,16 @@ namespace VirtoCommerce.PageBuilderModule.Data.PostgreSql.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
 
+                    b.Property<string>("OverriddenFields")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
                     b.Property<string>("Permalink")
                         .HasMaxLength(2048)
                         .HasColumnType("character varying(2048)");
+
+                    b.Property<DateTime?>("SourceRevisionDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("StartDate")
                         .HasColumnType("timestamp with time zone");
@@ -78,7 +89,74 @@ namespace VirtoCommerce.PageBuilderModule.Data.PostgreSql.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("MultilanguagePageId");
+
+                    b.HasIndex("MultilanguagePageId", "CultureName")
+                        .IsUnique();
+
                     b.ToTable("GroupedPageBuilderPage", (string)null);
+                });
+
+            modelBuilder.Entity("VirtoCommerce.PageBuilderModule.Data.Models.MultilanguagePageEntity", b =>
+                {
+                    b.Property<string>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DefaultCultureName")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<DateTime?>("EndDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime?>("ModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)");
+
+                    b.Property<string>("OrganizationId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("Permalink")
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)");
+
+                    b.Property<DateTime?>("StartDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("StoreId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("UserGroups")
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)");
+
+                    b.Property<bool>("Visibility")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StoreId");
+
+                    b.ToTable("PageBuilderMultilanguagePage", (string)null);
                 });
 
             modelBuilder.Entity("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderAssetReferenceEntity", b =>
@@ -283,6 +361,16 @@ namespace VirtoCommerce.PageBuilderModule.Data.PostgreSql.Migrations
                         .IsUnique();
 
                     b.ToTable("PageBuilderSharedComponentReference", (string)null);
+                });
+
+            modelBuilder.Entity("VirtoCommerce.PageBuilderModule.Data.Models.GroupedPageBuilderPageEntity", b =>
+                {
+                    b.HasOne("VirtoCommerce.PageBuilderModule.Data.Models.MultilanguagePageEntity", "MultilanguagePage")
+                        .WithMany()
+                        .HasForeignKey("MultilanguagePageId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("MultilanguagePage");
                 });
 
             modelBuilder.Entity("VirtoCommerce.PageBuilderModule.Data.Models.PageBuilderAssetReferenceEntity", b =>

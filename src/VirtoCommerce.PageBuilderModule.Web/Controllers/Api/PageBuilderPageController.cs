@@ -18,11 +18,10 @@ using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Data.Authorization;
+using VirtoCommerce.PageBuilderModule.Data.Services;
 using VirtoCommerce.PageBuilderModule.Web.Services;
 using VirtoCommerce.Pages.Core.Search;
 using VirtoCommerce.Platform.Core.Common;
-using VirtoCommerce.Platform.Core.DistributedLock;
-using VirtoCommerce.StoreModule.Core.Services;
 using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 
 namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
@@ -38,7 +37,7 @@ public class PageBuilderPageController : Controller
     private readonly IPageDocumentSearchService pageDocumentSearchService;
     private readonly PageBuilderPageContentService pageContentService;
     private readonly ILogger<PageBuilderPageController> logger;
-    private readonly IStoreService storeService;
+    private readonly IPageBuilderPublishConflictService publishConflictService;
 
     // Preserve the published constructor for extensions; request services supply the new dependency.
     public PageBuilderPageController(
@@ -50,7 +49,7 @@ public class PageBuilderPageController : Controller
         PageBuilderPageContentService pageContentService,
         ILogger<PageBuilderPageController> logger)
         : this(crudService, groupedPageService, groupedPageSearchService, authorizationService,
-            pageDocumentSearchService, pageContentService, logger, storeService: null)
+            pageDocumentSearchService, pageContentService, logger, publishConflictService: null)
     {
     }
 
@@ -63,7 +62,7 @@ public class PageBuilderPageController : Controller
         IPageDocumentSearchService pageDocumentSearchService,
         PageBuilderPageContentService pageContentService,
         ILogger<PageBuilderPageController> logger,
-        IStoreService storeService)
+        IPageBuilderPublishConflictService publishConflictService)
     {
         this.crudService = crudService;
         this.groupedPageService = groupedPageService;
@@ -72,7 +71,7 @@ public class PageBuilderPageController : Controller
         this.pageDocumentSearchService = pageDocumentSearchService;
         this.pageContentService = pageContentService;
         this.logger = logger;
-        this.storeService = storeService;
+        this.publishConflictService = publishConflictService;
     }
 
     [HttpPost("search")]
@@ -88,6 +87,80 @@ public class PageBuilderPageController : Controller
         var result = await groupedPageSearchService.SearchAsync(criteria);
 
         return Ok(result);
+    }
+
+    /// <summary>
+    /// Pages list where a Multilanguage Page is a single row with its language statuses.
+    /// </summary>
+    [HttpPost("list")]
+    [Authorize(ModuleConstants.Security.Permissions.Read)]
+    public async Task<ActionResult<PageBuilderPageListSearchResult>> SearchList(
+        [FromBody] PageBuilderPageSearchCriteria criteria,
+        [FromServices] IPageBuilderPageListService pageListService,
+        CancellationToken cancellationToken = default)
+    {
+        if (criteria == null)
+        {
+            return BadRequest("Search criteria are required.");
+        }
+
+        var authorizationResult = await authorizationService.AuthorizeAsync(User, criteria, new PageBuilderAuthorizationRequirement());
+        if (!authorizationResult.Succeeded)
+        {
+            return Forbidden;
+        }
+
+        return Ok(await pageListService.SearchAsync(criteria, cancellationToken));
+    }
+
+    /// <summary>
+    /// Pages that already serve the permalink in the given languages; shown as a warning before saving.
+    /// </summary>
+    [HttpPost("permalink-usage")]
+    [Authorize(ModuleConstants.Security.Permissions.Read)]
+    public async Task<ActionResult<IList<PermalinkUsage>>> FindPermalinkUsage(
+        [FromBody] PermalinkUsageRequest request,
+        [FromServices] IPageBuilderPageListService pageListService,
+        CancellationToken cancellationToken = default)
+    {
+        if (request == null)
+        {
+            return BadRequest("Request is required.");
+        }
+
+        var authorizationResult = await authorizationService.AuthorizeAsync(
+            User, new PageBuilderPageSearchCriteria { StoreId = request.StoreId }, new PageBuilderAuthorizationRequirement());
+        if (!authorizationResult.Succeeded)
+        {
+            return Forbidden;
+        }
+
+        return Ok(await pageListService.FindPermalinkUsageAsync(request, cancellationToken));
+    }
+
+    /// <summary>
+    /// Name and permalink for a copy of the page that no page of the store uses yet; Clone saves the copy with them.
+    /// </summary>
+    [HttpGet("grouped/{groupId}/copy-name")]
+    [Authorize(ModuleConstants.Security.Permissions.Read)]
+    public async Task<ActionResult<PageCopyName>> GetCopyName(
+        [FromRoute] string groupId,
+        [FromServices] IPageBuilderPageListService pageListService,
+        CancellationToken cancellationToken = default)
+    {
+        var groupedPage = await groupedPageService.GetNoCloneAsync(groupId);
+        if (groupedPage == null)
+        {
+            return NotFound();
+        }
+
+        var authorizationResult = await authorizationService.AuthorizeAsync(User, groupedPage, new PageBuilderAuthorizationRequirement());
+        if (!authorizationResult.Succeeded)
+        {
+            return Forbidden;
+        }
+
+        return Ok(await pageListService.GetCopyNameAsync(groupedPage, cancellationToken));
     }
 
     [HttpGet("grouped/{groupId}")]
@@ -119,6 +192,12 @@ public class PageBuilderPageController : Controller
     [Authorize(ModuleConstants.Security.Permissions.Update)]
     public async Task<ActionResult<GroupedPageBuilderPage>> UpdateGroup([FromBody] GroupedPageBuilderPage model, CancellationToken cancellationToken = default)
     {
+        // A body that does not bind (e.g. userGroups sent as an array instead of a comma-separated string) arrives as null.
+        if (model == null)
+        {
+            return BadRequest("The page is missing or invalid.");
+        }
+
         var groupedPage = await groupedPageService.GetByIdAsync(model.Id);
         var storeChanged = HasStoreChanged(groupedPage, model);
         var authorizationError = await AuthorizeGroupUpdateAsync(groupedPage, model, storeChanged);
@@ -127,14 +206,10 @@ public class PageBuilderPageController : Controller
             return authorizationError;
         }
 
-        if (groupedPage?.Status == Archived)
+        var updateError = ValidateGroupUpdate(groupedPage, model);
+        if (updateError != null)
         {
-            return BadRequest("Archived page cannot be updated.");
-        }
-
-        if (!IsPermalinkAccepted(groupedPage, model))
-        {
-            return BadRequest(PageBuilderPermalink.InvalidMessage);
+            return updateError;
         }
 
         groupedPage ??= AbstractTypeFactory<GroupedPageBuilderPage>.TryCreateInstance();
@@ -170,9 +245,19 @@ public class PageBuilderPageController : Controller
     [Authorize(ModuleConstants.Security.Permissions.Create)]
     public async Task<ActionResult<GroupedPageBuilderPage>> CreateGroup([FromBody] GroupedPageBuilderPage model, CancellationToken cancellationToken = default)
     {
+        if (model == null)
+        {
+            return BadRequest("The page is missing or invalid.");
+        }
+
         if (!PageBuilderPermalink.IsValid(model.Permalink))
         {
             return BadRequest(PageBuilderPermalink.InvalidMessage);
+        }
+
+        if (!PageBuilderPageName.IsValid(model.Name))
+        {
+            return BadRequest(PageBuilderPageName.InvalidMessage);
         }
 
         var authorizationResult = await authorizationService.AuthorizeAsync(User, model, new PageBuilderAuthorizationRequirement());
@@ -180,6 +265,11 @@ public class PageBuilderPageController : Controller
         {
             return Forbidden;
         }
+
+        // A page becomes a language version only through the multilanguage page endpoints, which check the root.
+        model.MultilanguagePageId = null;
+        model.OverriddenFields = null;
+        model.SourceRevisionDate = null;
 
         var draftPage = AbstractTypeFactory<PageBuilderPage>.TryCreateInstance();
 
@@ -205,7 +295,8 @@ public class PageBuilderPageController : Controller
         [FromBody] CreateGroupedPageRequest model,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(model.StoreId) ||
+        if (model == null ||
+            string.IsNullOrWhiteSpace(model.StoreId) ||
             string.IsNullOrWhiteSpace(model.Name) ||
             string.IsNullOrWhiteSpace(model.Content))
         {
@@ -215,6 +306,11 @@ public class PageBuilderPageController : Controller
         if (!PageBuilderPermalink.IsValid(model.Permalink))
         {
             return BadRequest(PageBuilderPermalink.InvalidMessage);
+        }
+
+        if (!PageBuilderPageName.IsValid(model.Name))
+        {
+            return BadRequest(PageBuilderPageName.InvalidMessage);
         }
 
         if (!TryValidatePageContentEnvelope(model.Content, out var envelopeError))
@@ -370,7 +466,7 @@ public class PageBuilderPageController : Controller
             return Forbidden;
         }
 
-        var usages = await groupedPageSearchService.FindPermalinkUsagesAsync(model, await GetStoreDefaultLanguageAsync(model.StoreId));
+        var usages = await PublishConflictService.FindPermalinkUsagesAsync(model);
 
         return Ok(usages);
     }
@@ -415,48 +511,34 @@ public class PageBuilderPageController : Controller
             : await UnpublishAsync(groupedPage);
     }
 
-    // The conflict check and the save run under a lock on the permalink: two pages that conflict only with each other
-    // must not both pass the check before either is saved. The local lock covers a platform without Redis, where
-    // the distributed lock service does not lock.
-    private async Task<ActionResult> PublishDraftLockedAsync(GroupedPageBuilderPage groupedPage, bool unpublishConflicting)
+    // Reloads the page under the lock: another publish may have changed it while this one waited.
+    private Task<ActionResult> PublishDraftLockedAsync(GroupedPageBuilderPage groupedPage, bool unpublishConflicting)
     {
-        var lockKey = $"PageBuilderPublish:{groupedPage.StoreId?.ToLowerInvariant()}:{PageBuilderPermalinkConflicts.Normalize(groupedPage.Permalink)}";
-
-        using (await AsyncLock.GetLockByKey(lockKey).LockAsync())
+        return PublishConflictService.ExecuteExclusiveAsync(groupedPage, async () =>
         {
-            var distributedLockService = HttpContext?.RequestServices?.GetService<IDistributedLockService>();
-            if (distributedLockService == null)
-            {
-                return await PublishCurrentDraftAsync(groupedPage.Id, unpublishConflicting);
-            }
+            var currentPage = await groupedPageService.GetByIdAsync(groupedPage.Id);
 
-            return await distributedLockService.ExecuteAsync(
-                lockKey,
-                () => PublishCurrentDraftAsync(groupedPage.Id, unpublishConflicting),
-                tryLockTimeout: TimeSpan.FromSeconds(30),
-                retryInterval: TimeSpan.FromMilliseconds(100));
-        }
+            return currentPage == null
+                ? NotFound()
+                : await PublishDraftAsync(currentPage, unpublishConflicting);
+        });
     }
 
-    // Reloads the page: another publish may have changed it while this one waited for the lock.
-    private async Task<ActionResult> PublishCurrentDraftAsync(string groupId, bool unpublishConflicting)
-    {
-        var groupedPage = await groupedPageService.GetByIdAsync(groupId);
-
-        return groupedPage == null
-            ? NotFound()
-            : await PublishDraftAsync(groupedPage, unpublishConflicting);
-    }
+    // With the published constructor the service comes from the request services; a controller built outside a request
+    // checks conflicts without the store's default language and without the lock.
+    private IPageBuilderPublishConflictService PublishConflictService =>
+        publishConflictService
+        ?? HttpContext?.RequestServices?.GetService<IPageBuilderPublishConflictService>()
+        ?? new PageBuilderPublishConflictService(groupedPageService, groupedPageSearchService, storeService: null, distributedLock: null);
 
     private async Task<ActionResult> PublishDraftAsync(GroupedPageBuilderPage groupedPage, bool unpublishConflicting)
     {
-        var pageToPublish = PageBuilderPageSelection.Order(groupedPage.Pages).FirstOrDefault(x => x.Status == Draft);
-        if (pageToPublish == null)
+        if (!groupedPage.Pages.Any(x => x.Status == Draft))
         {
             return BadRequest("Draft page not found.");
         }
 
-        var (conflicts, conflictingGroups) = await LoadBlockingConflictsAsync(groupedPage);
+        var (conflicts, conflictingGroups) = await PublishConflictService.FindBlockingConflictsAsync(groupedPage);
 
         var hasUnpublishedChanges = conflicts.Any(x => !x.CanUnpublish);
         if (conflicts.Count > 0 && (!unpublishConflicting || hasUnpublishedChanges))
@@ -473,57 +555,14 @@ public class PageBuilderPageController : Controller
             }
         }
 
-        pageToPublish.Status = Published;
-        var pagesToDelete = groupedPage.Pages.Where(x => x.Id != pageToPublish.Id).Select(x => x.Id).ToList();
+        GroupedPagePublishing.TryPublishDraft(groupedPage, out var obsoletePageIds);
+        var pagesToDelete = obsoletePageIds.ToList();
         pagesToDelete.AddRange(conflictingGroups.SelectMany(UnpublishConflictingGroup));
 
         await groupedPageService.SaveChangesAsync([groupedPage, .. conflictingGroups]);
         await crudService.DeleteAsync(pagesToDelete);
 
         return Ok();
-    }
-
-    // Published pages the storefront would offer to the same visitors as the page, and their groups as stored.
-    // The search results can be cached, so each group is checked again as reloaded: one that changed its permalink,
-    // dates or audience meanwhile, or was unpublished or deleted, is left alone, and one that got a draft cannot be
-    // unpublished.
-    private async Task<(IList<PageBuilderPermalinkUsage> Conflicts, IList<GroupedPageBuilderPage> Groups)> LoadBlockingConflictsAsync(
-        GroupedPageBuilderPage groupedPage)
-    {
-        var storeDefaultLanguage = await GetStoreDefaultLanguageAsync(groupedPage.StoreId);
-        var candidates = (await groupedPageSearchService.FindPermalinkUsagesAsync(groupedPage, storeDefaultLanguage))
-            .Where(x => x.Conflict == PageBuilderPermalinkConflict.Certain)
-            .ToList();
-        if (candidates.Count == 0)
-        {
-            return ([], []);
-        }
-
-        var groups = (await groupedPageService.GetAsync(candidates.Select(x => x.GroupId).ToList()))
-            .Where(x => PageBuilderPermalinkConflicts.GetConflict(groupedPage, x, DateTime.UtcNow, storeDefaultLanguage) == PageBuilderPermalinkConflict.Certain)
-            .ToList();
-        var conflicts = candidates
-            .Where(usage => groups.Any(group => group.Id == usage.GroupId))
-            .ToList();
-        foreach (var usage in conflicts)
-        {
-            usage.CanUnpublish = !groups.First(group => group.Id == usage.GroupId).HasChanges;
-        }
-
-        return (conflicts, groups);
-    }
-
-    // A page for any language competes with a page in the store's default language. Unknown without a store service.
-    private async Task<string> GetStoreDefaultLanguageAsync(string storeId)
-    {
-        var stores = storeService ?? HttpContext?.RequestServices?.GetService<IStoreService>();
-        if (stores == null || string.IsNullOrEmpty(storeId))
-        {
-            return null;
-        }
-
-        var store = await stores.GetNoCloneAsync(storeId);
-        return store?.DefaultLanguage;
     }
 
     private async Task<ActionResult> UnpublishAsync(GroupedPageBuilderPage groupedPage)
@@ -999,6 +1038,28 @@ public class PageBuilderPageController : Controller
     {
         return groupedPage != null &&
             !string.Equals(groupedPage.StoreId, model.StoreId, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private BadRequestObjectResult ValidateGroupUpdate(
+        GroupedPageBuilderPage groupedPage,
+        GroupedPageBuilderPage model)
+    {
+        if (groupedPage?.Status == Archived)
+        {
+            return BadRequest("Archived page cannot be updated.");
+        }
+
+        if (!IsPermalinkAccepted(groupedPage, model))
+        {
+            return BadRequest(PageBuilderPermalink.InvalidMessage);
+        }
+
+        if (!PageBuilderPageName.IsValid(model.Name))
+        {
+            return BadRequest(PageBuilderPageName.InvalidMessage);
+        }
+
+        return null;
     }
 
     // An unchanged permalink stored before validation existed must not block editing the page's other fields.

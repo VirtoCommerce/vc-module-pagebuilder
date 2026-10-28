@@ -57,6 +57,771 @@ export class AuthApiBase {
   }
 }
 
+export class MultilanguagePageClient extends AuthApiBase {
+    private http: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> };
+    private baseUrl: string;
+
+    constructor(baseUrl?: string, http?: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> }) {
+        super();
+        this.http = http ? http : window as any;
+        this.baseUrl = this.getBaseUrl("", baseUrl);
+    }
+
+    /**
+     * @param body (optional) 
+     * @return OK
+     */
+    search(body?: MultilanguagePageSearchCriteria | undefined): Promise<MultilanguagePageSearchResult> {
+        let url_ = this.baseUrl + "/api/page-builder-multilanguage-pages/search";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json-patch+json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.transformOptions(options_).then(transformedOptions_ => {
+            return this.http.fetch(url_, transformedOptions_);
+        }).then((_response: Response) => {
+            return this.processSearch(_response);
+        });
+    }
+
+    protected processSearch(response: Response): Promise<MultilanguagePageSearchResult> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as MultilanguagePageSearchResult;
+            return result200;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            return throwException("Unauthorized", status, _responseText, _headers);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            return throwException("Forbidden", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<MultilanguagePageSearchResult>(null as any);
+    }
+
+    /**
+     * @return OK
+     */
+    get(id: string): Promise<MultilanguagePage> {
+        let url_ = this.baseUrl + "/api/page-builder-multilanguage-pages/{id}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.transformOptions(options_).then(transformedOptions_ => {
+            return this.http.fetch(url_, transformedOptions_);
+        }).then((_response: Response) => {
+            return this.processGet(_response);
+        });
+    }
+
+    protected processGet(response: Response): Promise<MultilanguagePage> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as MultilanguagePage;
+            return result200;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            return throwException("Unauthorized", status, _responseText, _headers);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            return throwException("Forbidden", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<MultilanguagePage>(null as any);
+    }
+
+    /**
+     * @return No Content
+     */
+    delete(id: string): Promise<void> {
+        let url_ = this.baseUrl + "/api/page-builder-multilanguage-pages/{id}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "DELETE",
+            headers: {
+            }
+        };
+
+        return this.transformOptions(options_).then(transformedOptions_ => {
+            return this.http.fetch(url_, transformedOptions_);
+        }).then((_response: Response) => {
+            return this.processDelete(_response);
+        });
+    }
+
+    protected processDelete(response: Response): Promise<void> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 204) {
+            return response.text().then((_responseText) => {
+            return;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            return throwException("Unauthorized", status, _responseText, _headers);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            return throwException("Forbidden", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * @param body (optional) 
+     * @return OK
+     */
+    create(body?: MultilanguagePage | undefined): Promise<MultilanguagePage> {
+        let url_ = this.baseUrl + "/api/page-builder-multilanguage-pages";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json-patch+json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.transformOptions(options_).then(transformedOptions_ => {
+            return this.http.fetch(url_, transformedOptions_);
+        }).then((_response: Response) => {
+            return this.processCreate(_response);
+        });
+    }
+
+    protected processCreate(response: Response): Promise<MultilanguagePage> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as MultilanguagePage;
+            return result200;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            return throwException("Unauthorized", status, _responseText, _headers);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            return throwException("Forbidden", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<MultilanguagePage>(null as any);
+    }
+
+    /**
+     * @param body (optional) 
+     * @return OK
+     */
+    update(body?: MultilanguagePage | undefined): Promise<MultilanguagePage> {
+        let url_ = this.baseUrl + "/api/page-builder-multilanguage-pages";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json-patch+json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.transformOptions(options_).then(transformedOptions_ => {
+            return this.http.fetch(url_, transformedOptions_);
+        }).then((_response: Response) => {
+            return this.processUpdate(_response);
+        });
+    }
+
+    protected processUpdate(response: Response): Promise<MultilanguagePage> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as MultilanguagePage;
+            return result200;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            return throwException("Unauthorized", status, _responseText, _headers);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            return throwException("Forbidden", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<MultilanguagePage>(null as any);
+    }
+
+    /**
+     * @return OK
+     */
+    getLanguages(id: string): Promise<MultilanguagePageLanguage[]> {
+        let url_ = this.baseUrl + "/api/page-builder-multilanguage-pages/{id}/languages";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.transformOptions(options_).then(transformedOptions_ => {
+            return this.http.fetch(url_, transformedOptions_);
+        }).then((_response: Response) => {
+            return this.processGetLanguages(_response);
+        });
+    }
+
+    protected processGetLanguages(response: Response): Promise<MultilanguagePageLanguage[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as MultilanguagePageLanguage[];
+            return result200;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            return throwException("Unauthorized", status, _responseText, _headers);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            return throwException("Forbidden", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<MultilanguagePageLanguage[]>(null as any);
+    }
+
+    /**
+     * @param copyContent (optional) 
+     * @return OK
+     */
+    createLanguage(id: string, cultureName: string, copyContent?: boolean | undefined): Promise<GroupedPageBuilderPage> {
+        let url_ = this.baseUrl + "/api/page-builder-multilanguage-pages/{id}/languages/{cultureName}?";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (cultureName === undefined || cultureName === null)
+            throw new globalThis.Error("The parameter 'cultureName' must be defined.");
+        url_ = url_.replace("{cultureName}", encodeURIComponent("" + cultureName));
+        if (copyContent === null)
+            throw new globalThis.Error("The parameter 'copyContent' cannot be null.");
+        else if (copyContent !== undefined)
+            url_ += "copyContent=" + encodeURIComponent("" + copyContent) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.transformOptions(options_).then(transformedOptions_ => {
+            return this.http.fetch(url_, transformedOptions_);
+        }).then((_response: Response) => {
+            return this.processCreateLanguage(_response);
+        });
+    }
+
+    protected processCreateLanguage(response: Response): Promise<GroupedPageBuilderPage> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as GroupedPageBuilderPage;
+            return result200;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            return throwException("Unauthorized", status, _responseText, _headers);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            return throwException("Forbidden", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GroupedPageBuilderPage>(null as any);
+    }
+
+    /**
+     * @return OK
+     */
+    link(id: string, groupId: string): Promise<GroupedPageBuilderPage> {
+        let url_ = this.baseUrl + "/api/page-builder-multilanguage-pages/{id}/link/{groupId}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (groupId === undefined || groupId === null)
+            throw new globalThis.Error("The parameter 'groupId' must be defined.");
+        url_ = url_.replace("{groupId}", encodeURIComponent("" + groupId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.transformOptions(options_).then(transformedOptions_ => {
+            return this.http.fetch(url_, transformedOptions_);
+        }).then((_response: Response) => {
+            return this.processLink(_response);
+        });
+    }
+
+    protected processLink(response: Response): Promise<GroupedPageBuilderPage> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as GroupedPageBuilderPage;
+            return result200;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            return throwException("Unauthorized", status, _responseText, _headers);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            return throwException("Forbidden", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GroupedPageBuilderPage>(null as any);
+    }
+
+    /**
+     * @return OK
+     */
+    convert(groupId: string): Promise<MultilanguagePage> {
+        let url_ = this.baseUrl + "/api/page-builder-multilanguage-pages/convert/{groupId}";
+        if (groupId === undefined || groupId === null)
+            throw new globalThis.Error("The parameter 'groupId' must be defined.");
+        url_ = url_.replace("{groupId}", encodeURIComponent("" + groupId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.transformOptions(options_).then(transformedOptions_ => {
+            return this.http.fetch(url_, transformedOptions_);
+        }).then((_response: Response) => {
+            return this.processConvert(_response);
+        });
+    }
+
+    protected processConvert(response: Response): Promise<MultilanguagePage> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as MultilanguagePage;
+            return result200;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            return throwException("Unauthorized", status, _responseText, _headers);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            return throwException("Forbidden", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<MultilanguagePage>(null as any);
+    }
+
+    /**
+     * @return OK
+     */
+    markUpToDate(groupId: string): Promise<GroupedPageBuilderPage> {
+        let url_ = this.baseUrl + "/api/page-builder-multilanguage-pages/mark-up-to-date/{groupId}";
+        if (groupId === undefined || groupId === null)
+            throw new globalThis.Error("The parameter 'groupId' must be defined.");
+        url_ = url_.replace("{groupId}", encodeURIComponent("" + groupId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.transformOptions(options_).then(transformedOptions_ => {
+            return this.http.fetch(url_, transformedOptions_);
+        }).then((_response: Response) => {
+            return this.processMarkUpToDate(_response);
+        });
+    }
+
+    protected processMarkUpToDate(response: Response): Promise<GroupedPageBuilderPage> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as GroupedPageBuilderPage;
+            return result200;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            return throwException("Unauthorized", status, _responseText, _headers);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            return throwException("Forbidden", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GroupedPageBuilderPage>(null as any);
+    }
+
+    /**
+     * @return OK
+     */
+    unlink(groupId: string): Promise<GroupedPageBuilderPage> {
+        let url_ = this.baseUrl + "/api/page-builder-multilanguage-pages/unlink/{groupId}";
+        if (groupId === undefined || groupId === null)
+            throw new globalThis.Error("The parameter 'groupId' must be defined.");
+        url_ = url_.replace("{groupId}", encodeURIComponent("" + groupId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.transformOptions(options_).then(transformedOptions_ => {
+            return this.http.fetch(url_, transformedOptions_);
+        }).then((_response: Response) => {
+            return this.processUnlink(_response);
+        });
+    }
+
+    protected processUnlink(response: Response): Promise<GroupedPageBuilderPage> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as GroupedPageBuilderPage;
+            return result200;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            return throwException("Unauthorized", status, _responseText, _headers);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            return throwException("Forbidden", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GroupedPageBuilderPage>(null as any);
+    }
+
+    /**
+     * @param body (optional) 
+     * @return OK
+     */
+    resetOverrides(id: string, body?: string[] | undefined): Promise<string[]> {
+        let url_ = this.baseUrl + "/api/page-builder-multilanguage-pages/{id}/reset-overrides";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json-patch+json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.transformOptions(options_).then(transformedOptions_ => {
+            return this.http.fetch(url_, transformedOptions_);
+        }).then((_response: Response) => {
+            return this.processResetOverrides(_response);
+        });
+    }
+
+    protected processResetOverrides(response: Response): Promise<string[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as string[];
+            return result200;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            return throwException("Unauthorized", status, _responseText, _headers);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            return throwException("Forbidden", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<string[]>(null as any);
+    }
+
+    /**
+     * @return OK
+     */
+    clone(id: string): Promise<MultilanguagePage> {
+        let url_ = this.baseUrl + "/api/page-builder-multilanguage-pages/{id}/clone";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.transformOptions(options_).then(transformedOptions_ => {
+            return this.http.fetch(url_, transformedOptions_);
+        }).then((_response: Response) => {
+            return this.processClone(_response);
+        });
+    }
+
+    protected processClone(response: Response): Promise<MultilanguagePage> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as MultilanguagePage;
+            return result200;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            return throwException("Unauthorized", status, _responseText, _headers);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            return throwException("Forbidden", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<MultilanguagePage>(null as any);
+    }
+
+    /**
+     * @return OK
+     */
+    publishAll(id: string): Promise<MultilanguagePageBatchResult> {
+        let url_ = this.baseUrl + "/api/page-builder-multilanguage-pages/{id}/publish-all";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.transformOptions(options_).then(transformedOptions_ => {
+            return this.http.fetch(url_, transformedOptions_);
+        }).then((_response: Response) => {
+            return this.processPublishAll(_response);
+        });
+    }
+
+    protected processPublishAll(response: Response): Promise<MultilanguagePageBatchResult> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as MultilanguagePageBatchResult;
+            return result200;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            return throwException("Unauthorized", status, _responseText, _headers);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            return throwException("Forbidden", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<MultilanguagePageBatchResult>(null as any);
+    }
+
+    /**
+     * @return OK
+     */
+    archiveAll(id: string): Promise<MultilanguagePageBatchResult> {
+        let url_ = this.baseUrl + "/api/page-builder-multilanguage-pages/{id}/archive-all";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.transformOptions(options_).then(transformedOptions_ => {
+            return this.http.fetch(url_, transformedOptions_);
+        }).then((_response: Response) => {
+            return this.processArchiveAll(_response);
+        });
+    }
+
+    protected processArchiveAll(response: Response): Promise<MultilanguagePageBatchResult> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as MultilanguagePageBatchResult;
+            return result200;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            return throwException("Unauthorized", status, _responseText, _headers);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            return throwException("Forbidden", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<MultilanguagePageBatchResult>(null as any);
+    }
+}
+
 export class PageBuilderAssetsClient extends AuthApiBase {
     private http: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> };
     private baseUrl: string;
@@ -1525,6 +2290,157 @@ export class PageBuilderPageClient extends AuthApiBase {
     }
 
     /**
+     * @param body (optional) 
+     * @return OK
+     */
+    searchList(body?: PageBuilderPageSearchCriteria | undefined): Promise<PageBuilderPageListSearchResult> {
+        let url_ = this.baseUrl + "/api/page-builder-pages/list";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json-patch+json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.transformOptions(options_).then(transformedOptions_ => {
+            return this.http.fetch(url_, transformedOptions_);
+        }).then((_response: Response) => {
+            return this.processSearchList(_response);
+        });
+    }
+
+    protected processSearchList(response: Response): Promise<PageBuilderPageListSearchResult> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as PageBuilderPageListSearchResult;
+            return result200;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            return throwException("Unauthorized", status, _responseText, _headers);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            return throwException("Forbidden", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<PageBuilderPageListSearchResult>(null as any);
+    }
+
+    /**
+     * @param body (optional) 
+     * @return OK
+     */
+    findPermalinkUsage(body?: PermalinkUsageRequest | undefined): Promise<PermalinkUsage[]> {
+        let url_ = this.baseUrl + "/api/page-builder-pages/permalink-usage";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json-patch+json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.transformOptions(options_).then(transformedOptions_ => {
+            return this.http.fetch(url_, transformedOptions_);
+        }).then((_response: Response) => {
+            return this.processFindPermalinkUsage(_response);
+        });
+    }
+
+    protected processFindPermalinkUsage(response: Response): Promise<PermalinkUsage[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as PermalinkUsage[];
+            return result200;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            return throwException("Unauthorized", status, _responseText, _headers);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            return throwException("Forbidden", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<PermalinkUsage[]>(null as any);
+    }
+
+    /**
+     * @return OK
+     */
+    getCopyName(groupId: string): Promise<PageCopyName> {
+        let url_ = this.baseUrl + "/api/page-builder-pages/grouped/{groupId}/copy-name";
+        if (groupId === undefined || groupId === null)
+            throw new globalThis.Error("The parameter 'groupId' must be defined.");
+        url_ = url_.replace("{groupId}", encodeURIComponent("" + groupId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.transformOptions(options_).then(transformedOptions_ => {
+            return this.http.fetch(url_, transformedOptions_);
+        }).then((_response: Response) => {
+            return this.processGetCopyName(_response);
+        });
+    }
+
+    protected processGetCopyName(response: Response): Promise<PageCopyName> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as PageCopyName;
+            return result200;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            return throwException("Unauthorized", status, _responseText, _headers);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            return throwException("Forbidden", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<PageCopyName>(null as any);
+    }
+
+    /**
      * @param responseGroup (optional) 
      * @return OK
      */
@@ -1983,9 +2899,10 @@ export class PageBuilderPageClient extends AuthApiBase {
 
     /**
      * @param draft (optional) 
+     * @param includeVersion (optional) 
      * @return OK
      */
-    getPageContent(groupId: string, draft?: boolean | undefined): Promise<void> {
+    getPageContent(groupId: string, draft?: boolean | undefined, includeVersion?: boolean | undefined): Promise<void> {
         let url_ = this.baseUrl + "/api/page-builder-pages/grouped/{groupId}/content?";
         if (groupId === undefined || groupId === null)
             throw new globalThis.Error("The parameter 'groupId' must be defined.");
@@ -1994,6 +2911,10 @@ export class PageBuilderPageClient extends AuthApiBase {
             throw new globalThis.Error("The parameter 'draft' cannot be null.");
         else if (draft !== undefined)
             url_ += "draft=" + encodeURIComponent("" + draft) + "&";
+        if (includeVersion === null)
+            throw new globalThis.Error("The parameter 'includeVersion' cannot be null.");
+        else if (includeVersion !== undefined)
+            url_ += "includeVersion=" + encodeURIComponent("" + includeVersion) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -2033,18 +2954,25 @@ export class PageBuilderPageClient extends AuthApiBase {
     }
 
     /**
+     * @param if_Match (optional) 
+     * @param includeVersion (optional) 
      * @return OK
      */
-    savePageContent(groupId: string): Promise<void> {
-        let url_ = this.baseUrl + "/api/page-builder-pages/grouped/{groupId}/content";
+    savePageContent(groupId: string, if_Match?: string | undefined, includeVersion?: boolean | undefined): Promise<void> {
+        let url_ = this.baseUrl + "/api/page-builder-pages/grouped/{groupId}/content?";
         if (groupId === undefined || groupId === null)
             throw new globalThis.Error("The parameter 'groupId' must be defined.");
         url_ = url_.replace("{groupId}", encodeURIComponent("" + groupId));
+        if (includeVersion === null)
+            throw new globalThis.Error("The parameter 'includeVersion' cannot be null.");
+        else if (includeVersion !== undefined)
+            url_ += "includeVersion=" + encodeURIComponent("" + includeVersion) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
             method: "POST",
             headers: {
+                "If-Match": if_Match !== undefined && if_Match !== null ? "" + if_Match : "",
             }
         };
 
@@ -2079,14 +3007,20 @@ export class PageBuilderPageClient extends AuthApiBase {
     }
 
     /**
+     * @param if_Match (optional) 
+     * @param includeVersion (optional) 
      * @param body (optional) 
      * @return OK
      */
-    savePageContentJson(groupId: string, body?: UpdatePageContentRequest | undefined): Promise<void> {
-        let url_ = this.baseUrl + "/api/page-builder-pages/grouped/{groupId}/content-json";
+    savePageContentJson(groupId: string, if_Match?: string | undefined, includeVersion?: boolean | undefined, body?: UpdatePageContentRequest | undefined): Promise<void> {
+        let url_ = this.baseUrl + "/api/page-builder-pages/grouped/{groupId}/content-json?";
         if (groupId === undefined || groupId === null)
             throw new globalThis.Error("The parameter 'groupId' must be defined.");
         url_ = url_.replace("{groupId}", encodeURIComponent("" + groupId));
+        if (includeVersion === null)
+            throw new globalThis.Error("The parameter 'includeVersion' cannot be null.");
+        else if (includeVersion !== undefined)
+            url_ += "includeVersion=" + encodeURIComponent("" + includeVersion) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = JSON.stringify(body);
@@ -2095,6 +3029,7 @@ export class PageBuilderPageClient extends AuthApiBase {
             body: content_,
             method: "POST",
             headers: {
+                "If-Match": if_Match !== undefined && if_Match !== null ? "" + if_Match : "",
                 "Content-Type": "application/json-patch+json",
             }
         };
@@ -2928,6 +3863,9 @@ export interface GroupedPageBuilderPage {
     userGroups?: string | undefined;
     startDate?: Date | undefined;
     endDate?: Date | undefined;
+    multilanguagePageId?: string | undefined;
+    overriddenFields?: string | undefined;
+    sourceRevisionDate?: Date | undefined;
     readonly status?: string | undefined;
     readonly hasChanges?: boolean;
     createdDate?: Date;
@@ -2999,6 +3937,63 @@ export interface MembersSearchCriteria {
     readonly sortInfos?: SortInfo[] | undefined;
     skip?: number;
     take?: number;
+}
+
+export interface MultilanguagePage {
+    storeId?: string | undefined;
+    name?: string | undefined;
+    permalink?: string | undefined;
+    defaultCultureName?: string | undefined;
+    organizationId?: string | undefined;
+    visibility?: boolean;
+    userGroups?: string | undefined;
+    startDate?: Date | undefined;
+    endDate?: Date | undefined;
+    createdDate?: Date;
+    modifiedDate?: Date | undefined;
+    createdBy?: string | undefined;
+    modifiedBy?: string | undefined;
+    id?: string | undefined;
+}
+
+export interface MultilanguagePageBatchResult {
+    processedCultureNames?: string[] | undefined;
+    skipped?: MultilanguagePageBatchSkip[] | undefined;
+}
+
+export interface MultilanguagePageBatchSkip {
+    cultureName?: string | undefined;
+    reason?: string | undefined;
+}
+
+export interface MultilanguagePageLanguage {
+    cultureName?: string | undefined;
+    isDefault?: boolean;
+    isStoreLanguage?: boolean;
+    status?: string | undefined;
+    hasChanges?: boolean;
+    isOutdated?: boolean;
+    page?: GroupedPageBuilderPage | undefined;
+}
+
+export interface MultilanguagePageSearchCriteria {
+    storeId?: string | undefined;
+    responseGroup?: string | undefined;
+    objectType?: string | undefined;
+    objectTypes?: string[] | undefined;
+    objectIds?: string[] | undefined;
+    keyword?: string | undefined;
+    searchPhrase?: string | undefined;
+    languageCode?: string | undefined;
+    sort?: string | undefined;
+    readonly sortInfos?: SortInfo[] | undefined;
+    skip?: number;
+    take?: number;
+}
+
+export interface MultilanguagePageSearchResult {
+    totalCount?: number;
+    results?: MultilanguagePage[] | undefined;
 }
 
 export interface Note {
@@ -3096,6 +4091,23 @@ export interface PageBuilderPage {
     id?: string | undefined;
 }
 
+export interface PageBuilderPageListItem {
+    type?: string | undefined;
+    id?: string | undefined;
+    name?: string | undefined;
+    permalink?: string | undefined;
+    createdDate?: Date;
+    modifiedDate?: Date | undefined;
+    page?: GroupedPageBuilderPage | undefined;
+    multilanguagePage?: MultilanguagePage | undefined;
+    languages?: MultilanguagePageLanguage[] | undefined;
+}
+
+export interface PageBuilderPageListSearchResult {
+    totalCount?: number;
+    results?: PageBuilderPageListItem[] | undefined;
+}
+
 export interface PageBuilderPageSearchCriteria {
     storeId?: string | undefined;
     statuses?: string | undefined;
@@ -3104,6 +4116,9 @@ export interface PageBuilderPageSearchCriteria {
     activeOn?: Date | undefined;
     modifiedSince?: Date | undefined;
     modifiedBefore?: Date | undefined;
+    multilanguagePageId?: string | undefined;
+    pageType?: string | undefined;
+    translationStatus?: string | undefined;
     responseGroup?: string | undefined;
     objectType?: string | undefined;
     objectTypes?: string[] | undefined;
@@ -3184,6 +4199,26 @@ export interface PageBuilderSharedComponentUsagePage {
     status?: string | undefined;
 }
 
+export interface PageCopyName {
+    name?: string | undefined;
+    permalink?: string | undefined;
+}
+
+export interface PermalinkUsage {
+    groupId?: string | undefined;
+    name?: string | undefined;
+    cultureName?: string | undefined;
+    multilanguagePageId?: string | undefined;
+}
+
+export interface PermalinkUsageRequest {
+    storeId?: string | undefined;
+    permalink?: string | undefined;
+    cultureNames?: string[] | undefined;
+    excludeGroupIds?: string[] | undefined;
+    excludeMultilanguagePageId?: string | undefined;
+}
+
 export interface SaveFilesModel {
     files?: string | undefined;
 }
@@ -3220,6 +4255,7 @@ export interface SortInfo {
 }
 
 export interface UpdatePageContentRequest {
+    eTag?: string | undefined;
     content?: string | undefined;
 }
 

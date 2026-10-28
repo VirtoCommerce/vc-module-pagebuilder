@@ -21,6 +21,14 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
                 GroupedPageBuilderPageEntity>(repositoryFactory, platformMemoryCache, crudService, crudOptions),
             IGroupedPageSearchService
     {
+        /// <summary>
+        /// The filtered grouped pages query, reused by the pages list so both apply the same filters.
+        /// </summary>
+        public virtual IQueryable<GroupedPageBuilderPageEntity> GetFilteredQuery(IPageBuilderModuleRepository repository, PageBuilderPageSearchCriteria criteria)
+        {
+            return BuildQuery(repository, criteria);
+        }
+
         protected override IQueryable<GroupedPageBuilderPageEntity> BuildQuery(IRepository repository, PageBuilderPageSearchCriteria criteria)
         {
             var query = ((IPageBuilderModuleRepository)repository).GroupedPageBuilderPages;
@@ -32,7 +40,11 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
 
             if (!criteria.Keyword.IsNullOrEmpty())
             {
-                query = query.Where(x => x.Name.Contains(criteria.Keyword) || x.Permalink.Contains(criteria.Keyword));
+                // PostgreSQL compares case-sensitively; lower case on both sides ignores case on every provider.
+                var keyword = criteria.Keyword.ToLowerInvariant();
+#pragma warning disable CA1862 // IQueryable: the StringComparison overload does not translate to SQL
+                query = query.Where(x => x.Name.ToLower().Contains(keyword) || x.Permalink.ToLower().Contains(keyword));
+#pragma warning restore CA1862
             }
 
             query = ApplyPermalinkFilter(query, criteria.Permalink);
@@ -43,6 +55,11 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
             if (!string.IsNullOrEmpty(criteria.LanguageCode))
             {
                 query = query.Where(x => x.CultureName == criteria.LanguageCode);
+            }
+
+            if (!string.IsNullOrEmpty(criteria.MultilanguagePageId))
+            {
+                query = query.Where(x => x.MultilanguagePageId == criteria.MultilanguagePageId);
             }
 
             return query;

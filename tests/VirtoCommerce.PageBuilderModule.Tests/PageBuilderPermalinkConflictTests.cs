@@ -523,15 +523,21 @@ public class PageBuilderPermalinkConflictTests
             new NoopSharedComponentReferenceIndexService(),
             new PublishedRenameContentPreservationTests.NoopEventPublisher(),
             NullLogger<PageBuilderPageContentService>.Instance);
+        searchService ??= new SeededGroupedPageSearchService(service);
+        var publishConflictService = new PageBuilderPublishConflictService(
+            service,
+            searchService,
+            storeService ?? new FakeStoreService(new Store { Id = StoreId }),
+            PublishLock);
         return new PageBuilderPageController(
             pageService,
             service,
-            searchService ?? new SeededGroupedPageSearchService(service),
+            searchService,
             new PublishedRenameContentPreservationTests.AllowAllAuthorizationService(),
             new PublishedRenameContentPreservationTests.NoopPageDocumentSearchService(),
             pageContentService,
             NullLogger<PageBuilderPageController>.Instance,
-            storeService)
+            publishConflictService)
         {
             ControllerContext = new ControllerContext
             {
@@ -590,6 +596,9 @@ public class PageBuilderPermalinkConflictTests
             return result;
         }
     }
+
+    // Shared by the controllers of a test, like the platform lock is shared by requests.
+    private static readonly InProcessDistributedLock PublishLock = new();
 
     private const string StoreId = "store";
 }
