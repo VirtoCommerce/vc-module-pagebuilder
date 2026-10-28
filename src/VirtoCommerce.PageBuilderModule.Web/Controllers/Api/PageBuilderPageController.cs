@@ -69,6 +69,80 @@ public class PageBuilderPageController : Controller
         return Ok(result);
     }
 
+    /// <summary>
+    /// Pages list where a Multilanguage Page is a single row with its language statuses.
+    /// </summary>
+    [HttpPost("list")]
+    [Authorize(ModuleConstants.Security.Permissions.Read)]
+    public async Task<ActionResult<PageBuilderPageListSearchResult>> SearchList(
+        [FromBody] PageBuilderPageSearchCriteria criteria,
+        [FromServices] IPageBuilderPageListService pageListService,
+        CancellationToken cancellationToken = default)
+    {
+        if (criteria == null)
+        {
+            return BadRequest("Search criteria are required.");
+        }
+
+        var authorizationResult = await authorizationService.AuthorizeAsync(User, criteria, new PageBuilderAuthorizationRequirement());
+        if (!authorizationResult.Succeeded)
+        {
+            return Forbidden;
+        }
+
+        return Ok(await pageListService.SearchAsync(criteria, cancellationToken));
+    }
+
+    /// <summary>
+    /// Pages that already serve the permalink in the given languages; shown as a warning before saving.
+    /// </summary>
+    [HttpPost("permalink-usage")]
+    [Authorize(ModuleConstants.Security.Permissions.Read)]
+    public async Task<ActionResult<IList<PermalinkUsage>>> FindPermalinkUsage(
+        [FromBody] PermalinkUsageRequest request,
+        [FromServices] IPageBuilderPageListService pageListService,
+        CancellationToken cancellationToken = default)
+    {
+        if (request == null)
+        {
+            return BadRequest("Request is required.");
+        }
+
+        var authorizationResult = await authorizationService.AuthorizeAsync(
+            User, new PageBuilderPageSearchCriteria { StoreId = request.StoreId }, new PageBuilderAuthorizationRequirement());
+        if (!authorizationResult.Succeeded)
+        {
+            return Forbidden;
+        }
+
+        return Ok(await pageListService.FindPermalinkUsageAsync(request, cancellationToken));
+    }
+
+    /// <summary>
+    /// Name and permalink for a copy of the page that no page of the store uses yet; Clone saves the copy with them.
+    /// </summary>
+    [HttpGet("grouped/{groupId}/copy-name")]
+    [Authorize(ModuleConstants.Security.Permissions.Read)]
+    public async Task<ActionResult<PageCopyName>> GetCopyName(
+        [FromRoute] string groupId,
+        [FromServices] IPageBuilderPageListService pageListService,
+        CancellationToken cancellationToken = default)
+    {
+        var groupedPage = await groupedPageService.GetNoCloneAsync(groupId);
+        if (groupedPage == null)
+        {
+            return NotFound();
+        }
+
+        var authorizationResult = await authorizationService.AuthorizeAsync(User, groupedPage, new PageBuilderAuthorizationRequirement());
+        if (!authorizationResult.Succeeded)
+        {
+            return Forbidden;
+        }
+
+        return Ok(await pageListService.GetCopyNameAsync(groupedPage, cancellationToken));
+    }
+
     [HttpGet("grouped/{groupId}")]
     [Authorize(ModuleConstants.Security.Permissions.Read)]
     public async Task<ActionResult<GroupedPageBuilderPage>> GetGroup([FromRoute] string groupId, [FromQuery] string responseGroup = null)
@@ -98,6 +172,12 @@ public class PageBuilderPageController : Controller
     [Authorize(ModuleConstants.Security.Permissions.Update)]
     public async Task<ActionResult<GroupedPageBuilderPage>> UpdateGroup([FromBody] GroupedPageBuilderPage model, CancellationToken cancellationToken = default)
     {
+        // A body that does not bind (e.g. userGroups sent as an array instead of a comma-separated string) arrives as null.
+        if (model == null)
+        {
+            return BadRequest("The page is missing or invalid.");
+        }
+
         var groupedPage = await groupedPageService.GetByIdAsync(model.Id);
         var storeChanged = HasStoreChanged(groupedPage, model);
         var authorizationError = await AuthorizeGroupUpdateAsync(groupedPage, model, storeChanged);
@@ -106,14 +186,10 @@ public class PageBuilderPageController : Controller
             return authorizationError;
         }
 
-        if (groupedPage?.Status == Archived)
+        var updateError = ValidateGroupUpdate(groupedPage, model);
+        if (updateError != null)
         {
-            return BadRequest("Archived page cannot be updated.");
-        }
-
-        if (!IsPermalinkAccepted(groupedPage, model))
-        {
-            return BadRequest(PageBuilderPermalink.InvalidMessage);
+            return updateError;
         }
 
         groupedPage ??= AbstractTypeFactory<GroupedPageBuilderPage>.TryCreateInstance();
@@ -149,9 +225,19 @@ public class PageBuilderPageController : Controller
     [Authorize(ModuleConstants.Security.Permissions.Create)]
     public async Task<ActionResult<GroupedPageBuilderPage>> CreateGroup([FromBody] GroupedPageBuilderPage model, CancellationToken cancellationToken = default)
     {
+        if (model == null)
+        {
+            return BadRequest("The page is missing or invalid.");
+        }
+
         if (!PageBuilderPermalink.IsValid(model.Permalink))
         {
             return BadRequest(PageBuilderPermalink.InvalidMessage);
+        }
+
+        if (!PageBuilderPageName.IsValid(model.Name))
+        {
+            return BadRequest(PageBuilderPageName.InvalidMessage);
         }
 
         var authorizationResult = await authorizationService.AuthorizeAsync(User, model, new PageBuilderAuthorizationRequirement());
@@ -159,6 +245,11 @@ public class PageBuilderPageController : Controller
         {
             return Forbidden;
         }
+
+        // A page becomes a language version only through the multilanguage page endpoints, which check the root.
+        model.MultilanguagePageId = null;
+        model.OverriddenFields = null;
+        model.SourceRevisionDate = null;
 
         var draftPage = AbstractTypeFactory<PageBuilderPage>.TryCreateInstance();
 
@@ -183,7 +274,8 @@ public class PageBuilderPageController : Controller
         [FromBody] CreateGroupedPageRequest model,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(model.StoreId) ||
+        if (model == null ||
+            string.IsNullOrWhiteSpace(model.StoreId) ||
             string.IsNullOrWhiteSpace(model.Name) ||
             string.IsNullOrWhiteSpace(model.Content))
         {
@@ -193,6 +285,11 @@ public class PageBuilderPageController : Controller
         if (!PageBuilderPermalink.IsValid(model.Permalink))
         {
             return BadRequest(PageBuilderPermalink.InvalidMessage);
+        }
+
+        if (!PageBuilderPageName.IsValid(model.Name))
+        {
+            return BadRequest(PageBuilderPageName.InvalidMessage);
         }
 
         if (!TryValidatePageContentEnvelope(model.Content, out var envelopeError))
@@ -351,14 +448,12 @@ public class PageBuilderPageController : Controller
 
         if (publish)
         {
-            var pageToPublish = PageBuilderPageSelection.Order(groupedPage.Pages).FirstOrDefault(x => x.Status == Draft);
-            if (pageToPublish == null)
+            if (!GroupedPagePublishing.TryPublishDraft(groupedPage, out var obsoletePageIds))
             {
                 return BadRequest("Draft page not found.");
             }
 
-            pageToPublish.Status = Published;
-            pagesToDelete = groupedPage.Pages.Where(x => x.Id != pageToPublish.Id).Select(x => x.Id).ToList();
+            pagesToDelete = obsoletePageIds.ToList();
         }
         else
         {
@@ -806,6 +901,28 @@ public class PageBuilderPageController : Controller
     {
         return groupedPage != null &&
             !string.Equals(groupedPage.StoreId, model.StoreId, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private BadRequestObjectResult ValidateGroupUpdate(
+        GroupedPageBuilderPage groupedPage,
+        GroupedPageBuilderPage model)
+    {
+        if (groupedPage?.Status == Archived)
+        {
+            return BadRequest("Archived page cannot be updated.");
+        }
+
+        if (!IsPermalinkAccepted(groupedPage, model))
+        {
+            return BadRequest(PageBuilderPermalink.InvalidMessage);
+        }
+
+        if (!PageBuilderPageName.IsValid(model.Name))
+        {
+            return BadRequest(PageBuilderPageName.InvalidMessage);
+        }
+
+        return null;
     }
 
     // An unchanged permalink stored before validation existed must not block editing the page's other fields.

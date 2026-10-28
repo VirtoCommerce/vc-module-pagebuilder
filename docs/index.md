@@ -23,6 +23,7 @@ Page Builder offers the following benefits:
 
 ## Key features
 - Visual landing page creation without developer involvement.
+- [Multilanguage pages](multilanguage-pages.md): one page with a version per store language, language switch to the translated permalink, and `hreflang`.
 - Theme editor for easy styling adjustments.
 - Page version history with preview and one-click rollback, for stores whose pages are kept in git.
 - eCommerce-focused page customization with real-time previews.
