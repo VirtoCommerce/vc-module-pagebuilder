@@ -383,9 +383,11 @@ public class PageBuilderPageController : Controller
     }
 
     /// <summary>
-    /// Publish or unpublish the page. Publishing is refused with 409 while another published page of the store has
-    /// the same permalink and is offered to the same visitors; with <paramref name="unpublishConflicting"/> those
-    /// pages are unpublished in the same save instead.
+    /// Publish or unpublish the page. Publishing is refused with 409 while it would completely replace another
+    /// published, equally specific page of the store with the same permalink (a Certain conflict); with
+    /// <paramref name="unpublishConflicting"/> those pages are unpublished in the same save instead. A Possible
+    /// conflict does not stop publishing: the page is published with 200 and the other page stays published.
+    /// Use grouped/permalink-usages to find both kinds before publishing.
     /// </summary>
     [HttpPost]
     [Route("grouped/publishing/{groupId}")]
