@@ -12,6 +12,15 @@ namespace VirtoCommerce.PageBuilderModule.Data.PostgreSql.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            // A database that ran PageBuilder_MultilanguagePages before this index may have two versions of one language
+            // in a multilanguage page. The oldest stays linked; the others become separate Landing Pages, so the index can be created.
+            migrationBuilder.Sql(@"
+                UPDATE ""GroupedPageBuilderPage"" g SET ""MultilanguagePageId"" = NULL, ""OverriddenFields"" = NULL, ""SourceRevisionDate"" = NULL
+                WHERE g.""MultilanguagePageId"" IS NOT NULL AND g.""CultureName"" IS NOT NULL AND EXISTS (
+                    SELECT 1 FROM ""GroupedPageBuilderPage"" k
+                    WHERE k.""MultilanguagePageId"" = g.""MultilanguagePageId"" AND k.""CultureName"" = g.""CultureName""
+                      AND (k.""CreatedDate"" < g.""CreatedDate"" OR (k.""CreatedDate"" = g.""CreatedDate"" AND k.""Id"" < g.""Id"")))");
+
             migrationBuilder.CreateIndex(
                 name: "IX_GroupedPageBuilderPage_MultilanguagePageId_CultureName",
                 table: "GroupedPageBuilderPage",

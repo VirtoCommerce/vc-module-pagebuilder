@@ -28,6 +28,8 @@ public class MultilanguagePageController(
     IStoreService storeService)
     : Controller
 {
+    private const string ConcurrentChangeMessage = "The multilanguage page was changed by another request. Reload it and try again.";
+
     [HttpPost("search")]
     [Authorize(ModuleConstants.Security.Permissions.Read)]
     public async Task<ActionResult<MultilanguagePageSearchResult>> Search([FromBody] MultilanguagePageSearchCriteria criteria)
@@ -163,7 +165,15 @@ public class MultilanguagePageController(
             return BadRequest($"Multilanguage page '{id}' has language versions: archive them instead.");
         }
 
-        await multilanguagePageService.DeleteAsync([id]);
+        try
+        {
+            await multilanguagePageService.DeleteAsync([id]);
+        }
+        catch (DbUpdateException)
+        {
+            // A language version created meanwhile references the page (foreign key).
+            return Conflict(ConcurrentChangeMessage);
+        }
 
         return NoContent();
     }
@@ -241,6 +251,11 @@ public class MultilanguagePageController(
         catch (InvalidOperationException ex)
         {
             return BadRequest(ex.Message);
+        }
+        catch (DbUpdateException)
+        {
+            // The page was linked or converted by a concurrent request (unique index).
+            return Conflict(ConcurrentChangeMessage);
         }
     }
 
@@ -361,7 +376,7 @@ public class MultilanguagePageController(
         catch (DbUpdateException)
         {
             // A concurrent request took the language (unique index) or removed the page (foreign key); the data is intact.
-            return Conflict("The multilanguage page was changed by another request. Reload it and try again.");
+            return Conflict(ConcurrentChangeMessage);
         }
     }
 

@@ -1,13 +1,17 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
+using System.Runtime.ExceptionServices;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using VirtoCommerce.PageBuilderModule.Core.Models;
+using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.GenericCrud;
@@ -289,6 +293,22 @@ public class MultilanguagePageControllerTests
         Assert.IsType<BadRequestObjectResult>(result.Result);
     }
 
+    [Fact]
+    public async Task ConcurrentDeleteOrConvert_IsConflict()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var root = await fixture.CreateRootAsync();
+        var landing = await fixture.CreateLanguageAsync(null, "nl-NL", permalink: "/over-ons");
+        var controller = CreateController(fixture,
+            roots: FailingRoots.Create(fixture.Roots, nameof(IMultilanguagePageService.DeleteAsync), nameof(IMultilanguagePageService.ConvertAsync)));
+
+        var deleted = await controller.Delete(root.Id);
+        var converted = await controller.Convert(landing.Id, TestContext.Current.CancellationToken);
+
+        Assert.IsType<ConflictObjectResult>(deleted);
+        Assert.IsType<ConflictObjectResult>(converted.Result);
+    }
+
     private static PageBuilderPageController CreatePagesController(Fixture fixture)
     {
         return new PageBuilderPageController(
@@ -304,10 +324,11 @@ public class MultilanguagePageControllerTests
         };
     }
 
-    private static MultilanguagePageController CreateController(Fixture fixture, Func<object, bool> isAllowed = null)
+    private static MultilanguagePageController CreateController(Fixture fixture, Func<object, bool> isAllowed = null,
+        IMultilanguagePageService roots = null)
     {
         return new MultilanguagePageController(
-            fixture.Roots,
+            roots ?? fixture.Roots,
             null!,
             fixture.Groups,
             new PredicateAuthorizationService(isAllowed ?? (_ => true)),
@@ -320,6 +341,42 @@ public class MultilanguagePageControllerTests
     private static int? StatusCode(IActionResult result)
     {
         return (result as IStatusCodeActionResult)?.StatusCode;
+    }
+
+    /// <summary>
+    /// The real service, except that the given methods fail like a save that lost a race against the database constraints.
+    /// </summary>
+    public class FailingRoots : DispatchProxy
+    {
+        private IMultilanguagePageService _inner;
+        private HashSet<string> _failing;
+
+        public static IMultilanguagePageService Create(IMultilanguagePageService inner, params string[] failing)
+        {
+            var proxy = Create<IMultilanguagePageService, FailingRoots>();
+            var failingRoots = (FailingRoots)(object)proxy;
+            failingRoots._inner = inner;
+            failingRoots._failing = [.. failing];
+            return proxy;
+        }
+
+        protected override object Invoke(MethodInfo targetMethod, object[] args)
+        {
+            if (_failing.Contains(targetMethod!.Name))
+            {
+                throw new DbUpdateException("Constraint violation");
+            }
+
+            try
+            {
+                return targetMethod.Invoke(_inner, args);
+            }
+            catch (TargetInvocationException ex) when (ex.InnerException != null)
+            {
+                ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
+                throw;
+            }
+        }
     }
 
     private sealed class PredicateAuthorizationService(Func<object, bool> isAllowed) : IAuthorizationService
