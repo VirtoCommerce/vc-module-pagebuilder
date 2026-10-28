@@ -187,7 +187,8 @@ public class PageBuilderPageController : Controller
         draftPage.StoreId = model.StoreId;
         draftPage.Content = PageBuilderContentSettings.Synchronize(null, model);
 
-        model.Pages.Add(draftPage);
+        // Pages sent by the client are ignored: a page is published only through PublishGroup, which checks permalink conflicts
+        model.Pages = [draftPage];
 
         await groupedPageService.SaveChangesAsync([model]);
 

@@ -405,6 +405,21 @@ public class PageBuilderPermalinkConflictTests
     }
 
     [Fact]
+    public async Task CreateGroup_WithPublishedPage_CreatesDraftOnly()
+    {
+        var service = CreateService(PublishedGroup(x => x.Id = "old"));
+        var controller = CreateController(service);
+        var model = PublishedGroup(x => x.Id = null);
+
+        var result = await controller.CreateGroup(model, TestContext.Current.CancellationToken);
+
+        Assert.IsType<OkObjectResult>(result.Result);
+        var created = await service.GetByIdAsync(model.Id);
+        Assert.Equal(Draft, Assert.Single(created.Pages).Status);
+        Assert.Equal(Published, (await service.GetByIdAsync("old")).Status);
+    }
+
+    [Fact]
     public async Task GetPermalinkUsages_ChecksThePageAsSent()
     {
         var service = CreateService(PublishedGroup(x =>
