@@ -11,12 +11,14 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using VirtoCommerce.ContentModule.Core.Model;
 using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Data.Authorization;
+using VirtoCommerce.PageBuilderModule.Data.Services;
 using VirtoCommerce.PageBuilderModule.Web.Services;
 using VirtoCommerce.Pages.Core.Search;
 using VirtoCommerce.Platform.Core.Common;
@@ -35,7 +37,9 @@ public class PageBuilderPageController : Controller
     private readonly IPageDocumentSearchService pageDocumentSearchService;
     private readonly PageBuilderPageContentService pageContentService;
     private readonly ILogger<PageBuilderPageController> logger;
+    private readonly IPageBuilderPublishConflictService publishConflictService;
 
+    // Preserve the published constructor for extensions; request services supply the new dependency.
     public PageBuilderPageController(
         IPageBuilderPageService crudService,
         IGroupedPageService groupedPageService,
@@ -44,6 +48,21 @@ public class PageBuilderPageController : Controller
         IPageDocumentSearchService pageDocumentSearchService,
         PageBuilderPageContentService pageContentService,
         ILogger<PageBuilderPageController> logger)
+        : this(crudService, groupedPageService, groupedPageSearchService, authorizationService,
+            pageDocumentSearchService, pageContentService, logger, publishConflictService: null)
+    {
+    }
+
+    [ActivatorUtilitiesConstructor]
+    public PageBuilderPageController(
+        IPageBuilderPageService crudService,
+        IGroupedPageService groupedPageService,
+        IGroupedPageSearchService groupedPageSearchService,
+        IAuthorizationService authorizationService,
+        IPageDocumentSearchService pageDocumentSearchService,
+        PageBuilderPageContentService pageContentService,
+        ILogger<PageBuilderPageController> logger,
+        IPageBuilderPublishConflictService publishConflictService)
     {
         this.crudService = crudService;
         this.groupedPageService = groupedPageService;
@@ -52,6 +71,7 @@ public class PageBuilderPageController : Controller
         this.pageDocumentSearchService = pageDocumentSearchService;
         this.pageContentService = pageContentService;
         this.logger = logger;
+        this.publishConflictService = publishConflictService;
     }
 
     [HttpPost("search")]
@@ -258,7 +278,8 @@ public class PageBuilderPageController : Controller
         draftPage.StoreId = model.StoreId;
         draftPage.Content = PageBuilderContentSettings.Synchronize(null, model);
 
-        model.Pages.Add(draftPage);
+        // Pages sent by the client are ignored: a page is published only through PublishGroup, which checks permalink conflicts
+        model.Pages = [draftPage];
 
         await groupedPageService.SaveChangesAsync([model]);
 
@@ -426,10 +447,51 @@ public class PageBuilderPageController : Controller
         return NoContent();
     }
 
+    /// <summary>
+    /// Other pages of the store that use the permalink of the given page, and the conflict that publishing it creates
+    /// with each of them. The page is checked as sent, so changes that are not saved yet are taken into account.
+    /// </summary>
+    [HttpPost("grouped/permalink-usages")]
+    [Authorize(ModuleConstants.Security.Permissions.Read)]
+    public async Task<ActionResult<IList<PageBuilderPermalinkUsage>>> GetPermalinkUsages([FromBody] GroupedPageBuilderPage model)
+    {
+        if (model == null)
+        {
+            return BadRequest("The page is required.");
+        }
+
+        var authorizationResult = await authorizationService.AuthorizeAsync(User, model, new PageBuilderAuthorizationRequirement());
+        if (!authorizationResult.Succeeded)
+        {
+            return Forbidden;
+        }
+
+        var usages = await PublishConflictService.FindPermalinkUsagesAsync(model);
+
+        return Ok(usages);
+    }
+
+    // Retain the published direct-call signature without exposing a second HTTP action.
+    [NonAction]
+    public Task<ActionResult> PublishGroup(string groupId, bool publish, CancellationToken cancellationToken)
+    {
+        return PublishGroup(groupId, publish, unpublishConflicting: false, cancellationToken);
+    }
+
+    /// <summary>
+    /// Publish or unpublish the page. Publishing is refused with 409 while it would completely replace another
+    /// published, equally specific page of the store with the same permalink (a Certain conflict); with
+    /// <paramref name="unpublishConflicting"/> those pages are unpublished in the same save instead. A Possible
+    /// conflict does not stop publishing: the page is published with 200 and the other page stays published.
+    /// Use grouped/permalink-usages to find both kinds before publishing.
+    /// </summary>
     [HttpPost]
     [Route("grouped/publishing/{groupId}")]
     [Authorize(ModuleConstants.Security.Permissions.Publish)]
-    public async Task<ActionResult> PublishGroup([FromRoute] string groupId, [FromQuery] bool publish, CancellationToken cancellationToken = default)
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PageBuilderPermalinkConflictResult), StatusCodes.Status409Conflict)]
+    public async Task<ActionResult> PublishGroup([FromRoute] string groupId, [FromQuery] bool publish,
+        [FromQuery] bool unpublishConflicting = false, CancellationToken cancellationToken = default)
     {
         var groupedPage = await groupedPageService.GetByIdAsync(groupId);
 
@@ -444,39 +506,114 @@ public class PageBuilderPageController : Controller
             return Forbidden;
         }
 
-        List<string> pagesToDelete;
+        return publish
+            ? await PublishDraftLockedAsync(groupedPage, unpublishConflicting)
+            : await UnpublishAsync(groupedPage);
+    }
 
-        if (publish)
+    // Reloads the page under the lock: another publish may have changed it while this one waited.
+    private Task<ActionResult> PublishDraftLockedAsync(GroupedPageBuilderPage groupedPage, bool unpublishConflicting)
+    {
+        return PublishConflictService.ExecuteExclusiveAsync(groupedPage, async () =>
         {
-            if (!GroupedPagePublishing.TryPublishDraft(groupedPage, out var obsoletePageIds))
-            {
-                return BadRequest("Draft page not found.");
-            }
+            var currentPage = await groupedPageService.GetByIdAsync(groupedPage.Id);
 
-            pagesToDelete = obsoletePageIds.ToList();
-        }
-        else
+            return currentPage == null
+                ? NotFound()
+                : await PublishDraftAsync(currentPage, unpublishConflicting);
+        });
+    }
+
+    // With the published constructor the service comes from the request services; a controller built outside a request
+    // checks conflicts without the store's default language and without the lock.
+    private IPageBuilderPublishConflictService PublishConflictService =>
+        publishConflictService
+        ?? HttpContext?.RequestServices?.GetService<IPageBuilderPublishConflictService>()
+        ?? new PageBuilderPublishConflictService(groupedPageService, groupedPageSearchService, storeService: null, distributedLock: null);
+
+    private async Task<ActionResult> PublishDraftAsync(GroupedPageBuilderPage groupedPage, bool unpublishConflicting)
+    {
+        if (!groupedPage.Pages.Any(x => x.Status == Draft))
         {
-            var pageToUnpublish = PageBuilderPageSelection.Order(groupedPage.Pages).FirstOrDefault(x => x.Status == Published);
-            if (pageToUnpublish == null)
-            {
-                return BadRequest("Published page not found.");
-            }
-
-            var hasDraft = groupedPage.Pages.Any(x => x.Status == Draft);
-            if (hasDraft)
-            {
-                return BadRequest("Can't unpublish a page that has changes.");
-            }
-
-            pageToUnpublish.Status = Draft;
-            pagesToDelete = groupedPage.Pages.Where(x => x.Id != pageToUnpublish.Id).Select(x => x.Id).ToList();
+            return BadRequest("Draft page not found.");
         }
+
+        var (conflicts, conflictingGroups) = await PublishConflictService.FindBlockingConflictsAsync(groupedPage);
+
+        var hasUnpublishedChanges = conflicts.Any(x => !x.CanUnpublish);
+        if (conflicts.Count > 0 && (!unpublishConflicting || hasUnpublishedChanges))
+        {
+            return PermalinkConflict(conflicts, hasUnpublishedChanges);
+        }
+
+        if (conflictingGroups.Count > 0)
+        {
+            var conflictsAuthorization = await authorizationService.AuthorizeAsync(User, conflictingGroups, new PageBuilderAuthorizationRequirement());
+            if (!conflictsAuthorization.Succeeded)
+            {
+                return Forbidden;
+            }
+        }
+
+        GroupedPagePublishing.TryPublishDraft(groupedPage, out var obsoletePageIds);
+        var pagesToDelete = obsoletePageIds.ToList();
+        pagesToDelete.AddRange(conflictingGroups.SelectMany(UnpublishConflictingGroup));
+
+        await groupedPageService.SaveChangesAsync([groupedPage, .. conflictingGroups]);
+        await crudService.DeleteAsync(pagesToDelete);
+
+        return Ok();
+    }
+
+    private async Task<ActionResult> UnpublishAsync(GroupedPageBuilderPage groupedPage)
+    {
+        var pageToUnpublish = PageBuilderPageSelection.Order(groupedPage.Pages).FirstOrDefault(x => x.Status == Published);
+        if (pageToUnpublish == null)
+        {
+            return BadRequest("Published page not found.");
+        }
+
+        var hasDraft = groupedPage.Pages.Any(x => x.Status == Draft);
+        if (hasDraft)
+        {
+            return BadRequest("Can't unpublish a page that has changes.");
+        }
+
+        pageToUnpublish.Status = Draft;
+        var pagesToDelete = groupedPage.Pages.Where(x => x.Id != pageToUnpublish.Id).Select(x => x.Id).ToList();
 
         await groupedPageService.SaveChangesAsync([groupedPage]);
         await crudService.DeleteAsync(pagesToDelete);
 
         return Ok();
+    }
+
+    // Turns the published page of a group without a draft back into a draft, like unpublishing does, and returns
+    // the ids of the group's other pages to delete. A group unpublished meanwhile is left as it is.
+    private static IEnumerable<string> UnpublishConflictingGroup(GroupedPageBuilderPage group)
+    {
+        var pageToUnpublish = PageBuilderPageSelection.Order(group.Pages).FirstOrDefault(x => x.Status == Published);
+        if (pageToUnpublish == null)
+        {
+            return [];
+        }
+
+        pageToUnpublish.Status = Draft;
+        return group.Pages.Where(x => x.Id != pageToUnpublish.Id).Select(x => x.Id).ToList();
+    }
+
+    private ObjectResult PermalinkConflict(IList<PageBuilderPermalinkUsage> conflicts, bool hasUnpublishedChanges)
+    {
+        var names = string.Join(", ", conflicts.Select(x => $"'{x.Name}'"));
+        var error = hasUnpublishedChanges
+            ? $"Pages {names} are published with the same permalink for the same visitors, and some of them have unpublished changes. Publish or discard those changes first."
+            : $"Pages {names} are published with the same permalink for the same visitors. Unpublish them first, or publish with unpublishConflicting=true.";
+
+        var result = AbstractTypeFactory<PageBuilderPermalinkConflictResult>.TryCreateInstance();
+        result.Error = error;
+        result.Conflicts = conflicts;
+
+        return Conflict(result);
     }
 
     [HttpDelete]

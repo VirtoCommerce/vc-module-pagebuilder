@@ -88,6 +88,9 @@
           "USER_GROUPS": "Användargrupper",
           "ORGANIZATION": "Organisation"
         },
+        "WARNINGS": {
+          "PERMALINK_USED": "Andra sidor använder den här permalänken: {pages}. Det är tillåtet för andra besökare eller perioder; publiceringen kontrollerar konflikter."
+        },
         "VALIDATION": {
           "PERMALINK": "Permalänken får vara högst 2048 tecken och får inte innehålla mellanslag eller osynliga tecken, tecknen ? # & % \\ \" < > {'{'} {'}'} {'|'} ^ `, dubbla snedstreck eller segmenten . och .."
         },
@@ -116,6 +119,10 @@
           "MESSAGE": "Är du säker på att du vill arkivera {count} valda sidor?",
           "ALL": "alla {totalCount}"
         },
+        "PUBLISH_CONFLICT": "Redan publicerade med den här permalänken för samma besökare: {pages}. Avpublicera dem och publicera den här sidan?",
+        "PUBLISH_CONFLICT_HAS_CHANGES": "Redan publicerade med den här permalänken för samma besökare: {pages}. De har opublicerade ändringar; publicera eller ignorera dem först.",
+        "PUBLISH_POSSIBLE_CONFLICT": "Även publicerade med den här permalänken för en del av samma besökare eller datum: {pages}. Där båda gäller visas den senast publicerade. Publicera ändå?",
+        "PUBLISH_CONFLICT_CHANGED": "Publiceringen avvisades: dessa sidor är redan publicerade med den här permalänken för samma besökare: {pages}. Publicera igen för att lösa konflikten.",
         "UNPUBLISH_WITH_DRAFT": "Kan inte avpublicera en sida som har ändringar.",
         "DOWNLOAD_SUCCESS": "Innehåll sparat i fil",
         "CLONE_SUCCESS": "Sidan klonades",

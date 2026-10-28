@@ -8,6 +8,7 @@ import {
   isPermalinkCheckNeeded,
   summarizeBatchResult,
   summarizeLanguageStatuses,
+  getConflictedLanguages,
 } from "../src/modules/page-builder/composables/useMultilanguagePageDetails/helpers";
 
 test("isMultilanguageRowArchived needs at least one version, all archived", () => {
@@ -64,6 +65,19 @@ test("summarizeBatchResult reports failed languages apart from skipped ones", ()
     { processed: "en-US", skipped: "de-DE", failed: "nl-NL" },
   );
   assert.deepEqual(summarizeBatchResult({}), { processed: "—", skipped: "—", failed: "" });
+});
+
+test("a permalink conflict is reported apart from versions without a draft", () => {
+  const result = {
+    processedCultureNames: ["en-US"],
+    skipped: [
+      { cultureName: "de-DE", reason: "NoDraft" },
+      { cultureName: "nl-NL", reason: "PermalinkConflict" },
+    ],
+  };
+  assert.equal(summarizeBatchResult(result).skipped, "de-DE");
+  assert.equal(getConflictedLanguages(result), "nl-NL");
+  assert.equal(getConflictedLanguages({}), "");
 });
 
 test("getLanguagePillText shows the region only where the language part is ambiguous", () => {
