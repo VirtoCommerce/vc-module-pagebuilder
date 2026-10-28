@@ -575,8 +575,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
             return SaveChangesInternalAsync([group], async (repository, entities, ct) =>
             {
                 var existing = entities.SingleOrDefault();
-                var settingsChanged = existing == null || existing.Name != group.Name
-                    || existing.Permalink != group.Permalink || existing.CultureName != group.CultureName;
+                var settingsChanged = HasContentSettingsChanged(existing, group);
                 if (existing != null)
                 {
                     if (existing.CreatedDate != group.CreatedDate)
@@ -587,7 +586,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
                     group.Pages = ToModel(existing, null).Pages;
                 }
                 // An archived page keeps its settings in sync but gets no draft: a draft would bring it back to Draft.
-                if (group.Pages.Count > 0 && group.Pages.All(x => x.Status == Archived))
+                if (IsArchived(group))
                 {
                     return new PreparedSave(group);
                 }
@@ -603,6 +602,18 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
                 }
                 return new PreparedSave(group);
             }, cancellationToken);
+        }
+
+        // The settings the page content JSON repeats.
+        private static bool HasContentSettingsChanged(GroupedPageBuilderPageEntity existing, GroupedPageBuilderPage group)
+        {
+            return existing == null || existing.Name != group.Name
+                || existing.Permalink != group.Permalink || existing.CultureName != group.CultureName;
+        }
+
+        private static bool IsArchived(GroupedPageBuilderPage group)
+        {
+            return group.Pages.Count > 0 && group.Pages.All(x => x.Status == Archived);
         }
 
         private GroupedPageBuilderPage GetAuthorizedGroup(
