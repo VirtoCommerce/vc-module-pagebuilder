@@ -9,7 +9,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests;
 public class MultilanguagePageEntityTests
 {
     [Fact]
-    public void MultilanguagePageEntity_RoundTripsEveryField()
+    public void MultilanguagePageEntity_RoundTripsEveryField_PatchKeepsStore()
     {
         var model = new MultilanguagePage
         {
@@ -26,12 +26,14 @@ public class MultilanguagePageEntityTests
         };
 
         var entity = new MultilanguagePageEntity().FromModel(model, new PrimaryKeyResolvingMap());
-        var target = new MultilanguagePageEntity { Id = "root" };
+        // The stored root keeps its store: a multilanguage page never moves to another one.
+        var target = new MultilanguagePageEntity { Id = "root", StoreId = "stored-store" };
         entity.Patch(target);
         var restored = target.ToModel(new MultilanguagePage());
 
+        Assert.Equal(model.StoreId, entity.ToModel(new MultilanguagePage()).StoreId);
         Assert.Equal(
-            (model.StoreId, model.Name, model.Permalink, model.DefaultCultureName, model.OrganizationId, model.Visibility, model.UserGroups, model.StartDate, model.EndDate),
+            ("stored-store", model.Name, model.Permalink, model.DefaultCultureName, model.OrganizationId, model.Visibility, model.UserGroups, model.StartDate, model.EndDate),
             (restored.StoreId, restored.Name, restored.Permalink, restored.DefaultCultureName, restored.OrganizationId, restored.Visibility, restored.UserGroups, restored.StartDate, restored.EndDate));
     }
 

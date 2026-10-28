@@ -182,13 +182,15 @@ public class MultilanguagePageService(
         }
 
         // A version in a language the store does not serve has no storefront address, like a version created for it.
-        await GetStoreLanguageAsync(root.StoreId, group.CultureName);
+        var cultureName = await GetStoreLanguageAsync(root.StoreId, group.CultureName);
 
         await SetMultilanguagePageIdAsync(groupId, root.Id, cancellationToken);
 
         try
         {
             group = await groupedPageService.GetByIdAsync(groupId);
+            // The language is stored as the store spells it, like a version created for it.
+            group.CultureName = cultureName;
             // The save takes the root name and marks whatever differs from the root as overridden, so the page keeps
             // serving the same permalink and settings. It also reindexes the page with its translation group.
             await groupedPageContentService.SaveGroupSettingsAsync(group, cancellationToken);
@@ -324,7 +326,7 @@ public class MultilanguagePageService(
         root.StoreId = group.StoreId;
         root.Name = group.Name;
         root.Permalink = group.Permalink;
-        root.DefaultCultureName = group.CultureName;
+        root.DefaultCultureName = store.Languages.First(x => string.Equals(x, group.CultureName, StringComparison.OrdinalIgnoreCase));
         root.OrganizationId = group.OrganizationId;
         root.Visibility = group.Visibility;
         root.UserGroups = group.UserGroups;

@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
@@ -218,6 +219,8 @@ public class MultilanguagePageController(
     /// </summary>
     [HttpPost("convert/{groupId}")]
     [Authorize(ModuleConstants.Security.Permissions.Create)]
+    // The existing page changes too, as with Link.
+    [Authorize(ModuleConstants.Security.Permissions.Update)]
     public async Task<ActionResult<MultilanguagePage>> Convert([FromRoute] string groupId, CancellationToken cancellationToken = default)
     {
         var group = await groupedPageService.GetNoCloneAsync(groupId);
@@ -354,6 +357,11 @@ public class MultilanguagePageController(
         catch (Exception ex) when (ex is InvalidOperationException or ArgumentException or InvalidDataException)
         {
             return BadRequest(ex.Message);
+        }
+        catch (DbUpdateException)
+        {
+            // A concurrent request took the language (unique index) or removed the page (foreign key); the data is intact.
+            return Conflict("The multilanguage page was changed by another request. Reload it and try again.");
         }
     }
 

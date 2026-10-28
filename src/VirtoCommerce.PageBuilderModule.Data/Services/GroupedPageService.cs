@@ -586,6 +586,11 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
                     // Membership is read under the group lock; a cached Shell model cannot hide a new draft.
                     group.Pages = ToModel(existing, null).Pages;
                 }
+                // An archived page keeps its settings in sync but gets no draft: a draft would bring it back to Draft.
+                if (group.Pages.Count > 0 && group.Pages.All(x => x.Status == Archived))
+                {
+                    return new PreparedSave(group);
+                }
                 var snapshot = await ReadContentAsync(repository, group, draft: true, ct);
                 if (!settingsChanged && snapshot.Content != null)
                 {

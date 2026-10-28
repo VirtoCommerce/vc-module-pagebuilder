@@ -353,6 +353,35 @@ public class MultilanguagePageServiceTests
     }
 
     [Fact]
+    public async Task LinkAndConvert_LanguageInOtherCase_StoreTheStoreSpelling()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var root = await fixture.CreateRootAsync();
+        var linked = await fixture.CreateLanguageAsync(null, "NL-nl", permalink: "/veelgestelde-vragen");
+        var converted = await fixture.CreateLanguageAsync(null, "DE-de", permalink: "/haeufige-fragen");
+
+        await fixture.Roots.LinkAsync(root.Id, linked.Id, TestContext.Current.CancellationToken);
+        var convertedRoot = await fixture.Roots.ConvertAsync(converted.Id, TestContext.Current.CancellationToken);
+
+        Assert.Equal("nl-NL", (await fixture.LoadGroupAsync(linked.Id)).CultureName);
+        Assert.Equal("de-DE", (await fixture.LoadGroupAsync(converted.Id)).CultureName);
+        Assert.Equal("de-DE", convertedRoot.DefaultCultureName);
+    }
+
+    [Fact]
+    public async Task SaveChangesAsync_RootWithAnotherStore_KeepsItsStore()
+    {
+        // An import file or a client must not move the root away from its language versions.
+        await using var fixture = await Fixture.CreateAsync();
+        var root = await fixture.CreateRootAsync();
+        root.StoreId = "another-store";
+
+        await fixture.Roots.SaveChangesAsync([root]);
+
+        Assert.Equal(StoreId, (await fixture.Roots.GetNoCloneAsync(root.Id)).StoreId);
+    }
+
+    [Fact]
     public async Task LinkAsync_LanguageAlreadyPresent_Throws()
     {
         await using var fixture = await Fixture.CreateAsync();
@@ -571,6 +600,29 @@ public class MultilanguagePageServiceTests
         Assert.Equal(["en-US", "nl-NL"], result.ProcessedCultureNames.Order());
         Assert.Equal("Archived", (await fixture.Groups.GetByIdAsync(en.Id)).Status);
         Assert.Equal("Archived", (await fixture.Groups.GetByIdAsync(nl.Id)).Status);
+    }
+
+    [Fact]
+    public async Task ArchiveAllAsync_ThenRootRenamed_VersionsStayArchived()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var root = await fixture.CreateRootAsync();
+        var en = await fixture.CreateLanguageAsync(root, "en-US", draftContent: Content("en"));
+        var nl = await fixture.CreateLanguageAsync(root, "nl-NL", draftContent: Content("nl"));
+        await fixture.Roots.ArchiveAllAsync(root.Id, TestContext.Current.CancellationToken);
+
+        root.Name = "About";
+        root.Permalink = "/about";
+        await fixture.Roots.SaveChangesAsync([root]);
+        await fixture.Roots.ResetOverridesAsync(root.Id, ["permalink"], TestContext.Current.CancellationToken);
+
+        foreach (var id in new[] { en.Id, nl.Id })
+        {
+            var group = await fixture.Groups.GetByIdAsync(id);
+            Assert.Equal("Archived", group.Status);
+            Assert.All(group.Pages, x => Assert.Equal("Archived", x.Status));
+            Assert.Equal(("About", "/about"), (group.Name, group.Permalink));
+        }
     }
 
     [Fact]

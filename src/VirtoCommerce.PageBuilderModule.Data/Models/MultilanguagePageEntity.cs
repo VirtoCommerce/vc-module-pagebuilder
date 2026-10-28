@@ -79,7 +79,7 @@ public class MultilanguagePageEntity : AuditableEntity, IDataEntity<Multilanguag
 
     public void Patch(MultilanguagePageEntity target)
     {
-        target.StoreId = StoreId;
+        // A multilanguage page never moves to another store (its language versions stay in it), so the store is not patched.
         target.Name = Name;
         target.Permalink = Permalink;
         target.DefaultCultureName = DefaultCultureName;

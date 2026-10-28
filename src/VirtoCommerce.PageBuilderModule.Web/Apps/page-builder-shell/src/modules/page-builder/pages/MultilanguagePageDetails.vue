@@ -414,13 +414,13 @@ async function confirmRootPermalinkUsage(): Promise<boolean> {
     return true;
   }
 
-  return confirmRootPermalinkUsageFor(inheritingCultures);
+  return confirmRootPermalinkUsageFor(inheritingCultures, item.value.permalink);
 }
 
-function confirmRootPermalinkUsageFor(cultureNames: string[]): Promise<boolean> {
+function confirmRootPermalinkUsageFor(cultureNames: string[], permalink: string | undefined): Promise<boolean> {
   return confirmPermalinkUsage({
     storeId: item.value.storeId,
-    permalink: item.value.permalink,
+    permalink,
     cultureNames,
     excludeMultilanguagePageId: item.value.id,
   });
@@ -460,7 +460,14 @@ async function saveRoot(resetFields: string[] = []) {
 
 async function onApplyToAll() {
   const fields = [...new Set(conflicts.value.flatMap((conflict) => conflict.fields))];
+  // Languages with their own permalink take the root one too; the save only checked the inheriting languages.
+  const permalinkCultures = conflicts.value
+    .filter((conflict) => conflict.fields.includes("Permalink"))
+    .map((conflict) => conflict.cultureName);
   conflicts.value = [];
+  if (permalinkCultures.length && !(await confirmRootPermalinkUsageFor(permalinkCultures, item.value.permalink))) {
+    return;
+  }
   await saveRoot(fields);
 }
 
@@ -508,8 +515,8 @@ function openDesigner(language: MultilanguagePageLanguage) {
 }
 
 async function onCreateLanguage(language: MultilanguagePageLanguage) {
-  // The new version inherits the root permalink in its language.
-  if (!(await confirmRootPermalinkUsageFor([language.cultureName!]))) {
+  // The new version inherits the saved root permalink in its language, not one still being edited.
+  if (!(await confirmRootPermalinkUsageFor([language.cultureName!], savedSettings.value.permalink))) {
     return;
   }
   await createLanguage({ cultureName: language.cultureName!, copyContent: true });
