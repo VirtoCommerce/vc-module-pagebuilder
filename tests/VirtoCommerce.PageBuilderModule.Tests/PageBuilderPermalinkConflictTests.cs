@@ -436,6 +436,16 @@ public class PageBuilderPermalinkConflictTests
     }
 
     [Fact]
+    public async Task GetPermalinkUsages_WithoutPage_ReturnsBadRequest()
+    {
+        var controller = CreateController(CreateService());
+
+        var result = await controller.GetPermalinkUsages(null);
+
+        Assert.IsType<BadRequestObjectResult>(result.Result);
+    }
+
+    [Fact]
     public async Task GetPermalinkUsages_ChecksThePageAsSent()
     {
         var service = CreateService(PublishedGroup(x =>

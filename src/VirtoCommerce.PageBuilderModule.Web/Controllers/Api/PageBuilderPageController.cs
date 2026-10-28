@@ -359,6 +359,11 @@ public class PageBuilderPageController : Controller
     [Authorize(ModuleConstants.Security.Permissions.Read)]
     public async Task<ActionResult<IList<PageBuilderPermalinkUsage>>> GetPermalinkUsages([FromBody] GroupedPageBuilderPage model)
     {
+        if (model == null)
+        {
+            return BadRequest("The page is required.");
+        }
+
         var authorizationResult = await authorizationService.AuthorizeAsync(User, model, new PageBuilderAuthorizationRequirement());
         if (!authorizationResult.Succeeded)
         {
