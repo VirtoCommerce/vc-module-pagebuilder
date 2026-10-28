@@ -248,11 +248,15 @@ public class PageBuilderPageListService(
     // Only the drafts list: a status, language or date filter asks about versions a root without them does not have.
     private static bool ListsRootsWithoutVersions(PageBuilderPageSearchCriteria criteria)
     {
-        return criteria.Lifecycle == PageLifecycleFilters.Drafts &&
-               string.IsNullOrEmpty(criteria.Statuses) &&
-               string.IsNullOrEmpty(criteria.LanguageCode) &&
-               !criteria.ActiveOn.HasValue &&
-               criteria.ObjectIds is not { Count: > 0 };
+        return criteria.Lifecycle == PageLifecycleFilters.Drafts && !FiltersVersionFields(criteria);
+    }
+
+    private static bool FiltersVersionFields(PageBuilderPageSearchCriteria criteria)
+    {
+        return !string.IsNullOrEmpty(criteria.Statuses) ||
+               !string.IsNullOrEmpty(criteria.LanguageCode) ||
+               criteria.ActiveOn.HasValue ||
+               criteria.ObjectIds is { Count: > 0 };
     }
 
     protected virtual IQueryable<MultilanguagePageEntity> FilterByTranslationStatus(IPageBuilderModuleRepository repository,
