@@ -357,7 +357,7 @@ public class MultilanguagePageController(
         }
     }
 
-    private ActionResult Validate(MultilanguagePage model, MultilanguagePage existing)
+    private BadRequestObjectResult Validate(MultilanguagePage model, MultilanguagePage existing)
     {
         if (!PageBuilderPageName.IsValid(model.Name))
         {
