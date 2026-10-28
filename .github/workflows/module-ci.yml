@@ -406,7 +406,7 @@ jobs:
       customModuleUrl:  ${{ needs.ci.outputs.artifactUrl }}
       requiredModulesListUrl: ${{ needs.ci.outputs.requiredModulesListUrl }}
       moduleDependencies: ${{ needs.ci.outputs.moduleDependencies }}
-      vctestingRepoBranch: 'fix/VCST-4935-page-builder-list' #'dev'
+      vctestingRepoBranch: 'dev'
       frontendZipUrl: 'latest'
       testSuites: 'graphql,restapi,e2e'
     secrets:
