@@ -21,6 +21,7 @@ using VirtoCommerce.PageBuilderModule.Data.Authorization;
 using VirtoCommerce.PageBuilderModule.Web.Services;
 using VirtoCommerce.Pages.Core.Search;
 using VirtoCommerce.Platform.Core.Common;
+using VirtoCommerce.Platform.Core.DistributedLock;
 using VirtoCommerce.StoreModule.Core.Services;
 using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 
@@ -403,8 +404,41 @@ public class PageBuilderPageController : Controller
         }
 
         return publish
-            ? await PublishDraftAsync(groupedPage, unpublishConflicting)
+            ? await PublishDraftLockedAsync(groupedPage, unpublishConflicting)
             : await UnpublishAsync(groupedPage);
+    }
+
+    // The conflict check and the save run under a lock on the permalink: two pages that conflict only with each other
+    // must not both pass the check before either is saved. The local lock covers a platform without Redis, where
+    // the distributed lock service does not lock.
+    private async Task<ActionResult> PublishDraftLockedAsync(GroupedPageBuilderPage groupedPage, bool unpublishConflicting)
+    {
+        var lockKey = $"PageBuilderPublish:{groupedPage.StoreId?.ToLowerInvariant()}:{PageBuilderPermalinkConflicts.Normalize(groupedPage.Permalink)}";
+
+        using (await AsyncLock.GetLockByKey(lockKey).LockAsync())
+        {
+            var distributedLockService = HttpContext?.RequestServices?.GetService<IDistributedLockService>();
+            if (distributedLockService == null)
+            {
+                return await PublishCurrentDraftAsync(groupedPage.Id, unpublishConflicting);
+            }
+
+            return await distributedLockService.ExecuteAsync(
+                lockKey,
+                () => PublishCurrentDraftAsync(groupedPage.Id, unpublishConflicting),
+                tryLockTimeout: TimeSpan.FromSeconds(30),
+                retryInterval: TimeSpan.FromMilliseconds(100));
+        }
+    }
+
+    // Reloads the page: another publish may have changed it while this one waited for the lock.
+    private async Task<ActionResult> PublishCurrentDraftAsync(string groupId, bool unpublishConflicting)
+    {
+        var groupedPage = await groupedPageService.GetByIdAsync(groupId);
+
+        return groupedPage == null
+            ? NotFound()
+            : await PublishDraftAsync(groupedPage, unpublishConflicting);
     }
 
     private async Task<ActionResult> PublishDraftAsync(GroupedPageBuilderPage groupedPage, bool unpublishConflicting)

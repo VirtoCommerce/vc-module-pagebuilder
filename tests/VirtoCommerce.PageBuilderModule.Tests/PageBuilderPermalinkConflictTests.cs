@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -405,6 +406,21 @@ public class PageBuilderPermalinkConflictTests
     }
 
     [Fact]
+    public async Task PublishGroup_TwoConflictingPagesAtOnce_PublishesOnlyOne()
+    {
+        var service = CreateService(Group(x => x.Id = "new"), Group(x => x.Id = "old"));
+        var searchService = new BarrierGroupedPageSearchService(service, parties: 2);
+
+        var results = await Task.WhenAll(
+            CreateController(service, searchService).PublishGroup("new", publish: true, cancellationToken: TestContext.Current.CancellationToken),
+            CreateController(service, searchService).PublishGroup("old", publish: true, cancellationToken: TestContext.Current.CancellationToken));
+
+        Assert.Single(results.OfType<OkResult>());
+        Assert.Single(results.OfType<ConflictObjectResult>());
+        Assert.Single(await service.GetAsync(["new", "old"]), x => x.Status == Published);
+    }
+
+    [Fact]
     public async Task CreateGroup_WithPublishedPage_CreatesDraftOnly()
     {
         var service = CreateService(PublishedGroup(x => x.Id = "old"));
@@ -542,6 +558,26 @@ public class PageBuilderPermalinkConflictTests
                 TotalCount = groups.Count,
                 Results = groups.Skip(criteria.Skip).Take(criteria.Take).ToList(),
             });
+        }
+    }
+
+    // Holds each search until the other publish searches too, or a timeout passes, so unguarded publishes overlap.
+    private sealed class BarrierGroupedPageSearchService(PublishedRenameContentPreservationTests.FakeGroupedPageService service, int parties)
+        : IGroupedPageSearchService
+    {
+        private readonly SeededGroupedPageSearchService _inner = new(service);
+        private readonly TaskCompletionSource _allArrived = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private int _arrived;
+
+        public async Task<GroupedPageBuilderPageSearchResult> SearchAsync(PageBuilderPageSearchCriteria criteria, bool clone = true)
+        {
+            var result = await _inner.SearchAsync(criteria, clone);
+            if (Interlocked.Increment(ref _arrived) == parties)
+            {
+                _allArrived.TrySetResult();
+            }
+            await Task.WhenAny(_allArrived.Task, Task.Delay(TimeSpan.FromMilliseconds(500)));
+            return result;
         }
     }
 
