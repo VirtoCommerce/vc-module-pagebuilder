@@ -95,10 +95,15 @@ public class MultilanguagePageService(
         await base.DeleteAsync(ids, softDelete);
     }
 
-    public virtual async Task<MultilanguagePage> CreateAsync(MultilanguagePage model, CancellationToken cancellationToken = default)
+    public virtual Task<MultilanguagePage> CreateAsync(MultilanguagePage model, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(model);
 
+        return CreateCheckedAsync(model);
+    }
+
+    private async Task<MultilanguagePage> CreateCheckedAsync(MultilanguagePage model)
+    {
         model.Id = null;
         if (!string.IsNullOrWhiteSpace(model.DefaultCultureName))
         {

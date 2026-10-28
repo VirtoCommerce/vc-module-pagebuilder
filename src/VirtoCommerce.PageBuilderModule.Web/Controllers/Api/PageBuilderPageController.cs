@@ -186,19 +186,10 @@ public class PageBuilderPageController : Controller
             return authorizationError;
         }
 
-        if (groupedPage?.Status == Archived)
+        var updateError = ValidateGroupUpdate(groupedPage, model);
+        if (updateError != null)
         {
-            return BadRequest("Archived page cannot be updated.");
-        }
-
-        if (!IsPermalinkAccepted(groupedPage, model))
-        {
-            return BadRequest(PageBuilderPermalink.InvalidMessage);
-        }
-
-        if (!PageBuilderPageName.IsValid(model.Name))
-        {
-            return BadRequest(PageBuilderPageName.InvalidMessage);
+            return updateError;
         }
 
         groupedPage ??= AbstractTypeFactory<GroupedPageBuilderPage>.TryCreateInstance();
@@ -910,6 +901,28 @@ public class PageBuilderPageController : Controller
     {
         return groupedPage != null &&
             !string.Equals(groupedPage.StoreId, model.StoreId, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private BadRequestObjectResult ValidateGroupUpdate(
+        GroupedPageBuilderPage groupedPage,
+        GroupedPageBuilderPage model)
+    {
+        if (groupedPage?.Status == Archived)
+        {
+            return BadRequest("Archived page cannot be updated.");
+        }
+
+        if (!IsPermalinkAccepted(groupedPage, model))
+        {
+            return BadRequest(PageBuilderPermalink.InvalidMessage);
+        }
+
+        if (!PageBuilderPageName.IsValid(model.Name))
+        {
+            return BadRequest(PageBuilderPageName.InvalidMessage);
+        }
+
+        return null;
     }
 
     // An unchanged permalink stored before validation existed must not block editing the page's other fields.

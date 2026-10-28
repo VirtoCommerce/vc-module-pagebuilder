@@ -32,10 +32,15 @@ public class PageBuilderPageListService(
         return FindPermalinkUsageCoreAsync(request, cancellationToken);
     }
 
-    public virtual async Task<PageCopyName> GetCopyNameAsync(GroupedPageBuilderPage page, CancellationToken cancellationToken = default)
+    public virtual Task<PageCopyName> GetCopyNameAsync(GroupedPageBuilderPage page, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(page);
 
+        return GetCopyNameCoreAsync(page, cancellationToken);
+    }
+
+    protected virtual async Task<PageCopyName> GetCopyNameCoreAsync(GroupedPageBuilderPage page, CancellationToken cancellationToken)
+    {
         int number;
         using (var repository = repositoryFactory())
         {
@@ -196,9 +201,6 @@ public class PageBuilderPageListService(
             roots = roots.Where(x => x.StoreId == criteria.StoreId);
         }
 
-        // Ignores case like the language versions filter (see GroupedPageSearchService).
-        var keyword = string.IsNullOrEmpty(criteria.Keyword) ? null : criteria.Keyword.ToLowerInvariant();
-
         if (FiltersLanguageVersions(versionCriteria))
         {
             if (!ListsRootsWithoutVersions(versionCriteria))
@@ -210,21 +212,36 @@ public class PageBuilderPageListService(
             var rootIdsWithVersions = repository.GroupedPageBuilderPages
                 .Where(x => x.MultilanguagePageId != null)
                 .Select(x => x.MultilanguagePageId);
-#pragma warning disable CA1862 // IQueryable: the StringComparison overload does not translate to SQL
-            return roots.Where(x => matchingRootIds.Contains(x.Id) ||
-                (!rootIdsWithVersions.Contains(x.Id) &&
-                 (keyword == null || x.Name.ToLower().Contains(keyword) || x.Permalink.ToLower().Contains(keyword))));
-#pragma warning restore CA1862
+            var rootIdsWithoutVersions = FilterByKeyword(roots, criteria.Keyword)
+                .Where(x => !rootIdsWithVersions.Contains(x.Id))
+                .Select(x => x.Id);
+
+            return roots.Where(x => matchingRootIds.Contains(x.Id) || rootIdsWithoutVersions.Contains(x.Id));
         }
 
         // Without version filters a root is listed even before it has any language version.
-        if (keyword == null)
+        if (string.IsNullOrEmpty(criteria.Keyword))
         {
             return roots;
         }
 
+        var keywordRootIds = FilterByKeyword(roots, criteria.Keyword).Select(x => x.Id);
+
+        return roots.Where(x => matchingRootIds.Contains(x.Id) || keywordRootIds.Contains(x.Id));
+    }
+
+    // Ignores case like the language versions filter (see GroupedPageSearchService).
+    private static IQueryable<MultilanguagePageEntity> FilterByKeyword(IQueryable<MultilanguagePageEntity> roots, string keyword)
+    {
+        if (string.IsNullOrEmpty(keyword))
+        {
+            return roots;
+        }
+
+        keyword = keyword.ToLowerInvariant();
+
 #pragma warning disable CA1862 // IQueryable: the StringComparison overload does not translate to SQL
-        return roots.Where(x => matchingRootIds.Contains(x.Id) || x.Name.ToLower().Contains(keyword) || x.Permalink.ToLower().Contains(keyword));
+        return roots.Where(x => x.Name.ToLower().Contains(keyword) || x.Permalink.ToLower().Contains(keyword));
 #pragma warning restore CA1862
     }
 
