@@ -616,5 +616,11 @@ onMounted(async () => {
   &__actions {
     @apply tw-flex tw-flex-wrap tw-gap-2;
   }
+
+  // The link row fills the table width without widening it: a long page title would push the other rows' buttons out.
+  &__link > td > * {
+    width: 0;
+    min-width: 100%;
+  }
 }
 </style>

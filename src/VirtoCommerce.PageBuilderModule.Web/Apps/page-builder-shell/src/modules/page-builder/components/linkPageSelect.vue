@@ -2,9 +2,10 @@
   <!-- Shown in the language row, not in a popup: the select's option list opens in the app root, under a popup. -->
   <VcCol class="tw-gap-2">
     <div class="tw-flex tw-items-end tw-gap-3">
+      <!-- min-w-0: a long page title shrinks the select instead of pushing the buttons out of the row. -->
       <VcSelect
         v-model="groupId"
-        class="tw-grow"
+        class="tw-min-w-0 tw-grow"
         :label="$t('PAGE_BUILDER.MULTILANGUAGE.LINK_PAGE.PAGE', { language: cultureName })"
         :options="loadPages"
         option-value="id"
