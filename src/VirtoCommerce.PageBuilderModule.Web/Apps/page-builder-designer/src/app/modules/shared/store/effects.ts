@@ -310,7 +310,8 @@ export class SharedEffects {
                         target: 'preview',
                         payload: {
                             type: 'auth',
-                            token: tokenResponse,
+                            // the preview needs to sign requests, not to keep the session alive
+                            token: { access_token: tokenResponse.access_token },
                             userId
                         }
                     });

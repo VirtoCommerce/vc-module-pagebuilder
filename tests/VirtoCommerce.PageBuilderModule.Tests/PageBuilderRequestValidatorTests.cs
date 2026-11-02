@@ -1,0 +1,64 @@
+using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
+using Xunit;
+
+namespace VirtoCommerce.PageBuilderModule.Tests
+{
+    public class PageBuilderRequestValidatorTests
+    {
+        [Theory]
+        [InlineData("pages")]
+        [InlineData("blogs")]
+        [InlineData("themes")]
+        [InlineData("Pages")]
+        public void KnownContentTypes_AreAccepted(string type) => Assert.True(PageBuilderRequestValidator.IsContentType(type));
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData("")]
+        [InlineData("assets")]
+        [InlineData("..")]
+        [InlineData("pages/..")]
+        public void OtherContentTypes_AreRefused(string type) => Assert.False(PageBuilderRequestValidator.IsContentType(type));
+
+        [Theory]
+        [InlineData("about-us.page")]
+        [InlineData("/about-us.page")]
+        [InlineData("blogs/news/first.page")]
+        [InlineData("about-us.page-draft")]
+        [InlineData("default/config/settings_data.json")]
+        public void PathsInsideTheContentFolder_AreAccepted(string path) => Assert.True(PageBuilderRequestValidator.IsRelativePath(path));
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData("")]
+        [InlineData("/")]
+        [InlineData("../about-us.page")]
+        [InlineData("blogs/../../about-us.page")]
+        [InlineData("./about-us.page")]
+        [InlineData("blogs//about-us.page")]
+        [InlineData("\\about-us.page")]
+        [InlineData("blogs\\..\\about-us.page")]
+        [InlineData("C:/Windows/win.ini")]
+        [InlineData("about-us.page\0")]
+        public void PathsThatLeaveTheContentFolder_AreRefused(string path) => Assert.False(PageBuilderRequestValidator.IsRelativePath(path));
+
+        [Theory]
+        [InlineData("default", true)]
+        [InlineData("b2b-theme", true)]
+        [InlineData("default/config", false)]
+        [InlineData("..", false)]
+        [InlineData("", false)]
+        public void ThemeIsOneFolderName(string theme, bool expected) => Assert.Equal(expected, PageBuilderRequestValidator.IsThemeName(theme));
+
+        [Theory]
+        [InlineData("pages", "about-us.page", true)]
+        [InlineData("blogs", "blogs/news.page", true)]
+        [InlineData("themes", "default/config/settings_data.json", true)]
+        [InlineData("pages", "about-us.json", false)]
+        [InlineData("pages", "about-us.page-draft", false)]
+        [InlineData("themes", "default/layout.liquid", false)]
+        [InlineData("assets", "x.page", false)]
+        public void OnlyTheFilesTheDesignerWrites_AreWritable(string type, string path, bool expected) =>
+            Assert.Equal(expected, PageBuilderRequestValidator.IsWritableFile(type, path));
+    }
+}

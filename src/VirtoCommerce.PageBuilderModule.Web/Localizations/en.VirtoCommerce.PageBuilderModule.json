@@ -71,10 +71,6 @@
         "title": "Delete the old draft file?",
         "message": "\"{{path}}\" is left over from before this store moved to the content repository. The page itself is not touched."
       },
-      "delete-legacy-draft-unsaved": {
-        "title": "Delete the old draft file?",
-        "message": "\"{{path}}\" still holds changes that are not in the content repository. Deleting it loses them. The published page is not touched."
-      },
       "legacy-draft-kept": {
         "title": "The draft file was kept",
         "message": "Nothing else holds this page: it is in neither the content repository nor a published file, so deleting the draft would delete the page. Save it from the designer once, then delete the draft."

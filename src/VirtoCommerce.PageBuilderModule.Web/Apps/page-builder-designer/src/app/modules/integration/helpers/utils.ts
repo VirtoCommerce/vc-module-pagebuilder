@@ -2,6 +2,9 @@ import { JSONPath } from 'jsonpath-plus';
 
 import { ValueDescriptorModel } from '@models/index';
 
+import { evaluate, UnsupportedExpressionError } from './safe-expression';
+import './known-expressions';
+
 export function spreadPropertyByOther(obj: any, keyProperty: string, ...spreadProperties: string[]): any {
   const groups = Object.keys(obj).reduce((acc, key) => {
     const group = obj[key][keyProperty];
@@ -102,11 +105,13 @@ const EVAL_UTILS = {
 
 export function evalInContext(expr: string, context: any): any {
   try {
-    const keys = Object.keys(EVAL_UTILS);
-    const values = Object.values(EVAL_UTILS);
-    return new Function(...keys, `return (${expr})`).call(context, ...values);
+    return evaluate(expr, context, EVAL_UTILS);
   } catch (e) {
-    console.log(expr, context, e);
+    if (e instanceof UnsupportedExpressionError) {
+      console.warn('Expression not executed: it is not one of the supported forms', expr, e.message);
+    } else {
+      console.log(expr, context, e);
+    }
   }
   return null;
 }

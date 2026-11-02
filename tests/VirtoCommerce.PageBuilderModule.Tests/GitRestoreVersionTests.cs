@@ -304,7 +304,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             // Only the git dependencies take part in these paths; the rest are left null on purpose, so a
             // change that starts reaching for blob storage or the publisher fails loudly here.
             var controller = new PageBuilderController(
-                storeService: new FakeStoreService(store),
+                storeService: new FakeStoreService(store ?? new Store { Id = "vccom" }),
                 pathResolver: null,
                 blobContentStorageProviderFactory: null,
                 publishingService: null,
@@ -315,7 +315,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 gitContentHistory: history,
                 gitContentPublisher: null,
                 settingsManager: new PerNameSettings(configuredStoreUrl),
-                authorizationService: null);
+                authorizationService: new FakeAuthorizationService(true));
 
             var identity = new ClaimsIdentity([new Claim(ClaimTypes.Name, Login)], "test");
             controller.ControllerContext = new ControllerContext

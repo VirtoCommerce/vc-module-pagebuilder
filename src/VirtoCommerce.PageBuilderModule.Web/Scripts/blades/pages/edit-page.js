@@ -424,9 +424,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                 name: "pageBuilder.commands.delete-legacy-draft", icon: 'fa fa-eraser',
                 executeMethod: function () {
                     var draft = blade.legacyDraft;
-                    // One file, and it has no second copy anywhere. Name it in the prompt, and say
-                    // plainly when it still holds something the repository has not got.
-                    var dialogKey = draft.differsFromCurrent ? 'delete-legacy-draft-unsaved' : 'delete-legacy-draft';
+                    var dialogKey = 'delete-legacy-draft';
                     dialogService.showConfirmationDialog({
                         id: "confirmDeleteLegacyDraft",
                         title: `pageBuilder.dialogs.${dialogKey}.title`,
@@ -439,7 +437,8 @@ angular.module('virtoCommerce.pageBuilderModule')
                         }
                     });
                 },
-                canExecuteMethod: function () { return !!blade.legacyDraft; }
+                // The server keeps a draft that differs from the page it serves: deleting it would lose edits.
+                canExecuteMethod: function () { return !!blade.legacyDraft && !blade.legacyDraft.differsFromCurrent; }
             };
 
             function deleteLegacyDraft(path) {

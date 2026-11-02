@@ -20,6 +20,7 @@ using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Core.Models;
+using VirtoCommerce.PageBuilderModule.Data.Authorization;
 using VirtoCommerce.PageBuilderModule.Web.Models;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Events;
@@ -69,6 +70,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         private const string FolderEntryType = "folder";
         private const int MaxLegacyDraftPageSize = 200;
         private const string LegacyDraftOnlyCopy = "only-copy";
+        private const string LegacyDraftHasChanges = "has-changes";
         // How many "_N" names a duplicate will try before asking the caller to pick one. A page with
         // this many copies is a naming problem, not a paging problem.
         private const int MaxCopyIndex = 100;
@@ -78,6 +80,11 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("template")]
         public async Task<ActionResult> GetTemplate(string storeId, string theme, string path, string type, bool draft = false, [FromQuery(Name = "ref")] string gitRef = null)
         {
+            if (await CheckRequestAsync(storeId, ModuleConstants.Security.Permissions.Read, type, theme, path.IsNullOrEmpty() ? [] : [path]) is { } refused)
+            {
+                return refused;
+            }
+
             // With the git flow on, a page is read from git: the caller's URL does not change, because
             // resolving "this editor's draft, else what is published" is the server's job.
             if (GitPageLocation.IsPageContent(type) && !path.IsNullOrEmpty() &&
@@ -185,6 +192,11 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("settings")]
         public async Task<ActionResult> GetSettings(string storeId, string theme)
         {
+            if (await CheckRequestAsync(storeId, ModuleConstants.Security.Permissions.Read, PageBuilderRequestValidator.Themes, theme) is { } refused)
+            {
+                return refused;
+            }
+
             var themeName = await GetCurrentThemeName(storeId, theme);
             var filePath = $"{themeName}/config/builder_settings.json";
             var basePath = GetContentBasePath(storeId, Themes, themeName);
@@ -288,6 +300,11 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("templates")]
         public async Task<ActionResult> GetTemplates(string storeId, string theme)
         {
+            if (await CheckRequestAsync(storeId, ModuleConstants.Security.Permissions.Read, PageBuilderRequestValidator.Themes, theme) is { } refused)
+            {
+                return refused;
+            }
+
             var result = await GetSettingsFilesFromFolder(storeId, theme, "templates");
             return Content(result, JsonContentType);
         }
@@ -296,6 +313,11 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("objects")]
         public async Task<ActionResult> GetObjects(string storeId, string theme)
         {
+            if (await CheckRequestAsync(storeId, ModuleConstants.Security.Permissions.Read, PageBuilderRequestValidator.Themes, theme) is { } refused)
+            {
+                return refused;
+            }
+
             var result = await GetSettingsFilesFromFolder(storeId, theme, SchemaKindObjects);
             return Ok(result);
         }
@@ -304,6 +326,11 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("sections")]
         public async Task<ActionResult> GetSectionsSettings(string storeId, string theme)
         {
+            if (await CheckRequestAsync(storeId, ModuleConstants.Security.Permissions.Read, PageBuilderRequestValidator.Themes, theme) is { } refused)
+            {
+                return refused;
+            }
+
             var sections = await GetSettingsFilesFromFolder(storeId, theme, SchemaKindSections);
             var blocks = await GetSettingsFilesFromFolder(storeId, theme, SchemaKindBlocks);
             var objects = await GetSettingsFilesFromFolder(storeId, theme, SchemaKindObjects);
@@ -315,6 +342,11 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("schemas")]
         public async Task<ActionResult> GetSchemasCatalog(string storeId, string theme)
         {
+            if (await CheckRequestAsync(storeId, ModuleConstants.Security.Permissions.Read, PageBuilderRequestValidator.Themes, theme) is { } refused)
+            {
+                return refused;
+            }
+
             var catalog = new JObject
             {
                 [SchemaKindSections] = await GetSchemasCatalogForFolder(storeId, theme, SchemaKindSections, filterInternal: true),
@@ -330,7 +362,12 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("schemas/{kind}/{key}")]
         public async Task<ActionResult> GetSchemaByKey(string storeId, string theme, string kind, string key)
         {
-            if (!IsValidSchemaKind(kind))
+            if (await CheckRequestAsync(storeId, ModuleConstants.Security.Permissions.Read, PageBuilderRequestValidator.Themes, theme) is { } refused)
+            {
+                return refused;
+            }
+
+            if (!IsValidSchemaKind(kind) || !PageBuilderRequestValidator.IsThemeName(key))
             {
                 return BadRequest(new { error = $"Unknown kind '{kind}'. Expected one of: {SchemaKindSections}, {SchemaKindTemplates}, {SchemaKindBlocks}, {SchemaKindObjects}, {SchemaKindShared}." });
             }
@@ -480,8 +517,13 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
         [HttpGet]
         [Route("search")]
-        public async Task<string> Search(string storeId, string theme, string type, string folder, string pattern = null, string keyword = null)
+        public async Task<ActionResult> Search(string storeId, string theme, string type, string folder, string pattern = null, string keyword = null)
         {
+            if (await CheckRequestAsync(storeId, ModuleConstants.Security.Permissions.Read, type, theme, folder.IsNullOrEmpty() ? [] : [folder]) is { } refused)
+            {
+                return refused;
+            }
+
             var basePath = GetContentBasePath(storeId, type, theme);
             var storageProvider = blobContentStorageProviderFactory.CreateProvider(basePath);
             var regexp = pattern == null ? null : new Regex(Regex.Escape(pattern), RegexOptions.None, TimeSpan.FromSeconds(1));
@@ -494,17 +536,33 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 TryAddFileContent(file, type, storageProvider, fileInfoes, jsonSettings);
             }
             var result = $"{{{string.Join(", ", fileInfoes.Keys.Select(x => $"\"{x}\": {fileInfoes[x]}"))}}}";
-            return result;
+            return Content(result);
         }
 
         [HttpPost]
         [Route("save")]
         public async Task<ActionResult> SaveTemplates(string storeId, string theme, [FromBody] SaveFilesModel value, [FromQuery] bool draft = false)
         {
-            var files = JsonConvert.DeserializeObject<List<SaveFileModel>>(value.Files);
+            var files = value?.Files == null ? null : JsonConvert.DeserializeObject<List<SaveFileModel>>(value.Files);
+            if (files == null || files.Any(file => file == null || !PageBuilderRequestValidator.IsWritableFile(file.Type, file.Path)))
+            {
+                return BadRequest(new { error = "Every file needs a content type of themes, pages or blogs and a relative path with the extension the designer writes." });
+            }
+
+            if (await CheckRequestAsync(storeId, ModuleConstants.Security.Permissions.Update, PageBuilderRequestValidator.Themes, theme) is { } refused)
+            {
+                return refused;
+            }
 
             if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
             {
+                // A live write of a page or a blog article is a publication. Theme settings stay on the
+                // update permission: the designer saves them straight to live.
+                if (!draft && files.Any(file => GitPageLocation.IsPageContent(file.Type)) && !await IsAllowedToPublishAsync())
+                {
+                    return Forbid();
+                }
+
                 await SaveFilesTo(storeId, theme, files, draft);
                 return Ok();
             }
@@ -562,9 +620,19 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("git/publish")]
         public async Task<ActionResult> GitPublish(string storeId, string path, string type, bool rebase = false)
         {
+            if (await CheckRequestAsync(storeId, ModuleConstants.Security.Permissions.Read, type ?? PagesContentType, null, [path]) is { } refused)
+            {
+                return refused;
+            }
+
             if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
             {
                 // the switch is off for this store: publish means what it always meant
+                if (!await IsAllowedToPublishAsync())
+                {
+                    return Forbid();
+                }
+
                 await publishingService.PublishingAsync(type ?? PagesContentType, storeId, path, publish: true);
                 return Ok(new { state = nameof(GitPublishState.Merged) });
             }
@@ -692,6 +760,11 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("git/promote")]
         public async Task<ActionResult> GitPromote(string storeId, string path, string type)
         {
+            if (await CheckRequestAsync(storeId, ModuleConstants.Security.Permissions.Read, type ?? PagesContentType, null, [path]) is { } refused)
+            {
+                return refused;
+            }
+
             if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
             {
                 // without git there is no second branch to promote into
@@ -764,8 +837,18 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("git/unpublish")]
         public async Task<ActionResult> GitUnpublish(string storeId, string path, string type)
         {
+            if (await CheckRequestAsync(storeId, ModuleConstants.Security.Permissions.Read, type ?? PagesContentType, null, [path]) is { } refused)
+            {
+                return refused;
+            }
+
             if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
             {
+                if (!await IsAllowedToPublishAsync())
+                {
+                    return Forbid();
+                }
+
                 await publishingService.PublishingAsync(type ?? PagesContentType, storeId, path, publish: false);
                 return Ok();
             }
@@ -820,6 +903,11 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("git/publish-status")]
         public async Task<ActionResult> GitPublishStatus(string storeId, string path, string type)
         {
+            if (await CheckRequestAsync(storeId, ModuleConstants.Security.Permissions.Read, type ?? PagesContentType, null, path.IsNullOrEmpty() ? [] : [path]) is { } refused)
+            {
+                return refused;
+            }
+
             var gitFlow = await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted);
 
             // A page that does not exist yet — the blade asking about a page it is about to create — has
@@ -914,6 +1002,11 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("git/history")]
         public async Task<ActionResult> GitHistory(string storeId, string path, string type, int? take = null, string after = null)
         {
+            if (await CheckRequestAsync(storeId, ModuleConstants.Security.Permissions.Read, type.IsNullOrEmpty() ? PagesContentType : type, null, path.IsNullOrEmpty() ? [] : [path]) is { } refused)
+            {
+                return refused;
+            }
+
             if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
             {
                 // there is no history to show: in the blob flow a draft overwrites the page and keeps no versions
@@ -962,6 +1055,11 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("git/restore-version")]
         public async Task<ActionResult> GitRestoreVersion(string storeId, string path, string type, string sha)
         {
+            if (await CheckRequestAsync(storeId, ModuleConstants.Security.Permissions.Update, type.IsNullOrEmpty() ? PagesContentType : type, null, path.IsNullOrEmpty() ? [] : [path]) is { } refused)
+            {
+                return refused;
+            }
+
             if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
             {
                 // without git there are no versions to continue from
@@ -1026,6 +1124,11 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("git/preview")]
         public async Task<ActionResult> GitPreview(string storeId, string path, string type, [FromQuery(Name = "ref")] string requestedRef = null)
         {
+            if (await CheckRequestAsync(storeId, ModuleConstants.Security.Permissions.Read, type ?? PagesContentType, null, [path]) is { } refused)
+            {
+                return refused;
+            }
+
             if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
             {
                 return NotFound();
@@ -1073,6 +1176,11 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("git/discard-draft")]
         public async Task<ActionResult> GitDiscardDraft(string storeId, string path, string type)
         {
+            if (await CheckRequestAsync(storeId, ModuleConstants.Security.Permissions.Update, type ?? PagesContentType, null, [path]) is { } refused)
+            {
+                return refused;
+            }
+
             if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
             {
                 return NotFound();
@@ -1108,6 +1216,11 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("git/legacy-drafts")]
         public async Task<ActionResult> GetLegacyDrafts(string storeId, string type, string theme, int skip = 0, int take = 50)
         {
+            if (await CheckRequestAsync(storeId, ModuleConstants.Security.Permissions.Read, type ?? PagesContentType, theme, []) is { } refused)
+            {
+                return refused;
+            }
+
             if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
             {
                 // On the blob flow a "-draft" file IS the draft, not a leftover. There is nothing to clean
@@ -1153,6 +1266,11 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         public async Task<ActionResult> DeleteLegacyDrafts(string storeId, string type, string theme,
             [FromBody] LegacyDraftsDeleteRequest request)
         {
+            if (await CheckRequestAsync(storeId, ModuleConstants.Security.Permissions.Read, type ?? PagesContentType, theme, request?.Paths) is { } refused)
+            {
+                return refused;
+            }
+
             if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
             {
                 return NotFound();
@@ -1206,10 +1324,16 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             foreach (var path in paths)
             {
                 var repoPath = GitLocation(contentType, path).RepoPath;
-                var inGit = await gitContentRepository.ReadFileAsync(repoPath, gitContentOptions.Value.BaseBranch, HttpContext.RequestAborted) != null;
-                var isPublished = inGit || await storageProvider.GetBlobInfoAsync(WithoutDraftSuffix(path)) != null;
+                var inGit = await gitContentRepository.ReadFileAsync(repoPath, gitContentOptions.Value.BaseBranch, HttpContext.RequestAborted);
+                var published = inGit ?? await ReadPublishedBlobAsync(storageProvider, path);
 
-                if (isPublished)
+                if (published != null && await storageProvider.GetBlobInfoAsync(path) != null &&
+                    !IsSamePageDocument(await ReadBlobTextAsync(storageProvider, path), published))
+                {
+                    // The draft still holds edits that nothing else has: deleting it would lose them.
+                    skipped.Add(new { path, reason = LegacyDraftHasChanges });
+                }
+                else if (published != null)
                 {
                     deletable.Add(path);
                 }
@@ -1249,6 +1373,11 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("git/copy")]
         public async Task<ActionResult> GitCopyPage(string storeId, string type, string srcPath, string destPath)
         {
+            if (await CheckRequestAsync(storeId, ModuleConstants.Security.Permissions.Read, type ?? PagesContentType, null, new[] { srcPath, destPath }.Where(x => !x.IsNullOrEmpty())) is { } refused)
+            {
+                return refused;
+            }
+
             if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
             {
                 return NotFound();
@@ -1357,6 +1486,11 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("git/legacy-draft")]
         public async Task<ActionResult> GetLegacyDraft(string storeId, string type, string path, string theme)
         {
+            if (await CheckRequestAsync(storeId, ModuleConstants.Security.Permissions.Read, type ?? PagesContentType, theme, path.IsNullOrEmpty() ? [] : [path]) is { } refused)
+            {
+                return refused;
+            }
+
             if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
             {
                 return NotFound();
@@ -1390,9 +1524,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         /// completed or walked up from here — that is the whole point of the endpoint.
         /// </summary>
         private static bool IsLegacyDraftPath(string path) =>
-            !string.IsNullOrWhiteSpace(path) &&
-            path.EndsWith(DraftSuffix, StringComparison.OrdinalIgnoreCase) &&
-            !path.Replace('\\', '/').Split('/').Contains("..");
+            PageBuilderRequestValidator.IsRelativePath(path) &&
+            path.EndsWith(DraftSuffix, StringComparison.OrdinalIgnoreCase);
 
         private async Task<LegacyDraftInfo> DescribeLegacyDraftAsync(IBlobContentStorageProvider storageProvider,
             string contentType, BlobEntry draft)
@@ -1505,6 +1638,36 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             }
 
             return found;
+        }
+
+        /// <summary>
+        /// What every action checks before it touches storage, or <c>null</c> when the request may go on:
+        /// a content type, theme and paths that stay inside the store's content folder, a store that
+        /// exists, the permission the action needs and access to that store. A theme is optional — without
+        /// one the store's default is used.
+        /// </summary>
+        private async Task<ActionResult> CheckRequestAsync(string storeId, string permission, string type, string theme, IEnumerable<string> paths = null)
+        {
+            if (!PageBuilderRequestValidator.IsContentType(type) ||
+                (!theme.IsNullOrEmpty() && !PageBuilderRequestValidator.IsThemeName(theme)) ||
+                (paths ?? []).Any(path => !PageBuilderRequestValidator.IsRelativePath(path)))
+            {
+                return BadRequest(new { error = "The content type must be themes, pages or blogs, and paths must stay inside the store's content folder." });
+            }
+
+            if (storeId.IsNullOrEmpty() || await storeService.GetNoCloneAsync(storeId) == null)
+            {
+                return BadRequest(new { error = $"Store \"{storeId}\" does not exist." });
+            }
+
+            if (!(await authorizationService.AuthorizeAsync(User, null, permission)).Succeeded)
+            {
+                return Forbid();
+            }
+
+            var storeAccess = await authorizationService.AuthorizeAsync(User, new PageBuilderPageSearchCriteria { StoreId = storeId }, new PageBuilderAuthorizationRequirement());
+
+            return storeAccess.Succeeded ? null : Forbid();
         }
 
         private async Task<bool> IsAllowedToDeleteAsync()

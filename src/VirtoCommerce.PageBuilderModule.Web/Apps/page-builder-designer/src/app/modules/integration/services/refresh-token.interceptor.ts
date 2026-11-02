@@ -11,6 +11,15 @@ function isAuthRequest(request: HttpRequest<unknown>): boolean {
   return request.headers.get('x-refresh') === 'true';
 }
 
+/** The designer is served by the platform, so a request to its own origin is a request to the platform. */
+export function isPlatformRequest(url: string): boolean {
+  try {
+    return new URL(url, globalThis.location.href).origin === globalThis.location.origin;
+  } catch {
+    return false;
+  }
+}
+
 function addAuthData(
   request: HttpRequest<unknown>,
   jwt: JwtStorageService,
@@ -18,7 +27,8 @@ function addAuthData(
   state: TokenRefreshStateService,
   session: SessionService,
 ): Observable<HttpRequest<unknown>> {
-  if (isAuthRequest(request)) {
+  // Urls come from schemas and settings as well: the admin's token goes to the platform only.
+  if (isAuthRequest(request) || !isPlatformRequest(request.url)) {
     return of(request);
   }
 
@@ -66,7 +76,6 @@ function refreshAccessToken(
 }
 
 function enrichRequest(request: HttpRequest<unknown>, token: string): HttpRequest<unknown> {
-  // todo: we need add header to local only requests
   return request.clone({ headers: request.headers.set('Authorization', 'Bearer ' + token) });
 }
 
