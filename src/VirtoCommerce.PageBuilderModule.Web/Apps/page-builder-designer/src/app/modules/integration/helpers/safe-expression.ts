@@ -308,10 +308,8 @@ function evaluateNode(node: Node, context: any, functions: ExpressionFunctions):
     }
     case 'call':
       return evaluateCall(node, context, functions);
-    case 'unary': {
-      const value = evaluateNode(node.argument, context, functions) as any;
-      return node.operator === '!' ? !value : node.operator === '-' ? -value : +value;
-    }
+    case 'unary':
+      return evaluateUnary(node.operator, evaluateNode(node.argument, context, functions));
     case 'binary':
       return evaluateBinary(node, context, functions);
     case 'conditional':
@@ -333,6 +331,19 @@ function readProperty(object: any, property: unknown): unknown {
   return value;
 }
 
+function evaluateUnary(operator: string, value: any): unknown {
+  switch (operator) {
+    case '!':
+      return !value;
+    case '-':
+      return -value;
+    default:
+      return +value;
+  }
+}
+
+const NOT_CALLABLE = 'Only the expression helpers and plain string and array methods can be called';
+
 function evaluateCall(node: Extract<Node, { kind: 'call' }>, context: any, functions: ExpressionFunctions): unknown {
   const args = () => node.args.map(arg => evaluateNode(arg, context, functions));
   const callee = node.callee;
@@ -342,26 +353,38 @@ function evaluateCall(node: Extract<Node, { kind: 'call' }>, context: any, funct
   }
 
   if (callee.kind === 'member' && !callee.computed) {
-    const name = String((callee.property as { value: unknown }).value);
-
-    if (callee.object.kind === 'identifier' && Object.hasOwn(functions, `${callee.object.name}.${name}`)) {
-      return functions[`${callee.object.name}.${name}`](...args());
-    }
-
-    const target = evaluateNode(callee.object, context, functions) as any;
-    if ((typeof target === 'string' && STRING_METHODS.has(name)) || (Array.isArray(target) && ARRAY_METHODS.has(name))) {
-      const callArgs = args();
-      if (name === 'replace' && callArgs.some(arg => typeof arg !== 'string')) {
-        throw new UnsupportedExpressionError('"replace" takes strings only');
-      }
-      return (target as any)[name](...callArgs);
-    }
-    if ((target === null || target === undefined) && callee.optional) {
-      return undefined;
-    }
+    return evaluateMethodCall(callee, args, context, functions);
   }
 
-  throw new UnsupportedExpressionError('Only the expression helpers and plain string and array methods can be called');
+  throw new UnsupportedExpressionError(NOT_CALLABLE);
+}
+
+/** `JSON.stringify(…)`-style helpers by their dotted name, else a plain string or array method of the value. */
+function evaluateMethodCall(callee: Extract<Node, { kind: 'member' }>, args: () => unknown[], context: any, functions: ExpressionFunctions): unknown {
+  const name = String((callee.property as { value: unknown }).value);
+  const helper = callee.object.kind === 'identifier' ? `${callee.object.name}.${name}` : null;
+
+  if (helper && Object.hasOwn(functions, helper)) {
+    return functions[helper](...args());
+  }
+
+  const target = evaluateNode(callee.object, context, functions) as any;
+  if (isPlainMethod(target, name)) {
+    const callArgs = args();
+    if (name === 'replace' && callArgs.some(arg => typeof arg !== 'string')) {
+      throw new UnsupportedExpressionError('"replace" takes strings only');
+    }
+    return target[name](...callArgs);
+  }
+  if ((target === null || target === undefined) && callee.optional) {
+    return undefined;
+  }
+
+  throw new UnsupportedExpressionError(NOT_CALLABLE);
+}
+
+function isPlainMethod(target: unknown, name: string): boolean {
+  return (typeof target === 'string' && STRING_METHODS.has(name)) || (Array.isArray(target) && ARRAY_METHODS.has(name));
 }
 
 function evaluateBinary(node: Extract<Node, { kind: 'binary' }>, context: any, functions: ExpressionFunctions): unknown {

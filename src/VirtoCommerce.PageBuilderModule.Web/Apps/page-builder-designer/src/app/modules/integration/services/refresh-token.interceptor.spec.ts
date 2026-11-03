@@ -92,7 +92,9 @@ describe('refreshTokenInterceptor', () => {
         http.get('https://elsewhere.example/schema.json').subscribe();
 
         httpController.expectNone('/connect/token');
-        httpController.expectOne('https://elsewhere.example/schema.json').flush({});
+        const external = httpController.expectOne('https://elsewhere.example/schema.json');
+        expect(external.request.headers.has('Authorization')).toBe(false);
+        external.flush({});
     });
 
     it('takes back the expired session once a refresh succeeds', () => {

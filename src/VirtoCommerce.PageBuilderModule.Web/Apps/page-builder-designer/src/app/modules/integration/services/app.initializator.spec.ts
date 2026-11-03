@@ -144,7 +144,9 @@ describe('app initializator', () => {
         initializator.init();
 
         httpController.expectNone('https://elsewhere.example/settings.json');
-        httpController.expectOne('data/settings.json').flush({});
+        const request = httpController.expectOne('data/settings.json');
+        expect(request.request.url).toBe('data/settings.json');
+        request.flush({});
     });
 
     [

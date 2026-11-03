@@ -64,11 +64,20 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         public static bool IsThemeName(string theme) =>
             !string.IsNullOrWhiteSpace(theme) && IsRelativePath(theme) && !theme.Contains('/');
 
-        public static bool IsWritableFile(string type, string path) =>
-            IsContentType(type) &&
-            IsRelativePath(path) &&
-            WritableExtensions[type].Any(extension => path.EndsWith(extension, StringComparison.OrdinalIgnoreCase)) &&
-            (!string.Equals(type, Themes, StringComparison.OrdinalIgnoreCase) || IsWritableThemeFile(path));
+        public static bool IsWritableFile(string type, string path)
+        {
+            if (!IsContentType(type) || !IsRelativePath(path))
+            {
+                return false;
+            }
+
+            if (!WritableExtensions[type].Any(extension => path.EndsWith(extension, StringComparison.OrdinalIgnoreCase)))
+            {
+                return false;
+            }
+
+            return !string.Equals(type, Themes, StringComparison.OrdinalIgnoreCase) || IsWritableThemeFile(path);
+        }
 
         /// <summary>
         /// A theme file outside the theme's config folder — "default/content/templates/product.json", say —
@@ -76,14 +85,17 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         /// </summary>
         private static bool IsWritableThemeFile(string path)
         {
-            var segments = path.TrimStart('/').Split('/');
-
-            if (segments.Length < 2 || !segments[1].Equals(ThemeConfigFolder, StringComparison.OrdinalIgnoreCase))
+            var relativePath = path.TrimStart('/');
+            var themeFolderEnd = relativePath.IndexOf('/');
+            if (themeFolderEnd < 0)
             {
                 return true;
             }
 
-            return segments.Length == 3 && segments[2].Equals(ThemeSettingsFile, StringComparison.OrdinalIgnoreCase);
+            var pathInTheme = relativePath[(themeFolderEnd + 1)..];
+
+            return !pathInTheme.StartsWith(ThemeConfigFolder + "/", StringComparison.OrdinalIgnoreCase) ||
+                   pathInTheme.Equals($"{ThemeConfigFolder}/{ThemeSettingsFile}", StringComparison.OrdinalIgnoreCase);
         }
     }
 }
