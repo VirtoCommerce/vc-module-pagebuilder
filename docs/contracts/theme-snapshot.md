@@ -22,6 +22,7 @@ store's `DefaultThemeName` property, `default` when it is empty. Paths below are
 | `config/palette.json`, `config/palette.dark.json` | the light and the dark palette |
 | `snapshots/{publication}/{cultureName}.json` | a published snapshot in one language, never changed after it is written |
 | `snapshots/current.json` | the pointer to the current publication: `{ "publication": 12 }` |
+| `catalogs/{hash}.json`, `catalogs/current.json` | the storefront schema catalogs, by hash, and the latest one's hash |
 
 Every file except the snapshots has a draft next to it, `{file}-draft`. The designer and the agents write drafts only.
 When `config/brand.json` does not exist yet, the designer starts the brand from `config/settings_data.json`:
@@ -302,9 +303,9 @@ same in every language, or a dictionary from language to text:
 { "text": { "en-US": "Free shipping", "de-DE": "Kostenloser Versand" } }
 ```
 
-The publication resolves it with the catalog it is validated against: in the snapshot of a language it is a string,
-the text of that language, else the text of the store default language, else the first text of the dictionary. A
-snapshot never holds a dictionary.
+A dictionary is an object whose keys are all language names with a subtag (`en-US`) and whose values are all texts.
+The publication resolves every dictionary: in the snapshot of a language it is a string, the text of that language,
+else the text of the store default language, else the first text of the dictionary. A snapshot never holds one.
 
 ### Brand
 
@@ -352,5 +353,16 @@ The catalog is the storefront's section, block, template and palette schemas, th
   takes `builder:theme`. The server keeps every catalog by its hash and never changes one; the latest upload is the
   store's current catalog, which agents read.
 - A save and a publication name the hash of the catalog the designer previewed. The server validates the drafts
-  against that catalog and records its hash in the snapshot.
+  against that catalog (every section and block type is one the storefront has) and records its hash in the
+  snapshot. The first publication, from the live files, names none and checks the shape only.
 - A schema is data: see [Schemas](preview-protocol.md#schemas).
+
+## Endpoints
+
+All take `storeId` and check the store as the other Page Builder endpoints do.
+
+| Method and route | Permission | Returns |
+|---|---|---|
+| `POST api/pagebuilder/theme/publish?storeId&catalogHash` | `builder:publish` | `{ publication }`; 400 `{ error, errors }` when the theme does not fit the catalog |
+| `PUT api/pagebuilder/catalog?storeId`, the catalog as the body | `builder:theme` | `{ hash }`; 400 when it has no valid `hash` |
+| `GET api/pagebuilder/catalog?storeId&hash` | `builder:read` | the catalog with that hash, the current one without it; 404 when there is none |

@@ -23,6 +23,18 @@ namespace VirtoCommerce.PageBuilderModule.Core
             public const int NameMaxLength = 128;
         }
 
+        public static class Theme
+        {
+            /// <summary>
+            /// How long a node serves a cached snapshot: an absolute time, so that a snapshot read often still expires on
+            /// the nodes a publication's cache reset does not reach (no Redis).
+            /// </summary>
+            public static readonly TimeSpan ThemeSnapshotCacheLifetime = TimeSpan.FromMinutes(5);
+
+            /// <summary>A snapshot larger than this (bytes, gzip) is published and logged as a warning.</summary>
+            public const int ThemeSnapshotSizeWarning = 30 * 1024;
+        }
+
         public static class PageStatuses
         {
             public const string Draft = "Draft";

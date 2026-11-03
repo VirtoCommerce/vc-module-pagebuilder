@@ -16,6 +16,7 @@ using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Core.Services;
+using VirtoCommerce.PageBuilderModule.Core.Theme;
 using VirtoCommerce.PageBuilderModule.Data.Authorization;
 using VirtoCommerce.PageBuilderModule.Data.BackgroundJobs;
 using VirtoCommerce.PageBuilderModule.Data.ContentProviders;
@@ -25,6 +26,7 @@ using VirtoCommerce.PageBuilderModule.Data.Handlers;
 using VirtoCommerce.PageBuilderModule.Data.Repositories;
 using VirtoCommerce.PageBuilderModule.Data.Search;
 using VirtoCommerce.PageBuilderModule.Data.Services;
+using VirtoCommerce.PageBuilderModule.Data.Theme;
 using VirtoCommerce.PageBuilderModule.Web.Services;
 using VirtoCommerce.Pages.Core.ContentProviders;
 using VirtoCommerce.Platform.Core.Events;
@@ -124,6 +126,14 @@ namespace VirtoCommerce.PageBuilderModule.Web
             serviceCollection.AddTransient<GroupedPageHistory>();
             // and a theme file's: templates, template rules, section groups, theme settings
             serviceCollection.AddTransient<ThemeFileHistory>();
+
+            // the theme as one publication: snapshots the storefront reads, catalogs it is validated against
+            // (docs/contracts/theme-snapshot.md)
+            serviceCollection.AddTransient<ThemeStorageFactory>();
+            serviceCollection.AddTransient<ISchemaCatalogService, SchemaCatalogService>();
+            serviceCollection.AddTransient<ThemePublisher>();
+            serviceCollection.AddTransient<IThemePublisher>(provider => provider.GetRequiredService<ThemePublisher>());
+            serviceCollection.AddTransient<IThemeSnapshotService, ThemeSnapshotService>();
             // site repositories follow their store: created for a new one, archived with a deleted one
             serviceCollection.AddTransient<GitContentStoreChangedEventHandler>();
             serviceCollection.AddBackgroundJob<GitContentRepositoryJob, GitContentRepositoryJobPayload>(triggerable: false);
