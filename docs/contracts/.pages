@@ -1,0 +1,5 @@
+title: Contracts
+arrange:
+  - theme-snapshot.md
+  - preview-protocol.md
+  - history-api.md
