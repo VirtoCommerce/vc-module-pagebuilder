@@ -33,12 +33,17 @@
             "MODIFIED_DATE": "更新日",
             "CULTURE_NAME": "言語",
             "MODIFIED_BY": "更新者",
-            "STATUS": "ステータス"
+            "STATUS": "ステータス",
+            "TYPE": "種類",
+            "LANGUAGES": "言語"
           },
           "FILTER": {
             "STATUS": "ステータス",
             "APPLY": "適用",
-            "RESET": "リセット"
+            "RESET": "リセット",
+            "PAGE_TYPE": "ページの種類",
+            "LANGUAGE": "言語",
+            "TRANSLATION_STATUS": "翻訳ステータス"
           },
           "EMPTY": {
             "TITLE": "コンテンツはまだありません",
@@ -75,7 +80,8 @@
           "PUBLISH": "公開",
           "UNPUBLISH": "公開取消",
           "DOWNLOAD_CONTENT": "コンテンツを保存",
-          "CLONE": "複製"
+          "CLONE": "複製",
+          "CONVERT": "多言語ページに変換"
         },
         "FIELDS": {
           "NAME": "名前",
@@ -114,6 +120,11 @@
             "TITLE": "スケジュール",
             "DESCRIPTION": "このページの表示期間を設定"
           }
+        },
+        "LANGUAGE_VERSION_HINT": "このページは多言語ページの言語バージョンです。名前はすべての言語で共通です。ここで設定したパーマリンクと詳細オプションは、この言語について多言語ページの値より優先されます。",
+        "FIELD_HINTS": {
+          "INHERITED": "多言語ページから継承",
+          "CUSTOM": "この言語用に設定されています。多言語ページの値は適用されません"
         }
       },
       "ALERTS": {
@@ -130,7 +141,21 @@
         "SAVE_SUCCESS": "ページが正常に保存されました",
         "PUBLISH_SUCCESS": "ページが正常に公開されました",
         "UNPUBLISH_SUCCESS": "ページの公開が正常に解除されました",
-        "DELETE_SUCCESS": "ページが正常にアーカイブされました"
+        "DELETE_SUCCESS": "ページが正常にアーカイブされました",
+        "CONVERT_CONFIRMATION": "このページを多言語ページに変換しますか？このページはその言語のバージョンになり、ストアフロントでの表示は変わりません。",
+        "CONVERT_SUCCESS": "ページを多言語ページに変換しました",
+        "PERMALINK_IN_USE": "{permalink} はすでに次のページで使用されています: {pages}。ストアフロントには、パーマリンクと言語の組み合わせごとに 1 ページしか表示されません。このまま保存しますか？"
+      },
+      "ADD_POPUP": {
+        "TITLE": "ページを追加",
+        "MULTILANGUAGE": {
+          "TITLE": "多言語ページ",
+          "DESCRIPTION": "ストアの言語ごとにバージョンを持つ 1 つのページです。ストアフロントの言語を切り替えると、その言語のバージョンが開きます。"
+        },
+        "LANDING": {
+          "TITLE": "ランディングページ",
+          "DESCRIPTION": "単一言語のページです。"
+        }
       }
     },
     "STATUS": {
@@ -139,7 +164,74 @@
       "PUBLISHED": "公開済み",
       "HAS_CHANGES": "変更のある下書き",
       "SCHEDULED": "スケジュール済み",
-      "PERSONALIZED": "パーソナライズ済み"
+      "PERSONALIZED": "パーソナライズ済み",
+      "MISSING": "未作成",
+      "OUTDATED": "要更新"
+    },
+    "PAGE_TYPES": {
+      "LANDING": "ランディングページ",
+      "MULTILANGUAGE": "多言語"
+    },
+    "MULTILANGUAGE": {
+      "TITLE": {
+        "NEW": "新規多言語ページ",
+        "DETAILS": "{name}（多言語）"
+      },
+      "FIELDS": {
+        "NAME_HINT": "すべての言語で共通",
+        "PERMALINK_HINT": "デフォルトのパーマリンク。言語ごとに独自に設定できます。",
+        "DEFAULT_LANGUAGE": "デフォルト言語",
+        "DEFAULT_LANGUAGE_HINT": "ソース言語: 新しいバージョンはこの言語のコンテンツをコピーします",
+        "ADVANCED_OPTIONS_HINT": "すべての言語のデフォルト値。言語ごとに独自に設定できます。"
+      },
+      "LANGUAGES": {
+        "TITLE": "言語",
+        "LANGUAGE": "言語",
+        "ACTIONS": "操作",
+        "DEFAULT": "デフォルト",
+        "NOT_IN_STORE": "ストアの言語ではない",
+        "CUSTOM": "独自",
+        "INHERITED": "継承",
+        "OPEN": "開く",
+        "UNLINK": "リンク解除",
+        "CREATE": "作成",
+        "LINK": "既存ページをリンク",
+        "MARK_UP_TO_DATE": "最新としてマーク",
+        "ACTION_LABEL": "{action}: {language}",
+        "ANY_LANGUAGE": "すべての言語"
+      },
+      "TOOLBAR": {
+        "PUBLISH_ALL": "すべて公開",
+        "ARCHIVE_ALL": "すべてアーカイブ",
+        "DELETE": "削除"
+      },
+      "ALERTS": {
+        "PUBLISH_ALL_RESULT": "公開済み: {processed}。スキップ（下書きなし）: {skipped}。",
+        "BATCH_FAILED": "失敗: {failed}。これらの言語で再試行してください。",
+        "ARCHIVE_ALL_RESULT": "アーカイブ済み: {processed}。すでにアーカイブ済み: {skipped}。",
+        "ARCHIVE_ALL": "このページのすべての言語バージョンをアーカイブしますか？",
+        "DELETE": "この多言語ページを削除しますか？言語バージョンはありません。",
+        "DELETE_SUCCESS": "多言語ページを削除しました",
+        "LANGUAGE_CREATED": "{language} バージョンを下書きとして作成しました",
+        "UNLINK": "{language} バージョンのリンクを解除しますか？独立したランディングページとして残ります。"
+      },
+      "LIST": {
+        "PUBLISHED_COUNT": "公開済み: {published}/{total}",
+        "OUTDATED_COUNT": "要更新: {outdated}"
+      },
+      "LINK_PAGE": {
+        "HINT": "ページのパーマリンクと設定はそのまま維持され、名前は共通の名前になります。",
+        "PAGE": "既存の {language} ランディングページ",
+        "CANCEL": "キャンセル",
+        "LINK": "リンク"
+      },
+      "CONFLICT_POPUP": {
+        "TITLE": "一部の言語には独自の値があります",
+        "HINT": "これらの言語が独自に設定している項目を変更しました:",
+        "APPLY_ALL": "すべての言語に適用",
+        "APPLY_INHERITED": "継承している言語のみに適用",
+        "CANCEL": "キャンセル"
+      }
     },
     "LIFECYCLE": {
       "DRAFT": "下書き",

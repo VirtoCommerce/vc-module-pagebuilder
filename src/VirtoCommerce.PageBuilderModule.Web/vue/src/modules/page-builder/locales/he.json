@@ -33,12 +33,17 @@
             "MODIFIED_DATE": "שינוי אחרון",
             "CULTURE_NAME": "שפה",
             "MODIFIED_BY": "שונה על ידי",
-            "STATUS": "סטטוס"
+            "STATUS": "סטטוס",
+            "TYPE": "סוג",
+            "LANGUAGES": "שפות"
           },
           "FILTER": {
             "STATUS": "סטטוס",
             "APPLY": "החלה",
-            "RESET": "איפוס"
+            "RESET": "איפוס",
+            "PAGE_TYPE": "סוג דף",
+            "LANGUAGE": "שפה",
+            "TRANSLATION_STATUS": "סטטוס תרגום"
           },
           "EMPTY": {
             "TITLE": "עדיין אין תוכן",
@@ -75,7 +80,8 @@
           "PUBLISH": "פרסום",
           "UNPUBLISH": "ביטול פרסום",
           "DOWNLOAD_CONTENT": "שמירת התוכן",
-          "CLONE": "שכפול"
+          "CLONE": "שכפול",
+          "CONVERT": "המרה לדף רב-לשוני"
         },
         "FIELDS": {
           "NAME": "שם",
@@ -94,6 +100,9 @@
           "USER_GROUPS": "קבוצות משתמשים",
           "ORGANIZATION": "ארגון"
         },
+        "VALIDATION": {
+          "PERMALINK": "הקישור הקבוע יכול להכיל עד 2048 תווים, ואסור שיכיל רווחים או תווים בלתי נראים, את התווים ? # & % \\ \" < > {'{'} {'}'} {'|'} ^ `, לוכסנים כפולים או את המקטעים . ו-.."
+        },
         "TOOLTIPS": {
           "VISIBILITY": "כאשר הנראות כבויה, הדף יהיה זמין רק למשתמשים רשומים."
         },
@@ -111,6 +120,11 @@
             "TITLE": "תזמון",
             "DESCRIPTION": "קביעת המועד שבו הדף יהיה גלוי"
           }
+        },
+        "LANGUAGE_VERSION_HINT": "דף זה הוא גרסת שפה של דף רב-לשוני. השם משותף לכל השפות; הקישור הקבוע והאפשרויות המתקדמות שמוגדרים כאן גוברים על ערכי הדף הרב-לשוני עבור שפה זו.",
+        "FIELD_HINTS": {
+          "INHERITED": "עובר בירושה מהדף הרב-לשוני",
+          "CUSTOM": "מוגדר לשפה זו; הערך של הדף הרב-לשוני לא חל"
         }
       },
       "ALERTS": {
@@ -127,7 +141,21 @@
         "SAVE_SUCCESS": "הדף נשמר",
         "PUBLISH_SUCCESS": "הדף פורסם",
         "UNPUBLISH_SUCCESS": "פרסום הדף בוטל",
-        "DELETE_SUCCESS": "הדף הועבר לארכיון"
+        "DELETE_SUCCESS": "הדף הועבר לארכיון",
+        "CONVERT_CONFIRMATION": "האם להמיר דף זה לדף רב-לשוני? הוא יהפוך לגרסה בשפה שלו ולא ישתנה בחזית החנות.",
+        "CONVERT_SUCCESS": "הדף הומר לדף רב-לשוני",
+        "PERMALINK_IN_USE": "{permalink} כבר נמצא בשימוש על ידי: {pages}. חזית החנות מציגה רק דף אחד לכל קישור קבוע ושפה. האם לשמור בכל זאת?"
+      },
+      "ADD_POPUP": {
+        "TITLE": "הוספת דף",
+        "MULTILANGUAGE": {
+          "TITLE": "דף רב-לשוני",
+          "DESCRIPTION": "דף אחד עם גרסה לכל שפה של החנות. החלפת השפה בחזית החנות פותחת את הגרסה בשפה זו."
+        },
+        "LANDING": {
+          "TITLE": "דף נחיתה",
+          "DESCRIPTION": "דף בשפה אחת."
+        }
       }
     },
     "STATUS": {
@@ -136,7 +164,74 @@
       "PUBLISHED": "פורסם",
       "HAS_CHANGES": "יש טיוטה עם שינויים",
       "SCHEDULED": "מתוזמן",
-      "PERSONALIZED": "מותאם אישית"
+      "PERSONALIZED": "מותאם אישית",
+      "MISSING": "חסר",
+      "OUTDATED": "לא מעודכן"
+    },
+    "PAGE_TYPES": {
+      "LANDING": "דף נחיתה",
+      "MULTILANGUAGE": "רב-לשוני"
+    },
+    "MULTILANGUAGE": {
+      "TITLE": {
+        "NEW": "דף רב-לשוני חדש",
+        "DETAILS": "{name} (רב-לשוני)"
+      },
+      "FIELDS": {
+        "NAME_HINT": "משותף לכל השפות",
+        "PERMALINK_HINT": "קישור קבוע ברירת מחדל. כל שפה יכולה להגדיר קישור משלה.",
+        "DEFAULT_LANGUAGE": "שפת ברירת מחדל",
+        "DEFAULT_LANGUAGE_HINT": "שפת המקור: גרסאות חדשות מעתיקות את התוכן שלה",
+        "ADVANCED_OPTIONS_HINT": "ערכי ברירת מחדל לכל השפות. כל שפה יכולה להגדיר ערכים משלה."
+      },
+      "LANGUAGES": {
+        "TITLE": "שפות",
+        "LANGUAGE": "שפה",
+        "ACTIONS": "פעולות",
+        "DEFAULT": "ברירת מחדל",
+        "NOT_IN_STORE": "אינה שפת החנות",
+        "CUSTOM": "מותאם",
+        "INHERITED": "בירושה",
+        "OPEN": "פתיחה",
+        "UNLINK": "ביטול קישור",
+        "CREATE": "יצירה",
+        "LINK": "קישור דף קיים",
+        "MARK_UP_TO_DATE": "סימון כמעודכן",
+        "ACTION_LABEL": "{action}: {language}",
+        "ANY_LANGUAGE": "כל השפות"
+      },
+      "TOOLBAR": {
+        "PUBLISH_ALL": "פרסום הכול",
+        "ARCHIVE_ALL": "העברת הכול לארכיון",
+        "DELETE": "מחיקה"
+      },
+      "ALERTS": {
+        "PUBLISH_ALL_RESULT": "פורסמו: {processed}. דולגו (אין טיוטה): {skipped}.",
+        "BATCH_FAILED": "נכשלו: {failed}. יש לנסות שוב עבור שפות אלה.",
+        "ARCHIVE_ALL_RESULT": "הועברו לארכיון: {processed}. כבר בארכיון: {skipped}.",
+        "ARCHIVE_ALL": "האם להעביר לארכיון את כל גרסאות השפה של דף זה?",
+        "DELETE": "האם למחוק דף רב-לשוני זה? אין לו גרסאות שפה.",
+        "DELETE_SUCCESS": "הדף הרב-לשוני נמחק",
+        "LANGUAGE_CREATED": "גרסת {language} נוצרה כטיוטה",
+        "UNLINK": "האם לבטל את הקישור של גרסת {language}? היא תישמר כדף נחיתה נפרד."
+      },
+      "LIST": {
+        "PUBLISHED_COUNT": "פורסמו: {published} מתוך {total}",
+        "OUTDATED_COUNT": "לא מעודכנים: {outdated}"
+      },
+      "LINK_PAGE": {
+        "HINT": "הדף שומר על הקישור הקבוע וההגדרות שלו ומקבל את השם המשותף.",
+        "PAGE": "דף נחיתה קיים ({language})",
+        "CANCEL": "ביטול",
+        "LINK": "קישור"
+      },
+      "CONFLICT_POPUP": {
+        "TITLE": "לחלק מהשפות יש ערכים משלהן",
+        "HINT": "שינית הגדרות ששפות אלה מגדירות בעצמן:",
+        "APPLY_ALL": "החלה על כל השפות",
+        "APPLY_INHERITED": "החלה רק על שפות שיורשות",
+        "CANCEL": "ביטול"
+      }
     },
     "LIFECYCLE": {
       "DRAFT": "טיוטה",

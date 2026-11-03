@@ -33,12 +33,17 @@
             "MODIFIED_DATE": "Muokattu",
             "CULTURE_NAME": "Kieli",
             "MODIFIED_BY": "Muokkaaja",
-            "STATUS": "Tila"
+            "STATUS": "Tila",
+            "TYPE": "Tyyppi",
+            "LANGUAGES": "Kielet"
           },
           "FILTER": {
             "STATUS": "Tila",
             "APPLY": "Käytä",
-            "RESET": "Nollaa"
+            "RESET": "Nollaa",
+            "PAGE_TYPE": "Sivun tyyppi",
+            "LANGUAGE": "Kieli",
+            "TRANSLATION_STATUS": "Käännöksen tila"
           },
           "EMPTY": {
             "TITLE": "Sisältöä ei ole vielä",
@@ -75,7 +80,8 @@
           "PUBLISH": "Julkaise",
           "UNPUBLISH": "Peruuta julkaisu",
           "DOWNLOAD_CONTENT": "Tallenna sisältö",
-          "CLONE": "Kloonaa"
+          "CLONE": "Kloonaa",
+          "CONVERT": "Muunna monikieliseksi"
         },
         "FIELDS": {
           "NAME": "Nimi",
@@ -114,6 +120,11 @@
             "TITLE": "Ajastus",
             "DESCRIPTION": "Määritä, milloin tämä sivu näytetään"
           }
+        },
+        "LANGUAGE_VERSION_HINT": "Tämä sivu on monikielisen sivun kieliversio. Nimi on yhteinen kaikille kielille; tässä määritetyt pysyvä linkki ja lisäasetukset korvaavat monikielisen sivun arvot tämän kielen osalta.",
+        "FIELD_HINTS": {
+          "INHERITED": "Peritty monikieliseltä sivulta",
+          "CUSTOM": "Määritetty tälle kielelle; monikielisen sivun arvoa ei käytetä"
         }
       },
       "ALERTS": {
@@ -130,7 +141,21 @@
         "SAVE_SUCCESS": "Sivu tallennettu onnistuneesti",
         "PUBLISH_SUCCESS": "Sivu julkaistu onnistuneesti",
         "UNPUBLISH_SUCCESS": "Sivun julkaisu peruutettu onnistuneesti",
-        "DELETE_SUCCESS": "Sivu arkistoitu onnistuneesti"
+        "DELETE_SUCCESS": "Sivu arkistoitu onnistuneesti",
+        "CONVERT_CONFIRMATION": "Muunnetaanko tämä sivu monikieliseksi sivuksi? Siitä tulee oman kielensä versio, eikä se muutu verkkokaupassa.",
+        "CONVERT_SUCCESS": "Sivu muunnettu monikieliseksi sivuksi",
+        "PERMALINK_IN_USE": "{permalink} on jo käytössä: {pages}. Verkkokauppa näyttää vain yhden sivun pysyvää linkkiä ja kieltä kohden. Tallennetaanko silti?"
+      },
+      "ADD_POPUP": {
+        "TITLE": "Lisää sivu",
+        "MULTILANGUAGE": {
+          "TITLE": "Monikielinen sivu",
+          "DESCRIPTION": "Yksi sivu, jolla on versio jokaiselle kaupan kielelle. Kun verkkokaupan kieli vaihdetaan, avautuu kyseisen kielen versio."
+        },
+        "LANDING": {
+          "TITLE": "Laskeutumissivu",
+          "DESCRIPTION": "Sivu yhdellä kielellä."
+        }
       }
     },
     "STATUS": {
@@ -139,7 +164,74 @@
       "PUBLISHED": "Julkaistu",
       "HAS_CHANGES": "Luonnos muutoksilla",
       "SCHEDULED": "Ajastettu",
-      "PERSONALIZED": "Personoitu"
+      "PERSONALIZED": "Personoitu",
+      "MISSING": "Puuttuu",
+      "OUTDATED": "Vanhentunut"
+    },
+    "PAGE_TYPES": {
+      "LANDING": "Laskeutumissivu",
+      "MULTILANGUAGE": "Monikielinen"
+    },
+    "MULTILANGUAGE": {
+      "TITLE": {
+        "NEW": "Uusi monikielinen sivu",
+        "DETAILS": "{name} (monikielinen)"
+      },
+      "FIELDS": {
+        "NAME_HINT": "Yhteinen kaikille kielille",
+        "PERMALINK_HINT": "Oletusarvoinen pysyvä linkki. Kieli voi määrittää oman.",
+        "DEFAULT_LANGUAGE": "Oletuskieli",
+        "DEFAULT_LANGUAGE_HINT": "Lähdekieli: uudet versiot kopioivat sen sisällön",
+        "ADVANCED_OPTIONS_HINT": "Oletusarvot kaikille kielille. Kieli voi määrittää omansa."
+      },
+      "LANGUAGES": {
+        "TITLE": "Kielet",
+        "LANGUAGE": "Kieli",
+        "ACTIONS": "Toiminnot",
+        "DEFAULT": "oletus",
+        "NOT_IN_STORE": "ei kaupan kieli",
+        "CUSTOM": "oma",
+        "INHERITED": "peritty",
+        "OPEN": "Avaa",
+        "UNLINK": "Poista linkitys",
+        "CREATE": "Luo",
+        "LINK": "Linkitä olemassa oleva sivu",
+        "MARK_UP_TO_DATE": "Merkitse ajantasaiseksi",
+        "ACTION_LABEL": "{action}: {language}",
+        "ANY_LANGUAGE": "Kaikki kielet"
+      },
+      "TOOLBAR": {
+        "PUBLISH_ALL": "Julkaise kaikki",
+        "ARCHIVE_ALL": "Arkistoi kaikki",
+        "DELETE": "Poista"
+      },
+      "ALERTS": {
+        "PUBLISH_ALL_RESULT": "Julkaistu: {processed}. Ohitettu (ei luonnosta): {skipped}.",
+        "BATCH_FAILED": "Epäonnistui: {failed}. Yritä uudelleen näille kielille.",
+        "ARCHIVE_ALL_RESULT": "Arkistoitu: {processed}. Jo arkistoitu: {skipped}.",
+        "ARCHIVE_ALL": "Arkistoidaanko tämän sivun kaikki kieliversiot?",
+        "DELETE": "Poistetaanko tämä monikielinen sivu? Sillä ei ole kieliversioita.",
+        "DELETE_SUCCESS": "Monikielinen sivu poistettu",
+        "LANGUAGE_CREATED": "Kieliversio {language} luotu luonnoksena",
+        "UNLINK": "Poistetaanko kieliversion {language} linkitys? Se säilyy erillisenä laskeutumissivuna."
+      },
+      "LIST": {
+        "PUBLISHED_COUNT": "Julkaistu: {published}/{total}",
+        "OUTDATED_COUNT": "vanhentuneita: {outdated}"
+      },
+      "LINK_PAGE": {
+        "HINT": "Sivu säilyttää pysyvän linkkinsä ja asetuksensa ja saa yhteisen nimen.",
+        "PAGE": "Olemassa oleva laskeutumissivu ({language})",
+        "CANCEL": "Peruuta",
+        "LINK": "Linkitä"
+      },
+      "CONFLICT_POPUP": {
+        "TITLE": "Joillakin kielillä on omat arvot",
+        "HINT": "Muutit asetuksia, jotka nämä kielet määrittävät itse:",
+        "APPLY_ALL": "Käytä kaikille kielille",
+        "APPLY_INHERITED": "Käytä vain periville kielille",
+        "CANCEL": "Peruuta"
+      }
     },
     "LIFECYCLE": {
       "DRAFT": "Luonnos",

@@ -33,12 +33,17 @@
             "MODIFIED_DATE": "Geändert",
             "CULTURE_NAME": "Sprache",
             "MODIFIED_BY": "Geändert von",
-            "STATUS": "Status"
+            "STATUS": "Status",
+            "TYPE": "Typ",
+            "LANGUAGES": "Sprachen"
           },
           "FILTER": {
             "STATUS": "Status",
             "APPLY": "Anwenden",
-            "RESET": "Zurücksetzen"
+            "RESET": "Zurücksetzen",
+            "PAGE_TYPE": "Seitentyp",
+            "LANGUAGE": "Sprache",
+            "TRANSLATION_STATUS": "Übersetzungsstatus"
           },
           "EMPTY": {
             "TITLE": "Es gibt noch keine Inhalte",
@@ -75,7 +80,8 @@
           "PUBLISH": "Veröffentlichen",
           "UNPUBLISH": "Veröffentlichung aufheben",
           "DOWNLOAD_CONTENT": "Inhalt speichern",
-          "CLONE": "Klonen"
+          "CLONE": "Klonen",
+          "CONVERT": "In mehrsprachige Seite umwandeln"
         },
         "FIELDS": {
           "NAME": "Name",
@@ -114,6 +120,11 @@
             "TITLE": "Zeitplanung",
             "DESCRIPTION": "Festlegen, wann diese Seite sichtbar sein soll"
           }
+        },
+        "LANGUAGE_VERSION_HINT": "Diese Seite ist eine Sprachversion einer mehrsprachigen Seite. Der Name gilt für alle Sprachen; der Permalink und die erweiterten Optionen, die hier festgelegt werden, überschreiben für diese Sprache die Werte der mehrsprachigen Seite.",
+        "FIELD_HINTS": {
+          "INHERITED": "Von der mehrsprachigen Seite geerbt",
+          "CUSTOM": "Für diese Sprache festgelegt; der Wert der mehrsprachigen Seite wird nicht angewendet"
         }
       },
       "ALERTS": {
@@ -130,7 +141,21 @@
         "SAVE_SUCCESS": "Seite erfolgreich gespeichert",
         "PUBLISH_SUCCESS": "Seite erfolgreich veröffentlicht",
         "UNPUBLISH_SUCCESS": "Veröffentlichung der Seite erfolgreich zurückgenommen",
-        "DELETE_SUCCESS": "Seite erfolgreich archiviert"
+        "DELETE_SUCCESS": "Seite erfolgreich archiviert",
+        "CONVERT_CONFIRMATION": "Diese Seite in eine mehrsprachige Seite umwandeln? Sie wird zur Version in ihrer Sprache und bleibt in der Storefront unverändert.",
+        "CONVERT_SUCCESS": "Seite in eine mehrsprachige Seite umgewandelt",
+        "PERMALINK_IN_USE": "{permalink} wird bereits verwendet von: {pages}. Die Storefront zeigt pro Permalink und Sprache nur eine Seite an. Trotzdem speichern?"
+      },
+      "ADD_POPUP": {
+        "TITLE": "Seite hinzufügen",
+        "MULTILANGUAGE": {
+          "TITLE": "Mehrsprachige Seite",
+          "DESCRIPTION": "Eine Seite mit einer Version für jede Shopsprache. Beim Wechsel der Storefront-Sprache wird die Version in dieser Sprache geöffnet."
+        },
+        "LANDING": {
+          "TITLE": "Landingpage",
+          "DESCRIPTION": "Eine Seite in einer einzigen Sprache."
+        }
       }
     },
     "STATUS": {
@@ -139,7 +164,74 @@
       "PUBLISHED": "Veröffentlicht",
       "HAS_CHANGES": "Hat Entwurf mit Änderungen",
       "SCHEDULED": "Geplant",
-      "PERSONALIZED": "Personalisiert"
+      "PERSONALIZED": "Personalisiert",
+      "MISSING": "Fehlt",
+      "OUTDATED": "Veraltet"
+    },
+    "PAGE_TYPES": {
+      "LANDING": "Landingpage",
+      "MULTILANGUAGE": "Mehrsprachig"
+    },
+    "MULTILANGUAGE": {
+      "TITLE": {
+        "NEW": "Neue mehrsprachige Seite",
+        "DETAILS": "{name} (mehrsprachig)"
+      },
+      "FIELDS": {
+        "NAME_HINT": "Gilt für alle Sprachen",
+        "PERMALINK_HINT": "Standard-Permalink. Eine Sprache kann einen eigenen festlegen.",
+        "DEFAULT_LANGUAGE": "Standardsprache",
+        "DEFAULT_LANGUAGE_HINT": "Ausgangssprache: Neue Versionen kopieren ihren Inhalt",
+        "ADVANCED_OPTIONS_HINT": "Standardwerte für alle Sprachen. Eine Sprache kann eigene festlegen."
+      },
+      "LANGUAGES": {
+        "TITLE": "Sprachen",
+        "LANGUAGE": "Sprache",
+        "ACTIONS": "Aktionen",
+        "DEFAULT": "Standard",
+        "NOT_IN_STORE": "keine Shopsprache",
+        "CUSTOM": "angepasst",
+        "INHERITED": "geerbt",
+        "OPEN": "Öffnen",
+        "UNLINK": "Verknüpfung aufheben",
+        "CREATE": "Erstellen",
+        "LINK": "Vorhandene Seite verknüpfen",
+        "MARK_UP_TO_DATE": "Als aktuell markieren",
+        "ACTION_LABEL": "{action}: {language}",
+        "ANY_LANGUAGE": "Alle Sprachen"
+      },
+      "TOOLBAR": {
+        "PUBLISH_ALL": "Alle veröffentlichen",
+        "ARCHIVE_ALL": "Alle archivieren",
+        "DELETE": "Löschen"
+      },
+      "ALERTS": {
+        "PUBLISH_ALL_RESULT": "Veröffentlicht: {processed}. Übersprungen (kein Entwurf): {skipped}.",
+        "BATCH_FAILED": "Fehlgeschlagen: {failed}. Versuchen Sie es für diese Sprachen erneut.",
+        "ARCHIVE_ALL_RESULT": "Archiviert: {processed}. Bereits archiviert: {skipped}.",
+        "ARCHIVE_ALL": "Alle Sprachversionen dieser Seite archivieren?",
+        "DELETE": "Diese mehrsprachige Seite löschen? Sie hat keine Sprachversionen.",
+        "DELETE_SUCCESS": "Mehrsprachige Seite gelöscht",
+        "LANGUAGE_CREATED": "Version für {language} als Entwurf erstellt",
+        "UNLINK": "Verknüpfung der Version für {language} aufheben? Sie bleibt als separate Landingpage erhalten."
+      },
+      "LIST": {
+        "PUBLISHED_COUNT": "Veröffentlicht: {published} von {total}",
+        "OUTDATED_COUNT": "veraltet: {outdated}"
+      },
+      "LINK_PAGE": {
+        "HINT": "Die Seite behält ihren Permalink und ihre Einstellungen und übernimmt den gemeinsamen Namen.",
+        "PAGE": "Vorhandene Landingpage ({language})",
+        "CANCEL": "Abbrechen",
+        "LINK": "Verknüpfen"
+      },
+      "CONFLICT_POPUP": {
+        "TITLE": "Einige Sprachen haben eigene Werte",
+        "HINT": "Sie haben Einstellungen geändert, die diese Sprachen selbst festlegen:",
+        "APPLY_ALL": "Auf alle Sprachen anwenden",
+        "APPLY_INHERITED": "Nur auf erbende Sprachen anwenden",
+        "CANCEL": "Abbrechen"
+      }
     },
     "LIFECYCLE": {
       "DRAFT": "Entwurf",

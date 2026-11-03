@@ -33,12 +33,17 @@
             "MODIFIED_DATE": "Ändrad",
             "CULTURE_NAME": "Språk",
             "MODIFIED_BY": "Ändrad av",
-            "STATUS": "Status"
+            "STATUS": "Status",
+            "TYPE": "Typ",
+            "LANGUAGES": "Språk"
           },
           "FILTER": {
             "STATUS": "Status",
             "APPLY": "Tillämpa",
-            "RESET": "Återställ"
+            "RESET": "Återställ",
+            "PAGE_TYPE": "Sidtyp",
+            "LANGUAGE": "Språk",
+            "TRANSLATION_STATUS": "Översättningsstatus"
           },
           "EMPTY": {
             "TITLE": "Det finns inget innehåll ännu",
@@ -75,7 +80,8 @@
           "PUBLISH": "Publicera",
           "UNPUBLISH": "Avpublicera",
           "DOWNLOAD_CONTENT": "Spara innehåll",
-          "CLONE": "Klona"
+          "CLONE": "Klona",
+          "CONVERT": "Konvertera till flerspråkig"
         },
         "FIELDS": {
           "NAME": "Namn",
@@ -114,6 +120,11 @@
             "TITLE": "Schemaläggning",
             "DESCRIPTION": "Ange när denna sida ska vara synlig"
           }
+        },
+        "LANGUAGE_VERSION_HINT": "Den här sidan är en språkversion av en flerspråkig sida. Namnet är gemensamt för alla språk; permalänk och avancerade alternativ som anges här ersätter den flerspråkiga sidans värden för det här språket.",
+        "FIELD_HINTS": {
+          "INHERITED": "Ärvt från den flerspråkiga sidan",
+          "CUSTOM": "Angivet för det här språket; den flerspråkiga sidans värde används inte"
         }
       },
       "ALERTS": {
@@ -130,7 +141,21 @@
         "SAVE_SUCCESS": "Sidan sparades",
         "PUBLISH_SUCCESS": "Sidan publicerades",
         "UNPUBLISH_SUCCESS": "Sidans publicering togs bort",
-        "DELETE_SUCCESS": "Sidan arkiverades"
+        "DELETE_SUCCESS": "Sidan arkiverades",
+        "CONVERT_CONFIRMATION": "Konvertera den här sidan till en flerspråkig sida? Den blir versionen på sitt språk och förblir oförändrad i butiken.",
+        "CONVERT_SUCCESS": "Sidan konverterades till en flerspråkig sida",
+        "PERMALINK_IN_USE": "{permalink} används redan av: {pages}. Butiken visar bara en sida per permalänk och språk. Spara ändå?"
+      },
+      "ADD_POPUP": {
+        "TITLE": "Lägg till sida",
+        "MULTILANGUAGE": {
+          "TITLE": "Flerspråkig sida",
+          "DESCRIPTION": "En sida med en version för varje språk i butiken. När butikens språk byts öppnas versionen på det språket."
+        },
+        "LANDING": {
+          "TITLE": "Landningssida",
+          "DESCRIPTION": "En sida på ett enda språk."
+        }
       }
     },
     "STATUS": {
@@ -139,7 +164,74 @@
       "PUBLISHED": "Publicerad",
       "HAS_CHANGES": "Har utkast med ändringar",
       "SCHEDULED": "Schemalagd",
-      "PERSONALIZED": "Personaliserad"
+      "PERSONALIZED": "Personaliserad",
+      "MISSING": "Saknas",
+      "OUTDATED": "Inaktuell"
+    },
+    "PAGE_TYPES": {
+      "LANDING": "Landningssida",
+      "MULTILANGUAGE": "Flerspråkig"
+    },
+    "MULTILANGUAGE": {
+      "TITLE": {
+        "NEW": "Ny flerspråkig sida",
+        "DETAILS": "{name} (flerspråkig)"
+      },
+      "FIELDS": {
+        "NAME_HINT": "Gemensamt för alla språk",
+        "PERMALINK_HINT": "Standardpermalänk. Ett språk kan ange en egen.",
+        "DEFAULT_LANGUAGE": "Standardspråk",
+        "DEFAULT_LANGUAGE_HINT": "Källspråk: nya versioner kopierar dess innehåll",
+        "ADVANCED_OPTIONS_HINT": "Standardvärden för alla språk. Ett språk kan ange egna."
+      },
+      "LANGUAGES": {
+        "TITLE": "Språk",
+        "LANGUAGE": "Språk",
+        "ACTIONS": "Åtgärder",
+        "DEFAULT": "standard",
+        "NOT_IN_STORE": "inte ett butiksspråk",
+        "CUSTOM": "anpassat",
+        "INHERITED": "ärvt",
+        "OPEN": "Öppna",
+        "UNLINK": "Koppla bort",
+        "CREATE": "Skapa",
+        "LINK": "Länka befintlig sida",
+        "MARK_UP_TO_DATE": "Markera som aktuell",
+        "ACTION_LABEL": "{action}: {language}",
+        "ANY_LANGUAGE": "Alla språk"
+      },
+      "TOOLBAR": {
+        "PUBLISH_ALL": "Publicera alla",
+        "ARCHIVE_ALL": "Arkivera alla",
+        "DELETE": "Ta bort"
+      },
+      "ALERTS": {
+        "PUBLISH_ALL_RESULT": "Publicerade: {processed}. Överhoppade (inget utkast): {skipped}.",
+        "BATCH_FAILED": "Misslyckades: {failed}. Försök igen för dessa språk.",
+        "ARCHIVE_ALL_RESULT": "Arkiverade: {processed}. Redan arkiverade: {skipped}.",
+        "ARCHIVE_ALL": "Arkivera alla språkversioner av den här sidan?",
+        "DELETE": "Ta bort den här flerspråkiga sidan? Den har inga språkversioner.",
+        "DELETE_SUCCESS": "Den flerspråkiga sidan togs bort",
+        "LANGUAGE_CREATED": "Versionen för {language} skapades som utkast",
+        "UNLINK": "Koppla bort versionen för {language}? Den behålls som en separat landningssida."
+      },
+      "LIST": {
+        "PUBLISHED_COUNT": "Publicerade: {published} av {total}",
+        "OUTDATED_COUNT": "inaktuella: {outdated}"
+      },
+      "LINK_PAGE": {
+        "HINT": "Sidan behåller sin permalänk och sina inställningar och får det gemensamma namnet.",
+        "PAGE": "Befintlig landningssida ({language})",
+        "CANCEL": "Avbryt",
+        "LINK": "Länka"
+      },
+      "CONFLICT_POPUP": {
+        "TITLE": "Vissa språk har egna värden",
+        "HINT": "Du har ändrat inställningar som dessa språk anger själva:",
+        "APPLY_ALL": "Tillämpa på alla språk",
+        "APPLY_INHERITED": "Tillämpa endast på ärvande språk",
+        "CANCEL": "Avbryt"
+      }
     },
     "LIFECYCLE": {
       "DRAFT": "Utkast",

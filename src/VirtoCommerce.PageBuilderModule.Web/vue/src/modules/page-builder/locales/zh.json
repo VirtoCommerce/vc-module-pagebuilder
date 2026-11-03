@@ -33,12 +33,17 @@
             "MODIFIED_DATE": "修改时间",
             "CULTURE_NAME": "语言",
             "MODIFIED_BY": "修改者",
-            "STATUS": "状态"
+            "STATUS": "状态",
+            "TYPE": "类型",
+            "LANGUAGES": "语言"
           },
           "FILTER": {
             "STATUS": "状态",
             "APPLY": "应用",
-            "RESET": "重置"
+            "RESET": "重置",
+            "PAGE_TYPE": "页面类型",
+            "LANGUAGE": "语言",
+            "TRANSLATION_STATUS": "翻译状态"
           },
           "EMPTY": {
             "TITLE": "暂无内容",
@@ -75,7 +80,8 @@
           "PUBLISH": "发布",
           "UNPUBLISH": "取消发布",
           "DOWNLOAD_CONTENT": "保存内容",
-          "CLONE": "克隆"
+          "CLONE": "克隆",
+          "CONVERT": "转换为多语言页面"
         },
         "FIELDS": {
           "NAME": "名称",
@@ -114,6 +120,11 @@
             "TITLE": "计划发布",
             "DESCRIPTION": "设置此页面的可见时间"
           }
+        },
+        "LANGUAGE_VERSION_HINT": "此页面是多语言页面的一个语言版本。名称由所有语言共享；在此设置的永久链接和高级选项会覆盖多语言页面在该语言下的值。",
+        "FIELD_HINTS": {
+          "INHERITED": "继承自多语言页面",
+          "CUSTOM": "已为此语言单独设置；不应用多语言页面的值"
         }
       },
       "ALERTS": {
@@ -130,7 +141,21 @@
         "SAVE_SUCCESS": "页面保存成功",
         "PUBLISH_SUCCESS": "页面发布成功",
         "UNPUBLISH_SUCCESS": "页面已成功取消发布",
-        "DELETE_SUCCESS": "页面已成功归档"
+        "DELETE_SUCCESS": "页面已成功归档",
+        "CONVERT_CONFIRMATION": "要将此页面转换为多语言页面吗？它将成为其所属语言的版本，并且在店铺前端保持不变。",
+        "CONVERT_SUCCESS": "页面已转换为多语言页面",
+        "PERMALINK_IN_USE": "{permalink} 已被以下页面使用：{pages}。店铺前端对每个永久链接和语言只显示一个页面。仍要保存吗？"
+      },
+      "ADD_POPUP": {
+        "TITLE": "添加页面",
+        "MULTILANGUAGE": {
+          "TITLE": "多语言页面",
+          "DESCRIPTION": "一个页面，为店铺的每种语言各提供一个版本。切换店铺前端的语言时，会打开该语言的版本。"
+        },
+        "LANDING": {
+          "TITLE": "落地页",
+          "DESCRIPTION": "单一语言的页面。"
+        }
       }
     },
     "STATUS": {
@@ -139,7 +164,74 @@
       "PUBLISHED": "已发布",
       "HAS_CHANGES": "有更改的草稿",
       "SCHEDULED": "已计划",
-      "PERSONALIZED": "已个性化"
+      "PERSONALIZED": "已个性化",
+      "MISSING": "缺失",
+      "OUTDATED": "已过时"
+    },
+    "PAGE_TYPES": {
+      "LANDING": "落地页",
+      "MULTILANGUAGE": "多语言"
+    },
+    "MULTILANGUAGE": {
+      "TITLE": {
+        "NEW": "新建多语言页面",
+        "DETAILS": "{name}（多语言）"
+      },
+      "FIELDS": {
+        "NAME_HINT": "所有语言共享",
+        "PERMALINK_HINT": "默认永久链接。各语言可设置自己的永久链接。",
+        "DEFAULT_LANGUAGE": "默认语言",
+        "DEFAULT_LANGUAGE_HINT": "源语言：新版本会复制其内容",
+        "ADVANCED_OPTIONS_HINT": "所有语言的默认值。各语言可设置自己的值。"
+      },
+      "LANGUAGES": {
+        "TITLE": "语言",
+        "LANGUAGE": "语言",
+        "ACTIONS": "操作",
+        "DEFAULT": "默认",
+        "NOT_IN_STORE": "非店铺语言",
+        "CUSTOM": "自定义",
+        "INHERITED": "继承",
+        "OPEN": "打开",
+        "UNLINK": "取消关联",
+        "CREATE": "创建",
+        "LINK": "关联现有页面",
+        "MARK_UP_TO_DATE": "标记为最新",
+        "ACTION_LABEL": "{action}：{language}",
+        "ANY_LANGUAGE": "所有语言"
+      },
+      "TOOLBAR": {
+        "PUBLISH_ALL": "全部发布",
+        "ARCHIVE_ALL": "全部归档",
+        "DELETE": "删除"
+      },
+      "ALERTS": {
+        "PUBLISH_ALL_RESULT": "已发布：{processed}。已跳过（无草稿）：{skipped}。",
+        "BATCH_FAILED": "失败：{failed}。请对这些语言重试。",
+        "ARCHIVE_ALL_RESULT": "已归档：{processed}。此前已归档：{skipped}。",
+        "ARCHIVE_ALL": "要归档此页面的所有语言版本吗？",
+        "DELETE": "要删除此多语言页面吗？它没有任何语言版本。",
+        "DELETE_SUCCESS": "多语言页面已删除",
+        "LANGUAGE_CREATED": "已将 {language} 版本创建为草稿",
+        "UNLINK": "要取消关联 {language} 版本吗？它将保留为独立的落地页。"
+      },
+      "LIST": {
+        "PUBLISHED_COUNT": "已发布：{published}/{total}",
+        "OUTDATED_COUNT": "已过时：{outdated}"
+      },
+      "LINK_PAGE": {
+        "HINT": "该页面会保留其永久链接和设置，并使用共享名称。",
+        "PAGE": "现有的 {language} 落地页",
+        "CANCEL": "取消",
+        "LINK": "关联"
+      },
+      "CONFLICT_POPUP": {
+        "TITLE": "部分语言有自己的值",
+        "HINT": "您更改了这些语言自行设置的选项：",
+        "APPLY_ALL": "应用到所有语言",
+        "APPLY_INHERITED": "仅应用到继承的语言",
+        "CANCEL": "取消"
+      }
     },
     "LIFECYCLE": {
       "DRAFT": "草稿",

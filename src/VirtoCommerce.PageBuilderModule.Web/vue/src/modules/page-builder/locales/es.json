@@ -33,12 +33,17 @@
             "MODIFIED_DATE": "Modificado",
             "CULTURE_NAME": "Idioma",
             "MODIFIED_BY": "Modificado por",
-            "STATUS": "Estado"
+            "STATUS": "Estado",
+            "TYPE": "Tipo",
+            "LANGUAGES": "Idiomas"
           },
           "FILTER": {
             "STATUS": "Estado",
             "APPLY": "Aplicar",
-            "RESET": "Restablecer"
+            "RESET": "Restablecer",
+            "PAGE_TYPE": "Tipo de página",
+            "LANGUAGE": "Idioma",
+            "TRANSLATION_STATUS": "Estado de la traducción"
           },
           "EMPTY": {
             "TITLE": "Aún no hay contenido",
@@ -75,7 +80,8 @@
           "PUBLISH": "Publicar",
           "UNPUBLISH": "Despublicar",
           "DOWNLOAD_CONTENT": "Guardar contenido",
-          "CLONE": "Clonar"
+          "CLONE": "Clonar",
+          "CONVERT": "Convertir en multilingüe"
         },
         "FIELDS": {
           "NAME": "Nombre",
@@ -114,6 +120,11 @@
             "TITLE": "Programación",
             "DESCRIPTION": "Establecer cuándo esta página debe ser visible"
           }
+        },
+        "LANGUAGE_VERSION_HINT": "Esta página es una versión de idioma de una página multilingüe. El nombre es común a todos los idiomas; el enlace permanente y las opciones avanzadas definidos aquí reemplazan los valores de la página multilingüe para este idioma.",
+        "FIELD_HINTS": {
+          "INHERITED": "Heredado de la página multilingüe",
+          "CUSTOM": "Definido para este idioma; no se aplica el valor de la página multilingüe"
         }
       },
       "ALERTS": {
@@ -130,7 +141,21 @@
         "SAVE_SUCCESS": "Página guardada correctamente",
         "PUBLISH_SUCCESS": "Página publicada correctamente",
         "UNPUBLISH_SUCCESS": "Publicación de la página cancelada correctamente",
-        "DELETE_SUCCESS": "Página archivada correctamente"
+        "DELETE_SUCCESS": "Página archivada correctamente",
+        "CONVERT_CONFIRMATION": "¿Convertir esta página en una página multilingüe? Pasará a ser la versión en su idioma y no cambiará en la tienda.",
+        "CONVERT_SUCCESS": "Página convertida en página multilingüe",
+        "PERMALINK_IN_USE": "{permalink} ya se usa en: {pages}. La tienda muestra solo una página por enlace permanente e idioma. ¿Guardar de todos modos?"
+      },
+      "ADD_POPUP": {
+        "TITLE": "Agregar página",
+        "MULTILANGUAGE": {
+          "TITLE": "Página multilingüe",
+          "DESCRIPTION": "Una página con una versión para cada idioma de la tienda. Al cambiar el idioma en la tienda, se abre la versión en ese idioma."
+        },
+        "LANDING": {
+          "TITLE": "Página de destino",
+          "DESCRIPTION": "Una página en un solo idioma."
+        }
       }
     },
     "STATUS": {
@@ -139,7 +164,74 @@
       "PUBLISHED": "Publicado",
       "HAS_CHANGES": "Tiene borrador con cambios",
       "SCHEDULED": "Programado",
-      "PERSONALIZED": "Personalizado"
+      "PERSONALIZED": "Personalizado",
+      "MISSING": "Falta",
+      "OUTDATED": "Desactualizado"
+    },
+    "PAGE_TYPES": {
+      "LANDING": "Página de destino",
+      "MULTILANGUAGE": "Multilingüe"
+    },
+    "MULTILANGUAGE": {
+      "TITLE": {
+        "NEW": "Nueva página multilingüe",
+        "DETAILS": "{name} (multilingüe)"
+      },
+      "FIELDS": {
+        "NAME_HINT": "Común a todos los idiomas",
+        "PERMALINK_HINT": "Enlace permanente predeterminado. Cada idioma puede definir el suyo.",
+        "DEFAULT_LANGUAGE": "Idioma predeterminado",
+        "DEFAULT_LANGUAGE_HINT": "Idioma de origen: las nuevas versiones copian su contenido",
+        "ADVANCED_OPTIONS_HINT": "Valores predeterminados para todos los idiomas. Cada idioma puede definir los suyos."
+      },
+      "LANGUAGES": {
+        "TITLE": "Idiomas",
+        "LANGUAGE": "Idioma",
+        "ACTIONS": "Acciones",
+        "DEFAULT": "predeterminado",
+        "NOT_IN_STORE": "no es un idioma de la tienda",
+        "CUSTOM": "propio",
+        "INHERITED": "heredado",
+        "OPEN": "Abrir",
+        "UNLINK": "Desvincular",
+        "CREATE": "Crear",
+        "LINK": "Vincular página existente",
+        "MARK_UP_TO_DATE": "Marcar como actualizado",
+        "ACTION_LABEL": "{action}: {language}",
+        "ANY_LANGUAGE": "Todos los idiomas"
+      },
+      "TOOLBAR": {
+        "PUBLISH_ALL": "Publicar todas",
+        "ARCHIVE_ALL": "Archivar todas",
+        "DELETE": "Eliminar"
+      },
+      "ALERTS": {
+        "PUBLISH_ALL_RESULT": "Publicadas: {processed}. Omitidas (sin borrador): {skipped}.",
+        "BATCH_FAILED": "Fallidas: {failed}. Vuelva a intentarlo con estos idiomas.",
+        "ARCHIVE_ALL_RESULT": "Archivadas: {processed}. Ya archivadas: {skipped}.",
+        "ARCHIVE_ALL": "¿Archivar todas las versiones de idioma de esta página?",
+        "DELETE": "¿Eliminar esta página multilingüe? No tiene versiones de idioma.",
+        "DELETE_SUCCESS": "Página multilingüe eliminada",
+        "LANGUAGE_CREATED": "Versión {language} creada como borrador",
+        "UNLINK": "¿Desvincular la versión {language}? Se conservará como una página de destino independiente."
+      },
+      "LIST": {
+        "PUBLISHED_COUNT": "Publicadas: {published} de {total}",
+        "OUTDATED_COUNT": "desactualizadas: {outdated}"
+      },
+      "LINK_PAGE": {
+        "HINT": "La página conserva su enlace permanente y su configuración, y adopta el nombre común.",
+        "PAGE": "Página de destino existente ({language})",
+        "CANCEL": "Cancelar",
+        "LINK": "Vincular"
+      },
+      "CONFLICT_POPUP": {
+        "TITLE": "Algunos idiomas tienen sus propios valores",
+        "HINT": "Ha cambiado configuraciones que estos idiomas definen por sí mismos:",
+        "APPLY_ALL": "Aplicar a todos los idiomas",
+        "APPLY_INHERITED": "Aplicar solo a los idiomas que heredan",
+        "CANCEL": "Cancelar"
+      }
     },
     "LIFECYCLE": {
       "DRAFT": "Borrador",

@@ -33,12 +33,17 @@
             "MODIFIED_DATE": "Modificato",
             "CULTURE_NAME": "Lingua",
             "MODIFIED_BY": "Modificato da",
-            "STATUS": "Stato"
+            "STATUS": "Stato",
+            "TYPE": "Tipo",
+            "LANGUAGES": "Lingue"
           },
           "FILTER": {
             "STATUS": "Stato",
             "APPLY": "Applica",
-            "RESET": "Reimposta"
+            "RESET": "Reimposta",
+            "PAGE_TYPE": "Tipo di pagina",
+            "LANGUAGE": "Lingua",
+            "TRANSLATION_STATUS": "Stato della traduzione"
           },
           "EMPTY": {
             "TITLE": "Non ci sono ancora contenuti",
@@ -75,7 +80,8 @@
           "PUBLISH": "Pubblica",
           "UNPUBLISH": "Annulla pubblicazione",
           "DOWNLOAD_CONTENT": "Salva contenuto",
-          "CLONE": "Clona"
+          "CLONE": "Clona",
+          "CONVERT": "Converti in multilingue"
         },
         "FIELDS": {
           "NAME": "Nome",
@@ -114,6 +120,11 @@
             "TITLE": "Programmazione",
             "DESCRIPTION": "Imposta quando questa pagina deve essere visibile"
           }
+        },
+        "LANGUAGE_VERSION_HINT": "Questa pagina è una versione linguistica di una pagina multilingue. Il nome è condiviso da tutte le lingue; il permalink e le opzioni avanzate impostati qui sostituiscono i valori della pagina multilingue per questa lingua.",
+        "FIELD_HINTS": {
+          "INHERITED": "Ereditato dalla pagina multilingue",
+          "CUSTOM": "Impostato per questa lingua; il valore della pagina multilingue non viene applicato"
         }
       },
       "ALERTS": {
@@ -130,7 +141,21 @@
         "SAVE_SUCCESS": "Pagina salvata con successo",
         "PUBLISH_SUCCESS": "Pagina pubblicata con successo",
         "UNPUBLISH_SUCCESS": "Pubblicazione della pagina annullata con successo",
-        "DELETE_SUCCESS": "Pagina archiviata con successo"
+        "DELETE_SUCCESS": "Pagina archiviata con successo",
+        "CONVERT_CONFIRMATION": "Convertire questa pagina in una pagina multilingue? Diventa la versione nella sua lingua e resta invariata sullo storefront.",
+        "CONVERT_SUCCESS": "Pagina convertita in pagina multilingue",
+        "PERMALINK_IN_USE": "{permalink} è già usato da: {pages}. Lo storefront mostra una sola pagina per permalink e lingua. Salvare comunque?"
+      },
+      "ADD_POPUP": {
+        "TITLE": "Aggiungi pagina",
+        "MULTILANGUAGE": {
+          "TITLE": "Pagina multilingue",
+          "DESCRIPTION": "Una pagina con una versione per ogni lingua del negozio. Cambiando la lingua dello storefront si apre la versione in quella lingua."
+        },
+        "LANDING": {
+          "TITLE": "Pagina di destinazione",
+          "DESCRIPTION": "Una pagina in una sola lingua."
+        }
       }
     },
     "STATUS": {
@@ -139,7 +164,74 @@
       "PUBLISHED": "Pubblicato",
       "HAS_CHANGES": "Bozza con modifiche",
       "SCHEDULED": "Programmato",
-      "PERSONALIZED": "Personalizzato"
+      "PERSONALIZED": "Personalizzato",
+      "MISSING": "Mancante",
+      "OUTDATED": "Obsoleto"
+    },
+    "PAGE_TYPES": {
+      "LANDING": "Pagina di destinazione",
+      "MULTILANGUAGE": "Multilingue"
+    },
+    "MULTILANGUAGE": {
+      "TITLE": {
+        "NEW": "Nuova pagina multilingue",
+        "DETAILS": "{name} (multilingue)"
+      },
+      "FIELDS": {
+        "NAME_HINT": "Condiviso da tutte le lingue",
+        "PERMALINK_HINT": "Permalink predefinito. Ogni lingua può impostarne uno proprio.",
+        "DEFAULT_LANGUAGE": "Lingua predefinita",
+        "DEFAULT_LANGUAGE_HINT": "Lingua di origine: le nuove versioni ne copiano il contenuto",
+        "ADVANCED_OPTIONS_HINT": "Valori predefiniti per tutte le lingue. Ogni lingua può impostare i propri."
+      },
+      "LANGUAGES": {
+        "TITLE": "Lingue",
+        "LANGUAGE": "Lingua",
+        "ACTIONS": "Azioni",
+        "DEFAULT": "predefinita",
+        "NOT_IN_STORE": "non è una lingua del negozio",
+        "CUSTOM": "personalizzato",
+        "INHERITED": "ereditato",
+        "OPEN": "Apri",
+        "UNLINK": "Scollega",
+        "CREATE": "Crea",
+        "LINK": "Collega pagina esistente",
+        "MARK_UP_TO_DATE": "Segna come aggiornata",
+        "ACTION_LABEL": "{action}: {language}",
+        "ANY_LANGUAGE": "Tutte le lingue"
+      },
+      "TOOLBAR": {
+        "PUBLISH_ALL": "Pubblica tutte",
+        "ARCHIVE_ALL": "Archivia tutte",
+        "DELETE": "Elimina"
+      },
+      "ALERTS": {
+        "PUBLISH_ALL_RESULT": "Pubblicate: {processed}. Saltate (nessuna bozza): {skipped}.",
+        "BATCH_FAILED": "Non riuscite: {failed}. Riprova per queste lingue.",
+        "ARCHIVE_ALL_RESULT": "Archiviate: {processed}. Già archiviate: {skipped}.",
+        "ARCHIVE_ALL": "Archiviare tutte le versioni linguistiche di questa pagina?",
+        "DELETE": "Eliminare questa pagina multilingue? Non ha versioni linguistiche.",
+        "DELETE_SUCCESS": "Pagina multilingue eliminata",
+        "LANGUAGE_CREATED": "Versione {language} creata come bozza",
+        "UNLINK": "Scollegare la versione {language}? Viene mantenuta come pagina di destinazione separata."
+      },
+      "LIST": {
+        "PUBLISHED_COUNT": "Pubblicate: {published} su {total}",
+        "OUTDATED_COUNT": "obsolete: {outdated}"
+      },
+      "LINK_PAGE": {
+        "HINT": "La pagina mantiene il suo permalink e le sue impostazioni e assume il nome condiviso.",
+        "PAGE": "Pagina di destinazione esistente ({language})",
+        "CANCEL": "Annulla",
+        "LINK": "Collega"
+      },
+      "CONFLICT_POPUP": {
+        "TITLE": "Alcune lingue hanno valori propri",
+        "HINT": "Hai modificato impostazioni che queste lingue definiscono autonomamente:",
+        "APPLY_ALL": "Applica a tutte le lingue",
+        "APPLY_INHERITED": "Applica solo alle lingue che ereditano",
+        "CANCEL": "Annulla"
+      }
     },
     "LIFECYCLE": {
       "DRAFT": "Bozza",

@@ -33,12 +33,17 @@
             "MODIFIED_DATE": "Endret",
             "CULTURE_NAME": "Språk",
             "MODIFIED_BY": "Endret av",
-            "STATUS": "Status"
+            "STATUS": "Status",
+            "TYPE": "Type",
+            "LANGUAGES": "Språk"
           },
           "FILTER": {
             "STATUS": "Status",
             "APPLY": "Bruk",
-            "RESET": "Tilbakestill"
+            "RESET": "Tilbakestill",
+            "PAGE_TYPE": "Sidetype",
+            "LANGUAGE": "Språk",
+            "TRANSLATION_STATUS": "Oversettelsesstatus"
           },
           "EMPTY": {
             "TITLE": "Det finnes ikke noe innhold ennå",
@@ -75,7 +80,8 @@
           "PUBLISH": "Publiser",
           "UNPUBLISH": "Avpubliser",
           "DOWNLOAD_CONTENT": "Lagre innhold",
-          "CLONE": "Klon"
+          "CLONE": "Klon",
+          "CONVERT": "Gjør om til flerspråklig"
         },
         "FIELDS": {
           "NAME": "Navn",
@@ -114,6 +120,11 @@
             "TITLE": "Planlegging",
             "DESCRIPTION": "Angi når denne siden skal være synlig"
           }
+        },
+        "LANGUAGE_VERSION_HINT": "Denne siden er en språkversjon av en flerspråklig side. Navnet er felles for alle språk; permalink og avanserte alternativer som angis her, overstyrer verdiene fra den flerspråklige siden for dette språket.",
+        "FIELD_HINTS": {
+          "INHERITED": "Arvet fra den flerspråklige siden",
+          "CUSTOM": "Angitt for dette språket; verdien fra den flerspråklige siden brukes ikke"
         }
       },
       "ALERTS": {
@@ -130,7 +141,21 @@
         "SAVE_SUCCESS": "Siden ble lagret",
         "PUBLISH_SUCCESS": "Siden ble publisert",
         "UNPUBLISH_SUCCESS": "Siden ble avpublisert",
-        "DELETE_SUCCESS": "Siden ble arkivert"
+        "DELETE_SUCCESS": "Siden ble arkivert",
+        "CONVERT_CONFIRMATION": "Gjøre om denne siden til en flerspråklig side? Den blir versjonen på sitt språk og forblir uendret i nettbutikken.",
+        "CONVERT_SUCCESS": "Siden ble gjort om til en flerspråklig side",
+        "PERMALINK_IN_USE": "{permalink} brukes allerede av: {pages}. Nettbutikken viser bare én side per permalink og språk. Lagre likevel?"
+      },
+      "ADD_POPUP": {
+        "TITLE": "Legg til side",
+        "MULTILANGUAGE": {
+          "TITLE": "Flerspråklig side",
+          "DESCRIPTION": "Én side med en versjon for hvert av butikkens språk. Når språket i nettbutikken byttes, åpnes versjonen på det språket."
+        },
+        "LANDING": {
+          "TITLE": "Landingsside",
+          "DESCRIPTION": "En side på ett språk."
+        }
       }
     },
     "STATUS": {
@@ -139,7 +164,74 @@
       "PUBLISHED": "Publisert",
       "HAS_CHANGES": "Har utkast med endringer",
       "SCHEDULED": "Planlagt",
-      "PERSONALIZED": "Personalisert"
+      "PERSONALIZED": "Personalisert",
+      "MISSING": "Mangler",
+      "OUTDATED": "Utdatert"
+    },
+    "PAGE_TYPES": {
+      "LANDING": "Landingsside",
+      "MULTILANGUAGE": "Flerspråklig"
+    },
+    "MULTILANGUAGE": {
+      "TITLE": {
+        "NEW": "Ny flerspråklig side",
+        "DETAILS": "{name} (flerspråklig)"
+      },
+      "FIELDS": {
+        "NAME_HINT": "Felles for alle språk",
+        "PERMALINK_HINT": "Standard permalink. Et språk kan angi sin egen.",
+        "DEFAULT_LANGUAGE": "Standardspråk",
+        "DEFAULT_LANGUAGE_HINT": "Kildespråk: nye versjoner kopierer innholdet",
+        "ADVANCED_OPTIONS_HINT": "Standardverdier for alle språk. Et språk kan angi sine egne."
+      },
+      "LANGUAGES": {
+        "TITLE": "Språk",
+        "LANGUAGE": "Språk",
+        "ACTIONS": "Handlinger",
+        "DEFAULT": "standard",
+        "NOT_IN_STORE": "ikke et butikkspråk",
+        "CUSTOM": "egendefinert",
+        "INHERITED": "arvet",
+        "OPEN": "Åpne",
+        "UNLINK": "Koble fra",
+        "CREATE": "Opprett",
+        "LINK": "Koble til eksisterende side",
+        "MARK_UP_TO_DATE": "Merk som oppdatert",
+        "ACTION_LABEL": "{action}: {language}",
+        "ANY_LANGUAGE": "Alle språk"
+      },
+      "TOOLBAR": {
+        "PUBLISH_ALL": "Publiser alle",
+        "ARCHIVE_ALL": "Arkiver alle",
+        "DELETE": "Slett"
+      },
+      "ALERTS": {
+        "PUBLISH_ALL_RESULT": "Publisert: {processed}. Hoppet over (ingen utkast): {skipped}.",
+        "BATCH_FAILED": "Mislyktes: {failed}. Prøv igjen for disse språkene.",
+        "ARCHIVE_ALL_RESULT": "Arkivert: {processed}. Allerede arkivert: {skipped}.",
+        "ARCHIVE_ALL": "Arkivere alle språkversjoner av denne siden?",
+        "DELETE": "Slette denne flerspråklige siden? Den har ingen språkversjoner.",
+        "DELETE_SUCCESS": "Den flerspråklige siden ble slettet",
+        "LANGUAGE_CREATED": "Versjonen for {language} ble opprettet som utkast",
+        "UNLINK": "Koble fra versjonen for {language}? Den beholdes som en egen landingsside."
+      },
+      "LIST": {
+        "PUBLISHED_COUNT": "Publisert: {published} av {total}",
+        "OUTDATED_COUNT": "utdatert: {outdated}"
+      },
+      "LINK_PAGE": {
+        "HINT": "Siden beholder sin permalink og sine innstillinger og får det felles navnet.",
+        "PAGE": "Eksisterende landingsside ({language})",
+        "CANCEL": "Avbryt",
+        "LINK": "Koble til"
+      },
+      "CONFLICT_POPUP": {
+        "TITLE": "Noen språk har egne verdier",
+        "HINT": "Du har endret innstillinger som disse språkene angir selv:",
+        "APPLY_ALL": "Bruk på alle språk",
+        "APPLY_INHERITED": "Bruk bare på språk som arver",
+        "CANCEL": "Avbryt"
+      }
     },
     "LIFECYCLE": {
       "DRAFT": "Utkast",
