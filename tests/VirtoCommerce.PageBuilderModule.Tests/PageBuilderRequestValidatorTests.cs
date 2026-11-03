@@ -55,7 +55,10 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         [InlineData("blogs", "blogs/news.page", true)]
         [InlineData("themes", "default/config/settings_data.json", true)]
         [InlineData("pages", "about-us.json", false)]
-        [InlineData("pages", "about-us.page-draft", false)]
+        [InlineData("pages", "/about-us.page-draft", true)]
+        [InlineData("blogs", "blogs/news.page-draft", true)]
+        [InlineData("themes", "default/config/settings_data.json-draft", false)]
+        [InlineData("pages", "about-us.html-draft", false)]
         [InlineData("themes", "default/layout.liquid", false)]
         [InlineData("assets", "x.page", false)]
         public void OnlyTheFilesTheDesignerWrites_AreWritable(string type, string path, bool expected) =>

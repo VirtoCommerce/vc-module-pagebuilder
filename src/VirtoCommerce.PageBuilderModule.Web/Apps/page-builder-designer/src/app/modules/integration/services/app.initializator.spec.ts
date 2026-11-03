@@ -8,7 +8,7 @@ import { AppConfig } from './app.config';
 import { EnvironmentRef } from './environment.ref';
 import { BuilderHttpClient } from "./builder-http.client";
 import { EvaluatorService } from "./evaluator.service";
-import { AppInitializator } from "./app.initializator";
+import { AppInitializator, bundledSettingsUrl } from "./app.initializator";
 import { SessionService } from "./session.service";
 
 describe('app initializator', () => {
@@ -132,6 +132,36 @@ describe('app initializator', () => {
         const request = httpController.expectOne('data/override-settings.json');
         expect(request.request.method).toBe('GET');
         request.flush(response);
+    });
+
+    it('does not take settings from outside its data folder', () => {
+        envRef.nativeWindow = {
+            location: {
+                search: "?configUrl=https://elsewhere.example/settings.json"
+            }
+        };
+
+        initializator.init();
+
+        httpController.expectNone('https://elsewhere.example/settings.json');
+        httpController.expectOne('data/settings.json').flush({});
+    });
+
+    [
+        'https://elsewhere.example/settings.json',
+        '//elsewhere.example/settings.json',
+        '/assets/settings.json',
+        'data/../assets/settings.json',
+        'data/sub/settings.json',
+        'data/settings.json?x=1',
+    ].forEach(requested => {
+        it(`falls back to the bundled settings for ${requested}`, () => {
+            expect(bundledSettingsUrl(requested)).toBe('data/settings.json');
+        });
+    });
+
+    it('keeps an override that names a bundled file', () => {
+        expect(bundledSettingsUrl('data/settings.old.json')).toBe('data/settings.old.json');
     });
 
     describe('use ref property to load other file with settings', () => {

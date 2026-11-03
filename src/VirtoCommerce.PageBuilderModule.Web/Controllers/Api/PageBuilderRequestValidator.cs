@@ -18,12 +18,13 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         private static readonly HashSet<string> ContentTypes = new(StringComparer.OrdinalIgnoreCase) { Themes, Pages, Blogs };
 
         // What the designer and the admin blade write: pages and blog articles are .page documents, a
-        // theme's settings are JSON.
+        // theme's settings are JSON. A page is also named by its draft, "foo.page-draft": the admin blade
+        // opens the designer on that name, and both the blob and the git flow resolve it to the page.
         private static readonly Dictionary<string, string[]> WritableExtensions = new(StringComparer.OrdinalIgnoreCase)
         {
             [Themes] = [".json"],
-            [Pages] = [".page"],
-            [Blogs] = [".page"],
+            [Pages] = [".page", ".page-draft"],
+            [Blogs] = [".page", ".page-draft"],
         };
 
         public static bool IsContentType(string type) => type != null && ContentTypes.Contains(type);

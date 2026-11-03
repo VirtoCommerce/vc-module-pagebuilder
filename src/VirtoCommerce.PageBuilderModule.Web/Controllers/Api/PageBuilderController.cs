@@ -1378,6 +1378,12 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 return refused;
             }
 
+            // a copy is a write under a name the caller picks: the same files as a save
+            if (!destPath.IsNullOrEmpty() && !PageBuilderRequestValidator.IsWritableFile(type ?? PagesContentType, destPath))
+            {
+                return BadRequest(new { error = "destPath needs the extension the designer writes.", destPath });
+            }
+
             if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
             {
                 return NotFound();

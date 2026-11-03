@@ -259,7 +259,8 @@ function parse(source: string): Node {
       return { kind: 'literal', value: token.value };
     }
     if (token.type === 'name') {
-      if (token.value in LITERALS) {
+      // own keys only: `in` also finds `constructor`, `toString`… on Object.prototype and would hand out Object
+      if (Object.hasOwn(LITERALS, token.value)) {
         return { kind: 'literal', value: LITERALS[token.value] };
       }
       return token.value === 'this' ? { kind: 'this' } : { kind: 'identifier', name: token.value };

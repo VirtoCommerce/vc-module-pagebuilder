@@ -155,6 +155,25 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.IsType<BadRequestObjectResult>(result);
         }
 
+        [Theory]
+        [InlineData("/about-us.html")]
+        [InlineData("/about-us.json")]
+        public async Task Copy_ToAFileTheDesignerDoesNotWrite_IsBadRequest(string destPath)
+        {
+            var result = await Controller().GitCopyPage(Store, "pages", Page, destPath);
+
+            Assert.IsType<BadRequestObjectResult>(result);
+        }
+
+        [Fact]
+        public async Task Copy_ToAPage_PassesTheCheck()
+        {
+            // the store is not on the git flow: a request that got past the check is answered 404
+            var result = await Controller().GitCopyPage(Store, "pages", Page, "/about-us_2.page");
+
+            Assert.IsType<NotFoundResult>(result);
+        }
+
         [Fact]
         public async Task Save_WithoutFiles_IsBadRequest()
         {

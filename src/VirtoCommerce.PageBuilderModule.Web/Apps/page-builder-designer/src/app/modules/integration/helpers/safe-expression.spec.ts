@@ -1,6 +1,6 @@
 import './known-expressions';
 import { evaluate, isSupportedExpression, UnsupportedExpressionError } from './safe-expression';
-import { combine } from './utils';
+import { combine, getValueByPath } from './utils';
 
 // Every expression the designer's data/settings.json and vc-frontend's section schemas ship today.
 const SHIPPED_EXPRESSIONS = [
@@ -94,9 +94,20 @@ describe('safe expressions', () => {
     'this.a = 1',
     "'abc'.constructor",
     'this.toString()',
+    'constructor',
+    'toString',
+    '__proto__',
+    'hasOwnProperty',
   ].forEach(expression => {
     it(`does not run ${expression}`, () => {
       expect(() => evaluate(expression, { items: [], a: 0 })).toThrowError(UnsupportedExpressionError);
     });
+  });
+
+  it('does not hand Object to a helper that walks into it', () => {
+    const expression = `getValueByPath([constructor], "$[?(@.getPrototypeOf(@).constructor('globalThis.__safeExpressionEscaped = true')())]")`;
+
+    expect(() => evaluate(expression, {}, { getValueByPath })).toThrow(UnsupportedExpressionError);
+    expect((globalThis as any).__safeExpressionEscaped).toBeUndefined();
   });
 });

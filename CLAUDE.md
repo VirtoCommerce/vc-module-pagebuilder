@@ -99,7 +99,7 @@ Lives entirely in `Apps/page-builder-designer/`. The SPA runs as an `<iframe>` i
 - Preview iframe receives template data changes in real-time
 
 **Config system:**
-- Loads `data/settings.json` (or `?configUrl=` override)
+- Loads `data/settings.json` (or another bundled `data/*.json` named by `?configUrl=`)
 - Template syntax in values (evaluated by `appHelpers.template()` in `integration/helpers/utils.ts`):
   - `{{path}}` — substitutes value by dot-path from context (`location.*`, `config.*`, `settings.*`)
   - `{{=expr}}` — evaluates JS expression, result is coerced to string (for use inside larger strings)

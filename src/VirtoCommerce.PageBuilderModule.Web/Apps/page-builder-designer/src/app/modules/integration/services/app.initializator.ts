@@ -11,6 +11,17 @@ import { JwtStorageService } from './jwt-storage.service';
 import { SessionService } from './session.service';
 import { DefaultConfig } from './app.default-config';
 
+const DEFAULT_SETTINGS_URL = 'data/settings.json';
+const BUNDLED_SETTINGS_URL = /^data\/[\w-]+(?:\.[\w-]+)*\.json$/;
+
+/**
+ * The settings decide every url the designer calls with the admin's token, so `?configUrl=` may only
+ * pick another file the designer ships in `data/`, never a url from somewhere else.
+ */
+export function bundledSettingsUrl(requested: unknown): string {
+    return typeof requested === 'string' && BUNDLED_SETTINGS_URL.test(requested) ? requested : DEFAULT_SETTINGS_URL;
+}
+
 @Injectable({
     providedIn: 'root'
 })
@@ -25,7 +36,7 @@ export class AppInitializator {
     init(): Promise<any> {
         // todo: dangerous! check that this is security
         console.log(this.config.getContext());
-        const configUrl = this.config.getContext().location.params.configUrl || 'data/settings.json';
+        const configUrl = bundledSettingsUrl(this.config.getContext().location.params.configUrl);
         return firstValueFrom(this.ensureBearerToken().pipe(
             switchMap(() => this.loadSettingsFrom(configUrl, null, DefaultConfig)),
         ).pipe(
