@@ -540,8 +540,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("save")]
         public async Task<ActionResult> SaveTemplates(string storeId, string theme, [FromBody] SaveFilesModel value, [FromQuery] bool draft = false)
         {
-            var files = ParseWritableFiles(value);
-            if (files == null)
+            if (!TryParseWritableFiles(value, out var files))
             {
                 return BadRequest(new { error = "Every file needs a content type of themes, pages or blogs and a relative path to a file the designer writes: a .page document, or a theme JSON file outside the theme's config folder, or the theme's config/settings_data.json." });
             }
@@ -574,14 +573,13 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             return await SaveDraftToGitAsync(storeId, theme, files);
         }
 
-        /// <summary>The files of a save request, or <c>null</c> when any of them is not one the designer writes.</summary>
-        private static List<SaveFileModel> ParseWritableFiles(SaveFilesModel value)
+        /// <summary>The files of a save request; <c>false</c> when there are none or any is not one the designer writes.</summary>
+        private static bool TryParseWritableFiles(SaveFilesModel value, out List<SaveFileModel> files)
         {
-            var files = value?.Files == null ? null : JsonConvert.DeserializeObject<List<SaveFileModel>>(value.Files);
+            var parsed = value?.Files == null ? null : JsonConvert.DeserializeObject<List<SaveFileModel>>(value.Files);
+            files = parsed ?? [];
 
-            return files != null && files.All(file => file != null && PageBuilderRequestValidator.IsWritableFile(file.Type, file.Path))
-                ? files
-                : null;
+            return parsed != null && parsed.TrueForAll(file => file != null && PageBuilderRequestValidator.IsWritableFile(file.Type, file.Path));
         }
 
         private async Task<ActionResult> SaveToBlobAsync(string storeId, string theme, List<SaveFileModel> files, bool draft)
@@ -1404,8 +1402,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 return refused;
             }
 
-            // a copy is a write under a name the caller picks: the same files as a save
-            if (!destPath.IsNullOrEmpty() && !PageBuilderRequestValidator.IsWritableFile(contentType, destPath))
+            if (!IsWritableCopyTarget(contentType, destPath))
             {
                 return BadRequest(new { error = "destPath must name a file the designer writes.", destPath });
             }
@@ -1447,6 +1444,10 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
             return Ok(saved);
         }
+
+        // a copy is a write under a name the caller picks: the same files as a save; no name means the next free one
+        private static bool IsWritableCopyTarget(string contentType, string destPath) =>
+            destPath.IsNullOrEmpty() || PageBuilderRequestValidator.IsWritableFile(contentType, destPath);
 
         /// <summary>
         /// The name a duplicate gets: "foo.page" becomes "foo_1.page", at the first index the repository
