@@ -546,7 +546,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             var files = value?.Files == null ? null : JsonConvert.DeserializeObject<List<SaveFileModel>>(value.Files);
             if (files == null || files.Any(file => file == null || !PageBuilderRequestValidator.IsWritableFile(file.Type, file.Path)))
             {
-                return BadRequest(new { error = "Every file needs a content type of themes, pages or blogs and a relative path with the extension the designer writes." });
+                return BadRequest(new { error = "Every file needs a content type of themes, pages or blogs and a relative path to a file the designer writes: a .page document, or a theme JSON file outside the theme's config folder, or the theme's config/settings_data.json." });
             }
 
             if (await CheckRequestAsync(storeId, ModuleConstants.Security.Permissions.Update, PageBuilderRequestValidator.Themes, theme) is { } refused)
@@ -1381,7 +1381,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             // a copy is a write under a name the caller picks: the same files as a save
             if (!destPath.IsNullOrEmpty() && !PageBuilderRequestValidator.IsWritableFile(type ?? PagesContentType, destPath))
             {
-                return BadRequest(new { error = "destPath needs the extension the designer writes.", destPath });
+                return BadRequest(new { error = "destPath must name a file the designer writes.", destPath });
             }
 
             if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))

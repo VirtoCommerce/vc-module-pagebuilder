@@ -40,6 +40,9 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         [InlineData("blogs\\..\\about-us.page")]
         [InlineData("C:/Windows/win.ini")]
         [InlineData("about-us.page\0")]
+        [InlineData("default/config./builder_settings.json")]
+        [InlineData("default/config /builder_settings.json")]
+        [InlineData(".. /about-us.page")]
         public void PathsThatLeaveTheContentFolder_AreRefused(string path) => Assert.False(PageBuilderRequestValidator.IsRelativePath(path));
 
         [Theory]
@@ -61,6 +64,13 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         [InlineData("pages", "about-us.html-draft", false)]
         [InlineData("themes", "default/layout.liquid", false)]
         [InlineData("assets", "x.page", false)]
+        [InlineData("themes", "default/content/templates/product.json", true)]
+        [InlineData("themes", "/default/config/settings_data.json", true)]
+        [InlineData("themes", "default/config/builder_settings.json", false)]
+        [InlineData("themes", "default/config/settings_schema.json", false)]
+        [InlineData("themes", "default/config/schemas/sections/banner.json", false)]
+        [InlineData("themes", "default/Config/builder_settings.json", false)]
+        [InlineData("themes", "default/config/schemas/settings_data.json", false)]
         public void OnlyTheFilesTheDesignerWrites_AreWritable(string type, string path, bool expected) =>
             Assert.Equal(expected, PageBuilderRequestValidator.IsWritableFile(type, path));
     }

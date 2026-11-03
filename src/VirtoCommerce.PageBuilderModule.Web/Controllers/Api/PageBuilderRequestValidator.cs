@@ -27,11 +27,20 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             [Blogs] = [".page", ".page-draft"],
         };
 
+        // A theme's config folder is the designer's own configuration: request descriptors
+        // (builder_settings.json), section and template schemas with their expressions, the settings
+        // schema. The designer runs it in the session of whoever opens it, so it is deployed with the
+        // theme, never written through the builder. The one file the designer saves there is the theme
+        // settings.
+        private const string ThemeConfigFolder = "config";
+        private const string ThemeSettingsFile = "settings_data.json";
+
         public static bool IsContentType(string type) => type != null && ContentTypes.Contains(type);
 
         /// <summary>
         /// A path inside the content folder. A leading "/" is how the admin blade names a page and is
-        /// trimmed by every reader, so it is accepted; "\", "..", "." and ":" are not.
+        /// trimmed by every reader, so it is accepted; "\", "..", "." and ":" are not, and neither is a
+        /// segment ending in a dot or a space, which Windows file storage would read as another name.
         /// </summary>
         public static bool IsRelativePath(string path)
         {
@@ -47,7 +56,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
             var trimmed = path.TrimStart('/');
 
-            return trimmed.Length > 0 && !trimmed.Split('/').Any(segment => segment is "" or "." or "..");
+            return trimmed.Length > 0 && !trimmed.Split('/').Any(segment =>
+                segment is "" or "." or ".." || segment.EndsWith('.') || segment.EndsWith(' '));
         }
 
         /// <summary>A theme is one folder name.</summary>
@@ -57,6 +67,23 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         public static bool IsWritableFile(string type, string path) =>
             IsContentType(type) &&
             IsRelativePath(path) &&
-            WritableExtensions[type].Any(extension => path.EndsWith(extension, StringComparison.OrdinalIgnoreCase));
+            WritableExtensions[type].Any(extension => path.EndsWith(extension, StringComparison.OrdinalIgnoreCase)) &&
+            (!string.Equals(type, Themes, StringComparison.OrdinalIgnoreCase) || IsWritableThemeFile(path));
+
+        /// <summary>
+        /// A theme file outside the theme's config folder — "default/content/templates/product.json", say —
+        /// or the theme settings, "default/config/settings_data.json".
+        /// </summary>
+        private static bool IsWritableThemeFile(string path)
+        {
+            var segments = path.TrimStart('/').Split('/');
+
+            if (segments.Length < 2 || !segments[1].Equals(ThemeConfigFolder, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            return segments.Length == 3 && segments[2].Equals(ThemeSettingsFile, StringComparison.OrdinalIgnoreCase);
+        }
     }
 }

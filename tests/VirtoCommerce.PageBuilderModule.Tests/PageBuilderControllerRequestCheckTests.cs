@@ -148,6 +148,8 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         [InlineData("themes", "default/../../config.json")]
         [InlineData("assets", "x.page")]
         [InlineData(null, "about-us.page")]
+        [InlineData("themes", "default/config/builder_settings.json")]
+        [InlineData("themes", "default/config/schemas/sections/banner.json")]
         public async Task Save_AFileTheDesignerDoesNotWrite_IsBadRequest(string type, string path)
         {
             var result = await Controller().SaveTemplates(Store, "default", Files((type, path)));
