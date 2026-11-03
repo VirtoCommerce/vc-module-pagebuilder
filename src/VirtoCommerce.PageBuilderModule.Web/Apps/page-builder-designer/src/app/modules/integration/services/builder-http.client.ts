@@ -6,8 +6,6 @@ import { AppConfig, EvaluatorService } from '@integration/services';
 import { ServerRequestDescriptor, ServerResponseDescriptor } from '@models/http';
 import { appHelpers } from '@integration/helpers';
 
-import { isAllowedRequest } from './request-policy';
-
 type CustomRequest = string | ServerRequestDescriptor | null;
 type CustomRequests = CustomRequest | CustomRequest[] | null;
 
@@ -86,13 +84,6 @@ export class BuilderHttpClient extends HttpClient {
         const opts = { ...this._defaultOpts, ...additionalOptions };
 
         if (!url) {
-            return of(null);
-        }
-
-        // url, method and body come from theme settings and schemas: keep a descriptor on the
-        // platform origin, and let it write only where the shipped settings and schemas write.
-        if (!isAllowedRequest(url, method, globalThis.location.href)) {
-            console.warn('Request not sent: a settings or schema descriptor may only reach the platform', method, url);
             return of(null);
         }
 

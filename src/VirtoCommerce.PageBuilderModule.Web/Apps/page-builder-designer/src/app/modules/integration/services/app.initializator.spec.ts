@@ -218,7 +218,7 @@ describe('app initializator', () => {
             it('simple scenario', () => {
                 const firstResponse = {
                     ref: {
-                        url: "/graphql",
+                        url: "data/ref-settings.json",
                         method: "post"
                     }
                 };
@@ -235,7 +235,7 @@ describe('app initializator', () => {
                 expect(firstRequest.request.method).toBe('GET');
                 firstRequest.flush(firstResponse);
 
-                const secondRequest = httpController.expectOne('/graphql');
+                const secondRequest = httpController.expectOne('data/ref-settings.json');
                 expect(secondRequest.request.method).toBe('POST');
                 secondRequest.flush(finalResponse);
             });
@@ -268,7 +268,7 @@ describe('app initializator', () => {
             it('convert response', () => {
                 const firstResponse = {
                     ref: {
-                        url: "/graphql",
+                        url: "data/ref-settings.json",
                         method: "post",
                         response: {
                             result: "$.value"
@@ -290,7 +290,7 @@ describe('app initializator', () => {
                 expect(firstRequest.request.method).toBe('GET');
                 firstRequest.flush(firstResponse);
 
-                const secondRequest = httpController.expectOne('/graphql');
+                const secondRequest = httpController.expectOne('data/ref-settings.json');
                 expect(secondRequest.request.method).toBe('POST');
                 secondRequest.flush(finalResponse);
             });
@@ -385,7 +385,7 @@ describe('app initializator', () => {
             const configResponse = {
                 key: {
                     init: true,
-                    url: "/graphql",
+                    url: "complex/property/request",
                     method: "post",
                     response: {
                         result: "$.value"
@@ -406,7 +406,7 @@ describe('app initializator', () => {
             expect(request.request.method).toBe('GET');
             request.flush(configResponse);
 
-            const propertyRequest = httpController.expectOne('/graphql');
+            const propertyRequest = httpController.expectOne('complex/property/request');
             expect(propertyRequest.request.method).toBe('POST');
             propertyRequest.flush(propertyResponse);
         });
@@ -417,7 +417,7 @@ describe('app initializator', () => {
                     init: "requests",
                     requests: [
                         {
-                            url: "/graphql",
+                            url: "load property url 1",
                             method: "post",
                             response: {
                                 result: "$.value"
@@ -441,7 +441,7 @@ describe('app initializator', () => {
             expect(request.request.method).toBe('GET');
             request.flush(configResponse);
 
-            const propertyRequest = httpController.expectOne('/graphql');
+            const propertyRequest = httpController.expectOne('load property url 1');
             expect(propertyRequest.request.method).toBe('POST');
             propertyRequest.flush(propertyResponse);
 
@@ -455,7 +455,7 @@ describe('app initializator', () => {
                     init: "requests",
                     requests: [
                         {
-                            url: "/graphql",
+                            url: "load property url 1",
                             method: "post",
                             response: {
                                 result: "$.value"
@@ -477,7 +477,7 @@ describe('app initializator', () => {
             expect(configRequest.request.method).toBe('GET');
             configRequest.flush(configResponse);
 
-            const firstPropertyRequest = httpController.expectOne('/graphql');
+            const firstPropertyRequest = httpController.expectOne('load property url 1');
             expect(firstPropertyRequest.request.method).toBe('POST');
             firstPropertyRequest.flush(null, { status: 404, statusText: 'Not Found' });
 
