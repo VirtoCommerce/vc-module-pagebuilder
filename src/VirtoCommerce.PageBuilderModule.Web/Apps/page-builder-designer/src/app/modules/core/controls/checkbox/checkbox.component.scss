@@ -1,0 +1,21 @@
+@use '../../../../../layout/variables' as *;
+
+:host {
+
+    // must be in the material theme
+
+    ::ng-deep .mdc-label {
+        color: $label-color;
+    }
+
+    ::ng-deep .mdc-checkbox__background {
+        border-color: #8C9196 !important;
+        border-radius: .25rem;
+    }
+
+    ::ng-deep .mat-mdc-checkbox-checked .mdc-checkbox__background {
+        background-color: #1665D8 !important;
+        border-color: #1665D8 !important;
+        border-radius: .25rem;
+    }
+}

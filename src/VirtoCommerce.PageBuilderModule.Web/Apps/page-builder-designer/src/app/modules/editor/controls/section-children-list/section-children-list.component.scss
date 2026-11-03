@@ -1,0 +1,41 @@
+:host{
+    @apply w-full;
+}
+
+.blocks-container {
+    @apply flex flex-col;
+}
+
+.block-item {
+    @apply flex flex-row py-2 pl-2 rounded bg-white;
+    transition: background-color 0.2s;
+    &:hover {
+        background: #F3F6F9;
+    }
+    &.selected {
+        background-color: #E3EFF5;
+    }
+}
+
+app-section-item {
+    @apply grow;
+}
+
+.drag-preview {
+    @apply p-2 text-white block;
+    background-color: rgba(22, 101, 216, 1);
+}
+
+.section-placeholder {
+    background: #ccc;
+    min-height: 4px;
+    transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.cdk-drop-list-dragging .selected, .cdk-drop-list-dragging .dragging {
+    @apply opacity-50;
+}
+
+.cdk-drop-list-dragging .cdk-drag {
+    transform: none !important;
+}

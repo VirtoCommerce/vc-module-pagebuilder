@@ -1,0 +1,16 @@
+<div class="object-wrapper" [class.expanded]="expanded()">
+  <div class="label-wrapper" (click)="toggle()">
+    <app-chevron [opened]="expanded()" [hoverable]="true">chevron_right</app-chevron>
+    <label [attr.title]="descriptor?.hint || displayTitle()" class="pb-label">{{ displayTitle() }}</label>
+  </div>
+  @if (expanded() && objectForm) {
+    <div>
+      <app-controls-list [currentForm]="objectForm"
+        [descriptors]="objectDescriptors()"
+        [context]="objectContext()" />
+      @if (descriptor?.info) {
+        <p class="info pl-6 pr-2">{{ descriptor?.info }}</p>
+      }
+    </div>
+  }
+</div>

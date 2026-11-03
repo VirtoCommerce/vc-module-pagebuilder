@@ -1,0 +1,15 @@
+<div class="icon"
+     cdkOverlayOrigin
+     #trigger="cdkOverlayOrigin"
+     (mouseenter)="isOpen=true"
+     (mouseleave)="isOpen=false">
+    <ng-content />
+</div>
+
+<ng-template cdkConnectedOverlay
+             [cdkConnectedOverlayOrigin]="trigger"
+             [cdkConnectedOverlayOpen]="isOpen"
+             (detach)="isOpen=false"
+             (overlayOutsideClick)="isOpen=false">
+    <ng-content select="[preview-body]" />
+</ng-template>

@@ -1,0 +1,31 @@
+<div class="toolbar">
+    @if (canUpload()) {
+        <button
+            type="button"
+            class="upload"
+            [disabled]="uploading() || loading() || creatingFolder()"
+            (click)="uploadInput.click()">
+            <app-icon>upload</app-icon>
+            <span>{{ uploading() ? labels().uploading : labels().upload }}</span>
+        </button>
+    }
+    @if (canCreateFolder()) {
+        <button #newFolderButton type="button" class="upload" [disabled]="uploading() || loading() || creatingFolder()" (click)="newFolder.emit()">
+            <app-icon>create_new_folder</app-icon>
+            <span>{{ labels().newFolder }}</span>
+        </button>
+    }
+    <input
+        #uploadInput
+        type="file"
+        hidden
+        multiple
+        [attr.accept]="acceptAttribute()"
+        (change)="onUpload($event)" />
+    <input
+        type="text"
+        [value]="searchValue()"
+        [placeholder]="labels().searchPlaceholder"
+        (input)="searchValueChange.emit($any($event.target).value)" />
+    <span class="counter">{{ counterText() }}</span>
+</div>

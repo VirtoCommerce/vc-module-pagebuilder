@@ -1,0 +1,235 @@
+{
+    "product-info": {
+        "name": "Product details",
+        "icon": "image",
+        "blocks": [
+            "product-title",
+            "product-price",
+            "product-description",
+            "product-info",
+            "product-variants",
+            "product-summary",
+            "buy-button",
+            "share",
+            "text",
+            "image"
+        ],
+        "settings": [
+            {
+                "id": "title",
+                "type": "string",
+                "label": "Title"
+            },
+            {
+                "id": "displayType",
+                "type": "select",
+                "label": "Display type",
+                "default": "standart",
+                "options": [
+                    {
+                        "value": "standart",
+                        "label": "Standart"
+                    },
+                    {
+                        "value": "promo",
+                        "label": "Promo"
+                    }
+                ]
+            }
+        ]
+    },
+    "cover-with-image": {
+        "name": "Cover with image",
+        "icon": "image",
+        "settings": [
+            {
+                "id": "title",
+                "label": "Title",
+                "type": "string",
+                "placeholder": "Enter title"
+            }
+        ]
+    },
+    "cover-with-variations": {
+        "name": "Cover with image and some other",
+        "icon": "image",
+        "displayField": "title",
+        "settings": [
+            {
+                "id": "title",
+                "label": "Title",
+                "type": "string",
+                "placeholder": "Enter title"
+            },
+            {
+                "id": "extendedTitle",
+                "label": "Extended title",
+                "type": "string",
+                "multiline": true
+            },
+            {
+                "id": "content",
+                "type": "text",
+                "label": "Content"
+            },
+            {
+                "id": "date",
+                "type": "calendar",
+                "label": "Choose a date"
+            },
+            {
+                "id": "datetime",
+                "type": "calendar",
+                "label": "Choose a date and time",
+                "mode": "datetime",
+                "showAmPm": true
+            },
+            {
+                "id": "time",
+                "type": "calendar",
+                "label": "Choose a time",
+                "mode": "time",
+                "showSeconds": true
+            },
+            {
+                "id": "singleFile",
+                "type": "files",
+                "label": "Upload a single file"
+            },
+            {
+                "id": "multipleFiles",
+                "type": "files",
+                "label": "Upload several files",
+                "multiple": true
+            },
+            {
+                "id": "singleImage",
+                "type": "images"
+            },
+            {
+                "id": "multipleImages",
+                "type": "images"
+            },
+            {
+                "id": "singleInlineImage",
+                "type": "images"
+            },
+            {
+                "id": "multipleInlineImages",
+                "type": "images"
+            },
+            {
+                "id": "singleValue",
+                "type": "select",
+                "label": "Select value",
+                "placeholder": "Please select value",
+                "options": [
+                    { "label": "[none]" },
+                    { "label": "First", "value": "first" },
+                    { "label": "Second", "value": "second" },
+                    { "label": "Third", "value": "third" },
+                    { "label": "Fourth", "value": "fourth" }
+                ]
+            },
+            {
+                "id": "valueInGroup",
+                "type": "select",
+                "label": "Select value (group)",
+                "options": [
+                    { "label": "[none]" },
+                    { "label": "First", "value": "first", "group": "Units" },
+                    { "label": "Second", "value": "second", "group": "Units" },
+                    { "label": "Third", "value": "third", "group": "Units" },
+                    { "label": "Fourth", "value": "fourth", "group": "Units" },
+                    { "label": "First ten", "value": 10, "group": "Dozens" },
+                    { "label": "Second dozen", "value": 20, "group": "Dozens" },
+                    { "label": "Third dozen", "value": 30, "group": "Dozens" },
+                    { "label": "Fourth dozen", "value": 40, "group": "Dozens" }
+                ]
+            },
+            {
+                "id": "multipleValues",
+                "type": "select",
+                "label": "Select values",
+                "multiple": true,
+                "options": [
+                    { "label": "First", "value": { "id": 1, "name": "first" } },
+                    { "label": "Second", "value": { "id": 2, "name": "second" } },
+                    { "label": "Third", "value": { "id": 3, "name": "third" } },
+                    { "label": "Fourth", "value": { "id": 4, "name": "fourth" } }
+                ]
+            },
+            {
+                "id": "isChecked",
+                "type": "checkbox",
+                "label": "Check item"
+            },
+            {
+                "id": "color",
+                "type": "color",
+                "label": "Choose color"
+            },
+            {
+                "id": "inlineColor",
+                "type": "color",
+                "label": "Choose color inline",
+                "inline": true
+            },
+            {
+                "id": "grayColor",
+                "type": "color",
+                "label": "Choose gray color inline",
+                "colorMode": "grayscale",
+                "inline": true
+            },
+            {
+                "id": "presetColor",
+                "type": "color",
+                "label": "Choose from colors",
+                "alpha": "disabled",
+                "colorMode": "presets",
+                "presets": ["#ff0000", "#00ff00", "#0000ff", "#ffa500", "#00ffff", "#ffffff", "#000000"]
+            },
+            {
+                "id": "number",
+                "type": "number",
+                "label": "Enter current number"
+            }
+        ]
+    },
+    "product-price": {
+        "name": "Product price",
+        "icon": "price",
+        "blocks": [],
+        "settings": []
+    },
+    "product-description": {
+        "name": "Description",
+        "icon": "text",
+        "blocks": [],
+        "settings": []
+    },
+    "text": {
+        "name": "Text",
+        "icon": "text",
+        "blocks": [],
+        "settings": []
+    },
+    "image": {
+        "name": "Image",
+        "icon": "image",
+        "settings": []
+    },
+    "products-list": {
+        "name": "Products collection",
+        "icon": "collection",
+        "blocks": ["category-description"],
+        "settings": []
+    },
+    "gallery": {
+        "name": "Gallery",
+        "icon": "gallery",
+        "blocks": [],
+        "settings": []
+    }
+}

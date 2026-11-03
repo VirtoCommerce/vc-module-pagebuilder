@@ -1,0 +1,107 @@
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { MAT_DIALOG_DATA, MatDialogActions, MatDialogContent, MatDialogRef } from '@angular/material/dialog';
+import { FormField, form, required, submit, validate } from '@angular/forms/signals';
+import { firstValueFrom } from 'rxjs';
+
+import { IconButtonComponent } from '@core/components/icon-button/icon-button.component';
+import { assetLibraryHelpers } from '@core/helpers';
+import {
+  AssetLibraryContext,
+  AssetLibraryEntry,
+  AssetLibraryLabels,
+  AssetLibraryReference,
+} from '../../services/asset-library.models';
+import { AssetLibraryService } from '../../services/asset-library.service';
+
+export interface AssetOverwriteDialogData {
+  file: File;
+  folderUrl: string;
+  context: AssetLibraryContext | null;
+  existingEntry: AssetLibraryEntry;
+  reference: AssetLibraryReference;
+  source: 'stored' | 'batch';
+  usageKnown: boolean;
+  reservedNames: string[];
+  labels: AssetLibraryLabels;
+}
+
+export type AssetOverwriteDialogResult = { action: 'replace' } | { action: 'upload-as'; fileName: string };
+
+@Component({
+  selector: 'app-asset-overwrite',
+  templateUrl: './asset-overwrite.component.html',
+  styleUrls: ['./asset-overwrite.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [FormField, MatDialogActions, MatDialogContent, IconButtonComponent],
+})
+export class AssetOverwriteComponent {
+  private readonly data = inject<AssetOverwriteDialogData>(MAT_DIALOG_DATA);
+  private readonly dialogRef = inject(MatDialogRef<AssetOverwriteComponent, AssetOverwriteDialogResult | null>);
+  private readonly assets = inject(AssetLibraryService);
+
+  readonly labels = this.data.labels;
+  readonly checkingName = signal(false);
+  readonly serverError = signal('');
+  readonly fileNameModel = signal({ fileName: this.data.file.name });
+  readonly fileNameForm = form(this.fileNameModel, (path) => {
+    required(path.fileName, { message: this.labels.fileNameRequired });
+    validate(path.fileName, ({ value }) =>
+      /[\\/]/.test(value().trim()) ? { kind: 'invalid', message: this.labels.fileNameInvalid } : undefined,
+    );
+  });
+  readonly pageNames = computed(() =>
+    this.data.source === 'batch' || !this.data.usageKnown
+      ? []
+      : [
+          ...new Set(
+            (this.data.reference.pages ?? [])
+              .map((page) => page.name || page.permalink || page.id)
+              .filter((name): name is string => !!name),
+          ),
+        ],
+  );
+  readonly consequenceMessage = computed(() =>
+    assetLibraryHelpers.getAssetOverwriteConsequenceMessage({
+      source: this.data.source,
+      usageKnown: this.data.usageKnown,
+      assetName: this.data.existingEntry.name,
+      referencesCount: this.data.reference.referencesCount,
+      labels: this.labels,
+    }),
+  );
+
+  replace() {
+    this.dialogRef.close({ action: 'replace' });
+  }
+
+  cancel() {
+    this.dialogRef.close(null);
+  }
+
+  uploadAs() {
+    this.serverError.set('');
+    submit(this.fileNameForm, async () => {
+      const fileName = this.fileNameModel().fileName.trim();
+      this.checkingName.set(true);
+
+      try {
+        const reserved = this.data.reservedNames.some(
+          (name) =>
+            assetLibraryHelpers.normalizeAssetFileName(name) === assetLibraryHelpers.normalizeAssetFileName(fileName),
+        );
+        const existing = reserved ? null : await firstValueFrom(this.assets.findByName(this.data.folderUrl, fileName));
+
+        if (reserved || existing) {
+          this.serverError.set(assetLibraryHelpers.formatAssetLabel(this.labels.fileNameCollision, { name: fileName }));
+          return;
+        }
+
+        this.dialogRef.close({ action: 'upload-as', fileName });
+      } catch {
+        this.serverError.set(this.labels.loadError);
+      } finally {
+        this.checkingName.set(false);
+      }
+    });
+  }
+}

@@ -1,0 +1,8 @@
+:host {
+    @apply flex flex-col items-center relative;
+}
+.version {
+    font-size: 10px;
+    bottom: -1.5em;
+    @apply text-gray-600 absolute;
+}

@@ -1,0 +1,5 @@
+@for (panel of panels(); track panel) {
+  <app-action-buttons class="p-4"
+    [actions]="panel"
+    (onClick)="onActionExecuted($event)" />
+}

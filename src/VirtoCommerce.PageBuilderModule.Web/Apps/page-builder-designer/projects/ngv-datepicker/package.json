@@ -1,0 +1,21 @@
+{
+  "name": "ngv-datepicker",
+  "version": "0.0.1",
+  "peerDependencies": {
+    "@angular/animations": ">=21.0.0 <22.0.0",
+    "@angular/cdk": ">=21.0.0 <22.0.0",
+    "@angular/common": ">=21.0.0 <22.0.0",
+    "@angular/core": ">=21.0.0 <22.0.0",
+    "@angular/forms": ">=21.0.0 <22.0.0",
+    "@angular/material": ">=21.0.0 <22.0.0",
+    "rxjs": ">=7.5.0 <8.0.0"
+  },
+  "devDependencies": {
+    "scss-bundle": "^3.1.2"
+  },
+  "dependencies": {
+    "date-fns": "^3.6.0",
+    "date-fns-tz": "^3.2.0",
+    "tslib": "^2.0.0"
+  }
+}

@@ -1,0 +1,10 @@
+@use 'variables' as *;
+
+/// Resets MDC button typography overrides.
+/// MDC applies non-standard letter-spacing (0.089em) and font tweaks — use this mixin
+/// on any element that renders a mat-button/mat-icon-button to restore the project baseline.
+@mixin mdc-button-typography {
+    font-size: $default-font-size;
+    font-weight: 400;
+    letter-spacing: normal;
+}

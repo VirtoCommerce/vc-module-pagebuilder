@@ -361,6 +361,7 @@ export function useAssetsLibrary(): IUseAssetsLibrary {
   async function navigateToFolder(folderUrl: string) {
     assetDetailsRequests.invalidate();
     currentFolderUrl.value = folderUrl;
+    searchValue.value = undefined;
     pagination.reset();
     entries.value = [];
     selectedAsset.value = undefined;

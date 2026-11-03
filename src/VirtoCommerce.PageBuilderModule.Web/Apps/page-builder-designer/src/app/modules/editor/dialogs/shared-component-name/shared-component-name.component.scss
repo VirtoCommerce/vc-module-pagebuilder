@@ -1,0 +1,15 @@
+h2 {
+  @apply text-lg font-semibold mb-4;
+}
+
+.field-label {
+  @apply block text-sm font-medium mb-1;
+}
+
+.name-control {
+  @apply w-96 max-w-full rounded border border-gray-300 px-3 py-2;
+}
+
+.validation {
+  @apply text-sm text-red-600 mt-1;
+}

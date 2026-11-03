@@ -33,7 +33,8 @@
         },
         "validations": {
           "pageName-invalid": "Le nom de la page peut contenir uniquement des caractères alphanumériques, \"_\", \"-\" et \".\"",
-          "permalink-invalid": "D'autres pages utilisent le même permalien"
+          "permalink-invalid": "D'autres pages utilisent le même permalien",
+          "permalink-format-invalid": "Le lien permanent doit comporter au plus 2048 caractères et ne peut pas contenir d'espaces ni de caractères invisibles, les caractères ? # & % \\ \" < > { } | ^ `, de doubles barres obliques ni les segments . et .."
         },
         "hints": {
           "rename-in-git": "Cette boutique publie les pages via Git, où le nom du fichier est l'adresse de la page dans le dépôt. Renommez-la là-bas, via une pull request."

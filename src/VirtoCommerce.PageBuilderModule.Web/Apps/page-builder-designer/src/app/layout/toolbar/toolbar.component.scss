@@ -1,0 +1,8 @@
+:host {
+    border-color: rgba(12, 12, 12, 0.08);
+    @apply bg-white flex flex-row border-b;
+}
+
+app-logo {
+    @apply m-4;
+}

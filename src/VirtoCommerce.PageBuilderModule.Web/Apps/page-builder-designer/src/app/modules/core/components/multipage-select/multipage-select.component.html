@@ -1,0 +1,96 @@
+<button (click)="togglePopover()" class="root" [title]="currentLabel" type="button" cdkOverlayOrigin
+  #trigger="cdkOverlayOrigin">
+  <div class="grow text-left min-w-0 truncate">
+    {{ currentLabel }}
+  </div>
+  <app-chevron [opened]="isOpen" [vertical]="true" />
+</button>
+
+<ng-template cdkConnectedOverlay [cdkConnectedOverlayOrigin]="trigger"
+  [cdkConnectedOverlayOpen]="isOpen"
+  [cdkConnectedOverlayHasBackdrop]="true"
+  [cdkConnectedOverlayLockPosition]="true"
+  (detach)="close()"
+  (overlayOutsideClick)="outsideClick($event)">
+  <div class="multipage-select-panel-container {{ panelClass() }}">
+    <div class="px-4">
+      <input type="search"
+        [value]="filter()"
+        [placeholder]="filterPlaceholder()"
+        (keyup)="updateFilter($event)"
+        (search)="updateFilter($event)"
+        class="search-input" />
+      </div>
+      @if (!childrenItems()) {
+        <div class="max-h-80">
+          <div class="flex flex-col h-full mt-2 relative">
+            <div class="px-4 mb-2 text-gray-400">
+              <h3 class="list-title">{{ titleText() }}</h3>
+            </div>
+            <app-separator />
+            <ng-scrollbar>
+              @if (!!parentItems()?.length) {
+                <ul class="grow overflow-y-auto relative">
+                  @for (item of parentItems(); track item) {
+                    <li>
+                      <button class="list-item-btn"
+                        [attr.title]="getItemName(item)"
+                        (click)="selectItem(item)">
+                        <span class="min-w-0 truncate">{{ getItemName(item) }}</span>
+                        @if (item.isDirty) {
+                          <span class="is-dirty"></span>
+                        }
+                        @if (item.hasChildren) {
+                          <app-icon>chevron_right</app-icon>
+                        }
+                      </button>
+                    </li>
+                  }
+                </ul>
+              }
+            </ng-scrollbar>
+            @if (!!filter() && !parentItems()?.length) {
+              <div>
+                <p class="p-4 pb-2">No results found</p>
+                <!-- todo: maybe move this label into settings? -->
+              </div>
+            }
+          </div>
+        </div>
+      }
+      @if (!!childrenItems()) {
+        <div class="max-h-80">
+          <div class="flex flex-col h-full">
+            <div class="px-4 mb-2 text-gray-400 flex flex-row items-center cursor-pointer" (click)="back()">
+              <app-icon>chevron_left</app-icon>
+              <h3 class="list-title">{{ titleText() }}</h3>
+            </div>
+            <app-separator />
+            <ng-scrollbar>
+              @if (!!childrenItems()!.length) {
+                <ul class="grow overflow-y-auto">
+                  @for (item of childrenItems()!; track item) {
+                    <li>
+                      <button class="list-item-btn"
+                        (click)="selectItem(item)">
+                        <span class="min-w-0 truncate">{{ getItemName(item) }}</span>
+                        @if (item.isDirty) {
+                          <span class="is-dirty"></span>
+                        }
+                      </button>
+                    </li>
+                  }
+                </ul>
+              }
+            </ng-scrollbar>
+            @if (!!filter() && !childrenItems()!.length) {
+              <div>
+                <p class="p-4 pb-2">No results found</p>
+                <!-- todo: maybe move this label into settings? -->
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  </ng-template>

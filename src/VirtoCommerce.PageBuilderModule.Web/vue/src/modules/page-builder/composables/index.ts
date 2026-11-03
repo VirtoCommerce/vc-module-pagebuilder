@@ -1,6 +1,8 @@
 export {
   PageStatuses,
   PageLifecycleFilters,
+  PageTypes,
+  TranslationStatuses,
   usePageBuilderList,
   pagesChanged,
   notifyPagesChanged,

@@ -1,0 +1,99 @@
+<div class="asset-picker" [ngClass]="{ 'asset-picker--dragging': state.dragging() }">
+  <div class="header">
+    <div>
+      <h2>{{ state.title }}</h2>
+      <app-asset-picker-breadcrumbs
+        [breadcrumbs]="state.breadcrumbs()"
+        (navigate)="state.navigateToBreadcrumb($event)" />
+    </div>
+    <button type="button" class="close" title="Close" (click)="decline()">
+      <app-icon>close</app-icon>
+    </button>
+  </div>
+
+  <div
+    mat-dialog-content
+    class="content"
+    (dragenter)="state.onDragEnter($event)"
+    (dragover)="state.onDragOver($event)"
+    (dragleave)="state.onDragLeave($event)"
+    (drop)="state.onDrop($event)">
+    <app-asset-picker-toolbar
+      [labels]="state.labels"
+      [uploading]="state.uploading()"
+      [loading]="state.loading()"
+      [creatingFolder]="state.creatingFolder()"
+      [canCreateFolder]="state.folderCreationAvailable()"
+      [canUpload]="state.uploadAvailable()"
+      [acceptAttribute]="state.acceptAttribute()"
+      [searchValue]="state.searchValue()"
+      [counterText]="state.formatAssetsCounter(state.fileCount())"
+      (searchValueChange)="state.onSearch($event)"
+      (upload)="state.uploadFiles($event)"
+      (newFolder)="state.openFolderForm()" />
+
+    @if (state.folderFormOpen()) {
+      <form class="folder-form" (submit)="$event.preventDefault(); state.createFolder()" (keydown.escape)="closeFolderForm($event)">
+        <label for="asset-picker-folder-name">{{ state.labels.folderName }}</label>
+        <div class="folder-form-row">
+          <input #folderInput id="asset-picker-folder-name" type="text" autocomplete="off"
+            [placeholder]="state.labels.folderNamePlaceholder"
+            [formField]="state.folderForm.name"
+            [attr.aria-invalid]="!!state.folderNameError()"
+            [attr.aria-describedby]="state.folderNameError() ? 'asset-picker-folder-error' : null" />
+          <button type="submit" class="folder-form-action folder-form-action--confirm"
+            [title]="state.labels.createFolder"
+            [attr.aria-label]="state.labels.createFolder"
+            [disabled]="!state.canCreateFolder()">
+            <app-icon>check</app-icon>
+          </button>
+          <button type="button" class="folder-form-action folder-form-action--cancel"
+            [title]="state.labels.cancelFolder"
+            [attr.aria-label]="state.labels.cancelFolder"
+            [disabled]="state.creatingFolder()"
+            (click)="closeFolderForm()">
+            <app-icon>close</app-icon>
+          </button>
+        </div>
+        <div class="folder-form-message">
+          @if (state.folderNameError()) {
+            <div id="asset-picker-folder-error" class="folder-form-error" role="alert">{{ state.folderNameError() }}</div>
+          }
+        </div>
+      </form>
+    }
+
+    @if (state.error()) {
+      <div class="message message--error">{{ state.error() }}</div>
+    } @else if (state.loading()) {
+      <div class="message">{{ state.labels.loading }}</div>
+    } @else if (!state.visibleEntries().length) {
+      <div class="message">{{ state.labels.empty }}</div>
+    } @else {
+      <app-asset-picker-grid
+        [entries]="state.visibleEntries()"
+        [multiple]="state.multiple"
+        (entryClick)="state.navigateTo($event); state.selectAsset($event)"
+        (assetDoubleClick)="confirm()"
+        (folderDragOver)="state.onFolderDragOver($event.event, $event.entry)"
+        (folderDragLeave)="state.onFolderDragLeave($event.event, $event.entry)"
+        (folderDrop)="state.onFolderDrop($event.event, $event.entry)" />
+    }
+  </div>
+
+  <div class="pager">
+    <span class="selected-count" aria-live="polite">{{ state.selectedCountText() }}</span>
+    <mat-paginator
+      [length]="state.totalCount()"
+      [pageIndex]="state.pageIndex()"
+      [pageSize]="state.pageSize()"
+      [pageSizeOptions]="[20, 50, 100]"
+      [showFirstLastButtons]="true"
+      (page)="state.onPage($event.pageIndex, $event.pageSize)" />
+  </div>
+
+  <div mat-dialog-actions>
+    <app-icon-button skin="outline" [text]="state.labels.cancel" (click)="decline()" />
+    <app-icon-button skin="primary" [text]="state.labels.select" [disabled]="!state.selectedCount() || state.creatingFolder() || state.uploading()" (click)="confirm()" />
+  </div>
+</div>

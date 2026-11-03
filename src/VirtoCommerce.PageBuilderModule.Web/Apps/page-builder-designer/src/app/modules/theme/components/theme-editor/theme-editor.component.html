@@ -1,0 +1,46 @@
+@let currentSettings = settings();
+<app-panel>
+  <div title-content>
+    <div class="grow pl-2">
+      Theme settings
+    </div>
+    <div>
+    <app-icon-button (click)="onPresetsClick()" icon="tune" text="Presets" skin="link" />
+    </div>
+  </div>
+  <div class="flex flex-col">
+    @if (uiState(); as uiState) {
+      @if (schema(); as schema) {
+        @for (group of schema; track group) {
+          <div class="group">
+            <div (click)="toggleGroup(group)" class="list-item group-title">
+              <div class="group-name" [attr.title]="group.name">
+                {{group.name}}
+              </div>
+              <div>
+                <app-chevron [opened]="uiState[group.name].opened" />
+              </div>
+            </div>
+            @if (uiState[group.name].opened) {
+              @if (currentSettings) {
+                <app-dynamic-form [sectionModel]="$any(currentSettings)"
+                  [descriptors]="group.settings"
+                  [context]="context"
+                (modelChanged)="onSettingsChanged($event)" />
+              }
+            }
+          </div>
+        }
+      }
+    }
+  </div>
+</app-panel>
+@if (editableGroup(); as editableGroup) {
+  @if (currentSettings) {
+    <app-settings-panel [context]="context"
+      [group]="editableGroup"
+      [settings]="currentSettings"
+      (backClick)="onBackClick(editableGroup)"
+    (settingsChanged)="onSettingsChanged($event)" />
+  }
+}

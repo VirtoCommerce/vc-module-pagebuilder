@@ -43,14 +43,18 @@
           <label class="form-label">{{ 'pageBuilder.blades.edit-page.labels.permalink' | translate }}</label>
           <div class="form-input">
             <input focus-on="" ui-validate-async=" 'validatePermalink($value)' " class="form-control"
-                   ng-model="blade.currentEntity.settings.permalink" placeholder="Permalink"
+                   ui-validate=" { permalinkFormat: 'isValidPermalink($value)' } "
+                   ng-model="blade.currentEntity.settings.permalink" ng-trim="false" placeholder="Permalink"
                    name="permalink" />
           </div>
-          <span class="comment-text" ng-if="permalinkDuplicates.length">
+          <div class="form-error" ng-show="formScope.permalink.$error.permalinkFormat">
+            <span>{{ 'pageBuilder.blades.edit-page.validations.permalink-format-invalid' | translate }}</span>
+          </div>
+          <span class="comment-text" ng-if="permalinkDuplicates.length && !formScope.permalink.$error.permalinkFormat">
             <img src="/images/layout/warning.svg" class="comment-icon">
             {{ 'pageBuilder.blades.edit-page.validations.permalink-invalid' | translate }}
           </span>
-          <div class="comment-text" ng-repeat="link in permalinkDuplicates">
+          <div class="comment-text" ng-repeat="link in permalinkDuplicates" ng-if="!formScope.permalink.$error.permalinkFormat">
             {{ link.name }}: {{ link.relativeUrl }}
           </div>
         </div>

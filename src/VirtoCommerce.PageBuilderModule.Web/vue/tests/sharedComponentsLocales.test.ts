@@ -4,7 +4,7 @@ import * as appLocales from "../src/locales";
 import * as pageBuilderLocales from "../src/modules/page-builder/locales";
 import * as sharedComponentLocales from "../src/modules/shared-components/locales";
 
-const expectedLocaleCodes = ["de", "en", "es", "fi", "fr", "it", "ja", "no", "pl", "pt", "ru", "sv", "zh"];
+const expectedLocaleCodes = ["ar", "de", "en", "es", "fi", "fr", "he", "it", "ja", "no", "pl", "pt", "ru", "sv", "zh"];
 
 function flattenMessages(value: unknown, prefix = ""): Map<string, string> {
   const messages = new Map<string, string>();

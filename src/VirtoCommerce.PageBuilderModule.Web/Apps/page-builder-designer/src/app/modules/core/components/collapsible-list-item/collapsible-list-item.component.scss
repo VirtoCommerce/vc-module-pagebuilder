@@ -1,0 +1,22 @@
+:host {
+    @apply flex flex-col cursor-default bg-white;
+}
+
+.item-holder {
+    @apply flex flex-row py-2 rounded;
+    transition: background-color 0.2s;
+
+    &:hover,
+    &.hovered {
+        background: #F3F6F9;
+    }
+
+
+    &.highlighted {
+        background-color: #E3EFF5;
+    }
+}
+
+app-chevron {
+    @apply cursor-pointer;
+}

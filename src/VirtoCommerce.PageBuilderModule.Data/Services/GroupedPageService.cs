@@ -237,6 +237,125 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
                     ?.Pages;
                 NormalizePublishedPages(group, existingPages);
             }
+
+            await SynchronizeLanguageVersionsAsync(models, existingEntities, repository, cancellationToken);
+        }
+
+        // A language version shares the root name, and the fields it overrides are exactly the fields that differ
+        // from the root. Deriving the mask on every save keeps it right for any writer (the page blade, import,
+        // root propagation), and a field set back to the root value becomes inherited again.
+        private static async Task SynchronizeLanguageVersionsAsync(
+            IList<GroupedPageBuilderPage> models,
+            IList<GroupedPageBuilderPageEntity> existingEntities,
+            IPageBuilderModuleRepository repository,
+            CancellationToken cancellationToken)
+        {
+            // The link is never patched, so the stored value wins over the model for existing groups.
+            var rootIdsByGroup = models.ToDictionary(
+                x => x,
+                x => existingEntities.FirstOrDefault(e => string.Equals(e.Id, x.Id, StringComparison.OrdinalIgnoreCase)) is { } existing
+                    ? existing.MultilanguagePageId
+                    : x.MultilanguagePageId);
+            var rootIds = rootIdsByGroup.Values.Where(x => !string.IsNullOrEmpty(x)).Distinct().ToArray();
+            if (rootIds.Length == 0)
+            {
+                return;
+            }
+
+            var roots = await repository.MultilanguagePages.AsNoTracking()
+                .Where(x => rootIds.Contains(x.Id))
+                .ToDictionaryAsync(x => x.Id, x => x.ToModel(AbstractTypeFactory<MultilanguagePage>.TryCreateInstance()), cancellationToken);
+
+            await ValidateLanguageVersionsAsync(rootIdsByGroup, roots, repository, cancellationToken);
+
+            foreach (var (group, rootId) in rootIdsByGroup)
+            {
+                if (rootId != null && roots.TryGetValue(rootId, out var root))
+                {
+                    group.Name = root.Name;
+                    MultilanguagePageInheritance.SetOverriddenFields(group, MultilanguagePageInheritance.GetDifferingFields(root, group));
+
+                    if (IsBeingPublished(group, existingEntities))
+                    {
+                        group.SourceRevisionDate = await GetPublishedSourceRevisionAsync(group, root, repository, cancellationToken);
+                    }
+                }
+            }
+        }
+
+        // A language version stays in the store of its root and is the only version of its language there,
+        // whichever writer saves it (the page blade, import, a client sending a link with a new page).
+        private static async Task ValidateLanguageVersionsAsync(
+            IDictionary<GroupedPageBuilderPage, string> rootIdsByGroup,
+            Dictionary<string, MultilanguagePage> roots,
+            IPageBuilderModuleRepository repository,
+            CancellationToken cancellationToken)
+        {
+            var linkedGroups = rootIdsByGroup.Where(x => !string.IsNullOrEmpty(x.Value)).ToList();
+            var rootIds = linkedGroups.Select(x => x.Value).Distinct().ToArray();
+            var storedVersions = await repository.GroupedPageBuilderPages.AsNoTracking()
+                .Where(x => rootIds.Contains(x.MultilanguagePageId))
+                .Select(x => new { x.Id, x.MultilanguagePageId, x.CultureName })
+                .ToListAsync(cancellationToken);
+            var savedIds = linkedGroups.Select(x => x.Key.Id).Where(x => x != null).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var versions = storedVersions
+                .Where(x => !savedIds.Contains(x.Id))
+                .Select(x => (x.MultilanguagePageId, x.CultureName))
+                .ToList();
+
+            foreach (var (group, rootId) in linkedGroups)
+            {
+                if (!roots.TryGetValue(rootId, out var root))
+                {
+                    throw new InvalidDataException($"Multilanguage page '{rootId}' not found.");
+                }
+
+                if (!string.Equals(group.StoreId, root.StoreId, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidDataException($"A language version of multilanguage page '{rootId}' must belong to store '{root.StoreId}'.");
+                }
+
+                if (string.IsNullOrWhiteSpace(group.CultureName))
+                {
+                    throw new InvalidDataException($"A language version of multilanguage page '{rootId}' must have a language.");
+                }
+
+                if (versions.Any(x => x.MultilanguagePageId == rootId && string.Equals(x.CultureName, group.CultureName, StringComparison.OrdinalIgnoreCase)))
+                {
+                    throw new InvalidDataException($"Multilanguage page '{rootId}' already has a '{group.CultureName}' version.");
+                }
+
+                versions.Add((rootId, group.CultureName));
+            }
+        }
+
+        // Publishing the source language starts a new revision; publishing a translation marks it as based on the current one.
+        private static async Task<DateTime?> GetPublishedSourceRevisionAsync(
+            GroupedPageBuilderPage group,
+            MultilanguagePage root,
+            IPageBuilderModuleRepository repository,
+            CancellationToken cancellationToken)
+        {
+            if (string.Equals(group.CultureName, root.DefaultCultureName, StringComparison.OrdinalIgnoreCase))
+            {
+                return DateTime.UtcNow;
+            }
+
+            return await repository.GroupedPageBuilderPages.AsNoTracking()
+                .Where(x => x.MultilanguagePageId == root.Id && x.CultureName == root.DefaultCultureName)
+                .Select(x => x.SourceRevisionDate)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        private static bool IsBeingPublished(GroupedPageBuilderPage group, IList<GroupedPageBuilderPageEntity> existingEntities)
+        {
+            var publishedBefore = existingEntities
+                .FirstOrDefault(x => string.Equals(x.Id, group.Id, StringComparison.OrdinalIgnoreCase))?.Pages
+                .Where(x => x.Status == Published)
+                .Select(x => x.Id)
+                .ToHashSet() ?? [];
+
+            return (group.Pages ?? []).Any(x => x.Status == Published && !publishedBefore.Contains(x.Id));
         }
 
         internal static void ValidateStoreImmutability(
@@ -456,8 +575,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
             return SaveChangesInternalAsync([group], async (repository, entities, ct) =>
             {
                 var existing = entities.SingleOrDefault();
-                var settingsChanged = existing == null || existing.Name != group.Name
-                    || existing.Permalink != group.Permalink || existing.CultureName != group.CultureName;
+                var settingsChanged = HasContentSettingsChanged(existing, group);
                 if (existing != null)
                 {
                     if (existing.CreatedDate != group.CreatedDate)
@@ -466,6 +584,11 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
                     }
                     // Membership is read under the group lock; a cached Shell model cannot hide a new draft.
                     group.Pages = ToModel(existing, null).Pages;
+                }
+                // An archived page keeps its settings in sync but gets no draft: a draft would bring it back to Draft.
+                if (IsArchived(group))
+                {
+                    return new PreparedSave(group);
                 }
                 var snapshot = await ReadContentAsync(repository, group, draft: true, ct);
                 if (!settingsChanged && snapshot.Content != null)
@@ -479,6 +602,18 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
                 }
                 return new PreparedSave(group);
             }, cancellationToken);
+        }
+
+        // The settings the page content JSON repeats.
+        private static bool HasContentSettingsChanged(GroupedPageBuilderPageEntity existing, GroupedPageBuilderPage group)
+        {
+            return existing == null || existing.Name != group.Name
+                || existing.Permalink != group.Permalink || existing.CultureName != group.CultureName;
+        }
+
+        private static bool IsArchived(GroupedPageBuilderPage group)
+        {
+            return group.Pages.Count > 0 && group.Pages.All(x => x.Status == Archived);
         }
 
         private GroupedPageBuilderPage GetAuthorizedGroup(

@@ -1,0 +1,14 @@
+@use '@angular/material' as mat;
+@use '../_datepicker-theme' as datepicker;
+
+$primary: mat.m2-define-palette(mat.$m2-pink-palette, 700, 500, 900);
+$accent: mat.m2-define-palette(mat.$m2-blue-grey-palette, A200, A100, A400);
+$warn: mat.m2-define-palette(mat.$m2-red-palette);
+
+// Dark theme object syntax
+$theme: mat.m2-define-dark-theme((color: (primary: $primary,
+                accent: $accent,
+                warn: $warn,
+            )));
+
+@include datepicker.apply-theme($theme);

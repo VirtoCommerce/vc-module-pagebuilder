@@ -9,15 +9,29 @@ import {
 import { useI18n } from "vue-i18n";
 
 import useUrlParams from "../useStoreParams";
+import { hasLanguageVersions } from "../useMultilanguagePageDetails/helpers";
 
 import {
+  MultilanguagePageClient,
   PageBuilderPageClient,
   PageBuilderPageSearchCriteria,
-  GroupedPageBuilderPage,
-  GroupedPageBuilderPageSearchResult,
+  PageBuilderPageListItem,
+  PageBuilderPageListSearchResult,
 } from "../../../../api_client/virtocommerce.pagebuildermodule";
 
 const { getApiClient } = useApiClient(PageBuilderPageClient);
+const { getApiClient: getMultilanguageApiClient } = useApiClient(MultilanguagePageClient);
+
+export enum PageTypes {
+  Landing = "Landing",
+  Multilanguage = "Multilanguage",
+}
+
+/** Translation problems a Multilanguage Page can be listed by. */
+export enum TranslationStatuses {
+  Missing = "Missing",
+  Outdated = "Outdated",
+}
 
 /** Bumped when pages change (saved, published, archived, edited in the designer), so each open list of them reloads. */
 export const pagesChanged = ref(0);
@@ -39,11 +53,11 @@ export enum PageLifecycleFilters {
 }
 
 export interface IUsePageBuilderList {
-  items: ComputedRef<GroupedPageBuilderPage[]>;
+  items: ComputedRef<PageBuilderPageListItem[]>;
   pagination: UseDataTablePaginationReturn;
   searchQuery: ComputedRef<PageBuilderPageSearchCriteria>;
   loadPages: (query?: PageBuilderPageSearchCriteria) => Promise<void>;
-  removePages: (query?: { ids: string[] }) => Promise<void>;
+  removePages: (query?: { items: PageBuilderPageListItem[] }) => Promise<void>;
   loading: ComputedRef<boolean>;
   pageStatuses: ComputedRef<{ value: string; label: string }[]>;
   storeId: ComputedRef<string | null>;
@@ -67,7 +81,7 @@ export function usePageBuilderList(options?: UsePageBuilderListOptions): IUsePag
     statuses: options?.statuses?.join(",") || undefined,
     lifecycle: options?.lifecycle?.join(",") || undefined,
   });
-  const searchResult = ref<GroupedPageBuilderPageSearchResult>();
+  const searchResult = ref<PageBuilderPageListSearchResult>();
   const { t } = useI18n({ useScope: "global" });
 
   const { action: loadPages, loading: loadingPages } = useAsync<PageBuilderPageSearchCriteria>(async (_query) => {
@@ -77,7 +91,7 @@ export function usePageBuilderList(options?: UsePageBuilderListOptions): IUsePag
       searchResult.value = {
         totalCount: 0,
         results: [],
-      } as GroupedPageBuilderPageSearchResult;
+      } as PageBuilderPageListSearchResult;
       return;
     }
 
@@ -87,16 +101,37 @@ export function usePageBuilderList(options?: UsePageBuilderListOptions): IUsePag
     };
 
     const apiClient = await getApiClient();
-    searchResult.value = await apiClient.searchGroups(criteria);
+    // A Multilanguage Page is a single row that carries its language statuses.
+    searchResult.value = await apiClient.searchList(criteria);
   });
 
-  const { action: removePages, loading: loadingRemovePages } = useAsync<{ ids: string[] }>(async (_query) => {
-    const ids = _query?.ids;
-    if (ids) {
-      const apiClient = await getApiClient();
-      await apiClient.archiveGroups(ids);
-    }
-  });
+  const { action: removePages, loading: loadingRemovePages } = useAsync<{ items: PageBuilderPageListItem[] }>(
+    async (_query) => {
+      const items = _query?.items ?? [];
+      const landingIds = items.filter((x) => x.type !== PageTypes.Multilanguage && x.id).map((x) => x.id!);
+      const multilanguageItems = items.filter((x) => x.type === PageTypes.Multilanguage && x.id);
+      // A Multilanguage Page is archived through its versions; one without versions has nothing to archive.
+      const multilanguageIds = multilanguageItems.filter((x) => hasLanguageVersions(x.languages)).map((x) => x.id!);
+      const emptyMultilanguageIds = multilanguageItems
+        .filter((x) => !hasLanguageVersions(x.languages))
+        .map((x) => x.id!);
+
+      if (landingIds.length) {
+        const apiClient = await getApiClient();
+        await apiClient.archiveGroups(landingIds);
+      }
+
+      if (multilanguageIds.length) {
+        const apiClient = await getMultilanguageApiClient();
+        await Promise.all(multilanguageIds.map((id) => apiClient.archiveAll(id)));
+      }
+
+      if (emptyMultilanguageIds.length) {
+        const apiClient = await getMultilanguageApiClient();
+        await Promise.all(emptyMultilanguageIds.map((id) => apiClient.delete(id)));
+      }
+    },
+  );
 
   const pagination = useDataTablePagination({
     pageSize,

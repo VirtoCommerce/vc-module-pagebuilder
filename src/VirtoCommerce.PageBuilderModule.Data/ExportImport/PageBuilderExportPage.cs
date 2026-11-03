@@ -23,6 +23,8 @@ public class PageBuilderExportPage
     public string OrganizationId { get; set; }
     public DateTime? StartDate { get; set; }
     public DateTime? EndDate { get; set; }
+    /// <summary>The multilanguage page this page is a language version of; exported in PageBuilderMultilanguagePages.</summary>
+    public string MultilanguagePageId { get; set; }
     public IList<PageBuilderExportPageVariant> Variants { get; set; } = [];
 }
 

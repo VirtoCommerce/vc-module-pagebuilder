@@ -1,0 +1,25 @@
+@use '../../../../../layout/variables' as *;
+@use '../../../../../layout/mixins' as *;
+
+:host {
+    ::ng-deep .mat-mdc-tab-group .mdc-tab-indicator__content--underline {
+        border-color: $active-color;
+    }
+    ::ng-deep .mdc-tab__text-label {
+        @include mdc-button-typography;
+    }
+    ::ng-deep .mdc-tab--active .mdc-tab__text-label {
+        color: $active-color;
+    }
+
+    ::ng-deep .mat-mdc-tab {
+        min-width: inherit;
+        opacity: 1;
+        padding: 0 1.25rem;
+        user-select: none;
+    }
+    ::ng-deep .mat-mdc-tab-header-pagination {
+        min-width: 0.8125rem;
+    }
+
+}

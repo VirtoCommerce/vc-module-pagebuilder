@@ -1,0 +1,24 @@
+{
+    "settings": {
+        "permalink": "demopage",
+        "pagename": "demo",
+        "pagetitle": "Demo page"
+    },
+    "content": [
+        {
+            "id": "randomid",
+            "name": "Edit section",
+            "type": "headline",
+            "title": "Headline",
+            "content": "Section content",
+            "color": "#43ebaa",
+            "singleFile": "path/to/file/single-file-name.txt1",
+            "multipleFiles": [
+                "different/urls/for/files/filename-1.ext",
+                "different/urls/for/files/filename-2.ext",
+                "different/urls/for/files/filename-3.ext",
+                "different/urls/for/files/filename-4.ext"
+            ]
+        }
+    ]
+}

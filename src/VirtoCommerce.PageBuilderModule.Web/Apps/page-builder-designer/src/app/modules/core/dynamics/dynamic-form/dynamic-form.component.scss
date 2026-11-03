@@ -1,0 +1,6 @@
+:host {
+    @apply min-h-full;
+    ::ng-deep .mat-mdc-tab-body-content {
+        overflow: hidden;
+    }
+}

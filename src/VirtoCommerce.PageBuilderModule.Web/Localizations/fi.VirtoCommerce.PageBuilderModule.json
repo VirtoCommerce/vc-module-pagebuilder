@@ -33,7 +33,8 @@
         },
         "validations": {
           "pageName-invalid": "Sivun nimi saa sisältää vain aakkosnumeerisia merkkejä sekä \"_\", \"-\" ja \".\"",
-          "permalink-invalid": "Muilla sivuilla on sama pysyvä linkki"
+          "permalink-invalid": "Muilla sivuilla on sama pysyvä linkki",
+          "permalink-format-invalid": "Pysyvä linkki saa olla enintään 2048 merkkiä, eikä se saa sisältää välilyöntejä tai näkymättömiä merkkejä, merkkejä ? # & % \\ \" < > { } | ^ `, kaksoiskauttaviivoja eikä segmenttejä . ja .."
         },
         "hints": {
           "rename-in-git": "Tämä kauppa julkaisee sivut Gitin kautta, jossa tiedostonimi on sivun osoite repositoriossa. Nimeä se uudelleen siellä, pull requestin kautta."

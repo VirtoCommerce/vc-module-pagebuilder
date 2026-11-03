@@ -1,0 +1,18 @@
+<div [formGroup]="currentForm()">
+  @if (tab().ungrouped && tab().ungrouped.length) {
+    <app-controls-list [currentForm]="currentForm()"
+      [descriptors]="tab().ungrouped"
+      [context]="context()" />
+  }
+  @for (group of tab().groups; track group) {
+    <app-controls-group
+      [label]="group.name"
+      [opened]="state()[group.name].opened"
+      (openedChanged)="state()[group.name].opened = $event">
+      <app-controls-list [currentForm]="currentForm()"
+        [descriptors]="group.descriptors"
+        [context]="context()">
+      </app-controls-list>
+    </app-controls-group>
+  }
+</div>

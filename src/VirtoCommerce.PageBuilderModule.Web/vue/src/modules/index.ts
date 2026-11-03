@@ -11,6 +11,7 @@ import PageBuilderDesigner from "./pages/PageBuilderDesigner.vue";
 import PageBuilderGit from "./pages/PageBuilderGit.vue";
 import PageBuilderGitHub from "./pages/PageBuilderGitHub.vue";
 import PageBuilderPageDetails from "./page-builder/pages/PageBuilderPageDetails.vue";
+import MultilanguagePageDetails from "./page-builder/pages/MultilanguagePageDetails.vue";
 import "./styles.css";
 
 // The AngularJS module's "Page Builder" widget on the store blade ("storeDetail"): the store's pages
@@ -45,6 +46,15 @@ registerExternalWidget({ id: "SiteGit", title: "History", component: SiteGitWidg
 registerExternalWidget({ id: "SitesGitHub", title: "History", component: SitesGitHubWidget, targetBlades: ["ContentStores"] });
 
 export default defineAppModule({
-  blades: { PageBuilderPages, PageBuilderPageDetails, PageBuilderDesigner, PageBuilderAssets, PageBuilderSharedComponents, PageBuilderGit, PageBuilderGitHub },
+  blades: {
+    PageBuilderPages,
+    PageBuilderPageDetails,
+    MultilanguagePageDetails,
+    PageBuilderDesigner,
+    PageBuilderAssets,
+    PageBuilderSharedComponents,
+    PageBuilderGit,
+    PageBuilderGitHub,
+  },
   locales,
 });

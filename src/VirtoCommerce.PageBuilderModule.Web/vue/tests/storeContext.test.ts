@@ -43,6 +43,24 @@ test("validateStoreContext marks a valid store as ready", async () => {
   assert.equal(storeContext.storeContextStatus.value, "ready");
 });
 
+test("getDefaultLanguage returns the store default language", async () => {
+  setStoreSearch("multilanguage-store");
+  globalThis.fetch = async () => ({
+    ok: true,
+    status: 200,
+    json: async () => ({
+      url: "https://example.com",
+      languages: ["en-US", "fr-FR"],
+      defaultLanguage: "fr-FR",
+    }),
+  }) as Response;
+
+  const storeContext = useUrlParams();
+  storeContext.initUrlParams();
+
+  assert.equal(await storeContext.getDefaultLanguage(), "fr-FR");
+});
+
 // keep last: a pinned store stays pinned for the module's lifetime
 test("setStoreId pins the store over the URL and uses the store it is given", async () => {
   setStoreSearch("B2B-store");

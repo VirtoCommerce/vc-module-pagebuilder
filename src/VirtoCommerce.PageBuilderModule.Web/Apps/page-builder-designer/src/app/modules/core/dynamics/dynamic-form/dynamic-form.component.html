@@ -1,0 +1,20 @@
+<div class="form-wrapper">
+  @if (form(); as f) {
+    @for (key of [formKey()]; track key) {
+      <div>
+        <form [formGroup]="f">
+          <app-controls-tabs [currentForm]="f"
+            [descriptors]="descriptors()"
+            [context]="context()" />
+        </form>
+      </div>
+    }
+  }
+  @if (!descriptors().length) {
+    <div>
+      <p class="p-4">
+        No settings for current section / block
+      </p>
+    </div>
+  }
+</div>

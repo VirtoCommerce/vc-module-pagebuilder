@@ -1,0 +1,46 @@
+:host {
+    @apply absolute h-full inset-y-0 left-8 -right-8 flex flex-col;
+    box-shadow: 0 0 4.187rem rgba(36, 36, 36, .1);
+    z-index: 1;
+    &.inplace {
+        @apply left-0 right-0;
+    }
+}
+.background {
+    background-color: rgba(0, 0, 0, 0.36);
+    @apply absolute h-full w-full -left-8;
+}
+.content {
+    z-index: 1;
+    transition: width .5s;
+    @apply relative bg-white h-full w-full;
+}
+
+.expand {
+    left: 4rem;
+    top: calc(50% - 2.5rem);
+    border-radius: 50%;
+    background-color: white;
+    box-shadow: 0 0 .5rem 0 #eeeeee;
+    transition: transform .5s, opacity .5s, left .5s;
+    z-index: 0;
+    width: 5rem;
+    height: 5rem;
+    opacity: .3;
+    transform: translateX(-4rem);
+    @apply absolute flex items-center justify-end;
+    &:hover {
+        opacity: .8;
+        transform: translateX(-3rem)
+        // right: -2rem;
+    }
+    // &.expanded {
+    //     &:hover {
+    //         opacity: 1;
+    //     }
+    // }
+    .inverted {
+        transform: rotate(180deg);
+        transition: transform .5s;
+    }
+}

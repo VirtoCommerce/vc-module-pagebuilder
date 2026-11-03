@@ -9,6 +9,14 @@
       <VcForm class="tw-flex tw-flex-col tw-gap-4">
         <PageStatus :item="item" />
 
+        <VcBanner
+          v-if="isLanguageVersion"
+          variant="info"
+          icon="lucide-languages"
+        >
+          {{ $t("PAGE_BUILDER.PAGES.DETAILS.LANGUAGE_VERSION_HINT") }}
+        </VcBanner>
+
         <VcCard
                 class="tw-p-4"
                 :header="$t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.BASIC_INFORMATION')">
@@ -23,7 +31,7 @@
                        v-model="item.name"
                        :error="errors.length > 0"
                        :error-message="errorMessage"
-                       :disabled="isReadOnly"
+                       :disabled="isReadOnly || isLanguageVersion"
                        :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.NAME')"
                        required
                        @update:model-value="handleChange" />
@@ -32,15 +40,17 @@
             <Field
                    v-slot="{ errorMessage, handleChange, errors }"
                    name="permalink"
-                   rules="required"
+                   :rules="permalinkRules"
                    :model-value="item.permalink"
                    :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.PERMALINK')">
               <VcInput
                        v-model="item.permalink"
                        required
+                       maxlength="2048"
                        :error="errors.length > 0"
                        :error-message="errorMessage"
                        :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.PERMALINK')"
+                       :hint="fieldHints.Permalink"
                        :disabled="isReadOnly"
                        @update:model-value="handleChange">
                 <template #prepend-inner>
@@ -57,7 +67,7 @@
             <VcSelect option-value="name" option-label="name" v-model="item.cultureName"
                       :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.CULTURE_NAME')" :options="loadCultureNamesAsync"
                       :clearable="false"
-                      :disabled="isReadOnly" />
+                      :disabled="isReadOnly || isLanguageVersion" />
           </VcCol>
         </VcCard>
 
@@ -90,75 +100,11 @@
           </VcCol>
         </VcCard>
 
-        <VcCard class="tw-p-4" :header="$t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.ADVANCED_OPTIONS')">
-          <VcCol class="tw-gap-4">
-            <VcCard
-              is-collapsable
-              is-collapsed
-            >
-              <template #header>
-                <CardHeader
-                  icon="lucide-users"
-                  :tag-text="
-                    item.visibility
-                      ? $t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.PERSONALIZATION_ACCESS_CONTROL.VISIBILITY_TAG')
-                      : undefined
-                  "
-                  :title="$t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.PERSONALIZATION_ACCESS_CONTROL.TITLE')"
-                  :description="$t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.PERSONALIZATION_ACCESS_CONTROL.DESCRIPTION')"
-                />
-              </template>
-
-              <VcCol class="tw-gap-4 tw-p-4">
-                <SwitchRow
-                  :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.VISIBILITY')"
-                  :hint="$t('PAGE_BUILDER.PAGES.DETAILS.TOOLTIPS.VISIBILITY')"
-                  :model-value="item.visibility"
-                  @update:model-value="item.visibility = $event"
-                />
-
-                <VcSelect v-model="itemUserGroups" :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.USER_GROUPS')"
-                          :options="loadUserGroups" option-value="name" option-label="name" searchable multiple
-                          :clearable="false"
-                          :disabled="isReadOnly" />
-
-                <VcSelect v-model="item.organizationId" :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.ORGANIZATION')"
-                          :options="loadOrganizations" option-value="id" option-label="name" searchable
-                          :clearable="true"
-                          :disabled="isReadOnly" />
-              </VcCol>
-            </VcCard>
-
-            <VcCard
-              is-collapsable
-              is-collapsed
-            >
-              <template #header>
-                <CardHeader
-                  icon="lucide-calendar-range"
-                  :tag-text="isScheduled ? $t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.SCHEDULING.TAG_TEXT') : ''"
-                  :title="$t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.SCHEDULING.TITLE')"
-                  :description="$t('PAGE_BUILDER.PAGES.DETAILS.SECTIONS.SCHEDULING.DESCRIPTION')"
-                />
-              </template>
-              <VcRow class="tw-gap-4 tw-p-4">
-                <VcInput
-                  v-model="item.startDate"
-                  class="tw-flex-1"
-                  type="datetime-local"
-                  clearable
-                  :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.START_DATE')"
-                  :hint="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.START_DATE_HINT')"
-                  :disabled="isReadOnly"
-                />
-
-                <VcInput v-model="item.endDate" class="tw-flex-1" type="datetime-local" clearable
-                         :hint="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.END_DATE_HINT')"
-                         :label="$t('PAGE_BUILDER.PAGES.DETAILS.FIELDS.END_DATE')" :disabled="isReadOnly" />
-              </VcRow>
-            </VcCard>
-          </VcCol>
-        </VcCard>
+        <PageAdvancedOptions
+          v-model:item="item"
+          :disabled="isReadOnly"
+          :field-hints="fieldHints"
+        />
       </VcForm>
     </VcContainer>
   </VcBlade>
@@ -175,10 +121,17 @@ import useAiAgentContextWithStore from "../composables/useAiAgentContextWithStor
 import { notifyPagesChanged } from "../composables/usePageBuilderList";
 import { usePageBuilderDetails } from "../composables/usePageBuilderDetails";
 import type { PageExportData } from "../composables/usePageContentApi";
-import CardHeader from "./../components/cardHeader.vue";
-import SwitchRow from "./../components/switchRow.vue";
+import PageAdvancedOptions from "../components/pageAdvancedOptions.vue";
+import { usePermalinkUsage } from "../composables/usePermalinkUsage";
+import {
+  inheritableFields,
+  parseOverriddenFields,
+  type InheritableField,
+} from "../composables/useMultilanguageInheritance";
+import { isPermalinkCheckNeeded, type IPermalinkTarget } from "../composables/useMultilanguagePageDetails/helpers";
+import { getPermalinkRules } from "../utilities/permalink";
 
-import { VcBlade, VcCard, VcCol, VcContainer, VcForm, VcInput, VcRow, VcSelect, VcTextarea } from "@vc-shell/framework/ui";
+import { VcBanner, VcBlade, VcCard, VcCol, VcContainer, VcForm, VcInput, VcSelect, VcTextarea } from "@vc-shell/framework/ui";
 
 defineBlade({
   name: "PageBuilderPageDetails",
@@ -204,8 +157,7 @@ const {
   openDraftDesigner,
   downloadContent,
   clonePage,
-  loadUserGroups,
-  loadOrganizations,
+  convertToMultilanguage,
 } = usePageBuilderDetails({
   id: param.value as string | undefined,
   storeId: options.value?.storeId as string | undefined,
@@ -253,24 +205,61 @@ const bladeTitle = computed(() => {
 const storeUrl = ref<string | null>(null);
 const pageUrl = computed(() => `${(storeUrl.value ?? "").replace(/\/$/, "")}/${(item.value.permalink ?? "").replace(/^\//, "")}`);
 
-const isScheduled = computed(() => {
-  return !!item.value.startDate || !!item.value.endDate;
+// item is replaced on every load and save, while edits change its fields, so this keeps the stored permalink.
+const storedPermalink = ref<string>();
+watch(
+  item,
+  (value) => {
+    storedPermalink.value = value?.id ? value.permalink : undefined;
+  },
+  { immediate: true },
+);
+const permalinkRules = computed(() => getPermalinkRules(item.value?.permalink, storedPermalink.value));
+
+// A language version of a Multilanguage Page: the name is shared and the language is fixed.
+const isLanguageVersion = computed(() => !!item.value?.multilanguagePageId);
+
+// As saved: the backend marks a field overridden when its value differs from the Multilanguage Page.
+const fieldHints = computed<Partial<Record<InheritableField, string>>>(() => {
+  if (!isLanguageVersion.value) {
+    return {};
+  }
+  const overridden = parseOverriddenFields(item.value.overriddenFields);
+  return Object.fromEntries(
+    inheritableFields.map((field) => [
+      field,
+      overridden.includes(field)
+        ? t("PAGE_BUILDER.PAGES.DETAILS.FIELD_HINTS.CUSTOM")
+        : t("PAGE_BUILDER.PAGES.DETAILS.FIELD_HINTS.INHERITED"),
+    ]),
+  );
 });
 
-function parseUserGroups(str: string | undefined): string[] {
-  return str ? str.split(",").filter((x) => !!x) : [];
+const { confirmPermalinkUsage } = usePermalinkUsage();
+// Permalink and language as saved: an unchanged permalink was already confirmed.
+const savedPermalinkTarget = ref<IPermalinkTarget>();
+
+function rememberPermalinkTarget() {
+  savedPermalinkTarget.value = item.value?.id
+    ? { permalink: item.value.permalink, cultureName: item.value.cultureName }
+    : undefined;
 }
-function serializeUserGroups(groups: string[]): string {
-  return groups.filter((x) => !!x).join(",");
+
+async function confirmPagePermalinkUsage(): Promise<boolean> {
+  if (!isPermalinkCheckNeeded(savedPermalinkTarget.value, item.value)) {
+    return true;
+  }
+
+  return confirmPermalinkUsage({
+    storeId: item.value.storeId ?? (options.value?.storeId as string | undefined),
+    permalink: item.value.permalink,
+    cultureNames: item.value.cultureName ? [item.value.cultureName] : [],
+    excludeGroupIds: item.value.id ? [item.value.id] : [],
+  });
 }
-const itemUserGroups = computed<string[]>({
-  get: () => {
-    return parseUserGroups(item.value.userGroups);
-  },
-  set: (val: string[]) => {
-    item.value.userGroups = serializeUserGroups(val);
-  },
-});
+
+// Converting needs a second store language to translate into.
+const hasSeveralStoreLanguages = ref(false);
 
 // Toolbar
 const bladeToolbar = computed((): IBladeToolbar[] => [
@@ -280,6 +269,9 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.SAVE"),
     disabled: !canSave.value,
     clickHandler: async () => {
+      if (!(await confirmPagePermalinkUsage())) {
+        return;
+      }
       await handleSave();
       notification.success(t("PAGE_BUILDER.PAGES.ALERTS.SAVE_SUCCESS"));
     },
@@ -344,6 +336,21 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     },
   },
   {
+    id: "convertToMultilanguage",
+    icon: "lucide-languages",
+    title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.CONVERT"),
+    isVisible: !!param.value && !isLanguageVersion.value && hasSeveralStoreLanguages.value,
+    disabled: isReadOnly.value || isModified.value,
+    clickHandler: async () => {
+      if (await showConfirmation(t("PAGE_BUILDER.PAGES.ALERTS.CONVERT_CONFIRMATION"))) {
+        const root = await convertToMultilanguage();
+        notification.success(t("PAGE_BUILDER.PAGES.ALERTS.CONVERT_SUCCESS"));
+        notifyPagesChanged();
+        await replaceWith({ name: "MultilanguagePageDetails", param: root.id, options: { storeId: options.value?.storeId } });
+      }
+    },
+  },
+  {
     id: "publishPage",
     icon: "lucide-file-text",
     title: t("PAGE_BUILDER.PAGES.DETAILS.TOOLBAR.PUBLISH"),
@@ -383,6 +390,7 @@ async function loadCultureNamesAsync() {
 async function handleSave() {
   const group = await saveGroup();
   setBaseline();
+  rememberPermalinkTarget();
   notifyPagesChanged();
 
   // a new page continues as the saved one (the opener may be any blade: a pages list, a site page)
@@ -400,6 +408,7 @@ async function openPage(id: string | undefined) {
 // Lifecycle
 onMounted(async () => {
   await loadGroup();
+  rememberPermalinkTarget();
   if (options.value?.importData) {
     markReady();
   } else {
@@ -408,6 +417,7 @@ onMounted(async () => {
   // opened by a link or a reload, with no opener to say: the page names its own store (its address, the permalink's)
   if (!storeId.value && item.value.storeId) setStoreId(item.value.storeId);
   storeUrl.value = await getStoreUrl();
+  hasSeveralStoreLanguages.value = (await getLanguages()).length > 1;
 });
 </script>
 

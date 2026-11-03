@@ -43,12 +43,18 @@
             <span class="site-pages__permalink">{{ page.permalink }}</span>
           </span>
           <span class="site-pages__status">
-            <span
-              class="site-pages__dot"
-              :class="`site-pages__dot--${pageLifecycle(page).toLowerCase()}`"
-              aria-hidden="true"
+            <template v-if="page.page">
+              <span
+                class="site-pages__dot"
+                :class="`site-pages__dot--${pageLifecycle(page.page).toLowerCase()}`"
+                aria-hidden="true"
+              />
+              {{ $t(`PAGE_BUILDER.LIFECYCLE.${pageLifecycle(page.page).toUpperCase()}`) }}
+            </template>
+            <LanguagePills
+              v-else
+              :languages="page.languages ?? []"
             />
-            {{ $t(`PAGE_BUILDER.LIFECYCLE.${pageLifecycle(page).toUpperCase()}`) }}
           </span>
           <span class="site-pages__modified">{{ modified(page.modifiedDate) }}</span>
         </button>
@@ -57,7 +63,7 @@
           class="site-pages__details"
           :title="$t('PAGE_BUILDER.SITE_TAB.DETAILS')"
           :aria-label="$t('PAGE_BUILDER.SITE_TAB.DETAILS')"
-          @click="openPage(page.id)"
+          @click="openPage(page)"
         >
           <VcIcon
             icon="lucide-settings-2"
@@ -88,16 +94,18 @@ import { computed, onActivated, onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { formatDateRelative, useBlade, type IBladeToolbar } from "@vc-shell/framework";
 import { VcIcon, VcLoading, VcPagination, VcSelect } from "@vc-shell/framework/ui";
-import type { GroupedPageBuilderPage } from "../../api_client/virtocommerce.pagebuildermodule";
+import type { PageBuilderPageListItem } from "../../api_client/virtocommerce.pagebuildermodule";
 import { canOpenPageDesigner } from "../../utilities/pageDesigner";
 import {
   PageLifecycleFilters,
+  PageTypes,
   pagesChanged,
   usePageBuilderList,
   usePageDesigner,
   useUrlParams,
 } from "../page-builder/composables";
 import { pageLifecycle } from "../page-builder/pageLifecycle";
+import LanguagePills from "../page-builder/components/languagePills.vue";
 
 // The site page's (Content module's SiteDetails) Pages tab: the site's pages in a calm list. useBlade() is that blade,
 // so the pages open next to it.
@@ -152,22 +160,25 @@ async function reload() {
   await loadPages({ ...searchQuery.value, skip: pagination.skip });
 }
 
-// a page opens in the designer, as a designed file page does; archived ones (no designer) show their details
+// a page opens in the designer, as a designed file page does; archived ones (no designer) and Multilanguage Pages
+// (a designer per language) show their details
 const designPage = usePageDesigner();
-function openDesigner(page: GroupedPageBuilderPage) {
-  const context = { groupId: page.id, storeId: props.storeId, cultureName: page.cultureName, status: page.status };
-  if (!canOpenPageDesigner(context)) return openPage(page.id);
-  openPageId.value = page.id;
+function openDesigner(row: PageBuilderPageListItem) {
+  const page = row.page;
+  const context = { groupId: page?.id, storeId: props.storeId, cultureName: page?.cultureName, status: page?.status };
+  if (!page || !canOpenPageDesigner(context)) return openPage(row);
+  openPageId.value = row.id;
   designPage(context, () => {
     openPageId.value = undefined;
     reload();
   });
 }
 
-/** A page's details (name, permalink, audience, schedule), or a new page without an id. */
-function openPage(id?: string) {
+/** A page's details (name, permalink, audience, schedule), or a new page without a row. */
+function openPage(row?: PageBuilderPageListItem) {
+  const id = row?.id;
   openBlade({
-    name: "PageBuilderPageDetails",
+    name: row?.type === PageTypes.Multilanguage ? "MultilanguagePageDetails" : "PageBuilderPageDetails",
     param: id,
     options: { storeId: props.storeId },
     onOpen: () => (openPageId.value = id),

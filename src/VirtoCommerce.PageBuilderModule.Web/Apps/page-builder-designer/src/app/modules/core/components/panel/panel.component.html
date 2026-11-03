@@ -1,0 +1,15 @@
+<div class="panel-title">
+  <ng-content select="[title-content]" />
+</div>
+
+<div class="panel-body" #panelBody>
+  <ng-scrollbar>
+    <ng-content />
+  </ng-scrollbar>
+</div>
+
+@if (hasFooter()) {
+  <div class="panel-footer" #panelFooterRef>
+    <ng-content select="[footer-content]" />
+  </div>
+}

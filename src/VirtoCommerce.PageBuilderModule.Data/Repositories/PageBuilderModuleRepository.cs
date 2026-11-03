@@ -24,6 +24,8 @@ public class PageBuilderModuleRepository : DbContextRepositoryBase<PageBuilderMo
 
     public IQueryable<GroupedPageBuilderPageEntity> GroupedPageBuilderPages => DbContext.Set<GroupedPageBuilderPageEntity>();
 
+    public IQueryable<MultilanguagePageEntity> MultilanguagePages => DbContext.Set<MultilanguagePageEntity>();
+
     public IQueryable<PageBuilderAssetReferenceEntity> PageBuilderAssetReferences => DbContext.Set<PageBuilderAssetReferenceEntity>();
 
     public IQueryable<PageBuilderSharedComponentEntity> PageBuilderSharedComponents => DbContext.Set<PageBuilderSharedComponentEntity>();
@@ -69,6 +71,18 @@ public class PageBuilderModuleRepository : DbContextRepositoryBase<PageBuilderMo
         }
 
         return groups;
+    }
+
+    public virtual async Task<IList<MultilanguagePageEntity>> GetMultilanguagePagesByIdsAsync(IList<string> ids, string responseGroup)
+    {
+        if (ids.IsNullOrEmpty())
+        {
+            return [];
+        }
+
+        return ids.Count == 1
+            ? await MultilanguagePages.Where(x => x.Id == ids.First()).ToListAsync()
+            : await MultilanguagePages.Where(x => ids.Contains(x.Id)).ToListAsync();
     }
 
     public virtual async Task<IList<PageBuilderSharedComponentEntity>> GetPageBuilderSharedComponentsByIdsAsync(

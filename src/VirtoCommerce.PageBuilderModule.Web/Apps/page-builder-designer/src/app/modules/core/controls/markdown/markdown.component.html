@@ -1,0 +1,11 @@
+<label class="pb-label" [attr.title]="descriptor?.hint" class="pb-label">{{ descriptor?.label }}</label>
+
+<ngv-markdown [value]="controlValue()"
+  [styles]="descriptor?.styles || []"
+  [uploader]="uploadImage"
+  [options]="descriptor?.editorOptions || {}"
+(valueChanged)="onInputValueChanged($event)" />
+
+@if (descriptor?.info) {
+  <p class="info">{{ descriptor?.info }}</p>
+}

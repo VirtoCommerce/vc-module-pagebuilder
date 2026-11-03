@@ -1,0 +1,25 @@
+<div [formGroup]="currentForm()">
+  @if (hasTabs) {
+    <mat-tab-group mat-align-tabs="center">
+      @for (tab of tabs; track tab) {
+        <mat-tab
+          label="{{ tab.label || 'Default' }}"
+          labelClass="tab-label">
+          <app-controls-tab
+            [tab]="tab"
+            [state]="groupsState"
+            [currentForm]="currentForm()"
+            [context]="context()" />
+        </mat-tab>
+      }
+    </mat-tab-group>
+  }
+  @if (singleList) {
+    <app-controls-tab
+      [tab]="tabs[0]"
+      [state]="groupsState"
+      [currentForm]="currentForm()"
+      [context]="context()">
+    </app-controls-tab>
+  }
+</div>

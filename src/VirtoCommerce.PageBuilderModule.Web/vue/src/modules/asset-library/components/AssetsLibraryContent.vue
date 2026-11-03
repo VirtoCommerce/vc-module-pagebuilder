@@ -378,6 +378,10 @@ const selectedAssetView = computed(() => {
 });
 
 const debouncedSearch = debounce(async (keyword: string | undefined) => {
+  if (searchValue.value !== keyword) {
+    return;
+  }
+
   try {
     await search(keyword);
   } catch (error) {
