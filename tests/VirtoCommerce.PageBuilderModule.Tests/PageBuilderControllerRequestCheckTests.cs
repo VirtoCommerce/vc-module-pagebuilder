@@ -177,6 +177,17 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         [Fact]
+        public async Task StoreAccess_LetsUsersWithoutAStoreThrough()
+        {
+            // the store question only passes when it is asked with AllowUsersWithoutStore
+            var controller = Controller(authorizationService: new StoreAccessOnlyWithoutStoreAllowed());
+
+            var result = await controller.GitCopyPage(Store, "pages", Page, "/about-us_2.page");
+
+            Assert.IsType<NotFoundResult>(result);
+        }
+
+        [Fact]
         public async Task Save_WithoutFiles_IsBadRequest()
         {
             var result = await Controller().SaveTemplates(Store, "default", new PageBuilderController.SaveFilesModel());
@@ -225,7 +236,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 })),
             };
 
-        private static PageBuilderController Controller(bool permissions = true, bool storeAccess = true, string[] granted = null)
+        private static PageBuilderController Controller(bool permissions = true, bool storeAccess = true, string[] granted = null, IAuthorizationService authorizationService = null)
         {
             // Nothing past the request check is wired up: an action that reaches storage before refusing
             // fails here with a NullReferenceException instead of passing.
@@ -241,7 +252,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 gitContentHistory: null,
                 gitContentPublisher: null,
                 settingsManager: null,
-                authorizationService: new ScopedAuthorizationService(permissions, storeAccess, granted));
+                authorizationService: authorizationService ?? new ScopedAuthorizationService(permissions, storeAccess, granted));
 
             controller.ControllerContext = new ControllerContext
             {
@@ -254,6 +265,18 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         private sealed class FixedGitContentPolicy(bool enabled) : IGitContentPolicy
         {
             public Task<bool> IsEnabledForStoreAsync(string storeId, CancellationToken cancellationToken = default) => Task.FromResult(enabled);
+        }
+
+        /// <summary>Grants every permission, and store access only when users without a store are allowed.</summary>
+        private sealed class StoreAccessOnlyWithoutStoreAllowed : IAuthorizationService
+        {
+            public Task<AuthorizationResult> AuthorizeAsync(ClaimsPrincipal user, object resource, IEnumerable<IAuthorizationRequirement> requirements) =>
+                Task.FromResult(requirements.All(requirement => requirement is not PageBuilderAuthorizationRequirement { AllowUsersWithoutStore: false })
+                    ? AuthorizationResult.Success()
+                    : AuthorizationResult.Failed());
+
+            public Task<AuthorizationResult> AuthorizeAsync(ClaimsPrincipal user, object resource, string policyName) =>
+                Task.FromResult(AuthorizationResult.Success());
         }
 
         /// <summary>Grants permissions and store access separately, the two questions the check asks.</summary>

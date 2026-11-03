@@ -1650,7 +1650,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         /// What every action checks before it touches storage, or <c>null</c> when the request may go on:
         /// a content type, theme and paths that stay inside the store's content folder, a store that
         /// exists, the permission the action needs and access to that store. A theme is optional — without
-        /// one the store's default is used.
+        /// one the store's default is used. A user bound to a store reaches only that store; one with no
+        /// store on the account (the usual back-office manager) reaches any, as the permission allows.
         /// </summary>
         private async Task<ActionResult> CheckRequestAsync(string storeId, string permission, string type, string theme, IEnumerable<string> paths = null)
         {
@@ -1671,7 +1672,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 return Forbid();
             }
 
-            var storeAccess = await authorizationService.AuthorizeAsync(User, new PageBuilderPageSearchCriteria { StoreId = storeId }, new PageBuilderAuthorizationRequirement());
+            var storeAccess = await authorizationService.AuthorizeAsync(User, new PageBuilderPageSearchCriteria { StoreId = storeId },
+                new PageBuilderAuthorizationRequirement { AllowUsersWithoutStore = true });
 
             return storeAccess.Succeeded ? null : Forbid();
         }

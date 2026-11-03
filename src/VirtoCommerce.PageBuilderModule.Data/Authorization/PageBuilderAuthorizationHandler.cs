@@ -21,15 +21,21 @@ namespace VirtoCommerce.PageBuilderModule.Data.Authorization
                 {
                     context.Fail();
                 }
-
-                switch (context.Resource)
+                else if (requirement.AllowUsersWithoutStore && string.IsNullOrEmpty(user.StoreId))
                 {
-                    case IHasStoreId hasStoreId:
-                        result = hasStoreId.StoreId.EqualsIgnoreCase(user?.StoreId);
-                        break;
-                    case IEnumerable<IHasStoreId> hasStoreIds:
-                        result = hasStoreIds.All(x => x.StoreId.EqualsIgnoreCase(user?.StoreId));
-                        break;
+                    result = true;
+                }
+                else
+                {
+                    switch (context.Resource)
+                    {
+                        case IHasStoreId hasStoreId:
+                            result = hasStoreId.StoreId.EqualsIgnoreCase(user.StoreId);
+                            break;
+                        case IEnumerable<IHasStoreId> hasStoreIds:
+                            result = hasStoreIds.All(x => x.StoreId.EqualsIgnoreCase(user.StoreId));
+                            break;
+                    }
                 }
             }
 
