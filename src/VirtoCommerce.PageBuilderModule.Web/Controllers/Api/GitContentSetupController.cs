@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Data.GitContent;
 using VirtoCommerce.Platform.Core;
@@ -62,6 +63,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         /// </summary>
         [HttpGet]
         [Route("site")]
+        [Authorize(ModuleConstants.Security.Permissions.Read)]
         public async Task<ActionResult<GitContentSiteStatus>> GetSite(string storeId)
         {
             if (storeId.IsNullOrEmpty())
@@ -98,6 +100,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         /// </summary>
         [HttpGet]
         [Route("connection")]
+        [Authorize(ModuleConstants.Security.Permissions.Read)]
         public async Task<ActionResult> GetConnection([FromQuery] bool live = true)
         {
             var options = gitContentConnection.Value;
@@ -221,10 +224,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 ["url"] = $"{platform}/",
                 ["description"] = "Keeps each site's Page Builder pages in its own repository.",
                 ["redirect_url"] = $"{platform}/api/pagebuilder/git/app/created",
-                // GitHub adds its own query to this address; the site to go back to has to be part of it
-                ["setup_url"] = setup.StoreId.IsNullOrEmpty()
-                    ? $"{platform}/api/pagebuilder/git/app/installed"
-                    : $"{platform}/api/pagebuilder/git/app/installed?storeId={Uri.EscapeDataString(setup.StoreId)}",
+                // GitHub adds its own query to this address; the site to go back to rides in the state
+                ["setup_url"] = $"{platform}/api/pagebuilder/git/app/installed?state={Uri.EscapeDataString(state)}",
                 ["setup_on_update"] = true,
                 ["public"] = false,
                 // no "hook_attributes": no webhook — and GitHub refuses a webhook address it cannot reach, as a local platform's
@@ -285,14 +286,18 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             return Redirect(InstallUrl(app));
         }
 
-        /// <summary>GitHub's way back once the App is installed: to the site the setup started from, else the Sites panel.</summary>
+        /// <summary>
+        /// GitHub's way back once the App is installed: to the site the setup started from, else the Sites panel.
+        /// Anonymous, because it is GitHub that sends the browser here; only a valid state names a site, and a
+        /// later install of the same App (its state long expired) lands on the Sites panel.
+        /// </summary>
         [HttpGet]
         [Route("app/installed")]
         [AllowAnonymous]
-        public ActionResult AppInstalled(string storeId)
+        public ActionResult AppInstalled(string state)
         {
             // in case GitHub glued its own "?installation_id=..." on rather than adding to the query
-            var site = storeId?.Split('?')[0];
+            var site = TryReadState(state?.Split('?')[0], out var setup) ? setup.StoreId : null;
             return Redirect(site.IsNullOrEmpty()
                 ? $"{Request.PathBase}/apps/admin-shell/#/content"
                 : $"{Request.PathBase}/apps/admin-shell/#/content/site/{Uri.EscapeDataString(site)}");

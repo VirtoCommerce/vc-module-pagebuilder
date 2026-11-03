@@ -27,7 +27,8 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         public void The_manifest_asks_for_what_site_repositories_need_and_comes_back_to_the_site()
         {
             var controller = Controller();
-            var (action, manifest) = Form(controller, State(controller, "acme", "B2B store"));
+            var state = State(controller, "acme", "B2B store");
+            var (action, manifest) = Form(controller, state);
 
             Assert.StartsWith("https://github.com/organizations/acme/settings/apps/new?state=", action);
             // the platform's pages may post forms only to themselves; this one also to GitHub
@@ -36,7 +37,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.Equal("Page Builder acme", manifest["name"]?.Value<string>());
             Assert.False(manifest["public"]?.Value<bool>());
             Assert.Equal("https://platform.test/api/pagebuilder/git/app/created", manifest["redirect_url"]?.Value<string>());
-            Assert.Equal("https://platform.test/api/pagebuilder/git/app/installed?storeId=B2B%20store", manifest["setup_url"]?.Value<string>());
+            Assert.Equal($"https://platform.test/api/pagebuilder/git/app/installed?state={Uri.EscapeDataString(state)}", manifest["setup_url"]?.Value<string>());
             Assert.Null(manifest["hook_attributes"]);
             Assert.Equal(
                 JObject.Parse("""{ "administration": "write", "contents": "write", "pull_requests": "write", "metadata": "read" }"""),
@@ -91,8 +92,20 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         [Fact]
         public void After_the_installation_GitHub_sends_the_administrator_back_to_the_site()
         {
-            Assert.Equal("/apps/admin-shell/#/content/site/B2B%20store", Assert.IsType<RedirectResult>(Controller().AppInstalled("B2B store")).Url);
-            Assert.Equal("/apps/admin-shell/#/content/site/s1", Assert.IsType<RedirectResult>(Controller().AppInstalled("s1?installation_id=9")).Url);
+            var controller = Controller();
+            var state = State(controller, "acme", "B2B store");
+
+            Assert.Equal("/apps/admin-shell/#/content/site/B2B%20store", Assert.IsType<RedirectResult>(controller.AppInstalled(state)).Url);
+            Assert.Equal("/apps/admin-shell/#/content/site/B2B%20store", Assert.IsType<RedirectResult>(controller.AppInstalled($"{state}?installation_id=9")).Url);
+        }
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData("B2B store")]
+        [InlineData("forged")]
+        public void Without_a_valid_state_the_installation_lands_on_the_sites_panel(string state)
+        {
+            Assert.Equal("/apps/admin-shell/#/content", Assert.IsType<RedirectResult>(Controller().AppInstalled(state)).Url);
         }
 
         [Fact]
