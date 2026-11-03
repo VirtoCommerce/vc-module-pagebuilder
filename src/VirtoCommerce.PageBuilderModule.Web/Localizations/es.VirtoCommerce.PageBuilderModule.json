@@ -127,6 +127,10 @@
           "PreviewUserIds": {
             "title": "IDs de usuario para vista previa",
             "description": "Lista de IDs de usuario para la suplantación en vista previa (uno por línea)"
+          },
+          "NewPageBuilder": {
+            "title": "Nuevo Page Builder",
+            "description": "Abre las páginas de la tienda en el nuevo diseñador de Page Builder, y la tienda online muestra el tema publicado desde él. Si está desactivado, las páginas se abren en el diseñador clásico y la tienda online funciona como antes."
           }
         },
         "Migration": {

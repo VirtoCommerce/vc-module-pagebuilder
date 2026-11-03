@@ -126,6 +126,10 @@
           "GitContentRepository": {
             "title": "مستودع Git",
             "description": "مستودع GitHub موجود (owner/name) لصفحات هذا المتجر. اتركه فارغًا لاستخدام مستودع المتجر الخاص، الذي ينشئه Page Builder في المؤسسة المُهيأة."
+          },
+          "NewPageBuilder": {
+            "title": "Page Builder الجديد",
+            "description": "يفتح صفحات المتجر في مصمم Page Builder الجديد، وتعرض واجهة المتجر السمة المنشورة منه. عند إيقافه، تُفتح الصفحات في المصمم الكلاسيكي وتعمل واجهة المتجر كما كانت."
           }
         },
         "Migration": {

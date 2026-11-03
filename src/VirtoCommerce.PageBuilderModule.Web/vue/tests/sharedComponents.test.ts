@@ -8,7 +8,7 @@ import {
 } from "../src/modules/shared-components/utilities/sharedComponentDeletionError";
 import { createSharedComponentDetailsLoader } from "../src/modules/shared-components/utilities/sharedComponentDetailsRequest";
 import { getDistinctUsagePages, getUsagePageTitle } from "../src/modules/shared-components/utilities/sharedComponent";
-import { buildPageDesignerUrl, canOpenPageDesigner } from "../src/utilities/pageDesigner";
+import { buildClassicDesignerUrl, buildPageDesignerUrl, canOpenPageDesigner } from "../src/utilities/pageDesigner";
 
 interface Deferred<T> {
   promise: Promise<T>;
@@ -50,6 +50,23 @@ test("page designer URL opens the page in the Page Builder app", () => {
   assert.equal(
     url,
     "https://platform.example.com/apps/page-builder-shell/?storeId=B2B%2Fstore&designGroup=home+page",
+  );
+});
+
+test("classic designer URL opens the page in the Angular designer, in its language", () => {
+  const url = buildClassicDesignerUrl(
+    { groupId: " home page ", storeId: "B2B/store", cultureName: "en-US" },
+    "https://platform.example.com/",
+  );
+
+  assert.equal(
+    url,
+    "https://platform.example.com/Modules/$(VirtoCommerce.PageBuilderModule)/Content/page-builder-designer/index.html" +
+      "?storeId=B2B%2Fstore#/pages?type=pages&groupId=home+page&cultureName=en-US",
+  );
+  assert.throws(
+    () => buildClassicDesignerUrl({ groupId: "page-1", storeId: "store-1", status: "Archived" }, "https://p.example.com"),
+    /Can't open page/,
   );
 });
 

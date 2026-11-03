@@ -127,6 +127,10 @@
           "PreviewUserIds": {
             "title": "预览用户ID",
             "description": "用于页面预览模拟的用户ID列表（每行一个）"
+          },
+          "NewPageBuilder": {
+            "title": "新版 Page Builder",
+            "description": "在新版 Page Builder 设计器中打开商店页面，店面显示从中发布的主题。关闭时，页面在经典设计器中打开，店面照常运行。"
           }
         },
         "Migration": {

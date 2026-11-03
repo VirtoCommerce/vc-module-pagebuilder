@@ -5,8 +5,10 @@ angular.module('virtoCommerce.pageBuilderModule')
         'platformWebApp.dynamicProperties.dictionaryItemsApi', 'platformWebApp.settings',
         'virtoCommerce.pageBuilderModule.resourceNameService', 'virtoCommerce.searchModule.searchIndexation', "moment",
         'virtoCommerce.contentModule.broadcastChannelFactory', 'virtoCommerce.contentModule.files-draft',
+        'virtoCommerce.storeModule.stores',
         function ($rootScope, $scope, $q, validators, contentApi, pageBuilderApi, bladeNavigationService, dialogService,
-            dictionaryItemsApi, settings, nameHelper, searchApi, moment, broadcastChannelFactory, filesDraftService) {
+            dictionaryItemsApi, settings, nameHelper, searchApi, moment, broadcastChannelFactory, filesDraftService,
+            stores) {
 
             var momentFormat = "YYYYMMDDHHmmss";
 
@@ -26,11 +28,25 @@ angular.module('virtoCommerce.pageBuilderModule')
             // place under each, so it must never run on a guess.
             var flowResolved = false;
 
+            // The store's New Page Builder switch picks the designer: the Page Builder app (Vue) when on,
+            // the Angular designer when off.
+            var newPageBuilderSetting = 'VirtoCommerce.PageBuilderModule.Store.NewPageBuilder';
+            var designerReady = $q.resolve();
+
             blade.initialize = function () {
                 channel = broadcastChannelFactory(blade);
                 var pathname = window.location.pathname === '/' ? '' : window.location.pathname;
-                // the Page Builder app: its Vue designer opens the page from the link (see runDesigner)
-                blade.designerUrl = `${window.location.origin + pathname}/apps/page-builder-shell/`;
+                var platformUrl = window.location.origin + pathname;
+                blade.newPageBuilder = false;
+                blade.designerUrl = `${platformUrl}/Modules/$(VirtoCommerce.PageBuilderModule)/Content/page-builder-designer/index.html`;
+                designerReady = stores.get({ id: blade.storeId }).$promise.then(function (store) {
+                    var setting = _.find(store.settings || [], function (x) { return x.name === newPageBuilderSetting; });
+                    if (setting && setting.value === true) {
+                        blade.newPageBuilder = true;
+                        // the Page Builder app: its Vue designer opens the page from the link (see runDesigner)
+                        blade.designerUrl = `${platformUrl}/apps/page-builder-shell/`;
+                    }
+                }, angular.noop);
                 loadPublishStatus();
                 if (blade.isNew) {
                     blade.isLoading = false;
@@ -615,17 +631,28 @@ angular.module('virtoCommerce.pageBuilderModule')
             }
 
             function runDesigner() {
+                designerReady.then(openDesigner);
+            }
+
+            function openDesigner() {
                 if (blade.designerUrl) {
-                    // the page's own path: the designer reads its draft (or, in git, this editor's branch) itself
-                    var parameters = `storeId=${encodeURIComponent(blade.storeId)}` +
-                        `&designType=${encodeURIComponent(blade.contentType)}` +
-                        `&designPath=${encodeURIComponent(blade.currentEntity.relativeUrl)}`;
+                    var parameters;
+                    if (blade.newPageBuilder) {
+                        // the page's own path: the designer reads its draft (or, in git, this editor's branch) itself
+                        parameters = `storeId=${encodeURIComponent(blade.storeId)}` +
+                            `&designType=${encodeURIComponent(blade.contentType)}` +
+                            `&designPath=${encodeURIComponent(blade.currentEntity.relativeUrl)}`;
+                    } else {
+                        var relativeUrl = filesDraftService.getDraftFileName(blade);
+                        var previewId = filesDraftService.getDocumentId(blade, true);
+                        parameters = `storeId=${blade.storeId}#/pages?type=${blade.contentType}&path=${relativeUrl}&previewId=${encodeURIComponent(previewId)}`;
+                    }
                     // Pass the page language so the designer preview renders in that language (VCST-5219).
                     var designerLanguage = blade.currentEntity && blade.currentEntity.language;
                     if (designerLanguage) {
                         parameters += `&cultureName=${encodeURIComponent(designerLanguage)}`;
                     }
-                    window.open(`${blade.designerUrl}?${parameters}`, '_blank');
+                    window.open(`${blade.designerUrl}?${parameters}`, '_blank', 'noopener');
                 } else {
                     var dialog = {
                         id: "noUrlInStore",

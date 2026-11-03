@@ -127,6 +127,10 @@
           "PreviewUserIds": {
             "title": "Användar-IDn för förhandsgranskning",
             "description": "Lista med användar-IDn för förhandsgranskningsimitation (ett per rad)"
+          },
+          "NewPageBuilder": {
+            "title": "Nya Page Builder",
+            "description": "Öppnar butikens sidor i den nya Page Builder-designern, och webbutiken visar temat som publiceras därifrån. När inställningen är av öppnas sidorna i den klassiska designern och webbutiken fungerar som tidigare."
           }
         },
         "Migration": {

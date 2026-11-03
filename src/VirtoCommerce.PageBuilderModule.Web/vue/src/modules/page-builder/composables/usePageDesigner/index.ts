@@ -1,14 +1,21 @@
 import { getBladeConfig, useBlade } from "@vc-shell/framework";
 import { canOpenPageDesigner, openPageDesigner, type PageDesignerContext } from "../../../../utilities/pageDesigner";
+import useUrlParams from "../useStoreParams";
 
 /**
- * Opens a page in the designer: in the Admin Shell as the full-screen PageBuilderDesigner blade (param = page group id),
- * in the standalone app, which doesn't register that blade, in a new tab as before.
+ * Opens a page in the designer. A store without the New Page Builder switch opens the Angular designer in a new tab.
+ * Otherwise the Admin Shell opens the full-screen PageBuilderDesigner blade (param = page group id), and the standalone
+ * app, which doesn't register that blade, opens the Vue designer in a new tab.
  */
 export function usePageDesigner() {
   const { openBlade } = useBlade();
+  const { isNewPageBuilder } = useUrlParams();
 
-  return (context: PageDesignerContext, onClose?: () => void) => {
+  return async (context: PageDesignerContext, onClose?: () => void) => {
+    if (!(await isNewPageBuilder(context.storeId))) {
+      openPageDesigner(context, true);
+      return;
+    }
     if (!getBladeConfig("PageBuilderDesigner")) {
       openPageDesigner(context);
       return;

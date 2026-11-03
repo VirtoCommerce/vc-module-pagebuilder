@@ -127,6 +127,10 @@
           "PreviewUserIds": {
             "title": "Esikatselun käyttäjätunnukset",
             "description": "Luettelo käyttäjätunnuksista esikatselun toisena käyttäjänä toimimista varten (yksi per rivi)"
+          },
+          "NewPageBuilder": {
+            "title": "Uusi Page Builder",
+            "description": "Avaa kaupan sivut uudessa Page Builder -suunnittelutyökalussa, ja verkkokauppa näyttää siinä julkaistun teeman. Kun asetus ei ole käytössä, sivut avautuvat perinteisessä suunnittelutyökalussa ja verkkokauppa toimii kuten ennenkin."
           }
         },
         "Migration": {

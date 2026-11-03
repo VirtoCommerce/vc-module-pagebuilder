@@ -127,6 +127,10 @@
           "PreviewUserIds": {
             "title": "プレビュー用ユーザーID",
             "description": "ページプレビューのなりすまし用ユーザーIDリスト（1行に1つ）"
+          },
+          "NewPageBuilder": {
+            "title": "新しい Page Builder",
+            "description": "ストアのページを新しい Page Builder デザイナーで開き、ストアフロントはそこで公開されたテーマを表示します。オフの場合、ページは従来のデザイナーで開き、ストアフロントはこれまでどおり動作します。"
           }
         },
         "Migration": {

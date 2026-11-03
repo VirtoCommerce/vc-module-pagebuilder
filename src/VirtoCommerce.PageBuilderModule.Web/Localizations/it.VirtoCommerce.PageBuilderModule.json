@@ -127,6 +127,10 @@
           "PreviewUserIds": {
             "title": "ID utente per anteprima",
             "description": "Elenco degli ID utente per l'impersonificazione nell'anteprima (uno per riga)"
+          },
+          "NewPageBuilder": {
+            "title": "Nuovo Page Builder",
+            "description": "Apre le pagine del negozio nel nuovo designer di Page Builder e la vetrina mostra il tema pubblicato da lì. Se disattivato, le pagine si aprono nel designer classico e la vetrina funziona come prima."
           }
         },
         "Migration": {

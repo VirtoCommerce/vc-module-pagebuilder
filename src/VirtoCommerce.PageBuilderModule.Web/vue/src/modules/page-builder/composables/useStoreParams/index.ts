@@ -4,7 +4,10 @@ interface IStoreItem {
   url: string;
   languages: string[];
   defaultLanguage?: string;
+  settings?: { name?: string; value?: unknown }[];
 }
+
+const newPageBuilderSetting = "VirtoCommerce.PageBuilderModule.Store.NewPageBuilder";
 
 export type StoreContextStatus = "idle" | "missing" | "loading" | "ready" | "notFound" | "error";
 
@@ -81,6 +84,15 @@ export default () => {
   async function getDefaultLanguage(): Promise<string | undefined> {
     const store = await getStore();
     return store?.defaultLanguage ?? undefined;
+  }
+
+  /** The store's New Page Builder switch: on, its pages open in the Vue designer; off, in the Angular one. */
+  async function isNewPageBuilder(id: string | null = storeId.value): Promise<boolean> {
+    if (!id) {
+      return false;
+    }
+    const store = cache.has(id) && cache.get(id)?.settings ? cache.get(id) : await fetchStore(id);
+    return store?.settings?.find((x) => x.name === newPageBuilderSetting)?.value === true;
   }
 
   async function validateStoreContext(): Promise<boolean> {
@@ -164,5 +176,6 @@ export default () => {
     getStoreUrl,
     getLanguages,
     getDefaultLanguage,
+    isNewPageBuilder,
   };
 };

@@ -127,6 +127,10 @@
           "PreviewUserIds": {
             "title": "IDs de utilizador para pré-visualização",
             "description": "Lista de IDs de utilizador para personificação na pré-visualização (um por linha)"
+          },
+          "NewPageBuilder": {
+            "title": "Novo Page Builder",
+            "description": "Abre as páginas da loja no novo designer do Page Builder, e a loja virtual mostra o tema publicado a partir dele. Quando desativado, as páginas abrem no designer clássico e a loja virtual funciona como antes."
           }
         },
         "Migration": {

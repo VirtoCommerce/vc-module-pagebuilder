@@ -126,6 +126,10 @@
           "GitContentRepository": {
             "title": "מאגר Git",
             "description": "מאגר GitHub קיים (owner/name) לדפים של חנות זו. יש להשאיר ריק כדי להשתמש במאגר של החנות עצמה, ש-Page Builder יוצר בארגון שהוגדר."
+          },
+          "NewPageBuilder": {
+            "title": "Page Builder החדש",
+            "description": "פותח את דפי החנות במעצב Page Builder החדש, וחלון הראווה מציג את ערכת הנושא שפורסמה ממנו. כשהאפשרות כבויה, הדפים נפתחים במעצב הקלאסי וחלון הראווה פועל כמו קודם."
           }
         },
         "Migration": {

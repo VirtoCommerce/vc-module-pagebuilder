@@ -208,11 +208,26 @@ namespace VirtoCommerce.PageBuilderModule.Core
                     DefaultValue = "",
                 };
 
+                /// <summary>
+                /// Moves the store to the new Page Builder: its pages open in the Vue designer and the storefront reads
+                /// the published theme snapshot. Off by default: the store keeps the Angular designer and the storefront
+                /// works as before. Public, so the storefront sees it in the store's module settings.
+                /// </summary>
+                public static SettingDescriptor NewPageBuilder { get; } = new()
+                {
+                    Name = "VirtoCommerce.PageBuilderModule.Store.NewPageBuilder",
+                    GroupName = "CMS|Page builder",
+                    ValueType = SettingValueType.Boolean,
+                    DefaultValue = false,
+                    IsPublic = true,
+                };
+
                 public static IEnumerable<SettingDescriptor> AllStoreLevelSettings
                 {
                     get
                     {
                         yield return PreviewUserIds;
+                        yield return NewPageBuilder;
                         yield return GitContentEnabled;
                         yield return GitContentRepository;
                     }

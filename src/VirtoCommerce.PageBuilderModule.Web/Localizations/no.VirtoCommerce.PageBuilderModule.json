@@ -127,6 +127,10 @@
           "PreviewUserIds": {
             "title": "Bruker-IDer for forhåndsvisning",
             "description": "Liste over bruker-IDer for forhåndsvisning som en annen bruker (én per linje)"
+          },
+          "NewPageBuilder": {
+            "title": "Ny Page Builder",
+            "description": "Åpner butikkens sider i den nye Page Builder-designeren, og nettbutikken viser temaet som publiseres derfra. Når det er av, åpnes sidene i den klassiske designeren, og nettbutikken fungerer som før."
           }
         },
         "Migration": {
