@@ -20,21 +20,6 @@ export function fromDocument(doc: PageDocument): unknown {
   return doc;
 }
 
-/**
- * Breadcrumbs and the H1 were page settings (`hideBreadcrumbs`, `header`) the storefront drew above the sections; they
- * are sections now, Breadcrumbs and Page heading, which take their place at the top. `hideBreadcrumbs` stays true so a
- * storefront still reading the settings draws nothing more. Undefined: nothing left to move.
- */
-export function chromeToSections(doc: PageDocument): PageDocument | undefined {
-  const { header, hideBreadcrumbs, ...settings } = doc.settings;
-  if (hideBreadcrumbs && !header) return undefined;
-  const sections: Item[] = [
-    ...(hideBreadcrumbs ? [] : [{ id: newId("breadcrumbs"), type: "breadcrumbs" }]),
-    ...(header ? [{ id: newId("pageheading"), type: "page-heading", text: header }] : []),
-  ];
-  return { ...doc, settings: { ...settings, hideBreadcrumbs: true } as Item, content: [...sections, ...doc.content] };
-}
-
 /** A shared component placed on the page: exactly { id, type: "componentRef", componentRef }, non-blank. */
 export function isComponentRef(item: Item): item is Item & { componentRef: string } {
   const keys = Object.keys(item);

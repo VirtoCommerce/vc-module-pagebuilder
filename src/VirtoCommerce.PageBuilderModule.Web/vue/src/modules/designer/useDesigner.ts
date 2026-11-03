@@ -3,7 +3,7 @@ import { useManualRefHistory } from "@vueuse/core";
 import { debounce } from "lodash-es";
 import type { Field, Item, ItemSchema, PageDocument, Schemas, SectionGroup, Selection } from "./types";
 import { copyItem, fieldsOf, itemTitle, newId, newItem, withTextAt } from "./schema";
-import { chromeToSections, isComponentRef, resolveRefs } from "./document";
+import { isComponentRef, resolveRefs } from "./document";
 import type { ClipboardItem } from "./clipboard";
 import * as api from "./api";
 import { GROUPS, groupItems, groupOf, pageOnly, withGroups } from "./groups";
@@ -440,18 +440,6 @@ export function useDesigner() {
   }
   watch(schemas, seedGroups);
 
-  // A page's breadcrumbs and H1, page settings before, open as the Breadcrumbs and Page heading sections once the
-  // preview's schemas have those (an older storefront has none), as the saved baseline: the site shows the page as it
-  // was until it is saved. Only while nothing is unsaved, as the seeding above.
-  function chromeAsSections() {
-    const kinds = schemas.value.sections;
-    const page = !!groupId.value || (!!file.value && file.value.type !== "themes");
-    if (!page || dirty.value || !kinds.breadcrumbs || !kinds["page-heading"]) return;
-    const moved = chromeToSections(pageOnly(doc.value));
-    if (moved) reset(moved);
-  }
-  watch(schemas, chromeAsSections);
-
   /** The loaded or saved document is the new starting point: nothing to undo, nothing unsaved. */
   function reset(next: PageDocument, groups: Partial<Record<SectionGroup, Item[]>> = currentGroups()) {
     record.cancel();
@@ -522,7 +510,6 @@ export function useDesigner() {
       // the preview's schemas may be in already
       seedGroups();
       seedTemplate();
-      chromeAsSections();
       await Promise.all([loadComponents(true), refreshStatus()]);
     } catch (e) {
       loadError.value = e;

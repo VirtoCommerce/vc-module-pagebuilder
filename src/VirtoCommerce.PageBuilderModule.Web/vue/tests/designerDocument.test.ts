@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { chromeToSections, fromDocument, isComponentRef, resolveRefs, toDocument } from "../src/modules/designer/document";
+import { fromDocument, isComponentRef, resolveRefs, toDocument } from "../src/modules/designer/document";
 
 test("documents load from every stored shape", () => {
   assert.deepEqual(toDocument(""), { settings: {}, content: [] });
@@ -48,23 +48,4 @@ test("references resolve to the component's sections with placement boundaries",
   assert.deepEqual(missingSharedComponentIds, ["gone"]);
   // the page itself is untouched
   assert.equal(doc.content.length, 4);
-});
-
-test("page settings' breadcrumbs and H1 become sections at the top, once", () => {
-  const text = { id: "text1", type: "text" };
-  const page = (settings: Record<string, unknown>) => ({ settings: { type: "settings", seoInfo: { pageTitle: "T" }, ...settings }, content: [text] });
-  const types = (doc?: { content: { type: string }[] }) => doc?.content.map((x) => x.type);
-
-  // never set: the storefront showed breadcrumbs
-  const shown = chromeToSections(page({}));
-  assert.deepEqual(types(shown), ["breadcrumbs", "text"]);
-  assert.deepEqual(shown?.settings, { type: "settings", seoInfo: { pageTitle: "T" }, hideBreadcrumbs: true });
-  const both = chromeToSections(page({ header: "About us" }));
-  assert.deepEqual(types(both), ["breadcrumbs", "page-heading", "text"]);
-  assert.equal(both?.content[1].text, "About us");
-  assert.equal("header" in both!.settings, false);
-  assert.deepEqual(types(chromeToSections(page({ hideBreadcrumbs: true, header: "About us" }))), ["page-heading", "text"]);
-  // already moved, or nothing shown: as it is
-  assert.equal(chromeToSections(shown!), undefined);
-  assert.equal(chromeToSections(page({ hideBreadcrumbs: true })), undefined);
 });
