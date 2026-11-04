@@ -75,7 +75,7 @@ Resolved settings are available in template expressions as `{{settings.*}}`. The
         "url": "/api/pagebuilder/save?storeId={{location.params.storeId}}&theme={{config.themeName}}&draft=true",
         "method": "POST",
         "body": {
-            "files": "{{=JSON.stringify(this.templatesToSave.map(x => ({ path: x.entry.path, pageId: x.entry.pageId, type: x.entry.type, content: x.content })))}}"
+            "files": "{{=JSON.stringify(this.templatesToSave.map(x => ({ path: x.entry.path, groupId: x.entry.groupId, type: x.entry.type, content: x.content })))}}"
         }
     },
     "publish": {

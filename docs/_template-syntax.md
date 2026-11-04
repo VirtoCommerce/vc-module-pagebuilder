@@ -30,7 +30,7 @@ Context paths available:
 
 ### 2. Inline expression: `{{=expr}}`
 
-Evaluates a JavaScript expression. The result is **coerced to a string** via `String.prototype.replace()`. Use this when the expression result is embedded inside a larger string.
+Evaluates an [expression](#expression-language). The result is **coerced to a string** via `String.prototype.replace()`. Use this when the expression result is embedded inside a larger string.
 
 ```
 "fullPreviewUrl": "{{=combine(this.settings.storefrontUrl, this.settings.previewPath)}}?ep={{location.origin}}"
@@ -43,7 +43,7 @@ Inside expressions:
 
 ### 3. Raw expression: `@{{expr}}`
 
-Evaluates a JavaScript expression and returns the result **as-is**, preserving its original type (array, object, number, boolean). The `@{{...}}` pattern must be the **entire string value** — it cannot be mixed with other text.
+Evaluates an [expression](#expression-language) and returns the result **as-is**, preserving its original type (array, object, number, boolean). The `@{{...}}` pattern must be the **entire string value** — it cannot be mixed with other text.
 
 Returns `null` if the expression evaluates to `null` or `undefined`.
 
@@ -67,9 +67,23 @@ This sends `{"objectIds": ["id1", "id2"], "take": 100}` — the array is preserv
 | POST body field that must be an object | `@{{expr}}` | Object |
 | POST body field that must be a number | `@{{expr}}` | Number |
 
+## Expression language
+
+Expressions are not run as JavaScript. Schemas and settings run in the admin's session, so the designer interprets a small language instead:
+
+- literals: numbers, strings in `'…'` or `"…"`, `true`, `false`, `null`, `undefined`, and array literals such as `['name', '__id']`;
+- the context through `this`: `this.settings.storefrontUrl`, `this.items[0]`, and optional chaining `this.item?.title`;
+- operators: `!`, unary `-` and `+`, `*`, `/`, `%`, `+`, `-`, `<`, `>`, `<=`, `>=`, `==`, `!=`, `===`, `!==`, `&&`, `||`, `??`, and `test ? a : b`;
+- calls to the [utility functions](#utility-functions), `encodeURIComponent(value)` and `JSON.stringify(value, null, space)`;
+- string methods `indexOf`, `includes`, `startsWith`, `endsWith`, `trim`, `toLowerCase`, `toUpperCase`, `split`, `slice`, `substring`, `charAt` and `replace` (string arguments only), and array methods `indexOf`, `includes`, `join` and `slice`.
+
+Functions and arrow functions (so no `map`, `filter` or `find` callbacks), object literals, spread, assignment, `new`, regular expressions, template literals and globals such as `window`, `Math` or `Object` are not part of it. An expression outside the language is not run: it evaluates to `null`, and the browser console names the expression. Use `filterBy` and `toOptions` where a callback would have filtered or mapped a list.
+
+The expressions that the designer settings and vc-frontend schemas already carried, such as the `Object.keys(this.response).map(…)` template selector, are recognized as written and keep working.
+
 ## Utility functions
 
-The following functions are available inside `{{=expr}}` and `@{{expr}}` expressions:
+The following functions are available in every expression:
 
 | Function | Description |
 |----------|-------------|
@@ -81,12 +95,14 @@ The following functions are available inside `{{=expr}}` and `@{{expr}}` express
 | `cutString(str, limit?)` | Truncates string at `limit` (default 50) with `...` |
 | `tryParseJson(str)` | Parses JSON string, returns `null` on failure |
 | `getItemValue(item, descriptors)` | Extracts values from item by descriptor array |
+| `filterBy(list, field, value)` | The items of `list` whose own `field` equals `value` |
+| `toOptions(list, labelFields, valueField)` | Select options `{ label, value }`: the label is the first of `labelFields` (a field or an array of fields) the item has |
 
 ## Response processing
 
 When a request includes a `response` descriptor, the response is processed in order:
 
-1. **`selector`** (optional) — evaluates a JS expression with `this.response` set to the raw HTTP response. Returns the computed value.
+1. **`selector`** (optional) — evaluates an expression with `this.response` set to the raw HTTP response. Returns the computed value.
 2. **`result`** (optional) — applies a JSONPath expression (e.g., `$.results`, `$.settings[?(@.name=='X')].value`) to extract data.
 3. **`isArray`** (optional) — if `true`, wraps a non-array result in an array; if `false`, unwraps an array to its first element.
 
@@ -118,7 +134,7 @@ When a request includes a `response` descriptor, the response is processed in or
 **Selector extracting a setting from store API response:**
 ```json
 {
-    "selector": "(function() { var s = (this.response.settings || []).find(function(x) { return x.name === 'MySettingName' }); return s && s.value ? s.value.split('\\n').filter(function(x) { return x.trim() }) : [] }).call(this)"
+    "selector": "(getValueByPath(this.response, \"$.settings[?(@.name=='MySettingName')].value\") || '').split('\\n')"
 }
 ```
 

@@ -2,7 +2,7 @@
 
 This guide describes how to configure the settings file for the Virto Commerce Page Builder. These settings define how the builder loads templates, fetches data, saves changes, and interacts with the frontend and backend APIs.
 
-Each setting can be either a static string or a dynamic request (or list of requests) that returns the desired value. The structure is highly flexible and supports templating, scripting, and conditional logic.
+Each setting can be either a static string or a dynamic request (or list of requests) that returns the desired value. The structure is highly flexible and supports templating and [expressions](./template-syntax.md#expression-language).
 
 ## Key settings properties
 
@@ -11,7 +11,7 @@ Each setting can be either a static string or a dynamic request (or list of requ
 | `templatesListUrl`      | URL or server request returning the list of available templates. Templates are managed <br>as described in the [schemas documentation](./schemas.md). |
 | `sectionsListUrl`       | URL or request that returns the list of available sections (blocks).<br>Response format is documented [here](./schemas.md).                          |
 | `templateUrl`           | URL or request used to fetch a selected template by path and type.                                                                                |
-| `saveTemplates`         | Request for saving templates. Usually a POST request with a `files` array in the body,<br> each containing: `path`, `pageId`, `type`, and `content`.  |
+| `saveTemplates`         | Request for saving templates. Usually a POST request with a `files` array in the body,<br> each containing: `path`, `groupId`, `type`, and `content`.  |
 | `settingsDataRequest`   | Request to retrieve the theme's **settings_data.json** file.                                                                                        |
 | `settingsSchemaRequest` | Request to retrieve the theme’s **settings_schema.json** used to render the settings form and presets.                                              |
 | `saveSettings`          | URL or request for saving theme settings.<br> The request format matches `saveTemplates`.                                                             |
@@ -27,7 +27,7 @@ Each setting can be either a static string or a dynamic request (or list of requ
 
 ## Execution context
 
-When resolving templates or executing scripts (e.g., in `url`, `body`, or `selector`), the following context is available:
+When resolving templates or evaluating expressions (e.g., in `url`, `body`, or `selector`), the following context is available:
 
 - **location**: Describes the current URL and its components. Includes: **url**, **params**, **path**, **host**, **protocol**, **hash**, **origin**.
 - **settings**: Contains resolved values from other settings. This object is not evaluated dynamically.
@@ -105,7 +105,7 @@ These values can be combined to form URLs, populate request bodies, or define co
             "url": "/api/pagebuilder/save?storeId={{location.params.storeId}}&theme={{config.themeName}}&draft=true",
             "method": "POST",
             "body": {
-                "files": "{{=JSON.stringify(this.templatesToSave.map(x => ({ path: x.entry.path, pageId: x.entry.pageId, type: x.entry.type, content: x.content })))}}"
+                "files": "{{=JSON.stringify(this.templatesToSave.map(x => ({ path: x.entry.path, groupId: x.entry.groupId, type: x.entry.type, content: x.content })))}}"
             }
         },
         "publish": {
