@@ -2,7 +2,7 @@ using FluentValidation;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Validation;
 
-/// <summary>The checks the builder validators share, each with its own message.</summary>
+/// <summary>Shared, so that a path is checked the same way wherever a request names one.</summary>
 public static class PageBuilderContentRules
 {
     public static IRuleBuilderOptions<T, string> ContentPath<T>(this IRuleBuilder<T, string> rule) =>

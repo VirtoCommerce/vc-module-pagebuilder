@@ -15,7 +15,7 @@ const VC_FRONTEND_EXPRESSIONS = [
   "this.model.hideViewModeSelector !== false",
 ];
 
-/** The expressions the designer's own settings carry, found the way `template()` and the selectors find them. */
+// Found the way the designer finds them, so that the list cannot drift from the settings.
 function settingsExpressions(value: unknown, key = ''): string[] {
   if (typeof value === 'string') {
     if (key === 'selector') {

@@ -556,10 +556,9 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 return BadRequest(new { error = "files must be a JSON list of files." });
             }
 
-            // A live write of a page or a blog article is a publication. With the git flow on, every live
-            // write is: live belongs to the CI deploy (merge to the production branch), so only callers holding
-            // the publish permission (the CI service account) make one, and editors publish through PR + merge.
-            // Without git, theme settings stay on update: the designer saves them straight to live.
+            // A live write of a page is a publication. With the git flow on, every live write is one: live belongs
+            // to the CI deploy, and editors publish through a pull request. Without git, theme settings stay on
+            // update: the designer saves them straight to live.
             var gitFlow = await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted);
             var publishes = !draft && (gitFlow || files.Any(file => file != null && GitPageLocation.IsPageContent(file.Type)));
             if (publishes && !(await authorizationService.AuthorizeAsync(User, null, ModuleConstants.Security.Permissions.Publish)).Succeeded)
@@ -1049,9 +1048,9 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("git/restore-version")]
         public async Task<ActionResult> GitRestoreVersion(string storeId, string path, string type, [BindRequired] string sha)
         {
-            // a version is a commit; a branch name would mean "whatever is there when this runs"
             var contentType = type.IsNullOrEmpty() ? PagesContentType : type;
             var request = PageRequest(storeId, contentType, path);
+            // a version is a commit; a branch name would mean "whatever is there when this runs"
             request.Ref = sha;
             if (await CheckRequestAsync(request) is { } refused)
             {
@@ -1111,10 +1110,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("git/preview")]
         public async Task<ActionResult> GitPreview(string storeId, string path, string type, [FromQuery(Name = "ref")] string requestedRef = null)
         {
-            // A version list offers a preview of one exact commit; asked for a ref, this endpoint hands it
-            // straight to the storefront, so the request check accepts only a sha — a caller-chosen branch
-            // name would end up in the redirect and stop meaning what the link said.
             var request = PageRequest(storeId, type, path);
+            // The link goes straight to the storefront: a branch name in it would stop meaning what the link said.
             request.Ref = requestedRef;
             if (await CheckRequestAsync(request) is { } refused)
             {
@@ -1352,7 +1349,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("git/copy")]
         public async Task<ActionResult> GitCopyPage(string storeId, string type, string srcPath, string destPath)
         {
-            // The source and a target the caller names are both pages; one the server picks keeps the source's name and extension.
+            // A target the server picks needs no check of its own: it keeps the source's folder and extension.
             var contentType = type ?? PagesContentType;
             if (await CheckRequestAsync(PageRequest(storeId, contentType, [srcPath, .. PathsOf(destPath)])) is { } refused)
             {
@@ -1630,7 +1627,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
         private async Task<ActionResult> ValidateAsync(PageBuilderContentRequest request)
         {
-            // What did not bind (a malformed body, a missing required value) is the caller's mistake as much as what the validator refuses.
+            // What did not bind, a malformed body or a missing required value, is the caller's mistake too.
             var bindingErrors = ModelState.Values
                 .SelectMany(entry => entry.Errors)
                 .Select(error => string.IsNullOrEmpty(error.ErrorMessage) ? "The request could not be read." : error.ErrorMessage)

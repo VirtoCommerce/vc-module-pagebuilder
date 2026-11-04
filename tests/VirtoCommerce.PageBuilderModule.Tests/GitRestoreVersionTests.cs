@@ -181,7 +181,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         [Fact]
         public async Task Restore_WithoutASha_IsRefused()
         {
-            // MVC records the missing [BindRequired] value; the request check answers it before anything is read
+            // MVC records a missing required value; the request check answers it before anything is read
             var repository = Repository(ValidPage);
             var controller = Controller(repository, new RecordingHistory());
             controller.ModelState.AddModelError("sha", "A value for the 'sha' parameter or property was not provided.");

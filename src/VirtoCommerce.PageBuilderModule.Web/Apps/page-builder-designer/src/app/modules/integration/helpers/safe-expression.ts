@@ -1,6 +1,6 @@
 /**
- * Schema and settings expressions run in the admin's session but can be written by anyone who saves a theme or
- * a page, so they are interpreted, never executed as code.
+ * Schemas and settings come with the theme, written by people other than the admin who opens the designer, so
+ * their expressions are interpreted, never run as code.
  */
 
 export class UnsupportedExpressionError extends Error {}
@@ -47,7 +47,6 @@ const BUILT_IN_FUNCTIONS: ExpressionFunctions = {
   },
 };
 
-/** Code that does what an exact expression does, for one that needs more than the expression language. */
 export type KnownForm = (context: any, functions: ExpressionFunctions) => unknown;
 
 export type KnownForms = ReadonlyMap<string, KnownForm>;

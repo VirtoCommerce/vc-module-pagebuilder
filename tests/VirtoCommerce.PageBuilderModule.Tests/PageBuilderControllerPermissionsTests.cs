@@ -65,8 +65,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.All(Actions(), action => Assert.Empty(action.GetCustomAttributes(inherit: true).OfType<IAllowAnonymous>()));
         }
 
-        // What MVC routes: every public instance method of the controller that is not [NonAction], with or
-        // without an HTTP method attribute; one without a route of its own takes the controller's.
+        // Everything MVC routes, HTTP method attribute or not: a public method without a route of its own takes the controller's.
         private static IEnumerable<MethodInfo> Actions() =>
             typeof(PageBuilderController)
                 .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)

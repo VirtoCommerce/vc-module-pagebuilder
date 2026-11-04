@@ -14,7 +14,7 @@ public static class PageBuilderContentPaths
         ContentConstants.ContentTypes.Blogs,
     };
 
-    // ".page-draft": the admin blade opens the designer on a draft's name.
+    // Drafts too: the admin blade opens the designer on a draft's name.
     private static readonly string[] PageExtensions = [".page", ".page-draft"];
     private const string JsonExtension = ".json";
 
@@ -34,7 +34,7 @@ public static class PageBuilderContentPaths
     public static bool HasPathCharactersOnly(string path) =>
         !path.Any(character => character is '\\' or ':' || char.IsControl(character));
 
-    /// <summary>A leading "/" passes: the admin blade names pages that way.</summary>
+    /// <summary>A path from the root passes: the admin blade names pages that way.</summary>
     public static bool StaysInsideTheFolder(string path)
     {
         var trimmed = path.TrimStart('/');
@@ -42,7 +42,7 @@ public static class PageBuilderContentPaths
         return trimmed.Length > 0 && !trimmed.Split('/').Any(segment => segment is "" or "." or "..");
     }
 
-    /// <summary>Windows file storage reads a name ending in "." or " " as another name.</summary>
+    /// <summary>Windows file storage reads a name with a trailing dot or space as another name.</summary>
     public static bool HasPortableNames(string path) =>
         !path.Split('/').Any(segment => segment.EndsWith('.') || segment.EndsWith(' '));
 
@@ -59,7 +59,7 @@ public static class PageBuilderContentPaths
 
     public static bool IsInsideAThemeFolder(string path) => path.TrimStart('/').Contains('/');
 
-    /// <summary>Expects a path inside a theme folder.</summary>
+    /// <summary>No theme folder check: the file rules check that first.</summary>
     public static bool IsOutsideTheThemeConfig(string path)
     {
         var relativePath = path.TrimStart('/');

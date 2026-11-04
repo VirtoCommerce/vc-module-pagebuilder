@@ -118,9 +118,8 @@ export function evalInContext(expr: string, context: any): any {
   return null;
 }
 
-// A filter or a script in a path is schema text as well, so it runs through the expression language and not
-// through jsonpath-plus's own interpreter, which calls whatever methods the data has. jsonpath-plus hands over
-// the script with `@` already spelled `_$_v` (and `@root` `_$_root`, ...) and those names on the sandbox.
+// A filter or a script in a path is schema text too: it runs through the expression language, not through
+// jsonpath's own interpreter, which calls whatever methods the data has. Its variables arrive on the sandbox.
 function evalJsonPathScript(script: string, sandbox: object): unknown {
   return evaluate(script.replaceAll(/(?<![\w$.])_\$_/g, 'this._$_'), sandbox, EVAL_UTILS, KNOWN_EXPRESSIONS);
 }
@@ -173,12 +172,11 @@ export function toList(obj: any, keyPropertyName: string): any[] {
   return Object.keys(obj).map(key => ({ [keyPropertyName]: key, ...obj[key] }));
 }
 
-/** The items of a list whose own `field` equals `value`: expressions have no callbacks to filter with. */
+/** Expressions have no callbacks to filter or map with. */
 export function filterBy(list: unknown, field: string, value: unknown): any[] {
   return Array.isArray(list) ? list.filter(item => ownValue(item, field) === value) : [];
 }
 
-/** Select options from a list: the label is the first of `labelFields` an item has, the value is its own `valueField`. */
 export function toOptions(list: unknown, labelFields: string | string[], valueField: string): { label: unknown; value: unknown }[] {
   if (!Array.isArray(list)) {
     return [];
@@ -190,6 +188,7 @@ export function toOptions(list: unknown, labelFields: string | string[], valueFi
   }));
 }
 
+// Own fields only: an expression must not reach what the prototype adds.
 function ownValue(item: unknown, field: string): unknown {
   return item !== null && typeof item === 'object' && Object.hasOwn(item, field) ? (item as any)[field] : undefined;
 }

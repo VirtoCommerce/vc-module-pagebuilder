@@ -29,7 +29,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Authorization
                 }
             }
 
-            // No Fail() when refused: it would override any other handler registered for this requirement.
+            // A refusal stays silent: failing here would override any other handler registered for this requirement.
             if (result)
             {
                 context.Succeed(requirement);

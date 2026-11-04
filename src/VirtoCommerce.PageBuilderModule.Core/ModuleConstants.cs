@@ -45,7 +45,6 @@ namespace VirtoCommerce.PageBuilderModule.Core
             public const string Outdated = "Outdated";
         }
 
-        /// <summary>The folders under a theme's config/schemas that the builder serves.</summary>
         public static class SchemaKinds
         {
             public const string Sections = "sections";

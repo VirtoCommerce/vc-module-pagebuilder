@@ -86,8 +86,8 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
             return errors;
         }
 
-        // An object or an array where a value belongs reads as missing: Value<string>() throws on it, and the
-        // document comes from whoever saves it.
+        // The document comes from whoever saves it: an object or an array where a value belongs reads as
+        // missing instead of throwing.
         private static string TextOf(JToken token) => token is JValue value ? (string)value : null;
     }
 }

@@ -10,23 +10,21 @@ public class PageBuilderContentRequest : IHasStoreId
 
     public IList<string> Paths { get; set; } = [];
 
-    /// <summary>Page documents of pages or blogs: the only content the git actions address.</summary>
+    /// <summary>Kept apart from <see cref="Paths"/>: the git actions address nothing but pages and blog articles.</summary>
     public IList<string> Pages { get; set; } = [];
 
-    /// <summary>Draft blobs, named by their exact "-draft" path, that the request deletes.</summary>
+    /// <summary>Named by their exact path and never resolved from a page name: these get deleted.</summary>
     public IList<string> LegacyDrafts { get; set; } = [];
 
     /// <summary><c>null</c> unless the request writes: that is what tells a save from a read.</summary>
     public IList<PageBuilderContentFile> Files { get; set; }
 
-    /// <summary>A commit sha; <c>null</c> when the request names no version.</summary>
     public string Ref { get; set; }
 
     public string Keyword { get; set; }
 
     public int? HistoryTake { get; set; }
 
-    /// <summary>The cursor a previous page of history returned.</summary>
     public string HistoryAfter { get; set; }
 
     public string SchemaKind { get; set; }
