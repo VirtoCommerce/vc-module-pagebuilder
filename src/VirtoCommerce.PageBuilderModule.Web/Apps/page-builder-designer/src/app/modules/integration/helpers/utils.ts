@@ -3,7 +3,7 @@ import { JSONPath } from 'jsonpath-plus';
 import { ValueDescriptorModel } from '@models/index';
 
 import { evaluate, UnsupportedExpressionError } from './safe-expression';
-import './known-expressions';
+import { KNOWN_EXPRESSIONS } from './known-expressions';
 
 export function spreadPropertyByOther(obj: any, keyProperty: string, ...spreadProperties: string[]): any {
   const groups = Object.keys(obj).reduce((acc, key) => {
@@ -101,11 +101,13 @@ const EVAL_UTILS = {
   cutString,
   tryParseJson,
   getItemValue,
+  filterBy,
+  toOptions,
 };
 
 export function evalInContext(expr: string, context: any): any {
   try {
-    return evaluate(expr, context, EVAL_UTILS);
+    return evaluate(expr, context, EVAL_UTILS, KNOWN_EXPRESSIONS);
   } catch (e) {
     if (e instanceof UnsupportedExpressionError) {
       console.warn('Expression not executed: it is not one of the supported forms', expr, e.message);
@@ -156,6 +158,27 @@ export function combine(...parts: string[]): string {
 
 export function toList(obj: any, keyPropertyName: string): any[] {
   return Object.keys(obj).map(key => ({ [keyPropertyName]: key, ...obj[key] }));
+}
+
+/** The items of a list whose own `field` equals `value`: expressions have no callbacks to filter with. */
+export function filterBy(list: unknown, field: string, value: unknown): any[] {
+  return Array.isArray(list) ? list.filter(item => ownValue(item, field) === value) : [];
+}
+
+/** Select options from a list: the label is the first of `labelFields` an item has, the value is its own `valueField`. */
+export function toOptions(list: unknown, labelFields: string | string[], valueField: string): { label: unknown; value: unknown }[] {
+  if (!Array.isArray(list)) {
+    return [];
+  }
+  const fields = Array.isArray(labelFields) ? labelFields : [labelFields];
+  return list.map(item => ({
+    label: fields.map(field => ownValue(item, field)).find(Boolean),
+    value: ownValue(item, valueField),
+  }));
+}
+
+function ownValue(item: unknown, field: string): unknown {
+  return item !== null && typeof item === 'object' && Object.hasOwn(item, field) ? (item as any)[field] : undefined;
 }
 
 export function tryParseJson(value: string): any {

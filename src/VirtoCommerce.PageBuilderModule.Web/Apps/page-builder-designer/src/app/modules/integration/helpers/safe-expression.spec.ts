@@ -1,42 +1,48 @@
-import './known-expressions';
-import { evaluate, isSupportedExpression, UnsupportedExpressionError } from './safe-expression';
-import { combine, getValueByPath } from './utils';
+import settings from '../../../../data/settings.json';
 
-const SHIPPED_EXPRESSIONS = [
+import { KNOWN_EXPRESSIONS } from './known-expressions';
+import { evaluate, isSupportedExpression, UnsupportedExpressionError } from './safe-expression';
+import { combine, filterBy, getValueByPath, toOptions } from './utils';
+
+// vc-frontend's section schemas: not in this repository, so listed as they ship.
+const VC_FRONTEND_EXPRESSIONS = [
   "!!this.item && this.item.action === 'url'",
   "!this.model.background",
-  "(function() { var s = (this.response.settings || []).find(function(x) { return x.name === 'VirtoCommerce.PageBuilderModule.Store.PreviewUserIds' }); return s && s.value ? s.value.split('\\n').map(function(x) { return x.trim() }).filter(Boolean) : [] }).call(this)",
-  "(function(publicUrl, modifiedDate) { if (!publicUrl || !modifiedDate) return publicUrl; return publicUrl + (publicUrl.indexOf('?') >= 0 ? '&' : '?') + 't=' + encodeURIComponent(modifiedDate); })(this.publicAssetUrl, this.modifiedDate)",
-  "(function(url) { if (!url) return ''; var trimmed = url.trim(); if (!trimmed) return ''; if (/^(?:[a-z][a-z\\d+\\-.]*:)?\\/\\//i.test(trimmed) || trimmed.indexOf('data:') === 0) return trimmed; var normalized = trimmed.charAt(0) === '/' ? trimmed : '/' + trimmed; return normalized.toLowerCase().indexOf('/assets/') === 0 ? normalized : combine('/assets', normalized); })(this.assetUrl)",
-  "(this.response.results || []).map(function(u) { return { id: u.id, name: u.userName || u.email || u.id, photoUrl: u.photoUrl || null } })",
-  "JSON.stringify(this.content, null, 2)",
-  "JSON.stringify(this.templatesToSave.map(x => ({ path: x.entry.path, groupId: x.entry.groupId, type: x.entry.type, content: x.content })))",
   "Object.keys(this.response).map(x => ({ ...this.item, ...this.response[x], key: x, request: undefined })).reduce((acc, x) => ({ ...acc, [x.key]: x }), {})",
   "Object.keys(this.response).map(x => ({ ...this.item, ...this.response[x], request: undefined, key: x })).reduce((acc, x) => ({ ...acc, [x.key]: x }), {})",
-  "combine(this.settings.storefrontUrl, '/designer-preview?pageId=' + (this.groupId || this.location.params.previewId))",
-  "combine(this.settings.storefrontUrl, this.settings.previewPath)",
-  "encodeURIComponent(this.folderUrl)",
-  "this.acceptedTypes",
-  "this.assetUrls",
-  "this.groupId ? '/api/page-builder-pages/grouped/' + this.groupId + '/content?includeVersion=true' : null",
   "this.model.countLimitation !== false",
   "this.model.countLimitation === true",
   "this.model.hideViewModeSelector !== false",
-  "this.response && this.response[0] ? (this.response[0].url || this.response[0].relativeUrl || null) : null",
-  "this.response.isAdministrator === true || (this.response.permissions || []).indexOf('builder:shared-components:create') !== -1",
-  "this.response.isAdministrator === true || (this.response.permissions || []).indexOf('builder:shared-components:read') !== -1",
-  "this.response.isAdministrator === true || (this.response.permissions || []).indexOf('builder:shared-components:update') !== -1",
-  "this.response.isAdministrator === true || (this.response.permissions || []).indexOf('platform:asset:create') !== -1",
-  "this.response.permissions.indexOf('builder:templates') === -1",
-  "this.response.permissions.indexOf('builder:theme') === -1",
-  "this.settings.previewImpersonation || []",
-  "this.skip",
-  "this.take"
 ];
 
+/** The expressions the designer's own settings carry, found the way `template()` and the selectors find them. */
+function settingsExpressions(value: unknown, key = ''): string[] {
+  if (typeof value === 'string') {
+    if (key === 'selector') {
+      return [value];
+    }
+    const raw = /^@\{\{(.+)\}\}$/.exec(value);
+    if (raw) {
+      return [raw[1]];
+    }
+    return [...value.matchAll(/\{\{(.+?)\}\}/g)].map(match => match[1]).filter(x => x.startsWith('=')).map(x => x.substring(1));
+  }
+  if (value && typeof value === 'object') {
+    return Object.entries(value).flatMap(([childKey, child]) => settingsExpressions(child, Array.isArray(value) ? key : childKey));
+  }
+  return [];
+}
+
+const SETTINGS_EXPRESSIONS = settingsExpressions(settings);
+
 describe('safe expressions', () => {
+  it('finds the expressions of the designer settings', () => {
+    expect(SETTINGS_EXPRESSIONS.length).toBeGreaterThan(20);
+  });
+
   it('supports every expression that settings and schemas ship', () => {
-    const unsupported = SHIPPED_EXPRESSIONS.filter(expression => !isSupportedExpression(expression));
+    const unsupported = [...SETTINGS_EXPRESSIONS, ...VC_FRONTEND_EXPRESSIONS]
+      .filter(expression => !isSupportedExpression(expression, KNOWN_EXPRESSIONS));
 
     expect(unsupported).toEqual([]);
   });
@@ -66,6 +72,8 @@ describe('safe expressions', () => {
     const result = evaluate(
       'Object.keys(this.response).map(x => ({ ...this.item, ...this.response[x], request: undefined, key: x })).reduce((acc, x) => ({ ...acc, [x.key]: x }), {})',
       { response, item: { type: 'page' } },
+      {},
+      KNOWN_EXPRESSIONS,
     );
 
     expect(result).toEqual({ hero: { type: 'page', title: 'Hero', key: 'hero', request: undefined } });
@@ -74,10 +82,10 @@ describe('safe expressions', () => {
   it('runs the asset url form like the expression it replaces', () => {
     const expression = "(function(url) { if (!url) return ''; var trimmed = url.trim(); if (!trimmed) return ''; if (/^(?:[a-z][a-z\\d+\\-.]*:)?\\/\\//i.test(trimmed) || trimmed.indexOf('data:') === 0) return trimmed; var normalized = trimmed.charAt(0) === '/' ? trimmed : '/' + trimmed; return normalized.toLowerCase().indexOf('/assets/') === 0 ? normalized : combine('/assets', normalized); })(this.assetUrl)";
 
-    expect(evaluate(expression, { assetUrl: 'images/a.png' }, { combine })).toBe('/assets/images/a.png');
-    expect(evaluate(expression, { assetUrl: '/assets/a.png' }, { combine })).toBe('/assets/a.png');
-    expect(evaluate(expression, { assetUrl: 'https://cdn/a.png' }, { combine })).toBe('https://cdn/a.png');
-    expect(evaluate(expression, { assetUrl: ' ' }, { combine })).toBe('');
+    expect(evaluate(expression, { assetUrl: 'images/a.png' }, { combine }, KNOWN_EXPRESSIONS)).toBe('/assets/images/a.png');
+    expect(evaluate(expression, { assetUrl: '/assets/a.png' }, { combine }, KNOWN_EXPRESSIONS)).toBe('/assets/a.png');
+    expect(evaluate(expression, { assetUrl: 'https://cdn/a.png' }, { combine }, KNOWN_EXPRESSIONS)).toBe('https://cdn/a.png');
+    expect(evaluate(expression, { assetUrl: ' ' }, { combine }, KNOWN_EXPRESSIONS)).toBe('');
   });
 
   [
@@ -101,6 +109,44 @@ describe('safe expressions', () => {
     it(`does not run ${expression}`, () => {
       expect(() => evaluate(expression, { items: [], a: 0 })).toThrowError(UnsupportedExpressionError);
     });
+  });
+
+  it('ends the whole chain at an optional link that meets nothing', () => {
+    expect(evaluate("this.a?.b.c || 'x'", {})).toBe('x');
+    expect(evaluate('this.a?.b.trim()', {})).toBeUndefined();
+    expect(evaluate('this.a?.b', { a: { b: 1 } })).toBe(1);
+  });
+
+  it('reports a call on nothing as a runtime error, not as an unsupported form', () => {
+    expect(() => evaluate("this.permissions.indexOf('builder:theme')", {})).toThrowError(TypeError);
+  });
+
+  it('does not silently drop a JSON.stringify replacer', () => {
+    expect(() => evaluate("JSON.stringify(this.x, ['id'])", { x: { id: 1, name: 'a' } })).toThrowError(UnsupportedExpressionError);
+  });
+
+  it('evaluates the selector example of the template syntax docs', () => {
+    const response = { settings: [{ name: 'MySettingName', value: 'a\nb' }] };
+    const expression = `(getValueByPath(this.response, "$.settings[?(@.name=='MySettingName')].value") || '').split('\\n')`;
+
+    expect(evaluate(expression, { response }, { getValueByPath })).toEqual(['a', 'b']);
+  });
+
+  it('builds select options from the page without callbacks', () => {
+    const page = [
+      { type: 'popup', __id: 'p1', name: 'Promo' },
+      { type: 'popup', __id: 'p2' },
+      { type: 'hero', __id: 'h1', name: 'Hero' },
+    ];
+
+    const options = evaluate("toOptions(filterBy(this.page, 'type', 'popup'), ['name', '__id'], '__id')", { page }, { filterBy, toOptions });
+
+    expect(options).toEqual([{ label: 'Promo', value: 'p1' }, { label: 'p2', value: 'p2' }]);
+  });
+
+  it('reads only own fields in the option helpers', () => {
+    expect(filterBy([{}], 'constructor', Object)).toEqual([]);
+    expect(toOptions([{}], 'constructor', 'toString')).toEqual([{ label: undefined, value: undefined }]);
   });
 
   it('does not hand Object to a helper that walks into it', () => {

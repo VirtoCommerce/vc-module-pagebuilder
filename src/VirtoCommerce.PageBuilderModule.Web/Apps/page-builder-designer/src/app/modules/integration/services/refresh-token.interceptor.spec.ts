@@ -31,7 +31,7 @@ describe('refreshTokenInterceptor', () => {
             providers: [
                 provideHttpClient(withInterceptors([refreshTokenInterceptor])),
                 provideHttpClientTesting(),
-                { provide: EnvironmentRef, useValue: { nativeWindow: { location: { search: '' } } } },
+                { provide: EnvironmentRef, useValue: { nativeWindow: { location: { search: '', href: 'https://platform.example/apps/designer/', origin: 'https://platform.example' } } } },
                 { provide: CookieService, useValue: {} },
                 EvaluatorService,
                 AppConfig
@@ -86,6 +86,15 @@ describe('refreshTokenInterceptor', () => {
 
         external.flush({});
         httpController.verify();
+    });
+
+    it('keeps the session when another origin answers 401', () => {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ token: 'live-token', expiresAt: Date.now() + 60_000 }));
+
+        http.get('https://elsewhere.example/schema.json').subscribe({ error: () => undefined });
+        httpController.expectOne('https://elsewhere.example/schema.json').flush({}, { status: 401, statusText: 'Unauthorized' });
+
+        expect(session.expired()).toBe(false);
     });
 
     it('does not refresh the token for a request to another origin', () => {

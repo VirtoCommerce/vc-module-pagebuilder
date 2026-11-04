@@ -31,7 +31,6 @@ export class AppInitializator {
     private readonly session = inject(SessionService);
 
     init(): Promise<any> {
-        // todo: dangerous! check that this is security
         console.log(this.config.getContext());
         const configUrl = bundledSettingsUrl(this.config.getContext().location.params.configUrl);
         return firstValueFrom(this.ensureBearerToken().pipe(

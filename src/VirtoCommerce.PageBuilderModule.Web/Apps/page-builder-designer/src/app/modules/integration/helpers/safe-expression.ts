@@ -39,17 +39,25 @@ export type ExpressionFunctions = Record<string, (...args: any[]) => unknown>;
 
 const BUILT_IN_FUNCTIONS: ExpressionFunctions = {
   encodeURIComponent: (value: unknown) => encodeURIComponent(String(value ?? '')),
-  'JSON.stringify': (value: unknown, _replacer?: unknown, space?: number) => JSON.stringify(value, null, space),
+  'JSON.stringify': (value: unknown, replacer?: unknown, space?: number) => {
+    if (replacer !== null && replacer !== undefined) {
+      throw new UnsupportedExpressionError('"JSON.stringify" takes no replacer');
+    }
+    return JSON.stringify(value, null, space);
+  },
 };
 
-const KNOWN_FORMS = new Map<string, (context: any, functions: ExpressionFunctions) => unknown>();
+/** Code that does what an exact expression does, for one that needs more than the expression language. */
+export type KnownForm = (context: any, functions: ExpressionFunctions) => unknown;
 
-export function registerKnownForm(expression: string, implementation: (context: any, functions: ExpressionFunctions) => unknown): void {
-  KNOWN_FORMS.set(normalize(expression), implementation);
+export type KnownForms = ReadonlyMap<string, KnownForm>;
+
+export function knownForms(entries: Iterable<[string, KnownForm]>): KnownForms {
+  return new Map(Array.from(entries, ([expression, form]) => [normalize(expression), form]));
 }
 
-export function evaluate(expression: string, context: any, functions: ExpressionFunctions = {}): unknown {
-  const knownForm = KNOWN_FORMS.get(normalize(expression));
+export function evaluate(expression: string, context: any, functions: ExpressionFunctions = {}, forms: KnownForms = new Map()): unknown {
+  const knownForm = forms.get(normalize(expression));
   if (knownForm) {
     return knownForm(context, functions);
   }
@@ -57,8 +65,8 @@ export function evaluate(expression: string, context: any, functions: Expression
   return evaluateNode(parse(expression), context, { ...BUILT_IN_FUNCTIONS, ...functions });
 }
 
-export function isSupportedExpression(expression: string): boolean {
-  if (KNOWN_FORMS.has(normalize(expression))) {
+export function isSupportedExpression(expression: string, forms: KnownForms = new Map()): boolean {
+  if (forms.has(normalize(expression))) {
     return true;
   }
   try {
@@ -272,7 +280,15 @@ function parse(source: string): Node {
   return result;
 }
 
+// An optional link that meets null or undefined ends the whole chain it belongs to, as `?.` does in JavaScript.
+const SHORT_CIRCUIT = Symbol('short-circuit');
+
 function evaluateNode(node: Node, context: any, functions: ExpressionFunctions): unknown {
+  const value = evaluateLink(node, context, functions);
+  return value === SHORT_CIRCUIT ? undefined : value;
+}
+
+function evaluateLink(node: Node, context: any, functions: ExpressionFunctions): unknown {
   switch (node.kind) {
     case 'literal':
       return node.value;
@@ -283,10 +299,13 @@ function evaluateNode(node: Node, context: any, functions: ExpressionFunctions):
     case 'array':
       return node.elements.map(element => evaluateNode(element, context, functions));
     case 'member': {
-      const object = evaluateNode(node.object, context, functions) as any;
+      const object = evaluateLink(node.object, context, functions) as any;
+      if (object === SHORT_CIRCUIT) {
+        return SHORT_CIRCUIT;
+      }
       if (object === null || object === undefined) {
         if (node.optional) {
-          return undefined;
+          return SHORT_CIRCUIT;
         }
         throw new TypeError('Cannot read a property of null or undefined');
       }
@@ -353,16 +372,22 @@ function evaluateMethodCall(callee: Extract<Node, { kind: 'member' }>, args: () 
     return functions[helper](...args());
   }
 
-  const target = evaluateNode(callee.object, context, functions) as any;
+  const target = evaluateLink(callee.object, context, functions) as any;
+  if (target === SHORT_CIRCUIT) {
+    return SHORT_CIRCUIT;
+  }
+  if (target === null || target === undefined) {
+    if (callee.optional) {
+      return SHORT_CIRCUIT;
+    }
+    throw new TypeError(`Cannot call "${name}" of ${target}`);
+  }
   if (isPlainMethod(target, name)) {
     const callArgs = args();
     if (name === 'replace' && callArgs.some(arg => typeof arg !== 'string')) {
       throw new UnsupportedExpressionError('"replace" takes strings only');
     }
     return target[name](...callArgs);
-  }
-  if ((target === null || target === undefined) && callee.optional) {
-    return undefined;
   }
 
   throw new UnsupportedExpressionError(NOT_CALLABLE);

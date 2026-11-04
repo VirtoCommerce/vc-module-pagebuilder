@@ -6,15 +6,16 @@ import { JwtStorageService } from './jwt-storage.service';
 import { AuthService } from './auth.service';
 import { TokenRefreshStateService } from './token-refresh-state.service';
 import { SessionService } from './session.service';
+import { EnvironmentRef } from './environment.ref';
 
 function isAuthRequest(request: HttpRequest<unknown>): boolean {
   return request.headers.get('x-refresh') === 'true';
 }
 
 /** The designer is served by the platform, so its own origin is the platform's. */
-export function isPlatformRequest(url: string): boolean {
+export function isPlatformRequest(url: string, location: Pick<Location, 'href' | 'origin'>): boolean {
   try {
-    return new URL(url, globalThis.location.href).origin === globalThis.location.origin;
+    return new URL(url, location.href).origin === location.origin;
   } catch {
     return false;
   }
@@ -26,9 +27,10 @@ function addAuthData(
   auth: AuthService,
   state: TokenRefreshStateService,
   session: SessionService,
+  location: Location,
 ): Observable<HttpRequest<unknown>> {
   // urls also come from schemas and settings: the token goes to the platform only
-  if (isAuthRequest(request) || !isPlatformRequest(request.url)) {
+  if (isAuthRequest(request) || !isPlatformRequest(request.url, location)) {
     return of(request);
   }
 
@@ -84,14 +86,16 @@ export const refreshTokenInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);
   const state = inject(TokenRefreshStateService);
   const session = inject(SessionService);
+  const location = inject(EnvironmentRef).nativeWindow.location;
 
-  return addAuthData(req, jwt, auth, state, session).pipe(
+  return addAuthData(req, jwt, auth, state, session, location).pipe(
     switchMap(enrichedReq => next(enrichedReq).pipe(
       catchError(err => {
         // Requests are fired with no token at all when nothing is stored, and the stored token
         // may be rejected before it formally expires. Both surface as 401 and mean the same
-        // thing for the designer: the session is gone and the user has to sign in again.
-        if (err?.status === 401 && !isAuthRequest(enrichedReq)) {
+        // thing for the designer: the session is gone and the user has to sign in again. A 401
+        // from another origin says nothing about the platform session.
+        if (err?.status === 401 && !isAuthRequest(enrichedReq) && isPlatformRequest(enrichedReq.url, location)) {
           session.expire();
         }
         return throwError(() => err);
