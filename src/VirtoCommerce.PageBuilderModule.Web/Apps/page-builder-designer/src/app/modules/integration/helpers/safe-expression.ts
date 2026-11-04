@@ -1,7 +1,6 @@
 /**
  * Schema and settings expressions run in the admin's session but can be written by anyone who saves a theme or
- * a page, so they are interpreted, never executed as code: a small expression language plus the known forms in
- * `known-expressions.ts`. Anything else throws `UnsupportedExpressionError`.
+ * a page, so they are interpreted, never executed as code.
  */
 
 export class UnsupportedExpressionError extends Error {}

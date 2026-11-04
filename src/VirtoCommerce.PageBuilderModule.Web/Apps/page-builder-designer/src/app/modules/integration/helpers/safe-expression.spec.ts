@@ -2,7 +2,6 @@ import './known-expressions';
 import { evaluate, isSupportedExpression, UnsupportedExpressionError } from './safe-expression';
 import { combine, getValueByPath } from './utils';
 
-// Shipped in data/settings.json and vc-frontend's schemas: none may stop working.
 const SHIPPED_EXPRESSIONS = [
   "!!this.item && this.item.action === 'url'",
   "!this.model.background",

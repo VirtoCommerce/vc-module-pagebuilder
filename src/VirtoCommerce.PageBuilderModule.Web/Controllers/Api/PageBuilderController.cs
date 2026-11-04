@@ -367,7 +367,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("schemas/{kind}/{key}")]
         public async Task<ActionResult> GetSchemaByKey(string storeId, string theme, string kind, string key)
         {
-            // the key becomes a file name in the schemas folder
             if (await CheckRequestAsync(storeId, Themes, theme, PathsOf(key)) is { } refused)
             {
                 return refused;
@@ -1357,7 +1356,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 if (published != null && await storageProvider.GetBlobInfoAsync(path) != null &&
                     !IsSamePageDocument(await ReadBlobTextAsync(storageProvider, path), published))
                 {
-                    // its edits exist nowhere else
                     skipped.Add(new { path, reason = LegacyDraftHasChanges });
                 }
                 else if (published != null)
@@ -1408,7 +1406,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 StoreId = storeId,
                 ContentType = contentType,
                 Paths = PathsOf(srcPath),
-                // the target is written like a save; without one the next free name is used
                 Files = destPath.IsNullOrEmpty() ? null : [new PageBuilderContentFile { ContentType = contentType, Path = destPath }],
             };
             if (await CheckRequestAsync(request) is { } refused)
@@ -1544,10 +1541,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         private static string LegacyDraftPathOf(string path) =>
             path.EndsWith(DraftSuffix, StringComparison.OrdinalIgnoreCase) ? path : path + DraftSuffix;
 
-        /// <summary>
-        /// A "-draft" file named outright: nothing is resolved or completed, so the published page can never be hit.
-        /// The request validator has already kept the path inside the content folder.
-        /// </summary>
+        /// <summary>The request validator has already kept the path inside the content folder.</summary>
         private static bool IsLegacyDraftPath(string path) =>
             !path.IsNullOrEmpty() && path.EndsWith(DraftSuffix, StringComparison.OrdinalIgnoreCase);
 
@@ -1675,10 +1669,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 Paths = paths ?? [],
             });
 
-        /// <summary>
-        /// Runs before storage is touched; the permission itself is on the action's [Authorize] attributes.
-        /// Users without a store pass: a back-office manager usually has none on the account.
-        /// </summary>
+        /// <summary>The permission itself is on the action's [Authorize] attributes.</summary>
         private async Task<ActionResult> CheckRequestAsync(PageBuilderContentRequest request)
         {
             // Store access first, so a user bound to another store cannot tell from a 400 which stores exist.

@@ -55,7 +55,6 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         [Fact]
         public void EveryAction_IsListedAbove()
         {
-            // an action added without a row here would have no permission asserted
             var actions = typeof(PageBuilderController)
                 .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
                 .Where(method => method.GetCustomAttributes<HttpMethodAttribute>().Any())

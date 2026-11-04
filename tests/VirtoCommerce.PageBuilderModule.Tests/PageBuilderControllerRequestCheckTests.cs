@@ -98,7 +98,6 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         [MemberData(nameof(ActionNames))]
         public async Task WithoutAccessToTheStore_AnUnknownStore_IsForbiddenToo(string action)
         {
-            // a 400 would tell a user bound to another store which store ids exist
             var result = await Actions[action](Controller(storeAccess: false), "other-store", "pages", Page);
 
             Assert.IsType<ForbidResult>(result);
@@ -263,7 +262,6 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 Task.FromResult(AuthorizationResult.Success());
         }
 
-        /// <summary>Permissions on [Authorize] attributes are asserted in PageBuilderControllerPermissionsTests.</summary>
         private sealed class ScopedAuthorizationService(bool storeAccess, string[] granted) : IAuthorizationService
         {
             public Task<AuthorizationResult> AuthorizeAsync(ClaimsPrincipal user, object resource, IEnumerable<IAuthorizationRequirement> requirements) =>

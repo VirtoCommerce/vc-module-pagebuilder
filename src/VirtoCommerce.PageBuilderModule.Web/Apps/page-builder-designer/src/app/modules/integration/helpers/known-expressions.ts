@@ -1,11 +1,9 @@
 import { registerKnownForm } from './safe-expression';
 
-// Shipped expressions the expression language cannot run: matched as written, whitespace aside, so that
-// themes and settings already deployed keep working.
+// Matched as written, so that themes and settings already deployed keep working.
 
 const ABSOLUTE_OR_PROTOCOL_RELATIVE_URL = /^(?:[a-z][a-z\d+\-.]*:)?\/\//i;
 
-// vc-frontend templates/page.json and templates/blogs.json
 for (const expression of [
   'Object.keys(this.response).map(x => ({ ...this.item, ...this.response[x], request: undefined, key: x })).reduce((acc, x) => ({ ...acc, [x.key]: x }), {})',
   'Object.keys(this.response).map(x => ({ ...this.item, ...this.response[x], key: x, request: undefined })).reduce((acc, x) => ({ ...acc, [x.key]: x }), {})',
@@ -17,7 +15,6 @@ for (const expression of [
     }), {}));
 }
 
-// data/settings.json
 registerKnownForm(
   'JSON.stringify(this.templatesToSave.map(x => ({ path: x.entry.path, groupId: x.entry.groupId, type: x.entry.type, content: x.content })))',
   context => JSON.stringify(context.templatesToSave.map((x: any) => ({
