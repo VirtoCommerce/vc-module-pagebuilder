@@ -12,8 +12,9 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
 {
     /// <summary>
     /// IGitContentOwnership over GitHub: the description the module gives every repository it creates or adopts names
-    /// the store, <c>Page Builder content of store {storeId}</c>. The answer for an existing repository is kept until the
-    /// module marks it (<see cref="Invalidate"/>), or for <see cref="GitContentOptions.ImmutableReadCacheExpiration"/>.
+    /// the store, <c>Page Builder content of store {storeId}</c>. A store's mark stays, so it is kept for
+    /// <see cref="GitContentOptions.ImmutableReadCacheExpiration"/>; "nobody's" lasts until the module adopts the
+    /// repository, on any server, so it is kept for <see cref="GitContentOptions.ReadCacheExpiration"/> only.
     /// </summary>
     public class GitHubContentOwnership(IHttpClientFactory httpClientFactory, IMemoryCache memoryCache, IOptions<GitContentOptions> options)
         : IGitContentOwnership
@@ -46,7 +47,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             }
 
             var storeId = StoreOf(JObject.Parse(details));
-            memoryCache.Set(cacheKey, storeId, options.Value.ImmutableReadCacheExpiration);
+            memoryCache.Set(cacheKey, storeId, storeId == null ? options.Value.ReadCacheExpiration : options.Value.ImmutableReadCacheExpiration);
             return storeId;
         }
 
@@ -64,7 +65,8 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             }
         }
 
-        private static string CacheKey(string repository) => $"{nameof(GitHubContentOwnership)}:{repository}";
+        // GitHub names a repository the same whatever the case of its letters
+        private static string CacheKey(string repository) => $"{nameof(GitHubContentOwnership)}:{repository.ToLowerInvariant()}";
 
         /// <summary>The store a repository's description names; <c>null</c> for one the module did not create.</summary>
         public static string StoreOf(JObject repository)

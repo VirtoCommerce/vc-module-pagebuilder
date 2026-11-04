@@ -52,7 +52,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 var versions = await history.GetAsync(storeId, path, published, after, take, cancellationToken);
                 return versions == null ? NotFound() : Ok(versions);
             }
-            catch (Exception failure) when (failure is HttpRequestException or InvalidOperationException)
+            // a repository of another store's is answered by RepositoryOwnershipConflict, not as a GitHub failure
+            catch (Exception failure) when (failure is HttpRequestException or (InvalidOperationException and not GitRepositoryOwnershipException))
             {
                 return BadRequest(new { error = failure.Message });
             }

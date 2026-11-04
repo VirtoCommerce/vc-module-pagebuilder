@@ -36,6 +36,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
     /// </summary>
     [Route("api/pagebuilder/git")]
     [Authorize]
+    [RepositoryOwnershipConflict]
     public class GitContentSetupController(
         IGitContentProvisioner gitContentProvisioner,
         GitContentConnection gitContentConnection,
@@ -326,7 +327,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             {
                 await change();
             }
-            catch (Exception failure) when (failure is HttpRequestException or InvalidOperationException)
+            // a repository of another store's is answered by RepositoryOwnershipConflict, not as a GitHub failure
+            catch (Exception failure) when (failure is HttpRequestException or (InvalidOperationException and not GitRepositoryOwnershipException))
             {
                 return BadRequest(new { error = failure.Message });
             }

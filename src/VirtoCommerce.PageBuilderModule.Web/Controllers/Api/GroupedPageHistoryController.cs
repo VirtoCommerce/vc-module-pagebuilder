@@ -48,7 +48,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 var history = await pageHistory.GetAsync(group, after, take, cancellationToken);
                 return history == null ? NotFound() : Ok(history);
             }
-            catch (Exception failure) when (failure is HttpRequestException or InvalidOperationException)
+            // a repository of another store's is answered by RepositoryOwnershipConflict, not as a GitHub failure
+            catch (Exception failure) when (failure is HttpRequestException or (InvalidOperationException and not GitRepositoryOwnershipException))
             {
                 return BadRequest(new { error = failure.Message });
             }

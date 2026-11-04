@@ -155,9 +155,10 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
         public TimeSpan RequestTimeout { get; set; } = TimeSpan.FromSeconds(30);
 
         /// <summary>
-        /// How long a page read by branch name is cached. Every template the designer opens is a GitHub
-        /// call, so the cache is what keeps the flow inside the API rate limit. A branch moves, hence
-        /// the short life; a write through this module drops the entry it invalidated straight away.
+        /// How long a page read by branch name is cached, and that a repository is nobody's yet. Every
+        /// template the designer opens is a GitHub call, so the cache is what keeps the flow inside the API
+        /// rate limit. A branch moves, hence the short life; a write through this module drops the entry it
+        /// invalidated straight away.
         /// </summary>
         public TimeSpan ReadCacheExpiration { get; set; } = TimeSpan.FromMinutes(1);
 
