@@ -11,6 +11,7 @@ using Newtonsoft.Json;
 using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Data.Authorization;
+using VirtoCommerce.PageBuilderModule.Data.Validation;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using VirtoCommerce.PageBuilderModule.Web.Models;
 using VirtoCommerce.StoreModule.Core.Model;
@@ -91,18 +92,28 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
         [Theory]
         [MemberData(nameof(ActionNames))]
-        public async Task WithoutThePermission_IsForbidden(string action)
+        public async Task WithoutAccessToTheStore_IsForbidden(string action)
         {
-            var result = await Actions[action](Controller(permissions: false), Store, "pages", Page);
+            var result = await Actions[action](Controller(storeAccess: false), Store, "pages", Page);
 
             Assert.IsType<ForbidResult>(result);
         }
 
         [Theory]
         [MemberData(nameof(ActionNames))]
-        public async Task WithoutAccessToTheStore_IsForbidden(string action)
+        public async Task WithoutAccessToTheStore_AnUnknownStore_IsForbiddenToo(string action)
         {
-            var result = await Actions[action](Controller(storeAccess: false), Store, "pages", Page);
+            // a 400 here would tell a user bound to another store which store ids do not exist
+            var result = await Actions[action](Controller(storeAccess: false), "other-store", "pages", Page);
+
+            Assert.IsType<ForbidResult>(result);
+        }
+
+        [Theory]
+        [MemberData(nameof(ActionNames))]
+        public async Task WithoutAccessToTheStore_AMalformedRequest_IsForbidden(string action)
+        {
+            var result = await Actions[action](Controller(storeAccess: false), Store, "pages", "../../appsettings.page");
 
             Assert.IsType<ForbidResult>(result);
         }
@@ -196,26 +207,6 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         [Fact]
-        public async Task PublishWithoutGit_WithoutThePublishPermission_IsForbidden()
-        {
-            var controller = Controller(granted: [ModuleConstants.Security.Permissions.Read]);
-
-            var result = await controller.GitPublish(Store, Page, "pages");
-
-            Assert.IsType<ForbidResult>(result);
-        }
-
-        [Fact]
-        public async Task UnpublishWithoutGit_WithoutThePublishPermission_IsForbidden()
-        {
-            var controller = Controller(granted: [ModuleConstants.Security.Permissions.Read]);
-
-            var result = await controller.GitUnpublish(Store, Page, "pages");
-
-            Assert.IsType<ForbidResult>(result);
-        }
-
-        [Fact]
         public async Task LiveSaveOfAPageWithoutGit_WithoutThePublishPermission_IsForbidden()
         {
             var controller = Controller(granted: [ModuleConstants.Security.Permissions.Update]);
@@ -236,7 +227,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 })),
             };
 
-        private static PageBuilderController Controller(bool permissions = true, bool storeAccess = true, string[] granted = null, IAuthorizationService authorizationService = null)
+        private static PageBuilderController Controller(bool storeAccess = true, string[] granted = null, IAuthorizationService authorizationService = null)
         {
             // Nothing past the request check is wired up: an action that reaches storage before refusing
             // fails here with a NullReferenceException instead of passing.
@@ -252,7 +243,8 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 gitContentHistory: null,
                 gitContentPublisher: null,
                 settingsManager: null,
-                authorizationService: authorizationService ?? new ScopedAuthorizationService(permissions, storeAccess, granted));
+                authorizationService: authorizationService ?? new ScopedAuthorizationService(storeAccess, granted),
+                requestValidator: new PageBuilderContentRequestValidator(new FakeStoreService(new Store { Id = Store }), new PageBuilderContentFileValidator()));
 
             controller.ControllerContext = new ControllerContext
             {
@@ -279,14 +271,17 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 Task.FromResult(AuthorizationResult.Success());
         }
 
-        /// <summary>Grants permissions and store access separately, the two questions the check asks.</summary>
-        private sealed class ScopedAuthorizationService(bool permissions, bool storeAccess, string[] granted) : IAuthorizationService
+        /// <summary>
+        /// Grants store access, and the permissions an action still asks about in code (a live save's
+        /// publish); the ones on its [Authorize] attributes are asserted in PageBuilderControllerPermissionsTests.
+        /// </summary>
+        private sealed class ScopedAuthorizationService(bool storeAccess, string[] granted) : IAuthorizationService
         {
             public Task<AuthorizationResult> AuthorizeAsync(ClaimsPrincipal user, object resource, IEnumerable<IAuthorizationRequirement> requirements) =>
                 Result(requirements.All(requirement => requirement is not PageBuilderAuthorizationRequirement) || storeAccess);
 
             public Task<AuthorizationResult> AuthorizeAsync(ClaimsPrincipal user, object resource, string policyName) =>
-                Result(permissions && (granted == null || granted.Contains(policyName)));
+                Result(granted == null || granted.Contains(policyName));
 
             private static Task<AuthorizationResult> Result(bool allowed) =>
                 Task.FromResult(allowed ? AuthorizationResult.Success() : AuthorizationResult.Failed());

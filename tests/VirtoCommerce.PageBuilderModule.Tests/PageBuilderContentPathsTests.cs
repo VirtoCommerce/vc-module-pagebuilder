@@ -1,16 +1,16 @@
-using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
+using VirtoCommerce.PageBuilderModule.Data.Validation;
 using Xunit;
 
 namespace VirtoCommerce.PageBuilderModule.Tests
 {
-    public class PageBuilderRequestValidatorTests
+    public class PageBuilderContentPathsTests
     {
         [Theory]
         [InlineData("pages")]
         [InlineData("blogs")]
         [InlineData("themes")]
         [InlineData("Pages")]
-        public void KnownContentTypes_AreAccepted(string type) => Assert.True(PageBuilderRequestValidator.IsContentType(type));
+        public void KnownContentTypes_AreAccepted(string type) => Assert.True(PageBuilderContentPaths.IsContentType(type));
 
         [Theory]
         [InlineData(null)]
@@ -18,7 +18,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         [InlineData("assets")]
         [InlineData("..")]
         [InlineData("pages/..")]
-        public void OtherContentTypes_AreRefused(string type) => Assert.False(PageBuilderRequestValidator.IsContentType(type));
+        public void OtherContentTypes_AreRefused(string type) => Assert.False(PageBuilderContentPaths.IsContentType(type));
 
         [Theory]
         [InlineData("about-us.page")]
@@ -26,7 +26,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         [InlineData("blogs/news/first.page")]
         [InlineData("about-us.page-draft")]
         [InlineData("default/config/settings_data.json")]
-        public void PathsInsideTheContentFolder_AreAccepted(string path) => Assert.True(PageBuilderRequestValidator.IsRelativePath(path));
+        public void PathsInsideTheContentFolder_AreAccepted(string path) => Assert.True(PageBuilderContentPaths.IsRelativePath(path));
 
         [Theory]
         [InlineData(null)]
@@ -43,7 +43,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         [InlineData("default/config./builder_settings.json")]
         [InlineData("default/config /builder_settings.json")]
         [InlineData(".. /about-us.page")]
-        public void PathsThatLeaveTheContentFolder_AreRefused(string path) => Assert.False(PageBuilderRequestValidator.IsRelativePath(path));
+        public void PathsThatLeaveTheContentFolder_AreRefused(string path) => Assert.False(PageBuilderContentPaths.IsRelativePath(path));
 
         [Theory]
         [InlineData("default", true)]
@@ -51,7 +51,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         [InlineData("default/config", false)]
         [InlineData("..", false)]
         [InlineData("", false)]
-        public void ThemeIsOneFolderName(string theme, bool expected) => Assert.Equal(expected, PageBuilderRequestValidator.IsThemeName(theme));
+        public void ThemeIsOneFolderName(string theme, bool expected) => Assert.Equal(expected, PageBuilderContentPaths.IsFolderName(theme));
 
         [Theory]
         [InlineData("pages", "about-us.page", true)]
@@ -71,7 +71,8 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         [InlineData("themes", "default/config/schemas/sections/banner.json", false)]
         [InlineData("themes", "default/Config/builder_settings.json", false)]
         [InlineData("themes", "default/config/schemas/settings_data.json", false)]
+        [InlineData("themes", "settings_data.json", false)]
         public void OnlyTheFilesTheDesignerWrites_AreWritable(string type, string path, bool expected) =>
-            Assert.Equal(expected, PageBuilderRequestValidator.IsWritableFile(type, path));
+            Assert.Equal(expected, PageBuilderContentPaths.IsWritable(type, path));
     }
 }

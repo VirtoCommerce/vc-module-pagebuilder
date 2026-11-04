@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
+using VirtoCommerce.PageBuilderModule.Data.Validation;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using VirtoCommerce.StoreModule.Core.Model;
 using Xunit;
@@ -166,17 +167,6 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.Empty(repository.Commits);
         }
 
-        [Fact]
-        public async Task Promote_WithoutThePromotePermission_IsForbidden()
-        {
-            var repository = Repository();
-
-            var result = await Controller(repository, Publisher(), allowed: false).GitPromote("vccom", Page, "pages");
-
-            Assert.IsType<ForbidResult>(result);
-            Assert.Empty(repository.Commits);
-        }
-
         // ── helpers ────────────────────────────────────────────────────────────────────────────────
 
         private static RecordingRepository Repository(string onDev = OnDev)
@@ -225,7 +215,8 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 gitContentHistory: new SilentHistory(),
                 gitContentPublisher: publisher,
                 settingsManager: null,
-                authorizationService: new FakeAuthorizationService(allowed));
+                authorizationService: new FakeAuthorizationService(allowed),
+                requestValidator: new PageBuilderContentRequestValidator(new FakeStoreService(new Store { Id = "vccom" }), new PageBuilderContentFileValidator()));
 
             var identity = new ClaimsIdentity([new Claim(ClaimTypes.Name, Login)], "test");
             controller.ControllerContext = new ControllerContext

@@ -10,6 +10,7 @@ using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
 using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
+using VirtoCommerce.PageBuilderModule.Data.Validation;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.Platform.Core.Settings;
@@ -315,7 +316,8 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 gitContentHistory: history,
                 gitContentPublisher: null,
                 settingsManager: new PerNameSettings(configuredStoreUrl),
-                authorizationService: new FakeAuthorizationService(true));
+                authorizationService: new FakeAuthorizationService(true),
+                requestValidator: new PageBuilderContentRequestValidator(new FakeStoreService(store ?? new Store { Id = "vccom" }), new PageBuilderContentFileValidator()));
 
             var identity = new ClaimsIdentity([new Claim(ClaimTypes.Name, Login)], "test");
             controller.ControllerContext = new ControllerContext

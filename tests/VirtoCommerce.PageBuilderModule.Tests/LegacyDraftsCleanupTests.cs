@@ -14,6 +14,7 @@ using Newtonsoft.Json.Linq;
 using VirtoCommerce.AssetsModule.Core.Assets;
 using VirtoCommerce.ContentModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
+using VirtoCommerce.PageBuilderModule.Data.Validation;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using VirtoCommerce.PageBuilderModule.Web.Models;
 using VirtoCommerce.StoreModule.Core.Model;
@@ -282,19 +283,6 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         [Fact]
-        public async Task Delete_WithoutTheDeletePermission_IsForbidden()
-        {
-            var blob = Storage();
-            blob.AddFile("about-us.page-draft", OnGit);
-
-            var result = await Controller(blob, allowed: false)
-                .DeleteLegacyDrafts("vccom", "pages", "default", Request(false, "about-us.page-draft"));
-
-            Assert.IsType<ForbidResult>(result);
-            Assert.Empty(blob.Removed);
-        }
-
-        [Fact]
         public async Task Delete_WithTheGitFlowOff_IsNotFound()
         {
             var blob = Storage();
@@ -423,7 +411,8 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 gitContentHistory: null,
                 gitContentPublisher: null,
                 settingsManager: null,
-                authorizationService: new FakeAuthorizationService(allowed));
+                authorizationService: new FakeAuthorizationService(allowed),
+                requestValidator: new PageBuilderContentRequestValidator(new FakeStoreService(new Store { Id = "vccom" }), new PageBuilderContentFileValidator()));
 
             var identity = new ClaimsIdentity([new Claim(ClaimTypes.Name, "john")], "test");
             controller.ControllerContext = new ControllerContext

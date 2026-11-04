@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
+using VirtoCommerce.PageBuilderModule.Data.Validation;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using VirtoCommerce.StoreModule.Core.Model;
 using Xunit;
@@ -145,17 +146,6 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         [Fact]
-        public async Task Copy_WithoutTheCreatePermission_IsForbidden()
-        {
-            var repository = Repository();
-
-            var result = await Controller(repository, allowed: false).GitCopyPage("vccom", "pages", "/about-us.page", null);
-
-            Assert.IsType<ForbidResult>(result);
-            Assert.Empty(repository.Commits);
-        }
-
-        [Fact]
         public async Task Copy_OfAPageTheRepositoryDoesNotHave_ShipsNothing()
         {
             var repository = new RecordingRepository();
@@ -201,7 +191,8 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 gitContentHistory: new SilentHistory(),
                 gitContentPublisher: null,
                 settingsManager: null,
-                authorizationService: new FakeAuthorizationService(allowed));
+                authorizationService: new FakeAuthorizationService(allowed),
+                requestValidator: new PageBuilderContentRequestValidator(new FakeStoreService(new Store { Id = "vccom" }), new PageBuilderContentFileValidator()));
 
             var identity = new ClaimsIdentity([new Claim(ClaimTypes.Name, Login)], "test");
             controller.ControllerContext = new ControllerContext
