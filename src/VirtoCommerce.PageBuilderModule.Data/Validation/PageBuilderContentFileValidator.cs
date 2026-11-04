@@ -3,10 +3,6 @@ using VirtoCommerce.PageBuilderModule.Core.Models;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Validation;
 
-/// <summary>
-/// A file the builder may write: a .page document of pages or blogs, or a theme JSON file outside the
-/// theme's config folder, or the theme's config/settings_data.json.
-/// </summary>
 public class PageBuilderContentFileValidator : AbstractValidator<PageBuilderContentFile>
 {
     public PageBuilderContentFileValidator()

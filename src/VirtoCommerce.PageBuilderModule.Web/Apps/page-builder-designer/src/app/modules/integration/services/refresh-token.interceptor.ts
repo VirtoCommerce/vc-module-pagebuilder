@@ -11,7 +11,7 @@ function isAuthRequest(request: HttpRequest<unknown>): boolean {
   return request.headers.get('x-refresh') === 'true';
 }
 
-/** The designer is served by the platform, so a request to its own origin is a request to the platform. */
+/** The designer is served by the platform, so its own origin is the platform's. */
 export function isPlatformRequest(url: string): boolean {
   try {
     return new URL(url, globalThis.location.href).origin === globalThis.location.origin;
@@ -27,7 +27,7 @@ function addAuthData(
   state: TokenRefreshStateService,
   session: SessionService,
 ): Observable<HttpRequest<unknown>> {
-  // Urls come from schemas and settings as well: the admin's token goes to the platform only.
+  // urls also come from schemas and settings: the token goes to the platform only
   if (isAuthRequest(request) || !isPlatformRequest(request.url)) {
     return of(request);
   }

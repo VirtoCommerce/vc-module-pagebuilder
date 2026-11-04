@@ -2,10 +2,7 @@ using VirtoCommerce.ContentModule.Core;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Validation;
 
-/// <summary>
-/// The rules the builder validators are made of. Every value they check ends up in a storage path, so
-/// anything that could leave the store's content folder is refused.
-/// </summary>
+/// <summary>Every value checked here ends up in a storage path.</summary>
 public static class PageBuilderContentPaths
 {
     private static readonly HashSet<string> ContentTypes = new(StringComparer.OrdinalIgnoreCase)
@@ -15,9 +12,7 @@ public static class PageBuilderContentPaths
         ContentConstants.ContentTypes.Blogs,
     };
 
-    // What the designer and the admin blade write: pages and blog articles are .page documents, a
-    // theme's settings are JSON. A page is also named by its draft, "foo.page-draft": the admin blade
-    // opens the designer on that name, and both the blob and the git flow resolve it to the page.
+    // ".page-draft": the admin blade opens the designer on the draft's name, and both flows resolve it to the page.
     private static readonly Dictionary<string, string[]> WritableExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
         [ContentConstants.ContentTypes.Themes] = [".json"],
@@ -25,20 +20,16 @@ public static class PageBuilderContentPaths
         [ContentConstants.ContentTypes.Blogs] = [".page", ".page-draft"],
     };
 
-    // A theme's config folder is the designer's own configuration: request descriptors
-    // (builder_settings.json), section and template schemas with their expressions, the settings
-    // schema. The designer runs it in the session of whoever opens it, so it is deployed with the
-    // theme, never written through the builder. The one file the designer saves there is the theme
-    // settings.
+    // The config folder holds the descriptors and schema expressions the designer runs in its user's session,
+    // so it ships with the theme and is never written here; theme settings are the one exception.
     private const string ThemeConfigFolder = "config";
     private const string ThemeSettingsFile = "settings_data.json";
 
     public static bool IsContentType(string type) => type != null && ContentTypes.Contains(type);
 
     /// <summary>
-    /// A path inside the content folder. A leading "/" is how the admin blade names a page and is
-    /// trimmed by every reader, so it is accepted; "\", "..", "." and ":" are not, and neither is a
-    /// segment ending in a dot or a space, which Windows file storage would read as another name.
+    /// A leading "/" passes: the admin blade names pages that way and every reader trims it. A segment ending
+    /// in "." or " " does not: Windows file storage reads it as another name.
     /// </summary>
     public static bool IsRelativePath(string path)
     {
@@ -58,14 +49,10 @@ public static class PageBuilderContentPaths
             segment is "" or "." or ".." || segment.EndsWith('.') || segment.EndsWith(' '));
     }
 
-    /// <summary>One folder name, such as a theme.</summary>
     public static bool IsFolderName(string name) =>
         IsRelativePath(name) && !name.Contains('/');
 
-    /// <summary>
-    /// A file the designer writes. The content type and the path are checked on their own; this is
-    /// only what a valid path of a valid type may name.
-    /// </summary>
+    /// <summary>Expects a type and a path that already passed their own rules.</summary>
     public static bool IsWritable(string type, string path)
     {
         if (!WritableExtensions.TryGetValue(type, out var extensions) ||
@@ -78,16 +65,13 @@ public static class PageBuilderContentPaths
                IsWritableThemeFile(path);
     }
 
-    /// <summary>
-    /// A theme file outside the theme's config folder — "default/content/templates/product.json", say —
-    /// or the theme settings, "default/config/settings_data.json". It is always inside a theme folder.
-    /// </summary>
     private static bool IsWritableThemeFile(string path)
     {
         var relativePath = path.TrimStart('/');
         var themeFolderEnd = relativePath.IndexOf('/');
         if (themeFolderEnd < 0)
         {
+            // a theme file always lives in a theme's folder
             return false;
         }
 

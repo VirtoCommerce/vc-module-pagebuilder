@@ -5,10 +5,6 @@ using VirtoCommerce.StoreModule.Core.Services;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Validation;
 
-/// <summary>
-/// A builder request that stays inside the store's content folder: a known content type, a theme that
-/// is one folder name, relative paths, files the designer writes, and a store that exists.
-/// </summary>
 public class PageBuilderContentRequestValidator : AbstractValidator<PageBuilderContentRequest>
 {
     public PageBuilderContentRequestValidator(IStoreService storeService, IValidator<PageBuilderContentFile> fileValidator)
@@ -16,7 +12,7 @@ public class PageBuilderContentRequestValidator : AbstractValidator<PageBuilderC
         ClassLevelCascadeMode = CascadeMode.Stop;
         RuleLevelCascadeMode = CascadeMode.Stop;
 
-        // A save has no content type of its own: each file names one and is checked below.
+        // A save has no type of its own: each file names one.
         RuleFor(x => x.ContentType)
             .Must(PageBuilderContentPaths.IsContentType)
             .Unless(x => x.ContentType == null && x.Files != null)

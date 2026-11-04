@@ -1,14 +1,7 @@
 /**
- * Evaluates the expressions schemas and settings carry (`visibility`, `optionsSelector`, `action.execute`,
- * `response.selector`, `{{=…}}`, `@{{…}}`) without running them as code. Schemas are written by anyone who
- * can save a theme or a page, and run in the admin's session, so only two kinds of expression are accepted:
- *
- * - a small expression language: literals, `this.…` member access, `!`, arithmetic, comparisons, `&&`, `||`,
- *   `??`, `?:`, array literals and calls to the helpers in `functions` or to a few pure string and array methods;
- * - a known form: an exact expression from a schema or settings file that needs more than that (callbacks,
- *   spreads, regular expressions), mapped to the code that does the same thing.
- *
- * Anything else is not executed: `evaluate` throws `UnsupportedExpressionError`.
+ * Schema and settings expressions run in the admin's session but can be written by anyone who saves a theme or
+ * a page, so they are interpreted, never executed as code: a small expression language plus the known forms in
+ * `known-expressions.ts`. Anything else throws `UnsupportedExpressionError`.
  */
 
 export class UnsupportedExpressionError extends Error {}
@@ -52,7 +45,6 @@ const BUILT_IN_FUNCTIONS: ExpressionFunctions = {
 
 const KNOWN_FORMS = new Map<string, (context: any, functions: ExpressionFunctions) => unknown>();
 
-/** Registers an exact expression that needs more than the expression language, with code that does the same. */
 export function registerKnownForm(expression: string, implementation: (context: any, functions: ExpressionFunctions) => unknown): void {
   KNOWN_FORMS.set(normalize(expression), implementation);
 }
@@ -66,7 +58,6 @@ export function evaluate(expression: string, context: any, functions: Expression
   return evaluateNode(parse(expression), context, { ...BUILT_IN_FUNCTIONS, ...functions });
 }
 
-/** Whether `evaluate` would run the expression at all: a known form, or one the expression language parses. */
 export function isSupportedExpression(expression: string): boolean {
   if (KNOWN_FORMS.has(normalize(expression))) {
     return true;
@@ -85,8 +76,6 @@ export function isSupportedExpression(expression: string): boolean {
 function normalize(expression: string): string {
   return expression.replaceAll(/\s+/g, ' ').trim();
 }
-
-// ── parsing ────────────────────────────────────────────────────────
 
 function tokenize(source: string): Token[] {
   const tokens: Token[] = [];
@@ -259,7 +248,7 @@ function parse(source: string): Node {
       return { kind: 'literal', value: token.value };
     }
     if (token.type === 'name') {
-      // own keys only: `in` also finds `constructor`, `toString`… on Object.prototype and would hand out Object
+      // own keys only: `in` also finds Object.prototype members such as `constructor`
       if (Object.hasOwn(LITERALS, token.value)) {
         return { kind: 'literal', value: LITERALS[token.value] };
       }
@@ -283,8 +272,6 @@ function parse(source: string): Node {
   }
   return result;
 }
-
-// ── evaluation ─────────────────────────────────────────────────────
 
 function evaluateNode(node: Node, context: any, functions: ExpressionFunctions): unknown {
   switch (node.kind) {
@@ -359,7 +346,6 @@ function evaluateCall(node: Extract<Node, { kind: 'call' }>, context: any, funct
   throw new UnsupportedExpressionError(NOT_CALLABLE);
 }
 
-/** `JSON.stringify(…)`-style helpers by their dotted name, else a plain string or array method of the value. */
 function evaluateMethodCall(callee: Extract<Node, { kind: 'member' }>, args: () => unknown[], context: any, functions: ExpressionFunctions): unknown {
   const name = String((callee.property as { value: unknown }).value);
   const helper = callee.object.kind === 'identifier' ? `${callee.object.name}.${name}` : null;

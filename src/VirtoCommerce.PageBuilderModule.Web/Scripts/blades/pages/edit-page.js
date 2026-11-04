@@ -437,7 +437,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                         }
                     });
                 },
-                // The server keeps a draft that differs from the page it serves: deleting it would lose edits.
+                // the server keeps a draft that differs from the published page
                 canExecuteMethod: function () { return !!blade.legacyDraft && !blade.legacyDraft.differsFromCurrent; }
             };
 

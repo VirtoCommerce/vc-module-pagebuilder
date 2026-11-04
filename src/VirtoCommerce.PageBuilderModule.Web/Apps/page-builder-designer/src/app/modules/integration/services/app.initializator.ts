@@ -14,10 +14,7 @@ import { DefaultConfig } from './app.default-config';
 const DEFAULT_SETTINGS_URL = 'data/settings.json';
 const BUNDLED_SETTINGS_URL = /^data\/[\w-]+(?:\.[\w-]+)*\.json$/;
 
-/**
- * The settings decide every url the designer calls with the admin's token, so `?configUrl=` may only
- * pick another file the designer ships in `data/`, never a url from somewhere else.
- */
+/** The settings choose every url called with the admin's token, so only files shipped in `data/` are accepted. */
 export function bundledSettingsUrl(requested: unknown): string {
     return typeof requested === 'string' && BUNDLED_SETTINGS_URL.test(requested) ? requested : DEFAULT_SETTINGS_URL;
 }

@@ -19,11 +19,6 @@ using Xunit;
 
 namespace VirtoCommerce.PageBuilderModule.Tests
 {
-    /// <summary>
-    /// Every action of <see cref="PageBuilderController"/> refuses a request before it reaches storage: a
-    /// content type or a path that could leave the store's content folder is a 400, an unknown store is a
-    /// 400, and a caller without the permission or without access to the store is a 403.
-    /// </summary>
     public class PageBuilderControllerRequestCheckTests
     {
         private const string Store = "vccom";
@@ -103,7 +98,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         [MemberData(nameof(ActionNames))]
         public async Task WithoutAccessToTheStore_AnUnknownStore_IsForbiddenToo(string action)
         {
-            // a 400 here would tell a user bound to another store which store ids do not exist
+            // a 400 would tell a user bound to another store which store ids exist
             var result = await Actions[action](Controller(storeAccess: false), "other-store", "pages", Page);
 
             Assert.IsType<ForbidResult>(result);
@@ -181,7 +176,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         [Fact]
         public async Task Copy_ToAPage_PassesTheCheck()
         {
-            // the store is not on the git flow: a request that got past the check is answered 404
+            // 404: past the check, the store is not on the git flow
             var result = await Controller().GitCopyPage(Store, "pages", Page, "/about-us_2.page");
 
             Assert.IsType<NotFoundResult>(result);
@@ -190,7 +185,6 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         [Fact]
         public async Task StoreAccess_LetsUsersWithoutAStoreThrough()
         {
-            // the store question only passes when it is asked with AllowUsersWithoutStore
             var controller = Controller(authorizationService: new StoreAccessOnlyWithoutStoreAllowed());
 
             var result = await controller.GitCopyPage(Store, "pages", Page, "/about-us_2.page");
@@ -229,8 +223,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
         private static PageBuilderController Controller(bool storeAccess = true, string[] granted = null, IAuthorizationService authorizationService = null)
         {
-            // Nothing past the request check is wired up: an action that reaches storage before refusing
-            // fails here with a NullReferenceException instead of passing.
+            // Nothing past the check is wired up, so an action that reaches storage first fails here.
             var controller = new PageBuilderController(
                 storeService: new FakeStoreService(new Store { Id = Store }),
                 pathResolver: null,
@@ -259,7 +252,6 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             public Task<bool> IsEnabledForStoreAsync(string storeId, CancellationToken cancellationToken = default) => Task.FromResult(enabled);
         }
 
-        /// <summary>Grants every permission, and store access only when users without a store are allowed.</summary>
         private sealed class StoreAccessOnlyWithoutStoreAllowed : IAuthorizationService
         {
             public Task<AuthorizationResult> AuthorizeAsync(ClaimsPrincipal user, object resource, IEnumerable<IAuthorizationRequirement> requirements) =>
@@ -271,10 +263,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 Task.FromResult(AuthorizationResult.Success());
         }
 
-        /// <summary>
-        /// Grants store access, and the permissions an action still asks about in code (a live save's
-        /// publish); the ones on its [Authorize] attributes are asserted in PageBuilderControllerPermissionsTests.
-        /// </summary>
+        /// <summary>Permissions on [Authorize] attributes are asserted in PageBuilderControllerPermissionsTests.</summary>
         private sealed class ScopedAuthorizationService(bool storeAccess, string[] granted) : IAuthorizationService
         {
             public Task<AuthorizationResult> AuthorizeAsync(ClaimsPrincipal user, object resource, IEnumerable<IAuthorizationRequirement> requirements) =>

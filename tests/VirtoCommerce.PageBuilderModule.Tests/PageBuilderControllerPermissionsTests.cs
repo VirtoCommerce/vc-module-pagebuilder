@@ -10,9 +10,7 @@ using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.Security;
 namespace VirtoCommerce.PageBuilderModule.Tests
 {
     /// <summary>
-    /// The permission every <see cref="PageBuilderController"/> action needs is on its [Authorize]
-    /// attributes, which MVC checks before the action runs: a unit test calling the action does not see
-    /// them, so they are asserted here. Several attributes on one action all have to pass.
+    /// MVC checks [Authorize] before the action runs, so a test calling the action never sees it: the attributes are asserted here.
     /// </summary>
     public class PageBuilderControllerPermissionsTests
     {

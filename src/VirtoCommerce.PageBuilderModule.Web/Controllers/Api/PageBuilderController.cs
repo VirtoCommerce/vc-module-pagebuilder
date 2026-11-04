@@ -114,7 +114,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             return await ReadTemplateFromBlobAsync(storeId, theme, path, type, draft);
         }
 
-        /// <summary>The draft when one is asked for and exists, otherwise the published file.</summary>
         private async Task<ActionResult> ReadTemplateFromBlobAsync(string storeId, string theme, string path, string type, bool draft)
         {
             var basePath = GetContentBasePath(storeId, type, theme);
@@ -368,7 +367,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("schemas/{kind}/{key}")]
         public async Task<ActionResult> GetSchemaByKey(string storeId, string theme, string kind, string key)
         {
-            // the key is a file name in the schemas folder: checked as a path, and kept to one segment below
+            // the key becomes a file name in the schemas folder
             if (await CheckRequestAsync(storeId, Themes, theme, PathsOf(key)) is { } refused)
             {
                 return refused;
@@ -590,7 +589,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             return await SaveDraftToGitAsync(storeId, theme, files);
         }
 
-        /// <summary>The files of a save request; <c>false</c> when there is no list of them. What they name is the validator's question.</summary>
         private static bool TryParseFiles(SaveFilesModel value, out List<SaveFileModel> files)
         {
             files = [];
@@ -613,8 +611,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
         private async Task<ActionResult> SaveToBlobAsync(string storeId, string theme, List<SaveFileModel> files, bool draft)
         {
-            // A live write of a page or a blog article is a publication. Theme settings stay on the
-            // update permission: the designer saves them straight to live.
+            // A live page write is a publication. Theme settings stay on update: the designer saves them straight to live.
             if (!draft && files.Any(file => GitPageLocation.IsPageContent(file.Type)) && !await IsAllowedToPublishAsync())
             {
                 return Forbid();
@@ -1196,7 +1193,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             return Redirect($"{storeUrl.TrimEnd('/')}{previewPath}?pageId={Uri.EscapeDataString(pageId)}&ref={Uri.EscapeDataString(gitRef)}");
         }
 
-        /// <summary>The head of this editor's work branch, else of the production branch; <c>null</c> when neither exists.</summary>
         private async Task<string> DraftOrPublishedHeadAsync(string workBranch) =>
             await gitContentRepository.GetBranchHeadShaAsync(workBranch, HttpContext.RequestAborted)
             ?? await gitContentRepository.GetBranchHeadShaAsync(gitContentOptions.Value.BaseBranch, HttpContext.RequestAborted);
@@ -1361,7 +1357,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 if (published != null && await storageProvider.GetBlobInfoAsync(path) != null &&
                     !IsSamePageDocument(await ReadBlobTextAsync(storageProvider, path), published))
                 {
-                    // The draft still holds edits that nothing else has: deleting it would lose them.
+                    // its edits exist nowhere else
                     skipped.Add(new { path, reason = LegacyDraftHasChanges });
                 }
                 else if (published != null)
@@ -1412,7 +1408,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 StoreId = storeId,
                 ContentType = contentType,
                 Paths = PathsOf(srcPath),
-                // a copy is a write under a name the caller picks: the same files as a save; no name means the next free one
+                // the target is written like a save; without one the next free name is used
                 Files = destPath.IsNullOrEmpty() ? null : [new PageBuilderContentFile { ContentType = contentType, Path = destPath }],
             };
             if (await CheckRequestAsync(request) is { } refused)
@@ -1549,9 +1545,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             path.EndsWith(DraftSuffix, StringComparison.OrdinalIgnoreCase) ? path : path + DraftSuffix;
 
         /// <summary>
-        /// A path this cleanup is allowed to touch: a "-draft" file, named outright. Nothing is resolved,
-        /// completed or walked up from here — that is the whole point of the endpoint. That the path stays
-        /// inside the content folder is the request validator's check, done before this one.
+        /// A "-draft" file named outright: nothing is resolved or completed, so the published page can never be hit.
+        /// The request validator has already kept the path inside the content folder.
         /// </summary>
         private static bool IsLegacyDraftPath(string path) =>
             !path.IsNullOrEmpty() && path.EndsWith(DraftSuffix, StringComparison.OrdinalIgnoreCase);
@@ -1669,7 +1664,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             return found;
         }
 
-        /// <summary>The paths a request names, leaving out the ones it does not give.</summary>
         private static string[] PathsOf(params string[] paths) => paths.Where(path => !path.IsNullOrEmpty()).ToArray();
 
         private Task<ActionResult> CheckRequestAsync(string storeId, string type, string theme, IList<string> paths = null) =>
@@ -1682,16 +1676,12 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             });
 
         /// <summary>
-        /// What every action checks before it touches storage, or <c>null</c> when the request may go on:
-        /// access to the store, then a request the validator accepts. The permission the action needs is
-        /// on its [Authorize] attributes and is checked before the action runs. A user bound to a store
-        /// reaches only that store; one with no store on the account (the usual back-office manager)
-        /// reaches any, as the permission allows.
+        /// Runs before storage is touched; the permission itself is on the action's [Authorize] attributes.
+        /// Users without a store pass: a back-office manager usually has none on the account.
         /// </summary>
         private async Task<ActionResult> CheckRequestAsync(PageBuilderContentRequest request)
         {
-            // Store access first: it needs only the store id, and a user bound to another store gets the
-            // same 403 for any store id instead of learning from a 400 which stores do not exist.
+            // Store access first, so a user bound to another store cannot tell from a 400 which stores exist.
             var storeAccess = await authorizationService.AuthorizeAsync(User, request,
                 new PageBuilderAuthorizationRequirement { AllowUsersWithoutStore = true });
             if (!storeAccess.Succeeded)

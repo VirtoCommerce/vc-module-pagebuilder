@@ -11,10 +11,6 @@ using Xunit;
 
 namespace VirtoCommerce.PageBuilderModule.Tests
 {
-    /// <summary>
-    /// Store access: an administrator reaches every store, a user bound to a store reaches only that store,
-    /// and a user with no store on the account is let through only where the caller allows it.
-    /// </summary>
     public class PageBuilderAuthorizationHandlerTests
     {
         private static readonly PageBuilderAuthorizationRequirement Default = new();
@@ -69,7 +65,6 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             return context.HasSucceeded;
         }
 
-        /// <summary>Answers every lookup with the one user the test is about.</summary>
         private sealed class SingleUserStore(ApplicationUser storedUser) : IUserStore<ApplicationUser>
         {
             public Task<ApplicationUser> FindByIdAsync(string userId, CancellationToken cancellationToken) => Task.FromResult(storedUser);
