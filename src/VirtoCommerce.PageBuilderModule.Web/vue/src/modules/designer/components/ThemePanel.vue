@@ -1,61 +1,69 @@
 <template>
   <div class="pd-theme">
-    <div
-      v-if="theme.presets.value.length"
-      class="pd-theme__presets"
-    >
-      <VcSelect
-        v-model="preset"
-        size="small"
-        :label="$t('PAGE_BUILDER.DESIGNER.THEME.PRESET')"
-        :placeholder="$t('PAGE_BUILDER.DESIGNER.THEME.PRESET_PLACEHOLDER')"
-        :options="theme.presets.value"
-        :option-value="(x: string) => x"
-        :option-label="(x: string) => x"
-      />
-      <VcButton
-        size="sm"
-        variant="secondary"
-        :disabled="!preset"
-        @click="preset && theme.applyPreset(preset)"
-      >
-        {{ $t("PAGE_BUILDER.DESIGNER.THEME.APPLY") }}
-      </VcButton>
-    </div>
-
     <p
-      v-if="!groups.length"
+      v-if="theme.loadError.value"
       class="pd-theme__empty"
     >
-      {{ $t("PAGE_BUILDER.DESIGNER.THEME.EMPTY") }}
+      {{ $t("PAGE_BUILDER.DESIGNER.THEME.LOAD_FAILED") }}
     </p>
-    <details
-      v-for="(group, i) in groups"
-      :key="group.name"
-      class="pd-theme__group"
-      :open="i === 0"
-    >
-      <summary>
-        <VcIcon
-          :icon="iconOf({ icon: group.icon })"
-          size="s"
-          class="pd-theme__icon"
+    <template v-else>
+      <div
+        v-if="theme.presets.value.length"
+        class="pd-theme__presets"
+      >
+        <VcSelect
+          v-model="preset"
+          size="small"
+          :label="$t('PAGE_BUILDER.DESIGNER.THEME.PRESET')"
+          :placeholder="$t('PAGE_BUILDER.DESIGNER.THEME.PRESET_PLACEHOLDER')"
+          :options="theme.presets.value"
+          :option-value="(x: string) => x"
+          :option-label="(x: string) => x"
         />
-        <span>{{ group.name }}</span>
-        <VcIcon
-          icon="lucide-chevron-down"
-          size="s"
-          class="pd-theme__chevron"
+        <VcButton
+          size="sm"
+          variant="secondary"
+          :disabled="!preset"
+          @click="preset && theme.applyPreset(preset)"
+        >
+          {{ $t("PAGE_BUILDER.DESIGNER.THEME.APPLY") }}
+        </VcButton>
+      </div>
+
+      <p
+        v-if="!groups.length"
+        class="pd-theme__empty"
+      >
+        {{ $t("PAGE_BUILDER.DESIGNER.THEME.EMPTY") }}
+      </p>
+      <details
+        v-for="(group, i) in groups"
+        :key="group.name"
+        class="pd-theme__group"
+        :open="i === 0"
+      >
+        <summary>
+          <VcIcon
+            :icon="iconOf({ icon: group.icon })"
+            size="s"
+            class="pd-theme__icon"
+          />
+          <span>{{ group.name }}</span>
+          <VcIcon
+            icon="lucide-chevron-down"
+            size="s"
+            class="pd-theme__chevron"
+          />
+        </summary>
+        <Fields
+          class="pd-theme__fields"
+          :fields="group.settings"
+          :values="theme.values.value"
+          :context="{ model: theme.values.value, settings: theme.values.value, location: { params: { storeId } } }"
+          @update="theme.set"
         />
-      </summary>
-      <Fields
-        class="pd-theme__fields"
-        :fields="group.settings"
-        :values="theme.values.value"
-        :context="{ model: theme.values.value, settings: theme.values.value, location: { params: { storeId } } }"
-        @update="theme.set"
-      />
-    </details>
+      </details>
+    </template>
   </div>
 </template>
 

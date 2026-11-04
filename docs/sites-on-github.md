@@ -90,11 +90,12 @@ Without a `BaseBranch` in configuration, the one-click setup uses `main`.
 ## What happens when
 
 - **Enable history** (or a new site, with the one-click setup or `AutoCreateRepositories`): the site's repository is created — private, with a first
-  commit — or adopted when it exists, and the base branch (and `ReleaseBranch`, when configured) is made ready. The
+  commit — or adopted, and marked as the site's, when it exists, and the base branch (and `ReleaseBranch`, when configured) is made ready. The
   repository's description, `Page Builder content of store {storeId}`, marks it as the module's.
 - **First save** of a site that is on but has no repository yet creates it, so nothing fails on a missing branch.
 - **Publish / Unpublish**: the work branch is merged into the base branch, then the platform writes (or removes) the
-  live page from what the base branch now holds. Publishing again repairs a live write that failed after its merge.
+  live page from what the base branch now holds. Publishing or unpublishing again repairs a live write that failed
+  after its merge.
 - **Turn off history**: pages are saved to the platform's storage again; the repository and its history stay.
 - **Site deleted**: its repository is archived — only when the module created it for that site. Restoring the site
   under the same id brings the repository back.
@@ -104,6 +105,10 @@ Without a `BaseBranch` in configuration, the one-click setup uses `main`.
 A site can use an existing repository instead: set the store setting **Git repository** to `owner/name`. The module
 uses it but never creates, adopts or archives it. With the App, the App must be installed on that owner too.
 
+Such a repository keeps the git flow of earlier installations, as the shared one does: the merge to its base branch is
+what its own deployment takes live, so the platform writes no live pages for it, and it holds no history of database
+pages or theme files. A repository the module created for another store is refused, whichever way a site names it.
+
 ## Earlier installations: one shared repository
 
 Setting `Repository` (instead of `Organization`) keeps the earlier model: one repository for every store, with a token
@@ -112,6 +117,8 @@ shared repository, then replace `Repository` with `Organization`. The two cannot
 
 ## Good to know
 
+- `PageBuilder__GitContent__Enabled=false` switches the git flow off for every store, the one-click setup's App
+  included.
 - Auto-merge stays off on the site repositories: the merge then happens inside the publish request, which is where the
   live page is written. A repository with required checks finishes publishing on the next Publish.
 - Changing `RepositoryPrefix` after repositories exist points sites without their own setting at new, empty

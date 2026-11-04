@@ -58,7 +58,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
         {
             try
             {
-                var site = await policy.GetRepositoryAsync(storeId, cancellationToken);
+                var site = await HistoryRepositoryAsync(storeId, cancellationToken);
                 if (site == null || content == null)
                 {
                     return;
@@ -75,7 +75,9 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
 
                 await repository.CommitFileAsync(site, path, content, settings.BaseBranch, message, author, cancellationToken);
             }
-            catch (Exception failure) when (failure is HttpRequestException or InvalidOperationException)
+            // whatever GitHub does (an error, a timeout, an answer that cannot be read) costs the history this change; only
+            // the caller giving up stops the caller
+            catch (Exception failure) when (!cancellationToken.IsCancellationRequested)
             {
                 logger.LogWarning(failure, "Version history of {Path} (store {StoreId}) missed a change: {Summary}.", path, storeId, summary);
             }
@@ -88,7 +90,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
         /// </summary>
         protected async Task<GroupedPageHistoryResult> GetFileHistoryAsync(string storeId, string path, string about, string publishedContent, string after, int take, CancellationToken cancellationToken)
         {
-            var site = await policy.GetRepositoryAsync(storeId, cancellationToken);
+            var site = await HistoryRepositoryAsync(storeId, cancellationToken);
             if (site == null)
             {
                 return null;
@@ -166,8 +168,24 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
         /// <summary>The file's content at a change; <c>null</c> when there is no such change or no history.</summary>
         protected async Task<string> ReadFileAsync(string storeId, string path, string sha, CancellationToken cancellationToken)
         {
-            var site = await policy.GetRepositoryAsync(storeId, cancellationToken);
+            var site = await HistoryRepositoryAsync(storeId, cancellationToken);
             return site == null ? null : await repository.ReadFileAsync(site, path, sha, cancellationToken);
+        }
+
+        /// <summary>
+        /// The repository the store's history is kept in: the one the module created for the store. A repository
+        /// assigned by hand keeps the git flow it had, with no history of the store's database pages and theme files.
+        /// </summary>
+        private async Task<string> HistoryRepositoryAsync(string storeId, CancellationToken cancellationToken)
+        {
+            // how the store came by it, from the settings first: a store that keeps no history never asks GitHub whose
+            // its repository is
+            if (await policy.ResolveRepositoryAsync(storeId, cancellationToken) is not { Source: GitRepositorySource.Site })
+            {
+                return null;
+            }
+
+            return await policy.GetRepositoryAsync(storeId, cancellationToken);
         }
 
         /// <summary>

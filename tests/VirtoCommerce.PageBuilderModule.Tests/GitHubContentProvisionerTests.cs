@@ -22,7 +22,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
     {
         private const string Repo = "acme/site-s1";
         private const string Sha = "1111111111111111111111111111111111111111";
-        private static readonly string Mine = GitHubContentProvisioner.Marker + "s1";
+        private static readonly string Mine = GitHubContentOwnership.Marker + "s1";
 
         [Fact]
         public async Task A_missing_repository_is_created_private_with_a_first_commit_and_marked_as_the_stores()
@@ -60,6 +60,26 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             github.AssertDone();
         }
 
+        /// <summary>Adopted, it is marked as the store's: no other store whose id names it works in it too.</summary>
+        [Fact]
+        public async Task An_existing_repository_is_marked_as_the_stores_when_adopted()
+        {
+            var github = new GitHubScript(
+                ("GET", $"repos/{Repo}", (_, _) => GitHubScript.Json(RepoJson("Our site"))),
+                ("PATCH", $"repos/{Repo}", (_, body) =>
+                {
+                    Assert.Equal(Mine, JObject.Parse(body)["description"]?.Value<string>());
+                    return GitHubScript.Json("{}");
+                }),
+                ("GET", "repos/acme/site-s1/git/ref/heads/main", (_, _) => Branch()));
+            var ownership = new FakeGitContentOwnership();
+
+            await Provisioner(github, ownership: ownership).EnsureRepositoryAsync("s1", TestContext.Current.CancellationToken);
+
+            github.AssertDone();
+            Assert.Equal([Repo], ownership.Forgotten);
+        }
+
         [Fact]
         public async Task A_store_that_comes_back_gets_its_archived_repository_back()
         {
@@ -82,12 +102,37 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         public async Task A_repository_made_for_another_store_is_refused()
         {
             var github = new GitHubScript(
-                ("GET", $"repos/{Repo}", (_, _) => GitHubScript.Json(RepoJson(GitHubContentProvisioner.Marker + "S1"))));
+                ("GET", $"repos/{Repo}", (_, _) => GitHubScript.Json(RepoJson(GitHubContentOwnership.Marker + "S1"))));
 
-            var error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            var error = await Assert.ThrowsAsync<GitRepositoryOwnershipException>(() =>
                 Provisioner(github).EnsureRepositoryAsync("s1", TestContext.Current.CancellationToken));
 
             Assert.Contains("belongs to store \"S1\"", error.Message);
+            github.AssertDone();
+        }
+
+        /// <summary>A repository a store names in its own setting is used, never changed — in the organization too.</summary>
+        [Fact]
+        public async Task A_missing_repository_the_store_named_itself_is_not_created_in_the_organization_either()
+        {
+            var github = new GitHubScript(
+                ("GET", "repos/acme/website", (_, _) => GitHubScript.Status(HttpStatusCode.NotFound)));
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                Provisioner(github, repository: "acme/website").EnsureRepositoryAsync("s1", TestContext.Current.CancellationToken));
+
+            github.AssertDone();
+        }
+
+        [Fact]
+        public async Task An_archived_repository_the_store_named_itself_stays_archived()
+        {
+            var github = new GitHubScript(
+                ("GET", "repos/acme/website", (_, _) => GitHubScript.Json(RepoJson("Our web site", archived: true))),
+                ("GET", "repos/acme/website/git/ref/heads/main", (_, _) => Branch()));
+
+            await Provisioner(github, repository: "acme/website").EnsureRepositoryAsync("s1", TestContext.Current.CancellationToken);
+
             github.AssertDone();
         }
 
@@ -217,10 +262,34 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.Contains("organization \"acme\" was not found", status.Error);
         }
 
+        [Fact]
+        public async Task Status_of_a_repository_made_for_another_store_says_whose_it_is()
+        {
+            var github = new GitHubScript(
+                ("GET", $"repos/{Repo}", (_, _) => GitHubScript.Json(RepoJson(GitHubContentOwnership.Marker + "S1"))),
+                ("GET", "repos/acme/site-s1/git/ref/heads/main", (_, _) => Branch()));
+
+            var status = await Provisioner(github, new FakeSettingsManager(value: true)).GetStatusAsync("s1", TestContext.Current.CancellationToken);
+
+            Assert.Contains("belongs to store \"S1\"", status.Error);
+        }
+
+        [Fact]
+        public async Task Status_of_a_GitHub_that_times_out_says_so()
+        {
+            var github = new GitHubScript(("GET", $"repos/{Repo}", (_, _) => throw new TaskCanceledException("The request was canceled due to the configured HttpClient.Timeout.")));
+
+            var status = await Provisioner(github, new FakeSettingsManager(value: true)).GetStatusAsync("s1", TestContext.Current.CancellationToken);
+
+            Assert.True(status.Configured);
+            Assert.Equal(Repo, status.Repository);
+            Assert.Contains("HttpClient.Timeout", status.Error);
+        }
+
         // ── helpers ────────────────────────────────────────────────────────────────────────────────
 
         private static GitHubContentProvisioner Provisioner(GitHubScript github, FakeSettingsManager settings = null, string repository = null,
-            Action<GitContentOptions> configure = null)
+            Action<GitContentOptions> configure = null, FakeGitContentOwnership ownership = null)
         {
             var options = new GitContentOptions
             {
@@ -235,7 +304,8 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             settings ??= new FakeSettingsManager(value: true, repository: repository);
             var gitRepository = new GitHubContentRepository(github, new MemoryCache(new MemoryCacheOptions()), wrapped);
 
-            return new GitHubContentProvisioner(github, gitRepository, new GitContentPolicy(wrapped, settings), settings, wrapped,
+            ownership ??= new FakeGitContentOwnership();
+            return new GitHubContentProvisioner(github, gitRepository, new GitContentPolicy(wrapped, settings, ownership), ownership, settings, wrapped,
                 NullLogger<GitHubContentProvisioner>.Instance)
             {
                 BranchWait = TimeSpan.Zero,

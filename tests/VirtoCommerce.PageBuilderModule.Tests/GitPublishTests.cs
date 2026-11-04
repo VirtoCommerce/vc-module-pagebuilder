@@ -212,6 +212,26 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.Empty(live.Events);
         }
 
+        /// <summary>
+        /// A repository assigned by hand (the shared one, or a store's own setting) has its own deployment, which takes
+        /// the merge to the live storage: the platform leaves it alone, as before it kept repositories of its own.
+        /// </summary>
+        [Theory]
+        [InlineData(GitRepositorySource.Shared)]
+        [InlineData(GitRepositorySource.StoreSetting)]
+        public async Task Publish_InARepositoryAssignedByHand_LeavesTheLivePageToItsDeployment(GitRepositorySource source)
+        {
+            var repository = Repository();
+            var publisher = Publisher(GitPublishState.Merged);
+            var live = new FakeLiveStorage();
+
+            await Controller(repository, publisher, live: live, source: source).GitPublish("s1", Page, "pages");
+            await Controller(Repository(withDraft: false), publisher, live: live, source: source).GitPublish("s1", Page, "pages");
+
+            Assert.Empty(live.Files);
+            Assert.Empty(live.Events);
+        }
+
         /// <summary>Publishing again repairs a live write that failed after its merge: the page is on the branch, so it is written.</summary>
         [Fact]
         public async Task Publish_WithNothingOfMine_StillWritesTheLivePageFromTheBaseBranch()
@@ -291,7 +311,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         private static RecordingPublisher Publisher(GitPublishState state) => new(state);
 
         private static PageBuilderController Controller(RecordingRepository repository, RecordingPublisher publisher,
-            bool allowed = true, FakeLiveStorage live = null, FakeGitContentProvisioner provisioner = null)
+            bool allowed = true, FakeLiveStorage live = null, FakeGitContentProvisioner provisioner = null, GitRepositorySource source = GitRepositorySource.Site)
         {
             var options = Options.Create(new GitContentOptions
             {
@@ -310,13 +330,14 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 publishingService: live,
                 eventPublisher: live,
                 gitContentOptions: options,
-                gitContentPolicy: new FakePolicy(),
+                gitContentPolicy: new FakeGitContentPolicy(source: source),
                 gitContentRepository: repository,
                 gitContentHistory: new SilentHistory(),
                 gitContentPublisher: publisher,
                 gitContentProvisioner: provisioner ?? new FakeGitContentProvisioner(),
                 settingsManager: null,
-                authorizationService: new FakeAuthorizationService(allowed));
+                authorizationService: new FakeAuthorizationService(allowed),
+                distributedLock: new InProcessDistributedLock());
 
             var identity = new ClaimsIdentity([new Claim(ClaimTypes.Name, Login)], "test");
             controller.ControllerContext = new ControllerContext
@@ -326,19 +347,6 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
             return controller;
         }
-
-        private sealed class FakePolicy : IGitContentPolicy
-        {
-            public Task<bool> IsEnabledForStoreAsync(string storeId, CancellationToken cancellationToken = default) =>
-                Task.FromResult(true);
-
-            public Task<string> GetRepositoryAsync(string storeId, CancellationToken cancellationToken = default) =>
-                Task.FromResult<string>("o/r");
-
-            public Task<string> ResolveRepositoryAsync(string storeId, CancellationToken cancellationToken = default) =>
-                Task.FromResult("o/r");
-        }
-
 
         private sealed class SilentHistory : IGitContentHistory
         {

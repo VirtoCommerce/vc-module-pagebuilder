@@ -385,6 +385,7 @@
         "PRESET_PLACEHOLDER": "Scegli una preimpostazione",
         "APPLY": "Applica",
         "EMPTY": "Questo tema non ha impostazioni da modificare.",
+        "LOAD_FAILED": "Impossibile caricare le impostazioni del tema.",
         "SAVE_FAILED": "Impossibile salvare le impostazioni del tema."
       },
       "CLIPBOARD": {

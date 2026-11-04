@@ -25,8 +25,8 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             BaseBranch = "master",
         };
 
-        private static GitContentPolicy Policy(GitContentOptions options, ISettingsManager settings) =>
-            new(Options.Create(options), settings);
+        private static GitContentPolicy Policy(GitContentOptions options, ISettingsManager settings, IGitContentOwnership ownership = null) =>
+            new(Options.Create(options), settings, ownership ?? new FakeGitContentOwnership());
 
         [Fact]
         public async Task Disabled_globally_never_touches_the_settings_store()
@@ -197,7 +197,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             var policy = Policy(PerSite(), new FakeSettingsManager(value: false));
 
             Assert.Null(await policy.GetRepositoryAsync("b2b-store", TestContext.Current.CancellationToken));
-            Assert.Equal("VirtoCommerce-Sites/site-b2b-store", await policy.ResolveRepositoryAsync("b2b-store", TestContext.Current.CancellationToken));
+            Assert.Equal("VirtoCommerce-Sites/site-b2b-store", (await policy.ResolveRepositoryAsync("b2b-store", TestContext.Current.CancellationToken))!.Name);
         }
 
         [Fact]
@@ -208,19 +208,81 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.Equal("acme/website", await policy.GetRepositoryAsync("b2b-store", TestContext.Current.CancellationToken));
         }
 
+        [Fact]
+        public async Task A_store_that_is_off_is_off_whatever_its_repository_setting_holds()
+        {
+            var policy = Policy(PerSite(), new FakeSettingsManager(value: false, repository: "https://github.com/acme/website"));
+
+            Assert.Null(await policy.GetRepositoryAsync("b2b-store", TestContext.Current.CancellationToken));
+            Assert.False(await policy.IsEnabledForStoreAsync("b2b-store", TestContext.Current.CancellationToken));
+            // switching it on would need a usable repository: that answer still says so
+            await Assert.ThrowsAsync<InvalidOperationException>(() => policy.ResolveRepositoryAsync("b2b-store", TestContext.Current.CancellationToken));
+        }
+
+        /// <summary>
+        /// Two stores whose ids name one repository ("B2B Store", "b2b-store") would publish over each other's pages:
+        /// the repository says whose it is. Whether the flow is on stays a question of settings.
+        /// </summary>
+        [Fact]
+        public async Task A_store_does_not_work_in_a_repository_made_for_another_store()
+        {
+            var policy = Policy(PerSite(), new FakeSettingsManager(value: true), new FakeGitContentOwnership("b2b-store"));
+
+            await Assert.ThrowsAsync<GitRepositoryOwnershipException>(() => policy.GetRepositoryAsync("B2B Store", TestContext.Current.CancellationToken));
+            Assert.True(await policy.IsEnabledForStoreAsync("B2B Store", TestContext.Current.CancellationToken));
+        }
+
+        [Fact]
+        public async Task A_store_setting_does_not_hand_a_store_another_stores_repository()
+        {
+            var policy = Policy(PerSite(), new FakeSettingsManager(value: true, repository: "VirtoCommerce-Sites/site-a"), new FakeGitContentOwnership("a"));
+
+            await Assert.ThrowsAsync<GitRepositoryOwnershipException>(() => policy.GetRepositoryAsync("b", TestContext.Current.CancellationToken));
+        }
+
+        [Fact]
+        public async Task A_store_works_in_its_own_repository_and_in_one_nobody_owns()
+        {
+            Assert.Equal("VirtoCommerce-Sites/site-b2b-store",
+                await Policy(PerSite(), new FakeSettingsManager(value: true), new FakeGitContentOwnership("b2b-store")).GetRepositoryAsync("b2b-store", TestContext.Current.CancellationToken));
+            Assert.Equal("VirtoCommerce-Sites/site-b2b-store",
+                await Policy(PerSite(), new FakeSettingsManager(value: true), new FakeGitContentOwnership()).GetRepositoryAsync("b2b-store", TestContext.Current.CancellationToken));
+        }
+
+        [Fact]
+        public async Task A_repository_outside_the_organization_is_not_asked_whose_it_is()
+        {
+            var ownership = new FakeGitContentOwnership("someone");
+
+            Assert.Equal("acme/website", await Policy(PerSite(), new FakeSettingsManager(value: true, repository: "acme/website"), ownership).GetRepositoryAsync("b2b-store", TestContext.Current.CancellationToken));
+            Assert.Equal("owner/repo", await Policy(Configured(), new FakeSettingsManager(value: true), ownership).GetRepositoryAsync("b2b-store", TestContext.Current.CancellationToken));
+            Assert.Empty(ownership.Asked);
+        }
+
+        [Fact]
+        public async Task A_store_repository_says_how_the_store_came_by_it()
+        {
+            Assert.Equal(GitRepositorySource.Site,
+                (await Policy(PerSite(), new FakeSettingsManager(value: true)).GetStoreRepositoryAsync("b2b-store", TestContext.Current.CancellationToken))!.Source);
+            Assert.Equal(GitRepositorySource.StoreSetting,
+                (await Policy(PerSite(), new FakeSettingsManager(value: true, repository: "acme/website")).GetStoreRepositoryAsync("b2b-store", TestContext.Current.CancellationToken))!.Source);
+            Assert.Equal(GitRepositorySource.Shared,
+                (await Policy(Configured(), new FakeSettingsManager(value: true)).GetStoreRepositoryAsync("b2b-store", TestContext.Current.CancellationToken))!.Source);
+        }
+
         [Theory]
         [InlineData("B2B Store", "VirtoCommerce-Sites/site-b2b-store")]
         [InlineData("electronics", "VirtoCommerce-Sites/site-electronics")]
         [InlineData("Shop #1", "VirtoCommerce-Sites/site-shop-1")]
         public void RepositoryFor_names_the_site_repository_safely(string storeId, string expected)
         {
-            Assert.Equal(expected, PerSite().RepositoryFor(storeId));
+            Assert.Equal(expected, PerSite().RepositoryFor(storeId).Name);
         }
 
         [Fact]
         public void RepositoryFor_keeps_within_the_GitHub_name_limit()
         {
-            var name = PerSite().RepositoryFor(new string('a', 200)).Split('/')[1];
+            var name = PerSite().RepositoryFor(new string('a', 200)).Name.Split('/')[1];
 
             Assert.Equal(GitContentOptions.MaxRepositoryNameLength, name.Length);
         }
@@ -243,7 +305,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         [Fact]
         public void RepositoryFor_without_an_organization_is_the_shared_repository()
         {
-            Assert.Equal("owner/repo", Configured().RepositoryFor("anything"));
+            Assert.Equal("owner/repo", Configured().RepositoryFor("anything").Name);
         }
 
         [Fact]

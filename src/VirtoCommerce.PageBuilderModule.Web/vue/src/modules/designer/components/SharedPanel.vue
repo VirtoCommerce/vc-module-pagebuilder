@@ -65,8 +65,13 @@ const emit = defineEmits<{ insert: [component: SharedComponent]; edit: [componen
 const search = ref<string>();
 const components = ref<SharedComponent[]>([]);
 const loading = ref(true);
+let searches = 0;
 const load = debounce(async () => {
-  components.value = props.storeId ? await searchSharedComponents(props.storeId, search.value).catch(() => []) : [];
+  const request = ++searches;
+  const found = props.storeId ? await searchSharedComponents(props.storeId, search.value).catch(() => []) : [];
+  // an earlier search answering last doesn't replace a later one's results
+  if (request !== searches) return;
+  components.value = found;
   loading.value = false;
 }, 250);
 watch([search, () => props.storeId], load, { immediate: true });

@@ -12,6 +12,8 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
+using VirtoCommerce.PageBuilderModule.Core.Models;
+using VirtoCommerce.PageBuilderModule.Data.Authorization;
 using VirtoCommerce.PageBuilderModule.Data.GitContent;
 using VirtoCommerce.Platform.Core;
 using VirtoCommerce.Platform.Core.Common;
@@ -38,6 +40,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         IGitContentProvisioner gitContentProvisioner,
         GitContentConnection gitContentConnection,
         IDataProtectionProvider dataProtectionProvider,
+        IAuthorizationService authorizationService,
         IGitContentPolicy gitContentPolicy = null,
         IStoreSearchService storeSearchService = null) : Controller
     {
@@ -69,6 +72,10 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             if (storeId.IsNullOrEmpty())
             {
                 return BadRequest(new { error = "storeId is required." });
+            }
+            if (!await CanAccessStoreAsync(storeId))
+            {
+                return Forbid();
             }
 
             return Ok(await StatusAsync(storeId));
@@ -137,7 +144,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             });
         }
 
-        /// <summary>Every site with its repository and whether its history is on: settings only, no GitHub calls.</summary>
+        /// <summary>Every site the user works in, with its repository and whether its history is on: settings only, no GitHub calls.</summary>
         private async Task<IList<object>> SitesAsync(Uri web)
         {
             var sites = new List<object>();
@@ -150,11 +157,16 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             var stores = await storeSearchService.SearchAsync(new StoreSearchCriteria { Take = 100, Sort = "Name" });
             foreach (var store in stores.Results)
             {
+                if (!await CanAccessStoreAsync(store.Id))
+                {
+                    continue;
+                }
+
                 string repository = null;
                 var enabled = false;
                 try
                 {
-                    repository = await gitContentPolicy.ResolveRepositoryAsync(store.Id, HttpContext.RequestAborted);
+                    repository = (await gitContentPolicy.ResolveRepositoryAsync(store.Id, HttpContext.RequestAborted))?.Name;
                     enabled = await gitContentPolicy.IsEnabledForStoreAsync(store.Id, HttpContext.RequestAborted);
                 }
                 catch (InvalidOperationException)
@@ -374,5 +386,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             ContentType = "text/plain; charset=utf-8",
             Content = $"GitHub setup did not finish: {message}",
         };
+
+        private async Task<bool> CanAccessStoreAsync(string storeId) =>
+            (await authorizationService.AuthorizeAsync(User, new PageBuilderPageSearchCriteria { StoreId = storeId }, new PageBuilderAuthorizationRequirement())).Succeeded;
     }
 }

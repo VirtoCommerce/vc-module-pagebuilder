@@ -379,7 +379,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
         }
 
         // For callers that had to read the body themselves to tell an expected failure from a real one.
-        private static HttpRequestException Failed(HttpResponseMessage response, string details, string operation)
+        internal static HttpRequestException Failed(HttpResponseMessage response, string details, string operation)
         {
             if (details?.Length > 500)
             {

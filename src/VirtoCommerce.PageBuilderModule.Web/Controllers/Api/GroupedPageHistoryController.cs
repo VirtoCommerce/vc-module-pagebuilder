@@ -23,6 +23,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
     /// </summary>
     [Route("api/page-builder-pages/grouped/{groupId}/history")]
     [Authorize]
+    [RepositoryOwnershipConflict]
     public class GroupedPageHistoryController(
         IGroupedPageService groupedPageService,
         IGroupedPageContentService groupedPageContentService,

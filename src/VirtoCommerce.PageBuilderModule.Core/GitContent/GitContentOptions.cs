@@ -162,8 +162,8 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
         public TimeSpan ReadCacheExpiration { get; set; } = TimeSpan.FromMinutes(1);
 
         /// <summary>
-        /// How long a page read by commit sha is cached. A sha is immutable, so the only reason to
-        /// expire it at all is to bound memory.
+        /// How long what does not change is cached: a page read by commit sha, the store a repository was created
+        /// for. The only reason to expire it at all is to bound memory.
         /// </summary>
         public TimeSpan ImmutableReadCacheExpiration { get; set; } = TimeSpan.FromHours(1);
 
@@ -221,8 +221,8 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
             !string.IsNullOrWhiteSpace(BaseBranch);
 
         /// <summary>
-        /// The repository holding a store's pages: <paramref name="configured"/> (the store's own setting)
-        /// when set, else the store's repository in <see cref="Organization"/>, else the shared
+        /// The repository holding a store's pages, and how the store came by it: <paramref name="configured"/> (the
+        /// store's own setting) when set, else the store's repository in <see cref="Organization"/>, else the shared
         /// <see cref="Repository"/>; <c>null</c> when there is none.
         /// <para>
         /// A configured value must be a plain "owner/name" and is refused otherwise, never replaced by the
@@ -230,7 +230,7 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
         /// could address a different GitHub endpoint with the module's credentials.
         /// </para>
         /// </summary>
-        public string RepositoryFor(string storeId, string configured = null)
+        public StoreRepository RepositoryFor(string storeId, string configured = null)
         {
             if (!string.IsNullOrWhiteSpace(configured))
             {
@@ -241,7 +241,7 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
                     throw new InvalidOperationException($"\"{configured}\" is not a GitHub repository in \"owner/name\" form.");
                 }
 
-                return repository;
+                return new StoreRepository(repository, GitRepositorySource.StoreSetting);
             }
 
             if (!string.IsNullOrWhiteSpace(Organization))
@@ -252,10 +252,10 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
                     name = name[..MaxRepositoryNameLength].Trim('-', '.');
                 }
 
-                return $"{Organization.Trim()}/{name}";
+                return new StoreRepository($"{Organization.Trim()}/{name}", GitRepositorySource.Site);
             }
 
-            return string.IsNullOrWhiteSpace(Repository) ? null : Repository.Trim();
+            return string.IsNullOrWhiteSpace(Repository) ? null : new StoreRepository(Repository.Trim(), GitRepositorySource.Shared);
         }
 
         /// <summary>

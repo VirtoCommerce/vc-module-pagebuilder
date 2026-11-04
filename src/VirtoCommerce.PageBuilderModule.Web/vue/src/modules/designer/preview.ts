@@ -109,16 +109,23 @@ export function usePreviewBridge(options: {
   return { connected, schemas, send, onFrameLoad };
 }
 
-/** The preview page of a storefront: {storefront}{previewPath}?ep={this origin} (the path must be exactly /designer-preview). */
-export function previewUrl(storefrontUrl: string | undefined, previewPath = "/designer-preview"): string | undefined {
+/**
+ * A page of the storefront: its URL joined with `path` like the Angular designer's combine(), so a storefront URL with
+ * a path keeps it; undefined without an http(s) storefront.
+ */
+export function storefrontPage(storefrontUrl: string | undefined, path: string): URL | undefined {
   if (!storefrontUrl) return undefined;
   try {
-    // joined like the Angular designer's combine(): a storefront URL with a path keeps it
-    const url = new URL(storefrontUrl.replace(/\/+$/, "") + "/" + previewPath.replace(/^\/+/, ""));
-    if (url.protocol !== "http:" && url.protocol !== "https:") return undefined;
-    url.searchParams.set("ep", window.location.origin);
-    return url.toString();
+    const url = new URL(storefrontUrl.replace(/\/+$/, "") + "/" + path.replace(/^\/+/, ""));
+    return url.protocol === "http:" || url.protocol === "https:" ? url : undefined;
   } catch {
     return undefined;
   }
+}
+
+/** The preview page of a storefront: {storefront}{previewPath}?ep={this origin} (the path must be exactly /designer-preview). */
+export function previewUrl(storefrontUrl: string | undefined, previewPath = "/designer-preview"): string | undefined {
+  const url = storefrontPage(storefrontUrl, previewPath);
+  url?.searchParams.set("ep", window.location.origin);
+  return url?.toString();
 }

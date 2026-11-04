@@ -385,6 +385,7 @@
         "PRESET_PLACEHOLDER": "选择预设",
         "APPLY": "应用",
         "EMPTY": "此主题没有可编辑的设置。",
+        "LOAD_FAILED": "无法加载主题设置。",
         "SAVE_FAILED": "无法保存主题设置。"
       },
       "CLIPBOARD": {

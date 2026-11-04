@@ -385,6 +385,7 @@
         "PRESET_PLACEHOLDER": "Choose a preset",
         "APPLY": "Apply",
         "EMPTY": "This theme has no settings to edit.",
+        "LOAD_FAILED": "The theme settings couldn't be loaded.",
         "SAVE_FAILED": "The theme settings couldn't be saved."
       },
       "CLIPBOARD": {

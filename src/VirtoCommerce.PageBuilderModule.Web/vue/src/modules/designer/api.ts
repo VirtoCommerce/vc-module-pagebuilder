@@ -2,6 +2,7 @@ import type { Item, PageDocument, SectionGroup } from "./types";
 import { fromDocument, toDocument } from "./document";
 import { templateKeyOf } from "./templates";
 import { groupPath, rulesPath, themeHistoryUrl, type HistoryFile } from "./history";
+import { storefrontPage } from "./preview";
 import { getAuthHeaders } from "../page-builder/composables/usePageContentApi";
 
 // The designer's platform calls (the generated client types the content endpoints as void), as the shell user.
@@ -276,12 +277,15 @@ export async function templateKeys(storeId: string, theme: string): Promise<stri
   return [...new Set(items.map((x) => templateKeyOf(`templates/${x.name ?? ""}`)).filter((x): x is string => !!x))].sort();
 }
 
-/** Whether the store's pages are in git: the builder settings then carry the history descriptors */
-export async function isGitFlow(storeId: string, theme: string): Promise<boolean> {
+/**
+ * The store's git flow, from the builder settings: whether its pages are in git (the settings then carry the history
+ * descriptors), and whether its database pages and theme files have versions too (a repository made for the store)
+ */
+export async function gitFlowOf(storeId: string, theme: string): Promise<{ on: boolean; siteHistory: boolean }> {
   const res = await fetch(`/api/pagebuilder/settings?${new URLSearchParams({ storeId, theme })}`, { headers: await getAuthHeaders() });
-  if (!res.ok) return false;
-  const settings = (await res.json().catch(() => ({}))) as { history?: unknown };
-  return !!settings.history;
+  if (!res.ok) return { on: false, siteHistory: false };
+  const settings = (await res.json().catch(() => ({}))) as { history?: unknown; siteHistory?: unknown };
+  return { on: !!settings.history, siteHistory: settings.siteHistory === true };
 }
 
 /** A file page: its draft (in git: this editor's branch), else what is published; a new page when there is none */
@@ -432,12 +436,14 @@ export async function restoreFileVersion(page: FilePage, sha: string) {
 }
 
 /** Where a file page's preview opens: git redirects to the storefront at a version (or the draft) */
-export function filePreviewUrl(page: FilePage, git: boolean, storefrontUrl?: string, draft = false, sha?: string) {
+export function filePreviewUrl(page: FilePage, git: boolean, storefront?: { url?: string; previewPath: string }, draft = false, sha?: string) {
   if (git) return `/api/pagebuilder/git/preview?${fileArgs(page, sha ? { ref: sha } : {})}`;
-  if (!storefrontUrl) return undefined;
+  const url = storefront && storefrontPage(storefront.url, storefront.previewPath);
+  if (!url) return undefined;
   // the content module's document id of the file (its draft blob while there is one)
   const id = btoa(`${page.storeId}::${page.type}::${page.path}${draft && !page.path.endsWith("-draft") ? "-draft" : ""}`).replace(/=/g, "-");
-  return `${storefrontUrl.replace(/\/+$/, "")}/designer-preview?pageId=${encodeURIComponent(id)}`;
+  url.searchParams.set("pageId", id);
+  return url.toString();
 }
 
 // ── what templates preview with, and what rules name: the store's catalog (xAPI) and pages ──

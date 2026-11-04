@@ -385,6 +385,7 @@
         "PRESET_PLACEHOLDER": "Choisir un préréglage",
         "APPLY": "Appliquer",
         "EMPTY": "Ce thème n'a aucun paramètre à modifier.",
+        "LOAD_FAILED": "Les paramètres du thème n'ont pas pu être chargés.",
         "SAVE_FAILED": "Les paramètres du thème n'ont pas pu être enregistrés."
       },
       "CLIPBOARD": {

@@ -385,6 +385,7 @@
         "PRESET_PLACEHOLDER": "Wybierz ustawienie wstępne",
         "APPLY": "Zastosuj",
         "EMPTY": "Ten motyw nie ma ustawień do edycji.",
+        "LOAD_FAILED": "Nie udało się wczytać ustawień motywu.",
         "SAVE_FAILED": "Nie udało się zapisać ustawień motywu."
       },
       "CLIPBOARD": {

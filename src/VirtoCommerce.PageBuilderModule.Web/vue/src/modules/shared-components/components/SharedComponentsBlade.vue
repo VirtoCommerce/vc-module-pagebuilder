@@ -86,6 +86,7 @@
           :can-update="canUpdate"
           :can-delete="canDelete"
           :can-open-designer="canOpenDesigner"
+          :can-edit-content="canEditContent"
           :loading="loading"
           :details-loading="detailsLoading"
           @close="clearDetailsSelection"
@@ -112,7 +113,7 @@
 
 <script lang="ts" setup>
 import { computed, onMounted, ref } from "vue";
-import { breakpointsTailwind, useBreakpoints } from "@vueuse/core";
+import { breakpointsTailwind, computedAsync, useBreakpoints } from "@vueuse/core";
 import { useI18n } from "vue-i18n";
 import { focusFallbackTarget, focusIfLoose, useBlade, usePermissions, type IBladeToolbar } from "@vc-shell/framework";
 import { VcBlade, VcButton, VcHint, VcIcon } from "@vc-shell/framework/ui";
@@ -123,12 +124,14 @@ import { useSharedComponentActions, useSharedComponents } from "../composables";
 import type { SharedComponent, SharedComponentUsagePage } from "../types";
 import { canOpenPageDesigner } from "../../../utilities/pageDesigner";
 import { usePageDesigner, useSharedComponentDesigner } from "../../page-builder/composables/usePageDesigner";
+import useUrlParams from "../../page-builder/composables/useStoreParams";
 
 // The Shared Components blade's body, defined as a blade by the standalone app (SharedComponents, a workspace)
 // and by the Admin Shell UI (PageBuilderSharedComponents, opened from a store's pages).
 const { exposeToChildren } = useBlade();
 const openPageDesigner = usePageDesigner();
 const openSharedComponentDesigner = useSharedComponentDesigner();
+const { isNewPageBuilder } = useUrlParams();
 const detailsStacked = useBreakpoints(breakpointsTailwind).smaller("lg");
 const { t } = useI18n({ useScope: "global" });
 const { hasAccess } = usePermissions();
@@ -183,6 +186,8 @@ const canDelete = computed(() => hasAccess("builder:shared-components:delete") &
 const canOpenDesigner = computed(
   () => hasAccess("builder:read") && isStoreContextReady.value && Boolean(storeId.value),
 );
+// a component's content is edited in the Vue designer, which a store without the New Page Builder switch doesn't use
+const canEditContent = computedAsync(async () => canOpenDesigner.value && (await isNewPageBuilder(storeId.value)), false);
 const storeContextTitle = computed(() =>
   storeContextStatus.value === "missing"
     ? t("COMMON.STORE_CONTEXT.MISSING_TITLE")

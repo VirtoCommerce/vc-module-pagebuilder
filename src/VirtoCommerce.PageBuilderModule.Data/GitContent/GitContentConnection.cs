@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
@@ -41,12 +42,16 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<GitContentConnection> _logger;
         private readonly Lazy<State> _configured;
+        private readonly bool _switchedOff;
         private State _stored;
 
-        public GitContentConnection(IOptionsFactory<GitContentOptions> optionsFactory, ISettingsManager settingsManager,
+        public GitContentConnection(IOptionsFactory<GitContentOptions> optionsFactory, IConfiguration configuration, ISettingsManager settingsManager,
             IDataProtectionProvider dataProtectionProvider, IHttpClientFactory httpClientFactory, ILogger<GitContentConnection> logger)
         {
             _optionsFactory = optionsFactory;
+            // the kill switch holds for the setup's App too; only a value that is there says so, as "false" and
+            // "not set" read alike once bound
+            _switchedOff = bool.TryParse(configuration.GetSection(GitContentOptions.SectionName)[nameof(GitContentOptions.Enabled)], out var enabled) && !enabled;
             _settingsManager = settingsManager;
             _protector = dataProtectionProvider.CreateProtector(ProtectionPurpose);
             _httpClientFactory = httpClientFactory;
@@ -164,7 +169,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
 
             // a fresh copy of the configuration (the tuning values stay), with the App's connection in it
             var options = _optionsFactory.Create(Options.DefaultName);
-            options.Enabled = true;
+            options.Enabled = !_switchedOff;
             options.Repository = null;
             options.Organization = app.Organization;
             options.AppId = app.AppId;

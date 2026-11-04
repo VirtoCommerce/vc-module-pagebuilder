@@ -72,7 +72,8 @@ export function useDesigner() {
     groupsLoaded.value
       ? Object.fromEntries(GROUPS.map((g) => [g, groupItems(doc.value, g)] as const).filter(([g, items]) => JSON.stringify(items) !== savedGroupsJson.value[g]))
       : {};
-  const dirty = computed(() => pageDirty.value || Object.keys(changedGroups()).length > 0);
+  // what couldn't be opened has no edits: its document is still the one open before, or none
+  const dirty = computed(() => !loadError.value && (pageDirty.value || Object.keys(changedGroups()).length > 0));
 
   // ── schemas ────────────────────────────────────────────────────────────────
 
@@ -498,7 +499,7 @@ export function useDesigner() {
         const themeFile = source.type === "themes";
         // a template shows with the theme's header and footer, as a page does (another theme file has none)
         const [git, page, groups] = await Promise.all([
-          themeFile ? false : api.isGitFlow(source.storeId, source.theme),
+          themeFile ? false : api.gitFlowOf(source.storeId, source.theme).then((x) => x.on),
           api.findFilePage(source),
           themeFile && !templateKey.value ? undefined : loadGroups(source.storeId, source.theme),
         ]);
@@ -557,7 +558,7 @@ export function useDesigner() {
    * else saved it meanwhile; edits made while saving stay unsaved.
    */
   async function save() {
-    if ((!groupId.value && !file.value && !shared.value) || busy.value) return;
+    if ((!groupId.value && !file.value && !shared.value) || busy.value || loadError.value) return;
     // the page's own document, saved as its draft if it changed; changed groups as drafts of the theme's files
     const sent = pageOnly(doc.value);
     const pageChanged = JSON.stringify(sent) !== savedJson.value;

@@ -1,12 +1,9 @@
 import * as pages from "./pages";
 import * as locales from "./locales";
-import { defineAppModule, i18n } from "@vc-shell/framework";
-import { defineRule } from "vee-validate";
-import { isValidPermalink } from "./utilities/permalink";
+import { defineAppModule } from "@vc-shell/framework";
+import { definePermalinkRule } from "./permalinkRule";
 
-defineRule("permalink", (value: string) =>
-  isValidPermalink(value) ? true : i18n.global.t("PAGE_BUILDER.PAGES.DETAILS.VALIDATION.PERMALINK"),
-);
+definePermalinkRule();
 
 export default defineAppModule({
   blades: pages,

@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json.Linq;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using Xunit;
@@ -76,8 +77,9 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.Equal((MyBranch, "master"), Assert.Single(publisher.Merges));
         }
 
+        /// <summary>A page git never had is a page of the platform's storage only: unpublishing it in git is not the way to take it down.</summary>
         [Fact]
-        public async Task Unpublish_APageTheProductionBranchDoesNotHave_IsNotFound()
+        public async Task Unpublish_APageTheProductionBranchNeverHad_IsNotFound()
         {
             var repository = Repository();
             repository.Files.Remove((RepoPath, "master"));
@@ -105,6 +107,68 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.Single(live.Events);
         }
 
+        /// <summary>
+        /// The editor pressing Unpublish again after its merge, whose live removal failed: the production branch no longer
+        /// has the page but has had it, so what is left of the operation is the live page, and this finishes it.
+        /// </summary>
+        [Fact]
+        public async Task Unpublish_RetriedAfterItsMerge_TakesTheLivePageDown()
+        {
+            var repository = Repository(withBranch: false);
+            repository.Files.Remove((RepoPath, "master"));
+            var live = new FakeLiveStorage();
+            live.Files[Page] = Published;
+
+            var result = await Controller(repository, Publisher(), live: live, history: Unpublished()).GitUnpublish("s1", Page, "pages");
+
+            Assert.Equal(nameof(GitPublishState.AlreadyPublished), JObject.FromObject(Assert.IsType<OkObjectResult>(result).Value!)["state"]!.Value<string>());
+            Assert.Equal([Page], live.Removed);
+            Assert.Empty(repository.DeletedFiles);
+        }
+
+        /// <summary>A read of the production branch made before the page was published again says it is gone; the branch says otherwise.</summary>
+        [Fact]
+        public async Task Unpublish_RetriedOnAStaleRead_LeavesALivePageTheBranchHasAgain()
+        {
+            var repository = Repository(withBranch: false);
+            repository.Files.Remove((RepoPath, "master"));
+            repository.Files[(RepoPath, BranchHead)] = Published;
+            var live = new FakeLiveStorage();
+            live.Files[Page] = Published;
+
+            var result = await Controller(repository, Publisher(), live: live, history: Unpublished()).GitUnpublish("s1", Page, "pages");
+
+            Assert.IsType<NotFoundObjectResult>(result);
+            Assert.Equal(Published, live.Files[Page]);
+            Assert.Empty(live.Removed);
+        }
+
+        [Fact]
+        public async Task Unpublish_RetriedInARepositoryAssignedByHand_LeavesTheLivePageToItsDeployment()
+        {
+            var repository = Repository(withBranch: false);
+            repository.Files.Remove((RepoPath, "master"));
+
+            var result = await Controller(repository, Publisher(), source: GitRepositorySource.Shared, history: Unpublished()).GitUnpublish("s1", Page, "pages");
+
+            Assert.IsType<NotFoundObjectResult>(result);
+        }
+
+        [Fact]
+        public async Task Unpublish_WhenMergedInARepositoryAssignedByHand_LeavesTheLivePageToItsDeployment()
+        {
+            var repository = Repository();
+            var publisher = Publisher(GitPublishState.Merged);
+            publisher.OnMerge = () => repository.Files.Remove((RepoPath, "master"));
+            var live = new FakeLiveStorage();
+            live.Files[Page] = Published;
+
+            await Controller(repository, publisher, live: live, source: GitRepositorySource.StoreSetting).GitUnpublish("s1", Page, "pages");
+
+            Assert.Equal(Published, live.Files[Page]);
+            Assert.Empty(live.Removed);
+        }
+
         [Fact]
         public async Task Unpublish_WithoutThePublishPermission_IsForbidden()
         {
@@ -117,6 +181,12 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         // ── helpers ────────────────────────────────────────────────────────────────────────────────
+
+        /// <summary>The page's history once its deletion is merged: the production branch had it.</summary>
+        private static GitPageHistory Unpublished() => new()
+        {
+            Versions = [new GitPageVersion { Sha = BranchHead, Message = "publish /about-us.page", Published = true, Branches = ["master"] }],
+        };
 
         private static RecordingRepository Repository(bool withBranch = true)
         {
@@ -137,7 +207,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             new(state);
 
         private static PageBuilderController Controller(RecordingRepository repository, RecordingPublisher publisher,
-            bool allowed = true, FakeLiveStorage live = null)
+            bool allowed = true, FakeLiveStorage live = null, GitRepositorySource source = GitRepositorySource.Site, GitPageHistory history = null)
         {
             var options = Options.Create(new GitContentOptions
             {
@@ -156,13 +226,14 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 publishingService: live,
                 eventPublisher: live,
                 gitContentOptions: options,
-                gitContentPolicy: new FakePolicy(),
+                gitContentPolicy: new FakeGitContentPolicy(source: source),
                 gitContentRepository: repository,
-                gitContentHistory: new SilentHistory(),
+                gitContentHistory: new FixedHistory(history ?? new GitPageHistory()),
                 gitContentPublisher: publisher,
                 gitContentProvisioner: new FakeGitContentProvisioner(),
                 settingsManager: null,
-                authorizationService: new FakeAuthorizationService(allowed));
+                authorizationService: new FakeAuthorizationService(allowed),
+                distributedLock: new InProcessDistributedLock());
 
             var identity = new ClaimsIdentity([new Claim(ClaimTypes.Name, Login)], "test");
             controller.ControllerContext = new ControllerContext
@@ -173,23 +244,10 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             return controller;
         }
 
-        private sealed class FakePolicy : IGitContentPolicy
-        {
-            public Task<bool> IsEnabledForStoreAsync(string storeId, CancellationToken cancellationToken = default) =>
-                Task.FromResult(true);
-
-            public Task<string> GetRepositoryAsync(string storeId, CancellationToken cancellationToken = default) =>
-                Task.FromResult<string>("o/r");
-
-            public Task<string> ResolveRepositoryAsync(string storeId, CancellationToken cancellationToken = default) =>
-                Task.FromResult("o/r");
-        }
-
-
-        private sealed class SilentHistory : IGitContentHistory
+        private sealed class FixedHistory(GitPageHistory history) : IGitContentHistory
         {
             public Task<GitPageHistory> GetHistoryAsync(string repository, string repoPath, GitHistoryQuery query, CancellationToken cancellationToken = default) =>
-                Task.FromResult(new GitPageHistory());
+                Task.FromResult(history);
 
             public void Invalidate(string repository, string repoPath) { }
         }

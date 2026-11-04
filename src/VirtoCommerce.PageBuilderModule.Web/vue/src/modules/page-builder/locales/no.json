@@ -385,6 +385,7 @@
         "PRESET_PLACEHOLDER": "Velg en forhåndsinnstilling",
         "APPLY": "Bruk",
         "EMPTY": "Dette temaet har ingen innstillinger å redigere.",
+        "LOAD_FAILED": "Temainnstillingene kunne ikke lastes inn.",
         "SAVE_FAILED": "Temainnstillingene kunne ikke lagres."
       },
       "CLIPBOARD": {

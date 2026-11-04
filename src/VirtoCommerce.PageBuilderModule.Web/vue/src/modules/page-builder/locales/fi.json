@@ -385,6 +385,7 @@
         "PRESET_PLACEHOLDER": "Valitse esiasetus",
         "APPLY": "Käytä",
         "EMPTY": "Tässä teemassa ei ole muokattavia asetuksia.",
+        "LOAD_FAILED": "Teeman asetuksia ei voitu ladata.",
         "SAVE_FAILED": "Teeman asetuksia ei voitu tallentaa."
       },
       "CLIPBOARD": {

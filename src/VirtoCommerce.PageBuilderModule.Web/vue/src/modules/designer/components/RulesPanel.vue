@@ -393,6 +393,8 @@ function describe(rule: TemplateRule): Part[] {
 
 /** the rule the form edits: its index (-1: a new one, added at the end) */
 const editing = ref<{ index: number; rule: TemplateRule }>();
+// the index is into the list the form was opened on: another list (another page type, the rules read again) closes it
+watch(list, () => (editing.value = undefined));
 const add = () => (editing.value = { index: -1, rule: { template: props.templateKey, when: {} } });
 const edit = (index: number) => (editing.value = { index, rule: list.value[index] });
 function saveRule(rule: TemplateRule) {
@@ -431,9 +433,14 @@ useSortable(sortable, [], {
 const facts = ref<ProductFacts>();
 watch(
   () => [props.type, props.previewed?.id] as const,
-  async ([type, id]) => {
+  async ([type, id], _, onCleanup) => {
+    // the facts of a product previewed before, answering after the next one's, aren't this one's
+    let previewedSince = false;
+    onCleanup(() => (previewedSince = true));
     facts.value = undefined;
-    if (type === "product" && id) facts.value = await productFacts(props.catalog, id).catch(() => undefined);
+    if (type !== "product" || !id) return;
+    const found = await productFacts(props.catalog, id).catch(() => undefined);
+    if (!previewedSince) facts.value = found;
   },
   { immediate: true },
 );

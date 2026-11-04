@@ -385,6 +385,7 @@
         "PRESET_PLACEHOLDER": "Voreinstellung auswählen",
         "APPLY": "Anwenden",
         "EMPTY": "Dieses Theme hat keine bearbeitbaren Einstellungen.",
+        "LOAD_FAILED": "Die Theme-Einstellungen konnten nicht geladen werden.",
         "SAVE_FAILED": "Die Theme-Einstellungen konnten nicht gespeichert werden."
       },
       "CLIPBOARD": {

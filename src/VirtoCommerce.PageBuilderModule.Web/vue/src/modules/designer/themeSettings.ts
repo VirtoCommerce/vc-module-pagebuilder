@@ -53,20 +53,29 @@ export function useThemeSettings() {
   const serverGroups = ref<ThemeSettingsGroup[]>([]);
   const savedJson = ref("{}");
   const loaded = ref(false);
+  /** why the theme's settings couldn't be read: nothing is saved then, as a save writes the whole file */
+  const loadError = ref<unknown>();
   const dirty = computed(() => loaded.value && JSON.stringify(settings.value) !== savedJson.value);
   const presets = computed(() => Object.keys(data.value.presets ?? {}));
 
   async function load(storeId: string, theme: string) {
     store.value = { storeId, theme };
-    const [settingsData, schema] = await Promise.all([
-      template(storeId, theme, "settings_data.json").catch(() => undefined),
-      template(storeId, theme, "settings_schema.json").catch(() => undefined),
-    ]);
-    data.value = (settingsData as ThemeSettingsData) ?? { current: {}, presets: {} };
-    serverGroups.value = Array.isArray(schema) ? (schema as ThemeSettingsGroup[]) : [];
-    settings.value = currentSettings(data.value);
-    savedJson.value = JSON.stringify(settings.value);
-    loaded.value = true;
+    loaded.value = false;
+    loadError.value = undefined;
+    try {
+      // a theme without the file starts from no settings; a file that can't be read is not a theme without one
+      const [settingsData, schema] = await Promise.all([
+        template(storeId, theme, "settings_data.json"),
+        template(storeId, theme, "settings_schema.json").catch(() => undefined),
+      ]);
+      data.value = (settingsData as ThemeSettingsData) ?? { current: {}, presets: {} };
+      serverGroups.value = Array.isArray(schema) ? (schema as ThemeSettingsGroup[]) : [];
+      settings.value = currentSettings(data.value);
+      savedJson.value = JSON.stringify(settings.value);
+      loaded.value = true;
+    } catch (e) {
+      loadError.value = e;
+    }
   }
 
   /** The schema's defaults, shown for the settings the theme doesn't set */
@@ -88,9 +97,10 @@ export function useThemeSettings() {
   }
 
   async function save() {
-    if (!store.value) return;
+    if (!store.value || !loaded.value) return;
     const { storeId, theme } = store.value;
-    const next: ThemeSettingsData = { ...data.value, current: clone(settings.value) };
+    const current = clone(settings.value);
+    const next: ThemeSettingsData = { ...data.value, current };
     const files = [{ path: `${theme}/config/settings_data.json`, type: "themes", content: next }];
     const res = await fetch(`/api/pagebuilder/save?${new URLSearchParams({ storeId, theme })}`, {
       method: "POST",
@@ -99,10 +109,11 @@ export function useThemeSettings() {
     });
     if (!res.ok) throw new Error(`${res.status} ${await res.text().catch(() => "")}`);
     data.value = next;
-    savedJson.value = JSON.stringify(settings.value);
+    // what was sent: an edit made while it was on its way stays unsaved
+    savedJson.value = JSON.stringify(current);
   }
 
-  return { settings, values, serverGroups, presets, dirty, loaded, load, withDefaults, set, applyPreset, revert, save };
+  return { settings, values, serverGroups, presets, dirty, loaded, loadError, load, withDefaults, set, applyPreset, revert, save };
 }
 
 export type ThemeSettings = ReturnType<typeof useThemeSettings>;

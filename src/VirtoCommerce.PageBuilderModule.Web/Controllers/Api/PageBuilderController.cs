@@ -22,8 +22,10 @@ using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Data.GitContent;
+using VirtoCommerce.PageBuilderModule.Data.Theme;
 using VirtoCommerce.PageBuilderModule.Web.Models;
 using VirtoCommerce.Platform.Core.Common;
+using VirtoCommerce.Platform.Core.DistributedLock;
 using VirtoCommerce.Platform.Core.Events;
 using VirtoCommerce.Platform.Core.Settings;
 using VirtoCommerce.StoreModule.Core.Model;
@@ -34,6 +36,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 {
     [Route("api/pagebuilder")]
     [Authorize]
+    [RepositoryOwnershipConflict]
     public class PageBuilderController(IStoreService storeService,
             IContentPathResolver pathResolver,
             IBlobContentStorageProviderFactory blobContentStorageProviderFactory,
@@ -47,6 +50,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             IGitContentProvisioner gitContentProvisioner,
             ISettingsManager settingsManager,
             IAuthorizationService authorizationService,
+            IDistributedLock distributedLock,
             ThemeFileHistory themeFileHistory = null
             )
         : Controller
@@ -203,7 +207,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
             if (blobInfo == null)
             {
-                return Content(gitFlow ? GitBuilderDescriptors().ToString(Formatting.None) : "{}", JsonContentType);
+                return Content(gitFlow ? (await GitSettingsAsync(storeId)).ToString(Formatting.None) : "{}", JsonContentType);
             }
 
             if (!gitFlow)
@@ -216,9 +220,20 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             // That is how a store on the git flow gets git urls for publishing without anyone editing the
             // app's static config — and how a store that is not on it keeps the bytes it has always got.
             var settings = await ReadJsonBlobAsync(storageProvider, blobInfo.RelativeUrl);
-            settings.Merge(GitBuilderDescriptors(), new JsonMergeSettings { MergeArrayHandling = MergeArrayHandling.Replace });
+            settings.Merge(await GitSettingsAsync(storeId), new JsonMergeSettings { MergeArrayHandling = MergeArrayHandling.Replace });
 
             return Content(settings.ToString(Formatting.None), JsonContentType);
+        }
+
+        /// <summary>
+        /// What a store on the git flow adds to the builder's settings: the publish descriptors, and whether its
+        /// database pages and theme files have a version history — kept in a repository the platform created for it.
+        /// </summary>
+        private async Task<JObject> GitSettingsAsync(string storeId)
+        {
+            var settings = GitBuilderDescriptors();
+            settings["siteHistory"] = (await gitContentPolicy.ResolveRepositoryAsync(storeId, HttpContext.RequestAborted))?.Source == GitRepositorySource.Site;
+            return settings;
         }
 
         /// <summary>
@@ -511,8 +526,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         {
             var files = JsonConvert.DeserializeObject<List<SaveFileModel>>(value.Files);
 
-            var repository = await gitContentPolicy.GetRepositoryAsync(storeId, HttpContext.RequestAborted);
-            if (repository == null)
+            // the flow from the settings: only a page's commit needs the repository itself, and GitHub
+            if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
             {
                 await SaveFilesTo(storeId, theme, files, draft);
                 return Ok();
@@ -548,9 +563,13 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             }
 
             var saved = new List<object>();
-            foreach (var page in pages)
+            if (pages.Count > 0)
             {
-                saved.Add(await CommitPageToGitAsync(repository, page, storeId));
+                var repository = await gitContentPolicy.GetRepositoryAsync(storeId, HttpContext.RequestAborted);
+                foreach (var page in pages)
+                {
+                    saved.Add(await CommitPageToGitAsync(repository, page, storeId));
+                }
             }
 
             // Themes, schemas and everything else still live in blob storage — only pages and blogs moved
@@ -565,16 +584,17 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         }
 
         /// <summary>
-        /// Publishes a page: merges its work branch into the production branch, then writes the page as the
-        /// branch now has it to the live storage. The editor's own draft is what ships — never the bytes the
-        /// caller happens to send.
+        /// Publishes a page: merges its work branch into the production branch, then — in a repository the
+        /// platform created for the store — writes the page as the branch now has it to the live storage; a
+        /// repository assigned by hand has its own deployment. The editor's own draft is what ships — never the
+        /// bytes the caller happens to send.
         /// </summary>
         [HttpPost]
         [Route("git/publish")]
         public async Task<ActionResult> GitPublish(string storeId, string path, string type, bool rebase = false)
         {
-            var repository = await gitContentPolicy.GetRepositoryAsync(storeId, HttpContext.RequestAborted);
-            if (repository == null)
+            var site = await gitContentPolicy.GetStoreRepositoryAsync(storeId, HttpContext.RequestAborted);
+            if (site == null)
             {
                 // the switch is off for this store: publish means what it always meant
                 await publishingService.PublishingAsync(type ?? PagesContentType, storeId, path, publish: true);
@@ -586,16 +606,19 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 return Forbid();
             }
 
-            var location = GitLocation(repository, type, path);
+            var location = GitLocation(site.Name, type, path);
 
             var draft = await gitContentRepository.ReadFileAsync(location.Repository, location.RepoPath, location.Branch, HttpContext.RequestAborted);
             if (draft == null)
             {
                 // No branch, or no such page on it: there is nothing of this editor's to publish. The live
-                // copy is written again from the production branch all the same — that is how publishing
-                // twice repairs a live write that failed after its merge, or catches up with a merge GitHub
-                // finished after the request.
-                await WriteLiveAsync(storeId, type, path, location, removeWhenGone: false);
+                // copy the platform keeps is written again from the production branch all the same — that is
+                // how publishing twice repairs a live write that failed after its merge, or catches up with a
+                // merge GitHub finished after the request.
+                if (WritesLive(site))
+                {
+                    await WriteLiveAsync(storeId, type, path, location, removeWhenGone: false);
+                }
                 return Ok(new { state = nameof(GitPublishState.AlreadyPublished) });
             }
 
@@ -615,7 +638,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             var result = await gitContentPublisher.MergeBranchAsync(location.Repository, location.Branch, $"publish {path} (store: {storeId})", HttpContext.RequestAborted);
 
             var response = await RespondToPublishAsync(result, location, path, canRebase: true);
-            if (result.State == GitPublishState.Merged)
+            if (result.State == GitPublishState.Merged && WritesLive(site))
             {
                 await WriteLiveAsync(storeId, type, path, location, removeWhenGone: false);
             }
@@ -782,15 +805,16 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
         /// <summary>
         /// Unpublishes a page by removing it from the production branch, and — once that removal is merged —
-        /// from the live storage, the same way publishing writes it there. Only after the merge: live storage
-        /// follows the branch, so production keeps matching it and a revert stays a rollback.
+        /// from the live storage the platform keeps for a repository it created, the same way publishing writes it
+        /// there. Only after the merge: live storage follows the branch, so production keeps matching it and a
+        /// revert stays a rollback.
         /// </summary>
         [HttpPost]
         [Route("git/unpublish")]
         public async Task<ActionResult> GitUnpublish(string storeId, string path, string type)
         {
-            var repository = await gitContentPolicy.GetRepositoryAsync(storeId, HttpContext.RequestAborted);
-            if (repository == null)
+            var site = await gitContentPolicy.GetStoreRepositoryAsync(storeId, HttpContext.RequestAborted);
+            if (site == null)
             {
                 await publishingService.PublishingAsync(type ?? PagesContentType, storeId, path, publish: false);
                 return Ok();
@@ -802,10 +826,19 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             }
 
             var options = gitContentOptions.Value;
-            var location = GitLocation(repository, type, path);
+            var location = GitLocation(site.Name, type, path);
 
             if (await gitContentRepository.ReadFileAsync(location.Repository, location.RepoPath, options.BaseBranch, HttpContext.RequestAborted) == null)
             {
+                // Gone from the production branch. When the branch had it, an earlier unpublish merged its deletion and
+                // this is the editor asking again, because the live removal that follows the merge did not happen: that
+                // is all there is left to do. A page the branch never had is only in the live storage, and stays.
+                if (WritesLive(site) && await HasLeftTheProductionBranchAsync(location))
+                {
+                    await WriteLiveAsync(storeId, type, path, location, removeWhenGone: true);
+                    return Ok(new { state = nameof(GitPublishState.AlreadyPublished) });
+                }
+
                 return NotFound(new { templatePath = path });
             }
 
@@ -829,12 +862,44 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             var result = await gitContentPublisher.MergeBranchAsync(location.Repository, location.Branch, $"unpublish {path} (store: {storeId})", HttpContext.RequestAborted);
 
             var response = await RespondToPublishAsync(result, location, path);
-            if (result.State == GitPublishState.Merged)
+            if (result.State == GitPublishState.Merged && WritesLive(site))
             {
                 await WriteLiveAsync(storeId, type, path, location, removeWhenGone: true);
             }
 
             return response;
+        }
+
+        /// <summary>
+        /// The platform keeps the live pages of a repository it created for the store, writing them after a merge; a
+        /// repository assigned by hand has the deployment it had, which takes a merge live.
+        /// </summary>
+        private static bool WritesLive(StoreRepository site) => site.Source == GitRepositorySource.Site;
+
+        /// <summary>
+        /// The production branch had the page and has it no more, as the branch stands now: a read of it by name may be
+        /// a cached one from before the page was published again, so its head is asked for afresh. A branch that cannot
+        /// be read takes nothing down.
+        /// </summary>
+        private async Task<bool> HasLeftTheProductionBranchAsync((string Repository, string RepoPath, string Branch) location)
+        {
+            var baseBranch = gitContentOptions.Value.BaseBranch;
+            var head = await gitContentRepository.GetBranchHeadShaAsync(location.Repository, baseBranch, HttpContext.RequestAborted);
+            if (head == null || await gitContentRepository.ReadFileAsync(location.Repository, location.RepoPath, head, HttpContext.RequestAborted) != null)
+            {
+                return false;
+            }
+
+            var history = await gitContentHistory.GetHistoryAsync(location.Repository, location.RepoPath,
+                new GitHistoryQuery { BaseBranch = baseBranch }, HttpContext.RequestAborted);
+            if (!history.Versions.Any(x => x.Published))
+            {
+                return false;
+            }
+
+            // the live write that follows reads the branch by name: as it stands now too
+            gitContentRepository.InvalidateRead(location.Repository, location.RepoPath, baseBranch);
+            return true;
         }
 
         /// <summary>
@@ -1116,26 +1181,24 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             }
 
             var contentType = string.IsNullOrEmpty(type) ? PagesContentType : type.ToLowerInvariant();
-            var repository = await gitContentPolicy.GetRepositoryAsync(storeId, HttpContext.RequestAborted);
-            if (repository != null && GitPageLocation.IsPageContent(contentType))
+            if (GitPageLocation.IsPageContent(contentType) && await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
             {
                 return BadRequest("The store's pages are in git: their drafts are discarded with git/discard-draft.");
             }
 
             var storageProvider = blobContentStorageProviderFactory.CreateProvider(
                 GetContentBasePath(storeId, contentType, await GetCurrentThemeName(storeId, theme)));
-            var draftPath = publishingService.GetRelativeDraftUrl(path, true);
-            if (await storageProvider.GetBlobInfoAsync(draftPath) == null)
+
+            // A publication of the store's theme reads a draft in two steps (is it there, then its text): a theme
+            // draft is not thrown away in the middle of one.
+            var unchanged = contentType == Themes
+                ? await distributedLock.ExecuteAsync(ThemePublisher.LockResource(storeId), _ => RemoveDraftAsync(), cancellationToken: HttpContext.RequestAborted)
+                : await RemoveDraftAsync();
+            if (unchanged != null)
             {
-                return NoContent();
+                return unchanged;
             }
 
-            if (await storageProvider.GetBlobInfoAsync(publishingService.GetRelativeDraftUrl(path, false)) == null)
-            {
-                return Conflict("Nothing is published: the draft is the only copy.");
-            }
-
-            await storageProvider.RemoveAsync([draftPath]);
             await eventPublisher.Publish(new PageBuilderContentChangedEvent(contentType,
                 [new GenericChangedEntry<FileEntity>(new FileEntity { Path = path, Type = contentType }, EntryState.Modified)]));
 
@@ -1146,6 +1209,24 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             }
 
             return NoContent();
+
+            // throws the draft away; when it doesn't, the answer that says why
+            async Task<ActionResult> RemoveDraftAsync()
+            {
+                var draftPath = publishingService.GetRelativeDraftUrl(path, true);
+                if (await storageProvider.GetBlobInfoAsync(draftPath) == null)
+                {
+                    return NoContent();
+                }
+
+                if (await storageProvider.GetBlobInfoAsync(publishingService.GetRelativeDraftUrl(path, false)) == null)
+                {
+                    return Conflict("Nothing is published: the draft is the only copy.");
+                }
+
+                await storageProvider.RemoveAsync([draftPath]);
+                return null;
+            }
         }
 
         /// <summary>
@@ -1848,7 +1929,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             return content as JToken ?? (content == null ? JValue.CreateNull() : JToken.FromObject(content));
         }
 
-        private async Task SaveFilesTo(string storeId, string theme, IEnumerable<SaveFileModel> files, bool draft, CancellationToken cancellationToken = default)
+        private async Task SaveFilesTo(string storeId, string theme, IReadOnlyCollection<SaveFileModel> files, bool draft, CancellationToken cancellationToken = default)
         {
             var providers = new Dictionary<string, IBlobContentStorageProvider>();
 
@@ -1858,37 +1939,17 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             var changedFiles = new Dictionary<string, List<GenericChangedEntry<FileEntity>>>();
             var themeFiles = new List<(string Path, string Content)>();
 
-            foreach (var file in files)
+            // A publication of the store's theme puts its drafts live and deletes them: a theme file is never
+            // written in the middle of one, or the publication would delete a draft it has not read.
+            if (files.Any(x => string.Equals(x.Type, Themes, StringComparison.OrdinalIgnoreCase)))
             {
-                var type = file.Type.ToLowerInvariant();
-                if (!providers.TryGetValue(type, out var storageProvider))
-                {
-                    storageProvider = blobContentStorageProviderFactory.CreateProvider(GetContentBasePath(storeId, type, themeName));
-                    providers[type] = storageProvider;
-                }
-                var content = file.Content;
-                var targetPath = publishingService.GetRelativeDraftUrl(file.Path, draft);
-                await using var targetStream = await storageProvider.OpenWriteAsync(targetPath);
-                await using var writer = new StreamWriter(targetStream);
-                var stringContent = JsonConvert.SerializeObject(content, settings);
-                await writer.WriteAsync(stringContent);
-                if (type == Themes)
-                {
-                    themeFiles.Add((file.Path, stringContent));
-                }
-
-                if (!changedFiles.TryGetValue(type, out var entries))
-                {
-                    entries = new List<GenericChangedEntry<FileEntity>>();
-                    changedFiles.Add(type, entries);
-                }
-
-                entries.Add(new GenericChangedEntry<FileEntity>(new FileEntity
-                {
-                    Path = file.Path,
-                    Type = file.Type
-                }, EntryState.Modified));
+                await distributedLock.ExecuteAsync(ThemePublisher.LockResource(storeId), _ => WriteFilesAsync(), cancellationToken: cancellationToken);
             }
+            else
+            {
+                await WriteFilesAsync();
+            }
+
             changedFiles.Keys.ToList().ForEach(async x =>
             {
                 await eventPublisher.Publish(new PageBuilderContentChangedEvent(x, changedFiles[x]), cancellationToken);
@@ -1899,6 +1960,41 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 foreach (var (path, content) in themeFiles)
                 {
                     await themeFileHistory.RecordAsync(storeId, path, content, draft ? "Saved" : "Published", User, SiteSave.Of(Request), cancellationToken);
+                }
+            }
+
+            async Task WriteFilesAsync()
+            {
+                foreach (var file in files)
+                {
+                    var type = file.Type.ToLowerInvariant();
+                    if (!providers.TryGetValue(type, out var storageProvider))
+                    {
+                        storageProvider = blobContentStorageProviderFactory.CreateProvider(GetContentBasePath(storeId, type, themeName));
+                        providers[type] = storageProvider;
+                    }
+                    var content = file.Content;
+                    var targetPath = publishingService.GetRelativeDraftUrl(file.Path, draft);
+                    await using var targetStream = await storageProvider.OpenWriteAsync(targetPath);
+                    await using var writer = new StreamWriter(targetStream);
+                    var stringContent = JsonConvert.SerializeObject(content, settings);
+                    await writer.WriteAsync(stringContent);
+                    if (type == Themes)
+                    {
+                        themeFiles.Add((file.Path, stringContent));
+                    }
+
+                    if (!changedFiles.TryGetValue(type, out var entries))
+                    {
+                        entries = new List<GenericChangedEntry<FileEntity>>();
+                        changedFiles.Add(type, entries);
+                    }
+
+                    entries.Add(new GenericChangedEntry<FileEntity>(new FileEntity
+                    {
+                        Path = file.Path,
+                        Type = file.Type
+                    }, EntryState.Modified));
                 }
             }
         }

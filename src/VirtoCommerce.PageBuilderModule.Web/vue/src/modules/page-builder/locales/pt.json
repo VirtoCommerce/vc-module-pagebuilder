@@ -385,6 +385,7 @@
         "PRESET_PLACEHOLDER": "Escolha uma predefinição",
         "APPLY": "Aplicar",
         "EMPTY": "Este tema não tem configurações para editar.",
+        "LOAD_FAILED": "Não foi possível carregar as configurações do tema.",
         "SAVE_FAILED": "As configurações do tema não puderam ser salvas."
       },
       "CLIPBOARD": {

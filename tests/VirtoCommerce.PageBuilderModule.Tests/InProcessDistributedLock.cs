@@ -26,6 +26,9 @@ internal sealed class InProcessDistributedLock : IDistributedLock
     /// <summary>Completes when a caller is waiting at the gate.</summary>
     public TaskCompletionSource Waiting { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
+    /// <summary>Completes with the resource of the first caller that has to wait for another holder of it.</summary>
+    public TaskCompletionSource<string> Blocked { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
     public async Task<IDistributedLockHandle> AcquireAsync(string resource, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
     {
         if (_gate != null)
@@ -35,6 +38,10 @@ internal sealed class InProcessDistributedLock : IDistributedLock
         }
 
         var semaphore = _semaphores.GetOrAdd(resource, _ => new SemaphoreSlim(1, 1));
+        if (semaphore.CurrentCount == 0)
+        {
+            Blocked.TrySetResult(resource);
+        }
         await semaphore.WaitAsync(cancellationToken);
         return new Handle(resource, semaphore);
     }

@@ -65,20 +65,22 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         [Fact]
-        public async Task Publishing_writes_every_language_before_the_pointer_then_puts_the_drafts_live()
+        public async Task Publishing_writes_every_language_the_default_one_last_then_the_pointer_then_puts_the_drafts_live()
         {
             _storage.Files[Product] = Template("product-info");
             _storage.Files[Product + "-draft"] = Template("product-info", "related-products");
             await _snapshots.GetPublishedAsync("s1", null, Ct);
+            var catalog = await Catalog("product-info", "related-products");
             _storage.Written.Clear();
 
-            var publication = await _publisher.PublishAsync("s1", null, null, Ct);
+            var publication = await _publisher.PublishAsync("s1", catalog, null, Ct);
 
             Assert.Equal(2, publication);
+            // the default language's file marks a complete publication (a pointer cut off falls back on it)
             Assert.Equal(
                 [
-                    "default/snapshots/2/en-US.json",
                     "default/snapshots/2/de-DE.json",
+                    "default/snapshots/2/en-US.json",
                     Pointer,
                     Product,
                 ],
@@ -102,6 +104,34 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         [Fact]
+        public async Task A_publication_names_the_catalog_it_was_previewed_with()
+        {
+            _storage.Files[Product + "-draft"] = Template("product-info");
+
+            var failure = await Assert.ThrowsAsync<ThemeValidationException>(() => _publisher.PublishAsync("s1", null, null, Ct));
+
+            Assert.Contains("catalog", failure.Errors.Single());
+            Assert.Empty(_storage.Written);
+        }
+
+        [Fact]
+        public async Task The_first_publication_finds_the_menus_through_the_current_catalog()
+        {
+            await _catalogs.SaveAsync("s1", """
+                { "hash": "abc12345", "sections": { "site-header": { "settings": [ { "id": "menu", "type": "menu" } ] } } }
+                """, Ct);
+            _storage.Files["default/sections/header-group.json"] = """
+                { "content": [ { "id": "h", "type": "site-header", "menu": "main-menu" } ] }
+                """;
+
+            var snapshot = await _snapshots.GetPublishedAsync("s1", null, Ct);
+
+            Assert.Equal(["main-menu"], snapshot.Menus);
+            // validated against no catalog: the live files may predate the storefront's schemas
+            Assert.Equal(JTokenType.Null, JObject.Parse(snapshot.Content)["catalogHash"]!.Type);
+        }
+
+        [Fact]
         public async Task A_publication_names_a_catalog_the_server_has()
         {
             var failure = await Assert.ThrowsAsync<ThemeValidationException>(() => _publisher.PublishAsync("s1", "missing123", null, Ct));
@@ -116,7 +146,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.Equal(1, (await _snapshots.GetPublishedAsync("s1", "en-US", Ct)).Publication);
 
             _storage.Files[Product + "-draft"] = Template("product-info", "related-products");
-            await _publisher.PublishAsync("s1", null, null, Ct);
+            await _publisher.PublishAsync("s1", await Catalog("product-info", "related-products"), null, Ct);
 
             Assert.Equal(2, (await _snapshots.GetPublishedAsync("s1", "en-US", Ct)).Publication);
         }
@@ -127,13 +157,29 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             _storage.Files[Product] = Template("product-info");
             await _snapshots.GetPublishedAsync("s1", null, Ct);
             _storage.Files[Product + "-draft"] = Template("product-info", "related-products");
-            await _publisher.PublishAsync("s1", null, null, Ct);
+            await _publisher.PublishAsync("s1", await Catalog("product-info", "related-products"), null, Ct);
             _storage.Files[Pointer] = "{ \"publicat";
             using var emptyCache = new TestPlatformMemoryCache();
 
             var snapshot = await new ThemeSnapshotService(_stores, _settings, _storageFactory, _publisher, emptyCache).GetPublishedAsync("s1", null, Ct);
 
             Assert.Equal(2, snapshot.Publication);
+        }
+
+        [Fact]
+        public async Task A_pointer_cut_off_skips_a_publication_cut_off_in_its_last_file()
+        {
+            _storage.Files[Product] = Template("product-info");
+            await _snapshots.GetPublishedAsync("s1", null, Ct);
+            // publication 2 stopped while writing the default language, the file written last
+            _storage.Files["default/snapshots/2/de-DE.json"] = "{}";
+            _storage.Files["default/snapshots/2/en-US.json"] = "{\"format\":1,\"publi";
+            _storage.Files[Pointer] = "{ \"publicat";
+            using var emptyCache = new TestPlatformMemoryCache();
+
+            var snapshot = await new ThemeSnapshotService(_stores, _settings, _storageFactory, _publisher, emptyCache).GetPublishedAsync("s1", null, Ct);
+
+            Assert.Equal(1, snapshot.Publication);
         }
 
         [Theory]
@@ -165,6 +211,14 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.Equal(await _catalogs.GetAsync("s1", "abc12345", Ct), await _catalogs.GetAsync("s1", null, Ct));
             await Assert.ThrowsAsync<ArgumentException>(() => _catalogs.SaveAsync("s1", """{ "hash": "../x" }""", Ct));
         }
+
+        /// <summary>Keeps a storefront catalog that has these section types; its hash.</summary>
+        private Task<string> Catalog(params string[] sections) =>
+            _catalogs.SaveAsync("s1", new JObject
+            {
+                ["hash"] = "catalog-" + string.Join('-', sections),
+                ["sections"] = new JObject(sections.Select(x => new JProperty(x, new JObject()))),
+            }.ToString(), Ct);
 
         private static string Template(params string[] sections) =>
             new JObject

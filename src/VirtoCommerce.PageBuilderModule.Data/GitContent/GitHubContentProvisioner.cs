@@ -29,24 +29,23 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
     /// </summary>
     public class GitHubContentProvisioner : IGitContentProvisioner
     {
-        /// <summary>The start of the description of every repository the module creates; the store id follows.</summary>
-        public const string Marker = "Page Builder content of store ";
-
         private const int BranchWaitAttempts = 10;
 
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IGitContentRepository _repository;
         private readonly IGitContentPolicy _policy;
+        private readonly IGitContentOwnership _ownership;
         private readonly ISettingsManager _settingsManager;
         private readonly GitContentOptions _options;
         private readonly ILogger<GitHubContentProvisioner> _logger;
 
         public GitHubContentProvisioner(IHttpClientFactory httpClientFactory, IGitContentRepository repository, IGitContentPolicy policy,
-            ISettingsManager settingsManager, IOptions<GitContentOptions> options, ILogger<GitHubContentProvisioner> logger)
+            IGitContentOwnership ownership, ISettingsManager settingsManager, IOptions<GitContentOptions> options, ILogger<GitHubContentProvisioner> logger)
         {
             _httpClientFactory = httpClientFactory;
             _repository = repository;
             _policy = policy;
+            _ownership = ownership;
             _settingsManager = settingsManager;
             _options = options.Value;
             _logger = logger;
@@ -66,11 +65,17 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             var enabled = false;
             try
             {
-                repository = await _policy.ResolveRepositoryAsync(storeId, cancellationToken);
+                var site = await _policy.ResolveRepositoryAsync(storeId, cancellationToken);
+                repository = site?.Name;
                 enabled = await _policy.IsEnabledForStoreAsync(storeId, cancellationToken);
 
                 var found = await GetRepositoryInfoAsync(repository, cancellationToken);
-                if (found == null && _options.IsInOrganization(repository))
+                if (found != null && _options.IsInOrganization(repository))
+                {
+                    // what every git action of the store would answer
+                    GitHubContentOwnership.EnsureOwnedBy(repository, GitHubContentOwnership.StoreOf(found), storeId);
+                }
+                if (found == null && site?.Source == GitRepositorySource.Site)
                 {
                     // the repository is simply not created yet; this proves the organization and the
                     // App's installation on it are there to create it in
@@ -88,7 +93,9 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
                     LastCommitSha = found == null ? null : await _repository.GetBranchHeadShaAsync(repository, _options.BaseBranch, cancellationToken),
                 };
             }
-            catch (Exception failure) when (failure is HttpRequestException or InvalidOperationException)
+            // the status is also the connection test: whatever keeps GitHub from answering (an error, a timeout) is its
+            // answer, unless the caller gave up
+            catch (Exception failure) when (!cancellationToken.IsCancellationRequested)
             {
                 return new GitContentSiteStatus
                 {
@@ -106,16 +113,18 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(storeId);
 
-            var repository = await _policy.ResolveRepositoryAsync(storeId, cancellationToken)
-                             ?? throw new InvalidOperationException("Git content is not configured on this platform.");
+            var site = await _policy.ResolveRepositoryAsync(storeId, cancellationToken)
+                       ?? throw new InvalidOperationException("Git content is not configured on this platform.");
+            var repository = site.Name;
+            // only the store's own repository in the organization is the module's to create, mark and bring back: one
+            // assigned by hand is used as it is
+            var own = site.Source == GitRepositorySource.Site;
 
             var found = await GetRepositoryInfoAsync(repository, cancellationToken);
             if (found == null)
             {
-                if (!_options.IsInOrganization(repository))
+                if (!own)
                 {
-                    // never created outside the tenant organization: a store pointing elsewhere names a
-                    // repository somebody already has
                     throw new InvalidOperationException($"The GitHub repository \"{repository}\" does not exist, or the platform has no access to it.");
                 }
 
@@ -124,19 +133,26 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
 
             if (_options.IsInOrganization(repository))
             {
-                // Two stores whose ids sanitize alike ("B2B Store", "b2b-store") would share one repository
-                // and publish over each other's pages. The description says whose it is.
-                var owner = StoreOf(found);
-                if (owner != null && !string.Equals(owner, storeId, StringComparison.Ordinal))
-                {
-                    throw new InvalidOperationException(
-                        $"The repository \"{repository}\" belongs to store \"{owner}\". Set this store's Git repository explicitly.");
-                }
+                GitHubContentOwnership.EnsureOwnedBy(repository, GitHubContentOwnership.StoreOf(found), storeId);
+            }
 
+            if (own)
+            {
+                var patch = new JObject();
+                if (GitHubContentOwnership.StoreOf(found) == null)
+                {
+                    // adopted: marked as the store's, so that no other store whose id names it works in it too
+                    patch["description"] = GitHubContentOwnership.Marker + storeId;
+                }
                 if (found["archived"]?.Value<bool>() == true)
                 {
                     // the store was deleted and has come back under the same id: its history is all there
-                    await PatchRepositoryAsync(repository, new JObject { ["archived"] = false }, cancellationToken);
+                    patch["archived"] = false;
+                }
+                if (patch.HasValues)
+                {
+                    await PatchRepositoryAsync(repository, patch, cancellationToken);
+                    _ownership.Invalidate(repository);
                 }
             }
 
@@ -176,7 +192,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
                 return;
             }
 
-            if (!string.Equals(StoreOf(found), storeId, StringComparison.Ordinal))
+            if (!string.Equals(GitHubContentOwnership.StoreOf(found), storeId, StringComparison.Ordinal))
             {
                 _logger.LogInformation("Store {StoreId} was deleted; repository {Repository} was not created for it and is left as it is.", storeId, repository);
                 return;
@@ -209,19 +225,13 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             GenericSearchCachingRegion<Store>.ExpireRegion();
         }
 
-        private static string StoreOf(JObject repository)
-        {
-            var description = repository["description"]?.Value<string>();
-            return description?.StartsWith(Marker, StringComparison.Ordinal) == true ? description[Marker.Length..].Trim() : null;
-        }
-
         private async Task<JObject> CreateRepositoryAsync(string repository, string storeId, CancellationToken cancellationToken)
         {
             var separator = repository.IndexOf('/');
             var body = new JObject
             {
                 ["name"] = repository[(separator + 1)..],
-                ["description"] = Marker + storeId,
+                ["description"] = GitHubContentOwnership.Marker + storeId,
                 ["private"] = true,
                 // a first commit, so there is a branch to cut every other one from
                 ["auto_init"] = true,

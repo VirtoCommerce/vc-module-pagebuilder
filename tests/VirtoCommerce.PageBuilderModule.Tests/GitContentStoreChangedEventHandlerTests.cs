@@ -64,6 +64,21 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         [Fact]
+        public void A_deleted_store_leaves_a_repository_it_named_in_the_organization_alone()
+        {
+            var store = new Store
+            {
+                Id = "s1",
+                Settings =
+                [
+                    new ObjectSettingEntry(ModuleConstants.Settings.StoreLevelSettings.GitContentRepository) { Value = "acme/website" },
+                ],
+            };
+
+            Assert.Empty(Jobs(PerSite(), Change(store, EntryState.Deleted)));
+        }
+
+        [Fact]
         public void The_shared_repository_of_earlier_installations_is_nobodys_to_create_or_archive()
         {
             var shared = new GitContentOptions { Enabled = true, Repository = "acme/content", Token = "t0ken", BaseBranch = "main", AutoCreateRepositories = true };

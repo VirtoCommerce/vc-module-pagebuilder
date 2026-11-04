@@ -1,15 +1,24 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net;
+using System.Security.Claims;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
+using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Data.GitContent;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
+using VirtoCommerce.StoreModule.Core.Model;
+using VirtoCommerce.StoreModule.Core.Model.Search;
+using VirtoCommerce.StoreModule.Core.Services;
 using Xunit;
 
 namespace VirtoCommerce.PageBuilderModule.Tests
@@ -121,6 +130,31 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         [Fact]
+        public async Task The_site_status_of_a_store_the_user_does_not_work_in_is_forbidden()
+        {
+            var controller = Controller(authorization: new StoreAuthorization("s2"));
+
+            Assert.IsType<ForbidResult>((await controller.GetSite("s1")).Result);
+        }
+
+        [Fact]
+        public async Task The_sites_panel_lists_the_stores_the_user_works_in()
+        {
+            var connection = GitContentConnectionTests.Connection(_settings, _keys, configure: options =>
+            {
+                options.Enabled = true;
+                options.Organization = "acme";
+                options.Token = "t0ken";
+                options.BaseBranch = "main";
+            });
+            var controller = Controller(connection, new StoreAuthorization("s2"), new SitePolicy(), new Stores("s1", "s2"));
+
+            var answer = JObject.FromObject(Assert.IsType<OkObjectResult>(await controller.GetConnection()).Value!);
+
+            Assert.Equal(["s2"], answer["sites"]!.Select(x => x.Value<string>("storeId")));
+        }
+
+        [Fact]
         public void With_the_configuration_in_charge_the_setup_is_not_offered()
         {
             var connection = GitContentConnectionTests.Connection(_settings, _keys, configure: options =>
@@ -135,16 +169,43 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
         // ── helpers ────────────────────────────────────────────────────────────────────────────────
 
-        private GitContentSetupController Controller(GitContentConnection connection = null)
+        private GitContentSetupController Controller(GitContentConnection connection = null, IAuthorizationService authorization = null,
+            IGitContentPolicy policy = null, IStoreSearchService stores = null)
         {
             var http = new DefaultHttpContext();
             http.Request.Scheme = "https";
             http.Request.Host = new HostString("platform.test");
 
-            return new GitContentSetupController(new FakeGitContentProvisioner(), connection ?? GitContentConnectionTests.Connection(_settings, _keys), _keys)
+            return new GitContentSetupController(new FakeGitContentProvisioner(), connection ?? GitContentConnectionTests.Connection(_settings, _keys), _keys,
+                authorization ?? new FakeAuthorizationService(true), policy, stores)
             {
                 ControllerContext = new ControllerContext { HttpContext = http },
             };
+        }
+
+        /// <summary>Lets the user into the one store they work in, as Page Builder's store check does.</summary>
+        private sealed class StoreAuthorization(string storeId) : IAuthorizationService
+        {
+            public Task<AuthorizationResult> AuthorizeAsync(ClaimsPrincipal user, object resource, IEnumerable<IAuthorizationRequirement> requirements) =>
+                Task.FromResult(resource is IHasStoreId store && store.StoreId == storeId ? AuthorizationResult.Success() : AuthorizationResult.Failed());
+
+            public Task<AuthorizationResult> AuthorizeAsync(ClaimsPrincipal user, object resource, string policyName) =>
+                throw new NotSupportedException();
+        }
+
+        private sealed class SitePolicy : IGitContentPolicy
+        {
+            public Task<bool> IsEnabledForStoreAsync(string storeId, CancellationToken cancellationToken = default) => Task.FromResult(true);
+            public Task<string> GetRepositoryAsync(string storeId, CancellationToken cancellationToken = default) => Task.FromResult(Of(storeId).Name);
+            public Task<StoreRepository> GetStoreRepositoryAsync(string storeId, CancellationToken cancellationToken = default) => Task.FromResult(Of(storeId));
+            public Task<StoreRepository> ResolveRepositoryAsync(string storeId, CancellationToken cancellationToken = default) => Task.FromResult(Of(storeId));
+            private static StoreRepository Of(string storeId) => new($"acme/site-{storeId}", GitRepositorySource.Site);
+        }
+
+        private sealed class Stores(params string[] ids) : IStoreSearchService
+        {
+            public Task<StoreSearchResult> SearchAsync(StoreSearchCriteria criteria, bool clone = true) =>
+                Task.FromResult(new StoreSearchResult { Results = ids.Select(id => new Store { Id = id, Name = id }).ToList(), TotalCount = ids.Length });
         }
 
         /// <summary>The state the setup carries, from the address the panel opens.</summary>

@@ -117,6 +117,45 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             github.AssertDone();
         }
 
+        /// <summary>A repository assigned by hand keeps the git flow it had: no history of database pages goes into it.</summary>
+        [Fact]
+        public async Task A_store_with_a_repository_assigned_by_hand_keeps_no_history()
+        {
+            var github = new GitHubScript();
+            var ownership = new FakeGitContentOwnership();
+            var history = History(github, published: Live, assignedRepository: "acme/website", ownership: ownership);
+
+            await history.RecordAsync(Group(), Live, "Save", Alice(), null, TestContext.Current.CancellationToken);
+
+            Assert.Null(await history.GetAsync(Group(), null, 20, TestContext.Current.CancellationToken));
+            Assert.Equal(0, github.Requests);
+            Assert.Empty(ownership.Asked);
+        }
+
+        [Fact]
+        public async Task GitHub_timing_out_costs_the_history_a_change_never_the_save()
+        {
+            // HttpClient.Timeout ends a request with a TaskCanceledException, not an HttpRequestException
+            var github = new GitHubScript(("GET", "repos/acme/site-s1/contents/database-pages/g1.json?ref=main", (_, _) => throw new TaskCanceledException()));
+
+            await History(github, published: null).RecordAsync(Group(), Live, "Save", Alice(), null, TestContext.Current.CancellationToken);
+
+            github.AssertDone();
+        }
+
+        [Fact]
+        public async Task A_save_the_editor_cancels_is_not_recorded_as_a_missed_change()
+        {
+            using var cancelled = new CancellationTokenSource();
+            var github = new GitHubScript(("GET", "repos/acme/site-s1/contents/database-pages/g1.json?ref=main", (_, _) =>
+            {
+                cancelled.Cancel();
+                throw new TaskCanceledException();
+            }));
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => History(github, published: null).RecordAsync(Group(), Live, "Save", Alice(), null, cancelled.Token));
+        }
+
         // ── helpers ────────────────────────────────────────────────────────────────────────────────
 
         private static GroupedPageBuilderPage Group() => new()
@@ -160,7 +199,8 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             },
         };
 
-        private static GroupedPageHistory History(GitHubScript github, string published, bool enabled = true)
+        private static GroupedPageHistory History(GitHubScript github, string published, bool enabled = true, string assignedRepository = null,
+            FakeGitContentOwnership ownership = null)
         {
             var options = Options.Create(new GitContentOptions
             {
@@ -170,7 +210,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 BaseBranch = "main",
                 GraphQlUrl = new Uri("https://api.github.test/graphql"),
             });
-            var policy = new GitContentPolicy(options, new FakeSettingsManager(enabled));
+            var policy = new GitContentPolicy(options, new FakeSettingsManager(enabled, assignedRepository), ownership ?? new FakeGitContentOwnership());
             var repository = new GitHubContentRepository(github, new MemoryCache(new MemoryCacheOptions()), options);
             return new PublishedContent(policy, repository, github, options, published);
         }

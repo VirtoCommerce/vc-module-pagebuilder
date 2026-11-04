@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
@@ -33,6 +35,22 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         [Fact]
+        public async Task Enabled_false_in_the_configuration_switches_the_saved_App_off_too()
+        {
+            var settings = new MemorySettingsManager();
+            var keys = new EphemeralDataProtectionProvider();
+            await Connection(settings, keys, Conversion("Acme")).CreateAppAsync("c0de", "acme", TestContext.Current.CancellationToken);
+            var configuration = new ConfigurationBuilder()
+                .AddInMemoryCollection(new Dictionary<string, string> { [$"{GitContentOptions.SectionName}:Enabled"] = "false" })
+                .Build();
+
+            var options = Connection(settings, keys, configuration: configuration, configure: x => x.Enabled = false).Value;
+
+            Assert.True(options.UsesApp);
+            Assert.False(options.Enabled);
+        }
+
+        [Fact]
         public async Task The_setup_keeps_the_App_GitHub_hands_over_and_connects_with_it()
         {
             var settings = new MemorySettingsManager();
@@ -57,7 +75,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.Equal("main", options.BaseBranch);
             Assert.True(options.AutoCreateRepositories);
             Assert.Equal("content", options.PagesRoot);
-            Assert.Equal("Acme/site-b2b", options.RepositoryFor("b2b"));
+            Assert.Equal("Acme/site-b2b", options.RepositoryFor("b2b").Name);
         }
 
         [Fact]
@@ -130,8 +148,9 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             }.ToString(), HttpStatusCode.Created)));
 
         internal static GitContentConnection Connection(MemorySettingsManager settings, IDataProtectionProvider keys = null,
-            GitHubScript github = null, Action<GitContentOptions> configure = null) =>
+            GitHubScript github = null, Action<GitContentOptions> configure = null, IConfiguration configuration = null) =>
             new(new OptionsFactory<GitContentOptions>([new ConfigureNamedOptions<GitContentOptions>(Options.DefaultName, configure ?? (_ => { }))], []),
-                settings, keys ?? new EphemeralDataProtectionProvider(), github ?? new GitHubScript(), NullLogger<GitContentConnection>.Instance);
+                configuration ?? new ConfigurationBuilder().Build(), settings, keys ?? new EphemeralDataProtectionProvider(), github ?? new GitHubScript(),
+                NullLogger<GitContentConnection>.Instance);
     }
 }

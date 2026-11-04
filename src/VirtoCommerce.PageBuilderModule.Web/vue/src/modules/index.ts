@@ -12,7 +12,10 @@ import PageBuilderGit from "./pages/PageBuilderGit.vue";
 import PageBuilderGitHub from "./pages/PageBuilderGitHub.vue";
 import PageBuilderPageDetails from "./page-builder/pages/PageBuilderPageDetails.vue";
 import MultilanguagePageDetails from "./page-builder/pages/MultilanguagePageDetails.vue";
+import { definePermalinkRule } from "./page-builder/permalinkRule";
 import "./styles.css";
+
+definePermalinkRule();
 
 // The AngularJS module's "Page Builder" widget on the store blade ("storeDetail"): the store's pages
 registerExternalWidget({

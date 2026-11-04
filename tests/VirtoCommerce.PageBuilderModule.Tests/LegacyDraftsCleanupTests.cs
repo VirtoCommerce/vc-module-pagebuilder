@@ -388,13 +388,14 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 publishingService: null,
                 eventPublisher: null,
                 gitContentOptions: options,
-                gitContentPolicy: new FakePolicy(gitFlow),
+                gitContentPolicy: new FakeGitContentPolicy(gitFlow),
                 gitContentRepository: git ?? new FakeGitRepository(),
                 gitContentHistory: null,
                 gitContentPublisher: null,
                 gitContentProvisioner: new FakeGitContentProvisioner(),
                 settingsManager: null,
-                authorizationService: new FakeAuthorizationService(allowed));
+                authorizationService: new FakeAuthorizationService(allowed),
+                distributedLock: new InProcessDistributedLock());
 
             var identity = new ClaimsIdentity([new Claim(ClaimTypes.Name, "john")], "test");
             controller.ControllerContext = new ControllerContext
@@ -510,18 +511,6 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             public Task<string> DeleteFileAsync(string repository, string path, string branch, string message, GitCommitAuthor author,
                 CancellationToken cancellationToken = default) =>
                 throw new NotSupportedException();
-        }
-
-        private sealed class FakePolicy(bool enabled) : IGitContentPolicy
-        {
-            public Task<bool> IsEnabledForStoreAsync(string storeId, CancellationToken cancellationToken = default) =>
-                Task.FromResult(enabled);
-
-            public Task<string> GetRepositoryAsync(string storeId, CancellationToken cancellationToken = default) =>
-                Task.FromResult<string>(enabled ? "o/r" : null);
-
-            public Task<string> ResolveRepositoryAsync(string storeId, CancellationToken cancellationToken = default) =>
-                Task.FromResult("o/r");
         }
 
     }

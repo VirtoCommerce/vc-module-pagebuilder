@@ -13,6 +13,9 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
     /// <summary>
     /// Three independent switches must all be on: the global kill switch, a usable connection, and the
     /// store's own opt-in. The store settings are read last because they are the only part that costs a query.
+    /// <para>
+    /// A repository in the organization is worked in only by the store the module created it for.
+    /// </para>
     /// </summary>
     public class GitContentPolicy : IGitContentPolicy
     {
@@ -21,24 +24,43 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
 
         private readonly GitContentOptions _options;
         private readonly ISettingsManager _settingsManager;
+        private readonly IGitContentOwnership _ownership;
 
-        public GitContentPolicy(IOptions<GitContentOptions> options, ISettingsManager settingsManager)
+        public GitContentPolicy(IOptions<GitContentOptions> options, ISettingsManager settingsManager, IGitContentOwnership ownership)
         {
             _options = options.Value;
             _settingsManager = settingsManager;
+            _ownership = ownership;
         }
 
         public async Task<bool> IsEnabledForStoreAsync(string storeId, CancellationToken cancellationToken = default) =>
-            await GetRepositoryAsync(storeId, cancellationToken) != null;
+            await ReadStoreAsync(storeId) is { Enabled: true } store && _options.RepositoryFor(storeId, store.ConfiguredRepository) != null;
 
-        public async Task<string> GetRepositoryAsync(string storeId, CancellationToken cancellationToken = default)
+        public async Task<string> GetRepositoryAsync(string storeId, CancellationToken cancellationToken = default) =>
+            (await GetStoreRepositoryAsync(storeId, cancellationToken))?.Name;
+
+        public async Task<StoreRepository> GetStoreRepositoryAsync(string storeId, CancellationToken cancellationToken = default)
         {
-            var store = await ReadStoreAsync(storeId);
-            return store is { Enabled: true } ? store.Repository : null;
+            // a store that is off never reaches its repository setting, so a value it cannot use does not break it
+            if (await ReadStoreAsync(storeId) is not { Enabled: true } store)
+            {
+                return null;
+            }
+
+            var repository = _options.RepositoryFor(storeId, store.ConfiguredRepository);
+            if (repository != null && _options.IsInOrganization(repository.Name))
+            {
+                GitHubContentOwnership.EnsureOwnedBy(repository.Name, await _ownership.GetStoreIdAsync(repository.Name, cancellationToken), storeId);
+            }
+
+            return repository;
         }
 
-        public async Task<string> ResolveRepositoryAsync(string storeId, CancellationToken cancellationToken = default) =>
-            (await ReadStoreAsync(storeId))?.Repository;
+        public async Task<StoreRepository> ResolveRepositoryAsync(string storeId, CancellationToken cancellationToken = default)
+        {
+            var store = await ReadStoreAsync(storeId);
+            return store == null ? null : _options.RepositoryFor(storeId, store.ConfiguredRepository);
+        }
 
         /// <summary>Both store settings in one query, or <c>null</c> when the flow cannot be on for any store.</summary>
         private async Task<StoreGitSettings> ReadStoreAsync(string storeId)
@@ -55,12 +77,10 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
 
             object Value(string name) => settings?.FirstOrDefault(x => x.Name == name)?.Value;
 
-            return new StoreGitSettings(
-                ToBoolean(Value(EnabledSetting)),
-                _options.RepositoryFor(storeId, Convert.ToString(Value(RepositorySetting), CultureInfo.InvariantCulture)));
+            return new StoreGitSettings(ToBoolean(Value(EnabledSetting)), Convert.ToString(Value(RepositorySetting), CultureInfo.InvariantCulture));
         }
 
-        private sealed record StoreGitSettings(bool Enabled, string Repository);
+        private sealed record StoreGitSettings(bool Enabled, string ConfiguredRepository);
 
         // The stored value arrives as whatever the settings backend deserialized it to (bool, string,
         // JValue). Anything we cannot read as a boolean means "not opted in" — never guess "on".

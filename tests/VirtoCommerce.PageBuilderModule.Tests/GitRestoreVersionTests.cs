@@ -310,13 +310,14 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 publishingService: null,
                 eventPublisher: null,
                 gitContentOptions: options,
-                gitContentPolicy: new FakePolicy(gitFlow),
+                gitContentPolicy: new FakeGitContentPolicy(gitFlow),
                 gitContentRepository: repository,
                 gitContentHistory: history,
                 gitContentPublisher: null,
                 gitContentProvisioner: new FakeGitContentProvisioner(),
                 settingsManager: new PerNameSettings(configuredStoreUrl),
-                authorizationService: null);
+                authorizationService: null,
+                distributedLock: new InProcessDistributedLock());
 
             var identity = new ClaimsIdentity([new Claim(ClaimTypes.Name, Login)], "test");
             controller.ControllerContext = new ControllerContext
@@ -325,18 +326,6 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             };
 
             return controller;
-        }
-
-        private sealed class FakePolicy(bool enabled) : IGitContentPolicy
-        {
-            public Task<bool> IsEnabledForStoreAsync(string storeId, CancellationToken cancellationToken = default) =>
-                Task.FromResult(enabled);
-
-            public Task<string> GetRepositoryAsync(string storeId, CancellationToken cancellationToken = default) =>
-                Task.FromResult<string>(enabled ? "o/r" : null);
-
-            public Task<string> ResolveRepositoryAsync(string storeId, CancellationToken cancellationToken = default) =>
-                Task.FromResult("o/r");
         }
 
         private sealed class RecordingHistory : IGitContentHistory

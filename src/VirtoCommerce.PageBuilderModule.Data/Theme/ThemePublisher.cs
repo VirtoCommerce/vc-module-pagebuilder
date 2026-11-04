@@ -47,17 +47,20 @@ public class ThemePublisher(
     /// <summary>The lock theme saves and publications of a store share.</summary>
     public static string LockResource(string storeId) => $"PageBuilder:Theme:{storeId}";
 
-    public virtual Task<int> PublishAsync(string storeId, string catalogHash, ClaimsPrincipal user, CancellationToken cancellationToken = default)
+    public virtual async Task<int> PublishAsync(string storeId, string catalogHash, ClaimsPrincipal user, CancellationToken cancellationToken = default)
     {
-        return distributedLock.ExecuteAsync(
+        var catalog = await ReadCatalogAsync(storeId, catalogHash, cancellationToken);
+        return await distributedLock.ExecuteAsync(
             LockResource(storeId),
-            _ => PublishUnderLockAsync(storeId, catalogHash, user, drafts: true, cancellationToken),
+            _ => PublishUnderLockAsync(storeId, catalog, catalogHash, user, drafts: true, cancellationToken),
             cancellationToken: cancellationToken);
     }
 
     /// <summary>
     /// The first publication of a store that has none, from its live files: no draft is published, so an anonymous
-    /// read may start it. Returns the publication the pointer names, which another node may have written meanwhile.
+    /// read may start it. The live files may predate the storefront's schemas, so only their shape is checked; the
+    /// store's current catalog, when there is one, still tells which settings name menus. Returns the publication the
+    /// pointer names, which another node may have written meanwhile.
     /// </summary>
     public virtual Task<int> PublishFirstAsync(string storeId, CancellationToken cancellationToken = default)
     {
@@ -70,7 +73,10 @@ public class ThemePublisher(
                 {
                     return existing;
                 }
-                return await PublishUnderLockAsync(storeId, catalogHash: null, user: null, drafts: false, cancellationToken);
+
+                var current = await catalogService.GetAsync(storeId, hash: null, cancellationToken);
+                var catalog = current == null ? null : JObject.Parse(current);
+                return await PublishUnderLockAsync(storeId, catalog, catalogHash: null, user: null, drafts: false, cancellationToken);
             },
             cancellationToken: cancellationToken);
     }
@@ -93,14 +99,17 @@ public class ThemePublisher(
         }
     }
 
-    /// <summary>The numbers of the publications whose snapshot of <paramref name="language"/> is written.</summary>
+    /// <summary>
+    /// The numbers of the publications whose snapshot of <paramref name="language"/> is written whole. A publication
+    /// writes the store default language last, so one that has it whole is complete.
+    /// </summary>
     public static async Task<IReadOnlyList<int>> CompletePublicationsAsync(ThemeStorage storage, string language)
     {
         var complete = new List<int>();
         foreach (var folder in await storage.ListFoldersAsync(ThemeStorage.SnapshotsFolder))
         {
             if (int.TryParse(folder, NumberStyles.None, CultureInfo.InvariantCulture, out var publication)
-                && await storage.ReadAsync(SnapshotFile(publication, language)) != null)
+                && IsWhole(await storage.ReadAsync(SnapshotFile(publication, language))))
             {
                 complete.Add(publication);
             }
@@ -108,17 +117,36 @@ public class ThemePublisher(
         return complete;
     }
 
+    // a snapshot is one JSON object: a write cut off anywhere leaves a file that is not
+    private static bool IsWhole(string snapshot)
+    {
+        if (snapshot == null)
+        {
+            return false;
+        }
+
+        try
+        {
+            return JToken.Parse(snapshot) is JObject;
+        }
+        catch (JsonReaderException)
+        {
+            return false;
+        }
+    }
+
     public static string SnapshotFile(int publication, string language) =>
         $"{ThemeStorage.SnapshotsFolder}/{publication.ToString(CultureInfo.InvariantCulture)}/{language}.json";
 
-    private async Task<int> PublishUnderLockAsync(string storeId, string catalogHash, ClaimsPrincipal user, bool drafts, CancellationToken cancellationToken)
+    /// <param name="catalog">The storefront's schemas: what the theme is checked against, and where its menus are found.</param>
+    /// <param name="catalogHash">The catalog the publication is checked against; <c>null</c> checks the shape only.</param>
+    private async Task<int> PublishUnderLockAsync(string storeId, JObject catalog, string catalogHash, ClaimsPrincipal user, bool drafts, CancellationToken cancellationToken)
     {
         var store = await storeService.GetNoCloneAsync(storeId) ?? throw new KeyNotFoundException($"Store '{storeId}' not found.");
         var storage = await storageFactory.OpenAsync(storeId);
 
-        var catalog = await ReadCatalogAsync(storeId, catalogHash, cancellationToken);
         var (source, draftFiles, errors) = await ReadSourceAsync(storage, drafts);
-        errors.AddRange(ThemeSnapshotBuilder.Validate(source, catalog));
+        errors.AddRange(ThemeSnapshotBuilder.Validate(source, catalogHash == null ? null : catalog));
         if (errors.Count > 0)
         {
             throw new ThemeValidationException(errors);
@@ -129,7 +157,7 @@ public class ThemePublisher(
         var publication = await NextPublicationAsync(storage);
         var set = ThemeSnapshotBuilder.Build(source, catalog, catalogHash, languages, defaultLanguage, publication, DateTime.UtcNow);
 
-        foreach (var (language, json) in set.Files)
+        foreach (var (language, json) in set.Files.OrderBy(x => string.Equals(x.Key, defaultLanguage, StringComparison.OrdinalIgnoreCase)))
         {
             await storage.WriteAsync(SnapshotFile(publication, language), json);
             WarnWhenLarge(storeId, publication, language, json);
@@ -145,7 +173,7 @@ public class ThemePublisher(
     {
         if (string.IsNullOrEmpty(catalogHash))
         {
-            return null;
+            throw new ThemeValidationException(["the publication names no schema catalog: preview the storefront first"]);
         }
 
         var catalog = await catalogService.GetAsync(storeId, catalogHash, cancellationToken)

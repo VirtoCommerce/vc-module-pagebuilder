@@ -207,7 +207,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             GraphQlUrl = new Uri("https://api.github.test/graphql"),
         });
 
-        private static GitContentPolicy Policy(IOptions<GitContentOptions> options) => new(options, new FakeSettingsManager(true));
+        private static GitContentPolicy Policy(IOptions<GitContentOptions> options) => new(options, new FakeSettingsManager(true), new FakeGitContentOwnership());
 
         private static ThemeFileHistory History(GitHubScript github)
         {
@@ -217,7 +217,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         private static ThemeFileHistoryController Controller(GitHubScript github, FakeLiveStorage live) =>
-            WithUser(new ThemeFileHistoryController(live, live, live, live, History(github)));
+            WithUser(new ThemeFileHistoryController(live, live, live, live, new InProcessDistributedLock(), History(github)));
 
         private static PageBuilderController Builder(GitHubScript github, FakeLiveStorage live)
         {
@@ -236,6 +236,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 gitContentProvisioner: new FakeGitContentProvisioner(),
                 settingsManager: null,
                 authorizationService: new FakeAuthorizationService(true),
+                distributedLock: new InProcessDistributedLock(),
                 themeFileHistory: History(github)));
         }
 

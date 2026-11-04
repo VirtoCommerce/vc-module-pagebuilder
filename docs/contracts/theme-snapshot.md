@@ -38,12 +38,14 @@ at once:
 2. It validates them against the section schema catalog the publication names (see
    [Section schema catalog](#section-schema-catalog)). A file that fails stops the publication; nothing is written.
 3. For each store language it writes `snapshots/{n}/{cultureName}.json`, where `n` is one more than the highest
-   publication of the theme; the translatable texts are resolved there ([Translatable fields](#translatable-fields)).
+   publication of the theme, the store default language last; the translatable texts are resolved there
+   ([Translatable fields](#translatable-fields)).
 4. It rewrites `snapshots/current.json` to `n`. This is the moment the storefront sees the new theme.
 5. It writes the drafts over the live files, deletes the drafts and records the publication in the history.
 
 The snapshots are written before the pointer, so the pointer never names a publication that is not complete. A pointer
-that exists but is not valid JSON (a write cut off on a file system) is read as the highest complete publication. When
+that exists but is not valid JSON (a write cut off on a file system) is read as the highest complete publication: the
+highest one whose file of the store default language is whole. When
 step 5 fails, the publication stands; publishing again writes the live files.
 
 To go back to an earlier theme, the editor restores its version from the history and publishes it. The header, the
@@ -354,7 +356,8 @@ The catalog is the storefront's section, block, template and palette schemas, th
   store's current catalog, which agents read.
 - A save and a publication name the hash of the catalog the designer previewed. The server validates the drafts
   against that catalog (every section and block type is one the storefront has) and records its hash in the
-  snapshot. The first publication, from the live files, names none and checks the shape only.
+  snapshot. A publication that names none is refused. The first publication, from the live files, names none and
+  checks the shape only; it finds the menus through the store's current catalog, when there is one.
 - A schema is data: see [Schemas](preview-protocol.md#schemas).
 
 ## Endpoints
@@ -363,6 +366,6 @@ All take `storeId` and check the store as the other Page Builder endpoints do.
 
 | Method and route | Permission | Returns |
 |---|---|---|
-| `POST api/pagebuilder/theme/publish?storeId&catalogHash` | `builder:publish` | `{ publication }`; 400 `{ error, errors }` when the theme does not fit the catalog |
+| `POST api/pagebuilder/theme/publish?storeId&catalogHash` | `builder:publish` | `{ publication }`; 400 `{ error, errors }` when it names no catalog or the theme does not fit it |
 | `PUT api/pagebuilder/catalog?storeId`, the catalog as the body | `builder:theme` | `{ hash }`; 400 when it has no valid `hash` |
 | `GET api/pagebuilder/catalog?storeId&hash` | `builder:read` | the catalog with that hash, the current one without it; 404 when there is none |

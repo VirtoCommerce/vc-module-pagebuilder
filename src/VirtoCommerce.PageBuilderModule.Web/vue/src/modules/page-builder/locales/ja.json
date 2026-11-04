@@ -385,6 +385,7 @@
         "PRESET_PLACEHOLDER": "プリセットを選択",
         "APPLY": "適用",
         "EMPTY": "このテーマには編集できる設定がありません。",
+        "LOAD_FAILED": "テーマ設定を読み込めませんでした。",
         "SAVE_FAILED": "テーマ設定を保存できませんでした。"
       },
       "CLIPBOARD": {

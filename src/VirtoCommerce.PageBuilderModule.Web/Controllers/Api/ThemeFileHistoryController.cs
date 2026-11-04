@@ -12,7 +12,9 @@ using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Data.GitContent;
+using VirtoCommerce.PageBuilderModule.Data.Theme;
 using VirtoCommerce.Platform.Core.Common;
+using VirtoCommerce.Platform.Core.DistributedLock;
 using VirtoCommerce.Platform.Core.Events;
 
 namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
@@ -24,11 +26,13 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
     /// </summary>
     [Route("api/pagebuilder/theme-history")]
     [Authorize]
+    [RepositoryOwnershipConflict]
     public class ThemeFileHistoryController(
         IContentPathResolver pathResolver,
         IBlobContentStorageProviderFactory blobContentStorageProviderFactory,
         IPublishingService publishingService,
         IEventPublisher eventPublisher,
+        IDistributedLock distributedLock,
         ThemeFileHistory history) : Controller
     {
         private const string Themes = "themes";
@@ -85,13 +89,14 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 return NotFound();
             }
 
-            // the change's bytes as they are: re-serializing could change them, and the published change is told by them
-            var storage = Storage(storeId, path);
-            await using (var stream = await storage.OpenWriteAsync(publishingService.GetRelativeDraftUrl(path, true)))
-            await using (var writer = new StreamWriter(stream))
+            // the change's bytes as they are: re-serializing could change them, and the published change is told by them;
+            // outside a publication of the store's theme, which deletes the drafts it puts live
+            await distributedLock.ExecuteAsync(ThemePublisher.LockResource(storeId), async _ =>
             {
+                await using var stream = await Storage(storeId, path).OpenWriteAsync(publishingService.GetRelativeDraftUrl(path, true));
+                await using var writer = new StreamWriter(stream);
                 await writer.WriteAsync(content);
-            }
+            }, cancellationToken: cancellationToken);
 
             await eventPublisher.Publish(new PageBuilderContentChangedEvent(Themes,
                 [new GenericChangedEntry<FileEntity>(new FileEntity { Path = path, Type = Themes }, EntryState.Modified)]), cancellationToken);

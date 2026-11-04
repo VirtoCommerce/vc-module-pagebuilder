@@ -112,7 +112,7 @@
 
     <div class="tw-mt-5 tw-flex tw-flex-col tw-gap-2">
       <VcButton
-        v-if="canUpdate && canOpenDesigner"
+        v-if="canUpdate && canEditContent"
         variant="primary"
         icon="lucide-layout-template"
         :disabled="loading"
@@ -164,6 +164,8 @@ interface Props {
   canUpdate: boolean;
   canDelete: boolean;
   canOpenDesigner: boolean;
+  /** "Edit content": the Vue designer is the store's */
+  canEditContent: boolean;
   loading: boolean;
   detailsLoading: boolean;
 }

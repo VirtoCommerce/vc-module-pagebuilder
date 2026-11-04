@@ -385,6 +385,7 @@
         "PRESET_PLACEHOLDER": "Välj en förinställning",
         "APPLY": "Tillämpa",
         "EMPTY": "Det här temat har inga inställningar att redigera.",
+        "LOAD_FAILED": "Temainställningarna kunde inte läsas in.",
         "SAVE_FAILED": "Temainställningarna kunde inte sparas."
       },
       "CLIPBOARD": {

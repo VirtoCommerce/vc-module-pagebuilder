@@ -73,15 +73,15 @@ public class GitContentStoreChangedEventHandler(
                 var repository = RepositoryOrNull(options, store.Id, configured);
 
                 // a repository the store named itself was somebody's before the store, and stays theirs
-                if (options.IsInOrganization(repository))
+                if (repository?.Source == GitRepositorySource.Site)
                 {
-                    yield return new GitContentRepositoryJobPayload { StoreId = store.Id, ArchiveRepository = repository };
+                    yield return new GitContentRepositoryJobPayload { StoreId = store.Id, ArchiveRepository = repository.Name };
                 }
             }
         }
     }
 
-    private static string RepositoryOrNull(GitContentOptions options, string storeId, string configured)
+    private static StoreRepository RepositoryOrNull(GitContentOptions options, string storeId, string configured)
     {
         try
         {

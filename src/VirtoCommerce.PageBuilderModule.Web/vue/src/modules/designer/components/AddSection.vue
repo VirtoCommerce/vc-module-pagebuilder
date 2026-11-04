@@ -96,8 +96,12 @@ const shown = computed(() => {
 
 // the store's shared components, searched with the same box (none listed when the user can't read them)
 const shared = ref<SharedComponent[]>([]);
+let searches = 0;
 const loadShared = debounce(async () => {
-  shared.value = props.designer.storeId.value ? await searchSharedComponents(props.designer.storeId.value, search.value).catch(() => []) : [];
+  const request = ++searches;
+  const found = props.designer.storeId.value ? await searchSharedComponents(props.designer.storeId.value, search.value).catch(() => []) : [];
+  // an earlier search answering last doesn't replace a later one's results
+  if (request === searches) shared.value = found;
 }, 250);
 watch(search, loadShared, { immediate: true });
 

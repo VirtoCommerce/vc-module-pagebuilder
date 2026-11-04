@@ -498,12 +498,12 @@ import { pageAnchors } from "../designer/anchors";
 import { useDesigner } from "../designer/useDesigner";
 import { resolveRefs, toDocument } from "../designer/document";
 import { pageOnly } from "../designer/groups";
-import { previewUrl, usePreviewBridge } from "../designer/preview";
+import { previewUrl, storefrontPage, usePreviewBridge } from "../designer/preview";
 import {
   loadStorefront,
   storeTheme,
   filePreviewUrl,
-  isGitFlow,
+  gitFlowOf,
   fileHistory,
   groupHistory,
   groupVersion,
@@ -875,10 +875,12 @@ function openPreview() {
   if (designer.templateKey.value) {
     if (storefront.value?.url && previewUrlOf.value) window.open(`${storefront.value.url.replace(/\/+$/, "")}${previewUrlOf.value}`, "_blank");
   } else if (file) {
-    const href = filePreviewUrl(file, designer.gitFlow.value, storefront.value?.url, !!designer.status.value.hasChanges);
+    const href = filePreviewUrl(file, designer.gitFlow.value, storefront.value, !!designer.status.value.hasChanges);
     if (href) window.open(href, "_blank");
-  } else if (storefront.value?.url && designer.groupId.value) {
-    window.open(`${storefront.value.url.replace(/\/+$/, "")}/designer-preview?pageId=${encodeURIComponent(designer.groupId.value)}`, "_blank");
+  } else if (storefront.value && designer.groupId.value) {
+    const url = storefrontPage(storefront.value.url, storefront.value.previewPath);
+    url?.searchParams.set("pageId", designer.groupId.value);
+    if (url) window.open(url, "_blank");
   }
 }
 
@@ -1032,15 +1034,26 @@ watch(
     if (!selection) return;
     historyOpen.value = false;
     rulesOpen.value = false;
+    // the page again: instead of the version shown, or of one still being read
     if (previewing.value) previewVersion(null);
+    else endVersionPreview();
   },
 );
+
+let versionPreviews = 0;
+/** Shows the page again, and drops a version still being read for the preview */
+function endVersionPreview() {
+  versionPreviews++;
+  previewing.value = undefined;
+}
 
 /**
  * Shows a version in the preview (what a Save left of the page or template, the header and the footer; the others as
  * they are now), or the page again; a file page's version opens on the storefront
  */
 async function previewVersion(version: PageVersion | null) {
+  // a version read after another pick, or after Back, is not shown
+  const request = ++versionPreviews;
   const file = designer.file.value;
   if (version && file && !version.files) {
     window.open(filePreviewUrl(file, true, undefined, false, version.sha), "_blank");
@@ -1048,7 +1061,7 @@ async function previewVersion(version: PageVersion | null) {
   }
   sendChanged.cancel();
   if (!version) {
-    previewing.value = undefined;
+    endVersionPreview();
     if (designer.groupsPreview.value) bridge.send({ type: "groups", ...designer.groupsPreview.value });
     bridge.send({ type: "page", ...renderMessage() });
     bridge.send({ type: "inspector", enabled: inspector.value });
@@ -1071,6 +1084,7 @@ async function previewVersion(version: PageVersion | null) {
       groupAt("header"),
       groupAt("footer"),
     ]);
+    if (request !== versionPreviews) return;
     previewing.value = version;
     const groups = designer.groupsPreview.value;
     if (groups && (header || footer)) bridge.send({ type: "groups", ...groups, ...(header ? { header } : {}), ...(footer ? { footer } : {}) });
@@ -1082,23 +1096,23 @@ async function previewVersion(version: PageVersion | null) {
     bridge.send({ type: "page", ...renderMessage(), ...(saved ? resolveRefs(pageOnly(saved), shared) : {}), sectionId: "" });
     bridge.send({ type: "inspector", enabled: false });
   } catch {
-    notification.error(t("PAGE_BUILDER.DESIGNER.HISTORY.PREVIEW_FAILED"));
+    if (request === versionPreviews) notification.error(t("PAGE_BUILDER.DESIGNER.HISTORY.PREVIEW_FAILED"));
   }
 }
 // an edit shows the page again, and the preview takes clicks again
 watch(
   () => designer.preview.value,
   () => {
-    if (!previewing.value) return;
-    previewing.value = undefined;
-    bridge.send({ type: "inspector", enabled: inspector.value });
+    const shown = !!previewing.value;
+    endVersionPreview();
+    if (shown) bridge.send({ type: "inspector", enabled: inspector.value });
   },
 );
 
 async function reopen() {
   const file = designer.file.value;
   await (file ? designer.open(file) : designer.open({ groupId: designer.groupId.value!, storeId: designer.storeId.value! }));
-  previewing.value = undefined;
+  endVersionPreview();
   await versionHistory.value?.reload();
 }
 
@@ -1179,8 +1193,8 @@ function enableHistory() {
     onClose: async () => {
       sitePanel.value = false;
       if (maximized) maximized.value = true;
-      const on = await isGitFlow(storeId, file?.theme ?? (await storeTheme(storeId)));
-      historyOn.value = on;
+      const { on, siteHistory } = await gitFlowOf(storeId, file?.theme ?? (await storeTheme(storeId)));
+      historyOn.value = siteHistory;
       if (!on || !file || file.type === "themes") return;
       // unsaved edits stay on screen; their save goes to git now, and so does publishing
       if (unsaved.value) designer.gitFlow.value = true;
@@ -1335,7 +1349,7 @@ onMounted(async () => {
       return Promise.all([
         theme.load(storeId, name),
         // whether the site keeps versions: a page's, a template's and its header's and footer's
-        query.value?.sharedComponentId ? undefined : isGitFlow(storeId, name).then((on) => (historyOn.value = on)),
+        query.value?.sharedComponentId ? undefined : gitFlowOf(storeId, name).then((x) => (historyOn.value = x.siteHistory)),
         query.value?.sharedComponentId ? undefined : loadTemplateKeys(),
       ]);
     }),
@@ -1451,7 +1465,7 @@ async function switchTo(key: string | null) {
   theme.revert();
   if (rules.dirty.value) await rules.load(storeId, themeName.value).catch(() => undefined);
   historyOpen.value = false;
-  previewing.value = undefined;
+  endVersionPreview();
   resolved.value = undefined;
   await designer.open(key ? { storeId, theme: themeName.value, type: "themes", path: templatePath(themeName.value, key) } : home!);
   if (key) await enterTemplate();

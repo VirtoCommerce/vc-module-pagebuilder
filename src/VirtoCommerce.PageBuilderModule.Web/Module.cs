@@ -120,6 +120,7 @@ namespace VirtoCommerce.PageBuilderModule.Web
             serviceCollection.AddTransient<IGitContentRepository, GitHubContentRepository>();
             serviceCollection.AddTransient<IGitContentHistory, GitHubContentHistory>();
             serviceCollection.AddTransient<IGitContentPublisher, GitHubContentPublisher>();
+            serviceCollection.AddTransient<IGitContentOwnership, GitHubContentOwnership>();
             serviceCollection.AddTransient<IGitContentPolicy, GitContentPolicy>();
             serviceCollection.AddTransient<IGitContentProvisioner, GitHubContentProvisioner>();
             // a database page's version history, in the same site repository
