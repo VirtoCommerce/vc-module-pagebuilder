@@ -424,11 +424,10 @@ angular.module('virtoCommerce.pageBuilderModule')
                 name: "pageBuilder.commands.delete-legacy-draft", icon: 'fa fa-eraser',
                 executeMethod: function () {
                     var draft = blade.legacyDraft;
-                    var dialogKey = 'delete-legacy-draft';
                     dialogService.showConfirmationDialog({
                         id: "confirmDeleteLegacyDraft",
-                        title: `pageBuilder.dialogs.${dialogKey}.title`,
-                        message: `pageBuilder.dialogs.${dialogKey}.message`,
+                        title: "pageBuilder.dialogs.delete-legacy-draft.title",
+                        message: "pageBuilder.dialogs.delete-legacy-draft.message",
                         messageValues: { path: draft.blobPath },
                         callback: function (confirmed) {
                             if (confirmed) {
@@ -449,13 +448,14 @@ angular.module('virtoCommerce.pageBuilderModule')
                 }, { paths: [path], dryRun: false }, function (result) {
                     blade.isLoading = false;
                     // The server keeps a draft whose page is not in the repository — it is still
-                    // what the builder reads. Say so, rather than report a deletion that did not
-                    // happen.
+                    // what the builder reads — and one that changed since this blade looked. Say
+                    // which, rather than report a deletion that did not happen.
                     if (result.skipped && result.skipped.length) {
+                        var dialogKey = result.skipped[0].reason === 'has-changes' ? 'legacy-draft-changed' : 'legacy-draft-kept';
                         dialogService.showNotificationDialog({
                             id: "legacyDraftKept",
-                            title: "pageBuilder.dialogs.legacy-draft-kept.title",
-                            message: "pageBuilder.dialogs.legacy-draft-kept.message"
+                            title: `pageBuilder.dialogs.${dialogKey}.title`,
+                            message: `pageBuilder.dialogs.${dialogKey}.message`
                         });
                     }
                     loadLegacyDraft();

@@ -13,56 +13,64 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 {
     public class PageBuilderAuthorizationHandlerTests
     {
-        private static readonly PageBuilderAuthorizationRequirement Default = new();
-        private static readonly PageBuilderAuthorizationRequirement AllowingUsersWithoutStore = new() { AllowUsersWithoutStore = true };
-
         [Fact]
-        public async Task UserWithoutStore_IsLetThrough_WhereAllowed()
+        public async Task UserWithoutStore_IsLetThrough()
         {
-            Assert.True(await IsAuthorizedAsync(new ApplicationUser { StoreId = null }, "s1", AllowingUsersWithoutStore));
-            Assert.True(await IsAuthorizedAsync(new ApplicationUser { StoreId = "" }, "s1", AllowingUsersWithoutStore));
+            Assert.True(await IsAuthorizedAsync(new ApplicationUser { StoreId = null }, "s1"));
+            Assert.True(await IsAuthorizedAsync(new ApplicationUser { StoreId = "" }, "s1"));
         }
 
         [Fact]
-        public async Task UserWithoutStore_IsRefused_ByDefault()
+        public async Task UserBoundToAStore_ReachesOnlyThatStore()
         {
-            Assert.False(await IsAuthorizedAsync(new ApplicationUser { StoreId = null }, "s1", Default));
-        }
-
-        [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public async Task UserBoundToAStore_ReachesOnlyThatStore(bool allowUsersWithoutStore)
-        {
-            var requirement = new PageBuilderAuthorizationRequirement { AllowUsersWithoutStore = allowUsersWithoutStore };
             var user = new ApplicationUser { StoreId = "s1" };
 
-            Assert.True(await IsAuthorizedAsync(user, "S1", requirement));
-            Assert.False(await IsAuthorizedAsync(user, "s2", requirement));
+            Assert.True(await IsAuthorizedAsync(user, "S1"));
+            Assert.False(await IsAuthorizedAsync(user, "s2"));
         }
 
         [Fact]
         public async Task UnknownUser_IsRefused()
         {
-            Assert.False(await IsAuthorizedAsync(null, "s1", AllowingUsersWithoutStore));
+            Assert.False(await IsAuthorizedAsync(null, "s1"));
         }
 
         [Fact]
         public async Task Administrator_ReachesEveryStore()
         {
-            Assert.True(await IsAuthorizedAsync(new ApplicationUser { StoreId = "s1" }, "s2", Default, administrator: true));
+            Assert.True(await IsAuthorizedAsync(new ApplicationUser { StoreId = "s1" }, "s2", administrator: true));
         }
 
-        private static async Task<bool> IsAuthorizedAsync(ApplicationUser user, string storeId, PageBuilderAuthorizationRequirement requirement, bool administrator = false)
+        [Fact]
+        public async Task AnotherHandler_CanGrantWhatThisOneRefuses()
         {
+            Assert.True(await IsAuthorizedAsync(new ApplicationUser { StoreId = "s1" }, "s2", extraHandler: new GrantingHandler()));
+        }
+
+        private static async Task<bool> IsAuthorizedAsync(ApplicationUser user, string storeId, bool administrator = false, IAuthorizationHandler extraHandler = null)
+        {
+            var requirement = new PageBuilderAuthorizationRequirement();
             Claim[] claims = administrator ? [new Claim(ClaimTypes.Role, PlatformConstants.Security.SystemRoles.Administrator)] : [];
             var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, "test"));
             var context = new AuthorizationHandlerContext([requirement], principal, new PageBuilderPageSearchCriteria { StoreId = storeId });
 
             var handler = new PageBuilderAuthorizationHandler(() => new UserManager<ApplicationUser>(new SingleUserStore(user), null, null, null, null, null, null, null, null));
             await handler.HandleAsync(context);
+            if (extraHandler != null)
+            {
+                await extraHandler.HandleAsync(context);
+            }
 
             return context.HasSucceeded;
+        }
+
+        private sealed class GrantingHandler : AuthorizationHandler<PageBuilderAuthorizationRequirement>
+        {
+            protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, PageBuilderAuthorizationRequirement requirement)
+            {
+                context.Succeed(requirement);
+                return Task.CompletedTask;
+            }
         }
 
         private sealed class SingleUserStore(ApplicationUser storedUser) : IUserStore<ApplicationUser>

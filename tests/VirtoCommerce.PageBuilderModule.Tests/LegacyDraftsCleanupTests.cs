@@ -6,6 +6,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -14,6 +15,7 @@ using Newtonsoft.Json.Linq;
 using VirtoCommerce.AssetsModule.Core.Assets;
 using VirtoCommerce.ContentModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
+using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Data.Validation;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using VirtoCommerce.PageBuilderModule.Web.Models;
@@ -248,6 +250,18 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         [Fact]
+        public async Task Delete_RefusesToWalkOutOfTheContentRoot_WhenTheRequestValidatorIsReplaced()
+        {
+            var blob = Storage();
+
+            var result = await Controller(blob, requestValidator: new InlineValidator<PageBuilderContentRequest>())
+                .DeleteLegacyDrafts("vccom", "pages", "default", Request("../../Themes/vccom/config/settings_data.json-draft"));
+
+            Assert.IsType<BadRequestObjectResult>(result);
+            Assert.Empty(blob.Removed);
+        }
+
+        [Fact]
         public async Task Delete_ADraftThatIsTheWholeOfThePage_IsSkippedRatherThanDeleted()
         {
             // nothing else holds it — no repository copy, no published blob — so deleting it is not a
@@ -388,7 +402,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             body.GetType().GetProperty(property)!.GetValue(body);
 
         private static PageBuilderController Controller(FakeStorage storage, FakeGitRepository git = null,
-            bool gitFlow = true, bool allowed = true)
+            bool gitFlow = true, bool allowed = true, IValidator<PageBuilderContentRequest> requestValidator = null)
         {
             var options = Options.Create(new GitContentOptions
             {
@@ -412,7 +426,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 gitContentPublisher: null,
                 settingsManager: null,
                 authorizationService: new FakeAuthorizationService(allowed),
-                requestValidator: new PageBuilderContentRequestValidator(new FakeStoreService(new Store { Id = "vccom" }), new PageBuilderContentFileValidator()));
+                requestValidator: requestValidator ?? new PageBuilderContentRequestValidator(new FakeStoreService(new Store { Id = "vccom" }), new PageBuilderContentFileValidator()));
 
             var identity = new ClaimsIdentity([new Claim(ClaimTypes.Name, "john")], "test");
             controller.ControllerContext = new ControllerContext

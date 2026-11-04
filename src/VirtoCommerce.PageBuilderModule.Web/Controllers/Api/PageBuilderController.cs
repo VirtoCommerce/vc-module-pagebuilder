@@ -22,6 +22,7 @@ using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Data.Authorization;
+using VirtoCommerce.PageBuilderModule.Data.Validation;
 using VirtoCommerce.PageBuilderModule.Web.Models;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Events;
@@ -372,9 +373,14 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 return refused;
             }
 
-            if (!IsValidSchemaKind(kind) || key.IsNullOrEmpty() || key.Contains('/'))
+            if (!IsValidSchemaKind(kind))
             {
                 return BadRequest(new { error = $"Unknown kind '{kind}'. Expected one of: {SchemaKindSections}, {SchemaKindTemplates}, {SchemaKindBlocks}, {SchemaKindObjects}, {SchemaKindShared}." });
+            }
+
+            if (key.IsNullOrEmpty() || key.Contains('/'))
+            {
+                return BadRequest(new { error = $"\"{key}\" is not a schema name." });
             }
 
             // Underscore-prefixed keys are theme-internal; only `shared` exposes them (e.g. _sections, _blocks).
@@ -523,7 +529,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [HttpGet]
         [Authorize(ModuleConstants.Security.Permissions.Read)]
         [Route("search")]
-        public async Task<ActionResult> Search(string storeId, string theme, string type, string folder, string pattern = null, string keyword = null)
+        public async Task<ActionResult<string>> Search(string storeId, string theme, string type, string folder, string pattern = null, string keyword = null)
         {
             if (await CheckRequestAsync(storeId, type, theme, PathsOf(folder)) is { } refused)
             {
@@ -657,7 +663,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         /// The editor's own draft is what ships — never the bytes the caller happens to send.
         /// </summary>
         [HttpPost]
-        [Authorize(ModuleConstants.Security.Permissions.Read)]
         [Authorize(ModuleConstants.Security.Permissions.Publish)]
         [Route("git/publish")]
         public async Task<ActionResult> GitPublish(string storeId, string path, string type, bool rebase = false)
@@ -789,7 +794,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         /// </para>
         /// </summary>
         [HttpPost]
-        [Authorize(ModuleConstants.Security.Permissions.Read)]
         [Authorize(ModuleConstants.Security.Permissions.Promote)]
         [Route("git/promote")]
         public async Task<ActionResult> GitPromote(string storeId, string path, string type)
@@ -863,7 +867,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         /// the environment on merge, the same way it carries every other change to the branch.
         /// </summary>
         [HttpPost]
-        [Authorize(ModuleConstants.Security.Permissions.Read)]
         [Authorize(ModuleConstants.Security.Permissions.Publish)]
         [Route("git/unpublish")]
         public async Task<ActionResult> GitUnpublish(string storeId, string path, string type)
@@ -875,7 +878,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
             if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
             {
-                // the switch is off for this store: unpublish means what it always meant
                 await publishingService.PublishingAsync(type ?? PagesContentType, storeId, path, publish: false);
                 return Ok();
             }
@@ -1292,7 +1294,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         /// </para>
         /// </summary>
         [HttpPost]
-        [Authorize(ModuleConstants.Security.Permissions.Read)]
         [Authorize(ModuleConstants.Security.Permissions.Delete)]
         [Route("git/legacy-drafts/delete")]
         public async Task<ActionResult> DeleteLegacyDrafts(string storeId, string type, string theme,
@@ -1395,7 +1396,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         /// </para>
         /// </summary>
         [HttpPost]
-        [Authorize(ModuleConstants.Security.Permissions.Read)]
         [Authorize(ModuleConstants.Security.Permissions.Create)]
         [Route("git/copy")]
         public async Task<ActionResult> GitCopyPage(string storeId, string type, string srcPath, string destPath)
@@ -1541,9 +1541,9 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         private static string LegacyDraftPathOf(string path) =>
             path.EndsWith(DraftSuffix, StringComparison.OrdinalIgnoreCase) ? path : path + DraftSuffix;
 
-        /// <summary>The request validator has already kept the path inside the content folder.</summary>
+        /// <summary>Checked here too: the request validator is replaceable, and this path gets deleted.</summary>
         private static bool IsLegacyDraftPath(string path) =>
-            !path.IsNullOrEmpty() && path.EndsWith(DraftSuffix, StringComparison.OrdinalIgnoreCase);
+            PageBuilderContentPaths.IsRelativePath(path) && path.EndsWith(DraftSuffix, StringComparison.OrdinalIgnoreCase);
 
         private async Task<LegacyDraftInfo> DescribeLegacyDraftAsync(IBlobContentStorageProvider storageProvider,
             string contentType, BlobEntry draft)
@@ -1673,8 +1673,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         private async Task<ActionResult> CheckRequestAsync(PageBuilderContentRequest request)
         {
             // Store access first, so a user bound to another store cannot tell from a 400 which stores exist.
-            var storeAccess = await authorizationService.AuthorizeAsync(User, request,
-                new PageBuilderAuthorizationRequirement { AllowUsersWithoutStore = true });
+            var storeAccess = await authorizationService.AuthorizeAsync(User, request, new PageBuilderAuthorizationRequirement());
             if (!storeAccess.Succeeded)
             {
                 return Forbid();
