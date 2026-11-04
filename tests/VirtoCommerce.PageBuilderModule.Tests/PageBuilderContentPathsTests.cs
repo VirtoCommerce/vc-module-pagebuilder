@@ -1,3 +1,5 @@
+using Newtonsoft.Json.Linq;
+using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Data.Validation;
 using Xunit;
 
@@ -72,7 +74,11 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         [InlineData("themes", "default/Config/builder_settings.json", false)]
         [InlineData("themes", "default/config/schemas/settings_data.json", false)]
         [InlineData("themes", "settings_data.json", false)]
-        public void OnlyTheFilesTheDesignerWrites_AreWritable(string type, string path, bool expected) =>
-            Assert.Equal(expected, PageBuilderContentPaths.IsWritable(type, path));
+        public void OnlyTheFilesTheDesignerWrites_AreWritable(string type, string path, bool expected)
+        {
+            var file = new PageBuilderContentFile { ContentType = type, Path = path, Content = JToken.Parse("{\"settings\":{\"type\":\"settings\"},\"content\":[]}") };
+
+            Assert.Equal(expected, new PageBuilderContentFileValidator().Validate(file).IsValid);
+        }
     }
 }

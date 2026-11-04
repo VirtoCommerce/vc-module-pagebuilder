@@ -118,6 +118,13 @@ export function evalInContext(expr: string, context: any): any {
   return null;
 }
 
+// A filter or a script in a path is schema text as well, so it runs through the expression language and not
+// through jsonpath-plus's own interpreter, which calls whatever methods the data has. jsonpath-plus hands over
+// the script with `@` already spelled `_$_v` (and `@root` `_$_root`, ...) and those names on the sandbox.
+function evalJsonPathScript(script: string, sandbox: object): unknown {
+  return evaluate(script.replaceAll(/(?<![\w$.])_\$_/g, 'this._$_'), sandbox, EVAL_UTILS, KNOWN_EXPRESSIONS);
+}
+
 export function getValueOrDefault(value: any, defaultValue: any = null) {
   if (value === 0 || value === null || value === false || value === '') {
     return value;
@@ -126,7 +133,13 @@ export function getValueOrDefault(value: any, defaultValue: any = null) {
 }
 
 export function getValueByPath(model: any, path: any): any {
-  const value = JSONPath({ path, json: model, wrap: true });
+  let value: unknown;
+  try {
+    value = JSONPath({ path, json: model, wrap: true, eval: evalJsonPathScript });
+  } catch (e) {
+    console.warn('JSONPath not evaluated', path, (e as Error)?.message);
+    return null;
+  }
   const result = Array.isArray(value) ? value[0] : value;
   if (typeof result === 'function') {
     return null;

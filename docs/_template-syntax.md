@@ -103,7 +103,7 @@ The following functions are available in every expression:
 When a request includes a `response` descriptor, the response is processed in order:
 
 1. **`selector`** (optional) — evaluates an expression with `this.response` set to the raw HTTP response. Returns the computed value.
-2. **`result`** (optional) — applies a JSONPath expression (e.g., `$.results`, `$.settings[?(@.name=='X')].value`) to extract data.
+2. **`result`** (optional) — applies a JSONPath expression (e.g., `$.results`, `$.settings[?(@.name=='X')].value`) to extract data. A filter `[?(…)]` or a script `[(…)]` in it is an [expression](#expression-language) too, with `@` for the current item and `@root` for the whole value.
 3. **`isArray`** (optional) — if `true`, wraps a non-array result in an array; if `false`, unwraps an array to its first element.
 
 ```json

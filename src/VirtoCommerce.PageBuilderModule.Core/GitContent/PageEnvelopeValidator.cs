@@ -40,7 +40,7 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
             {
                 errors.Add("Missing settings object (page-level settings).");
             }
-            else if (settingsObject["type"]?.Value<string>() != "settings")
+            else if (TextOf(settingsObject["type"]) != "settings")
             {
                 errors.Add($"settings.type must be \"settings\" (got: {settingsObject["type"]?.ToString() ?? "null"}).");
             }
@@ -61,7 +61,7 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
                     continue;
                 }
 
-                var type = sectionObject["type"]?.Value<string>();
+                var type = TextOf(sectionObject["type"]);
                 var label = $"content[{i}]{(string.IsNullOrEmpty(type) ? string.Empty : $" ({type})")}";
 
                 if (string.IsNullOrEmpty(type))
@@ -69,7 +69,7 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
                     errors.Add($"{label}: missing type field.");
                 }
 
-                var id = sectionObject["id"]?.Value<string>();
+                var id = TextOf(sectionObject["id"]);
                 if (!string.IsNullOrEmpty(id))
                 {
                     if (seenIds.TryGetValue(id, out var firstIndex))
@@ -85,5 +85,9 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
 
             return errors;
         }
+
+        // An object or an array where a value belongs reads as missing: Value<string>() throws on it, and the
+        // document comes from whoever saves it.
+        private static string TextOf(JToken token) => token is JValue value ? (string)value : null;
     }
 }

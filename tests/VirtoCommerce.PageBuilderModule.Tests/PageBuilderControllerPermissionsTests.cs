@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc.Routing;
+using Microsoft.AspNetCore.Mvc;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using Xunit;
 using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.Security;
@@ -55,13 +55,22 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         [Fact]
         public void EveryAction_IsListedAbove()
         {
-            var actions = typeof(PageBuilderController)
-                .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
-                .Where(method => method.GetCustomAttributes<HttpMethodAttribute>().Any())
-                .Select(method => method.Name);
-
-            Assert.All(actions, action => Assert.Contains(action, Expected.Keys));
+            Assert.All(Actions().Select(method => method.Name), action => Assert.Contains(action, Expected.Keys));
         }
+
+        [Fact]
+        public void NoAction_IsOpenToAnonymousCallers()
+        {
+            Assert.Empty(typeof(PageBuilderController).GetCustomAttributes(inherit: true).OfType<IAllowAnonymous>());
+            Assert.All(Actions(), action => Assert.Empty(action.GetCustomAttributes(inherit: true).OfType<IAllowAnonymous>()));
+        }
+
+        // What MVC routes: every public instance method of the controller that is not [NonAction], with or
+        // without an HTTP method attribute; one without a route of its own takes the controller's.
+        private static IEnumerable<MethodInfo> Actions() =>
+            typeof(PageBuilderController)
+                .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+                .Where(method => !method.IsSpecialName && !method.IsDefined(typeof(NonActionAttribute), inherit: true));
 
         private static string[] PoliciesOf(MethodInfo method) =>
             method.GetCustomAttributes<AuthorizeAttribute>().Select(attribute => attribute.Policy).Where(policy => policy != null).ToArray();

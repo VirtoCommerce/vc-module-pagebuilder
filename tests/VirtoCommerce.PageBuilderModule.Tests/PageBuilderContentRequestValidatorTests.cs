@@ -1,5 +1,6 @@
 using System.Linq;
 using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Data.Validation;
 using VirtoCommerce.StoreModule.Core.Model;
@@ -72,6 +73,39 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.False(result.IsValid);
         }
 
+        [Theory]
+        [InlineData("../about-us.page", "must stay inside")]
+        [InlineData("/a//b.page", "must stay inside")]
+        [InlineData("/news./a.page", "Windows")]
+        [InlineData("a\\b.page", "contains")]
+        public async Task EachPathRule_SaysWhatIsWrong(string path, string reason)
+        {
+            var result = await Validator().ValidateAsync(Request(paths: [path]), TestContext.Current.CancellationToken);
+
+            Assert.Contains(reason, result.Errors.Single().ErrorMessage);
+        }
+
+        [Theory]
+        [InlineData("default/layout.liquid", "theme JSON file")]
+        [InlineData("settings_data.json", "theme folder")]
+        [InlineData("default/config/builder_settings.json", "config folder")]
+        public async Task EachThemeFileRule_SaysWhatIsWrong(string path, string reason)
+        {
+            var result = await Validator().ValidateAsync(Request(type: null, files: [File("themes", path)]), TestContext.Current.CancellationToken);
+
+            Assert.Contains(reason, result.Errors.Single().ErrorMessage);
+        }
+
+        [Fact]
+        public async Task APageSaved_IsAPageDocument()
+        {
+            var request = Request(type: null, files: [File("pages", "about-us.page", """{"settings":{"type":"settings"},"content":"x"}""")]);
+
+            var result = await Validator().ValidateAsync(request, TestContext.Current.CancellationToken);
+
+            Assert.Contains("about-us.page: Missing content array", result.Errors.Single().ErrorMessage);
+        }
+
         [Fact]
         public async Task AMalformedRequest_DoesNotLookUpTheStore()
         {
@@ -96,6 +130,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 Files = files,
             };
 
-        private static PageBuilderContentFile File(string type, string path) => new() { ContentType = type, Path = path };
+        private static PageBuilderContentFile File(string type, string path, string content = """{"settings":{"type":"settings"},"content":[]}""") =>
+            new() { ContentType = type, Path = path, Content = JToken.Parse(content) };
     }
 }

@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -22,7 +23,6 @@ using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Data.Authorization;
-using VirtoCommerce.PageBuilderModule.Data.Validation;
 using VirtoCommerce.PageBuilderModule.Web.Models;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Events;
@@ -62,14 +62,14 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         private const string DefaultTheme = "default";
         private const string JsonContentType = "application/json";
         private const string JsonExtension = ".json";
-        private const string SchemaKindSections = "sections";
-        private const string SchemaKindTemplates = "templates";
-        private const string SchemaKindBlocks = "blocks";
-        private const string SchemaKindObjects = "objects";
-        private const string SchemaKindShared = "shared";
+        private const string SchemaKindSections = ModuleConstants.SchemaKinds.Sections;
+        private const string SchemaKindTemplates = ModuleConstants.SchemaKinds.Templates;
+        private const string SchemaKindBlocks = ModuleConstants.SchemaKinds.Blocks;
+        private const string SchemaKindObjects = ModuleConstants.SchemaKinds.Objects;
+        private const string SchemaKindShared = ModuleConstants.SchemaKinds.Shared;
         // The blob name of a draft in the flow that came before git: the page's name with this appended.
         // Only the legacy-draft cleanup deals in these; everywhere else GitPageLocation strips the suffix.
-        private const string DraftSuffix = "-draft";
+        private const string DraftSuffix = GitPageLocation.DraftSuffix;
         private const string FolderEntryType = "folder";
         private const int MaxLegacyDraftPageSize = 200;
         private const string LegacyDraftOnlyCopy = "only-copy";
@@ -84,7 +84,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("template")]
         public async Task<ActionResult> GetTemplate(string storeId, string theme, string path, string type, bool draft = false, [FromQuery(Name = "ref")] string gitRef = null)
         {
-            if (await CheckRequestAsync(storeId, type, theme, PathsOf(path)) is { } refused)
+            var request = new PageBuilderContentRequest { StoreId = storeId, ContentType = type, Theme = theme, Paths = PathsOf(path), Ref = gitRef };
+            if (await CheckRequestAsync(request) is { } refused)
             {
                 return refused;
             }
@@ -368,19 +369,10 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("schemas/{kind}/{key}")]
         public async Task<ActionResult> GetSchemaByKey(string storeId, string theme, string kind, string key)
         {
-            if (await CheckRequestAsync(storeId, Themes, theme, PathsOf(key)) is { } refused)
+            var request = new PageBuilderContentRequest { StoreId = storeId, ContentType = Themes, Theme = theme, SchemaKind = kind, SchemaKey = key };
+            if (await CheckRequestAsync(request) is { } refused)
             {
                 return refused;
-            }
-
-            if (!IsValidSchemaKind(kind))
-            {
-                return BadRequest(new { error = $"Unknown kind '{kind}'. Expected one of: {SchemaKindSections}, {SchemaKindTemplates}, {SchemaKindBlocks}, {SchemaKindObjects}, {SchemaKindShared}." });
-            }
-
-            if (key.IsNullOrEmpty() || key.Contains('/'))
-            {
-                return BadRequest(new { error = $"\"{key}\" is not a schema name." });
             }
 
             // Underscore-prefixed keys are theme-internal; only `shared` exposes them (e.g. _sections, _blocks).
@@ -414,10 +406,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             return Content(content, JsonContentType);
         }
 
-        internal static bool IsValidSchemaKind(string kind)
-        {
-            return kind is SchemaKindSections or SchemaKindTemplates or SchemaKindBlocks or SchemaKindObjects or SchemaKindShared;
-        }
 
         internal static bool IsStaticEntry(JToken entry)
         {
@@ -531,7 +519,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("search")]
         public async Task<ActionResult<string>> Search(string storeId, string theme, string type, string folder, string pattern = null, string keyword = null)
         {
-            if (await CheckRequestAsync(storeId, type, theme, PathsOf(folder)) is { } refused)
+            var request = new PageBuilderContentRequest { StoreId = storeId, ContentType = type, Theme = theme, Paths = PathsOf(folder), Keyword = keyword };
+            if (await CheckRequestAsync(request) is { } refused)
             {
                 return refused;
             }
@@ -556,38 +545,39 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("save")]
         public async Task<ActionResult> SaveTemplates(string storeId, string theme, [FromBody] SaveFilesModel value, [FromQuery] bool draft = false)
         {
+            var request = new PageBuilderContentRequest { StoreId = storeId, Theme = theme };
+            if (await CheckStoreAccessAsync(request) is { } forbidden)
+            {
+                return forbidden;
+            }
+
             if (!TryParseFiles(value, out var files))
             {
                 return BadRequest(new { error = "files must be a JSON list of files." });
             }
 
-            var request = new PageBuilderContentRequest
+            // A live write of a page or a blog article is a publication. With the git flow on, every live
+            // write is: live belongs to the CI deploy (merge to the production branch), so only callers holding
+            // the publish permission (the CI service account) make one, and editors publish through PR + merge.
+            // Without git, theme settings stay on update: the designer saves them straight to live.
+            var gitFlow = await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted);
+            var publishes = !draft && (gitFlow || files.Any(file => file != null && GitPageLocation.IsPageContent(file.Type)));
+            if (publishes && !(await authorizationService.AuthorizeAsync(User, null, ModuleConstants.Security.Permissions.Publish)).Succeeded)
             {
-                StoreId = storeId,
-                Theme = theme,
-                Files = files.ConvertAll(file => file == null ? null : new PageBuilderContentFile { ContentType = file.Type, Path = file.Path }),
-            };
-            if (await CheckRequestAsync(request) is { } refused)
-            {
-                return refused;
+                return Forbid();
             }
 
-            if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
+            request.Files = files.ConvertAll(file => file == null
+                ? null
+                : new PageBuilderContentFile { ContentType = file.Type, Path = file.Path, Content = AsToken(file.Content) });
+            if (await ValidateAsync(request) is { } invalid)
             {
-                return await SaveToBlobAsync(storeId, theme, files, draft);
+                return invalid;
             }
 
-            if (!draft)
+            if (!gitFlow || !draft)
             {
-                // With the git flow on, live writes belong to the CI deploy (merge to the production
-                // branch): only callers holding the publish permission (the CI service account) may
-                // pass draft=false. Editors publish through PR + merge instead.
-                if (!await IsAllowedToPublishAsync())
-                {
-                    return Forbid();
-                }
-
-                await SaveFilesTo(storeId, theme, files, draft: false);
+                await SaveFilesTo(storeId, theme, files, draft);
                 return Ok();
             }
 
@@ -614,32 +604,12 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             }
         }
 
-        private async Task<ActionResult> SaveToBlobAsync(string storeId, string theme, List<SaveFileModel> files, bool draft)
-        {
-            // A live page write is a publication. Theme settings stay on update: the designer saves them straight to live.
-            if (!draft && files.Any(file => GitPageLocation.IsPageContent(file.Type)) && !await IsAllowedToPublishAsync())
-            {
-                return Forbid();
-            }
-
-            await SaveFilesTo(storeId, theme, files, draft);
-            return Ok();
-        }
-
         private async Task<ActionResult> SaveDraftToGitAsync(string storeId, string theme, List<SaveFileModel> files)
         {
             // A draft is a commit on a work branch, not a .page-draft blob. The blob was a single slot
             // per page, so two editors of the same page overwrote each other's draft and preview; their
             // branches do not.
             var pages = files.Where(x => GitPageLocation.IsPageContent(x.Type)).ToList();
-
-            var errors = pages
-                .SelectMany(file => PageEnvelopeValidator.Validate(AsToken(file.Content)).Select(error => $"{file.Path}: {error}"))
-                .ToList();
-            if (errors.Count > 0)
-            {
-                return BadRequest(new { errors });
-            }
 
             var saved = new List<object>();
             foreach (var page in pages)
@@ -667,7 +637,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("git/publish")]
         public async Task<ActionResult> GitPublish(string storeId, string path, string type, bool rebase = false)
         {
-            if (await CheckRequestAsync(storeId, type ?? PagesContentType, null, [path]) is { } refused)
+            if (await CheckRequestAsync(PageRequest(storeId, type, path)) is { } refused)
             {
                 return refused;
             }
@@ -798,7 +768,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("git/promote")]
         public async Task<ActionResult> GitPromote(string storeId, string path, string type)
         {
-            if (await CheckRequestAsync(storeId, type ?? PagesContentType, null, [path]) is { } refused)
+            if (await CheckRequestAsync(PageRequest(storeId, type, path)) is { } refused)
             {
                 return refused;
             }
@@ -871,7 +841,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("git/unpublish")]
         public async Task<ActionResult> GitUnpublish(string storeId, string path, string type)
         {
-            if (await CheckRequestAsync(storeId, type ?? PagesContentType, null, [path]) is { } refused)
+            if (await CheckRequestAsync(PageRequest(storeId, type, path)) is { } refused)
             {
                 return refused;
             }
@@ -928,7 +898,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("git/publish-status")]
         public async Task<ActionResult> GitPublishStatus(string storeId, string path, string type)
         {
-            if (await CheckRequestAsync(storeId, type ?? PagesContentType, null, PathsOf(path)) is { } refused)
+            if (await CheckRequestAsync(PageRequest(storeId, type, PathsOf(path))) is { } refused)
             {
                 return refused;
             }
@@ -1028,7 +998,11 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("git/history")]
         public async Task<ActionResult> GitHistory(string storeId, string path, string type, int? take = null, string after = null)
         {
-            if (await CheckRequestAsync(storeId, type.IsNullOrEmpty() ? PagesContentType : type, null, PathsOf(path)) is { } refused)
+            var contentType = type.IsNullOrEmpty() ? PagesContentType : type;
+            var request = PageRequest(storeId, contentType, PathsOf(path));
+            request.HistoryTake = take;
+            request.HistoryAfter = after;
+            if (await CheckRequestAsync(request) is { } refused)
             {
                 return refused;
             }
@@ -1036,13 +1010,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
             {
                 // there is no history to show: in the blob flow a draft overwrites the page and keeps no versions
-                return NotFound();
-            }
-
-            var contentType = type.IsNullOrEmpty() ? PagesContentType : type;
-            if (!GitPageLocation.IsPageContent(contentType))
-            {
-                // themes, schemas and settings never moved to git
                 return NotFound();
             }
 
@@ -1080,10 +1047,13 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [HttpPost]
         [Authorize(ModuleConstants.Security.Permissions.Update)]
         [Route("git/restore-version")]
-        public async Task<ActionResult> GitRestoreVersion(string storeId, string path, string type, string sha)
+        public async Task<ActionResult> GitRestoreVersion(string storeId, string path, string type, [BindRequired] string sha)
         {
+            // a version is a commit; a branch name would mean "whatever is there when this runs"
             var contentType = type.IsNullOrEmpty() ? PagesContentType : type;
-            if (await CheckRequestAsync(storeId, contentType, null, PathsOf(path)) is { } refused)
+            var request = PageRequest(storeId, contentType, path);
+            request.Ref = sha;
+            if (await CheckRequestAsync(request) is { } refused)
             {
                 return refused;
             }
@@ -1092,17 +1062,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             {
                 // without git there are no versions to continue from
                 return NotFound();
-            }
-
-            if (!GitPageLocation.IsPageContent(contentType) || path.IsNullOrEmpty())
-            {
-                return NotFound();
-            }
-
-            if (!GitCommitSha.IsSha(sha))
-            {
-                // a version is a commit; a branch name would mean "whatever is there when this runs"
-                return BadRequest(new { error = $"\"{sha}\" is not a commit sha." });
             }
 
             var options = gitContentOptions.Value;
@@ -1152,7 +1111,12 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("git/preview")]
         public async Task<ActionResult> GitPreview(string storeId, string path, string type, [FromQuery(Name = "ref")] string requestedRef = null)
         {
-            if (await CheckRequestAsync(storeId, type ?? PagesContentType, null, [path]) is { } refused)
+            // A version list offers a preview of one exact commit; asked for a ref, this endpoint hands it
+            // straight to the storefront, so the request check accepts only a sha — a caller-chosen branch
+            // name would end up in the redirect and stop meaning what the link said.
+            var request = PageRequest(storeId, type, path);
+            request.Ref = requestedRef;
+            if (await CheckRequestAsync(request) is { } refused)
             {
                 return refused;
             }
@@ -1160,14 +1124,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
             {
                 return NotFound();
-            }
-
-            // A version list offers a preview of one exact commit; asked for a ref, this endpoint hands it
-            // straight to the storefront, so only a sha is accepted — a caller-chosen branch name would end
-            // up in the redirect and stop meaning what the link said.
-            if (requestedRef != null && !GitCommitSha.IsSha(requestedRef))
-            {
-                return BadRequest(new { error = $"\"{requestedRef}\" is not a commit sha." });
             }
 
             var location = GitLocation(type, path);
@@ -1207,7 +1163,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("git/discard-draft")]
         public async Task<ActionResult> GitDiscardDraft(string storeId, string path, string type)
         {
-            if (await CheckRequestAsync(storeId, type ?? PagesContentType, null, [path]) is { } refused)
+            if (await CheckRequestAsync(PageRequest(storeId, type, path)) is { } refused)
             {
                 return refused;
             }
@@ -1297,11 +1253,19 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Authorize(ModuleConstants.Security.Permissions.Delete)]
         [Route("git/legacy-drafts/delete")]
         public async Task<ActionResult> DeleteLegacyDrafts(string storeId, string type, string theme,
-            [FromBody] LegacyDraftsDeleteRequest request)
+            [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] LegacyDraftsDeleteRequest request)
         {
+            // An empty body is a dry run over nothing; a body that does not bind is refused by the request check.
             var contentType = type ?? PagesContentType;
             request ??= new LegacyDraftsDeleteRequest();
-            if (await CheckRequestAsync(storeId, contentType, theme, request.Paths) is { } refused)
+            var contentRequest = new PageBuilderContentRequest
+            {
+                StoreId = storeId,
+                ContentType = contentType,
+                Theme = theme,
+                LegacyDrafts = request.Paths ?? [],
+            };
+            if (await CheckRequestAsync(contentRequest) is { } refused)
             {
                 return refused;
             }
@@ -1312,18 +1276,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             }
 
             var paths = (request.Paths ?? []).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-
-            // One bad path fails the whole batch instead of being skipped: a caller that got a path wrong
-            // has a bug, and letting the rest through would hide it behind a half-finished cleanup.
-            var invalid = paths.Where(x => !IsLegacyDraftPath(x)).ToList();
-            if (invalid.Count > 0)
-            {
-                return BadRequest(new
-                {
-                    error = $"Only \"{DraftSuffix}\" files can be deleted here, by their exact path.",
-                    paths = invalid,
-                });
-            }
 
             var storageProvider = blobContentStorageProviderFactory.CreateProvider(
                 GetContentBasePath(storeId, contentType, await GetCurrentThemeName(storeId, theme)));
@@ -1400,15 +1352,9 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("git/copy")]
         public async Task<ActionResult> GitCopyPage(string storeId, string type, string srcPath, string destPath)
         {
+            // The source and a target the caller names are both pages; one the server picks keeps the source's name and extension.
             var contentType = type ?? PagesContentType;
-            var request = new PageBuilderContentRequest
-            {
-                StoreId = storeId,
-                ContentType = contentType,
-                Paths = PathsOf(srcPath),
-                Files = destPath.IsNullOrEmpty() ? null : [new PageBuilderContentFile { ContentType = contentType, Path = destPath }],
-            };
-            if (await CheckRequestAsync(request) is { } refused)
+            if (await CheckRequestAsync(PageRequest(storeId, contentType, [srcPath, .. PathsOf(destPath)])) is { } refused)
             {
                 return refused;
             }
@@ -1416,11 +1362,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             if (!await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted))
             {
                 return NotFound();
-            }
-
-            if (srcPath.IsNullOrEmpty())
-            {
-                return BadRequest(new { error = "srcPath is required." });
             }
 
             // What the editor sees, which is their own draft of the source when they have one. Copying
@@ -1438,8 +1379,14 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 return BadRequest(new { error = $"\"{srcPath}\" already has {MaxCopyIndex} copies; name the next one yourself.", srcPath });
             }
 
+            var page = ParsePage(source);
+            if (page.Type == JTokenType.Null)
+            {
+                return BadRequest(new { error = $"\"{srcPath}\" is not a page document.", srcPath });
+            }
+
             var saved = await CommitPageToGitAsync(
-                new SaveFileModel { Path = target, Type = contentType, Content = JToken.Parse(source) },
+                new SaveFileModel { Path = target, Type = contentType, Content = page },
                 storeId,
                 action: $"copy {WithoutDraftSuffix(srcPath)} to");
 
@@ -1540,10 +1487,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         /// <summary>The draft blob name of a page, whichever of the two names the caller already holds.</summary>
         private static string LegacyDraftPathOf(string path) =>
             path.EndsWith(DraftSuffix, StringComparison.OrdinalIgnoreCase) ? path : path + DraftSuffix;
-
-        /// <summary>Checked here too: the request validator is replaceable, and this path gets deleted.</summary>
-        private static bool IsLegacyDraftPath(string path) =>
-            PageBuilderContentPaths.IsRelativePath(path) && path.EndsWith(DraftSuffix, StringComparison.OrdinalIgnoreCase);
 
         private async Task<LegacyDraftInfo> DescribeLegacyDraftAsync(IBlobContentStorageProvider storageProvider,
             string contentType, BlobEntry draft)
@@ -1669,14 +1612,32 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 Paths = paths ?? [],
             });
 
-        /// <summary>The permission itself is on the action's [Authorize] attributes.</summary>
-        private async Task<ActionResult> CheckRequestAsync(PageBuilderContentRequest request)
+        private static PageBuilderContentRequest PageRequest(string storeId, string type, params string[] pages) =>
+            new() { StoreId = storeId, ContentType = type ?? PagesContentType, Pages = pages };
+
+        /// <summary>
+        /// Store access first, so a user bound to another store cannot tell from a 400 which stores exist.
+        /// The permission itself is on the action's [Authorize] attributes.
+        /// </summary>
+        private async Task<ActionResult> CheckRequestAsync(PageBuilderContentRequest request) =>
+            await CheckStoreAccessAsync(request) ?? await ValidateAsync(request);
+
+        private async Task<ActionResult> CheckStoreAccessAsync(PageBuilderContentRequest request)
         {
-            // Store access first, so a user bound to another store cannot tell from a 400 which stores exist.
             var storeAccess = await authorizationService.AuthorizeAsync(User, request, new PageBuilderAuthorizationRequirement());
-            if (!storeAccess.Succeeded)
+            return storeAccess.Succeeded ? null : Forbid();
+        }
+
+        private async Task<ActionResult> ValidateAsync(PageBuilderContentRequest request)
+        {
+            // What did not bind (a malformed body, a missing required value) is the caller's mistake as much as what the validator refuses.
+            var bindingErrors = ModelState.Values
+                .SelectMany(entry => entry.Errors)
+                .Select(error => string.IsNullOrEmpty(error.ErrorMessage) ? "The request could not be read." : error.ErrorMessage)
+                .ToList();
+            if (bindingErrors.Count > 0)
             {
-                return Forbid();
+                return BadRequest(new { error = string.Join(" ", bindingErrors) });
             }
 
             var validation = await requestValidator.ValidateAsync(request, HttpContext.RequestAborted);
@@ -1765,12 +1726,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         private string PromoteBranch(string type, string path) =>
             GitPageLocation.BranchFor(gitContentOptions.Value.PromoteBranchTemplate, userName: null,
                 GitPageLocation.ContentPath(type, path));
-
-        private async Task<bool> IsAllowedToPublishAsync()
-        {
-            var authorization = await authorizationService.AuthorizeAsync(User, null, ModuleConstants.Security.Permissions.Publish);
-            return authorization.Succeeded;
-        }
 
         /// <summary>
         /// Where this store's storefront lives, for a preview link.

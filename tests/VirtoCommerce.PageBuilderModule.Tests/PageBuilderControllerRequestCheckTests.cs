@@ -199,6 +199,147 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.IsType<ForbidResult>(result);
         }
 
+        [Theory]
+        [InlineData("git/publish")]
+        [InlineData("git/promote")]
+        [InlineData("git/unpublish")]
+        [InlineData("git/publish-status")]
+        [InlineData("git/history")]
+        [InlineData("git/restore-version")]
+        [InlineData("git/preview")]
+        [InlineData("git/discard-draft")]
+        [InlineData("git/copy")]
+        [InlineData("git/legacy-drafts/delete")]
+        public async Task PageActions_RefuseThemeFiles(string action)
+        {
+            // a page document's name, so that only the content type is wrong
+            var result = await Actions[action](Controller(), Store, "themes", Page);
+
+            Assert.IsType<BadRequestObjectResult>(result);
+        }
+
+        [Theory]
+        [InlineData("git/publish")]
+        [InlineData("git/promote")]
+        [InlineData("git/unpublish")]
+        [InlineData("git/publish-status")]
+        [InlineData("git/history")]
+        [InlineData("git/restore-version")]
+        [InlineData("git/preview")]
+        [InlineData("git/discard-draft")]
+        [InlineData("git/copy")]
+        public async Task PageActions_RefuseAPathThatIsNotAPage(string action)
+        {
+            var result = await Actions[action](Controller(), Store, "pages", "/README.md");
+
+            Assert.IsType<BadRequestObjectResult>(result);
+        }
+
+        [Theory]
+        [InlineData("main")]
+        [InlineData("designer/alice/about-us-page-1a2b3c4")]
+        public async Task Template_AtARefThatIsNotACommitSha_IsBadRequest(string gitRef)
+        {
+            var result = await Controller().GetTemplate(Store, null, Page, "pages", draft: true, gitRef);
+
+            Assert.IsType<BadRequestObjectResult>(result);
+        }
+
+        [Fact]
+        public async Task Preview_AtARefThatIsNotACommitSha_IsBadRequest()
+        {
+            var result = await Controller().GitPreview(Store, Page, "pages", "main");
+
+            Assert.IsType<BadRequestObjectResult>(result);
+        }
+
+        [Theory]
+        [InlineData("a/b")]
+        [InlineData("..\\x")]
+        [InlineData("a*")]
+        [InlineData("a\0")]
+        public async Task Search_ForAKeywordStorageReadsAsAPath_IsBadRequest(string keyword)
+        {
+            var result = await Controller().Search(Store, null, "pages", null, keyword: keyword);
+
+            Assert.IsType<BadRequestObjectResult>(result.Result);
+        }
+
+        [Theory]
+        [InlineData(0, null)]
+        [InlineData(101, null)]
+        [InlineData(null, "not a cursor")]
+        public async Task History_PagedOutsideWhatGitHubAnswers_IsBadRequest(int? take, string after)
+        {
+            var result = await Controller().GitHistory(Store, Page, "pages", take, after);
+
+            Assert.IsType<BadRequestObjectResult>(result);
+        }
+
+        [Fact]
+        public async Task SchemaOfAnUnknownKind_IsBadRequest()
+        {
+            var result = await Controller().GetSchemaByKey(Store, "default", "pageSettings", "text");
+
+            Assert.IsType<BadRequestObjectResult>(result);
+        }
+
+        [Fact]
+        public async Task ABodyThatDidNotBind_IsBadRequest()
+        {
+            // MVC records the failure and leaves the parameter null; without [ApiController] nothing answers it for us
+            var controller = Controller();
+            controller.ModelState.AddModelError("request.Paths", "Error converting value \"/a.page-draft\" to type 'System.Collections.Generic.IList`1[System.String]'.");
+
+            var result = await controller.DeleteLegacyDrafts(Store, "pages", null, null);
+
+            Assert.IsType<BadRequestObjectResult>(result);
+        }
+
+        [Fact]
+        public async Task Save_WithoutAccessToTheStore_IsForbiddenBeforeTheBodyIsRead()
+        {
+            var result = await Controller(storeAccess: false).SaveTemplates(Store, "default", new PageBuilderController.SaveFilesModel());
+
+            Assert.IsType<ForbidResult>(result);
+        }
+
+        [Fact]
+        public async Task LiveSaveWithGit_WithoutThePublishPermission_IsForbidden_ThemeSettingsToo()
+        {
+            var controller = Controller(granted: [ModuleConstants.Security.Permissions.Update], gitFlow: true);
+
+            var result = await controller.SaveTemplates(Store, "default", Files(("themes", "default/config/settings_data.json")), draft: false);
+
+            Assert.IsType<ForbidResult>(result);
+        }
+
+        [Fact]
+        public async Task LiveSave_WithoutThePublishPermission_IsForbiddenBeforeTheFilesAreChecked()
+        {
+            var controller = Controller(granted: [ModuleConstants.Security.Permissions.Update]);
+
+            var result = await controller.SaveTemplates(Store, "default", Files(("pages", "../../appsettings.page")), draft: false);
+
+            Assert.IsType<ForbidResult>(result);
+        }
+
+        [Fact]
+        public async Task Save_OfAPageWithAMalformedSettingsType_IsBadRequest()
+        {
+            var value = new PageBuilderController.SaveFilesModel
+            {
+                Files = JsonConvert.SerializeObject(new[]
+                {
+                    new { path = Page, type = "pages", content = new { settings = new { type = new { } }, content = Array.Empty<object>() } },
+                }),
+            };
+
+            var result = await Controller().SaveTemplates(Store, "default", value, draft: true);
+
+            Assert.IsType<BadRequestObjectResult>(result);
+        }
+
         private static PageBuilderController.SaveFilesModel Files(params (string Type, string Path)[] files) =>
             new()
             {
@@ -206,11 +347,11 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 {
                     Type = file.Type,
                     Path = file.Path,
-                    Content = new { },
+                    Content = new { settings = new { type = "settings" }, content = Array.Empty<object>() },
                 })),
             };
 
-        private static PageBuilderController Controller(bool storeAccess = true, string[] granted = null, IAuthorizationService authorizationService = null)
+        private static PageBuilderController Controller(bool storeAccess = true, string[] granted = null, IAuthorizationService authorizationService = null, bool gitFlow = false)
         {
             // Nothing past the check is wired up, so an action that reaches storage first fails here.
             var controller = new PageBuilderController(
@@ -220,7 +361,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 publishingService: null,
                 eventPublisher: null,
                 gitContentOptions: null,
-                gitContentPolicy: new FixedGitContentPolicy(enabled: false),
+                gitContentPolicy: new FixedGitContentPolicy(enabled: gitFlow),
                 gitContentRepository: null,
                 gitContentHistory: null,
                 gitContentPublisher: null,

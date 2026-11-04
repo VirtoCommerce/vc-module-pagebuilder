@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
 using VirtoCommerce.PageBuilderModule.Core;
@@ -163,7 +165,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         [InlineData(OtherBranch)]
         [InlineData("master")]
         [InlineData("70a3c34")]
-        [InlineData(null)]
+        [InlineData("")]
         public async Task Restore_ARefThatIsNotACommitSha_IsRefused(string gitRef)
         {
             // a branch name means "whatever is there when this runs", which is not a version
@@ -174,6 +176,29 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.IsType<BadRequestObjectResult>(result);
             Assert.Empty(repository.Reads);
             AssertNothingWritten(repository);
+        }
+
+        [Fact]
+        public async Task Restore_WithoutASha_IsRefused()
+        {
+            // MVC records the missing [BindRequired] value; the request check answers it before anything is read
+            var repository = Repository(ValidPage);
+            var controller = Controller(repository, new RecordingHistory());
+            controller.ModelState.AddModelError("sha", "A value for the 'sha' parameter or property was not provided.");
+
+            var result = await controller.GitRestoreVersion("vccom", Page, "pages", null);
+
+            Assert.IsType<BadRequestObjectResult>(result);
+            Assert.Empty(repository.Reads);
+        }
+
+        [Fact]
+        public void Restore_RequiresASha()
+        {
+            var sha = typeof(PageBuilderController).GetMethod(nameof(PageBuilderController.GitRestoreVersion))!
+                .GetParameters().Single(parameter => parameter.Name == "sha");
+
+            Assert.NotNull(sha.GetCustomAttribute<BindRequiredAttribute>());
         }
 
         [Fact]
@@ -188,13 +213,13 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         [Fact]
-        public async Task Restore_AContentTypeGitDoesNotCover_IsNotFound()
+        public async Task Restore_AContentTypeGitDoesNotCover_IsBadRequest()
         {
             var repository = Repository(ValidPage);
 
             var result = await Controller(repository, new RecordingHistory()).GitRestoreVersion("vccom", "default/config.json", "themes", Sha);
 
-            Assert.IsType<NotFoundResult>(result);
+            Assert.IsType<BadRequestObjectResult>(result);
             AssertNothingWritten(repository);
         }
 
