@@ -24,12 +24,13 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         private readonly ThemeSnapshotService _snapshots;
         private readonly ThemePublisher _publisher;
         private readonly SchemaCatalogService _catalogs;
+        private readonly Store _store = new() { Id = "s1", DefaultLanguage = "en-US", Languages = ["en-US", "de-DE"], DynamicProperties = [] };
         private readonly FakeStoreService _stores;
         private readonly ThemeStorageFactory _storageFactory;
 
         public ThemeSnapshotServiceTests()
         {
-            _stores = new FakeStoreService(new Store { Id = "s1", DefaultLanguage = "en-US", Languages = ["en-US", "de-DE"], DynamicProperties = [] });
+            _stores = new FakeStoreService(_store);
             _storageFactory = new ThemeStorageFactory(_stores, _storage, _storage, _storage);
             _catalogs = new SchemaCatalogService(_storageFactory);
             _publisher = new ThemePublisher(_storageFactory, _stores, _catalogs, _lock, new NoEvents(), NullLogger<ThemePublisher>.Instance);
@@ -65,7 +66,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         [Fact]
-        public async Task Publishing_writes_every_language_the_default_one_last_then_the_pointer_then_puts_the_drafts_live()
+        public async Task Publishing_writes_every_language_then_the_record_then_the_pointer_then_puts_the_drafts_live()
         {
             _storage.Files[Product] = Template("product-info");
             _storage.Files[Product + "-draft"] = Template("product-info", "related-products");
@@ -76,15 +77,10 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             var publication = await _publisher.PublishAsync("s1", catalog, null, Ct);
 
             Assert.Equal(2, publication);
-            // the default language's file marks a complete publication (a pointer cut off falls back on it)
-            Assert.Equal(
-                [
-                    "default/snapshots/2/de-DE.json",
-                    "default/snapshots/2/en-US.json",
-                    Pointer,
-                    Product,
-                ],
-                _storage.Written);
+            Assert.Equal(["default/snapshots/2/de-DE.json", "default/snapshots/2/en-US.json"], _storage.Written.Take(2).Order());
+            // the record marks a complete publication (a pointer cut off falls back on it)
+            Assert.Equal([Record(2), Pointer, Product], _storage.Written.Skip(2));
+            Assert.Equal("en-US", await ThemePublisher.ReadDefaultLanguageAsync(await _storageFactory.OpenAsync("s1"), 2));
             Assert.False(_storage.Files.ContainsKey(Product + "-draft"));
             Assert.Equal(["product-info", "related-products"], Sections(await _snapshots.GetPublishedAsync("s1", "de", Ct), "product"));
         }
@@ -171,15 +167,57 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         {
             _storage.Files[Product] = Template("product-info");
             await _snapshots.GetPublishedAsync("s1", null, Ct);
-            // publication 2 stopped while writing the default language, the file written last
+            // publication 2 stopped while writing its record, the file written last
             _storage.Files["default/snapshots/2/de-DE.json"] = "{}";
-            _storage.Files["default/snapshots/2/en-US.json"] = "{\"format\":1,\"publi";
+            _storage.Files["default/snapshots/2/en-US.json"] = "{}";
+            _storage.Files[Record(2)] = "{\"defaultLangu";
             _storage.Files[Pointer] = "{ \"publicat";
             using var emptyCache = new TestPlatformMemoryCache();
 
             var snapshot = await new ThemeSnapshotService(_stores, _settings, _storageFactory, _publisher, emptyCache).GetPublishedAsync("s1", null, Ct);
 
             Assert.Equal(1, snapshot.Publication);
+        }
+
+        [Fact]
+        public async Task A_store_default_the_publication_has_no_file_for_gets_the_publications_default()
+        {
+            _storage.Files[Product] = Template("product-info");
+            await _snapshots.GetPublishedAsync("s1", null, Ct);
+            _store.Languages = ["en-US", "de-DE", "fr-FR"];
+            _store.DefaultLanguage = "fr-FR";
+
+            var snapshot = await _snapshots.GetPublishedAsync("s1", null, Ct);
+
+            Assert.Equal((1, "en-US"), (snapshot.Publication, snapshot.CultureName));
+        }
+
+        [Fact]
+        public async Task A_pointer_cut_off_finds_the_complete_publication_after_the_store_default_changed()
+        {
+            _storage.Files[Product] = Template("product-info");
+            await _snapshots.GetPublishedAsync("s1", null, Ct);
+            _store.Languages = ["en-US", "de-DE", "fr-FR"];
+            _store.DefaultLanguage = "fr-FR";
+            _storage.Files[Pointer] = "{ \"publicat";
+
+            var snapshot = await _snapshots.GetPublishedAsync("s1", null, Ct);
+
+            Assert.Equal((1, "en-US"), (snapshot.Publication, snapshot.CultureName));
+        }
+
+        [Fact]
+        public async Task A_pointer_cut_off_with_no_complete_publication_publishes_the_live_theme_again()
+        {
+            _storage.Files[Product] = Template("product-info");
+            // publication 1 stopped before its record
+            _storage.Files["default/snapshots/1/de-DE.json"] = "{}";
+            _storage.Files[Pointer] = "{ \"publicat";
+
+            var snapshot = await _snapshots.GetPublishedAsync("s1", null, Ct);
+
+            Assert.Equal((2, "en-US"), (snapshot.Publication, snapshot.CultureName));
+            Assert.Equal(["product-info"], Sections(snapshot, "product"));
         }
 
         [Theory]
@@ -219,6 +257,8 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 ["hash"] = "catalog-" + string.Join('-', sections),
                 ["sections"] = new JObject(sections.Select(x => new JProperty(x, new JObject()))),
             }.ToString(), Ct);
+
+        private static string Record(int publication) => $"default/snapshots/{publication}/publication.json";
 
         private static string Template(params string[] sections) =>
             new JObject

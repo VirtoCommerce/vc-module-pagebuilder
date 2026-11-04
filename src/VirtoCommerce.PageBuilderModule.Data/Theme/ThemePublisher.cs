@@ -59,8 +59,8 @@ public class ThemePublisher(
     /// <summary>
     /// The first publication of a store that has none, from its live files: no draft is published, so an anonymous
     /// read may start it. The live files may predate the storefront's schemas, so only their shape is checked; the
-    /// store's current catalog, when there is one, still tells which settings name menus. Returns the publication the
-    /// pointer names, which another node may have written meanwhile.
+    /// store's current catalog, when there is one, still tells which settings name menus. Returns the current
+    /// publication instead when there is one, which another node may have written meanwhile.
     /// </summary>
     public virtual Task<int> PublishFirstAsync(string storeId, CancellationToken cancellationToken = default)
     {
@@ -69,7 +69,7 @@ public class ThemePublisher(
             async _ =>
             {
                 var storage = await storageFactory.OpenAsync(storeId);
-                if (ReadPointer(await storage.ReadAsync(ThemeStorage.Pointer)) is { } existing)
+                if (await CurrentPublicationAsync(storage) is { } existing)
                 {
                     return existing;
                 }
@@ -81,8 +81,67 @@ public class ThemePublisher(
             cancellationToken: cancellationToken);
     }
 
-    /// <summary>The publication a pointer names; <c>null</c> when there is no pointer, <c>-1</c> when it cannot be read.</summary>
-    public static int? ReadPointer(string pointer)
+    /// <summary>
+    /// The publication storefronts are served: the one the pointer names; when the pointer cannot be read (a write cut
+    /// off on a file system), the highest complete one. <c>null</c> when there is none, and the first publication is due.
+    /// </summary>
+    public static async Task<int?> CurrentPublicationAsync(ThemeStorage storage)
+    {
+        var pointer = await storage.ReadAsync(ThemeStorage.Pointer);
+        if (pointer == null)
+        {
+            return null;
+        }
+
+        if (ParsePointer(pointer) is { } publication)
+        {
+            return publication;
+        }
+
+        var publications = (await storage.ListFoldersAsync(ThemeStorage.SnapshotsFolder))
+            .Select(x => int.TryParse(x, NumberStyles.None, CultureInfo.InvariantCulture, out var n) ? n : 0)
+            .Where(x => x > 0)
+            .OrderDescending();
+        foreach (var candidate in publications)
+        {
+            if (await ReadDefaultLanguageAsync(storage, candidate) != null)
+            {
+                return candidate;
+            }
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// The store default language a publication was written with, from its record; <c>null</c> when the publication
+    /// is not complete: the record is written after every snapshot of the publication.
+    /// </summary>
+    public static async Task<string> ReadDefaultLanguageAsync(ThemeStorage storage, int publication)
+    {
+        var record = await storage.ReadAsync(RecordFile(publication));
+        if (record == null)
+        {
+            return null;
+        }
+
+        try
+        {
+            return JObject.Parse(record).Value<string>("defaultLanguage") is { Length: > 0 } language ? language : null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    public static string SnapshotFile(int publication, string language) => $"{PublicationFolder(publication)}/{language}.json";
+
+    private static string RecordFile(int publication) => $"{PublicationFolder(publication)}/publication.json";
+
+    private static string PublicationFolder(int publication) =>
+        $"{ThemeStorage.SnapshotsFolder}/{publication.ToString(CultureInfo.InvariantCulture)}";
+
+    private static int? ParsePointer(string pointer)
     {
         if (pointer == null)
         {
@@ -91,52 +150,13 @@ public class ThemePublisher(
 
         try
         {
-            return JObject.Parse(pointer).Value<int?>("publication") is > 0 and var publication ? publication : -1;
+            return JObject.Parse(pointer).Value<int?>("publication") is > 0 and var publication ? publication : null;
         }
         catch (JsonException)
         {
-            return -1;
+            return null;
         }
     }
-
-    /// <summary>
-    /// The numbers of the publications whose snapshot of <paramref name="language"/> is written whole. A publication
-    /// writes the store default language last, so one that has it whole is complete.
-    /// </summary>
-    public static async Task<IReadOnlyList<int>> CompletePublicationsAsync(ThemeStorage storage, string language)
-    {
-        var complete = new List<int>();
-        foreach (var folder in await storage.ListFoldersAsync(ThemeStorage.SnapshotsFolder))
-        {
-            if (int.TryParse(folder, NumberStyles.None, CultureInfo.InvariantCulture, out var publication)
-                && IsWhole(await storage.ReadAsync(SnapshotFile(publication, language))))
-            {
-                complete.Add(publication);
-            }
-        }
-        return complete;
-    }
-
-    // a snapshot is one JSON object: a write cut off anywhere leaves a file that is not
-    private static bool IsWhole(string snapshot)
-    {
-        if (snapshot == null)
-        {
-            return false;
-        }
-
-        try
-        {
-            return JToken.Parse(snapshot) is JObject;
-        }
-        catch (JsonReaderException)
-        {
-            return false;
-        }
-    }
-
-    public static string SnapshotFile(int publication, string language) =>
-        $"{ThemeStorage.SnapshotsFolder}/{publication.ToString(CultureInfo.InvariantCulture)}/{language}.json";
 
     /// <param name="catalog">The storefront's schemas: what the theme is checked against, and where its menus are found.</param>
     /// <param name="catalogHash">The catalog the publication is checked against; <c>null</c> checks the shape only.</param>
@@ -157,11 +177,12 @@ public class ThemePublisher(
         var publication = await NextPublicationAsync(storage);
         var set = ThemeSnapshotBuilder.Build(source, catalog, catalogHash, languages, defaultLanguage, publication, DateTime.UtcNow);
 
-        foreach (var (language, json) in set.Files.OrderBy(x => string.Equals(x.Key, defaultLanguage, StringComparison.OrdinalIgnoreCase)))
+        foreach (var (language, json) in set.Files)
         {
             await storage.WriteAsync(SnapshotFile(publication, language), json);
             WarnWhenLarge(storeId, publication, language, json);
         }
+        await storage.WriteAsync(RecordFile(publication), new JObject { ["defaultLanguage"] = defaultLanguage }.ToString(Formatting.None));
         await storage.WriteAsync(ThemeStorage.Pointer, new JObject { ["publication"] = publication }.ToString(Formatting.None));
         ThemeSnapshotCacheRegion.ExpireTokenForKey(storeId, propagate: true);
 
@@ -251,7 +272,7 @@ public class ThemePublisher(
     {
         var numbers = (await storage.ListFoldersAsync(ThemeStorage.SnapshotsFolder))
             .Select(x => int.TryParse(x, NumberStyles.None, CultureInfo.InvariantCulture, out var n) ? n : 0)
-            .Append(ReadPointer(await storage.ReadAsync(ThemeStorage.Pointer)) ?? 0);
+            .Append(ParsePointer(await storage.ReadAsync(ThemeStorage.Pointer)) ?? 0);
         return numbers.Max() + 1;
     }
 

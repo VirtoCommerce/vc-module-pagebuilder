@@ -93,7 +93,7 @@ public static class ThemeSnapshotBuilder
                 continue;
             }
 
-            CheckItems(doc["content"] as JArray, "sections", file, catalog, errors, allowPageContent: key.StartsWith("page", StringComparison.Ordinal));
+            CheckItems((JArray)doc["content"], "sections", file, catalog, errors, allowPageContent: key.StartsWith("page", StringComparison.Ordinal));
         }
 
         CheckGroup(source.Header, "sections/header-group.json", catalog, errors);
@@ -384,11 +384,6 @@ public static class ThemeSnapshotBuilder
 
     private static void CheckItems(JArray items, string kind, string file, JObject catalog, List<string> errors, bool allowPageContent)
     {
-        if (items == null)
-        {
-            return;
-        }
-
         foreach (var token in items)
         {
             if (token is not JObject item || string.IsNullOrWhiteSpace(item.Value<string>("id")) || string.IsNullOrWhiteSpace(item.Value<string>("type")))
@@ -406,7 +401,17 @@ public static class ThemeSnapshotBuilder
                 errors.Add($"{file}: '{item.Value<string>("id")}' has a type the storefront does not have, '{type}'");
             }
 
-            CheckItems(item["blocks"] as JArray, "blocks", file, catalog, errors, allowPageContent: false);
+            switch (item["blocks"])
+            {
+                case null:
+                    break;
+                case JArray blocks:
+                    CheckItems(blocks, "blocks", file, catalog, errors, allowPageContent: false);
+                    break;
+                default:
+                    errors.Add($"{file}: '{item.Value<string>("id")}' has blocks that are not a list");
+                    break;
+            }
         }
     }
 

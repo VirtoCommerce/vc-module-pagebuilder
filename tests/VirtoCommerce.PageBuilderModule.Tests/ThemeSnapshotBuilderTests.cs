@@ -173,6 +173,14 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.Single(ThemeSnapshotBuilder.Validate(source, null));
         }
 
+        [Fact]
+        public void Blocks_that_are_not_a_list_stop_the_publication()
+        {
+            var source = Source(header: JObject.Parse("""{ "content": [ { "id": "h", "type": "banner", "blocks": { "id": "x", "type": "nope" } } ] }"""));
+
+            Assert.Equal(["sections/header-group.json: 'h' has blocks that are not a list"], ThemeSnapshotBuilder.Validate(source, null));
+        }
+
         [Theory]
         [InlineData("product.json", "product")]
         [InlineData("product.b2c.json", "product.b2c")]

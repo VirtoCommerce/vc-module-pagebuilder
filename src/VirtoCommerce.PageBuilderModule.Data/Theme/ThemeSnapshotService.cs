@@ -80,31 +80,27 @@ public class ThemeSnapshotService(
     private async Task<ThemeSnapshot> ReadAsync(string storeId, string language, string defaultLanguage, CancellationToken cancellationToken)
     {
         var storage = await storageFactory.OpenAsync(storeId);
-        var publication = ThemePublisher.ReadPointer(await storage.ReadAsync(ThemeStorage.Pointer))
+        var publication = await ThemePublisher.CurrentPublicationAsync(storage)
             ?? await publisher.PublishFirstAsync(storeId, cancellationToken);
 
-        if (publication < 0)
+        // a language added to the store after the publication gets the store default's file
+        foreach (var served in new[] { language, defaultLanguage }.Distinct(StringComparer.OrdinalIgnoreCase))
         {
-            // a pointer cut off on a file system: the highest complete publication
-            var complete = await ThemePublisher.CompletePublicationsAsync(storage, defaultLanguage);
-            publication = complete.Count > 0 ? complete.Max() : await publisher.PublishFirstAsync(storeId, cancellationToken);
+            if (await storage.ReadAsync(ThemePublisher.SnapshotFile(publication, served)) is { } content)
+            {
+                return new ThemeSnapshot(storeId, served, publication, content, MenusOf(content));
+            }
         }
 
-        var served = language;
-        var content = await storage.ReadAsync(ThemePublisher.SnapshotFile(publication, language));
-        if (content == null && !string.Equals(language, defaultLanguage, StringComparison.OrdinalIgnoreCase))
+        // a store default chosen after the publication gets the publication's own default
+        if (await ThemePublisher.ReadDefaultLanguageAsync(storage, publication) is { } publicationDefault
+            && await storage.ReadAsync(ThemePublisher.SnapshotFile(publication, publicationDefault)) is { } fallback)
         {
-            served = defaultLanguage;
-            content = await storage.ReadAsync(ThemePublisher.SnapshotFile(publication, defaultLanguage));
+            return new ThemeSnapshot(storeId, publicationDefault, publication, fallback, MenusOf(fallback));
         }
 
-        if (content == null)
-        {
-            throw new InvalidOperationException(
-                $"The theme publication {publication.ToString(CultureInfo.InvariantCulture)} of store '{storeId}' has no snapshot in {served}.");
-        }
-
-        return new ThemeSnapshot(storeId, served, publication, content, MenusOf(content));
+        throw new InvalidOperationException(
+            $"The theme publication {publication.ToString(CultureInfo.InvariantCulture)} of store '{storeId}' has no snapshot in {language}.");
     }
 
     private static IReadOnlyList<string> MenusOf(string content)

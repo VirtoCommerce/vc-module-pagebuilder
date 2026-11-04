@@ -11,6 +11,11 @@ const newPageBuilderSetting = "VirtoCommerce.PageBuilderModule.Store.NewPageBuil
 
 export type StoreContextStatus = "idle" | "missing" | "loading" | "ready" | "notFound" | "error";
 
+type StoreResponse =
+  | { status: "ready"; store: IStoreItem }
+  | { status: "notFound" }
+  | { status: "error"; error: string };
+
 const cache = new Map<string, IStoreItem | null>();
 const pendingRequests = new Map<string, Promise<IStoreItem | null>>();
 const storeId = ref<string | null>(null);
@@ -30,6 +35,33 @@ function setStoreContextStatus(
 
   storeContextStatus.value = status;
   storeContextError.value = error;
+}
+
+async function requestStore(id: string): Promise<StoreResponse> {
+  try {
+    const result = await fetch(`/api/stores/${encodeURIComponent(id)}`);
+
+    if (!result.ok) {
+      return result.status === 404
+        ? { status: "notFound" }
+        : { status: "error", error: `Store request failed with status ${result.status}.` };
+    }
+
+    const store = await result.json();
+
+    if (!store) {
+      return { status: "notFound" };
+    }
+
+    if (!Array.isArray(store.languages)) {
+      console.warn("Invalid store payload", store);
+      return { status: "error", error: "Store payload is invalid." };
+    }
+
+    return { status: "ready", store };
+  } catch (error) {
+    return { status: "error", error: error instanceof Error ? error.message : String(error) };
+  }
 }
 
 export default () => {
@@ -86,13 +118,19 @@ export default () => {
     return store?.defaultLanguage ?? undefined;
   }
 
-  /** The store's New Page Builder switch: on, its pages open in the Vue designer; off, in the Angular one. */
+  /**
+   * The store's New Page Builder switch: on, its pages open in the Vue designer; off, in the Angular one. Read anew
+   * every time, as the store's settings may change it while the shell is open.
+   */
   async function isNewPageBuilder(id: string | null = storeId.value): Promise<boolean> {
     if (!id) {
       return false;
     }
-    const store = cache.has(id) && cache.get(id)?.settings ? cache.get(id) : await fetchStore(id);
-    return store?.settings?.find((x) => x.name === newPageBuilderSetting)?.value === true;
+    const response = await requestStore(id);
+    return (
+      response.status === "ready" &&
+      response.store.settings?.find((x) => x.name === newPageBuilderSetting)?.value === true
+    );
   }
 
   async function validateStoreContext(): Promise<boolean> {
@@ -129,41 +167,17 @@ export default () => {
   }
 
   async function fetchStore(currentStoreId: string): Promise<IStoreItem | null> {
-    try {
-      const result = await fetch(`/api/stores/${encodeURIComponent(currentStoreId)}`);
+    const response = await requestStore(currentStoreId);
 
-      if (!result.ok) {
-        if (result.status === 404) {
-          cache.set(currentStoreId, null);
-          setStoreContextStatus(currentStoreId, "notFound");
-        } else {
-          setStoreContextStatus(currentStoreId, "error", `Store request failed with status ${result.status}.`);
-        }
-
-        return null;
-      }
-
-      const store = await result.json();
-
-      if (!store) {
-        cache.set(currentStoreId, null);
-        setStoreContextStatus(currentStoreId, "notFound");
-        return null;
-      }
-
-      if (!Array.isArray(store.languages)) {
-        console.warn("Invalid store payload", store);
-        setStoreContextStatus(currentStoreId, "error", "Store payload is invalid.");
-        return null;
-      }
-
-      cache.set(currentStoreId, store);
-      setStoreContextStatus(currentStoreId, "ready");
-      return store || null;
-    } catch (error) {
-      setStoreContextStatus(currentStoreId, "error", error instanceof Error ? error.message : String(error));
+    if (response.status === "error") {
+      setStoreContextStatus(currentStoreId, "error", response.error);
       return null;
     }
+
+    const store = response.status === "ready" ? response.store : null;
+    cache.set(currentStoreId, store);
+    setStoreContextStatus(currentStoreId, response.status);
+    return store;
   }
 
   return {

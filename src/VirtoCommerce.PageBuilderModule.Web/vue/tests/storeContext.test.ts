@@ -61,6 +61,45 @@ test("getDefaultLanguage returns the store default language", async () => {
   assert.equal(await storeContext.getDefaultLanguage(), "fr-FR");
 });
 
+function respondWithStore(newPageBuilder: boolean) {
+  globalThis.fetch = async () => ({
+    ok: true,
+    status: 200,
+    json: async () => ({
+      url: "https://example.com",
+      languages: ["en-US"],
+      settings: [{ name: "VirtoCommerce.PageBuilderModule.Store.NewPageBuilder", value: newPageBuilder }],
+    }),
+  }) as Response;
+}
+
+test("isNewPageBuilder reads the switch anew, as the store's settings change it", async () => {
+  const storeContext = useUrlParams();
+
+  respondWithStore(false);
+  assert.equal(await storeContext.isNewPageBuilder("switching-store"), false);
+
+  respondWithStore(true);
+  assert.equal(await storeContext.isNewPageBuilder("switching-store"), true);
+});
+
+test("isNewPageBuilder leaves the store context as it is when the store cannot be read", async () => {
+  setStoreSearch("context-store");
+  globalThis.fetch = async () => ({
+    ok: true,
+    status: 200,
+    json: async () => ({ url: "https://example.com", languages: ["en-US"] }),
+  }) as Response;
+  const storeContext = useUrlParams();
+  storeContext.initUrlParams();
+  assert.equal(await storeContext.validateStoreContext(), true);
+
+  globalThis.fetch = async () => ({ ok: false, status: 500 }) as Response;
+
+  assert.equal(await storeContext.isNewPageBuilder(), false);
+  assert.equal(storeContext.storeContextStatus.value, "ready");
+});
+
 // keep last: a pinned store stays pinned for the module's lifetime
 test("setStoreId pins the store over the URL and uses the store it is given", async () => {
   setStoreSearch("B2B-store");

@@ -21,6 +21,7 @@ store's `DefaultThemeName` property, `default` when it is empty. Paths below are
 | `config/brand.json` | the logos and the favicon |
 | `config/palette.json`, `config/palette.dark.json` | the light and the dark palette |
 | `snapshots/{publication}/{cultureName}.json` | a published snapshot in one language, never changed after it is written |
+| `snapshots/{publication}/publication.json` | the publication's record, `{ "defaultLanguage": "en-US" }`: the store default language it was written with |
 | `snapshots/current.json` | the pointer to the current publication: `{ "publication": 12 }` |
 | `catalogs/{hash}.json`, `catalogs/current.json` | the storefront schema catalogs, by hash, and the latest one's hash |
 
@@ -38,15 +39,15 @@ at once:
 2. It validates them against the section schema catalog the publication names (see
    [Section schema catalog](#section-schema-catalog)). A file that fails stops the publication; nothing is written.
 3. For each store language it writes `snapshots/{n}/{cultureName}.json`, where `n` is one more than the highest
-   publication of the theme, the store default language last; the translatable texts are resolved there
-   ([Translatable fields](#translatable-fields)).
+   publication of the theme; the translatable texts are resolved there
+   ([Translatable fields](#translatable-fields)). Then it writes the record, `snapshots/{n}/publication.json`.
 4. It rewrites `snapshots/current.json` to `n`. This is the moment the storefront sees the new theme.
 5. It writes the drafts over the live files, deletes the drafts and records the publication in the history.
 
-The snapshots are written before the pointer, so the pointer never names a publication that is not complete. A pointer
-that exists but is not valid JSON (a write cut off on a file system) is read as the highest complete publication: the
-highest one whose file of the store default language is whole. When
-step 5 fails, the publication stands; publishing again writes the live files.
+The snapshots and the record are written before the pointer, so the pointer never names a publication that is not
+complete. A pointer that exists but is not valid JSON (a write cut off on a file system) is read as the highest
+complete publication: the highest one whose record is whole. When none is, the server publishes the live files again,
+as on the first request. When step 5 fails, the publication stands; publishing again writes the live files.
 
 To go back to an earlier theme, the editor restores its version from the history and publishes it. The header, the
 footer and the rules are published this way only, not through the Content module's publishing endpoint. Publishing a
@@ -132,8 +133,9 @@ The server checks `cultureName` against the store's languages before it touches 
    one of them, else the first of them in the store's order;
 3. else, and when `cultureName` is left out, the store default language.
 
-A language the publication has no file for (added to the store after it) gets the file of the store default language.
-The response names the language it served.
+A language the publication has no file for (added to the store after it) gets the file of the store default language;
+a store default it has no file for (chosen after it), the file of the default language its record names. The response
+names the language it served.
 
 ### Menus
 

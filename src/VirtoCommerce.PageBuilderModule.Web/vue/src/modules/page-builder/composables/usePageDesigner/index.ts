@@ -28,8 +28,8 @@ export function usePageDesigner() {
 }
 
 /**
- * Opens a shared component in the designer: its sections, edited once for every page that places it. The Vue designer
- * only, so only for a store with the New Page Builder switch: the Angular one has no such editor.
+ * Opens a shared component in the Vue designer: its sections, edited once for every page that places it. Only for a
+ * store with the New Page Builder switch: a store without it edits shared components in the Angular designer.
  */
 export function useSharedComponentDesigner() {
   const { openBlade } = useBlade();
