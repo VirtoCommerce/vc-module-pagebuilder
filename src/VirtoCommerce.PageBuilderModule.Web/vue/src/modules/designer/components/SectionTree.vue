@@ -84,7 +84,7 @@
       >
         <span>{{ $t("PAGE_BUILDER.DESIGNER.SELECT_MODE.COUNT", { count: designer.checked.value.length }) }}</span>
         <VcButton
-          v-if="!designer.shared.value"
+          v-if="designer.canPlaceShared.value"
           size="sm"
           variant="secondary"
           icon="lucide-blocks"

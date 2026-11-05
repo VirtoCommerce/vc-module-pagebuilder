@@ -1,10 +1,16 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
 using VirtoCommerce.PageBuilderModule.Core;
+using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Core.Theme;
+using VirtoCommerce.PageBuilderModule.Data.GitContent;
 using VirtoCommerce.PageBuilderModule.Data.Theme;
 using VirtoCommerce.Platform.Core.Events;
 using VirtoCommerce.StoreModule.Core.Model;
@@ -83,6 +89,22 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.Equal("en-US", await ThemePublisher.ReadDefaultLanguageAsync(await _storageFactory.OpenAsync("s1"), 2));
             Assert.False(_storage.Files.ContainsKey(Product + "-draft"));
             Assert.Equal(["product-info", "related-products"], Sections(await _snapshots.GetPublishedAsync("s1", "de", Ct), "product"));
+        }
+
+        /// <summary>The history goes to GitHub, which may answer slowly: the theme saves of the store don't wait for it.</summary>
+        [Fact]
+        public async Task A_publication_records_its_history_once_the_store_lock_is_free()
+        {
+            _storage.Files[Product] = Template("product-info");
+            await _snapshots.GetPublishedAsync("s1", null, Ct);
+            _storage.Files[Product + "-draft"] = Template("product-info", "related-products");
+            var catalog = await Catalog("product-info", "related-products");
+            var history = new LockProbingHistory(_lock);
+            var publisher = new ThemePublisher(_storageFactory, _stores, _catalogs, _lock, new NoEvents(), NullLogger<ThemePublisher>.Instance, history);
+
+            await publisher.PublishAsync("s1", catalog, null, Ct);
+
+            Assert.Equal([(Product, true)], history.Recorded);
         }
 
         [Fact]
@@ -273,6 +295,20 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         private sealed class NoEvents : IEventPublisher
         {
             public Task Publish<T>(T @event, System.Threading.CancellationToken cancellationToken = default) where T : IEvent => Task.CompletedTask;
+        }
+
+        /// <summary>Records which files a publication put in the history, and whether the store's theme lock was free then.</summary>
+        private sealed class LockProbingHistory(InProcessDistributedLock distributedLock)
+            : ThemeFileHistory(null, null, null, Options.Create(new GitContentOptions()), NullLogger<ThemeFileHistory>.Instance)
+        {
+            public List<(string Path, bool LockFree)> Recorded { get; } = [];
+
+            public override async Task RecordAsync(string storeId, string path, string content, string summary, ClaimsPrincipal user, string save,
+                CancellationToken cancellationToken = default)
+            {
+                await using var handle = await distributedLock.TryAcquireAsync(ThemePublisher.LockResource(storeId), TimeSpan.Zero, cancellationToken);
+                Recorded.Add((path, handle != null));
+            }
         }
     }
 }

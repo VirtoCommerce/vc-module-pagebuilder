@@ -333,6 +333,7 @@
       "PICK_ASSET": "Valitse tiedosto",
       "CONFIRM_REMOVE": "Poistetaanko ”{name}” sivulta?",
       "SHARED_COMPONENTS": "Jaetut komponentit",
+      "SHARED_ON_PAGES_ONLY": "Jaetut komponentit sijoitetaan vain sivuille, ei mallipohjaan eikä toiseen jaettuun komponenttiin.",
       "MODE_SHARED": "Jaetut",
       "EDIT_SHARED": "Muokkaa jaettua komponenttia",
       "EDITING_SHARED": "Muokkaat jaettua komponenttia: tallennus muuttaa sen kaikilla sivuilla, jotka käyttävät sitä.",

@@ -368,7 +368,8 @@ const bladeToolbar = computed((): IBladeToolbar[] => [
     isVisible: !isNew.value,
     disabled: isModified.value,
     clickHandler: async () => {
-      if (loading.value) {
+      // the clone takes this blade's place: an open language version is closed first, asking about its unsaved edits
+      if (loading.value || !(await closeChildrenOrCancel())) {
         return;
       }
       const cloned = await clone();

@@ -87,6 +87,7 @@
           v-if="mode === 'shared'"
           ref="sharedPanel"
           :store-id="designer.storeId.value"
+          :can-insert="designer.canPlaceShared.value"
           @insert="insertShared"
           @edit="(component) => editShared(component.id)"
         />
@@ -619,7 +620,7 @@ const statusKind = computed<StatusKind>(() => {
   if (status.awaitingMerge) return "awaiting";
   if (status.pending) return "pending";
   if (!status.published) return "draft";
-  return status.hasChanges || (rulesActive.value && rules.hasDraft.value) ? "changes" : "published";
+  return status.hasChanges || status.liveBehind || (rulesActive.value && rules.hasDraft.value) ? "changes" : "published";
 });
 const subtitle = computed(() => {
   const shared = designer.shared.value;
@@ -1156,17 +1157,20 @@ const hasDraft = computed(
 async function discardChanges() {
   const drafts = hasDraft.value;
   if (!(await showConfirmation(t(drafts ? "PAGE_BUILDER.DESIGNER.HISTORY.CONFIRM_DISCARD" : "PAGE_BUILDER.DESIGNER.CONFIRM_DISCARD_UNSAVED")))) return;
+  let failed = false;
   try {
     await asOneSave(async () => {
       if (drafts) await designer.discardDrafts();
       if (rulesActive.value) await rules.discard();
     });
-    theme.revert();
-    await reopen();
-    if (drafts) notification.success(t("PAGE_BUILDER.DESIGNER.HISTORY.DISCARDED"));
   } catch {
-    notification.error(t("PAGE_BUILDER.DESIGNER.HISTORY.DISCARD_FAILED"));
+    failed = true;
   }
+  // what the server holds now, also after a failure: a draft may be gone already
+  theme.revert();
+  await reopen();
+  if (failed) notification.error(t("PAGE_BUILDER.DESIGNER.HISTORY.DISCARD_FAILED"));
+  else if (drafts) notification.success(t("PAGE_BUILDER.DESIGNER.HISTORY.DISCARDED"));
 }
 
 const publishTitle = computed(() => {
@@ -1361,8 +1365,9 @@ onMounted(async () => {
     }),
   ]);
   homeTitle.value = home && !designer.templateKey.value ? title.value : undefined;
-  // the template that was open when the page was reloaded (the URL keeps it), else a template opened directly
-  const reloaded = templateInUrl();
+  // the template that was open when the page was reloaded (the URL keeps it), else a template opened directly; a shared
+  // component has no template, and the address may hold the one of the designer it was opened from
+  const reloaded = query.value?.sharedComponentId ? undefined : templateInUrl();
   if (reloaded && reloaded !== designer.templateKey.value && pageTypeOf(reloaded)) await switchTo(reloaded);
   else if (designer.templateKey.value) await enterTemplate();
 });

@@ -181,6 +181,31 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.Equal(["sections/header-group.json: 'h' has blocks that are not a list"], ThemeSnapshotBuilder.Validate(source, null));
         }
 
+        /// <summary>A snapshot is read as it is: a shared component placed in a theme file would reach the storefront unresolved.</summary>
+        [Fact]
+        public void A_shared_component_in_a_theme_file_stops_a_publication_against_the_catalog()
+        {
+            var catalog = JObject.Parse("""{ "sections": { "product-info": {} } }""");
+
+            Assert.Equal(
+            [
+                "templates/product.json: 'ref1' places a shared component, which only a page can hold",
+                "sections/footer-group.json: 'ref1' places a shared component, which only a page can hold",
+            ], ThemeSnapshotBuilder.Validate(WithSharedComponent(), catalog));
+        }
+
+        /// <summary>The first publication, from live files that may predate the check, leaves the placement out.</summary>
+        [Fact]
+        public void The_first_publication_leaves_a_shared_component_out_of_the_snapshot()
+        {
+            var source = WithSharedComponent();
+
+            Assert.Empty(ThemeSnapshotBuilder.Validate(source, null));
+            var snapshot = JObject.Parse(ThemeSnapshotBuilder.Build(source, null, null, ["en-US"], "en-US", 1, DateTime.UtcNow).Files["en-US"]);
+            Assert.Equal(["product-info"], snapshot["templates"]!["product"]!["content"]!.Select(x => x.Value<string>("type")));
+            Assert.Empty((JArray)snapshot["footer"]!["content"]!);
+        }
+
         [Theory]
         [InlineData("product.json", "product")]
         [InlineData("product.b2c.json", "product.b2c")]
@@ -191,6 +216,17 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         public void A_template_file_name_gives_its_key(string fileName, string key)
         {
             Assert.Equal(key, ThemeSnapshotBuilder.TemplateKeyOf(fileName));
+        }
+
+        private static ThemeSource WithSharedComponent()
+        {
+            var placement = JObject.Parse("""{ "id": "ref1", "type": "componentRef", "componentRef": "c1" }""");
+            return Source(
+                templates: new Dictionary<string, JToken>
+                {
+                    ["product"] = new JObject { ["content"] = new JArray(new JObject { ["id"] = "s0", ["type"] = "product-info" }, placement) },
+                },
+                footer: new JObject { ["content"] = new JArray(placement.DeepClone()) });
         }
 
         private static ThemeSource Source(

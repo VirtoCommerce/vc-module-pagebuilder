@@ -43,7 +43,7 @@ export function useTemplateRules() {
   /** Throws the saved draft away (a never-published file keeps it: it is the only copy) and the unsaved edits */
   async function discard() {
     if (!at) return;
-    if (hasDraft.value) await api.discardBlobDraft(at.storeId, "themes", rulesPath(at.theme), at.theme).catch((e) => e instanceof api.ApiError && e.status === 409 ? undefined : Promise.reject(e));
+    if (hasDraft.value) await api.discardThemeDraft(at.storeId, at.theme, rulesPath(at.theme));
     await load(at.storeId, at.theme);
   }
 

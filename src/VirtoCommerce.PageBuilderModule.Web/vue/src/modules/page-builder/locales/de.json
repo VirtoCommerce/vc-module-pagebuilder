@@ -333,6 +333,7 @@
       "PICK_ASSET": "Datei auswählen",
       "CONFIRM_REMOVE": "„{name}“ von der Seite entfernen?",
       "SHARED_COMPONENTS": "Geteilte Komponenten",
+      "SHARED_ON_PAGES_ONLY": "Geteilte Komponenten gehören nur auf Seiten, nicht in eine Vorlage oder eine andere geteilte Komponente.",
       "MODE_SHARED": "Geteilt",
       "EDIT_SHARED": "Geteilte Komponente bearbeiten",
       "EDITING_SHARED": "Sie bearbeiten eine geteilte Komponente: Speichern ändert sie auf allen Seiten, die sie verwenden.",

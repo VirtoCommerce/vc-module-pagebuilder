@@ -34,6 +34,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         private const string RepoPath = "pages/about-us.page";
         private const string Published = """{ "settings": { "type": "settings", "name": "About" }, "content": [] }""";
         private const string Draft = """{ "settings": { "type": "settings", "name": "About, rewritten" }, "content": [] }""";
+        private const string LastWeek = """{ "settings": { "type": "settings", "name": "About, last week" }, "content": [] }""";
         private const string BaseHead = "9111111111111111111111111111111111111111";
         private const string DraftHead = "7222222222222222222222222222222222222222";
 
@@ -244,6 +245,57 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         /// <summary>
+        /// A pull request merged on GitHub (a required review, say) leaves the editor's branch behind with nothing the base
+        /// branch lacks: publishing it again writes the live page the merge did not.
+        /// </summary>
+        [Fact]
+        public async Task Publish_OfADraftTheBaseBranchAlreadyHas_WritesTheLivePageFromTheBaseBranch()
+        {
+            var live = new FakeLiveStorage();
+
+            await Controller(MergedOnGitHub(), Publisher(GitPublishState.AlreadyPublished), live: live).GitPublish("s1", Page, "pages");
+
+            Assert.True(JToken.DeepEquals(JToken.Parse(Published), JToken.Parse(live.Files[Page])));
+        }
+
+        [Theory]
+        [InlineData(GitRepositorySource.Shared)]
+        [InlineData(GitRepositorySource.StoreSetting)]
+        public async Task Publish_OfADraftTheBaseBranchAlreadyHas_InARepositoryAssignedByHand_LeavesTheLivePageAlone(GitRepositorySource source)
+        {
+            var live = new FakeLiveStorage();
+
+            await Controller(MergedOnGitHub(), Publisher(GitPublishState.AlreadyPublished), live: live, source: source).GitPublish("s1", Page, "pages");
+
+            Assert.Empty(live.Files);
+        }
+
+        /// <summary>
+        /// The status says so: in a repository the platform writes live, a live page that is not the base branch's is behind
+        /// it, apart from any draft. A repository assigned by hand has its own deployment, which the status does not look at.
+        /// </summary>
+        [Theory]
+        [InlineData(GitRepositorySource.Site, LastWeek, true)]
+        [InlineData(GitRepositorySource.Site, null, true)]
+        [InlineData(GitRepositorySource.Site, """{"settings":{"name":"About","type":"settings"},"content":[]}""", false)]
+        [InlineData(GitRepositorySource.Shared, LastWeek, false)]
+        public async Task PublishStatus_TellsALivePageBehindTheBaseBranch_WhereThePlatformWritesLive(GitRepositorySource source, string livePage, bool liveBehind)
+        {
+            var live = new FakeLiveStorage();
+            if (livePage != null)
+            {
+                live.Files[Page] = livePage;
+            }
+
+            var result = await Controller(MergedOnGitHub(), Publisher(GitPublishState.AlreadyPublished), live: live, source: source).GitPublishStatus("s1", Page, "pages");
+
+            var status = JObject.FromObject(Assert.IsType<OkObjectResult>(result).Value!);
+            Assert.True(status.Value<bool>("published"));
+            Assert.False(status.Value<bool>("hasChanges"));
+            Assert.Equal(liveBehind, status.Value<bool>("liveBehind"));
+        }
+
+        /// <summary>
         /// The other half of that, and the one that matters: a page the branch does not have is a page that
         /// only lives in blob storage — a store that opted in keeps those until their first save. Publish
         /// must never take it down.
@@ -305,6 +357,15 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 repository.BranchHeads[MyBranch] = DraftHead;
             }
 
+            return repository;
+        }
+
+        /// <summary>The editor's pull request merged on GitHub, the branch kept: it holds the page as the base branch does.</summary>
+        private static RecordingRepository MergedOnGitHub()
+        {
+            var repository = Repository(withDraft: false);
+            repository.Files[(RepoPath, MyBranch)] = Published;
+            repository.BranchHeads[MyBranch] = BaseHead;
             return repository;
         }
 

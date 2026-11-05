@@ -333,6 +333,7 @@
       "PICK_ASSET": "ファイルを選択",
       "CONFIRM_REMOVE": "「{name}」をページから削除しますか？",
       "SHARED_COMPONENTS": "共有コンポーネント",
+      "SHARED_ON_PAGES_ONLY": "共有コンポーネントはページにのみ配置できます。テンプレートや別の共有コンポーネントには配置できません。",
       "MODE_SHARED": "共有",
       "EDIT_SHARED": "共有コンポーネントを編集",
       "EDITING_SHARED": "共有コンポーネントを編集しています。保存すると、これを使うすべてのページで変更されます。",

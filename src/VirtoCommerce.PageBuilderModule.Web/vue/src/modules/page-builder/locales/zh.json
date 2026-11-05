@@ -333,6 +333,7 @@
       "PICK_ASSET": "选择文件",
       "CONFIRM_REMOVE": "要从页面中移除“{name}”吗？",
       "SHARED_COMPONENTS": "共享组件",
+      "SHARED_ON_PAGES_ONLY": "共享组件只能放在页面上，不能放入模板或其他共享组件中。",
       "MODE_SHARED": "共享",
       "EDIT_SHARED": "编辑共享组件",
       "EDITING_SHARED": "你正在编辑共享组件：保存后，所有使用它的页面都会随之更改。",

@@ -70,6 +70,8 @@ export interface PublishStatus {
   flow?: "git" | "blob";
   /** git flow with a production branch: its state for this page */
   production?: { published?: boolean; behind?: boolean; pending?: boolean; awaitingMerge?: boolean } | null;
+  /** git flow, a repository the platform writes live: the live page is not the published one (a merge done on GitHub) */
+  liveBehind?: boolean;
 }
 
 export async function publishStatus(groupId: string): Promise<PublishStatus> {
@@ -257,9 +259,14 @@ export async function discardBlobDraft(storeId: string, type: string, path: stri
   await call(`/api/pagebuilder/discard-draft?${new URLSearchParams({ storeId, type, path, ...(theme ? { theme } : {}) })}`, { method: "POST" });
 }
 
+/** Throws a theme file's draft away; a file never published keeps it, as the draft is its only copy */
+export async function discardThemeDraft(storeId: string, theme: string, path: string) {
+  await discardBlobDraft(storeId, "themes", path, theme).catch((e) => (e instanceof ApiError && e.status === 409 ? undefined : Promise.reject(e)));
+}
+
 /** Throws section group drafts away: the site keeps the header and footer it shows */
 export async function discardSectionGroupDrafts(storeId: string, theme: string, groups: SectionGroup[]) {
-  await Promise.all(groups.map((group) => discardBlobDraft(storeId, "themes", groupPath(theme, group), theme)));
+  await Promise.all(groups.map((group) => discardThemeDraft(storeId, theme, groupPath(theme, group))));
 }
 
 /** Puts section group drafts live */

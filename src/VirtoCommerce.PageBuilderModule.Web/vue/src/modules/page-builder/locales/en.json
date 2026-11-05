@@ -333,6 +333,7 @@
       "PICK_ASSET": "Choose a file",
       "CONFIRM_REMOVE": "Remove \"{name}\" from the page?",
       "SHARED_COMPONENTS": "Shared components",
+      "SHARED_ON_PAGES_ONLY": "Shared components go on pages only, not into a template or another shared component.",
       "MODE_SHARED": "Shared",
       "EDIT_SHARED": "Edit shared component",
       "EDITING_SHARED": "You're editing a shared component: saving changes it on every page that uses it.",

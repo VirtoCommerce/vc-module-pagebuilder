@@ -638,7 +638,9 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             var result = await gitContentPublisher.MergeBranchAsync(location.Repository, location.Branch, $"publish {path} (store: {storeId})", HttpContext.RequestAborted);
 
             var response = await RespondToPublishAsync(result, location, path, canRebase: true);
-            if (result.State == GitPublishState.Merged && WritesLive(site))
+            // already published: the production branch has all the branch holds, merged on GitHub (a required review),
+            // so the live page is behind it until it is written here
+            if (WritesLive(site) && result.State is GitPublishState.Merged or GitPublishState.AlreadyPublished)
             {
                 await WriteLiveAsync(storeId, type, path, location, removeWhenGone: false);
             }
@@ -892,21 +894,15 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
             var history = await gitContentHistory.GetHistoryAsync(location.Repository, location.RepoPath,
                 new GitHistoryQuery { BaseBranch = baseBranch }, HttpContext.RequestAborted);
-            if (!history.Versions.Any(x => x.Published))
-            {
-                return false;
-            }
-
-            // the live write that follows reads the branch by name: as it stands now too
-            gitContentRepository.InvalidateRead(location.Repository, location.RepoPath, baseBranch);
-            return true;
+            return history.Versions.Any(x => x.Published);
         }
 
         /// <summary>
         /// The shape the builder's toolbar expects, answered from git: <c>published</c> is "the page
         /// exists in the production branch", <c>hasChanges</c> is "this editor's branch says something
-        /// different", <c>pending</c> is "a pull request for it is open", and <c>awaitingMerge</c> is
-        /// "that pull request is not going to merge itself".
+        /// different", <c>pending</c> is "a pull request for it is open", <c>awaitingMerge</c> is
+        /// "that pull request is not going to merge itself", and <c>liveBehind</c> is "the live page the
+        /// platform writes is not the page on the production branch".
         /// <para>
         /// The answer also names the flow in effect, because a client has to behave differently under
         /// each — the admin blade saves to git and unpublishes through git on the git flow — and asking
@@ -917,8 +913,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [Route("git/publish-status")]
         public async Task<ActionResult> GitPublishStatus(string storeId, string path, string type)
         {
-            var repository = await gitContentPolicy.GetRepositoryAsync(storeId, HttpContext.RequestAborted);
-            var gitFlow = repository != null;
+            var site = await gitContentPolicy.GetStoreRepositoryAsync(storeId, HttpContext.RequestAborted);
+            var gitFlow = site != null;
 
             // A page that does not exist yet — the blade asking about a page it is about to create — has
             // no status; what the caller is after in that case is the flow.
@@ -934,7 +930,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             }
 
             var options = gitContentOptions.Value;
-            var location = GitLocation(repository, type, path);
+            var location = GitLocation(site.Name, type, path);
 
             var published = await gitContentRepository.ReadFileAsync(location.Repository, location.RepoPath, options.BaseBranch, HttpContext.RequestAborted);
             var draft = await gitContentRepository.ReadFileAsync(location.Repository, location.RepoPath, location.Branch, HttpContext.RequestAborted);
@@ -948,7 +944,9 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 gitFlow: true,
                 // the pull request is open but nothing will merge it: publishing again is what finishes it
                 awaitingMerge: pending is { AutoMerging: false },
-                production: await ProductionStatusAsync(location.Repository, location.RepoPath, published, type, path)));
+                production: await ProductionStatusAsync(location.Repository, location.RepoPath, published, type, path),
+                // a merge done on GitHub, not by publishing, leaves the live page behind: publishing again writes it
+                liveBehind: published != null && WritesLive(site) && !IsSamePageDocument(await ReadLivePageAsync(storeId, type, path), published)));
         }
 
         /// <summary>
@@ -982,7 +980,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         }
 
         private static object PublishStatus(bool published, bool hasChanges, bool pending, bool gitFlow,
-            bool awaitingMerge = false, object production = null) => new
+            bool awaitingMerge = false, object production = null, bool liveBehind = false) => new
         {
             published,
             hasChanges,
@@ -992,6 +990,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             awaitingMerge,
             flow = gitFlow ? GitFlow : BlobFlow,
             production,
+            liveBehind,
         };
 
         /// <summary>
@@ -1687,6 +1686,18 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             bool canRebase = false) =>
             RespondToShipAsync(result, location.Repository, location.RepoPath, location.Branch, gitContentOptions.Value.BaseBranch, path, canRebase);
 
+        /// <summary>Where the platform keeps the live copy of a page of a store's repository: the storage, and the page's name in it.</summary>
+        private (IBlobContentStorageProvider Storage, string Path) LivePage(string storeId, string type, string path) =>
+            (blobContentStorageProviderFactory.CreateProvider(GetContentBasePath(storeId, type.IsNullOrEmpty() ? PagesContentType : type, theme: null)),
+                publishingService.GetRelativeDraftUrl(path, false));
+
+        /// <summary>The live copy <see cref="WriteLiveAsync"/> writes; <c>null</c> when there is none.</summary>
+        private Task<string> ReadLivePageAsync(string storeId, string type, string path)
+        {
+            var (storage, livePath) = LivePage(storeId, type, path);
+            return ReadTextAsync(storage, livePath);
+        }
+
         /// <summary>
         /// Brings the live storage in line with the production branch for one page: the page as the branch has
         /// it after the merge — not the draft, which a merge of somebody else's change to the same file can
@@ -1701,7 +1712,10 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         private async Task WriteLiveAsync(string storeId, string type, string path, (string Repository, string RepoPath, string Branch) location, bool removeWhenGone)
         {
             var contentType = type.IsNullOrEmpty() ? PagesContentType : type;
-            var published = await gitContentRepository.ReadFileAsync(location.Repository, location.RepoPath, gitContentOptions.Value.BaseBranch, HttpContext.RequestAborted);
+            var baseBranch = gitContentOptions.Value.BaseBranch;
+            // the branch as it stands now: a read of it by name may be cached from before a merge GitHub did
+            gitContentRepository.InvalidateRead(location.Repository, location.RepoPath, baseBranch);
+            var published = await gitContentRepository.ReadFileAsync(location.Repository, location.RepoPath, baseBranch, HttpContext.RequestAborted);
 
             if (published != null)
             {
@@ -1711,8 +1725,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
             if (removeWhenGone)
             {
-                var storageProvider = blobContentStorageProviderFactory.CreateProvider(GetContentBasePath(storeId, contentType, theme: null));
-                await storageProvider.RemoveAsync([publishingService.GetRelativeDraftUrl(path, false)]);
+                var (storage, livePath) = LivePage(storeId, contentType, path);
+                await storage.RemoveAsync([livePath]);
                 await eventPublisher.Publish(new PageBuilderContentChangedEvent(contentType,
                     [new GenericChangedEntry<FileEntity>(new FileEntity { Path = path, Type = contentType }, EntryState.Deleted)]));
             }

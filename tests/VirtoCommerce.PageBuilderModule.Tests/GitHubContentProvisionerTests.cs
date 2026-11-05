@@ -148,6 +148,31 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             github.AssertDone();
         }
 
+        /// <summary>
+        /// A repository assigned by hand deploys from its own branches: one without the base branch is refused, never given
+        /// a base or release branch cut from its default one, which its deployment would not follow.
+        /// </summary>
+        [Theory]
+        [InlineData("acme", null)]
+        [InlineData(null, "acme/website")]
+        public async Task A_repository_assigned_by_hand_without_the_base_branch_gets_no_branch_cut_in_it(string organization, string shared)
+        {
+            var github = new GitHubScript(
+                ("GET", "repos/acme/website", (_, _) => GitHubScript.Json(RepoJson("Our web site", defaultBranch: "master"))),
+                ("GET", "repos/acme/website/git/ref/heads/main", (_, _) => GitHubScript.Status(HttpStatusCode.NotFound)));
+
+            var provisioner = Provisioner(github, repository: shared == null ? "acme/website" : null, configure: x =>
+            {
+                x.Organization = organization;
+                x.Repository = shared;
+                x.ReleaseBranch = "release";
+            });
+            var error = await Assert.ThrowsAsync<InvalidOperationException>(() => provisioner.EnsureRepositoryAsync("s1", TestContext.Current.CancellationToken));
+
+            Assert.Contains("\"main\"", error.Message);
+            github.AssertDone();
+        }
+
         [Fact]
         public async Task The_base_and_release_branches_are_cut_from_the_repositorys_own_default_branch()
         {

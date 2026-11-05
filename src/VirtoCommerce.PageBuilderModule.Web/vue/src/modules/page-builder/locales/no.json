@@ -333,6 +333,7 @@
       "PICK_ASSET": "Velg en fil",
       "CONFIRM_REMOVE": "Fjerne «{name}» fra siden?",
       "SHARED_COMPONENTS": "Delte komponenter",
+      "SHARED_ON_PAGES_ONLY": "Delte komponenter plasseres bare på sider, ikke i en mal eller i en annen delt komponent.",
       "MODE_SHARED": "Delte",
       "EDIT_SHARED": "Rediger delt komponent",
       "EDITING_SHARED": "Du redigerer en delt komponent: lagring endrer den på alle sider som bruker den.",

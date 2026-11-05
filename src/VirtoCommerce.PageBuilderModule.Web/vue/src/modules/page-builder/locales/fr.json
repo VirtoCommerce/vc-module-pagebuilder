@@ -333,6 +333,7 @@
       "PICK_ASSET": "Choisir un fichier",
       "CONFIRM_REMOVE": "Retirer « {name} » de la page ?",
       "SHARED_COMPONENTS": "Composants partagés",
+      "SHARED_ON_PAGES_ONLY": "Les composants partagés se placent uniquement sur des pages, pas dans un modèle ni dans un autre composant partagé.",
       "MODE_SHARED": "Partagés",
       "EDIT_SHARED": "Modifier le composant partagé",
       "EDITING_SHARED": "Vous modifiez un composant partagé : l'enregistrer le change sur toutes les pages qui l'utilisent.",

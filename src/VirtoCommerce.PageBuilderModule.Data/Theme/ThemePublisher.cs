@@ -50,10 +50,13 @@ public class ThemePublisher(
     public virtual async Task<int> PublishAsync(string storeId, string catalogHash, ClaimsPrincipal user, CancellationToken cancellationToken = default)
     {
         var catalog = await ReadCatalogAsync(storeId, catalogHash, cancellationToken);
-        return await distributedLock.ExecuteAsync(
+        var publication = await distributedLock.ExecuteAsync(
             LockResource(storeId),
-            _ => PublishUnderLockAsync(storeId, catalog, catalogHash, user, drafts: true, cancellationToken),
+            _ => PublishUnderLockAsync(storeId, catalog, catalogHash, drafts: true),
             cancellationToken: cancellationToken);
+
+        await AnnouncePutLiveAsync(storeId, publication.PutLive, user, cancellationToken);
+        return publication.Number;
     }
 
     /// <summary>
@@ -76,7 +79,7 @@ public class ThemePublisher(
 
                 var current = await catalogService.GetAsync(storeId, hash: null, cancellationToken);
                 var catalog = current == null ? null : JObject.Parse(current);
-                return await PublishUnderLockAsync(storeId, catalog, catalogHash: null, user: null, drafts: false, cancellationToken);
+                return (await PublishUnderLockAsync(storeId, catalog, catalogHash: null, drafts: false)).Number;
             },
             cancellationToken: cancellationToken);
     }
@@ -158,9 +161,10 @@ public class ThemePublisher(
         }
     }
 
+    /// <summary>The storage writes of a publication, the part that holds the store's theme lock.</summary>
     /// <param name="catalog">The storefront's schemas: what the theme is checked against, and where its menus are found.</param>
     /// <param name="catalogHash">The catalog the publication is checked against; <c>null</c> checks the shape only.</param>
-    private async Task<int> PublishUnderLockAsync(string storeId, JObject catalog, string catalogHash, ClaimsPrincipal user, bool drafts, CancellationToken cancellationToken)
+    private async Task<Publication> PublishUnderLockAsync(string storeId, JObject catalog, string catalogHash, bool drafts)
     {
         var store = await storeService.GetNoCloneAsync(storeId) ?? throw new KeyNotFoundException($"Store '{storeId}' not found.");
         var storage = await storageFactory.OpenAsync(storeId);
@@ -186,8 +190,7 @@ public class ThemePublisher(
         await storage.WriteAsync(ThemeStorage.Pointer, new JObject { ["publication"] = publication }.ToString(Formatting.None));
         ThemeSnapshotCacheRegion.ExpireTokenForKey(storeId, propagate: true);
 
-        await PutDraftsLiveAsync(storeId, storage, draftFiles, user, cancellationToken);
-        return publication;
+        return new Publication(publication, await PutDraftsLiveAsync(storage, draftFiles));
     }
 
     private async Task<JObject> ReadCatalogAsync(string storeId, string catalogHash, CancellationToken cancellationToken)
@@ -276,11 +279,12 @@ public class ThemePublisher(
         return numbers.Max() + 1;
     }
 
-    private async Task PutDraftsLiveAsync(string storeId, ThemeStorage storage, Dictionary<string, string> drafts, ClaimsPrincipal user, CancellationToken cancellationToken)
+    /// <summary>Writes the drafts live and deletes them; the files put live, by their path in the theme storage.</summary>
+    private static async Task<IReadOnlyList<LiveFile>> PutDraftsLiveAsync(ThemeStorage storage, Dictionary<string, string> drafts)
     {
         if (drafts.Count == 0)
         {
-            return;
+            return [];
         }
 
         foreach (var (file, content) in drafts)
@@ -289,17 +293,31 @@ public class ThemePublisher(
         }
         await storage.RemoveAsync(drafts.Keys.Select(storage.DraftOf));
 
-        var changes = drafts.Keys
-            .Select(file => new GenericChangedEntry<FileEntity>(new FileEntity { Path = storage.PathOf(file), Type = ThemeStorageFactory.ContentType }, EntryState.Modified))
+        return drafts.Select(x => new LiveFile(storage.PathOf(x.Key), x.Value)).ToList();
+    }
+
+    /// <summary>
+    /// What follows the files a publication put live, once the store's theme lock is free, as after a theme save: the
+    /// changed event, and the version history, which waits for GitHub.
+    /// </summary>
+    private async Task AnnouncePutLiveAsync(string storeId, IReadOnlyList<LiveFile> files, ClaimsPrincipal user, CancellationToken cancellationToken)
+    {
+        if (files.Count == 0)
+        {
+            return;
+        }
+
+        var changes = files
+            .Select(x => new GenericChangedEntry<FileEntity>(new FileEntity { Path = x.Path, Type = ThemeStorageFactory.ContentType }, EntryState.Modified))
             .ToList();
         await eventPublisher.Publish(new PageBuilderContentChangedEvent(ThemeStorageFactory.ContentType, changes), cancellationToken);
 
         if (themeFileHistory != null)
         {
             var save = Guid.NewGuid().ToString("N");
-            foreach (var (file, content) in drafts)
+            foreach (var file in files)
             {
-                await themeFileHistory.RecordAsync(storeId, storage.PathOf(file), content, Published, user, save, cancellationToken);
+                await themeFileHistory.RecordAsync(storeId, file.Path, file.Content, Published, user, save, cancellationToken);
             }
         }
     }
@@ -320,4 +338,8 @@ public class ThemePublisher(
                 publication, storeId, language, compressed.Length, ModuleConstants.Theme.ThemeSnapshotSizeWarning);
         }
     }
+
+    private sealed record Publication(int Number, IReadOnlyList<LiveFile> PutLive);
+
+    private sealed record LiveFile(string Path, string Content);
 }

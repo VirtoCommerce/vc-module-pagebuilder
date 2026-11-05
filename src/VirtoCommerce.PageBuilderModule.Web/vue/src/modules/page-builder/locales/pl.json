@@ -333,6 +333,7 @@
       "PICK_ASSET": "Wybierz plik",
       "CONFIRM_REMOVE": "Usunąć „{name}” ze strony?",
       "SHARED_COMPONENTS": "Współdzielone komponenty",
+      "SHARED_ON_PAGES_ONLY": "Współdzielone komponenty umieszcza się tylko na stronach, nie w szablonie ani w innym współdzielonym komponencie.",
       "MODE_SHARED": "Współdzielone",
       "EDIT_SHARED": "Edytuj współdzielony komponent",
       "EDITING_SHARED": "Edytujesz współdzielony komponent: zapisanie zmienia go na wszystkich stronach, które go używają.",

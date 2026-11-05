@@ -120,7 +120,8 @@ shared repository, then replace `Repository` with `Organization`. The two cannot
 - `PageBuilder__GitContent__Enabled=false` switches the git flow off for every store, the one-click setup's App
   included.
 - Auto-merge stays off on the site repositories: the merge then happens inside the publish request, which is where the
-  live page is written. A repository with required checks finishes publishing on the next Publish.
+  live page is written. A repository with required checks finishes publishing on the next Publish. A pull request
+  merged on GitHub instead leaves the live page behind: the builder offers Publish again, which writes it.
 - Changing `RepositoryPrefix` after repositories exist points sites without their own setting at new, empty
   repositories.
 - GitHub's rate limit (about 5,000 requests per hour) is shared by all sites of an installation; page reads and

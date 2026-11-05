@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using VirtoCommerce.PageBuilderModule.Core;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Theme;
 
@@ -121,12 +122,12 @@ public static class ThemeSnapshotBuilder
         {
             if (TemplateKeyOf($"{key}.json") != null && ToDocument(document) is { } doc)
             {
-                templates[key] = doc;
+                templates[key] = WithoutSharedComponents(doc);
             }
         }
 
-        var header = ToGroup(source.Header);
-        var footer = ToGroup(source.Footer);
+        var header = WithoutSharedComponents(ToGroup(source.Header));
+        var footer = WithoutSharedComponents(ToGroup(source.Footer));
         var menus = MenusOf(catalog, header, footer);
 
         var snapshot = new JObject
@@ -297,6 +298,19 @@ public static class ThemeSnapshotBuilder
     private static JObject ToGroup(JToken token) =>
         token is JObject { } group && group["content"] is JArray content ? new JObject { ["content"] = content.DeepClone() } : null;
 
+    /// <summary>The document without shared component placements: the storefront reads a snapshot as it is, and only a page resolves them.</summary>
+    private static JObject WithoutSharedComponents(JObject document)
+    {
+        if (document?["content"] is JArray content)
+        {
+            foreach (var placement in content.Where(x => x is JObject item && item.Value<string>("type") == ModuleConstants.SharedComponents.ReferenceType).ToList())
+            {
+                placement.Remove();
+            }
+        }
+        return document;
+    }
+
     private static JObject ToBrand(JToken brand, JToken settingsData)
     {
         var result = new JObject();
@@ -393,6 +407,16 @@ public static class ThemeSnapshotBuilder
             }
 
             var type = item.Value<string>("type");
+            if (type == ModuleConstants.SharedComponents.ReferenceType)
+            {
+                // a first publication, from live files that may predate this check, leaves it out instead (Build)
+                if (catalog != null)
+                {
+                    errors.Add($"{file}: '{item.Value<string>("id")}' places a shared component, which only a page can hold");
+                }
+                continue;
+            }
+
             var known = catalog == null
                 || catalog[kind]?[type] != null
                 || (allowPageContent && kind == "sections" && type == PageContentSection);

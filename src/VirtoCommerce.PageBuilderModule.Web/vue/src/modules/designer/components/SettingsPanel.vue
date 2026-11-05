@@ -198,7 +198,9 @@ const actions = computed(() => {
   const current = sel.value;
   if (current.kind === "page") return [];
   return [
-    { title: t("PAGE_BUILDER.DESIGNER.DUPLICATE"), icon: "lucide-copy-plus", run: () => props.designer.duplicate(current) },
+    ...(placed.value && !props.designer.canPlaceShared.value
+      ? []
+      : [{ title: t("PAGE_BUILDER.DESIGNER.DUPLICATE"), icon: "lucide-copy-plus", run: () => props.designer.duplicate(current) }]),
     { title: t("PAGE_BUILDER.DESIGNER.CLIPBOARD.COPY"), icon: "lucide-copy", run: () => emit("copy") },
     { title: t("PAGE_BUILDER.DESIGNER.CLIPBOARD.PASTE"), icon: "lucide-clipboard-paste", run: () => emit("paste") },
     ...(placed.value ? [] : [{

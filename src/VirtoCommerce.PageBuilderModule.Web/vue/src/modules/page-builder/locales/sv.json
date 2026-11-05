@@ -333,6 +333,7 @@
       "PICK_ASSET": "Välj en fil",
       "CONFIRM_REMOVE": "Ta bort ”{name}” från sidan?",
       "SHARED_COMPONENTS": "Delade komponenter",
+      "SHARED_ON_PAGES_ONLY": "Delade komponenter placeras bara på sidor, inte i en mall eller i en annan delad komponent.",
       "MODE_SHARED": "Delade",
       "EDIT_SHARED": "Redigera delad komponent",
       "EDITING_SHARED": "Du redigerar en delad komponent: när du sparar ändras den på alla sidor som använder den.",

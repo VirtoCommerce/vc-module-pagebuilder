@@ -26,6 +26,7 @@
           <small>{{ $t("PAGE_BUILDER.DESIGNER.USED_ON", { count: component.usageCount ?? 0 }) }}</small>
         </span>
         <VcButton
+          v-if="canInsert"
           variant="ghost"
           size="xs"
           icon="lucide-plus"
@@ -59,7 +60,11 @@ import { debounce } from "lodash-es";
 import { VcButton, VcIcon, VcInput } from "@vc-shell/framework/ui";
 import { searchSharedComponents, type SharedComponent } from "../api";
 
-const props = defineProps<{ storeId?: string }>();
+const props = defineProps<{
+  storeId?: string;
+  /** what is open can hold a shared component: a page, not a template */
+  canInsert?: boolean;
+}>();
 const emit = defineEmits<{ insert: [component: SharedComponent]; edit: [component: SharedComponent] }>();
 
 const search = ref<string>();

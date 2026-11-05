@@ -42,7 +42,10 @@ at once:
    publication of the theme; the translatable texts are resolved there
    ([Translatable fields](#translatable-fields)). Then it writes the record, `snapshots/{n}/publication.json`.
 4. It rewrites `snapshots/current.json` to `n`. This is the moment the storefront sees the new theme.
-5. It writes the drafts over the live files, deletes the drafts and records the publication in the history.
+5. It writes the drafts over the live files and deletes the drafts.
+
+Steps 1–5 hold the lock. The publication is then recorded in the history, after the lock, as a save is: the history
+lives on GitHub, and a slow answer from it must not hold up the store's theme saves.
 
 The snapshots and the record are written before the pointer, so the pointer never names a publication that is not
 complete. A pointer that exists but is not valid JSON (a write cut off on a file system) is read as the highest
@@ -206,8 +209,10 @@ interface SectionGroup {
 ```
 
 The storefront renders only section types it registered and passes a section only the settings its schema declares.
-The header group holds `site-header` and the announcement bar, the footer group holds `site-footer`; neither has a
-logo setting of its own: they show the brand's logos.
+A snapshot never holds a shared component (`componentRef`): shared components are page content. A publication refuses a
+theme file that places one; the first publication, from the live files, leaves it out. The header group holds
+`site-header` and the announcement bar, the footer group holds `site-footer`; neither has a logo setting of its own:
+they show the brand's logos.
 
 ### Templates
 

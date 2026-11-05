@@ -136,24 +136,32 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
                 GitHubContentOwnership.EnsureOwnedBy(repository, GitHubContentOwnership.StoreOf(found), storeId);
             }
 
-            if (own)
+            if (!own)
             {
-                var patch = new JObject();
-                if (GitHubContentOwnership.StoreOf(found) == null)
+                // its deployment follows its own branches: a base branch cut here would take publications where none is deployed
+                if (await _repository.GetBranchHeadShaAsync(repository, _options.BaseBranch, cancellationToken) == null)
                 {
-                    // adopted: marked as the store's, so that no other store whose id names it works in it too
-                    patch["description"] = GitHubContentOwnership.Marker + storeId;
+                    throw new InvalidOperationException($"The GitHub repository \"{repository}\" has no branch \"{_options.BaseBranch}\" to publish to.");
                 }
-                if (found["archived"]?.Value<bool>() == true)
-                {
-                    // the store was deleted and has come back under the same id: its history is all there
-                    patch["archived"] = false;
-                }
-                if (patch.HasValues)
-                {
-                    await PatchRepositoryAsync(repository, patch, cancellationToken);
-                    _ownership.Invalidate(repository);
-                }
+
+                return;
+            }
+
+            var patch = new JObject();
+            if (GitHubContentOwnership.StoreOf(found) == null)
+            {
+                // adopted: marked as the store's, so that no other store whose id names it works in it too
+                patch["description"] = GitHubContentOwnership.Marker + storeId;
+            }
+            if (found["archived"]?.Value<bool>() == true)
+            {
+                // the store was deleted and has come back under the same id: its history is all there
+                patch["archived"] = false;
+            }
+            if (patch.HasValues)
+            {
+                await PatchRepositoryAsync(repository, patch, cancellationToken);
+                _ownership.Invalidate(repository);
             }
 
             var defaultBranch = found["default_branch"]?.Value<string>() ?? _options.BaseBranch;

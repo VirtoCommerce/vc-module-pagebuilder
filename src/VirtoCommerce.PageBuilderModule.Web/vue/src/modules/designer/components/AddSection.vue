@@ -17,7 +17,7 @@
       autofocus
       :placeholder="$t('PAGE_BUILDER.DESIGNER.SEARCH_SECTIONS')"
     />
-    <template v-if="shared.length && !designer.shared.value && !group">
+    <template v-if="shared.length && designer.canPlaceShared.value && !group">
       <div class="pd-add__group">{{ $t("PAGE_BUILDER.DESIGNER.SHARED_COMPONENTS") }}</div>
       <ul class="pd-add__list">
         <li
@@ -99,7 +99,10 @@ const shared = ref<SharedComponent[]>([]);
 let searches = 0;
 const loadShared = debounce(async () => {
   const request = ++searches;
-  const found = props.designer.storeId.value ? await searchSharedComponents(props.designer.storeId.value, search.value).catch(() => []) : [];
+  const found =
+    props.designer.storeId.value && props.designer.canPlaceShared.value
+      ? await searchSharedComponents(props.designer.storeId.value, search.value).catch(() => [])
+      : [];
   // an earlier search answering last doesn't replace a later one's results
   if (request === searches) shared.value = found;
 }, 250);

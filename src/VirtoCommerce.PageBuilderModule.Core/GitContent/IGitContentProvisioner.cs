@@ -29,7 +29,8 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
         /// <summary>
         /// Makes sure the store's repository exists, with the base branch (and the release branch, when one is
         /// configured) to work from. Safe to repeat: an existing repository is adopted and marked as the store's, an
-        /// archived one of the same store brought back.
+        /// archived one of the same store brought back. A repository assigned by hand is used as it is: it is refused
+        /// when it is missing or has no base branch, never created or given branches.
         /// </summary>
         Task EnsureRepositoryAsync(string storeId, CancellationToken cancellationToken = default);
 

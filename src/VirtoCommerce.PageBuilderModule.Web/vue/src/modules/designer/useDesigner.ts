@@ -84,6 +84,8 @@ export function useDesigner() {
   /** The theme template open (a theme file under templates/): its key ("product.printer") and page type */
   const templateKey = computed(() => (file.value?.type === "themes" ? templateKeyOf(file.value.path) : undefined));
   const pageType = computed(() => (templateKey.value ? pageTypeOf(templateKey.value) : undefined));
+  /** Shared components go on pages only: a shared component holds none, and the storefront reads a template as it is */
+  const canPlaceShared = computed(() => !shared.value && !templateKey.value);
 
   /**
    * The template entry of what is open (a page, or a product, category or page template): its key restricts section
@@ -233,6 +235,7 @@ export function useDesigner() {
     if (sel.kind === "section") {
       const index = doc.value.content.findIndex((x) => x.id === sel.id);
       const original = doc.value.content[index];
+      if (isComponentRef(original) && !canPlaceShared.value) return;
       // a reference is copied as another placement of the same component
       const copy = isComponentRef(original) ? { ...original, id: newId("componentRef") + newId("") } : copyItem(original);
       const content = [...doc.value.content];
@@ -266,6 +269,7 @@ export function useDesigner() {
   function paste(copied: ClipboardItem): string | undefined {
     const sel = selection.value;
     if (copied.type === "section") {
+      if (isComponentRef(copied.content) && !canPlaceShared.value) return "PAGE_BUILDER.DESIGNER.SHARED_ON_PAGES_ONLY";
       const item: Item = isComponentRef(copied.content) ? { ...copied.content, id: newId("componentRef") + newId("") } : copyItem(copied.content);
       // after the selected section; into its group only if the section is for that group, else at the page's end
       let target: Item | undefined;
@@ -315,6 +319,7 @@ export function useDesigner() {
    * it on the page in their place. Returns why it couldn't, as a message key.
    */
   async function saveCheckedAsShared(name: string): Promise<string | undefined> {
+    if (!canPlaceShared.value) return "PAGE_BUILDER.DESIGNER.SHARED_ON_PAGES_ONLY";
     const indexes = checked.value.map((id) => doc.value.content.findIndex((x) => x.id === id)).sort((a, b) => a - b);
     const sections = indexes.map((i) => doc.value.content[i]);
     if (!sections.length || indexes.some((i, n) => i < 0 || (n > 0 && i !== indexes[n - 1] + 1))) return "PAGE_BUILDER.DESIGNER.SELECT_MODE.NOT_ADJACENT";
@@ -358,8 +363,7 @@ export function useDesigner() {
 
   /** Places a shared component on the page (a reference: edits to the component show on every page using it). */
   async function insertShared(component: api.SharedComponent, index = pageEnd()) {
-    // a shared component can't hold another one
-    if (shared.value) return;
+    if (!canPlaceShared.value) return;
     const placement: Item = { id: newId("componentRef") + newId(""), type: "componentRef", componentRef: component.id };
     const content = [...doc.value.content];
     content.splice(index, 0, placement);
@@ -591,7 +595,7 @@ export function useDesigner() {
     busy.value = "publishing";
     try {
       // the page itself when it has something to publish (or to take off the site), then its header and footer drafts
-      const pageToPublish = !live || !!pageStatus.hasChanges || !pageStatus.published;
+      const pageToPublish = !live || !!pageStatus.hasChanges || !!pageStatus.liveBehind || !pageStatus.published;
       if (!pageToPublish) {
         // only header/footer changes
       } else if (groupId.value) await api.setPublished(groupId.value, live);
@@ -629,7 +633,9 @@ export function useDesigner() {
 
   // a pull request that will merge on its own is in flight; one awaiting a merge can be published again
   const inFlight = (x?: { pending?: boolean; awaitingMerge?: boolean } | null) => !!x?.pending && !x.awaitingMerge;
-  const canPublish = computed(() => !busy.value && !dirty.value && !!status.value.hasChanges && !inFlight(status.value));
+  const canPublish = computed(
+    () => !busy.value && !dirty.value && (!!status.value.hasChanges || !!status.value.liveBehind) && !inFlight(status.value),
+  );
   const canUnpublish = computed(
     () => !busy.value && !dirty.value && !!status.value.published && !status.value.hasChanges && !inFlight(status.value),
   );
@@ -665,6 +671,7 @@ export function useDesigner() {
     template,
     templateKey,
     pageType,
+    canPlaceShared,
     templateIsNew,
     extraPageFields,
     sectionSchema,
