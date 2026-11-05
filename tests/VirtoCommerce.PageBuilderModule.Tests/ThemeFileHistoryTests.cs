@@ -1,9 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Reflection;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
@@ -11,8 +14,10 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
+using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Data.GitContent;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using Xunit;
@@ -193,6 +198,59 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.Equal(0, github.Requests);
         }
 
+        [Theory]
+        [InlineData(nameof(ThemeFileHistoryController.GetHistory))]
+        [InlineData(nameof(ThemeFileHistoryController.GetVersion))]
+        public void Reading_a_theme_files_history_takes_the_read_permission(string action)
+        {
+            var attribute = Assert.Single(typeof(ThemeFileHistoryController).GetMethod(action)!.GetCustomAttributes<AuthorizeAttribute>(true));
+            Assert.Equal(ModuleConstants.Security.Permissions.Read, attribute.Policy);
+        }
+
+        [Fact]
+        public async Task The_history_of_a_store_the_user_does_not_work_in_is_forbidden()
+        {
+            var github = new GitHubScript();
+            var live = new FakeLiveStorage();
+            var controller = Controller(github, live, new Grants("s2", ModuleConstants.Security.Permissions.Templates, ModuleConstants.Security.Permissions.Theme));
+            var ct = TestContext.Current.CancellationToken;
+
+            Assert.IsType<ForbidResult>((await controller.GetHistory("s1", Path, cancellationToken: ct)).Result);
+            Assert.IsType<ForbidResult>(await controller.GetVersion(Sha, "s1", Path, ct));
+            Assert.IsType<ForbidResult>(await controller.Restore(Sha, "s1", Path, cancellationToken: ct));
+
+            Assert.Equal(0, github.Requests);
+            Assert.Empty(live.Files);
+        }
+
+        [Theory]
+        [InlineData("default/templates/product.json", ModuleConstants.Security.Permissions.Templates)]
+        [InlineData("default/config/template_rules.json", ModuleConstants.Security.Permissions.Templates)]
+        [InlineData("default/sections/header-group.json", ModuleConstants.Security.Permissions.Theme)]
+        [InlineData("default/config/settings_data.json", ModuleConstants.Security.Permissions.Theme)]
+        public async Task Going_back_takes_the_permission_that_edits_the_file(string path, string permission)
+        {
+            var ct = TestContext.Current.CancellationToken;
+            var other = permission == ModuleConstants.Security.Permissions.Templates
+                ? ModuleConstants.Security.Permissions.Theme
+                : ModuleConstants.Security.Permissions.Templates;
+
+            var untouched = new GitHubScript();
+            var denied = new FakeLiveStorage();
+            Assert.IsType<ForbidResult>(await Controller(untouched, denied, new Grants("s1", other)).Restore(Sha, "s1", path, cancellationToken: ct));
+            Assert.Equal(0, untouched.Requests);
+            Assert.Empty(denied.Files);
+
+            var live = new FakeLiveStorage();
+            var github = new GitHubScript(
+                ("GET", $"repos/acme/site-s1/contents/theme/{path}?ref={Sha}", (_, _) => GitHubScript.Json(Contents(Old))),
+                ("GET", $"repos/acme/site-s1/contents/theme/{path}?ref=main", (_, _) => GitHubScript.Json(Contents("{}"))),
+                ("PUT", $"repos/acme/site-s1/contents/theme/{path}", (_, _) => GitHubScript.Json("""{ "commit": { "sha": "c9" } }""", HttpStatusCode.Created)));
+            Assert.IsType<OkResult>(await Controller(github, live, new Grants("s1", permission)).Restore(Sha, "s1", path, cancellationToken: ct));
+            github.AssertDone();
+            Assert.Equal(Old, live.Files[$"{path}-draft"]);
+        }
+
         // ── helpers ────────────────────────────────────────────────────────────────────────────────
 
         private static ClaimsPrincipal Alice() =>
@@ -216,8 +274,19 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             return new ThemeFileHistory(Policy(options), repository, github, options, NullLogger<ThemeFileHistory>.Instance);
         }
 
-        private static ThemeFileHistoryController Controller(GitHubScript github, FakeLiveStorage live) =>
-            WithUser(new ThemeFileHistoryController(live, live, live, live, new InProcessDistributedLock(), History(github)));
+        private static ThemeFileHistoryController Controller(GitHubScript github, FakeLiveStorage live, IAuthorizationService authorization = null) =>
+            WithUser(new ThemeFileHistoryController(live, live, live, live, new InProcessDistributedLock(), History(github),
+                authorization ?? new FakeAuthorizationService(true)));
+
+        /// <summary>The user works in one store, with these permissions.</summary>
+        private sealed class Grants(string storeId, params string[] permissions) : IAuthorizationService
+        {
+            public Task<AuthorizationResult> AuthorizeAsync(ClaimsPrincipal user, object resource, IEnumerable<IAuthorizationRequirement> requirements) =>
+                Task.FromResult(resource is IHasStoreId store && store.StoreId == storeId ? AuthorizationResult.Success() : AuthorizationResult.Failed());
+
+            public Task<AuthorizationResult> AuthorizeAsync(ClaimsPrincipal user, object resource, string policyName) =>
+                Task.FromResult(permissions.Contains(policyName) ? AuthorizationResult.Success() : AuthorizationResult.Failed());
+        }
 
         private static PageBuilderController Builder(GitHubScript github, FakeLiveStorage live)
         {

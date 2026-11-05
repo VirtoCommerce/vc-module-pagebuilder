@@ -8,9 +8,11 @@ using Microsoft.AspNetCore.Mvc;
 using VirtoCommerce.AssetsModule.Core.Assets;
 using VirtoCommerce.ContentModule.Core.Model;
 using VirtoCommerce.ContentModule.Core.Services;
+using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Core.Models;
+using VirtoCommerce.PageBuilderModule.Data.Authorization;
 using VirtoCommerce.PageBuilderModule.Data.GitContent;
 using VirtoCommerce.PageBuilderModule.Data.Theme;
 using VirtoCommerce.Platform.Core.Common;
@@ -22,7 +24,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
     /// <summary>
     /// A theme file's version history (<see cref="ThemeFileHistory"/>) — a template, the template rules, a section
     /// group: its changes, one change's content, and going back to a change. The file is named as the theme storage
-    /// names it ("default/templates/product.json"). 404 for a store without history.
+    /// names it ("default/templates/product.json"). 404 for a store without history, 403 for a store the user does not
+    /// work in; going back takes the permission that edits the file in the designer.
     /// </summary>
     [Route("api/pagebuilder/theme-history")]
     [Authorize]
@@ -33,17 +36,23 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         IPublishingService publishingService,
         IEventPublisher eventPublisher,
         IDistributedLock distributedLock,
-        ThemeFileHistory history) : Controller
+        ThemeFileHistory history,
+        IAuthorizationService authorizationService) : Controller
     {
         private const string Themes = "themes";
 
         [HttpGet("")]
+        [Authorize(ModuleConstants.Security.Permissions.Read)]
         public async Task<ActionResult<GroupedPageHistoryResult>> GetHistory([FromQuery] string storeId, [FromQuery] string path, [FromQuery] string after = null,
             [FromQuery] int take = 20, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrEmpty(storeId) || !ThemeFileHistory.IsThemePath(path))
             {
                 return NotFound();
+            }
+            if (!await CanAccessStoreAsync(storeId))
+            {
+                return Forbid();
             }
 
             try
@@ -61,11 +70,16 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
         /// <summary>The file's content at a change, to preview it.</summary>
         [HttpGet("{sha}")]
+        [Authorize(ModuleConstants.Security.Permissions.Read)]
         public async Task<ActionResult> GetVersion([FromRoute] string sha, [FromQuery] string storeId, [FromQuery] string path, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrEmpty(storeId) || !ThemeFileHistory.IsThemePath(path) || !GitCommitSha.IsSha(sha))
             {
                 return NotFound();
+            }
+            if (!await CanAccessStoreAsync(storeId))
+            {
+                return Forbid();
             }
 
             var content = await history.ReadAsync(storeId, path, sha, cancellationToken);
@@ -82,6 +96,10 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             if (string.IsNullOrEmpty(storeId) || !ThemeFileHistory.IsThemePath(path) || !GitCommitSha.IsSha(sha))
             {
                 return NotFound();
+            }
+            if (!await CanAccessStoreAsync(storeId) || !(await authorizationService.AuthorizeAsync(User, null, EditPermission(path))).Succeeded)
+            {
+                return Forbid();
             }
 
             var content = await history.ReadAsync(storeId, path, sha, cancellationToken);
@@ -109,5 +127,20 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         // the store's theme storage; the path starts with the theme's folder, as the designer's saves name it
         private IBlobContentStorageProvider Storage(string storeId, string path) =>
             blobContentStorageProviderFactory.CreateProvider(pathResolver.GetContentBasePath(Themes, storeId, path.Split('/')[0]));
+
+        private async Task<bool> CanAccessStoreAsync(string storeId) =>
+            (await authorizationService.AuthorizeAsync(User, new PageBuilderPageSearchCriteria { StoreId = storeId }, new PageBuilderAuthorizationRequirement())).Succeeded;
+
+        /// <summary>
+        /// Templates and the template rules are edited with <see cref="ModuleConstants.Security.Permissions.Templates"/>,
+        /// the other theme files with <see cref="ModuleConstants.Security.Permissions.Theme"/> (docs/contracts/history-api.md).
+        /// </summary>
+        private static string EditPermission(string path)
+        {
+            var file = path[(path.IndexOf('/') + 1)..];
+            return file.StartsWith($"{ThemeStorage.TemplatesFolder}/", StringComparison.OrdinalIgnoreCase) || file.Equals(ThemeStorage.Rules, StringComparison.OrdinalIgnoreCase)
+                ? ModuleConstants.Security.Permissions.Templates
+                : ModuleConstants.Security.Permissions.Theme;
+        }
     }
 }

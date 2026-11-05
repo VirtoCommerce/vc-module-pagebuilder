@@ -69,7 +69,8 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         {
             var live = new FakeLiveStorage();
             var controller = new ThemeFileHistoryController(live, live, live, live, new InProcessDistributedLock(),
-                new ThemeFileHistory(Policy(), Repository(), new GitHubScript(), Options(), NullLogger<ThemeFileHistory>.Instance));
+                new ThemeFileHistory(Policy(), Repository(), new GitHubScript(), Options(), NullLogger<ThemeFileHistory>.Instance),
+                new FakeAuthorizationService(true));
 
             await Assert.ThrowsAsync<GitRepositoryOwnershipException>(() => controller.GetHistory("s1", "default/templates/product.json", cancellationToken: Ct));
         }

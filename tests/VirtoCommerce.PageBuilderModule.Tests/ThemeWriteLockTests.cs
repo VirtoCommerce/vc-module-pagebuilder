@@ -133,7 +133,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             });
             var repository = new GitHubContentRepository(github, new MemoryCache(new MemoryCacheOptions()), options);
             var history = new ThemeFileHistory(new GitContentPolicy(options, new FakeSettingsManager(true), new FakeGitContentOwnership()), repository, github, options, NullLogger<ThemeFileHistory>.Instance);
-            return WithUser(new ThemeFileHistoryController(_live, _live, _live, _live, _lock, history));
+            return WithUser(new ThemeFileHistoryController(_live, _live, _live, _live, _lock, history, new FakeAuthorizationService(true)));
         }
 
         private static T WithUser<T>(T controller) where T : ControllerBase
