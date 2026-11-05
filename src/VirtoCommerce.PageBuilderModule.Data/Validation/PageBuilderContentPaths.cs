@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Text.RegularExpressions;
 using VirtoCommerce.ContentModule.Core;
 using VirtoCommerce.PageBuilderModule.Core;
@@ -23,7 +24,7 @@ public static class PageBuilderContentPaths
     private const string ThemeSettingsFile = "settings_data.json";
 
     // What file storage reads as a path or a pattern rather than as part of a name, on Windows and Linux alike.
-    private static readonly char[] KeywordSeparators = ['\\', '/', ':', '*', '?', '"', '<', '>', '|'];
+    private static readonly SearchValues<char> KeywordSeparators = SearchValues.Create("\\/:*?\"<>|");
 
     private static readonly Regex HistoryCursorPattern = new("^[A-Za-z0-9+/=_-]{1,256}$", RegexOptions.None, TimeSpan.FromSeconds(1));
 

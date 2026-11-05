@@ -556,19 +556,13 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 return BadRequest(new { error = "files must be a JSON list of files." });
             }
 
-            // A live write of a page is a publication. With the git flow on, every live write is one: live belongs
-            // to the CI deploy, and editors publish through a pull request. Without git, theme settings stay on
-            // update: the designer saves them straight to live.
             var gitFlow = await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted);
-            var publishes = !draft && (gitFlow || files.Any(file => file != null && GitPageLocation.IsPageContent(file.Type)));
-            if (publishes && !(await authorizationService.AuthorizeAsync(User, null, ModuleConstants.Security.Permissions.Publish)).Succeeded)
+            if (IsPublication(files, draft, gitFlow) && !await IsAllowedToPublishAsync())
             {
                 return Forbid();
             }
 
-            request.Files = files.ConvertAll(file => file == null
-                ? null
-                : new PageBuilderContentFile { ContentType = file.Type, Path = file.Path, Content = AsToken(file.Content) });
+            request.Files = files.ConvertAll(ToContentFile);
             if (await ValidateAsync(request) is { } invalid)
             {
                 return invalid;
@@ -582,6 +576,18 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
             return await SaveDraftToGitAsync(storeId, theme, files);
         }
+
+        // A live write of a page is a publication. With the git flow on, every live write is one: live belongs
+        // to the CI deploy, and editors publish through a pull request. Without git, theme settings stay on
+        // update: the designer saves them straight to live.
+        private static bool IsPublication(List<SaveFileModel> files, bool draft, bool gitFlow) =>
+            !draft && (gitFlow || files.Exists(file => file != null && GitPageLocation.IsPageContent(file.Type)));
+
+        private async Task<bool> IsAllowedToPublishAsync() =>
+            (await authorizationService.AuthorizeAsync(User, null, ModuleConstants.Security.Permissions.Publish)).Succeeded;
+
+        private static PageBuilderContentFile ToContentFile(SaveFileModel file) =>
+            file == null ? null : new PageBuilderContentFile { ContentType = file.Type, Path = file.Path, Content = AsToken(file.Content) };
 
         private static bool TryParseFiles(SaveFilesModel value, out List<SaveFileModel> files)
         {
@@ -1600,6 +1606,9 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
         private static string[] PathsOf(params string[] paths) => paths.Where(path => !path.IsNullOrEmpty()).ToArray();
 
+        private static PageBuilderContentRequest PageRequest(string storeId, string type, params string[] pages) =>
+            new() { StoreId = storeId, ContentType = type ?? PagesContentType, Pages = pages };
+
         private Task<ActionResult> CheckRequestAsync(string storeId, string type, string theme, IList<string> paths = null) =>
             CheckRequestAsync(new PageBuilderContentRequest
             {
@@ -1608,9 +1617,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 Theme = theme,
                 Paths = paths ?? [],
             });
-
-        private static PageBuilderContentRequest PageRequest(string storeId, string type, params string[] pages) =>
-            new() { StoreId = storeId, ContentType = type ?? PagesContentType, Pages = pages };
 
         /// <summary>
         /// Store access first, so a user bound to another store cannot tell from a 400 which stores exist.
