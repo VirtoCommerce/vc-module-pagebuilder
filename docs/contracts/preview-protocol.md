@@ -160,9 +160,10 @@ interface SharedComponentBoundary {
 }
 ```
 
-Navigation and rendering are one message: the storefront goes to `url` and shows `document` there, so no state is kept
-between messages. `document` holds the page's own sections only: header and footer sections travel in `draft`. A page
-from the database is `Pages`, a file page `ContentFile`.
+Navigation and rendering are one message, so no state is kept between messages: a template shows on the storefront page
+at `url`; a content page shows on the designer's preview route, and its rules see `page`, else `url` as its permalink.
+`document` holds the page's own sections only: header and footer sections travel in `draft`. A page from the database is
+`Pages`, a file page `ContentFile`.
 
 ### Other messages
 
@@ -220,8 +221,8 @@ The Angular designer drops `resolved`.
 
 With `inline-edit` and the inspector on, a click on a text of a section makes it editable. Each change sends `edit`;
 the designer writes it to the draft, adds it to undo, and selects the section. While a text is being edited the
-storefront holds back `render` and applies the latest one when editing ends, so the edit is not overwritten by its own
-echo.
+storefront holds back `render` and `draft` and applies the latest of each when editing ends, the draft first, so the edit
+is not overwritten by its own echo.
 
 - The storefront edits an element only when it knows the setting: the element is marked
   `data-pb-field="{setting path}"` inside an element marked `data-pb-section="{item id}"`, or exactly one plain-text

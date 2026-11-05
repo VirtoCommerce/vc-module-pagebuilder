@@ -258,8 +258,10 @@ The storefront picks a page's template synchronously, from the snapshot in memor
 3. else the template keyed by the page type (`product`);
 4. else its built-in template.
 
-A rule naming a template the snapshot does not have is skipped. A condition the storefront does not know never holds,
-so a rules file from a newer designer is safe for an older storefront.
+A rule naming a template that neither the snapshot nor the storefront's built-in templates (`product`, `product.b2c`,
+`category`, `page`) have is skipped, so the default B2C rule keeps the built-in B2C template while the theme has none of
+its own. A condition the storefront does not know never holds, so a rules file from a newer designer is safe for an
+older storefront.
 
 When the rules have no list for a page type, the default rules of that type apply. An empty list means no rules. The
 default rules are:
