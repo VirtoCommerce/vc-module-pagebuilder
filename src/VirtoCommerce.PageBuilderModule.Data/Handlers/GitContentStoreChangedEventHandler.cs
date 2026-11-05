@@ -28,7 +28,7 @@ public class GitContentStoreChangedEventHandler(
         MaxRetryAttempts = GitContentRepositoryJob.MaxRetryAttempts,
     };
 
-    public async Task Handle(StoreChangedEvent message)
+    public virtual async Task Handle(StoreChangedEvent message)
     {
         foreach (var payload in JobsFor(message, options.Value))
         {

@@ -37,7 +37,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             _options = options.Value;
         }
 
-        public async Task<string> ReadFileAsync(string repository, string path, string gitRef, CancellationToken cancellationToken = default)
+        public virtual async Task<string> ReadFileAsync(string repository, string path, string gitRef, CancellationToken cancellationToken = default)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(repository);
             ArgumentException.ThrowIfNullOrWhiteSpace(path);
@@ -60,7 +60,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             return content;
         }
 
-        public async Task<string> GetBranchHeadShaAsync(string repository, string branch, CancellationToken cancellationToken = default)
+        public virtual async Task<string> GetBranchHeadShaAsync(string repository, string branch, CancellationToken cancellationToken = default)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(repository);
             ArgumentException.ThrowIfNullOrWhiteSpace(branch);
@@ -77,7 +77,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             return body["object"]?["sha"]?.Value<string>();
         }
 
-        public async Task CreateBranchAsync(string repository, string branch, string fromRef, CancellationToken cancellationToken = default)
+        public virtual async Task CreateBranchAsync(string repository, string branch, string fromRef, CancellationToken cancellationToken = default)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(repository);
             ArgumentException.ThrowIfNullOrWhiteSpace(branch);
@@ -115,7 +115,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             await ThrowIfFailedAsync(response, $"create branch \"{branch}\" from \"{fromRef}\"");
         }
 
-        public async Task SetBranchAsync(string repository, string branch, string sha, string pagePath, CancellationToken cancellationToken = default)
+        public virtual async Task SetBranchAsync(string repository, string branch, string sha, string pagePath, CancellationToken cancellationToken = default)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(repository);
             ArgumentException.ThrowIfNullOrWhiteSpace(branch);
@@ -149,7 +149,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             InvalidateRead(repository, pagePath, branch);
         }
 
-        public async Task DeleteBranchAsync(string repository, string branch, string pagePath, CancellationToken cancellationToken = default)
+        public virtual async Task DeleteBranchAsync(string repository, string branch, string pagePath, CancellationToken cancellationToken = default)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(repository);
             ArgumentException.ThrowIfNullOrWhiteSpace(branch);
@@ -170,7 +170,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             InvalidateRead(repository, pagePath, branch);
         }
 
-        public async Task<string> CommitFileAsync(string repository, string path, string content, string branch, string message, GitCommitAuthor author, CancellationToken cancellationToken = default)
+        public virtual async Task<string> CommitFileAsync(string repository, string path, string content, string branch, string message, GitCommitAuthor author, CancellationToken cancellationToken = default)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(repository);
             ArgumentException.ThrowIfNullOrWhiteSpace(path);
@@ -219,7 +219,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             }
         }
 
-        public async Task<string> DeleteFileAsync(string repository, string path, string branch, string message, GitCommitAuthor author, CancellationToken cancellationToken = default)
+        public virtual async Task<string> DeleteFileAsync(string repository, string path, string branch, string message, GitCommitAuthor author, CancellationToken cancellationToken = default)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(repository);
             ArgumentException.ThrowIfNullOrWhiteSpace(path);
@@ -334,7 +334,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             return body["commit"]?["sha"]?.Value<string>();
         }
 
-        public void InvalidateRead(string repository, string path, string gitRef)
+        public virtual void InvalidateRead(string repository, string path, string gitRef)
         {
             _memoryCache.Remove(ReadCacheKey(repository, path, gitRef));
         }

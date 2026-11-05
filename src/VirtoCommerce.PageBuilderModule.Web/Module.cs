@@ -3,6 +3,7 @@ using System.IO;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -15,6 +16,7 @@ using VirtoCommerce.ContentModule.Core.Search;
 using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
+using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Core.Theme;
 using VirtoCommerce.PageBuilderModule.Data.Authorization;
@@ -27,6 +29,7 @@ using VirtoCommerce.PageBuilderModule.Data.Repositories;
 using VirtoCommerce.PageBuilderModule.Data.Search;
 using VirtoCommerce.PageBuilderModule.Data.Services;
 using VirtoCommerce.PageBuilderModule.Data.Theme;
+using VirtoCommerce.PageBuilderModule.Data.Validation;
 using VirtoCommerce.PageBuilderModule.Web.Services;
 using VirtoCommerce.Pages.Core.ContentProviders;
 using VirtoCommerce.Platform.Core.Events;
@@ -101,7 +104,7 @@ namespace VirtoCommerce.PageBuilderModule.Web
             serviceCollection.AddTransient<PageBuilderExportImport>();
 
             // Git content flow (off until the connection is set up — configuration or a site's one-click setup — AND a store opts in
-            // — see IGitContentPolicy, GitContentOptions and docs/sites-on-github.md).
+            // — see IGitContentPolicy and GitContentOptions).
             var gitContentSection = Configuration.GetSection(GitContentOptions.SectionName);
             serviceCollection.Configure<GitContentOptions>(gitContentSection);
             // Fail fast: a half-configured flow must not boot, or publishing would silently keep writing
@@ -129,12 +132,14 @@ namespace VirtoCommerce.PageBuilderModule.Web
             serviceCollection.AddTransient<ThemeFileHistory>();
 
             // the theme as one publication: snapshots the storefront reads, catalogs it is validated against
-            // (docs/contracts/theme-snapshot.md)
             serviceCollection.AddTransient<ThemeStorageFactory>();
             serviceCollection.AddTransient<ISchemaCatalogService, SchemaCatalogService>();
             serviceCollection.AddTransient<ThemePublisher>();
             serviceCollection.AddTransient<IThemePublisher>(provider => provider.GetRequiredService<ThemePublisher>());
             serviceCollection.AddTransient<IThemeSnapshotService, ThemeSnapshotService>();
+            serviceCollection.AddTransient<IValidator<PageBuilderStoreRequest>, PageBuilderStoreRequestValidator>();
+            serviceCollection.AddTransient<IValidator<ThemeFileRequest>, ThemeFileRequestValidator>();
+            serviceCollection.AddTransient<IValidator<GitHubAppSetupRequest>, GitHubAppSetupRequestValidator>();
             // site repositories follow their store: created for a new one, archived with a deleted one
             serviceCollection.AddTransient<GitContentStoreChangedEventHandler>();
             serviceCollection.AddBackgroundJob<GitContentRepositoryJob, GitContentRepositoryJobPayload>(triggerable: false);

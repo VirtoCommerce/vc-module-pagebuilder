@@ -33,13 +33,13 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             _ownership = ownership;
         }
 
-        public async Task<bool> IsEnabledForStoreAsync(string storeId, CancellationToken cancellationToken = default) =>
+        public virtual async Task<bool> IsEnabledForStoreAsync(string storeId, CancellationToken cancellationToken = default) =>
             await ReadStoreAsync(storeId) is { Enabled: true } store && _options.RepositoryFor(storeId, store.ConfiguredRepository) != null;
 
-        public async Task<string> GetRepositoryAsync(string storeId, CancellationToken cancellationToken = default) =>
+        public virtual async Task<string> GetRepositoryAsync(string storeId, CancellationToken cancellationToken = default) =>
             (await GetStoreRepositoryAsync(storeId, cancellationToken))?.Name;
 
-        public async Task<StoreRepository> GetStoreRepositoryAsync(string storeId, CancellationToken cancellationToken = default)
+        public virtual async Task<StoreRepository> GetStoreRepositoryAsync(string storeId, CancellationToken cancellationToken = default)
         {
             // a store that is off never reaches its repository setting, so a value it cannot use does not break it
             if (await ReadStoreAsync(storeId) is not { Enabled: true } store)
@@ -56,7 +56,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             return repository;
         }
 
-        public async Task<StoreRepository> ResolveRepositoryAsync(string storeId, CancellationToken cancellationToken = default)
+        public virtual async Task<StoreRepository> ResolveRepositoryAsync(string storeId, CancellationToken cancellationToken = default)
         {
             var store = await ReadStoreAsync(storeId);
             return store == null ? null : _options.RepositoryFor(storeId, store.ConfiguredRepository);

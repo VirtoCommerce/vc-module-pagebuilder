@@ -5,7 +5,7 @@ using VirtoCommerce.StoreModule.Core.Services;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Theme;
 
-/// <summary>The files of a store's active theme, by their path inside the theme folder (docs/contracts/theme-snapshot.md).</summary>
+/// <summary>The files of a store's active theme, by their path inside the theme folder.</summary>
 public sealed class ThemeStorage(IBlobContentStorageProvider provider, IPublishingService publishingService, string theme)
 {
     public const string TemplatesFolder = "templates";
@@ -61,7 +61,7 @@ public sealed class ThemeStorage(IBlobContentStorageProvider provider, IPublishi
         (await provider.SearchAsync(PathOf(folder), null)).Results.Where(x => x.Type == FolderType).Select(x => x.Name).ToList();
 }
 
-/// <summary>Opens the active theme of a store: the one its <c>DefaultThemeName</c> property names, else <c>default</c>.</summary>
+/// <summary>Opens the active theme of a store: the one the store's theme property names, else <see cref="DefaultTheme"/>.</summary>
 public class ThemeStorageFactory(
     IStoreService storeService,
     IContentPathResolver pathResolver,

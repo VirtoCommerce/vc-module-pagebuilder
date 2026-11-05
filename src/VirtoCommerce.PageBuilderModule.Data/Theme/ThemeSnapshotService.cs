@@ -12,8 +12,8 @@ using VirtoCommerce.StoreModule.Core.Services;
 namespace VirtoCommerce.PageBuilderModule.Data.Theme;
 
 /// <summary>
-/// The published snapshot a storefront reads (docs/contracts/theme-snapshot.md, Request): the language checked
-/// against the store's before the cache, the pointer read only on a cache miss.
+/// The published snapshot a storefront reads: the language checked against the store's before the cache, the pointer
+/// read only on a cache miss.
 /// </summary>
 public class ThemeSnapshotService(
     IStoreService storeService,
@@ -44,8 +44,7 @@ public class ThemeSnapshotService(
         var cacheKey = CacheKey.With(GetType(), nameof(GetPublishedAsync), store.Id, language);
         return await platformMemoryCache.GetOrCreateExclusiveAsync(cacheKey, async options =>
         {
-            options.SlidingExpiration = null;
-            options.AbsoluteExpirationRelativeToNow = ModuleConstants.Theme.ThemeSnapshotCacheLifetime;
+            LimitLifetime(options);
             options.AddExpirationToken(ThemeSnapshotCacheRegion.CreateChangeTokenForKey(store.Id));
             return await ReadAsync(store.Id, language, defaultLanguage, cancellationToken);
         });
@@ -81,7 +80,7 @@ public class ThemeSnapshotService(
     {
         var storage = await storageFactory.OpenAsync(storeId);
         var publication = await ThemePublisher.CurrentPublicationAsync(storage)
-            ?? await publisher.PublishFirstAsync(storeId, cancellationToken);
+            ?? await PublishFirstAsync(storeId, cancellationToken);
 
         // a language added to the store after the publication gets the store default's file
         foreach (var served in new[] { language, defaultLanguage }.Distinct(StringComparer.OrdinalIgnoreCase))
@@ -101,6 +100,45 @@ public class ThemeSnapshotService(
 
         throw new InvalidOperationException(
             $"The theme publication {publication.ToString(CultureInfo.InvariantCulture)} of store '{storeId}' has no snapshot in {language}.");
+    }
+
+    /// <summary>
+    /// The first publication, or the reason the theme's live files cannot make one. That reason is remembered until a
+    /// publication resets the store's snapshots: every read would find it again, under the lock the designer's saves wait for.
+    /// </summary>
+    private async Task<int> PublishFirstAsync(string storeId, CancellationToken cancellationToken)
+    {
+        var cacheKey = CacheKey.With(GetType(), nameof(PublishFirstAsync), storeId);
+        if (platformMemoryCache.TryGetValue(cacheKey, out ThemeValidationException refused))
+        {
+            throw new ThemeValidationException(refused.Errors);
+        }
+
+        var options = platformMemoryCache.GetDefaultCacheEntryOptions();
+        LimitLifetime(options);
+        options.AddExpirationToken(ThemeSnapshotCacheRegion.CreateChangeTokenForKey(storeId));
+        try
+        {
+            return await publisher.PublishFirstAsync(storeId, cancellationToken);
+        }
+        catch (ThemeValidationException failure)
+        {
+            platformMemoryCache.Set(cacheKey, failure, options);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// An absolute lifetime, no longer than the snapshot's own: a node a publication's reset does not reach (no Redis)
+    /// serves the new one when it ends. A shorter one the platform is configured with, or caching switched off, stays.
+    /// </summary>
+    private static void LimitLifetime(MemoryCacheEntryOptions options)
+    {
+        options.SlidingExpiration = null;
+        if (options.AbsoluteExpirationRelativeToNow is not { } configured || configured > ModuleConstants.Theme.ThemeSnapshotCacheLifetime)
+        {
+            options.AbsoluteExpirationRelativeToNow = ModuleConstants.Theme.ThemeSnapshotCacheLifetime;
+        }
     }
 
     private static IReadOnlyList<string> MenusOf(string content)

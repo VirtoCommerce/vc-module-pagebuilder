@@ -30,8 +30,8 @@ public sealed class ThemeSource
 public sealed record ThemeSnapshotSet(IReadOnlyDictionary<string, string> Files, IReadOnlyList<string> Menus);
 
 /// <summary>
-/// Builds and checks the snapshots of a publication (docs/contracts/theme-snapshot.md). Pure: storage, locking and
-/// the cache are <see cref="ThemePublisher"/>'s.
+/// Builds and checks the snapshots of a publication. Pure: storage, locking and the cache are
+/// <see cref="ThemePublisher"/>'s.
 /// </summary>
 public static class ThemeSnapshotBuilder
 {
@@ -203,7 +203,7 @@ public static class ThemeSnapshotBuilder
                 }
 
                 var copy = (JObject)rule.DeepClone();
-                var id = copy.Value<string>("id");
+                var id = TextOf(copy, "id");
                 if (string.IsNullOrWhiteSpace(id) || ids.Contains(id))
                 {
                     id = $"{pageType}-{index}";
@@ -303,7 +303,7 @@ public static class ThemeSnapshotBuilder
     {
         if (document?["content"] is JArray content)
         {
-            foreach (var placement in content.Where(x => x is JObject item && item.Value<string>("type") == ModuleConstants.SharedComponents.ReferenceType).ToList())
+            foreach (var placement in content.Where(x => x is JObject item && TextOf(item, "type") == ModuleConstants.SharedComponents.ReferenceType).ToList())
             {
                 placement.Remove();
             }
@@ -342,7 +342,7 @@ public static class ThemeSnapshotBuilder
         return data["current"] switch
         {
             JObject current => current,
-            JValue { Type: JTokenType.String } name => data["presets"]?[name.Value<string>()] switch
+            JValue { Type: JTokenType.String } name => (data["presets"] as JObject)?[(string)name] switch
             {
                 JObject { } preset when preset["settings"] is JObject nested => nested,
                 JObject preset => preset,
@@ -400,29 +400,30 @@ public static class ThemeSnapshotBuilder
     {
         foreach (var token in items)
         {
-            if (token is not JObject item || string.IsNullOrWhiteSpace(item.Value<string>("id")) || string.IsNullOrWhiteSpace(item.Value<string>("type")))
+            if (token is not JObject item
+                || TextOf(item, "id") is not { } id || string.IsNullOrWhiteSpace(id)
+                || TextOf(item, "type") is not { } type || string.IsNullOrWhiteSpace(type))
             {
                 errors.Add($"{file}: an item without an id or a type");
                 continue;
             }
 
-            var type = item.Value<string>("type");
             if (type == ModuleConstants.SharedComponents.ReferenceType)
             {
                 // a first publication, from live files that may predate this check, leaves it out instead (Build)
                 if (catalog != null)
                 {
-                    errors.Add($"{file}: '{item.Value<string>("id")}' places a shared component, which only a page can hold");
+                    errors.Add($"{file}: '{id}' places a shared component, which only a page can hold");
                 }
                 continue;
             }
 
             var known = catalog == null
-                || catalog[kind]?[type] != null
+                || SchemaOf(catalog, kind, type) != null
                 || (allowPageContent && kind == "sections" && type == PageContentSection);
             if (!known)
             {
-                errors.Add($"{file}: '{item.Value<string>("id")}' has a type the storefront does not have, '{type}'");
+                errors.Add($"{file}: '{id}' has a type the storefront does not have, '{type}'");
             }
 
             switch (item["blocks"])
@@ -433,7 +434,7 @@ public static class ThemeSnapshotBuilder
                     CheckItems(blocks, "blocks", file, catalog, errors, allowPageContent: false);
                     break;
                 default:
-                    errors.Add($"{file}: '{item.Value<string>("id")}' has blocks that are not a list");
+                    errors.Add($"{file}: '{id}' has blocks that are not a list");
                     break;
             }
         }
@@ -459,7 +460,7 @@ public static class ThemeSnapshotBuilder
     {
         foreach (var item in items?.OfType<JObject>() ?? [])
         {
-            var fields = FieldsOf(catalog[kind]?[item.Value<string>("type") ?? string.Empty] as JObject, kind, catalog);
+            var fields = FieldsOf(SchemaOf(catalog, kind, TextOf(item, "type")), kind, catalog);
             CollectMenus(item, fields, menus);
             CollectMenus(item["blocks"] as JArray, "blocks", catalog, menus);
         }
@@ -469,8 +470,8 @@ public static class ThemeSnapshotBuilder
     {
         foreach (var field in fields)
         {
-            var value = values[field.Value<string>("id") ?? string.Empty];
-            if (field.Value<string>("type") == MenuFieldType && value is JValue { Type: JTokenType.String } name && !string.IsNullOrWhiteSpace(name.Value<string>()))
+            var value = values[TextOf(field, "id") ?? string.Empty];
+            if (TextOf(field, "type") == MenuFieldType && value is JValue { Type: JTokenType.String } name && !string.IsNullOrWhiteSpace(name.Value<string>()))
             {
                 menus.Add(name.Value<string>());
             }
@@ -494,18 +495,28 @@ public static class ThemeSnapshotBuilder
         }
 
         var own = (schema["settings"] as JArray)?.OfType<JObject>().ToList() ?? [];
-        var ownIds = own.Select(x => x.Value<string>("id")).Where(x => x != null).ToHashSet(StringComparer.Ordinal);
-        IEnumerable<JObject> SharedFields(string key) => (catalog["shared"]?[key]?["settings"] as JArray)?.OfType<JObject>() ?? [];
+        var ownIds = own.Select(x => TextOf(x, "id")).Where(x => x != null).ToHashSet(StringComparer.Ordinal);
+        IEnumerable<JObject> SharedFields(string key) => (SchemaOf(catalog, "shared", key)?["settings"] as JArray)?.OfType<JObject>() ?? [];
 
-        var included = ((schema["includeShared"] as JArray)?.Values<string>() ?? []).SelectMany(SharedFields);
+        var included = TextsOf(schema["includeShared"]).SelectMany(SharedFields);
         var shared = schema["excludeShared"] switch
         {
             JValue { Type: JTokenType.Boolean } exclude when exclude.Value<bool>() => included,
             JArray excluded => SharedFields(kind == "sections" ? "_sections" : "_blocks").Concat(included)
-                .Where(x => !excluded.Values<string>().Contains(x.Value<string>("id"))),
+                .Where(x => !TextsOf(excluded).Contains(TextOf(x, "id"))),
             _ => SharedFields(kind == "sections" ? "_sections" : "_blocks").Concat(included),
         };
 
-        return own.Concat(shared.Where(x => !ownIds.Contains(x.Value<string>("id") ?? string.Empty))).ToList();
+        return own.Concat(shared.Where(x => !ownIds.Contains(TextOf(x, "id") ?? string.Empty))).ToList();
     }
+
+    // Theme files and catalogs are read as they are saved, whatever their shape: a value of another type than the one
+    // expected is not there, rather than an error that would stop a publication.
+    private static string TextOf(JObject item, string name) => item[name] is JValue { Type: JTokenType.String } value ? (string)value : null;
+
+    private static IEnumerable<string> TextsOf(JToken list) =>
+        (list as JArray)?.OfType<JValue>().Where(x => x.Type == JTokenType.String).Select(x => (string)x) ?? [];
+
+    private static JObject SchemaOf(JObject catalog, string kind, string type) =>
+        type == null ? null : (catalog?[kind] as JObject)?[type] as JObject;
 }

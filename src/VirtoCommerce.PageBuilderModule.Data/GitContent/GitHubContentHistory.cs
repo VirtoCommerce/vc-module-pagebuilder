@@ -63,7 +63,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
 
         // The arguments are checked here rather than in the async part below, so a call that cannot work
         // throws where it was made instead of when its task is finally awaited.
-        public Task<GitPageHistory> GetHistoryAsync(string repository, string repoPath, GitHistoryQuery query, CancellationToken cancellationToken = default)
+        public virtual Task<GitPageHistory> GetHistoryAsync(string repository, string repoPath, GitHistoryQuery query, CancellationToken cancellationToken = default)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(repository);
             ArgumentException.ThrowIfNullOrWhiteSpace(repoPath);
@@ -92,7 +92,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             return history;
         }
 
-        public void Invalidate(string repository, string repoPath)
+        public virtual void Invalidate(string repository, string repoPath)
         {
             if (string.IsNullOrWhiteSpace(repository) || string.IsNullOrWhiteSpace(repoPath))
             {

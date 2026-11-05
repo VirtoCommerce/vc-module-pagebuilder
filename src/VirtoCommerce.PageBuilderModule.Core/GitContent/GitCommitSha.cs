@@ -15,6 +15,11 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
     {
         private static readonly Regex Pattern = new("^[0-9a-f]{40}$", RegexOptions.IgnoreCase, TimeSpan.FromSeconds(1));
 
+        private static readonly Regex AbbreviatedPattern = new("^[0-9a-f]{7,40}$", RegexOptions.None, TimeSpan.FromSeconds(1));
+
         public static bool IsSha(string value) => !string.IsNullOrEmpty(value) && Pattern.IsMatch(value);
+
+        /// <summary>A sha as git shortens it: its first characters, seven at least.</summary>
+        public static bool IsAbbreviatedSha(string value) => !string.IsNullOrEmpty(value) && AbbreviatedPattern.IsMatch(value);
     }
 }

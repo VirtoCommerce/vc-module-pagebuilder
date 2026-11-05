@@ -758,17 +758,9 @@ public class PageBuilderPageController : Controller
             Response.Headers.ETag = result.ETag;
             return includeVersion ? Ok(new { eTag = result.ETag }) : NoContent();
         }
-        catch (PageBuilderContentConflictException ex)
+        catch (Exception failure) when (PageContentSaveFailure.AnswerTo(this, failure) is { } answer)
         {
-            return StatusCode(StatusCodes.Status412PreconditionFailed, ex.Message);
-        }
-        catch (KeyNotFoundException)
-        {
-            return NotFound();
-        }
-        catch (InvalidDataException ex)
-        {
-            return BadRequest(ex.Message);
+            return answer;
         }
     }
 

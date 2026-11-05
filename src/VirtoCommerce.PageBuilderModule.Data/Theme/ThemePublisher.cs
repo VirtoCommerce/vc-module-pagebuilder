@@ -18,8 +18,7 @@ using VirtoCommerce.StoreModule.Core.Services;
 namespace VirtoCommerce.PageBuilderModule.Data.Theme;
 
 /// <summary>
-/// A publication, one store at a time: validate, write the snapshots, move the pointer, then put the drafts live
-/// (docs/contracts/theme-snapshot.md, Publishing).
+/// A publication, one store at a time: validate, write the snapshots, move the pointer, then put the drafts live.
 /// </summary>
 public class ThemePublisher(
     ThemeStorageFactory storageFactory,
@@ -308,7 +307,7 @@ public class ThemePublisher(
         }
 
         var changes = files
-            .Select(x => new GenericChangedEntry<FileEntity>(new FileEntity { Path = x.Path, Type = ThemeStorageFactory.ContentType }, EntryState.Modified))
+            .Select(x => PageBuilderContentChangedEvent.ChangedFile(x.Path, ThemeStorageFactory.ContentType, EntryState.Modified))
             .ToList();
         await eventPublisher.Publish(new PageBuilderContentChangedEvent(ThemeStorageFactory.ContentType, changes), cancellationToken);
 

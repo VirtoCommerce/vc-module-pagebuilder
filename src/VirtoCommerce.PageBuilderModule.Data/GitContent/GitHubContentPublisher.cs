@@ -47,12 +47,12 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             _options = options.Value;
         }
 
-        public Task<GitPublishResult> MergeBranchAsync(string repository, string branch, string title, CancellationToken cancellationToken = default) =>
+        public virtual Task<GitPublishResult> MergeBranchAsync(string repository, string branch, string title, CancellationToken cancellationToken = default) =>
             MergeBranchIntoAsync(repository, branch, title, _options.BaseBranch, cancellationToken);
 
         // Promotion differs from publishing in the target branch and in nothing else: the same pull
         // request, the same auto-merge, the same refusal to merge past a failing check.
-        public async Task<GitPublishResult> MergeBranchIntoAsync(string repository, string branch, string title, string baseBranch,
+        public virtual async Task<GitPublishResult> MergeBranchIntoAsync(string repository, string branch, string title, string baseBranch,
             CancellationToken cancellationToken = default)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(repository);
@@ -78,7 +78,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             return new GitPublishResult { State = state, PullRequestNumber = number, Url = url };
         }
 
-        public async Task<GitPendingPublish> GetOpenPullRequestAsync(string repository, string branch, CancellationToken cancellationToken = default)
+        public virtual async Task<GitPendingPublish> GetOpenPullRequestAsync(string repository, string branch, CancellationToken cancellationToken = default)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(repository);
             ArgumentException.ThrowIfNullOrWhiteSpace(branch);

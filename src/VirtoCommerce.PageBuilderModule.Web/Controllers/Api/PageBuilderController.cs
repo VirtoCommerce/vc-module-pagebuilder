@@ -1171,8 +1171,13 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         /// </summary>
         [HttpPost]
         [Route("discard-draft")]
+        [Authorize(ModuleConstants.Security.Permissions.Update)]
         public async Task<ActionResult> DiscardDraft(string storeId, string path, string type, string theme = null)
         {
+            if (await this.CheckStoreAccessAsync(authorizationService, new PageBuilderStoreRequest { StoreId = storeId }) is { } refused)
+            {
+                return refused;
+            }
             if (string.IsNullOrEmpty(storeId) || string.IsNullOrEmpty(path))
             {
                 return BadRequest();
@@ -1198,7 +1203,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             }
 
             await eventPublisher.Publish(new PageBuilderContentChangedEvent(contentType,
-                [new GenericChangedEntry<FileEntity>(new FileEntity { Path = path, Type = contentType }, EntryState.Modified)]));
+                [PageBuilderContentChangedEvent.ChangedFile(path, contentType, EntryState.Modified)]));
 
             if (contentType == Themes && themeFileHistory != null)
             {
@@ -1740,7 +1745,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 var (storage, livePath) = LivePage(storeId, contentType, path);
                 await storage.RemoveAsync([livePath]);
                 await eventPublisher.Publish(new PageBuilderContentChangedEvent(contentType,
-                    [new GenericChangedEntry<FileEntity>(new FileEntity { Path = path, Type = contentType }, EntryState.Deleted)]));
+                    [PageBuilderContentChangedEvent.ChangedFile(path, contentType, EntryState.Deleted)]));
             }
         }
 
@@ -1976,10 +1981,10 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 await WriteFilesAsync();
             }
 
-            changedFiles.Keys.ToList().ForEach(async x =>
+            foreach (var (type, entries) in changedFiles)
             {
-                await eventPublisher.Publish(new PageBuilderContentChangedEvent(x, changedFiles[x]), cancellationToken);
-            });
+                await eventPublisher.Publish(new PageBuilderContentChangedEvent(type, entries), cancellationToken);
+            }
 
             if (themeFileHistory != null)
             {
@@ -2016,11 +2021,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                         changedFiles.Add(type, entries);
                     }
 
-                    entries.Add(new GenericChangedEntry<FileEntity>(new FileEntity
-                    {
-                        Path = file.Path,
-                        Type = file.Type
-                    }, EntryState.Modified));
+                    entries.Add(PageBuilderContentChangedEvent.ChangedFile(file.Path, file.Type, EntryState.Modified));
                 }
             }
         }
