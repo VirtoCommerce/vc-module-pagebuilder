@@ -299,6 +299,7 @@
         "CHANGES": "Veröffentlicht · Entwurfsänderungen",
         "PENDING": "Wird veröffentlicht…",
         "AWAITING": "Wartet auf Zusammenführung",
+        "BEHIND": "Website nicht aktuell",
         "SHARED": "Geteilte Komponente"
       },
       "DEVICE": "Vorschaugröße",

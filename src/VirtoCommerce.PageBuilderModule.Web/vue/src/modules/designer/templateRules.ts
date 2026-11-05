@@ -13,16 +13,23 @@ export function useTemplateRules() {
   const loaded = ref(false);
   /** a saved draft the site doesn't use yet */
   const hasDraft = ref(false);
+  /** the site uses a version of the file: a discard goes back to it (a draft never published is the only copy) */
+  const published = ref(false);
+  const discardable = computed(() => hasDraft.value && published.value);
   let at: { storeId: string; theme: string } | undefined;
   const dirty = computed(() => loaded.value && formatRules(rules.value) !== savedJson.value);
 
   async function load(storeId: string, theme: string) {
     at = { storeId, theme };
     const path = rulesPath(theme);
-    const [file, drafts] = await Promise.all([api.loadThemeFile(storeId, theme, path), api.themeFileDrafts(storeId, [path]).catch(() => [])]);
+    const [file, status] = await Promise.all([
+      api.loadThemeFile(storeId, theme, path),
+      api.themeFileStatus(storeId, path).catch((): api.PublishStatus => ({})),
+    ]);
     rules.value = rulesFromFile(file);
     savedJson.value = formatRules(rules.value);
-    hasDraft.value = drafts.length > 0;
+    hasDraft.value = !!status.hasChanges;
+    published.value = !!status.published;
     loaded.value = true;
   }
 
@@ -38,16 +45,17 @@ export function useTemplateRules() {
     if (!at || !hasDraft.value) return;
     await api.publishThemeFiles(at.storeId, [rulesPath(at.theme)]);
     hasDraft.value = false;
+    published.value = true;
   }
 
   /** Throws the saved draft away (a never-published file keeps it: it is the only copy) and the unsaved edits */
   async function discard() {
     if (!at) return;
-    if (hasDraft.value) await api.discardThemeDraft(at.storeId, at.theme, rulesPath(at.theme));
+    if (discardable.value) await api.discardThemeDraft(at.storeId, at.theme, rulesPath(at.theme));
     await load(at.storeId, at.theme);
   }
 
-  return { rules, dirty, hasDraft, loaded, load, save, publish, discard };
+  return { rules, dirty, hasDraft, discardable, loaded, load, save, publish, discard };
 }
 
 export type TemplateRulesState = ReturnType<typeof useTemplateRules>;

@@ -299,6 +299,7 @@
         "CHANGES": "Publicado · alterações no rascunho",
         "PENDING": "Publicando…",
         "AWAITING": "Aguardando mesclagem",
+        "BEHIND": "Site desatualizado",
         "SHARED": "Componente compartilhado"
       },
       "DEVICE": "Tamanho da visualização",

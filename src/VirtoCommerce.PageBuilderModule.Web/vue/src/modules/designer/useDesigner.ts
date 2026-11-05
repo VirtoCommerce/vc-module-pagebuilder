@@ -484,6 +484,7 @@ export function useDesigner() {
     components.clear();
     status.value = {};
     groupDrafts.value = [];
+    discardable.value = { page: false, groups: [] };
     pageStatus = {};
     storeId.value = source.storeId;
     busy.value = "loading";
@@ -525,6 +526,11 @@ export function useDesigner() {
 
   /** header/footer drafts the site doesn't show yet: they go live with the page's Publish */
   const groupDrafts = ref<SectionGroup[]>([]);
+  /**
+   * The saved drafts Discard throws away: the page's and the header's and footer's that have a published version to go
+   * back to. A draft never published is its only copy, and stays.
+   */
+  const discardable = ref<{ page: boolean; groups: SectionGroup[] }>({ page: false, groups: [] });
   /** the page's own state, without its header and footer */
   let pageStatus: api.PublishStatus = {};
 
@@ -533,25 +539,28 @@ export function useDesigner() {
     if (groupId.value) pageStatus = await api.publishStatus(groupId.value).catch(() => fallback);
     else if (file.value) pageStatus = await api.filePublishStatus(file.value, gitFlow.value).catch(() => fallback);
     else return;
-    groupDrafts.value = storeId.value && theme.value ? await api.sectionGroupDrafts(storeId.value, theme.value, GROUPS).catch(() => []) : [];
+    const drafts = storeId.value && theme.value ? await api.sectionGroupDrafts(storeId.value, theme.value, GROUPS).catch(() => []) : [];
+    groupDrafts.value = drafts.map((x) => x.group);
+    discardable.value = {
+      page: !!pageStatus.hasChanges && !!pageStatus.published,
+      groups: drafts.filter((x) => x.published).map((x) => x.group),
+    };
     // unpublished header/footer changes are changes of the page too: Publish puts them live
     status.value = { ...pageStatus, hasChanges: !!pageStatus.hasChanges || groupDrafts.value.length > 0 };
   }
 
-  /**
-   * Throws the saved drafts away, the page's and its header's and footer's, so what is published is current again.
-   * A page that was never published keeps its draft: it is the only copy.
-   */
+  /** Throws the discardable drafts away, the page's and its header's and footer's, so what is published is current again */
   async function discardDrafts() {
     if (busy.value) return;
     busy.value = "restoring";
     try {
-      if (pageStatus.hasChanges && pageStatus.published) {
+      if (discardable.value.page) {
         const page = file.value;
         if (groupId.value) await api.discardGroupDraft(groupId.value);
         else if (page) await (gitFlow.value ? api.discardFileDraft(page) : api.discardBlobDraft(page.storeId, page.type, page.path, page.theme));
       }
-      if (groupDrafts.value.length && storeId.value && theme.value) await api.discardSectionGroupDrafts(storeId.value, theme.value, groupDrafts.value);
+      const groups = discardable.value.groups;
+      if (groups.length && storeId.value && theme.value) await api.discardSectionGroupDrafts(storeId.value, theme.value, groups);
     } finally {
       busy.value = undefined;
     }
@@ -633,11 +642,21 @@ export function useDesigner() {
 
   // a pull request that will merge on its own is in flight; one awaiting a merge can be published again
   const inFlight = (x?: { pending?: boolean; awaitingMerge?: boolean } | null) => !!x?.pending && !x.awaitingMerge;
+  // a live page behind the production branch is brought in line by what the branch says: publish while it has the
+  // page, unpublish once it no longer does
   const canPublish = computed(
-    () => !busy.value && !dirty.value && (!!status.value.hasChanges || !!status.value.liveBehind) && !inFlight(status.value),
+    () =>
+      !busy.value &&
+      !dirty.value &&
+      (!!status.value.hasChanges || (!!status.value.liveBehind && !!status.value.published)) &&
+      !inFlight(status.value),
   );
   const canUnpublish = computed(
-    () => !busy.value && !dirty.value && !!status.value.published && !status.value.hasChanges && !inFlight(status.value),
+    () =>
+      !busy.value &&
+      !dirty.value &&
+      ((!!status.value.published && !status.value.hasChanges) || (!!status.value.liveBehind && !status.value.published)) &&
+      !inFlight(status.value),
   );
   const canPromote = computed(() => {
     const production = status.value.production;
@@ -685,6 +704,7 @@ export function useDesigner() {
     loadComponents,
     shared,
     groupDrafts,
+    discardable,
     discardDrafts,
     preview,
     setField,

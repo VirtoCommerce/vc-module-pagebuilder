@@ -70,7 +70,7 @@ export interface PublishStatus {
   flow?: "git" | "blob";
   /** git flow with a production branch: its state for this page */
   production?: { published?: boolean; behind?: boolean; pending?: boolean; awaitingMerge?: boolean } | null;
-  /** git flow, a repository the platform writes live: the live page is not the published one (a merge done on GitHub) */
+  /** git flow, a repository the platform writes live: the live page is not where the production branch puts it (a merge done on GitHub) */
   liveBehind?: boolean;
 }
 
@@ -204,15 +204,26 @@ export async function saveThemeFiles(storeId: string, theme: string, files: { pa
 const themeFileUrl = (storeId: string, path: string, action: "publish-status" | "publishing", query: Record<string, string> = {}) =>
   `/api/content/themes/${encodeURIComponent(storeId)}/${action}?${new URLSearchParams({ relativeUrl: path, ...query })}`;
 
-/** The theme files with a saved draft the site doesn't show yet (the content module: hasChanges = a draft exists) */
-export async function themeFileDrafts(storeId: string, paths: string[]): Promise<string[]> {
+/** A theme file on the site (the content module: published = the live file exists, hasChanges = a draft exists) */
+export async function themeFileStatus(storeId: string, path: string): Promise<PublishStatus> {
+  return ((await (await call(themeFileUrl(storeId, path, "publish-status"))).json()) ?? {}) as PublishStatus;
+}
+
+/** A theme file's saved draft the site doesn't show yet; published: the site shows a version of the file, which a discard goes back to */
+export interface ThemeFileDraft {
+  path: string;
+  published: boolean;
+}
+
+/** The theme files with a saved draft the site doesn't show yet */
+export async function themeFileDrafts(storeId: string, paths: string[]): Promise<ThemeFileDraft[]> {
   const drafts = await Promise.all(
     paths.map(async (path) => {
-      const status = (await (await call(themeFileUrl(storeId, path, "publish-status"))).json()) as PublishStatus | null;
-      return status?.hasChanges ? path : undefined;
+      const status = await themeFileStatus(storeId, path);
+      return status.hasChanges ? { path, published: !!status.published } : undefined;
     }),
   );
-  return drafts.filter((x): x is string => !!x);
+  return drafts.filter((x): x is ThemeFileDraft => !!x);
 }
 
 /** Puts theme file drafts live */
@@ -245,10 +256,10 @@ export async function saveSectionGroups(storeId: string, theme: string, groups: 
   );
 }
 
-/** The section groups with a saved draft the site doesn't show yet */
-export async function sectionGroupDrafts(storeId: string, theme: string, groups: SectionGroup[]): Promise<SectionGroup[]> {
+/** The section groups with a saved draft the site doesn't show yet; published: the site shows a version of the group */
+export async function sectionGroupDrafts(storeId: string, theme: string, groups: SectionGroup[]): Promise<{ group: SectionGroup; published: boolean }[]> {
   const drafts = await themeFileDrafts(storeId, groups.map((g) => groupPath(theme, g)));
-  return groups.filter((g) => drafts.includes(groupPath(theme, g)));
+  return groups.flatMap((group) => drafts.filter((x) => x.path === groupPath(theme, group)).map((x) => ({ group, published: x.published })));
 }
 
 /**

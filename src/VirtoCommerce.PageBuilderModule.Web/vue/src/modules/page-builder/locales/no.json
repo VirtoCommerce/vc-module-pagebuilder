@@ -299,6 +299,7 @@
         "CHANGES": "Publisert · endringer i utkast",
         "PENDING": "Publiserer…",
         "AWAITING": "Venter på sammenslåing",
+        "BEHIND": "Nettstedet er ikke oppdatert",
         "SHARED": "Delt komponent"
       },
       "DEVICE": "Forhåndsvisningsstørrelse",

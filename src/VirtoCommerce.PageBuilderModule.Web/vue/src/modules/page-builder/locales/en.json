@@ -299,6 +299,7 @@
         "CHANGES": "Published · draft changes",
         "PENDING": "Publishing…",
         "AWAITING": "Awaiting merge",
+        "BEHIND": "Site not up to date",
         "SHARED": "Shared component"
       },
       "DEVICE": "Preview size",

@@ -299,6 +299,7 @@
         "CHANGES": "已发布 · 有草稿更改",
         "PENDING": "正在发布…",
         "AWAITING": "等待合并",
+        "BEHIND": "网站未更新",
         "SHARED": "共享组件"
       },
       "DEVICE": "预览尺寸",

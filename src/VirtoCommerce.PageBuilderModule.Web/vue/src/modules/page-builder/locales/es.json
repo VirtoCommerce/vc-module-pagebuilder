@@ -299,6 +299,7 @@
         "CHANGES": "Publicado · cambios en el borrador",
         "PENDING": "Publicando…",
         "AWAITING": "Esperando la fusión",
+        "BEHIND": "Sitio no actualizado",
         "SHARED": "Componente compartido"
       },
       "DEVICE": "Tamaño de la vista previa",

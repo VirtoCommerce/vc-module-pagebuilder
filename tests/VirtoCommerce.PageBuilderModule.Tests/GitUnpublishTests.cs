@@ -143,6 +143,30 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.Empty(live.Removed);
         }
 
+        /// <summary>
+        /// An unpublish merged on GitHub writes nothing live: the status tells the live page is behind the production branch,
+        /// which has had the page and has it no more, so the builder offers Unpublish again. A page only ever in the live
+        /// storage is not behind, and a repository assigned by hand has its own deployment.
+        /// </summary>
+        [Theory]
+        [InlineData(GitRepositorySource.Site, true, true)]
+        [InlineData(GitRepositorySource.Site, false, false)]
+        [InlineData(GitRepositorySource.Shared, true, false)]
+        public async Task PublishStatus_OfAPageUnpublishedOnGitHub_TellsTheLivePageIsBehind(GitRepositorySource source, bool hadThePage, bool liveBehind)
+        {
+            var repository = Repository(withBranch: false);
+            repository.Files.Remove((RepoPath, "master"));
+            var live = new FakeLiveStorage();
+            live.Files[Page] = Published;
+
+            var result = await Controller(repository, Publisher(), live: live, source: source, history: hadThePage ? Unpublished() : null)
+                .GitPublishStatus("s1", Page, "pages");
+
+            var status = JObject.FromObject(Assert.IsType<OkObjectResult>(result).Value!);
+            Assert.False(status.Value<bool>("published"));
+            Assert.Equal(liveBehind, status.Value<bool>("liveBehind"));
+        }
+
         [Fact]
         public async Task Unpublish_RetriedInARepositoryAssignedByHand_LeavesTheLivePageToItsDeployment()
         {

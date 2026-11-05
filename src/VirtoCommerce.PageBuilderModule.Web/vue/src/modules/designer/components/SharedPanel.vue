@@ -1,6 +1,12 @@
 <template>
   <div class="pd-shared">
     <p class="pd-shared__hint">{{ $t("PAGE_BUILDER.DESIGNER.SHARED_PANEL.HINT") }}</p>
+    <p
+      v-if="!canInsert"
+      class="pd-shared__hint"
+    >
+      {{ $t("PAGE_BUILDER.DESIGNER.SHARED_ON_PAGES_ONLY") }}
+    </p>
     <VcInput
       v-model="search"
       size="small"
@@ -54,7 +60,7 @@
 </template>
 
 <script setup lang="ts">
-// The left rail's Shared tab: the site's shared components, to place on the page or to edit (on every page at once).
+// The left rail's Shared tab: the site's shared components, to place on a page or to edit (on every page at once).
 import { ref, watch } from "vue";
 import { debounce } from "lodash-es";
 import { VcButton, VcIcon, VcInput } from "@vc-shell/framework/ui";

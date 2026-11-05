@@ -299,6 +299,7 @@
         "CHANGES": "Publié · modifications du brouillon",
         "PENDING": "Publication en cours…",
         "AWAITING": "En attente de fusion",
+        "BEHIND": "Site pas à jour",
         "SHARED": "Composant partagé"
       },
       "DEVICE": "Taille de l'aperçu",

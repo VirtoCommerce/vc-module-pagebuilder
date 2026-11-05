@@ -610,7 +610,7 @@ const cultureName = computed(() => group.value?.cultureName ?? query.value?.cult
 // an archived page isn't edited (as before): restore it first
 const archived = computed(() => group.value?.status === "Archived");
 
-type StatusKind = "unsaved" | "draft" | "published" | "changes" | "pending" | "awaiting" | "shared";
+type StatusKind = "unsaved" | "draft" | "published" | "changes" | "pending" | "awaiting" | "behind" | "shared";
 const statusKind = computed<StatusKind>(() => {
   if (unsaved.value) return "unsaved";
   // a shared component isn't published on its own: it shows wherever a page places it
@@ -619,8 +619,10 @@ const statusKind = computed<StatusKind>(() => {
   // git: a pull request is open
   if (status.awaitingMerge) return "awaiting";
   if (status.pending) return "pending";
+  // git: a merge done on GitHub left the live page as it was
+  if (status.liveBehind) return "behind";
   if (!status.published) return "draft";
-  return status.hasChanges || status.liveBehind || (rulesActive.value && rules.hasDraft.value) ? "changes" : "published";
+  return status.hasChanges || (rulesActive.value && rules.hasDraft.value) ? "changes" : "published";
 });
 const subtitle = computed(() => {
   const shared = designer.shared.value;
@@ -1145,13 +1147,13 @@ async function restoreVersion(version: PageVersion) {
   }
 }
 
-// saved drafts to throw away: a header or footer draft, or the draft of a published page (one never published has
-// nothing to go back to); else only the unsaved edits go, back to the last save
+// saved drafts to throw away, those with a published version to go back to (one never published is the only copy);
+// else only the unsaved edits go, back to the last save
 const hasDraft = computed(
   () =>
-    designer.groupDrafts.value.length > 0 ||
-    (!!designer.status.value.hasChanges && !!designer.status.value.published) ||
-    (rulesActive.value && rules.hasDraft.value),
+    designer.discardable.value.page ||
+    designer.discardable.value.groups.length > 0 ||
+    (rulesActive.value && rules.discardable.value),
 );
 
 async function discardChanges() {
@@ -1243,7 +1245,7 @@ const toolbar = computed<IBladeToolbar[]>(() => [
     id: "unpublish",
     title: t("PAGE_BUILDER.DESIGNER.UNPUBLISH"),
     icon: "lucide-cloud-off",
-    isVisible: !!designer.status.value.published,
+    isVisible: !!designer.status.value.published || !!designer.status.value.liveBehind,
     disabled: !designer.canUnpublish.value,
     clickHandler: () => publish(false),
   },
@@ -1843,6 +1845,7 @@ watchEffect(() => {
 
     &--changes,
     &--awaiting,
+    &--behind,
     &--unsaved {
       background: var(--warning-50);
       color: var(--warning-700);

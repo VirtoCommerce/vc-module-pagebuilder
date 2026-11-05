@@ -902,7 +902,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         /// exists in the production branch", <c>hasChanges</c> is "this editor's branch says something
         /// different", <c>pending</c> is "a pull request for it is open", <c>awaitingMerge</c> is
         /// "that pull request is not going to merge itself", and <c>liveBehind</c> is "the live page the
-        /// platform writes is not the page on the production branch".
+        /// platform writes is not where the production branch puts it".
         /// <para>
         /// The answer also names the flow in effect, because a client has to behave differently under
         /// each — the admin blade saves to git and unpublishes through git on the git flow — and asking
@@ -945,8 +945,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 // the pull request is open but nothing will merge it: publishing again is what finishes it
                 awaitingMerge: pending is { AutoMerging: false },
                 production: await ProductionStatusAsync(location.Repository, location.RepoPath, published, type, path),
-                // a merge done on GitHub, not by publishing, leaves the live page behind: publishing again writes it
-                liveBehind: published != null && WritesLive(site) && !IsSamePageDocument(await ReadLivePageAsync(storeId, type, path), published)));
+                liveBehind: WritesLive(site) && await IsLiveBehindAsync(storeId, type, path, location, published)));
         }
 
         /// <summary>
@@ -1690,6 +1689,19 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         private (IBlobContentStorageProvider Storage, string Path) LivePage(string storeId, string type, string path) =>
             (blobContentStorageProviderFactory.CreateProvider(GetContentBasePath(storeId, type.IsNullOrEmpty() ? PagesContentType : type, theme: null)),
                 publishingService.GetRelativeDraftUrl(path, false));
+
+        /// <summary>
+        /// The live page is not where the production branch puts it, which a merge done on GitHub, not by publishing or
+        /// unpublishing, leaves behind: another page than the branch's, or a page the branch has had and has no more.
+        /// Publishing, or unpublishing, again brings it in line.
+        /// </summary>
+        private async Task<bool> IsLiveBehindAsync(string storeId, string type, string path, (string Repository, string RepoPath, string Branch) location, string published)
+        {
+            var live = await ReadLivePageAsync(storeId, type, path);
+            return published != null
+                ? !IsSamePageDocument(live, published)
+                : live != null && await HasLeftTheProductionBranchAsync(location);
+        }
 
         /// <summary>The live copy <see cref="WriteLiveAsync"/> writes; <c>null</c> when there is none.</summary>
         private Task<string> ReadLivePageAsync(string storeId, string type, string path)

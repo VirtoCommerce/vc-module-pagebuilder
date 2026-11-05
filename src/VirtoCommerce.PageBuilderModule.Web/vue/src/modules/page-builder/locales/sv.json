@@ -299,6 +299,7 @@
         "CHANGES": "Publicerad · utkaständringar",
         "PENDING": "Publicerar…",
         "AWAITING": "Väntar på sammanfogning",
+        "BEHIND": "Webbplatsen är inte uppdaterad",
         "SHARED": "Delad komponent"
       },
       "DEVICE": "Förhandsgranskningsstorlek",

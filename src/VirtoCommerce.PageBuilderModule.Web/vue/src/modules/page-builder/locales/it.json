@@ -299,6 +299,7 @@
         "CHANGES": "Pubblicato · modifiche in bozza",
         "PENDING": "Pubblicazione in corso…",
         "AWAITING": "In attesa di unione",
+        "BEHIND": "Sito non aggiornato",
         "SHARED": "Componente condiviso"
       },
       "DEVICE": "Dimensione anteprima",

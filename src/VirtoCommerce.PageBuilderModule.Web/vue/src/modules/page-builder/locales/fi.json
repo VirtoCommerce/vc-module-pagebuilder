@@ -299,6 +299,7 @@
         "CHANGES": "Julkaistu · luonnosmuutoksia",
         "PENDING": "Julkaistaan…",
         "AWAITING": "Odottaa yhdistämistä",
+        "BEHIND": "Sivusto ei ole ajan tasalla",
         "SHARED": "Jaettu komponentti"
       },
       "DEVICE": "Esikatselun koko",

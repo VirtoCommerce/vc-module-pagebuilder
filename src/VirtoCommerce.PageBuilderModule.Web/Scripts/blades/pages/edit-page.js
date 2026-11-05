@@ -106,7 +106,7 @@ angular.module('virtoCommerce.pageBuilderModule')
                     if (!blade.isNew) {
                         blade.published = status.published;
                         blade.hasChanges = status.hasChanges;
-                        // the live page is not the published one (a merge done on GitHub): publishing again writes it
+                        // the live page is not where the production branch puts it (a merge done on GitHub)
                         blade.liveBehind = status.liveBehind;
                         blade.pending = status.pending;
                         // The open pull request is not going to merge itself — see inFlight below.
@@ -813,10 +813,13 @@ angular.module('virtoCommerce.pageBuilderModule')
                 $scope.blade.toolbarCommands = blade.toolbarCommands.filter(x => managed.indexOf(x) < 0);
 
                 // Nothing to publish and the page is live: the one thing left to do with it is take it
-                // down. On the git flow that is a commit deleting the page, merged like any other.
-                var command = $scope.blade.published && !$scope.blade.hasChanges && !$scope.blade.liveBehind
-                    ? unpublishCommand
-                    : publishCommand;
+                // down. On the git flow that is a commit deleting the page, merged like any other. A live
+                // page left behind by a merge done on GitHub follows the branch: published again while
+                // the branch has it, taken down once it does not.
+                var takeDown = $scope.blade.published
+                    ? !$scope.blade.hasChanges && !$scope.blade.liveBehind
+                    : !!$scope.blade.liveBehind;
+                var command = takeDown ? unpublishCommand : publishCommand;
                 $scope.blade.toolbarCommands.splice(4, 0, command);
 
                 // Publishing reaches the environment editors work against; promotion reaches the
