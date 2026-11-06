@@ -92,6 +92,20 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
         Assert.Equal(["product-info", "related-products"], Sections(await _snapshots.GetPublishedAsync("s1", "de", Ct), "product"));
     }
 
+    [Fact]
+    public async Task PublishAsync_Published_WritesThePointerAndTheRecordInTheirStorageFormat()
+    {
+        _storage.Files[Product + "-draft"] = Template("product-info");
+        await _catalogs.SaveAsync("s1", """{ "hash": "abc12345", "sections": { "product-info": {} } }""", Ct);
+
+        await _publisher.PublishAsync("s1", "abc12345", null, Ct);
+
+        Assert.Equal("""{"publication":1}""", _storage.Files[Pointer]);
+        Assert.Equal("""{"defaultLanguage":"en-US"}""", _storage.Files[Record(1)]);
+        Assert.Equal("""{"hash":"abc12345"}""", _storage.Files["default/catalogs/current.json"]);
+        Assert.Equal("""{"hash":"abc12345","sections":{"product-info":{}}}""", _storage.Files["default/catalogs/abc12345.json"]);
+    }
+
     /// <summary>The history goes to GitHub, which may answer slowly: the theme saves of the store don't wait for it.</summary>
     [Fact]
     public async Task A_publication_records_its_history_once_the_store_lock_is_free()

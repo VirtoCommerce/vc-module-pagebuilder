@@ -240,6 +240,40 @@ public class ThemeSnapshotBuilderTests
         Assert.Empty((JArray)snapshot["footer"]!["content"]!);
     }
 
+    [Fact]
+    public void Build_FullTheme_WritesTheSnapshotJson()
+    {
+        var source = Source(
+            templates: new()
+            {
+                ["product"] = JObject.Parse("""{ "settings": { "type": "settings" }, "content": [ { "id": "s1", "type": "product-info", "title": { "en-US": "Hi", "de-DE": "Hallo" } } ] }"""),
+                ["page.landing"] = JArray.Parse("""[ { "type": "settings", "layout": "full" }, { "id": "p", "type": "page-content" } ]"""),
+            },
+            header: JObject.Parse("""{ "content": [ { "id": "h", "type": "site-header", "catalog_menu": "main-menu" } ], "order": ["h"] }"""),
+            footer: JObject.Parse("""{ "content": [ { "id": "f", "type": "site-footer" } ] }"""),
+            brand: JObject.Parse("""{ "logoUrl": "/a.svg", "secondaryLogoUrl": "", "faviconUrl": "/f.ico", "extra": "x" }"""),
+            palette: JObject.Parse("""{ "color_primary_500": "#f99e24", "Radius": 4 }"""),
+            paletteDark: JObject.Parse("""{ "color_primary_500": "#ffbb5b" }"""),
+            rules: JObject.Parse("""{ "category": [ { "template": "category.sale", "when": { "inCategory": ["c-sale"] } } ] }"""));
+        var catalog = JObject.Parse("""{ "sections": { "site-header": { "settings": [ { "id": "catalog_menu", "type": "menu" } ] } } }""");
+
+        var set = ThemeSnapshotBuilder.Build(source, catalog, "abc12345", ["en-US", "de-DE"], "en-US", 3, Published);
+
+        Assert.Equal(
+            """{"format":1,"publication":3,"publishedDate":"2026-11-03T10:00:00.0000000Z","theme":"default","cultureName":"de-DE","catalogHash":"abc12345","rules":{"version":2,"conditions":["inCategory","property"],"product":[{"id":"default-b2c","template":"product.b2c","when":{"property":{"name":"VirtoFrontend_UI_Layout","equals":"B2C"}}}],"category":[{"template":"category.sale","when":{"inCategory":["c-sale"]},"id":"category-0"}]},"templates":{"page.landing":{"settings":{"type":"settings","layout":"full"},"content":[{"id":"p","type":"page-content"}]},"product":{"settings":{"type":"settings"},"content":[{"id":"s1","type":"product-info","title":"Hallo"}]}},"header":{"content":[{"id":"h","type":"site-header","catalog_menu":"main-menu"}]},"footer":{"content":[{"id":"f","type":"site-footer"}]},"brand":{"logoUrl":"/a.svg","faviconUrl":"/f.ico"},"palette":{"light":{"color_primary_500":"#f99e24"},"dark":{"color_primary_500":"#ffbb5b"}},"menus":["main-menu"]}""",
+            set.Files["de-DE"]);
+    }
+
+    [Fact]
+    public void Build_EmptyTheme_LeavesTheOptionalPartsOut()
+    {
+        var set = ThemeSnapshotBuilder.Build(Source(), null, null, [], "en-US", 1, Published);
+
+        Assert.Equal(
+            """{"format":1,"publication":1,"publishedDate":"2026-11-03T10:00:00.0000000Z","theme":"default","cultureName":"en-US","catalogHash":null,"rules":{"version":2,"conditions":["property"],"product":[{"id":"default-b2c","template":"product.b2c","when":{"property":{"name":"VirtoFrontend_UI_Layout","equals":"B2C"}}}]},"templates":{},"brand":{},"menus":[]}""",
+            set.Files["en-US"]);
+    }
+
     [Theory]
     [InlineData("product.json", "product")]
     [InlineData("product.b2c.json", "product.b2c")]
@@ -270,7 +304,8 @@ public class ThemeSnapshotBuilderTests
         JToken brand = null,
         JToken settingsData = null,
         JToken palette = null,
-        JToken paletteDark = null) => new()
+        JToken paletteDark = null,
+        JToken rules = null) => new()
         {
             Theme = "default",
             Templates = templates ?? new Dictionary<string, JToken>(),
@@ -280,6 +315,7 @@ public class ThemeSnapshotBuilderTests
             SettingsData = settingsData,
             Palette = palette,
             PaletteDark = paletteDark,
+            Rules = rules,
         };
 
     private static JObject Snapshot(ThemeSource source) =>
