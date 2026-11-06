@@ -10,11 +10,7 @@ using Xunit.Sdk;
 
 namespace VirtoCommerce.PageBuilderModule.Tests;
 
-/// <summary>
-/// GitHub as a script: each request must be the next one expected — method and path-and-query — and gets
-/// that step's answer. Anything out of order, or a request too many, fails the test where it happens, and again in
-/// <see cref="AssertDone"/>: code that takes a GitHub failure in its stride (the version history) would hide it.
-/// </summary>
+/// <summary>Plays GitHub: each request must be the next expected one.</summary>
 internal sealed class GitHubScript(params (string Method, string Url, Func<HttpRequestMessage, string, HttpResponseMessage> Respond)[] script)
     : HttpMessageHandler, IHttpClientFactory
 {

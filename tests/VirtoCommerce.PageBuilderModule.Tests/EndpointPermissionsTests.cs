@@ -12,15 +12,10 @@ using StorePermissions = VirtoCommerce.StoreModule.Core.ModuleConstants.Security
 
 namespace VirtoCommerce.PageBuilderModule.Tests;
 
-/// <summary>
-/// What the site, theme and history endpoints require before they run. MVC checks the [Authorize] and
-/// [AllowAnonymous] attributes outside the action, so a test that calls the action does not see them.
-/// </summary>
 public class EndpointPermissionsTests
 {
     private const string Anonymous = "anonymous";
 
-    // the permission depends on the request, so the action asks for it
     private const string InTheAction = "in the action";
 
     private static readonly Type[] Controllers =
@@ -76,7 +71,6 @@ public class EndpointPermissionsTests
     [Fact]
     public void Controllers_EveryAction_IsListed()
     {
-        // an action added without a row here would have no permission asserted
         var actions = Controllers.SelectMany(controller => controller
             .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
             .Where(method => method.GetCustomAttributes<HttpMethodAttribute>().Any())

@@ -16,7 +16,6 @@ using Xunit;
 
 namespace VirtoCommerce.PageBuilderModule.Tests;
 
-/// <summary>Which store changes reach GitHub: a new store with auto-create on, and a deleted store's own repository.</summary>
 public class GitContentStoreChangedEventHandlerTests
 {
     private static GitContentOptions PerSite(bool autoCreate = true) => new()
@@ -53,7 +52,6 @@ public class GitContentStoreChangedEventHandlerTests
         Assert.Equal("acme/site-s1", job.Repository);
     }
 
-    /// <summary>A repository the store named itself was somebody's before the store, and stays theirs.</summary>
     [Fact]
     public async Task GetJobPayloadsAsync_DeletedStoreNamingRepositoryOutsideOrganization_ReturnsNoJob()
     {
@@ -92,10 +90,10 @@ public class GitContentStoreChangedEventHandlerTests
         Assert.Empty(await GetJobPayloadsAsync(shared, Change(new Store { Id = "s1" }, EntryState.Added), Change(new Store { Id = "s2" }, EntryState.Deleted)));
     }
 
-    /// <summary>Switching a store's history on saves the store: that change must not start a job again.</summary>
     [Fact]
     public async Task GetJobPayloadsAsync_ModifiedStore_ReturnsNoJob()
     {
+        // switching git on for a store saves the store
         Assert.Empty(await GetJobPayloadsAsync(PerSite(), Change(new Store { Id = "s1" }, EntryState.Modified)));
     }
 

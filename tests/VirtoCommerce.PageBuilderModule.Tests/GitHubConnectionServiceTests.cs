@@ -11,10 +11,6 @@ using Xunit;
 
 namespace VirtoCommerce.PageBuilderModule.Tests;
 
-/// <summary>
-/// The connection in effect: the environment's configuration when complete, else the GitHub App the
-/// one-click setup saved — protected with the platform's keys, and never a reason to fail.
-/// </summary>
 public class GitHubConnectionServiceTests
 {
     [Fact]

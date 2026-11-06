@@ -218,10 +218,10 @@ public class ThemeSnapshotBuilderTests
         Assert.Equal(["sections/header-group.json: 'h' has blocks that are not a list"], _builder.Validate(source, null));
     }
 
-    /// <summary>A snapshot is read as it is: a shared component placed in a theme file would reach the storefront unresolved.</summary>
     [Fact]
     public void Validate_SharedComponentInThemeFile_ReturnsErrors()
     {
+        // a snapshot is read as it is: the placement would reach the storefront unresolved
         var catalog = JObject.Parse("""{ "sections": { "product-info": {} } }""");
 
         Assert.Equal(
@@ -231,10 +231,10 @@ public class ThemeSnapshotBuilderTests
         ], _builder.Validate(WithSharedComponent(), catalog));
     }
 
-    /// <summary>The first publication, from live files that may predate the check, leaves the placement out.</summary>
     [Fact]
     public void Build_SharedComponentWithoutCatalog_LeavesItOut()
     {
+        // live files may predate the check
         var source = WithSharedComponent();
 
         Assert.Empty(_builder.Validate(source, null));

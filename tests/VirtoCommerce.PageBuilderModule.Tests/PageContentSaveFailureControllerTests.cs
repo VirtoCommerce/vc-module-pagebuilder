@@ -20,7 +20,6 @@ using Fakes = VirtoCommerce.PageBuilderModule.Tests.PublishedRenameContentPreser
 
 namespace VirtoCommerce.PageBuilderModule.Tests;
 
-/// <summary>A save of a page's content that does not go through, as a save and a restore from the history answer it.</summary>
 public class PageContentSaveFailureControllerTests
 {
     private const string GroupId = "group";
@@ -171,7 +170,6 @@ public class PageContentSaveFailureControllerTests
         return controller;
     }
 
-    /// <summary>A history with one change, the restored content, that keeps the summary of each change recorded.</summary>
     private sealed class RecordingHistory : IGroupedPageHistoryService
     {
         public List<string> Recorded { get; } = [];

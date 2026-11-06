@@ -108,10 +108,10 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
         Assert.Equal("""{"hash":"abc12345","sections":{"product-info":{}}}""", _storage.Files["default/catalogs/abc12345.json"]);
     }
 
-    /// <summary>The history goes to GitHub, which may answer slowly: the theme saves of the store don't wait for it.</summary>
     [Fact]
     public async Task PublishAsync_Published_RecordsHistoryAfterStoreLockIsReleased()
     {
+        // GitHub may answer slowly: the store's theme saves must not wait for it
         _storage.Files[Product] = Template("product-info");
         await _snapshots.GetPublishedAsync("s1", null, Ct);
         _storage.Files[Product + "-draft"] = Template("product-info", "related-products");
@@ -229,7 +229,6 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
         await Assert.ThrowsAsync<ThemeValidationException>(() => _snapshots.GetPublishedAsync("s1", "de-DE", Ct).WaitAsync(TimeSpan.FromSeconds(5), Ct));
         _lock.Release();
 
-        // until a publication resets the store's snapshots
         _storage.Files[header] = """{ "content": [ { "id": "h", "type": "banner" } ] }""";
         ThemeSnapshotCacheRegion.ExpireTokenForKey("s1");
         Assert.Equal(1, (await _snapshots.GetPublishedAsync("s1", "en-US", Ct)).Publication);
@@ -351,7 +350,6 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
         Assert.Null(await _catalogs.GetAsync("s1", null, Ct));
     }
 
-    /// <summary>Keeps a storefront catalog that has these section types; its hash.</summary>
     private Task<string> SaveCatalogAsync(params string[] sections) =>
         _catalogs.SaveAsync("s1", new JObject
         {
@@ -391,7 +389,6 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
             ResolveLanguage(languages, defaultLanguage, cultureName);
     }
 
-    /// <summary>Records which files a publication put in the history, and whether the store's theme lock was free then.</summary>
     private sealed class LockProbingHistory(InProcessDistributedLock distributedLock)
         : ThemeFileHistoryService(null, null, null, null, null, null, null, Options.Create(new GitContentOptions()), NullLogger<ThemeFileHistoryService>.Instance)
     {

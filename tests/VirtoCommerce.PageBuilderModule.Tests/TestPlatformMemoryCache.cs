@@ -4,7 +4,6 @@ using VirtoCommerce.Platform.Core.Caching;
 
 namespace VirtoCommerce.PageBuilderModule.Tests;
 
-/// <param name="defaults">The entry options the platform is configured with; none by default.</param>
 internal sealed class TestPlatformMemoryCache(Func<MemoryCacheEntryOptions> defaults = null) : IPlatformMemoryCache
 {
     private readonly MemoryCache _cache = new(new MemoryCacheOptions());

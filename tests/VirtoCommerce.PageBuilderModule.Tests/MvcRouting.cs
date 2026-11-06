@@ -9,7 +9,6 @@ using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 
 namespace VirtoCommerce.PageBuilderModule.Tests;
 
-/// <summary>The module's attribute routes, so a controller under test builds its urls as it does when MVC routed the request.</summary>
 internal static class MvcRouting
 {
     private static readonly Lazy<IServiceProvider> Services = new(() =>

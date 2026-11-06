@@ -215,17 +215,13 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
             Assert.Null(await policy.GetRepositoryAsync("b2b-store", TestContext.Current.CancellationToken));
             Assert.False(await policy.IsEnabledForStoreAsync("b2b-store", TestContext.Current.CancellationToken));
-            // switching it on would need a usable repository: that answer still says so
             await Assert.ThrowsAsync<GitContentException>(() => policy.GetConfiguredRepositoryAsync("b2b-store", TestContext.Current.CancellationToken));
         }
 
-        /// <summary>
-        /// Two stores whose ids name one repository ("B2B Store", "b2b-store") would publish over each other's pages:
-        /// the repository says whose it is. Whether the flow is on stays a question of settings.
-        /// </summary>
         [Fact]
         public async Task GetRepositoryAsync_RepositoryOfAnotherStore_ThrowsOwnershipException()
         {
+            // "B2B Store" and "b2b-store" name the same repository
             var policy = Policy(PerSite(), new FakeSettingsManager(value: true), new FakeGitContentOwnership("b2b-store"));
 
             await Assert.ThrowsAsync<GitRepositoryOwnershipException>(() => policy.GetRepositoryAsync("B2B Store", TestContext.Current.CancellationToken));
@@ -289,10 +285,6 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.Equal(GitContentPolicy.MaxRepositoryNameLength, repository!.Name.Split('/')[1].Length);
         }
 
-        /// <summary>
-        /// The store's own setting ends up in api urls, so anything but a plain "owner/name" is refused — never
-        /// quietly replaced by the computed name, which would put the store's pages somewhere it did not ask for.
-        /// </summary>
         [Theory]
         [InlineData("../orgs/x")]
         [InlineData("acme")]
@@ -301,6 +293,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         [InlineData("acme/website/contents")]
         public async Task GetConfiguredRepositoryAsync_SettingNotOwnerAndName_Throws(string configured)
         {
+            // the setting ends up in API urls, and is never replaced by the computed name
             await Assert.ThrowsAsync<GitContentException>(() =>
                 Policy(PerSite(), settings: null).GetConfiguredRepositoryAsync("b2b-store", configured, TestContext.Current.CancellationToken));
         }

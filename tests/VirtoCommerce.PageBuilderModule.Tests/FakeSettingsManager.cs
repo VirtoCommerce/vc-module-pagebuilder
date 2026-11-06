@@ -6,10 +6,7 @@ using VirtoCommerce.Platform.Core.Settings;
 
 namespace VirtoCommerce.PageBuilderModule.Tests
 {
-    /// <summary>
-    /// Records the lookup the policy performs and answers <c>value</c>, or <c>repository</c> for the store's repository
-    /// setting, unless <see cref="Values"/> holds the name. Everything else throws.
-    /// </summary>
+    /// <summary>Records the last lookup; answers <c>value</c>, <c>repository</c> for the repository setting, or what <see cref="Values"/> holds.</summary>
     internal sealed class FakeSettingsManager : ISettingsManager
     {
         private readonly object _value;

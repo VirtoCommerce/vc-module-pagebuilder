@@ -13,10 +13,6 @@ using Xunit;
 
 namespace VirtoCommerce.PageBuilderModule.Tests;
 
-/// <summary>
-/// Theme files are blobs on either flow: saving or discarding one asks GitHub nothing — not whose the store's
-/// repository is, and not whether GitHub answers at all.
-/// </summary>
 public class PageBuilderControllerThemeFilesTests
 {
     private const string Path = "default/sections/header-group.json";
@@ -103,7 +99,6 @@ public class PageBuilderControllerThemeFilesTests
         return controller;
     }
 
-    /// <summary>Handles an event only when the test lets it.</summary>
     private sealed class GatedEventPublisher : IEventPublisher
     {
         public TaskCompletionSource Handling { get; } = new();

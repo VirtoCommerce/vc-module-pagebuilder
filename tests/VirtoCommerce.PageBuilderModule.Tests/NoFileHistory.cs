@@ -6,7 +6,6 @@ using VirtoCommerce.PageBuilderModule.Core.Models;
 
 namespace VirtoCommerce.PageBuilderModule.Tests;
 
-/// <summary>The history of a store that keeps none: nothing is recorded, nothing is there.</summary>
 internal sealed class NoFileHistory : IThemeFileHistoryService, IGroupedPageHistoryService
 {
     public Task RecordAsync(string storeId, string path, string content, string summary, ClaimsPrincipal user, string saveId,

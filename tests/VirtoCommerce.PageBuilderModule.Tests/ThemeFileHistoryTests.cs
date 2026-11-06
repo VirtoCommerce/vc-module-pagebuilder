@@ -23,10 +23,6 @@ using Xunit;
 
 namespace VirtoCommerce.PageBuilderModule.Tests;
 
-/// <summary>
-/// A theme file's version history in its site's repository: each save, restore and discard committed to the base
-/// branch under "theme/", with the bytes the theme storage holds, and the published change told by its content.
-/// </summary>
 public class ThemeFileHistoryTests
 {
     private const string Path = "default/templates/product.json";
@@ -56,7 +52,7 @@ public class ThemeFileHistoryTests
         await Builder(github, live).SaveTemplates("s1", "default", new PageBuilderController.SaveFilesModel { Files = JsonConvert.SerializeObject(files) }, draft: true);
 
         github.AssertDone();
-        // exactly the draft's bytes: what tells the published change once it is published
+        // exactly the draft's bytes: they tell the published change once it is published
         Assert.Equal(live.Files[$"{Path}-draft"], committed);
     }
 
@@ -76,7 +72,7 @@ public class ThemeFileHistoryTests
         var history = Assert.IsType<GitFileHistoryResult>(Assert.IsType<OkObjectResult>(result.Result).Value);
         Assert.Equal(["c3", "c2", "c1"], history.Versions.Select(x => x.Sha));
         Assert.Equal([false, true, false], history.Versions.Select(x => x.Published));
-        // the file goes without saying in its own history
+        // a file's own history leaves its path out
         Assert.Equal("Saved", history.Versions[0].Message);
         Assert.Equal("save-0001", history.Versions[0].SaveId);
     }

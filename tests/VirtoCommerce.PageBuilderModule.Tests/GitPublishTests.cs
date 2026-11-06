@@ -183,10 +183,6 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.Empty(publisher.Merges);
         }
 
-        /// <summary>
-        /// Once merged, the page goes live from the production branch: what the branch now holds, which a
-        /// merge of somebody else's change to the same file can make differ from this editor's draft.
-        /// </summary>
         [Fact]
         public async Task Publish_WhenMerged_WritesTheLivePageAsTheBaseBranchHasIt_NotTheDraft()
         {
@@ -214,10 +210,6 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.Empty(live.Events);
         }
 
-        /// <summary>
-        /// A repository assigned by hand (the shared one, or a store's own setting) has its own deployment, which takes
-        /// the merge to the live storage: the platform leaves it alone, as before it kept repositories of its own.
-        /// </summary>
         [Theory]
         [InlineData(GitRepositorySource.Shared)]
         [InlineData(GitRepositorySource.StoreSetting)]
@@ -234,10 +226,10 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.Empty(live.Events);
         }
 
-        /// <summary>Publishing again repairs a live write that failed after its merge: the page is on the branch, so it is written.</summary>
         [Fact]
         public async Task Publish_WithNothingOfMine_StillWritesTheLivePageFromTheBaseBranch()
         {
+            // publishing again repairs a live write that failed after its merge
             var live = new FakeBlobStorage();
 
             await Controller(Repository(withDraft: false), Publisher(GitPublishState.Merged), live: live).GitPublish("s1", Page, "pages");
@@ -245,13 +237,10 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.True(JToken.DeepEquals(JToken.Parse(Published), JToken.Parse(live.Files[Page])));
         }
 
-        /// <summary>
-        /// A pull request merged on GitHub (a required review, say) leaves the editor's branch behind with nothing the base
-        /// branch lacks: publishing it again writes the live page the merge did not.
-        /// </summary>
         [Fact]
         public async Task Publish_OfADraftTheBaseBranchAlreadyHas_WritesTheLivePageFromTheBaseBranch()
         {
+            // a pull request merged on GitHub writes nothing live
             var live = new FakeBlobStorage();
 
             await Controller(MergedOnGitHub(), Publisher(GitPublishState.AlreadyPublished), live: live).GitPublish("s1", Page, "pages");
@@ -284,10 +273,6 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 PlatformJson.SerializeBody(result));
         }
 
-        /// <summary>
-        /// The status says so: in a repository the platform writes live, a live page that is not the base branch's is behind
-        /// it, apart from any draft. A repository assigned by hand has its own deployment, which the status does not look at.
-        /// </summary>
         [Theory]
         [InlineData(GitRepositorySource.Site, LastWeek, true)]
         [InlineData(GitRepositorySource.Site, null, true)]
@@ -309,14 +294,10 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.Equal(liveBehind, status.Value<bool>("liveBehind"));
         }
 
-        /// <summary>
-        /// The other half of that, and the one that matters: a page the branch does not have is a page that
-        /// only lives in blob storage — a store that opted in keeps those until their first save. Publish
-        /// must never take it down.
-        /// </summary>
         [Fact]
         public async Task Publish_OfAPageTheBranchDoesNotHave_NeverRemovesItsLiveCopy()
         {
+            // a page only in blob storage must survive Publish
             var repository = Repository(withDraft: false);
             repository.Files.Remove((RepoPath, "master"));
             var live = new FakeBlobStorage();
@@ -329,7 +310,6 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.Empty(live.Events);
         }
 
-        /// <summary>The first save of a store switched on before its repository existed makes the repository.</summary>
         [Fact]
         public async Task Save_WhenTheRepositoryHasNoBaseBranch_HasItMadeFirst()
         {
@@ -363,7 +343,6 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             return repository;
         }
 
-        /// <summary>The editor's pull request merged on GitHub, the branch kept: it holds the page as the base branch does.</summary>
         private static RecordingRepository MergedOnGitHub()
         {
             var repository = Repository(withDraft: false);
@@ -387,7 +366,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 ReleaseBranch = releaseBranch,
             });
 
-            // Live storage takes part once a merge is done — the platform writes the page there itself.
+            // the platform writes the live page itself once a merge is done
             live ??= new FakeBlobStorage();
             var connection = GitHubConnections.CreateService(options.Value);
             var history = new FakeGitContentHistory();
@@ -450,7 +429,6 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             /// </summary>
             public CancellationTokenSource CancelOnCommit { get; set; }
 
-            /// <summary>Every repository a call named: the store's, and nothing else, is the point of the per-site flow.</summary>
             public HashSet<string> Repositories { get; } = [];
 
             public Task<string> ReadFileAsync(string repository, string path, string gitRef, CancellationToken cancellationToken = default)

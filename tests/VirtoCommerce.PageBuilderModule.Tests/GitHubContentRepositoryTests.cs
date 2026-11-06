@@ -382,7 +382,6 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         [Fact]
         public async Task ReadFileAsync_SamePathInTwoRepositories_ReadsAndCachesEachSeparately()
         {
-            // two sites, the same page path: their reads must neither share a url nor a cache entry
             var handler = new ScriptedHandler(
                 ("GET", "repos/a/site-one/contents/pages/foo.page?ref=master", _ => RespondJson(ContentsPayload("one"))),
                 ("GET", "repos/a/site-two/contents/pages/foo.page?ref=master", _ => RespondJson(ContentsPayload("two"))));

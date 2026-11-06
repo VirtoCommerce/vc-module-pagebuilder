@@ -15,11 +15,6 @@ using Xunit;
 
 namespace VirtoCommerce.PageBuilderModule.Tests;
 
-/// <summary>
-/// How the git content client signs its requests: the configured token, or — with a GitHub App — a token
-/// of the App's installation on the organization the request acts on, minted once and reused until it is
-/// about to expire.
-/// </summary>
 public class GitHubAuthHandlerTests
 {
     private static readonly RSA Key = RSA.Create(2048);
@@ -58,7 +53,6 @@ public class GitHubAuthHandlerTests
         github.AssertDone();
     }
 
-    /// <summary>A GraphQL url names no repository, so the request says whose installation it needs.</summary>
     [Fact]
     public async Task SendAsync_AppGraphQlRequest_UsesInstallationOfNamedOwner()
     {
@@ -67,6 +61,7 @@ public class GitHubAuthHandlerTests
             ("POST", "app/installations/7/access_tokens", (_, _) => GitHubScript.Json("""{ "token": "ghs_other", "expires_at": "2099-01-01T00:00:00Z" }""", HttpStatusCode.Created)),
             ("POST", "graphql", (request, _) => Authorized(request, "ghs_other")));
 
+        // a GraphQL url names no repository
         using var request = new HttpRequestMessage(HttpMethod.Post, "graphql") { Content = new StringContent("{}") };
         request.Options.Set(GitHubAuthHandler.OwnerOptionKey, "other");
         await Client(github, App()).SendAsync(request, TestContext.Current.CancellationToken);
@@ -104,10 +99,10 @@ public class GitHubAuthHandlerTests
         Assert.Contains("not installed on \"acme\"", error.Message);
     }
 
-    /// <summary>The one-click setup can replace the App while the client factory keeps this handler alive.</summary>
     [Fact]
     public async Task SendAsync_AppReplaced_UsesNewAppToken()
     {
+        // the client factory keeps the handler alive when the setup replaces the App
         var github = new GitHubScript(
             ("GET", "orgs/acme/installation", (_, _) => GitHubScript.Json("""{ "id": 42 }""")),
             ("POST", "app/installations/42/access_tokens", (_, _) => GitHubScript.Json("""{ "token": "ghs_old", "expires_at": "2099-01-01T00:00:00Z" }""", HttpStatusCode.Created)),
@@ -132,7 +127,7 @@ public class GitHubAuthHandlerTests
     {
         var now = DateTimeOffset.FromUnixTimeSeconds(1_800_000_000);
 
-        // as an environment variable holds it: one line, "\n" escapes
+        // as an environment variable holds it: one line with "\n" escapes
         var jwt = GitHubAuthHandler.CreateAppJwt("12345", Key.ExportPkcs8PrivateKeyPem().Replace("\n", "\\n"), now);
 
         var parts = jwt.Split('.');
@@ -166,7 +161,6 @@ public class GitHubAuthHandlerTests
             BaseAddress = new Uri("https://api.github.test/"),
         };
 
-    /// <summary>The connection in effect, which the one-click setup can replace at any moment.</summary>
     private sealed class FakeGitHubConnectionService : IGitHubConnectionService
     {
         public GitHubConnection Connection { get; set; }

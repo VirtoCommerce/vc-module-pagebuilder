@@ -14,11 +14,6 @@ using Xunit;
 
 namespace VirtoCommerce.PageBuilderModule.Tests;
 
-/// <summary>
-/// A site's repository, from GitHub's side: created in the organization when the site needs one,
-/// adopted when it is already there, brought back from the archive with its store — and archived only
-/// when the module made it for that store.
-/// </summary>
 public class GitHubContentProvisionerTests
 {
     private const string Repo = "acme/site-s1";
@@ -46,7 +41,6 @@ public class GitHubContentProvisionerTests
         github.AssertDone();
     }
 
-    /// <summary>The same store's first save and its "turn on" racing: GitHub says it exists, and that is the one wanted.</summary>
     [Fact]
     public async Task EnsureRepositoryAsync_CreatedConcurrently_AdoptsIt()
     {
@@ -61,7 +55,6 @@ public class GitHubContentProvisionerTests
         github.AssertDone();
     }
 
-    /// <summary>Adopted, it is marked as the store's: no other store whose id names it works in it too.</summary>
     [Fact]
     public async Task EnsureRepositoryAsync_ExistingRepository_MarksItAsStores()
     {
@@ -98,10 +91,10 @@ public class GitHubContentProvisionerTests
         github.AssertDone();
     }
 
-    /// <summary>Two store ids that sanitize alike would share a repository and publish over each other.</summary>
     [Fact]
     public async Task EnsureRepositoryAsync_RepositoryOfAnotherStore_ThrowsOwnershipException()
     {
+        // "S1" and "s1" name the same repository
         var github = new GitHubScript(
             ("GET", $"repos/{Repo}", (_, _) => GitHubScript.Json(RepoJson(GitHubContentOwnership.DescriptionPrefix + "S1"))));
 
@@ -112,7 +105,6 @@ public class GitHubContentProvisionerTests
         github.AssertDone();
     }
 
-    /// <summary>A repository a store names in its own setting is used, never changed — in the organization too.</summary>
     [Fact]
     public async Task EnsureRepositoryAsync_MissingStoreSettingRepositoryInOrganization_Throws()
     {
@@ -149,25 +141,22 @@ public class GitHubContentProvisionerTests
         github.AssertDone();
     }
 
-    /// <summary>
-    /// A repository assigned by hand deploys from its own branches: one without the base branch is refused, never given
-    /// a base or release branch cut from its default one, which its deployment would not follow.
-    /// </summary>
     [Theory]
     [InlineData("acme", null)]
     [InlineData(null, "acme/website")]
     public async Task EnsureRepositoryAsync_AssignedRepositoryWithoutBaseBranch_ThrowsWithoutCuttingBranches(string organization, string shared)
     {
+        // its deployment follows its own branches, not ones cut from its default branch
         var github = new GitHubScript(
             ("GET", "repos/acme/website", (_, _) => GitHubScript.Json(RepoJson("Our web site", defaultBranch: "master"))),
             ("GET", "repos/acme/website/git/ref/heads/main", (_, _) => GitHubScript.Status(HttpStatusCode.NotFound)));
-
         var provisioner = Provisioner(github, repository: shared == null ? "acme/website" : null, configure: x =>
         {
             x.Organization = organization;
             x.Repository = shared;
             x.ReleaseBranch = "release";
         });
+
         var error = await Assert.ThrowsAsync<GitContentException>(() => provisioner.EnsureRepositoryAsync("s1", TestContext.Current.CancellationToken));
 
         Assert.Contains("\"main\"", error.Message);
@@ -180,10 +169,8 @@ public class GitHubContentProvisionerTests
         var github = new GitHubScript(
             ("GET", $"repos/{Repo}", (_, _) => GitHubScript.Json(RepoJson(Mine, defaultBranch: "master"))),
             ("GET", "repos/acme/site-s1/git/ref/heads/master", (_, _) => Branch()),
-            // main from master
             ("GET", "repos/acme/site-s1/git/ref/heads/master", (_, _) => Branch()),
             ("POST", "repos/acme/site-s1/git/refs", (_, body) => Created(body, "refs/heads/main")),
-            // release from main
             ("GET", "repos/acme/site-s1/git/ref/heads/main", (_, _) => Branch()),
             ("POST", "repos/acme/site-s1/git/refs", (_, body) => Created(body, "refs/heads/release")));
 
@@ -276,7 +263,6 @@ public class GitHubContentProvisionerTests
         Assert.Null(status.Error);
     }
 
-    /// <summary>Not created yet is fine — as long as there is an organization to create it in.</summary>
     [Fact]
     public async Task GetStatusAsync_MissingRepository_ReportsMissingOrganization()
     {
@@ -338,7 +324,6 @@ public class GitHubContentProvisionerTests
         return new NoWaitProvisioner(new GitHubApiClient(github), connection, gitRepository, policy, ownership, wrapped);
     }
 
-    /// <summary>Looks for the first commit of a new repository again at once.</summary>
     private sealed class NoWaitProvisioner(IGitHubApiClient gitHubApiClient, IGitHubConnectionService gitHubConnectionService, IGitContentRepository gitContentRepository,
         IGitContentPolicy gitContentPolicy, IGitContentOwnership gitContentOwnership, IOptions<GitContentOptions> options)
         : GitHubContentProvisioner(gitHubApiClient, gitHubConnectionService, gitContentRepository, gitContentPolicy, gitContentOwnership, options,

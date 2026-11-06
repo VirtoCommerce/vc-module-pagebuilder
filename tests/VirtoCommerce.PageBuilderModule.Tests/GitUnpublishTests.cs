@@ -78,7 +78,6 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.Equal((MyBranch, "master"), Assert.Single(publisher.Merges));
         }
 
-        /// <summary>A page git never had is a page of the platform's storage only: unpublishing it in git is not the way to take it down.</summary>
         [Fact]
         public async Task Unpublish_APageTheProductionBranchDoesNotHave_IsNotFound()
         {
@@ -91,7 +90,6 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.Empty(repository.DeletedFiles);
         }
 
-        /// <summary>Once the deletion is merged, the page leaves the live storage too — the platform takes it down itself.</summary>
         [Fact]
         public async Task Unpublish_WhenMerged_RemovesTheLivePage()
         {
@@ -108,13 +106,10 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.Single(live.Events);
         }
 
-        /// <summary>
-        /// The editor pressing Unpublish again after its merge, whose live removal failed: the production branch no longer
-        /// has the page but has had it, so what is left of the operation is the live page, and this finishes it.
-        /// </summary>
         [Fact]
         public async Task Unpublish_RetriedAfterItsMerge_TakesTheLivePageDown()
         {
+            // the live removal failed after the merge: unpublishing again finishes it
             var repository = Repository(withBranch: false);
             repository.Files.Remove((RepoPath, "master"));
             var live = new FakeBlobStorage();
@@ -127,7 +122,6 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.Empty(repository.DeletedFiles);
         }
 
-        /// <summary>A read of the production branch made before the page was published again says it is gone; the branch says otherwise.</summary>
         [Fact]
         public async Task Unpublish_RetriedOnAStaleRead_LeavesALivePageTheBranchHasAgain()
         {
@@ -144,17 +138,13 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.Empty(live.Removed);
         }
 
-        /// <summary>
-        /// An unpublish merged on GitHub writes nothing live: the status tells the live page is behind the production branch,
-        /// which has had the page and has it no more, so the builder offers Unpublish again. A page only ever in the live
-        /// storage is not behind, and a repository assigned by hand has its own deployment.
-        /// </summary>
         [Theory]
         [InlineData(GitRepositorySource.Site, true, true)]
         [InlineData(GitRepositorySource.Site, false, false)]
         [InlineData(GitRepositorySource.Shared, true, false)]
         public async Task PublishStatus_OfAPageUnpublishedOnGitHub_TellsTheLivePageIsBehind(GitRepositorySource source, bool hadThePage, bool liveBehind)
         {
+            // an unpublish merged on GitHub writes nothing live
             var repository = Repository(withBranch: false);
             repository.Files.Remove((RepoPath, "master"));
             var live = new FakeBlobStorage();
@@ -197,7 +187,6 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
         // ── helpers ────────────────────────────────────────────────────────────────────────────────
 
-        /// <summary>The page's history once its deletion is merged: the production branch had it.</summary>
         private static GitPageHistory Unpublished() => new()
         {
             Versions = [new GitPageVersion { Sha = BranchHead, Message = "publish /about-us.page", Published = true, Branches = ["master"] }],
@@ -232,8 +221,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 BaseBranch = "master",
             });
 
-            // Live storage takes part only once a merge is done; without one it is left null on purpose,
-            // so an unpublish that is still waiting for its merge and reaches for it fails loudly here.
+            // without a merge the live storage stays null: an unpublish waiting for its merge must not reach for it
             var connection = GitHubConnections.CreateService(options.Value);
             var gitHistory = new FakeGitContentHistory(history);
             var controller = new PageBuilderController(

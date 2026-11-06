@@ -10,7 +10,6 @@ using Xunit;
 
 namespace VirtoCommerce.PageBuilderModule.Tests;
 
-/// <summary>Every way a GitHub call can fail reaches the caller as a <see cref="GitContentException"/>, except the caller giving up.</summary>
 public class GitHubApiClientTests
 {
     private const string Repo = "acme/site-s1";

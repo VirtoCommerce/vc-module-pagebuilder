@@ -12,7 +12,6 @@ using Xunit;
 
 namespace VirtoCommerce.PageBuilderModule.Tests;
 
-/// <summary>Whose a repository is: the store its description names, as the module writes it when it creates one.</summary>
 public class GitHubContentOwnershipTests
 {
     private const string Repo = "acme/site-s1";
@@ -37,10 +36,10 @@ public class GitHubContentOwnershipTests
         Assert.Null(await Ownership(github).GetStoreIdAsync(Repo, TestContext.Current.CancellationToken));
     }
 
-    /// <summary>Nobody's is an answer that changes: the module may adopt the repository on another server any moment.</summary>
     [Fact]
     public async Task GetStoreIdAsync_UnownedRepository_ExpiresSoonerThanOwnedOne()
     {
+        // the module may adopt an unowned repository on another server at any moment
         var github = new GitHubScript(
             ("GET", $"repos/{Repo}", (_, _) => Repository("Our web site")),
             ("GET", $"repos/{Repo}", (_, _) => Repository(GitHubContentOwnership.DescriptionPrefix + "s1")));
@@ -56,10 +55,10 @@ public class GitHubContentOwnershipTests
         github.AssertDone();
     }
 
-    /// <summary>GitHub names a repository the same whatever its letters' case: a store setting may write it otherwise.</summary>
     [Fact]
     public async Task GetStoreIdAsync_NameInOtherCase_SharesCacheEntry()
     {
+        // GitHub repository names are case-insensitive
         var github = new GitHubScript(
             ("GET", $"repos/{Repo}", (_, _) => Repository(GitHubContentOwnership.DescriptionPrefix + "s1")),
             ("GET", $"repos/{Repo}", (_, _) => Repository(GitHubContentOwnership.DescriptionPrefix + "s1")));
@@ -73,7 +72,6 @@ public class GitHubContentOwnershipTests
         github.AssertDone();
     }
 
-    /// <summary>One not made yet may be made for a store any moment: asked again, not remembered as nobody's.</summary>
     [Fact]
     public async Task GetStoreIdAsync_RepositoryNotFound_DoesNotCacheAnswer()
     {

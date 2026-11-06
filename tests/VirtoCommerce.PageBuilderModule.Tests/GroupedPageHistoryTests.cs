@@ -19,10 +19,6 @@ using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 
 namespace VirtoCommerce.PageBuilderModule.Tests;
 
-/// <summary>
-/// A database page's version history in its site's repository: each change committed to the base branch,
-/// listed newest first, and the published one told by its content.
-/// </summary>
 public class GroupedPageHistoryTests
 {
     private const string Live = """{ "v": 2 }""";
@@ -58,7 +54,7 @@ public class GroupedPageHistoryTests
         // published, edited, then discarded back: only the newest of the two is live
         Assert.Equal([false, true, false, false], history.Versions.Select(x => x.Published));
         Assert.Equal("alice", history.Versions[0].VcUser);
-        // the page goes without saying in its own history
+        // a page's own history leaves its name out
         Assert.Equal("Saved", history.Versions[0].Message);
         Assert.True(history.HasMore);
         Assert.Equal("cursor-2", history.EndCursor);
@@ -87,7 +83,7 @@ public class GroupedPageHistoryTests
                 Assert.StartsWith("Saved: \"Home\" (/home)", commit["message"]?.Value<string>());
                 Assert.EndsWith("VC-User: alice", commit["message"]?.Value<string>());
                 Assert.Equal("alice@acme.test", commit["author"]?["email"]?.Value<string>());
-                // the exact bytes the database holds: what tells the published change later
+                // the exact bytes: they tell the published change later
                 Assert.Equal(Live, Encoding.UTF8.GetString(Convert.FromBase64String(commit["content"]!.Value<string>()!)));
                 return GitHubScript.Json("""{ "commit": { "sha": "c9" } }""", HttpStatusCode.Created);
             }));
@@ -119,7 +115,6 @@ public class GroupedPageHistoryTests
         github.AssertDone();
     }
 
-    /// <summary>A repository assigned by hand keeps the git flow it had: no history of database pages goes into it.</summary>
     [Fact]
     public async Task RecordAsync_AssignedRepository_RecordsNothing()
     {
@@ -289,7 +284,6 @@ public class GroupedPageHistoryTests
         return new TestGroupedPageHistoryService(policy, repository, github, options, published, pageService);
     }
 
-    /// <summary>Keeps the ids of the pages deleted; nothing else is supported.</summary>
     private sealed class RecordingPages : IPageBuilderPageService
     {
         public List<string> Deleted { get; } = [];

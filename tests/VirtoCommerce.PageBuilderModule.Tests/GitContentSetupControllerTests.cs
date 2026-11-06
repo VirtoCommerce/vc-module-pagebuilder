@@ -20,10 +20,6 @@ using Xunit;
 
 namespace VirtoCommerce.PageBuilderModule.Tests;
 
-/// <summary>
-/// The one-click setup: GitHub's create-an-App form, the way back with GitHub's code, and on to the
-/// installation and back to the site.
-/// </summary>
 public class GitContentSetupControllerTests
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
@@ -39,7 +35,7 @@ public class GitContentSetupControllerTests
         var (action, manifest) = await GetSetupFormAsync(controller, state);
 
         Assert.StartsWith("https://github.com/organizations/acme/settings/apps/new?state=", action);
-        // the platform's pages may post forms only to themselves; this one also to GitHub
+        // the platform's CSP lets its pages post forms only to themselves
         Assert.Equal("https://github.com", controller.HttpContext.Items["Content-Security-Policy-Form-Action-Uri"]);
 
         Assert.Equal("Page Builder acme", manifest["name"]?.Value<string>());
@@ -77,7 +73,9 @@ public class GitContentSetupControllerTests
         var github = GitHubConnections.CreateManifestConversion("acme");
         var connection = GitHubConnections.CreateService(_settings, _keys, github);
         var controller = Controller(connection);
-        var result = await controller.AppCreated("c0de", await GetSetupStateAsync(controller, "acme", "s1"), Ct);
+        var state = await GetSetupStateAsync(controller, "acme", "s1");
+
+        var result = await controller.AppCreated("c0de", state, Ct);
 
         github.AssertDone();
         Assert.Equal("https://github.com/apps/page-builder-acme/installations/new", Assert.IsType<RedirectResult>(result).Url);
@@ -167,7 +165,7 @@ public class GitContentSetupControllerTests
     [Fact]
     public async Task GetConnection_GitHubTimesOut_ReturnsTimeoutError()
     {
-        // HttpClient.Timeout ends a request with a TaskCanceledException, which the GitHub client reports as a GitContentException
+        // what the GitHub client makes of an HttpClient.Timeout
         var timeout = new TaskCanceledException("The request was canceled due to the configured HttpClient.Timeout.");
         var provisioner = new FakeGitContentProvisioner { OrganizationFailure = new GitContentException($"GitHub request to read organization \"acme\" failed: {timeout.Message}", timeout) };
         var controller = Controller(ConfiguredConnection(), provisioner: provisioner);
@@ -285,7 +283,6 @@ public class GitContentSetupControllerTests
             });
     }
 
-    /// <summary>The state the setup carries, from the address the panel opens.</summary>
     private static async Task<string> GetSetupStateAsync(GitContentSetupController controller, string organization, string storeId)
     {
         var url = Assert.IsType<GitHubAppSetupResult>(Assert.IsType<OkObjectResult>((await controller.StartAppSetup(organization, storeId, Ct)).Result).Value).Url;
@@ -293,7 +290,6 @@ public class GitContentSetupControllerTests
         return HttpUtility.ParseQueryString(url[url.IndexOf('?')..])["state"];
     }
 
-    /// <summary>Where the page that opens posts, and the manifest it posts.</summary>
     private static async Task<(string Action, JObject Manifest)> GetSetupFormAsync(GitContentSetupController controller, string state)
     {
         var page = Assert.IsType<ContentResult>(await controller.AppNew(state, Ct));

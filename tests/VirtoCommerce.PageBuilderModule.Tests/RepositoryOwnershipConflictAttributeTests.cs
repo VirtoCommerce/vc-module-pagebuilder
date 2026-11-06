@@ -22,10 +22,6 @@ using Xunit;
 
 namespace VirtoCommerce.PageBuilderModule.Tests;
 
-/// <summary>
-/// A store working in another store's repository is told so with 409, whichever endpoint asks for its repository:
-/// the endpoints that turn GitHub failures into 400 let this one through to the filter.
-/// </summary>
 public class RepositoryOwnershipConflictAttributeTests
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

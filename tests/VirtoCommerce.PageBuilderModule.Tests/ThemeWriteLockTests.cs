@@ -19,10 +19,6 @@ using Xunit;
 
 namespace VirtoCommerce.PageBuilderModule.Tests;
 
-/// <summary>
-/// Theme writes and publications of a store run one at a time: a publication deletes the drafts it puts live, so a
-/// draft written in the meantime would be lost.
-/// </summary>
 public class ThemeWriteLockTests
 {
     private const string Path = "default/sections/header-group.json";
@@ -58,10 +54,10 @@ public class ThemeWriteLockTests
         Assert.True(_live.Files.ContainsKey("home.page-draft"));
     }
 
-    /// <summary>A publication reads a draft in two steps (is it there, then its text): one thrown away between them fails it.</summary>
     [Fact]
     public async Task DiscardDraft_ThemePublicationRunning_WaitsForStoreLock()
     {
+        // a publication reads a draft in two steps; a delete between them must not fail it
         _live.Files[Path] = "{}";
         _live.Files[$"{Path}-draft"] = "{}";
         var publication = await _lock.AcquireAsync(ThemeStorage.GetLockResource("s1"), cancellationToken: Ct);
@@ -102,7 +98,6 @@ public class ThemeWriteLockTests
 
     private PageBuilderController Builder()
     {
-        // no git: theme files are blobs either way, and the save goes straight to the storage
         var options = Options.Create(new GitContentOptions());
         return WithUser(new PageBuilderController(
             storeService: _live.StoreService,

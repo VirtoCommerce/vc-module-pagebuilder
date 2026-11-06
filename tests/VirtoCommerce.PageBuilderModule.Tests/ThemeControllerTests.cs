@@ -12,7 +12,6 @@ using Xunit;
 
 namespace VirtoCommerce.PageBuilderModule.Tests;
 
-/// <summary>A theme publication and its catalogs are asked for only for a store that exists and that the user works in.</summary>
 public class ThemeControllerTests
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
