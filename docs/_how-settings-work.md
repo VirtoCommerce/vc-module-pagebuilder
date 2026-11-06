@@ -79,13 +79,13 @@ Resolved settings are available in template expressions as `{{settings.*}}`. The
         }
     },
     "publish": {
-        "status": "/api/content/{{type}}/{{location.params.storeId}}/publish-status?relativeUrl={{path}}",
+        "status": "/api/pagebuilder/git/publish-status?storeId={{location.params.storeId}}&path={{path}}&type={{type}}",
         "publish": {
-            "url": "/api/content/{{type}}/{{location.params.storeId}}/publishing?relativeUrl={{path}}&publish=true",
+            "url": "/api/pagebuilder/git/publish?storeId={{location.params.storeId}}&path={{path}}&type={{type}}",
             "method": "POST"
         },
         "unpublish": {
-            "url": "/api/content/{{type}}/{{location.params.storeId}}/publishing?relativeUrl={{path}}&publish=false",
+            "url": "/api/pagebuilder/git/unpublish?storeId={{location.params.storeId}}&path={{path}}&type={{type}}",
             "method": "POST"
         }
     },
