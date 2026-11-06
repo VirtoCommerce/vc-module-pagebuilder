@@ -8,6 +8,7 @@ using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Data.GitContent;
 using Xunit;
+using static VirtoCommerce.PageBuilderModule.Tests.GitHubConnections;
 
 namespace VirtoCommerce.PageBuilderModule.Tests;
 
@@ -16,7 +17,7 @@ public class GitHubConnectionServiceTests
     [Fact]
     public async Task GetConnectionAsync_NoSavedApp_ReturnsConfiguration()
     {
-        var connection = await GitHubConnections.CreateService(new FakeSettingsManager()).GetConnectionAsync(TestContext.Current.CancellationToken);
+        var connection = await CreateService(new FakeSettingsManager()).GetConnectionAsync(TestContext.Current.CancellationToken);
 
         Assert.False(connection.IsConfigured);
         Assert.Null(connection.Source);
@@ -29,12 +30,12 @@ public class GitHubConnectionServiceTests
     {
         var settings = new FakeSettingsManager();
         var keys = new EphemeralDataProtectionProvider();
-        await GitHubConnections.CreateService(settings, keys, GitHubConnections.CreateManifestConversion("Acme")).CreateAppAsync("c0de", "acme", TestContext.Current.CancellationToken);
+        await CreateService(settings, keys, CreateManifestConversion("Acme")).CreateAppAsync("c0de", "acme", TestContext.Current.CancellationToken);
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string> { [$"{GitContentOptions.SectionName}:Enabled"] = "false" })
             .Build();
 
-        var connection = await GitHubConnections.CreateService(settings, keys, configuration: configuration, configure: x => x.Enabled = false)
+        var connection = await CreateService(settings, keys, configuration: configuration, configure: x => x.Enabled = false)
             .GetConnectionAsync(TestContext.Current.CancellationToken);
 
         Assert.True(connection.UsesApp);
@@ -46,9 +47,9 @@ public class GitHubConnectionServiceTests
     {
         var settings = new FakeSettingsManager();
         var keys = new EphemeralDataProtectionProvider();
-        var github = GitHubConnections.CreateManifestConversion("Acme");
+        var github = CreateManifestConversion("Acme");
 
-        await GitHubConnections.CreateService(settings, keys, github).CreateAppAsync("c0de", "acme", TestContext.Current.CancellationToken);
+        await CreateService(settings, keys, github).CreateAppAsync("c0de", "acme", TestContext.Current.CancellationToken);
 
         github.AssertDone();
         var saved = (string)settings.Values[ModuleConstants.Settings.GitHub.AppConnection.Name];
@@ -56,7 +57,7 @@ public class GitHubConnectionServiceTests
 
         // another server of the same platform, sharing its keys
         var options = new GitContentOptions { RepositoryPrefix = "web-" };
-        var service = GitHubConnections.CreateService(options, settings, keys);
+        var service = CreateService(options, settings, keys);
         var connection = await service.GetConnectionAsync(TestContext.Current.CancellationToken);
         Assert.True(connection.IsEnabled);
         Assert.True(connection.IsConfigured);
@@ -64,7 +65,7 @@ public class GitHubConnectionServiceTests
         Assert.Equal(GitHubConnectionSource.App, connection.Source);
         Assert.Equal("Acme", connection.Organization);
         Assert.Equal("77", connection.AppId);
-        Assert.Equal(GitHubConnections.AppPrivateKey, connection.PrivateKey);
+        Assert.Equal(AppPrivateKey, connection.PrivateKey);
         Assert.Equal("main", connection.BaseBranch);
         Assert.True(connection.AutoCreateRepositories);
         // the App's organization, with the configuration's naming
@@ -78,7 +79,7 @@ public class GitHubConnectionServiceTests
         var settings = new FakeSettingsManager();
 
         var error = await Assert.ThrowsAsync<GitContentException>(() =>
-            GitHubConnections.CreateService(settings, github: GitHubConnections.CreateManifestConversion("someone-else")).CreateAppAsync("c0de", "acme", TestContext.Current.CancellationToken));
+            CreateService(settings, github: CreateManifestConversion("someone-else")).CreateAppAsync("c0de", "acme", TestContext.Current.CancellationToken));
 
         Assert.Contains("someone-else", error.Message);
         Assert.Empty(settings.Values);
@@ -90,7 +91,7 @@ public class GitHubConnectionServiceTests
         var github = new GitHubScript(("POST", "app-manifests/c0de/conversions", (_, _) => GitHubScript.Status(HttpStatusCode.NotFound)));
 
         var error = await Assert.ThrowsAsync<GitContentException>(() =>
-            GitHubConnections.CreateService(new FakeSettingsManager(), github: github).CreateAppAsync("c0de", "acme", TestContext.Current.CancellationToken));
+            CreateService(new FakeSettingsManager(), github: github).CreateAppAsync("c0de", "acme", TestContext.Current.CancellationToken));
 
         Assert.Contains("start the setup again", error.Message);
     }
@@ -100,9 +101,9 @@ public class GitHubConnectionServiceTests
     {
         var settings = new FakeSettingsManager();
         var keys = new EphemeralDataProtectionProvider();
-        await GitHubConnections.CreateService(settings, keys, GitHubConnections.CreateManifestConversion("Acme")).CreateAppAsync("c0de", "acme", TestContext.Current.CancellationToken);
+        await CreateService(settings, keys, CreateManifestConversion("Acme")).CreateAppAsync("c0de", "acme", TestContext.Current.CancellationToken);
 
-        var connection = await GitHubConnections.CreateService(settings, keys, configure: options =>
+        var connection = await CreateService(settings, keys, configure: options =>
         {
             options.Enabled = true;
             options.Organization = "env-org";
@@ -120,10 +121,10 @@ public class GitHubConnectionServiceTests
     public async Task GetConnectionAsync_SavedAppOtherServerKeys_LeavesGitOffWithError()
     {
         var settings = new FakeSettingsManager();
-        await GitHubConnections.CreateService(settings, new EphemeralDataProtectionProvider(), GitHubConnections.CreateManifestConversion("Acme")).CreateAppAsync("c0de", "acme", TestContext.Current.CancellationToken);
+        await CreateService(settings, new EphemeralDataProtectionProvider(), CreateManifestConversion("Acme")).CreateAppAsync("c0de", "acme", TestContext.Current.CancellationToken);
 
         // a restored database, or a server whose keys were lost: other keys
-        var connection = await GitHubConnections.CreateService(settings, new EphemeralDataProtectionProvider()).GetConnectionAsync(TestContext.Current.CancellationToken);
+        var connection = await CreateService(settings, new EphemeralDataProtectionProvider()).GetConnectionAsync(TestContext.Current.CancellationToken);
 
         Assert.False(connection.IsConfigured);
         Assert.Null(connection.App);
