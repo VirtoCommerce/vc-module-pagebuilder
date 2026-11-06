@@ -20,7 +20,14 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent;
 /// GitHub connection: the configuration when it is complete, else the GitHub App of the one-click setup, kept in a
 /// hidden setting encrypted with the platform's data protection keys.
 /// </summary>
-public class GitHubConnectionService : IGitHubConnectionService
+public class GitHubConnectionService(
+    IOptions<GitContentOptions> options,
+    IConfiguration configuration,
+    ISettingsManager settingsManager,
+    IDataProtectionProvider dataProtectionProvider,
+    IGitHubApiClient gitHubApiClient,
+    ILogger<GitHubConnectionService> logger)
+    : IGitHubConnectionService
 {
     /// <summary>Base branch of the store repositories when the configuration names none.</summary>
     public const string DefaultBaseBranch = "main";
@@ -33,30 +40,11 @@ public class GitHubConnectionService : IGitHubConnectionService
     // GitHub's limit on an App's name
     private const int MaxAppNameLength = 34;
 
-    private readonly GitContentOptions _options;
-    private readonly ISettingsManager _settingsManager;
-    private readonly IDataProtector _protector;
-    private readonly IGitHubApiClient _gitHubApiClient;
-    private readonly ILogger<GitHubConnectionService> _logger;
-    private readonly bool _isSwitchedOff;
+    private readonly IDataProtector _protector = dataProtectionProvider.CreateProtector(ProtectionPurpose);
 
-    public GitHubConnectionService(
-        IOptions<GitContentOptions> options,
-        IConfiguration configuration,
-        ISettingsManager settingsManager,
-        IDataProtectionProvider dataProtectionProvider,
-        IGitHubApiClient gitHubApiClient,
-        ILogger<GitHubConnectionService> logger)
-    {
-        _options = options.Value;
-        _settingsManager = settingsManager;
-        _protector = dataProtectionProvider.CreateProtector(ProtectionPurpose);
-        _gitHubApiClient = gitHubApiClient;
-        _logger = logger;
-
-        // an explicit Enabled=false also switches off the saved App; a bound bool cannot tell it from "not set"
-        _isSwitchedOff = bool.TryParse(configuration.GetSection(GitContentOptions.SectionName)[nameof(GitContentOptions.Enabled)], out var enabled) && !enabled;
-    }
+    // an explicit Enabled=false also switches off the saved App; a bound bool cannot tell it from "not set"
+    private readonly bool _isSwitchedOff =
+        bool.TryParse(configuration.GetSection(GitContentOptions.SectionName)[nameof(GitContentOptions.Enabled)], out var enabled) && !enabled;
 
     public virtual async Task<GitHubConnection> GetConnectionAsync(CancellationToken cancellationToken = default)
     {
@@ -69,11 +57,11 @@ public class GitHubConnectionService : IGitHubConnectionService
         string stored;
         try
         {
-            stored = await _settingsManager.GetValueAsync<string>(ModuleConstants.Settings.GitHub.AppConnection);
+            stored = await settingsManager.GetValueAsync<string>(ModuleConstants.Settings.GitHub.AppConnection);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "The saved GitHub connection could not be read.");
+            logger.LogWarning(ex, "The saved GitHub connection could not be read.");
             connection.Error = "The saved GitHub connection could not be read. Try again in a moment.";
             return connection;
         }
@@ -90,7 +78,7 @@ public class GitHubConnectionService : IGitHubConnectionService
         }
         catch (Exception ex) when (ex is CryptographicException or JsonException)
         {
-            _logger.LogWarning(ex, "The saved GitHub connection cannot be decrypted on this server.");
+            logger.LogWarning(ex, "The saved GitHub connection cannot be decrypted on this server.");
             connection.Error = "The saved GitHub connection cannot be read on this server: it was made on another one, or this server's " +
                                "data protection keys have changed. Set it up again.";
             return connection;
@@ -106,7 +94,7 @@ public class GitHubConnectionService : IGitHubConnectionService
 
         var operation = "convert the GitHub App manifest";
         using var request = new HttpRequestMessage(HttpMethod.Post, $"app-manifests/{Uri.EscapeDataString(code)}/conversions");
-        using var response = await _gitHubApiClient.SendAnonymousAsync(request, operation, cancellationToken);
+        using var response = await gitHubApiClient.SendAnonymousAsync(request, operation, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             throw new GitContentException(
@@ -131,7 +119,7 @@ public class GitHubConnectionService : IGitHubConnectionService
             throw new GitContentException("GitHub's answer has no App id, name or key. Start the setup again from the site.");
         }
 
-        await _settingsManager.SetValueAsync(ModuleConstants.Settings.GitHub.AppConnection.Name, _protector.Protect(JsonConvert.SerializeObject(app)));
+        await settingsManager.SetValueAsync(ModuleConstants.Settings.GitHub.AppConnection.Name, _protector.Protect(JsonConvert.SerializeObject(app)));
         return app;
     }
 
@@ -164,17 +152,19 @@ public class GitHubConnectionService : IGitHubConnectionService
 
     protected virtual GitHubConnection CreateConfiguredConnection()
     {
+        var configured = options.Value;
+
         var connection = AbstractTypeFactory<GitHubConnection>.TryCreateInstance();
-        connection.IsEnabled = _options.Enabled;
-        connection.Repository = _options.Repository;
-        connection.Organization = _options.Organization;
-        connection.AppId = _options.AppId;
-        connection.PrivateKey = _options.PrivateKey;
-        connection.Token = _options.Token;
-        connection.BaseBranch = _options.BaseBranch;
-        connection.AutoCreateRepositories = _options.AutoCreateRepositories;
-        connection.WebUrl = GetWebUrl(_options.ApiUrl);
-        connection.Source = _options.IsConfigured ? GitHubConnectionSource.Configuration : null;
+        connection.IsEnabled = configured.Enabled;
+        connection.Repository = configured.Repository;
+        connection.Organization = configured.Organization;
+        connection.AppId = configured.AppId;
+        connection.PrivateKey = configured.PrivateKey;
+        connection.Token = configured.Token;
+        connection.BaseBranch = configured.BaseBranch;
+        connection.AutoCreateRepositories = configured.AutoCreateRepositories;
+        connection.WebUrl = GetWebUrl(configured.ApiUrl);
+        connection.Source = configured.IsConfigured ? GitHubConnectionSource.Configuration : null;
 
         return connection;
     }

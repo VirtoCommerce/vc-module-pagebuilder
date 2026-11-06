@@ -59,6 +59,5 @@ public class GroupedPageHistoryService(
 
     protected virtual string GetFilePath(string groupId) => $"{Folder}/{groupId}.json";
 
-    // the repository holds every page of the site
     protected virtual string GetCommitSubject(GroupedPageBuilderPage group) => $": \"{group.Name}\" ({group.Permalink})";
 }

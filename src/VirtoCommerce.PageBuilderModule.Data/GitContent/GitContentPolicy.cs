@@ -86,8 +86,6 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
         public virtual async Task<StoreRepository> GetRepositoryInfoAsync(string storeId, CancellationToken cancellationToken = default)
         {
             var connection = await _gitHubConnectionService.GetConnectionAsync(cancellationToken);
-
-            // a store that is off never reaches its repository setting, so a value it cannot use does not break it
             if (await GetStoreSettingsAsync(connection, storeId) is not { IsEnabled: true } settings)
             {
                 return null;

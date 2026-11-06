@@ -87,7 +87,6 @@ public class GitContentStoreChangedEventHandler(
         }
         catch (GitContentException)
         {
-            // a setting that never named a usable repository has nothing to archive
             return null;
         }
     }
