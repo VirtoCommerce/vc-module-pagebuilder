@@ -10,6 +10,7 @@ using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using VirtoCommerce.Platform.Core.Events;
 using Xunit;
+using Permissions = VirtoCommerce.PageBuilderModule.Core.ModuleConstants.Security.Permissions;
 
 namespace VirtoCommerce.PageBuilderModule.Tests;
 
@@ -64,6 +65,39 @@ public class PageBuilderControllerThemeFilesTests
 
         Assert.True(_live.Files.ContainsKey($"{Path}-draft"));
     }
+
+    [Theory]
+    [InlineData("default/templates/product.json", Permissions.Templates, Permissions.Theme)]
+    [InlineData("default/config/template_rules.json", Permissions.Templates, Permissions.Theme)]
+    [InlineData("default/sections/header-group.json", Permissions.Theme, Permissions.Templates)]
+    [InlineData("default/config/settings_data.json", Permissions.Theme, Permissions.Templates)]
+    public async Task SaveTemplates_ThemeFileWithoutPermissionThatEditsIt_ReturnsForbidAndWritesNothing(string path, string required, string other)
+    {
+        var refused = await Builder(new FakeAuthorizationService("s1", Permissions.Update, other)).SaveTemplates("s1", "default", ThemeFile(path), draft: true);
+        Assert.IsType<ForbidResult>(refused);
+        Assert.Empty(_live.Files);
+
+        var saved = await Builder(new FakeAuthorizationService("s1", Permissions.Update, required)).SaveTemplates("s1", "default", ThemeFile(path), draft: true);
+        Assert.IsType<OkObjectResult>(saved);
+        Assert.True(_live.Files.ContainsKey($"{path}-draft"));
+    }
+
+    [Fact]
+    public async Task DiscardDraft_ThemeFileWithoutThemePermission_ReturnsForbidAndKeepsDraft()
+    {
+        _live.Files[Path] = "{}";
+        _live.Files[$"{Path}-draft"] = "{}";
+
+        var result = await Builder(new FakeAuthorizationService("s1", Permissions.Update, Permissions.Templates)).DiscardDraft("s1", Path, "themes", "default");
+
+        Assert.IsType<ForbidResult>(result);
+        Assert.True(_live.Files.ContainsKey($"{Path}-draft"));
+    }
+
+    private static PageBuilderController.SaveFilesModel ThemeFile(string path) => new()
+    {
+        Files = JsonConvert.SerializeObject(new[] { new { path, type = "themes", content = new { content = Array.Empty<object>() } } }),
+    };
 
     private static PageBuilderController.SaveFilesModel HeaderGroup() => new()
     {

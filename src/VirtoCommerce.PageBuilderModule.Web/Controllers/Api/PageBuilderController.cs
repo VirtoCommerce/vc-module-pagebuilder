@@ -25,6 +25,7 @@ using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Data.Authorization;
 using VirtoCommerce.PageBuilderModule.Data.Extensions;
 using VirtoCommerce.PageBuilderModule.Data.Theme;
+using VirtoCommerce.PageBuilderModule.Data.Validation;
 using VirtoCommerce.PageBuilderModule.Web.Extensions;
 using VirtoCommerce.PageBuilderModule.Web.Models;
 using VirtoCommerce.Platform.Core.Common;
@@ -584,6 +585,11 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 return Forbid();
             }
 
+            if (await CheckThemeFileAccessAsync(files.Where(x => x?.Type == Themes).Select(x => x.Path)) is { } forbiddenFile)
+            {
+                return forbiddenFile;
+            }
+
             request.Files = files.ConvertAll(ToContentFile);
             if (await ValidateAsync(request) is { } invalid)
             {
@@ -605,6 +611,22 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
         private async Task<bool> IsAllowedToPublishAsync() =>
             (await authorizationService.AuthorizeAsync(User, null, ModuleConstants.Security.Permissions.Publish)).Succeeded;
+
+        private async Task<ActionResult> CheckThemeFileAccessAsync(IEnumerable<string> paths)
+        {
+            foreach (var permission in paths.Select(GetThemeFileEditPermission).Distinct())
+            {
+                if (!(await authorizationService.AuthorizeAsync(User, null, permission)).Succeeded)
+                {
+                    return Forbid();
+                }
+            }
+
+            return null;
+        }
+
+        private static string GetThemeFileEditPermission(string path) =>
+            PageBuilderContentPaths.IsTemplateFile(path) ? ModuleConstants.Security.Permissions.Templates : ModuleConstants.Security.Permissions.Theme;
 
         private static PageBuilderContentFile ToContentFile(SaveFileModel file) =>
             file == null ? null : new PageBuilderContentFile { ContentType = file.Type, Path = file.Path, Content = AsToken(file.Content) };
@@ -1225,6 +1247,11 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         public async Task<ActionResult> DiscardDraft(string storeId, string path, string type, string theme = null)
         {
             var contentType = string.IsNullOrEmpty(type) ? PagesContentType : type.ToLowerInvariant();
+            if (contentType == Themes && await CheckThemeFileAccessAsync([path]) is { } forbidden)
+            {
+                return forbidden;
+            }
+
             if (await CheckRequestAsync(storeId, contentType, theme, [path]) is { } refused)
             {
                 return refused;

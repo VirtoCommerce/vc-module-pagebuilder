@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using VirtoCommerce.ContentModule.Core;
 using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
+using VirtoCommerce.PageBuilderModule.Data.Theme;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Validation;
 
@@ -19,9 +20,17 @@ public static class PageBuilderContentPaths
     private static readonly string[] PageExtensions = [".page", ".page-draft"];
     private const string JsonExtension = ".json";
 
-    // The config folder holds what the designer runs in its user's session: it ships with the theme, not through the builder.
+    // The config folder ships with the theme; the builder saves only the files it owns there.
     private const string ThemeConfigFolder = "config";
-    private const string ThemeSettingsFile = "settings_data.json";
+
+    private static readonly HashSet<string> BuilderConfigFiles = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ThemeStorage.SettingsDataFile,
+        ThemeStorage.TemplateRulesFile,
+        ThemeStorage.BrandFile,
+        ThemeStorage.PaletteFile,
+        ThemeStorage.DarkPaletteFile,
+    };
 
     // What file storage reads as a path or a pattern rather than as part of a name, on Windows and Linux alike.
     private static readonly SearchValues<char> KeywordSeparators = SearchValues.Create("\\/:*?\"<>|");
@@ -65,13 +74,20 @@ public static class PageBuilderContentPaths
     public static bool IsInsideAThemeFolder(string path) => path.TrimStart('/').Contains('/');
 
     /// <summary>No theme folder check: the file rules check that first.</summary>
-    public static bool IsOutsideTheThemeConfig(string path)
+    public static bool CanSaveThemeFile(string path)
     {
-        var relativePath = path.TrimStart('/');
-        var pathInTheme = relativePath[(relativePath.IndexOf('/') + 1)..];
+        var pathInTheme = GetPathInTheme(path);
 
-        return !pathInTheme.StartsWith(ThemeConfigFolder + "/", StringComparison.OrdinalIgnoreCase) ||
-               pathInTheme.Equals($"{ThemeConfigFolder}/{ThemeSettingsFile}", StringComparison.OrdinalIgnoreCase);
+        return !pathInTheme.StartsWith(ThemeConfigFolder + "/", StringComparison.OrdinalIgnoreCase) || BuilderConfigFiles.Contains(pathInTheme);
+    }
+
+    /// <summary>A template or the template rules: the files the templates permission edits.</summary>
+    public static bool IsTemplateFile(string path)
+    {
+        var pathInTheme = GetPathInTheme(path);
+
+        return pathInTheme.StartsWith(ThemeStorage.TemplatesFolder + "/", StringComparison.OrdinalIgnoreCase) ||
+               pathInTheme.Equals(ThemeStorage.TemplateRulesFile, StringComparison.OrdinalIgnoreCase);
     }
 
     public static bool IsLegacyDraft(string path) => path.EndsWith(ModuleConstants.DraftSuffix, StringComparison.OrdinalIgnoreCase);
@@ -82,4 +98,11 @@ public static class PageBuilderContentPaths
         keyword.IndexOfAny(KeywordSeparators) < 0 && !keyword.Any(char.IsControl);
 
     public static bool IsHistoryCursor(string cursor) => HistoryCursorPattern.IsMatch(cursor);
+
+    private static string GetPathInTheme(string path)
+    {
+        var relativePath = (path ?? string.Empty).TrimStart('/');
+
+        return relativePath[(relativePath.IndexOf('/') + 1)..];
+    }
 }

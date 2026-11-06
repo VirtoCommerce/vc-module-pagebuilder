@@ -11,6 +11,7 @@ using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Data.Authorization;
 using VirtoCommerce.PageBuilderModule.Data.Theme;
+using VirtoCommerce.PageBuilderModule.Data.Validation;
 using VirtoCommerce.PageBuilderModule.Web.Extensions;
 
 namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
@@ -105,12 +106,6 @@ public class ThemeFileHistoryController(
             : BadRequest(new { error = string.Join(" ", validationResult.Errors.Select(x => x.ErrorMessage)) });
     }
 
-    /// <summary>Templates and the template rules are edited with the templates permission, the other theme files with the theme one.</summary>
-    private static string GetEditPermission(string path)
-    {
-        var file = path[(path.IndexOf('/') + 1)..];
-        return file.StartsWith($"{ThemeStorage.TemplatesFolder}/", StringComparison.OrdinalIgnoreCase) || file.Equals(ThemeStorage.TemplateRulesFile, StringComparison.OrdinalIgnoreCase)
-            ? ModuleConstants.Security.Permissions.Templates
-            : ModuleConstants.Security.Permissions.Theme;
-    }
+    private static string GetEditPermission(string path) =>
+        PageBuilderContentPaths.IsTemplateFile(path) ? ModuleConstants.Security.Permissions.Templates : ModuleConstants.Security.Permissions.Theme;
 }

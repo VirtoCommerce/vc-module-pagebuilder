@@ -38,8 +38,8 @@ public class PageBuilderContentFileValidator : AbstractValidator<PageBuilderCont
                 .WithMessage("\"{PropertyValue}\" is not a theme JSON file.")
                 .Must(PageBuilderContentPaths.IsInsideAThemeFolder)
                 .WithMessage("\"{PropertyValue}\" is not inside a theme folder.")
-                .Must(PageBuilderContentPaths.IsOutsideTheThemeConfig)
-                .WithMessage("\"{PropertyValue}\" is in the theme's config folder, which is deployed with the theme: only config/settings_data.json is saved through the builder.");
+                .Must(PageBuilderContentPaths.CanSaveThemeFile)
+                .WithMessage("\"{PropertyValue}\" is in the theme's config folder, which is deployed with the theme: the builder saves only the theme settings, template rules, brand and palette there.");
         });
     }
 }
