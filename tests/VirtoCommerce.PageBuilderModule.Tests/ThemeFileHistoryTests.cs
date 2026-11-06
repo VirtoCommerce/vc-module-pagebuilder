@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Security.Claims;
@@ -16,7 +15,6 @@ using Newtonsoft.Json.Linq;
 using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
-using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Data.GitContent;
 using VirtoCommerce.PageBuilderModule.Data.Theme;
 using VirtoCommerce.PageBuilderModule.Data.Validation;
@@ -40,7 +38,7 @@ public class ThemeFileHistoryTests
     [Fact]
     public async Task A_saved_theme_file_becomes_a_change_under_theme_with_the_bytes_written()
     {
-        var live = new FakeLiveStorage();
+        var live = new FakeBlobStorage();
         string committed = null;
         var github = new GitHubScript(
             ("GET", $"repos/acme/site-s1/contents/{RepoPath}?ref=main", (_, _) => GitHubScript.Status(HttpStatusCode.NotFound)),
@@ -65,7 +63,7 @@ public class ThemeFileHistoryTests
     [Fact]
     public async Task The_newest_change_holding_the_live_file_is_the_published_one()
     {
-        var live = new FakeLiveStorage();
+        var live = new FakeBlobStorage();
         live.Files[Path] = Old;
         var github = new GitHubScript(("POST", "graphql", (_, body) =>
         {
@@ -86,7 +84,7 @@ public class ThemeFileHistoryTests
     [Fact]
     public async Task Restoring_a_change_makes_its_exact_bytes_the_draft_and_a_change_on_top()
     {
-        var live = new FakeLiveStorage();
+        var live = new FakeBlobStorage();
         var github = new GitHubScript(
             ("GET", $"repos/acme/site-s1/contents/{RepoPath}?ref={Sha}", (_, _) => GitHubScript.Json(Contents(Old))),
             ("GET", $"repos/acme/site-s1/contents/{RepoPath}?ref=main", (_, _) => GitHubScript.Json(Contents("{}"))),
@@ -121,7 +119,7 @@ public class ThemeFileHistoryTests
                 Assert.EndsWith($"{Path}\n\n{trailers}", JObject.Parse(body!)["message"]?.Value<string>());
                 return GitHubScript.Json("""{ "commit": { "sha": "c9" } }""", HttpStatusCode.Created);
             }));
-        var builder = Builder(github, new FakeLiveStorage());
+        var builder = Builder(github, new FakeBlobStorage());
         builder.HttpContext.Request.Headers[ModuleConstants.Headers.SaveId] = header;
         var files = new[] { new { path = Path, type = "themes", content = new { content = Array.Empty<object>() } } };
 
@@ -144,7 +142,7 @@ public class ThemeFileHistoryTests
                 Assert.EndsWith("VC-Save: restore-0001", message);
                 return GitHubScript.Json("""{ "commit": { "sha": "c9" } }""", HttpStatusCode.Created);
             }));
-        var controller = Controller(github, new FakeLiveStorage());
+        var controller = Controller(github, new FakeBlobStorage());
         controller.HttpContext.Request.Headers[ModuleConstants.Headers.SaveId] = "restore-0001";
 
         Assert.IsType<OkResult>(await controller.Restore(Sha, "s1", Path, "abcdef1234", TestContext.Current.CancellationToken));
@@ -164,7 +162,7 @@ public class ThemeFileHistoryTests
     [Fact]
     public async Task Discarding_a_draft_records_the_published_file_again()
     {
-        var live = new FakeLiveStorage();
+        var live = new FakeBlobStorage();
         live.Files[Path] = Old;
         live.Files[$"{Path}-draft"] = "{}";
         var github = new GitHubScript(
@@ -194,7 +192,7 @@ public class ThemeFileHistoryTests
 
         Assert.False(PageBuilderContentPaths.IsThemeFilePath(path));
         await History(github).RecordAsync("s1", path, "{}", "Saved", Alice(), null, TestContext.Current.CancellationToken);
-        Assert.IsType<BadRequestObjectResult>((await Controller(github, new FakeLiveStorage()).GetHistory("s1", path, cancellationToken: TestContext.Current.CancellationToken)).Result);
+        Assert.IsType<BadRequestObjectResult>((await Controller(github, new FakeBlobStorage()).GetHistory("s1", path, cancellationToken: TestContext.Current.CancellationToken)).Result);
 
         Assert.Equal(0, github.Requests);
     }
@@ -203,8 +201,8 @@ public class ThemeFileHistoryTests
     public async Task The_history_of_a_store_the_user_does_not_work_in_is_forbidden()
     {
         var github = new GitHubScript();
-        var live = new FakeLiveStorage();
-        var controller = Controller(github, live, new Grants("s2", ModuleConstants.Security.Permissions.Templates, ModuleConstants.Security.Permissions.Theme));
+        var live = new FakeBlobStorage();
+        var controller = Controller(github, live, new FakeAuthorizationService("s2", ModuleConstants.Security.Permissions.Templates, ModuleConstants.Security.Permissions.Theme));
         var ct = TestContext.Current.CancellationToken;
 
         Assert.IsType<ForbidResult>((await controller.GetHistory("s1", Path, cancellationToken: ct)).Result);
@@ -228,17 +226,17 @@ public class ThemeFileHistoryTests
             : ModuleConstants.Security.Permissions.Templates;
 
         var untouched = new GitHubScript();
-        var denied = new FakeLiveStorage();
-        Assert.IsType<ForbidResult>(await Controller(untouched, denied, new Grants("s1", other)).Restore(Sha, "s1", path, cancellationToken: ct));
+        var denied = new FakeBlobStorage();
+        Assert.IsType<ForbidResult>(await Controller(untouched, denied, new FakeAuthorizationService("s1", other)).Restore(Sha, "s1", path, cancellationToken: ct));
         Assert.Equal(0, untouched.Requests);
         Assert.Empty(denied.Files);
 
-        var live = new FakeLiveStorage();
+        var live = new FakeBlobStorage();
         var github = new GitHubScript(
             ("GET", $"repos/acme/site-s1/contents/theme/{path}?ref={Sha}", (_, _) => GitHubScript.Json(Contents(Old))),
             ("GET", $"repos/acme/site-s1/contents/theme/{path}?ref=main", (_, _) => GitHubScript.Json(Contents("{}"))),
             ("PUT", $"repos/acme/site-s1/contents/theme/{path}", (_, _) => GitHubScript.Json("""{ "commit": { "sha": "c9" } }""", HttpStatusCode.Created)));
-        Assert.IsType<OkResult>(await Controller(github, live, new Grants("s1", permission)).Restore(Sha, "s1", path, cancellationToken: ct));
+        Assert.IsType<OkResult>(await Controller(github, live, new FakeAuthorizationService("s1", permission)).Restore(Sha, "s1", path, cancellationToken: ct));
         github.AssertDone();
         Assert.Equal(Old, live.Files[$"{path}-draft"]);
     }
@@ -257,31 +255,21 @@ public class ThemeFileHistoryTests
         GraphQlUrl = new Uri("https://api.github.test/graphql"),
     });
 
-    private static GitContentPolicy Policy(IOptions<GitContentOptions> options) => GitHubConnections.Policy(options, new FakeSettingsManager(true));
+    private static GitContentPolicy Policy(IOptions<GitContentOptions> options) => GitHubConnections.CreatePolicy(options, new FakeSettingsManager(true));
 
-    private static ThemeFileHistoryService History(GitHubScript github, FakeLiveStorage live = null)
+    private static ThemeFileHistoryService History(GitHubScript github, FakeBlobStorage live = null)
     {
         var options = GitOptions();
         var repository = new GitHubContentRepository(github, new MemoryCache(new MemoryCacheOptions()), options);
-        live ??= new FakeLiveStorage();
-        return new ThemeFileHistoryService(Policy(options), repository, new GitHubApiClient(github), GitHubConnections.Service(options.Value),
+        live ??= new FakeBlobStorage();
+        return new ThemeFileHistoryService(Policy(options), repository, new GitHubApiClient(github), GitHubConnections.CreateService(options.Value),
             new ThemeStorageFactory(live.StoreService, live, live, live), new InProcessDistributedLock(), live, options, NullLogger<ThemeFileHistoryService>.Instance);
     }
 
-    private static ThemeFileHistoryController Controller(GitHubScript github, FakeLiveStorage live, IAuthorizationService authorization = null) =>
+    private static ThemeFileHistoryController Controller(GitHubScript github, FakeBlobStorage live, IAuthorizationService authorization = null) =>
         WithUser(new ThemeFileHistoryController(History(github, live), authorization ?? new FakeAuthorizationService(true), RequestValidators.ThemeFiles("s1")));
 
-    /// <summary>The user works in one store, with these permissions.</summary>
-    private sealed class Grants(string storeId, params string[] permissions) : IAuthorizationService
-    {
-        public Task<AuthorizationResult> AuthorizeAsync(ClaimsPrincipal user, object resource, IEnumerable<IAuthorizationRequirement> requirements) =>
-            Task.FromResult(resource is IHasStoreId store && store.StoreId == storeId ? AuthorizationResult.Success() : AuthorizationResult.Failed());
-
-        public Task<AuthorizationResult> AuthorizeAsync(ClaimsPrincipal user, object resource, string policyName) =>
-            Task.FromResult(permissions.Contains(policyName) ? AuthorizationResult.Success() : AuthorizationResult.Failed());
-    }
-
-    private static PageBuilderController Builder(GitHubScript github, FakeLiveStorage live)
+    private static PageBuilderController Builder(GitHubScript github, FakeBlobStorage live)
     {
         var options = GitOptions();
         return WithUser(new PageBuilderController(
@@ -291,7 +279,7 @@ public class ThemeFileHistoryTests
             publishingService: live,
             eventPublisher: live,
             gitContentOptions: options,
-            gitHubConnectionService: GitHubConnections.Service(options.Value),
+            gitHubConnectionService: GitHubConnections.CreateService(options.Value),
             gitContentPolicy: Policy(options),
             gitContentRepository: new GitHubContentRepository(github, new MemoryCache(new MemoryCacheOptions()), options),
             gitContentHistory: null,

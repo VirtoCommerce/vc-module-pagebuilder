@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
-using VirtoCommerce.PageBuilderModule.Data.GitContent;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using VirtoCommerce.Platform.Core.Events;
 using Xunit;
@@ -22,7 +21,7 @@ public class ThemeFilesStayBlobsTests
 {
     private const string Path = "default/sections/header-group.json";
 
-    private readonly FakeLiveStorage _live = new();
+    private readonly FakeBlobStorage _live = new();
     private readonly FakeGitContentOwnership _ownership = new("another-store");
 
     [Fact]
@@ -49,7 +48,7 @@ public class ThemeFilesStayBlobsTests
     [Fact]
     public async Task A_save_answers_once_its_content_changed_event_is_handled()
     {
-        var publisher = new GatedPublisher();
+        var publisher = new GatedEventPublisher();
         var save = Builder(eventPublisher: publisher).SaveTemplates("s1", "default", HeaderGroup(), draft: true);
 
         await publisher.Handling.Task.WaitAsync(TestContext.Current.CancellationToken);
@@ -85,8 +84,8 @@ public class ThemeFilesStayBlobsTests
             publishingService: _live,
             eventPublisher: eventPublisher ?? _live,
             gitContentOptions: options,
-            gitHubConnectionService: GitHubConnections.Service(options.Value),
-            gitContentPolicy: GitHubConnections.Policy(options, new FakeSettingsManager(true), _ownership),
+            gitHubConnectionService: GitHubConnections.CreateService(options.Value),
+            gitContentPolicy: GitHubConnections.CreatePolicy(options, new FakeSettingsManager(true), _ownership),
             gitContentRepository: null,
             gitContentHistory: null,
             gitContentPublisher: null,
@@ -105,7 +104,7 @@ public class ThemeFilesStayBlobsTests
     }
 
     /// <summary>Handles an event only when the test lets it.</summary>
-    private sealed class GatedPublisher : IEventPublisher
+    private sealed class GatedEventPublisher : IEventPublisher
     {
         public TaskCompletionSource Handling { get; } = new();
 

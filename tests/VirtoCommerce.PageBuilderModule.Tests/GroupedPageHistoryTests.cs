@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Net;
 using System.Security.Claims;
@@ -265,8 +264,11 @@ public class GroupedPageHistoryTests
                 new PageBuilderPage { Id = "newer", Status = Published, ModifiedDate = new DateTime(2026, 2, 1, 0, 0, 0, DateTimeKind.Utc) },
             ],
         };
-        var options = Options.Create(new GitContentOptions());
-        var history = new GroupedPageHistoryService(null, null, null, null, new PageContents(), null, options, NullLogger<GroupedPageHistoryService>.Instance);
+        var pages = new PublishedRenameContentPreservationTests.FakeGroupedPageService();
+        pages.SeedContent("older", "content of older");
+        pages.SeedContent("newer", "content of newer");
+        var history = new GroupedPageHistoryService(null, null, null, null, pages, null, Options.Create(new GitContentOptions()),
+            NullLogger<GroupedPageHistoryService>.Instance);
 
         Assert.Equal("content of newer", await history.GetPublishedContentAsync(group, TestContext.Current.CancellationToken));
     }
@@ -282,34 +284,9 @@ public class GroupedPageHistoryTests
             BaseBranch = "main",
             GraphQlUrl = new Uri("https://api.github.test/graphql"),
         });
-        var policy = GitHubConnections.Policy(options, new FakeSettingsManager(enabled, assignedRepository), ownership ?? new FakeGitContentOwnership());
+        var policy = GitHubConnections.CreatePolicy(options, new FakeSettingsManager(enabled, assignedRepository), ownership ?? new FakeGitContentOwnership());
         var repository = new GitHubContentRepository(github, new MemoryCache(new MemoryCacheOptions()), options);
-        return new PublishedContent(policy, repository, github, options, published, pageService);
-    }
-
-    /// <summary>Each page's content names the page; nothing else is supported.</summary>
-    private sealed class PageContents : IGroupedPageService
-    {
-        public Task<string> LoadContent(string pageId, CancellationToken cancellationToken = default) => Task.FromResult($"content of {pageId}");
-
-        public Task<IList<GroupedPageBuilderPage>> GetAsync(IList<string> ids, string responseGroup = null, bool clone = true) => throw new NotSupportedException();
-        public Task SaveChangesAsync(IList<GroupedPageBuilderPage> models) => throw new NotSupportedException();
-        public Task DeleteAsync(IList<string> ids, bool softDelete = false) => throw new NotSupportedException();
-        public Task SaveContent(string pageId, string content, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-        public Task<bool> LoadContentToStreamAsync(string pageId, Stream stream, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-        public Task SaveStreamAsContentAsync(string pageId, Stream stream, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-        public Task CopyPageContentAsync(string sourcePageId, string targetPageId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-        public Task<bool> TryDeleteEmptyDraftAsync(string pageId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-    }
-
-    /// <summary>The history with the page's live content given, rather than read from the database.</summary>
-    private sealed class PublishedContent(IGitContentPolicy policy, IGitContentRepository repository, GitHubScript github, IOptions<GitContentOptions> options, string published,
-        IPageBuilderPageService pageService)
-        : GroupedPageHistoryService(policy, repository, new GitHubApiClient(github), GitHubConnections.Service(options.Value), null, pageService, options,
-            NullLogger<GroupedPageHistoryService>.Instance)
-    {
-        public override Task<string> GetPublishedContentAsync(GroupedPageBuilderPage group, CancellationToken cancellationToken = default) =>
-            Task.FromResult(published);
+        return new TestGroupedPageHistoryService(policy, repository, github, options, published, pageService);
     }
 
     /// <summary>Keeps the ids of the pages deleted; nothing else is supported.</summary>

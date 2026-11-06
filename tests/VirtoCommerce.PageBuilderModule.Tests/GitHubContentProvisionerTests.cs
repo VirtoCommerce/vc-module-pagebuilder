@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
@@ -197,7 +196,7 @@ public class GitHubContentProvisionerTests
     public async Task Connect_makes_the_repository_ready_then_switches_the_store_on()
     {
         var settings = new FakeSettingsManager(value: false);
-        var stores = new MemoryStoreService(new Store { Id = "s1", Settings = [] });
+        var stores = new FakeStoreService(new Store { Id = "s1", Settings = [] });
         var github = new GitHubScript(
             ("GET", $"repos/{Repo}", (_, _) => GitHubScript.Json(RepoJson(Mine))),
             ("GET", "repos/acme/site-s1/git/ref/heads/main", (_, _) => Branch()));
@@ -318,7 +317,7 @@ public class GitHubContentProvisionerTests
     // ── helpers ────────────────────────────────────────────────────────────────────────────────
 
     private static GitHubContentProvisioner Provisioner(GitHubScript github, FakeSettingsManager settings = null, string repository = null,
-        Action<GitContentOptions> configure = null, FakeGitContentOwnership ownership = null, MemoryStoreService stores = null)
+        Action<GitContentOptions> configure = null, FakeGitContentOwnership ownership = null, FakeStoreService stores = null)
     {
         var options = new GitContentOptions
         {
@@ -334,8 +333,8 @@ public class GitHubContentProvisionerTests
         var gitRepository = new GitHubContentRepository(github, new MemoryCache(new MemoryCacheOptions()), wrapped);
 
         ownership ??= new FakeGitContentOwnership();
-        var connection = GitHubConnections.Service(options);
-        var policy = new GitContentPolicy(connection, wrapped, settings, stores ?? new MemoryStoreService(), ownership);
+        var connection = GitHubConnections.CreateService(options);
+        var policy = new GitContentPolicy(connection, wrapped, settings, stores ?? new FakeStoreService(), ownership);
         return new NoWaitProvisioner(new GitHubApiClient(github), connection, gitRepository, policy, ownership, wrapped);
     }
 

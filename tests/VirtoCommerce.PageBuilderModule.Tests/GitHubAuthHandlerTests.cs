@@ -115,7 +115,7 @@ public class GitHubAuthHandlerTests
             ("GET", "orgs/acme/installation", (_, _) => GitHubScript.Json("""{ "id": 43 }""")),
             ("POST", "app/installations/43/access_tokens", (_, _) => GitHubScript.Json("""{ "token": "ghs_new", "expires_at": "2099-01-01T00:00:00Z" }""", HttpStatusCode.Created)),
             ("GET", "repos/acme/site-a", (request, _) => Authorized(request, "ghs_new")));
-        var connection = new Switchable { Connection = App() };
+        var connection = new FakeGitHubConnectionService { Connection = App() };
         var client = Client(github, connection);
 
         await client.GetAsync("repos/acme/site-a", TestContext.Current.CancellationToken);
@@ -155,7 +155,7 @@ public class GitHubAuthHandlerTests
         PrivateKey = Key.ExportPkcs8PrivateKeyPem(),
     };
 
-    private static HttpClient Client(GitHubScript github, GitHubConnection connection) => Client(github, new Switchable { Connection = connection });
+    private static HttpClient Client(GitHubScript github, GitHubConnection connection) => Client(github, new FakeGitHubConnectionService { Connection = connection });
 
     private static HttpClient Client(GitHubScript github, IGitHubConnectionService connection) =>
         new(new GitHubAuthHandler(connection, new MemoryCache(new MemoryCacheOptions()), Options.Create(new GitContentOptions { ApiUrl = new Uri("https://api.github.test/") }))
@@ -167,7 +167,7 @@ public class GitHubAuthHandlerTests
         };
 
     /// <summary>The connection in effect, which the one-click setup can replace at any moment.</summary>
-    private sealed class Switchable : IGitHubConnectionService
+    private sealed class FakeGitHubConnectionService : IGitHubConnectionService
     {
         public GitHubConnection Connection { get; set; }
 

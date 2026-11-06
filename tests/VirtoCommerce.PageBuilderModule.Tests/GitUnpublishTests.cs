@@ -10,9 +10,7 @@ using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Data.GitContent;
-using VirtoCommerce.PageBuilderModule.Data.Validation;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
-using VirtoCommerce.StoreModule.Core.Model;
 using Xunit;
 
 namespace VirtoCommerce.PageBuilderModule.Tests
@@ -100,7 +98,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             var repository = Repository();
             var publisher = Publisher(GitPublishState.Merged);
             publisher.OnMerge = () => repository.Files.Remove((RepoPath, "master"));
-            var live = new FakeLiveStorage();
+            var live = new FakeBlobStorage();
             live.Files[Page] = Published;
 
             await Controller(repository, publisher, live: live).GitUnpublish("s1", Page, "pages");
@@ -119,7 +117,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         {
             var repository = Repository(withBranch: false);
             repository.Files.Remove((RepoPath, "master"));
-            var live = new FakeLiveStorage();
+            var live = new FakeBlobStorage();
             live.Files[Page] = Published;
 
             var result = await Controller(repository, Publisher(), live: live, history: Unpublished()).GitUnpublish("s1", Page, "pages");
@@ -136,7 +134,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             var repository = Repository(withBranch: false);
             repository.Files.Remove((RepoPath, "master"));
             repository.Files[(RepoPath, BranchHead)] = Published;
-            var live = new FakeLiveStorage();
+            var live = new FakeBlobStorage();
             live.Files[Page] = Published;
 
             var result = await Controller(repository, Publisher(), live: live, history: Unpublished()).GitUnpublish("s1", Page, "pages");
@@ -159,7 +157,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         {
             var repository = Repository(withBranch: false);
             repository.Files.Remove((RepoPath, "master"));
-            var live = new FakeLiveStorage();
+            var live = new FakeBlobStorage();
             live.Files[Page] = Published;
 
             var result = await Controller(repository, Publisher(), live: live, source: source, history: hadThePage ? Unpublished() : null)
@@ -187,7 +185,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             var repository = Repository();
             var publisher = Publisher(GitPublishState.Merged);
             publisher.OnMerge = () => repository.Files.Remove((RepoPath, "master"));
-            var live = new FakeLiveStorage();
+            var live = new FakeBlobStorage();
             live.Files[Page] = Published;
 
             await Controller(repository, publisher, live: live, source: GitRepositorySource.StoreSetting).GitUnpublish("s1", Page, "pages");
@@ -220,11 +218,11 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             return repository;
         }
 
-        private static RecordingPublisher Publisher(GitPublishState state = GitPublishState.AwaitingMerge) =>
-            new(state);
+        private static FakeGitContentPublisher Publisher(GitPublishState state = GitPublishState.AwaitingMerge) =>
+            new(state, new GitPendingPublish { Number = 7, AutoMerging = false });
 
-        private static PageBuilderController Controller(RecordingRepository repository, RecordingPublisher publisher,
-            FakeLiveStorage live = null, GitRepositorySource source = GitRepositorySource.Site, GitPageHistory history = null)
+        private static PageBuilderController Controller(RecordingRepository repository, FakeGitContentPublisher publisher,
+            FakeBlobStorage live = null, GitRepositorySource source = GitRepositorySource.Site, GitPageHistory history = null)
         {
             var options = Options.Create(new GitContentOptions
             {
@@ -236,8 +234,8 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
             // Live storage takes part only once a merge is done; without one it is left null on purpose,
             // so an unpublish that is still waiting for its merge and reaches for it fails loudly here.
-            var connection = GitHubConnections.Service(options.Value);
-            var gitHistory = new FixedHistory(history ?? new GitPageHistory());
+            var connection = GitHubConnections.CreateService(options.Value);
+            var gitHistory = new FakeGitContentHistory(history);
             var controller = new PageBuilderController(
                 storeService: live?.StoreService,
                 pathResolver: live,
@@ -265,35 +263,6 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             };
 
             return controller;
-        }
-
-        private sealed class FixedHistory(GitPageHistory history) : IGitContentHistory
-        {
-            public Task<GitPageHistory> GetHistoryAsync(string repository, string repoPath, GitHistoryQuery query, CancellationToken cancellationToken = default) =>
-                Task.FromResult(history);
-
-            public void Invalidate(string repository, string repoPath) { }
-        }
-
-        private sealed class RecordingPublisher(GitPublishState state) : IGitContentPublisher
-        {
-            public List<(string Branch, string Into)> Merges { get; } = [];
-
-            /// <summary>What the merge does to the repository, for the tests that care what the base branch says afterwards.</summary>
-            public Action OnMerge { get; set; }
-
-            public Task<GitPublishResult> MergeBranchAsync(string repository, string branch, string title, CancellationToken cancellationToken = default) =>
-                MergeBranchIntoAsync(repository, branch, title, "master", cancellationToken);
-
-            public Task<GitPublishResult> MergeBranchIntoAsync(string repository, string branch, string title, string baseBranch, CancellationToken cancellationToken = default)
-            {
-                Merges.Add((branch, baseBranch));
-                OnMerge?.Invoke();
-                return Task.FromResult(new GitPublishResult { State = state, PullRequestNumber = 7 });
-            }
-
-            public Task<GitPendingPublish> GetOpenPullRequestAsync(string repository, string branch, CancellationToken cancellationToken = default) =>
-                Task.FromResult(new GitPendingPublish { Number = 7, AutoMerging = false });
         }
 
         /// <summary>

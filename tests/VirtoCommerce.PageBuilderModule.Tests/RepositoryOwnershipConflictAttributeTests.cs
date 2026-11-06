@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Security.Claims;
@@ -16,7 +15,6 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Core.Models;
-using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Data.GitContent;
 using VirtoCommerce.PageBuilderModule.Data.Theme;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
@@ -68,8 +66,8 @@ public class RepositoryOwnershipConflictAttributeTests
     [Fact]
     public async Task A_theme_files_history_lets_a_conflict_through()
     {
-        var live = new FakeLiveStorage();
-        var history = new ThemeFileHistoryService(Policy(), Repository(), new GitHubApiClient(new GitHubScript()), GitHubConnections.Service(Options().Value),
+        var live = new FakeBlobStorage();
+        var history = new ThemeFileHistoryService(Policy(), Repository(), new GitHubApiClient(new GitHubScript()), GitHubConnections.CreateService(Options().Value),
             new ThemeStorageFactory(live.StoreService, live, live, live), new InProcessDistributedLock(), live, Options(), NullLogger<ThemeFileHistoryService>.Instance);
         var controller = new ThemeFileHistoryController(history, new FakeAuthorizationService(true), RequestValidators.ThemeFiles("s1"))
         {
@@ -82,9 +80,10 @@ public class RepositoryOwnershipConflictAttributeTests
     [Fact]
     public async Task A_database_pages_history_lets_a_conflict_through()
     {
-        var group = new GroupedPageBuilderPage { Id = "g1", StoreId = "s1", Name = "Home", Permalink = "/home" };
-        var controller = new GroupedPageHistoryController(new OneGroup(group), null, null, new FakeAuthorizationService(true),
-            new NothingPublished(Policy(), Repository(), new GitHubScript(), Options()))
+        var pages = new PublishedRenameContentPreservationTests.FakeGroupedPageService();
+        pages.SeedGroup(new GroupedPageBuilderPage { Id = "g1", StoreId = "s1", Name = "Home", Permalink = "/home" });
+        var controller = new GroupedPageHistoryController(pages, null, null, new FakeAuthorizationService(true),
+            new TestGroupedPageHistoryService(Policy(), Repository(), new GitHubScript(), Options()))
         {
             ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity()) } },
         };
@@ -95,8 +94,8 @@ public class RepositoryOwnershipConflictAttributeTests
     [Fact]
     public async Task Connecting_a_site_lets_a_conflict_through()
     {
-        var provisioner = new ConflictingProvisioner();
-        var connection = GitHubConnectionServiceTests.Service(new MemorySettingsManager());
+        var provisioner = new FakeGitContentProvisioner { ConnectFailure = new GitRepositoryOwnershipException("acme/site-s1", "S1") };
+        var connection = GitHubConnections.CreateService(new FakeSettingsManager());
         var controller = new GitContentSetupController(new GitContentSetupService(connection, provisioner, Policy(), new EphemeralDataProtectionProvider()),
             provisioner, connection, new FakeAuthorizationService(true), null, RequestValidators.Stores("s1"), RequestValidators.AppSetup)
         {
@@ -121,42 +120,7 @@ public class RepositoryOwnershipConflictAttributeTests
     });
 
     // the store's repository in the organization is another store's
-    private static GitContentPolicy Policy() => GitHubConnections.Policy(Options(), new FakeSettingsManager(true), new FakeGitContentOwnership("another-store"));
+    private static GitContentPolicy Policy() => GitHubConnections.CreatePolicy(Options(), new FakeSettingsManager(true), new FakeGitContentOwnership("another-store"));
 
     private static GitHubContentRepository Repository() => new(new GitHubScript(), new MemoryCache(new MemoryCacheOptions()), Options());
-
-    private sealed class NothingPublished(IGitContentPolicy policy, IGitContentRepository repository, GitHubScript github, IOptions<GitContentOptions> options)
-        : GroupedPageHistoryService(policy, repository, new GitHubApiClient(github), GitHubConnections.Service(options.Value), null, null, options,
-            NullLogger<GroupedPageHistoryService>.Instance)
-    {
-        public override Task<string> GetPublishedContentAsync(GroupedPageBuilderPage group, CancellationToken cancellationToken = default) =>
-            Task.FromResult<string>(null);
-    }
-
-    private sealed class OneGroup(GroupedPageBuilderPage group) : IGroupedPageService
-    {
-        public Task<IList<GroupedPageBuilderPage>> GetAsync(IList<string> ids, string responseGroup = null, bool clone = true) =>
-            Task.FromResult<IList<GroupedPageBuilderPage>>(ids.Contains(group.Id) ? [group] : []);
-
-        public Task SaveChangesAsync(IList<GroupedPageBuilderPage> models) => throw new NotSupportedException();
-        public Task DeleteAsync(IList<string> ids, bool softDelete = false) => throw new NotSupportedException();
-        public Task<string> LoadContent(string pageId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-        public Task SaveContent(string pageId, string content, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-        public Task<bool> LoadContentToStreamAsync(string pageId, Stream stream, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-        public Task SaveStreamAsContentAsync(string pageId, Stream stream, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-        public Task CopyPageContentAsync(string sourcePageId, string targetPageId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-        public Task<bool> TryDeleteEmptyDraftAsync(string pageId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-    }
-
-    private sealed class ConflictingProvisioner : IGitContentProvisioner
-    {
-        public Task ConnectAsync(string storeId, CancellationToken cancellationToken = default) =>
-            throw new GitRepositoryOwnershipException("acme/site-s1", "S1");
-
-        public Task<GitContentSiteStatus> GetStatusAsync(string storeId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-        public Task CheckOrganizationAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
-        public Task EnsureRepositoryAsync(string storeId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-        public Task DisconnectAsync(string storeId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-        public Task ArchiveRepositoryAsync(string storeId, string repository, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-    }
 }

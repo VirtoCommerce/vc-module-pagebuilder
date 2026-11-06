@@ -14,7 +14,6 @@ using VirtoCommerce.PageBuilderModule.Core.Theme;
 using VirtoCommerce.PageBuilderModule.Data.GitContent;
 using VirtoCommerce.PageBuilderModule.Data.Theme;
 using VirtoCommerce.Platform.Core.Caching;
-using VirtoCommerce.Platform.Core.Events;
 using VirtoCommerce.Platform.Core.Settings;
 using VirtoCommerce.StoreModule.Core.Model;
 using VirtoCommerce.StoreModule.Core.Services;
@@ -27,8 +26,8 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     private const string Product = "default/templates/product.json";
     private const string Pointer = "default/snapshots/current.json";
 
-    private readonly FakeThemeStorage _storage = new();
-    private readonly MemorySettingsManager _settings = new();
+    private readonly FakeBlobStorage _storage = new();
+    private readonly FakeSettingsManager _settings = new();
     private readonly TestPlatformMemoryCache _cache = new();
     private readonly InProcessDistributedLock _lock = new();
     private readonly TestThemeSnapshotService _snapshots;
@@ -43,7 +42,7 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
         _stores = new FakeStoreService(_store);
         _storageFactory = new ThemeStorageFactory(_stores, _storage, _storage, _storage);
         _catalogs = new SchemaCatalogService(_storageFactory);
-        _publisher = Publisher(new NoHistory());
+        _publisher = Publisher(new NoFileHistory());
         _snapshots = Snapshots(_cache);
         _settings.Values[ModuleConstants.Settings.StoreLevelSettings.NewPageBuilder.Name] = true;
     }
@@ -361,7 +360,7 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
         }.ToString(), Ct);
 
     private ThemePublisher Publisher(IThemeFileHistoryService history) =>
-        new(_storageFactory, new ThemeSnapshotBuilder(), _stores, _catalogs, _lock, new NoEvents(), history,
+        new(_storageFactory, new ThemeSnapshotBuilder(), _stores, _catalogs, _lock, _storage, history,
             Options.Create(new ThemeSnapshotOptions()), NullLogger<ThemePublisher>.Instance);
 
     private TestThemeSnapshotService Snapshots(TestPlatformMemoryCache cache) =>
@@ -390,18 +389,6 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     {
         public string ResolveLanguagePublic(IList<string> languages, string defaultLanguage, string cultureName) =>
             ResolveLanguage(languages, defaultLanguage, cultureName);
-    }
-
-    private sealed class NoHistory()
-        : ThemeFileHistoryService(null, null, null, null, null, null, null, Options.Create(new GitContentOptions()), NullLogger<ThemeFileHistoryService>.Instance)
-    {
-        public override Task RecordAsync(string storeId, string path, string content, string summary, ClaimsPrincipal user, string saveId,
-            CancellationToken cancellationToken = default) => Task.CompletedTask;
-    }
-
-    private sealed class NoEvents : IEventPublisher
-    {
-        public Task Publish<T>(T @event, System.Threading.CancellationToken cancellationToken = default) where T : IEvent => Task.CompletedTask;
     }
 
     /// <summary>Records which files a publication put in the history, and whether the store's theme lock was free then.</summary>

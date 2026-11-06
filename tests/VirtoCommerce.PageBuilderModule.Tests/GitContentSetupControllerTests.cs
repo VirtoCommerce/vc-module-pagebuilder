@@ -1,8 +1,6 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Security.Claims;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,7 +11,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
-using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Data.GitContent;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using VirtoCommerce.StoreModule.Core.Model;
@@ -31,7 +28,7 @@ public class GitContentSetupControllerTests
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
-    private readonly MemorySettingsManager _settings = new();
+    private readonly FakeSettingsManager _settings = new();
     private readonly EphemeralDataProtectionProvider _keys = new();
 
     [Fact]
@@ -77,8 +74,8 @@ public class GitContentSetupControllerTests
     [Fact]
     public async Task GitHubs_code_connects_the_App_and_goes_on_to_install_it()
     {
-        var github = GitHubConnectionServiceTests.Conversion("acme");
-        var connection = GitHubConnectionServiceTests.Service(_settings, _keys, github);
+        var github = GitHubConnections.CreateManifestConversion("acme");
+        var connection = GitHubConnections.CreateService(_settings, _keys, github);
         var controller = Controller(connection);
         var result = await controller.AppCreated("c0de", await State(controller, "acme", "s1"), Ct);
 
@@ -90,9 +87,9 @@ public class GitContentSetupControllerTests
     [Fact]
     public async Task A_forged_state_is_refused_before_GitHub_is_asked()
     {
-        var github = GitHubConnectionServiceTests.Conversion("acme");
+        var github = GitHubConnections.CreateManifestConversion("acme");
 
-        var result = await Controller(GitHubConnectionServiceTests.Service(_settings, _keys, github)).AppCreated("c0de", "forged", Ct);
+        var result = await Controller(GitHubConnections.CreateService(_settings, _keys, github)).AppCreated("c0de", "forged", Ct);
 
         Assert.Equal(400, Assert.IsType<ContentResult>(result).StatusCode);
         Assert.Equal(400, Assert.IsType<ContentResult>(await Controller().AppNew("forged", Ct)).StatusCode);
@@ -122,7 +119,7 @@ public class GitContentSetupControllerTests
     [Fact]
     public async Task The_site_status_says_the_connection_is_the_setups_App_and_where_to_install_it()
     {
-        var connection = GitHubConnectionServiceTests.Service(_settings, _keys, GitHubConnectionServiceTests.Conversion("acme"));
+        var connection = GitHubConnections.CreateService(_settings, _keys, GitHubConnections.CreateManifestConversion("acme"));
         await connection.CreateAppAsync("c0de", "acme", TestContext.Current.CancellationToken);
 
         var status = Assert.IsType<GitContentSiteStatus>(Assert.IsType<OkObjectResult>((await Controller(connection).GetSite("s1", Ct)).Result).Value);
@@ -135,7 +132,7 @@ public class GitContentSetupControllerTests
     [Fact]
     public async Task The_site_status_of_a_store_the_user_does_not_work_in_is_forbidden()
     {
-        var controller = Controller(authorization: new StoreAuthorization("s2"));
+        var controller = Controller(authorization: new FakeAuthorizationService("s2"));
 
         Assert.IsType<ForbidResult>((await controller.GetSite("s1", Ct)).Result);
     }
@@ -143,14 +140,14 @@ public class GitContentSetupControllerTests
     [Fact]
     public async Task The_sites_panel_lists_the_stores_the_user_works_in()
     {
-        var connection = GitHubConnectionServiceTests.Service(_settings, _keys, configure: options =>
+        var connection = GitHubConnections.CreateService(_settings, _keys, configure: options =>
         {
             options.Enabled = true;
             options.Organization = "acme";
             options.Token = "t0ken";
             options.BaseBranch = "main";
         });
-        var controller = Controller(connection, new StoreAuthorization("s2"), new SitePolicy(), new Stores("s1", "s2"));
+        var controller = Controller(connection, new FakeAuthorizationService("s2"), new FakeGitContentPolicy(repositoryFormat: "acme/site-{0}"), new FakeStoreSearchService("s1", "s2"));
 
         var answer = PlatformJson.ParseBody(await controller.GetConnection(cancellationToken: Ct));
 
@@ -160,7 +157,7 @@ public class GitContentSetupControllerTests
     [Fact]
     public async Task The_sites_panel_finds_the_users_store_past_the_first_page_of_stores()
     {
-        var controller = Controller(ConfiguredConnection(), new StoreAuthorization("s150"), stores: new Stores(Enumerable.Range(1, 250).Select(x => $"s{x:000}").ToArray()));
+        var controller = Controller(ConfiguredConnection(), new FakeAuthorizationService("s150"), stores: new FakeStoreSearchService(Enumerable.Range(1, 250).Select(x => $"s{x:000}").ToArray()));
 
         var answer = PlatformJson.ParseBody(await controller.GetConnection(cancellationToken: Ct));
 
@@ -196,7 +193,7 @@ public class GitContentSetupControllerTests
     {
         var provisioner = new FakeGitContentProvisioner();
 
-        var result = await Controller(authorization: new StoreAuthorization("s2"), provisioner: provisioner).ConnectSite("s1", Ct);
+        var result = await Controller(authorization: new FakeAuthorizationService("s2"), provisioner: provisioner).ConnectSite("s1", Ct);
 
         Assert.IsType<ForbidResult>(result.Result);
         Assert.Empty(provisioner.Connected);
@@ -205,7 +202,7 @@ public class GitContentSetupControllerTests
     [Fact]
     public async Task With_the_configuration_in_charge_the_setup_is_not_offered()
     {
-        var connection = GitHubConnectionServiceTests.Service(_settings, _keys, configure: options =>
+        var connection = GitHubConnections.CreateService(_settings, _keys, configure: options =>
         {
             options.Organization = "env-org";
             options.Token = "t0ken";
@@ -218,10 +215,10 @@ public class GitContentSetupControllerTests
     [Fact]
     public async Task GetConnection_SetupApp_WritesTheSitesPanelJson()
     {
-        var connection = GitHubConnectionServiceTests.Service(_settings, _keys, GitHubConnectionServiceTests.Conversion("acme"));
+        var connection = GitHubConnections.CreateService(_settings, _keys, GitHubConnections.CreateManifestConversion("acme"));
         await connection.CreateAppAsync("c0de", "acme", TestContext.Current.CancellationToken);
 
-        var body = PlatformJson.SerializeBody(await Controller(connection, stores: new Stores("s1", "s2")).GetConnection(cancellationToken: Ct));
+        var body = PlatformJson.SerializeBody(await Controller(connection, stores: new FakeStoreSearchService("s1", "s2")).GetConnection(cancellationToken: Ct));
 
         Assert.Equal(
             """
@@ -252,7 +249,7 @@ public class GitContentSetupControllerTests
     // ── helpers ────────────────────────────────────────────────────────────────────────────────
 
     private GitHubConnectionService ConfiguredConnection() =>
-        GitHubConnectionServiceTests.Service(_settings, _keys, configure: options =>
+        GitHubConnections.CreateService(_settings, _keys, configure: options =>
         {
             options.Enabled = true;
             options.Organization = "acme";
@@ -268,40 +265,17 @@ public class GitContentSetupControllerTests
         http.Request.Host = new HostString("platform.test");
 
         provisioner ??= new FakeGitContentProvisioner();
-        connection ??= GitHubConnectionServiceTests.Service(_settings, _keys);
-        var setup = new GitContentSetupService(connection, provisioner, policy ?? new SitePolicy(), _keys);
+        connection ??= GitHubConnections.CreateService(_settings, _keys);
+        var setup = new GitContentSetupService(connection, provisioner, policy ?? new FakeGitContentPolicy(repositoryFormat: "acme/site-{0}"), _keys);
 
-        return new GitContentSetupController(setup, provisioner, connection, authorization ?? new FakeAuthorizationService(true), stores ?? new Stores(),
+        return new GitContentSetupController(setup, provisioner, connection, authorization ?? new FakeAuthorizationService(true), stores ?? new FakeStoreSearchService(),
             RequestValidators.Stores("s1", "s2"), RequestValidators.AppSetup)
         {
             ControllerContext = MvcRouting.CreateContext(http, "GitContentSetup"),
         };
     }
 
-    /// <summary>Lets the user into the one store they work in, as Page Builder's store check does.</summary>
-    private sealed class StoreAuthorization(string storeId) : IAuthorizationService
-    {
-        public Task<AuthorizationResult> AuthorizeAsync(ClaimsPrincipal user, object resource, IEnumerable<IAuthorizationRequirement> requirements) =>
-            Task.FromResult(resource is IHasStoreId store && store.StoreId == storeId ? AuthorizationResult.Success() : AuthorizationResult.Failed());
-
-        public Task<AuthorizationResult> AuthorizeAsync(ClaimsPrincipal user, object resource, string policyName) =>
-            throw new NotSupportedException();
-    }
-
-    private sealed class SitePolicy : IGitContentPolicy
-    {
-        public Task<bool> IsEnabledForStoreAsync(string storeId, CancellationToken cancellationToken = default) => Task.FromResult(true);
-        public Task SetEnabledForStoreAsync(string storeId, bool enabled, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-        public Task<string> GetRepositoryAsync(string storeId, CancellationToken cancellationToken = default) => Task.FromResult(Of(storeId).Name);
-        public Task<StoreRepository> GetRepositoryInfoAsync(string storeId, CancellationToken cancellationToken = default) => Task.FromResult(Of(storeId));
-        public Task<StoreRepository> GetConfiguredRepositoryAsync(string storeId, CancellationToken cancellationToken = default) => Task.FromResult(Of(storeId));
-        public Task<StoreRepository> GetConfiguredRepositoryAsync(string storeId, string repositorySetting, CancellationToken cancellationToken = default) =>
-            throw new NotSupportedException();
-        public Task<bool> IsInOrganizationAsync(string repository, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-        private static StoreRepository Of(string storeId) => new($"acme/site-{storeId}", GitRepositorySource.Site);
-    }
-
-    private sealed class Stores(params string[] ids) : IStoreSearchService
+    private sealed class FakeStoreSearchService(params string[] ids) : IStoreSearchService
     {
         public Task<StoreSearchResult> SearchAsync(StoreSearchCriteria criteria, bool clone = true) =>
             Task.FromResult(new StoreSearchResult

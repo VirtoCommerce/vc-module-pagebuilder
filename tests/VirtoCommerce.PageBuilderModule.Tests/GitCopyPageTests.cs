@@ -9,7 +9,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
-using VirtoCommerce.PageBuilderModule.Data.Validation;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using VirtoCommerce.StoreModule.Core.Model;
 using Xunit;
@@ -186,10 +185,10 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 publishingService: null,
                 eventPublisher: null,
                 gitContentOptions: options,
-                gitHubConnectionService: GitHubConnections.Service(options.Value),
+                gitHubConnectionService: GitHubConnections.CreateService(options.Value),
                 gitContentPolicy: new FakeGitContentPolicy(gitFlow),
                 gitContentRepository: repository,
-                gitContentHistory: new SilentHistory(),
+                gitContentHistory: new FakeGitContentHistory(),
                 gitContentPublisher: null,
                 gitContentProvisioner: new FakeGitContentProvisioner(),
                 gitLivePageService: null,
@@ -245,14 +244,6 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             public Task<string> DeleteFileAsync(string repository, string path, string branch, string message, GitCommitAuthor author,
                 CancellationToken cancellationToken = default) =>
                 throw new NotSupportedException();
-        }
-
-        private sealed class SilentHistory : IGitContentHistory
-        {
-            public Task<GitPageHistory> GetHistoryAsync(string repository, string repoPath, GitHistoryQuery query, CancellationToken cancellationToken = default) =>
-                Task.FromResult(new GitPageHistory());
-
-            public void Invalidate(string repository, string repoPath) { }
         }
 
     }

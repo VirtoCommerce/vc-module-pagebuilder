@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Security.Claims;
-using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -110,7 +109,7 @@ public class BlobPublishTests
             publishingService: publishing,
             eventPublisher: null,
             gitContentOptions: Options.Create(new GitContentOptions()),
-            gitHubConnectionService: GitHubConnections.Service(Options.Create(new GitContentOptions()).Value),
+            gitHubConnectionService: GitHubConnections.CreateService(Options.Create(new GitContentOptions()).Value),
             gitContentPolicy: new FakeGitContentPolicy(enabled: false),
             gitContentRepository: null,
             gitContentHistory: null,

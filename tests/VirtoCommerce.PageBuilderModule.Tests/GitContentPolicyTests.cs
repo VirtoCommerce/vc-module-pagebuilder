@@ -26,7 +26,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         };
 
         private static GitContentPolicy Policy(GitContentOptions options, ISettingsManager settings, IGitContentOwnership ownership = null) =>
-            GitHubConnections.Policy(Options.Create(options), settings, ownership);
+            GitHubConnections.CreatePolicy(Options.Create(options), settings, ownership);
 
         [Fact]
         public async Task Disabled_globally_never_touches_the_settings_store()

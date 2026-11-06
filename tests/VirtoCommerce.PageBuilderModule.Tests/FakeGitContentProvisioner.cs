@@ -6,18 +6,18 @@ using VirtoCommerce.PageBuilderModule.Core.GitContent;
 
 namespace VirtoCommerce.PageBuilderModule.Tests;
 
-/// <summary>A provisioner that does nothing but remember which stores asked for their repository or connected.</summary>
-public sealed class FakeGitContentProvisioner : IGitContentProvisioner
+internal sealed class FakeGitContentProvisioner : IGitContentProvisioner
 {
     public List<string> Ensured { get; } = [];
 
-    public Task<GitContentSiteStatus> GetStatusAsync(string storeId, CancellationToken cancellationToken = default) =>
-        Task.FromResult(new GitContentSiteStatus { Configured = true, Repository = "o/r" });
+    public List<string> Connected { get; } = [];
 
-    /// <summary>What asking GitHub about the organization fails with; <c>null</c> when it answers.</summary>
     public Exception OrganizationFailure { get; init; }
 
-    public List<string> Connected { get; } = [];
+    public Exception ConnectFailure { get; init; }
+
+    public Task<GitContentSiteStatus> GetStatusAsync(string storeId, CancellationToken cancellationToken = default) =>
+        Task.FromResult(new GitContentSiteStatus { Configured = true, Repository = "o/r" });
 
     public Task CheckOrganizationAsync(CancellationToken cancellationToken = default) =>
         OrganizationFailure == null ? Task.CompletedTask : Task.FromException(OrganizationFailure);
@@ -30,6 +30,11 @@ public sealed class FakeGitContentProvisioner : IGitContentProvisioner
 
     public Task ConnectAsync(string storeId, CancellationToken cancellationToken = default)
     {
+        if (ConnectFailure != null)
+        {
+            throw ConnectFailure;
+        }
+
         Connected.Add(storeId);
         return Task.CompletedTask;
     }

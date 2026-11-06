@@ -30,7 +30,7 @@ public class ThemeWriteLockTests
     private static readonly TimeSpan Patience = TimeSpan.FromSeconds(5);
 
     private readonly InProcessDistributedLock _lock = new();
-    private readonly FakeLiveStorage _live = new();
+    private readonly FakeBlobStorage _live = new();
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -111,8 +111,8 @@ public class ThemeWriteLockTests
             publishingService: _live,
             eventPublisher: _live,
             gitContentOptions: options,
-            gitHubConnectionService: GitHubConnections.Service(options.Value),
-            gitContentPolicy: GitHubConnections.Policy(options, new FakeSettingsManager(false), new FakeGitContentOwnership()),
+            gitHubConnectionService: GitHubConnections.CreateService(options.Value),
+            gitContentPolicy: GitHubConnections.CreatePolicy(options, new FakeSettingsManager(false), new FakeGitContentOwnership()),
             gitContentRepository: null,
             gitContentHistory: null,
             gitContentPublisher: null,
@@ -136,8 +136,8 @@ public class ThemeWriteLockTests
             GraphQlUrl = new Uri("https://api.github.test/graphql"),
         });
         var repository = new GitHubContentRepository(github, new MemoryCache(new MemoryCacheOptions()), options);
-        var history = new ThemeFileHistoryService(GitHubConnections.Policy(options, new FakeSettingsManager(true), new FakeGitContentOwnership()), repository,
-            new GitHubApiClient(github), GitHubConnections.Service(options.Value), new ThemeStorageFactory(_live.StoreService, _live, _live, _live), _lock, _live,
+        var history = new ThemeFileHistoryService(GitHubConnections.CreatePolicy(options, new FakeSettingsManager(true), new FakeGitContentOwnership()), repository,
+            new GitHubApiClient(github), GitHubConnections.CreateService(options.Value), new ThemeStorageFactory(_live.StoreService, _live, _live, _live), _lock, _live,
             options, NullLogger<ThemeFileHistoryService>.Instance);
         return WithUser(new ThemeFileHistoryController(history, new FakeAuthorizationService(true), RequestValidators.ThemeFiles("s1")));
     }

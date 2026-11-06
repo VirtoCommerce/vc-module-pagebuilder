@@ -14,7 +14,6 @@ using Newtonsoft.Json.Linq;
 using VirtoCommerce.AssetsModule.Core.Assets;
 using VirtoCommerce.ContentModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
-using VirtoCommerce.PageBuilderModule.Data.Validation;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using VirtoCommerce.PageBuilderModule.Web.Models;
 using VirtoCommerce.StoreModule.Core.Model;
@@ -406,7 +405,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 publishingService: null,
                 eventPublisher: null,
                 gitContentOptions: options,
-                gitHubConnectionService: GitHubConnections.Service(options.Value),
+                gitHubConnectionService: GitHubConnections.CreateService(options.Value),
                 gitContentPolicy: new FakeGitContentPolicy(gitFlow),
                 gitContentRepository: git ?? new FakeGitRepository(),
                 gitContentHistory: null,

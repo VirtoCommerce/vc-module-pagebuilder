@@ -8,7 +8,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
-using VirtoCommerce.PageBuilderModule.Data.Validation;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using VirtoCommerce.StoreModule.Core.Model;
 using Xunit;
@@ -183,13 +182,13 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             return repository;
         }
 
-        private static RecordingPublisher Publisher(GitPublishState state = GitPublishState.Pending, int? openPullRequest = null) =>
-            new(state, openPullRequest);
+        private static FakeGitContentPublisher Publisher(GitPublishState state = GitPublishState.Pending, int? openPullRequest = null) =>
+            new(state, openPullRequest == null ? null : new GitPendingPublish { Number = openPullRequest.Value, AutoMerging = true });
 
         private static string Value(object body, string property) =>
             body.GetType().GetProperty(property)!.GetValue(body) as string;
 
-        private static PageBuilderController Controller(RecordingRepository repository, RecordingPublisher publisher,
+        private static PageBuilderController Controller(RecordingRepository repository, FakeGitContentPublisher publisher,
             bool gitFlow = true, bool allowed = true, string releaseBranch = "production")
         {
             var options = Options.Create(new GitContentOptions
@@ -210,10 +209,10 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 publishingService: null,
                 eventPublisher: null,
                 gitContentOptions: options,
-                gitHubConnectionService: GitHubConnections.Service(options.Value),
+                gitHubConnectionService: GitHubConnections.CreateService(options.Value),
                 gitContentPolicy: new FakeGitContentPolicy(gitFlow),
                 gitContentRepository: repository,
-                gitContentHistory: new SilentHistory(),
+                gitContentHistory: new FakeGitContentHistory(),
                 gitContentPublisher: publisher,
                 gitContentProvisioner: new FakeGitContentProvisioner(),
                 gitLivePageService: null,
@@ -230,33 +229,6 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             };
 
             return controller;
-        }
-
-        private sealed class SilentHistory : IGitContentHistory
-        {
-            public Task<GitPageHistory> GetHistoryAsync(string repository, string repoPath, GitHistoryQuery query, CancellationToken cancellationToken = default) =>
-                Task.FromResult(new GitPageHistory());
-
-            public void Invalidate(string repository, string repoPath) { }
-        }
-
-        private sealed class RecordingPublisher(GitPublishState state, int? openPullRequest) : IGitContentPublisher
-        {
-            public List<(string Branch, string Into)> Merges { get; } = [];
-
-            public Task<GitPublishResult> MergeBranchAsync(string repository, string branch, string title, CancellationToken cancellationToken = default) =>
-                MergeBranchIntoAsync(repository, branch, title, "master", cancellationToken);
-
-            public Task<GitPublishResult> MergeBranchIntoAsync(string repository, string branch, string title, string baseBranch, CancellationToken cancellationToken = default)
-            {
-                Merges.Add((branch, baseBranch));
-                return Task.FromResult(new GitPublishResult { State = state, PullRequestNumber = 7 });
-            }
-
-            public Task<GitPendingPublish> GetOpenPullRequestAsync(string repository, string branch, CancellationToken cancellationToken = default) =>
-                Task.FromResult(openPullRequest == null
-                    ? null
-                    : new GitPendingPublish { Number = openPullRequest.Value, AutoMerging = true });
         }
 
         private sealed class RecordingRepository : IGitContentRepository

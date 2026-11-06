@@ -102,7 +102,7 @@ public class GitContentStoreChangedEventHandlerTests
     private static Task<IList<GitContentRepositoryJobPayload>> Jobs(GitContentOptions options, params GenericChangedEntry<Store>[] changes)
     {
         var wrapped = Options.Create(options);
-        var connection = GitHubConnections.Service(options);
+        var connection = GitHubConnections.CreateService(options);
         var handler = new Handler(connection, new GitContentPolicy(connection, wrapped, settingsManager: null, storeService: null, new FakeGitContentOwnership()));
         return handler.GetJobPayloadsAsync(new StoreChangedEvent(changes));
     }

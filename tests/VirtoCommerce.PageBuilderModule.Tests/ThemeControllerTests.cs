@@ -17,7 +17,7 @@ public class ThemeControllerTests
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
-    private readonly Recorder _services = new();
+    private readonly RecordingThemeServices _services = new();
 
     [Fact]
     public async Task A_store_the_user_does_not_work_in_is_forbidden_before_anything_is_read_or_written()
@@ -81,7 +81,7 @@ public class ThemeControllerTests
         };
     }
 
-    private sealed class Recorder : IThemePublisher, ISchemaCatalogService
+    private sealed class RecordingThemeServices : IThemePublisher, ISchemaCatalogService
     {
         public List<string> Calls { get; } = [];
 

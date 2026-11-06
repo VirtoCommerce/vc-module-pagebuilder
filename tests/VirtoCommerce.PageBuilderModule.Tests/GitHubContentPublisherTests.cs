@@ -289,7 +289,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 BaseBranch = "master",
                 GraphQlUrl = new Uri("https://api.github.test/graphql"),
             });
-            return new GitHubContentPublisher(new FakeHttpClientFactory(handler), GitHubConnections.Service(options.Value), options);
+            return new GitHubContentPublisher(new FakeHttpClientFactory(handler), GitHubConnections.CreateService(options.Value), options);
         }
 
         private static string PullRequest(bool? mergeable = null, bool autoMerging = false)

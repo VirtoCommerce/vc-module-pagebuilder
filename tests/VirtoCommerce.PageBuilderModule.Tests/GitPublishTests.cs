@@ -12,9 +12,7 @@ using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Data.GitContent;
-using VirtoCommerce.PageBuilderModule.Data.Validation;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
-using VirtoCommerce.StoreModule.Core.Model;
 using Xunit;
 
 namespace VirtoCommerce.PageBuilderModule.Tests
@@ -193,7 +191,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         public async Task Publish_WhenMerged_WritesTheLivePageAsTheBaseBranchHasIt_NotTheDraft()
         {
             var repository = Repository();
-            var live = new FakeLiveStorage();
+            var live = new FakeBlobStorage();
 
             await Controller(repository, Publisher(GitPublishState.Merged), live: live).GitPublish("s1", Page, "pages");
 
@@ -208,7 +206,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         [InlineData(GitPublishState.Conflict)]
         public async Task Publish_WhenNotMerged_LeavesTheLivePageAlone(GitPublishState state)
         {
-            var live = new FakeLiveStorage();
+            var live = new FakeBlobStorage();
 
             await Controller(Repository(), Publisher(state), live: live).GitPublish("s1", Page, "pages");
 
@@ -227,7 +225,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         {
             var repository = Repository();
             var publisher = Publisher(GitPublishState.Merged);
-            var live = new FakeLiveStorage();
+            var live = new FakeBlobStorage();
 
             await Controller(repository, publisher, live: live, source: source).GitPublish("s1", Page, "pages");
             await Controller(Repository(withDraft: false), publisher, live: live, source: source).GitPublish("s1", Page, "pages");
@@ -240,7 +238,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         [Fact]
         public async Task Publish_WithNothingOfMine_StillWritesTheLivePageFromTheBaseBranch()
         {
-            var live = new FakeLiveStorage();
+            var live = new FakeBlobStorage();
 
             await Controller(Repository(withDraft: false), Publisher(GitPublishState.Merged), live: live).GitPublish("s1", Page, "pages");
 
@@ -254,7 +252,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         [Fact]
         public async Task Publish_OfADraftTheBaseBranchAlreadyHas_WritesTheLivePageFromTheBaseBranch()
         {
-            var live = new FakeLiveStorage();
+            var live = new FakeBlobStorage();
 
             await Controller(MergedOnGitHub(), Publisher(GitPublishState.AlreadyPublished), live: live).GitPublish("s1", Page, "pages");
 
@@ -266,7 +264,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         [InlineData(GitRepositorySource.StoreSetting)]
         public async Task Publish_OfADraftTheBaseBranchAlreadyHas_InARepositoryAssignedByHand_LeavesTheLivePageAlone(GitRepositorySource source)
         {
-            var live = new FakeLiveStorage();
+            var live = new FakeBlobStorage();
 
             await Controller(MergedOnGitHub(), Publisher(GitPublishState.AlreadyPublished), live: live, source: source).GitPublish("s1", Page, "pages");
 
@@ -276,7 +274,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         [Fact]
         public async Task GitPublishStatus_ReleaseBranchAndLivePageBehind_WritesTheStatusJson()
         {
-            var live = new FakeLiveStorage();
+            var live = new FakeBlobStorage();
             live.Files[Page] = LastWeek;
 
             var result = await Controller(Repository(), Publisher(GitPublishState.Merged), live: live, releaseBranch: "production").GitPublishStatus("s1", Page, "pages");
@@ -297,7 +295,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         [InlineData(GitRepositorySource.Shared, LastWeek, false)]
         public async Task PublishStatus_TellsALivePageBehindTheBaseBranch_WhereThePlatformWritesLive(GitRepositorySource source, string livePage, bool liveBehind)
         {
-            var live = new FakeLiveStorage();
+            var live = new FakeBlobStorage();
             if (livePage != null)
             {
                 live.Files[Page] = livePage;
@@ -321,7 +319,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         {
             var repository = Repository(withDraft: false);
             repository.Files.Remove((RepoPath, "master"));
-            var live = new FakeLiveStorage();
+            var live = new FakeBlobStorage();
             live.Files[Page] = Published;
 
             await Controller(repository, Publisher(GitPublishState.Merged), live: live).GitPublish("s1", Page, "pages");
@@ -374,10 +372,10 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             return repository;
         }
 
-        private static RecordingPublisher Publisher(GitPublishState state) => new(state);
+        private static FakeGitContentPublisher Publisher(GitPublishState state) => new(state) { PullRequestUrl = "https://github.com/o/r/pull/7" };
 
-        private static PageBuilderController Controller(RecordingRepository repository, RecordingPublisher publisher,
-            FakeLiveStorage live = null, FakeGitContentProvisioner provisioner = null, GitRepositorySource source = GitRepositorySource.Site,
+        private static PageBuilderController Controller(RecordingRepository repository, FakeGitContentPublisher publisher,
+            FakeBlobStorage live = null, FakeGitContentProvisioner provisioner = null, GitRepositorySource source = GitRepositorySource.Site,
             string releaseBranch = null)
         {
             var options = Options.Create(new GitContentOptions
@@ -390,9 +388,9 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             });
 
             // Live storage takes part once a merge is done — the platform writes the page there itself.
-            live ??= new FakeLiveStorage();
-            var connection = GitHubConnections.Service(options.Value);
-            var history = new SilentHistory();
+            live ??= new FakeBlobStorage();
+            var connection = GitHubConnections.CreateService(options.Value);
+            var history = new FakeGitContentHistory();
             var controller = new PageBuilderController(
                 storeService: live.StoreService,
                 pathResolver: live,
@@ -420,31 +418,6 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             };
 
             return controller;
-        }
-
-        private sealed class SilentHistory : IGitContentHistory
-        {
-            public Task<GitPageHistory> GetHistoryAsync(string repository, string repoPath, GitHistoryQuery query, CancellationToken cancellationToken = default) =>
-                Task.FromResult(new GitPageHistory());
-
-            public void Invalidate(string repository, string repoPath) { }
-        }
-
-        private sealed class RecordingPublisher(GitPublishState state) : IGitContentPublisher
-        {
-            public List<(string Branch, string Into)> Merges { get; } = [];
-
-            public Task<GitPublishResult> MergeBranchAsync(string repository, string branch, string title, CancellationToken cancellationToken = default) =>
-                MergeBranchIntoAsync(repository, branch, title, "master", cancellationToken);
-
-            public Task<GitPublishResult> MergeBranchIntoAsync(string repository, string branch, string title, string baseBranch, CancellationToken cancellationToken = default)
-            {
-                Merges.Add((branch, baseBranch));
-                return Task.FromResult(new GitPublishResult { State = state, PullRequestNumber = 7, Url = "https://github.com/o/r/pull/7" });
-            }
-
-            public Task<GitPendingPublish> GetOpenPullRequestAsync(string repository, string branch, CancellationToken cancellationToken = default) =>
-                Task.FromResult<GitPendingPublish>(null);
         }
 
         /// <summary>
