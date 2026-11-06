@@ -272,6 +272,19 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.Empty(live.Files);
         }
 
+        [Fact]
+        public async Task GitPublishStatus_ReleaseBranchAndLivePageBehind_WritesTheStatusJson()
+        {
+            var live = new FakeLiveStorage();
+            live.Files[Page] = LastWeek;
+
+            var result = await Controller(Repository(), Publisher(GitPublishState.Merged), live: live, releaseBranch: "production").GitPublishStatus("s1", Page, "pages");
+
+            Assert.Equal(
+                """{"published":true,"hasChanges":true,"pending":false,"awaitingMerge":false,"flow":"git","production":{"published":false,"behind":true,"pending":false,"awaitingMerge":false},"liveBehind":true}""",
+                PlatformJson.SerializeBody(result));
+        }
+
         /// <summary>
         /// The status says so: in a repository the platform writes live, a live page that is not the base branch's is behind
         /// it, apart from any draft. A repository assigned by hand has its own deployment, which the status does not look at.
@@ -363,7 +376,8 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         private static RecordingPublisher Publisher(GitPublishState state) => new(state);
 
         private static PageBuilderController Controller(RecordingRepository repository, RecordingPublisher publisher,
-            FakeLiveStorage live = null, FakeGitContentProvisioner provisioner = null, GitRepositorySource source = GitRepositorySource.Site)
+            FakeLiveStorage live = null, FakeGitContentProvisioner provisioner = null, GitRepositorySource source = GitRepositorySource.Site,
+            string releaseBranch = null)
         {
             var options = Options.Create(new GitContentOptions
             {
@@ -371,6 +385,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 Repository = "o/r",
                 Token = "t0ken",
                 BaseBranch = "master",
+                ReleaseBranch = releaseBranch,
             });
 
             // Live storage takes part once a merge is done — the platform writes the page there itself.

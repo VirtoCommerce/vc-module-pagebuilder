@@ -53,6 +53,22 @@ public class ThemeControllerTests
         Assert.Equal(["save s1"], _services.Calls);
     }
 
+    [Fact]
+    public async Task Publish_Published_WritesThePublicationJson()
+    {
+        var controller = Controller(new FakeAuthorizationService(true));
+
+        Assert.Equal("""{"publication":1}""", PlatformJson.SerializeBody(await controller.Publish("s1", "abcdefgh")));
+    }
+
+    [Fact]
+    public async Task SaveCatalog_Saved_WritesTheHashJson()
+    {
+        var controller = Controller(new FakeAuthorizationService(true), """{ "hash": "abcdefgh" }""");
+
+        Assert.Equal("""{"hash":"abcdefgh"}""", PlatformJson.SerializeBody(await controller.SaveCatalog("s1")));
+    }
+
     private ThemeController Controller(FakeAuthorizationService authorization, string body = "")
     {
         var http = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Name, "alice")], "test")) };

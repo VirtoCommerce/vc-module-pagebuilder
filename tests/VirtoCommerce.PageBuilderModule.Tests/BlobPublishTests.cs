@@ -59,6 +59,16 @@ public class BlobPublishTests
     }
 
     [Fact]
+    public async Task GitPublishStatus_BlobFlow_WritesTheStatusJson()
+    {
+        var publishing = new RecordingPublishingService { Status = new FilePublishStatus { Published = true, HasChanges = true } };
+
+        var result = await Controller(publishing).GitPublishStatus("vccom", Page, "pages");
+
+        Assert.Equal("""{"published":true,"hasChanges":true,"pending":false,"awaitingMerge":false,"flow":"blob","liveBehind":false}""", PlatformJson.SerializeBody(result));
+    }
+
+    [Fact]
     public async Task Publish_ForAStoreTheUserCannotReach_PublishesNothing()
     {
         var publishing = new RecordingPublishingService();

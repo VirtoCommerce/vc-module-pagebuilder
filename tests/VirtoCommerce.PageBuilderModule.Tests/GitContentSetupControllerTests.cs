@@ -211,6 +211,40 @@ public class GitContentSetupControllerTests
         Assert.IsType<BadRequestObjectResult>(await Controller(connection).StartAppSetup("acme", "s1"));
     }
 
+    [Fact]
+    public async Task GetConnection_SetupApp_WritesTheSitesPanelJson()
+    {
+        var connection = GitHubConnectionServiceTests.Service(_settings, _keys, GitHubConnectionServiceTests.Conversion("acme"));
+        await connection.CreateAppAsync("c0de", "acme", TestContext.Current.CancellationToken);
+
+        var body = PlatformJson.SerializeBody(await Controller(connection, stores: new Stores("s1", "s2")).GetConnection());
+
+        Assert.Equal(
+            """
+            {"sites":[{"storeId":"s1","name":"s1","repository":"acme/site-s1","url":"https://github.com/acme/site-s1","enabled":true},
+            {"storeId":"s2","name":"s2","repository":"acme/site-s2","url":"https://github.com/acme/site-s2","enabled":true}],
+            "configured":true,"source":"app","organization":"acme","organizationUrl":"https://github.com/acme","appSlug":"page-builder-acme",
+            "appUrl":"https://github.com/organizations/acme/settings/apps/page-builder-acme",
+            "installUrl":"https://github.com/apps/page-builder-acme/installations/new","autoCreateRepositories":true}
+            """.ReplaceLineEndings(string.Empty),
+            body);
+    }
+
+    [Fact]
+    public async Task GetConnection_NotConfigured_WritesTheSetupJson()
+    {
+        Assert.Equal("""{"sites":[],"configured":false,"autoCreateRepositories":false}""", PlatformJson.SerializeBody(await Controller().GetConnection()));
+    }
+
+    [Fact]
+    public async Task StartAppSetup_ValidOrganization_WritesTheSetupPageUrlJson()
+    {
+        var body = PlatformJson.ParseBody(await Controller().StartAppSetup("acme", "s1"));
+
+        Assert.Equal(["url"], body.Properties().Select(x => x.Name));
+        Assert.StartsWith("/api/pagebuilder/git/app/new?state=", body.Value<string>("url"));
+    }
+
     // ── helpers ────────────────────────────────────────────────────────────────────────────────
 
     private GitHubConnectionService ConfiguredConnection() =>
