@@ -7,10 +7,6 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
     /// Publishing a page is merging its work branch into the production branch. Unpublishing is the
     /// same operation over a branch whose commit deletes the file, which is why there is one method
     /// here and not two: the difference lives in the commit, not in the act of shipping it.
-    /// <para>
-    /// Every method names the repository ("owner/name") it works on: each site has its own, so there is
-    /// no repository this service could assume.
-    /// </para>
     /// </summary>
     public interface IGitContentPublisher
     {

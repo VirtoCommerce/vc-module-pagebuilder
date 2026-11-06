@@ -8,10 +8,6 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
     /// The versions of one page. Separate from <see cref="IGitContentRepository"/> on purpose: that one
     /// reads and writes a file at a ref, this one enumerates the repository to answer "where else does
     /// this page exist".
-    /// <para>
-    /// Every method names the repository ("owner/name") it works on: each site has its own, so there is
-    /// no repository this service could assume.
-    /// </para>
     /// </summary>
     public interface IGitContentHistory
     {

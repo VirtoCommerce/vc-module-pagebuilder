@@ -11,10 +11,6 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
     /// Writes are authoritative, not best-effort: when a commit fails the save that triggered it must
     /// fail too. A save that silently kept going would leave the editor believing their work is stored.
     /// </para>
-    /// <para>
-    /// Every method names the repository ("owner/name") it works on: each site has its own, so there is
-    /// no repository this service could assume.
-    /// </para>
     /// </summary>
     public interface IGitContentRepository
     {
