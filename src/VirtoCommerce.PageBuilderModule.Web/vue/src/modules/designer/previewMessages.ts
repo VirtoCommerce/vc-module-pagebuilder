@@ -1,6 +1,7 @@
 import type { Field, Item, PageDocument, Schemas, SectionGroup, Selection } from "./types";
 import type { SharedBoundary } from "./document";
-import type { TemplateRules } from "./rules";
+import { rulesOf, type TemplateRules } from "./rules";
+import { PAGE_TYPES, type PageType } from "./templates";
 
 // Preview protocol 2 (docs/contracts/preview-protocol.md) as the storefront speaks it (vc-frontend
 // plugins/builder-preview): what the designer sends its preview and what it takes from it, built and checked here.
@@ -284,29 +285,15 @@ export function selectionFrom(doc: PageDocument, event: { sectionId: string; blo
   return section && blockId ? { kind: "block", sectionId: section.id, id: blockId } : { kind: "section", id: event.sectionId };
 }
 
-const PAGE_TYPES = ["product", "category", "page"];
-
 /**
- * The index of the designer's rule the storefront names in `resolved`. The storefront takes a rule's own id, else
- * `{pageType}-{index}` (a rules file of version 1 has no ids), counting the page type's rules it can read. Without
- * the designer's rules, the id is read that way. null: no rule chose; undefined: a rule the designer doesn't have.
+ * The index of the designer's rule the storefront names in `resolved`, by its id, among the page type's rules (its
+ * defaults when the file has no list for it). null: no rule chose; undefined: a rule the designer doesn't have.
  */
 export function ruleIndex(rules: TemplateRules | undefined, pageType: string, ruleId: string | null): number | null | undefined {
   if (ruleId === null) return null;
-  if (!PAGE_TYPES.includes(pageType)) return undefined;
-  const list = rules?.[pageType];
-  if (rules && Array.isArray(list)) {
-    let counted = 0;
-    for (let i = 0; i < list.length; i++) {
-      const rule = list[i] as unknown;
-      if (!isRecord(rule) || typeof rule.template !== "string" || (rule.when !== undefined && !isRecord(rule.when))) continue;
-      if ((typeof rule.id === "string" && rule.id ? rule.id : `${pageType}-${counted}`) === ruleId) return i;
-      counted++;
-    }
-    return undefined;
-  }
-  const index = new RegExp(`^${pageType}-(\\d+)$`).exec(ruleId)?.[1];
-  return index === undefined ? undefined : Number(index);
+  if (!rules || !(PAGE_TYPES as string[]).includes(pageType)) return undefined;
+  const index = rulesOf(rules, pageType as PageType).findIndex((rule) => rule.id === ruleId);
+  return index < 0 ? undefined : index;
 }
 
 export interface CatalogApi {

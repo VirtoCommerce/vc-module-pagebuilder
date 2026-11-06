@@ -23,9 +23,14 @@
 
     <p class="pd-rule-form__heading">{{ $t("PAGE_BUILDER.DESIGNER.RULES.CONDITIONS") }}</p>
 
-    <template v-if="type !== 'page'">
-      <div class="pd-rule-form__field">
-        <span class="pd-rule-form__label">{{ $t("PAGE_BUILDER.DESIGNER.RULES.IN_CATEGORIES") }}</span>
+    <!-- the conditions the storefront announced for the page type, each edited as its value schema says -->
+    <div
+      v-for="condition in offered"
+      :key="condition.descriptor.name"
+      class="pd-rule-form__field"
+    >
+      <template v-if="condition.input.kind === 'categories'">
+        <span class="pd-rule-form__label">{{ condition.label }}</span>
         <div
           v-if="categories.length"
           class="pd-rule-form__chips"
@@ -39,7 +44,7 @@
             <button
               type="button"
               :aria-label="$t('PAGE_BUILDER.DESIGNER.REMOVE')"
-              @click="set('inCategory', categories.filter((x) => x !== id))"
+              @click="set(condition.descriptor.name, categories.filter((x) => x !== id))"
             >
               <VcIcon
                 icon="lucide-x"
@@ -52,97 +57,58 @@
           :catalog="catalog"
           :names="names"
           :model-value="categories"
-          :label="$t('PAGE_BUILDER.DESIGNER.RULES.IN_CATEGORIES')"
-          @update:model-value="set('inCategory', $event)"
+          :label="condition.label"
+          @update:model-value="set(condition.descriptor.name, $event)"
         />
-      </div>
-      <VcSelect
-        v-if="type === 'product'"
-        :model-value="text('productType') || null"
-        :label="$t('PAGE_BUILDER.DESIGNER.RULES.PRODUCT_TYPE')"
-        :placeholder="$t('PAGE_BUILDER.DESIGNER.RULES.ANY')"
-        :options="productTypes"
-        option-value="value"
-        option-label="label"
-        emit-value
-        clearable
-        @update:model-value="set('productType', $event ?? '')"
-      />
-      <fieldset class="pd-rule-form__pair">
-        <legend>{{ $t("PAGE_BUILDER.DESIGNER.RULES.PROPERTY") }}</legend>
-        <VcInput
-          :model-value="named('property').name"
-          :placeholder="$t('PAGE_BUILDER.DESIGNER.RULES.NAME')"
-          :aria-label="$t('PAGE_BUILDER.DESIGNER.RULES.NAME')"
-          @update:model-value="setNamed('property', 'name', $event)"
-        />
-        <span>=</span>
-        <VcInput
-          :model-value="String(named('property').equals ?? '')"
-          :placeholder="$t('PAGE_BUILDER.DESIGNER.RULES.VALUE')"
-          :aria-label="$t('PAGE_BUILDER.DESIGNER.RULES.VALUE')"
-          @update:model-value="setNamed('property', 'equals', $event)"
-        />
-      </fieldset>
-    </template>
-
-    <template v-else>
+      </template>
       <VcInput
-        :model-value="text('path')"
-        :label="$t('PAGE_BUILDER.DESIGNER.RULES.PATH')"
-        :hint="$t('PAGE_BUILDER.DESIGNER.RULES.PATH_HINT')"
-        placeholder="/landing/*"
-        @update:model-value="set('path', $event)"
+        v-else-if="condition.input.kind === 'texts'"
+        :model-value="textsOf(condition.descriptor.name)"
+        :label="condition.label"
+        :hint="$t('PAGE_BUILDER.DESIGNER.RULES.TEXTS_HINT')"
+        @update:model-value="setTexts(condition.descriptor.name, String($event ?? ''))"
       />
-      <VcInput
-        :model-value="text('language')"
-        :label="$t('PAGE_BUILDER.DESIGNER.RULES.LANGUAGE')"
-        :hint="$t('PAGE_BUILDER.DESIGNER.RULES.LANGUAGE_HINT')"
-        placeholder="de-DE"
-        @update:model-value="set('language', $event)"
+      <Fields
+        v-else
+        :fields="[condition.input.field]"
+        :values="when"
+        :context="{}"
+        @update="set"
       />
-      <!-- the hint below the box (VcSelect's own has one line's room) -->
-      <div class="pd-rule-form__field">
-        <VcSelect
-          :model-value="text('source') || null"
-          :label="$t('PAGE_BUILDER.DESIGNER.RULES.SOURCE')"
-          :placeholder="$t('PAGE_BUILDER.DESIGNER.RULES.ANY')"
-          :options="sources"
-          option-value="value"
-          option-label="label"
-          emit-value
-          clearable
-          @update:model-value="set('source', $event ?? '')"
-        />
-        <VcHint>{{ $t("PAGE_BUILDER.DESIGNER.RULES.SOURCE_NOT_YET") }}</VcHint>
+      <!-- a property of the product previewed, in one click -->
+      <div
+        v-if="condition.descriptor.name === 'property' && properties.length"
+        class="pd-rule-form__chips"
+      >
+        <button
+          v-for="property in properties"
+          :key="`${property.name}=${String(property.value)}`"
+          type="button"
+          class="pd-rule-form__pick"
+          @click="set('property', { name: property.name, equals: property.value })"
+        >
+          {{ property.label || property.name }} = {{ String(property.value) }}
+        </button>
       </div>
-      <fieldset class="pd-rule-form__pair">
-        <legend>{{ $t("PAGE_BUILDER.DESIGNER.RULES.SETTING") }}</legend>
-        <VcInput
-          :model-value="named('setting').name"
-          :placeholder="$t('PAGE_BUILDER.DESIGNER.RULES.NAME')"
-          :aria-label="$t('PAGE_BUILDER.DESIGNER.RULES.NAME')"
-          @update:model-value="setNamed('setting', 'name', $event)"
-        />
-        <span>=</span>
-        <VcInput
-          :model-value="String(named('setting').equals ?? '')"
-          :placeholder="$t('PAGE_BUILDER.DESIGNER.RULES.VALUE')"
-          :aria-label="$t('PAGE_BUILDER.DESIGNER.RULES.VALUE')"
-          @update:model-value="setNamed('setting', 'equals', $event)"
-        />
-      </fieldset>
-    </template>
+      <p
+        v-if="problems[condition.descriptor.name]"
+        class="pd-rule-form__error"
+        role="alert"
+      >
+        {{ $t(`PAGE_BUILDER.DESIGNER.RULES.ERRORS.${problems[condition.descriptor.name]!.code}`, problems[condition.descriptor.name]!.params ?? {}) }}
+      </p>
+    </div>
 
-    <!-- what the designer doesn't edit: kept as it is (Edit as JSON changes it) -->
+    <!-- conditions the storefront didn't announce for the page type: kept as they are (Edit as JSON changes them) -->
     <div
-      v-for="[name, value] in custom"
+      v-for="{ name, value } in unknown"
       :key="name"
       class="pd-rule-form__custom"
     >
       <div>
         <strong>{{ $t("PAGE_BUILDER.DESIGNER.RULES.CUSTOM") }}</strong>
         <code>{{ name }}: {{ JSON.stringify(value) }}</code>
+        <small class="pd-rule-form__warning">{{ $t("PAGE_BUILDER.DESIGNER.RULES.UNKNOWN_CONDITION", { name }) }}</small>
         <small>{{ $t("PAGE_BUILDER.DESIGNER.RULES.CUSTOM_HINT") }}</small>
       </div>
       <VcButton
@@ -169,7 +135,7 @@
         {{ $t("PAGE_BUILDER.DESIGNER.RULES.CANCEL") }}
       </VcButton>
       <VcButton
-        :disabled="!template"
+        :disabled="!template || Object.keys(problems).length > 0"
         @click="save"
       >
         {{ $t("PAGE_BUILDER.DESIGNER.RULES.SAVE") }}
@@ -179,15 +145,20 @@
 </template>
 
 <script setup lang="ts">
-// Add rule / Edit rule: the template, then the conditions the page type has (all must hold). The conditions object is
-// edited in place, so conditions the designer doesn't know stay as they were; the ones left empty are dropped.
-import { computed, ref } from "vue";
+// Add rule / Edit rule: the template, then the conditions the storefront announced for the page type (all must hold),
+// each built from its value schema. The conditions object is edited in place, so conditions the storefront didn't
+// announce stay as they were; announced ones left empty are dropped.
+import { computed, reactive, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import { VcButton, VcHint, VcIcon, VcInput, VcSelect } from "@vc-shell/framework/ui";
-import type { CatalogContext } from "../api";
-import { SOURCES, cleanWhen, conditionsOf, type TemplateRule } from "../rules";
+import { VcButton, VcIcon, VcInput, VcSelect } from "@vc-shell/framework/ui";
+import type { CatalogContext, ProductFacts } from "../api";
+import type { ConditionDescriptor } from "../previewMessages";
+import { CATEGORY_CONDITION, checkCondition, cleanWhen, conditionInput, conditionsFor, splitConditions, splitTexts, type ConditionProblem } from "../ruleConditions";
+import type { TemplateRule } from "../rules";
 import { alternateName, type PageType } from "../templates";
+import type { Field } from "../types";
 import CategoryTree from "./CategoryTree.vue";
+import Fields from "./Fields.vue";
 
 const props = defineProps<{
   type: PageType;
@@ -197,10 +168,14 @@ const props = defineProps<{
   keys: string[];
   catalog: CatalogContext;
   names: Map<string, string>;
+  /** the conditions the storefront announced */
+  conditions: ConditionDescriptor[];
+  /** the properties of the product previewed */
+  properties: ProductFacts["properties"];
 }>();
 const emit = defineEmits<{ save: [rule: TemplateRule]; cancel: [] }>();
 
-const { t } = useI18n({ useScope: "global" });
+const { t, te } = useI18n({ useScope: "global" });
 const template = ref(props.rule.template);
 const when = ref<Record<string, unknown>>(JSON.parse(JSON.stringify(props.rule.when ?? {})));
 
@@ -210,28 +185,75 @@ const templateOptions = computed(() =>
     label: key.includes(".") ? alternateName(key) : t("PAGE_BUILDER.DESIGNER.TEMPLATES.DEFAULT"),
   })),
 );
-const productTypes = computed(() =>
-  [...new Set(["Physical", "Digital", "BillOfMaterials", text("productType")].filter(Boolean))].map((x) => ({ value: x, label: x })),
-);
-const sources = computed(() => SOURCES.map((x) => ({ value: x, label: t(`PAGE_BUILDER.DESIGNER.RULES.SOURCES.${x.toUpperCase()}`) })));
 
-const text = (name: string) => {
-  const value = when.value[name];
-  return typeof value === "string" ? value : "";
+// the storefront's built-in conditions in the editor's language; any other by its own label
+const LABELS: Record<string, { label: string; hint?: string }> = {
+  inCategory: { label: "IN_CATEGORIES" },
+  productType: { label: "PRODUCT_TYPE" },
+  property: { label: "PROPERTY" },
+  path: { label: "PATH", hint: "PATH_HINT" },
+  language: { label: "LANGUAGE", hint: "LANGUAGE_HINT" },
+  source: { label: "SOURCE" },
+  setting: { label: "SETTING" },
 };
-const categories = computed(() => (Array.isArray(when.value.inCategory) ? (when.value.inCategory as string[]) : []));
-const named = (name: string) => ({ name: "", equals: "", ...(when.value[name] as object) }) as { name: string; equals: unknown };
+const SUB_LABELS: Record<string, string> = { name: "NAME", equals: "VALUE" };
+const rulesText = (key: string) => t(`PAGE_BUILDER.DESIGNER.RULES.${key}`);
+const optionLabel = (option: { value: unknown; label: string }) => {
+  const key = `PAGE_BUILDER.DESIGNER.RULES.SOURCES.${String(option.value).toUpperCase()}`;
+  return te(key) ? t(key) : option.label;
+};
+
+function localized(field: Field, descriptor: ConditionDescriptor): Field {
+  const known = LABELS[descriptor.name];
+  return {
+    ...field,
+    label: known ? rulesText(known.label) : (descriptor.label ?? descriptor.name),
+    ...(known?.hint ? { info: rulesText(known.hint) } : {}),
+    ...(field.options ? { options: field.options.map((x) => ({ ...x, label: optionLabel(x) })) } : {}),
+    ...(field.element ? { element: field.element.map((x) => ({ ...x, label: x.id && SUB_LABELS[x.id] ? rulesText(SUB_LABELS[x.id]) : x.label })) } : {}),
+  };
+}
+
+const offered = computed(() =>
+  conditionsFor(props.conditions, props.type).map((descriptor) => {
+    const input = conditionInput(descriptor);
+    const known = LABELS[descriptor.name];
+    return {
+      descriptor,
+      label: known ? rulesText(known.label) : (descriptor.label ?? descriptor.name),
+      input: input.kind === "field" ? { ...input, field: localized(input.field, descriptor) } : input,
+    };
+  }),
+);
+const unknown = computed(() => splitConditions(when.value, props.conditions, props.type).unknown);
+
+const categories = computed(() => (Array.isArray(when.value[CATEGORY_CONDITION]) ? (when.value[CATEGORY_CONDITION] as string[]) : []));
 const set = (name: string, value: unknown) => (when.value = { ...when.value, [name]: value });
-const setNamed = (name: string, field: "name" | "equals", value: unknown) => set(name, { ...named(name), [field]: value });
 const drop = (name: string) => (when.value = Object.fromEntries(Object.entries(when.value).filter(([key]) => key !== name)));
 
-const custom = computed(() => conditionsOf({ template: "", when: when.value }, props.type).custom);
-const hasConditions = computed(() => Object.keys(cleanWhen(when.value, props.type)).length > 0);
+// a list typed with commas: the text as typed while it is edited, the list in the rule
+const typed = reactive(new Map<string, string>());
+const textsOf = (name: string) => typed.get(name) ?? (Array.isArray(when.value[name]) ? (when.value[name] as unknown[]).join(", ") : "");
+function setTexts(name: string, text: string) {
+  typed.set(name, text);
+  set(name, splitTexts(text));
+}
+
+const cleaned = computed(() => cleanWhen(when.value, props.conditions, props.type));
+const hasConditions = computed(() => Object.keys(cleaned.value).length > 0);
+/** what is wrong with the announced conditions the rule has, by name */
+const problems = computed(() => {
+  const found: Record<string, ConditionProblem> = {};
+  for (const { name, value, descriptor } of splitConditions(cleaned.value, props.conditions, props.type).known) {
+    const problem = checkCondition(descriptor, value);
+    if (problem) found[name] = problem;
+  }
+  return found;
+});
 
 function save() {
-  const conditions = cleanWhen(when.value, props.type);
   const { when: _when, ...rest } = props.rule;
-  emit("save", { ...rest, template: template.value, ...(Object.keys(conditions).length ? { when: conditions } : {}) });
+  emit("save", { ...rest, template: template.value, ...(hasConditions.value ? { when: cleaned.value } : {}) });
 }
 </script>
 
@@ -305,28 +327,6 @@ function save() {
     }
   }
 
-  &__pair {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
-    align-items: center;
-    gap: 6px;
-    margin: 0;
-    padding: 0;
-    border: 0;
-
-    legend {
-      margin-bottom: 6px;
-      padding: 0;
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--neutrals-900);
-    }
-
-    span {
-      color: var(--neutrals-500);
-    }
-  }
-
   &__custom {
     display: flex;
     align-items: flex-start;
@@ -357,6 +357,35 @@ function save() {
   &__note {
     margin: 0;
     color: var(--neutrals-500);
+  }
+
+  &__error {
+    margin: 0;
+    color: var(--danger-700);
+    font-size: 12px;
+  }
+
+  &__custom &__warning {
+    color: var(--warning-700);
+  }
+
+  &__pick {
+    max-width: 100%;
+    padding: 2px 8px;
+    border: 1px solid var(--primary-200);
+    border-radius: 999px;
+    background: var(--primary-50);
+    color: var(--primary-700);
+    font: inherit;
+    font-size: 12px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--primary-100);
+    }
   }
 
   &__actions {

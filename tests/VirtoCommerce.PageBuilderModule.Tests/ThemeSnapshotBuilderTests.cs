@@ -47,6 +47,26 @@ public class ThemeSnapshotBuilderTests
     }
 
     [Fact]
+    public void Build_RulesTheStorefrontDoesNotRead_LeavesThemOutOfTheIdCount()
+    {
+        var rules = Snapshot(Source(rules: JObject.Parse("""
+            {
+              "product": [
+                "rule",
+                { "template": 5 },
+                { "template": "product.a", "when": [ "inCategory" ] },
+                { "template": "product.b", "when": null },
+                { "template": "product.c" },
+                { "id": " ", "template": "product.d", "when": { "productType": "Physical" } }
+              ]
+            }
+            """)))["rules"]!;
+
+        Assert.Equal(["product.c:product-0", "product.d: "], rules["product"]!.Select(x => $"{x.Value<string>("template")}:{x.Value<string>("id")}"));
+        Assert.Equal(["productType"], rules["conditions"]!.Values<string>());
+    }
+
+    [Fact]
     public void Build_LocalizedTexts_FallsBackToDefaultThenFirstLanguage()
     {
         var source = Source(templates: new()

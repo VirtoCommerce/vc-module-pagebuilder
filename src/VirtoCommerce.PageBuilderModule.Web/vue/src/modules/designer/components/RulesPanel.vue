@@ -29,6 +29,8 @@
         :keys="keys.filter((key) => pageTypeOf(key) === type)"
         :catalog="catalog"
         :names="names"
+        :conditions="conditions ?? []"
+        :properties="facts?.properties ?? []"
         @save="saveRule"
         @cancel="editing = undefined"
       />
@@ -58,6 +60,7 @@
                 <button
                   type="button"
                   class="pd-rules__text"
+                  :disabled="readOnly"
                   @click="edit(index)"
                 >
                   <template
@@ -65,6 +68,12 @@
                     :key="i"
                   >
                     <strong v-if="part.strong">{{ part.text }}</strong>
+                    <span
+                      v-else-if="part.unknown"
+                      class="pd-rules__badge"
+                      :title="$t('PAGE_BUILDER.DESIGNER.RULES.UNKNOWN_CONDITION', { name: part.unknown })"
+                      >{{ $t("PAGE_BUILDER.DESIGNER.RULES.UNKNOWN") }}</span
+                    >
                     <template v-else>{{ part.text }}</template>
                   </template>
                 </button>
@@ -77,6 +86,7 @@
               {{ $t("PAGE_BUILDER.DESIGNER.RULES.APPLIES_NONE") }}
             </p>
             <VcButton
+              v-if="!readOnly"
               size="sm"
               variant="secondary"
               icon="lucide-plus"
@@ -90,7 +100,7 @@
 
         <!-- one click from what the previewed product (category, page) belongs to -->
         <section
-          v-if="isAlternate && suggestions.length"
+          v-if="isAlternate && !readOnly && suggestions.length"
           class="pd-rules__section"
         >
           <h4 class="pd-rules__heading">{{ $t("PAGE_BUILDER.DESIGNER.RULES.USE_FOR") }}</h4>
@@ -118,6 +128,7 @@
           <h4 class="pd-rules__heading">
             <span>{{ $t(ALL[type]) }}</span>
             <button
+              v-if="!readOnly"
               type="button"
               class="pd-rules__link"
               @click="openJson"
@@ -125,22 +136,35 @@
               {{ $t("PAGE_BUILDER.DESIGNER.RULES.JSON") }}
             </button>
           </h4>
+          <p
+            v-if="readOnly"
+            class="pd-rules__note"
+          >
+            {{ $t("PAGE_BUILDER.DESIGNER.RULES.NO_HANDSHAKE") }}
+          </p>
           <p class="pd-rules__note">{{ $t(list.length ? "PAGE_BUILDER.DESIGNER.RULES.FIRST_MATCH" : "PAGE_BUILDER.DESIGNER.RULES.EMPTY") }}</p>
+          <p
+            v-if="!ownList && list.length"
+            class="pd-rules__note"
+          >
+            {{ $t("PAGE_BUILDER.DESIGNER.RULES.DEFAULTS") }}
+          </p>
           <ul
             ref="sortable"
             class="pd-rules__list"
           >
             <li
               v-for="(rule, index) in list"
-              :key="keyOf(rule)"
+              :key="rule.id"
               class="pd-rules__rule"
               :class="{
                 'pd-rules__rule--off': rule.disabled,
                 'pd-rules__rule--mine': rule.template?.trim() === templateKey,
-                'pd-rules__rule--hit': resolvedHere && resolved?.rule === index,
+                'pd-rules__rule--hit': resolvedHere && resolved?.ruleId === rule.id,
               }"
             >
               <span
+                v-if="!readOnly"
                 class="pd-rules__handle"
                 :title="$t('PAGE_BUILDER.DESIGNER.DRAG')"
               >
@@ -153,6 +177,7 @@
                 type="button"
                 class="pd-rules__text"
                 :title="$t('PAGE_BUILDER.DESIGNER.RULES.EDIT')"
+                :disabled="readOnly"
                 @click="edit(index)"
               >
                 <template
@@ -160,6 +185,12 @@
                   :key="i"
                 >
                   <strong v-if="part.strong">{{ part.text }}</strong>
+                  <span
+                    v-else-if="part.unknown"
+                    class="pd-rules__badge"
+                    :title="$t('PAGE_BUILDER.DESIGNER.RULES.UNKNOWN_CONDITION', { name: part.unknown })"
+                    >{{ $t("PAGE_BUILDER.DESIGNER.RULES.UNKNOWN") }}</span
+                  >
                   <template v-else>{{ part.text }}</template>
                 </template>
                 <span class="pd-rules__arrow">→</span>
@@ -174,10 +205,12 @@
               <VcSwitch
                 class="pd-rules__switch"
                 :model-value="!rule.disabled"
+                :disabled="readOnly"
                 :aria-label="$t('PAGE_BUILDER.DESIGNER.RULES.ON')"
                 @update:model-value="setDisabled(index, !$event)"
               />
               <VcButton
+                v-if="!readOnly"
                 variant="ghost"
                 size="icon-sm"
                 icon="lucide-trash-2"
@@ -275,7 +308,8 @@
 // The template rules, shown in plain language: those picking the open template ("Applies to"), rules made in one
 // click from what the previewed product belongs to, the page type's whole ordered list (drag to reorder, switch off,
 // remove, click to edit), the preview's verdict (Test), and the file as JSON. Edits change the rules state; the
-// designer's Save writes them as a draft and Publish puts them live.
+// designer's Save writes them as a draft and Publish puts them live. The rules are edited with the conditions the
+// storefront announced; until it has, they are shown only.
 import { computed, nextTick, reactive, ref, useTemplateRef, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useSortable } from "@vueuse/integrations/useSortable";
@@ -283,9 +317,10 @@ import { notification, usePopup } from "@vc-shell/framework";
 import { VcButton, VcIcon, VcPopup, VcSwitch, VcTextarea } from "@vc-shell/framework/ui";
 import { productFacts, searchCategories, type CatalogContext, type NamedEntity, type ProductFacts } from "../api";
 import { rulesPath } from "../history";
-import { conditionsOf, formatRules, moveItem, parseRules, rulesFor, rulesOf, withRules, type RuleError, type TemplateRule } from "../rules";
+import { CATEGORY_CONDITION, conditionsFor } from "../ruleConditions";
+import { formatRules, hasOwnRules, moveItem, newRuleId, parseRules, rulesFor, rulesOf, withRules, type RuleError, type TemplateRule } from "../rules";
 import { alternateName, pageTypeOf, type PageType } from "../templates";
-import type { ResolvedRule } from "../previewMessages";
+import type { ConditionDescriptor, ResolvedRule } from "../previewMessages";
 import type { TemplateRulesState } from "../templateRules";
 import RuleForm from "./RuleForm.vue";
 
@@ -300,10 +335,12 @@ const props = defineProps<{
   /** what the preview shows the template on: a product's or category's id and name, a page's permalink */
   previewed?: NamedEntity;
   resolved?: ResolvedRule;
+  /** the conditions the storefront announced; none yet: the rules are shown only */
+  conditions?: ConditionDescriptor[];
 }>();
 const emit = defineEmits<{ close: [] }>();
 
-const { t } = useI18n({ useScope: "global" });
+const { t, te } = useI18n({ useScope: "global" });
 const { showConfirmation } = usePopup();
 
 const ALL: Record<PageType, string> = {
@@ -314,18 +351,13 @@ const ALL: Record<PageType, string> = {
 const rulesFile = computed(() => rulesPath(props.theme));
 
 const list = computed(() => rulesOf(props.rules.rules.value, props.type));
+const ownList = computed(() => hasOwnRules(props.rules.rules.value, props.type));
+const readOnly = computed(() => !props.conditions);
+const offered = computed(() => new Map(conditionsFor(props.conditions ?? [], props.type).map((x) => [x.name, x])));
 const setList = (next: TemplateRule[]) => (props.rules.rules.value = withRules(props.rules.rules.value, props.type, next));
 const isAlternate = computed(() => props.templateKey.includes("."));
 const mine = computed(() => rulesFor(props.rules.rules.value, props.templateKey));
 const resolvedHere = computed(() => !!props.resolved && props.resolved.pageType === props.type);
-
-// a stable key per rule object while it is shown (rules have no ids)
-const ruleKeys = new WeakMap<object, number>();
-let lastKey = 0;
-const keyOf = (rule: TemplateRule) => {
-  if (!ruleKeys.has(rule)) ruleKeys.set(rule, ++lastKey);
-  return ruleKeys.get(rule)!;
-};
 
 const templateName = (key: string) => (key.includes(".") ? alternateName(key) : t("PAGE_BUILDER.DESIGNER.TEMPLATES.DEFAULT"));
 const templateExists = (key?: string) => !!key && (!key.trim().includes(".") || props.keys.includes(key.trim()));
@@ -337,7 +369,7 @@ const names = reactive(new Map<string, string>());
 watch(
   list,
   async (rules) => {
-    const ids = [...new Set(rules.flatMap((x) => (Array.isArray(x.when?.inCategory) ? (x.when.inCategory as unknown[]) : [])))].filter(
+    const ids = [...new Set(rules.flatMap((x) => (Array.isArray(x.when?.[CATEGORY_CONDITION]) ? (x.when[CATEGORY_CONDITION] as unknown[]) : [])))].filter(
       (id): id is string => typeof id === "string" && !names.has(id),
     );
     if (!ids.length) return;
@@ -346,7 +378,8 @@ watch(
   { immediate: true },
 );
 
-type Part = { text: string; strong?: boolean };
+/** a piece of a rule's description; `unknown`: the condition the storefront didn't announce */
+type Part = { text: string; strong?: boolean; unknown?: string };
 const CONDITION_KEYS: Record<string, string> = {
   inCategory: "IS.IN_CATEGORY",
   productType: "IS.PRODUCT_TYPE",
@@ -359,13 +392,18 @@ const CONDITION_KEYS: Record<string, string> = {
 const SUBJECTS: Record<PageType, string> = { product: "SUBJECT_PRODUCT", category: "SUBJECT_CATEGORY", page: "SUBJECT_PAGE" };
 const ALWAYS: Record<PageType, string> = { product: "ALWAYS_PRODUCT", category: "ALWAYS_CATEGORY", page: "ALWAYS_PAGE" };
 
-function valueText(name: string, value: unknown): string {
-  if (name === "inCategory") return (Array.isArray(value) ? value : [value]).map((id) => names.get(String(id)) ?? String(id)).join(", ");
-  if (name === "property" || name === "setting") {
-    const named = (value ?? {}) as { name?: unknown; equals?: unknown };
-    return `${String(named.name ?? "")} = ${String(named.equals ?? "")}`;
+function valueText(name: string, value: unknown, descriptor?: ConditionDescriptor): string {
+  if (name === CATEGORY_CONDITION) return (Array.isArray(value) ? value : [value]).map((id) => names.get(String(id)) ?? String(id)).join(", ");
+  const option = descriptor?.value.options?.find((x) => x.value === value);
+  if (option) {
+    const key = `PAGE_BUILDER.DESIGNER.RULES.SOURCES.${String(value).toUpperCase()}`;
+    return te(key) ? t(key) : option.label;
   }
-  if (name === "source" && typeof value === "string" && ["designer", "file", "blog"].includes(value)) return t(`PAGE_BUILDER.DESIGNER.RULES.SOURCES.${value.toUpperCase()}`);
+  if (Array.isArray(value)) return value.map(String).join(", ");
+  if (value && typeof value === "object") {
+    const named = value as { name?: unknown; equals?: unknown };
+    return "name" in named && "equals" in named ? `${String(named.name ?? "")} = ${String(named.equals ?? "")}` : JSON.stringify(value);
+  }
   return String(value);
 }
 
@@ -375,13 +413,18 @@ function withValue(key: string, value: string): Part[] {
   return [{ text: before }, { text: value, strong: true }, { text: after }];
 }
 
-/** "Products in Printers and below and of type Physical" (custom conditions as their JSON) */
+/**
+ * "Products in Printers and below and of type Physical"; a condition the storefront didn't announce as its JSON, marked.
+ * Before the storefront has announced its conditions, none is marked.
+ */
 function describe(rule: TemplateRule): Part[] {
-  const { known, custom } = conditionsOf(rule, props.type);
-  const conditions = [
-    ...known.map(([name, value]) => withValue(CONDITION_KEYS[name], valueText(name, value))),
-    ...custom.map(([name, value]) => [{ text: `${name}: ` }, { text: JSON.stringify(value), strong: true }]),
-  ];
+  const conditions = Object.entries(rule.when ?? {}).map(([name, value]): Part[] => {
+    const descriptor = offered.value.get(name);
+    if (!descriptor && !readOnly.value) return [{ text: `${name}: ` }, { text: JSON.stringify(value), strong: true }, { text: "", unknown: name }];
+    const text = valueText(name, value, descriptor);
+    if (CONDITION_KEYS[name]) return withValue(CONDITION_KEYS[name], text);
+    return [{ text: `${descriptor?.label ?? name}: ` }, { text, strong: true }];
+  });
   if (!conditions.length) return [{ text: t(`PAGE_BUILDER.DESIGNER.RULES.${ALWAYS[props.type]}`) }];
   return [
     { text: `${t(`PAGE_BUILDER.DESIGNER.RULES.${SUBJECTS[props.type]}`)} ` },
@@ -395,7 +438,7 @@ function describe(rule: TemplateRule): Part[] {
 const editing = ref<{ index: number; rule: TemplateRule }>();
 // the index is into the list the form was opened on: another list (another page type, the rules read again) closes it
 watch(list, () => (editing.value = undefined));
-const add = () => (editing.value = { index: -1, rule: { template: props.templateKey, when: {} } });
+const add = () => (editing.value = { index: -1, rule: { id: newRuleId(props.rules.rules.value), template: props.templateKey, when: {} } });
 const edit = (index: number) => (editing.value = { index, rule: list.value[index] });
 function saveRule(rule: TemplateRule) {
   const index = editing.value?.index ?? -1;
@@ -445,7 +488,8 @@ watch(
   { immediate: true },
 );
 
-const suggestions = computed<{ label: string; when: Record<string, unknown> }[]>(() => {
+const suggestions = computed(() => allSuggestions.value.filter((x) => Object.keys(x.when).every((name) => offered.value.has(name))));
+const allSuggestions = computed<{ label: string; when: Record<string, unknown> }[]>(() => {
   const previewed = props.previewed;
   if (!previewed) return [];
   const label = (key: string, params: Record<string, string>) => t(`PAGE_BUILDER.DESIGNER.RULES.${key}`, params);
@@ -471,11 +515,11 @@ const suggestions = computed<{ label: string; when: Record<string, unknown> }[]>
 
 /** a rule for the open template, first: it is about this very product, so nothing broader before it may win */
 function useFor(when: Record<string, unknown>) {
-  for (const id of Array.isArray(when.inCategory) ? when.inCategory : []) {
+  for (const id of Array.isArray(when[CATEGORY_CONDITION]) ? when[CATEGORY_CONDITION] : []) {
     const category = facts.value?.categories.find((x) => x.id === id) ?? (props.previewed?.id === id ? props.previewed : undefined);
     if (category) names.set(category.id, category.name);
   }
-  const rule: TemplateRule = { template: props.templateKey, when };
+  const rule: TemplateRule = { id: newRuleId(props.rules.rules.value), template: props.templateKey, when };
   setList([rule, ...list.value]);
   notification.success(t("PAGE_BUILDER.DESIGNER.RULES.ADDED", { text: describe(rule).map((x) => x.text).join("") }));
 }
@@ -489,13 +533,13 @@ function openJson() {
   jsonText.value = formatRules(props.rules.rules.value);
 }
 function formatJson() {
-  const { rules, errors } = parseRules(jsonText.value ?? "");
+  const { rules, errors } = parseRules(jsonText.value ?? "", props.conditions);
   // a file with mistakes is formatted too, as long as it is JSON
   if (rules || errors[0]?.code !== "SYNTAX") jsonText.value = JSON.stringify(JSON.parse(jsonText.value ?? ""), null, 2);
   jsonErrors.value = errors;
 }
 function applyJson() {
-  const { rules, errors } = parseRules(jsonText.value ?? "");
+  const { rules, errors } = parseRules(jsonText.value ?? "", props.conditions);
   jsonErrors.value = errors;
   if (!rules) return;
   props.rules.rules.value = rules;
@@ -644,6 +688,10 @@ function applyJson() {
     text-align: left;
     overflow-wrap: anywhere;
     cursor: pointer;
+
+    &:disabled {
+      cursor: default;
+    }
 
     strong {
       font-weight: 600;

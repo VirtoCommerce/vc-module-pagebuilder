@@ -1,15 +1,15 @@
 import { computed, ref } from "vue";
 import * as api from "./api";
 import { rulesPath } from "./history";
-import { formatRules, rulesFromFile, type TemplateRules } from "./rules";
+import { formatRules, readRules, type TemplateRules } from "./rules";
 
 /**
  * The store's template rules as the designer edits them: the theme's rules file as last saved (its draft, else what is
- * live; no file: the storefront's default). Save writes a draft; the theme's publication puts it live with the rest of
- * the theme.
+ * live; a page type without a list has its default rules). Save writes a draft, always as version 2; the theme's
+ * publication puts it live with the rest of the theme.
  */
 export function useTemplateRules() {
-  const rules = ref<TemplateRules>(rulesFromFile(undefined));
+  const rules = ref<TemplateRules>(readRules(undefined));
   const savedJson = ref(formatRules(rules.value));
   const loaded = ref(false);
   let at: { storeId: string; theme: string } | undefined;
@@ -17,7 +17,7 @@ export function useTemplateRules() {
 
   async function load(storeId: string, theme: string) {
     at = { storeId, theme };
-    rules.value = rulesFromFile(await api.loadThemeFile(storeId, theme, rulesPath(theme)));
+    rules.value = readRules(await api.loadThemeFile(storeId, theme, rulesPath(theme)));
     savedJson.value = formatRules(rules.value);
     loaded.value = true;
   }

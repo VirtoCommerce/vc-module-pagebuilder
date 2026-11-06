@@ -388,6 +388,7 @@
           :theme="themeName"
           :previewed="previewed"
           :resolved="resolved"
+          :conditions="designer.handshake.value?.conditions"
           @close="rulesOpen = false"
         />
       </div>
@@ -551,6 +552,7 @@ import {
   type PageSubject,
   type RenderInput,
   type RenderMessage,
+  type Resolved,
   type ResolvedRule,
 } from "../designer/previewMessages";
 import {
@@ -757,7 +759,7 @@ const bridge = usePreviewBridge({
   url,
   onLoaded: (loaded) => {
     // a new document: what its rules picked is reported again
-    resolved.value = undefined;
+    reported.value = undefined;
     designer.handshake.value = { hash: loaded.hash, capabilities: loaded.capabilities, conditions: loaded.conditions, paletteTokens: loaded.paletteTokens };
     // a page template's "Page content" (where a page's own sections go), unless the storefront describes it itself
     designer.schemas.value = {
@@ -787,7 +789,7 @@ const bridge = usePreviewBridge({
   },
   onHover: (id) => (designer.hovered.value = id),
   // the template the storefront rendered for the page shown, and which of the designer's rules chose it
-  onResolved: (value) => (resolved.value = { ...value, rule: ruleIndex(rules.loaded.value ? rules.rules.value : undefined, value.pageType, value.ruleId) }),
+  onResolved: (value) => (reported.value = value),
   // a text edited on the page: the setting changes, and its section or block is selected (the preview stays put)
   onEdit: ({ itemId, path, value }) => {
     const target = designer.setText(itemId, path, value);
@@ -1566,7 +1568,11 @@ const catalog = ref<CatalogContext>();
 const rulesOpen = ref(false);
 const switcherShown = computed(() => !designer.shared.value && !!themeName.value);
 /** the template the storefront rendered for what the preview shows, as the preview reports it */
-const resolved = ref<ResolvedRule>();
+const reported = ref<Resolved>();
+/** with the designer's rule the storefront names, by its id: the rules may have changed since */
+const resolved = computed<ResolvedRule | undefined>(
+  () => reported.value && { ...reported.value, rule: ruleIndex(rules.loaded.value ? rules.rules.value : undefined, reported.value.pageType, reported.value.ruleId) },
+);
 /** why: the designer's rule that chose it, or none */
 const whyOf = (r: ResolvedRule) =>
   r.rule === null
@@ -1603,7 +1609,7 @@ function pickEntity(entity: NamedEntity) {
 // another entity: the preview goes to its page, and shows the template there
 watch(previewUrlOf, (to) => {
   if (!to || !designer.templateKey.value) return;
-  resolved.value = undefined;
+  reported.value = undefined;
   sendRender.cancel();
   bridge.send(render());
 });
@@ -1639,7 +1645,7 @@ async function switchTo(key: string | null) {
   if (rules.dirty.value) await rules.load(storeId, themeName.value).catch(() => undefined);
   historyOpen.value = false;
   endVersionPreview();
-  resolved.value = undefined;
+  reported.value = undefined;
   await designer.open(key ? { storeId, theme: themeName.value, type: "themes", path: templatePath(themeName.value, key) } : home!);
   if (key) await enterTemplate();
   else rulesOpen.value = false;

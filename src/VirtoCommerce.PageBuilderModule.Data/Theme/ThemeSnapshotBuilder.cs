@@ -197,16 +197,12 @@ public class ThemeSnapshotBuilder : IThemeSnapshotBuilder
         var ids = new HashSet<string>(StringComparer.Ordinal);
         var result = new List<JObject>();
 
-        for (var index = 0; index < list.Count; index++)
+        foreach (var rule in list.OfType<JObject>().Where(IsTemplateRule))
         {
-            if (list[index] is not JObject rule)
-            {
-                continue;
-            }
-
+            var index = result.Count;
             var copy = (JObject)rule.DeepClone();
             var id = GetString(copy, "id");
-            if (string.IsNullOrWhiteSpace(id) || ids.Contains(id))
+            if (string.IsNullOrEmpty(id) || ids.Contains(id))
             {
                 id = $"{pageType}-{index}";
                 for (var n = 2; ids.Contains(id); n++)
@@ -227,6 +223,12 @@ public class ThemeSnapshotBuilder : IThemeSnapshotBuilder
         }
 
         return result;
+    }
+
+    /// <summary>Whether the storefront reads the rule: it has a template and its conditions, if any, are an object.</summary>
+    protected virtual bool IsTemplateRule(JObject rule)
+    {
+        return rule["template"]?.Type == JTokenType.String && rule["when"] is null or JObject;
     }
 
     protected virtual JToken Translate(JToken token, string language, string defaultLanguage)

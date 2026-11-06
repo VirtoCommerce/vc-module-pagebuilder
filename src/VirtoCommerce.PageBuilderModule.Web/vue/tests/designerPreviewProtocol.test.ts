@@ -16,7 +16,7 @@ import {
   type DesignerMessage,
   type Loaded,
 } from "../src/modules/designer/previewMessages";
-import type { TemplateRules } from "../src/modules/designer/rules";
+import { readRules } from "../src/modules/designer/rules";
 import type { Item, PageDocument } from "../src/modules/designer/types";
 
 /** a `loaded` as the storefront (vc-frontend preview-v2.ts buildPreviewCatalog) sends it */
@@ -196,7 +196,7 @@ test("a render carries the add-section model, and shared components' boundaries 
 });
 
 test("the draft: the rules and the header and footer, to a storefront that renders groups", () => {
-  const rules: TemplateRules = { version: 1, product: [{ template: "product.b2c" }] };
+  const rules = readRules({ product: [{ template: "product.b2c" }] });
   const groups = { header: [{ id: "h1", type: "site-header" }], footer: [{ id: "f1", type: "site-footer" }] };
   assert.deepEqual(draftMessage({ rules, groups, capabilities: ["groups"] }), {
     type: "draft",
@@ -230,29 +230,36 @@ test("a click selects the block it names, in the section that has it; else the s
   assert.deepEqual(selectionFrom(page, { sectionId: "lc1s0", blockId: "lc1s0b0" }), { kind: "section", id: "lc1s0" });
 });
 
-test("a rule's id is the designer's rule: its own id, else its place among the page type's rules", () => {
-  const rules: TemplateRules = {
+test("the storefront's rule id names the designer's rule by its id, the ids a version 1 file reads with among them", () => {
+  const rules = readRules({
     version: 1,
     product: [{ template: "product.a" }, { template: "product.b", id: "big" }, { template: "product.c" }],
-    page: [{ template: "page.x" }, { nope: true } as never, { template: "page.y" }],
-  };
+    page: [{ template: "page.x" }, { nope: true }, { template: "page.y" }],
+  });
   assert.equal(ruleIndex(rules, "product", "product-0"), 0);
   assert.equal(ruleIndex(rules, "product", "big"), 1);
-  // the storefront counts the rules without an id of their own too
   assert.equal(ruleIndex(rules, "product", "product-2"), 2);
   assert.equal(ruleIndex(rules, "product", "product-1"), undefined);
   // a rule the storefront can't read takes no place
-  assert.equal(ruleIndex(rules, "page", "page-1"), 2);
+  assert.equal(ruleIndex(rules, "page", "page-1"), 1);
   assert.equal(ruleIndex(rules, "product", null), null);
-  // no product rules of its own: the storefront's default rule, which the designer doesn't list
-  assert.equal(ruleIndex({ version: 1, page: [] }, "product", "default-b2c"), undefined);
   assert.equal(ruleIndex(rules, "constructor", "constructor-0"), undefined);
 });
 
-test("without the designer's rules, a rule's id is read as its place", () => {
-  assert.equal(ruleIndex(undefined, "category", "category-3"), 3);
-  assert.equal(ruleIndex(undefined, "category", "product-3"), undefined);
+test("a rule moved keeps the storefront's id pointing at it", () => {
+  const rules = readRules({ version: 2, category: [{ id: "a", template: "category.a" }, { id: "b", template: "category.b" }] });
+  assert.equal(ruleIndex(rules, "category", "b"), 1);
+  assert.equal(ruleIndex({ ...rules, category: [rules.category![1], rules.category![0]] }, "category", "b"), 0);
+});
+
+test("a page type without rules of its own: the storefront's id names one of its default rules", () => {
+  assert.equal(ruleIndex(readRules({ page: [] }), "product", "default-b2c"), 0);
+  // an empty list has none
+  assert.equal(ruleIndex(readRules({ product: [] }), "product", "default-b2c"), undefined);
+  // without the designer's rules, no rule is named
   assert.equal(ruleIndex(undefined, "product", "default-b2c"), undefined);
+  assert.equal(ruleIndex(undefined, "category", "category-3"), undefined);
+  assert.equal(ruleIndex(undefined, "category", null), null);
 });
 
 // ── the catalog ──────────────────────────────────────────────────────────────

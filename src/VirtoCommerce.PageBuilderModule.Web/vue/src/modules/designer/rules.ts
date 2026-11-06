@@ -1,10 +1,17 @@
+import type { ConditionDescriptor } from "./previewMessages";
+import { checkCondition, conditionsFor } from "./ruleConditions";
 import { PAGE_TYPES, pageTypeOf, type PageType } from "./templates";
 
-// The store's template rules, `{theme}/config/template_rules.json`: per page type an ordered list, the first enabled
-// rule whose conditions all hold picks the template, else the type's default. Only the storefront evaluates them;
-// the designer edits the file. Whatever it doesn't know (top-level keys, rule keys, conditions) is kept as it is.
+// The store's template rules, `{theme}/config/template_rules.json` (docs/contracts/theme-snapshot.md, Template rules):
+// per page type an ordered list, the first enabled rule whose conditions all hold picks the template. Only the
+// storefront evaluates them; the designer edits the file. Whatever it doesn't know (top-level keys, rule keys,
+// conditions) is kept as it is.
+
+export const RULES_VERSION = 2;
 
 export interface TemplateRule {
+  /** stable: kept when the rule changes or moves */
+  id: string;
   template: string;
   when?: Record<string, unknown>;
   disabled?: boolean;
@@ -12,25 +19,20 @@ export interface TemplateRule {
 }
 
 export interface TemplateRules {
-  version?: number;
+  version: typeof RULES_VERSION;
+  /** the condition names the rules use */
+  conditions: string[];
   product?: TemplateRule[];
   category?: TemplateRule[];
   page?: TemplateRule[];
   [key: string]: unknown;
 }
 
-/** The conditions the designer edits per page type; any other is a custom condition, shown as its JSON */
-export const CONDITIONS: Record<PageType, string[]> = {
-  product: ["inCategory", "productType", "property"],
-  category: ["inCategory", "property"],
-  page: ["path", "language", "source", "setting"],
-};
-export const SOURCES = ["designer", "file", "blog"];
-
-/** Without a rules file the storefront picks the B2C product template by its product property: so does a new file */
-export const DEFAULT_RULES: TemplateRules = {
-  version: 1,
-  product: [{ template: "product.b2c", when: { property: { name: "VirtoFrontend_UI_Layout", equals: "B2C" } } }],
+/** The rules of a page type the file has no list for: the B2C product template by its product property */
+export const DEFAULT_RULES: Readonly<Record<PageType, readonly TemplateRule[]>> = {
+  product: [{ id: "default-b2c", template: "product.b2c", when: { property: { name: "VirtoFrontend_UI_Layout", equals: "B2C" } } }],
+  category: [],
+  page: [],
 };
 
 /** A problem at a JSON path ("product[2].when.inCategory"); `code` names the message, `params` fill it */
@@ -42,25 +44,64 @@ export interface RuleError {
 
 const isObject = (value: unknown): value is Record<string, unknown> => !!value && typeof value === "object" && !Array.isArray(value);
 const isText = (value: unknown): value is string => typeof value === "string" && !!value.trim();
+const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
-/** A `{ name, equals }` condition (property, setting) */
-const namedValue = (value: unknown) => isObject(value) && isText(value.name) && "equals" in value;
+/** A rule the storefront reads; it skips any other entry of a list */
+const isRuleLike = (value: unknown): value is Record<string, unknown> & { template: string } =>
+  isObject(value) && typeof value.template === "string" && (value.when === undefined || isObject(value.when));
 
-const CHECKS: Record<string, (value: unknown) => string | undefined> = {
-  inCategory: (value) => (Array.isArray(value) && value.length && value.every(isText) ? undefined : "CATEGORY_IDS"),
-  productType: (value) => (isText(value) ? undefined : "TEXT"),
-  property: (value) => (namedValue(value) ? undefined : "NAME_EQUALS"),
-  path: (value) => (isText(value) ? undefined : "TEXT"),
-  language: (value) => (isText(value) ? undefined : "TEXT"),
-  source: (value) => (typeof value === "string" && SOURCES.includes(value) ? undefined : "SOURCE"),
-  setting: (value) => (namedValue(value) ? undefined : "NAME_EQUALS"),
-};
+/**
+ * A page type's rules with their ids: a rule's own, else `{pageType}-{index}` counting the rules the storefront reads,
+ * as the storefront and the server read a version 1 file; a taken id gets a suffix, as the server gives it.
+ */
+function withIds(list: unknown[], type: PageType): TemplateRule[] {
+  const ids = new Set<string>();
+  return list.filter(isRuleLike).map((rule, index) => {
+    let id = typeof rule.id === "string" ? rule.id : "";
+    if (!id || ids.has(id)) {
+      id = `${type}-${index}`;
+      for (let n = 2; ids.has(id); n++) id = `${type}-${index}-${n}`;
+    }
+    ids.add(id);
+    return { ...rule, id };
+  });
+}
 
-/** What is wrong with a rules file, each at its path; a condition the designer doesn't know is never wrong */
-export function validateRules(value: unknown): RuleError[] {
+/** The condition names a file's rules use, sorted */
+const conditionNames = (lists: Partial<Record<PageType, unknown>>) =>
+  [...new Set(PAGE_TYPES.flatMap((type) => (Array.isArray(lists[type]) ? (lists[type] as TemplateRule[]) : []).flatMap((rule) => Object.keys(rule.when ?? {}))))].sort();
+
+/** The file as the designer writes it: version 2, the conditions its rules use, the page types' lists, the rest */
+function toFile(rules: Record<string, unknown>): TemplateRules {
+  const { version: _version, conditions: _conditions, product, category, page, ...rest } = rules;
+  const lists: Partial<Record<PageType, unknown>> = { product, category, page };
+  return {
+    version: RULES_VERSION,
+    conditions: conditionNames(lists),
+    ...Object.fromEntries(PAGE_TYPES.filter((type) => Array.isArray(lists[type])).map((type) => [type, lists[type]])),
+    ...rest,
+  };
+}
+
+/** The rules a file holds, version 1 or 2; no file has no lists, so every page type has its defaults */
+export function readRules(value: unknown): TemplateRules {
+  const file: Record<string, unknown> = isObject(value) ? clone(value) : {};
+  for (const type of PAGE_TYPES) {
+    if (Array.isArray(file[type])) file[type] = withIds(file[type] as unknown[], type);
+    // the storefront reads a list that isn't one as none
+    else delete file[type];
+  }
+  return toFile(file);
+}
+
+/** What is wrong with a rules file, each at its path; a condition the storefront didn't announce is never wrong */
+export function validateRules(value: unknown, descriptors: ConditionDescriptor[] = []): RuleError[] {
   if (!isObject(value)) return [{ path: "", code: "NOT_OBJECT" }];
   const errors: RuleError[] = [];
-  if (value.version !== undefined && typeof value.version !== "number") errors.push({ path: "version", code: "NUMBER" });
+  if (value.version !== undefined && value.version !== 1 && value.version !== RULES_VERSION) errors.push({ path: "version", code: "VERSION" });
+  if (value.conditions !== undefined && !(Array.isArray(value.conditions) && value.conditions.every((x) => typeof x === "string")))
+    errors.push({ path: "conditions", code: "TEXT_LIST" });
+  const ids = new Set<string>();
   for (const type of PAGE_TYPES) {
     const list = value[type];
     if (list === undefined) continue;
@@ -68,16 +109,23 @@ export function validateRules(value: unknown): RuleError[] {
       errors.push({ path: type, code: "NOT_LIST" });
       continue;
     }
+    const offered = new Map(conditionsFor(descriptors, type).map((x) => [x.name, x]));
     list.forEach((rule: unknown, i) => {
       const at = `${type}[${i}]`;
       if (!isObject(rule)) return errors.push({ path: at, code: "NOT_OBJECT" });
+      if (rule.id !== undefined) {
+        if (!isText(rule.id)) errors.push({ path: `${at}.id`, code: "ID" });
+        else if (ids.has(rule.id)) errors.push({ path: `${at}.id`, code: "DUPLICATE_ID", params: { id: rule.id } });
+        else ids.add(rule.id);
+      }
       if (typeof rule.template !== "string" || pageTypeOf(rule.template.trim()) !== type) errors.push({ path: `${at}.template`, code: "TEMPLATE", params: { type } });
       if (rule.disabled !== undefined && typeof rule.disabled !== "boolean") errors.push({ path: `${at}.disabled`, code: "BOOLEAN" });
       if (rule.when === undefined) return;
       if (!isObject(rule.when)) return errors.push({ path: `${at}.when`, code: "NOT_OBJECT" });
       for (const [name, condition] of Object.entries(rule.when)) {
-        const code = CONDITIONS[type].includes(name) ? CHECKS[name](condition) : undefined;
-        if (code) errors.push({ path: `${at}.when.${name}`, code });
+        const descriptor = offered.get(name);
+        const problem = descriptor && checkCondition(descriptor, condition);
+        if (problem) errors.push({ path: `${at}.when.${name}`, ...problem });
       }
     });
   }
@@ -85,56 +133,44 @@ export function validateRules(value: unknown): RuleError[] {
 }
 
 /** The rules in a file's text: none when it doesn't parse or validate (the errors say why) */
-export function parseRules(text: string): { rules?: TemplateRules; errors: RuleError[] } {
+export function parseRules(text: string, descriptors: ConditionDescriptor[] = []): { rules?: TemplateRules; errors: RuleError[] } {
   let value: unknown;
   try {
     value = JSON.parse(text);
   } catch (e) {
     return { errors: [{ path: "", code: "SYNTAX", params: { detail: e instanceof Error ? e.message : String(e) } }] };
   }
-  const errors = validateRules(value);
-  return errors.length ? { errors } : { rules: value as TemplateRules, errors };
+  const errors = validateRules(value, descriptors);
+  return errors.length ? { errors } : { rules: readRules(value), errors };
 }
-
-/** The rules a theme's file holds, or the storefront's default when it has none */
-export const rulesFromFile = (value: unknown): TemplateRules => JSON.parse(JSON.stringify(value === undefined ? DEFAULT_RULES : value)) as TemplateRules;
 
 export const formatRules = (rules: TemplateRules) => JSON.stringify(rules, null, 2);
 
-/** A page type's rules, in order */
-export const rulesOf = (rules: TemplateRules, type: PageType): TemplateRule[] => (Array.isArray(rules[type]) ? rules[type]! : []);
+/** Whether the file has a list of its own for the page type; without one, the page type has its defaults */
+export const hasOwnRules = (rules: TemplateRules, type: PageType) => Array.isArray(rules[type]);
+
+/** A page type's rules, in order: its own list, else (a copy of) its defaults */
+export const rulesOf = (rules: TemplateRules, type: PageType): TemplateRule[] => (hasOwnRules(rules, type) ? rules[type]! : clone([...DEFAULT_RULES[type]]));
 
 /** The rules with a page type's list replaced (the rest of the file as it was) */
-export const withRules = (rules: TemplateRules, type: PageType, list: TemplateRule[]): TemplateRules => ({ version: 1, ...rules, [type]: list });
+export const withRules = (rules: TemplateRules, type: PageType, list: TemplateRule[]): TemplateRules => toFile({ ...rules, [type]: list });
+
+const ID_CHARS = "abcdefghijklmnopqrstuvwxyz0123456789";
+
+/** A new rule's id: short, url-safe, unique within the file (the defaults' ids included) */
+export function newRuleId(rules: TemplateRules): string {
+  const taken = new Set(PAGE_TYPES.flatMap((type) => rulesOf(rules, type).map((rule) => rule.id)));
+  for (;;) {
+    const id = [...crypto.getRandomValues(new Uint32Array(8))].map((x) => ID_CHARS[x % ID_CHARS.length]).join("");
+    if (!taken.has(id)) return id;
+  }
+}
 
 /** A list with one item moved */
 export function moveItem<T>(list: T[], from: number, to: number): T[] {
   const next = [...list];
   next.splice(to, 0, ...next.splice(from, 1));
   return next;
-}
-
-/** A rule's conditions: the ones the designer edits for its page type, and the custom ones (anything else) */
-export function conditionsOf(rule: TemplateRule, type: PageType) {
-  const entries = Object.entries(rule.when ?? {});
-  return {
-    known: entries.filter(([name]) => CONDITIONS[type].includes(name)),
-    custom: entries.filter(([name]) => !CONDITIONS[type].includes(name)),
-  };
-}
-
-/**
- * The conditions as the Add rule form leaves them: known ones left empty dropped (no categories, a blank text, a
- * property without a name), custom ones kept as they were.
- */
-export function cleanWhen(when: Record<string, unknown>, type: PageType): Record<string, unknown> {
-  const empty = (name: string, value: unknown) => {
-    if (!CONDITIONS[type].includes(name)) return false;
-    if (Array.isArray(value)) return !value.length;
-    if (isObject(value)) return !isText(value.name);
-    return value === undefined || value === null || (typeof value === "string" && !value.trim());
-  };
-  return Object.fromEntries(Object.entries(when).filter(([name, value]) => !empty(name, value)));
 }
 
 /** The indexes of the rules that pick a template ("Applies to") */
