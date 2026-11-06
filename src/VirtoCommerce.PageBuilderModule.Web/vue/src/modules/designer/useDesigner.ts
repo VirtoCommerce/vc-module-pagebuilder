@@ -537,7 +537,7 @@ export function useDesigner() {
   async function refreshStatus() {
     const fallback = { published: true, hasChanges: false };
     if (groupId.value) pageStatus = await api.publishStatus(groupId.value).catch(() => fallback);
-    else if (file.value) pageStatus = await api.filePublishStatus(file.value, gitFlow.value).catch(() => fallback);
+    else if (file.value) pageStatus = await api.filePublishStatus(file.value).catch(() => fallback);
     else return;
     const drafts = storeId.value && theme.value ? await api.sectionGroupDrafts(storeId.value, theme.value, GROUPS).catch(() => []) : [];
     groupDrafts.value = drafts.map((x) => x.group);
@@ -608,7 +608,7 @@ export function useDesigner() {
       if (!pageToPublish) {
         // only header/footer changes
       } else if (groupId.value) await api.setPublished(groupId.value, live);
-      else if (file.value) await api.setFilePublished(file.value, gitFlow.value, live, rebase);
+      else if (file.value) await api.setFilePublished(file.value, live, rebase);
       if (live && groupDrafts.value.length) await api.publishSectionGroups(storeId.value!, theme.value!, groupDrafts.value);
     } finally {
       busy.value = undefined;

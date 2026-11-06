@@ -330,21 +330,18 @@ export async function saveFilePage(page: FilePage, doc: PageDocument) {
   });
 }
 
-export async function filePublishStatus(page: FilePage, git: boolean): Promise<PublishStatus> {
-  const url = git
-    ? `/api/pagebuilder/git/publish-status?${fileArgs(page)}`
-    : `/api/content/${encodeURIComponent(page.type)}/${encodeURIComponent(page.storeId)}/publish-status?${new URLSearchParams({ relativeUrl: page.path })}`;
-  return ((await (await call(url)).json()) ?? { published: true, hasChanges: false }) as PublishStatus;
+/** A file page's publish status; the builder answers from git or, for a store without it, from the site's files */
+export async function filePublishStatus(page: FilePage): Promise<PublishStatus> {
+  return ((await (await call(`/api/pagebuilder/git/publish-status?${fileArgs(page)}`)).json()) ?? { published: true, hasChanges: false }) as PublishStatus;
 }
 
-/** Publish/unpublish a file page; in git, publishing opens (and merges) a pull request. 409: someone published first. */
-export async function setFilePublished(page: FilePage, git: boolean, publish: boolean, rebase = false) {
-  let url = `/api/content/${encodeURIComponent(page.type)}/${encodeURIComponent(page.storeId)}/publishing?${new URLSearchParams({ relativeUrl: page.path, publish: String(publish) })}`;
-  if (git) {
-    const action = publish ? "publish" : "unpublish";
-    url = `/api/pagebuilder/git/${action}?${fileArgs(page, rebase ? { rebase: "true" } : {})}`;
-  }
-  await call(url, { method: "POST" });
+/**
+ * Publish/unpublish a file page through the builder, which checks the publish permission for every store; in git,
+ * publishing opens (and merges) a pull request. 409: someone published first.
+ */
+export async function setFilePublished(page: FilePage, publish: boolean, rebase = false) {
+  const action = publish ? "publish" : "unpublish";
+  await call(`/api/pagebuilder/git/${action}?${fileArgs(page, rebase ? { rebase: "true" } : {})}`, { method: "POST" });
 }
 
 /** git: brings the published page to the production branch */
