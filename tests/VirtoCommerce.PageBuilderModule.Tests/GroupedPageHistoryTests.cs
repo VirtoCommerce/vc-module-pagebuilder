@@ -28,7 +28,7 @@ public class GroupedPageHistoryTests
     private const string Live = """{ "v": 2 }""";
 
     [Fact]
-    public void A_file_is_named_the_way_git_names_it()
+    public void ComputeBlobOid_Content_ReturnsGitBlobHash()
     {
         // git hash-object of an empty file, and of the Pro Git book's "test content\n"
         Assert.Equal("e69de29bb2d1d6434b8b29ae775ad8c2e48c5391", GitHubFileHistoryService.ComputeBlobOid(""));
@@ -37,7 +37,7 @@ public class GroupedPageHistoryTests
     }
 
     [Fact]
-    public async Task The_newest_change_holding_the_live_content_is_the_published_one()
+    public async Task GetHistoryAsync_SeveralChangesWithLiveContent_MarksNewestAsPublished()
     {
         var github = new GitHubScript(("POST", "graphql", (request, body) =>
         {
@@ -65,7 +65,7 @@ public class GroupedPageHistoryTests
     }
 
     [Fact]
-    public async Task A_page_never_published_has_no_published_change()
+    public async Task GetHistoryAsync_NeverPublished_MarksNoChangeAsPublished()
     {
         var github = new GitHubScript(("POST", "graphql", (_, _) => GitHubScript.Json(Answer(hasMore: false, ("c1", Live)).ToString())));
 
@@ -76,7 +76,7 @@ public class GroupedPageHistoryTests
     }
 
     [Fact]
-    public async Task A_save_becomes_a_change_on_the_base_branch_saying_who_made_it()
+    public async Task RecordAsync_Save_CommitsToBaseBranchWithAuthor()
     {
         var github = new GitHubScript(
             ("GET", "repos/acme/site-s1/contents/database-pages/g1.json?ref=main", (_, _) => GitHubScript.Status(HttpStatusCode.NotFound)),
@@ -98,7 +98,7 @@ public class GroupedPageHistoryTests
     }
 
     [Fact]
-    public async Task A_store_without_history_records_nothing_and_has_none()
+    public async Task RecordAsync_StoreWithoutHistory_RecordsNothingAndHasNoHistory()
     {
         var github = new GitHubScript();
         var history = History(github, published: Live, enabled: false);
@@ -110,7 +110,7 @@ public class GroupedPageHistoryTests
     }
 
     [Fact]
-    public async Task GitHub_failing_costs_the_history_a_change_never_the_save()
+    public async Task RecordAsync_GitHubFails_DoesNotThrow()
     {
         var github = new GitHubScript(("GET", "repos/acme/site-s1/contents/database-pages/g1.json?ref=main", (_, _) => GitHubScript.Status(HttpStatusCode.BadGateway)));
 
@@ -121,7 +121,7 @@ public class GroupedPageHistoryTests
 
     /// <summary>A repository assigned by hand keeps the git flow it had: no history of database pages goes into it.</summary>
     [Fact]
-    public async Task A_store_with_a_repository_assigned_by_hand_keeps_no_history()
+    public async Task RecordAsync_AssignedRepository_RecordsNothing()
     {
         var github = new GitHubScript();
         var ownership = new FakeGitContentOwnership();
@@ -135,7 +135,7 @@ public class GroupedPageHistoryTests
     }
 
     [Fact]
-    public async Task GitHub_timing_out_costs_the_history_a_change_never_the_save()
+    public async Task RecordAsync_GitHubTimesOut_DoesNotThrow()
     {
         // HttpClient.Timeout ends a request with a TaskCanceledException, not an HttpRequestException
         var github = new GitHubScript(("GET", "repos/acme/site-s1/contents/database-pages/g1.json?ref=main", (_, _) => throw new TaskCanceledException()));
@@ -146,7 +146,7 @@ public class GroupedPageHistoryTests
     }
 
     [Fact]
-    public async Task A_save_the_editor_cancels_is_not_recorded_as_a_missed_change()
+    public async Task RecordAsync_CallerCancels_ThrowsOperationCanceledException()
     {
         using var cancelled = new CancellationTokenSource();
         var github = new GitHubScript(("GET", "repos/acme/site-s1/contents/database-pages/g1.json?ref=main", (_, _) =>
@@ -208,6 +208,28 @@ public class GroupedPageHistoryTests
         Assert.Equal(["d1"], pages.Deleted);
     }
 
+    [Fact]
+    public async Task GetPublishedContentAsync_TwoPublishedPages_ReturnsNewest()
+    {
+        var group = new GroupedPageBuilderPage
+        {
+            Id = "g1",
+            StoreId = "s1",
+            Pages =
+            [
+                new PageBuilderPage { Id = "older", Status = Published, ModifiedDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
+                new PageBuilderPage { Id = "newer", Status = Published, ModifiedDate = new DateTime(2026, 2, 1, 0, 0, 0, DateTimeKind.Utc) },
+            ],
+        };
+        var pages = new PublishedRenameContentPreservationTests.FakeGroupedPageService();
+        pages.SeedContent("older", "content of older");
+        pages.SeedContent("newer", "content of newer");
+        var history = new GroupedPageHistoryService(null, null, null, null, pages, null, Options.Create(new GitContentOptions()),
+            NullLogger<GroupedPageHistoryService>.Instance);
+
+        Assert.Equal("content of newer", await history.GetPublishedContentAsync(group, TestContext.Current.CancellationToken));
+    }
+
     // ── helpers ────────────────────────────────────────────────────────────────────────────────
 
     private static GroupedPageBuilderPage Group() => new()
@@ -250,28 +272,6 @@ public class GroupedPageHistoryTests
             },
         },
     };
-
-    [Fact]
-    public async Task Of_two_published_pages_the_newest_is_the_live_one_as_for_publishing()
-    {
-        var group = new GroupedPageBuilderPage
-        {
-            Id = "g1",
-            StoreId = "s1",
-            Pages =
-            [
-                new PageBuilderPage { Id = "older", Status = Published, ModifiedDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
-                new PageBuilderPage { Id = "newer", Status = Published, ModifiedDate = new DateTime(2026, 2, 1, 0, 0, 0, DateTimeKind.Utc) },
-            ],
-        };
-        var pages = new PublishedRenameContentPreservationTests.FakeGroupedPageService();
-        pages.SeedContent("older", "content of older");
-        pages.SeedContent("newer", "content of newer");
-        var history = new GroupedPageHistoryService(null, null, null, null, pages, null, Options.Create(new GitContentOptions()),
-            NullLogger<GroupedPageHistoryService>.Instance);
-
-        Assert.Equal("content of newer", await history.GetPublishedContentAsync(group, TestContext.Current.CancellationToken));
-    }
 
     private static GroupedPageHistoryService History(GitHubScript github, string published, bool enabled = true, string assignedRepository = null,
         FakeGitContentOwnership ownership = null, IPageBuilderPageService pageService = null)

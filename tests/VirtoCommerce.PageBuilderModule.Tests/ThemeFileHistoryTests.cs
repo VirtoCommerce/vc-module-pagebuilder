@@ -36,7 +36,7 @@ public class ThemeFileHistoryTests
     private const string Old = "{\n  \"settings\": { \"since\": \"2026-10-16T12:00:00Z\" },\n  \"content\": []\n}";
 
     [Fact]
-    public async Task A_saved_theme_file_becomes_a_change_under_theme_with_the_bytes_written()
+    public async Task SaveTemplates_ThemeFile_CommitsWrittenBytesUnderThemeFolder()
     {
         var live = new FakeBlobStorage();
         string committed = null;
@@ -61,7 +61,7 @@ public class ThemeFileHistoryTests
     }
 
     [Fact]
-    public async Task The_newest_change_holding_the_live_file_is_the_published_one()
+    public async Task GetHistory_SeveralChangesWithLiveFile_MarksNewestAsPublished()
     {
         var live = new FakeBlobStorage();
         live.Files[Path] = Old;
@@ -82,7 +82,7 @@ public class ThemeFileHistoryTests
     }
 
     [Fact]
-    public async Task Restoring_a_change_makes_its_exact_bytes_the_draft_and_a_change_on_top()
+    public async Task Restore_Change_WritesExactBytesAsDraftAndCommitsThem()
     {
         var live = new FakeBlobStorage();
         var github = new GitHubScript(
@@ -110,7 +110,7 @@ public class ThemeFileHistoryTests
     // not an id: it would end up in the commit message as it is
     [InlineData("x\nVC-User: mallory", "VC-User: alice")]
     [InlineData(null, "VC-User: alice")]
-    public async Task Each_change_of_a_designer_save_carries_its_id(string header, string trailers)
+    public async Task SaveTemplates_SaveIdHeader_AddsSaveTrailerWhenValid(string header, string trailers)
     {
         var github = new GitHubScript(
             ("GET", $"repos/acme/site-s1/contents/{RepoPath}?ref=main", (_, _) => GitHubScript.Status(HttpStatusCode.NotFound)),
@@ -129,7 +129,7 @@ public class ThemeFileHistoryTests
     }
 
     [Fact]
-    public async Task A_save_restored_as_a_whole_names_the_version_picked_in_each_file()
+    public async Task Restore_WholeSave_NamesSaveVersionInCommit()
     {
         var github = new GitHubScript(
             ("GET", $"repos/acme/site-s1/contents/{RepoPath}?ref={Sha}", (_, _) => GitHubScript.Json(Contents(Old))),
@@ -151,7 +151,7 @@ public class ThemeFileHistoryTests
     }
 
     [Fact]
-    public void A_trailer_joins_the_ones_a_message_ends_with()
+    public void WithTrailer_MessageWithTrailers_JoinsTrailerBlock()
     {
         Assert.Equal("Saved: x\n\nVC-Save: s1", GitCommitMessage.WithTrailer("Saved: x", "VC-Save", "s1"));
         Assert.Equal("Saved: x\n\nVC-User: alice\nVC-Save: s1", GitCommitMessage.WithTrailer("Saved: x\n\nVC-User: alice", "VC-Save", "s1"));
@@ -160,7 +160,7 @@ public class ThemeFileHistoryTests
     }
 
     [Fact]
-    public async Task Discarding_a_draft_records_the_published_file_again()
+    public async Task DiscardDraft_ThemeFile_CommitsPublishedFile()
     {
         var live = new FakeBlobStorage();
         live.Files[Path] = Old;
@@ -186,7 +186,7 @@ public class ThemeFileHistoryTests
     [InlineData("/default/templates/product.json")]
     [InlineData("default\\templates\\product.json")]
     [InlineData("")]
-    public async Task A_path_leaving_the_theme_folder_has_no_history(string path)
+    public async Task GetHistory_PathOutsideThemeFolder_ReturnsBadRequestWithoutCallingGitHub(string path)
     {
         var github = new GitHubScript();
 
@@ -198,7 +198,7 @@ public class ThemeFileHistoryTests
     }
 
     [Fact]
-    public async Task The_history_of_a_store_the_user_does_not_work_in_is_forbidden()
+    public async Task HistoryActions_StoreUserDoesNotWorkIn_ReturnForbid()
     {
         var github = new GitHubScript();
         var live = new FakeBlobStorage();
@@ -218,7 +218,7 @@ public class ThemeFileHistoryTests
     [InlineData("default/config/template_rules.json", ModuleConstants.Security.Permissions.Templates)]
     [InlineData("default/sections/header-group.json", ModuleConstants.Security.Permissions.Theme)]
     [InlineData("default/config/settings_data.json", ModuleConstants.Security.Permissions.Theme)]
-    public async Task Going_back_takes_the_permission_that_edits_the_file(string path, string permission)
+    public async Task Restore_ThemeFile_RequiresPermissionThatEditsIt(string path, string permission)
     {
         var ct = TestContext.Current.CancellationToken;
         var other = permission == ModuleConstants.Security.Permissions.Templates
