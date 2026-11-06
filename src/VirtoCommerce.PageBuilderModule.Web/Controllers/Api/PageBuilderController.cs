@@ -871,8 +871,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             var result = await gitContentPublisher.MergeBranchIntoAsync(
                 location.Repository, branch, $"promote {path} (store: {storeId})", options.ReleaseBranch, HttpContext.RequestAborted);
 
-            // No live write: the release branch is what another environment serves, while this platform's
-            // live storage follows the base branch, which promotion does not change.
             return await RespondToShipAsync(result, location.Repository, location.RepoPath, branch, options.ReleaseBranch, path);
         }
 

@@ -159,6 +159,56 @@ public class GroupedPageHistoryTests
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => History(github, published: null).RecordAsync(Group(), Live, "Save", Alice(), null, cancelled.Token));
     }
 
+    [Fact]
+    public async Task RecordRestoreAsync_AWholeSaveRestored_NamesTheSavesVersion()
+    {
+        var github = new GitHubScript(
+            ("GET", "repos/acme/site-s1/contents/database-pages/g1.json?ref=main", (_, _) => GitHubScript.Status(HttpStatusCode.NotFound)),
+            ("PUT", "repos/acme/site-s1/contents/database-pages/g1.json", (_, body) =>
+            {
+                Assert.StartsWith("Restored abcdef1: \"Home\" (/home)", JObject.Parse(body!)["message"]?.Value<string>());
+                return GitHubScript.Json("""{ "commit": { "sha": "c9" } }""", HttpStatusCode.Created);
+            }));
+
+        await History(github, published: null).RecordRestoreAsync(Group(), Live, "1c0ffee1c0ffee1c0ffee1c0ffee1c0ffee1c0ff", "abcdef1234", Alice(), null,
+            TestContext.Current.CancellationToken);
+
+        github.AssertDone();
+    }
+
+    [Fact]
+    public async Task DiscardDraftAsync_NeverPublished_ReturnsFalseAndDeletesNothing()
+    {
+        var pages = new RecordingPages();
+        var group = Group();
+        group.Pages = [new PageBuilderPage { Id = "d1", Status = Draft }];
+
+        Assert.False(await History(new GitHubScript(), published: null, pageService: pages).DiscardDraftAsync(group, Alice(), null, TestContext.Current.CancellationToken));
+        Assert.Empty(pages.Deleted);
+    }
+
+    [Fact]
+    public async Task DiscardDraftAsync_WithADraft_DeletesItAndRecordsThePublishedContent()
+    {
+        var pages = new RecordingPages();
+        var group = Group();
+        group.Pages.Add(new PageBuilderPage { Id = "d1", Status = Draft });
+        var github = new GitHubScript(
+            ("GET", "repos/acme/site-s1/contents/database-pages/g1.json?ref=main", (_, _) => GitHubScript.Status(HttpStatusCode.NotFound)),
+            ("PUT", "repos/acme/site-s1/contents/database-pages/g1.json", (_, body) =>
+            {
+                var commit = JObject.Parse(body!);
+                Assert.StartsWith("Discarded unpublished changes: \"Home\" (/home)", commit["message"]?.Value<string>());
+                Assert.Equal(Live, Encoding.UTF8.GetString(Convert.FromBase64String(commit["content"]!.Value<string>()!)));
+                return GitHubScript.Json("""{ "commit": { "sha": "c9" } }""", HttpStatusCode.Created);
+            }));
+
+        Assert.True(await History(github, published: Live, pageService: pages).DiscardDraftAsync(group, Alice(), null, TestContext.Current.CancellationToken));
+
+        github.AssertDone();
+        Assert.Equal(["d1"], pages.Deleted);
+    }
+
     // ── helpers ────────────────────────────────────────────────────────────────────────────────
 
     private static GroupedPageBuilderPage Group() => new()
@@ -222,7 +272,7 @@ public class GroupedPageHistoryTests
     }
 
     private static GroupedPageHistoryService History(GitHubScript github, string published, bool enabled = true, string assignedRepository = null,
-        FakeGitContentOwnership ownership = null)
+        FakeGitContentOwnership ownership = null, IPageBuilderPageService pageService = null)
     {
         var options = Options.Create(new GitContentOptions
         {
@@ -234,7 +284,7 @@ public class GroupedPageHistoryTests
         });
         var policy = GitHubConnections.Policy(options, new FakeSettingsManager(enabled, assignedRepository), ownership ?? new FakeGitContentOwnership());
         var repository = new GitHubContentRepository(github, new MemoryCache(new MemoryCacheOptions()), options);
-        return new PublishedContent(policy, repository, github, options, published);
+        return new PublishedContent(policy, repository, github, options, published, pageService);
     }
 
     /// <summary>Each page's content names the page; nothing else is supported.</summary>
@@ -253,11 +303,27 @@ public class GroupedPageHistoryTests
     }
 
     /// <summary>The history with the page's live content given, rather than read from the database.</summary>
-    private sealed class PublishedContent(IGitContentPolicy policy, IGitContentRepository repository, GitHubScript github, IOptions<GitContentOptions> options, string published)
-        : GroupedPageHistoryService(policy, repository, new GitHubApiClient(github), GitHubConnections.Service(options.Value), null, null, options,
+    private sealed class PublishedContent(IGitContentPolicy policy, IGitContentRepository repository, GitHubScript github, IOptions<GitContentOptions> options, string published,
+        IPageBuilderPageService pageService)
+        : GroupedPageHistoryService(policy, repository, new GitHubApiClient(github), GitHubConnections.Service(options.Value), null, pageService, options,
             NullLogger<GroupedPageHistoryService>.Instance)
     {
         public override Task<string> GetPublishedContentAsync(GroupedPageBuilderPage group, CancellationToken cancellationToken = default) =>
             Task.FromResult(published);
+    }
+
+    /// <summary>Keeps the ids of the pages deleted; nothing else is supported.</summary>
+    private sealed class RecordingPages : IPageBuilderPageService
+    {
+        public List<string> Deleted { get; } = [];
+
+        public Task DeleteAsync(IList<string> ids, bool softDelete = false)
+        {
+            Deleted.AddRange(ids);
+            return Task.CompletedTask;
+        }
+
+        public Task<IList<PageBuilderPage>> GetAsync(IList<string> ids, string responseGroup = null, bool clone = true) => throw new NotSupportedException();
+        public Task SaveChangesAsync(IList<PageBuilderPage> models) => throw new NotSupportedException();
     }
 }
