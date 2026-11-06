@@ -9,7 +9,7 @@
       class="pd-tree__main"
     >
       <!-- Shopify's section groups: the theme's header, shown on every page -->
-      <template v-if="designer.groupsLoaded.value">
+      <template v-if="designer.groupsShown.value">
         <div class="pd-tree__heading pd-tree__heading--group">
           <span>{{ $t("PAGE_BUILDER.DESIGNER.GROUPS.HEADER") }}</span>
         </div>
@@ -135,7 +135,7 @@
       </button>
 
       <!-- the theme's footer, shown on every page -->
-      <template v-if="designer.groupsLoaded.value">
+      <template v-if="designer.groupsShown.value">
         <div class="pd-tree__heading pd-tree__heading--group">
           <span>{{ $t("PAGE_BUILDER.DESIGNER.GROUPS.FOOTER") }}</span>
         </div>

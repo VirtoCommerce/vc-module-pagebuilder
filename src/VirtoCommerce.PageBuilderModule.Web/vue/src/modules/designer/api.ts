@@ -180,6 +180,28 @@ export async function storeTheme(storeId: string): Promise<string> {
   return (typeof value === "string" && value) || "default";
 }
 
+// ── the storefront's schema catalog, kept by the server by its hash ──
+
+const catalogUrl = (query: Record<string, string>) => `/api/pagebuilder/catalog?${new URLSearchParams(query)}`;
+
+/** Whether the server has the store's catalog with that hash */
+export async function hasCatalog(storeId: string, hash: string): Promise<boolean> {
+  const res = await fetch(catalogUrl({ storeId, hash }), { headers: await getAuthHeaders() });
+  if (res.status === 404) return false;
+  if (!res.ok) throw new ApiError(res.status, await res.text().catch(() => ""));
+  return true;
+}
+
+/** Uploads the catalog of the storefront the designer previews (needs builder:theme; 403 without it) */
+export async function uploadCatalog(storeId: string, catalog: object) {
+  const res = await fetch(catalogUrl({ storeId }), {
+    method: "PUT",
+    headers: { ...(await getAuthHeaders()), "Content-Type": "application/json" },
+    body: JSON.stringify(catalog),
+  });
+  if (!res.ok) throw new ApiError(res.status, await res.text().catch(() => ""));
+}
+
 // ── theme files (section groups, templates, the template rules): saved as drafts ("-draft"), put live by Publish ──
 
 /** A theme file's JSON as last saved (its draft, else what is live), or undefined when the theme has none */

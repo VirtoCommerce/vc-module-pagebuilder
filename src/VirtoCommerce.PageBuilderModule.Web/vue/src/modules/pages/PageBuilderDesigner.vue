@@ -218,6 +218,31 @@
               size="s"
             />
           </button>
+          <!-- light or dark, on a storefront that switches between them -->
+          <div
+            v-if="designer.can('color-scheme')"
+            role="radiogroup"
+            class="pd__devices pd__schemes"
+            :aria-label="$t('PAGE_BUILDER.DESIGNER.COLOR_SCHEME')"
+          >
+            <button
+              v-for="s in colorSchemes"
+              :key="s.id"
+              type="button"
+              role="radio"
+              class="pd__device"
+              :class="{ 'pd__device--on': colorScheme === s.id }"
+              :aria-checked="colorScheme === s.id"
+              :title="$t(s.label)"
+              :aria-label="$t(s.label)"
+              @click="colorScheme = s.id"
+            >
+              <VcIcon
+                :icon="s.icon"
+                size="s"
+              />
+            </button>
+          </div>
           <div
             role="radiogroup"
             class="pd__devices"
@@ -275,9 +300,21 @@
               :title="$t('PAGE_BUILDER.DESIGNER.PREVIEW')"
               @load="bridge.onFrameLoad"
             />
+            <!-- a storefront without preview protocol 2 answers, but can't be designed here: it says so, and shows nothing -->
+            <div
+              v-if="url && bridge.unsupported.value"
+              class="pd__frame-wait"
+              role="alert"
+            >
+              <VcIcon
+                icon="lucide-monitor-off"
+                size="xl"
+              />
+              <p>{{ $t("PAGE_BUILDER.DESIGNER.PREVIEW_UNSUPPORTED") }}</p>
+            </div>
             <!-- until the site answers (a new or reloaded preview): what is going on, not a blank page -->
             <div
-              v-if="url && !bridge.connected.value"
+              v-else-if="url && !bridge.connected.value"
               class="pd__frame-wait"
               role="status"
             >
@@ -501,6 +538,21 @@ import { resolveRefs, toDocument } from "../designer/document";
 import { pageOnly } from "../designer/groups";
 import { previewUrl, storefrontPage, usePreviewBridge } from "../designer/preview";
 import {
+  draftMessage,
+  ensureCatalog,
+  handshakeMessages,
+  renderMessage,
+  ruleIndex,
+  selectionFrom,
+  type ColorScheme,
+  type DesignerMessage,
+  type DraftMessage,
+  type PageSubject,
+  type RenderInput,
+  type RenderMessage,
+  type ResolvedRule,
+} from "../designer/previewMessages";
+import {
   loadStorefront,
   storeTheme,
   filePreviewUrl,
@@ -513,6 +565,8 @@ import {
   themeFileVersion,
   restoreThemeFileVersion,
   asOneSave,
+  hasCatalog,
+  uploadCatalog,
   ApiError, type FilePage, type PageVersion, type SharedComponent } from "../designer/api";
 import { newItem } from "../designer/schema";
 import { searchCategories, searchPages, searchProducts, templateKeys, findFilePage, saveFilePage, type CatalogContext, type NamedEntity } from "../designer/api";
@@ -520,8 +574,7 @@ import { PAGE_CONTENT, alternateKey, alternateName, entityUrl, pageTypeOf, start
 import { rulesFor } from "../designer/rules";
 import { useTemplateRules } from "../designer/templateRules";
 import { historyFiles, historyPath as themeFileOf, savesHistory, type HistoryFile } from "../designer/history";
-import type { Field, Item, SectionGroup } from "../designer/types";
-import type { Resolved } from "../designer/preview";
+import type { Field, Item, SectionGroup, Selection } from "../designer/types";
 import TemplateSwitcher from "../designer/components/TemplateSwitcher.vue";
 import EntityPicker from "../designer/components/EntityPicker.vue";
 import RulesPanel from "../designer/components/RulesPanel.vue";
@@ -647,49 +700,88 @@ const url = ref<string>();
 const storefront = ref<{ url?: string; previewPath: string }>();
 const storefrontChecked = ref(false);
 
-const selectedSectionId = () => {
-  const sel = designer.selection.value;
-  if (!sel || sel.kind === "page") return undefined;
-  return sel.kind === "section" ? sel.id : sel.sectionId;
-};
-// a render: the page, its language, the section names the preview outlines, and the selection it outlines
-const renderMessage = () => ({
-  ...designer.preview.value,
-  // a template: the preview shows it on the page it navigated to (a page has none: the preview's own page)
-  ...(designer.templateKey.value ? { templateKey: designer.templateKey.value } : {}),
-  cultureName: cultureName.value,
-  sectionLabels: designer.sectionLabels.value,
-  sectionId: selectedSectionId() ?? "",
+/** the page's language; a template, a file page or a shared component shows in the store's own */
+const previewCulture = computed(() => cultureName.value || catalog.value?.cultureName || "en-US");
+/** what a content page's rules see: a database page's permalink, else a file page's own */
+const pageSubject = computed<PageSubject | undefined>(() => {
+  if (designer.templateKey.value || designer.shared.value) return undefined;
+  if (designer.groupId.value) {
+    const permalink = group.value?.permalink?.trim();
+    return permalink ? { permalink: `/${permalink.replace(/^\/+/, "")}`, objectType: "Pages" } : undefined;
+  }
+  const file = designer.file.value;
+  const permalink = designer.doc.value.settings.permalink;
+  return file && file.type !== "themes" && typeof permalink === "string" && permalink.trim() ? { permalink, objectType: "ContentFile" } : undefined;
 });
+
+// a render: the page or template (on the page it shows on), its language, the section names the preview outlines and
+// the selection; the preview keeps nothing of the render before
+function render(options: { scroll?: boolean; model?: Item; preview?: RenderInput["preview"]; selection?: Selection | null } = {}): RenderMessage {
+  const templateKey = designer.templateKey.value;
+  return renderMessage({
+    preview: options.preview ?? designer.preview.value,
+    cultureName: previewCulture.value,
+    templateKey,
+    url: templateKey ? previewUrlOf.value : undefined,
+    page: pageSubject.value,
+    selection: options.selection === undefined ? designer.selection.value : options.selection,
+    scroll: options.scroll,
+    model: options.model,
+    sectionLabels: designer.sectionLabels.value,
+  });
+}
+
+// the theme as the designer has it: the rules, the header and footer. The open template goes in the render, which wins
+// over the draft's; a draft's templates replace all the published ones, and the designer has only the open one.
+function draft(groups = designer.groupsPreview.value): DraftMessage {
+  return draftMessage({ rules: rules.loaded.value ? rules.rules.value : undefined, groups, capabilities: designer.handshake.value?.capabilities ?? [] });
+}
+
+const colorSchemes = [
+  { id: "light", icon: "lucide-sun", label: "PAGE_BUILDER.DESIGNER.LIGHT" },
+  { id: "dark", icon: "lucide-moon", label: "PAGE_BUILDER.DESIGNER.DARK" },
+] as const;
+const colorScheme = ref<ColorScheme>("light");
+
+/** a version from the history the preview shows in place of the page: its theme and its page, look-only */
+let versionView: { draft: DraftMessage; render: RenderMessage } | undefined;
 
 const bridge = usePreviewBridge({
   frame,
   url,
-  onLoaded: (schemas) => {
+  onLoaded: (loaded) => {
     // a new document: what its rules picked is reported again
     resolved.value = undefined;
+    designer.handshake.value = { hash: loaded.hash, capabilities: loaded.capabilities, conditions: loaded.conditions, paletteTokens: loaded.paletteTokens };
     // a page template's "Page content" (where a page's own sections go), unless the storefront describes it itself
     designer.schemas.value = {
-      ...schemas,
-      sections: { [PAGE_CONTENT]: { name: t("PAGE_BUILDER.DESIGNER.TEMPLATES.PAGE_CONTENT"), icon: "lucide-file-text", targetTemplates: ["page", "page-template"] }, ...schemas.sections },
+      ...loaded.catalog,
+      sections: { [PAGE_CONTENT]: { name: t("PAGE_BUILDER.DESIGNER.TEMPLATES.PAGE_CONTENT"), icon: "lucide-file-text", targetTemplates: ["page", "page-template"] }, ...loaded.catalog.sections },
     };
-    // a template shows on a real page: there first
-    if (designer.templateKey.value && previewUrlOf.value) bridge.send({ type: "navigate", url: previewUrlOf.value });
-    // the header and footer first: the page's outlines take theirs in
-    if (designer.groupsPreview.value) bridge.send({ type: "groups", ...designer.groupsPreview.value });
-    bridge.send({ type: "page", ...renderMessage() });
-    // a reloaded preview keeps showing theme edits not saved yet, and the inspector off
-    if (theme.dirty.value) bridge.send({ type: "settings", settings: theme.settings.value });
-    if (!inspector.value) bridge.send({ type: "inspector", enabled: false });
   },
-  // a click on a section (or a shared-component placement) in the preview selects it; hovering lights its row
-  onSelect: (id) => {
+  // saves, publications and agents check the theme against the catalog of the storefront previewed
+  prepare: (loaded) => (designer.storeId.value ? ensureCatalog(designer.storeId.value, loaded.catalog, { has: hasCatalog, upload: uploadCatalog }) : Promise.resolve()),
+  // a reloaded frame has lost everything: whom it renders as, the inspector, light or dark, the theme, the page
+  handshake: () => [
+    ...handshakeMessages({
+      inspector: !versionView && inspector.value,
+      colorScheme: colorScheme.value,
+      draft: versionView?.draft ?? draft(),
+      render: versionView?.render ?? render({ scroll: true }),
+    }),
+    // a reloaded preview keeps showing theme edits not saved yet
+    ...(theme.dirty.value ? [settingsMessage()] : []),
+  ],
+  // a click on a section, a block or a shared-component placement in the preview selects it; hovering lights its row
+  onSelect: (event) => {
+    const next = selectionFrom(designer.doc.value, event);
+    if (JSON.stringify(next) === JSON.stringify(designer.selection.value)) return;
     selectedInPreview = true;
-    designer.selection.value = { kind: "section", id };
+    designer.selection.value = next;
   },
   onHover: (id) => (designer.hovered.value = id),
-  // the template the store's rules pick for the page shown
-  onResolved: (value) => (resolved.value = value),
+  // the template the storefront rendered for the page shown, and which of the designer's rules chose it
+  onResolved: (value) => (resolved.value = { ...value, rule: ruleIndex(rules.loaded.value ? rules.rules.value : undefined, value.pageType, value.ruleId) }),
   // a text edited on the page: the setting changes, and its section or block is selected (the preview stays put)
   onEdit: ({ itemId, path, value }) => {
     const target = designer.setText(itemId, path, value);
@@ -699,9 +791,12 @@ const bridge = usePreviewBridge({
   },
 });
 
-// the header and footer re-render as their sections change (debounced while typing)
-const sendGroups = debounce(() => designer.groupsPreview.value && bridge.send({ type: "groups", ...designer.groupsPreview.value }), 120);
-watch(() => designer.groupsPreview.value, sendGroups, { deep: true });
+// the theme goes out whole whenever it changes (debounced while typing)
+const draftJson = computed(() => JSON.stringify(draft().theme));
+const sendDraft = debounce(() => {
+  if (!versionView) bridge.send(draft());
+}, 120);
+watch(draftJson, sendDraft);
 
 // The preview's handshake takes a moment (the storefront's first build longer); one that doesn't come says so, with
 // the storefront's address, as a storefront that isn't running never answers.
@@ -711,9 +806,9 @@ let previewTimer: ReturnType<typeof setTimeout> | undefined;
 function waitForPreview() {
   clearTimeout(previewTimer);
   previewSlow.value = false;
-  if (!bridge.connected.value && url.value) previewTimer = setTimeout(() => (previewSlow.value = true), PREVIEW_SLOW_MS);
+  if (!bridge.connected.value && !bridge.unsupported.value && url.value) previewTimer = setTimeout(() => (previewSlow.value = true), PREVIEW_SLOW_MS);
 }
-watch([() => bridge.connected.value, url], waitForPreview, { immediate: true });
+watch([() => bridge.connected.value, () => bridge.unsupported.value, url], waitForPreview, { immediate: true });
 onBeforeUnmount(() => clearTimeout(previewTimer));
 function reloadPreview() {
   if (frame.value && url.value) frame.value.src = url.value;
@@ -721,13 +816,11 @@ function reloadPreview() {
 }
 
 // every edit re-renders the preview (debounced while typing)
-const sendChanged = debounce(() => bridge.send({ type: "changed", ...renderMessage() }), 120);
-watch([() => designer.preview.value, () => designer.sectionLabels.value], sendChanged);
-// no section selected (a page row, or nothing): the preview drops its section outline
-watch(
-  () => !selectedSectionId(),
-  (none) => none && sendChanged(),
-);
+const renderJson = computed(() => JSON.stringify([designer.preview.value, designer.sectionLabels.value]));
+const sendRender = debounce(() => {
+  if (!versionView) bridge.send(render());
+}, 120);
+watch(renderJson, sendRender);
 
 // the inspector: on, the preview outlines sections and a click selects one; off, it works like the live page.
 // A page left while it was off (a link that reloads) comes back when it is turned on again.
@@ -738,6 +831,8 @@ function toggleInspector() {
   if (inspector.value && !bridge.connected.value && frame.value && url.value) frame.value.src = url.value;
   bridge.send({ type: "inspector", enabled: inspector.value });
 }
+
+watch(colorScheme, (scheme) => bridge.send({ type: "colorScheme", scheme }));
 
 // Set on the blade's element, inline and !important: the shells pin a maximized blade with !important rules of their
 // own (vc-shell's, the admin shell's 8px inset), and VcBlade passes no style attribute through
@@ -772,30 +867,37 @@ useEventListener(
   { capture: true },
 );
 
-// selecting a section scrolls the preview to it: a 'page' render does, once the section is on the page (a new one too).
-// A click in the preview itself only moves the outline: the page stays where the pointer is.
+// selecting a section or a block scrolls the preview to it, once it is on the page (a new one too). A click in the
+// preview itself only moves the outline: the page stays where the pointer is. Nothing selected: the outline goes.
 let selectedInPreview = false;
 watch(
-  () => selectedSectionId(),
-  (id) => {
+  () => {
+    const sel = designer.selection.value;
+    if (!sel || sel.kind === "page") return undefined;
+    return sel.kind === "block" ? `${sel.sectionId}/${sel.id}` : sel.id;
+  },
+  (key) => {
     const fromPreview = selectedInPreview;
     selectedInPreview = false;
-    if (!id) return;
-    sendChanged.cancel();
-    bridge.send({ type: fromPreview ? "changed" : "page", ...renderMessage() });
+    if (!key) return sendRender();
+    sendRender.cancel();
+    if (!versionView) bridge.send(render({ scroll: !fromPreview }));
   },
 );
+
+const settingsMessage = (): DesignerMessage => ({ type: "settings", settings: theme.settings.value as Record<string, unknown> });
 
 // theme edits apply live (colours become CSS variables in the storefront); untouched, the preview keeps the site's own look
 watch(
   () => theme.settings.value,
-  (settings) => theme.dirty.value && bridge.send({ type: "settings", settings }),
+  () => theme.dirty.value && bridge.send(settingsMessage()),
 );
 
 // the Add section list: the hovered type shows at the end of the page until the pointer leaves
 function previewSection(type: string | null) {
-  if (type) bridge.send({ type: "preview", ...renderMessage(), model: newItem(type, "section", designer.schemas.value) });
-  else sendChanged();
+  sendRender.cancel();
+  if (type) bridge.send(render({ model: newItem(type, "section", designer.schemas.value) }));
+  else sendRender();
 }
 
 // ── assets ───────────────────────────────────────────────────────────────────
@@ -905,7 +1007,7 @@ function editShared(componentId: string) {
   if (!storeId) return;
   openSharedComponentDesigner(storeId, componentId, async () => {
     await designer.loadComponents(true);
-    sendChanged();
+    sendRender();
     sharedPanel.value?.reload();
   });
 }
@@ -1049,6 +1151,7 @@ let versionPreviews = 0;
 function endVersionPreview() {
   versionPreviews++;
   previewing.value = undefined;
+  versionView = undefined;
 }
 
 /**
@@ -1063,11 +1166,11 @@ async function previewVersion(version: PageVersion | null) {
     window.open(filePreviewUrl(file, true, undefined, false, version.sha), "_blank", "noopener");
     return;
   }
-  sendChanged.cancel();
+  sendRender.cancel();
   if (!version) {
     endVersionPreview();
-    if (designer.groupsPreview.value) bridge.send({ type: "groups", ...designer.groupsPreview.value });
-    bridge.send({ type: "page", ...renderMessage() });
+    bridge.send(draft());
+    bridge.send(render({ scroll: true }));
     bridge.send({ type: "inspector", enabled: inspector.value });
     return;
   }
@@ -1091,25 +1194,32 @@ async function previewVersion(version: PageVersion | null) {
     if (request !== versionPreviews) return;
     previewing.value = version;
     const groups = designer.groupsPreview.value;
-    if (groups && (header || footer)) bridge.send({ type: "groups", ...groups, ...(header ? { header } : {}), ...(footer ? { footer } : {}) });
-    // as the page's own render is made: without the header and footer sections (the preview shows the site's), with
-    // shared components filled in from the ones the designer has
+    // as the page's own render is made: without the header and footer sections (they are in the theme), with shared
+    // components filled in from the ones the designer has
     const shared = new Map([...designer.components].map(([id, x]) => [id, x && { content: x.content, label: x.name }]));
-    // the version first (it ends any text being edited in the preview), then a look-only preview: no outlines,
-    // no clicks, nothing typed into a version that is not the page
-    bridge.send({ type: "page", ...renderMessage(), ...(saved ? resolveRefs(pageOnly(saved), shared) : {}), sectionId: "" });
+    // the theme with the header and footer that Save left (the rest as it is now), and its page; the version first (it
+    // ends any text being edited in the preview), then a look-only preview: no outlines, no clicks, nothing typed into
+    // a version that is not the page
+    versionView = {
+      draft: draft(groups && { header: header ?? groups.header, footer: footer ?? groups.footer }),
+      render: render({ preview: saved ? resolveRefs(pageOnly(saved), shared) : undefined, selection: null }),
+    };
+    bridge.send(versionView.draft);
+    bridge.send(versionView.render);
     bridge.send({ type: "inspector", enabled: false });
   } catch {
     if (request === versionPreviews) notification.error(t("PAGE_BUILDER.DESIGNER.HISTORY.PREVIEW_FAILED"));
   }
 }
-// an edit shows the page again, and the preview takes clicks again
+// an edit shows the page again (its render follows the edit), and the preview takes clicks again
 watch(
   () => designer.preview.value,
   () => {
     const shown = !!previewing.value;
     endVersionPreview();
-    if (shown) bridge.send({ type: "inspector", enabled: inspector.value });
+    if (!shown) return;
+    bridge.send(draft());
+    bridge.send({ type: "inspector", enabled: inspector.value });
   },
 );
 
@@ -1358,6 +1468,8 @@ onMounted(async () => {
         // whether the site keeps versions: a page's, a template's and its header's and footer's
         query.value?.sharedComponentId ? undefined : gitFlowOf(storeId, name).then((x) => (historyOn.value = x.siteHistory)),
         query.value?.sharedComponentId ? undefined : loadTemplateKeys(),
+        // the preview gets the rules with the theme: they choose a content page's template too
+        query.value?.sharedComponentId || rules.loaded.value ? undefined : rules.load(storeId, name).catch(() => undefined),
       ]);
     }),
     loadStorefront(storeId).then((x) => {
@@ -1404,8 +1516,13 @@ const templateKeyList = ref<string[]>([]);
 const catalog = ref<CatalogContext>();
 const rulesOpen = ref(false);
 const switcherShown = computed(() => !designer.shared.value && !!themeName.value);
-/** the template the store's rules pick for what the preview shows, as the preview reports it */
-const resolved = ref<Resolved>();
+/** the template the storefront rendered for what the preview shows, as the preview reports it */
+const resolved = ref<ResolvedRule>();
+/** why: the designer's rule that chose it, or none */
+const whyOf = (r: ResolvedRule) =>
+  r.rule === null
+    ? t("PAGE_BUILDER.DESIGNER.RULES.TEST_DEFAULT")
+    : t("PAGE_BUILDER.DESIGNER.RULES.TEST_RULE", { number: r.rule === undefined ? (r.ruleId ?? "") : r.rule + 1 });
 
 async function loadTemplateKeys() {
   const storeId = designer.storeId.value;
@@ -1438,9 +1555,8 @@ function pickEntity(entity: NamedEntity) {
 watch(previewUrlOf, (to) => {
   if (!to || !designer.templateKey.value) return;
   resolved.value = undefined;
-  sendChanged.cancel();
-  bridge.send({ type: "navigate", url: to });
-  bridge.send({ type: "page", ...renderMessage() });
+  sendRender.cancel();
+  bridge.send(render());
 });
 
 /** a template opened: something to preview it with, and the rules */
@@ -1517,7 +1633,7 @@ const inEffect = computed(() => {
   const key = designer.templateKey.value;
   const r = resolved.value;
   if (!key || !r || r.pageType !== designer.pageType.value) return undefined;
-  const why = r.rule === null ? t("PAGE_BUILDER.DESIGNER.RULES.TEST_DEFAULT") : t("PAGE_BUILDER.DESIGNER.RULES.TEST_RULE", { number: r.rule + 1 });
+  const why = whyOf(r);
   const other = r.template !== key;
   return {
     text: t("PAGE_BUILDER.DESIGNER.TEMPLATES.IN_EFFECT", { name: templateName(r.template), why }),
@@ -1547,10 +1663,7 @@ watchEffect(() => {
     let info = t("PAGE_BUILDER.DESIGNER.TEMPLATES.TEMPLATE_HINT");
     if (typeof chosen === "string" && chosen) info = t("PAGE_BUILDER.DESIGNER.TEMPLATES.TEMPLATE_CHOSEN", { name: templateName(chosen) });
     else if (r)
-      info = t("PAGE_BUILDER.DESIGNER.TEMPLATES.TEMPLATE_IN_EFFECT", {
-        name: templateName(r.template),
-        why: r.rule === null ? t("PAGE_BUILDER.DESIGNER.RULES.TEST_DEFAULT") : t("PAGE_BUILDER.DESIGNER.RULES.TEST_RULE", { number: r.rule + 1 }),
-      });
+      info = t("PAGE_BUILDER.DESIGNER.TEMPLATES.TEMPLATE_IN_EFFECT", { name: templateName(r.template), why: whyOf(r) });
     fields.push({
       id: "template",
       type: "select",
@@ -1868,6 +1981,10 @@ watchEffect(() => {
       background: var(--primary-50);
       color: var(--primary-700);
     }
+  }
+
+  &__schemes {
+    margin-right: 8px;
   }
 
   &__devices {

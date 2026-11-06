@@ -208,7 +208,7 @@
                   why:
                     resolved!.rule === null
                       ? $t("PAGE_BUILDER.DESIGNER.RULES.TEST_DEFAULT")
-                      : $t("PAGE_BUILDER.DESIGNER.RULES.TEST_RULE", { number: resolved!.rule + 1 }),
+                      : $t("PAGE_BUILDER.DESIGNER.RULES.TEST_RULE", { number: resolved!.rule === undefined ? resolved!.ruleId : resolved!.rule + 1 }),
                 })
               }}
             </span>
@@ -285,7 +285,7 @@ import { productFacts, searchCategories, type CatalogContext, type NamedEntity, 
 import { rulesPath } from "../history";
 import { conditionsOf, formatRules, moveItem, parseRules, rulesFor, rulesOf, withRules, type RuleError, type TemplateRule } from "../rules";
 import { alternateName, pageTypeOf, type PageType } from "../templates";
-import type { Resolved } from "../preview";
+import type { ResolvedRule } from "../previewMessages";
 import type { TemplateRulesState } from "../templateRules";
 import RuleForm from "./RuleForm.vue";
 
@@ -299,7 +299,7 @@ const props = defineProps<{
   theme: string;
   /** what the preview shows the template on: a product's or category's id and name, a page's permalink */
   previewed?: NamedEntity;
-  resolved?: Resolved;
+  resolved?: ResolvedRule;
 }>();
 const emit = defineEmits<{ close: [] }>();
 

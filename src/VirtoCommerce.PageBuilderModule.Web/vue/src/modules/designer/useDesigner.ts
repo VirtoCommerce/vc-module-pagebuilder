@@ -8,6 +8,7 @@ import type { ClipboardItem } from "./clipboard";
 import * as api from "./api";
 import { GROUPS, groupItems, groupOf, pageOnly, withGroups } from "./groups";
 import { PAGE_CONTENT, pageTypeOf, startingTemplate, templateEntry, templateKeyOf } from "./templates";
+import type { Capability, Handshake } from "./previewMessages";
 
 const EMPTY_SCHEMAS: Schemas = { sections: {}, blocks: {}, shared: {}, objects: {} };
 /** A page-level row of the tree: the page template's own fields, or a static section's (Page Header: SEO). */
@@ -38,6 +39,9 @@ export function useDesigner() {
   const savedGroupsJson = ref<Record<SectionGroup, string>>({ header: "[]", footer: "[]" });
   const doc = ref<PageDocument>({ settings: {} as Item, content: [] });
   const schemas = shallowRef<Schemas>(EMPTY_SCHEMAS);
+  /** what the storefront previewed announced with its schemas: its catalog's hash, what it can do, its rule conditions */
+  const handshake = shallowRef<Handshake>();
+  const can = (capability: Capability) => !!handshake.value?.capabilities.includes(capability);
   /** what the settings panel edits; null: nothing (the panel hides) */
   const selection = ref<Selection | null>(null);
   /** The section under the pointer in the preview (its row lights up) */
@@ -418,6 +422,9 @@ export function useDesigner() {
     ),
   );
 
+  /** The tree has the Header and Footer: the page has them, and the storefront renders them */
+  const groupsShown = computed(() => groupsLoaded.value && can("groups"));
+
   /** The section groups as the preview shows them (none: the page has no Header and Footer) */
   const groupsPreview = computed(() => (groupsLoaded.value ? { header: groupItems(doc.value, "header"), footer: groupItems(doc.value, "footer") } : undefined));
 
@@ -683,8 +690,11 @@ export function useDesigner() {
     gitFlow,
     doc,
     schemas,
+    handshake,
+    can,
     selection,
     groupsLoaded,
+    groupsShown,
     groupsPreview,
     groupSectionTypes,
     hovered,
