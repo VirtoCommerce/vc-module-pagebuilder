@@ -7,9 +7,12 @@ import PageBuilder, { pageCounts } from "../src/modules/page-builder";
 import AssetLibrary from "../src/modules/asset-library";
 import SharedComponents from "../src/modules/shared-components";
 import PageBuilderDesigner from "../src/modules/pages/PageBuilderDesigner.vue";
+import PageBuilderGit from "../src/modules/pages/PageBuilderGit.vue";
+import PageBuilderGitHub from "../src/modules/pages/PageBuilderGitHub.vue";
 
-// the Vue designer here too: "Edit in designer" opens it as a full-screen blade instead of the Angular app in a new tab
-const Designer = defineAppModule({ blades: { PageBuilderDesigner } });
+// the Vue designer here too: "Edit in designer" opens it as a full-screen blade instead of the Angular app in a new tab;
+// its Enable history opens the site's history blade, which opens the GitHub connection
+const Designer = defineAppModule({ blades: { PageBuilderDesigner, PageBuilderGit, PageBuilderGitHub } });
 
 // Load required CSS
 import "@vc-shell/framework/dist/index.css";
