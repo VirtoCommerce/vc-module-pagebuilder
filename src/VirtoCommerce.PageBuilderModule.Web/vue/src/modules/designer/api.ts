@@ -330,9 +330,15 @@ export async function saveFilePage(page: FilePage, doc: PageDocument) {
   });
 }
 
+/** A theme template is a theme file: the builder's page endpoints take pages and blog articles only */
+const isThemeFile = (page: FilePage) => page.type === "themes";
+
 /** A file page's publish status; the builder answers from git or, for a store without it, from the site's files */
 export async function filePublishStatus(page: FilePage): Promise<PublishStatus> {
-  return ((await (await call(`/api/pagebuilder/git/publish-status?${fileArgs(page)}`)).json()) ?? { published: true, hasChanges: false }) as PublishStatus;
+  const url = isThemeFile(page)
+    ? themeFileUrl(page.storeId, page.path, "publish-status")
+    : `/api/pagebuilder/git/publish-status?${fileArgs(page)}`;
+  return ((await (await call(url)).json()) ?? { published: true, hasChanges: false }) as PublishStatus;
 }
 
 /**
@@ -340,8 +346,10 @@ export async function filePublishStatus(page: FilePage): Promise<PublishStatus> 
  * publishing opens (and merges) a pull request. 409: someone published first.
  */
 export async function setFilePublished(page: FilePage, publish: boolean, rebase = false) {
-  const action = publish ? "publish" : "unpublish";
-  await call(`/api/pagebuilder/git/${action}?${fileArgs(page, rebase ? { rebase: "true" } : {})}`, { method: "POST" });
+  const url = isThemeFile(page)
+    ? themeFileUrl(page.storeId, page.path, "publishing", { publish: String(publish) })
+    : `/api/pagebuilder/git/${publish ? "publish" : "unpublish"}?${fileArgs(page, rebase ? { rebase: "true" } : {})}`;
+  await call(url, { method: "POST" });
 }
 
 /** git: brings the published page to the production branch */
