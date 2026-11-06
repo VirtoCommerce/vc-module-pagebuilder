@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json.Linq;
+using VirtoCommerce.PageBuilderModule.Core.Theme;
 using VirtoCommerce.PageBuilderModule.Data.Theme;
 using Xunit;
 
@@ -11,10 +12,12 @@ public class ThemeSnapshotBuilderTests
 {
     private static readonly DateTime Published = new(2026, 11, 3, 10, 0, 0, DateTimeKind.Utc);
 
+    private readonly ThemeSnapshotBuilder _builder = new();
+
     [Fact]
-    public void Rules_get_ids_and_the_conditions_they_use_and_a_page_type_without_rules_gets_the_default()
+    public void Build_RulesWithoutIds_AssignsIdsConditionsAndTheDefaultRulesOfAPageTypeWithoutRules()
     {
-        var rules = ThemeSnapshotBuilder.ToRules(JObject.Parse("""
+        var rules = Snapshot(Source(rules: JObject.Parse("""
             {
               "version": 1,
               "category": [
@@ -23,7 +26,7 @@ public class ThemeSnapshotBuilderTests
               ],
               "page": []
             }
-            """));
+            """)))["rules"]!;
 
         Assert.Equal(2, rules.Value<int>("version"));
         Assert.Equal(["category-0", "kept"], rules["category"]!.Select(x => x.Value<string>("id")));
@@ -34,11 +37,11 @@ public class ThemeSnapshotBuilderTests
     }
 
     [Fact]
-    public void Two_rules_with_the_same_id_keep_the_first_one_and_the_other_gets_its_own()
+    public void Build_TwoRulesWithTheSameId_KeepsTheFirstIdAndGivesTheOtherItsOwn()
     {
-        var rules = ThemeSnapshotBuilder.ToRules(JObject.Parse("""
+        var rules = Snapshot(Source(rules: JObject.Parse("""
             { "product": [ { "id": "a", "template": "product" }, { "id": "a", "template": "product.b2c" } ] }
-            """));
+            """)))["rules"]!;
 
         Assert.Equal(["a", "product-1"], rules["product"]!.Select(x => x.Value<string>("id")));
     }
@@ -65,7 +68,7 @@ public class ThemeSnapshotBuilderTests
                 """),
         });
 
-        var set = ThemeSnapshotBuilder.Build(source, null, null, ["en-US", "de-DE"], "en-US", 1, Published);
+        var set = _builder.Build(source, null, null, ["en-US", "de-DE"], "en-US", 1, Published);
 
         var de = Section(set.Files["de-DE"], "page");
         Assert.Equal("Kostenloser Versand", de.Value<string>("title"));
@@ -79,7 +82,7 @@ public class ThemeSnapshotBuilderTests
     [Fact]
     public void There_is_a_snapshot_for_every_store_language_and_for_the_default_one()
     {
-        var set = ThemeSnapshotBuilder.Build(Source(), null, "abc12345", ["de-DE"], "en-US", 7, Published);
+        var set = _builder.Build(Source(), null, "abc12345", ["de-DE"], "en-US", 7, Published);
 
         Assert.Equal(["de-DE", "en-US"], set.Files.Keys.OrderBy(x => x));
         var snapshot = JObject.Parse(set.Files["de-DE"]);
@@ -95,7 +98,7 @@ public class ThemeSnapshotBuilderTests
     {
         var source = Source(templates: new() { ["product"] = JArray.Parse("""[ { "type": "settings" }, { "id": "s1", "type": "product-info" } ]""") });
 
-        var snapshot = JObject.Parse(ThemeSnapshotBuilder.Build(source, null, null, [], "en-US", 1, Published).Files["en-US"]);
+        var snapshot = JObject.Parse(_builder.Build(source, null, null, [], "en-US", 1, Published).Files["en-US"]);
 
         Assert.Equal("product-info", snapshot["templates"]!["product"]!["content"]![0]!.Value<string>("type"));
         Assert.Equal("settings", snapshot["templates"]!["product"]!["settings"]!.Value<string>("type"));
@@ -142,7 +145,7 @@ public class ThemeSnapshotBuilderTests
             header: JObject.Parse("""{ "content": [ { "id": "h", "type": "site-header", "catalog_menu": "main-menu", "logo_width": 120 } ] }"""),
             footer: JObject.Parse("""{ "content": [ { "id": "f", "type": "site-footer", "blocks": [ { "id": "b", "type": "footer-menu", "columns": [ { "menu": "Help" }, { "menu": "" } ] } ] } ] }"""));
 
-        var set = ThemeSnapshotBuilder.Build(source, catalog, "abc12345", [], "en-US", 1, Published);
+        var set = _builder.Build(source, catalog, "abc12345", [], "en-US", 1, Published);
 
         Assert.Equal(["Help", "main-menu"], set.Menus);
         Assert.Equal(["Help", "main-menu"], JObject.Parse(set.Files["en-US"])["menus"]!.Values<string>());
@@ -160,7 +163,7 @@ public class ThemeSnapshotBuilderTests
             },
             header: JObject.Parse("""{ "content": [ { "id": "h", "type": "banner", "blocks": [ { "id": "x", "type": "nope" } ] } ] }"""));
 
-        var errors = ThemeSnapshotBuilder.Validate(source, catalog);
+        var errors = _builder.Validate(source, catalog);
 
         Assert.Equal(
             [
@@ -170,7 +173,7 @@ public class ThemeSnapshotBuilderTests
             ],
             errors);
         // without a catalog only the shape counts
-        Assert.Single(ThemeSnapshotBuilder.Validate(source, null));
+        Assert.Single(_builder.Validate(source, null));
     }
 
     [Fact]
@@ -180,7 +183,7 @@ public class ThemeSnapshotBuilderTests
 
         Assert.Equal(
             ["sections/header-group.json: an item without an id or a type", "sections/header-group.json: an item without an id or a type"],
-            ThemeSnapshotBuilder.Validate(source, JObject.Parse("""{ "sections": { "banner": {} } }""")));
+            _builder.Validate(source, JObject.Parse("""{ "sections": { "banner": {} } }""")));
     }
 
     [Fact]
@@ -188,7 +191,7 @@ public class ThemeSnapshotBuilderTests
     {
         var source = new ThemeSource
         {
-            Theme = "default",
+            ThemeName = "default",
             Header = JObject.Parse("""{ "content": [ { "id": "h", "type": "banner", "menu": "main" } ] }"""),
             SettingsData = JObject.Parse("""{ "current": "dark", "presets": ["dark"] }"""),
             Rules = JObject.Parse("""{ "product": [ { "id": { "x": 1 }, "template": "product" } ] }"""),
@@ -200,7 +203,7 @@ public class ThemeSnapshotBuilderTests
             }
             """);
 
-        var snapshot = JObject.Parse(ThemeSnapshotBuilder.Build(source, catalog, "abcdefgh", [], "en-US", 1, Published).Files["en-US"]);
+        var snapshot = JObject.Parse(_builder.Build(source, catalog, "abcdefgh", [], "en-US", 1, Published).Files["en-US"]);
 
         Assert.Equal(["main"], snapshot["menus"]!.Values<string>());
         Assert.Equal("product-0", snapshot["rules"]!["product"]![0]!.Value<string>("id"));
@@ -212,7 +215,7 @@ public class ThemeSnapshotBuilderTests
     {
         var source = Source(header: JObject.Parse("""{ "content": [ { "id": "h", "type": "banner", "blocks": { "id": "x", "type": "nope" } } ] }"""));
 
-        Assert.Equal(["sections/header-group.json: 'h' has blocks that are not a list"], ThemeSnapshotBuilder.Validate(source, null));
+        Assert.Equal(["sections/header-group.json: 'h' has blocks that are not a list"], _builder.Validate(source, null));
     }
 
     /// <summary>A snapshot is read as it is: a shared component placed in a theme file would reach the storefront unresolved.</summary>
@@ -225,7 +228,7 @@ public class ThemeSnapshotBuilderTests
         [
             "templates/product.json: 'ref1' places a shared component, which only a page can hold",
             "sections/footer-group.json: 'ref1' places a shared component, which only a page can hold",
-        ], ThemeSnapshotBuilder.Validate(WithSharedComponent(), catalog));
+        ], _builder.Validate(WithSharedComponent(), catalog));
     }
 
     /// <summary>The first publication, from live files that may predate the check, leaves the placement out.</summary>
@@ -234,8 +237,8 @@ public class ThemeSnapshotBuilderTests
     {
         var source = WithSharedComponent();
 
-        Assert.Empty(ThemeSnapshotBuilder.Validate(source, null));
-        var snapshot = JObject.Parse(ThemeSnapshotBuilder.Build(source, null, null, ["en-US"], "en-US", 1, DateTime.UtcNow).Files["en-US"]);
+        Assert.Empty(_builder.Validate(source, null));
+        var snapshot = JObject.Parse(_builder.Build(source, null, null, ["en-US"], "en-US", 1, DateTime.UtcNow).Files["en-US"]);
         Assert.Equal(["product-info"], snapshot["templates"]!["product"]!["content"]!.Select(x => x.Value<string>("type")));
         Assert.Empty((JArray)snapshot["footer"]!["content"]!);
     }
@@ -257,7 +260,7 @@ public class ThemeSnapshotBuilderTests
             rules: JObject.Parse("""{ "category": [ { "template": "category.sale", "when": { "inCategory": ["c-sale"] } } ] }"""));
         var catalog = JObject.Parse("""{ "sections": { "site-header": { "settings": [ { "id": "catalog_menu", "type": "menu" } ] } } }""");
 
-        var set = ThemeSnapshotBuilder.Build(source, catalog, "abc12345", ["en-US", "de-DE"], "en-US", 3, Published);
+        var set = _builder.Build(source, catalog, "abc12345", ["en-US", "de-DE"], "en-US", 3, Published);
 
         Assert.Equal(
             """{"format":1,"publication":3,"publishedDate":"2026-11-03T10:00:00.0000000Z","theme":"default","cultureName":"de-DE","catalogHash":"abc12345","rules":{"version":2,"conditions":["inCategory","property"],"product":[{"id":"default-b2c","template":"product.b2c","when":{"property":{"name":"VirtoFrontend_UI_Layout","equals":"B2C"}}}],"category":[{"template":"category.sale","when":{"inCategory":["c-sale"]},"id":"category-0"}]},"templates":{"page.landing":{"settings":{"type":"settings","layout":"full"},"content":[{"id":"p","type":"page-content"}]},"product":{"settings":{"type":"settings"},"content":[{"id":"s1","type":"product-info","title":"Hallo"}]}},"header":{"content":[{"id":"h","type":"site-header","catalog_menu":"main-menu"}]},"footer":{"content":[{"id":"f","type":"site-footer"}]},"brand":{"logoUrl":"/a.svg","faviconUrl":"/f.ico"},"palette":{"light":{"color_primary_500":"#f99e24"},"dark":{"color_primary_500":"#ffbb5b"}},"menus":["main-menu"]}""",
@@ -267,7 +270,7 @@ public class ThemeSnapshotBuilderTests
     [Fact]
     public void Build_EmptyTheme_LeavesTheOptionalPartsOut()
     {
-        var set = ThemeSnapshotBuilder.Build(Source(), null, null, [], "en-US", 1, Published);
+        var set = _builder.Build(Source(), null, null, [], "en-US", 1, Published);
 
         Assert.Equal(
             """{"format":1,"publication":1,"publishedDate":"2026-11-03T10:00:00.0000000Z","theme":"default","cultureName":"en-US","catalogHash":null,"rules":{"version":2,"conditions":["property"],"product":[{"id":"default-b2c","template":"product.b2c","when":{"property":{"name":"VirtoFrontend_UI_Layout","equals":"B2C"}}}]},"templates":{},"brand":{},"menus":[]}""",
@@ -283,7 +286,7 @@ public class ThemeSnapshotBuilderTests
     [InlineData("product.json-draft", null)]
     public void A_template_file_name_gives_its_key(string fileName, string key)
     {
-        Assert.Equal(key, ThemeSnapshotBuilder.TemplateKeyOf(fileName));
+        Assert.Equal(key, _builder.GetTemplateKey(fileName));
     }
 
     private static ThemeSource WithSharedComponent()
@@ -307,7 +310,7 @@ public class ThemeSnapshotBuilderTests
         JToken paletteDark = null,
         JToken rules = null) => new()
         {
-            Theme = "default",
+            ThemeName = "default",
             Templates = templates ?? new Dictionary<string, JToken>(),
             Header = header,
             Footer = footer,
@@ -318,8 +321,8 @@ public class ThemeSnapshotBuilderTests
             Rules = rules,
         };
 
-    private static JObject Snapshot(ThemeSource source) =>
-        JObject.Parse(ThemeSnapshotBuilder.Build(source, null, null, [], "en-US", 1, Published).Files["en-US"]);
+    private JObject Snapshot(ThemeSource source) =>
+        JObject.Parse(_builder.Build(source, null, null, [], "en-US", 1, Published).Files["en-US"]);
 
     private static JObject Section(string snapshot, string template) =>
         (JObject)JObject.Parse(snapshot)["templates"]![template]!["content"]![0]!;

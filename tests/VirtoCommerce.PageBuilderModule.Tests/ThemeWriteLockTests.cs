@@ -37,11 +37,11 @@ public class ThemeWriteLockTests
     [Fact]
     public async Task A_theme_save_waits_for_the_publication_of_its_store()
     {
-        var publication = await _lock.AcquireAsync(ThemePublisher.LockResource("s1"), cancellationToken: Ct);
+        var publication = await _lock.AcquireAsync(ThemeStorage.GetLockResource("s1"), cancellationToken: Ct);
 
         var save = Builder().SaveTemplates("s1", "default", Files("themes", Path), draft: true);
 
-        Assert.Equal(ThemePublisher.LockResource("s1"), await _lock.Blocked.Task.WaitAsync(Patience, Ct));
+        Assert.Equal(ThemeStorage.GetLockResource("s1"), await _lock.Blocked.Task.WaitAsync(Patience, Ct));
         Assert.False(_live.Files.ContainsKey($"{Path}-draft"));
         await publication.DisposeAsync();
         await save;
@@ -51,7 +51,7 @@ public class ThemeWriteLockTests
     [Fact]
     public async Task A_page_save_does_not_wait_for_the_theme()
     {
-        await using var publication = await _lock.AcquireAsync(ThemePublisher.LockResource("s1"), cancellationToken: Ct);
+        await using var publication = await _lock.AcquireAsync(ThemeStorage.GetLockResource("s1"), cancellationToken: Ct);
 
         await Builder().SaveTemplates("s1", "default", Files("pages", "home.page"), draft: true).WaitAsync(Patience, Ct);
 
@@ -64,11 +64,11 @@ public class ThemeWriteLockTests
     {
         _live.Files[Path] = "{}";
         _live.Files[$"{Path}-draft"] = "{}";
-        var publication = await _lock.AcquireAsync(ThemePublisher.LockResource("s1"), cancellationToken: Ct);
+        var publication = await _lock.AcquireAsync(ThemeStorage.GetLockResource("s1"), cancellationToken: Ct);
 
         var discard = Builder().DiscardDraft("s1", Path, "themes", "default");
 
-        Assert.Equal(ThemePublisher.LockResource("s1"), await _lock.Blocked.Task.WaitAsync(Patience, Ct));
+        Assert.Equal(ThemeStorage.GetLockResource("s1"), await _lock.Blocked.Task.WaitAsync(Patience, Ct));
         Assert.True(_live.Files.ContainsKey($"{Path}-draft"));
         await publication.DisposeAsync();
         Assert.IsType<NoContentResult>(await discard);
@@ -83,11 +83,11 @@ public class ThemeWriteLockTests
             ("GET", $"repos/acme/site-s1/contents/{repoPath}?ref={Sha}", (_, _) => GitHubScript.Json(Contents("{\"content\":[]}"))),
             ("GET", $"repos/acme/site-s1/contents/{repoPath}?ref=main", (_, _) => GitHubScript.Json(Contents("{}"))),
             ("PUT", $"repos/acme/site-s1/contents/{repoPath}", (_, _) => GitHubScript.Json("""{ "commit": { "sha": "c9" } }""", HttpStatusCode.Created)));
-        var publication = await _lock.AcquireAsync(ThemePublisher.LockResource("s1"), cancellationToken: Ct);
+        var publication = await _lock.AcquireAsync(ThemeStorage.GetLockResource("s1"), cancellationToken: Ct);
 
         var restore = HistoryController(github).Restore(Sha, "s1", Path, cancellationToken: Ct);
 
-        Assert.Equal(ThemePublisher.LockResource("s1"), await _lock.Blocked.Task.WaitAsync(Patience, Ct));
+        Assert.Equal(ThemeStorage.GetLockResource("s1"), await _lock.Blocked.Task.WaitAsync(Patience, Ct));
         Assert.False(_live.Files.ContainsKey($"{Path}-draft"));
         await publication.DisposeAsync();
         Assert.IsType<OkResult>(await restore);

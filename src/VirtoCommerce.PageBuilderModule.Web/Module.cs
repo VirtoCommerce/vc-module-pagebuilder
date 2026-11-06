@@ -129,11 +129,11 @@ namespace VirtoCommerce.PageBuilderModule.Web
             // and a theme file's: templates, template rules, section groups, theme settings
             serviceCollection.AddTransient<ThemeFileHistory>();
 
-            // the theme as one publication: snapshots the storefront reads, catalogs it is validated against
-            serviceCollection.AddTransient<ThemeStorageFactory>();
+            serviceCollection.Configure<ThemeSnapshotOptions>(Configuration.GetSection(ThemeSnapshotOptions.SectionName));
+            serviceCollection.AddTransient<IThemeStorageFactory, ThemeStorageFactory>();
+            serviceCollection.AddTransient<IThemeSnapshotBuilder, ThemeSnapshotBuilder>();
             serviceCollection.AddTransient<ISchemaCatalogService, SchemaCatalogService>();
-            serviceCollection.AddTransient<ThemePublisher>();
-            serviceCollection.AddTransient<IThemePublisher>(provider => provider.GetRequiredService<ThemePublisher>());
+            serviceCollection.AddTransient<IThemePublisher, ThemePublisher>();
             serviceCollection.AddTransient<IThemeSnapshotService, ThemeSnapshotService>();
             serviceCollection.AddTransient<IValidator<PageBuilderStoreRequest>, PageBuilderStoreRequestValidator>();
             serviceCollection.AddTransient<IValidator<ThemeFileRequest>, ThemeFileRequestValidator>();

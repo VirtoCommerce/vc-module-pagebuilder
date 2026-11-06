@@ -73,6 +73,12 @@ public class ThemeControllerTests
             return Task.FromResult(1);
         }
 
+        public Task<int> PublishFirstAsync(string storeId, CancellationToken cancellationToken = default)
+        {
+            Calls.Add($"publish first {storeId}");
+            return Task.FromResult(1);
+        }
+
         public Task<string> SaveAsync(string storeId, string catalogJson, CancellationToken cancellationToken = default)
         {
             Calls.Add($"save {storeId}");

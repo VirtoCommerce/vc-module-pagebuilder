@@ -1,14 +1,15 @@
-using System.Globalization;
 using System.IO.Compression;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using VirtoCommerce.PageBuilderModule.Core;
+using VirtoCommerce.ContentModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Theme;
+using VirtoCommerce.PageBuilderModule.Data.Extensions;
 using VirtoCommerce.PageBuilderModule.Data.GitContent;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.DistributedLock;
@@ -17,269 +18,165 @@ using VirtoCommerce.StoreModule.Core.Services;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Theme;
 
-/// <summary>
-/// A publication, one store at a time: validate, write the snapshots, move the pointer, then put the drafts live.
-/// </summary>
 public class ThemePublisher(
-    ThemeStorageFactory storageFactory,
+    IThemeStorageFactory themeStorageFactory,
+    IThemeSnapshotBuilder themeSnapshotBuilder,
     IStoreService storeService,
-    ISchemaCatalogService catalogService,
+    ISchemaCatalogService schemaCatalogService,
     IDistributedLock distributedLock,
     IEventPublisher eventPublisher,
-    ILogger<ThemePublisher> logger,
-    ThemeFileHistory themeFileHistory = null) : IThemePublisher
+    ThemeFileHistory themeFileHistory,
+    IOptions<ThemeSnapshotOptions> options,
+    ILogger<ThemePublisher> logger) : IThemePublisher
 {
-    private const string FallbackLanguage = "en-US";
-    private const string Published = "Published";
-
-    private static readonly string[] FixedFiles =
-    [
-        ThemeStorage.Rules,
-        ThemeStorage.HeaderGroup,
-        ThemeStorage.FooterGroup,
-        ThemeStorage.Brand,
-        ThemeStorage.SettingsData,
-        ThemeStorage.Palette,
-        ThemeStorage.PaletteDark,
-    ];
-
-    /// <summary>The lock theme saves and publications of a store share.</summary>
-    public static string LockResource(string storeId) => $"PageBuilder:Theme:{storeId}";
+    private const string PublishedHistorySummary = "Published";
 
     public virtual async Task<int> PublishAsync(string storeId, string catalogHash, ClaimsPrincipal user, CancellationToken cancellationToken = default)
     {
-        var catalog = await ReadCatalogAsync(storeId, catalogHash, cancellationToken);
-        var publication = await distributedLock.ExecuteAsync(
-            LockResource(storeId),
-            _ => PublishUnderLockAsync(storeId, catalog, catalogHash, drafts: true),
+        var catalog = await GetCatalogAsync(storeId, catalogHash, cancellationToken);
+        var result = await distributedLock.ExecuteAsync(
+            ThemeStorage.GetLockResource(storeId),
+            _ => PublishUnderLockAsync(storeId, catalog, catalogHash, includeDrafts: true),
             cancellationToken: cancellationToken);
 
-        await AnnouncePutLiveAsync(storeId, publication.PutLive, user, cancellationToken);
-        return publication.Number;
+        await AfterPublishAsync(storeId, result.PublishedFiles, user, cancellationToken);
+
+        return result.Publication;
     }
 
-    /// <summary>
-    /// The first publication of a store that has none, from its live files: no draft is published, so an anonymous
-    /// read may start it. The live files may predate the storefront's schemas, so only their shape is checked; the
-    /// store's current catalog, when there is one, still tells which settings name menus. Returns the current
-    /// publication instead when there is one, which another node may have written meanwhile.
-    /// </summary>
     public virtual Task<int> PublishFirstAsync(string storeId, CancellationToken cancellationToken = default)
     {
         return distributedLock.ExecuteAsync(
-            LockResource(storeId),
+            ThemeStorage.GetLockResource(storeId),
             async _ =>
             {
-                var storage = await storageFactory.OpenAsync(storeId);
-                if (await CurrentPublicationAsync(storage) is { } existing)
+                var storage = await themeStorageFactory.OpenAsync(storeId);
+                if (await storage.GetCurrentPublicationAsync() is { } publication)
                 {
-                    return existing;
+                    return publication;
                 }
 
-                var current = await catalogService.GetAsync(storeId, hash: null, cancellationToken);
-                var catalog = current == null ? null : JObject.Parse(current);
-                return (await PublishUnderLockAsync(storeId, catalog, catalogHash: null, drafts: false)).Number;
+                // Live files may predate the storefront schemas, so only their shape is validated.
+                var currentCatalog = await schemaCatalogService.GetAsync(storeId, hash: null, cancellationToken);
+                var catalog = currentCatalog == null ? null : JObject.Parse(currentCatalog);
+                var result = await PublishUnderLockAsync(storeId, catalog, catalogHash: null, includeDrafts: false);
+
+                return result.Publication;
             },
             cancellationToken: cancellationToken);
     }
 
-    /// <summary>
-    /// The publication storefronts are served: the one the pointer names; when the pointer cannot be read (a write cut
-    /// off on a file system), the highest complete one. <c>null</c> when there is none, and the first publication is due.
-    /// </summary>
-    public static async Task<int?> CurrentPublicationAsync(ThemeStorage storage)
-    {
-        var pointer = await storage.ReadAsync(ThemeStorage.Pointer);
-        if (pointer == null)
-        {
-            return null;
-        }
-
-        if (ParsePointer(pointer) is { } publication)
-        {
-            return publication;
-        }
-
-        var publications = (await storage.ListFoldersAsync(ThemeStorage.SnapshotsFolder))
-            .Select(x => int.TryParse(x, NumberStyles.None, CultureInfo.InvariantCulture, out var n) ? n : 0)
-            .Where(x => x > 0)
-            .OrderDescending();
-        foreach (var candidate in publications)
-        {
-            if (await ReadDefaultLanguageAsync(storage, candidate) != null)
-            {
-                return candidate;
-            }
-        }
-        return null;
-    }
-
-    /// <summary>
-    /// The store default language a publication was written with, from its record; <c>null</c> when the publication
-    /// is not complete: the record is written after every snapshot of the publication.
-    /// </summary>
-    public static async Task<string> ReadDefaultLanguageAsync(ThemeStorage storage, int publication)
-    {
-        var record = await storage.ReadAsync(RecordFile(publication));
-        if (record == null)
-        {
-            return null;
-        }
-
-        try
-        {
-            return JObject.Parse(record).Value<string>("defaultLanguage") is { Length: > 0 } language ? language : null;
-        }
-        catch (JsonException)
-        {
-            return null;
-        }
-    }
-
-    public static string SnapshotFile(int publication, string language) => $"{PublicationFolder(publication)}/{language}.json";
-
-    private static string RecordFile(int publication) => $"{PublicationFolder(publication)}/publication.json";
-
-    private static string PublicationFolder(int publication) =>
-        $"{ThemeStorage.SnapshotsFolder}/{publication.ToString(CultureInfo.InvariantCulture)}";
-
-    private static int? ParsePointer(string pointer)
-    {
-        if (pointer == null)
-        {
-            return null;
-        }
-
-        try
-        {
-            return JObject.Parse(pointer).Value<int?>("publication") is > 0 and var publication ? publication : null;
-        }
-        catch (JsonException)
-        {
-            return null;
-        }
-    }
-
-    /// <summary>The storage writes of a publication, the part that holds the store's theme lock.</summary>
-    /// <param name="catalog">The storefront's schemas: what the theme is checked against, and where its menus are found.</param>
-    /// <param name="catalogHash">The catalog the publication is checked against; <c>null</c> checks the shape only.</param>
-    private async Task<Publication> PublishUnderLockAsync(string storeId, JObject catalog, string catalogHash, bool drafts)
+    protected virtual async Task<ThemePublishResult> PublishUnderLockAsync(string storeId, JObject catalog, string catalogHash, bool includeDrafts)
     {
         var store = await storeService.GetNoCloneAsync(storeId) ?? throw new KeyNotFoundException($"Store '{storeId}' not found.");
-        var storage = await storageFactory.OpenAsync(storeId);
+        var storage = await themeStorageFactory.OpenAsync(storeId);
 
-        var (source, draftFiles, errors) = await ReadSourceAsync(storage, drafts);
-        errors.AddRange(ThemeSnapshotBuilder.Validate(source, catalogHash == null ? null : catalog));
+        var source = await GetThemeSourceAsync(storage, includeDrafts);
+        var errors = themeSnapshotBuilder.Validate(source, catalogHash == null ? null : catalog);
         if (errors.Count > 0)
         {
-            throw new ThemeValidationException(errors);
+            throw new ThemeValidationException([.. errors]);
         }
 
         var languages = store.Languages?.ToList() ?? [];
-        var defaultLanguage = store.DefaultLanguage ?? languages.FirstOrDefault() ?? FallbackLanguage;
-        var publication = await NextPublicationAsync(storage);
-        var set = ThemeSnapshotBuilder.Build(source, catalog, catalogHash, languages, defaultLanguage, publication, DateTime.UtcNow);
+        var defaultLanguage = store.GetThemeDefaultLanguage();
+        var publication = await storage.GetNextPublicationAsync();
+        var snapshots = themeSnapshotBuilder.Build(source, catalog, catalogHash, languages, defaultLanguage, publication, DateTime.UtcNow);
 
-        foreach (var (language, json) in set.Files)
+        foreach (var (language, content) in snapshots.Files)
         {
-            await storage.WriteAsync(SnapshotFile(publication, language), json);
-            WarnWhenLarge(storeId, publication, language, json);
+            await storage.WriteSnapshotAsync(publication, language, content);
+            LogSnapshotSize(storeId, publication, language, content);
         }
-        await storage.WriteAsync(RecordFile(publication), new JObject { ["defaultLanguage"] = defaultLanguage }.ToString(Formatting.None));
-        await storage.WriteAsync(ThemeStorage.Pointer, new JObject { ["publication"] = publication }.ToString(Formatting.None));
+
+        var record = AbstractTypeFactory<ThemePublicationRecord>.TryCreateInstance();
+        record.DefaultLanguage = defaultLanguage;
+        await storage.WritePublicationRecordAsync(publication, record);
+        await storage.SetCurrentPublicationAsync(publication);
         ThemeSnapshotCacheRegion.ExpireTokenForKey(storeId, propagate: true);
 
-        return new Publication(publication, await PutDraftsLiveAsync(storage, draftFiles));
+        var result = AbstractTypeFactory<ThemePublishResult>.TryCreateInstance();
+        result.Publication = publication;
+        result.PublishedFiles = await PublishDraftsAsync(storage, source.Drafts);
+
+        return result;
     }
 
-    private async Task<JObject> ReadCatalogAsync(string storeId, string catalogHash, CancellationToken cancellationToken)
+    protected virtual async Task<JObject> GetCatalogAsync(string storeId, string catalogHash, CancellationToken cancellationToken)
     {
         if (string.IsNullOrEmpty(catalogHash))
         {
             throw new ThemeValidationException(["the publication names no schema catalog: preview the storefront first"]);
         }
 
-        var catalog = await catalogService.GetAsync(storeId, catalogHash, cancellationToken)
+        var catalog = await schemaCatalogService.GetAsync(storeId, catalogHash, cancellationToken)
             ?? throw new ThemeValidationException([$"there is no schema catalog '{catalogHash}': preview the storefront first"]);
+
         return JObject.Parse(catalog);
     }
 
-    private static async Task<(ThemeSource Source, Dictionary<string, string> Drafts, List<string> Errors)> ReadSourceAsync(ThemeStorage storage, bool drafts)
+    protected virtual async Task<ThemeSource> GetThemeSourceAsync(IThemeStorage storage, bool includeDrafts)
     {
-        var errors = new List<string>();
-        var draftFiles = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var source = AbstractTypeFactory<ThemeSource>.TryCreateInstance();
+        source.ThemeName = storage.ThemeName;
 
-        async Task<JToken> ReadAsync(string file)
+        source.Rules = await ReadThemeFileAsync(storage, source, ThemeStorage.TemplateRulesFile, includeDrafts);
+        source.Header = await ReadThemeFileAsync(storage, source, ThemeStorage.HeaderGroupFile, includeDrafts);
+        source.Footer = await ReadThemeFileAsync(storage, source, ThemeStorage.FooterGroupFile, includeDrafts);
+        source.Brand = await ReadThemeFileAsync(storage, source, ThemeStorage.BrandFile, includeDrafts);
+        source.SettingsData = await ReadThemeFileAsync(storage, source, ThemeStorage.SettingsDataFile, includeDrafts);
+        source.Palette = await ReadThemeFileAsync(storage, source, ThemeStorage.PaletteFile, includeDrafts);
+        source.PaletteDark = await ReadThemeFileAsync(storage, source, ThemeStorage.DarkPaletteFile, includeDrafts);
+
+        foreach (var key in await GetTemplateKeysAsync(storage))
         {
-            var draft = drafts ? await storage.ReadAsync(storage.DraftOf(file)) : null;
-            if (draft != null)
+            if (await ReadThemeFileAsync(storage, source, $"{ThemeStorage.TemplatesFolder}/{key}.json", includeDrafts) is { } document)
             {
-                draftFiles[file] = draft;
-            }
-
-            var text = draft ?? await storage.ReadAsync(file);
-            if (text == null)
-            {
-                return null;
-            }
-
-            try
-            {
-                return JToken.Parse(text);
-            }
-            catch (JsonReaderException)
-            {
-                errors.Add($"{file}: not valid JSON");
-                return null;
+                source.Templates[key] = document;
             }
         }
 
-        var fixedTokens = new Dictionary<string, JToken>(StringComparer.Ordinal);
-        foreach (var file in FixedFiles)
+        return source;
+    }
+
+    /// <summary>Reads the draft when there is one, otherwise the live file.</summary>
+    protected virtual async Task<JToken> ReadThemeFileAsync(IThemeStorage storage, ThemeSource source, string file, bool includeDrafts)
+    {
+        var draft = includeDrafts ? await storage.ReadAsync(storage.GetDraftPath(file)) : null;
+        if (draft != null)
         {
-            fixedTokens[file] = await ReadAsync(file);
+            source.Drafts[file] = draft;
         }
 
-        var templates = new Dictionary<string, JToken>(StringComparer.Ordinal);
-        var names = await storage.ListFilesAsync(ThemeStorage.TemplatesFolder);
-        var keys = names
-            .Select(x => ThemeSnapshotBuilder.TemplateKeyOf(x.EndsWith("-draft", StringComparison.Ordinal) ? x[..^"-draft".Length] : x))
+        var content = draft ?? await storage.ReadAsync(file);
+        if (content == null)
+        {
+            return null;
+        }
+
+        try
+        {
+            return JToken.Parse(content);
+        }
+        catch (JsonReaderException)
+        {
+            source.InvalidFiles.Add(file);
+            return null;
+        }
+    }
+
+    protected virtual async Task<IList<string>> GetTemplateKeysAsync(IThemeStorage storage)
+    {
+        var fileNames = await storage.ListFilesAsync(ThemeStorage.TemplatesFolder);
+
+        return fileNames
+            .Select(x => themeSnapshotBuilder.GetTemplateKey(storage.GetLivePath(x)))
             .Where(x => x != null)
-            .Distinct(StringComparer.Ordinal);
-        foreach (var key in keys)
-        {
-            // a template saved only as a draft is not live yet: the first publication leaves it out
-            if (await ReadAsync($"{ThemeStorage.TemplatesFolder}/{key}.json") is { } document)
-            {
-                templates[key] = document;
-            }
-        }
-
-        var source = new ThemeSource
-        {
-            Theme = storage.Theme,
-            Templates = templates,
-            Rules = fixedTokens[ThemeStorage.Rules],
-            Header = fixedTokens[ThemeStorage.HeaderGroup],
-            Footer = fixedTokens[ThemeStorage.FooterGroup],
-            Brand = fixedTokens[ThemeStorage.Brand],
-            SettingsData = fixedTokens[ThemeStorage.SettingsData],
-            Palette = fixedTokens[ThemeStorage.Palette],
-            PaletteDark = fixedTokens[ThemeStorage.PaletteDark],
-        };
-        return (source, draftFiles, errors);
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
     }
 
-    private static async Task<int> NextPublicationAsync(ThemeStorage storage)
-    {
-        var numbers = (await storage.ListFoldersAsync(ThemeStorage.SnapshotsFolder))
-            .Select(x => int.TryParse(x, NumberStyles.None, CultureInfo.InvariantCulture, out var n) ? n : 0)
-            .Append(ParsePointer(await storage.ReadAsync(ThemeStorage.Pointer)) ?? 0);
-        return numbers.Max() + 1;
-    }
-
-    /// <summary>Writes the drafts live and deletes them; the files put live, by their path in the theme storage.</summary>
-    private static async Task<IReadOnlyList<LiveFile>> PutDraftsLiveAsync(ThemeStorage storage, Dictionary<string, string> drafts)
+    protected virtual async Task<IList<PublishedThemeFile>> PublishDraftsAsync(IThemeStorage storage, IDictionary<string, string> drafts)
     {
         if (drafts.Count == 0)
         {
@@ -290,55 +187,62 @@ public class ThemePublisher(
         {
             await storage.WriteAsync(file, content);
         }
-        await storage.RemoveAsync(drafts.Keys.Select(storage.DraftOf));
 
-        return drafts.Select(x => new LiveFile(storage.PathOf(x.Key), x.Value)).ToList();
+        await storage.RemoveAsync(drafts.Keys.Select(storage.GetDraftPath));
+
+        return drafts
+            .Select(x =>
+            {
+                var file = AbstractTypeFactory<PublishedThemeFile>.TryCreateInstance();
+                file.Path = storage.GetPath(x.Key);
+                file.Content = x.Value;
+
+                return file;
+            })
+            .ToList();
     }
 
-    /// <summary>
-    /// What follows the files a publication put live, once the store's theme lock is free, as after a theme save: the
-    /// changed event, and the version history, which waits for GitHub.
-    /// </summary>
-    private async Task AnnouncePutLiveAsync(string storeId, IReadOnlyList<LiveFile> files, ClaimsPrincipal user, CancellationToken cancellationToken)
+    protected virtual async Task AfterPublishAsync(string storeId, IList<PublishedThemeFile> files, ClaimsPrincipal user, CancellationToken cancellationToken)
     {
         if (files.Count == 0)
         {
             return;
         }
 
-        var changes = files
-            .Select(x => PageBuilderContentChangedEvent.ChangedFile(x.Path, ThemeStorageFactory.ContentType, EntryState.Modified))
-            .ToList();
-        await eventPublisher.Publish(new PageBuilderContentChangedEvent(ThemeStorageFactory.ContentType, changes), cancellationToken);
+        var changedEntries = files.Select(x => CreateChangedEntry(x.Path, EntryState.Modified)).ToList();
+        await eventPublisher.Publish(new PageBuilderContentChangedEvent(ContentConstants.ContentTypes.Themes, changedEntries), cancellationToken);
 
-        if (themeFileHistory != null)
+        var saveId = Guid.NewGuid().ToString("N");
+        foreach (var file in files)
         {
-            var save = Guid.NewGuid().ToString("N");
-            foreach (var file in files)
-            {
-                await themeFileHistory.RecordAsync(storeId, file.Path, file.Content, Published, user, save, cancellationToken);
-            }
+            await themeFileHistory.RecordAsync(storeId, file.Path, file.Content, PublishedHistorySummary, user, saveId, cancellationToken);
         }
     }
 
-    private void WarnWhenLarge(string storeId, int publication, string language, string json)
+    protected virtual GenericChangedEntry<FileEntity> CreateChangedEntry(string path, EntryState state)
+    {
+        var file = AbstractTypeFactory<FileEntity>.TryCreateInstance();
+        file.Path = path;
+        file.Type = ContentConstants.ContentTypes.Themes;
+
+        return new GenericChangedEntry<FileEntity>(file, state);
+    }
+
+    protected virtual void LogSnapshotSize(string storeId, int publication, string language, string content)
     {
         using var compressed = new MemoryStream();
         using (var gzip = new GZipStream(compressed, CompressionLevel.Optimal, leaveOpen: true))
         {
-            var bytes = Encoding.UTF8.GetBytes(json);
+            var bytes = Encoding.UTF8.GetBytes(content);
             gzip.Write(bytes, 0, bytes.Length);
         }
 
-        if (compressed.Length > ModuleConstants.Theme.ThemeSnapshotSizeWarning)
+        var threshold = options.Value.SizeWarningThreshold;
+        if (compressed.Length > threshold)
         {
             logger.LogWarning(
                 "The theme snapshot {Publication} of store {StoreId} in {Language} is {Size} bytes gzipped, more than {Limit}.",
-                publication, storeId, language, compressed.Length, ModuleConstants.Theme.ThemeSnapshotSizeWarning);
+                publication, storeId, language, compressed.Length, threshold);
         }
     }
-
-    private sealed record Publication(int Number, IReadOnlyList<LiveFile> PutLive);
-
-    private sealed record LiveFile(string Path, string Content);
 }

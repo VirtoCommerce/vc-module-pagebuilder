@@ -2,14 +2,12 @@ using System.Security.Claims;
 
 namespace VirtoCommerce.PageBuilderModule.Core.Theme;
 
-/// <summary>Puts a store's theme drafts live at once, as one publication.</summary>
 public interface IThemePublisher
 {
-    /// <summary>
-    /// Validates the theme against the catalog <paramref name="catalogHash"/> names, writes the snapshots, moves the
-    /// pointer, then writes the drafts live. Throws <see cref="ThemeValidationException"/> before writing anything when
-    /// it names no catalog, or a file does not fit it.
-    /// </summary>
-    /// <returns>The publication number.</returns>
+    /// <summary>Publishes the theme drafts of the store. Returns the publication number.</summary>
+    /// <exception cref="ThemeValidationException">The theme does not match the catalog.</exception>
     Task<int> PublishAsync(string storeId, string catalogHash, ClaimsPrincipal user, CancellationToken cancellationToken = default);
+
+    /// <summary>Publishes the live theme files when the store has no publication yet; otherwise returns the current publication.</summary>
+    Task<int> PublishFirstAsync(string storeId, CancellationToken cancellationToken = default);
 }

@@ -68,7 +68,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         // How a client names the two flows in the publish-status answer.
         private const string GitFlow = "git";
         private const string BlobFlow = "blob";
-        private const string DefaultTheme = "default";
+        private const string DefaultTheme = ModuleConstants.Theme.DefaultThemeName;
         private const string JsonContentType = "application/json";
         private const string JsonExtension = ".json";
         private const string SchemaKindSections = ModuleConstants.SchemaKinds.Sections;
@@ -1281,7 +1281,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             // A publication of the store's theme reads a draft in two steps (is it there, then its text): a theme
             // draft is not thrown away in the middle of one.
             var unchanged = contentType == Themes
-                ? await distributedLock.ExecuteAsync(ThemePublisher.LockResource(storeId), _ => RemoveDraftAsync(), cancellationToken: HttpContext.RequestAborted)
+                ? await distributedLock.ExecuteAsync(ThemeStorage.GetLockResource(storeId), _ => RemoveDraftAsync(), cancellationToken: HttpContext.RequestAborted)
                 : await RemoveDraftAsync();
             if (unchanged != null)
             {
@@ -1289,7 +1289,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             }
 
             await eventPublisher.Publish(new PageBuilderContentChangedEvent(contentType,
-                [PageBuilderContentChangedEvent.ChangedFile(path, contentType, EntryState.Modified)]));
+                [CreateChangedEntry(path, contentType, EntryState.Modified)]));
 
             if (contentType == Themes && themeFileHistory != null)
             {
@@ -1876,7 +1876,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 var (storage, livePath) = LivePage(storeId, contentType, path);
                 await storage.RemoveAsync([livePath]);
                 await eventPublisher.Publish(new PageBuilderContentChangedEvent(contentType,
-                    [PageBuilderContentChangedEvent.ChangedFile(path, contentType, EntryState.Deleted)]));
+                    [CreateChangedEntry(path, contentType, EntryState.Deleted)]));
             }
         }
 
@@ -2093,7 +2093,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             // written in the middle of one, or the publication would delete a draft it has not read.
             if (files.Any(x => string.Equals(x.Type, Themes, StringComparison.OrdinalIgnoreCase)))
             {
-                await distributedLock.ExecuteAsync(ThemePublisher.LockResource(storeId), _ => WriteFilesAsync(), cancellationToken: cancellationToken);
+                await distributedLock.ExecuteAsync(ThemeStorage.GetLockResource(storeId), _ => WriteFilesAsync(), cancellationToken: cancellationToken);
             }
             else
             {
@@ -2140,9 +2140,18 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                         changedFiles.Add(type, entries);
                     }
 
-                    entries.Add(PageBuilderContentChangedEvent.ChangedFile(file.Path, file.Type, EntryState.Modified));
+                    entries.Add(CreateChangedEntry(file.Path, file.Type, EntryState.Modified));
                 }
             }
+        }
+
+        private static GenericChangedEntry<FileEntity> CreateChangedEntry(string path, string type, EntryState state)
+        {
+            var file = AbstractTypeFactory<FileEntity>.TryCreateInstance();
+            file.Path = path;
+            file.Type = type;
+
+            return new GenericChangedEntry<FileEntity>(file, state);
         }
 
         /// <summary>A blob's text, or <c>null</c> when there is no such blob.</summary>
@@ -2356,7 +2365,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 return themeName;
             }
             var store = await storeService.GetNoCloneAsync(storeId, StoreResponseGroup.DynamicProperties.ToString());
-            return store?.DynamicProperties.FirstOrDefault(x => x.Name == "DefaultThemeName")?.Values?.FirstOrDefault()?.Value?.ToString() ?? DefaultTheme;
+            return store?.DynamicProperties.FirstOrDefault(x => x.Name == ModuleConstants.Theme.ThemeNamePropertyName)?.Values?.FirstOrDefault()?.Value?.ToString() ?? DefaultTheme;
         }
 
         public class SaveFilesModel

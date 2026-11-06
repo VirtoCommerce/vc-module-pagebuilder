@@ -1,55 +1,35 @@
-using System.Globalization;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Serialization;
 using VirtoCommerce.PageBuilderModule.Core;
+using VirtoCommerce.PageBuilderModule.Core.Theme;
+using VirtoCommerce.Platform.Core.Common;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Theme;
 
-/// <summary>A theme's files as a publication reads them: the draft when there is one, else the live file.</summary>
-public sealed class ThemeSource
+public class ThemeSnapshotBuilder : IThemeSnapshotBuilder
 {
-    public string Theme { get; init; }
+    private const int SnapshotFormat = 1;
+    private const int TemplateRulesVersion = 2;
+    private const string MenuFieldType = "menu";
+    private const string JsonExtension = ".json";
 
-    /// <summary>Template documents by template key.</summary>
-    public IReadOnlyDictionary<string, JToken> Templates { get; init; } = new Dictionary<string, JToken>();
+    private const string ProductPageType = "product";
+    private const string CategoryPageType = "category";
+    private const string ContentPageType = "page";
 
-    public JToken Rules { get; init; }
-    public JToken Header { get; init; }
-    public JToken Footer { get; init; }
-    public JToken Brand { get; init; }
-
-    /// <summary>settings_data.json: where the brand comes from until the theme has a brand file.</summary>
-    public JToken SettingsData { get; init; }
-
-    public JToken Palette { get; init; }
-    public JToken PaletteDark { get; init; }
-}
-
-/// <summary>One publication: the snapshot JSON of every language, and the menu names they hold.</summary>
-public sealed record ThemeSnapshotSet(IReadOnlyDictionary<string, string> Files, IReadOnlyList<string> Menus);
-
-/// <summary>
-/// Builds and checks the snapshots of a publication. Pure: storage, locking and the cache are
-/// <see cref="ThemePublisher"/>'s.
-/// </summary>
-public static class ThemeSnapshotBuilder
-{
-    public const int Format = 1;
-    public const int RulesVersion = 2;
-    public const string MenuFieldType = "menu";
-
-    public static readonly string[] PageTypes = ["product", "category", "page"];
-
-    /// <summary>A section every page template holds; the designer adds it to the storefront's sections.</summary>
+    // The designer adds this section to every page template.
     private const string PageContentSection = "page-content";
 
-    private static readonly Regex TemplateKey = new("^(product|category|page)(\\.[a-z0-9]+(?:-[a-z0-9]+)*)?$", RegexOptions.None, TimeSpan.FromSeconds(1));
+    private const string SharedSectionFields = "_sections";
+    private const string SharedBlockFields = "_blocks";
 
-    // A translation dictionary's keys: language names with a subtag, as stores name their languages (en-US).
-    private static readonly Regex LanguageName = new("^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})+$", RegexOptions.None, TimeSpan.FromSeconds(1));
+    private static readonly Regex TemplateKeyPattern = new("^(product|category|page)(\\.[a-z0-9]+(?:-[a-z0-9]+)*)?$", RegexOptions.None, TimeSpan.FromSeconds(1));
 
-    private static readonly JObject DefaultRules = JObject.Parse("""
+    private static readonly Regex LanguageNamePattern = new("^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})+$", RegexOptions.None, TimeSpan.FromSeconds(1));
+
+    private static readonly JObject DefaultTemplateRules = JObject.Parse("""
         {
           "product": [
             {
@@ -61,201 +41,199 @@ public static class ThemeSnapshotBuilder
         }
         """);
 
-    /// <summary>The template key of a file in the theme's templates folder, or <c>null</c> when it names none.</summary>
-    public static string TemplateKeyOf(string fileName)
+    private static readonly JsonSerializerSettings SerializerSettings = new()
     {
-        if (!fileName.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+        ContractResolver = new DefaultContractResolver { NamingStrategy = new CamelCaseNamingStrategy() },
+        DateFormatString = "O",
+    };
+
+    public virtual string GetTemplateKey(string fileName)
+    {
+        if (!fileName.EndsWith(JsonExtension, StringComparison.OrdinalIgnoreCase))
         {
             return null;
         }
 
-        var key = fileName[..^".json".Length];
-        return TemplateKey.IsMatch(key) ? key : null;
+        var key = fileName[..^JsonExtension.Length];
+
+        return IsTemplateKey(key) ? key : null;
     }
 
-    /// <summary>What keeps the theme from being published against the catalog; empty when nothing does.</summary>
-    /// <param name="catalog">The storefront's schemas; <c>null</c> checks the shape only.</param>
-    public static IReadOnlyList<string> Validate(ThemeSource source, JObject catalog)
+    public virtual IList<string> Validate(ThemeSource source, JObject catalog)
     {
-        var errors = new List<string>();
+        var errors = source.InvalidFiles.Select(x => $"{x}: not valid JSON").ToList();
 
         foreach (var (key, document) in source.Templates)
         {
-            var file = $"templates/{key}.json";
-            if (TemplateKeyOf($"{key}.json") == null)
+            var file = $"{ThemeStorage.TemplatesFolder}/{key}{JsonExtension}";
+            if (!IsTemplateKey(key))
             {
                 errors.Add($"{file}: not a template key");
                 continue;
             }
 
-            if (ToDocument(document) is not { } doc)
+            if (GetPageDocument(document) is not { } pageDocument)
             {
                 errors.Add($"{file}: not a page document");
                 continue;
             }
 
-            CheckItems((JArray)doc["content"], "sections", file, catalog, errors, allowPageContent: key.StartsWith("page", StringComparison.Ordinal));
+            var allowPageContent = key.StartsWith(ContentPageType, StringComparison.Ordinal);
+            ValidateItems((JArray)pageDocument["content"], ModuleConstants.SchemaKinds.Sections, file, catalog, errors, allowPageContent);
         }
 
-        CheckGroup(source.Header, "sections/header-group.json", catalog, errors);
-        CheckGroup(source.Footer, "sections/footer-group.json", catalog, errors);
+        ValidateSectionGroup(source.Header, ThemeStorage.HeaderGroupFile, catalog, errors);
+        ValidateSectionGroup(source.Footer, ThemeStorage.FooterGroupFile, catalog, errors);
 
         if (source.Rules != null && source.Rules is not JObject)
         {
-            errors.Add("config/template_rules.json: not an object");
+            errors.Add($"{ThemeStorage.TemplateRulesFile}: not an object");
         }
 
         return errors;
     }
 
-    public static ThemeSnapshotSet Build(
+    public virtual ThemeSnapshotSet Build(
         ThemeSource source,
         JObject catalog,
         string catalogHash,
-        IReadOnlyList<string> languages,
+        IList<string> languages,
         string defaultLanguage,
         int publication,
         DateTime publishedDate)
     {
-        var templates = new JObject();
-        foreach (var (key, document) in source.Templates.OrderBy(x => x.Key, StringComparer.Ordinal))
-        {
-            if (TemplateKeyOf($"{key}.json") != null && ToDocument(document) is { } doc)
-            {
-                templates[key] = WithoutSharedComponents(doc);
-            }
-        }
+        var snapshot = CreateSnapshot(source, catalog, catalogHash, publication, publishedDate);
 
-        var header = WithoutSharedComponents(ToGroup(source.Header));
-        var footer = WithoutSharedComponents(ToGroup(source.Footer));
-        var menus = MenusOf(catalog, header, footer);
+        var result = AbstractTypeFactory<ThemeSnapshotSet>.TryCreateInstance();
+        result.Menus = snapshot.Menus;
+        result.Files = GetSnapshotLanguages(languages, defaultLanguage).ToDictionary(
+            x => x,
+            x => JsonConvert.SerializeObject(TranslateSnapshot(snapshot, x, defaultLanguage), SerializerSettings),
+            StringComparer.OrdinalIgnoreCase);
 
-        var snapshot = new JObject
-        {
-            ["format"] = Format,
-            ["publication"] = publication,
-            ["publishedDate"] = publishedDate.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture),
-            ["theme"] = source.Theme,
-            ["cultureName"] = null,
-            ["catalogHash"] = catalogHash,
-            ["rules"] = ToRules(source.Rules),
-            ["templates"] = templates,
-        };
-        if (header != null)
-        {
-            snapshot["header"] = header;
-        }
-        if (footer != null)
-        {
-            snapshot["footer"] = footer;
-        }
-        snapshot["brand"] = ToBrand(source.Brand, source.SettingsData);
-        if (ToPalette(source.Palette, source.PaletteDark) is { } palette)
-        {
-            snapshot["palette"] = palette;
-        }
-        snapshot["menus"] = new JArray(menus);
-
-        var files = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var language in languages.Append(defaultLanguage).Where(x => !string.IsNullOrEmpty(x)).Distinct(StringComparer.OrdinalIgnoreCase))
-        {
-            var copy = (JObject)snapshot.DeepClone();
-            copy["cultureName"] = language;
-            foreach (var part in new[] { "templates", "header", "footer" })
-            {
-                if (copy[part] is { } token)
-                {
-                    copy[part] = Translate(token, language, defaultLanguage);
-                }
-            }
-            files[language] = copy.ToString(Formatting.None);
-        }
-
-        return new ThemeSnapshotSet(files, menus);
+        return result;
     }
 
-    /// <summary>
-    /// The rules in the current format: an id on every rule (kept when it has one), the names of the conditions they
-    /// use, and the default rules of a page type the file has no list for.
-    /// </summary>
-    public static JObject ToRules(JToken rules)
+    protected virtual ThemeSnapshotContent CreateSnapshot(ThemeSource source, JObject catalog, string catalogHash, int publication, DateTime publishedDate)
+    {
+        var snapshot = AbstractTypeFactory<ThemeSnapshotContent>.TryCreateInstance();
+
+        snapshot.Format = SnapshotFormat;
+        snapshot.Publication = publication;
+        snapshot.PublishedDate = publishedDate.ToUniversalTime();
+        snapshot.Theme = source.ThemeName;
+        snapshot.CatalogHash = catalogHash;
+        snapshot.Rules = GetTemplateRules(source.Rules);
+        snapshot.Templates = GetTemplates(source.Templates);
+        snapshot.Header = RemoveSharedComponents(GetSectionGroup(source.Header));
+        snapshot.Footer = RemoveSharedComponents(GetSectionGroup(source.Footer));
+        snapshot.Brand = GetBrand(source.Brand, source.SettingsData);
+        snapshot.Palette = GetPalette(source.Palette, source.PaletteDark);
+        snapshot.Menus = GetMenus(catalog, snapshot.Header, snapshot.Footer);
+
+        return snapshot;
+    }
+
+    protected virtual IList<string> GetSnapshotLanguages(IList<string> languages, string defaultLanguage)
+    {
+        return languages
+            .Append(defaultLanguage)
+            .Where(x => !string.IsNullOrEmpty(x))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    protected virtual ThemeSnapshotContent TranslateSnapshot(ThemeSnapshotContent snapshot, string language, string defaultLanguage)
+    {
+        var result = snapshot.CloneTyped();
+
+        result.CultureName = language;
+        result.Templates = result.Templates.ToDictionary(x => x.Key, x => (JObject)Translate(x.Value, language, defaultLanguage));
+        result.Header = (JObject)Translate(result.Header, language, defaultLanguage);
+        result.Footer = (JObject)Translate(result.Footer, language, defaultLanguage);
+
+        return result;
+    }
+
+    protected virtual IDictionary<string, JObject> GetTemplates(IDictionary<string, JToken> templates)
+    {
+        var result = new Dictionary<string, JObject>();
+
+        foreach (var (key, document) in templates.OrderBy(x => x.Key, StringComparer.Ordinal))
+        {
+            if (IsTemplateKey(key) && GetPageDocument(document) is { } pageDocument)
+            {
+                result[key] = RemoveSharedComponents(pageDocument);
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>Normalizes the template rules: assigns missing rule ids and adds the default rules.</summary>
+    protected virtual ThemeTemplateRules GetTemplateRules(JToken rules)
     {
         var source = rules as JObject ?? new JObject();
-        var result = new JObject { ["version"] = RulesVersion };
         var conditions = new SortedSet<string>(StringComparer.Ordinal);
-        var lists = new JObject();
 
-        foreach (var pageType in PageTypes)
+        var result = AbstractTypeFactory<ThemeTemplateRules>.TryCreateInstance();
+        result.Version = TemplateRulesVersion;
+        result.Product = GetPageTypeRules(source, ProductPageType, conditions);
+        result.Category = GetPageTypeRules(source, CategoryPageType, conditions);
+        result.Page = GetPageTypeRules(source, ContentPageType, conditions);
+        result.Conditions = conditions.ToList();
+
+        return result;
+    }
+
+    protected virtual IList<JObject> GetPageTypeRules(JObject rules, string pageType, ISet<string> conditions)
+    {
+        if ((rules[pageType] as JArray ?? DefaultTemplateRules[pageType] as JArray) is not { } list)
         {
-            var list = source[pageType] as JArray ?? DefaultRules[pageType] as JArray;
-            if (list == null)
+            return null;
+        }
+
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        var result = new List<JObject>();
+
+        for (var index = 0; index < list.Count; index++)
+        {
+            if (list[index] is not JObject rule)
             {
                 continue;
             }
 
-            var ids = new HashSet<string>(StringComparer.Ordinal);
-            var normalized = new JArray();
-            for (var index = 0; index < list.Count; index++)
+            var copy = (JObject)rule.DeepClone();
+            var id = GetString(copy, "id");
+            if (string.IsNullOrWhiteSpace(id) || ids.Contains(id))
             {
-                if (list[index] is not JObject rule)
+                id = $"{pageType}-{index}";
+                for (var n = 2; ids.Contains(id); n++)
                 {
-                    continue;
+                    id = $"{pageType}-{index}-{n}";
                 }
-
-                var copy = (JObject)rule.DeepClone();
-                var id = TextOf(copy, "id");
-                if (string.IsNullOrWhiteSpace(id) || ids.Contains(id))
-                {
-                    id = $"{pageType}-{index}";
-                    for (var n = 2; ids.Contains(id); n++)
-                    {
-                        id = $"{pageType}-{index}-{n}";
-                    }
-                }
-                ids.Add(id);
-                copy["id"] = id;
-
-                if (copy["when"] is JObject when)
-                {
-                    foreach (var condition in when.Properties())
-                    {
-                        conditions.Add(condition.Name);
-                    }
-                }
-                normalized.Add(copy);
             }
-            lists[pageType] = normalized;
+
+            ids.Add(id);
+            copy["id"] = id;
+
+            if (copy["when"] is JObject when)
+            {
+                conditions.UnionWith(when.Properties().Select(x => x.Name));
+            }
+
+            result.Add(copy);
         }
 
-        result["conditions"] = new JArray(conditions);
-        foreach (var list in lists.Properties())
-        {
-            result[list.Name] = list.Value;
-        }
         return result;
     }
 
-    /// <summary>The text of a translation dictionary in <paramref name="language"/>, else the default language, else its first.</summary>
-    public static string Pick(JObject dictionary, string language, string defaultLanguage)
-    {
-        string Text(string name) =>
-            dictionary.Properties().FirstOrDefault(x => string.Equals(x.Name, name, StringComparison.OrdinalIgnoreCase))?.Value.Value<string>();
-
-        return Text(language) ?? Text(defaultLanguage) ?? dictionary.Properties().First().Value.Value<string>();
-    }
-
-    /// <summary>An object whose keys are all language names and whose values are all texts.</summary>
-    public static bool IsTranslation(JToken token) =>
-        token is JObject dictionary
-        && dictionary.HasValues
-        && dictionary.Properties().All(x => LanguageName.IsMatch(x.Name) && x.Value.Type == JTokenType.String);
-
-    private static JToken Translate(JToken token, string language, string defaultLanguage)
+    protected virtual JToken Translate(JToken token, string language, string defaultLanguage)
     {
         switch (token)
         {
             case JObject dictionary when IsTranslation(dictionary):
-                return Pick(dictionary, language, defaultLanguage);
+                return GetTranslation(dictionary, language, defaultLanguage);
             case JObject obj:
                 foreach (var property in obj.Properties().ToList())
                 {
@@ -273,12 +251,28 @@ public static class ThemeSnapshotBuilder
         }
     }
 
-    /// <summary>A page document, from the stored form: an object, or the legacy array of the settings and the sections.</summary>
-    private static JObject ToDocument(JToken token)
+    protected virtual bool IsTranslation(JObject dictionary)
+    {
+        return dictionary.HasValues
+            && dictionary.Properties().All(x => LanguageNamePattern.IsMatch(x.Name) && x.Value.Type == JTokenType.String);
+    }
+
+    protected virtual string GetTranslation(JObject dictionary, string language, string defaultLanguage)
+    {
+        string GetText(string name) =>
+            dictionary.Properties().FirstOrDefault(x => string.Equals(x.Name, name, StringComparison.OrdinalIgnoreCase))?.Value.Value<string>();
+
+        return GetText(language) ?? GetText(defaultLanguage) ?? dictionary.Properties().First().Value.Value<string>();
+    }
+
+    protected virtual bool IsTemplateKey(string key) => TemplateKeyPattern.IsMatch(key);
+
+    /// <summary>Also accepts the legacy array format.</summary>
+    protected virtual JObject GetPageDocument(JToken token)
     {
         var (settings, content) = token switch
         {
-            JObject doc => (doc["settings"], doc["content"]),
+            JObject document => (document["settings"], document["content"]),
             JArray legacy when legacy.Count > 0 => (legacy[0], new JArray(legacy.Skip(1))),
             _ => (null, null),
         };
@@ -295,44 +289,46 @@ public static class ThemeSnapshotBuilder
         };
     }
 
-    private static JObject ToGroup(JToken token) =>
-        token is JObject { } group && group["content"] is JArray content ? new JObject { ["content"] = content.DeepClone() } : null;
+    protected virtual JObject GetSectionGroup(JToken token)
+    {
+        return token is JObject sectionGroup && sectionGroup["content"] is JArray content ? new JObject { ["content"] = content.DeepClone() } : null;
+    }
 
-    /// <summary>The document without shared component placements: the storefront reads a snapshot as it is, and only a page resolves them.</summary>
-    private static JObject WithoutSharedComponents(JObject document)
+    // The storefront does not resolve shared components outside pages.
+    protected virtual JObject RemoveSharedComponents(JObject document)
     {
         if (document?["content"] is JArray content)
         {
-            foreach (var placement in content.Where(x => x is JObject item && TextOf(item, "type") == ModuleConstants.SharedComponents.ReferenceType).ToList())
+            foreach (var placement in content.Where(x => x is JObject item && GetString(item, "type") == ModuleConstants.SharedComponents.ReferenceType).ToList())
             {
                 placement.Remove();
             }
         }
+
         return document;
     }
 
-    private static JObject ToBrand(JToken brand, JToken settingsData)
+    protected virtual ThemeBrand GetBrand(JToken brand, JToken settingsData)
     {
-        var result = new JObject();
-        if (brand is JObject own)
+        var result = AbstractTypeFactory<ThemeBrand>.TryCreateInstance();
+
+        if (brand is JObject brandFile)
         {
-            Copy(own, "logoUrl", result, "logoUrl");
-            Copy(own, "secondaryLogoUrl", result, "secondaryLogoUrl");
-            Copy(own, "faviconUrl", result, "faviconUrl");
-            return result;
+            result.LogoUrl = GetUrl(brandFile, "logoUrl");
+            result.SecondaryLogoUrl = GetUrl(brandFile, "secondaryLogoUrl");
+            result.FaviconUrl = GetUrl(brandFile, "faviconUrl");
+        }
+        else if (GetCurrentSettings(settingsData) is { } settings)
+        {
+            result.LogoUrl = GetUrl(settings, "logo_image");
+            result.SecondaryLogoUrl = GetUrl(settings, "logo_inverted_image");
+            result.FaviconUrl = GetUrl(settings, "favicon_image");
         }
 
-        if (CurrentSettings(settingsData) is { } settings)
-        {
-            Copy(settings, "logo_image", result, "logoUrl");
-            Copy(settings, "logo_inverted_image", result, "secondaryLogoUrl");
-            Copy(settings, "favicon_image", result, "faviconUrl");
-        }
         return result;
     }
 
-    /// <summary>settings_data.json's current settings: the object itself, or the preset it names.</summary>
-    private static JObject CurrentSettings(JToken settingsData)
+    protected virtual JObject GetCurrentSettings(JToken settingsData)
     {
         if (settingsData is not JObject data)
         {
@@ -344,7 +340,7 @@ public static class ThemeSnapshotBuilder
             JObject current => current,
             JValue { Type: JTokenType.String } name => (data["presets"] as JObject)?[(string)name] switch
             {
-                JObject { } preset when preset["settings"] is JObject nested => nested,
+                JObject preset when preset["settings"] is JObject nested => nested,
                 JObject preset => preset,
                 _ => null,
             },
@@ -352,57 +348,43 @@ public static class ThemeSnapshotBuilder
         };
     }
 
-    private static void Copy(JObject from, string name, JObject to, string targetName)
+    protected virtual ThemePalette GetPalette(JToken light, JToken dark)
     {
-        if (from[name] is JValue { Type: JTokenType.String } value && !string.IsNullOrWhiteSpace(value.Value<string>()))
-        {
-            to[targetName] = value.Value<string>();
-        }
-    }
-
-    private static JObject ToPalette(JToken light, JToken dark)
-    {
-        static JObject Tokens(JToken token) =>
-            token is JObject tokens && tokens.HasValues
-                ? new JObject(tokens.Properties().Where(x => x.Value.Type == JTokenType.String).Select(x => new JProperty(x.Name, x.Value)))
-                : null;
-
-        if (Tokens(light) is not { } lightTokens)
+        if (GetColorTokens(light) is not { } lightTokens)
         {
             return null;
         }
 
-        var palette = new JObject { ["light"] = lightTokens };
-        if (Tokens(dark) is { } darkTokens)
-        {
-            palette["dark"] = darkTokens;
-        }
+        var palette = AbstractTypeFactory<ThemePalette>.TryCreateInstance();
+        palette.Light = lightTokens;
+        palette.Dark = GetColorTokens(dark);
+
         return palette;
     }
 
-    private static void CheckGroup(JToken token, string file, JObject catalog, List<string> errors)
+    protected virtual void ValidateSectionGroup(JToken token, string file, JObject catalog, IList<string> errors)
     {
         if (token == null)
         {
             return;
         }
 
-        if (token is not JObject group || group["content"] is not JArray content)
+        if (token is not JObject sectionGroup || sectionGroup["content"] is not JArray content)
         {
             errors.Add($"{file}: not a section group");
             return;
         }
 
-        CheckItems(content, "sections", file, catalog, errors, allowPageContent: false);
+        ValidateItems(content, ModuleConstants.SchemaKinds.Sections, file, catalog, errors, allowPageContent: false);
     }
 
-    private static void CheckItems(JArray items, string kind, string file, JObject catalog, List<string> errors, bool allowPageContent)
+    protected virtual void ValidateItems(JArray items, string kind, string file, JObject catalog, IList<string> errors, bool allowPageContent)
     {
         foreach (var token in items)
         {
             if (token is not JObject item
-                || TextOf(item, "id") is not { } id || string.IsNullOrWhiteSpace(id)
-                || TextOf(item, "type") is not { } type || string.IsNullOrWhiteSpace(type))
+                || GetString(item, "id") is not { } id || string.IsNullOrWhiteSpace(id)
+                || GetString(item, "type") is not { } type || string.IsNullOrWhiteSpace(type))
             {
                 errors.Add($"{file}: an item without an id or a type");
                 continue;
@@ -410,7 +392,7 @@ public static class ThemeSnapshotBuilder
 
             if (type == ModuleConstants.SharedComponents.ReferenceType)
             {
-                // a first publication, from live files that may predate this check, leaves it out instead (Build)
+                // A first publication removes shared components instead of failing.
                 if (catalog != null)
                 {
                     errors.Add($"{file}: '{id}' places a shared component, which only a page can hold");
@@ -418,10 +400,10 @@ public static class ThemeSnapshotBuilder
                 continue;
             }
 
-            var known = catalog == null
-                || SchemaOf(catalog, kind, type) != null
-                || (allowPageContent && kind == "sections" && type == PageContentSection);
-            if (!known)
+            var isKnown = catalog == null
+                || GetSchema(catalog, kind, type) != null
+                || (allowPageContent && kind == ModuleConstants.SchemaKinds.Sections && type == PageContentSection);
+            if (!isKnown)
             {
                 errors.Add($"{file}: '{id}' has a type the storefront does not have, '{type}'");
             }
@@ -431,7 +413,7 @@ public static class ThemeSnapshotBuilder
                 case null:
                     break;
                 case JArray blocks:
-                    CheckItems(blocks, "blocks", file, catalog, errors, allowPageContent: false);
+                    ValidateItems(blocks, ModuleConstants.SchemaKinds.Blocks, file, catalog, errors, allowPageContent: false);
                     break;
                 default:
                     errors.Add($"{file}: '{id}' has blocks that are not a list");
@@ -440,38 +422,64 @@ public static class ThemeSnapshotBuilder
         }
     }
 
-    /// <summary>The link list names the header and footer hold in settings of the type <c>menu</c>.</summary>
-    private static IReadOnlyList<string> MenusOf(JObject catalog, params JObject[] groups)
+    protected virtual IList<string> GetMenus(JObject catalog, params JObject[] sectionGroups)
     {
-        var menus = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
         if (catalog == null)
         {
             return [];
         }
 
-        foreach (var group in groups.Where(x => x != null))
+        var menus = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var sectionGroup in sectionGroups.Where(x => x != null))
         {
-            CollectMenus(group["content"] as JArray, "sections", catalog, menus);
+            CollectMenus(sectionGroup["content"] as JArray, ModuleConstants.SchemaKinds.Sections, catalog, menus);
         }
+
         return menus.ToList();
     }
 
-    private static void CollectMenus(JArray items, string kind, JObject catalog, ISet<string> menus)
+    protected virtual IList<JObject> GetFields(JObject schema, string kind, JObject catalog)
+    {
+        if (schema == null)
+        {
+            return [];
+        }
+
+        var ownFields = (schema["settings"] as JArray)?.OfType<JObject>().ToList() ?? [];
+        var ownIds = ownFields.Select(x => GetString(x, "id")).Where(x => x != null).ToHashSet(StringComparer.Ordinal);
+        var defaultSharedKey = kind == ModuleConstants.SchemaKinds.Sections ? SharedSectionFields : SharedBlockFields;
+
+        IEnumerable<JObject> GetSharedFields(string key) =>
+            (GetSchema(catalog, ModuleConstants.SchemaKinds.Shared, key)?["settings"] as JArray)?.OfType<JObject>() ?? [];
+
+        var includedFields = GetStrings(schema["includeShared"]).SelectMany(GetSharedFields);
+        var sharedFields = schema["excludeShared"] switch
+        {
+            JValue { Type: JTokenType.Boolean } exclude when exclude.Value<bool>() => includedFields,
+            JArray excluded => GetSharedFields(defaultSharedKey).Concat(includedFields)
+                .Where(x => !GetStrings(excluded).Contains(GetString(x, "id"))),
+            _ => GetSharedFields(defaultSharedKey).Concat(includedFields),
+        };
+
+        return ownFields.Concat(sharedFields.Where(x => !ownIds.Contains(GetString(x, "id") ?? string.Empty))).ToList();
+    }
+
+    private void CollectMenus(JArray items, string kind, JObject catalog, ISet<string> menus)
     {
         foreach (var item in items?.OfType<JObject>() ?? [])
         {
-            var fields = FieldsOf(SchemaOf(catalog, kind, TextOf(item, "type")), kind, catalog);
+            var fields = GetFields(GetSchema(catalog, kind, GetString(item, "type")), kind, catalog);
             CollectMenus(item, fields, menus);
-            CollectMenus(item["blocks"] as JArray, "blocks", catalog, menus);
+            CollectMenus(item["blocks"] as JArray, ModuleConstants.SchemaKinds.Blocks, catalog, menus);
         }
     }
 
-    private static void CollectMenus(JObject values, IReadOnlyList<JObject> fields, ISet<string> menus)
+    private static void CollectMenus(JObject values, IList<JObject> fields, ISet<string> menus)
     {
         foreach (var field in fields)
         {
-            var value = values[TextOf(field, "id") ?? string.Empty];
-            if (TextOf(field, "type") == MenuFieldType && value is JValue { Type: JTokenType.String } name && !string.IsNullOrWhiteSpace(name.Value<string>()))
+            var value = values[GetString(field, "id") ?? string.Empty];
+            if (GetString(field, "type") == MenuFieldType && value is JValue { Type: JTokenType.String } name && !string.IsNullOrWhiteSpace(name.Value<string>()))
             {
                 menus.Add(name.Value<string>());
             }
@@ -486,37 +494,24 @@ public static class ThemeSnapshotBuilder
         }
     }
 
-    /// <summary>A schema's fields with the shared ones it takes, as the designer reads them.</summary>
-    private static IReadOnlyList<JObject> FieldsOf(JObject schema, string kind, JObject catalog)
+    private static Dictionary<string, string> GetColorTokens(JToken token)
     {
-        if (schema == null)
-        {
-            return [];
-        }
-
-        var own = (schema["settings"] as JArray)?.OfType<JObject>().ToList() ?? [];
-        var ownIds = own.Select(x => TextOf(x, "id")).Where(x => x != null).ToHashSet(StringComparer.Ordinal);
-        IEnumerable<JObject> SharedFields(string key) => (SchemaOf(catalog, "shared", key)?["settings"] as JArray)?.OfType<JObject>() ?? [];
-
-        var included = TextsOf(schema["includeShared"]).SelectMany(SharedFields);
-        var shared = schema["excludeShared"] switch
-        {
-            JValue { Type: JTokenType.Boolean } exclude when exclude.Value<bool>() => included,
-            JArray excluded => SharedFields(kind == "sections" ? "_sections" : "_blocks").Concat(included)
-                .Where(x => !TextsOf(excluded).Contains(TextOf(x, "id"))),
-            _ => SharedFields(kind == "sections" ? "_sections" : "_blocks").Concat(included),
-        };
-
-        return own.Concat(shared.Where(x => !ownIds.Contains(TextOf(x, "id") ?? string.Empty))).ToList();
+        return token is JObject tokens && tokens.HasValues
+            ? tokens.Properties().Where(x => x.Value.Type == JTokenType.String).ToDictionary(x => x.Name, x => (string)x.Value)
+            : null;
     }
 
-    // Theme files and catalogs are read as they are saved, whatever their shape: a value of another type than the one
-    // expected is not there, rather than an error that would stop a publication.
-    private static string TextOf(JObject item, string name) => item[name] is JValue { Type: JTokenType.String } value ? (string)value : null;
+    private static string GetUrl(JObject source, string name)
+    {
+        return source[name] is JValue { Type: JTokenType.String } value && !string.IsNullOrWhiteSpace(value.Value<string>()) ? value.Value<string>() : null;
+    }
 
-    private static IEnumerable<string> TextsOf(JToken list) =>
+    // A value of an unexpected type is treated as missing.
+    private static string GetString(JObject item, string name) => item[name] is JValue { Type: JTokenType.String } value ? (string)value : null;
+
+    private static IEnumerable<string> GetStrings(JToken list) =>
         (list as JArray)?.OfType<JValue>().Where(x => x.Type == JTokenType.String).Select(x => (string)x) ?? [];
 
-    private static JObject SchemaOf(JObject catalog, string kind, string type) =>
+    private static JObject GetSchema(JObject catalog, string kind, string type) =>
         type == null ? null : (catalog?[kind] as JObject)?[type] as JObject;
 }

@@ -6,6 +6,7 @@ using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using VirtoCommerce.AssetsModule.Core.Assets;
+using VirtoCommerce.ContentModule.Core;
 using VirtoCommerce.ContentModule.Core.Model;
 using VirtoCommerce.ContentModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Core;
@@ -99,15 +100,18 @@ public class ThemeFileHistoryController(
 
         // the change's bytes as they are: re-serializing could change them, and the published change is told by them;
         // outside a publication of the store's theme, which deletes the drafts it puts live
-        await distributedLock.ExecuteAsync(ThemePublisher.LockResource(storeId), async _ =>
+        await distributedLock.ExecuteAsync(ThemeStorage.GetLockResource(storeId), async _ =>
         {
             await using var stream = await Storage(storeId, path).OpenWriteAsync(publishingService.GetRelativeDraftUrl(path, true));
             await using var writer = new StreamWriter(stream);
             await writer.WriteAsync(content);
         }, cancellationToken: cancellationToken);
 
-        await eventPublisher.Publish(new PageBuilderContentChangedEvent(ThemeStorageFactory.ContentType,
-            [PageBuilderContentChangedEvent.ChangedFile(path, ThemeStorageFactory.ContentType, EntryState.Modified)]), cancellationToken);
+        var file = AbstractTypeFactory<FileEntity>.TryCreateInstance();
+        file.Path = path;
+        file.Type = ContentConstants.ContentTypes.Themes;
+        await eventPublisher.Publish(new PageBuilderContentChangedEvent(ContentConstants.ContentTypes.Themes,
+            [new GenericChangedEntry<FileEntity>(file, EntryState.Modified)]), cancellationToken);
         await history.RecordAsync(storeId, path, content, $"Restored {SiteSave.Version(version, sha)}", User, SiteSave.Of(Request), cancellationToken);
 
         return Ok();
@@ -118,7 +122,7 @@ public class ThemeFileHistoryController(
 
     // the store's theme storage; the path starts with the theme's folder, as the designer's saves name it
     private IBlobContentStorageProvider Storage(string storeId, string path) =>
-        blobContentStorageProviderFactory.CreateProvider(pathResolver.GetContentBasePath(ThemeStorageFactory.ContentType, storeId, path.Split('/')[0]));
+        blobContentStorageProviderFactory.CreateProvider(pathResolver.GetContentBasePath(ContentConstants.ContentTypes.Themes, storeId, path.Split('/')[0]));
 
     /// <summary>
     /// Templates and the template rules are edited with <see cref="ModuleConstants.Security.Permissions.Templates"/>,
@@ -127,7 +131,7 @@ public class ThemeFileHistoryController(
     private static string EditPermission(string path)
     {
         var file = path[(path.IndexOf('/') + 1)..];
-        return file.StartsWith($"{ThemeStorage.TemplatesFolder}/", StringComparison.OrdinalIgnoreCase) || file.Equals(ThemeStorage.Rules, StringComparison.OrdinalIgnoreCase)
+        return file.StartsWith($"{ThemeStorage.TemplatesFolder}/", StringComparison.OrdinalIgnoreCase) || file.Equals(ThemeStorage.TemplateRulesFile, StringComparison.OrdinalIgnoreCase)
             ? ModuleConstants.Security.Permissions.Templates
             : ModuleConstants.Security.Permissions.Theme;
     }

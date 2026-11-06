@@ -13,8 +13,11 @@ using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Core.Theme;
 using VirtoCommerce.PageBuilderModule.Data.GitContent;
 using VirtoCommerce.PageBuilderModule.Data.Theme;
+using VirtoCommerce.Platform.Core.Caching;
 using VirtoCommerce.Platform.Core.Events;
+using VirtoCommerce.Platform.Core.Settings;
 using VirtoCommerce.StoreModule.Core.Model;
+using VirtoCommerce.StoreModule.Core.Services;
 using Xunit;
 
 namespace VirtoCommerce.PageBuilderModule.Tests;
@@ -28,7 +31,7 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     private readonly MemorySettingsManager _settings = new();
     private readonly TestPlatformMemoryCache _cache = new();
     private readonly InProcessDistributedLock _lock = new();
-    private readonly ThemeSnapshotService _snapshots;
+    private readonly TestThemeSnapshotService _snapshots;
     private readonly ThemePublisher _publisher;
     private readonly SchemaCatalogService _catalogs;
     private readonly Store _store = new() { Id = "s1", DefaultLanguage = "en-US", Languages = ["en-US", "de-DE"], DynamicProperties = [] };
@@ -40,8 +43,8 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
         _stores = new FakeStoreService(_store);
         _storageFactory = new ThemeStorageFactory(_stores, _storage, _storage, _storage);
         _catalogs = new SchemaCatalogService(_storageFactory);
-        _publisher = new ThemePublisher(_storageFactory, _stores, _catalogs, _lock, new NoEvents(), NullLogger<ThemePublisher>.Instance);
-        _snapshots = new ThemeSnapshotService(_stores, _settings, _storageFactory, _publisher, _cache);
+        _publisher = Publisher(new NoHistory());
+        _snapshots = Snapshots(_cache);
         _settings.Values[ModuleConstants.Settings.StoreLevelSettings.NewPageBuilder.Name] = true;
     }
 
@@ -87,7 +90,7 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
         Assert.Equal(["default/snapshots/2/de-DE.json", "default/snapshots/2/en-US.json"], _storage.Written.Take(2).Order());
         // the record marks a complete publication (a pointer cut off falls back on it)
         Assert.Equal([Record(2), Pointer, Product], _storage.Written.Skip(2));
-        Assert.Equal("en-US", await ThemePublisher.ReadDefaultLanguageAsync(await _storageFactory.OpenAsync("s1"), 2));
+        Assert.Equal("en-US", (await (await _storageFactory.OpenAsync("s1")).GetPublicationRecordAsync(2)).DefaultLanguage);
         Assert.False(_storage.Files.ContainsKey(Product + "-draft"));
         Assert.Equal(["product-info", "related-products"], Sections(await _snapshots.GetPublishedAsync("s1", "de", Ct), "product"));
     }
@@ -115,7 +118,7 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
         _storage.Files[Product + "-draft"] = Template("product-info", "related-products");
         var catalog = await Catalog("product-info", "related-products");
         var history = new LockProbingHistory(_lock);
-        var publisher = new ThemePublisher(_storageFactory, _stores, _catalogs, _lock, new NoEvents(), NullLogger<ThemePublisher>.Instance, history);
+        var publisher = Publisher(history);
 
         await publisher.PublishAsync("s1", catalog, null, Ct);
 
@@ -189,11 +192,11 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     {
         _storage.Files[Product + "-draft"] = Template("product-info");
         var catalog = await Catalog("product-info");
-        var save = await _lock.AcquireAsync(ThemePublisher.LockResource("s1"), cancellationToken: Ct);
+        var save = await _lock.AcquireAsync(ThemeStorage.GetLockResource("s1"), cancellationToken: Ct);
 
         var publication = _publisher.PublishAsync("s1", catalog, null, Ct);
 
-        Assert.Equal(ThemePublisher.LockResource("s1"), await _lock.Blocked.Task.WaitAsync(TimeSpan.FromSeconds(5), Ct));
+        Assert.Equal(ThemeStorage.GetLockResource("s1"), await _lock.Blocked.Task.WaitAsync(TimeSpan.FromSeconds(5), Ct));
         Assert.DoesNotContain(_storage.Written, x => x.StartsWith("default/snapshots/", StringComparison.Ordinal));
 
         save.Dispose();
@@ -204,7 +207,7 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     public async Task With_caching_switched_off_the_snapshot_is_read_again()
     {
         using var uncached = new TestPlatformMemoryCache(() => new MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromTicks(1) });
-        var snapshots = new ThemeSnapshotService(_stores, _settings, _storageFactory, _publisher, uncached);
+        var snapshots = Snapshots(uncached);
         _storage.Files[Product] = Template("product-info");
         await snapshots.GetPublishedAsync("s1", "en-US", Ct);
         // read once more: the first read published, which resets what it would have kept
@@ -243,7 +246,7 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
         _storage.Files[Pointer] = "{ \"publicat";
         using var emptyCache = new TestPlatformMemoryCache();
 
-        var snapshot = await new ThemeSnapshotService(_stores, _settings, _storageFactory, _publisher, emptyCache).GetPublishedAsync("s1", null, Ct);
+        var snapshot = await Snapshots(emptyCache).GetPublishedAsync("s1", null, Ct);
 
         Assert.Equal(2, snapshot.Publication);
     }
@@ -260,7 +263,7 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
         _storage.Files[Pointer] = "{ \"publicat";
         using var emptyCache = new TestPlatformMemoryCache();
 
-        var snapshot = await new ThemeSnapshotService(_stores, _settings, _storageFactory, _publisher, emptyCache).GetPublishedAsync("s1", null, Ct);
+        var snapshot = await Snapshots(emptyCache).GetPublishedAsync("s1", null, Ct);
 
         Assert.Equal(1, snapshot.Publication);
     }
@@ -316,13 +319,13 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     [InlineData("", "en-US")]
     public void The_language_served_is_the_store_language_closest_to_the_one_asked_for(string requested, string served)
     {
-        Assert.Equal(served, ThemeSnapshotService.ResolveLanguage(["en-US", "de-DE", "de-AT"], "en-US", requested));
+        Assert.Equal(served, _snapshots.ResolveLanguagePublic(["en-US", "de-DE", "de-AT"], "en-US", requested));
     }
 
     [Fact]
     public void Among_store_languages_of_the_same_language_the_default_one_wins()
     {
-        Assert.Equal("de-AT", ThemeSnapshotService.ResolveLanguage(["de-DE", "de-AT"], "de-AT", "de"));
+        Assert.Equal("de-AT", _snapshots.ResolveLanguagePublic(["de-DE", "de-AT"], "de-AT", "de"));
     }
 
     [Fact]
@@ -357,6 +360,13 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
             ["sections"] = new JObject(sections.Select(x => new JProperty(x, new JObject()))),
         }.ToString(), Ct);
 
+    private ThemePublisher Publisher(ThemeFileHistory history) =>
+        new(_storageFactory, new ThemeSnapshotBuilder(), _stores, _catalogs, _lock, new NoEvents(), history,
+            Options.Create(new ThemeSnapshotOptions()), NullLogger<ThemePublisher>.Instance);
+
+    private TestThemeSnapshotService Snapshots(TestPlatformMemoryCache cache) =>
+        new(_stores, _settings, _storageFactory, _publisher, cache, Options.Create(new ThemeSnapshotOptions()));
+
     private static string Record(int publication) => $"default/snapshots/{publication}/publication.json";
 
     private static string Template(params string[] sections) =>
@@ -368,6 +378,26 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
 
     private static string[] Sections(ThemeSnapshot snapshot, string template) =>
         JObject.Parse(snapshot.Content)["templates"]![template]!["content"]!.Select(x => x.Value<string>("type")).ToArray();
+
+    private sealed class TestThemeSnapshotService(
+        IStoreService storeService,
+        ISettingsManager settingsManager,
+        IThemeStorageFactory themeStorageFactory,
+        IThemePublisher themePublisher,
+        IPlatformMemoryCache platformMemoryCache,
+        IOptions<ThemeSnapshotOptions> options)
+        : ThemeSnapshotService(storeService, settingsManager, themeStorageFactory, themePublisher, platformMemoryCache, options)
+    {
+        public string ResolveLanguagePublic(IList<string> languages, string defaultLanguage, string cultureName) =>
+            ResolveLanguage(languages, defaultLanguage, cultureName);
+    }
+
+    private sealed class NoHistory()
+        : ThemeFileHistory(null, null, null, Options.Create(new GitContentOptions()), NullLogger<ThemeFileHistory>.Instance)
+    {
+        public override Task RecordAsync(string storeId, string path, string content, string summary, ClaimsPrincipal user, string save,
+            CancellationToken cancellationToken = default) => Task.CompletedTask;
+    }
 
     private sealed class NoEvents : IEventPublisher
     {
@@ -383,7 +413,7 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
         public override async Task RecordAsync(string storeId, string path, string content, string summary, ClaimsPrincipal user, string save,
             CancellationToken cancellationToken = default)
         {
-            await using var handle = await distributedLock.TryAcquireAsync(ThemePublisher.LockResource(storeId), TimeSpan.Zero, cancellationToken);
+            await using var handle = await distributedLock.TryAcquireAsync(ThemeStorage.GetLockResource(storeId), TimeSpan.Zero, cancellationToken);
             Recorded.Add((path, handle != null));
         }
     }
