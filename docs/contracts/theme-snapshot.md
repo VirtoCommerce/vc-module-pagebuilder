@@ -150,12 +150,13 @@ request and are not part of the cached snapshot, so a menu edited in Content sho
 ### Cache
 
 The server caches the snapshot of each store and language, with its publication number, for an absolute time, the
-module constant `ThemeSnapshotCacheLifetime`, instead of the platform's sliding expiration, under which an entry that
-is read often never expires. It reads the pointer only when the entry is missing. Publishing resets the store's
+setting `PageBuilder:ThemeSnapshot:CacheAbsoluteExpiration`, instead of the platform's sliding expiration, under which
+an entry that is read often never expires. It reads the pointer only when the entry is missing. Publishing resets the store's
 entries on its own node at once and on the other nodes through Redis when it is configured; without Redis the other
 nodes serve the previous theme until their entries expire.
 
-A snapshot larger than the module constant `ThemeSnapshotSizeWarning` (gzip) is published and logged as a warning.
+A snapshot larger than the setting `PageBuilder:ThemeSnapshot:SizeWarningThreshold` (gzip bytes) is published and
+logged as a warning.
 
 ## Snapshot
 
