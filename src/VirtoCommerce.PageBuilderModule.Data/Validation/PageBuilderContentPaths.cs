@@ -70,7 +70,7 @@ public static class PageBuilderContentPaths
                pathInTheme.Equals($"{ThemeConfigFolder}/{ThemeSettingsFile}", StringComparison.OrdinalIgnoreCase);
     }
 
-    public static bool IsLegacyDraft(string path) => path.EndsWith(GitPageLocation.DraftSuffix, StringComparison.OrdinalIgnoreCase);
+    public static bool IsLegacyDraft(string path) => path.EndsWith(ModuleConstants.DraftSuffix, StringComparison.OrdinalIgnoreCase);
 
     public static bool IsSchemaKind(string kind) => ModuleConstants.SchemaKinds.All.Contains(kind);
 

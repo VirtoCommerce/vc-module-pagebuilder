@@ -69,7 +69,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         private const string SchemaKindShared = ModuleConstants.SchemaKinds.Shared;
         // The blob name of a draft in the flow that came before git: the page's name with this appended.
         // Only the legacy-draft cleanup deals in these; everywhere else GitPageLocation strips the suffix.
-        private const string DraftSuffix = GitPageLocation.DraftSuffix;
+        private const string DraftSuffix = ModuleConstants.DraftSuffix;
         private const string FolderEntryType = "folder";
         private const int MaxLegacyDraftPageSize = 200;
         private const string LegacyDraftOnlyCopy = "only-copy";

@@ -6,6 +6,9 @@ namespace VirtoCommerce.PageBuilderModule.Core
     {
         public const string DefaultPageContent = "{ \"settings\": {}, \"content\": [] }";
 
+        /// <summary>Appended to a page's blob name to name its draft in the flow that came before git.</summary>
+        public const string DraftSuffix = "-draft";
+
         public static class ContentProviders
         {
             /// <summary>
