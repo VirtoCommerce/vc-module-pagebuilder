@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using VirtoCommerce.PageBuilderModule.Core;
@@ -284,7 +285,7 @@ public class GitContentSetupController(
 
     private static ContentResult CreateSetupErrorResult(string message) => new()
     {
-        StatusCode = 400,
+        StatusCode = StatusCodes.Status400BadRequest,
         ContentType = "text/plain; charset=utf-8",
         Content = string.Format(CultureInfo.InvariantCulture, SetupErrorFormat, message),
     };

@@ -2,6 +2,7 @@ using System.Globalization;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Theme;
 using VirtoCommerce.PageBuilderModule.Data.Extensions;
@@ -20,6 +21,8 @@ public class ThemeSnapshotService(
     IPlatformMemoryCache platformMemoryCache,
     IOptions<ThemeSnapshotOptions> options) : IThemeSnapshotService
 {
+    private const string MenusProperty = "menus";
+
     public virtual async Task<ThemeSnapshot> GetPublishedAsync(string storeId, string cultureName, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(storeId) || !await IsNewPageBuilderEnabledAsync(storeId))
@@ -137,12 +140,9 @@ public class ThemeSnapshotService(
     {
         try
         {
-            var snapshot = AbstractTypeFactory<ThemeSnapshotContent>.TryCreateInstance();
-            JsonConvert.PopulateObject(content, snapshot);
-
-            return snapshot.Menus?.Where(x => !string.IsNullOrEmpty(x)).ToList() ?? [];
+            return (JObject.Parse(content)[MenusProperty] as JArray)?.Values<string>().Where(x => !string.IsNullOrEmpty(x)).ToList() ?? [];
         }
-        catch (JsonException)
+        catch (JsonReaderException)
         {
             return [];
         }

@@ -241,10 +241,7 @@ public class GitHubApiClient(IHttpClientFactory httpClientFactory) : IGitHubApiC
         return (repository[..separator], repository[(separator + 1)..]);
     }
 
-    /// <summary>
-    /// Reads a GitHub timestamp in either shape it arrives in, never through the host's culture: Newtonsoft turns an
-    /// ISO timestamp into a <see cref="DateTime"/> while parsing, and re-parsing it as text can swap day and month.
-    /// </summary>
+    /// <summary>Reads a GitHub timestamp culture-invariantly; Newtonsoft may already have parsed it into a date.</summary>
     public static DateTime? ReadDate(JToken value) => value switch
     {
         JValue { Value: DateTime dateTime } => dateTime.ToUniversalTime(),
