@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using VirtoCommerce.ContentModule.Core;
+using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Core.Models;
@@ -29,8 +30,6 @@ public class ThemePublisher(
     IOptions<ThemeSnapshotOptions> options,
     ILogger<ThemePublisher> logger) : IThemePublisher
 {
-    private const string PublishedHistorySummary = "Published";
-
     public virtual async Task<int> PublishAsync(string storeId, string catalogHash, ClaimsPrincipal user, CancellationToken cancellationToken = default)
     {
         var catalog = await GetCatalogAsync(storeId, catalogHash, cancellationToken);
@@ -215,7 +214,7 @@ public class ThemePublisher(
         var saveId = Guid.NewGuid().ToString("N");
         foreach (var file in files)
         {
-            await themeFileHistory.RecordAsync(storeId, file.Path, file.Content, PublishedHistorySummary, user, saveId, cancellationToken);
+            await themeFileHistory.RecordAsync(storeId, file.Path, file.Content, ModuleConstants.GitHistory.PublishedSummary, user, saveId, cancellationToken);
         }
     }
 

@@ -229,7 +229,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 authorizationService: new PublishedRenameContentPreservationTests.AllowAllAuthorizationService(),
                 pageDocumentSearchService: new PublishedRenameContentPreservationTests.NoopPageDocumentSearchService(),
                 pageContentService: pageContentService,
-                logger: NullLogger<PageBuilderPageController>.Instance);
+                logger: NullLogger<PageBuilderPageController>.Instance, groupedPageHistoryService: new NoFileHistory());
 
             var httpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity()) };
             httpContext.Request.Body = new MemoryStream(Encoding.UTF8.GetBytes(body));

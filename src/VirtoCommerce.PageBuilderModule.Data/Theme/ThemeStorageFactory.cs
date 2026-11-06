@@ -16,7 +16,11 @@ public class ThemeStorageFactory(
 {
     public virtual async Task<IThemeStorage> OpenAsync(string storeId)
     {
-        var themeName = await GetThemeNameAsync(storeId);
+        return Open(storeId, await GetThemeNameAsync(storeId));
+    }
+
+    public virtual IThemeStorage Open(string storeId, string themeName)
+    {
         var basePath = contentPathResolver.GetContentBasePath(ContentConstants.ContentTypes.Themes, storeId, themeName);
 
         return CreateStorage(blobContentStorageProviderFactory.CreateProvider(basePath), themeName);

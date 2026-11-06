@@ -18,6 +18,8 @@ using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Data.GitContent;
+using VirtoCommerce.PageBuilderModule.Data.Theme;
+using VirtoCommerce.PageBuilderModule.Data.Validation;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using Xunit;
 
@@ -120,7 +122,7 @@ public class ThemeFileHistoryTests
                 return GitHubScript.Json("""{ "commit": { "sha": "c9" } }""", HttpStatusCode.Created);
             }));
         var builder = Builder(github, new FakeLiveStorage());
-        builder.HttpContext.Request.Headers[SiteSave.Header] = header;
+        builder.HttpContext.Request.Headers[ModuleConstants.Headers.SaveId] = header;
         var files = new[] { new { path = Path, type = "themes", content = new { content = Array.Empty<object>() } } };
 
         await builder.SaveTemplates("s1", "default", new PageBuilderController.SaveFilesModel { Files = JsonConvert.SerializeObject(files) }, draft: true);
@@ -143,7 +145,7 @@ public class ThemeFileHistoryTests
                 return GitHubScript.Json("""{ "commit": { "sha": "c9" } }""", HttpStatusCode.Created);
             }));
         var controller = Controller(github, new FakeLiveStorage());
-        controller.HttpContext.Request.Headers[SiteSave.Header] = "restore-0001";
+        controller.HttpContext.Request.Headers[ModuleConstants.Headers.SaveId] = "restore-0001";
 
         Assert.IsType<OkResult>(await controller.Restore(Sha, "s1", Path, "abcdef1234", TestContext.Current.CancellationToken));
 
@@ -190,7 +192,7 @@ public class ThemeFileHistoryTests
     {
         var github = new GitHubScript();
 
-        Assert.False(ThemeFileHistoryService.IsThemePath(path));
+        Assert.False(PageBuilderContentPaths.IsThemeFilePath(path));
         await History(github).RecordAsync("s1", path, "{}", "Saved", Alice(), null, TestContext.Current.CancellationToken);
         Assert.IsType<BadRequestObjectResult>((await Controller(github, new FakeLiveStorage()).GetHistory("s1", path, cancellationToken: TestContext.Current.CancellationToken)).Result);
 
@@ -257,17 +259,17 @@ public class ThemeFileHistoryTests
 
     private static GitContentPolicy Policy(IOptions<GitContentOptions> options) => GitHubConnections.Policy(options, new FakeSettingsManager(true));
 
-    private static ThemeFileHistoryService History(GitHubScript github)
+    private static ThemeFileHistoryService History(GitHubScript github, FakeLiveStorage live = null)
     {
         var options = GitOptions();
         var repository = new GitHubContentRepository(github, new MemoryCache(new MemoryCacheOptions()), options);
-        return new ThemeFileHistoryService(Policy(options), repository, new GitHubApiClient(github), GitHubConnections.Service(options.Value), options,
-            NullLogger<ThemeFileHistoryService>.Instance);
+        live ??= new FakeLiveStorage();
+        return new ThemeFileHistoryService(Policy(options), repository, new GitHubApiClient(github), GitHubConnections.Service(options.Value),
+            new ThemeStorageFactory(live.StoreService, live, live, live), new InProcessDistributedLock(), live, options, NullLogger<ThemeFileHistoryService>.Instance);
     }
 
     private static ThemeFileHistoryController Controller(GitHubScript github, FakeLiveStorage live, IAuthorizationService authorization = null) =>
-        WithUser(new ThemeFileHistoryController(live, live, live, live, new InProcessDistributedLock(), History(github),
-            authorization ?? new FakeAuthorizationService(true), RequestValidators.ThemeFiles("s1")));
+        WithUser(new ThemeFileHistoryController(History(github, live), authorization ?? new FakeAuthorizationService(true), RequestValidators.ThemeFiles("s1")));
 
     /// <summary>The user works in one store, with these permissions.</summary>
     private sealed class Grants(string storeId, params string[] permissions) : IAuthorizationService
@@ -295,11 +297,12 @@ public class ThemeFileHistoryTests
             gitContentHistory: null,
             gitContentPublisher: null,
             gitContentProvisioner: new FakeGitContentProvisioner(),
+            gitLivePageService: null,
             settingsManager: null,
             authorizationService: new FakeAuthorizationService(true),
             distributedLock: new InProcessDistributedLock(),
             requestValidator: RequestValidators.Content("s1"),
-            themeFileHistory: History(github)));
+            themeFileHistoryService: History(github, live)));
     }
 
     private static T WithUser<T>(T controller) where T : ControllerBase

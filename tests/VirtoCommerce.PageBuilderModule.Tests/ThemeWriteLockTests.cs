@@ -117,10 +117,12 @@ public class ThemeWriteLockTests
             gitContentHistory: null,
             gitContentPublisher: null,
             gitContentProvisioner: new FakeGitContentProvisioner(),
+            gitLivePageService: null,
             settingsManager: null,
             authorizationService: new FakeAuthorizationService(true),
             distributedLock: _lock,
-            requestValidator: RequestValidators.Content("s1")));
+            requestValidator: RequestValidators.Content("s1"),
+            themeFileHistoryService: new NoFileHistory()));
     }
 
     private ThemeFileHistoryController HistoryController(GitHubScript github)
@@ -135,8 +137,9 @@ public class ThemeWriteLockTests
         });
         var repository = new GitHubContentRepository(github, new MemoryCache(new MemoryCacheOptions()), options);
         var history = new ThemeFileHistoryService(GitHubConnections.Policy(options, new FakeSettingsManager(true), new FakeGitContentOwnership()), repository,
-            new GitHubApiClient(github), GitHubConnections.Service(options.Value), options, NullLogger<ThemeFileHistoryService>.Instance);
-        return WithUser(new ThemeFileHistoryController(_live, _live, _live, _live, _lock, history, new FakeAuthorizationService(true), RequestValidators.ThemeFiles("s1")));
+            new GitHubApiClient(github), GitHubConnections.Service(options.Value), new ThemeStorageFactory(_live.StoreService, _live, _live, _live), _lock, _live,
+            options, NullLogger<ThemeFileHistoryService>.Instance);
+        return WithUser(new ThemeFileHistoryController(history, new FakeAuthorizationService(true), RequestValidators.ThemeFiles("s1")));
     }
 
     private static T WithUser<T>(T controller) where T : ControllerBase

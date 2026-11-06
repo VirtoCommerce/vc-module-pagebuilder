@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
+using VirtoCommerce.PageBuilderModule.Data.GitContent;
 using VirtoCommerce.PageBuilderModule.Data.Validation;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using VirtoCommerce.StoreModule.Core.Model;
@@ -164,7 +165,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             var result = await Controller(repository, Publisher(), live: live, source: source, history: hadThePage ? Unpublished() : null)
                 .GitPublishStatus("s1", Page, "pages");
 
-            var status = JObject.FromObject(Assert.IsType<OkObjectResult>(result).Value!);
+            var status = PlatformJson.ParseBody(result);
             Assert.False(status.Value<bool>("published"));
             Assert.Equal(liveBehind, status.Value<bool>("liveBehind"));
         }
@@ -235,6 +236,8 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
             // Live storage takes part only once a merge is done; without one it is left null on purpose,
             // so an unpublish that is still waiting for its merge and reaches for it fails loudly here.
+            var connection = GitHubConnections.Service(options.Value);
+            var gitHistory = new FixedHistory(history ?? new GitPageHistory());
             var controller = new PageBuilderController(
                 storeService: live?.StoreService,
                 pathResolver: live,
@@ -242,16 +245,18 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 publishingService: live,
                 eventPublisher: live,
                 gitContentOptions: options,
-                gitHubConnectionService: GitHubConnections.Service(options.Value),
+                gitHubConnectionService: connection,
                 gitContentPolicy: new FakeGitContentPolicy(source: source),
                 gitContentRepository: repository,
-                gitContentHistory: new FixedHistory(history ?? new GitPageHistory()),
+                gitContentHistory: gitHistory,
                 gitContentPublisher: publisher,
                 gitContentProvisioner: new FakeGitContentProvisioner(),
+                gitLivePageService: new GitLivePageService(repository, gitHistory, connection, live, live, live, live),
                 settingsManager: null,
                 authorizationService: new FakeAuthorizationService(true),
                 distributedLock: new InProcessDistributedLock(),
-                requestValidator: RequestValidators.Content("s1", "vccom"));
+                requestValidator: RequestValidators.Content("s1", "vccom"),
+                themeFileHistoryService: new NoFileHistory());
 
             var identity = new ClaimsIdentity([new Claim(ClaimTypes.Name, Login)], "test");
             controller.ControllerContext = new ControllerContext

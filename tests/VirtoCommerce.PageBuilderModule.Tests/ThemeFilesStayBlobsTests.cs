@@ -91,10 +91,12 @@ public class ThemeFilesStayBlobsTests
             gitContentHistory: null,
             gitContentPublisher: null,
             gitContentProvisioner: new FakeGitContentProvisioner(),
+            gitLivePageService: null,
             settingsManager: null,
             authorizationService: authorization ?? new FakeAuthorizationService(true),
             distributedLock: new InProcessDistributedLock(),
-            requestValidator: RequestValidators.Content("s1"));
+            requestValidator: RequestValidators.Content("s1"),
+            themeFileHistoryService: new NoFileHistory());
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Name, "alice")], "test")) },

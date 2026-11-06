@@ -32,7 +32,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             ["git/publish"] = (c, store, type, path) => c.GitPublish(store, path, type),
             ["git/promote"] = (c, store, type, path) => c.GitPromote(store, path, type),
             ["git/unpublish"] = (c, store, type, path) => c.GitUnpublish(store, path, type),
-            ["git/publish-status"] = (c, store, type, path) => c.GitPublishStatus(store, path, type),
+            ["git/publish-status"] = async (c, store, type, path) => (await c.GitPublishStatus(store, path, type)).Result,
             ["git/history"] = (c, store, type, path) => c.GitHistory(store, path, type),
             ["git/restore-version"] = (c, store, type, path) => c.GitRestoreVersion(store, path, type, new string('a', 40)),
             ["git/preview"] = (c, store, type, path) => c.GitPreview(store, path, type),
@@ -367,10 +367,12 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 gitContentHistory: null,
                 gitContentPublisher: null,
                 gitContentProvisioner: new FakeGitContentProvisioner(),
+                gitLivePageService: null,
                 settingsManager: null,
                 authorizationService: authorizationService ?? new ScopedAuthorizationService(storeAccess, granted),
                 distributedLock: new InProcessDistributedLock(),
-                requestValidator: new PageBuilderContentRequestValidator(new FakeStoreService(new Store { Id = Store }), new PageBuilderContentFileValidator()));
+                requestValidator: new PageBuilderContentRequestValidator(new PageBuilderStoreRequestValidator(new FakeStoreService(new Store { Id = Store })), new PageBuilderContentFileValidator()),
+                themeFileHistoryService: new NoFileHistory());
 
             controller.ControllerContext = new ControllerContext
             {

@@ -29,6 +29,8 @@ namespace VirtoCommerce.PageBuilderModule.Tests;
 /// </summary>
 public class GitContentSetupControllerTests
 {
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
     private readonly MemorySettingsManager _settings = new();
     private readonly EphemeralDataProtectionProvider _keys = new();
 
@@ -69,7 +71,7 @@ public class GitContentSetupControllerTests
     [InlineData("-acme")]
     public async Task What_is_not_an_organization_name_is_refused(string organization)
     {
-        Assert.IsType<BadRequestObjectResult>(await Controller().StartAppSetup(organization, "s1"));
+        Assert.IsType<BadRequestObjectResult>((await Controller().StartAppSetup(organization, "s1", Ct)).Result);
     }
 
     [Fact]
@@ -78,7 +80,7 @@ public class GitContentSetupControllerTests
         var github = GitHubConnectionServiceTests.Conversion("acme");
         var connection = GitHubConnectionServiceTests.Service(_settings, _keys, github);
         var controller = Controller(connection);
-        var result = await controller.AppCreated("c0de", await State(controller, "acme", "s1"));
+        var result = await controller.AppCreated("c0de", await State(controller, "acme", "s1"), Ct);
 
         github.AssertDone();
         Assert.Equal("https://github.com/apps/page-builder-acme/installations/new", Assert.IsType<RedirectResult>(result).Url);
@@ -90,10 +92,10 @@ public class GitContentSetupControllerTests
     {
         var github = GitHubConnectionServiceTests.Conversion("acme");
 
-        var result = await Controller(GitHubConnectionServiceTests.Service(_settings, _keys, github)).AppCreated("c0de", "forged");
+        var result = await Controller(GitHubConnectionServiceTests.Service(_settings, _keys, github)).AppCreated("c0de", "forged", Ct);
 
         Assert.Equal(400, Assert.IsType<ContentResult>(result).StatusCode);
-        Assert.Equal(400, Assert.IsType<ContentResult>(await Controller().AppNew("forged")).StatusCode);
+        Assert.Equal(400, Assert.IsType<ContentResult>(await Controller().AppNew("forged", Ct)).StatusCode);
         Assert.Equal(0, github.Requests);
         Assert.Empty(_settings.Values);
     }
@@ -123,7 +125,7 @@ public class GitContentSetupControllerTests
         var connection = GitHubConnectionServiceTests.Service(_settings, _keys, GitHubConnectionServiceTests.Conversion("acme"));
         await connection.CreateAppAsync("c0de", "acme", TestContext.Current.CancellationToken);
 
-        var status = Assert.IsType<GitContentSiteStatus>(Assert.IsType<OkObjectResult>((await Controller(connection).GetSite("s1")).Result).Value);
+        var status = Assert.IsType<GitContentSiteStatus>(Assert.IsType<OkObjectResult>((await Controller(connection).GetSite("s1", Ct)).Result).Value);
 
         Assert.Equal(GitHubConnectionSource.App, status.Source);
         Assert.Equal("app", JObject.FromObject(status)[nameof(GitContentSiteStatus.Source)]?.Value<string>());
@@ -135,7 +137,7 @@ public class GitContentSetupControllerTests
     {
         var controller = Controller(authorization: new StoreAuthorization("s2"));
 
-        Assert.IsType<ForbidResult>((await controller.GetSite("s1")).Result);
+        Assert.IsType<ForbidResult>((await controller.GetSite("s1", Ct)).Result);
     }
 
     [Fact]
@@ -150,7 +152,7 @@ public class GitContentSetupControllerTests
         });
         var controller = Controller(connection, new StoreAuthorization("s2"), new SitePolicy(), new Stores("s1", "s2"));
 
-        var answer = JObject.FromObject(Assert.IsType<OkObjectResult>(await controller.GetConnection()).Value!);
+        var answer = PlatformJson.ParseBody(await controller.GetConnection(cancellationToken: Ct));
 
         Assert.Equal(["s2"], answer["sites"]!.Select(x => x.Value<string>("storeId")));
     }
@@ -160,7 +162,7 @@ public class GitContentSetupControllerTests
     {
         var controller = Controller(ConfiguredConnection(), new StoreAuthorization("s150"), stores: new Stores(Enumerable.Range(1, 250).Select(x => $"s{x:000}").ToArray()));
 
-        var answer = JObject.FromObject(Assert.IsType<OkObjectResult>(await controller.GetConnection()).Value!);
+        var answer = PlatformJson.ParseBody(await controller.GetConnection(cancellationToken: Ct));
 
         Assert.Equal(["s150"], answer["sites"]!.Select(x => x.Value<string>("storeId")));
     }
@@ -168,10 +170,12 @@ public class GitContentSetupControllerTests
     [Fact]
     public async Task A_GitHub_that_does_not_answer_in_time_is_what_the_connection_test_reports()
     {
-        var provisioner = new FakeGitContentProvisioner { OrganizationFailure = new TaskCanceledException("The request was canceled due to the configured HttpClient.Timeout.") };
+        // HttpClient.Timeout ends a request with a TaskCanceledException, which the GitHub client reports as a GitContentException
+        var timeout = new TaskCanceledException("The request was canceled due to the configured HttpClient.Timeout.");
+        var provisioner = new FakeGitContentProvisioner { OrganizationFailure = new GitContentException($"GitHub request to read organization \"acme\" failed: {timeout.Message}", timeout) };
         var controller = Controller(ConfiguredConnection(), provisioner: provisioner);
 
-        var answer = JObject.FromObject(Assert.IsType<OkObjectResult>(await controller.GetConnection()).Value!);
+        var answer = PlatformJson.ParseBody(await controller.GetConnection(cancellationToken: Ct));
 
         Assert.Contains("HttpClient.Timeout", answer.Value<string>("error"));
     }
@@ -181,7 +185,7 @@ public class GitContentSetupControllerTests
     {
         var provisioner = new FakeGitContentProvisioner();
 
-        var result = await Controller(provisioner: provisioner).ConnectSite("gone");
+        var result = await Controller(provisioner: provisioner).ConnectSite("gone", Ct);
 
         Assert.IsType<BadRequestObjectResult>(result.Result);
         Assert.Empty(provisioner.Connected);
@@ -192,7 +196,7 @@ public class GitContentSetupControllerTests
     {
         var provisioner = new FakeGitContentProvisioner();
 
-        var result = await Controller(authorization: new StoreAuthorization("s2"), provisioner: provisioner).ConnectSite("s1");
+        var result = await Controller(authorization: new StoreAuthorization("s2"), provisioner: provisioner).ConnectSite("s1", Ct);
 
         Assert.IsType<ForbidResult>(result.Result);
         Assert.Empty(provisioner.Connected);
@@ -208,7 +212,7 @@ public class GitContentSetupControllerTests
             options.BaseBranch = "main";
         });
 
-        Assert.IsType<BadRequestObjectResult>(await Controller(connection).StartAppSetup("acme", "s1"));
+        Assert.IsType<BadRequestObjectResult>((await Controller(connection).StartAppSetup("acme", "s1", Ct)).Result);
     }
 
     [Fact]
@@ -217,7 +221,7 @@ public class GitContentSetupControllerTests
         var connection = GitHubConnectionServiceTests.Service(_settings, _keys, GitHubConnectionServiceTests.Conversion("acme"));
         await connection.CreateAppAsync("c0de", "acme", TestContext.Current.CancellationToken);
 
-        var body = PlatformJson.SerializeBody(await Controller(connection, stores: new Stores("s1", "s2")).GetConnection());
+        var body = PlatformJson.SerializeBody(await Controller(connection, stores: new Stores("s1", "s2")).GetConnection(cancellationToken: Ct));
 
         Assert.Equal(
             """
@@ -233,13 +237,13 @@ public class GitContentSetupControllerTests
     [Fact]
     public async Task GetConnection_NotConfigured_WritesTheSetupJson()
     {
-        Assert.Equal("""{"sites":[],"configured":false,"autoCreateRepositories":false}""", PlatformJson.SerializeBody(await Controller().GetConnection()));
+        Assert.Equal("""{"sites":[],"configured":false,"autoCreateRepositories":false}""", PlatformJson.SerializeBody(await Controller().GetConnection(cancellationToken: Ct)));
     }
 
     [Fact]
     public async Task StartAppSetup_ValidOrganization_WritesTheSetupPageUrlJson()
     {
-        var body = PlatformJson.ParseBody(await Controller().StartAppSetup("acme", "s1"));
+        var body = PlatformJson.ParseBody(await Controller().StartAppSetup("acme", "s1", Ct));
 
         Assert.Equal(["url"], body.Properties().Select(x => x.Name));
         Assert.StartsWith("/api/pagebuilder/git/app/new?state=", body.Value<string>("url"));
@@ -263,11 +267,14 @@ public class GitContentSetupControllerTests
         http.Request.Scheme = "https";
         http.Request.Host = new HostString("platform.test");
 
-        return new GitContentSetupController(provisioner ?? new FakeGitContentProvisioner(), connection ?? GitHubConnectionServiceTests.Service(_settings, _keys), _keys,
-            authorization ?? new FakeAuthorizationService(true), policy ?? new SitePolicy(), stores ?? new Stores(),
+        provisioner ??= new FakeGitContentProvisioner();
+        connection ??= GitHubConnectionServiceTests.Service(_settings, _keys);
+        var setup = new GitContentSetupService(connection, provisioner, policy ?? new SitePolicy(), _keys);
+
+        return new GitContentSetupController(setup, provisioner, connection, authorization ?? new FakeAuthorizationService(true), stores ?? new Stores(),
             RequestValidators.Stores("s1", "s2"), RequestValidators.AppSetup)
         {
-            ControllerContext = new ControllerContext { HttpContext = http },
+            ControllerContext = MvcRouting.CreateContext(http, "GitContentSetup"),
         };
     }
 
@@ -307,7 +314,7 @@ public class GitContentSetupControllerTests
     /// <summary>The state the setup carries, from the address the panel opens.</summary>
     private static async Task<string> State(GitContentSetupController controller, string organization, string storeId)
     {
-        var url = JObject.FromObject(Assert.IsType<OkObjectResult>(await controller.StartAppSetup(organization, storeId)).Value!)["url"]!.Value<string>()!;
+        var url = Assert.IsType<GitHubAppSetupResult>(Assert.IsType<OkObjectResult>((await controller.StartAppSetup(organization, storeId, Ct)).Result).Value).Url;
         Assert.StartsWith("/api/pagebuilder/git/app/new?state=", url);
         return HttpUtility.ParseQueryString(url[url.IndexOf('?')..])["state"];
     }
@@ -315,7 +322,7 @@ public class GitContentSetupControllerTests
     /// <summary>Where the page that opens posts, and the manifest it posts.</summary>
     private static async Task<(string Action, JObject Manifest)> Form(GitContentSetupController controller, string state)
     {
-        var page = Assert.IsType<ContentResult>(await controller.AppNew(state));
+        var page = Assert.IsType<ContentResult>(await controller.AppNew(state, Ct));
         Assert.StartsWith("text/html", page.ContentType);
         string Attribute(string pattern) => WebUtility.HtmlDecode(Regex.Match(page.Content!, pattern).Groups[1].Value);
         return (Attribute("action=\"([^\"]*)\""), JObject.Parse(Attribute("name=\"manifest\" value=\"([^\"]*)\"")));

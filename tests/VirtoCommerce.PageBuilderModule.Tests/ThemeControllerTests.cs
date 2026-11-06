@@ -15,6 +15,8 @@ namespace VirtoCommerce.PageBuilderModule.Tests;
 /// <summary>A theme publication and its catalogs are asked for only for a store that exists and that the user works in.</summary>
 public class ThemeControllerTests
 {
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
     private readonly Recorder _services = new();
 
     [Fact]
@@ -22,9 +24,9 @@ public class ThemeControllerTests
     {
         var controller = Controller(new FakeAuthorizationService(false));
 
-        Assert.IsType<ForbidResult>(await controller.Publish("s1", "abcdefgh"));
-        Assert.IsType<ForbidResult>(await controller.SaveCatalog("s1"));
-        Assert.IsType<ForbidResult>(await controller.GetCatalog("s1", null));
+        Assert.IsType<ForbidResult>((await controller.Publish("s1", "abcdefgh", Ct)).Result);
+        Assert.IsType<ForbidResult>((await controller.SaveCatalog("s1", Ct)).Result);
+        Assert.IsType<ForbidResult>(await controller.GetCatalog("s1", null, Ct));
 
         Assert.Empty(_services.Calls);
     }
@@ -36,9 +38,9 @@ public class ThemeControllerTests
     {
         var controller = Controller(new FakeAuthorizationService(true));
 
-        Assert.IsType<BadRequestObjectResult>(await controller.Publish(storeId, "abcdefgh"));
-        Assert.IsType<BadRequestObjectResult>(await controller.SaveCatalog(storeId));
-        Assert.IsType<BadRequestObjectResult>(await controller.GetCatalog(storeId, null));
+        Assert.IsType<BadRequestObjectResult>((await controller.Publish(storeId, "abcdefgh", Ct)).Result);
+        Assert.IsType<BadRequestObjectResult>((await controller.SaveCatalog(storeId, Ct)).Result);
+        Assert.IsType<BadRequestObjectResult>(await controller.GetCatalog(storeId, null, Ct));
 
         Assert.Empty(_services.Calls);
     }
@@ -48,7 +50,7 @@ public class ThemeControllerTests
     {
         var controller = Controller(new FakeAuthorizationService(true), """{ "hash": "abcdefgh" }""");
 
-        Assert.IsType<OkObjectResult>(await controller.SaveCatalog("s1"));
+        Assert.IsType<OkObjectResult>((await controller.SaveCatalog("s1", Ct)).Result);
 
         Assert.Equal(["save s1"], _services.Calls);
     }
@@ -58,7 +60,7 @@ public class ThemeControllerTests
     {
         var controller = Controller(new FakeAuthorizationService(true));
 
-        Assert.Equal("""{"publication":1}""", PlatformJson.SerializeBody(await controller.Publish("s1", "abcdefgh")));
+        Assert.Equal("""{"publication":1}""", PlatformJson.SerializeBody(await controller.Publish("s1", "abcdefgh", Ct)));
     }
 
     [Fact]
@@ -66,7 +68,7 @@ public class ThemeControllerTests
     {
         var controller = Controller(new FakeAuthorizationService(true), """{ "hash": "abcdefgh" }""");
 
-        Assert.Equal("""{"hash":"abcdefgh"}""", PlatformJson.SerializeBody(await controller.SaveCatalog("s1")));
+        Assert.Equal("""{"hash":"abcdefgh"}""", PlatformJson.SerializeBody(await controller.SaveCatalog("s1", Ct)));
     }
 
     private ThemeController Controller(FakeAuthorizationService authorization, string body = "")

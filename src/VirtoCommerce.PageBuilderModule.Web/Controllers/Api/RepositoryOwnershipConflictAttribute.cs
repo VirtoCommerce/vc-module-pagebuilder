@@ -4,10 +4,7 @@ using VirtoCommerce.PageBuilderModule.Core.GitContent;
 
 namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 
-/// <summary>
-/// A store working in a repository the module created for another store is a setting to fix, not a server error:
-/// answered with 409 and what to do, wherever the store's repository is asked for.
-/// </summary>
+/// <summary>Returns 409 Conflict for <see cref="GitRepositoryOwnershipException"/>.</summary>
 public sealed class RepositoryOwnershipConflictAttribute : ExceptionFilterAttribute
 {
     public override void OnException(ExceptionContext context)

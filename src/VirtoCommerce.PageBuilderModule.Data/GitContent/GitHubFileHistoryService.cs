@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
+using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.Platform.Core.Common;
 
@@ -135,6 +136,13 @@ public abstract class GitHubFileHistoryService(
         }
 
         return await gitContentPolicy.GetRepositoryAsync(storeId, cancellationToken);
+    }
+
+    /// <summary>Gets the summary of a restore: the version the editor restored a whole save by, else the restored change.</summary>
+    protected virtual string GetRestoredSummary(string version, string sha)
+    {
+        var restoredVersion = GitCommitSha.IsAbbreviatedSha(version) ? version : sha;
+        return $"{ModuleConstants.GitHistory.RestoredSummary} {restoredVersion[..GitCommitSha.ShortShaLength]}";
     }
 
     protected virtual GitCommitAuthor CreateAuthor(ClaimsPrincipal user)

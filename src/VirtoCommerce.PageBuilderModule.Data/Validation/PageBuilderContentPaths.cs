@@ -50,6 +50,10 @@ public static class PageBuilderContentPaths
     public static bool IsRelativePath(string path) =>
         !string.IsNullOrWhiteSpace(path) && HasPathCharactersOnly(path) && StaysInsideTheFolder(path) && HasPortableNames(path);
 
+    /// <summary>The theme folder, then the file path in it: "default/templates/product.json".</summary>
+    public static bool IsThemeFilePath(string path) =>
+        IsRelativePath(path) && !path.StartsWith('/') && IsInsideAThemeFolder(path);
+
     public static bool IsFolderName(string name) =>
         IsRelativePath(name) && !name.Contains('/');
 

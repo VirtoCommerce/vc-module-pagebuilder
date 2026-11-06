@@ -1,42 +1,41 @@
-using System;
-using System.Linq;
+using System.Collections.Generic;
+using System.IO;
+using System.Net.Mime;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Data.Authorization;
-using VirtoCommerce.PageBuilderModule.Data.GitContent;
+using VirtoCommerce.PageBuilderModule.Web.Extensions;
 using VirtoCommerce.PageBuilderModule.Web.Services;
 using VirtoCommerce.Platform.Core.Common;
-using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 
 namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 
-/// <summary>
-/// A database page's version history (<see cref="IGroupedPageHistoryService"/>): its changes, one change's content,
-/// going back to a change, and throwing the unpublished changes away. 404 for a store without history.
-/// </summary>
 [Route("api/page-builder-pages/grouped/{groupId}/history")]
 [Authorize]
 [RepositoryOwnershipConflict]
 public class GroupedPageHistoryController(
     IGroupedPageService groupedPageService,
     IGroupedPageContentService groupedPageContentService,
-    IPageBuilderPageService crudService,
     PageBuilderPageContentService pageContentService,
     IAuthorizationService authorizationService,
-    IGroupedPageHistoryService pageHistory) : Controller
+    IGroupedPageHistoryService groupedPageHistoryService) : Controller
 {
-    [HttpGet("")]
+    private const string NeverPublishedError = "This page has never been published, so there is no published version to go back to.";
+
+    /// <summary>Get changes of the page, newest first</summary>
+    [HttpGet]
     [Authorize(ModuleConstants.Security.Permissions.Read)]
     public async Task<ActionResult<GitFileHistoryResult>> GetHistory([FromRoute] string groupId, [FromQuery] string after = null,
-        [FromQuery] int take = 20, CancellationToken cancellationToken = default)
+        [FromQuery] int take = ModuleConstants.GitHistory.DefaultPageSize, CancellationToken cancellationToken = default)
     {
-        var group = await AuthorizedGroupAsync(groupId);
+        var group = await GetAuthorizedGroupAsync(groupId);
         if (group == null)
         {
             return NotFound();
@@ -44,93 +43,92 @@ public class GroupedPageHistoryController(
 
         try
         {
-            var history = await pageHistory.GetHistoryAsync(group, after, take, cancellationToken);
+            var history = await groupedPageHistoryService.GetHistoryAsync(group, after, take, cancellationToken);
             return history == null ? NotFound() : Ok(history);
         }
-        catch (Exception failure) when (GitHubFailure.Is(failure, cancellationToken))
+        catch (GitContentException ex)
         {
-            return BadRequest(new { error = failure.Message });
+            return BadRequest(new { error = ex.Message });
         }
     }
 
-    /// <summary>The page's content at a change, to preview it.</summary>
+    /// <summary>Get page content at the change</summary>
     [HttpGet("{sha}")]
     [Authorize(ModuleConstants.Security.Permissions.Read)]
     public async Task<ActionResult> GetVersion([FromRoute] string groupId, [FromRoute] string sha, CancellationToken cancellationToken = default)
     {
-        var group = await AuthorizedGroupAsync(groupId);
+        var group = await GetAuthorizedGroupAsync(groupId);
         if (group == null || !GitCommitSha.IsSha(sha))
         {
             return NotFound();
         }
 
-        var content = await pageHistory.ReadContentAsync(group, sha, cancellationToken);
-        return content == null ? NotFound() : Content(content, "application/json");
+        var content = await groupedPageHistoryService.ReadContentAsync(group, sha, cancellationToken);
+        return content == null ? NotFound() : Content(content, MediaTypeNames.Application.Json);
     }
 
-    /// <summary>
-    /// Makes a change's content the page's draft again — a new change on top, so nothing after it is lost;
-    /// publishing it is a separate step, as after any save.
-    /// </summary>
+    /// <summary>Restore page draft from the change</summary>
     [HttpPost("{sha}/restore")]
     [Authorize(ModuleConstants.Security.Permissions.Update)]
-    public async Task<ActionResult> Restore([FromRoute] string groupId, [FromRoute] string sha, [FromQuery] string version = null, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<UpdatePageContentResult>> Restore([FromRoute] string groupId, [FromRoute] string sha, [FromQuery] string version = null,
+        CancellationToken cancellationToken = default)
     {
-        var group = await AuthorizedGroupAsync(groupId);
+        var group = await GetAuthorizedGroupAsync(groupId);
         if (group == null || !GitCommitSha.IsSha(sha))
         {
             return NotFound();
         }
 
-        var content = await pageHistory.ReadContentAsync(group, sha, cancellationToken);
+        var content = await groupedPageHistoryService.ReadContentAsync(group, sha, cancellationToken);
         if (content == null)
         {
             return NotFound();
         }
 
-        // the editor asked for exactly this version: over whatever the draft holds now
         var current = await groupedPageContentService.LoadGroupContentAsync(group, draft: true, cancellationToken);
-        PageBuilderConditionalContentWriteResult result;
+        PageBuilderConditionalContentWriteResult writeResult;
         try
         {
-            result = await pageContentService.SaveConditionalContentAsync(group, content, current.ETag, cancellationToken);
+            writeResult = await pageContentService.SaveConditionalContentAsync(group, content, current.ETag, cancellationToken);
         }
-        catch (Exception failure) when (PageContentSaveFailure.AnswerTo(this, failure) is { } answer)
+        catch (PageBuilderContentConflictException ex)
         {
-            return answer;
+            return StatusCode(StatusCodes.Status412PreconditionFailed, ex.Message);
         }
-        await pageHistory.RecordAsync(group, content, $"Restored {SiteSave.Version(version, sha)}", User, SiteSave.Of(Request), cancellationToken);
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (InvalidDataException ex)
+        {
+            return BadRequest(ex.Message);
+        }
 
-        return Ok(new { eTag = result.ETag });
+        await groupedPageHistoryService.RecordRestoreAsync(group, content, sha, version, User, Request.GetSaveId(), cancellationToken);
+
+        return Ok(new UpdatePageContentResult { ETag = writeResult.ETag });
     }
 
-    /// <summary>Throws the page's unpublished changes away: it is what the storefront shows again.</summary>
+    /// <summary>Discard unpublished changes of the page</summary>
     [HttpPost("discard")]
     [Authorize(ModuleConstants.Security.Permissions.Update)]
     public async Task<ActionResult> Discard([FromRoute] string groupId, CancellationToken cancellationToken = default)
     {
-        var group = await AuthorizedGroupAsync(groupId);
+        var group = await GetAuthorizedGroupAsync(groupId);
         if (group == null)
         {
             return NotFound();
         }
 
-        if (!group.Pages.Any(x => x.Status == Published))
+        if (!await groupedPageHistoryService.DiscardDraftAsync(group, User, Request.GetSaveId(), cancellationToken))
         {
-            return BadRequest(new { error = "This page has never been published, so there is no published version to go back to." });
-        }
-
-        var drafts = group.Pages.Where(x => x.Status == Draft).Select(x => x.Id).ToList();
-        if (drafts.Count > 0)
-        {
-            await crudService.DeleteAsync(drafts);
-            await pageHistory.RecordAsync(group, await pageHistory.GetPublishedContentAsync(group, cancellationToken), "Discarded unpublished changes", User, SiteSave.Of(Request), cancellationToken);
+            return BadRequest(new { error = NeverPublishedError });
         }
 
         return Ok();
     }
 
-    private async Task<GroupedPageBuilderPage> AuthorizedGroupAsync(string groupId)
+    private async Task<GroupedPageBuilderPage> GetAuthorizedGroupAsync(string groupId)
     {
         var group = await groupedPageService.GetByIdAsync(groupId);
         if (group == null)
@@ -138,7 +136,7 @@ public class GroupedPageHistoryController(
             return null;
         }
 
-        var authorization = await authorizationService.AuthorizeAsync(User, group, new PageBuilderAuthorizationRequirement());
-        return authorization.Succeeded ? group : null;
+        var authorizationResult = await authorizationService.AuthorizeAsync(User, group, new PageBuilderAuthorizationRequirement());
+        return authorizationResult.Succeeded ? group : null;
     }
 }

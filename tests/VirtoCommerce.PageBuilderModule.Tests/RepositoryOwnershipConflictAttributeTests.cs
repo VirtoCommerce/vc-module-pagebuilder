@@ -18,6 +18,7 @@ using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Data.GitContent;
+using VirtoCommerce.PageBuilderModule.Data.Theme;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using Xunit;
 
@@ -68,10 +69,9 @@ public class RepositoryOwnershipConflictAttributeTests
     public async Task A_theme_files_history_lets_a_conflict_through()
     {
         var live = new FakeLiveStorage();
-        var controller = new ThemeFileHistoryController(live, live, live, live, new InProcessDistributedLock(),
-            new ThemeFileHistoryService(Policy(), Repository(), new GitHubApiClient(new GitHubScript()), GitHubConnections.Service(Options().Value), Options(),
-                NullLogger<ThemeFileHistoryService>.Instance),
-            new FakeAuthorizationService(true), RequestValidators.ThemeFiles("s1"))
+        var history = new ThemeFileHistoryService(Policy(), Repository(), new GitHubApiClient(new GitHubScript()), GitHubConnections.Service(Options().Value),
+            new ThemeStorageFactory(live.StoreService, live, live, live), new InProcessDistributedLock(), live, Options(), NullLogger<ThemeFileHistoryService>.Instance);
+        var controller = new ThemeFileHistoryController(history, new FakeAuthorizationService(true), RequestValidators.ThemeFiles("s1"))
         {
             ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() },
         };
@@ -83,7 +83,7 @@ public class RepositoryOwnershipConflictAttributeTests
     public async Task A_database_pages_history_lets_a_conflict_through()
     {
         var group = new GroupedPageBuilderPage { Id = "g1", StoreId = "s1", Name = "Home", Permalink = "/home" };
-        var controller = new GroupedPageHistoryController(new OneGroup(group), null, null, null, new FakeAuthorizationService(true),
+        var controller = new GroupedPageHistoryController(new OneGroup(group), null, null, new FakeAuthorizationService(true),
             new NothingPublished(Policy(), Repository(), new GitHubScript(), Options()))
         {
             ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity()) } },
@@ -95,14 +95,15 @@ public class RepositoryOwnershipConflictAttributeTests
     [Fact]
     public async Task Connecting_a_site_lets_a_conflict_through()
     {
-        var controller = new GitContentSetupController(new ConflictingProvisioner(), GitHubConnectionServiceTests.Service(new MemorySettingsManager()),
-            new EphemeralDataProtectionProvider(), new FakeAuthorizationService(true), Policy(), null,
-            RequestValidators.Stores("s1"), RequestValidators.AppSetup)
+        var provisioner = new ConflictingProvisioner();
+        var connection = GitHubConnectionServiceTests.Service(new MemorySettingsManager());
+        var controller = new GitContentSetupController(new GitContentSetupService(connection, provisioner, Policy(), new EphemeralDataProtectionProvider()),
+            provisioner, connection, new FakeAuthorizationService(true), null, RequestValidators.Stores("s1"), RequestValidators.AppSetup)
         {
             ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() },
         };
 
-        await Assert.ThrowsAsync<GitRepositoryOwnershipException>(() => controller.ConnectSite("s1"));
+        await Assert.ThrowsAsync<GitRepositoryOwnershipException>(() => controller.ConnectSite("s1", Ct));
     }
 
     // ── helpers ────────────────────────────────────────────────────────────────────────────────
@@ -125,7 +126,7 @@ public class RepositoryOwnershipConflictAttributeTests
     private static GitHubContentRepository Repository() => new(new GitHubScript(), new MemoryCache(new MemoryCacheOptions()), Options());
 
     private sealed class NothingPublished(IGitContentPolicy policy, IGitContentRepository repository, GitHubScript github, IOptions<GitContentOptions> options)
-        : GroupedPageHistoryService(policy, repository, new GitHubApiClient(github), GitHubConnections.Service(options.Value), null, options,
+        : GroupedPageHistoryService(policy, repository, new GitHubApiClient(github), GitHubConnections.Service(options.Value), null, null, options,
             NullLogger<GroupedPageHistoryService>.Instance)
     {
         public override Task<string> GetPublishedContentAsync(GroupedPageBuilderPage group, CancellationToken cancellationToken = default) =>

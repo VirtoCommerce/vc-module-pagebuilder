@@ -412,10 +412,12 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 gitContentHistory: null,
                 gitContentPublisher: null,
                 gitContentProvisioner: new FakeGitContentProvisioner(),
+                gitLivePageService: null,
                 settingsManager: null,
                 authorizationService: new FakeAuthorizationService(allowed),
                 distributedLock: new InProcessDistributedLock(),
-                requestValidator: RequestValidators.Content("s1", "vccom"));
+                requestValidator: RequestValidators.Content("s1", "vccom"),
+                themeFileHistoryService: new NoFileHistory());
 
             var identity = new ClaimsIdentity([new Claim(ClaimTypes.Name, "john")], "test");
             controller.ControllerContext = new ControllerContext

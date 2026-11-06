@@ -255,7 +255,7 @@ public class PageBuilderPageControllerSharedComponentPreflightTests
             authorizationService ?? new PublishedRenameContentPreservationTests.AllowAllAuthorizationService(),
             new PublishedRenameContentPreservationTests.NoopPageDocumentSearchService(),
             pageContentService,
-            NullLogger<PageBuilderPageController>.Instance);
+            NullLogger<PageBuilderPageController>.Instance, new NoFileHistory());
         var httpContext = new DefaultHttpContext
         {
             User = new ClaimsPrincipal(new ClaimsIdentity()),

@@ -33,6 +33,22 @@ namespace VirtoCommerce.PageBuilderModule.Core
             public const string FallbackLanguage = "en-US";
         }
 
+        public static class GitHistory
+        {
+            public const int DefaultPageSize = 20;
+
+            public const string SavedSummary = "Saved";
+            public const string PublishedSummary = "Published";
+            public const string DiscardedSummary = "Discarded unpublished changes";
+            public const string RestoredSummary = "Restored";
+        }
+
+        public static class Headers
+        {
+            /// <summary>Id of the designer save a request belongs to.</summary>
+            public const string SaveId = "X-PageBuilder-Save";
+        }
+
         public static class PageStatuses
         {
             public const string Draft = "Draft";

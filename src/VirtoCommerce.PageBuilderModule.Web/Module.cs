@@ -101,8 +101,7 @@ namespace VirtoCommerce.PageBuilderModule.Web
             serviceCollection.AddTransient<MultilanguagePageExportImport>();
             serviceCollection.AddTransient<PageBuilderExportImport>();
 
-            // Git content flow (off until the connection is set up — configuration or a site's one-click setup — AND a store opts in
-            // — see IGitContentPolicy and GitContentOptions).
+            // Git content flow: off until a connection is configured and a store opts in
             var gitContentSection = Configuration.GetSection(GitContentOptions.SectionName);
             serviceCollection.Configure<GitContentOptions>(gitContentSection);
             // Fail fast: a half-configured flow must not boot, or publishing would silently keep writing
@@ -121,6 +120,8 @@ namespace VirtoCommerce.PageBuilderModule.Web
             serviceCollection.AddTransient<IGitContentOwnership, GitHubContentOwnership>();
             serviceCollection.AddTransient<IGitContentPolicy, GitContentPolicy>();
             serviceCollection.AddTransient<IGitContentProvisioner, GitHubContentProvisioner>();
+            serviceCollection.AddTransient<IGitContentSetupService, GitContentSetupService>();
+            serviceCollection.AddTransient<IGitLivePageService, GitLivePageService>();
             serviceCollection.AddTransient<IGroupedPageHistoryService, GroupedPageHistoryService>();
             serviceCollection.AddTransient<IThemeFileHistoryService, ThemeFileHistoryService>();
 
@@ -133,7 +134,6 @@ namespace VirtoCommerce.PageBuilderModule.Web
             serviceCollection.AddTransient<IValidator<PageBuilderStoreRequest>, PageBuilderStoreRequestValidator>();
             serviceCollection.AddTransient<IValidator<ThemeFileRequest>, ThemeFileRequestValidator>();
             serviceCollection.AddTransient<IValidator<GitHubAppSetupRequest>, GitHubAppSetupRequestValidator>();
-            // site repositories follow their store: created for a new one, archived with a deleted one
             serviceCollection.AddTransient<GitContentStoreChangedEventHandler>();
             serviceCollection.AddBackgroundJob<GitContentRepositoryJob, GitContentRepositoryJobPayload>(triggerable: false);
 

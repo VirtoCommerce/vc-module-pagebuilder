@@ -50,9 +50,9 @@ public class BlobPublishTests
     {
         var publishing = new RecordingPublishingService { Status = new FilePublishStatus { Published = true, HasChanges = true } };
 
-        var result = Assert.IsType<OkObjectResult>(await Controller(publishing).GitPublishStatus("vccom", Page, "pages"));
+        var result = await Controller(publishing).GitPublishStatus("vccom", Page, "pages");
 
-        var status = JObject.FromObject(result.Value);
+        var status = PlatformJson.ParseBody(result);
         Assert.True(status.Value<bool>("published"));
         Assert.True(status.Value<bool>("hasChanges"));
         Assert.Equal("blob", status.Value<string>("flow"));
@@ -116,10 +116,12 @@ public class BlobPublishTests
             gitContentHistory: null,
             gitContentPublisher: null,
             gitContentProvisioner: new FakeGitContentProvisioner(),
+            gitLivePageService: null,
             settingsManager: null,
             authorizationService: new FakeAuthorizationService(allowed),
             distributedLock: new InProcessDistributedLock(),
-            requestValidator: new PageBuilderContentRequestValidator(new FakeStoreService(new Store { Id = "vccom" }), new PageBuilderContentFileValidator()));
+            requestValidator: new PageBuilderContentRequestValidator(new PageBuilderStoreRequestValidator(new FakeStoreService(new Store { Id = "vccom" })), new PageBuilderContentFileValidator()),
+            themeFileHistoryService: new NoFileHistory());
 
         controller.ControllerContext = new ControllerContext
         {

@@ -145,7 +145,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 authorizationService: new AllowAllAuthorizationService(),
                 pageDocumentSearchService: new NoopPageDocumentSearchService(),
                 pageContentService: pageContentService,
-                logger: NullLogger<PageBuilderPageController>.Instance);
+                logger: NullLogger<PageBuilderPageController>.Instance, groupedPageHistoryService: new NoFileHistory());
 
             var httpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity()) };
             httpContext.Response.Body = new MemoryStream();

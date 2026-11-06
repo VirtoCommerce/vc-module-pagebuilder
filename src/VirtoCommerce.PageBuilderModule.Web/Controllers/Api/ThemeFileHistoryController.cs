@@ -1,134 +1,112 @@
 using System;
-using System.IO;
+using System.Linq;
+using System.Net.Mime;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using VirtoCommerce.AssetsModule.Core.Assets;
-using VirtoCommerce.ContentModule.Core;
-using VirtoCommerce.ContentModule.Core.Model;
-using VirtoCommerce.ContentModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Core;
-using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Core.Models;
-using VirtoCommerce.PageBuilderModule.Data.GitContent;
+using VirtoCommerce.PageBuilderModule.Data.Authorization;
 using VirtoCommerce.PageBuilderModule.Data.Theme;
-using VirtoCommerce.Platform.Core.Common;
-using VirtoCommerce.Platform.Core.DistributedLock;
-using VirtoCommerce.Platform.Core.Events;
+using VirtoCommerce.PageBuilderModule.Web.Extensions;
 
 namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 
-/// <summary>
-/// A theme file's version history (<see cref="IThemeFileHistoryService"/>) — a template, the template rules, a section
-/// group: its changes, one change's content, and going back to a change. The file is named as the theme storage
-/// names it ("default/templates/product.json"). 404 for a store without history, 403 for a store the user does not
-/// work in; going back takes the permission that edits the file in the designer.
-/// </summary>
 [Route("api/pagebuilder/theme-history")]
 [Authorize]
 [RepositoryOwnershipConflict]
 public class ThemeFileHistoryController(
-    IContentPathResolver pathResolver,
-    IBlobContentStorageProviderFactory blobContentStorageProviderFactory,
-    IPublishingService publishingService,
-    IEventPublisher eventPublisher,
-    IDistributedLock distributedLock,
-    IThemeFileHistoryService history,
+    IThemeFileHistoryService themeFileHistoryService,
     IAuthorizationService authorizationService,
     IValidator<ThemeFileRequest> requestValidator) : Controller
 {
-    [HttpGet("")]
+    /// <summary>Get changes of the theme file, newest first</summary>
+    [HttpGet]
     [Authorize(ModuleConstants.Security.Permissions.Read)]
     public async Task<ActionResult<GitFileHistoryResult>> GetHistory([FromQuery] string storeId, [FromQuery] string path, [FromQuery] string after = null,
-        [FromQuery] int take = 20, CancellationToken cancellationToken = default)
+        [FromQuery] int take = ModuleConstants.GitHistory.DefaultPageSize, CancellationToken cancellationToken = default)
     {
-        if (await CheckRequestAsync(storeId, path) is { } refused)
+        if (await CheckRequestAsync(storeId, path, cancellationToken) is { } refused)
         {
             return refused;
         }
 
         try
         {
-            var published = await PageBuilderController.ReadTextAsync(Storage(storeId, path), publishingService.GetRelativeDraftUrl(path, false));
-            var versions = await history.GetHistoryAsync(storeId, path, published, after, take, cancellationToken);
-            return versions == null ? NotFound() : Ok(versions);
+            var history = await themeFileHistoryService.GetHistoryAsync(storeId, path, after, take, cancellationToken);
+            return history == null ? NotFound() : Ok(history);
         }
-        catch (Exception failure) when (GitHubFailure.Is(failure, cancellationToken))
+        catch (GitContentException ex)
         {
-            return BadRequest(new { error = failure.Message });
+            return BadRequest(new { error = ex.Message });
         }
     }
 
-    /// <summary>The file's content at a change, to preview it.</summary>
+    /// <summary>Get theme file content at the change</summary>
     [HttpGet("{sha}")]
     [Authorize(ModuleConstants.Security.Permissions.Read)]
     public async Task<ActionResult> GetVersion([FromRoute] string sha, [FromQuery] string storeId, [FromQuery] string path, CancellationToken cancellationToken = default)
     {
-        if (await CheckRequestAsync(storeId, path) is { } refused)
+        if (await CheckRequestAsync(storeId, path, cancellationToken) is { } refused)
         {
             return refused;
         }
 
-        var content = GitCommitSha.IsSha(sha) ? await history.ReadContentAsync(storeId, path, sha, cancellationToken) : null;
-        return content == null ? NotFound() : Content(content, "application/json");
+        var content = GitCommitSha.IsSha(sha) ? await themeFileHistoryService.ReadContentAsync(storeId, path, sha, cancellationToken) : null;
+        return content == null ? NotFound() : Content(content, MediaTypeNames.Application.Json);
     }
 
-    /// <summary>
-    /// Makes a change's content the file's draft again — a new change on top, so nothing after it is lost;
-    /// publishing it is a separate step, as after any save.
-    /// </summary>
+    /// <summary>Restore theme file draft from the change</summary>
     [HttpPost("{sha}/restore")]
-    public async Task<ActionResult> Restore([FromRoute] string sha, [FromQuery] string storeId, [FromQuery] string path, [FromQuery] string version = null, CancellationToken cancellationToken = default)
+    public async Task<ActionResult> Restore([FromRoute] string sha, [FromQuery] string storeId, [FromQuery] string path, [FromQuery] string version = null,
+        CancellationToken cancellationToken = default)
     {
-        if (await CheckRequestAsync(storeId, path) is { } refused)
+        if (await CheckRequestAsync(storeId, path, cancellationToken) is { } refused)
         {
             return refused;
         }
-        if (!(await authorizationService.AuthorizeAsync(User, null, EditPermission(path))).Succeeded)
+
+        var authorizationResult = await authorizationService.AuthorizeAsync(User, null, GetEditPermission(path));
+        if (!authorizationResult.Succeeded)
         {
             return Forbid();
         }
 
-        var content = GitCommitSha.IsSha(sha) ? await history.ReadContentAsync(storeId, path, sha, cancellationToken) : null;
-        if (content == null)
+        if (!GitCommitSha.IsSha(sha) || !await themeFileHistoryService.RestoreAsync(storeId, path, sha, version, User, Request.GetSaveId(), cancellationToken))
         {
             return NotFound();
         }
 
-        // the change's bytes as they are: re-serializing could change them, and the published change is told by them;
-        // outside a publication of the store's theme, which deletes the drafts it puts live
-        await distributedLock.ExecuteAsync(ThemeStorage.GetLockResource(storeId), async _ =>
-        {
-            await using var stream = await Storage(storeId, path).OpenWriteAsync(publishingService.GetRelativeDraftUrl(path, true));
-            await using var writer = new StreamWriter(stream);
-            await writer.WriteAsync(content);
-        }, cancellationToken: cancellationToken);
-
-        var file = AbstractTypeFactory<FileEntity>.TryCreateInstance();
-        file.Path = path;
-        file.Type = ContentConstants.ContentTypes.Themes;
-        await eventPublisher.Publish(new PageBuilderContentChangedEvent(ContentConstants.ContentTypes.Themes,
-            [new GenericChangedEntry<FileEntity>(file, EntryState.Modified)]), cancellationToken);
-        await history.RecordAsync(storeId, path, content, $"Restored {SiteSave.Version(version, sha)}", User, SiteSave.Of(Request), cancellationToken);
-
         return Ok();
     }
 
-    private Task<ActionResult> CheckRequestAsync(string storeId, string path) =>
-        this.CheckStoreRequestAsync(authorizationService, requestValidator, new ThemeFileRequest { StoreId = storeId, Path = path });
+    // access first, so a 400 does not reveal which stores exist
+    private async Task<ActionResult> CheckRequestAsync(string storeId, string path, CancellationToken cancellationToken)
+    {
+        var request = new ThemeFileRequest { StoreId = storeId, Path = path };
 
-    // the store's theme storage; the path starts with the theme's folder, as the designer's saves name it
-    private IBlobContentStorageProvider Storage(string storeId, string path) =>
-        blobContentStorageProviderFactory.CreateProvider(pathResolver.GetContentBasePath(ContentConstants.ContentTypes.Themes, storeId, path.Split('/')[0]));
+        return await CheckStoreAccessAsync(request) ?? await ValidateAsync(request, cancellationToken);
+    }
 
-    /// <summary>
-    /// Templates and the template rules are edited with <see cref="ModuleConstants.Security.Permissions.Templates"/>,
-    /// the other theme files with <see cref="ModuleConstants.Security.Permissions.Theme"/>.
-    /// </summary>
-    private static string EditPermission(string path)
+    private async Task<ActionResult> CheckStoreAccessAsync(ThemeFileRequest request)
+    {
+        var authorizationResult = await authorizationService.AuthorizeAsync(User, request, new PageBuilderAuthorizationRequirement());
+        return authorizationResult.Succeeded ? null : Forbid();
+    }
+
+    private async Task<ActionResult> ValidateAsync(ThemeFileRequest request, CancellationToken cancellationToken)
+    {
+        var validationResult = await requestValidator.ValidateAsync(request, cancellationToken);
+        return validationResult.IsValid
+            ? null
+            : BadRequest(new { error = string.Join(" ", validationResult.Errors.Select(x => x.ErrorMessage)) });
+    }
+
+    /// <summary>Templates and the template rules are edited with the templates permission, the other theme files with the theme one.</summary>
+    private static string GetEditPermission(string path)
     {
         var file = path[(path.IndexOf('/') + 1)..];
         return file.StartsWith($"{ThemeStorage.TemplatesFolder}/", StringComparison.OrdinalIgnoreCase) || file.Equals(ThemeStorage.TemplateRulesFile, StringComparison.OrdinalIgnoreCase)

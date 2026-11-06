@@ -1,5 +1,8 @@
 using System;
 using System.IO;
+using System.Linq;
+using System.Net.Mime;
+using System.Threading;
 using System.Threading.Tasks;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
@@ -8,10 +11,11 @@ using Microsoft.AspNetCore.Mvc;
 using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Theme;
+using VirtoCommerce.PageBuilderModule.Data.Authorization;
+using VirtoCommerce.Platform.Core.Common;
 
 namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 
-/// <summary>A store's theme as one publication, and the storefront schema catalogs it is validated against.</summary>
 [Route("api/pagebuilder")]
 [Authorize]
 public class ThemeController(
@@ -20,74 +24,92 @@ public class ThemeController(
     IAuthorizationService authorizationService,
     IValidator<PageBuilderStoreRequest> storeRequestValidator) : Controller
 {
-    private const string JsonContentType = "application/json";
-
-    /// <summary>Puts every theme draft of the store live as one publication, validated against the catalog the editor previewed.</summary>
+    /// <summary>Publish all theme drafts of the store</summary>
     [HttpPost("theme/publish")]
     [Authorize(ModuleConstants.Security.Permissions.Publish)]
-    [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult> Publish([FromQuery] string storeId, [FromQuery] string catalogHash)
+    public async Task<ActionResult<ThemePublicationPointer>> Publish([FromQuery] string storeId, [FromQuery] string catalogHash, CancellationToken cancellationToken = default)
     {
-        if (await CheckRequestAsync(storeId) is { } refused)
+        if (await CheckRequestAsync(storeId, cancellationToken) is { } refused)
         {
             return refused;
         }
 
         try
         {
-            var publication = await themePublisher.PublishAsync(storeId, catalogHash, User, HttpContext.RequestAborted);
-            return Ok(new { publication });
+            var result = AbstractTypeFactory<ThemePublicationPointer>.TryCreateInstance();
+            result.Publication = await themePublisher.PublishAsync(storeId, catalogHash, User, cancellationToken);
+            return Ok(result);
         }
-        catch (ThemeValidationException failure)
+        catch (ThemeValidationException ex)
         {
-            return BadRequest(new { error = failure.Message, errors = failure.Errors });
+            return BadRequest(new { error = ex.Message, errors = ex.Errors });
         }
     }
 
-    /// <summary>Keeps the catalog of the storefront the designer previews, under the hash it carries.</summary>
+    /// <summary>Save storefront schema catalog</summary>
     [HttpPut("catalog")]
     [Authorize(ModuleConstants.Security.Permissions.Theme)]
-    [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult> SaveCatalog([FromQuery] string storeId)
+    public async Task<ActionResult<SchemaCatalogPointer>> SaveCatalog([FromQuery] string storeId, CancellationToken cancellationToken = default)
     {
-        if (await CheckRequestAsync(storeId) is { } refused)
+        if (await CheckRequestAsync(storeId, cancellationToken) is { } refused)
         {
             return refused;
         }
 
+        // read as text: the service parses the catalog itself, while MVC's JSON settings would turn its dates to UTC
         using var reader = new StreamReader(Request.Body);
-        var catalog = await reader.ReadToEndAsync(HttpContext.RequestAborted);
+        var catalog = await reader.ReadToEndAsync(cancellationToken);
         try
         {
-            var hash = await schemaCatalogService.SaveAsync(storeId, catalog, HttpContext.RequestAborted);
-            return Ok(new { hash });
+            var result = AbstractTypeFactory<SchemaCatalogPointer>.TryCreateInstance();
+            result.Hash = await schemaCatalogService.SaveAsync(storeId, catalog, cancellationToken);
+            return Ok(result);
         }
-        catch (ArgumentException failure)
+        catch (ArgumentException ex)
         {
-            return BadRequest(new { error = failure.Message });
+            return BadRequest(new { error = ex.Message });
         }
     }
 
-    /// <summary>The catalog with that hash, the store's current one without it.</summary>
+    /// <summary>Get schema catalog by hash, or the current one</summary>
     [HttpGet("catalog")]
     [Authorize(ModuleConstants.Security.Permissions.Read)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult> GetCatalog([FromQuery] string storeId, [FromQuery] string hash)
+    public async Task<ActionResult> GetCatalog([FromQuery] string storeId, [FromQuery] string hash, CancellationToken cancellationToken = default)
     {
-        if (await CheckRequestAsync(storeId) is { } refused)
+        if (await CheckRequestAsync(storeId, cancellationToken) is { } refused)
         {
             return refused;
         }
 
-        var catalog = await schemaCatalogService.GetAsync(storeId, hash, HttpContext.RequestAborted);
-        return catalog == null ? NotFound() : Content(catalog, JsonContentType);
+        var catalog = await schemaCatalogService.GetAsync(storeId, hash, cancellationToken);
+        return catalog == null ? NotFound() : Content(catalog, MediaTypeNames.Application.Json);
     }
 
-    private Task<ActionResult> CheckRequestAsync(string storeId) =>
-        this.CheckStoreRequestAsync(authorizationService, storeRequestValidator, new PageBuilderStoreRequest { StoreId = storeId });
+    // access first, so a 400 does not reveal which stores exist
+    private async Task<ActionResult> CheckRequestAsync(string storeId, CancellationToken cancellationToken)
+    {
+        var request = new PageBuilderStoreRequest { StoreId = storeId };
+
+        return await CheckStoreAccessAsync(request) ?? await ValidateAsync(request, cancellationToken);
+    }
+
+    private async Task<ActionResult> CheckStoreAccessAsync(PageBuilderStoreRequest request)
+    {
+        var authorizationResult = await authorizationService.AuthorizeAsync(User, request, new PageBuilderAuthorizationRequirement());
+        return authorizationResult.Succeeded ? null : Forbid();
+    }
+
+    private async Task<ActionResult> ValidateAsync(PageBuilderStoreRequest request, CancellationToken cancellationToken)
+    {
+        var validationResult = await storeRequestValidator.ValidateAsync(request, cancellationToken);
+        return validationResult.IsValid
+            ? null
+            : BadRequest(new { error = string.Join(" ", validationResult.Errors.Select(x => x.ErrorMessage)) });
+    }
 }

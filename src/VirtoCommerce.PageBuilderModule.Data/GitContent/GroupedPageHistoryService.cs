@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
@@ -19,6 +20,7 @@ public class GroupedPageHistoryService(
     IGitHubApiClient gitHubApiClient,
     IGitHubConnectionService gitHubConnectionService,
     IGroupedPageService groupedPageService,
+    IPageBuilderPageService pageService,
     IOptions<GitContentOptions> options,
     ILogger<GroupedPageHistoryService> logger)
     : GitHubFileHistoryService(gitContentPolicy, gitContentRepository, gitHubApiClient, gitHubConnectionService, options, logger), IGroupedPageHistoryService
@@ -33,7 +35,13 @@ public class GroupedPageHistoryService(
         return RecordFileAsync(group.StoreId, GetFilePath(group.Id), GetCommitSubject(group), content, summary, user, saveId, cancellationToken);
     }
 
-    public virtual async Task<GitFileHistoryResult> GetHistoryAsync(GroupedPageBuilderPage group, string after = null, int take = 20,
+    public virtual Task RecordRestoreAsync(GroupedPageBuilderPage group, string content, string sha, string version, ClaimsPrincipal user, string saveId,
+        CancellationToken cancellationToken = default)
+    {
+        return RecordAsync(group, content, GetRestoredSummary(version, sha), user, saveId, cancellationToken);
+    }
+
+    public virtual async Task<GitFileHistoryResult> GetHistoryAsync(GroupedPageBuilderPage group, string after = null, int take = ModuleConstants.GitHistory.DefaultPageSize,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(group);
@@ -55,6 +63,25 @@ public class GroupedPageHistoryService(
 
         var page = PageBuilderPageSelection.Order(group.Pages ?? []).FirstOrDefault(x => x.Status == Published);
         return page == null ? null : await groupedPageService.LoadContent(page.Id, cancellationToken);
+    }
+
+    public virtual async Task<bool> DiscardDraftAsync(GroupedPageBuilderPage group, ClaimsPrincipal user, string saveId, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(group);
+
+        if (!group.Pages.Any(x => x.Status == Published))
+        {
+            return false;
+        }
+
+        var draftIds = group.Pages.Where(x => x.Status == Draft).Select(x => x.Id).ToList();
+        if (draftIds.Count > 0)
+        {
+            await pageService.DeleteAsync(draftIds);
+            await RecordAsync(group, await GetPublishedContentAsync(group, cancellationToken), ModuleConstants.GitHistory.DiscardedSummary, user, saveId, cancellationToken);
+        }
+
+        return true;
     }
 
     protected virtual string GetFilePath(string groupId) => $"{Folder}/{groupId}.json";

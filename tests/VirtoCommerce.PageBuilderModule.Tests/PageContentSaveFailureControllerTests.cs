@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.Extensions.Logging.Abstractions;
 using Newtonsoft.Json;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
@@ -114,7 +115,7 @@ public class PageContentSaveFailureControllerTests
 
         var group = await _pages.GetByIdAsync(GroupId);
         Assert.Equal($$"""{"eTag":{{JsonConvert.ToString(PageBuilderContentVersion.Create(group, Restored))}}}""", PlatformJson.SerializeBody(result));
-        Assert.Equal(["Restored 1c0ffee"], _history.Recorded);
+        Assert.Equal([$"restore {Sha}"], _history.Recorded);
     }
 
     private async Task<IActionResult> SaveAsync()
@@ -128,7 +129,7 @@ public class PageContentSaveFailureControllerTests
     }
 
     private async Task<IActionResult> RestoreAsync() =>
-        await HistoryController().Restore(GroupId, Sha, cancellationToken: TestContext.Current.CancellationToken);
+        ((IConvertToActionResult)await HistoryController().Restore(GroupId, Sha, cancellationToken: TestContext.Current.CancellationToken)).Convert();
 
     private static Fakes.FakeGroupedPageService CreatePages()
     {
@@ -155,11 +156,11 @@ public class PageContentSaveFailureControllerTests
             authorizationService: new Fakes.AllowAllAuthorizationService(),
             pageDocumentSearchService: new Fakes.NoopPageDocumentSearchService(),
             pageContentService: ContentService(),
-            logger: NullLogger<PageBuilderPageController>.Instance));
+            logger: NullLogger<PageBuilderPageController>.Instance,
+            groupedPageHistoryService: _history));
 
     private GroupedPageHistoryController HistoryController() =>
-        WithUser(new GroupedPageHistoryController(_pages, _pages, new Fakes.FakePageBuilderPageService(_pages), ContentService(),
-            new Fakes.AllowAllAuthorizationService(), _history));
+        WithUser(new GroupedPageHistoryController(_pages, _pages, ContentService(), new Fakes.AllowAllAuthorizationService(), _history));
 
     private static T WithUser<T>(T controller) where T : ControllerBase
     {
@@ -182,6 +183,13 @@ public class PageContentSaveFailureControllerTests
             return Task.CompletedTask;
         }
 
+        public Task RecordRestoreAsync(GroupedPageBuilderPage group, string content, string sha, string version, ClaimsPrincipal user, string saveId,
+            CancellationToken cancellationToken = default)
+        {
+            Recorded.Add($"restore {sha}");
+            return Task.CompletedTask;
+        }
+
         public Task<string> ReadContentAsync(GroupedPageBuilderPage group, string sha, CancellationToken cancellationToken = default) =>
             Task.FromResult(Restored);
 
@@ -189,6 +197,9 @@ public class PageContentSaveFailureControllerTests
             CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
         public Task<string> GetPublishedContentAsync(GroupedPageBuilderPage group, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task<bool> DiscardDraftAsync(GroupedPageBuilderPage group, ClaimsPrincipal user, string saveId, CancellationToken cancellationToken = default) =>
             throw new NotSupportedException();
     }
 }

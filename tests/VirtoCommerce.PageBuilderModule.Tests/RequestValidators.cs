@@ -24,7 +24,7 @@ internal static class RequestValidators
     public static IValidator<GitHubAppSetupRequest> AppSetup { get; } = new GitHubAppSetupRequestValidator();
 
     public static IValidator<PageBuilderContentRequest> Content(params string[] storeIds) =>
-        new PageBuilderContentRequestValidator(new KnownStores(storeIds), new PageBuilderContentFileValidator());
+        new PageBuilderContentRequestValidator(Stores(storeIds), new PageBuilderContentFileValidator());
 
     // Only store lookup is supported: any other use of the store service must fail here.
     private sealed class KnownStores(string[] storeIds) : IStoreService

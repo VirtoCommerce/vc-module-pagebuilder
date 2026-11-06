@@ -18,6 +18,7 @@ using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Data.Authorization;
+using VirtoCommerce.PageBuilderModule.Web.Extensions;
 using VirtoCommerce.PageBuilderModule.Web.Services;
 using VirtoCommerce.Pages.Core.Search;
 using VirtoCommerce.Platform.Core.Common;
@@ -36,7 +37,7 @@ public class PageBuilderPageController : Controller
     private readonly IPageDocumentSearchService pageDocumentSearchService;
     private readonly PageBuilderPageContentService pageContentService;
     private readonly ILogger<PageBuilderPageController> logger;
-    private readonly IGroupedPageHistoryService pageHistory;
+    private readonly IGroupedPageHistoryService groupedPageHistoryService;
 
     public PageBuilderPageController(
         IPageBuilderPageService crudService,
@@ -46,7 +47,7 @@ public class PageBuilderPageController : Controller
         IPageDocumentSearchService pageDocumentSearchService,
         PageBuilderPageContentService pageContentService,
         ILogger<PageBuilderPageController> logger,
-        IGroupedPageHistoryService pageHistory = null)
+        IGroupedPageHistoryService groupedPageHistoryService)
     {
         this.crudService = crudService;
         this.groupedPageService = groupedPageService;
@@ -55,7 +56,7 @@ public class PageBuilderPageController : Controller
         this.pageDocumentSearchService = pageDocumentSearchService;
         this.pageContentService = pageContentService;
         this.logger = logger;
-        this.pageHistory = pageHistory;
+        this.groupedPageHistoryService = groupedPageHistoryService;
     }
 
     [HttpPost("search")]
@@ -482,11 +483,11 @@ public class PageBuilderPageController : Controller
         await groupedPageService.SaveChangesAsync([groupedPage]);
         await crudService.DeleteAsync(pagesToDelete);
 
-        if (publishedPageId != null && pageHistory != null)
+        if (publishedPageId != null)
         {
-            // usually the latest change already: covers pages saved before history was on, copies and imports.
-            // Read by id: the group in hand still lists the published row this publish just deleted.
-            await pageHistory.RecordAsync(groupedPage, await groupedPageService.LoadContent(publishedPageId, cancellationToken), "Published", User, SiteSave.Of(Request), cancellationToken);
+            // load by id: the group still lists the published row deleted above
+            var publishedContent = await groupedPageService.LoadContent(publishedPageId, cancellationToken);
+            await groupedPageHistoryService.RecordAsync(groupedPage, publishedContent, ModuleConstants.GitHistory.PublishedSummary, User, Request.GetSaveId(), cancellationToken);
         }
 
         return Ok();
@@ -750,17 +751,25 @@ public class PageBuilderPageController : Controller
         try
         {
             var result = await pageContentService.SaveConditionalContentAsync(group, content, expectedETag, cancellationToken);
-            if (result.ContentWritten && pageHistory != null)
+            if (result.ContentWritten)
             {
-                await pageHistory.RecordAsync(group, content, "Saved", User, SiteSave.Of(Request), cancellationToken);
+                await groupedPageHistoryService.RecordAsync(group, content, ModuleConstants.GitHistory.SavedSummary, User, Request.GetSaveId(), cancellationToken);
             }
 
             Response.Headers.ETag = result.ETag;
             return includeVersion ? Ok(new { eTag = result.ETag }) : NoContent();
         }
-        catch (Exception failure) when (PageContentSaveFailure.AnswerTo(this, failure) is { } answer)
+        catch (PageBuilderContentConflictException ex)
         {
-            return answer;
+            return StatusCode(StatusCodes.Status412PreconditionFailed, ex.Message);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (InvalidDataException ex)
+        {
+            return BadRequest(ex.Message);
         }
     }
 

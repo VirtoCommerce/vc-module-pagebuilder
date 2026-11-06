@@ -216,7 +216,7 @@ public class GroupedPageHistoryTests
             ],
         };
         var options = Options.Create(new GitContentOptions());
-        var history = new GroupedPageHistoryService(null, null, null, null, new PageContents(), options, NullLogger<GroupedPageHistoryService>.Instance);
+        var history = new GroupedPageHistoryService(null, null, null, null, new PageContents(), null, options, NullLogger<GroupedPageHistoryService>.Instance);
 
         Assert.Equal("content of newer", await history.GetPublishedContentAsync(group, TestContext.Current.CancellationToken));
     }
@@ -254,7 +254,7 @@ public class GroupedPageHistoryTests
 
     /// <summary>The history with the page's live content given, rather than read from the database.</summary>
     private sealed class PublishedContent(IGitContentPolicy policy, IGitContentRepository repository, GitHubScript github, IOptions<GitContentOptions> options, string published)
-        : GroupedPageHistoryService(policy, repository, new GitHubApiClient(github), GitHubConnections.Service(options.Value), null, options,
+        : GroupedPageHistoryService(policy, repository, new GitHubApiClient(github), GitHubConnections.Service(options.Value), null, null, options,
             NullLogger<GroupedPageHistoryService>.Instance)
     {
         public override Task<string> GetPublishedContentAsync(GroupedPageBuilderPage group, CancellationToken cancellationToken = default) =>
