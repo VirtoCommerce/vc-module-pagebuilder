@@ -26,7 +26,7 @@ public class GitHubContentProvisionerTests
     private static readonly string Mine = GitHubContentOwnership.DescriptionPrefix + "s1";
 
     [Fact]
-    public async Task A_missing_repository_is_created_private_with_a_first_commit_and_marked_as_the_stores()
+    public async Task EnsureRepositoryAsync_MissingRepository_CreatesPrivateRepositoryMarkedAsStores()
     {
         var github = new GitHubScript(
             ("GET", $"repos/{Repo}", (_, _) => GitHubScript.Status(HttpStatusCode.NotFound)),
@@ -48,7 +48,7 @@ public class GitHubContentProvisionerTests
 
     /// <summary>The same store's first save and its "turn on" racing: GitHub says it exists, and that is the one wanted.</summary>
     [Fact]
-    public async Task A_repository_created_meanwhile_is_adopted()
+    public async Task EnsureRepositoryAsync_CreatedConcurrently_AdoptsIt()
     {
         var github = new GitHubScript(
             ("GET", $"repos/{Repo}", (_, _) => GitHubScript.Status(HttpStatusCode.NotFound)),
@@ -63,7 +63,7 @@ public class GitHubContentProvisionerTests
 
     /// <summary>Adopted, it is marked as the store's: no other store whose id names it works in it too.</summary>
     [Fact]
-    public async Task An_existing_repository_is_marked_as_the_stores_when_adopted()
+    public async Task EnsureRepositoryAsync_ExistingRepository_MarksItAsStores()
     {
         var github = new GitHubScript(
             ("GET", $"repos/{Repo}", (_, _) => GitHubScript.Json(RepoJson("Our site"))),
@@ -82,7 +82,7 @@ public class GitHubContentProvisionerTests
     }
 
     [Fact]
-    public async Task A_store_that_comes_back_gets_its_archived_repository_back()
+    public async Task EnsureRepositoryAsync_ArchivedRepositoryOfStore_UnarchivesIt()
     {
         var github = new GitHubScript(
             ("GET", $"repos/{Repo}", (_, _) => GitHubScript.Json(RepoJson(Mine, archived: true))),
@@ -100,7 +100,7 @@ public class GitHubContentProvisionerTests
 
     /// <summary>Two store ids that sanitize alike would share a repository and publish over each other.</summary>
     [Fact]
-    public async Task A_repository_made_for_another_store_is_refused()
+    public async Task EnsureRepositoryAsync_RepositoryOfAnotherStore_ThrowsOwnershipException()
     {
         var github = new GitHubScript(
             ("GET", $"repos/{Repo}", (_, _) => GitHubScript.Json(RepoJson(GitHubContentOwnership.DescriptionPrefix + "S1"))));
@@ -114,7 +114,7 @@ public class GitHubContentProvisionerTests
 
     /// <summary>A repository a store names in its own setting is used, never changed — in the organization too.</summary>
     [Fact]
-    public async Task A_missing_repository_the_store_named_itself_is_not_created_in_the_organization_either()
+    public async Task EnsureRepositoryAsync_MissingStoreSettingRepositoryInOrganization_Throws()
     {
         var github = new GitHubScript(
             ("GET", "repos/acme/website", (_, _) => GitHubScript.Status(HttpStatusCode.NotFound)));
@@ -126,7 +126,7 @@ public class GitHubContentProvisionerTests
     }
 
     [Fact]
-    public async Task An_archived_repository_the_store_named_itself_stays_archived()
+    public async Task EnsureRepositoryAsync_ArchivedStoreSettingRepository_LeavesItArchived()
     {
         var github = new GitHubScript(
             ("GET", "repos/acme/website", (_, _) => GitHubScript.Json(RepoJson("Our web site", archived: true))),
@@ -138,7 +138,7 @@ public class GitHubContentProvisionerTests
     }
 
     [Fact]
-    public async Task A_missing_repository_the_store_named_itself_is_never_created_elsewhere()
+    public async Task EnsureRepositoryAsync_MissingStoreSettingRepositoryOutsideOrganization_Throws()
     {
         var github = new GitHubScript(
             ("GET", "repos/other/website", (_, _) => GitHubScript.Status(HttpStatusCode.NotFound)));
@@ -156,7 +156,7 @@ public class GitHubContentProvisionerTests
     [Theory]
     [InlineData("acme", null)]
     [InlineData(null, "acme/website")]
-    public async Task A_repository_assigned_by_hand_without_the_base_branch_gets_no_branch_cut_in_it(string organization, string shared)
+    public async Task EnsureRepositoryAsync_AssignedRepositoryWithoutBaseBranch_ThrowsWithoutCuttingBranches(string organization, string shared)
     {
         var github = new GitHubScript(
             ("GET", "repos/acme/website", (_, _) => GitHubScript.Json(RepoJson("Our web site", defaultBranch: "master"))),
@@ -175,7 +175,7 @@ public class GitHubContentProvisionerTests
     }
 
     [Fact]
-    public async Task The_base_and_release_branches_are_cut_from_the_repositorys_own_default_branch()
+    public async Task EnsureRepositoryAsync_NoBaseOrReleaseBranch_CutsThemFromDefaultBranch()
     {
         var github = new GitHubScript(
             ("GET", $"repos/{Repo}", (_, _) => GitHubScript.Json(RepoJson(Mine, defaultBranch: "master"))),
@@ -193,7 +193,7 @@ public class GitHubContentProvisionerTests
     }
 
     [Fact]
-    public async Task Connect_makes_the_repository_ready_then_switches_the_store_on()
+    public async Task ConnectAsync_StoreOff_EnsuresRepositoryAndSwitchesStoreOn()
     {
         var settings = new FakeSettingsManager(value: false);
         var stores = new FakeStoreService(new Store { Id = "s1", Settings = [] });
@@ -211,7 +211,7 @@ public class GitHubContentProvisionerTests
     }
 
     [Fact]
-    public async Task A_deleted_stores_repository_is_archived()
+    public async Task ArchiveRepositoryAsync_RepositoryOfStore_ArchivesIt()
     {
         var github = new GitHubScript(
             ("GET", $"repos/{Repo}", (_, _) => GitHubScript.Json(RepoJson(Mine))),
@@ -229,7 +229,7 @@ public class GitHubContentProvisionerTests
     [Theory]
     [InlineData("Imported by hand")]
     [InlineData("Page Builder content of store other")]
-    public async Task A_repository_the_module_did_not_make_for_that_store_is_never_archived(string description)
+    public async Task ArchiveRepositoryAsync_RepositoryNotMadeForStore_LeavesItAlone(string description)
     {
         var github = new GitHubScript(("GET", $"repos/{Repo}", (_, _) => GitHubScript.Json(RepoJson(description))));
 
@@ -239,7 +239,7 @@ public class GitHubContentProvisionerTests
     }
 
     [Fact]
-    public async Task Archiving_outside_the_organization_asks_GitHub_nothing()
+    public async Task ArchiveRepositoryAsync_RepositoryOutsideOrganization_DoesNotCallGitHub()
     {
         var github = new GitHubScript();
 
@@ -249,7 +249,7 @@ public class GitHubContentProvisionerTests
     }
 
     [Fact]
-    public async Task Status_without_a_connection_asks_GitHub_nothing()
+    public async Task GetStatusAsync_NoConnection_DoesNotCallGitHub()
     {
         var github = new GitHubScript();
 
@@ -260,7 +260,7 @@ public class GitHubContentProvisionerTests
     }
 
     [Fact]
-    public async Task Status_of_a_live_repository_links_it_and_its_last_change()
+    public async Task GetStatusAsync_ExistingRepository_ReturnsUrlAndLastCommit()
     {
         var github = new GitHubScript(
             ("GET", $"repos/{Repo}", (_, _) => GitHubScript.Json(RepoJson(Mine))),
@@ -278,7 +278,7 @@ public class GitHubContentProvisionerTests
 
     /// <summary>Not created yet is fine — as long as there is an organization to create it in.</summary>
     [Fact]
-    public async Task Status_of_a_repository_not_made_yet_checks_the_organization_is_there()
+    public async Task GetStatusAsync_MissingRepository_ReportsMissingOrganization()
     {
         var github = new GitHubScript(
             ("GET", $"repos/{Repo}", (_, _) => GitHubScript.Status(HttpStatusCode.NotFound)),
@@ -291,7 +291,7 @@ public class GitHubContentProvisionerTests
     }
 
     [Fact]
-    public async Task Status_of_a_repository_made_for_another_store_says_whose_it_is()
+    public async Task GetStatusAsync_RepositoryOfAnotherStore_ReportsOwner()
     {
         var github = new GitHubScript(
             ("GET", $"repos/{Repo}", (_, _) => GitHubScript.Json(RepoJson(GitHubContentOwnership.DescriptionPrefix + "S1"))),
@@ -303,7 +303,7 @@ public class GitHubContentProvisionerTests
     }
 
     [Fact]
-    public async Task Status_of_a_GitHub_that_times_out_says_so()
+    public async Task GetStatusAsync_GitHubTimesOut_ReportsTimeout()
     {
         var github = new GitHubScript(("GET", $"repos/{Repo}", (_, _) => throw new TaskCanceledException("The request was canceled due to the configured HttpClient.Timeout.")));
 

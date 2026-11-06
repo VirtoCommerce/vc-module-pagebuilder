@@ -31,7 +31,7 @@ public class GitContentStoreChangedEventHandlerTests
     [Fact]
     public async Task GetJobPayloadsAsync_AddedStoreWithAutoCreate_ConnectsStore()
     {
-        var job = Assert.Single(await Jobs(PerSite(), Change(new Store { Id = "s1" }, EntryState.Added)));
+        var job = Assert.Single(await GetJobPayloadsAsync(PerSite(), Change(new Store { Id = "s1" }, EntryState.Added)));
 
         Assert.Equal("s1", job.StoreId);
         Assert.Equal(GitContentRepositoryAction.Connect, job.Action);
@@ -41,13 +41,13 @@ public class GitContentStoreChangedEventHandlerTests
     [Fact]
     public async Task GetJobPayloadsAsync_AddedStoreWithoutAutoCreate_ReturnsNoJob()
     {
-        Assert.Empty(await Jobs(PerSite(autoCreate: false), Change(new Store { Id = "s1" }, EntryState.Added)));
+        Assert.Empty(await GetJobPayloadsAsync(PerSite(autoCreate: false), Change(new Store { Id = "s1" }, EntryState.Added)));
     }
 
     [Fact]
     public async Task GetJobPayloadsAsync_DeletedStore_ArchivesItsRepository()
     {
-        var job = Assert.Single(await Jobs(PerSite(), Change(new Store { Id = "s1", Settings = [] }, EntryState.Deleted)));
+        var job = Assert.Single(await GetJobPayloadsAsync(PerSite(), Change(new Store { Id = "s1", Settings = [] }, EntryState.Deleted)));
 
         Assert.Equal(GitContentRepositoryAction.Archive, job.Action);
         Assert.Equal("acme/site-s1", job.Repository);
@@ -66,7 +66,7 @@ public class GitContentStoreChangedEventHandlerTests
             ],
         };
 
-        Assert.Empty(await Jobs(PerSite(), Change(store, EntryState.Deleted)));
+        Assert.Empty(await GetJobPayloadsAsync(PerSite(), Change(store, EntryState.Deleted)));
     }
 
     [Fact]
@@ -81,7 +81,7 @@ public class GitContentStoreChangedEventHandlerTests
             ],
         };
 
-        Assert.Empty(await Jobs(PerSite(), Change(store, EntryState.Deleted)));
+        Assert.Empty(await GetJobPayloadsAsync(PerSite(), Change(store, EntryState.Deleted)));
     }
 
     [Fact]
@@ -89,25 +89,25 @@ public class GitContentStoreChangedEventHandlerTests
     {
         var shared = new GitContentOptions { Enabled = true, Repository = "acme/content", Token = "t0ken", BaseBranch = "main", AutoCreateRepositories = true };
 
-        Assert.Empty(await Jobs(shared, Change(new Store { Id = "s1" }, EntryState.Added), Change(new Store { Id = "s2" }, EntryState.Deleted)));
+        Assert.Empty(await GetJobPayloadsAsync(shared, Change(new Store { Id = "s1" }, EntryState.Added), Change(new Store { Id = "s2" }, EntryState.Deleted)));
     }
 
     /// <summary>Switching a store's history on saves the store: that change must not start a job again.</summary>
     [Fact]
     public async Task GetJobPayloadsAsync_ModifiedStore_ReturnsNoJob()
     {
-        Assert.Empty(await Jobs(PerSite(), Change(new Store { Id = "s1" }, EntryState.Modified)));
+        Assert.Empty(await GetJobPayloadsAsync(PerSite(), Change(new Store { Id = "s1" }, EntryState.Modified)));
     }
 
-    private static Task<IList<GitContentRepositoryJobPayload>> Jobs(GitContentOptions options, params GenericChangedEntry<Store>[] changes)
+    private static Task<IList<GitContentRepositoryJobPayload>> GetJobPayloadsAsync(GitContentOptions options, params GenericChangedEntry<Store>[] changes)
     {
         var wrapped = Options.Create(options);
         var connection = GitHubConnections.CreateService(options);
-        var handler = new Handler(connection, new GitContentPolicy(connection, wrapped, settingsManager: null, storeService: null, new FakeGitContentOwnership()));
+        var handler = new TestGitContentStoreChangedEventHandler(connection, new GitContentPolicy(connection, wrapped, settingsManager: null, storeService: null, new FakeGitContentOwnership()));
         return handler.GetJobPayloadsAsync(new StoreChangedEvent(changes));
     }
 
-    private sealed class Handler(IGitHubConnectionService gitHubConnectionService, IGitContentPolicy gitContentPolicy)
+    private sealed class TestGitContentStoreChangedEventHandler(IGitHubConnectionService gitHubConnectionService, IGitContentPolicy gitContentPolicy)
         : GitContentStoreChangedEventHandler(gitHubConnectionService, gitContentPolicy, NullLogger<GitContentStoreChangedEventHandler>.Instance)
     {
         public new Task<IList<GitContentRepositoryJobPayload>> GetJobPayloadsAsync(StoreChangedEvent message) => base.GetJobPayloadsAsync(message);

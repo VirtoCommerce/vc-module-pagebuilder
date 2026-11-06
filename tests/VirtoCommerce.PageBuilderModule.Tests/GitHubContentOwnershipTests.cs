@@ -18,7 +18,7 @@ public class GitHubContentOwnershipTests
     private const string Repo = "acme/site-s1";
 
     [Fact]
-    public async Task A_repository_belongs_to_the_store_its_description_names_and_stays_so()
+    public async Task GetStoreIdAsync_DescriptionNamesStore_ReturnsStoreIdAndCachesIt()
     {
         var github = new GitHubScript(("GET", $"repos/{Repo}", (_, _) => Repository(GitHubContentOwnership.DescriptionPrefix + "s1")));
         var ownership = Ownership(github);
@@ -30,7 +30,7 @@ public class GitHubContentOwnershipTests
     }
 
     [Fact]
-    public async Task A_repository_the_module_did_not_create_is_nobodys()
+    public async Task GetStoreIdAsync_RepositoryNotCreatedByModule_ReturnsNull()
     {
         var github = new GitHubScript(("GET", $"repos/{Repo}", (_, _) => Repository("Our web site")));
 
@@ -39,7 +39,7 @@ public class GitHubContentOwnershipTests
 
     /// <summary>Nobody's is an answer that changes: the module may adopt the repository on another server any moment.</summary>
     [Fact]
-    public async Task A_repository_nobody_owns_is_asked_about_again_soon_one_somebody_owns_is_kept()
+    public async Task GetStoreIdAsync_UnownedRepository_ExpiresSoonerThanOwnedOne()
     {
         var github = new GitHubScript(
             ("GET", $"repos/{Repo}", (_, _) => Repository("Our web site")),
@@ -58,7 +58,7 @@ public class GitHubContentOwnershipTests
 
     /// <summary>GitHub names a repository the same whatever its letters' case: a store setting may write it otherwise.</summary>
     [Fact]
-    public async Task A_repository_is_one_whatever_the_case_it_is_named_in()
+    public async Task GetStoreIdAsync_NameInOtherCase_SharesCacheEntry()
     {
         var github = new GitHubScript(
             ("GET", $"repos/{Repo}", (_, _) => Repository(GitHubContentOwnership.DescriptionPrefix + "s1")),
@@ -75,7 +75,7 @@ public class GitHubContentOwnershipTests
 
     /// <summary>One not made yet may be made for a store any moment: asked again, not remembered as nobody's.</summary>
     [Fact]
-    public async Task A_repository_not_made_yet_is_asked_about_again()
+    public async Task GetStoreIdAsync_RepositoryNotFound_DoesNotCacheAnswer()
     {
         var github = new GitHubScript(
             ("GET", $"repos/{Repo}", (_, _) => GitHubScript.Status(HttpStatusCode.NotFound)),
@@ -89,7 +89,7 @@ public class GitHubContentOwnershipTests
     }
 
     [Fact]
-    public async Task GitHub_refusing_to_say_is_an_error()
+    public async Task GetStoreIdAsync_GitHubFails_ThrowsGitContentException()
     {
         var github = new GitHubScript(("GET", $"repos/{Repo}", (_, _) => GitHubScript.Status(HttpStatusCode.BadGateway)));
 

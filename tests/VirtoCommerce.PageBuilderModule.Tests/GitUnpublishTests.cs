@@ -80,7 +80,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
         /// <summary>A page git never had is a page of the platform's storage only: unpublishing it in git is not the way to take it down.</summary>
         [Fact]
-        public async Task Unpublish_APageTheProductionBranchNeverHad_IsNotFound()
+        public async Task Unpublish_APageTheProductionBranchDoesNotHave_IsNotFound()
         {
             var repository = Repository();
             repository.Files.Remove((RepoPath, "master"));

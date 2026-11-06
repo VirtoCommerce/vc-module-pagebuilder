@@ -25,7 +25,7 @@ public class GitHubAuthHandlerTests
     private static readonly RSA Key = RSA.Create(2048);
 
     [Fact]
-    public async Task With_a_token_every_request_carries_it()
+    public async Task SendAsync_Token_AddsBearerToken()
     {
         var github = new GitHubScript(("GET", "repos/acme/site-a", (request, _) =>
         {
@@ -39,7 +39,7 @@ public class GitHubAuthHandlerTests
     }
 
     [Fact]
-    public async Task As_an_App_it_mints_the_installation_token_of_the_owner_once_and_reuses_it()
+    public async Task SendAsync_App_MintsInstallationTokenOnceAndReusesIt()
     {
         var github = new GitHubScript(
             ("GET", "orgs/acme/installation", (request, _) =>
@@ -60,7 +60,7 @@ public class GitHubAuthHandlerTests
 
     /// <summary>A GraphQL url names no repository, so the request says whose installation it needs.</summary>
     [Fact]
-    public async Task As_an_App_a_GraphQL_request_is_signed_for_the_owner_it_names()
+    public async Task SendAsync_AppGraphQlRequest_UsesInstallationOfNamedOwner()
     {
         var github = new GitHubScript(
             ("GET", "orgs/other/installation", (_, _) => GitHubScript.Json("""{ "id": 7 }""")),
@@ -75,7 +75,7 @@ public class GitHubAuthHandlerTests
     }
 
     [Fact]
-    public async Task As_an_App_a_refused_token_is_minted_again_once()
+    public async Task SendAsync_AppTokenRefused_MintsNewTokenOnce()
     {
         var github = new GitHubScript(
             ("GET", "orgs/acme/installation", (_, _) => GitHubScript.Json("""{ "id": 42 }""")),
@@ -92,7 +92,7 @@ public class GitHubAuthHandlerTests
     }
 
     [Fact]
-    public async Task As_an_App_not_installed_on_the_owner_it_says_so()
+    public async Task SendAsync_AppNotInstalledOnOwner_ThrowsGitContentException()
     {
         var github = new GitHubScript(
             ("GET", "orgs/acme/installation", (_, _) => GitHubScript.Status(HttpStatusCode.NotFound)),
@@ -106,7 +106,7 @@ public class GitHubAuthHandlerTests
 
     /// <summary>The one-click setup can replace the App while the client factory keeps this handler alive.</summary>
     [Fact]
-    public async Task A_new_App_signs_with_its_own_token_not_the_old_ones()
+    public async Task SendAsync_AppReplaced_UsesNewAppToken()
     {
         var github = new GitHubScript(
             ("GET", "orgs/acme/installation", (_, _) => GitHubScript.Json("""{ "id": 42 }""")),
@@ -128,7 +128,7 @@ public class GitHubAuthHandlerTests
     }
 
     [Fact]
-    public void The_App_credential_is_a_signed_JWT_that_GitHub_accepts()
+    public void CreateAppJwt_PrivateKeyWithEscapedNewLines_ReturnsSignedRs256Jwt()
     {
         var now = DateTimeOffset.FromUnixTimeSeconds(1_800_000_000);
 

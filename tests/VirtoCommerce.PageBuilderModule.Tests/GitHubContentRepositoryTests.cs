@@ -371,7 +371,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         [Fact]
-        public async Task WithoutARepository_Throws_BeforeAnyRequest()
+        public async Task CommitFileAsync_NullRepository_ThrowsBeforeAnyRequest()
         {
             var repository = Create(new ScriptedHandler());
 
@@ -380,7 +380,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         [Fact]
-        public async Task EachCall_GoesToTheRepositoryItNames_AndCachesPerRepository()
+        public async Task ReadFileAsync_SamePathInTwoRepositories_ReadsAndCachesEachSeparately()
         {
             // two sites, the same page path: their reads must neither share a url nor a cache entry
             var handler = new ScriptedHandler(

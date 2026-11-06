@@ -184,7 +184,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         };
 
         [Fact]
-        public async Task Per_site_a_store_gets_its_own_repository_in_the_organization()
+        public async Task GetRepositoryAsync_Organization_ReturnsStoreRepositoryInOrganization()
         {
             var policy = Policy(PerSite(), new FakeSettingsManager(value: true));
 
@@ -192,7 +192,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         [Fact]
-        public async Task Per_site_a_store_that_is_off_has_no_repository_to_use_but_one_to_switch_on_with()
+        public async Task GetRepositoryAsync_StoreOff_ReturnsNullWhileConfiguredRepositoryIsNamed()
         {
             var policy = Policy(PerSite(), new FakeSettingsManager(value: false));
 
@@ -201,7 +201,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         [Fact]
-        public async Task A_store_that_names_its_own_repository_uses_it()
+        public async Task GetRepositoryAsync_StoreSetting_ReturnsTrimmedSetting()
         {
             var policy = Policy(PerSite(), new FakeSettingsManager(value: true, repository: " acme/website "));
 
@@ -209,7 +209,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         [Fact]
-        public async Task A_store_that_is_off_is_off_whatever_its_repository_setting_holds()
+        public async Task GetRepositoryAsync_StoreOffWithMalformedSetting_ReturnsNullAndStaysOff()
         {
             var policy = Policy(PerSite(), new FakeSettingsManager(value: false, repository: "https://github.com/acme/website"));
 
@@ -224,7 +224,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         /// the repository says whose it is. Whether the flow is on stays a question of settings.
         /// </summary>
         [Fact]
-        public async Task A_store_does_not_work_in_a_repository_made_for_another_store()
+        public async Task GetRepositoryAsync_RepositoryOfAnotherStore_ThrowsOwnershipException()
         {
             var policy = Policy(PerSite(), new FakeSettingsManager(value: true), new FakeGitContentOwnership("b2b-store"));
 
@@ -233,7 +233,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         [Fact]
-        public async Task A_store_setting_does_not_hand_a_store_another_stores_repository()
+        public async Task GetRepositoryAsync_StoreSettingNamesAnotherStoresRepository_ThrowsOwnershipException()
         {
             var policy = Policy(PerSite(), new FakeSettingsManager(value: true, repository: "VirtoCommerce-Sites/site-a"), new FakeGitContentOwnership("a"));
 
@@ -241,7 +241,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         [Fact]
-        public async Task A_store_works_in_its_own_repository_and_in_one_nobody_owns()
+        public async Task GetRepositoryAsync_OwnOrUnownedRepository_ReturnsRepository()
         {
             Assert.Equal("VirtoCommerce-Sites/site-b2b-store",
                 await Policy(PerSite(), new FakeSettingsManager(value: true), new FakeGitContentOwnership("b2b-store")).GetRepositoryAsync("b2b-store", TestContext.Current.CancellationToken));
@@ -250,7 +250,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         [Fact]
-        public async Task A_repository_outside_the_organization_is_not_asked_whose_it_is()
+        public async Task GetRepositoryAsync_RepositoryOutsideOrganization_SkipsOwnershipLookup()
         {
             var ownership = new FakeGitContentOwnership("someone");
 
@@ -260,7 +260,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         [Fact]
-        public async Task A_store_repository_says_how_the_store_came_by_it()
+        public async Task GetRepositoryInfoAsync_EachSource_ReturnsSource()
         {
             Assert.Equal(GitRepositorySource.Site,
                 (await Policy(PerSite(), new FakeSettingsManager(value: true)).GetRepositoryInfoAsync("b2b-store", TestContext.Current.CancellationToken))!.Source);
@@ -314,7 +314,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         [Fact]
-        public void Validate_refuses_the_shared_repository_and_an_organization_together()
+        public void Validate_SharedRepositoryAndOrganization_Throws()
         {
             var options = PerSite();
             options.Repository = "owner/repo";
@@ -325,7 +325,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         [Fact]
-        public void Validate_passes_with_an_organization_and_a_GitHub_App()
+        public void Validate_OrganizationWithGitHubApp_Passes()
         {
             PerSite().Validate();
             Assert.True(PerSite().IsConfigured);
