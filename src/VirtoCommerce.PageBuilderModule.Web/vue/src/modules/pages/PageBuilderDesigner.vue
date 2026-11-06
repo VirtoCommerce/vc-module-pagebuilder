@@ -876,14 +876,15 @@ async function promote() {
 function openPreview() {
   const file = designer.file.value;
   if (designer.templateKey.value) {
-    if (storefront.value?.url && previewUrlOf.value) window.open(`${storefront.value.url.replace(/\/+$/, "")}${previewUrlOf.value}`, "_blank");
+    const url = previewUrlOf.value ? storefrontPage(storefront.value?.url, previewUrlOf.value) : undefined;
+    if (url) window.open(url, "_blank", "noopener");
   } else if (file) {
     const href = filePreviewUrl(file, designer.gitFlow.value, storefront.value, !!designer.status.value.hasChanges);
-    if (href) window.open(href, "_blank");
+    if (href) window.open(href, "_blank", "noopener");
   } else if (storefront.value && designer.groupId.value) {
     const url = storefrontPage(storefront.value.url, storefront.value.previewPath);
     url?.searchParams.set("pageId", designer.groupId.value);
-    if (url) window.open(url, "_blank");
+    if (url) window.open(url, "_blank", "noopener");
   }
 }
 
@@ -1059,7 +1060,7 @@ async function previewVersion(version: PageVersion | null) {
   const request = ++versionPreviews;
   const file = designer.file.value;
   if (version && file && !version.files) {
-    window.open(filePreviewUrl(file, true, undefined, false, version.sha), "_blank");
+    window.open(filePreviewUrl(file, true, undefined, false, version.sha), "_blank", "noopener");
     return;
   }
   sendChanged.cancel();

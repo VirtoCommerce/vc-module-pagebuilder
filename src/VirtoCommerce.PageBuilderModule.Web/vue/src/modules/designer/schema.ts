@@ -1,3 +1,4 @@
+import { evaluate, UnsupportedExpressionError } from "./safeExpression";
 import type { Field, Item, ItemSchema, Schemas } from "./types";
 
 /**
@@ -74,6 +75,19 @@ export function withTextAt<T>(value: T, path: (string | number)[], text: string)
   return { ...value, [key]: child };
 }
 
+/** The field of the setting at the path among these fields: a list's row (an index) and an object hold `element` fields. */
+function fieldAt(fields: Field[], [key, ...rest]: (string | number)[]): Field | undefined {
+  const field = typeof key === "string" ? fields.find((x) => x.id === key) : undefined;
+  if (!field || !rest.length) return field;
+  if (field.type === "list") return typeof rest[0] === "number" && rest.length > 1 ? fieldAt(field.element ?? [], rest.slice(1)) : undefined;
+  return field.type === "object" ? fieldAt(field.element ?? [], rest) : undefined;
+}
+
+/** Whether the preview's inline edit may set the value at the path: a string, for a plain-text ("string") setting. */
+export function isTextEdit(fields: Field[], path: (string | number)[], value: unknown): boolean {
+  return typeof value === "string" && fieldAt(fields, path)?.type === "string";
+}
+
 /** The value at a dotted path ("product.name"). */
 export function pick(source: unknown, path: string): unknown {
   return path.split(".").reduce<unknown>((value, key) => (value == null ? undefined : (value as Record<string, unknown>)[key]), source);
@@ -89,15 +103,25 @@ export function itemTitle(item: Item, schema: ItemSchema | undefined): string {
   return (typeof value === "string" && value.trim()) || schema?.name || humanize(item.type);
 }
 
-/** Whether a field shows: its `visibility` expression run with `this` = the context ({ model, item, element, … }). */
+const reportedExpressions = new Set<string>();
+
+/**
+ * Whether a field shows: its `visibility` expression with `this` = the context ({ model, item, element, … }). As in the
+ * Angular designer, an expression that isn't a supported form, or fails, hides the field.
+ */
 export function isVisible(field: Field, context: Record<string, unknown>): boolean {
   if (field.hidden) return false;
   if (!field.visibility) return true;
   try {
-    // the schemas come from the store's own theme, as in the Angular designer
-    return !!new Function(`return (${field.visibility});`).call(context);
-  } catch {
-    return true;
+    return !!evaluate(field.visibility, context);
+  } catch (error) {
+    // once per expression: the fields are filtered again on every change
+    if (!reportedExpressions.has(field.visibility)) {
+      reportedExpressions.add(field.visibility);
+      const reason = error instanceof UnsupportedExpressionError ? "it is not one of the supported forms" : "it failed";
+      console.warn(`Expression not executed: ${reason}`, field.visibility, error instanceof Error ? error.message : error);
+    }
+    return false;
   }
 }
 
@@ -111,6 +135,20 @@ export function fill<T>(template: T, context: Record<string, unknown>): T {
     return Object.fromEntries(Object.entries(template).map(([key, value]) => [key, fill(value, context)])) as T;
   }
   return template;
+}
+
+/**
+ * Where a schema's request goes, resolved as fetch would from the designer's page, or undefined when not http(s).
+ * `platform`: it goes to the platform (the designer's own origin), the only place the user's token may go.
+ */
+export function schemaRequest(url: string, location: Pick<Location, "href" | "origin">): { url: string; platform: boolean } | undefined {
+  try {
+    const target = new URL(url, location.href);
+    if (target.protocol !== "http:" && target.protocol !== "https:") return undefined;
+    return { url: target.href, platform: target.origin === location.origin };
+  } catch {
+    return undefined;
+  }
 }
 
 /** Material icon names of the schemas → the shell's lucide icons */

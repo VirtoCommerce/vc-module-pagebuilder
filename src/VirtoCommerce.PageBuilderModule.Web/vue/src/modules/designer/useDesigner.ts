@@ -2,7 +2,7 @@ import { computed, reactive, ref, shallowRef, watch } from "vue";
 import { useManualRefHistory } from "@vueuse/core";
 import { debounce } from "lodash-es";
 import type { Field, Item, ItemSchema, PageDocument, Schemas, SectionGroup, Selection } from "./types";
-import { copyItem, fieldsOf, itemTitle, newId, newItem, withTextAt } from "./schema";
+import { copyItem, fieldsOf, isTextEdit, itemTitle, newId, newItem, withTextAt } from "./schema";
 import { isComponentRef, resolveRefs } from "./document";
 import type { ClipboardItem } from "./clipboard";
 import * as api from "./api";
@@ -179,21 +179,34 @@ export function useDesigner() {
     else updateSection(sel.sectionId, (x) => ({ ...x, blocks: x.blocks?.map((b) => (b.id === sel.id ? { ...b, [id]: value } : b)) }));
   }
 
+  let textEditRefused = false;
+  /** Whether the item's schema declares the setting at the path as plain text; an edit of anything else is reported once */
+  function takesTextEdit(item: Item, kind: "section" | "block", path: (string | number)[], text: unknown): boolean {
+    const fields = fieldsOf(kind === "section" ? sectionSchema(item.type) : blockSchema(item.type), kind, schemas.value);
+    if (isTextEdit(fields, path, text)) return true;
+    if (!textEditRefused) {
+      textEditRefused = true;
+      console.warn("A text edited in the preview was ignored: its schema has no text setting there", item.type, path);
+    }
+    return false;
+  }
+
   /**
-   * A text edited on the page (the preview's inline editing): the string at the path of that section or block.
-   * Returns what to select, or undefined when the item or the text isn't there (nothing changes then).
+   * A text edited on the page (the preview's inline editing): the string at the path of that section or block, when
+   * its schema declares a text setting there. Returns what to select, or undefined when the item or the text isn't
+   * there (nothing changes then).
    */
   function setText(itemId: string, path: (string | number)[], text: string): Selection | undefined {
     for (const section of doc.value.content) {
       if (section.id === itemId) {
-        const changed = withTextAt(section, path, text);
+        const changed = takesTextEdit(section, "section", path, text) ? withTextAt(section, path, text) : undefined;
         if (!changed) return undefined;
         updateSection(section.id, () => changed);
         return { kind: "section", id: section.id };
       }
       const block = section.blocks?.find((b) => b.id === itemId);
       if (block) {
-        const changed = withTextAt(block, path, text);
+        const changed = takesTextEdit(block, "block", path, text) ? withTextAt(block, path, text) : undefined;
         if (!changed) return undefined;
         updateSection(section.id, (x) => ({ ...x, blocks: x.blocks?.map((b) => (b.id === itemId ? changed : b)) }));
         return { kind: "block", sectionId: section.id, id: itemId };

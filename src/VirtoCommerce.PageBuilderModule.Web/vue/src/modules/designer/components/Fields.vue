@@ -193,7 +193,7 @@ import { computed, inject, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { VcButton, VcColorInput, VcEditor, VcHint, VcIcon, VcInput, VcSelect, VcSwitch, VcTextarea, type CustomToolbarButton, type CustomToolbarItem } from "@vc-shell/framework/ui";
 import { PageAnchorsKey, type Field } from "../types";
-import { fill, isVisible, pick, valuesOf } from "../schema";
+import { fill, isVisible, pick, schemaRequest, valuesOf } from "../schema";
 import ImageField from "./ImageField.vue";
 import { getAuthHeaders } from "../../page-builder/composables/usePageContentApi";
 
@@ -285,11 +285,13 @@ function remoteOptions(field: Field) {
 function createLoader(field: Field) {
   return async (keyword?: string, _skip?: number, ids?: string[]) => {
     const request = field.request!;
+    const target = schemaRequest(fill(request.url, props.context), window.location);
+    if (!target) return { results: [], totalCount: 0 };
     const body = fill(request.body, { ...props.context, __searchQuery: keyword ?? "" });
-    const res = await fetch(fill(request.url, props.context), {
+    const res = await fetch(target.url, {
       method: (request.method ?? "get").toUpperCase(),
-      // the platform's API wants the signed-in user's token (a store's link lists, say)
-      headers: { ...(await getAuthHeaders()), ...(body ? { "Content-Type": "application/json" } : {}) },
+      // the platform's API wants the user's token (a store's link lists, say); the theme's requests elsewhere go without it
+      headers: { ...(target.platform ? await getAuthHeaders() : {}), ...(body ? { "Content-Type": "application/json" } : {}) },
       body: body ? JSON.stringify(body) : undefined,
     });
     const json = res.ok ? await res.json() : undefined;

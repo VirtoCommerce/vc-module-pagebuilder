@@ -209,13 +209,15 @@ async function refresh() {
  */
 async function createApp() {
   if (!organization.value.trim() || busy.value) return;
+  // the handle sends the tab on once the platform answers; the tab gets no link back to this page
   const tab = window.open("about:blank", "_blank");
+  if (tab) tab.opener = null;
   busy.value = true;
   actionError.value = undefined;
   try {
     const { url } = await request<{ url: string }>(gitHubAppSetupUrl(organization.value));
     if (tab) tab.location.href = url;
-    else window.open(url, "_blank");
+    else window.open(url, "_blank", "noopener");
   } catch (error) {
     tab?.close();
     actionError.value = error instanceof Error ? error.message : String(error);

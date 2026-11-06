@@ -43,7 +43,7 @@ export interface Field {
   options?: { value: unknown; label: string }[];
   element?: Field[];
   displayField?: string;
-  /** a JS expression, true when the field shows (this = the field's context) */
+  /** an expression (safeExpression.ts), true when the field shows (this = the field's context) */
   visibility?: string;
   /** remote options of a select: a templated request */
   request?: RemoteRequest;

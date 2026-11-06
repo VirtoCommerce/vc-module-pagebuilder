@@ -110,14 +110,20 @@ export function usePreviewBridge(options: {
 }
 
 /**
- * A page of the storefront: its URL joined with `path` like the Angular designer's combine(), so a storefront URL with
- * a path keeps it; undefined without an http(s) storefront.
+ * A page of the storefront: `path` (with its query) under the storefront URL's own path, like the Angular designer's
+ * combine(), so a storefront URL with a path keeps it; undefined without an http(s) storefront.
  */
 export function storefrontPage(storefrontUrl: string | undefined, path: string): URL | undefined {
   if (!storefrontUrl) return undefined;
   try {
-    const url = new URL(storefrontUrl.replace(/\/+$/, "") + "/" + path.replace(/^\/+/, ""));
-    return url.protocol === "http:" || url.protocol === "https:" ? url : undefined;
+    const url = new URL(storefrontUrl);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return undefined;
+    // only its path, query and hash are taken, so "//evil.example" or "https://evil.example" can't change the host
+    const page = new URL(`/${path.replace(/^[/\\]+/, "")}`, "http://storefront.invalid");
+    url.pathname = url.pathname.replace(/\/+$/, "") + page.pathname;
+    url.search = page.search;
+    url.hash = page.hash;
+    return url;
   } catch {
     return undefined;
   }

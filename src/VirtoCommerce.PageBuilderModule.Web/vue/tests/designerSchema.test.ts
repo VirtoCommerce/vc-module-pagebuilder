@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { copyItem, fieldsOf, fill, isVisible, itemTitle, newItem, withTextAt } from "../src/modules/designer/schema";
+import { copyItem, fieldsOf, fill, isTextEdit, isVisible, itemTitle, newItem, schemaRequest, withTextAt } from "../src/modules/designer/schema";
 import type { Schemas } from "../src/modules/designer/types";
 
 const schemas: Schemas = {
@@ -54,12 +54,22 @@ test("titles come from the display field, else the schema name", () => {
   assert.equal(itemTitle({ id: "x", type: "site-header" }, undefined), "Site header");
 });
 
-test("visibility expressions see the context as this; a broken one shows the field", () => {
+test("visibility expressions see the context as this; a failing one hides the field", (t) => {
+  t.mock.method(console, "warn", () => undefined);
   const field = { id: "n", type: "number", visibility: "this.model.countLimitation === true" };
   assert.equal(isVisible(field, { model: { countLimitation: true } }), true);
   assert.equal(isVisible(field, { model: { countLimitation: false } }), false);
-  assert.equal(isVisible({ ...field, visibility: "this.nope.deeper" }, {}), true);
+  assert.equal(isVisible({ ...field, visibility: "this.nope.deeper" }, {}), false);
   assert.equal(isVisible({ ...field, hidden: true }, { model: { countLimitation: true } }), false);
+});
+
+test("a visibility expression that isn't a supported form is not run: the field hides, reported once", (t) => {
+  const warn = t.mock.method(console, "warn", () => undefined);
+  const field = { id: "n", type: "number", visibility: "(function() { globalThis.__visibilityRan = true; return true })()" };
+  assert.equal(isVisible(field, {}), false);
+  assert.equal(isVisible(field, {}), false);
+  assert.equal((globalThis as Record<string, unknown>).__visibilityRan, undefined);
+  assert.equal(warn.mock.callCount(), 1);
 });
 
 test("request templates are filled deeply", () => {
@@ -77,4 +87,35 @@ test("a text edited on the page replaces only an existing string, without touchi
   assert.equal(withTextAt(item, ["count"], "4"), undefined);
   assert.equal(withTextAt(item, ["missing"], "x"), undefined);
   assert.equal(withTextAt(item, ["buttons", 5, "label"], "x"), undefined);
+});
+
+test("the preview edits only plain-text settings the item's schema declares, with a string", () => {
+  const fields = [
+    ...fieldsOf(schemas.sections["call-to-action"], "section", schemas),
+    { id: "body", type: "text" },
+    { id: "link", type: "object", element: [{ id: "label", type: "string" }, { id: "image", type: "images" }] },
+  ];
+  assert.equal(isTextEdit(fields, ["title"], "Sale"), true);
+  assert.equal(isTextEdit(fields, ["buttons", 0, "label"], "Buy"), true);
+  assert.equal(isTextEdit(fields, ["link", "label"], "Shop"), true);
+  assert.equal(isTextEdit(fields, ["title"], 4), false);
+  assert.equal(isTextEdit(fields, ["body"], "<b>rich</b>"), false);
+  assert.equal(isTextEdit(fields, ["link", "image"], "/x.png"), false);
+  assert.equal(isTextEdit(fields, ["missing"], "x"), false);
+  assert.equal(isTextEdit(fields, ["buttons", "label"], "x"), false);
+  assert.equal(isTextEdit(fields, ["buttons", 0], "x"), false);
+  assert.equal(isTextEdit(fields, ["link", 0, "label"], "x"), false);
+});
+
+test("a schema request goes over http(s) only, and to the platform only with the token", () => {
+  const location = { href: "https://platform.example/apps/designer/", origin: "https://platform.example" };
+  assert.deepEqual(schemaRequest("/api/stores", location), { url: "https://platform.example/api/stores", platform: true });
+  assert.deepEqual(schemaRequest("api/stores", location), { url: "https://platform.example/apps/designer/api/stores", platform: true });
+  assert.deepEqual(schemaRequest("https://elsewhere.example/schema.json", location), { url: "https://elsewhere.example/schema.json", platform: false });
+  assert.equal(schemaRequest("//elsewhere.example/x", location)?.platform, false);
+  assert.equal(schemaRequest("http://platform.example/api", location)?.platform, false);
+  assert.equal(schemaRequest("https://platform.example.evil.example/api", location)?.platform, false);
+  assert.equal(schemaRequest("javascript:alert(1)", location), undefined);
+  assert.equal(schemaRequest("data:application/json,[]", location), undefined);
+  assert.equal(schemaRequest("http://[", location), undefined);
 });
