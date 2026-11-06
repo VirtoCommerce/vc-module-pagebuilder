@@ -360,7 +360,7 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
             ["sections"] = new JObject(sections.Select(x => new JProperty(x, new JObject()))),
         }.ToString(), Ct);
 
-    private ThemePublisher Publisher(ThemeFileHistory history) =>
+    private ThemePublisher Publisher(IThemeFileHistoryService history) =>
         new(_storageFactory, new ThemeSnapshotBuilder(), _stores, _catalogs, _lock, new NoEvents(), history,
             Options.Create(new ThemeSnapshotOptions()), NullLogger<ThemePublisher>.Instance);
 
@@ -393,9 +393,9 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     }
 
     private sealed class NoHistory()
-        : ThemeFileHistory(null, null, null, Options.Create(new GitContentOptions()), NullLogger<ThemeFileHistory>.Instance)
+        : ThemeFileHistoryService(null, null, null, null, Options.Create(new GitContentOptions()), NullLogger<ThemeFileHistoryService>.Instance)
     {
-        public override Task RecordAsync(string storeId, string path, string content, string summary, ClaimsPrincipal user, string save,
+        public override Task RecordAsync(string storeId, string path, string content, string summary, ClaimsPrincipal user, string saveId,
             CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 
