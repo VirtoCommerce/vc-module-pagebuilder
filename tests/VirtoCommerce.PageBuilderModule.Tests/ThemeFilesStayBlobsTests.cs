@@ -92,7 +92,8 @@ public class ThemeFilesStayBlobsTests
             gitContentProvisioner: new FakeGitContentProvisioner(),
             settingsManager: null,
             authorizationService: authorization ?? new FakeAuthorizationService(true),
-            distributedLock: new InProcessDistributedLock());
+            distributedLock: new InProcessDistributedLock(),
+            requestValidator: RequestValidators.Content("s1"));
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Name, "alice")], "test")) },

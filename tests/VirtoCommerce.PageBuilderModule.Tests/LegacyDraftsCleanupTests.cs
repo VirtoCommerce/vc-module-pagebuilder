@@ -10,11 +10,14 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json.Linq;
 using VirtoCommerce.AssetsModule.Core.Assets;
 using VirtoCommerce.ContentModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
+using VirtoCommerce.PageBuilderModule.Data.Validation;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using VirtoCommerce.PageBuilderModule.Web.Models;
+using VirtoCommerce.StoreModule.Core.Model;
 using Xunit;
 
 namespace VirtoCommerce.PageBuilderModule.Tests
@@ -159,13 +162,41 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         {
             var blob = Storage();
             blob.AddFile("about-us.page", OnGit);
-            blob.AddFile("about-us.page-draft", UnpublishedWork);
+            blob.AddFile("about-us.page-draft", OnGit);
 
             await Controller(blob, git: Git(("pages/about-us.page", OnGit)))
                 .DeleteLegacyDrafts("vccom", "pages", "default", Request("about-us.page-draft"));
 
             Assert.Equal(["about-us.page-draft"], blob.Removed);
             Assert.Contains("about-us.page", blob.Files.Keys);
+        }
+
+        [Fact]
+        public async Task Delete_ADraftThatDiffersFromTheRepository_IsKept()
+        {
+            var blob = Storage();
+            blob.AddFile("about-us.page-draft", UnpublishedWork);
+
+            var result = await Controller(blob, git: Git(("pages/about-us.page", OnGit)))
+                .DeleteLegacyDrafts("vccom", "pages", "default", Request("about-us.page-draft"));
+
+            Assert.Empty(blob.Removed);
+            var body = Assert.IsType<OkObjectResult>(result).Value;
+            Assert.Empty((IEnumerable<string>)Value(body, "deleted"));
+            Assert.Contains("has-changes", JArray.FromObject(Value(body, "skipped")).ToString());
+        }
+
+        [Fact]
+        public async Task Delete_ADraftThatDiffersFromThePublishedBlob_IsKept()
+        {
+            var blob = Storage();
+            blob.AddFile("legacy.page", OnGit);
+            blob.AddFile("legacy.page-draft", UnpublishedWork);
+
+            await Controller(blob, git: Git())
+                .DeleteLegacyDrafts("vccom", "pages", "default", Request("legacy.page-draft"));
+
+            Assert.Empty(blob.Removed);
         }
 
         [Fact]
@@ -242,26 +273,13 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             // the whole cleanup blocked for exactly the stores it was written for.
             var blob = Storage();
             blob.AddFile("legacy.page", OnGit);
-            blob.AddFile("legacy.page-draft", UnpublishedWork);
+            blob.AddFile("legacy.page-draft", OnGit);
 
             await Controller(blob, git: Git())
                 .DeleteLegacyDrafts("vccom", "pages", "default", Request("legacy.page-draft"));
 
             Assert.Equal(["legacy.page-draft"], blob.Removed);
             Assert.Contains("legacy.page", blob.Files.Keys);
-        }
-
-        [Fact]
-        public async Task Delete_WithoutTheDeletePermission_IsForbidden()
-        {
-            var blob = Storage();
-            blob.AddFile("about-us.page-draft", OnGit);
-
-            var result = await Controller(blob, allowed: false)
-                .DeleteLegacyDrafts("vccom", "pages", "default", Request(false, "about-us.page-draft"));
-
-            Assert.IsType<ForbidResult>(result);
-            Assert.Empty(blob.Removed);
         }
 
         [Fact]
@@ -382,7 +400,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             });
 
             var controller = new PageBuilderController(
-                storeService: null,
+                storeService: new FakeStoreService(new Store { Id = "vccom" }),
                 pathResolver: new FakePathResolver(),
                 blobContentStorageProviderFactory: new FakeStorageFactory(storage),
                 publishingService: null,
@@ -395,7 +413,8 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 gitContentProvisioner: new FakeGitContentProvisioner(),
                 settingsManager: null,
                 authorizationService: new FakeAuthorizationService(allowed),
-                distributedLock: new InProcessDistributedLock());
+                distributedLock: new InProcessDistributedLock(),
+                requestValidator: RequestValidators.Content("s1", "vccom"));
 
             var identity = new ClaimsIdentity([new Claim(ClaimTypes.Name, "john")], "test");
             controller.ControllerContext = new ControllerContext

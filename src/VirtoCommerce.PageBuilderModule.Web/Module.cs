@@ -38,11 +38,7 @@ using VirtoCommerce.Platform.Core.Jobs;
 using VirtoCommerce.Platform.Core.Modularity;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.Platform.Core.Settings;
-using VirtoCommerce.Platform.Data.MySql.Extensions;
-using VirtoCommerce.Platform.Data.PostgreSql.Extensions;
-using VirtoCommerce.Platform.Data.SqlServer.Extensions;
 using VirtoCommerce.StoreModule.Core.Events;
-using VirtoCommerce.StoreModule.Core.Model;
 
 namespace VirtoCommerce.PageBuilderModule.Web
 {
@@ -91,6 +87,8 @@ namespace VirtoCommerce.PageBuilderModule.Web
             serviceCollection.AddBackgroundJob<PageBuilderSharedComponentContentPropagationJob, PageBuilderSharedComponentContentPropagationJobPayload>(triggerable: false);
 
             serviceCollection.AddTransient<IAuthorizationHandler, PageBuilderAuthorizationHandler>();
+            serviceCollection.AddTransient<IValidator<PageBuilderContentFile>, PageBuilderContentFileValidator>();
+            serviceCollection.AddTransient<IValidator<PageBuilderContentRequest>, PageBuilderContentRequestValidator>();
             serviceCollection.AddTransient<IPageContentProvider, PageBuilderContentProvider>();
             serviceCollection.AddTransient<IPagesMigrationService, PagesMigrationService>();
             serviceCollection.AddTransient<IPageBuilderAssetReferenceMigrationService, PageBuilderAssetReferenceMigrationService>();

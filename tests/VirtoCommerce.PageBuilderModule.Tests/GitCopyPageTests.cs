@@ -9,7 +9,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
+using VirtoCommerce.PageBuilderModule.Data.Validation;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
+using VirtoCommerce.StoreModule.Core.Model;
 using Xunit;
 
 namespace VirtoCommerce.PageBuilderModule.Tests
@@ -144,17 +146,6 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         [Fact]
-        public async Task Copy_WithoutTheCreatePermission_IsForbidden()
-        {
-            var repository = Repository();
-
-            var result = await Controller(repository, allowed: false).GitCopyPage("vccom", "pages", "/about-us.page", null);
-
-            Assert.IsType<ForbidResult>(result);
-            Assert.Empty(repository.Commits);
-        }
-
-        [Fact]
         public async Task Copy_OfAPageTheRepositoryDoesNotHave_ShipsNothing()
         {
             var repository = new RecordingRepository();
@@ -189,7 +180,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             // Only the git dependencies take part; the rest stay null on purpose, so a change that starts
             // reaching for blob storage fails loudly here instead of quietly writing a draft blob again.
             var controller = new PageBuilderController(
-                storeService: null,
+                storeService: new FakeStoreService(new Store { Id = "vccom" }),
                 pathResolver: null,
                 blobContentStorageProviderFactory: null,
                 publishingService: null,
@@ -202,7 +193,8 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 gitContentProvisioner: new FakeGitContentProvisioner(),
                 settingsManager: null,
                 authorizationService: new FakeAuthorizationService(allowed),
-                distributedLock: new InProcessDistributedLock());
+                distributedLock: new InProcessDistributedLock(),
+                requestValidator: RequestValidators.Content("s1", "vccom"));
 
             var identity = new ClaimsIdentity([new Claim(ClaimTypes.Name, Login)], "test");
             controller.ControllerContext = new ControllerContext

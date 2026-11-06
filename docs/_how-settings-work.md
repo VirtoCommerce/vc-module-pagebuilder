@@ -75,17 +75,17 @@ Resolved settings are available in template expressions as `{{settings.*}}`. The
         "url": "/api/pagebuilder/save?storeId={{location.params.storeId}}&theme={{config.themeName}}&draft=true",
         "method": "POST",
         "body": {
-            "files": "{{=JSON.stringify(this.templatesToSave.map(x => ({ path: x.entry.path, pageId: x.entry.pageId, type: x.entry.type, content: x.content })))}}"
+            "files": "{{=JSON.stringify(this.templatesToSave.map(x => ({ path: x.entry.path, groupId: x.entry.groupId, type: x.entry.type, content: x.content })))}}"
         }
     },
     "publish": {
-        "status": "/api/content/{{type}}/{{location.params.storeId}}/publish-status?relativeUrl={{path}}",
+        "status": "/api/pagebuilder/git/publish-status?storeId={{location.params.storeId}}&path={{path}}&type={{type}}",
         "publish": {
-            "url": "/api/content/{{type}}/{{location.params.storeId}}/publishing?relativeUrl={{path}}&publish=true",
+            "url": "/api/pagebuilder/git/publish?storeId={{location.params.storeId}}&path={{path}}&type={{type}}",
             "method": "POST"
         },
         "unpublish": {
-            "url": "/api/content/{{type}}/{{location.params.storeId}}/publishing?relativeUrl={{path}}&publish=false",
+            "url": "/api/pagebuilder/git/unpublish?storeId={{location.params.storeId}}&path={{path}}&type={{type}}",
             "method": "POST"
         }
     },

@@ -64,6 +64,36 @@ Standard VirtoCommerce module pattern:
 - Content streaming via `ContentStreamRepository` / `IContentStreamProvider`
 - Authorization via `PageBuilderAuthorizationHandler` + `PageBuilderAuthorizationRequirement`
 
+### Angular 20 Designer App
+
+Lives entirely in `Apps/page-builder-designer/`. The SPA runs as an `<iframe>` inside the VirtoCommerce platform admin shell.
+
+**Module structure** (`src/app/modules/`):
+- **`core/`** — Services (HTTP, assets, clipboard, modal, notifications, event bus), UI controls, dialogs. Eagerly provided.
+- **`editor/`** — Page/template editing. Lazy-loaded at `/pages`. Has its own NgRx store (three-layer: data/domain/ui).
+- **`theme/`** — Theme editor. Lazy-loaded at `/themes`. Has its own NgRx store.
+- **`shared/`** — Components, dialogs, services, NgRx routing state. Shared across features.
+- **`integration/`** — Platform `postMessage`/`BroadcastChannel` integration. `AppInitializator` runs at startup via `APP_INITIALIZER`.
+- **`models/`** — Pure TypeScript model definitions.
+
+**Platform integration:**
+- Auth JWT read from `localStorage` (`ls.authenticationData`) — set by VC platform shell
+- Communicates with parent via `postMessage` and `BroadcastChannel` (`vc-module-content-channel`)
+- Preview iframe receives template data changes in real-time
+
+**Config system:**
+- Loads `data/settings.json` (or another bundled `data/*.json` named by `?configUrl=`)
+- Template syntax in values (evaluated by `appHelpers.template()` in `integration/helpers/utils.ts`):
+  - `{{path}}` — substitutes value by dot-path from context (`location.*`, `config.*`, `settings.*`)
+  - `{{=expr}}` — evaluates an expression, result is coerced to string (for use inside larger strings)
+  - `@{{expr}}` — evaluates an expression, returns raw result preserving type (array, object, number). Must be the entire string value. Use for POST body fields that need non-string types.
+  - Expressions are interpreted by `integration/helpers/safe-expression.ts`, not run as JS: no functions or callbacks, object literals, `new` or globals (see `docs/_template-syntax.md`, "Expression language"). Anything else evaluates to `null`.
+- `BuilderHttpClient` evaluates `ServerRequestDescriptor` objects with LRU cache + fallback chains
+
+**Internal libraries (`projects/`):**
+- **`ngv-datepicker`** — Custom datepicker with clock view. Has prebuilt Sass themes (compiled to `.dist-libs/`).
+- **`ngv-markdown`** — Markdown editor wrapping EasyMDE + Turndown (HTML→Markdown paste).
+
 ### Vue 3 Shell App
 
 Lives in `vue/`: shared code in `vue/src/` (api_client, utilities, locales, the page-builder / asset-library / shared-components modules), the Admin Shell entry in `vue/src/modules/index.ts` (blades PageBuilderPages, PageBuilderPageDetails, PageBuilderDesigner, PageBuilderAssets, PageBuilderSharedComponents; the StoreDetails widget and the Sites "Pages" tab), the standalone app (served at `/apps/page-builder-shell/`) in `vue/standalone/`. Built with Vite 6 and uses the `@vc-shell/framework` for VirtoCommerce module shell integration. Uses Vue 3 Composition API, `vue-router`, `vee-validate` for forms, and auto-generated API client from `@vc-shell/api-client-generator`.

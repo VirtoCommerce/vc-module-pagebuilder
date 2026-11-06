@@ -304,24 +304,9 @@ angular.module('virtoCommerce.pageBuilderModule')
 
             var publishCommand = {
                 name: "pageBuilder.commands.publish", icon: 'fa fa-file',
-                executeMethod: function () {
-                    if (blade.gitFlow) {
-                        gitPublish();
-                        return;
-                    }
-                    contentApi.publish({
-                        contentType: blade.contentType,
-                        storeId: blade.storeId,
-                        relativeUrl: blade.currentEntity.relativeUrl
-                    }, function () {
-                        blade.hasChanges = false;
-                        blade.published = true;
-                        getDocumentIndex();
-                        updateToolbarCommands();
-                        postMessageToPageBuilder({ source: 'platform', published: true, hasChanges: false });
-                        blade.parentBlade.refresh();
-                    });
-                },
+                // Through the builder API on either flow: it checks builder:publish and the store, while
+                // the Content module's own publishing asks for content:create only.
+                executeMethod: gitPublish,
                 // a pull request that is merging itself is already publishing this page — pressing
                 // publish again would achieve nothing
                 canExecuteMethod: function () { return !isDirty() && !inFlight(blade); }
@@ -336,7 +321,8 @@ angular.module('virtoCommerce.pageBuilderModule')
             }
 
             // Publishing on the git flow merges this editor's work branch into the production branch;
-            // unpublishing merges a branch whose commit deletes the page. Both are the same act of
+            // unpublishing merges a branch whose commit deletes the page. Off the git flow the server
+            // publishes or unpublishes the blob and answers Merged. Both are the same act of
             // shipping a commit, hence one function. That can land straight away or wait on the CI checks
             // of a pull request, so the state comes from the server afterwards: telling the editor
             // "published" when it is still pending would send them away believing the page is live.
@@ -443,13 +429,10 @@ angular.module('virtoCommerce.pageBuilderModule')
                 name: "pageBuilder.commands.delete-legacy-draft", icon: 'fa fa-eraser',
                 executeMethod: function () {
                     var draft = blade.legacyDraft;
-                    // One file, and it has no second copy anywhere. Name it in the prompt, and say
-                    // plainly when it still holds something the repository has not got.
-                    var dialogKey = draft.differsFromCurrent ? 'delete-legacy-draft-unsaved' : 'delete-legacy-draft';
                     dialogService.showConfirmationDialog({
                         id: "confirmDeleteLegacyDraft",
-                        title: `pageBuilder.dialogs.${dialogKey}.title`,
-                        message: `pageBuilder.dialogs.${dialogKey}.message`,
+                        title: "pageBuilder.dialogs.delete-legacy-draft.title",
+                        message: "pageBuilder.dialogs.delete-legacy-draft.message",
                         messageValues: { path: draft.blobPath },
                         callback: function (confirmed) {
                             if (confirmed) {
@@ -458,7 +441,8 @@ angular.module('virtoCommerce.pageBuilderModule')
                         }
                     });
                 },
-                canExecuteMethod: function () { return !!blade.legacyDraft; }
+                // the server keeps a draft that differs from the published page
+                canExecuteMethod: function () { return !!blade.legacyDraft && !blade.legacyDraft.differsFromCurrent; }
             };
 
             function deleteLegacyDraft(path) {
@@ -469,13 +453,14 @@ angular.module('virtoCommerce.pageBuilderModule')
                 }, { paths: [path], dryRun: false }, function (result) {
                     blade.isLoading = false;
                     // The server keeps a draft whose page is not in the repository — it is still
-                    // what the builder reads. Say so, rather than report a deletion that did not
-                    // happen.
+                    // what the builder reads — and one that changed since this blade looked. Say
+                    // which, rather than report a deletion that did not happen.
                     if (result.skipped && result.skipped.length) {
+                        var dialogKey = result.skipped[0].reason === 'has-changes' ? 'legacy-draft-changed' : 'legacy-draft-kept';
                         dialogService.showNotificationDialog({
                             id: "legacyDraftKept",
-                            title: "pageBuilder.dialogs.legacy-draft-kept.title",
-                            message: "pageBuilder.dialogs.legacy-draft-kept.message"
+                            title: `pageBuilder.dialogs.${dialogKey}.title`,
+                            message: `pageBuilder.dialogs.${dialogKey}.message`
                         });
                     }
                     loadLegacyDraft();
@@ -495,23 +480,7 @@ angular.module('virtoCommerce.pageBuilderModule')
 
             var unpublishCommand = {
                 name: "pageBuilder.commands.unpublish", icon: 'fa fa-file-alt',
-                executeMethod: function () {
-                    if (blade.gitFlow) {
-                        gitUnpublish();
-                        return;
-                    }
-                    contentApi.unpublish({
-                        contentType: blade.contentType,
-                        storeId: blade.storeId,
-                        relativeUrl: blade.currentEntity.relativeUrl
-                    }, function () {
-                        blade.hasChanges = true;
-                        blade.published = false;
-                        updateToolbarCommands();
-                        postMessageToPageBuilder({ source: 'platform', published: false, hasChanges: true });
-                        blade.parentBlade.refresh();
-                    });
-                },
+                executeMethod: gitUnpublish,
                 // a pull request that is merging itself has the page on its way somewhere, and shipping
                 // a second commit for it would only race with the first
                 canExecuteMethod: function () { return !isDirty() && !inFlight(blade); }

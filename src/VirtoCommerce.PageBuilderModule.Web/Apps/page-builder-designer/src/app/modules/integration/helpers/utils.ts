@@ -2,6 +2,9 @@ import { JSONPath } from 'jsonpath-plus';
 
 import { ValueDescriptorModel } from '@models/index';
 
+import { evaluate, UnsupportedExpressionError } from './safe-expression';
+import { KNOWN_EXPRESSIONS } from './known-expressions';
+
 export function spreadPropertyByOther(obj: any, keyProperty: string, ...spreadProperties: string[]): any {
   const groups = Object.keys(obj).reduce((acc, key) => {
     const group = obj[key][keyProperty];
@@ -98,17 +101,27 @@ const EVAL_UTILS = {
   cutString,
   tryParseJson,
   getItemValue,
+  filterBy,
+  toOptions,
 };
 
 export function evalInContext(expr: string, context: any): any {
   try {
-    const keys = Object.keys(EVAL_UTILS);
-    const values = Object.values(EVAL_UTILS);
-    return new Function(...keys, `return (${expr})`).call(context, ...values);
+    return evaluate(expr, context, EVAL_UTILS, KNOWN_EXPRESSIONS);
   } catch (e) {
-    console.log(expr, context, e);
+    if (e instanceof UnsupportedExpressionError) {
+      console.warn('Expression not executed: it is not one of the supported forms', expr, e.message);
+    } else {
+      console.log(expr, context, e);
+    }
   }
   return null;
+}
+
+// A filter or a script in a path is schema text too: it runs through the expression language, not through
+// jsonpath's own interpreter, which calls whatever methods the data has. Its variables arrive on the sandbox.
+function evalJsonPathScript(script: string, sandbox: object): unknown {
+  return evaluate(script.replaceAll(/(?<![\w$.])_\$_/g, 'this._$_'), sandbox, EVAL_UTILS, KNOWN_EXPRESSIONS);
 }
 
 export function getValueOrDefault(value: any, defaultValue: any = null) {
@@ -119,7 +132,13 @@ export function getValueOrDefault(value: any, defaultValue: any = null) {
 }
 
 export function getValueByPath(model: any, path: any): any {
-  const value = JSONPath({ path, json: model, wrap: true });
+  let value: unknown;
+  try {
+    value = JSONPath({ path, json: model, wrap: true, eval: evalJsonPathScript });
+  } catch (e) {
+    console.warn('JSONPath not evaluated', path, (e as Error)?.message);
+    return null;
+  }
   const result = Array.isArray(value) ? value[0] : value;
   if (typeof result === 'function') {
     return null;
@@ -151,6 +170,27 @@ export function combine(...parts: string[]): string {
 
 export function toList(obj: any, keyPropertyName: string): any[] {
   return Object.keys(obj).map(key => ({ [keyPropertyName]: key, ...obj[key] }));
+}
+
+/** Expressions have no callbacks to filter or map with. */
+export function filterBy(list: unknown, field: string, value: unknown): any[] {
+  return Array.isArray(list) ? list.filter(item => ownValue(item, field) === value) : [];
+}
+
+export function toOptions(list: unknown, labelFields: string | string[], valueField: string): { label: unknown; value: unknown }[] {
+  if (!Array.isArray(list)) {
+    return [];
+  }
+  const fields = Array.isArray(labelFields) ? labelFields : [labelFields];
+  return list.map(item => ({
+    label: fields.map(field => ownValue(item, field)).find(Boolean),
+    value: ownValue(item, valueField),
+  }));
+}
+
+// Own fields only: an expression must not reach what the prototype adds.
+function ownValue(item: unknown, field: string): unknown {
+  return item !== null && typeof item === 'object' && Object.hasOwn(item, field) ? (item as any)[field] : undefined;
 }
 
 export function tryParseJson(value: string): any {

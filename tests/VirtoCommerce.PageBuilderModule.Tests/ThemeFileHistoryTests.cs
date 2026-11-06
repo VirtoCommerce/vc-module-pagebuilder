@@ -296,6 +296,7 @@ public class ThemeFileHistoryTests
             settingsManager: null,
             authorizationService: new FakeAuthorizationService(true),
             distributedLock: new InProcessDistributedLock(),
+            requestValidator: RequestValidators.Content("s1"),
             themeFileHistory: History(github)));
     }
 

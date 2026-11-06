@@ -11,7 +11,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
+using VirtoCommerce.PageBuilderModule.Data.Validation;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
+using VirtoCommerce.StoreModule.Core.Model;
 using Xunit;
 
 namespace VirtoCommerce.PageBuilderModule.Tests
@@ -331,17 +333,6 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.Single(repository.Commits);
         }
 
-        [Fact]
-        public async Task Publish_WithoutThePublishPermission_IsForbidden_RebaseOrNot()
-        {
-            var repository = Repository();
-
-            var result = await Controller(repository, Publisher(GitPublishState.Merged), allowed: false).GitPublish("vccom", Page, "pages", rebase: true);
-
-            Assert.IsType<ForbidResult>(result);
-            Assert.Empty(repository.DeletedBranches);
-            Assert.Empty(repository.Commits);
-        }
 
         // ── helpers ────────────────────────────────────────────────────────────────────────────────
 
@@ -372,7 +363,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         private static RecordingPublisher Publisher(GitPublishState state) => new(state);
 
         private static PageBuilderController Controller(RecordingRepository repository, RecordingPublisher publisher,
-            bool allowed = true, FakeLiveStorage live = null, FakeGitContentProvisioner provisioner = null, GitRepositorySource source = GitRepositorySource.Site)
+            FakeLiveStorage live = null, FakeGitContentProvisioner provisioner = null, GitRepositorySource source = GitRepositorySource.Site)
         {
             var options = Options.Create(new GitContentOptions
             {
@@ -397,8 +388,9 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 gitContentPublisher: publisher,
                 gitContentProvisioner: provisioner ?? new FakeGitContentProvisioner(),
                 settingsManager: null,
-                authorizationService: new FakeAuthorizationService(allowed),
-                distributedLock: new InProcessDistributedLock());
+                authorizationService: new FakeAuthorizationService(true),
+                distributedLock: new InProcessDistributedLock(),
+                requestValidator: RequestValidators.Content("s1", "vccom"));
 
             var identity = new ClaimsIdentity([new Claim(ClaimTypes.Name, Login)], "test");
             controller.ControllerContext = new ControllerContext

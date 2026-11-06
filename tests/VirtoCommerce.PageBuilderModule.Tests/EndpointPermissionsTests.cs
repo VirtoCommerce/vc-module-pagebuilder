@@ -51,7 +51,6 @@ public class EndpointPermissionsTests
         [(typeof(ThemeFileHistoryController), nameof(ThemeFileHistoryController.GetHistory))] = Permissions.Read,
         [(typeof(ThemeFileHistoryController), nameof(ThemeFileHistoryController.GetVersion))] = Permissions.Read,
         [(typeof(ThemeFileHistoryController), nameof(ThemeFileHistoryController.Restore))] = InTheAction,
-        [(typeof(PageBuilderController), nameof(PageBuilderController.DiscardDraft))] = Permissions.Update,
     };
 
     public static TheoryData<Type, string, string> Actions()

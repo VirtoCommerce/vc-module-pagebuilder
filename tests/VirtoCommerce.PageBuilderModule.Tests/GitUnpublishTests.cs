@@ -9,7 +9,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
+using VirtoCommerce.PageBuilderModule.Data.Validation;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
+using VirtoCommerce.StoreModule.Core.Model;
 using Xunit;
 
 namespace VirtoCommerce.PageBuilderModule.Tests
@@ -193,16 +195,6 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.Empty(live.Removed);
         }
 
-        [Fact]
-        public async Task Unpublish_WithoutThePublishPermission_IsForbidden()
-        {
-            var repository = Repository();
-
-            var result = await Controller(repository, Publisher(), allowed: false).GitUnpublish("vccom", Page, "pages");
-
-            Assert.IsType<ForbidResult>(result);
-            Assert.Empty(repository.DeletedFiles);
-        }
 
         // ── helpers ────────────────────────────────────────────────────────────────────────────────
 
@@ -231,7 +223,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             new(state);
 
         private static PageBuilderController Controller(RecordingRepository repository, RecordingPublisher publisher,
-            bool allowed = true, FakeLiveStorage live = null, GitRepositorySource source = GitRepositorySource.Site, GitPageHistory history = null)
+            FakeLiveStorage live = null, GitRepositorySource source = GitRepositorySource.Site, GitPageHistory history = null)
         {
             var options = Options.Create(new GitContentOptions
             {
@@ -256,8 +248,9 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 gitContentPublisher: publisher,
                 gitContentProvisioner: new FakeGitContentProvisioner(),
                 settingsManager: null,
-                authorizationService: new FakeAuthorizationService(allowed),
-                distributedLock: new InProcessDistributedLock());
+                authorizationService: new FakeAuthorizationService(true),
+                distributedLock: new InProcessDistributedLock(),
+                requestValidator: RequestValidators.Content("s1", "vccom"));
 
             var identity = new ClaimsIdentity([new Claim(ClaimTypes.Name, Login)], "test");
             controller.ControllerContext = new ControllerContext

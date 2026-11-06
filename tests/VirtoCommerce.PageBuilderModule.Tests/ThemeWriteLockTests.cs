@@ -98,7 +98,7 @@ public class ThemeWriteLockTests
     // ── helpers ────────────────────────────────────────────────────────────────────────────────
 
     private static PageBuilderController.SaveFilesModel Files(string type, string path) =>
-        new() { Files = JsonConvert.SerializeObject(new[] { new { path, type, content = new { content = Array.Empty<object>() } } }) };
+        new() { Files = JsonConvert.SerializeObject(new[] { new { path, type, content = new { settings = new { type = "settings" }, content = Array.Empty<object>() } } }) };
 
     private PageBuilderController Builder()
     {
@@ -118,7 +118,8 @@ public class ThemeWriteLockTests
             gitContentProvisioner: new FakeGitContentProvisioner(),
             settingsManager: null,
             authorizationService: new FakeAuthorizationService(true),
-            distributedLock: _lock));
+            distributedLock: _lock,
+            requestValidator: RequestValidators.Content("s1")));
     }
 
     private ThemeFileHistoryController HistoryController(GitHubScript github)
