@@ -21,6 +21,8 @@ using Xunit;
 
 namespace VirtoCommerce.PageBuilderModule.Tests;
 
+// The grouped page search cache region is static: tests running in parallel expire it under these tests' entries.
+[Collection(nameof(GroupedPageStoreMoveConcurrencyTests))]
 public class GroupedPageStoreMoveConcurrencyTests
 {
     private const string ComponentId = "component";
@@ -331,3 +333,6 @@ public class GroupedPageStoreMoveConcurrencyTests
         }
     }
 }
+
+[CollectionDefinition(nameof(GroupedPageStoreMoveConcurrencyTests), DisableParallelization = true)]
+public class GroupedPageStoreMoveConcurrencyTestsCollection;
