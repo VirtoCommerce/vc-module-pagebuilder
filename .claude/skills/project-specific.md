@@ -104,7 +104,7 @@ Handlers in `Data/Handlers/` react to page save/delete to sync content.
 ### Config-Driven HTTP
 
 **Config loading (`AppInitializator`):**
-1. Load `data/settings.json` (or `?configUrl=` query param)
+1. Load `data/settings.json` (or another bundled `data/*.json` named by the `?configUrl=` query param)
 2. Optionally load overrides from `/api/pagebuilder/settings`
 3. Recursively resolve nested config
 4. Store in `AppConfig` singleton

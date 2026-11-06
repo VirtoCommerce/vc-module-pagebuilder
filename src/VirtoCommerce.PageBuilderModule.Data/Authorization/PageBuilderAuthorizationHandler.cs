@@ -17,29 +17,22 @@ namespace VirtoCommerce.PageBuilderModule.Data.Authorization
             if (!result)
             {
                 var user = await GetUser(context);
-                if (user == null)
+                if (user != null)
                 {
-                    context.Fail();
-                }
-
-                switch (context.Resource)
-                {
-                    case IHasStoreId hasStoreId:
-                        result = hasStoreId.StoreId.EqualsIgnoreCase(user?.StoreId);
-                        break;
-                    case IEnumerable<IHasStoreId> hasStoreIds:
-                        result = hasStoreIds.All(x => x.StoreId.EqualsIgnoreCase(user?.StoreId));
-                        break;
+                    // A back-office manager usually has no store on the account; the action's permission still guards them.
+                    result = string.IsNullOrEmpty(user.StoreId) || context.Resource switch
+                    {
+                        IHasStoreId hasStoreId => hasStoreId.StoreId.EqualsIgnoreCase(user.StoreId),
+                        IEnumerable<IHasStoreId> hasStoreIds => hasStoreIds.All(x => x.StoreId.EqualsIgnoreCase(user.StoreId)),
+                        _ => false,
+                    };
                 }
             }
 
+            // A refusal stays silent: failing here would override any other handler registered for this requirement.
             if (result)
             {
                 context.Succeed(requirement);
-            }
-            else
-            {
-                context.Fail();
             }
         }
 
