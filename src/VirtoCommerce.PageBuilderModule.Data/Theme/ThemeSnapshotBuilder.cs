@@ -125,8 +125,8 @@ public class ThemeSnapshotBuilder : IThemeSnapshotBuilder
         snapshot.CatalogHash = catalogHash;
         snapshot.Rules = GetTemplateRules(source.Rules);
         snapshot.Templates = GetTemplates(source.Templates);
-        snapshot.Header = RemoveSharedComponents(GetSectionGroup(source.Header));
-        snapshot.Footer = RemoveSharedComponents(GetSectionGroup(source.Footer));
+        snapshot.Header = GetSectionGroup(source.Header);
+        snapshot.Footer = GetSectionGroup(source.Footer);
         snapshot.Brand = GetBrand(source.Brand, source.SettingsData);
         snapshot.Palette = GetPalette(source.Palette, source.PaletteDark);
         snapshot.Menus = GetMenus(catalog, snapshot.Header, snapshot.Footer);
@@ -163,7 +163,8 @@ public class ThemeSnapshotBuilder : IThemeSnapshotBuilder
         {
             if (IsTemplateKey(key) && GetPageDocument(document) is { } pageDocument)
             {
-                result[key] = RemoveSharedComponents(pageDocument);
+                RemoveSharedComponents(pageDocument);
+                result[key] = pageDocument;
             }
         }
 
@@ -291,21 +292,29 @@ public class ThemeSnapshotBuilder : IThemeSnapshotBuilder
 
     protected virtual JObject GetSectionGroup(JToken token)
     {
-        return token is JObject sectionGroup && sectionGroup["content"] is JArray content ? new JObject { ["content"] = content.DeepClone() } : null;
+        if (token is not JObject sectionGroup || sectionGroup["content"] is not JArray content)
+        {
+            return null;
+        }
+
+        var result = new JObject { ["content"] = content.DeepClone() };
+        RemoveSharedComponents(result);
+
+        return result;
     }
 
     // The storefront does not resolve shared components outside pages.
-    protected virtual JObject RemoveSharedComponents(JObject document)
+    protected virtual void RemoveSharedComponents(JObject document)
     {
-        if (document?["content"] is JArray content)
+        if (document["content"] is not JArray content)
         {
-            foreach (var placement in content.Where(x => x is JObject item && GetString(item, "type") == ModuleConstants.SharedComponents.ReferenceType).ToList())
-            {
-                placement.Remove();
-            }
+            return;
         }
 
-        return document;
+        foreach (var placement in content.Where(x => x is JObject item && GetString(item, "type") == ModuleConstants.SharedComponents.ReferenceType).ToList())
+        {
+            placement.Remove();
+        }
     }
 
     protected virtual ThemeBrand GetBrand(JToken brand, JToken settingsData)
