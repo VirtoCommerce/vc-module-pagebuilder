@@ -32,11 +32,11 @@ public class GitContentSetupControllerTests
     private readonly EphemeralDataProtectionProvider _keys = new();
 
     [Fact]
-    public async Task The_manifest_asks_for_what_site_repositories_need_and_comes_back_to_the_site()
+    public async Task AppNew_ValidState_ReturnsGitHubFormWithSiteRepositoryManifest()
     {
         var controller = Controller();
-        var state = await State(controller, "acme", "B2B store");
-        var (action, manifest) = await Form(controller, state);
+        var state = await GetSetupStateAsync(controller, "acme", "B2B store");
+        var (action, manifest) = await GetSetupFormAsync(controller, state);
 
         Assert.StartsWith("https://github.com/organizations/acme/settings/apps/new?state=", action);
         // the platform's pages may post forms only to themselves; this one also to GitHub
@@ -54,10 +54,10 @@ public class GitContentSetupControllerTests
     }
 
     [Fact]
-    public async Task A_long_organization_name_still_makes_an_App_name_GitHub_takes()
+    public async Task AppNew_LongOrganizationName_KeepsAppNameWithinGitHubLimit()
     {
         var controller = Controller();
-        var (_, manifest) = await Form(controller, await State(controller, new string('a', 39), "s1"));
+        var (_, manifest) = await GetSetupFormAsync(controller, await GetSetupStateAsync(controller, new string('a', 39), "s1"));
 
         Assert.True(manifest["name"]!.Value<string>()!.Length <= 34);
     }
@@ -66,18 +66,18 @@ public class GitContentSetupControllerTests
     [InlineData("")]
     [InlineData("acme/../settings")]
     [InlineData("-acme")]
-    public async Task What_is_not_an_organization_name_is_refused(string organization)
+    public async Task StartAppSetup_InvalidOrganization_ReturnsBadRequest(string organization)
     {
         Assert.IsType<BadRequestObjectResult>((await Controller().StartAppSetup(organization, "s1", Ct)).Result);
     }
 
     [Fact]
-    public async Task GitHubs_code_connects_the_App_and_goes_on_to_install_it()
+    public async Task AppCreated_ValidCode_SavesAppAndRedirectsToInstallation()
     {
         var github = GitHubConnections.CreateManifestConversion("acme");
         var connection = GitHubConnections.CreateService(_settings, _keys, github);
         var controller = Controller(connection);
-        var result = await controller.AppCreated("c0de", await State(controller, "acme", "s1"), Ct);
+        var result = await controller.AppCreated("c0de", await GetSetupStateAsync(controller, "acme", "s1"), Ct);
 
         github.AssertDone();
         Assert.Equal("https://github.com/apps/page-builder-acme/installations/new", Assert.IsType<RedirectResult>(result).Url);
@@ -85,7 +85,7 @@ public class GitContentSetupControllerTests
     }
 
     [Fact]
-    public async Task A_forged_state_is_refused_before_GitHub_is_asked()
+    public async Task AppCreated_ForgedState_ReturnsBadRequestWithoutCallingGitHub()
     {
         var github = GitHubConnections.CreateManifestConversion("acme");
 
@@ -98,10 +98,10 @@ public class GitContentSetupControllerTests
     }
 
     [Fact]
-    public async Task After_the_installation_GitHub_sends_the_administrator_back_to_the_site()
+    public async Task AppInstalled_ValidState_RedirectsToSite()
     {
         var controller = Controller();
-        var state = await State(controller, "acme", "B2B store");
+        var state = await GetSetupStateAsync(controller, "acme", "B2B store");
 
         Assert.Equal("/apps/admin-shell/#/content/site/B2B%20store", Assert.IsType<RedirectResult>(controller.AppInstalled(state)).Url);
         Assert.Equal("/apps/admin-shell/#/content/site/B2B%20store", Assert.IsType<RedirectResult>(controller.AppInstalled($"{state}?installation_id=9")).Url);
@@ -111,13 +111,13 @@ public class GitContentSetupControllerTests
     [InlineData(null)]
     [InlineData("B2B store")]
     [InlineData("forged")]
-    public void Without_a_valid_state_the_installation_lands_on_the_sites_panel(string state)
+    public void AppInstalled_InvalidState_RedirectsToSitesPanel(string state)
     {
         Assert.Equal("/apps/admin-shell/#/content", Assert.IsType<RedirectResult>(Controller().AppInstalled(state)).Url);
     }
 
     [Fact]
-    public async Task The_site_status_says_the_connection_is_the_setups_App_and_where_to_install_it()
+    public async Task GetSite_SetupApp_ReturnsAppSourceAndInstallUrl()
     {
         var connection = GitHubConnections.CreateService(_settings, _keys, GitHubConnections.CreateManifestConversion("acme"));
         await connection.CreateAppAsync("c0de", "acme", TestContext.Current.CancellationToken);
@@ -130,7 +130,7 @@ public class GitContentSetupControllerTests
     }
 
     [Fact]
-    public async Task The_site_status_of_a_store_the_user_does_not_work_in_is_forbidden()
+    public async Task GetSite_StoreUserDoesNotWorkIn_ReturnsForbid()
     {
         var controller = Controller(authorization: new FakeAuthorizationService("s2"));
 
@@ -138,7 +138,7 @@ public class GitContentSetupControllerTests
     }
 
     [Fact]
-    public async Task The_sites_panel_lists_the_stores_the_user_works_in()
+    public async Task GetConnection_SeveralStores_ListsOnlyStoresUserWorksIn()
     {
         var connection = GitHubConnections.CreateService(_settings, _keys, configure: options =>
         {
@@ -155,7 +155,7 @@ public class GitContentSetupControllerTests
     }
 
     [Fact]
-    public async Task The_sites_panel_finds_the_users_store_past_the_first_page_of_stores()
+    public async Task GetConnection_StoreBeyondFirstPage_ListsIt()
     {
         var controller = Controller(ConfiguredConnection(), new FakeAuthorizationService("s150"), stores: new FakeStoreSearchService(Enumerable.Range(1, 250).Select(x => $"s{x:000}").ToArray()));
 
@@ -165,7 +165,7 @@ public class GitContentSetupControllerTests
     }
 
     [Fact]
-    public async Task A_GitHub_that_does_not_answer_in_time_is_what_the_connection_test_reports()
+    public async Task GetConnection_GitHubTimesOut_ReturnsTimeoutError()
     {
         // HttpClient.Timeout ends a request with a TaskCanceledException, which the GitHub client reports as a GitContentException
         var timeout = new TaskCanceledException("The request was canceled due to the configured HttpClient.Timeout.");
@@ -178,7 +178,7 @@ public class GitContentSetupControllerTests
     }
 
     [Fact]
-    public async Task A_store_that_does_not_exist_is_not_connected()
+    public async Task ConnectSite_UnknownStore_ReturnsBadRequestAndConnectsNothing()
     {
         var provisioner = new FakeGitContentProvisioner();
 
@@ -189,7 +189,7 @@ public class GitContentSetupControllerTests
     }
 
     [Fact]
-    public async Task A_store_the_user_does_not_work_in_is_not_connected()
+    public async Task ConnectSite_StoreUserDoesNotWorkIn_ReturnsForbidAndConnectsNothing()
     {
         var provisioner = new FakeGitContentProvisioner();
 
@@ -200,7 +200,7 @@ public class GitContentSetupControllerTests
     }
 
     [Fact]
-    public async Task With_the_configuration_in_charge_the_setup_is_not_offered()
+    public async Task StartAppSetup_ConfigurationInCharge_ReturnsBadRequest()
     {
         var connection = GitHubConnections.CreateService(_settings, _keys, configure: options =>
         {
@@ -286,7 +286,7 @@ public class GitContentSetupControllerTests
     }
 
     /// <summary>The state the setup carries, from the address the panel opens.</summary>
-    private static async Task<string> State(GitContentSetupController controller, string organization, string storeId)
+    private static async Task<string> GetSetupStateAsync(GitContentSetupController controller, string organization, string storeId)
     {
         var url = Assert.IsType<GitHubAppSetupResult>(Assert.IsType<OkObjectResult>((await controller.StartAppSetup(organization, storeId, Ct)).Result).Value).Url;
         Assert.StartsWith("/api/pagebuilder/git/app/new?state=", url);
@@ -294,7 +294,7 @@ public class GitContentSetupControllerTests
     }
 
     /// <summary>Where the page that opens posts, and the manifest it posts.</summary>
-    private static async Task<(string Action, JObject Manifest)> Form(GitContentSetupController controller, string state)
+    private static async Task<(string Action, JObject Manifest)> GetSetupFormAsync(GitContentSetupController controller, string state)
     {
         var page = Assert.IsType<ContentResult>(await controller.AppNew(state, Ct));
         Assert.StartsWith("text/html", page.ContentType);

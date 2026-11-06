@@ -65,7 +65,7 @@ public class EndpointPermissionsTests
 
     [Theory]
     [MemberData(nameof(Actions))]
-    public void An_action_requires_its_permission(Type controller, string action, string access)
+    public void Action_Listed_RequiresItsPermission(Type controller, string action, string access)
     {
         var method = controller.GetMethod(action);
 
@@ -74,7 +74,7 @@ public class EndpointPermissionsTests
     }
 
     [Fact]
-    public void Every_action_of_these_controllers_is_listed()
+    public void Controllers_EveryAction_IsListed()
     {
         // an action added without a row here would have no permission asserted
         var actions = Controllers.SelectMany(controller => controller

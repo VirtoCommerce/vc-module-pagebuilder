@@ -31,7 +31,7 @@ public class RepositoryOwnershipConflictAttributeTests
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
-    public void A_store_working_in_another_stores_repository_is_told_so_with_409()
+    public void OnException_RepositoryOwnershipException_ReturnsConflict()
     {
         var context = Context(new GitRepositoryOwnershipException("acme/site-a", "a"));
 
@@ -43,7 +43,7 @@ public class RepositoryOwnershipConflictAttributeTests
     }
 
     [Fact]
-    public void Any_other_failure_goes_on_as_it_was()
+    public void OnException_OtherException_LeavesItUnhandled()
     {
         var context = Context(new InvalidOperationException("something else"));
 
@@ -58,13 +58,13 @@ public class RepositoryOwnershipConflictAttributeTests
     [InlineData(typeof(ThemeFileHistoryController))]
     [InlineData(typeof(GroupedPageHistoryController))]
     [InlineData(typeof(GitContentSetupController))]
-    public void Every_controller_that_asks_for_a_stores_repository_answers_a_conflict_with_409(Type controller)
+    public void Controller_UsesStoreRepository_HasConflictAttribute(Type controller)
     {
         Assert.NotNull(controller.GetCustomAttribute<RepositoryOwnershipConflictAttribute>());
     }
 
     [Fact]
-    public async Task A_theme_files_history_lets_a_conflict_through()
+    public async Task GetHistory_ThemeFileInAnotherStoresRepository_ThrowsOwnershipException()
     {
         var live = new FakeBlobStorage();
         var history = new ThemeFileHistoryService(Policy(), Repository(), new GitHubApiClient(new GitHubScript()), GitHubConnections.CreateService(Options().Value),
@@ -78,7 +78,7 @@ public class RepositoryOwnershipConflictAttributeTests
     }
 
     [Fact]
-    public async Task A_database_pages_history_lets_a_conflict_through()
+    public async Task GetHistory_GroupedPageInAnotherStoresRepository_ThrowsOwnershipException()
     {
         var pages = new PublishedRenameContentPreservationTests.FakeGroupedPageService();
         pages.SeedGroup(new GroupedPageBuilderPage { Id = "g1", StoreId = "s1", Name = "Home", Permalink = "/home" });
@@ -92,7 +92,7 @@ public class RepositoryOwnershipConflictAttributeTests
     }
 
     [Fact]
-    public async Task Connecting_a_site_lets_a_conflict_through()
+    public async Task ConnectSite_RepositoryOfAnotherStore_ThrowsOwnershipException()
     {
         var provisioner = new FakeGitContentProvisioner { ConnectFailure = new GitRepositoryOwnershipException("acme/site-s1", "S1") };
         var connection = GitHubConnections.CreateService(new FakeSettingsManager());
