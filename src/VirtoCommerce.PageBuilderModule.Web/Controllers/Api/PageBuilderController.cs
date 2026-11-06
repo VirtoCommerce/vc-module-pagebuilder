@@ -1438,7 +1438,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 var published = inGit ?? await ReadPublishedBlobAsync(storageProvider, path);
 
                 if (published != null && await storageProvider.GetBlobInfoAsync(path) != null &&
-                    !PageJson.AreSameDocuments(await ReadBlobTextAsync(storageProvider, path), published))
+                    !IsSamePageDocument(await ReadBlobTextAsync(storageProvider, path), published))
                 {
                     skipped.Add(new { path, reason = LegacyDraftHasChanges });
                 }
@@ -1646,8 +1646,38 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 // Compared against whatever currently serves the page — the repository when it has it,
                 // the published blob otherwise. Comparing against git alone called every blob-only
                 // page's draft "changed", which is no answer at all for the stores being cleaned up.
-                DiffersFromCurrent = !PageJson.AreSameDocuments(inBlob, inGit ?? published),
+                DiffersFromCurrent = !IsSamePageDocument(inBlob, inGit ?? published),
             };
+        }
+
+        /// <summary>
+        /// Whether two page documents say the same thing, whatever their formatting.
+        /// <para>
+        /// Compared as documents rather than as bytes, unlike publish status. Legacy drafts were written
+        /// with a four-space indent and CRLF line endings, so a byte comparison would report every single
+        /// one of them as changed and the flag would carry no information. The question being asked here
+        /// is only whether the draft still holds content the repository has not got.
+        /// </para>
+        /// <para>
+        /// A draft that will not parse counts as different: it cannot be shown to be safe to delete, and
+        /// "unknown" belongs on the cautious side of a decision that destroys the only copy.
+        /// </para>
+        /// </summary>
+        private static bool IsSamePageDocument(string left, string right)
+        {
+            if (left == null || right == null)
+            {
+                return left == null && right == null;
+            }
+
+            try
+            {
+                return JToken.DeepEquals(JToken.Parse(left), JToken.Parse(right));
+            }
+            catch (JsonReaderException)
+            {
+                return false;
+            }
         }
 
         /// <summary>
