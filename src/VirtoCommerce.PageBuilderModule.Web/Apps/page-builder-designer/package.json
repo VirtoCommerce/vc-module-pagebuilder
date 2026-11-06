@@ -47,7 +47,7 @@
         "tslib": "^2.8.1"
     },
     "devDependencies": {
-        "@angular-devkit/architect": "^0.2100.6",
+        "@angular-devkit/architect": "^0.2102.26",
         "@angular-devkit/build-angular": "^21.2.3",
         "@angular-devkit/core": "^21.2.3",
         "@angular-eslint/builder": "^21.3.1",
@@ -78,6 +78,9 @@
         "tailwindcss": "^3.4.19",
         "typescript": "~5.9.3",
         "vitest": "^4.1.1"
+    },
+    "resolutions": {
+        "**/@tailwindcss/typography/postcss-selector-parser": "^6.1.5"
     },
     "packageManager": "yarn@1.22.21+sha1.1959a18351b811cdeedbd484a8f86c3cc3bbaf72"
 }

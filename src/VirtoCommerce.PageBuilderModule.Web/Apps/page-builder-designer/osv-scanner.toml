@@ -1,0 +1,42 @@
+# osv-scanner exceptions for yarn.lock (osv-scanner reads this file only from the lockfile's directory).
+# Only findings without a non-breaking fix are listed here. Revisit when the upstream packages update.
+
+# ckeditor4 4.21.0: fixed versions (4.24.0-lts, 4.25.0) are commercial LTS releases that require a license key.
+# samples/ and plugins/codesnippetgeshi/ are excluded from the build output (angular.json), which removes the
+# sample pages and the GeSHi plugin these advisories target. The CDATA issue remains until a license decision.
+[[IgnoredVulns]]
+id = "GHSA-wh5w-82f3-wrxh"
+ignoreUntil = 2027-07-16
+reason = "ckeditor4 AJAX sample XSS: samples/ are excluded from the build output; fix only in commercial LTS."
+
+[[IgnoredVulns]]
+id = "GHSA-mw2c-vx6j-mg76"
+ignoreUntil = 2027-07-16
+reason = "ckeditor4 samples XSS: samples/ are excluded from the build output; fix only in commercial LTS."
+
+[[IgnoredVulns]]
+id = "GHSA-7r32-vfj5-c2jv"
+ignoreUntil = 2027-07-16
+reason = "ckeditor4 Code Snippet GeSHi plugin XSS: plugin not enabled and excluded from the build output; fix only in commercial LTS."
+
+[[IgnoredVulns]]
+id = "GHSA-fq6h-4g8v-qqvm"
+ignoreUntil = 2027-07-16
+reason = "ckeditor4 CDATA XSS: editor is used by authenticated admins only; fix only in commercial LTS (license decision pending)."
+
+# Dev server only: webpack-dev-server -> sockjs -> uuid ^8.3.2 (latest sockjs 0.3.24); fix only in uuid 11+.
+[[IgnoredVulns]]
+id = "GHSA-w5hq-g745-h8pq"
+ignoreUntil = 2027-07-16
+reason = "uuid 8.3.2: dev server only (sockjs), not in the build output; fix only in uuid 11+ (breaking for sockjs)."
+
+# Build tooling only; fixes exist only in new majors (glob 14, minimatch 11).
+[[IgnoredVulns]]
+id = "GHSA-3g3m-2fjr-6pw4"
+ignoreUntil = 2027-07-16
+reason = "glob 13: build tooling only (Angular CLI, pacote), not in the build output; fix only in glob 14."
+
+[[IgnoredVulns]]
+id = "GHSA-g3hv-75wg-m249"
+ignoreUntil = 2027-07-16
+reason = "minimatch 10: build tooling only, not in the build output; fix only in minimatch 11."
