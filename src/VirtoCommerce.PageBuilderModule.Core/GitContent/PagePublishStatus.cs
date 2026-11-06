@@ -1,7 +1,7 @@
 namespace VirtoCommerce.PageBuilderModule.Core.GitContent;
 
 /// <summary>Publish status of a page.</summary>
-public class GitPublishStatus
+public class PagePublishStatus
 {
     /// <summary>The page is on the base branch.</summary>
     public bool Published { get; set; }
@@ -19,7 +19,7 @@ public class GitPublishStatus
     public string Flow { get; set; }
 
     /// <summary>Status on the release branch; <c>null</c> without one.</summary>
-    public GitProductionStatus Production { get; set; }
+    public PageProductionStatus Production { get; set; }
 
     /// <summary>The live page differs from the base branch.</summary>
     public bool LiveBehind { get; set; }

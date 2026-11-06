@@ -952,7 +952,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [HttpGet]
         [Authorize(ModuleConstants.Security.Permissions.Read)]
         [Route("git/publish-status")]
-        public async Task<ActionResult<GitPublishStatus>> GitPublishStatus(string storeId, string path, string type)
+        public async Task<ActionResult<PagePublishStatus>> GitPublishStatus(string storeId, string path, string type)
         {
             if (await CheckRequestAsync(PageRequest(storeId, type, PathsOf(path))) is { } refused)
             {
@@ -1003,7 +1003,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         /// that makes an editor say the site did not update. Nothing before this could express it.
         /// </para>
         /// </summary>
-        private async Task<GitProductionStatus> ProductionStatusAsync(string repository, string repoPath, string onBase, string type, string path)
+        private async Task<PageProductionStatus> ProductionStatusAsync(string repository, string repoPath, string onBase, string type, string path)
         {
             var options = gitContentOptions.Value;
             if (string.IsNullOrWhiteSpace(options.ReleaseBranch))
@@ -1014,7 +1014,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             var onRelease = await gitContentRepository.ReadFileAsync(repository, repoPath, options.ReleaseBranch, HttpContext.RequestAborted);
             var pending = await gitContentPublisher.GetOpenPullRequestAsync(repository, PromoteBranch(type, path), HttpContext.RequestAborted);
 
-            return new GitProductionStatus
+            return new PageProductionStatus
             {
                 Published = onRelease != null,
                 // Behind only means something once the page is on the base branch at all: a page that has
@@ -1025,8 +1025,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             };
         }
 
-        private static GitPublishStatus PublishStatus(bool published, bool hasChanges, bool pending, bool gitFlow,
-            bool awaitingMerge = false, GitProductionStatus production = null, bool liveBehind = false) => new()
+        private static PagePublishStatus PublishStatus(bool published, bool hasChanges, bool pending, bool gitFlow,
+            bool awaitingMerge = false, PageProductionStatus production = null, bool liveBehind = false) => new()
         {
             Published = published,
             HasChanges = hasChanges,

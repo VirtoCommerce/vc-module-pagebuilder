@@ -1,7 +1,7 @@
 namespace VirtoCommerce.PageBuilderModule.Core.GitContent;
 
 /// <summary>Publish status of a page on the release branch.</summary>
-public class GitProductionStatus
+public class PageProductionStatus
 {
     public bool Published { get; set; }
 

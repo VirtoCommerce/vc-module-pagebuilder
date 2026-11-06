@@ -37,6 +37,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             ["git/restore-version"] = (c, store, type, path) => c.GitRestoreVersion(store, path, type, new string('a', 40)),
             ["git/preview"] = (c, store, type, path) => c.GitPreview(store, path, type),
             ["git/discard-draft"] = (c, store, type, path) => c.GitDiscardDraft(store, path, type),
+            ["discard-draft"] = (c, store, type, path) => c.DiscardDraft(store, path, type),
             ["git/copy"] = (c, store, type, path) => c.GitCopyPage(store, type, path, null),
             ["git/legacy-draft"] = (c, store, type, path) => c.GetLegacyDraft(store, type, path, null),
             ["git/legacy-drafts/delete"] = (c, store, type, path) =>
