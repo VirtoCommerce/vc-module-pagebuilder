@@ -48,6 +48,21 @@ public class ThemeController(
         }
     }
 
+    /// <summary>Get the current theme publication and the theme files with a draft</summary>
+    [HttpGet("theme/status")]
+    [Authorize(ModuleConstants.Security.Permissions.Read)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<ThemeStatus>> GetStatus([FromQuery] string storeId, CancellationToken cancellationToken = default)
+    {
+        if (await CheckRequestAsync(storeId, cancellationToken) is { } refused)
+        {
+            return refused;
+        }
+
+        return Ok(await themePublisher.GetStatusAsync(storeId, cancellationToken));
+    }
+
     /// <summary>Save storefront schema catalog</summary>
     [HttpPut("catalog")]
     [Authorize(ModuleConstants.Security.Permissions.Theme)]

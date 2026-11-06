@@ -12,6 +12,8 @@ public interface IThemeStorage
 
     string GetLivePath(string draftFile);
 
+    Task<bool> ExistsAsync(string file);
+
     /// <summary>Returns null when the file does not exist.</summary>
     Task<string> ReadAsync(string file);
 

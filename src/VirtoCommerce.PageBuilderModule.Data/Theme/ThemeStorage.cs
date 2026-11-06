@@ -41,15 +41,19 @@ public class ThemeStorage(IBlobContentStorageProvider provider, IPublishingServi
 
     public virtual string GetLivePath(string draftFile) => publishingService.GetRelativeDraftUrl(draftFile, false);
 
+    public virtual async Task<bool> ExistsAsync(string file)
+    {
+        return await provider.GetBlobInfoAsync(GetPath(file)) != null;
+    }
+
     public virtual async Task<string> ReadAsync(string file)
     {
-        var path = GetPath(file);
-        if (await provider.GetBlobInfoAsync(path) == null)
+        if (!await ExistsAsync(file))
         {
             return null;
         }
 
-        await using var stream = await provider.OpenReadAsync(path);
+        await using var stream = await provider.OpenReadAsync(GetPath(file));
         using var reader = new StreamReader(stream);
 
         return await reader.ReadToEndAsync();

@@ -90,6 +90,14 @@ public static class PageBuilderContentPaths
                pathInTheme.Equals(ThemeStorage.TemplateRulesFile, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>Gets the path after the theme folder: "templates/product.json" for "default/templates/product.json".</summary>
+    public static string GetPathInTheme(string path)
+    {
+        var relativePath = (path ?? string.Empty).TrimStart('/');
+
+        return relativePath[(relativePath.IndexOf('/') + 1)..];
+    }
+
     public static bool IsLegacyDraft(string path) => path.EndsWith(ModuleConstants.DraftSuffix, StringComparison.OrdinalIgnoreCase);
 
     public static bool IsSchemaKind(string kind) => ModuleConstants.SchemaKinds.All.Contains(kind);
@@ -98,11 +106,4 @@ public static class PageBuilderContentPaths
         keyword.IndexOfAny(KeywordSeparators) < 0 && !keyword.Any(char.IsControl);
 
     public static bool IsHistoryCursor(string cursor) => HistoryCursorPattern.IsMatch(cursor);
-
-    private static string GetPathInTheme(string path)
-    {
-        var relativePath = (path ?? string.Empty).TrimStart('/');
-
-        return relativePath[(relativePath.IndexOf('/') + 1)..];
-    }
 }

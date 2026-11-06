@@ -22,6 +22,7 @@ using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Core.Models;
+using VirtoCommerce.PageBuilderModule.Core.Theme;
 using VirtoCommerce.PageBuilderModule.Data.Authorization;
 using VirtoCommerce.PageBuilderModule.Data.Extensions;
 using VirtoCommerce.PageBuilderModule.Data.Theme;
@@ -58,7 +59,9 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             IAuthorizationService authorizationService,
             IDistributedLock distributedLock,
             IValidator<PageBuilderContentRequest> requestValidator,
-            IThemeFileHistoryService themeFileHistoryService
+            IThemeFileHistoryService themeFileHistoryService,
+            IThemePublisher themePublisher,
+            IThemeSnapshotService themeSnapshotService
             )
         : Controller
     {
@@ -566,7 +569,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [HttpPost]
         [Authorize(ModuleConstants.Security.Permissions.Update)]
         [Route("save")]
-        public async Task<ActionResult> SaveTemplates(string storeId, string theme, [FromBody] SaveFilesModel value, [FromQuery] bool draft = false)
+        public async Task<ActionResult> SaveTemplates(string storeId, string theme, [FromBody] SaveFilesModel value, [FromQuery] bool draft = false,
+            [FromQuery] string catalogHash = null)
         {
             var request = new PageBuilderContentRequest { StoreId = storeId, Theme = theme };
             if (await CheckStoreAccessAsync(request) is { } forbidden)
@@ -585,7 +589,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 return Forbid();
             }
 
-            if (await CheckThemeFileAccessAsync(files.Where(x => x?.Type == Themes).Select(x => x.Path)) is { } forbiddenFile)
+            var themeFiles = files.Where(IsThemeFile).ToList();
+            if (await CheckThemeFileAccessAsync(themeFiles.Select(x => x.Path)) is { } forbiddenFile)
             {
                 return forbiddenFile;
             }
@@ -594,6 +599,11 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             if (await ValidateAsync(request) is { } invalid)
             {
                 return invalid;
+            }
+
+            if (themeFiles.Count > 0 && await CheckThemeFilesAsync(storeId, themeFiles, draft, catalogHash) is { } refusedThemeFiles)
+            {
+                return refusedThemeFiles;
             }
 
             if (!gitFlow || !draft)
@@ -624,6 +634,38 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
             return null;
         }
+
+        // the new Page Builder publishes the theme as a whole, from drafts that fit the storefront previewed
+        private async Task<ActionResult> CheckThemeFilesAsync(string storeId, List<SaveFileModel> files, bool draft, string catalogHash)
+        {
+            if (!draft && await themeSnapshotService.IsNewPageBuilderEnabledAsync(storeId))
+            {
+                return BadRequest(new { error = "The store uses the new Page Builder: theme files are saved as drafts and published with theme/publish." });
+            }
+
+            if (string.IsNullOrEmpty(catalogHash))
+            {
+                return null;
+            }
+
+            var contents = new Dictionary<string, JToken>(StringComparer.OrdinalIgnoreCase);
+            foreach (var file in files)
+            {
+                contents[PageBuilderContentPaths.GetPathInTheme(file.Path)] = AsToken(file.Content);
+            }
+
+            try
+            {
+                await themePublisher.ValidateFilesAsync(storeId, catalogHash, contents, HttpContext.RequestAborted);
+                return null;
+            }
+            catch (ThemeValidationException ex)
+            {
+                return BadRequest(new { error = ex.Message, errors = ex.Errors });
+            }
+        }
+
+        private static bool IsThemeFile(SaveFileModel file) => string.Equals(file?.Type, Themes, StringComparison.OrdinalIgnoreCase);
 
         private static string GetThemeFileEditPermission(string path) =>
             PageBuilderContentPaths.IsTemplateFile(path) ? ModuleConstants.Security.Permissions.Templates : ModuleConstants.Security.Permissions.Theme;

@@ -25,7 +25,8 @@ store's `DefaultThemeName` property, `default` when it is empty. Paths below are
 | `snapshots/current.json` | the pointer to the current publication: `{ "publication": 12 }` |
 | `catalogs/{hash}.json`, `catalogs/current.json` | the storefront schema catalogs, by hash, and the latest one's hash |
 
-Every file except the snapshots has a draft next to it, `{file}-draft`. The designer and the agents write drafts only.
+Every file except the snapshots has a draft next to it, `{file}-draft`. The designer and the agents write drafts only:
+on a store with New Page Builder on, the builder's save refuses a live write of a theme file (`draft=false`) with 400.
 When `config/brand.json` does not exist yet, the designer starts the brand from `config/settings_data.json`:
 `logo_image`, `logo_inverted_image` and `favicon_image`.
 
@@ -364,10 +365,12 @@ The catalog is the storefront's section, block, template and palette schemas, th
 - The designer uploads the catalog of the storefront it previews when the server does not have that hash. Uploading
   takes `builder:theme`. The server keeps every catalog by its hash and never changes one; the latest upload is the
   store's current catalog, which agents read.
-- A save and a publication name the hash of the catalog the designer previewed. The server validates the drafts
-  against that catalog (every section and block type is one the storefront has) and records its hash in the
-  snapshot. A publication that names none is refused. The first publication, from the live files, names none and
-  checks the shape only; it finds the menus through the store's current catalog, when there is one.
+- A save and a publication name the hash of the catalog the designer previewed. The server validates the theme files
+  against that catalog with the same rules (every section and block type is one the storefront has, and a theme file
+  places no shared component) and answers 400 `{ error, errors }` when one does not fit or the hash is unknown.
+  A publication records the hash in the snapshot; one that names none is refused. A save that names none is not
+  checked (agents, the Angular designer). The first publication, from the live files, names none and checks the shape
+  only; it finds the menus through the store's current catalog, when there is one.
 - A schema is data: see [Schemas](preview-protocol.md#schemas).
 
 ## Endpoints
@@ -377,5 +380,7 @@ All take `storeId` and check the store as the other Page Builder endpoints do.
 | Method and route | Permission | Returns |
 |---|---|---|
 | `POST api/pagebuilder/theme/publish?storeId&catalogHash` | `builder:publish` | `{ publication }`; 400 `{ error, errors }` when it names no catalog or the theme does not fit it |
+| `GET api/pagebuilder/theme/status?storeId` | `builder:read` | `{ publication, drafts }`: the current publication, left out before the first, and the theme files with a draft by their path in the theme (`templates/product.json`, `config/template_rules.json`) |
+| `POST api/pagebuilder/save?storeId&theme&draft&catalogHash`, the files as the body | `builder:update`; `builder:templates` or `builder:theme` by theme file | 200; 400 `{ error, errors }` when a theme file does not fit the catalog it names; 400 `{ error }` for a live theme write on a New Page Builder store |
 | `PUT api/pagebuilder/catalog?storeId`, the catalog as the body | `builder:theme` | `{ hash }`; 400 when it has no valid `hash` |
 | `GET api/pagebuilder/catalog?storeId&hash` | `builder:read` | the catalog with that hash, the current one without it; 404 when there is none |

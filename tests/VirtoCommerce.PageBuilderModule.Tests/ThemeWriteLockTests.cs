@@ -117,7 +117,9 @@ public class ThemeWriteLockTests
             authorizationService: new FakeAuthorizationService(true),
             distributedLock: _lock,
             requestValidator: RequestValidators.Content("s1"),
-            themeFileHistoryService: new NoFileHistory()));
+            themeFileHistoryService: new NoFileHistory(),
+            themePublisher: null,
+            themeSnapshotService: null));
     }
 
     private ThemeFileHistoryController HistoryController(GitHubScript github)

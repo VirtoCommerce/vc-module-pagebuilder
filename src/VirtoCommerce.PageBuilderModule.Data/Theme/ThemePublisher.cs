@@ -30,6 +30,19 @@ public class ThemePublisher(
     IOptions<ThemeSnapshotOptions> options,
     ILogger<ThemePublisher> logger) : IThemePublisher
 {
+    private const string JsonExtension = ".json";
+
+    private static readonly Dictionary<string, Action<ThemeSource, JToken>> ThemeParts = new(StringComparer.OrdinalIgnoreCase)
+    {
+        [ThemeStorage.TemplateRulesFile] = (source, content) => source.Rules = content,
+        [ThemeStorage.HeaderGroupFile] = (source, content) => source.Header = content,
+        [ThemeStorage.FooterGroupFile] = (source, content) => source.Footer = content,
+        [ThemeStorage.BrandFile] = (source, content) => source.Brand = content,
+        [ThemeStorage.SettingsDataFile] = (source, content) => source.SettingsData = content,
+        [ThemeStorage.PaletteFile] = (source, content) => source.Palette = content,
+        [ThemeStorage.DarkPaletteFile] = (source, content) => source.PaletteDark = content,
+    };
+
     public virtual async Task<int> PublishAsync(string storeId, string catalogHash, ClaimsPrincipal user, CancellationToken cancellationToken = default)
     {
         var catalog = await GetCatalogAsync(storeId, catalogHash, cancellationToken);
@@ -63,6 +76,34 @@ public class ThemePublisher(
                 return result.Publication;
             },
             cancellationToken: cancellationToken);
+    }
+
+    public virtual async Task<ThemeStatus> GetStatusAsync(string storeId, CancellationToken cancellationToken = default)
+    {
+        var storage = await themeStorageFactory.OpenAsync(storeId);
+
+        var result = AbstractTypeFactory<ThemeStatus>.TryCreateInstance();
+        result.Publication = await storage.GetCurrentPublicationAsync();
+        result.Drafts = await GetDraftsAsync(storage);
+
+        return result;
+    }
+
+    public virtual async Task ValidateFilesAsync(string storeId, string catalogHash, IDictionary<string, JToken> files, CancellationToken cancellationToken = default)
+    {
+        var catalog = await GetCatalogAsync(storeId, catalogHash, cancellationToken);
+
+        var source = AbstractTypeFactory<ThemeSource>.TryCreateInstance();
+        foreach (var (file, content) in files)
+        {
+            AddThemeFile(source, file, content);
+        }
+
+        var errors = themeSnapshotBuilder.Validate(source, catalog);
+        if (errors.Count > 0)
+        {
+            throw new ThemeValidationException([.. errors]);
+        }
     }
 
     protected virtual async Task<ThemePublishResult> PublishUnderLockAsync(string storeId, JObject catalog, string catalogHash, bool includeDrafts)
@@ -119,23 +160,55 @@ public class ThemePublisher(
         var source = AbstractTypeFactory<ThemeSource>.TryCreateInstance();
         source.ThemeName = storage.ThemeName;
 
-        source.Rules = await ReadThemeFileAsync(storage, source, ThemeStorage.TemplateRulesFile, includeDrafts);
-        source.Header = await ReadThemeFileAsync(storage, source, ThemeStorage.HeaderGroupFile, includeDrafts);
-        source.Footer = await ReadThemeFileAsync(storage, source, ThemeStorage.FooterGroupFile, includeDrafts);
-        source.Brand = await ReadThemeFileAsync(storage, source, ThemeStorage.BrandFile, includeDrafts);
-        source.SettingsData = await ReadThemeFileAsync(storage, source, ThemeStorage.SettingsDataFile, includeDrafts);
-        source.Palette = await ReadThemeFileAsync(storage, source, ThemeStorage.PaletteFile, includeDrafts);
-        source.PaletteDark = await ReadThemeFileAsync(storage, source, ThemeStorage.DarkPaletteFile, includeDrafts);
-
-        foreach (var key in await GetTemplateKeysAsync(storage))
+        foreach (var file in await GetThemeFilesAsync(storage))
         {
-            if (await ReadThemeFileAsync(storage, source, $"{ThemeStorage.TemplatesFolder}/{key}.json", includeDrafts) is { } document)
-            {
-                source.Templates[key] = document;
-            }
+            AddThemeFile(source, file, await ReadThemeFileAsync(storage, source, file, includeDrafts));
         }
 
         return source;
+    }
+
+    /// <summary>Gets the files a publication reads: the theme's own files and every template.</summary>
+    protected virtual async Task<IList<string>> GetThemeFilesAsync(IThemeStorage storage)
+    {
+        var templateKeys = await GetTemplateKeysAsync(storage);
+
+        return ThemeParts.Keys.Concat(templateKeys.Select(x => $"{ThemeStorage.TemplatesFolder}/{x}{JsonExtension}")).ToList();
+    }
+
+    /// <summary>Puts a file into the source by its path in the theme; a file that is no part of the theme is left out.</summary>
+    protected virtual void AddThemeFile(ThemeSource source, string file, JToken content)
+    {
+        if (ThemeParts.TryGetValue(file, out var setPart))
+        {
+            setPart(source, content);
+        }
+        else if (content != null && GetTemplateKey(file) is { } key)
+        {
+            source.Templates[key] = content;
+        }
+    }
+
+    /// <summary>Gets the template key of a file in the templates folder; null for any other file.</summary>
+    protected virtual string GetTemplateKey(string file)
+    {
+        var folder = ThemeStorage.TemplatesFolder + "/";
+
+        return file.StartsWith(folder, StringComparison.OrdinalIgnoreCase) ? themeSnapshotBuilder.GetTemplateKey(file[folder.Length..]) : null;
+    }
+
+    protected virtual async Task<IList<string>> GetDraftsAsync(IThemeStorage storage)
+    {
+        var drafts = new List<string>();
+        foreach (var file in await GetThemeFilesAsync(storage))
+        {
+            if (await storage.ExistsAsync(storage.GetDraftPath(file)))
+            {
+                drafts.Add(file);
+            }
+        }
+
+        return drafts;
     }
 
     /// <summary>Reads the draft when there is one, otherwise the live file.</summary>

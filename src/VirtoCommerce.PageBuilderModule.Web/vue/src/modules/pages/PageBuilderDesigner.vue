@@ -506,7 +506,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, inject, onBeforeUnmount, onMounted, provide, ref, watch, watchEffect } from "vue";
+import { computed, h, inject, onBeforeUnmount, onMounted, provide, ref, watch, watchEffect } from "vue";
 import { useEventListener, useLocalStorage, useMediaQuery } from "@vueuse/core";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
@@ -520,6 +520,7 @@ import {
   useBeforeUnload,
   useBlade,
   useBladeStack,
+  usePermissions,
   usePopup,
   useResponsive,
   type BladeDescriptor,
@@ -573,7 +574,8 @@ import { searchCategories, searchPages, searchProducts, templateKeys, findFilePa
 import { PAGE_CONTENT, alternateKey, alternateName, entityUrl, pageTypeOf, startingTemplate, templateEntry, templatePath, type PageType } from "../designer/templates";
 import { rulesFor } from "../designer/rules";
 import { useTemplateRules } from "../designer/templateRules";
-import { historyFiles, historyPath as themeFileOf, savesHistory, type HistoryFile } from "../designer/history";
+import { historyFiles, historyPath as themeFileOf, rulesPath, savesHistory, type HistoryFile } from "../designer/history";
+import { hasThemeDraft, publishActions, themeErrors, themePublishButton } from "../designer/themePublication";
 import type { Field, Item, SectionGroup, Selection } from "../designer/types";
 import TemplateSwitcher from "../designer/components/TemplateSwitcher.vue";
 import EntityPicker from "../designer/components/EntityPicker.vue";
@@ -583,7 +585,7 @@ import SettingsPanel from "../designer/components/SettingsPanel.vue";
 import ThemePanel from "../designer/components/ThemePanel.vue";
 import SharedPanel from "../designer/components/SharedPanel.vue";
 import { useSharedComponentDesigner } from "../page-builder/composables/usePageDesigner";
-import { useThemeSettings } from "../designer/themeSettings";
+import { settingsDataPath, useThemeSettings } from "../designer/themeSettings";
 
 // The page designer, a native blade in the spirit of Shopify's theme editor: the page's sections on the left, the
 // storefront's own preview in the middle, the selected item's settings on the right. It opens a database page
@@ -608,11 +610,15 @@ const modes = [
 const mode = ref<(typeof modes)[number]["id"]>("sections");
 // a shared component can't hold another one
 const shownModes = computed(() => (designer.shared.value ? modes.filter((m) => m.id !== "shared") : modes));
-// the store's template rules, edited while a template is open: saved with Save, put live with the template's Publish
+// the store's template rules, edited while a template is open: saved with Save, put live with the theme
 const rules = useTemplateRules();
 const rulesActive = computed(() => !!designer.templateKey.value && rules.loaded.value);
 /** unsaved page, theme or rules edits */
 const unsaved = computed(() => designer.dirty.value || theme.dirty.value || rules.dirty.value);
+/** a theme file has a saved draft the theme's next publication puts live */
+const themeDraft = (path: (theme: string) => string) => !!themeName.value && hasThemeDraft(designer.themeStatus.value, themeName.value, path(themeName.value));
+const rulesDraft = computed(() => themeDraft(rulesPath));
+const settingsDraft = computed(() => themeDraft(settingsDataPath));
 
 const maximized = inject(BladeMaximizedKey, null);
 if (maximized) maximized.value = true;
@@ -675,7 +681,7 @@ const statusKind = computed<StatusKind>(() => {
   // git: a merge done on GitHub left the live page as it was
   if (status.liveBehind) return "behind";
   if (!status.published) return "draft";
-  return status.hasChanges || (rulesActive.value && rules.hasDraft.value) ? "changes" : "published";
+  return status.hasChanges ? "changes" : "published";
 });
 const subtitle = computed(() => {
   const shared = designer.shared.value;
@@ -769,8 +775,8 @@ const bridge = usePreviewBridge({
       draft: versionView?.draft ?? draft(),
       render: versionView?.render ?? render({ scroll: true }),
     }),
-    // a reloaded preview keeps showing theme edits not saved yet
-    ...(theme.dirty.value ? [settingsMessage()] : []),
+    // a reloaded preview keeps showing the theme settings edited or saved, not published yet
+    ...(theme.dirty.value || settingsDraft.value ? [settingsMessage()] : []),
   ],
   // a click on a section, a block or a shared-component placement in the preview selects it; hovering lights its row
   onSelect: (event) => {
@@ -890,7 +896,7 @@ const settingsMessage = (): DesignerMessage => ({ type: "settings", settings: th
 // theme edits apply live (colours become CSS variables in the storefront); untouched, the preview keeps the site's own look
 watch(
   () => theme.settings.value,
-  () => theme.dirty.value && bridge.send(settingsMessage()),
+  () => (theme.dirty.value || settingsDraft.value) && bridge.send(settingsMessage()),
 );
 
 // the Add section list: the hovered type shows at the end of the page until the pointer leaves
@@ -925,19 +931,39 @@ provide(PickAssetKey, () => {
 // ── actions ──────────────────────────────────────────────────────────────────
 
 /** Saves what changed (the theme settings, the rules, the page or template, the header and footer): one version */
-const save = () => asOneSave(saveChanges);
+const save = () =>
+  asOneSave(async () => {
+    try {
+      await saveChanges();
+    } finally {
+      // what the theme's next publication puts live, whichever of its files were saved
+      await designer.refreshThemeStatus();
+    }
+  });
+
+// the toast is rendered by the shell, outside this blade's scoped styles
+const ERROR_LIST_STYLE = { margin: "4px 0 0", paddingLeft: "18px", listStyle: "disc" };
+
+/** An error toast; a theme file the server refused lists why (what doesn't fit the storefront's catalog), until closed */
+function notifyFailure(title: string, e: unknown) {
+  const errors = e instanceof ApiError ? themeErrors(e.status, e.body) : [];
+  if (!errors.length) notification.error(title);
+  else notification.error(h("div", [h("p", title), h("ul", { style: ERROR_LIST_STYLE }, errors.map((x) => h("li", x)))]), { timeout: false });
+}
 
 async function saveChanges() {
+  // theme files name the catalog of the storefront previewed: the server checks them against it
+  const catalogHash = designer.handshake.value?.hash;
   try {
-    if (theme.dirty.value) await theme.save();
-  } catch {
-    notification.error(t("PAGE_BUILDER.DESIGNER.THEME.SAVE_FAILED"));
+    if (theme.dirty.value) await theme.save(catalogHash);
+  } catch (e) {
+    notifyFailure(t("PAGE_BUILDER.DESIGNER.THEME.SAVE_FAILED"), e);
     return;
   }
   try {
-    if (rules.dirty.value) await rules.save();
-  } catch {
-    notification.error(t("PAGE_BUILDER.DESIGNER.RULES.SAVE_FAILED"));
+    if (rules.dirty.value) await rules.save(catalogHash);
+  } catch (e) {
+    notifyFailure(t("PAGE_BUILDER.DESIGNER.RULES.SAVE_FAILED"), e);
     return;
   }
   if (!designer.dirty.value) return;
@@ -946,14 +972,23 @@ async function saveChanges() {
     notifyPagesChanged();
   } catch (e) {
     const messages: Record<number, string> = { 412: "PAGE_BUILDER.DESIGNER.CONFLICT", 428: "PAGE_BUILDER.DESIGNER.NO_VERSION" };
-    notification.error(t(messages[e instanceof ApiError ? e.status : 0] ?? "PAGE_BUILDER.DESIGNER.SAVE_FAILED"));
+    notifyFailure(t(messages[e instanceof ApiError ? e.status : 0] ?? "PAGE_BUILDER.DESIGNER.SAVE_FAILED"), e);
+  }
+}
+
+/** Puts every saved theme draft live at once: the storefront then reads the new publication */
+async function publishTheme() {
+  try {
+    const publication = await designer.publishTheme();
+    if (publication !== undefined) notification.success(t("PAGE_BUILDER.DESIGNER.THEME_PUBLISHED", { publication }));
+  } catch (e) {
+    notifyFailure(t("PAGE_BUILDER.DESIGNER.PUBLISH_THEME_FAILED"), e);
   }
 }
 
 async function publish(live: boolean, rebase = false) {
   try {
     await designer.publish(live, rebase);
-    if (live && rulesActive.value) await rules.publish();
     notifyPagesChanged();
   } catch (e) {
     // git: someone published another version meanwhile; publishing ours over it is the editor's call
@@ -1250,7 +1285,7 @@ async function restoreVersion(version: PageVersion) {
       if (files.some((x) => x.file === "rules")) await rules.load(storeId, themeName.value!);
       // the page or template, the header or footer: the designer opens them again from their new drafts
       if (files.some((x) => x.file !== "rules")) await reopen();
-      else await versionHistory.value?.reload();
+      else await Promise.all([versionHistory.value?.reload(), designer.refreshThemeStatus()]);
     }
     notification.success(t("PAGE_BUILDER.DESIGNER.HISTORY.RESTORED"));
   } catch {
@@ -1261,10 +1296,7 @@ async function restoreVersion(version: PageVersion) {
 // saved drafts to throw away, those with a published version to go back to (one never published is the only copy);
 // else only the unsaved edits go, back to the last save
 const hasDraft = computed(
-  () =>
-    designer.discardable.value.page ||
-    designer.discardable.value.groups.length > 0 ||
-    (rulesActive.value && rules.discardable.value),
+  () => designer.discardable.value.page || designer.discardable.value.groups.length > 0 || (rulesActive.value && rulesDraft.value),
 );
 
 async function discardChanges() {
@@ -1274,7 +1306,7 @@ async function discardChanges() {
   try {
     await asOneSave(async () => {
       if (drafts) await designer.discardDrafts();
-      if (rulesActive.value) await rules.discard();
+      if (rulesActive.value) await rules.discard(rulesDraft.value);
     });
   } catch {
     failed = true;
@@ -1285,6 +1317,15 @@ async function discardChanges() {
   if (failed) notification.error(t("PAGE_BUILDER.DESIGNER.HISTORY.DISCARD_FAILED"));
   else if (drafts) notification.success(t("PAGE_BUILDER.DESIGNER.HISTORY.DISCARDED"));
 }
+
+// a template has no Publish of its own: it goes live with the theme, by Publish theme (users with builder:publish)
+const { hasAccess } = usePermissions();
+const publishShown = computed(() =>
+  publishActions({ template: designer.themeFileOpen.value, shared: !!designer.shared.value, mayPublishTheme: hasAccess("builder:publish") }),
+);
+const themePublish = computed(() =>
+  themePublishButton({ status: designer.themeStatus.value, unsaved: unsaved.value, busy: !!designer.busy.value }),
+);
 
 const publishTitle = computed(() => {
   const status = designer.status.value;
@@ -1347,16 +1388,24 @@ const toolbar = computed<IBladeToolbar[]>(() => [
     id: "publish",
     title: t(publishTitle.value),
     icon: "lucide-upload",
-    isVisible: !designer.shared.value,
-    // the template's draft, or only the rules' (they go live with it)
-    disabled: !designer.canPublish.value && !(rulesActive.value && rules.hasDraft.value && !unsaved.value && !designer.busy.value),
+    isVisible: publishShown.value.page,
+    disabled: !designer.canPublish.value,
     clickHandler: () => publish(true),
+  },
+  {
+    // every saved theme draft at once: the header and footer, the rules, the templates, the theme settings
+    id: "publish-theme",
+    title: t(themePublish.value.label.key, { count: themePublish.value.label.count }),
+    icon: "lucide-palette",
+    isVisible: publishShown.value.theme,
+    disabled: themePublish.value.disabled,
+    clickHandler: publishTheme,
   },
   {
     id: "unpublish",
     title: t("PAGE_BUILDER.DESIGNER.UNPUBLISH"),
     icon: "lucide-cloud-off",
-    isVisible: !!designer.status.value.published || !!designer.status.value.liveBehind,
+    isVisible: publishShown.value.page && (!!designer.status.value.published || !!designer.status.value.liveBehind),
     disabled: !designer.canUnpublish.value,
     clickHandler: () => publish(false),
   },
@@ -1417,16 +1466,16 @@ const toolbar = computed<IBladeToolbar[]>(() => [
   },
 ]);
 
-// full view's bar (and the narrow shell's): the toolbar's actions, small; Publish and Save with their names, the others
+// full view's bar (and the narrow shell's): the toolbar's actions, small; Save and the Publishes with their names, the others
 // as icons. Full view has its own way out, so its toggle shows only outside it.
 const barActions = computed(() =>
   toolbar.value
     .filter((item) => item.isVisible !== false && (item.id !== "full-view" || !fullView.value))
     .map((item) => {
-      const named = item.id === "publish" || item.id === "save";
+      const named = item.id === "publish" || item.id === "publish-theme" || item.id === "save";
       let variant: "primary" | "secondary" | "ghost" = "ghost";
       if (item.id === "save") variant = "primary";
-      else if (item.id === "publish") variant = "secondary";
+      else if (item.id === "publish" || item.id === "publish-theme") variant = "secondary";
       return { ...item, variant, label: named ? item.title : undefined };
     }),
 );
@@ -1613,9 +1662,9 @@ async function createTemplate() {
   try {
     const base = await findFilePage(file(target.type));
     const doc = startingTemplate(target.type, base, templateEntry(designer.schemas.value, target.type).entry);
-    await saveFilePage(file(key), { ...doc, settings: { ...doc.settings, name: target.name.trim() } });
-  } catch {
-    notification.error(t("PAGE_BUILDER.DESIGNER.TEMPLATES.CREATE_FAILED"));
+    await saveFilePage(file(key), { ...doc, settings: { ...doc.settings, name: target.name.trim() } }, designer.handshake.value?.hash);
+  } catch (e) {
+    notifyFailure(t("PAGE_BUILDER.DESIGNER.TEMPLATES.CREATE_FAILED"), e);
     return;
   }
   creating.value = undefined;

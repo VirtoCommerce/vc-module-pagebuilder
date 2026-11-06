@@ -1,12 +1,17 @@
 using System;
+using System.Linq;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
+using VirtoCommerce.PageBuilderModule.Core.Theme;
+using VirtoCommerce.PageBuilderModule.Data.Theme;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using VirtoCommerce.Platform.Core.Events;
 using Xunit;
@@ -18,8 +23,20 @@ public class PageBuilderControllerThemeFilesTests
 {
     private const string Path = "default/sections/header-group.json";
 
+    private const string Catalog = "abc12345";
+
     private readonly FakeBlobStorage _live = new();
     private readonly FakeGitContentOwnership _ownership = new("another-store");
+    private readonly FakeSettingsManager _settings = new();
+    private readonly InProcessDistributedLock _lock = new();
+    private readonly ThemeStorageFactory _themeStorageFactory;
+
+    public PageBuilderControllerThemeFilesTests()
+    {
+        _themeStorageFactory = new ThemeStorageFactory(_live.StoreService, _live, _live, _live);
+    }
+
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
     public async Task SaveTemplates_ThemeFileOfGitStore_DoesNotCallGitHub()
@@ -94,19 +111,163 @@ public class PageBuilderControllerThemeFilesTests
         Assert.True(_live.Files.ContainsKey($"{Path}-draft"));
     }
 
+    [Fact]
+    public async Task SaveTemplates_ThemeFileWithTypeTheCatalogLacks_ReturnsBadRequestWithErrorsAndWritesNothing()
+    {
+        await SaveCatalogAsync();
+
+        var result = await Builder().SaveTemplates("s1", "default", HeaderGroup("site-header", "carousel"), draft: true, catalogHash: Catalog);
+
+        var body = PlatformJson.ParseBody(Assert.IsType<BadRequestObjectResult>(result));
+        Assert.Contains("'carousel'", (string)body["errors"]!.Single());
+        Assert.Contains("'carousel'", (string)body["error"]);
+        Assert.False(_live.Files.ContainsKey($"{Path}-draft"));
+    }
+
+    [Fact]
+    public async Task SaveTemplates_UnknownCatalogHash_ReturnsBadRequestAndWritesNothing()
+    {
+        await SaveCatalogAsync();
+
+        var result = await Builder().SaveTemplates("s1", "default", HeaderGroup("site-header"), draft: true, catalogHash: "missing123");
+
+        var body = PlatformJson.ParseBody(Assert.IsType<BadRequestObjectResult>(result));
+        Assert.Contains("missing123", (string)body["errors"]!.Single());
+        Assert.False(_live.Files.ContainsKey($"{Path}-draft"));
+    }
+
+    [Fact]
+    public async Task SaveTemplates_ThemeFilesFitCatalog_SavesDrafts()
+    {
+        await SaveCatalogAsync();
+        var files = new PageBuilderController.SaveFilesModel
+        {
+            Files = JsonConvert.SerializeObject(new object[]
+            {
+                new { path = Path, type = "themes", content = Group("site-header") },
+                new { path = "default/templates/product.json", type = "themes", content = Group("product-info") },
+                new { path = "default/config/template_rules.json", type = "themes", content = new { version = 1 } },
+            }),
+        };
+
+        Assert.IsType<OkObjectResult>(await Builder().SaveTemplates("s1", "default", files, draft: true, catalogHash: Catalog));
+
+        Assert.True(_live.Files.ContainsKey($"{Path}-draft"));
+        Assert.True(_live.Files.ContainsKey("default/templates/product.json-draft"));
+        Assert.True(_live.Files.ContainsKey("default/config/template_rules.json-draft"));
+    }
+
+    [Fact]
+    public async Task SaveTemplates_TemplatePlacingSharedComponent_ReturnsBadRequest()
+    {
+        await SaveCatalogAsync();
+        var files = new PageBuilderController.SaveFilesModel
+        {
+            Files = JsonConvert.SerializeObject(new[]
+            {
+                new { path = "default/templates/product.json", type = "themes", content = Group("product-info", ModuleConstants.SharedComponents.ReferenceType) },
+            }),
+        };
+
+        var result = await Builder().SaveTemplates("s1", "default", files, draft: true, catalogHash: Catalog);
+
+        Assert.Contains("shared component", (string)PlatformJson.ParseBody(Assert.IsType<BadRequestObjectResult>(result))["errors"]!.Single());
+    }
+
+    [Fact]
+    public async Task SaveTemplates_NoCatalogHash_DoesNotCheckTheFiles()
+    {
+        Assert.IsType<OkObjectResult>(await Builder().SaveTemplates("s1", "default", HeaderGroup("carousel"), draft: true));
+
+        Assert.True(_live.Files.ContainsKey($"{Path}-draft"));
+    }
+
+    [Fact]
+    public async Task SaveTemplates_LiveThemeFileOnNewPageBuilderStore_ReturnsBadRequestAndWritesNothing()
+    {
+        _settings.Values[ModuleConstants.Settings.StoreLevelSettings.NewPageBuilder.Name] = true;
+
+        var result = await Builder().SaveTemplates("s1", "default", HeaderGroup("site-header"), draft: false);
+
+        Assert.Contains("theme/publish", (string)PlatformJson.ParseBody(Assert.IsType<BadRequestObjectResult>(result))["error"]);
+        Assert.Empty(_live.Files);
+    }
+
+    [Fact]
+    public async Task SaveTemplates_DraftThemeFileOnNewPageBuilderStore_SavesDraft()
+    {
+        _settings.Values[ModuleConstants.Settings.StoreLevelSettings.NewPageBuilder.Name] = true;
+
+        Assert.IsType<OkObjectResult>(await Builder().SaveTemplates("s1", "default", HeaderGroup("site-header"), draft: true));
+
+        Assert.True(_live.Files.ContainsKey($"{Path}-draft"));
+        Assert.False(_live.Files.ContainsKey(Path));
+    }
+
+    [Fact]
+    public async Task SaveTemplates_LiveThemeFileOnOtherStore_WritesLiveFile()
+    {
+        _settings.Values[ModuleConstants.Settings.StoreLevelSettings.NewPageBuilder.Name] = false;
+
+        Assert.IsType<OkResult>(await Builder().SaveTemplates("s1", "default", HeaderGroup("site-header"), draft: false));
+
+        Assert.True(_live.Files.ContainsKey(Path));
+    }
+
+    [Fact]
+    public async Task SaveTemplates_LivePageOnNewPageBuilderStore_WritesLivePage()
+    {
+        _settings.Values[ModuleConstants.Settings.StoreLevelSettings.NewPageBuilder.Name] = true;
+        var page = new PageBuilderController.SaveFilesModel
+        {
+            Files = JsonConvert.SerializeObject(new[] { new { path = "home.page", type = "pages", content = Group("text") } }),
+        };
+
+        Assert.IsType<OkResult>(await Builder().SaveTemplates("s1", "default", page, draft: false));
+
+        Assert.True(_live.Files.ContainsKey("home.page"));
+    }
+
+    [Fact]
+    public async Task SaveTemplates_ThemeTypeInOtherCase_ChecksThemePermission()
+    {
+        var files = new PageBuilderController.SaveFilesModel
+        {
+            Files = JsonConvert.SerializeObject(new[] { new { path = Path, type = "Themes", content = Group("site-header") } }),
+        };
+
+        var result = await Builder(new FakeAuthorizationService("s1", Permissions.Update, Permissions.Templates)).SaveTemplates("s1", "default", files, draft: true);
+
+        Assert.IsType<ForbidResult>(result);
+        Assert.Empty(_live.Files);
+    }
+
+    private Task<string> SaveCatalogAsync() =>
+        new SchemaCatalogService(_themeStorageFactory).SaveAsync("s1",
+            $$"""{ "hash": "{{Catalog}}", "sections": { "site-header": {}, "product-info": {}, "text": {} }, "blocks": {}, "shared": {} }""", Ct);
+
+    private static object Group(params string[] types) => new
+    {
+        settings = new { type = "settings" },
+        content = types.Select((type, i) => new { id = $"s{i}", type }).ToArray(),
+    };
+
+    private static PageBuilderController.SaveFilesModel HeaderGroup(params string[] types) => new()
+    {
+        Files = JsonConvert.SerializeObject(new[] { new { path = Path, type = "themes", content = Group(types) } }),
+    };
+
     private static PageBuilderController.SaveFilesModel ThemeFile(string path) => new()
     {
         Files = JsonConvert.SerializeObject(new[] { new { path, type = "themes", content = new { content = Array.Empty<object>() } } }),
     };
 
-    private static PageBuilderController.SaveFilesModel HeaderGroup() => new()
-    {
-        Files = JsonConvert.SerializeObject(new[] { new { path = Path, type = "themes", content = new { content = Array.Empty<object>() } } }),
-    };
 
     private PageBuilderController Builder(FakeAuthorizationService authorization = null, IEventPublisher eventPublisher = null)
     {
         var options = Options.Create(new GitContentOptions { Enabled = true, Organization = "acme", Token = "t0ken", BaseBranch = "main" });
+        var themePublisher = new ThemePublisher(_themeStorageFactory, new ThemeSnapshotBuilder(), _live.StoreService, new SchemaCatalogService(_themeStorageFactory),
+            _lock, _live, new NoFileHistory(), Options.Create(new ThemeSnapshotOptions()), NullLogger<ThemePublisher>.Instance);
         var controller = new PageBuilderController(
             storeService: _live.StoreService,
             pathResolver: _live,
@@ -123,9 +284,12 @@ public class PageBuilderControllerThemeFilesTests
             gitLivePageService: null,
             settingsManager: null,
             authorizationService: authorization ?? new FakeAuthorizationService(true),
-            distributedLock: new InProcessDistributedLock(),
+            distributedLock: _lock,
             requestValidator: RequestValidators.Content("s1"),
-            themeFileHistoryService: new NoFileHistory());
+            themeFileHistoryService: new NoFileHistory(),
+            themePublisher: themePublisher,
+            themeSnapshotService: new ThemeSnapshotService(_live.StoreService, _settings, _themeStorageFactory, themePublisher, null,
+                Options.Create(new ThemeSnapshotOptions())));
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Name, "alice")], "test")) },

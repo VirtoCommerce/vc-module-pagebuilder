@@ -120,7 +120,9 @@ public class BlobPublishTests
             authorizationService: new FakeAuthorizationService(allowed),
             distributedLock: new InProcessDistributedLock(),
             requestValidator: new PageBuilderContentRequestValidator(new PageBuilderStoreRequestValidator(new FakeStoreService(new Store { Id = "vccom" })), new PageBuilderContentFileValidator()),
-            themeFileHistoryService: new NoFileHistory());
+            themeFileHistoryService: new NoFileHistory(),
+            themePublisher: null,
+            themeSnapshotService: null);
 
         controller.ControllerContext = new ControllerContext
         {

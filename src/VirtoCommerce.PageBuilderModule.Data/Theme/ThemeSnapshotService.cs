@@ -48,6 +48,14 @@ public class ThemeSnapshotService(
         });
     }
 
+    public virtual async Task<bool> IsNewPageBuilderEnabledAsync(string storeId)
+    {
+        var descriptor = ModuleConstants.Settings.StoreLevelSettings.NewPageBuilder;
+        var settings = await settingsManager.GetObjectSettingsAsync([descriptor.Name], ModuleConstants.Settings.StoreSettingsObjectType, storeId);
+
+        return settings.GetValue<bool>(descriptor);
+    }
+
     protected virtual string ResolveLanguage(IList<string> languages, string defaultLanguage, string cultureName)
     {
         if (string.IsNullOrWhiteSpace(cultureName))
@@ -146,13 +154,5 @@ public class ThemeSnapshotService(
         {
             return [];
         }
-    }
-
-    protected virtual async Task<bool> IsNewPageBuilderEnabledAsync(string storeId)
-    {
-        var descriptor = ModuleConstants.Settings.StoreLevelSettings.NewPageBuilder;
-        var settings = await settingsManager.GetObjectSettingsAsync([descriptor.Name], ModuleConstants.Settings.StoreSettingsObjectType, storeId);
-
-        return settings.GetValue<bool>(descriptor);
     }
 }

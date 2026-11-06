@@ -41,6 +41,7 @@ public class EndpointPermissionsTests
         [(typeof(GroupedPageHistoryController), nameof(GroupedPageHistoryController.Restore))] = Permissions.Update,
         [(typeof(GroupedPageHistoryController), nameof(GroupedPageHistoryController.Discard))] = Permissions.Update,
         [(typeof(ThemeController), nameof(ThemeController.Publish))] = Permissions.Publish,
+        [(typeof(ThemeController), nameof(ThemeController.GetStatus))] = Permissions.Read,
         [(typeof(ThemeController), nameof(ThemeController.SaveCatalog))] = Permissions.Theme,
         [(typeof(ThemeController), nameof(ThemeController.GetCatalog))] = Permissions.Read,
         [(typeof(ThemeFileHistoryController), nameof(ThemeFileHistoryController.GetHistory))] = Permissions.Read,

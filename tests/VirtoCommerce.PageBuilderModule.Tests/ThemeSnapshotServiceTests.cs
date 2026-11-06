@@ -125,6 +125,71 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task GetStatusAsync_BeforeFirstPublication_ListsDraftsWithoutPublication()
+    {
+        _storage.Files[Product] = Template("product-info");
+        _storage.Files["default/templates/product.b2c.json-draft"] = Template("product-info");
+        _storage.Files["default/sections/header-group.json-draft"] = """{ "content": [] }""";
+        _storage.Files["default/config/settings_data.json"] = "{}";
+
+        var status = await _publisher.GetStatusAsync("s1", Ct);
+
+        Assert.Null(status.Publication);
+        Assert.Equal(["sections/header-group.json", "templates/product.b2c.json"], status.Drafts.Order());
+    }
+
+    [Fact]
+    public async Task GetStatusAsync_AfterPublication_ReturnsPublicationAndNoDrafts()
+    {
+        _storage.Files[Product + "-draft"] = Template("product-info");
+        _storage.Files["default/config/template_rules.json-draft"] = """{ "version": 1 }""";
+        var catalog = await SaveCatalogAsync("product-info");
+        Assert.Equal(["config/template_rules.json", "templates/product.json"], (await _publisher.GetStatusAsync("s1", Ct)).Drafts.Order());
+
+        var publication = await _publisher.PublishAsync("s1", catalog, null, Ct);
+
+        var status = await _publisher.GetStatusAsync("s1", Ct);
+        Assert.Equal(publication, status.Publication);
+        Assert.Empty(status.Drafts);
+    }
+
+    [Fact]
+    public async Task ValidateFilesAsync_FilesOfTypesCatalogHas_Passes()
+    {
+        var catalog = await SaveCatalogAsync("product-info", "site-header");
+
+        await _publisher.ValidateFilesAsync("s1", catalog, new Dictionary<string, JToken>
+        {
+            ["templates/product.json"] = JToken.Parse(Template("product-info")),
+            ["sections/header-group.json"] = JToken.Parse(Template("site-header")),
+            ["config/settings_data.json"] = new JObject { ["current"] = new JObject() },
+        }, Ct);
+    }
+
+    [Theory]
+    [InlineData("templates/product.json")]
+    [InlineData("sections/header-group.json")]
+    [InlineData("sections/footer-group.json")]
+    public async Task ValidateFilesAsync_TypeCatalogLacks_ThrowsWithFileAndType(string file)
+    {
+        var catalog = await SaveCatalogAsync("product-info");
+
+        var failure = await Assert.ThrowsAsync<ThemeValidationException>(() =>
+            _publisher.ValidateFilesAsync("s1", catalog, new Dictionary<string, JToken> { [file] = JToken.Parse(Template("product-info", "carousel")) }, Ct));
+
+        Assert.Contains("'carousel'", failure.Errors.Single());
+    }
+
+    [Fact]
+    public async Task ValidateFilesAsync_UnknownCatalogHash_Throws()
+    {
+        var failure = await Assert.ThrowsAsync<ThemeValidationException>(() =>
+            _publisher.ValidateFilesAsync("s1", "missing123", new Dictionary<string, JToken> { ["templates/product.json"] = JToken.Parse(Template("product-info")) }, Ct));
+
+        Assert.Contains("missing123", failure.Errors.Single());
+    }
+
+    [Fact]
     public async Task PublishAsync_CatalogRefusesDraft_WritesNothing()
     {
         await _catalogs.SaveAsync("s1", """{ "hash": "abc12345", "sections": { "product-info": {} }, "blocks": {}, "shared": {} }""", Ct);

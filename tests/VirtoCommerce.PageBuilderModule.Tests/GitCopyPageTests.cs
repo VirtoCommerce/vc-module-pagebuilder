@@ -196,7 +196,9 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 authorizationService: new FakeAuthorizationService(allowed),
                 distributedLock: new InProcessDistributedLock(),
                 requestValidator: RequestValidators.Content("s1", "vccom"),
-                themeFileHistoryService: new NoFileHistory());
+                themeFileHistoryService: new NoFileHistory(),
+                themePublisher: null,
+                themeSnapshotService: null);
 
             var identity = new ClaimsIdentity([new Claim(ClaimTypes.Name, Login)], "test");
             controller.ControllerContext = new ControllerContext

@@ -2,6 +2,8 @@ import { computed, ref } from "vue";
 import type { Field } from "./types";
 import { getAuthHeaders } from "../page-builder/composables/usePageContentApi";
 import { clone, valuesOf } from "./schema";
+import { saveUrl } from "./themePublication";
+import { ApiError } from "./api";
 
 /**
  * The theme's settings (logo, colours, …): `{theme}/config/settings_data.json` of the store's theme, as the Angular
@@ -18,6 +20,9 @@ export interface ThemeSettingsGroup {
   settings: Field[];
 }
 
+/** The theme's settings file, as saves name it */
+export const settingsDataPath = (theme: string) => `${theme}/config/settings_data.json`;
+
 const presetValues = (preset: unknown): Record<string, unknown> => {
   const value = (preset ?? {}) as { settings?: Record<string, unknown> };
   return clone(value.settings ?? (preset as Record<string, unknown>) ?? {});
@@ -29,8 +34,9 @@ export function currentSettings(data: ThemeSettingsData): Record<string, unknown
   return clone(data.current ?? {});
 }
 
+/** A theme config file as last saved: its draft, else what is live */
 async function template(storeId: string, theme: string, path: string): Promise<unknown> {
-  const query = new URLSearchParams({ storeId, theme, type: "themes", path: `${theme}/config/${path}` });
+  const query = new URLSearchParams({ storeId, theme, type: "themes", path: `${theme}/config/${path}`, draft: "true" });
   const res = await fetch(`/api/pagebuilder/template?${query}`, { headers: await getAuthHeaders() });
   if (res.status === 404) return undefined;
   if (!res.ok) throw new Error(`${res.status}`);
@@ -40,7 +46,7 @@ async function template(storeId: string, theme: string, path: string): Promise<u
 
 /**
  * The theme settings being edited. `settings` is what the theme sets plus the edits: what applies (sent to the preview
- * as it changes) and what Save writes as the theme's current settings (live: theme settings have no draft). `values`
+ * as it changes) and what Save writes as the theme's current settings, a draft the theme's publication puts live. `values`
  * adds the schema's defaults for what the theme doesn't set, for the fields to show; a default isn't applied or saved,
  * as it needn't match the storefront's own look (its preset's colours, say).
  */
@@ -96,18 +102,19 @@ export function useThemeSettings() {
     settings.value = JSON.parse(savedJson.value) as Record<string, unknown>;
   }
 
-  async function save() {
+  /** Saves the settings as the theme's draft; with the catalog's hash, the server checks them as it checks every theme file */
+  async function save(catalogHash?: string) {
     if (!store.value || !loaded.value) return;
     const { storeId, theme } = store.value;
     const current = clone(settings.value);
     const next: ThemeSettingsData = { ...data.value, current };
-    const files = [{ path: `${theme}/config/settings_data.json`, type: "themes", content: next }];
-    const res = await fetch(`/api/pagebuilder/save?${new URLSearchParams({ storeId, theme })}`, {
+    const files = [{ path: settingsDataPath(theme), type: "themes", content: next }];
+    const res = await fetch(saveUrl(storeId, theme, catalogHash), {
       method: "POST",
       headers: { ...(await getAuthHeaders()), "Content-Type": "application/json" },
       body: JSON.stringify({ files: JSON.stringify(files) }),
     });
-    if (!res.ok) throw new Error(`${res.status} ${await res.text().catch(() => "")}`);
+    if (!res.ok) throw new ApiError(res.status, await res.text().catch(() => ""));
     data.value = next;
     // what was sent: an edit made while it was on its way stays unsaved
     savedJson.value = JSON.stringify(current);

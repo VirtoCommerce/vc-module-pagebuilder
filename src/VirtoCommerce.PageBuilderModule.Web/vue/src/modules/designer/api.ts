@@ -3,6 +3,7 @@ import { fromDocument, toDocument } from "./document";
 import { templateKeyOf } from "./templates";
 import { groupPath, rulesPath, themeHistoryUrl, type HistoryFile } from "./history";
 import { storefrontPage } from "./preview";
+import { fileSaveUrl, parseThemeStatus, publishThemeUrl, saveUrl, type ThemeStatus } from "./themePublication";
 import { getAuthHeaders } from "../page-builder/composables/usePageContentApi";
 
 // The designer's platform calls (the generated client types the content endpoints as void), as the shell user.
@@ -202,7 +203,8 @@ export async function uploadCatalog(storeId: string, catalog: object) {
   if (!res.ok) throw new ApiError(res.status, await res.text().catch(() => ""));
 }
 
-// ── theme files (section groups, templates, the template rules): saved as drafts ("-draft"), put live by Publish ──
+// ── theme files (section groups, templates, the template rules, the theme settings): saved as drafts ("-draft"), put
+// live together by the theme's publication ──
 
 /** A theme file's JSON as last saved (its draft, else what is live), or undefined when the theme has none */
 export async function loadThemeFile(storeId: string, theme: string, path: string): Promise<unknown> {
@@ -214,43 +216,30 @@ export async function loadThemeFile(storeId: string, theme: string, path: string
   return text.trim() ? JSON.parse(text) : undefined;
 }
 
-/** Saves theme files as drafts: the site keeps the live ones until they are published (publishThemeFiles) */
-export async function saveThemeFiles(storeId: string, theme: string, files: { path: string; content: unknown }[]) {
-  await call(`/api/pagebuilder/save?${new URLSearchParams({ storeId, theme, draft: "true" })}`, {
+/**
+ * Saves theme files as drafts: the site keeps the published theme until the next publication (publishTheme). With the
+ * catalog's hash, the server checks them against the storefront's schemas (400 `{ error, errors }`).
+ */
+export async function saveThemeFiles(storeId: string, theme: string, files: { path: string; content: unknown }[], catalogHash?: string) {
+  await call(saveUrl(storeId, theme, catalogHash), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ files: JSON.stringify(files.map((x) => ({ ...x, type: "themes" }))) }),
   });
 }
 
-const themeFileUrl = (storeId: string, path: string, action: "publish-status" | "publishing", query: Record<string, string> = {}) =>
-  `/api/content/themes/${encodeURIComponent(storeId)}/${action}?${new URLSearchParams({ relativeUrl: path, ...query })}`;
-
-/** A theme file on the site (the content module: published = the live file exists, hasChanges = a draft exists) */
-export async function themeFileStatus(storeId: string, path: string): Promise<PublishStatus> {
-  return ((await (await call(themeFileUrl(storeId, path, "publish-status"))).json()) ?? {}) as PublishStatus;
+/** The theme's current publication and the theme files with a draft the next one puts live */
+export async function themeStatus(storeId: string): Promise<ThemeStatus> {
+  return parseThemeStatus(await (await call(`/api/pagebuilder/theme/status?${new URLSearchParams({ storeId })}`)).json());
 }
 
-/** A theme file's saved draft the site doesn't show yet; published: the site shows a version of the file, which a discard goes back to */
-export interface ThemeFileDraft {
-  path: string;
-  published: boolean;
-}
-
-/** The theme files with a saved draft the site doesn't show yet */
-export async function themeFileDrafts(storeId: string, paths: string[]): Promise<ThemeFileDraft[]> {
-  const drafts = await Promise.all(
-    paths.map(async (path) => {
-      const status = await themeFileStatus(storeId, path);
-      return status.hasChanges ? { path, published: !!status.published } : undefined;
-    }),
-  );
-  return drafts.filter((x): x is ThemeFileDraft => !!x);
-}
-
-/** Puts theme file drafts live */
-export async function publishThemeFiles(storeId: string, paths: string[]) {
-  await Promise.all(paths.map((path) => call(themeFileUrl(storeId, path, "publishing", { publish: "true" }), { method: "POST" })));
+/**
+ * Puts every theme draft live at once and gives the storefront a new snapshot; returns the publication's number. 400
+ * `{ error, errors }`: no catalog named, or a file that doesn't fit it.
+ */
+export async function publishTheme(storeId: string, catalogHash?: string): Promise<number> {
+  const res = await call(publishThemeUrl(storeId, catalogHash), { method: "POST" });
+  return ((await res.json()) as { publication: number }).publication;
 }
 
 /**
@@ -265,9 +254,9 @@ export async function loadSectionGroup(storeId: string, theme: string, group: Se
 
 /**
  * Saves section groups as drafts of the theme's files ("-draft"): the site keeps its live header and footer until the
- * page is published (publishSectionGroups)
+ * theme is published (publishTheme)
  */
-export async function saveSectionGroups(storeId: string, theme: string, groups: Partial<Record<SectionGroup, Item[]>>) {
+export async function saveSectionGroups(storeId: string, theme: string, groups: Partial<Record<SectionGroup, Item[]>>, catalogHash?: string) {
   await saveThemeFiles(
     storeId,
     theme,
@@ -275,13 +264,8 @@ export async function saveSectionGroups(storeId: string, theme: string, groups: 
       path: groupPath(theme, group as SectionGroup),
       content: { type: group, name: group === "header" ? "Header" : "Footer", content },
     })),
+    catalogHash,
   );
-}
-
-/** The section groups with a saved draft the site doesn't show yet; published: the site shows a version of the group */
-export async function sectionGroupDrafts(storeId: string, theme: string, groups: SectionGroup[]): Promise<{ group: SectionGroup; published: boolean }[]> {
-  const drafts = await themeFileDrafts(storeId, groups.map((g) => groupPath(theme, g)));
-  return groups.flatMap((group) => drafts.filter((x) => x.path === groupPath(theme, group)).map((x) => ({ group, published: x.published })));
 }
 
 /**
@@ -300,11 +284,6 @@ export async function discardThemeDraft(storeId: string, theme: string, path: st
 /** Throws section group drafts away: the site keeps the header and footer it shows */
 export async function discardSectionGroupDrafts(storeId: string, theme: string, groups: SectionGroup[]) {
   await Promise.all(groups.map((group) => discardThemeDraft(storeId, theme, groupPath(theme, group))));
-}
-
-/** Puts section group drafts live */
-export async function publishSectionGroups(storeId: string, theme: string, groups: SectionGroup[]) {
-  await publishThemeFiles(storeId, groups.map((g) => groupPath(theme, g)));
 }
 
 /** The theme's templates, by key ("product", "product.printer", …): its templates/ folder, drafts included */
@@ -341,37 +320,31 @@ export async function findFilePage(page: FilePage): Promise<PageDocument | undef
   return toDocument(await res.text());
 }
 
-/** Saves a file page's draft (in git: a commit on this editor's work branch). 400 lists what the page is missing. */
-export async function saveFilePage(page: FilePage, doc: PageDocument) {
+/**
+ * Saves a file page's draft (in git: a commit on this editor's work branch). 400 lists what the page is missing; a
+ * template, a theme file, is checked against the catalog named.
+ */
+export async function saveFilePage(page: FilePage, doc: PageDocument, catalogHash?: string) {
   // git validates the envelope: the settings item is typed "settings"
   const content = fromDocument(doc.version === 1 ? doc : { ...doc, settings: { ...doc.settings, type: doc.settings.type || "settings" } });
-  await call(`/api/pagebuilder/save?${new URLSearchParams({ storeId: page.storeId, theme: page.theme, draft: "true" })}`, {
+  await call(fileSaveUrl(page, catalogHash), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ files: JSON.stringify([{ path: page.path, type: page.type, content }]) }),
   });
 }
 
-/** A theme template is a theme file: the builder's page endpoints take pages and blog articles only */
-const isThemeFile = (page: FilePage) => page.type === "themes";
-
 /** A file page's publish status; the builder answers from git or, for a store without it, from the site's files */
 export async function filePublishStatus(page: FilePage): Promise<PublishStatus> {
-  const url = isThemeFile(page)
-    ? themeFileUrl(page.storeId, page.path, "publish-status")
-    : `/api/pagebuilder/git/publish-status?${fileArgs(page)}`;
-  return ((await (await call(url)).json()) ?? { published: true, hasChanges: false }) as PublishStatus;
+  return ((await (await call(`/api/pagebuilder/git/publish-status?${fileArgs(page)}`)).json()) ?? { published: true, hasChanges: false }) as PublishStatus;
 }
 
 /**
  * Publish/unpublish a file page through the builder, which checks the publish permission for every store; in git,
- * publishing opens (and merges) a pull request. 409: someone published first.
+ * publishing opens (and merges) a pull request. 409: someone published first. A template is published with the theme.
  */
 export async function setFilePublished(page: FilePage, publish: boolean, rebase = false) {
-  const url = isThemeFile(page)
-    ? themeFileUrl(page.storeId, page.path, "publishing", { publish: String(publish) })
-    : `/api/pagebuilder/git/${publish ? "publish" : "unpublish"}?${fileArgs(page, rebase ? { rebase: "true" } : {})}`;
-  await call(url, { method: "POST" });
+  await call(`/api/pagebuilder/git/${publish ? "publish" : "unpublish"}?${fileArgs(page, rebase ? { rebase: "true" } : {})}`, { method: "POST" });
 }
 
 /** git: brings the published page to the production branch */

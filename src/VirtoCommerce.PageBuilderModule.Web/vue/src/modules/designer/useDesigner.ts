@@ -7,8 +7,10 @@ import { isComponentRef, resolveRefs } from "./document";
 import type { ClipboardItem } from "./clipboard";
 import * as api from "./api";
 import { GROUPS, groupItems, groupOf, pageOnly, withGroups } from "./groups";
+import { groupPath } from "./history";
 import { PAGE_CONTENT, pageTypeOf, startingTemplate, templateEntry, templateKeyOf } from "./templates";
 import type { Capability, Handshake } from "./previewMessages";
+import { hasThemeDraft, templateStatus, type ThemeStatus } from "./themePublication";
 
 const EMPTY_SCHEMAS: Schemas = { sections: {}, blocks: {}, shared: {}, objects: {} };
 /** A page-level row of the tree: the page template's own fields, or a static section's (Page Header: SEO). */
@@ -503,9 +505,7 @@ export function useDesigner() {
     checked.value = [];
     components.clear();
     status.value = {};
-    groupDrafts.value = [];
     discardable.value = { page: false, groups: [] };
-    pageStatus = {};
     storeId.value = source.storeId;
     busy.value = "loading";
     loadError.value = undefined;
@@ -544,29 +544,35 @@ export function useDesigner() {
     }
   }
 
-  /** header/footer drafts the site doesn't show yet: they go live with the page's Publish */
-  const groupDrafts = ref<SectionGroup[]>([]);
+  /** the theme's publication and its files with a draft: they go live together, by publishTheme */
+  const themeStatus = ref<ThemeStatus>();
+  /** a template or another theme file: published with the theme, not on its own */
+  const themeFileOpen = computed(() => file.value?.type === "themes");
   /**
-   * The saved drafts Discard throws away: the page's and the header's and footer's that have a published version to go
-   * back to. A draft never published is its only copy, and stays.
+   * The saved drafts Discard throws away: the page's (a page's when it has a published version to go back to) and the
+   * header's and footer's. A theme file's draft never published is its only copy, and stays.
    */
   const discardable = ref<{ page: boolean; groups: SectionGroup[] }>({ page: false, groups: [] });
-  /** the page's own state, without its header and footer */
-  let pageStatus: api.PublishStatus = {};
 
+  async function refreshThemeStatus() {
+    if (!storeId.value || shared.value) return;
+    themeStatus.value = await api.themeStatus(storeId.value).catch(() => themeStatus.value);
+  }
+
+  /** The page's own state, without the theme's drafts: a template's comes from the theme's */
   async function refreshStatus() {
+    const page = file.value;
+    if (!groupId.value && !page) return;
     const fallback = { published: true, hasChanges: false };
-    if (groupId.value) pageStatus = await api.publishStatus(groupId.value).catch(() => fallback);
-    else if (file.value) pageStatus = await api.filePublishStatus(file.value).catch(() => fallback);
-    else return;
-    const drafts = storeId.value && theme.value ? await api.sectionGroupDrafts(storeId.value, theme.value, GROUPS).catch(() => []) : [];
-    groupDrafts.value = drafts.map((x) => x.group);
+    const [, own] = await Promise.all([
+      refreshThemeStatus(),
+      groupId.value ? api.publishStatus(groupId.value).catch(() => fallback) : themeFileOpen.value ? undefined : api.filePublishStatus(page!).catch(() => fallback),
+    ]);
+    status.value = own ?? templateStatus(themeStatus.value, page!.theme, page!.path);
     discardable.value = {
-      page: !!pageStatus.hasChanges && !!pageStatus.published,
-      groups: drafts.filter((x) => x.published).map((x) => x.group),
+      page: !!status.value.hasChanges && (themeFileOpen.value || !!status.value.published),
+      groups: theme.value ? GROUPS.filter((g) => hasThemeDraft(themeStatus.value, theme.value!, groupPath(theme.value!, g))) : [],
     };
-    // unpublished header/footer changes are changes of the page too: Publish puts them live
-    status.value = { ...pageStatus, hasChanges: !!pageStatus.hasChanges || groupDrafts.value.length > 0 };
   }
 
   /** Throws the discardable drafts away, the page's and its header's and footer's, so what is published is current again */
@@ -577,6 +583,7 @@ export function useDesigner() {
       if (discardable.value.page) {
         const page = file.value;
         if (groupId.value) await api.discardGroupDraft(groupId.value);
+        else if (page && themeFileOpen.value) await api.discardThemeDraft(page.storeId, page.theme, page.path);
         else if (page) await (gitFlow.value ? api.discardFileDraft(page) : api.discardBlobDraft(page.storeId, page.type, page.path, page.theme));
       }
       const groups = discardable.value.groups;
@@ -597,6 +604,8 @@ export function useDesigner() {
     const pageChanged = JSON.stringify(sent) !== savedJson.value;
     const groups = changedGroups();
     if (pageChanged && groupId.value && !eTag.value) throw new api.ApiError(428, "");
+    // theme files name the catalog of the storefront previewed: the server checks them against it
+    const catalogHash = handshake.value?.hash;
     busy.value = "saving";
     try {
       if (!pageChanged) {
@@ -604,12 +613,12 @@ export function useDesigner() {
       } else if (groupId.value) eTag.value = (await api.savePage(groupId.value, sent, eTag.value!)) ?? eTag.value;
       else if (shared.value) await api.saveSharedComponentContent(shared.value.id, sent);
       else {
-        await api.saveFilePage(file.value!, sent);
+        await api.saveFilePage(file.value!, sent, catalogHash);
         templateIsNew.value = false;
       }
       savedJson.value = JSON.stringify(sent);
       if (Object.keys(groups).length) {
-        await api.saveSectionGroups(storeId.value!, theme.value!, groups);
+        await api.saveSectionGroups(storeId.value!, theme.value!, groups, catalogHash);
         for (const [g, items] of Object.entries(groups)) savedGroupsJson.value[g as SectionGroup] = JSON.stringify(items);
       }
       await Promise.all([refreshStatus(), loadComponents(true)]);
@@ -618,18 +627,31 @@ export function useDesigner() {
     }
   }
 
-  /** Publishes the saved draft or takes the page off the site. In git, `rebase` publishes over someone else's version. */
+  /**
+   * Publishes the page's saved draft or takes the page off the site; its header and footer go live with the theme. In
+   * git, `rebase` publishes over someone else's version.
+   */
   async function publish(live: boolean, rebase = false) {
-    if (busy.value) return;
+    if (busy.value || themeFileOpen.value) return;
     busy.value = "publishing";
     try {
-      // the page itself when it has something to publish (or to take off the site), then its header and footer drafts
-      const pageToPublish = !live || !!pageStatus.hasChanges || !!pageStatus.liveBehind || !pageStatus.published;
-      if (!pageToPublish) {
-        // only header/footer changes
-      } else if (groupId.value) await api.setPublished(groupId.value, live);
+      if (groupId.value) await api.setPublished(groupId.value, live);
       else if (file.value) await api.setFilePublished(file.value, live, rebase);
-      if (live && groupDrafts.value.length) await api.publishSectionGroups(storeId.value!, theme.value!, groupDrafts.value);
+    } finally {
+      busy.value = undefined;
+      await refreshStatus();
+    }
+  }
+
+  /**
+   * Puts every theme draft live at once (the header and footer, the rules, the templates, the theme settings), as a new
+   * snapshot the storefront reads. Returns the publication's number; ApiError 400 lists what doesn't fit the catalog.
+   */
+  async function publishTheme(): Promise<number | undefined> {
+    if (busy.value || !storeId.value) return undefined;
+    busy.value = "publishing";
+    try {
+      return await api.publishTheme(storeId.value, handshake.value?.hash);
     } finally {
       busy.value = undefined;
       await refreshStatus();
@@ -726,7 +748,9 @@ export function useDesigner() {
     components,
     loadComponents,
     shared,
-    groupDrafts,
+    themeFileOpen,
+    themeStatus,
+    refreshThemeStatus,
     discardable,
     discardDrafts,
     preview,
@@ -749,6 +773,7 @@ export function useDesigner() {
     open,
     save,
     publish,
+    publishTheme,
     promote,
     restore,
   };

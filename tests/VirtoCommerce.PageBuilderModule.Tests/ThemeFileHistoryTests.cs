@@ -286,7 +286,9 @@ public class ThemeFileHistoryTests
             authorizationService: new FakeAuthorizationService(true),
             distributedLock: new InProcessDistributedLock(),
             requestValidator: RequestValidators.Content("s1"),
-            themeFileHistoryService: History(github, live)));
+            themeFileHistoryService: History(github, live),
+            themePublisher: null,
+            themeSnapshotService: null));
     }
 
     private static T WithUser<T>(T controller) where T : ControllerBase

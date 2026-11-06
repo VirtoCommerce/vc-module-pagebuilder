@@ -371,7 +371,9 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 authorizationService: authorizationService ?? new ScopedAuthorizationService(storeAccess, granted),
                 distributedLock: new InProcessDistributedLock(),
                 requestValidator: new PageBuilderContentRequestValidator(new PageBuilderStoreRequestValidator(new FakeStoreService(new Store { Id = Store })), new PageBuilderContentFileValidator()),
-                themeFileHistoryService: new NoFileHistory());
+                themeFileHistoryService: new NoFileHistory(),
+                themePublisher: null,
+                themeSnapshotService: null);
 
             controller.ControllerContext = new ControllerContext
             {
