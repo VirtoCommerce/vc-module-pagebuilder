@@ -52,7 +52,7 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     public void Dispose() => _cache.Dispose();
 
     [Fact]
-    public async Task A_store_with_the_New_Page_Builder_off_has_no_snapshot()
+    public async Task GetPublishedAsync_NewPageBuilderOff_ReturnsNull()
     {
         _settings.Values[ModuleConstants.Settings.StoreLevelSettings.NewPageBuilder.Name] = false;
         _storage.Files[Product] = Template("product-info");
@@ -62,7 +62,7 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task The_first_read_publishes_the_live_theme_and_leaves_the_drafts_alone()
+    public async Task GetPublishedAsync_FirstRead_PublishesLiveThemeAndKeepsDrafts()
     {
         _storage.Files[Product] = Template("product-info");
         _storage.Files[Product + "-draft"] = Template("product-info", "draft-only");
@@ -75,12 +75,12 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task Publishing_writes_every_language_then_the_record_then_the_pointer_then_puts_the_drafts_live()
+    public async Task PublishAsync_Drafts_WritesLanguagesRecordPointerThenPutsDraftsLive()
     {
         _storage.Files[Product] = Template("product-info");
         _storage.Files[Product + "-draft"] = Template("product-info", "related-products");
         await _snapshots.GetPublishedAsync("s1", null, Ct);
-        var catalog = await Catalog("product-info", "related-products");
+        var catalog = await SaveCatalogAsync("product-info", "related-products");
         _storage.Written.Clear();
 
         var publication = await _publisher.PublishAsync("s1", catalog, null, Ct);
@@ -110,12 +110,12 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
 
     /// <summary>The history goes to GitHub, which may answer slowly: the theme saves of the store don't wait for it.</summary>
     [Fact]
-    public async Task A_publication_records_its_history_once_the_store_lock_is_free()
+    public async Task PublishAsync_Published_RecordsHistoryAfterStoreLockIsReleased()
     {
         _storage.Files[Product] = Template("product-info");
         await _snapshots.GetPublishedAsync("s1", null, Ct);
         _storage.Files[Product + "-draft"] = Template("product-info", "related-products");
-        var catalog = await Catalog("product-info", "related-products");
+        var catalog = await SaveCatalogAsync("product-info", "related-products");
         var history = new LockProbingHistory(_lock);
         var publisher = Publisher(history);
 
@@ -125,7 +125,7 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task A_publication_the_catalog_refuses_writes_nothing()
+    public async Task PublishAsync_CatalogRefusesDraft_WritesNothing()
     {
         await _catalogs.SaveAsync("s1", """{ "hash": "abc12345", "sections": { "product-info": {} }, "blocks": {}, "shared": {} }""", Ct);
         _storage.Files[Product + "-draft"] = Template("product-info", "carousel");
@@ -139,7 +139,7 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task A_publication_names_the_catalog_it_was_previewed_with()
+    public async Task PublishAsync_NoCatalogHash_ThrowsAndWritesNothing()
     {
         _storage.Files[Product + "-draft"] = Template("product-info");
 
@@ -150,7 +150,7 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task The_first_publication_finds_the_menus_through_the_current_catalog()
+    public async Task GetPublishedAsync_FirstPublication_FindsMenusThroughCurrentCatalog()
     {
         await _catalogs.SaveAsync("s1", """
             { "hash": "abc12345", "sections": { "site-header": { "settings": [ { "id": "menu", "type": "menu" } ] } } }
@@ -167,7 +167,7 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task A_publication_names_a_catalog_the_server_has()
+    public async Task PublishAsync_UnknownCatalogHash_Throws()
     {
         var failure = await Assert.ThrowsAsync<ThemeValidationException>(() => _publisher.PublishAsync("s1", "missing123", null, Ct));
 
@@ -175,22 +175,22 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task A_cached_snapshot_is_reset_by_the_next_publication()
+    public async Task GetPublishedAsync_AfterPublication_ReturnsNewPublication()
     {
         _storage.Files[Product] = Template("product-info");
         Assert.Equal(1, (await _snapshots.GetPublishedAsync("s1", "en-US", Ct)).Publication);
 
         _storage.Files[Product + "-draft"] = Template("product-info", "related-products");
-        await _publisher.PublishAsync("s1", await Catalog("product-info", "related-products"), null, Ct);
+        await _publisher.PublishAsync("s1", await SaveCatalogAsync("product-info", "related-products"), null, Ct);
 
         Assert.Equal(2, (await _snapshots.GetPublishedAsync("s1", "en-US", Ct)).Publication);
     }
 
     [Fact]
-    public async Task A_publication_waits_for_a_theme_save_of_its_store()
+    public async Task PublishAsync_ThemeSaveRunning_WaitsForStoreLock()
     {
         _storage.Files[Product + "-draft"] = Template("product-info");
-        var catalog = await Catalog("product-info");
+        var catalog = await SaveCatalogAsync("product-info");
         var save = await _lock.AcquireAsync(ThemeStorage.GetLockResource("s1"), cancellationToken: Ct);
 
         var publication = _publisher.PublishAsync("s1", catalog, null, Ct);
@@ -203,7 +203,7 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task With_caching_switched_off_the_snapshot_is_read_again()
+    public async Task GetPublishedAsync_CachingOff_ReadsSnapshotAgain()
     {
         using var uncached = new TestPlatformMemoryCache(() => new MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromTicks(1) });
         var snapshots = Snapshots(uncached);
@@ -218,7 +218,7 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task Live_files_no_publication_can_be_made_of_are_not_tried_again_on_every_read()
+    public async Task GetPublishedAsync_UnpublishableLiveFiles_CachesFailureUntilReset()
     {
         const string header = "default/sections/header-group.json";
         _storage.Files[header] = """{ "content": [ { "type": "banner" } ] }""";
@@ -236,12 +236,12 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task A_pointer_cut_off_reads_as_the_highest_complete_publication()
+    public async Task GetPublishedAsync_TruncatedPointer_ReturnsHighestCompletePublication()
     {
         _storage.Files[Product] = Template("product-info");
         await _snapshots.GetPublishedAsync("s1", null, Ct);
         _storage.Files[Product + "-draft"] = Template("product-info", "related-products");
-        await _publisher.PublishAsync("s1", await Catalog("product-info", "related-products"), null, Ct);
+        await _publisher.PublishAsync("s1", await SaveCatalogAsync("product-info", "related-products"), null, Ct);
         _storage.Files[Pointer] = "{ \"publicat";
         using var emptyCache = new TestPlatformMemoryCache();
 
@@ -251,7 +251,7 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task A_pointer_cut_off_skips_a_publication_cut_off_in_its_last_file()
+    public async Task GetPublishedAsync_TruncatedPointerAndRecord_SkipsIncompletePublication()
     {
         _storage.Files[Product] = Template("product-info");
         await _snapshots.GetPublishedAsync("s1", null, Ct);
@@ -268,7 +268,7 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task A_store_default_the_publication_has_no_file_for_gets_the_publications_default()
+    public async Task GetPublishedAsync_StoreDefaultWithoutFile_ReturnsPublicationDefault()
     {
         _storage.Files[Product] = Template("product-info");
         await _snapshots.GetPublishedAsync("s1", null, Ct);
@@ -281,7 +281,7 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task A_pointer_cut_off_finds_the_complete_publication_after_the_store_default_changed()
+    public async Task GetPublishedAsync_TruncatedPointerAfterDefaultLanguageChanged_ReturnsCompletePublication()
     {
         _storage.Files[Product] = Template("product-info");
         await _snapshots.GetPublishedAsync("s1", null, Ct);
@@ -295,7 +295,7 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task A_pointer_cut_off_with_no_complete_publication_publishes_the_live_theme_again()
+    public async Task GetPublishedAsync_TruncatedPointerWithoutCompletePublication_PublishesLiveThemeAgain()
     {
         _storage.Files[Product] = Template("product-info");
         // publication 1 stopped before its record
@@ -316,19 +316,19 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     [InlineData("fr-FR", "en-US")]
     [InlineData(null, "en-US")]
     [InlineData("", "en-US")]
-    public void The_language_served_is_the_store_language_closest_to_the_one_asked_for(string requested, string served)
+    public void ResolveLanguage_RequestedLanguage_ReturnsClosestStoreLanguage(string requested, string served)
     {
         Assert.Equal(served, _snapshots.ResolveLanguagePublic(["en-US", "de-DE", "de-AT"], "en-US", requested));
     }
 
     [Fact]
-    public void Among_store_languages_of_the_same_language_the_default_one_wins()
+    public void ResolveLanguage_SameLanguageTwice_PrefersDefault()
     {
         Assert.Equal("de-AT", _snapshots.ResolveLanguagePublic(["de-DE", "de-AT"], "de-AT", "de"));
     }
 
     [Fact]
-    public async Task A_catalog_keeps_the_first_content_of_its_hash_and_becomes_the_current_one()
+    public async Task SaveAsync_SameHashTwice_KeepsFirstContentAndMakesItCurrent()
     {
         await _catalogs.SaveAsync("s1", """{ "hash": "abc12345", "sections": { "a": {} } }""", Ct);
         await _catalogs.SaveAsync("s1", """{ "hash": "abc12345", "sections": { "b": {} } }""", Ct);
@@ -344,7 +344,7 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     [InlineData("""{ "hash": "abc12345", "sections": [] }""")]
     [InlineData("""{ "hash": "abc12345", "blocks": "banner" }""")]
     [InlineData("""{ "hash": "abc12345", "shared": { "_sections": [] } }""")]
-    public async Task A_catalog_no_publication_could_read_is_refused_and_not_kept(string catalog)
+    public async Task SaveAsync_UnreadableCatalog_ThrowsAndKeepsNothing(string catalog)
     {
         await Assert.ThrowsAsync<ArgumentException>(() => _catalogs.SaveAsync("s1", catalog, Ct));
 
@@ -352,7 +352,7 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     }
 
     /// <summary>Keeps a storefront catalog that has these section types; its hash.</summary>
-    private Task<string> Catalog(params string[] sections) =>
+    private Task<string> SaveCatalogAsync(params string[] sections) =>
         _catalogs.SaveAsync("s1", new JObject
         {
             ["hash"] = "catalog-" + string.Join('-', sections),

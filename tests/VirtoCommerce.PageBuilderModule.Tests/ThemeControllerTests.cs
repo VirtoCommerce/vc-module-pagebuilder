@@ -20,7 +20,7 @@ public class ThemeControllerTests
     private readonly RecordingThemeServices _services = new();
 
     [Fact]
-    public async Task A_store_the_user_does_not_work_in_is_forbidden_before_anything_is_read_or_written()
+    public async Task ThemeActions_StoreUserDoesNotWorkIn_ReturnForbidWithoutCallingServices()
     {
         var controller = Controller(new FakeAuthorizationService(false));
 
@@ -34,7 +34,7 @@ public class ThemeControllerTests
     [Theory]
     [InlineData(null)]
     [InlineData("gone")]
-    public async Task A_store_that_does_not_exist_is_refused_before_anything_is_read_or_written(string storeId)
+    public async Task ThemeActions_UnknownStore_ReturnBadRequestWithoutCallingServices(string storeId)
     {
         var controller = Controller(new FakeAuthorizationService(true));
 
@@ -46,7 +46,7 @@ public class ThemeControllerTests
     }
 
     [Fact]
-    public async Task A_store_the_user_works_in_gets_its_catalog_saved()
+    public async Task SaveCatalog_StoreUserWorksIn_SavesCatalog()
     {
         var controller = Controller(new FakeAuthorizationService(true), """{ "hash": "abcdefgh" }""");
 

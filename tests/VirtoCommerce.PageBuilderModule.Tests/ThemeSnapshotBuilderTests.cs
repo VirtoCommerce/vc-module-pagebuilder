@@ -47,7 +47,7 @@ public class ThemeSnapshotBuilderTests
     }
 
     [Fact]
-    public void Each_language_gets_its_text_else_the_store_default_else_the_first_and_other_objects_stay()
+    public void Build_LocalizedTexts_FallsBackToDefaultThenFirstLanguage()
     {
         var source = Source(templates: new()
         {
@@ -80,7 +80,7 @@ public class ThemeSnapshotBuilderTests
     }
 
     [Fact]
-    public void There_is_a_snapshot_for_every_store_language_and_for_the_default_one()
+    public void Build_StoreLanguages_ReturnsSnapshotPerLanguageAndDefault()
     {
         var set = _builder.Build(Source(), null, "abc12345", ["de-DE"], "en-US", 7, Published);
 
@@ -94,7 +94,7 @@ public class ThemeSnapshotBuilderTests
     }
 
     [Fact]
-    public void A_legacy_array_template_reads_as_a_document()
+    public void Build_LegacyArrayTemplate_ReadsItAsDocument()
     {
         var source = Source(templates: new() { ["product"] = JArray.Parse("""[ { "type": "settings" }, { "id": "s1", "type": "product-info" } ]""") });
 
@@ -105,7 +105,7 @@ public class ThemeSnapshotBuilderTests
     }
 
     [Fact]
-    public void The_brand_is_the_brand_file_else_the_logos_of_the_theme_settings()
+    public void Build_Brand_UsesBrandFileElseThemeSettingsLogos()
     {
         var fromFile = Snapshot(Source(brand: JObject.Parse("""{ "logoUrl": "/a.svg", "secondaryLogoUrl": "", "faviconUrl": "/f.ico" }""")));
         var fromSettings = Snapshot(Source(settingsData: JObject.Parse("""
@@ -117,7 +117,7 @@ public class ThemeSnapshotBuilderTests
     }
 
     [Fact]
-    public void A_palette_needs_its_light_part()
+    public void Build_PaletteWithoutLightPart_OmitsPalette()
     {
         var both = Snapshot(Source(palette: JObject.Parse("""{ "color_primary_500": "#f99e24" }"""), paletteDark: JObject.Parse("""{ "color_primary_500": "#ffbb5b" }""")));
         var darkOnly = Snapshot(Source(paletteDark: JObject.Parse("""{ "color_primary_500": "#ffbb5b" }""")));
@@ -127,7 +127,7 @@ public class ThemeSnapshotBuilderTests
     }
 
     [Fact]
-    public void The_menus_are_the_values_of_menu_settings_in_the_header_and_footer_blocks_and_lists_included()
+    public void Build_MenuSettings_CollectsMenusFromHeaderAndFooter()
     {
         var catalog = JObject.Parse("""
             {
@@ -152,7 +152,7 @@ public class ThemeSnapshotBuilderTests
     }
 
     [Fact]
-    public void Against_a_catalog_a_section_the_storefront_does_not_have_stops_the_publication()
+    public void Validate_TypeMissingFromCatalog_ReturnsErrors()
     {
         var catalog = JObject.Parse("""{ "sections": { "banner": {} }, "blocks": {}, "shared": {} }""");
         var source = Source(
@@ -177,7 +177,7 @@ public class ThemeSnapshotBuilderTests
     }
 
     [Fact]
-    public void An_id_or_a_type_that_is_not_a_text_is_reported_not_thrown()
+    public void Validate_NonTextIdOrType_ReturnsErrors()
     {
         var source = Source(header: JObject.Parse("""{ "content": [ { "id": {}, "type": "banner" }, { "id": "b", "type": ["banner"] } ] }"""));
 
@@ -187,7 +187,7 @@ public class ThemeSnapshotBuilderTests
     }
 
     [Fact]
-    public void Theme_files_and_a_catalog_of_an_unexpected_shape_still_make_a_snapshot()
+    public void Build_UnexpectedFileShapes_StillBuildsSnapshot()
     {
         var source = new ThemeSource
         {
@@ -211,7 +211,7 @@ public class ThemeSnapshotBuilderTests
     }
 
     [Fact]
-    public void Blocks_that_are_not_a_list_stop_the_publication()
+    public void Validate_BlocksNotAList_ReturnsError()
     {
         var source = Source(header: JObject.Parse("""{ "content": [ { "id": "h", "type": "banner", "blocks": { "id": "x", "type": "nope" } } ] }"""));
 
@@ -220,7 +220,7 @@ public class ThemeSnapshotBuilderTests
 
     /// <summary>A snapshot is read as it is: a shared component placed in a theme file would reach the storefront unresolved.</summary>
     [Fact]
-    public void A_shared_component_in_a_theme_file_stops_a_publication_against_the_catalog()
+    public void Validate_SharedComponentInThemeFile_ReturnsErrors()
     {
         var catalog = JObject.Parse("""{ "sections": { "product-info": {} } }""");
 
@@ -233,7 +233,7 @@ public class ThemeSnapshotBuilderTests
 
     /// <summary>The first publication, from live files that may predate the check, leaves the placement out.</summary>
     [Fact]
-    public void The_first_publication_leaves_a_shared_component_out_of_the_snapshot()
+    public void Build_SharedComponentWithoutCatalog_LeavesItOut()
     {
         var source = WithSharedComponent();
 
@@ -284,7 +284,7 @@ public class ThemeSnapshotBuilderTests
     [InlineData("blog.json", null)]
     [InlineData("product.B2C.json", null)]
     [InlineData("product.json-draft", null)]
-    public void A_template_file_name_gives_its_key(string fileName, string key)
+    public void GetTemplateKey_FileName_ReturnsKey(string fileName, string key)
     {
         Assert.Equal(key, _builder.GetTemplateKey(fileName));
     }

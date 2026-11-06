@@ -35,7 +35,7 @@ public class ThemeWriteLockTests
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
-    public async Task A_theme_save_waits_for_the_publication_of_its_store()
+    public async Task SaveTemplates_ThemePublicationRunning_WaitsForStoreLock()
     {
         var publication = await _lock.AcquireAsync(ThemeStorage.GetLockResource("s1"), cancellationToken: Ct);
 
@@ -49,7 +49,7 @@ public class ThemeWriteLockTests
     }
 
     [Fact]
-    public async Task A_page_save_does_not_wait_for_the_theme()
+    public async Task SaveTemplates_PageWhileThemePublicationRuns_DoesNotWait()
     {
         await using var publication = await _lock.AcquireAsync(ThemeStorage.GetLockResource("s1"), cancellationToken: Ct);
 
@@ -60,7 +60,7 @@ public class ThemeWriteLockTests
 
     /// <summary>A publication reads a draft in two steps (is it there, then its text): one thrown away between them fails it.</summary>
     [Fact]
-    public async Task Discarding_a_theme_draft_waits_for_the_publication_of_its_store()
+    public async Task DiscardDraft_ThemePublicationRunning_WaitsForStoreLock()
     {
         _live.Files[Path] = "{}";
         _live.Files[$"{Path}-draft"] = "{}";
@@ -76,7 +76,7 @@ public class ThemeWriteLockTests
     }
 
     [Fact]
-    public async Task Restoring_a_theme_file_waits_for_the_publication_of_its_store()
+    public async Task Restore_ThemePublicationRunning_WaitsForStoreLock()
     {
         const string repoPath = "theme/default/sections/header-group.json";
         var github = new GitHubScript(

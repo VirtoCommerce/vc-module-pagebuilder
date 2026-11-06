@@ -17,7 +17,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests;
 /// Theme files are blobs on either flow: saving or discarding one asks GitHub nothing — not whose the store's
 /// repository is, and not whether GitHub answers at all.
 /// </summary>
-public class ThemeFilesStayBlobsTests
+public class PageBuilderControllerThemeFilesTests
 {
     private const string Path = "default/sections/header-group.json";
 
@@ -25,7 +25,7 @@ public class ThemeFilesStayBlobsTests
     private readonly FakeGitContentOwnership _ownership = new("another-store");
 
     [Fact]
-    public async Task A_theme_save_of_a_store_on_git_asks_GitHub_nothing()
+    public async Task SaveTemplates_ThemeFileOfGitStore_DoesNotCallGitHub()
     {
         Assert.IsType<OkObjectResult>(await Builder().SaveTemplates("s1", "default", HeaderGroup(), draft: true));
 
@@ -34,7 +34,7 @@ public class ThemeFilesStayBlobsTests
     }
 
     [Fact]
-    public async Task Discarding_a_theme_draft_of_a_store_on_git_asks_GitHub_nothing()
+    public async Task DiscardDraft_ThemeFileOfGitStore_DoesNotCallGitHub()
     {
         _live.Files[Path] = "{}";
         _live.Files[$"{Path}-draft"] = "{}";
@@ -46,7 +46,7 @@ public class ThemeFilesStayBlobsTests
     }
 
     [Fact]
-    public async Task A_save_answers_once_its_content_changed_event_is_handled()
+    public async Task SaveTemplates_ThemeFile_ReturnsAfterContentChangedEventIsHandled()
     {
         var publisher = new GatedEventPublisher();
         var save = Builder(eventPublisher: publisher).SaveTemplates("s1", "default", HeaderGroup(), draft: true);
@@ -59,7 +59,7 @@ public class ThemeFilesStayBlobsTests
     }
 
     [Fact]
-    public async Task A_draft_of_a_store_the_user_does_not_work_in_is_kept()
+    public async Task DiscardDraft_StoreUserDoesNotWorkIn_ReturnsForbidAndKeepsDraft()
     {
         _live.Files[Path] = "{}";
         _live.Files[$"{Path}-draft"] = "{}";
