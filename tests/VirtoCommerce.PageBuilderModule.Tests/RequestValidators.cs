@@ -14,8 +14,8 @@ internal static class RequestValidators
     public static IValidator<PageBuilderStoreRequest> Stores(params string[] storeIds) =>
         new PageBuilderStoreRequestValidator(new FakeStoreService(storeIds.Select(id => new Store { Id = id, Name = id }).ToArray()));
 
-    public static IValidator<ThemeFileRequest> ThemeFiles(params string[] storeIds) =>
-        new ThemeFileRequestValidator(Stores(storeIds));
+    public static IValidator<ContentHistoryRequest> History(params string[] storeIds) =>
+        new ContentHistoryRequestValidator(Stores(storeIds));
 
     public static IValidator<PageBuilderContentRequest> Content(params string[] storeIds) =>
         new PageBuilderContentRequestValidator(Stores(storeIds), new PageBuilderContentFileValidator());

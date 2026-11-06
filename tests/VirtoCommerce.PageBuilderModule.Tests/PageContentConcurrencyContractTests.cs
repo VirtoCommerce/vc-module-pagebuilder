@@ -249,7 +249,7 @@ public class PageContentConcurrencyContractTests
             new PublishedRenameContentPreservationTests.FakeGroupedPageSearchService(),
             new PublishedRenameContentPreservationTests.AllowAllAuthorizationService(),
             new PublishedRenameContentPreservationTests.NoopPageDocumentSearchService(), contentService,
-            NullLogger<PageBuilderPageController>.Instance, new NoFileHistory())
+            NullLogger<PageBuilderPageController>.Instance, new NoContentHistory())
         {
             ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext { Response = { Body = new MemoryStream() } } },
         };

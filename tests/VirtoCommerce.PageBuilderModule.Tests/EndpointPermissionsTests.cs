@@ -21,9 +21,8 @@ public class EndpointPermissionsTests
     private static readonly Type[] Controllers =
     [
         typeof(GitContentSetupController),
-        typeof(GroupedPageHistoryController),
+        typeof(HistoryController),
         typeof(ThemeController),
-        typeof(ThemeFileHistoryController),
     ];
 
     private static readonly Dictionary<(Type Controller, string Action), string> Expected = new()
@@ -36,17 +35,16 @@ public class EndpointPermissionsTests
         [(typeof(GitContentSetupController), nameof(GitContentSetupController.AppNew))] = Anonymous,
         [(typeof(GitContentSetupController), nameof(GitContentSetupController.AppCreated))] = Anonymous,
         [(typeof(GitContentSetupController), nameof(GitContentSetupController.AppInstalled))] = Anonymous,
-        [(typeof(GroupedPageHistoryController), nameof(GroupedPageHistoryController.GetHistory))] = Permissions.Read,
-        [(typeof(GroupedPageHistoryController), nameof(GroupedPageHistoryController.GetVersion))] = Permissions.Read,
-        [(typeof(GroupedPageHistoryController), nameof(GroupedPageHistoryController.Restore))] = Permissions.Update,
-        [(typeof(GroupedPageHistoryController), nameof(GroupedPageHistoryController.Discard))] = Permissions.Update,
+        [(typeof(HistoryController), nameof(HistoryController.GetStatus))] = Permissions.Read,
+        [(typeof(HistoryController), nameof(HistoryController.GetHistory))] = Permissions.Read,
+        [(typeof(HistoryController), nameof(HistoryController.GetVersion))] = Permissions.Read,
+        // and the permission that edits each item, in the action
+        [(typeof(HistoryController), nameof(HistoryController.Restore))] = Permissions.Read,
+        [(typeof(PageBuilderPageController), nameof(PageBuilderPageController.DiscardGroupDraft))] = Permissions.Update,
         [(typeof(ThemeController), nameof(ThemeController.Publish))] = Permissions.Publish,
         [(typeof(ThemeController), nameof(ThemeController.GetStatus))] = Permissions.Read,
         [(typeof(ThemeController), nameof(ThemeController.SaveCatalog))] = Permissions.Theme,
         [(typeof(ThemeController), nameof(ThemeController.GetCatalog))] = Permissions.Read,
-        [(typeof(ThemeFileHistoryController), nameof(ThemeFileHistoryController.GetHistory))] = Permissions.Read,
-        [(typeof(ThemeFileHistoryController), nameof(ThemeFileHistoryController.GetVersion))] = Permissions.Read,
-        [(typeof(ThemeFileHistoryController), nameof(ThemeFileHistoryController.Restore))] = InTheAction,
     };
 
     public static TheoryData<Type, string, string> Actions()

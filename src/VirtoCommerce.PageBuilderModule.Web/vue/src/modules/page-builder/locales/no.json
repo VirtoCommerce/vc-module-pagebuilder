@@ -395,8 +395,7 @@
         "PRESET_PLACEHOLDER": "Velg en forhåndsinnstilling",
         "APPLY": "Bruk",
         "EMPTY": "Dette temaet har ingen innstillinger å redigere.",
-        "LOAD_FAILED": "Temainnstillingene kunne ikke lastes inn.",
-        "SAVE_FAILED": "Temainnstillingene kunne ikke lagres."
+        "LOAD_FAILED": "Temainnstillingene kunne ikke lastes inn."
       },
       "CLIPBOARD": {
         "COPY": "Kopier",
@@ -539,7 +538,6 @@
           "ID": "må være en tekst som ikke er tom",
           "DUPLICATE_ID": "gjentar ID-en {id} fra en annen regel"
         },
-        "SAVE_FAILED": "Malreglene kunne ikke lagres.",
         "TREE_FAILED": "Kategoriene kunne ikke lastes inn.",
         "TEMPLATE": "Mal",
         "CONDITIONS": "Når alt dette stemmer",

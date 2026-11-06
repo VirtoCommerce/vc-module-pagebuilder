@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -30,6 +32,10 @@ public class GitHubApiClient(IHttpClientFactory httpClientFactory) : IGitHubApiC
     private const string JsonMediaType = "application/json";
 
     private const string AlreadyExistsError = "already exists";
+
+    private const string BlobMode = "100644";
+
+    private const string BlobType = "blob";
 
     // enough of a GitHub error body to recognise the failure by
     private const int MaxErrorDetailsLength = 500;
@@ -109,6 +115,90 @@ public class GitHubApiClient(IHttpClientFactory httpClientFactory) : IGitHubApiC
         }
 
         return body;
+    }
+
+    public virtual async Task<string> GetCommitTreeAsync(string repository, string commitSha, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(commitSha);
+
+        var operation = $"read commit {commitSha} of \"{repository}\"";
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"{GetRepositoryPath(repository)}/git/commits/{Uri.EscapeDataString(commitSha)}");
+        using var response = await SendAsync(request, operation, cancellationToken);
+        var body = await ReadAsAsync<JObject>(response, operation, cancellationToken);
+
+        return body?.SelectToken("tree.sha")?.Value<string>() ?? throw new GitContentException($"GitHub request to {operation} returned no tree.");
+    }
+
+    public virtual async Task<string> CreateTreeAsync(string repository, string baseTreeSha, IDictionary<string, string> files, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseTreeSha);
+        ArgumentNullException.ThrowIfNull(files);
+
+        var body = new JObject
+        {
+            ["base_tree"] = baseTreeSha,
+            ["tree"] = new JArray(files.Select(x => new JObject
+            {
+                ["path"] = x.Key,
+                ["mode"] = BlobMode,
+                ["type"] = BlobType,
+                ["content"] = x.Value,
+            })),
+        };
+
+        var operation = $"create a tree in \"{repository}\"";
+        using var request = new HttpRequestMessage(HttpMethod.Post, $"{GetRepositoryPath(repository)}/git/trees") { Content = CreateJsonContent(body) };
+        using var response = await SendAsync(request, operation, cancellationToken);
+
+        return await ReadShaAsync(response, operation, cancellationToken);
+    }
+
+    public virtual async Task<string> CreateCommitAsync(string repository, string treeSha, string parentSha, string message, GitCommitAuthor author,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(treeSha);
+        ArgumentException.ThrowIfNullOrWhiteSpace(parentSha);
+
+        var body = new JObject
+        {
+            ["message"] = message,
+            ["tree"] = treeSha,
+            ["parents"] = new JArray(parentSha),
+        };
+        if (!string.IsNullOrEmpty(author?.Name) && !string.IsNullOrEmpty(author.Email))
+        {
+            body["author"] = new JObject { ["name"] = author.Name, ["email"] = author.Email };
+        }
+
+        var operation = $"create a commit in \"{repository}\"";
+        using var request = new HttpRequestMessage(HttpMethod.Post, $"{GetRepositoryPath(repository)}/git/commits") { Content = CreateJsonContent(body) };
+        using var response = await SendAsync(request, operation, cancellationToken);
+
+        return await ReadShaAsync(response, operation, cancellationToken);
+    }
+
+    public virtual async Task<bool> FastForwardBranchAsync(string repository, string branch, string commitSha, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(branch);
+        ArgumentException.ThrowIfNullOrWhiteSpace(commitSha);
+
+        var body = new JObject
+        {
+            ["sha"] = commitSha,
+            ["force"] = false,
+        };
+
+        var operation = $"move branch \"{branch}\" of \"{repository}\" to {commitSha}";
+        var url = $"{GetRepositoryPath(repository)}/git/refs/heads/{string.Join("/", branch.Split('/').Select(Uri.EscapeDataString))}";
+        using var request = new HttpRequestMessage(HttpMethod.Patch, url) { Content = CreateJsonContent(body) };
+        using var response = await SendAsync(request, operation, cancellationToken);
+        if (response.StatusCode == HttpStatusCode.UnprocessableEntity)
+        {
+            return false;
+        }
+
+        await EnsureSuccessAsync(response, operation, cancellationToken);
+        return true;
     }
 
     public virtual Task<HttpResponseMessage> SendAnonymousAsync(HttpRequestMessage request, string operation, CancellationToken cancellationToken = default) =>
@@ -250,5 +340,17 @@ public class GitHubApiClient(IHttpClientFactory httpClientFactory) : IGitHubApiC
         _ => null,
     };
 
-    private static string GetRepositoryPath(string repository) => $"repos/{repository}";
+    private static string GetRepositoryPath(string repository)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(repository);
+
+        return $"repos/{repository}";
+    }
+
+    private static async Task<string> ReadShaAsync(HttpResponseMessage response, string operation, CancellationToken cancellationToken)
+    {
+        var body = await ReadAsAsync<JObject>(response, operation, cancellationToken);
+
+        return body?["sha"]?.Value<string>() ?? throw new GitContentException($"GitHub request to {operation} returned no sha.");
+    }
 }

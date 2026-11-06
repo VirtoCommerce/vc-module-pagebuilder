@@ -22,7 +22,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests;
 public class ThemeWriteLockTests
 {
     private const string Path = "default/sections/header-group.json";
-    private const string Sha = "1c0ffee1c0ffee1c0ffee1c0ffee1c0ffee1c0ff";
+    private const string VersionId = "HA_v-Hs8f7RVPw9gHHqUAxmPDJ8";
     private static readonly TimeSpan Patience = TimeSpan.FromSeconds(5);
 
     private readonly InProcessDistributedLock _lock = new();
@@ -74,21 +74,18 @@ public class ThemeWriteLockTests
     [Fact]
     public async Task Restore_ThemePublicationRunning_WaitsForStoreLock()
     {
-        const string repoPath = "theme/default/sections/header-group.json";
-        var github = new GitHubScript(
-            ("GET", $"repos/acme/site-s1/contents/{repoPath}?ref={Sha}", (_, _) => GitHubScript.Json(Contents("{\"content\":[]}"))),
-            ("GET", $"repos/acme/site-s1/contents/{repoPath}?ref=main", (_, _) => GitHubScript.Json(Contents("{}"))),
-            ("PUT", $"repos/acme/site-s1/contents/{repoPath}", (_, _) => GitHubScript.Json("""{ "commit": { "sha": "c9" } }""", HttpStatusCode.Created)));
+        var history = new RecordingContentHistory();
+        history.Versions[(VersionId, $"theme:{Path}")] = "{\"content\":[]}";
         var publication = await _lock.AcquireAsync(ThemeStorage.GetLockResource("s1"), cancellationToken: Ct);
 
-        var restore = HistoryController(github).Restore(Sha, "s1", Path, cancellationToken: Ct);
+        var restore = HistoryController(history).Restore(VersionId, "s1", [$"theme:{Path}"], Ct);
 
         Assert.Equal(ThemeStorage.GetLockResource("s1"), await _lock.Blocked.Task.WaitAsync(Patience, Ct));
         Assert.False(_live.Files.ContainsKey($"{Path}-draft"));
         await publication.DisposeAsync();
-        Assert.IsType<OkResult>(await restore);
+        Assert.IsType<OkObjectResult>((await restore).Result);
         Assert.Equal("{\"content\":[]}", _live.Files[$"{Path}-draft"]);
-        github.AssertDone();
+        Assert.Single(history.Records);
     }
 
     // ── helpers ────────────────────────────────────────────────────────────────────────────────
@@ -117,27 +114,18 @@ public class ThemeWriteLockTests
             authorizationService: new FakeAuthorizationService(true),
             distributedLock: _lock,
             requestValidator: RequestValidators.Content("s1"),
-            themeFileHistoryService: new NoFileHistory(),
+            contentHistory: new NoContentHistory(),
             themePublisher: null,
-            themeSnapshotService: null));
+            themeSnapshotService: null,
+            themeDraftService: null,
+            groupedPageService: null,
+            pageContentService: null));
     }
 
-    private ThemeFileHistoryController HistoryController(GitHubScript github)
-    {
-        var options = Options.Create(new GitContentOptions
-        {
-            Enabled = true,
-            Organization = "acme",
-            Token = "t0ken",
-            BaseBranch = "main",
-            GraphQlUrl = new Uri("https://api.github.test/graphql"),
-        });
-        var repository = new GitHubContentRepository(github, new MemoryCache(new MemoryCacheOptions()), options);
-        var history = new ThemeFileHistoryService(GitHubConnections.CreatePolicy(options, new FakeSettingsManager(true), new FakeGitContentOwnership()), repository,
-            new GitHubApiClient(github), GitHubConnections.CreateService(options.Value), new ThemeStorageFactory(_live.StoreService, _live, _live, _live), _lock, _live,
-            options, NullLogger<ThemeFileHistoryService>.Instance);
-        return WithUser(new ThemeFileHistoryController(history, new FakeAuthorizationService(true), RequestValidators.ThemeFiles("s1")));
-    }
+    private HistoryController HistoryController(RecordingContentHistory history) =>
+        WithUser(new HistoryController(history, null, null,
+            new ThemeDraftService(new ThemeStorageFactory(_live.StoreService, _live, _live, _live), _lock, _live, NullLogger<ThemeDraftService>.Instance),
+            new FakeAuthorizationService(true), RequestValidators.Stores("s1"), RequestValidators.History("s1")));
 
     private static T WithUser<T>(T controller) where T : ControllerBase
     {
@@ -145,7 +133,4 @@ public class ThemeWriteLockTests
         controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext { User = user } };
         return controller;
     }
-
-    private static string Contents(string content) =>
-        new JObject { ["sha"] = "b0", ["content"] = Convert.ToBase64String(Encoding.UTF8.GetBytes(content)) }.ToString();
 }

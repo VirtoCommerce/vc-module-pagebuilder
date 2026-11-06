@@ -395,8 +395,7 @@
         "PRESET_PLACEHOLDER": "Wybierz ustawienie wstępne",
         "APPLY": "Zastosuj",
         "EMPTY": "Ten motyw nie ma ustawień do edycji.",
-        "LOAD_FAILED": "Nie udało się wczytać ustawień motywu.",
-        "SAVE_FAILED": "Nie udało się zapisać ustawień motywu."
+        "LOAD_FAILED": "Nie udało się wczytać ustawień motywu."
       },
       "CLIPBOARD": {
         "COPY": "Kopiuj",
@@ -539,7 +538,6 @@
           "ID": "musi być niepustym tekstem",
           "DUPLICATE_ID": "powtarza identyfikator {id} innej reguły"
         },
-        "SAVE_FAILED": "Nie udało się zapisać reguł szablonów.",
         "TREE_FAILED": "Nie udało się wczytać kategorii.",
         "TEMPLATE": "Szablon",
         "CONDITIONS": "Gdy spełnione jest wszystko poniżej",

@@ -27,6 +27,8 @@ store's `DefaultThemeName` property, `default` when it is empty. Paths below are
 
 Every file except the snapshots has a draft next to it, `{file}-draft`. The designer and the agents write drafts only:
 on a store with New Page Builder on, the builder's save refuses a live write of a theme file (`draft=false`) with 400.
+The designer saves the page and the theme files it changed in one request, all or nothing
+([Save](history-api.md#save)).
 When `config/brand.json` does not exist yet, the designer starts the brand from `config/settings_data.json`:
 `logo_image`, `logo_inverted_image` and `favicon_image`.
 
@@ -45,8 +47,8 @@ at once:
 4. It rewrites `snapshots/current.json` to `n`. This is the moment the storefront sees the new theme.
 5. It writes the drafts over the live files and deletes the drafts.
 
-Steps 1–5 hold the lock. The publication is then recorded in the history, after the lock, as a save is: the history
-lives on GitHub, and a slow answer from it must not hold up the store's theme saves.
+Steps 1–5 hold the lock. The publication is then recorded in the history, after the lock, as one version holding every
+file it put live: the history lives on GitHub, and a slow answer from it must not hold up the store's theme saves.
 
 The snapshots and the record are written before the pointer, so the pointer never names a publication that is not
 complete. A pointer that exists but is not valid JSON (a write cut off on a file system) is read as the highest
@@ -382,5 +384,6 @@ All take `storeId` and check the store as the other Page Builder endpoints do.
 | `POST api/pagebuilder/theme/publish?storeId&catalogHash` | `builder:publish` | `{ publication }`; 400 `{ error, errors }` when it names no catalog or the theme does not fit it |
 | `GET api/pagebuilder/theme/status?storeId` | `builder:read` | `{ publication, drafts }`: the current publication, left out before the first, and the theme files with a draft by their path in the theme (`templates/product.json`, `config/template_rules.json`) |
 | `POST api/pagebuilder/save?storeId&theme&draft&catalogHash`, the files as the body | `builder:update`; `builder:templates` or `builder:theme` by theme file | 200; 400 `{ error, errors }` when a theme file does not fit the catalog it names; 400 `{ error }` for a live theme write on a New Page Builder store |
+| `POST api/pagebuilder/designer/save?storeId&catalogHash` | see [Save](history-api.md#save) | the designer's Save: the page and the theme files as drafts, all or nothing, one version |
 | `PUT api/pagebuilder/catalog?storeId`, the catalog as the body | `builder:theme` | `{ hash }`; 400 when it has no valid `hash` |
 | `GET api/pagebuilder/catalog?storeId&hash` | `builder:read` | the catalog with that hash, the current one without it; 404 when there is none |

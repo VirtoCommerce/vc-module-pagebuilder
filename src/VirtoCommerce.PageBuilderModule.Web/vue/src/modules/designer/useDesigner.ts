@@ -3,7 +3,7 @@ import { useManualRefHistory } from "@vueuse/core";
 import { debounce } from "lodash-es";
 import type { Field, Item, ItemSchema, PageDocument, Schemas, SectionGroup, Selection } from "./types";
 import { copyItem, fieldsOf, isTextEdit, itemTitle, newId, newItem, withTextAt } from "./schema";
-import { isComponentRef, resolveRefs } from "./document";
+import { fromDocument, isComponentRef, resolveRefs } from "./document";
 import type { ClipboardItem } from "./clipboard";
 import * as api from "./api";
 import { GROUPS, groupItems, groupOf, pageOnly, withGroups } from "./groups";
@@ -11,6 +11,7 @@ import { groupPath } from "./history";
 import { PAGE_CONTENT, pageTypeOf, startingTemplate, templateEntry, templateKeyOf } from "./templates";
 import type { Capability, Handshake } from "./previewMessages";
 import { hasThemeDraft, templateStatus, type ThemeStatus } from "./themePublication";
+import type { DesignerSaveFile, DesignerSavePage } from "./designerSave";
 
 const EMPTY_SCHEMAS: Schemas = { sections: {}, blocks: {}, shared: {}, objects: {} };
 /** A page-level row of the tree: the page template's own fields, or a static section's (Page Header: SEO). */
@@ -594,34 +595,38 @@ export function useDesigner() {
   }
 
   /**
-   * Saves the draft (in git: a commit on this editor's branch). A database page throws ApiError 412 when someone
-   * else saved it meanwhile; edits made while saving stay unsaved.
+   * Saves the drafts as one Save, in one request: the page or template, the header and footer, and the theme files
+   * given (the rules, the theme settings). A shared component is saved on its own. A database page throws ApiError 412
+   * when someone else saved it meanwhile, 428 without its version; edits made while saving stay unsaved. Returns false
+   * when nothing could be saved: nothing is open, it couldn't be opened, or another action runs.
    */
-  async function save() {
-    if ((!groupId.value && !file.value && !shared.value) || busy.value || loadError.value) return;
-    // the page's own document, saved as its draft if it changed; changed groups as drafts of the theme's files
+  async function save(themeFiles: DesignerSaveFile[] = []): Promise<boolean> {
+    if ((!groupId.value && !file.value && !shared.value) || busy.value || loadError.value) return false;
     const sent = pageOnly(doc.value);
     const pageChanged = JSON.stringify(sent) !== savedJson.value;
     const groups = changedGroups();
     if (pageChanged && groupId.value && !eTag.value) throw new api.ApiError(428, "");
-    // theme files name the catalog of the storefront previewed: the server checks them against it
-    const catalogHash = handshake.value?.hash;
+    const files = [...themeFiles, ...(theme.value ? api.sectionGroupFiles(theme.value, groups) : [])];
+    let page: DesignerSavePage | undefined;
+    if (pageChanged && !shared.value) {
+      // a template is a theme file; a database page goes with the version it was read at
+      if (groupId.value) page = { groupId: groupId.value, eTag: eTag.value!, content: fromDocument(sent) };
+      else if (themeFileOpen.value) files.unshift({ path: file.value!.path, content: api.filePageContent(sent) });
+      else page = { path: file.value!.path, type: file.value!.type, content: api.filePageContent(sent) };
+    }
     busy.value = "saving";
     try {
-      if (!pageChanged) {
-        // nothing of the page's own to save
-      } else if (groupId.value) eTag.value = (await api.savePage(groupId.value, sent, eTag.value!)) ?? eTag.value;
-      else if (shared.value) await api.saveSharedComponentContent(shared.value.id, sent);
-      else {
-        await api.saveFilePage(file.value!, sent, catalogHash);
-        templateIsNew.value = false;
+      if (pageChanged && shared.value) await api.saveSharedComponentContent(shared.value.id, sent);
+      if (page || files.length) {
+        // theme files name the catalog of the storefront previewed: the server checks them against it
+        const saved = await api.saveDesigner(storeId.value!, { page, themeFiles: files }, handshake.value?.hash);
+        if (groupId.value) eTag.value = saved.eTag ?? eTag.value;
       }
+      if (pageChanged && themeFileOpen.value) templateIsNew.value = false;
       savedJson.value = JSON.stringify(sent);
-      if (Object.keys(groups).length) {
-        await api.saveSectionGroups(storeId.value!, theme.value!, groups, catalogHash);
-        for (const [g, items] of Object.entries(groups)) savedGroupsJson.value[g as SectionGroup] = JSON.stringify(items);
-      }
+      for (const [g, items] of Object.entries(groups)) savedGroupsJson.value[g as SectionGroup] = JSON.stringify(items);
       await Promise.all([refreshStatus(), loadComponents(true)]);
+      return true;
     } finally {
       busy.value = undefined;
     }

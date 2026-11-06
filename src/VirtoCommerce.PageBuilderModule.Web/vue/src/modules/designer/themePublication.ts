@@ -26,17 +26,6 @@ export function templateStatus(status: ThemeStatus | undefined, theme: string, p
   return { published: status.publication !== undefined, hasChanges: hasThemeDraft(status, theme, path) };
 }
 
-/** The builder's save of drafts; theme files name the catalog of the storefront previewed, which the server checks them against */
-export function saveUrl(storeId: string, theme: string, catalogHash?: string) {
-  const query = new URLSearchParams({ storeId, theme, draft: "true" });
-  if (catalogHash) query.set("catalogHash", catalogHash);
-  return `/api/pagebuilder/save?${query}`;
-}
-
-/** A file page's save: a template, a theme file, names the catalog; a page or a blog article doesn't */
-export const fileSaveUrl = (page: { storeId: string; theme: string; type: string }, catalogHash?: string) =>
-  saveUrl(page.storeId, page.theme, page.type === "themes" ? catalogHash : undefined);
-
 /** The theme's publication, checked against the catalog of the storefront previewed */
 export function publishThemeUrl(storeId: string, catalogHash?: string) {
   const query = new URLSearchParams({ storeId });

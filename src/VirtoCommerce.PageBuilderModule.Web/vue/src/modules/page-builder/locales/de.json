@@ -395,8 +395,7 @@
         "PRESET_PLACEHOLDER": "Voreinstellung auswählen",
         "APPLY": "Anwenden",
         "EMPTY": "Dieses Theme hat keine bearbeitbaren Einstellungen.",
-        "LOAD_FAILED": "Die Theme-Einstellungen konnten nicht geladen werden.",
-        "SAVE_FAILED": "Die Theme-Einstellungen konnten nicht gespeichert werden."
+        "LOAD_FAILED": "Die Theme-Einstellungen konnten nicht geladen werden."
       },
       "CLIPBOARD": {
         "COPY": "Kopieren",
@@ -539,7 +538,6 @@
           "ID": "muss ein nicht leerer Text sein",
           "DUPLICATE_ID": "wiederholt die ID {id} einer anderen Regel"
         },
-        "SAVE_FAILED": "Die Vorlagenregeln konnten nicht gespeichert werden.",
         "TREE_FAILED": "Die Kategorien konnten nicht geladen werden.",
         "TEMPLATE": "Vorlage",
         "CONDITIONS": "Wenn all dies zutrifft",

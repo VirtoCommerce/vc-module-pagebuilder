@@ -395,8 +395,7 @@
         "PRESET_PLACEHOLDER": "Välj en förinställning",
         "APPLY": "Tillämpa",
         "EMPTY": "Det här temat har inga inställningar att redigera.",
-        "LOAD_FAILED": "Temainställningarna kunde inte läsas in.",
-        "SAVE_FAILED": "Temainställningarna kunde inte sparas."
+        "LOAD_FAILED": "Temainställningarna kunde inte läsas in."
       },
       "CLIPBOARD": {
         "COPY": "Kopiera",
@@ -539,7 +538,6 @@
           "ID": "måste vara en text som inte är tom",
           "DUPLICATE_ID": "upprepar id:t {id} från en annan regel"
         },
-        "SAVE_FAILED": "Mallreglerna kunde inte sparas.",
         "TREE_FAILED": "Kategorierna kunde inte läsas in.",
         "TEMPLATE": "Mall",
         "CONDITIONS": "När allt detta stämmer",

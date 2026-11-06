@@ -395,8 +395,7 @@
         "PRESET_PLACEHOLDER": "Escolha uma predefinição",
         "APPLY": "Aplicar",
         "EMPTY": "Este tema não tem configurações para editar.",
-        "LOAD_FAILED": "Não foi possível carregar as configurações do tema.",
-        "SAVE_FAILED": "As configurações do tema não puderam ser salvas."
+        "LOAD_FAILED": "Não foi possível carregar as configurações do tema."
       },
       "CLIPBOARD": {
         "COPY": "Copiar",
@@ -539,7 +538,6 @@
           "ID": "deve ser um texto não vazio",
           "DUPLICATE_ID": "repete o id {id} de outra regra"
         },
-        "SAVE_FAILED": "Não foi possível salvar as regras de modelos.",
         "TREE_FAILED": "Não foi possível carregar as categorias.",
         "TEMPLATE": "Modelo",
         "CONDITIONS": "Quando tudo isto for verdadeiro",

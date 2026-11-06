@@ -395,8 +395,7 @@
         "PRESET_PLACEHOLDER": "选择预设",
         "APPLY": "应用",
         "EMPTY": "此主题没有可编辑的设置。",
-        "LOAD_FAILED": "无法加载主题设置。",
-        "SAVE_FAILED": "无法保存主题设置。"
+        "LOAD_FAILED": "无法加载主题设置。"
       },
       "CLIPBOARD": {
         "COPY": "复制",
@@ -539,7 +538,6 @@
           "ID": "必须是非空文本",
           "DUPLICATE_ID": "与另一条规则的 ID {id} 重复"
         },
-        "SAVE_FAILED": "无法保存模板规则。",
         "TREE_FAILED": "无法加载分类。",
         "TEMPLATE": "模板",
         "CONDITIONS": "当以下条件全部满足时",

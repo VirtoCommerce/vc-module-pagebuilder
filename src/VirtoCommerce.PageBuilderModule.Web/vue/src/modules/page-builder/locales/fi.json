@@ -395,8 +395,7 @@
         "PRESET_PLACEHOLDER": "Valitse esiasetus",
         "APPLY": "Käytä",
         "EMPTY": "Tässä teemassa ei ole muokattavia asetuksia.",
-        "LOAD_FAILED": "Teeman asetuksia ei voitu ladata.",
-        "SAVE_FAILED": "Teeman asetuksia ei voitu tallentaa."
+        "LOAD_FAILED": "Teeman asetuksia ei voitu ladata."
       },
       "CLIPBOARD": {
         "COPY": "Kopioi",
@@ -539,7 +538,6 @@
           "ID": "on oltava tekstiä, joka ei ole tyhjä",
           "DUPLICATE_ID": "toistaa toisen säännön tunnuksen {id}"
         },
-        "SAVE_FAILED": "Mallisääntöjä ei voitu tallentaa.",
         "TREE_FAILED": "Kategorioita ei voitu ladata.",
         "TEMPLATE": "Malli",
         "CONDITIONS": "Kun kaikki nämä toteutuvat",

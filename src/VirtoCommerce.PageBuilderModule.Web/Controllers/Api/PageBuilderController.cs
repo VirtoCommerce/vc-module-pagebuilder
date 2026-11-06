@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Options;
@@ -21,7 +22,9 @@ using VirtoCommerce.ContentModule.Data.Extensions;
 using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
+using VirtoCommerce.PageBuilderModule.Core.History;
 using VirtoCommerce.PageBuilderModule.Core.Models;
+using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Core.Theme;
 using VirtoCommerce.PageBuilderModule.Data.Authorization;
 using VirtoCommerce.PageBuilderModule.Data.Extensions;
@@ -29,6 +32,7 @@ using VirtoCommerce.PageBuilderModule.Data.Theme;
 using VirtoCommerce.PageBuilderModule.Data.Validation;
 using VirtoCommerce.PageBuilderModule.Web.Extensions;
 using VirtoCommerce.PageBuilderModule.Web.Models;
+using VirtoCommerce.PageBuilderModule.Web.Services;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.DistributedLock;
 using VirtoCommerce.Platform.Core.Events;
@@ -59,9 +63,12 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             IAuthorizationService authorizationService,
             IDistributedLock distributedLock,
             IValidator<PageBuilderContentRequest> requestValidator,
-            IThemeFileHistoryService themeFileHistoryService,
+            IContentHistory contentHistory,
             IThemePublisher themePublisher,
-            IThemeSnapshotService themeSnapshotService
+            IThemeSnapshotService themeSnapshotService,
+            IThemeDraftService themeDraftService,
+            IGroupedPageService groupedPageService,
+            PageBuilderPageContentService pageContentService
             )
         : Controller
     {
@@ -92,6 +99,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         // How many "_N" names a duplicate will try before asking the caller to pick one. A page with
         // this many copies is a naming problem, not a paging problem.
         private const int MaxCopyIndex = 100;
+        private const string PageConflictError = "The page was saved by someone else since it was read.";
 
 
         [HttpGet]
@@ -228,7 +236,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
             if (blobInfo == null)
             {
-                return Content(gitFlow ? (await GetGitSettingsAsync(storeId)).ToString(Formatting.None) : "{}", JsonContentType);
+                return Content(gitFlow ? GitBuilderDescriptors().ToString(Formatting.None) : "{}", JsonContentType);
             }
 
             if (!gitFlow)
@@ -241,16 +249,9 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             // That is how a store on the git flow gets git urls for publishing without anyone editing the
             // app's static config — and how a store that is not on it keeps the bytes it has always got.
             var settings = await ReadJsonBlobAsync(storageProvider, blobInfo.RelativeUrl);
-            settings.Merge(await GetGitSettingsAsync(storeId), new JsonMergeSettings { MergeArrayHandling = MergeArrayHandling.Replace });
+            settings.Merge(GitBuilderDescriptors(), new JsonMergeSettings { MergeArrayHandling = MergeArrayHandling.Replace });
 
             return Content(settings.ToString(Formatting.None), JsonContentType);
-        }
-
-        private async Task<JObject> GetGitSettingsAsync(string storeId)
-        {
-            var settings = GitBuilderDescriptors();
-            settings["siteHistory"] = (await gitContentPolicy.GetConfiguredRepositoryAsync(storeId, HttpContext.RequestAborted))?.IsPlatformManaged == true;
-            return settings;
         }
 
         /// <summary>
@@ -624,7 +625,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
         private async Task<ActionResult> CheckThemeFileAccessAsync(IEnumerable<string> paths)
         {
-            foreach (var permission in paths.Select(GetThemeFileEditPermission).Distinct())
+            foreach (var permission in paths.Select(PageBuilderContentPaths.GetThemeFileEditPermission).Distinct())
             {
                 if (!(await authorizationService.AuthorizeAsync(User, null, permission)).Succeeded)
                 {
@@ -666,9 +667,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         }
 
         private static bool IsThemeFile(SaveFileModel file) => string.Equals(file?.Type, Themes, StringComparison.OrdinalIgnoreCase);
-
-        private static string GetThemeFileEditPermission(string path) =>
-            PageBuilderContentPaths.IsTemplateFile(path) ? ModuleConstants.Security.Permissions.Templates : ModuleConstants.Security.Permissions.Theme;
 
         private static PageBuilderContentFile ToContentFile(SaveFileModel file) =>
             file == null ? null : new PageBuilderContentFile { ContentType = file.Type, Path = file.Path, Content = AsToken(file.Content) };
@@ -720,6 +718,276 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
             return Ok(new { pages = saved });
         }
+
+        /// <summary>
+        /// Save what one designer Save changed as drafts, the page and the theme files: all or nothing, one version of the history
+        /// </summary>
+        [HttpPost]
+        [Authorize(ModuleConstants.Security.Permissions.Read)]
+        [Route("designer/save")]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status412PreconditionFailed)]
+        public async Task<ActionResult<DesignerSaveResult>> SaveDesignerChanges([FromQuery] string storeId, [FromBody] DesignerSaveRequest value,
+            [FromQuery] string catalogHash = null)
+        {
+            var cancellationToken = HttpContext.RequestAborted;
+            var request = new PageBuilderContentRequest { StoreId = storeId };
+            if (await CheckStoreAccessAsync(request) is { } forbidden)
+            {
+                return forbidden;
+            }
+
+            var page = value?.Page;
+            var themeFiles = value?.ThemeFiles ?? [];
+            if (page != null && !await HasPermissionAsync(ModuleConstants.Security.Permissions.Update))
+            {
+                return Forbid();
+            }
+
+            if (await CheckThemeFileAccessAsync(themeFiles.Select(x => x?.Path)) is { } forbiddenFile)
+            {
+                return forbiddenFile;
+            }
+
+            if (GetDesignerSaveError(page, themeFiles) is { } error)
+            {
+                return BadRequest(new { error });
+            }
+
+            if (!TryParseDesignerFiles(page, themeFiles, out var files, out var parseError))
+            {
+                return BadRequest(new { error = parseError });
+            }
+
+            request.Files = files.ConvertAll(ToContentFile);
+            if (await ValidateAsync(request) is { } invalid)
+            {
+                return invalid;
+            }
+
+            GroupedPageBuilderPage group = null;
+            if (!string.IsNullOrEmpty(page?.GroupId))
+            {
+                group = await groupedPageService.GetByIdAsync(page.GroupId);
+                if (await CheckDesignerPageAsync(storeId, group, page, cancellationToken) is { } refusedPage)
+                {
+                    return refusedPage;
+                }
+            }
+
+            var themeSaveFiles = files.Where(IsThemeFile).ToList();
+            if (themeSaveFiles.Count > 0 && await CheckThemeFilesAsync(storeId, themeSaveFiles, draft: true, catalogHash) is { } refusedThemeFiles)
+            {
+                return refusedThemeFiles;
+            }
+
+            var result = AbstractTypeFactory<DesignerSaveResult>.TryCreateInstance();
+            result.SaveId = Request.GetSaveId() ?? Guid.NewGuid().ToString("N");
+            try
+            {
+                var filePage = files.Find(x => !IsThemeFile(x));
+                result.ETag = await themeDraftService.SaveDraftsAsync(
+                    storeId,
+                    themeFiles.ToDictionary(x => x.Path, x => x.Content),
+                    token => SaveDesignerPageAsync(storeId, group, page, filePage, token),
+                    cancellationToken);
+            }
+            catch (PageBuilderContentConflictException ex)
+            {
+                return StatusCode(StatusCodes.Status412PreconditionFailed, ex.Message);
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound();
+            }
+            catch (InvalidDataException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+
+            // a file page keeps its history in git, where its draft is
+            var record = CreateHistoryRecord(ModuleConstants.GitHistory.SavedSummary, result.SaveId);
+            if (group != null)
+            {
+                record.AddEntry(new HistoryItem(HistoryItemType.Page, group.Id), page.Content);
+            }
+
+            foreach (var file in themeFiles)
+            {
+                record.AddEntry(new HistoryItem(HistoryItemType.Theme, file.Path), file.Content);
+            }
+
+            await contentHistory.RecordAsync(storeId, record, cancellationToken);
+
+            return Ok(result);
+        }
+
+        private static string GetDesignerSaveError(DesignerSavePage page, IList<DesignerSaveFile> themeFiles)
+        {
+            if (page == null && themeFiles.Count == 0)
+            {
+                return "Name the page or a theme file to save.";
+            }
+
+            if (themeFiles.Any(x => x == null || string.IsNullOrEmpty(x.Path)) ||
+                themeFiles.Select(x => x.Path).Distinct(StringComparer.OrdinalIgnoreCase).Count() != themeFiles.Count)
+            {
+                return "Name each theme file once, by its path.";
+            }
+
+            if (page != null && string.IsNullOrEmpty(page.GroupId) == string.IsNullOrEmpty(page.Path))
+            {
+                return "Name the page by its groupId (a database page) or by its path and type (a file page).";
+            }
+
+            if (page != null && string.IsNullOrEmpty(page.GroupId) && !GitPageLocation.IsPageContent(page.Type))
+            {
+                return "A file page is a page or a blog article: a theme file goes with the theme files.";
+            }
+
+            return null;
+        }
+
+        /// <summary>Reads the JSON of the file page and the theme files as they are, dates included.</summary>
+        private static bool TryParseDesignerFiles(DesignerSavePage page, IList<DesignerSaveFile> themeFiles, out List<SaveFileModel> files, out string error)
+        {
+            files = [];
+            error = null;
+            var named = themeFiles.Select(x => (x.Path, Type: Themes, x.Content)).ToList();
+            if (!string.IsNullOrEmpty(page?.Path))
+            {
+                named.Insert(0, (page.Path, page.Type.ToLowerInvariant(), page.Content));
+            }
+
+            foreach (var (path, type, content) in named)
+            {
+                if (!TryParseJson(content, out var token))
+                {
+                    error = $"\"{path}\" is not a JSON document.";
+                    return false;
+                }
+
+                files.Add(new SaveFileModel { Path = path, Type = type, Content = token });
+            }
+
+            return true;
+        }
+
+        private static bool TryParseJson(string content, out JToken token)
+        {
+            token = null;
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                return false;
+            }
+
+            try
+            {
+                using var reader = new JsonTextReader(new StringReader(content)) { DateParseHandling = DateParseHandling.None };
+                token = JToken.ReadFrom(reader);
+                return true;
+            }
+            catch (JsonException)
+            {
+                return false;
+            }
+        }
+
+        /// <summary>Checks a database page as its own save does: access, its envelope, its version and its shared components.</summary>
+        private async Task<ActionResult> CheckDesignerPageAsync(string storeId, GroupedPageBuilderPage group, DesignerSavePage page, CancellationToken cancellationToken)
+        {
+            if (group == null)
+            {
+                return NotFound();
+            }
+
+            var authorizationResult = await authorizationService.AuthorizeAsync(User, group, new PageBuilderAuthorizationRequirement());
+            if (!authorizationResult.Succeeded || !group.StoreId.EqualsIgnoreCase(storeId))
+            {
+                return Forbid();
+            }
+
+            if (string.IsNullOrWhiteSpace(page.Content))
+            {
+                return BadRequest(new { error = "Content is required." });
+            }
+
+            if (!PageBuilderPageController.TryValidatePageContentEnvelope(page.Content, out var envelopeError))
+            {
+                return BadRequest(new { error = envelopeError });
+            }
+
+            var eTag = page.ETag?.Trim();
+            if (string.IsNullOrEmpty(eTag))
+            {
+                return StatusCode(StatusCodes.Status428PreconditionRequired, "Read the page content and send its ETag before saving.");
+            }
+
+            if (!PageBuilderContentVersion.IsWellFormed(eTag))
+            {
+                return BadRequest(new { error = "The ETag must be the single strong ETag returned by the content GET." });
+            }
+
+            if (await ValidateSharedComponentsAsync(storeId, page.Content, cancellationToken) is { } refused)
+            {
+                return refused;
+            }
+
+            // a page saved by someone else meanwhile: refused before a theme draft is written
+            var current = await pageContentService.LoadGroupContentAsync(group, draft: true, cancellationToken);
+            return current.ETag != eTag && current.Content != page.Content
+                ? StatusCode(StatusCodes.Status412PreconditionFailed, PageConflictError)
+                : null;
+        }
+
+        private async Task<ActionResult> ValidateSharedComponentsAsync(string storeId, string content, CancellationToken cancellationToken)
+        {
+            try
+            {
+                if (pageContentService.HasSharedComponentReferences(content) && !await HasPermissionAsync(ModuleConstants.Security.Permissions.SharedComponentsRead))
+                {
+                    return Forbid();
+                }
+
+                await pageContentService.ValidateReferencesForStoreAsync(storeId, content, cancellationToken);
+                return null;
+            }
+            catch (InvalidDataException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
+        /// <summary>Writes the page last, so that a refused page leaves the theme drafts to be put back.</summary>
+        private async Task<string> SaveDesignerPageAsync(string storeId, GroupedPageBuilderPage group, DesignerSavePage page, SaveFileModel filePage,
+            CancellationToken cancellationToken)
+        {
+            if (group != null)
+            {
+                var written = await pageContentService.SaveConditionalContentAsync(group, page.Content, page.ETag.Trim(), cancellationToken);
+                return written.ETag;
+            }
+
+            if (filePage == null)
+            {
+                return null;
+            }
+
+            if (await gitContentPolicy.IsEnabledForStoreAsync(storeId, cancellationToken))
+            {
+                await CommitPageToGitAsync(await gitContentPolicy.GetRepositoryAsync(storeId, cancellationToken), filePage, storeId);
+            }
+            else
+            {
+                await SaveFilesTo(storeId, theme: null, [filePage], draft: true, cancellationToken);
+            }
+
+            return null;
+        }
+
+        private async Task<bool> HasPermissionAsync(string permission) =>
+            (await authorizationService.AuthorizeAsync(User, null, permission)).Succeeded;
 
         /// <summary>
         /// Merge the editor's branch of the page into the base branch, and write the page to live storage of a repository
@@ -1327,8 +1595,9 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             if (contentType == Themes)
             {
                 var publishedContent = await storageProvider.ReadTextAsync(publishingService.GetRelativeDraftUrl(path, false));
-                await themeFileHistoryService.RecordAsync(storeId, path, publishedContent, ModuleConstants.GitHistory.DiscardedSummary, User, Request.GetSaveId(),
-                    HttpContext.RequestAborted);
+                var record = CreateHistoryRecord(ModuleConstants.GitHistory.DiscardedSummary, Request.GetSaveId());
+                record.AddEntry(new HistoryItem(HistoryItemType.Theme, path), publishedContent);
+                await contentHistory.RecordAsync(storeId, record, HttpContext.RequestAborted);
             }
 
             return NoContent();
@@ -2077,10 +2346,15 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 await eventPublisher.Publish(new PageBuilderContentChangedEvent(type, entries), cancellationToken);
             }
 
-            var summary = draft ? ModuleConstants.GitHistory.SavedSummary : ModuleConstants.GitHistory.PublishedSummary;
-            foreach (var (path, content) in themeFiles)
+            if (themeFiles.Count > 0)
             {
-                await themeFileHistoryService.RecordAsync(storeId, path, content, summary, User, Request.GetSaveId(), cancellationToken);
+                var record = CreateHistoryRecord(draft ? ModuleConstants.GitHistory.SavedSummary : ModuleConstants.GitHistory.PublishedSummary, Request.GetSaveId());
+                foreach (var (path, content) in themeFiles)
+                {
+                    record.AddEntry(new HistoryItem(HistoryItemType.Theme, path), content);
+                }
+
+                await contentHistory.RecordAsync(storeId, record, cancellationToken);
             }
 
             async Task WriteFilesAsync()
@@ -2113,6 +2387,15 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                     entries.Add(CreateChangedEntry(file.Path, file.Type, EntryState.Modified));
                 }
             }
+        }
+
+        private ContentHistoryRecord CreateHistoryRecord(string description, string saveId)
+        {
+            var record = AbstractTypeFactory<ContentHistoryRecord>.TryCreateInstance().WithUser(User);
+            record.Description = description;
+            record.SaveId = saveId;
+
+            return record;
         }
 
         private static GenericChangedEntry<FileEntity> CreateChangedEntry(string path, string type, EntryState state)

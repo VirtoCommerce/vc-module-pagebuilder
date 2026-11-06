@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
 using VirtoCommerce.PageBuilderModule.Core;
-using VirtoCommerce.PageBuilderModule.Core.GitContent;
+using VirtoCommerce.PageBuilderModule.Core.History;
 using VirtoCommerce.PageBuilderModule.Core.Theme;
 using VirtoCommerce.PageBuilderModule.Data.GitContent;
 using VirtoCommerce.PageBuilderModule.Data.Theme;
@@ -42,7 +42,7 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
         _stores = new FakeStoreService(_store);
         _storageFactory = new ThemeStorageFactory(_stores, _storage, _storage, _storage);
         _catalogs = new SchemaCatalogService(_storageFactory);
-        _publisher = Publisher(new NoFileHistory());
+        _publisher = Publisher(new NoContentHistory());
         _snapshots = Snapshots(_cache);
         _settings.Values[ModuleConstants.Settings.StoreLevelSettings.NewPageBuilder.Name] = true;
     }
@@ -121,7 +121,29 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
 
         await publisher.PublishAsync("s1", catalog, null, Ct);
 
-        Assert.Equal([(Product, true)], history.Recorded);
+        var (record, lockFree) = Assert.Single(history.Recorded);
+        Assert.True(lockFree);
+        Assert.Equal([$"theme:{Product}"], record.Entries.Select(x => x.Item.ToString()));
+    }
+
+    [Fact]
+    public async Task PublishAsync_SeveralDrafts_RecordsThemAsOneVersion()
+    {
+        _storage.Files[Product] = Template("product-info");
+        await _snapshots.GetPublishedAsync("s1", null, Ct);
+        var header = Template("product-info");
+        _storage.Files[Product + "-draft"] = Template("product-info", "related-products");
+        _storage.Files["default/sections/header-group.json-draft"] = header;
+        var catalog = await SaveCatalogAsync("product-info", "related-products");
+        var history = new RecordingContentHistory();
+
+        await Publisher(history).PublishAsync("s1", catalog, null, Ct);
+
+        var (storeId, record) = Assert.Single(history.Records);
+        Assert.Equal("s1", storeId);
+        Assert.Equal(ModuleConstants.GitHistory.PublishedSummary, record.Description);
+        Assert.Equal(["theme:default/sections/header-group.json", $"theme:{Product}"], record.Entries.Select(x => x.Item.ToString()).Order());
+        Assert.Equal(header, record.Entries.Single(x => x.Item.Key == "default/sections/header-group.json").Content);
     }
 
     [Fact]
@@ -422,7 +444,7 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
             ["sections"] = new JObject(sections.Select(x => new JProperty(x, new JObject()))),
         }.ToString(), Ct);
 
-    private ThemePublisher Publisher(IThemeFileHistoryService history) =>
+    private ThemePublisher Publisher(IContentHistory history) =>
         new(_storageFactory, new ThemeSnapshotBuilder(), _stores, _catalogs, _lock, _storage, history,
             Options.Create(new ThemeSnapshotOptions()), NullLogger<ThemePublisher>.Instance);
 
@@ -454,16 +476,22 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
             ResolveLanguage(languages, defaultLanguage, cultureName);
     }
 
-    private sealed class LockProbingHistory(InProcessDistributedLock distributedLock)
-        : ThemeFileHistoryService(null, null, null, null, null, null, null, Options.Create(new GitContentOptions()), NullLogger<ThemeFileHistoryService>.Instance)
+    private sealed class LockProbingHistory(InProcessDistributedLock distributedLock) : IContentHistory
     {
-        public List<(string Path, bool LockFree)> Recorded { get; } = [];
+        public List<(ContentHistoryRecord Record, bool LockFree)> Recorded { get; } = [];
 
-        public override async Task RecordAsync(string storeId, string path, string content, string summary, ClaimsPrincipal user, string saveId,
-            CancellationToken cancellationToken = default)
+        public async Task RecordAsync(string storeId, ContentHistoryRecord record, CancellationToken cancellationToken = default)
         {
             await using var handle = await distributedLock.TryAcquireAsync(ThemeStorage.GetLockResource(storeId), TimeSpan.Zero, cancellationToken);
-            Recorded.Add((path, handle != null));
+            Recorded.Add((record, handle != null));
         }
+
+        public Task<ContentHistoryStatus> GetStatusAsync(string storeId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+        public Task<ContentVersionPage> ListAsync(string storeId, IList<HistoryItem> items, string cursor, int take, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task<string> ReadAsync(string storeId, HistoryItem item, string versionId, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
     }
 }

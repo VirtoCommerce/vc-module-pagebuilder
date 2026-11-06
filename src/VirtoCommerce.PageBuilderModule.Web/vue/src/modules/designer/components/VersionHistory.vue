@@ -45,17 +45,17 @@
       </p>
       <div
         v-for="(version, index) in versions"
-        :key="version.id ?? version.sha"
+        :key="version.id"
         class="vh__row"
-        :class="{ 'vh__row--live': version.sha === liveSha, 'vh__row--previewing': version.sha === previewing }"
+        :class="{ 'vh__row--live': version.id === liveId, 'vh__row--previewing': version.id === previewing }"
       >
         <!-- what and its state on top; who, when and what can be done with it below -->
         <div class="vh__line">
           <p
             class="vh__message"
-            :title="[version.message, describe?.(version)].filter(Boolean).join(' · ')"
+            :title="[version.description, describe?.(version)].filter(Boolean).join(' · ')"
           >
-            {{ version.message || version.shortSha || version.sha.slice(0, 7) }}
+            {{ version.description || version.label }}
             <!-- what the Save wrote: "Template, Header" -->
             <span
               v-if="describe?.(version)"
@@ -64,7 +64,7 @@
             >
           </p>
           <span
-            v-if="version.sha === previewing"
+            v-if="version.id === previewing"
             class="vh__badge vh__badge--latest"
             >{{ $t("PAGE_BUILDER.DESIGNER.HISTORY.PREVIEWING") }}</span
           >
@@ -74,7 +74,7 @@
             >{{ $t("PAGE_BUILDER.DESIGNER.HISTORY.LATEST") }}</span
           >
           <span
-            v-if="version.sha === liveSha"
+            v-if="version.id === liveId"
             class="vh__badge vh__badge--live"
             >{{ $t("PAGE_BUILDER.DESIGNER.HISTORY.PUBLISHED") }}</span
           >
@@ -87,23 +87,23 @@
         <div class="vh__line">
           <p
             class="vh__meta"
-            :title="[version.sha, when(version.date), who(version)].filter(Boolean).join(' · ')"
+            :title="[version.id, when(version.date), who(version)].filter(Boolean).join(' · ')"
           >
-            <span class="vh__sha">{{ version.shortSha ?? version.sha.slice(0, 7) }}</span>
+            <span class="vh__sha">{{ version.label }}</span>
             · {{ when(version.date) }}<template v-if="who(version)"> · {{ who(version) }}</template>
           </p>
           <button
             v-if="!previewable || previewable(version)"
             type="button"
             class="vh__action"
-            :class="{ 'vh__action--on': version.sha === previewing }"
-            @click="emit('preview', version.sha === previewing ? null : version)"
+            :class="{ 'vh__action--on': version.id === previewing }"
+            @click="emit('preview', version.id === previewing ? null : version)"
           >
             <VcIcon
               icon="lucide-eye"
               size="xs"
             />
-            {{ $t(version.sha === previewing ? "PAGE_BUILDER.DESIGNER.HISTORY.EXIT" : "PAGE_BUILDER.DESIGNER.HISTORY.PREVIEW") }}
+            {{ $t(version.id === previewing ? "PAGE_BUILDER.DESIGNER.HISTORY.EXIT" : "PAGE_BUILDER.DESIGNER.HISTORY.PREVIEW") }}
           </button>
           <button
             v-if="index > 0"
@@ -159,14 +159,12 @@
 import { computed, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { VcIcon } from "@vc-shell/framework/ui";
-import type { PageVersion } from "../api";
+import type { HistoryVersion } from "../history";
 
 export interface VersionPage {
-  versions: PageVersion[];
+  versions: HistoryVersion[];
   hasMore?: boolean;
   endCursor?: string;
-  /** the versions are all of them so far, not the next ones */
-  complete?: boolean;
 }
 
 const props = defineProps<{
@@ -179,23 +177,23 @@ const props = defineProps<{
   /** there are unpublished changes to throw away */
   canDiscard: boolean;
   /** what a version changed, after its message */
-  describe?: (version: PageVersion) => string | undefined;
+  describe?: (version: HistoryVersion) => string | undefined;
   /** whether a version can be shown in the preview (all can, without it) */
-  previewable?: (version: PageVersion) => boolean;
+  previewable?: (version: HistoryVersion) => boolean;
 }>();
-const emit = defineEmits<{ close: []; preview: [version: PageVersion | null]; restore: [version: PageVersion]; discard: [] }>();
+const emit = defineEmits<{ close: []; preview: [version: HistoryVersion | null]; restore: [version: HistoryVersion]; discard: [] }>();
 
 const { locale } = useI18n({ useScope: "global" });
-const versions = ref<PageVersion[]>([]);
+const versions = ref<HistoryVersion[]>([]);
 const hasMore = ref(false);
 const cursor = ref<string>();
 const loading = ref(false);
 const failed = ref(false);
 
 // published: the newest version the storefront has (a file page lists every one its production branch holds)
-const liveSha = computed(() => versions.value.find((x) => x.published)?.sha);
+const liveId = computed(() => versions.value.find((x) => x.published)?.id);
 
-const who = (v: PageVersion) => v.vcUser || v.author?.login || v.author?.name || "";
+const who = (v: HistoryVersion) => v.author?.name || v.author?.login || "";
 const when = (date?: string) =>
   date ? new Date(date).toLocaleString(locale.value, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
 
@@ -205,9 +203,8 @@ async function load(after?: string) {
   failed.value = false;
   try {
     const page = await props.source(after);
-    const key = (x: PageVersion) => x.id ?? x.sha;
-    const known = new Set(after && !page.complete ? versions.value.map(key) : []);
-    versions.value = [...(after && !page.complete ? versions.value : []), ...page.versions.filter((x) => !known.has(key(x)))];
+    const known = new Set(after ? versions.value.map((x) => x.id) : []);
+    versions.value = [...(after ? versions.value : []), ...page.versions.filter((x) => !known.has(x.id))];
     hasMore.value = !!page.hasMore && !!page.endCursor;
     cursor.value = page.endCursor;
   } catch {

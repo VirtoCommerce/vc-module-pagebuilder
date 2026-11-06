@@ -395,8 +395,7 @@
         "PRESET_PLACEHOLDER": "Choisir un préréglage",
         "APPLY": "Appliquer",
         "EMPTY": "Ce thème n'a aucun paramètre à modifier.",
-        "LOAD_FAILED": "Les paramètres du thème n'ont pas pu être chargés.",
-        "SAVE_FAILED": "Les paramètres du thème n'ont pas pu être enregistrés."
+        "LOAD_FAILED": "Les paramètres du thème n'ont pas pu être chargés."
       },
       "CLIPBOARD": {
         "COPY": "Copier",
@@ -539,7 +538,6 @@
           "ID": "doit être un texte non vide",
           "DUPLICATE_ID": "reprend l'identifiant {id} d'une autre règle"
         },
-        "SAVE_FAILED": "Les règles de modèles n'ont pas pu être enregistrées.",
         "TREE_FAILED": "Les catégories n'ont pas pu être chargées.",
         "TEMPLATE": "Modèle",
         "CONDITIONS": "Quand tout ceci est vrai",

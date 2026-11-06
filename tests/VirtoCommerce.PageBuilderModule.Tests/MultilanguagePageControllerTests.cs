@@ -318,7 +318,7 @@ public class MultilanguagePageControllerTests
             new PredicateAuthorizationService(_ => true),
             null!,
             null!,
-            NullLogger<PageBuilderPageController>.Instance, new NoFileHistory())
+            NullLogger<PageBuilderPageController>.Instance, new NoContentHistory())
         {
             ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() },
         };

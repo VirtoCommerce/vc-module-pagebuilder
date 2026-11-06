@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -24,6 +25,19 @@ public interface IGitHubApiClient
 
     /// <summary>Posts a GraphQL request on behalf of the owner.</summary>
     Task<JObject> PostGraphQlAsync(Uri url, string owner, JObject request, string operation, CancellationToken cancellationToken = default);
+
+    /// <summary>Gets the tree of the commit.</summary>
+    Task<string> GetCommitTreeAsync(string repository, string commitSha, CancellationToken cancellationToken = default);
+
+    /// <summary>Creates a tree: the base tree with the files, keyed by path, written over it. Returns its sha.</summary>
+    Task<string> CreateTreeAsync(string repository, string baseTreeSha, IDictionary<string, string> files, CancellationToken cancellationToken = default);
+
+    /// <summary>Creates a commit of the tree on top of the parent. Returns its sha.</summary>
+    Task<string> CreateCommitAsync(string repository, string treeSha, string parentSha, string message, GitCommitAuthor author,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Moves the branch to the commit; <c>false</c> when that is not a fast-forward, as the branch moved meanwhile.</summary>
+    Task<bool> FastForwardBranchAsync(string repository, string branch, string commitSha, CancellationToken cancellationToken = default);
 
     /// <summary>Sends a request without credentials.</summary>
     Task<HttpResponseMessage> SendAnonymousAsync(HttpRequestMessage request, string operation, CancellationToken cancellationToken = default);

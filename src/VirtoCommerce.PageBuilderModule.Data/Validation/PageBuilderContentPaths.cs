@@ -37,6 +37,9 @@ public static class PageBuilderContentPaths
 
     private static readonly Regex HistoryCursorPattern = new("^[A-Za-z0-9+/=_-]{1,256}$", RegexOptions.None, TimeSpan.FromSeconds(1));
 
+    // base64url: a position in each file's history
+    private static readonly Regex ContentHistoryCursorPattern = new("^[A-Za-z0-9_-]{1,4096}$", RegexOptions.None, TimeSpan.FromSeconds(1));
+
     public static bool IsContentType(string type) => type != null && ContentTypes.Contains(type);
 
     public static bool IsPageContentType(string type) => GitPageLocation.IsPageContent(type);
@@ -62,6 +65,10 @@ public static class PageBuilderContentPaths
     /// <summary>The theme folder, then the file path in it: "default/templates/product.json".</summary>
     public static bool IsThemeFilePath(string path) =>
         IsRelativePath(path) && !path.StartsWith('/') && IsInsideAThemeFolder(path);
+
+    /// <summary>A theme file the history keeps: any but a published snapshot.</summary>
+    public static bool IsHistoryThemeFile(string path) =>
+        IsThemeFilePath(path) && !GetPathInTheme(path).StartsWith(ThemeStorage.SnapshotsFolder + "/", StringComparison.OrdinalIgnoreCase);
 
     public static bool IsFolderName(string name) =>
         IsRelativePath(name) && !name.Contains('/');
@@ -90,6 +97,10 @@ public static class PageBuilderContentPaths
                pathInTheme.Equals(ThemeStorage.TemplateRulesFile, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>Gets the permission that edits the theme file: templates for a template or the rules, theme for any other.</summary>
+    public static string GetThemeFileEditPermission(string path) =>
+        IsTemplateFile(path) ? ModuleConstants.Security.Permissions.Templates : ModuleConstants.Security.Permissions.Theme;
+
     /// <summary>Gets the path after the theme folder: "templates/product.json" for "default/templates/product.json".</summary>
     public static string GetPathInTheme(string path)
     {
@@ -106,4 +117,6 @@ public static class PageBuilderContentPaths
         keyword.IndexOfAny(KeywordSeparators) < 0 && !keyword.Any(char.IsControl);
 
     public static bool IsHistoryCursor(string cursor) => HistoryCursorPattern.IsMatch(cursor);
+
+    public static bool IsContentHistoryCursor(string cursor) => ContentHistoryCursorPattern.IsMatch(cursor);
 }

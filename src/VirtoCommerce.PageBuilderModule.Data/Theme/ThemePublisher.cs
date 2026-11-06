@@ -8,7 +8,7 @@ using Newtonsoft.Json.Linq;
 using VirtoCommerce.ContentModule.Core;
 using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Events;
-using VirtoCommerce.PageBuilderModule.Core.GitContent;
+using VirtoCommerce.PageBuilderModule.Core.History;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Theme;
 using VirtoCommerce.PageBuilderModule.Data.Extensions;
@@ -26,7 +26,7 @@ public class ThemePublisher(
     ISchemaCatalogService schemaCatalogService,
     IDistributedLock distributedLock,
     IEventPublisher eventPublisher,
-    IThemeFileHistoryService themeFileHistory,
+    IContentHistory contentHistory,
     IOptions<ThemeSnapshotOptions> options,
     ILogger<ThemePublisher> logger) : IThemePublisher
 {
@@ -284,11 +284,14 @@ public class ThemePublisher(
         var changedEntries = files.Select(x => CreateChangedEntry(x.Path, EntryState.Modified)).ToList();
         await eventPublisher.Publish(new PageBuilderContentChangedEvent(ContentConstants.ContentTypes.Themes, changedEntries), cancellationToken);
 
-        var saveId = Guid.NewGuid().ToString("N");
+        var record = AbstractTypeFactory<ContentHistoryRecord>.TryCreateInstance().WithUser(user);
+        record.Description = ModuleConstants.GitHistory.PublishedSummary;
         foreach (var file in files)
         {
-            await themeFileHistory.RecordAsync(storeId, file.Path, file.Content, ModuleConstants.GitHistory.PublishedSummary, user, saveId, cancellationToken);
+            record.AddEntry(new HistoryItem(HistoryItemType.Theme, file.Path), file.Content);
         }
+
+        await contentHistory.RecordAsync(storeId, record, cancellationToken);
     }
 
     protected virtual GenericChangedEntry<FileEntity> CreateChangedEntry(string path, EntryState state)

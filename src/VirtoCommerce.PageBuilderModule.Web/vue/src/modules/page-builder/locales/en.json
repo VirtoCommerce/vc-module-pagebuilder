@@ -395,8 +395,7 @@
         "PRESET_PLACEHOLDER": "Choose a preset",
         "APPLY": "Apply",
         "EMPTY": "This theme has no settings to edit.",
-        "LOAD_FAILED": "The theme settings couldn't be loaded.",
-        "SAVE_FAILED": "The theme settings couldn't be saved."
+        "LOAD_FAILED": "The theme settings couldn't be loaded."
       },
       "CLIPBOARD": {
         "COPY": "Copy",
@@ -539,7 +538,6 @@
           "ID": "must be a non-empty text",
           "DUPLICATE_ID": "repeats the id {id} of another rule"
         },
-        "SAVE_FAILED": "The template rules couldn't be saved.",
         "TREE_FAILED": "The categories couldn't be loaded.",
         "TEMPLATE": "Template",
         "CONDITIONS": "When all of these hold",

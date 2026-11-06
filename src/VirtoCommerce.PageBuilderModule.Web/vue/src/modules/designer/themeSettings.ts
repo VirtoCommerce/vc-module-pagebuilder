@@ -2,8 +2,7 @@ import { computed, ref } from "vue";
 import type { Field } from "./types";
 import { getAuthHeaders } from "../page-builder/composables/usePageContentApi";
 import { clone, valuesOf } from "./schema";
-import { saveUrl } from "./themePublication";
-import { ApiError } from "./api";
+import { settingsPath } from "./history";
 
 /**
  * The theme's settings (logo, colours, …): `{theme}/config/settings_data.json` of the store's theme, as the Angular
@@ -19,9 +18,6 @@ export interface ThemeSettingsGroup {
   icon?: string;
   settings: Field[];
 }
-
-/** The theme's settings file, as saves name it */
-export const settingsDataPath = (theme: string) => `${theme}/config/settings_data.json`;
 
 const presetValues = (preset: unknown): Record<string, unknown> => {
   const value = (preset ?? {}) as { settings?: Record<string, unknown> };
@@ -102,25 +98,22 @@ export function useThemeSettings() {
     settings.value = JSON.parse(savedJson.value) as Record<string, unknown>;
   }
 
-  /** Saves the settings as the theme's draft; with the catalog's hash, the server checks them as it checks every theme file */
-  async function save(catalogHash?: string) {
-    if (!store.value || !loaded.value) return;
-    const { storeId, theme } = store.value;
+  /** What Save writes: the theme's settings file with the current settings, and how to mark it saved once it is */
+  function pending(): { file: { path: string; content: ThemeSettingsData }; saved: () => void } | undefined {
+    if (!store.value || !dirty.value) return undefined;
     const current = clone(settings.value);
     const next: ThemeSettingsData = { ...data.value, current };
-    const files = [{ path: settingsDataPath(theme), type: "themes", content: next }];
-    const res = await fetch(saveUrl(storeId, theme, catalogHash), {
-      method: "POST",
-      headers: { ...(await getAuthHeaders()), "Content-Type": "application/json" },
-      body: JSON.stringify({ files: JSON.stringify(files) }),
-    });
-    if (!res.ok) throw new ApiError(res.status, await res.text().catch(() => ""));
-    data.value = next;
-    // what was sent: an edit made while it was on its way stays unsaved
-    savedJson.value = JSON.stringify(current);
+    return {
+      file: { path: settingsPath(store.value.theme), content: next },
+      saved: () => {
+        data.value = next;
+        // what was sent: an edit made while it was on its way stays unsaved
+        savedJson.value = JSON.stringify(current);
+      },
+    };
   }
 
-  return { settings, values, serverGroups, presets, dirty, loaded, loadError, load, withDefaults, set, applyPreset, revert, save };
+  return { settings, values, serverGroups, presets, dirty, loaded, loadError, load, withDefaults, set, applyPreset, revert, pending };
 }
 
 export type ThemeSettings = ReturnType<typeof useThemeSettings>;

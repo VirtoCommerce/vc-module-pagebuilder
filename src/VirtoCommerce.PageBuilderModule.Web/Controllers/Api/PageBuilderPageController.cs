@@ -14,7 +14,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using VirtoCommerce.ContentModule.Core.Model;
 using VirtoCommerce.PageBuilderModule.Core;
-using VirtoCommerce.PageBuilderModule.Core.GitContent;
+using VirtoCommerce.PageBuilderModule.Core.History;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Data.Authorization;
@@ -37,7 +37,7 @@ public class PageBuilderPageController : Controller
     private readonly IPageDocumentSearchService pageDocumentSearchService;
     private readonly PageBuilderPageContentService pageContentService;
     private readonly ILogger<PageBuilderPageController> logger;
-    private readonly IGroupedPageHistoryService groupedPageHistoryService;
+    private readonly IContentHistory contentHistory;
 
     public PageBuilderPageController(
         IPageBuilderPageService crudService,
@@ -47,7 +47,7 @@ public class PageBuilderPageController : Controller
         IPageDocumentSearchService pageDocumentSearchService,
         PageBuilderPageContentService pageContentService,
         ILogger<PageBuilderPageController> logger,
-        IGroupedPageHistoryService groupedPageHistoryService)
+        IContentHistory contentHistory)
     {
         this.crudService = crudService;
         this.groupedPageService = groupedPageService;
@@ -56,7 +56,7 @@ public class PageBuilderPageController : Controller
         this.pageDocumentSearchService = pageDocumentSearchService;
         this.pageContentService = pageContentService;
         this.logger = logger;
-        this.groupedPageHistoryService = groupedPageHistoryService;
+        this.contentHistory = contentHistory;
     }
 
     [HttpPost("search")]
@@ -487,7 +487,41 @@ public class PageBuilderPageController : Controller
         {
             // load by id: the group still lists the published row deleted above
             var publishedContent = await groupedPageService.LoadContent(publishedPageId, cancellationToken);
-            await groupedPageHistoryService.RecordAsync(groupedPage, publishedContent, ModuleConstants.GitHistory.PublishedSummary, User, Request.GetSaveId(), cancellationToken);
+            await RecordHistoryAsync(groupedPage, publishedContent, ModuleConstants.GitHistory.PublishedSummary, cancellationToken);
+        }
+
+        return Ok();
+    }
+
+    /// <summary>Discard unpublished changes of the page</summary>
+    [HttpPost("grouped/{groupId}/discard")]
+    [Authorize(ModuleConstants.Security.Permissions.Update)]
+    public async Task<ActionResult> DiscardGroupDraft([FromRoute] string groupId, CancellationToken cancellationToken = default)
+    {
+        var groupedPage = await groupedPageService.GetByIdAsync(groupId);
+        if (groupedPage == null)
+        {
+            return NotFound();
+        }
+
+        var authorizationResult = await authorizationService.AuthorizeAsync(User, groupedPage, new PageBuilderAuthorizationRequirement());
+        if (!authorizationResult.Succeeded)
+        {
+            return Forbidden;
+        }
+
+        var publishedPage = PageBuilderPageSelection.Order(groupedPage.Pages).FirstOrDefault(x => x.Status == Published);
+        if (publishedPage == null)
+        {
+            return BadRequest(new { error = "This page has never been published, so there is no published version to go back to." });
+        }
+
+        var draftIds = groupedPage.Pages.Where(x => x.Status == Draft).Select(x => x.Id).ToList();
+        if (draftIds.Count > 0)
+        {
+            await crudService.DeleteAsync(draftIds);
+            var publishedContent = await groupedPageService.LoadContent(publishedPage.Id, cancellationToken);
+            await RecordHistoryAsync(groupedPage, publishedContent, ModuleConstants.GitHistory.DiscardedSummary, cancellationToken);
         }
 
         return Ok();
@@ -753,7 +787,7 @@ public class PageBuilderPageController : Controller
             var result = await pageContentService.SaveConditionalContentAsync(group, content, expectedETag, cancellationToken);
             if (result.ContentWritten)
             {
-                await groupedPageHistoryService.RecordAsync(group, content, ModuleConstants.GitHistory.SavedSummary, User, Request.GetSaveId(), cancellationToken);
+                await RecordHistoryAsync(group, content, ModuleConstants.GitHistory.SavedSummary, cancellationToken);
             }
 
             Response.Headers.ETag = result.ETag;
@@ -991,6 +1025,16 @@ public class PageBuilderPageController : Controller
             .ThenBy(x => x.Id, StringComparer.Ordinal)
             .Select(x => x.Id)
             .FirstOrDefault();
+    }
+
+    private Task RecordHistoryAsync(GroupedPageBuilderPage group, string content, string description, CancellationToken cancellationToken)
+    {
+        var record = AbstractTypeFactory<ContentHistoryRecord>.TryCreateInstance().WithUser(User);
+        record.Description = description;
+        record.SaveId = Request.GetSaveId();
+        record.AddEntry(new HistoryItem(HistoryItemType.Page, group.Id), content);
+
+        return contentHistory.RecordAsync(group.StoreId, record, cancellationToken);
     }
 
     private static ActionResult Forbidden => new ObjectResult(new { })

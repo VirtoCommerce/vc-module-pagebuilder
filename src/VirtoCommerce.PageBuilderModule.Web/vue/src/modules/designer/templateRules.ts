@@ -22,12 +22,11 @@ export function useTemplateRules() {
     loaded.value = true;
   }
 
-  /** Saves the rules as the theme's draft; with the catalog's hash, the server checks them as it checks every theme file */
-  async function save(catalogHash?: string) {
-    if (!at || !dirty.value) return;
+  /** What Save writes: the rules file, always as version 2, and how to mark it saved once it is */
+  function pending(): { file: { path: string; content: unknown }; saved: () => void } | undefined {
+    if (!at || !dirty.value) return undefined;
     const sent = formatRules(rules.value);
-    await api.saveThemeFiles(at.storeId, at.theme, [{ path: rulesPath(at.theme), content: JSON.parse(sent) }], catalogHash);
-    savedJson.value = sent;
+    return { file: { path: rulesPath(at.theme), content: JSON.parse(sent) }, saved: () => (savedJson.value = sent) };
   }
 
   /** Throws the unsaved edits away and, with `draft`, the saved draft (a never-published file keeps it: it is the only copy) */
@@ -37,7 +36,7 @@ export function useTemplateRules() {
     await load(at.storeId, at.theme);
   }
 
-  return { rules, dirty, loaded, load, save, discard };
+  return { rules, dirty, loaded, load, pending, discard };
 }
 
 export type TemplateRulesState = ReturnType<typeof useTemplateRules>;

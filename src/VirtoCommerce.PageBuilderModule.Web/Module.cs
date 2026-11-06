@@ -16,6 +16,7 @@ using VirtoCommerce.ContentModule.Core.Search;
 using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
+using VirtoCommerce.PageBuilderModule.Core.History;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Core.Theme;
@@ -122,17 +123,17 @@ namespace VirtoCommerce.PageBuilderModule.Web
             serviceCollection.AddTransient<IGitContentProvisioner, GitHubContentProvisioner>();
             serviceCollection.AddTransient<IGitContentSetupService, GitContentSetupService>();
             serviceCollection.AddTransient<IGitLivePageService, GitLivePageService>();
-            serviceCollection.AddTransient<IGroupedPageHistoryService, GroupedPageHistoryService>();
-            serviceCollection.AddTransient<IThemeFileHistoryService, ThemeFileHistoryService>();
+            serviceCollection.AddTransient<IContentHistory, GitHubSiteHistory>();
 
             serviceCollection.Configure<ThemeSnapshotOptions>(Configuration.GetSection(ThemeSnapshotOptions.SectionName));
             serviceCollection.AddTransient<IThemeStorageFactory, ThemeStorageFactory>();
             serviceCollection.AddTransient<IThemeSnapshotBuilder, ThemeSnapshotBuilder>();
             serviceCollection.AddTransient<ISchemaCatalogService, SchemaCatalogService>();
             serviceCollection.AddTransient<IThemePublisher, ThemePublisher>();
+            serviceCollection.AddTransient<IThemeDraftService, ThemeDraftService>();
             serviceCollection.AddTransient<IThemeSnapshotService, ThemeSnapshotService>();
             serviceCollection.AddTransient<IValidator<PageBuilderStoreRequest>, PageBuilderStoreRequestValidator>();
-            serviceCollection.AddTransient<IValidator<ThemeFileRequest>, ThemeFileRequestValidator>();
+            serviceCollection.AddTransient<IValidator<ContentHistoryRequest>, ContentHistoryRequestValidator>();
             serviceCollection.AddTransient<IValidator<GitHubAppSetupRequest>, GitHubAppSetupRequestValidator>();
             serviceCollection.AddTransient<GitContentStoreChangedEventHandler>();
             serviceCollection.AddBackgroundJob<GitContentRepositoryJob, GitContentRepositoryJobPayload>(triggerable: false);

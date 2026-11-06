@@ -1,12 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  fileSaveUrl,
   hasThemeDraft,
   parseThemeStatus,
   publishActions,
   publishThemeUrl,
-  saveUrl,
   templateStatus,
   themeErrors,
   themePublishButton,
@@ -72,22 +70,6 @@ test("publishActions: a page publishes itself, a template only with the theme, a
   assert.deepEqual(publishActions({ template: true, shared: false, mayPublishTheme: true }), { page: false, theme: true });
   assert.deepEqual(publishActions({ template: true, shared: false, mayPublishTheme: false }), { page: false, theme: false });
   assert.deepEqual(publishActions({ template: false, shared: true, mayPublishTheme: true }), { page: false, theme: false });
-});
-
-test("saves are drafts and name the catalog previewed when it is known", () => {
-  assert.deepEqual(query(saveUrl("B2B-store", "default", "abc12345")), { storeId: "B2B-store", theme: "default", draft: "true", catalogHash: "abc12345" });
-  assert.deepEqual(query(saveUrl("B2B-store", "default")), { storeId: "B2B-store", theme: "default", draft: "true" });
-  assert.deepEqual(query(saveUrl("B2B-store", "default", "")), { storeId: "B2B-store", theme: "default", draft: "true" });
-  assert.equal(new URL(saveUrl("B2B-store", "default"), "https://admin.example").pathname, "/api/pagebuilder/save");
-});
-
-test("a template's save names the catalog; a page's or a blog article's doesn't", () => {
-  const template = { storeId: "B2B-store", theme: "default", type: "themes", path: "default/templates/product.json" };
-
-  assert.equal(query(fileSaveUrl(template, "abc12345")).catalogHash, "abc12345");
-  assert.equal(query(fileSaveUrl({ ...template, type: "pages", path: "about.page" }, "abc12345")).catalogHash, undefined);
-  assert.equal(query(fileSaveUrl({ ...template, type: "blogs", path: "news/a.page" }, "abc12345")).catalogHash, undefined);
-  assert.equal(query(fileSaveUrl(template, "abc12345")).draft, "true");
 });
 
 test("the theme's publication names the catalog previewed", () => {

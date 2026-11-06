@@ -192,7 +192,7 @@ public class PageBuilderPermalinkTests
             new PublishedRenameContentPreservationTests.AllowAllAuthorizationService(),
             new PublishedRenameContentPreservationTests.NoopPageDocumentSearchService(),
             pageContentService,
-            NullLogger<PageBuilderPageController>.Instance, new NoFileHistory());
+            NullLogger<PageBuilderPageController>.Instance, new NoContentHistory());
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity()) },

@@ -1,114 +1,128 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { groupPath, historyFiles, historyPath, mergeSaves, rulesPath, savesHistory, themeHistoryUrl } from "../src/modules/designer/history";
+import {
+  fromGitVersion,
+  groupPath,
+  historyItems,
+  historyOffer,
+  historyStatusUrl,
+  historyUrl,
+  parseHistoryPage,
+  parseHistoryStatus,
+  restoreUrl,
+  rulesPath,
+  settingsPath,
+  versionUrl,
+} from "../src/modules/designer/history";
 import { templatePath } from "../src/modules/designer/templates";
-import type { PageVersion } from "../src/modules/designer/api";
 
-const at = (minute: number) => `2026-10-18T10:${String(minute).padStart(2, "0")}:00Z`;
-const change = (sha: string, minute: number, saveId?: string, published = false, message = "Saved"): PageVersion => ({
-  sha,
-  shortSha: sha,
-  date: at(minute),
-  message,
-  saveId,
-  published,
-});
+const url = (value: string) => new URL(value, "https://admin.example");
 
-test("a template's history covers what its Save writes: the template, its rules, the header and footer", () => {
-  assert.deepEqual(historyFiles({ versioned: true, rules: true, groups: true }), ["page", "rules", "header", "footer"]);
-  // a page has no rules; a theme without a header and footer has none to show
-  assert.deepEqual(historyFiles({ versioned: true, rules: false, groups: true }), ["page", "header", "footer"]);
-  // a site that keeps no versions: only the page's own (a file page in git)
-  assert.deepEqual(historyFiles({ versioned: false, rules: true, groups: true }), ["page"]);
-});
-
-test("each file of the history is a theme file, but a database page's own", () => {
-  const template = templatePath("default", "product.printer");
-  assert.equal(historyPath("page", "default", template), "default/templates/product.printer.json");
-  assert.equal(historyPath("rules", "default", template), "default/config/template_rules.json");
-  assert.equal(historyPath("header", "default"), "default/sections/header-group.json");
-  assert.equal(historyPath("footer", "default"), "default/sections/footer-group.json");
-  assert.equal(historyPath("page", "default"), undefined);
-  assert.equal(historyPath("rules", undefined), undefined);
+test("the theme files of the history are named with their theme folder", () => {
   assert.equal(rulesPath("dark"), "dark/config/template_rules.json");
   assert.equal(groupPath("dark", "header"), "dark/sections/header-group.json");
+  assert.equal(settingsPath("dark"), "dark/config/settings_data.json");
 });
 
-test("a theme file's history is asked for by store and path; a version by its sha, restored under the one picked", () => {
-  const path = "default/templates/product.json";
-  assert.equal(themeHistoryUrl("B2B-store", path), "/api/pagebuilder/theme-history?storeId=B2B-store&path=default%2Ftemplates%2Fproduct.json");
-  assert.equal(themeHistoryUrl("s1", path, "1c0ffee"), "/api/pagebuilder/theme-history/1c0ffee?storeId=s1&path=default%2Ftemplates%2Fproduct.json");
-  assert.equal(
-    themeHistoryUrl("s1", path, "1c0ffee", "restore", { version: "abcdef1" }),
-    "/api/pagebuilder/theme-history/1c0ffee/restore?storeId=s1&path=default%2Ftemplates%2Fproduct.json&version=abcdef1",
-  );
-});
-
-test("the changes of one Save are one version, holding each file's change, named by its newest", () => {
-  const saves = mergeSaves([
-    { file: "page", versions: [change("t2", 30, "s2"), change("t1", 20, "s1", true)] },
-    { file: "header", versions: [change("h2", 31, "s2", false, "Restored t1"), change("h1", 21, "s1", true)] },
-    // made before saves had an id: a version of its own
-    { file: "footer", versions: [change("f0", 10)] },
+test("a database page's history covers what its Save writes: the page, the header and footer, the theme settings", () => {
+  assert.deepEqual(historyItems({ groupId: "g1", theme: "default", rules: false, groups: true, settings: true }), [
+    { file: "page", item: "page:g1" },
+    { file: "header", item: "theme:default/sections/header-group.json" },
+    { file: "footer", item: "theme:default/sections/footer-group.json" },
+    { file: "settings", item: "theme:default/config/settings_data.json" },
   ]);
-
-  assert.deepEqual(
-    saves.map((x) => [x.id, x.sha, x.message, x.files?.map((f) => `${f.file}:${f.sha}`).join(" ")]),
-    [
-      ["s2", "h2", "Restored t1", "page:t2 header:h2"],
-      ["s1", "h1", "Saved", "page:t1 header:h1"],
-      ["f0", "f0", "Saved", "footer:f0"],
-    ],
-  );
-  // published: every file's change it holds is live
-  assert.deepEqual(saves.map((x) => x.published), [false, true, false]);
 });
 
-test("a Save is published only when all it changed is live", () => {
-  const [save] = mergeSaves([
-    { file: "page", versions: [change("t1", 20, "s1", true)] },
-    { file: "header", versions: [change("h1", 20, "s1", false)] },
+test("a template is a theme file of the history, with its rules", () => {
+  const template = templatePath("default", "product.printer");
+  assert.deepEqual(historyItems({ templatePath: template, theme: "default", rules: true, groups: false, settings: false }), [
+    { file: "page", item: "theme:default/templates/product.printer.json" },
+    { file: "rules", item: "theme:default/config/template_rules.json" },
   ]);
-  assert.equal(save.published, false);
+  // without the theme known, only the page's own
+  assert.deepEqual(historyItems({ groupId: "g1", rules: true, groups: true, settings: true }), [{ file: "page", item: "page:g1" }]);
 });
 
-test("where a file has older versions to read, the list stops at its oldest read: no Save shows half of its files", () => {
-  const saves = mergeSaves([
-    { file: "page", versions: [change("t3", 30, "s3"), change("t2", 20, "s2")], hasMore: true },
-    { file: "header", versions: [change("h3", 30, "s3"), change("h2", 20, "s2"), change("h1", 5, "s1")] },
-  ]);
-  assert.deepEqual(saves.map((x) => x.id), ["s3", "s2"]);
+test("the history is asked for by store and items; a version by its id, restored for the items it changed", () => {
+  const list = url(historyUrl("B2B-store", ["page:g1", "theme:default/sections/header-group.json"], "c1"));
+  assert.equal(list.pathname, "/api/pagebuilder/history");
+  assert.deepEqual(list.searchParams.getAll("item"), ["page:g1", "theme:default/sections/header-group.json"]);
+  assert.equal(list.searchParams.get("cursor"), "c1");
+  assert.equal(url(historyUrl("s1", ["page:g1"])).searchParams.has("cursor"), false);
+
+  const version = url(versionUrl("s1", "HA_v-Hs8f7RVPw9gHHqUAxmPDJ8", "page:g1"));
+  assert.equal(version.pathname, "/api/pagebuilder/history/HA_v-Hs8f7RVPw9gHHqUAxmPDJ8");
+  assert.equal(version.searchParams.get("item"), "page:g1");
+
+  const restore = url(restoreUrl("s1", "HA_v-Hs8f7RVPw9gHHqUAxmPDJ8", ["page:g1", "theme:default/config/template_rules.json"]));
+  assert.equal(restore.pathname, "/api/pagebuilder/history/HA_v-Hs8f7RVPw9gHHqUAxmPDJ8/restore");
+  assert.deepEqual(restore.searchParams.getAll("item"), ["page:g1", "theme:default/config/template_rules.json"]);
+
+  assert.equal(historyStatusUrl("s1"), "/api/pagebuilder/history/status?storeId=s1");
 });
 
-test("Show older reads on where each file's history stopped, and the Save it split comes together", async () => {
-  const pages: Record<string, Record<string, { versions: PageVersion[]; hasMore?: boolean; endCursor?: string }>> = {
-    page: {
-      "": { versions: [change("t2", 20, "s2"), change("t1", 10, "s1")], hasMore: true, endCursor: "p1" },
-      p1: { versions: [change("t0", 1, "s0")] },
-    },
-    header: {
-      "": { versions: [change("h1", 10, "s1"), change("h0", 1, "s0")] },
-    },
-  };
-  const asked: string[] = [];
-  const read = savesHistory(
-    (["page", "header"] as const).map((file) => ({
-      file,
-      read: async (after?: string) => {
-        asked.push(`${file}:${after ?? ""}`);
-        return pages[file][after ?? ""];
+test("a page of the history comes merged from the server: each version once, with the items it changed", () => {
+  const page = parseHistoryPage({
+    status: "enabled",
+    cursor: "next",
+    versions: [
+      {
+        versionId: "HA_v-Hs8f7RVPw9gHHqUAxmPDJ8",
+        date: "2026-11-06T12:00:00Z",
+        description: "Saved",
+        saveId: "s1",
+        published: true,
+        author: { name: "alice", login: "alice-gh" },
+        items: ["page:g1", "theme:default/sections/header-group.json"],
       },
-    })),
+      { versionId: 7 },
+      null,
+    ],
+  });
+
+  assert.equal(page.status, "enabled");
+  assert.equal(page.cursor, "next");
+  assert.deepEqual(page.versions, [
+    {
+      id: "HA_v-Hs8f7RVPw9gHHqUAxmPDJ8",
+      label: "HA_v-Hs",
+      date: "2026-11-06T12:00:00Z",
+      description: "Saved",
+      author: { name: "alice", login: "alice-gh" },
+      published: true,
+      items: ["page:g1", "theme:default/sections/header-group.json"],
+    },
+  ]);
+  assert.deepEqual(parseHistoryPage({ status: "setupRequired" }), { status: "setupRequired", versions: [], cursor: undefined });
+  assert.equal(parseHistoryPage(undefined).status, "unavailable");
+});
+
+test("a status the designer doesn't know reads as unavailable", () => {
+  assert.equal(parseHistoryStatus("enabled"), "enabled");
+  assert.equal(parseHistoryStatus("setupRequired"), "setupRequired");
+  assert.equal(parseHistoryStatus("Enabled"), "unavailable");
+  assert.equal(parseHistoryStatus(undefined), "unavailable");
+});
+
+test("a file page's git version is listed like a version of the site's history, by its sha", () => {
+  assert.deepEqual(
+    fromGitVersion({ sha: "1c0ffee1c0ffee", shortSha: "1c0ffee", date: "d", message: "Edited", vcUser: "alice", author: { name: "A", login: "a" }, published: true, mine: true }),
+    { id: "1c0ffee1c0ffee", label: "1c0ffee", date: "d", description: "Edited", author: { name: "alice", login: "a" }, published: true, mine: true },
   );
+  assert.equal(fromGitVersion({ sha: "abcdef0123456789" }).label, "abcdef0");
+});
 
-  const first = await read();
-  // s0 has an older page change still to read: it waits
-  assert.deepEqual(first.versions.map((x) => x.id), ["s2", "s1"]);
-  assert.equal(first.hasMore, true);
+test("history is offered by what is open: git for a file page, the site's status for a database page or a template", () => {
+  const offer = (open: Partial<Parameters<typeof historyOffer>[0]>) =>
+    historyOffer({ shared: false, filePage: false, gitFlow: false, site: false, ...open });
 
-  const all = await read(true);
-  assert.deepEqual(all.versions.map((x) => `${x.id}:${x.files?.map((f) => f.file).join("+")}`), ["s2:page", "s1:page+header", "s0:page+header"]);
-  assert.equal(all.hasMore, false);
-  // the header had no more: only the page was read on
-  assert.deepEqual(asked, ["page:", "header:", "page:p1"]);
+  assert.equal(offer({ filePage: true, gitFlow: true }), "history");
+  assert.equal(offer({ filePage: true }), "enable");
+  assert.equal(offer({ site: true, status: "enabled" }), "history");
+  // setting it up is the site panel's job (PageBuilderGit)
+  assert.equal(offer({ site: true, status: "setupRequired" }), "enable");
+  assert.equal(offer({ site: true, status: "unavailable" }), "none");
+  // not known yet
+  assert.equal(offer({ site: true }), "none");
+  assert.equal(offer({ shared: true, site: true, status: "enabled" }), "none");
 });

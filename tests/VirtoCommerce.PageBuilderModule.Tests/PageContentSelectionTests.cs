@@ -253,7 +253,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 authorizationService: new PublishedRenameContentPreservationTests.AllowAllAuthorizationService(),
                 pageDocumentSearchService: new PublishedRenameContentPreservationTests.NoopPageDocumentSearchService(),
                 pageContentService: pageContentService,
-                logger: NullLogger<PageBuilderPageController>.Instance, groupedPageHistoryService: new NoFileHistory());
+                logger: NullLogger<PageBuilderPageController>.Instance, contentHistory: new NoContentHistory());
 
             var httpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity()) };
             httpContext.Response.Body = new MemoryStream();
@@ -278,7 +278,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 authorizationService: new PublishedRenameContentPreservationTests.AllowAllAuthorizationService(),
                 pageDocumentSearchService: new PublishedRenameContentPreservationTests.NoopPageDocumentSearchService(),
                 pageContentService: pageContentService,
-                logger: NullLogger<PageBuilderPageController>.Instance, groupedPageHistoryService: new NoFileHistory());
+                logger: NullLogger<PageBuilderPageController>.Instance, contentHistory: new NoContentHistory());
 
             var httpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity()) };
             var body = new MemoryStream();

@@ -514,7 +514,7 @@ public partial class PageContentAtomicWriteTests
         var content = new PageBuilderPageContentService(pages, service, new NoopSharedComponentReferenceIndexService(), events,
             NullLogger<PageBuilderPageContentService>.Instance);
         return new PageBuilderPageController(pages, service, null, new PublishedRenameContentPreservationTests.AllowAllAuthorizationService(),
-            null, content, NullLogger<PageBuilderPageController>.Instance, new NoFileHistory())
+            null, content, NullLogger<PageBuilderPageController>.Instance, new NoContentHistory())
         {
             ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext { Response = { Body = new MemoryStream() } } },
         };

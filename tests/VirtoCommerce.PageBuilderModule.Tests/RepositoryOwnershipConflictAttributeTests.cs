@@ -9,8 +9,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Routing;
-using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Core.Models;
@@ -50,40 +48,30 @@ public class RepositoryOwnershipConflictAttributeTests
 
     [Theory]
     [InlineData(typeof(PageBuilderController))]
-    [InlineData(typeof(ThemeFileHistoryController))]
-    [InlineData(typeof(GroupedPageHistoryController))]
+    [InlineData(typeof(HistoryController))]
     [InlineData(typeof(GitContentSetupController))]
     public void Controller_UsesStoreRepository_HasConflictAttribute(Type controller)
     {
         Assert.NotNull(controller.GetCustomAttribute<RepositoryOwnershipConflictAttribute>());
     }
 
-    [Fact]
-    public async Task GetHistory_ThemeFileInAnotherStoresRepository_ThrowsOwnershipException()
+    [Theory]
+    [InlineData("theme:default/templates/product.json")]
+    [InlineData("page:g1")]
+    public async Task GetHistory_ItemInAnotherStoresRepository_ThrowsOwnershipException(string item)
     {
         var live = new FakeBlobStorage();
-        var history = new ThemeFileHistoryService(Policy(), Repository(), new GitHubApiClient(new GitHubScript()), GitHubConnections.CreateService(Options().Value),
-            new ThemeStorageFactory(live.StoreService, live, live, live), new InProcessDistributedLock(), live, Options(), NullLogger<ThemeFileHistoryService>.Instance);
-        var controller = new ThemeFileHistoryController(history, new FakeAuthorizationService(true), RequestValidators.ThemeFiles("s1"))
-        {
-            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() },
-        };
-
-        await Assert.ThrowsAsync<GitRepositoryOwnershipException>(() => controller.GetHistory("s1", "default/templates/product.json", cancellationToken: Ct));
-    }
-
-    [Fact]
-    public async Task GetHistory_GroupedPageInAnotherStoresRepository_ThrowsOwnershipException()
-    {
         var pages = new PublishedRenameContentPreservationTests.FakeGroupedPageService();
         pages.SeedGroup(new GroupedPageBuilderPage { Id = "g1", StoreId = "s1", Name = "Home", Permalink = "/home" });
-        var controller = new GroupedPageHistoryController(pages, null, null, new FakeAuthorizationService(true),
-            new TestGroupedPageHistoryService(Policy(), Repository(), new GitHubScript(), Options()))
+        var history = SiteHistories.Create(new GitHubScript(), new ThemeStorageFactory(live.StoreService, live, live, live), pages,
+            ownership: new FakeGitContentOwnership("another-store"));
+        var controller = new HistoryController(history, pages, null, null, new FakeAuthorizationService(true), RequestValidators.Stores("s1"),
+            RequestValidators.History("s1"))
         {
             ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity()) } },
         };
 
-        await Assert.ThrowsAsync<GitRepositoryOwnershipException>(() => controller.GetHistory("g1", cancellationToken: Ct));
+        await Assert.ThrowsAsync<GitRepositoryOwnershipException>(() => controller.GetHistory("s1", [item], cancellationToken: Ct));
     }
 
     [Fact]
@@ -116,6 +104,4 @@ public class RepositoryOwnershipConflictAttributeTests
 
     // the store's repository in the organization is another store's
     private static GitContentPolicy Policy() => GitHubConnections.CreatePolicy(Options(), new FakeSettingsManager(true), new FakeGitContentOwnership("another-store"));
-
-    private static GitHubContentRepository Repository() => new(new GitHubScript(), new MemoryCache(new MemoryCacheOptions()), Options());
 }

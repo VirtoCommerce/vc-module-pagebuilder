@@ -17,12 +17,12 @@ panel.
   branch as `theme/{path}`, e.g. `theme/default/templates/product.json`, with the bytes the storage holds. Publishing
   moves the saved draft live byte for byte, so the published version is again the newest commit holding the live
   file's content.
-- **One version per Save.** A designer Save (or Restore, or Discard) writes several files: the page or template, its
-  rules, the header, the footer. Each file still gets its own commit, but they share a `VC-Save: {id}` trailer (the
-  designer sends the id in the `X-PageBuilder-Save` header). The Version history panel merges the files' histories by
-  that id, so one Save is one version, such as "Saved · Template, Header". Restoring it brings back each file it wrote,
-  as drafts, and Publish then puts them live. Theme settings are recorded too, but they aren't listed in the panel:
-  they save straight to live, with no draft to restore into.
+- **One version per Save.** A designer Save writes the page or template, its rules, the header, the footer and the
+  theme settings in one request, as drafts, and the history records them as one commit holding every file it changed
+  (with a `VC-Save: {id}` trailer when the designer sends the id in the `X-PageBuilder-Save` header). A restore and a
+  theme publication are one commit each as well. The Version history panel lists the commits that changed any of the
+  files shown, such as "Saved · Template, Header"; restoring one brings back what it changed, as drafts, and Publish
+  then puts them live. The [history API](contracts/history-api.md) names a version by an opaque `versionId`.
 
 ## How it is organised
 

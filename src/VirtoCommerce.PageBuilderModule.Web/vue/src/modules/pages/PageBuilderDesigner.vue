@@ -165,7 +165,7 @@
           <template v-if="previewing">
             <span
               class="pd__status pd__status--viewing"
-              :title="previewing.message"
+              :title="previewing.description"
             >
               <VcIcon
                 icon="lucide-history"
@@ -173,7 +173,7 @@
               />
               {{
                 $t("PAGE_BUILDER.DESIGNER.HISTORY.VIEWING", {
-                  version: previewing.shortSha ?? previewing.sha.slice(0, 7),
+                  version: previewing.label,
                   date: previewing.date ? new Date(previewing.date).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "",
                 })
               }}
@@ -365,7 +365,7 @@
           :source="historySource"
           :describe="describeVersion"
           :previewable="previewableVersion"
-          :previewing="previewing?.sha"
+          :previewing="previewing?.id"
           :dirty="unsaved"
           :busy="!!designer.busy.value"
           :can-discard="hasDraft"
@@ -561,22 +561,31 @@ import {
   filePreviewUrl,
   gitFlowOf,
   fileHistory,
-  groupHistory,
-  groupVersion,
-  restoreGroupVersion,
-  themeFileHistory,
-  themeFileVersion,
-  restoreThemeFileVersion,
+  historyStatus,
+  contentHistory,
+  contentVersion,
+  restoreContentVersion,
+  saveDesigner,
+  filePageContent,
   asOneSave,
   hasCatalog,
   uploadCatalog,
-  ApiError, type FilePage, type PageVersion, type SharedComponent } from "../designer/api";
+  ApiError, type FilePage, type SharedComponent } from "../designer/api";
 import { newItem } from "../designer/schema";
-import { searchCategories, searchPages, searchProducts, templateKeys, findFilePage, saveFilePage, type CatalogContext, type NamedEntity } from "../designer/api";
+import { searchCategories, searchPages, searchProducts, templateKeys, findFilePage, type CatalogContext, type NamedEntity } from "../designer/api";
 import { PAGE_CONTENT, alternateKey, alternateName, entityUrl, pageTypeOf, startingTemplate, templateEntry, templatePath, type PageType } from "../designer/templates";
 import { rulesFor } from "../designer/rules";
 import { useTemplateRules } from "../designer/templateRules";
-import { historyFiles, historyPath as themeFileOf, rulesPath, savesHistory, type HistoryFile } from "../designer/history";
+import {
+  fromGitVersion,
+  historyItems,
+  historyOffer,
+  rulesPath,
+  settingsPath,
+  type HistoryFile,
+  type HistoryStatus,
+  type HistoryVersion,
+} from "../designer/history";
 import { hasThemeDraft, publishActions, themeErrors, themePublishButton } from "../designer/themePublication";
 import type { Field, Item, SectionGroup, Selection } from "../designer/types";
 import TemplateSwitcher from "../designer/components/TemplateSwitcher.vue";
@@ -587,7 +596,7 @@ import SettingsPanel from "../designer/components/SettingsPanel.vue";
 import ThemePanel from "../designer/components/ThemePanel.vue";
 import SharedPanel from "../designer/components/SharedPanel.vue";
 import { useSharedComponentDesigner } from "../page-builder/composables/usePageDesigner";
-import { settingsDataPath, useThemeSettings } from "../designer/themeSettings";
+import { useThemeSettings } from "../designer/themeSettings";
 
 // The page designer, a native blade in the spirit of Shopify's theme editor: the page's sections on the left, the
 // storefront's own preview in the middle, the selected item's settings on the right. It opens a database page
@@ -620,7 +629,7 @@ const unsaved = computed(() => designer.dirty.value || theme.dirty.value || rule
 /** a theme file has a saved draft the theme's next publication puts live */
 const themeDraft = (path: (theme: string) => string) => !!themeName.value && hasThemeDraft(designer.themeStatus.value, themeName.value, path(themeName.value));
 const rulesDraft = computed(() => themeDraft(rulesPath));
-const settingsDraft = computed(() => themeDraft(settingsDataPath));
+const settingsDraft = computed(() => themeDraft(settingsPath));
 
 const maximized = inject(BladeMaximizedKey, null);
 if (maximized) maximized.value = true;
@@ -954,24 +963,14 @@ function notifyFailure(title: string, e: unknown) {
 }
 
 async function saveChanges() {
-  // theme files name the catalog of the storefront previewed: the server checks them against it
-  const catalogHash = designer.handshake.value?.hash;
+  // with the page: the theme settings and the rules, in the same Save
+  const parts = [theme.pending(), rules.pending()].filter((x) => !!x);
+  if (!designer.dirty.value && !parts.length) return;
+  const pageChanged = designer.dirty.value;
   try {
-    if (theme.dirty.value) await theme.save(catalogHash);
-  } catch (e) {
-    notifyFailure(t("PAGE_BUILDER.DESIGNER.THEME.SAVE_FAILED"), e);
-    return;
-  }
-  try {
-    if (rules.dirty.value) await rules.save(catalogHash);
-  } catch (e) {
-    notifyFailure(t("PAGE_BUILDER.DESIGNER.RULES.SAVE_FAILED"), e);
-    return;
-  }
-  if (!designer.dirty.value) return;
-  try {
-    await designer.save();
-    notifyPagesChanged();
+    if (!(await designer.save(parts.map((x) => x.file)))) return;
+    for (const part of parts) part.saved();
+    if (pageChanged) notifyPagesChanged();
   } catch (e) {
     const messages: Record<number, string> = { 412: "PAGE_BUILDER.DESIGNER.CONFLICT", 428: "PAGE_BUILDER.DESIGNER.NO_VERSION" };
     notifyFailure(t(messages[e instanceof ApiError ? e.status : 0] ?? "PAGE_BUILDER.DESIGNER.SAVE_FAILED"), e);
@@ -1108,57 +1107,66 @@ async function saveShared() {
   }
 }
 
-// ── version history: a file page in git; else, for a site that keeps its versions, what a Save writes (a database
-// page or a template, the template's rules, the header and footer), a version per Save ──────────────
+// ── version history: a file page in git; else, for a site that keeps it, what a Save writes (a database page or a
+// template, the template's rules, the header and footer, the theme settings), a version per Save, merged by the server ──
 
 const historyOpen = ref(false);
-/** the site keeps its database pages' and theme files' versions (a file page's are there when it is in git) */
-const historyOn = ref(false);
-const historyAvailable = computed(() =>
-  designer.templateKey.value ? historyOn.value : designer.gitFlow.value || (!!designer.groupId.value && historyOn.value),
+/** whether the site keeps the versions of its database pages and theme files (a file page's are in git) */
+const siteHistory = ref<HistoryStatus>();
+const historyOffered = computed(() =>
+  historyOffer({
+    shared: !!designer.shared.value,
+    filePage: !!designer.file.value && !designer.templateKey.value,
+    gitFlow: designer.gitFlow.value,
+    site: !!designer.groupId.value || !!designer.templateKey.value,
+    status: siteHistory.value,
+  }),
 );
 /** a version the preview shows instead of the page */
-const previewing = ref<PageVersion>();
+const previewing = ref<HistoryVersion>();
 const versionHistory = ref<{ reload: () => Promise<void> }>();
+
+/** What the history covers of what is open */
+const shownItems = computed(() =>
+  historyItems({
+    groupId: designer.groupId.value,
+    templatePath: designer.templateKey.value ? designer.file.value?.path : undefined,
+    theme: themeName.value,
+    rules: rulesActive.value,
+    groups: !!designer.groupsPreview.value,
+    settings: theme.loaded.value,
+  }),
+);
+const itemOf = (file: HistoryFile) => shownItems.value.find((x) => x.file === file)?.item;
 
 const FILE_LABELS: Record<HistoryFile, string> = {
   page: "PAGE_BUILDER.DESIGNER.HISTORY.PAGE",
   rules: "PAGE_BUILDER.DESIGNER.HISTORY.RULES",
   header: "PAGE_BUILDER.DESIGNER.GROUPS.HEADER",
   footer: "PAGE_BUILDER.DESIGNER.GROUPS.FOOTER",
+  settings: "PAGE_BUILDER.DESIGNER.THEME.TITLE",
 };
+const filesOf = (version: HistoryVersion) =>
+  shownItems.value.filter((x) => version.items?.includes(x.item)).map((x) => x.file);
 /** What a version changed: "Template, Header" */
-const describeVersion = (version: PageVersion) =>
-  version.files
-    ?.map(({ file }) => t(file === "page" && designer.templateKey.value ? "PAGE_BUILDER.DESIGNER.GROUPS.TEMPLATE" : FILE_LABELS[file]))
+const describeVersion = (version: HistoryVersion) =>
+  version.items &&
+  filesOf(version)
+    .map((file) => t(file === "page" && designer.templateKey.value ? "PAGE_BUILDER.DESIGNER.GROUPS.TEMPLATE" : FILE_LABELS[file]))
     .join(", ");
-/** A version that changed only the rules shows nothing else in the preview: it is restored, not previewed */
-const previewableVersion = (version: PageVersion) => !version.files || version.files.some((x) => x.file !== "rules");
+/** A version that changed only the rules or the settings shows nothing else in the preview: it is restored, not previewed */
+const previewableVersion = (version: HistoryVersion) => !version.items || filesOf(version).some((x) => x !== "rules" && x !== "settings");
 
-/** The theme file a file of the history is; undefined: the database page's own history */
-const historyPathOf = (file: HistoryFile) =>
-  themeFileOf(file, themeName.value, designer.templateKey.value ? designer.file.value?.path : undefined);
-
-let saves: ReturnType<typeof savesHistory> | undefined;
-
-/** A file page in git: its own history. Else the Saves of what is open, read a page of each file's history at a time. */
-function historySource(after?: string) {
+/** A file page in git: its own history. Else the Saves of what is open, merged by the server. */
+async function historySource(cursor?: string) {
   const file = designer.file.value;
   if (file && !designer.templateKey.value) {
-    return fileHistory(file, after).then((x) => ({ versions: x.versions, hasMore: x.truncated, endCursor: x.endCursor }));
+    const page = await fileHistory(file, cursor);
+    return { versions: page.versions.map(fromGitVersion), hasMore: page.truncated, endCursor: page.endCursor };
   }
-  if (!after || !saves) {
-    const storeId = designer.storeId.value!;
-    const files = historyFiles({ versioned: historyOn.value && !!themeName.value, rules: rulesActive.value, groups: !!designer.groupsPreview.value });
-    saves = savesHistory(
-      files.map((x) => {
-        const path = historyPathOf(x);
-        return { file: x, read: (cursor?: string) => (path ? themeFileHistory(storeId, path, cursor) : groupHistory(designer.groupId.value!, cursor)) };
-      }),
-    );
-  }
-  // the list is made again from all that was read: a Save split by a page of one file's history comes together
-  return saves(!!after).then((x) => ({ versions: x.versions, hasMore: x.hasMore, endCursor: x.hasMore ? "more" : undefined, complete: true }));
+  const page = await contentHistory(designer.storeId.value!, shownItems.value.map((x) => x.item), cursor);
+  siteHistory.value = page.status;
+  return { versions: page.versions, hasMore: !!page.cursor, endCursor: page.cursor };
 }
 
 function openHistory() {
@@ -1195,12 +1203,12 @@ function endVersionPreview() {
  * Shows a version in the preview (what a Save left of the page or template, the header and the footer; the others as
  * they are now), or the page again; a file page's version opens on the storefront
  */
-async function previewVersion(version: PageVersion | null) {
+async function previewVersion(version: HistoryVersion | null) {
   // a version read after another pick, or after Back, is not shown
   const request = ++versionPreviews;
   const file = designer.file.value;
-  if (version && file && !version.files) {
-    window.open(filePreviewUrl(file, true, undefined, false, version.sha), "_blank", "noopener");
+  if (version && file && !version.items) {
+    window.open(filePreviewUrl(file, true, undefined, false, version.id), "_blank", "noopener");
     return;
   }
   sendRender.cancel();
@@ -1213,18 +1221,19 @@ async function previewVersion(version: PageVersion | null) {
   }
   try {
     const storeId = designer.storeId.value!;
-    const at = (file: HistoryFile) => version.files?.find((x) => x.file === file)?.sha;
+    // each item as of the version, changed by it or not; one that did not exist then shows as it is now
+    const at = (file: HistoryFile) => {
+      const item = itemOf(file);
+      return item ? contentVersion(storeId, version.id, item) : Promise.resolve(undefined);
+    };
     const groupAt = async (group: SectionGroup) => {
-      const sha = at(group);
-      if (!sha) return undefined;
-      const saved = (await themeFileVersion(storeId, historyPathOf(group)!, sha)) as { content?: unknown } | undefined;
+      const saved = (await at(group)) as { content?: unknown } | undefined;
+      if (saved === undefined) return undefined;
       return Array.isArray(saved?.content) ? (saved.content as Item[]) : [];
     };
-    const pageSha = at("page");
-    const pagePath = historyPathOf("page");
     const [saved, header, footer] = await Promise.all([
       // a template's version is sent as the edited template (the render message names it)
-      pageSha && (pagePath ? themeFileVersion(storeId, pagePath, pageSha).then(toDocument) : groupVersion(designer.groupId.value!, pageSha)),
+      at("page").then((x) => (x === undefined ? undefined : toDocument(x))),
       groupAt("header"),
       groupAt("footer"),
     ]);
@@ -1267,26 +1276,20 @@ async function reopen() {
   await versionHistory.value?.reload();
 }
 
-async function restoreVersion(version: PageVersion) {
-  const label = version.shortSha ?? version.sha.slice(0, 7);
-  if (!(await showConfirmation(t("PAGE_BUILDER.DESIGNER.HISTORY.CONFIRM", { version: label })))) return;
+async function restoreVersion(version: HistoryVersion) {
+  if (!(await showConfirmation(t("PAGE_BUILDER.DESIGNER.HISTORY.CONFIRM", { version: version.label })))) return;
   try {
-    const files = version.files;
-    if (!files) await designer.restore(version.sha);
+    const items = version.items;
+    if (!items) await designer.restore(version.id);
     else {
       const storeId = designer.storeId.value!;
-      // each file back as that Save left it, as drafts: one version on top, named after the one picked
-      await asOneSave(() =>
-        Promise.all(
-          files.map(({ file, sha }) => {
-            const path = historyPathOf(file);
-            return path ? restoreThemeFileVersion(storeId, path, sha, label) : restoreGroupVersion(designer.groupId.value!, sha, label);
-          }),
-        ),
-      );
-      if (files.some((x) => x.file === "rules")) await rules.load(storeId, themeName.value!);
+      const files = filesOf(version);
+      // what that Save changed, back as their drafts in one save: one version on top, named after the one picked
+      await restoreContentVersion(storeId, version.id, items);
+      if (files.includes("rules")) await rules.load(storeId, themeName.value!);
+      if (files.includes("settings")) await theme.load(storeId, themeName.value!);
       // the page or template, the header or footer: the designer opens them again from their new drafts
-      if (files.some((x) => x.file !== "rules")) await reopen();
+      if (files.some((x) => x !== "rules" && x !== "settings")) await reopen();
       else await Promise.all([versionHistory.value?.reload(), designer.refreshThemeStatus()]);
     }
     notification.success(t("PAGE_BUILDER.DESIGNER.HISTORY.RESTORED"));
@@ -1340,6 +1343,9 @@ const publishTitle = computed(() => {
  * a database page has it from its next save; a file page is opened again from git (unless it has unsaved edits).
  */
 const sitePanel = ref(false);
+async function loadSiteHistory(storeId: string) {
+  siteHistory.value = await historyStatus(storeId).catch(() => undefined);
+}
 function enableHistory() {
   const storeId = designer.storeId.value;
   if (!storeId) return;
@@ -1353,8 +1359,7 @@ function enableHistory() {
     onClose: async () => {
       sitePanel.value = false;
       if (maximized) maximized.value = true;
-      const { on, siteHistory } = await gitFlowOf(storeId, file?.theme ?? (await storeTheme(storeId)));
-      historyOn.value = siteHistory;
+      const [{ on }] = await Promise.all([gitFlowOf(storeId, file?.theme ?? (await storeTheme(storeId))), loadSiteHistory(storeId)]);
       if (!on || !file || file.type === "themes") return;
       // unsaved edits stay on screen; their save goes to git now, and so does publishing
       if (unsaved.value) designer.gitFlow.value = true;
@@ -1449,15 +1454,15 @@ const toolbar = computed<IBladeToolbar[]>(() => [
     id: "history",
     title: t("PAGE_BUILDER.DESIGNER.HISTORY.TITLE"),
     icon: "lucide-history",
-    isVisible: historyAvailable.value,
+    isVisible: historyOffered.value === "history",
     clickHandler: () => (historyOpen.value ? closeHistory() : openHistory()),
   },
   {
-    // a file page of a site without history: the site's history panel, where it is switched on
+    // a site without history: the site's history panel, where it is set up
     id: "enable-history",
     title: t("PAGE_BUILDER.GIT.TURN_ON"),
     icon: "lucide-history",
-    isVisible: !historyAvailable.value && (!!designer.file.value || !!designer.groupId.value),
+    isVisible: historyOffered.value === "enable",
     clickHandler: enableHistory,
   },
   {
@@ -1517,7 +1522,7 @@ onMounted(async () => {
       return Promise.all([
         theme.load(storeId, name),
         // whether the site keeps versions: a page's, a template's and its header's and footer's
-        query.value?.sharedComponentId ? undefined : gitFlowOf(storeId, name).then((x) => (historyOn.value = x.siteHistory)),
+        query.value?.sharedComponentId ? undefined : loadSiteHistory(storeId),
         query.value?.sharedComponentId ? undefined : loadTemplateKeys(),
         // the preview gets the rules with the theme: they choose a content page's template too
         query.value?.sharedComponentId || rules.loaded.value ? undefined : rules.load(storeId, name).catch(() => undefined),
@@ -1668,7 +1673,8 @@ async function createTemplate() {
   try {
     const base = await findFilePage(file(target.type));
     const doc = startingTemplate(target.type, base, templateEntry(designer.schemas.value, target.type).entry);
-    await saveFilePage(file(key), { ...doc, settings: { ...doc.settings, name: target.name.trim() } }, designer.handshake.value?.hash);
+    const content = filePageContent({ ...doc, settings: { ...doc.settings, name: target.name.trim() } });
+    await saveDesigner(storeId, { themeFiles: [{ path: file(key).path, content }] }, designer.handshake.value?.hash);
   } catch (e) {
     notifyFailure(t("PAGE_BUILDER.DESIGNER.TEMPLATES.CREATE_FAILED"), e);
     return;

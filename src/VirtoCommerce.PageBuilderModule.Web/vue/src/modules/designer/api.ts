@@ -1,20 +1,21 @@
 import type { Item, PageDocument, SectionGroup } from "./types";
 import { fromDocument, toDocument } from "./document";
 import { templateKeyOf } from "./templates";
-import { groupPath, rulesPath, themeHistoryUrl, type HistoryFile } from "./history";
+import { groupPath, historyStatusUrl, historyUrl, parseHistoryPage, parseHistoryStatus, restoreUrl, versionUrl, type HistoryStatus } from "./history";
+import { designerSaveBody, designerSaveUrl, type DesignerSaveFile, type DesignerSavePage } from "./designerSave";
 import { storefrontPage } from "./preview";
-import { fileSaveUrl, parseThemeStatus, publishThemeUrl, saveUrl, type ThemeStatus } from "./themePublication";
+import { parseThemeStatus, publishThemeUrl, type ThemeStatus } from "./themePublication";
 import { getAuthHeaders } from "../page-builder/composables/usePageContentApi";
 
 // The designer's platform calls (the generated client types the content endpoints as void), as the shell user.
 
-/** The designer action the calls being made are part of (asOneSave); every change the site's history records carries it */
+/** The designer action the calls being made are part of (asOneSave); the version the site's history records names it */
 let currentSave: string | undefined;
 
 // a plain-http host has no crypto.randomUUID, and a Save must not fail for want of an id
 const newSaveId = () => globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
 
-/** Makes what `action` writes one version of the site's history: "Saved · Template, Header", restored as a whole */
+/** Names the calls `action` makes as one designer action */
 export async function asOneSave<T>(action: () => Promise<T>): Promise<T> {
   if (currentSave) return action();
   currentSave = newSaveId();
@@ -216,18 +217,6 @@ export async function loadThemeFile(storeId: string, theme: string, path: string
   return text.trim() ? JSON.parse(text) : undefined;
 }
 
-/**
- * Saves theme files as drafts: the site keeps the published theme until the next publication (publishTheme). With the
- * catalog's hash, the server checks them against the storefront's schemas (400 `{ error, errors }`).
- */
-export async function saveThemeFiles(storeId: string, theme: string, files: { path: string; content: unknown }[], catalogHash?: string) {
-  await call(saveUrl(storeId, theme, catalogHash), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ files: JSON.stringify(files.map((x) => ({ ...x, type: "themes" }))) }),
-  });
-}
-
 /** The theme's current publication and the theme files with a draft the next one puts live */
 export async function themeStatus(storeId: string): Promise<ThemeStatus> {
   return parseThemeStatus(await (await call(`/api/pagebuilder/theme/status?${new URLSearchParams({ storeId })}`)).json());
@@ -252,20 +241,29 @@ export async function loadSectionGroup(storeId: string, theme: string, group: Se
   return Array.isArray(file?.content) ? (file.content as Item[]) : [];
 }
 
+/** The theme files of section groups (Shopify's sections/header-group.json) */
+export const sectionGroupFiles = (theme: string, groups: Partial<Record<SectionGroup, Item[]>>): DesignerSaveFile[] =>
+  Object.entries(groups).map(([group, content]) => ({
+    path: groupPath(theme, group as SectionGroup),
+    content: { type: group, name: group === "header" ? "Header" : "Footer", content },
+  }));
+
 /**
- * Saves section groups as drafts of the theme's files ("-draft"): the site keeps its live header and footer until the
- * theme is published (publishTheme)
+ * One designer Save: the page and the theme files as drafts, all or nothing, one version of the site's history. 412: the
+ * page was saved by someone else since it was read; 400 `{ error, errors }`: a file doesn't fit the catalog named; 403:
+ * a part needs a permission the user lacks. Returns the page's new version (a database page).
  */
-export async function saveSectionGroups(storeId: string, theme: string, groups: Partial<Record<SectionGroup, Item[]>>, catalogHash?: string) {
-  await saveThemeFiles(
-    storeId,
-    theme,
-    Object.entries(groups).map(([group, content]) => ({
-      path: groupPath(theme, group as SectionGroup),
-      content: { type: group, name: group === "header" ? "Header" : "Footer", content },
-    })),
-    catalogHash,
-  );
+export async function saveDesigner(
+  storeId: string,
+  save: { page?: DesignerSavePage; themeFiles: DesignerSaveFile[] },
+  catalogHash?: string,
+): Promise<{ saveId?: string; eTag?: string }> {
+  const res = await call(designerSaveUrl(storeId, catalogHash), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(designerSaveBody(save)),
+  });
+  return ((await res.json().catch(() => ({}))) ?? {}) as { saveId?: string; eTag?: string };
 }
 
 /**
@@ -296,15 +294,12 @@ export async function templateKeys(storeId: string, theme: string): Promise<stri
   return [...new Set(items.map((x) => templateKeyOf(`templates/${x.name ?? ""}`)).filter((x): x is string => !!x))].sort();
 }
 
-/**
- * The store's git flow, from the builder settings: whether its pages are in git (the settings then carry the history
- * descriptors), and whether its database pages and theme files have versions too (a repository made for the store)
- */
-export async function gitFlowOf(storeId: string, theme: string): Promise<{ on: boolean; siteHistory: boolean }> {
+/** The store's git flow, from the builder settings: whether its pages are in git (the settings then carry the history descriptors) */
+export async function gitFlowOf(storeId: string, theme: string): Promise<{ on: boolean }> {
   const res = await fetch(`/api/pagebuilder/settings?${new URLSearchParams({ storeId, theme })}`, { headers: await getAuthHeaders() });
-  if (!res.ok) return { on: false, siteHistory: false };
-  const settings = (await res.json().catch(() => ({}))) as { history?: unknown; siteHistory?: unknown };
-  return { on: !!settings.history, siteHistory: settings.siteHistory === true };
+  if (!res.ok) return { on: false };
+  const settings = (await res.json().catch(() => ({}))) as { history?: unknown };
+  return { on: !!settings.history };
 }
 
 /** A file page: its draft (in git: this editor's branch), else what is published; a new page when there is none */
@@ -320,19 +315,9 @@ export async function findFilePage(page: FilePage): Promise<PageDocument | undef
   return toDocument(await res.text());
 }
 
-/**
- * Saves a file page's draft (in git: a commit on this editor's work branch). 400 lists what the page is missing; a
- * template, a theme file, is checked against the catalog named.
- */
-export async function saveFilePage(page: FilePage, doc: PageDocument, catalogHash?: string) {
-  // git validates the envelope: the settings item is typed "settings"
-  const content = fromDocument(doc.version === 1 ? doc : { ...doc, settings: { ...doc.settings, type: doc.settings.type || "settings" } });
-  await call(fileSaveUrl(page, catalogHash), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ files: JSON.stringify([{ path: page.path, type: page.type, content }]) }),
-  });
-}
+/** A file page's JSON as saved: git validates the envelope, whose settings item is typed "settings" */
+export const filePageContent = (doc: PageDocument) =>
+  fromDocument(doc.version === 1 ? doc : { ...doc, settings: { ...doc.settings, type: doc.settings.type || "settings" } });
 
 /** A file page's publish status; the builder answers from git or, for a store without it, from the site's files */
 export async function filePublishStatus(page: FilePage): Promise<PublishStatus> {
@@ -352,13 +337,9 @@ export async function promoteFilePage(page: FilePage) {
   await call(`/api/pagebuilder/git/promote?${fileArgs(page)}`, { method: "POST" });
 }
 
+/** git: a version of a file page */
 export interface PageVersion {
   sha: string;
-  /** the designer action it is part of (its changes of other files share it) */
-  saveId?: string;
-  /** a designer action of the site's history: its id, and the change of each file it wrote */
-  id?: string;
-  files?: { file: HistoryFile; sha: string }[];
   shortSha?: string;
   date?: string;
   message?: string;
@@ -388,64 +369,32 @@ export async function discardFileDraft(page: FilePage) {
   await call(`/api/pagebuilder/git/discard-draft?${fileArgs(page)}`, { method: "POST" });
 }
 
-const historyUrl = (groupId: string) => `${groupUrl(groupId)}/history`;
-
-interface SiteHistory {
-  versions: PageVersion[];
-  hasMore?: boolean;
-  endCursor?: string;
-}
-
-/** A version list of the site's repository (a database page's, a theme file's), its authors as a file page's are */
-async function siteHistory(res: Response): Promise<SiteHistory> {
-  const body = (await res.json()) as {
-    versions?: (PageVersion & { authorName?: string; authorEmail?: string; authorLogin?: string })[];
-    hasMore?: boolean;
-    endCursor?: string;
-  };
-  return {
-    ...body,
-    versions: (body.versions ?? []).map(({ authorName, authorEmail, authorLogin, ...v }) => ({
-      ...v,
-      author: { name: authorName, email: authorEmail, login: authorLogin },
-    })),
-  };
-}
-
-/** A database page's versions in its site's repository, newest first (`after` continues); 404 without history */
-export async function groupHistory(groupId: string, after?: string): Promise<SiteHistory> {
-  const query = after ? `?${new URLSearchParams({ after })}` : "";
-  return siteHistory(await call(`${historyUrl(groupId)}${query}`));
-}
-
-/** A database page as it was at a version */
-export async function groupVersion(groupId: string, sha: string): Promise<PageDocument> {
-  return toDocument(await (await call(`${historyUrl(groupId)}/${encodeURIComponent(sha)}`)).text());
-}
-
-/** Makes a version the database page's draft again */
-export async function restoreGroupVersion(groupId: string, sha: string, version?: string) {
-  await call(`${historyUrl(groupId)}/${encodeURIComponent(sha)}/restore${version ? `?${new URLSearchParams({ version })}` : ""}`, { method: "POST" });
-}
-
-/** Throws the database page's unpublished changes away */
+/** Throws the database page's unpublished changes away; 400 when it was never published */
 export async function discardGroupDraft(groupId: string) {
-  await call(`${historyUrl(groupId)}/discard`, { method: "POST" });
+  await call(`${groupUrl(groupId)}/discard`, { method: "POST" });
 }
 
-/** A theme file's versions in its site's repository (a template, the rules, a section group), newest first; 404 without history */
-export async function themeFileHistory(storeId: string, path: string, after?: string): Promise<SiteHistory> {
-  return siteHistory(await call(themeHistoryUrl(storeId, path, undefined, undefined, after ? { after } : {})));
+/** Whether the store keeps the history of its database pages and theme files */
+export async function historyStatus(storeId: string): Promise<HistoryStatus> {
+  return parseHistoryStatus(((await (await call(historyStatusUrl(storeId))).json()) as { status?: unknown })?.status);
 }
 
-/** A theme file as it was at a version */
-export async function themeFileVersion(storeId: string, path: string, sha: string): Promise<unknown> {
-  return JSON.parse(await (await call(themeHistoryUrl(storeId, path, sha))).text());
+/** The versions that changed any of the items, newest first; `cursor` continues. 502: GitHub did not answer. */
+export async function contentHistory(storeId: string, items: string[], cursor?: string) {
+  return parseHistoryPage(await (await call(historyUrl(storeId, items, cursor))).json());
 }
 
-/** Makes a version the theme file's draft again; Publish puts it live */
-export async function restoreThemeFileVersion(storeId: string, path: string, sha: string, version?: string) {
-  await call(themeHistoryUrl(storeId, path, sha, "restore", version ? { version } : {}), { method: "POST" });
+/** An item as of a version (its JSON); undefined when it did not exist then */
+export async function contentVersion(storeId: string, versionId: string, item: string): Promise<unknown> {
+  const res = await fetch(versionUrl(storeId, versionId, item), { headers: await getAuthHeaders() });
+  if (res.status === 404) return undefined;
+  if (!res.ok) throw new ApiError(res.status, await res.text().catch(() => ""));
+  return JSON.parse(await res.text());
+}
+
+/** Makes the items as of a version their drafts again, as one save; Publish puts them live */
+export async function restoreContentVersion(storeId: string, versionId: string, items: string[]) {
+  await call(restoreUrl(storeId, versionId, items), { method: "POST" });
 }
 
 /** git: makes a version this editor's draft again */

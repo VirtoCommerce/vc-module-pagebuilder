@@ -10,6 +10,7 @@ using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
+using VirtoCommerce.PageBuilderModule.Core.History;
 using VirtoCommerce.PageBuilderModule.Core.Theme;
 using VirtoCommerce.PageBuilderModule.Data.Theme;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
@@ -242,6 +243,42 @@ public class PageBuilderControllerThemeFilesTests
         Assert.Empty(_live.Files);
     }
 
+    [Fact]
+    public async Task SaveTemplates_SeveralThemeFiles_RecordsThemAsOneVersion()
+    {
+        var history = new RecordingContentHistory();
+        var files = new PageBuilderController.SaveFilesModel
+        {
+            Files = JsonConvert.SerializeObject(new object[]
+            {
+                new { path = Path, type = "themes", content = Group("site-header") },
+                new { path = "default/config/template_rules.json", type = "themes", content = new { version = 2 } },
+            }),
+        };
+
+        await Builder(history: history).SaveTemplates("s1", "default", files, draft: true);
+
+        var (_, record) = Assert.Single(history.Records);
+        Assert.Equal(ModuleConstants.GitHistory.SavedSummary, record.Description);
+        Assert.Equal([$"theme:{Path}", "theme:default/config/template_rules.json"], record.Entries.Select(x => x.Item.ToString()));
+        // the bytes written: they tell the published version later
+        Assert.Equal(_live.Files[$"{Path}-draft"], record.Entries[0].Content);
+    }
+
+    [Fact]
+    public async Task DiscardDraft_ThemeFile_RecordsThePublishedFile()
+    {
+        var history = new RecordingContentHistory();
+        _live.Files[Path] = "published";
+        _live.Files[$"{Path}-draft"] = "{}";
+
+        await Builder(history: history).DiscardDraft("s1", Path, "themes", "default");
+
+        var (_, record) = Assert.Single(history.Records);
+        Assert.Equal(ModuleConstants.GitHistory.DiscardedSummary, record.Description);
+        Assert.Equal([($"theme:{Path}", "published")], record.Entries.Select(x => (x.Item.ToString(), x.Content)));
+    }
+
     private Task<string> SaveCatalogAsync() =>
         new SchemaCatalogService(_themeStorageFactory).SaveAsync("s1",
             $$"""{ "hash": "{{Catalog}}", "sections": { "site-header": {}, "product-info": {}, "text": {} }, "blocks": {}, "shared": {} }""", Ct);
@@ -263,11 +300,11 @@ public class PageBuilderControllerThemeFilesTests
     };
 
 
-    private PageBuilderController Builder(FakeAuthorizationService authorization = null, IEventPublisher eventPublisher = null)
+    private PageBuilderController Builder(FakeAuthorizationService authorization = null, IEventPublisher eventPublisher = null, IContentHistory history = null)
     {
         var options = Options.Create(new GitContentOptions { Enabled = true, Organization = "acme", Token = "t0ken", BaseBranch = "main" });
         var themePublisher = new ThemePublisher(_themeStorageFactory, new ThemeSnapshotBuilder(), _live.StoreService, new SchemaCatalogService(_themeStorageFactory),
-            _lock, _live, new NoFileHistory(), Options.Create(new ThemeSnapshotOptions()), NullLogger<ThemePublisher>.Instance);
+            _lock, _live, new NoContentHistory(), Options.Create(new ThemeSnapshotOptions()), NullLogger<ThemePublisher>.Instance);
         var controller = new PageBuilderController(
             storeService: _live.StoreService,
             pathResolver: _live,
@@ -286,10 +323,13 @@ public class PageBuilderControllerThemeFilesTests
             authorizationService: authorization ?? new FakeAuthorizationService(true),
             distributedLock: _lock,
             requestValidator: RequestValidators.Content("s1"),
-            themeFileHistoryService: new NoFileHistory(),
+            contentHistory: history ?? new NoContentHistory(),
             themePublisher: themePublisher,
             themeSnapshotService: new ThemeSnapshotService(_live.StoreService, _settings, _themeStorageFactory, themePublisher, null,
-                Options.Create(new ThemeSnapshotOptions())));
+                Options.Create(new ThemeSnapshotOptions())),
+            themeDraftService: null,
+            groupedPageService: null,
+            pageContentService: null);
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Name, "alice")], "test")) },
