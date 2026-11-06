@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -9,6 +10,7 @@ using Newtonsoft.Json.Linq;
 using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Data.GitContent;
+using VirtoCommerce.StoreModule.Core.Model;
 using Xunit;
 
 namespace VirtoCommerce.PageBuilderModule.Tests;
@@ -22,7 +24,7 @@ public class GitHubContentProvisionerTests
 {
     private const string Repo = "acme/site-s1";
     private const string Sha = "1111111111111111111111111111111111111111";
-    private static readonly string Mine = GitHubContentOwnership.Marker + "s1";
+    private static readonly string Mine = GitHubContentOwnership.DescriptionPrefix + "s1";
 
     [Fact]
     public async Task A_missing_repository_is_created_private_with_a_first_commit_and_marked_as_the_stores()
@@ -102,7 +104,7 @@ public class GitHubContentProvisionerTests
     public async Task A_repository_made_for_another_store_is_refused()
     {
         var github = new GitHubScript(
-            ("GET", $"repos/{Repo}", (_, _) => GitHubScript.Json(RepoJson(GitHubContentOwnership.Marker + "S1"))));
+            ("GET", $"repos/{Repo}", (_, _) => GitHubScript.Json(RepoJson(GitHubContentOwnership.DescriptionPrefix + "S1"))));
 
         var error = await Assert.ThrowsAsync<GitRepositoryOwnershipException>(() =>
             Provisioner(github).EnsureRepositoryAsync("s1", TestContext.Current.CancellationToken));
@@ -118,7 +120,7 @@ public class GitHubContentProvisionerTests
         var github = new GitHubScript(
             ("GET", "repos/acme/website", (_, _) => GitHubScript.Status(HttpStatusCode.NotFound)));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<GitContentException>(() =>
             Provisioner(github, repository: "acme/website").EnsureRepositoryAsync("s1", TestContext.Current.CancellationToken));
 
         github.AssertDone();
@@ -142,7 +144,7 @@ public class GitHubContentProvisionerTests
         var github = new GitHubScript(
             ("GET", "repos/other/website", (_, _) => GitHubScript.Status(HttpStatusCode.NotFound)));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<GitContentException>(() =>
             Provisioner(github, repository: "other/website").EnsureRepositoryAsync("s1", TestContext.Current.CancellationToken));
 
         github.AssertDone();
@@ -167,7 +169,7 @@ public class GitHubContentProvisionerTests
             x.Repository = shared;
             x.ReleaseBranch = "release";
         });
-        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => provisioner.EnsureRepositoryAsync("s1", TestContext.Current.CancellationToken));
+        var error = await Assert.ThrowsAsync<GitContentException>(() => provisioner.EnsureRepositoryAsync("s1", TestContext.Current.CancellationToken));
 
         Assert.Contains("\"main\"", error.Message);
         github.AssertDone();
@@ -195,15 +197,17 @@ public class GitHubContentProvisionerTests
     public async Task Connect_makes_the_repository_ready_then_switches_the_store_on()
     {
         var settings = new FakeSettingsManager(value: false);
+        var stores = new MemoryStoreService(new Store { Id = "s1", Settings = [] });
         var github = new GitHubScript(
             ("GET", $"repos/{Repo}", (_, _) => GitHubScript.Json(RepoJson(Mine))),
             ("GET", "repos/acme/site-s1/git/ref/heads/main", (_, _) => Branch()));
 
-        await Provisioner(github, settings).ConnectAsync("s1", TestContext.Current.CancellationToken);
+        await Provisioner(github, settings, stores: stores).ConnectAsync("s1", TestContext.Current.CancellationToken);
 
-        var saved = Assert.Single(settings.Saved);
+        var store = Assert.Single(stores.Saved);
+        Assert.Equal("s1", store.Id);
+        var saved = Assert.Single(store.Settings);
         Assert.Equal(ModuleConstants.Settings.StoreLevelSettings.GitContentEnabled.Name, saved.Name);
-        Assert.Equal("s1", saved.ObjectId);
         Assert.Equal(true, saved.Value);
     }
 
@@ -291,7 +295,7 @@ public class GitHubContentProvisionerTests
     public async Task Status_of_a_repository_made_for_another_store_says_whose_it_is()
     {
         var github = new GitHubScript(
-            ("GET", $"repos/{Repo}", (_, _) => GitHubScript.Json(RepoJson(GitHubContentOwnership.Marker + "S1"))),
+            ("GET", $"repos/{Repo}", (_, _) => GitHubScript.Json(RepoJson(GitHubContentOwnership.DescriptionPrefix + "S1"))),
             ("GET", "repos/acme/site-s1/git/ref/heads/main", (_, _) => Branch()));
 
         var status = await Provisioner(github, new FakeSettingsManager(value: true)).GetStatusAsync("s1", TestContext.Current.CancellationToken);
@@ -314,7 +318,7 @@ public class GitHubContentProvisionerTests
     // ── helpers ────────────────────────────────────────────────────────────────────────────────
 
     private static GitHubContentProvisioner Provisioner(GitHubScript github, FakeSettingsManager settings = null, string repository = null,
-        Action<GitContentOptions> configure = null, FakeGitContentOwnership ownership = null)
+        Action<GitContentOptions> configure = null, FakeGitContentOwnership ownership = null, MemoryStoreService stores = null)
     {
         var options = new GitContentOptions
         {
@@ -330,11 +334,18 @@ public class GitHubContentProvisionerTests
         var gitRepository = new GitHubContentRepository(github, new MemoryCache(new MemoryCacheOptions()), wrapped);
 
         ownership ??= new FakeGitContentOwnership();
-        return new GitHubContentProvisioner(github, gitRepository, new GitContentPolicy(wrapped, settings, ownership), ownership, settings, wrapped,
+        var connection = GitHubConnections.Service(options);
+        var policy = new GitContentPolicy(connection, wrapped, settings, stores ?? new MemoryStoreService(), ownership);
+        return new NoWaitProvisioner(new GitHubApiClient(github), connection, gitRepository, policy, ownership, wrapped);
+    }
+
+    /// <summary>Looks for the first commit of a new repository again at once.</summary>
+    private sealed class NoWaitProvisioner(IGitHubApiClient gitHubApiClient, IGitHubConnectionService gitHubConnectionService, IGitContentRepository gitContentRepository,
+        IGitContentPolicy gitContentPolicy, IGitContentOwnership gitContentOwnership, IOptions<GitContentOptions> options)
+        : GitHubContentProvisioner(gitHubApiClient, gitHubConnectionService, gitContentRepository, gitContentPolicy, gitContentOwnership, options,
             NullLogger<GitHubContentProvisioner>.Instance)
-        {
-            BranchWait = TimeSpan.Zero,
-        };
+    {
+        protected override Task DelayBeforeRetryAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }
 
     private static string RepoJson(string description, bool archived = false, string defaultBranch = "main") => new JObject

@@ -406,6 +406,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 publishingService: null,
                 eventPublisher: null,
                 gitContentOptions: options,
+                gitHubConnectionService: GitHubConnections.Service(options.Value),
                 gitContentPolicy: new FakeGitContentPolicy(gitFlow),
                 gitContentRepository: git ?? new FakeGitRepository(),
                 gitContentHistory: null,

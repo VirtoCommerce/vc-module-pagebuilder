@@ -2,7 +2,6 @@ using System;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
@@ -24,7 +23,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
     /// </summary>
     public class GitHubContentRepository : IGitContentRepository
     {
-        public const string HttpClientName = "PageBuilderGitContent";
+        public const string HttpClientName = GitHubApiClient.HttpClientName;
 
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IMemoryCache _memoryCache;
@@ -65,16 +64,16 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             ArgumentException.ThrowIfNullOrWhiteSpace(repository);
             ArgumentException.ThrowIfNullOrWhiteSpace(branch);
 
+            var operation = $"resolve branch \"{branch}\"";
             var client = _httpClientFactory.CreateClient(HttpClientName);
-            using var response = await client.GetAsync(RefUrl(repository, branch), cancellationToken);
+            using var response = await GitHubApiClient.SendRequestAsync(client, HttpMethod.Get, RefUrl(repository, branch), null, operation, cancellationToken);
             if (response.StatusCode == HttpStatusCode.NotFound)
             {
                 return null;
             }
 
-            await ThrowIfFailedAsync(response, $"resolve branch \"{branch}\"");
-            var body = JObject.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
-            return body["object"]?["sha"]?.Value<string>();
+            var body = await GitHubApiClient.ReadAsAsync<JObject>(response, operation, cancellationToken);
+            return body?["object"]?["sha"]?.Value<string>();
         }
 
         public virtual async Task CreateBranchAsync(string repository, string branch, string fromRef, CancellationToken cancellationToken = default)
@@ -86,7 +85,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             var sha = GitCommitSha.IsSha(fromRef)
                 ? fromRef
                 : await GetBranchHeadShaAsync(repository, fromRef, cancellationToken)
-                  ?? throw new InvalidOperationException($"Could not resolve \"{fromRef}\" to a commit.");
+                  ?? throw new GitContentException($"Could not resolve \"{fromRef}\" to a commit.");
 
             var client = _httpClientFactory.CreateClient(HttpClientName);
             var body = new JObject
@@ -95,7 +94,9 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
                 ["sha"] = sha,
             };
 
-            using var response = await client.PostAsync($"repos/{repository}/git/refs", JsonContent(body), cancellationToken);
+            var operation = $"create branch \"{branch}\" from \"{fromRef}\"";
+            using var response = await GitHubApiClient.SendRequestAsync(client, HttpMethod.Post, $"repos/{repository}/git/refs",
+                GitHubApiClient.CreateJsonContent(body), operation, cancellationToken);
 
             if (response.StatusCode == HttpStatusCode.UnprocessableEntity)
             {
@@ -109,10 +110,10 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
                     return;
                 }
 
-                throw Failed(response, details, $"create branch \"{branch}\" from \"{fromRef}\"");
+                throw GitHubApiClient.CreateException(response, details, operation);
             }
 
-            await ThrowIfFailedAsync(response, $"create branch \"{branch}\" from \"{fromRef}\"");
+            await GitHubApiClient.EnsureSuccessAsync(response, operation, cancellationToken);
         }
 
         public virtual async Task SetBranchAsync(string repository, string branch, string sha, string pagePath, CancellationToken cancellationToken = default)
@@ -133,8 +134,9 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
                 ["force"] = true,
             };
 
-            using var request = new HttpRequestMessage(HttpMethod.Patch, MutableRefUrl(repository, branch)) { Content = JsonContent(body) };
-            using var response = await client.SendAsync(request, cancellationToken);
+            var operation = $"move branch \"{branch}\" to {sha}";
+            using var response = await GitHubApiClient.SendRequestAsync(client, HttpMethod.Patch, MutableRefUrl(repository, branch),
+                GitHubApiClient.CreateJsonContent(body), operation, cancellationToken);
 
             if (response.StatusCode == HttpStatusCode.NotFound)
             {
@@ -143,7 +145,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             }
             else
             {
-                await ThrowIfFailedAsync(response, $"move branch \"{branch}\" to {sha}");
+                await GitHubApiClient.EnsureSuccessAsync(response, operation, cancellationToken);
             }
 
             InvalidateRead(repository, pagePath, branch);
@@ -156,13 +158,14 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             ArgumentException.ThrowIfNullOrWhiteSpace(pagePath);
 
             var client = _httpClientFactory.CreateClient(HttpClientName);
-            using var response = await client.DeleteAsync(MutableRefUrl(repository, branch), cancellationToken);
+            var operation = $"delete branch \"{branch}\"";
+            using var response = await GitHubApiClient.SendRequestAsync(client, HttpMethod.Delete, MutableRefUrl(repository, branch), null, operation, cancellationToken);
 
             // already gone: publishing deletes the work branch, and so does the repository's
             // "automatically delete head branches" setting — whichever wins, the caller is satisfied
             if (response.StatusCode != HttpStatusCode.NotFound)
             {
-                await ThrowIfFailedAsync(response, $"delete branch \"{branch}\"");
+                await GitHubApiClient.EnsureSuccessAsync(response, operation, cancellationToken);
             }
 
             // the draft is gone, so the read that would still serve it has to go with it — including the
@@ -213,9 +216,10 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
 
             using (response)
             {
-                await ThrowIfFailedAsync(response, $"commit \"{path}\" to branch \"{branch}\"");
+                var operation = $"commit \"{path}\" to branch \"{branch}\"";
+                await GitHubApiClient.EnsureSuccessAsync(response, operation, cancellationToken);
                 InvalidateRead(repository, path, branch);
-                return await ReadCommitShaAsync(response, cancellationToken);
+                return await ReadCommitShaAsync(response, operation, cancellationToken);
             }
         }
 
@@ -229,7 +233,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             var escapedPath = EscapePath(path);
 
             var sha = (await GetFileAsync(client, repository, escapedPath, branch, cancellationToken))?.Sha
-                      ?? throw new InvalidOperationException($"Cannot delete \"{path}\": it does not exist on branch \"{branch}\".");
+                      ?? throw new GitContentException($"Cannot delete \"{path}\": it does not exist on branch \"{branch}\".");
 
             var body = new JObject
             {
@@ -239,23 +243,21 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             };
             AddAuthor(body, author);
 
-            using var request = new HttpRequestMessage(HttpMethod.Delete, $"repos/{repository}/contents/{escapedPath}")
-            {
-                Content = JsonContent(body),
-            };
-            using var response = await client.SendAsync(request, cancellationToken);
+            var operation = $"delete \"{path}\" on branch \"{branch}\"";
+            using var response = await GitHubApiClient.SendRequestAsync(client, HttpMethod.Delete, $"repos/{repository}/contents/{escapedPath}",
+                GitHubApiClient.CreateJsonContent(body), operation, cancellationToken);
 
-            await ThrowIfFailedAsync(response, $"delete \"{path}\" on branch \"{branch}\"");
+            await GitHubApiClient.EnsureSuccessAsync(response, operation, cancellationToken);
             InvalidateRead(repository, path, branch);
-            return await ReadCommitShaAsync(response, cancellationToken);
+            return await ReadCommitShaAsync(response, operation, cancellationToken);
         }
 
         private async Task<string> FetchFileAsync(string repository, string path, string gitRef, CancellationToken cancellationToken)
         {
+            var operation = $"read \"{path}\" at \"{gitRef}\"";
             var client = _httpClientFactory.CreateClient(HttpClientName);
-            using var response = await client.GetAsync(
-                $"repos/{repository}/contents/{EscapePath(path)}?ref={Uri.EscapeDataString(gitRef)}",
-                cancellationToken);
+            using var response = await GitHubApiClient.SendRequestAsync(client, HttpMethod.Get,
+                $"repos/{repository}/contents/{EscapePath(path)}?ref={Uri.EscapeDataString(gitRef)}", null, operation, cancellationToken);
 
             // 404 covers both "no such file" and "no such ref"; neither is an error for a caller that
             // only wants to know what the page looks like there
@@ -264,14 +266,12 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
                 return null;
             }
 
-            await ThrowIfFailedAsync(response, $"read \"{path}\" at \"{gitRef}\"");
-
-            var body = JObject.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
-            var encoded = body["content"]?.Value<string>();
+            var body = await GitHubApiClient.ReadAsAsync<JObject>(response, operation, cancellationToken);
+            var encoded = body?["content"]?.Value<string>();
             if (encoded == null)
             {
                 // the contents API refuses to inline files over 1 MB; a page that large is a bug elsewhere
-                throw new InvalidOperationException($"GitHub returned no inline content for \"{path}\" at \"{gitRef}\" (too large?).");
+                throw new GitContentException($"GitHub returned no inline content for \"{path}\" at \"{gitRef}\" (too large?).");
             }
 
             return PageJson.Encoding.GetString(Convert.FromBase64String(encoded));
@@ -279,20 +279,19 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
 
         private static async Task<RemoteFile> GetFileAsync(HttpClient client, string repository, string escapedPath, string branch, CancellationToken cancellationToken)
         {
-            using var response = await client.GetAsync(
-                $"repos/{repository}/contents/{escapedPath}?ref={Uri.EscapeDataString(branch)}",
-                cancellationToken);
+            var operation = $"read current sha of \"{escapedPath}\"";
+            using var response = await GitHubApiClient.SendRequestAsync(client, HttpMethod.Get,
+                $"repos/{repository}/contents/{escapedPath}?ref={Uri.EscapeDataString(branch)}", null, operation, cancellationToken);
             if (response.StatusCode == HttpStatusCode.NotFound)
             {
                 return null; // new file on this branch
             }
 
-            await ThrowIfFailedAsync(response, $"read current sha of \"{escapedPath}\"");
-            var body = JObject.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
-            var encoded = body["content"]?.Value<string>();
+            var body = await GitHubApiClient.ReadAsAsync<JObject>(response, operation, cancellationToken);
+            var encoded = body?["content"]?.Value<string>();
 
             return new RemoteFile(
-                body["sha"]?.Value<string>(),
+                body?["sha"]?.Value<string>(),
                 // not inlined above 1 MB: such a file is simply never taken for "unchanged"
                 encoded == null ? null : Convert.FromBase64String(encoded));
         }
@@ -317,7 +316,8 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             }
             AddAuthor(body, author);
 
-            return client.PutAsync($"repos/{repository}/contents/{escapedPath}", JsonContent(body), cancellationToken);
+            return GitHubApiClient.SendRequestAsync(client, HttpMethod.Put, $"repos/{repository}/contents/{escapedPath}",
+                GitHubApiClient.CreateJsonContent(body), $"commit \"{escapedPath}\" to branch \"{branch}\"", cancellationToken);
         }
 
         private static void AddAuthor(JObject body, GitCommitAuthor author)
@@ -328,10 +328,10 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             }
         }
 
-        private static async Task<string> ReadCommitShaAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+        private static async Task<string> ReadCommitShaAsync(HttpResponseMessage response, string operation, CancellationToken cancellationToken)
         {
-            var body = JObject.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
-            return body["commit"]?["sha"]?.Value<string>();
+            var body = await GitHubApiClient.ReadAsAsync<JObject>(response, operation, cancellationToken);
+            return body?["commit"]?["sha"]?.Value<string>();
         }
 
         public virtual void InvalidateRead(string repository, string path, string gitRef)
@@ -339,7 +339,6 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             _memoryCache.Remove(ReadCacheKey(repository, path, gitRef));
         }
 
-        // the repository is part of the key: sites share page paths, never their content
         private static string ReadCacheKey(string repository, string path, string gitRef) => $"{nameof(GitHubContentRepository)}:{repository}:{gitRef}:{path}";
 
         // a branch name may contain '/' (designer/john/about-us) — escape each segment, keep the separators
@@ -362,31 +361,6 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             }
 
             return string.Join("/", segments.Select(Uri.EscapeDataString));
-        }
-        private static StringContent JsonContent(JObject body)
-        {
-            return new StringContent(body.ToString(), Encoding.UTF8, "application/json");
-        }
-
-        private static async Task ThrowIfFailedAsync(HttpResponseMessage response, string operation)
-        {
-            if (response.IsSuccessStatusCode)
-            {
-                return;
-            }
-
-            throw Failed(response, await response.Content.ReadAsStringAsync(), operation);
-        }
-
-        // For callers that had to read the body themselves to tell an expected failure from a real one.
-        internal static HttpRequestException Failed(HttpResponseMessage response, string details, string operation)
-        {
-            if (details?.Length > 500)
-            {
-                details = details[..500];
-            }
-
-            return new HttpRequestException($"GitHub request to {operation} failed: {(int)response.StatusCode} {response.ReasonPhrase}. {details}");
         }
     }
 }

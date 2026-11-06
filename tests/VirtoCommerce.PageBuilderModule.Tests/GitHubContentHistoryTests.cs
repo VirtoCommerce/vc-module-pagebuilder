@@ -297,7 +297,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 ["errors"] = new JArray { new JObject { ["message"] = "Could not resolve to a Repository with the name 'o/r'." } },
             });
 
-            var error = await Assert.ThrowsAsync<HttpRequestException>(() =>
+            var error = await Assert.ThrowsAsync<GitContentException>(() =>
                 Create(handler).GetHistoryAsync("o/r", Path, Query(), TestContext.Current.CancellationToken));
 
             Assert.Contains("Could not resolve to a Repository", error.Message);
@@ -308,7 +308,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         {
             var handler = new RecordingHandler((HttpStatusCode.Unauthorized, "{ \"message\": \"Bad credentials\" }"));
 
-            var error = await Assert.ThrowsAsync<HttpRequestException>(() =>
+            var error = await Assert.ThrowsAsync<GitContentException>(() =>
                 Create(handler).GetHistoryAsync("o/r", Path, Query(), TestContext.Current.CancellationToken));
 
             Assert.Contains("Bad credentials", error.Message);

@@ -1,7 +1,11 @@
 using System.Collections.Generic;
-using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
+using VirtoCommerce.PageBuilderModule.Data.BackgroundJobs;
+using VirtoCommerce.PageBuilderModule.Data.GitContent;
 using VirtoCommerce.PageBuilderModule.Data.Handlers;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Events;
@@ -25,31 +29,33 @@ public class GitContentStoreChangedEventHandlerTests
     };
 
     [Fact]
-    public void A_new_store_gets_its_repository_when_the_organization_creates_them()
+    public async Task GetJobPayloadsAsync_AddedStoreWithAutoCreate_ConnectsStore()
     {
-        var job = Assert.Single(Jobs(PerSite(), Change(new Store { Id = "s1" }, EntryState.Added)));
+        var job = Assert.Single(await Jobs(PerSite(), Change(new Store { Id = "s1" }, EntryState.Added)));
 
         Assert.Equal("s1", job.StoreId);
-        Assert.Null(job.ArchiveRepository);
+        Assert.Equal(GitContentRepositoryAction.Connect, job.Action);
+        Assert.Null(job.Repository);
     }
 
     [Fact]
-    public void A_new_store_waits_to_be_switched_on_when_the_organization_does_not_create_them()
+    public async Task GetJobPayloadsAsync_AddedStoreWithoutAutoCreate_ReturnsNoJob()
     {
-        Assert.Empty(Jobs(PerSite(autoCreate: false), Change(new Store { Id = "s1" }, EntryState.Added)));
+        Assert.Empty(await Jobs(PerSite(autoCreate: false), Change(new Store { Id = "s1" }, EntryState.Added)));
     }
 
     [Fact]
-    public void A_deleted_store_has_its_repository_archived()
+    public async Task GetJobPayloadsAsync_DeletedStore_ArchivesItsRepository()
     {
-        var job = Assert.Single(Jobs(PerSite(), Change(new Store { Id = "s1", Settings = [] }, EntryState.Deleted)));
+        var job = Assert.Single(await Jobs(PerSite(), Change(new Store { Id = "s1", Settings = [] }, EntryState.Deleted)));
 
-        Assert.Equal("acme/site-s1", job.ArchiveRepository);
+        Assert.Equal(GitContentRepositoryAction.Archive, job.Action);
+        Assert.Equal("acme/site-s1", job.Repository);
     }
 
     /// <summary>A repository the store named itself was somebody's before the store, and stays theirs.</summary>
     [Fact]
-    public void A_deleted_store_leaves_a_repository_it_named_outside_the_organization_alone()
+    public async Task GetJobPayloadsAsync_DeletedStoreNamingRepositoryOutsideOrganization_ReturnsNoJob()
     {
         var store = new Store
         {
@@ -60,11 +66,11 @@ public class GitContentStoreChangedEventHandlerTests
             ],
         };
 
-        Assert.Empty(Jobs(PerSite(), Change(store, EntryState.Deleted)));
+        Assert.Empty(await Jobs(PerSite(), Change(store, EntryState.Deleted)));
     }
 
     [Fact]
-    public void A_deleted_store_leaves_a_repository_it_named_in_the_organization_alone()
+    public async Task GetJobPayloadsAsync_DeletedStoreNamingRepositoryInOrganization_ReturnsNoJob()
     {
         var store = new Store
         {
@@ -75,25 +81,37 @@ public class GitContentStoreChangedEventHandlerTests
             ],
         };
 
-        Assert.Empty(Jobs(PerSite(), Change(store, EntryState.Deleted)));
+        Assert.Empty(await Jobs(PerSite(), Change(store, EntryState.Deleted)));
     }
 
     [Fact]
-    public void The_shared_repository_of_earlier_installations_is_nobodys_to_create_or_archive()
+    public async Task GetJobPayloadsAsync_SharedRepository_ReturnsNoJob()
     {
         var shared = new GitContentOptions { Enabled = true, Repository = "acme/content", Token = "t0ken", BaseBranch = "main", AutoCreateRepositories = true };
 
-        Assert.Empty(Jobs(shared, Change(new Store { Id = "s1" }, EntryState.Added), Change(new Store { Id = "s2" }, EntryState.Deleted)));
+        Assert.Empty(await Jobs(shared, Change(new Store { Id = "s1" }, EntryState.Added), Change(new Store { Id = "s2" }, EntryState.Deleted)));
     }
 
+    /// <summary>Switching a store's history on saves the store: that change must not start a job again.</summary>
     [Fact]
-    public void An_edited_store_reaches_GitHub_not_at_all()
+    public async Task GetJobPayloadsAsync_ModifiedStore_ReturnsNoJob()
     {
-        Assert.Empty(Jobs(PerSite(), Change(new Store { Id = "s1" }, EntryState.Modified)));
+        Assert.Empty(await Jobs(PerSite(), Change(new Store { Id = "s1" }, EntryState.Modified)));
     }
 
-    private static List<GitContentRepositoryJobPayload> Jobs(GitContentOptions options, params GenericChangedEntry<Store>[] changes) =>
-        GitContentStoreChangedEventHandler.JobsFor(new StoreChangedEvent(changes), options).ToList();
+    private static Task<IList<GitContentRepositoryJobPayload>> Jobs(GitContentOptions options, params GenericChangedEntry<Store>[] changes)
+    {
+        var wrapped = Options.Create(options);
+        var connection = GitHubConnections.Service(options);
+        var handler = new Handler(connection, new GitContentPolicy(connection, wrapped, settingsManager: null, storeService: null, new FakeGitContentOwnership()));
+        return handler.GetJobPayloadsAsync(new StoreChangedEvent(changes));
+    }
+
+    private sealed class Handler(IGitHubConnectionService gitHubConnectionService, IGitContentPolicy gitContentPolicy)
+        : GitContentStoreChangedEventHandler(gitHubConnectionService, gitContentPolicy, NullLogger<GitContentStoreChangedEventHandler>.Instance)
+    {
+        public new Task<IList<GitContentRepositoryJobPayload>> GetJobPayloadsAsync(StoreChangedEvent message) => base.GetJobPayloadsAsync(message);
+    }
 
     private static GenericChangedEntry<Store> Change(Store store, EntryState state) => new(store, state);
 }

@@ -11,7 +11,7 @@ public class ThemeFileRequestValidator : AbstractValidator<ThemeFileRequest>
         ClassLevelCascadeMode = CascadeMode.Stop;
 
         RuleFor(x => x.Path)
-            .Must(ThemeFileHistory.IsThemePath)
+            .Must(ThemeFileHistoryService.IsThemePath)
             .WithMessage("\"{PropertyValue}\" is not a theme file: the theme's folder, then the file's path in it.");
 
         Include(storeRequestValidator);

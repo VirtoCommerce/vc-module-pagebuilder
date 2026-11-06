@@ -2,10 +2,7 @@ using System;
 
 namespace VirtoCommerce.PageBuilderModule.Core.GitContent;
 
-/// <summary>
-/// A store's repository is one the module created for another store: two stores in one repository would publish
-/// over each other's pages.
-/// </summary>
+/// <summary>Thrown when a store repository was created for another store.</summary>
 public sealed class GitRepositoryOwnershipException(string repository, string owner)
     : InvalidOperationException($"The repository \"{repository}\" belongs to store \"{owner}\". Set this store's Git repository to one of its own.")
 {

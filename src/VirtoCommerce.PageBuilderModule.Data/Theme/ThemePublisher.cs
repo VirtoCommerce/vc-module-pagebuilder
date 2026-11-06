@@ -7,10 +7,10 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using VirtoCommerce.ContentModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Events;
+using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Theme;
 using VirtoCommerce.PageBuilderModule.Data.Extensions;
-using VirtoCommerce.PageBuilderModule.Data.GitContent;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.DistributedLock;
 using VirtoCommerce.Platform.Core.Events;
@@ -25,7 +25,7 @@ public class ThemePublisher(
     ISchemaCatalogService schemaCatalogService,
     IDistributedLock distributedLock,
     IEventPublisher eventPublisher,
-    ThemeFileHistory themeFileHistory,
+    IThemeFileHistoryService themeFileHistory,
     IOptions<ThemeSnapshotOptions> options,
     ILogger<ThemePublisher> logger) : IThemePublisher
 {

@@ -9,11 +9,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Core.Models;
-using VirtoCommerce.PageBuilderModule.Data.GitContent;
 using VirtoCommerce.Platform.Core;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.StoreModule.Core.Model.Search;
@@ -38,7 +36,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 [RepositoryOwnershipConflict]
 public class GitContentSetupController(
     IGitContentProvisioner gitContentProvisioner,
-    GitContentConnection gitContentConnection,
+    IGitHubConnectionService gitHubConnectionService,
     IDataProtectionProvider dataProtectionProvider,
     IAuthorizationService authorizationService,
     IGitContentPolicy gitContentPolicy,
@@ -52,9 +50,6 @@ public class GitContentSetupController(
     // a response may name one more address under this HttpContext item — the platform's own sign-in
     // consent page does it for its redirect.
     private const string FormActionItem = "Content-Security-Policy-Form-Action-Uri";
-
-    // GitHub's limit on an App's name
-    private const int MaxAppNameLength = 34;
 
     // as many sites as the Sites panel shows
     private const int MaxSites = 100;
@@ -76,7 +71,7 @@ public class GitContentSetupController(
             return refused;
         }
 
-        return Ok(await StatusAsync(storeId));
+        return Ok(await GetStatusAsync(storeId));
     }
 
     /// <summary>
@@ -108,9 +103,9 @@ public class GitContentSetupController(
     [Authorize(ModuleConstants.Security.Permissions.Read)]
     public async Task<ActionResult> GetConnection([FromQuery] bool live = true)
     {
-        var options = gitContentConnection.Value;
-        var configured = options.Enabled && options.IsConfigured;
-        var error = gitContentConnection.Error;
+        var connection = await gitHubConnectionService.GetConnectionAsync(HttpContext.RequestAborted);
+        var configured = connection.IsEnabled && connection.IsConfigured;
+        var error = connection.Error;
         if (live && configured && error == null)
         {
             try
@@ -123,21 +118,21 @@ public class GitContentSetupController(
             }
         }
 
-        var app = gitContentConnection.FromConfiguration ? null : gitContentConnection.App;
-        var web = options.WebUrl;
-        var organization = options.Organization?.Trim();
+        var app = connection.App;
+        var web = connection.WebUrl;
+        var organization = connection.Organization?.Trim();
         return Ok(new
         {
             sites = live && configured ? await SitesAsync(web) : [],
             configured,
-            source = Source(app),
+            source = connection.Source,
             organization,
             organizationUrl = string.IsNullOrEmpty(organization) ? null : new Uri(web, Uri.EscapeDataString(organization)).AbsoluteUri,
-            repository = string.IsNullOrEmpty(organization) ? options.Repository : null,
+            repository = string.IsNullOrEmpty(organization) ? connection.Repository : null,
             appSlug = app?.AppSlug,
             appUrl = app == null ? null : new Uri(web, $"organizations/{Uri.EscapeDataString(app.Organization)}/settings/apps/{Uri.EscapeDataString(app.AppSlug)}").AbsoluteUri,
-            installUrl = app == null ? null : InstallUrl(app),
-            autoCreateRepositories = configured && options.AutoCreateRepositories,
+            installUrl = app == null ? null : GetInstallUrl(web, app),
+            autoCreateRepositories = configured && connection.AutoCreateRepositories,
             error,
         });
     }
@@ -178,10 +173,10 @@ public class GitContentSetupController(
         var enabled = false;
         try
         {
-            repository = (await gitContentPolicy.ResolveRepositoryAsync(storeId, HttpContext.RequestAborted))?.Name;
+            repository = (await gitContentPolicy.GetConfiguredRepositoryAsync(storeId, HttpContext.RequestAborted))?.Name;
             enabled = await gitContentPolicy.IsEnabledForStoreAsync(storeId, HttpContext.RequestAborted);
         }
-        catch (InvalidOperationException)
+        catch (GitContentException)
         {
             // a malformed repository setting: the site's own panel says what is wrong with it
         }
@@ -204,9 +199,9 @@ public class GitContentSetupController(
     [HttpGet]
     [Route("app/setup")]
     [Authorize(PlatformConstants.Security.Permissions.SettingUpdate)]
-    public ActionResult StartAppSetup(string organization, string storeId)
+    public async Task<ActionResult> StartAppSetup(string organization, string storeId)
     {
-        if (gitContentConnection.FromConfiguration)
+        if (await IsFromConfigurationAsync())
         {
             return BadRequest(new { error = "This platform takes its GitHub connection from its configuration." });
         }
@@ -232,7 +227,7 @@ public class GitContentSetupController(
     [HttpGet]
     [Route("app/new")]
     [AllowAnonymous]
-    public ActionResult AppNew(string state)
+    public async Task<ActionResult> AppNew(string state)
     {
         if (!TryReadState(state, out var setup))
         {
@@ -240,28 +235,14 @@ public class GitContentSetupController(
         }
 
         var platform = $"{Request.Scheme}://{Request.Host}{Request.PathBase}";
-        var manifest = new JObject
-        {
-            ["name"] = Truncate($"Page Builder {setup.Organization}", MaxAppNameLength),
-            ["url"] = $"{platform}/",
-            ["description"] = "Keeps each site's Page Builder pages in its own repository.",
-            ["redirect_url"] = $"{platform}/api/pagebuilder/git/app/created",
-            // GitHub adds its own query to this address; the site to go back to rides in the state
-            ["setup_url"] = $"{platform}/api/pagebuilder/git/app/installed?state={Uri.EscapeDataString(state)}",
-            ["setup_on_update"] = true,
-            ["public"] = false,
-            // no "hook_attributes": no webhook — and GitHub refuses a webhook address it cannot reach, as a local platform's
-            ["default_permissions"] = new JObject
-            {
-                ["administration"] = "write",
-                ["contents"] = "write",
-                ["pull_requests"] = "write",
-                ["metadata"] = "read",
-            },
-            ["default_events"] = new JArray(),
-        };
+        // GitHub adds its own query to the setup address; the site to go back to rides in the state
+        var manifest = gitHubConnectionService.CreateAppManifest(
+            setup.Organization,
+            $"{platform}/",
+            $"{platform}/api/pagebuilder/git/app/created",
+            $"{platform}/api/pagebuilder/git/app/installed?state={Uri.EscapeDataString(state)}");
 
-        var web = gitContentConnection.Value.WebUrl;
+        var web = (await gitHubConnectionService.GetConnectionAsync(HttpContext.RequestAborted)).WebUrl;
         var action = new Uri(web, $"organizations/{setup.Organization}/settings/apps/new?state={Uri.EscapeDataString(state)}");
         // GitHub as well — the whole site: it may send the browser on to sign in first
         HttpContext.Items[FormActionItem] = web.GetLeftPart(UriPartial.Authority);
@@ -269,7 +250,7 @@ public class GitContentSetupController(
         return Content(
             "<!doctype html><html><head><meta charset=\"utf-8\"><title>GitHub</title></head><body>" +
             $"<form id=\"github\" method=\"post\" action=\"{WebUtility.HtmlEncode(action.AbsoluteUri)}\">" +
-            $"<input type=\"hidden\" name=\"manifest\" value=\"{WebUtility.HtmlEncode(manifest.ToString(Formatting.None))}\">" +
+            $"<input type=\"hidden\" name=\"manifest\" value=\"{WebUtility.HtmlEncode(JsonConvert.SerializeObject(manifest))}\">" +
             "<noscript><button>Continue to GitHub</button></noscript></form>" +
             "<script>document.getElementById('github').submit()</script></body></html>",
             "text/html; charset=utf-8");
@@ -285,7 +266,7 @@ public class GitContentSetupController(
     [AllowAnonymous]
     public async Task<ActionResult> AppCreated(string code, string state)
     {
-        if (gitContentConnection.FromConfiguration)
+        if (await IsFromConfigurationAsync())
         {
             return Failure("This platform takes its GitHub connection from its configuration.");
         }
@@ -298,14 +279,15 @@ public class GitContentSetupController(
         GitHubAppConnection app;
         try
         {
-            app = await gitContentConnection.CreateAppAsync(code, setup.Organization, HttpContext.RequestAborted);
+            app = await gitHubConnectionService.CreateAppAsync(code, setup.Organization, HttpContext.RequestAborted);
         }
         catch (Exception failure) when (failure is ArgumentException or JsonException || GitHubFailure.Is(failure, HttpContext.RequestAborted))
         {
             return Failure(failure.Message);
         }
 
-        return Redirect(InstallUrl(app));
+        var web = (await gitHubConnectionService.GetConnectionAsync(HttpContext.RequestAborted)).WebUrl;
+        return Redirect(GetInstallUrl(web, app));
     }
 
     /// <summary>
@@ -341,36 +323,27 @@ public class GitContentSetupController(
             return BadRequest(new { error = failure.Message });
         }
 
-        return Ok(await StatusAsync(storeId));
+        return Ok(await GetStatusAsync(storeId));
     }
 
     private Task<ActionResult> CheckRequestAsync(string storeId) =>
         this.CheckStoreRequestAsync(authorizationService, storeRequestValidator, new PageBuilderStoreRequest { StoreId = storeId });
 
-    private async Task<GitContentSiteStatus> StatusAsync(string storeId)
+    private async Task<GitContentSiteStatus> GetStatusAsync(string storeId)
     {
         var status = await gitContentProvisioner.GetStatusAsync(storeId, HttpContext.RequestAborted);
-        var app = gitContentConnection.FromConfiguration ? null : gitContentConnection.App;
-        return status with
-        {
-            Source = Source(app),
-            InstallUrl = app == null ? null : InstallUrl(app),
-            Error = status.Error ?? gitContentConnection.Error,
-        };
+        var connection = await gitHubConnectionService.GetConnectionAsync(HttpContext.RequestAborted);
+        status.Source = connection.Source;
+        status.InstallUrl = connection.App == null ? null : GetInstallUrl(connection.WebUrl, connection.App);
+        status.Error ??= connection.Error;
+        return status;
     }
 
-    private string Source(GitHubAppConnection app)
-    {
-        if (gitContentConnection.FromConfiguration)
-        {
-            return GitContentSiteStatus.ConfigurationSource;
-        }
+    private async Task<bool> IsFromConfigurationAsync() =>
+        (await gitHubConnectionService.GetConnectionAsync(HttpContext.RequestAborted)).Source == GitHubConnectionSource.Configuration;
 
-        return app == null ? null : GitContentSiteStatus.AppSource;
-    }
-
-    private string InstallUrl(GitHubAppConnection app) =>
-        new Uri(gitContentConnection.Value.WebUrl, $"apps/{Uri.EscapeDataString(app.AppSlug)}/installations/new").AbsoluteUri;
+    private static string GetInstallUrl(Uri web, GitHubAppConnection app) =>
+        new Uri(web, $"apps/{Uri.EscapeDataString(app.AppSlug)}/installations/new").AbsoluteUri;
 
     private ITimeLimitedDataProtector StateProtector() =>
         dataProtectionProvider.CreateProtector(StatePurpose).ToTimeLimitedDataProtector();
@@ -390,8 +363,6 @@ public class GitContentSetupController(
     }
 
     private sealed record SetupState(string Organization, string StoreId);
-
-    private static string Truncate(string value, int length) => value.Length > length ? value[..length].TrimEnd('-', ' ') : value;
 
     private static ContentResult Failure(string message) => new()
     {

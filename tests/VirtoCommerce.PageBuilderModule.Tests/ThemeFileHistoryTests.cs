@@ -73,7 +73,7 @@ public class ThemeFileHistoryTests
 
         var result = await Controller(github, live).GetHistory("s1", Path, cancellationToken: TestContext.Current.CancellationToken);
 
-        var history = Assert.IsType<GroupedPageHistoryResult>(Assert.IsType<OkObjectResult>(result.Result).Value);
+        var history = Assert.IsType<GitFileHistoryResult>(Assert.IsType<OkObjectResult>(result.Result).Value);
         Assert.Equal(["c3", "c2", "c1"], history.Versions.Select(x => x.Sha));
         Assert.Equal([false, true, false], history.Versions.Select(x => x.Published));
         // the file goes without saying in its own history
@@ -190,7 +190,7 @@ public class ThemeFileHistoryTests
     {
         var github = new GitHubScript();
 
-        Assert.False(ThemeFileHistory.IsThemePath(path));
+        Assert.False(ThemeFileHistoryService.IsThemePath(path));
         await History(github).RecordAsync("s1", path, "{}", "Saved", Alice(), null, TestContext.Current.CancellationToken);
         Assert.IsType<BadRequestObjectResult>((await Controller(github, new FakeLiveStorage()).GetHistory("s1", path, cancellationToken: TestContext.Current.CancellationToken)).Result);
 
@@ -255,13 +255,14 @@ public class ThemeFileHistoryTests
         GraphQlUrl = new Uri("https://api.github.test/graphql"),
     });
 
-    private static GitContentPolicy Policy(IOptions<GitContentOptions> options) => new(options, new FakeSettingsManager(true), new FakeGitContentOwnership());
+    private static GitContentPolicy Policy(IOptions<GitContentOptions> options) => GitHubConnections.Policy(options, new FakeSettingsManager(true));
 
-    private static ThemeFileHistory History(GitHubScript github)
+    private static ThemeFileHistoryService History(GitHubScript github)
     {
         var options = GitOptions();
         var repository = new GitHubContentRepository(github, new MemoryCache(new MemoryCacheOptions()), options);
-        return new ThemeFileHistory(Policy(options), repository, github, options, NullLogger<ThemeFileHistory>.Instance);
+        return new ThemeFileHistoryService(Policy(options), repository, new GitHubApiClient(github), GitHubConnections.Service(options.Value), options,
+            NullLogger<ThemeFileHistoryService>.Instance);
     }
 
     private static ThemeFileHistoryController Controller(GitHubScript github, FakeLiveStorage live, IAuthorizationService authorization = null) =>
@@ -288,6 +289,7 @@ public class ThemeFileHistoryTests
             publishingService: live,
             eventPublisher: live,
             gitContentOptions: options,
+            gitHubConnectionService: GitHubConnections.Service(options.Value),
             gitContentPolicy: Policy(options),
             gitContentRepository: new GitHubContentRepository(github, new MemoryCache(new MemoryCacheOptions()), options),
             gitContentHistory: null,
@@ -329,7 +331,7 @@ public class ThemeFileHistoryTests
                                 ["messageHeadline"] = $"Saved: {Path}",
                                 ["messageBody"] = "VC-User: alice\nVC-Save: save-0001",
                                 ["author"] = new JObject { ["name"] = "alice", ["email"] = "alice@acme.test" },
-                                ["file"] = new JObject { ["oid"] = SiteHistory.BlobOid(commit.Content) },
+                                ["file"] = new JObject { ["oid"] = GitHubFileHistoryService.ComputeBlobOid(commit.Content) },
                             })),
                         },
                     },

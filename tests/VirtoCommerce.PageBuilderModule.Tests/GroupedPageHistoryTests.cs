@@ -32,9 +32,9 @@ public class GroupedPageHistoryTests
     public void A_file_is_named_the_way_git_names_it()
     {
         // git hash-object of an empty file, and of the Pro Git book's "test content\n"
-        Assert.Equal("e69de29bb2d1d6434b8b29ae775ad8c2e48c5391", GroupedPageHistory.BlobOid(""));
-        Assert.Equal("d670460b4b4aece5915caf5c68d12f560a9fe3e4", GroupedPageHistory.BlobOid("test content\n"));
-        Assert.Null(GroupedPageHistory.BlobOid(null));
+        Assert.Equal("e69de29bb2d1d6434b8b29ae775ad8c2e48c5391", GitHubFileHistoryService.ComputeBlobOid(""));
+        Assert.Equal("d670460b4b4aece5915caf5c68d12f560a9fe3e4", GitHubFileHistoryService.ComputeBlobOid("test content\n"));
+        Assert.Null(GitHubFileHistoryService.ComputeBlobOid(null));
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public class GroupedPageHistoryTests
     {
         var github = new GitHubScript(("POST", "graphql", (request, body) =>
         {
-            Assert.True(request.Options.TryGetValue(GitHubAuthHandler.Owner, out var owner));
+            Assert.True(request.Options.TryGetValue(GitHubAuthHandler.OwnerOptionKey, out var owner));
             Assert.Equal("acme", owner);
             var variables = JObject.Parse(body!)["variables"]!;
             Assert.Equal("site-s1", variables["name"]?.Value<string>());
@@ -52,7 +52,7 @@ public class GroupedPageHistoryTests
             return GitHubScript.Json(Answer(hasMore: true, ("c4", """{ "v": 3 }"""), ("c3", Live), ("c2", """{ "v": 1 }"""), ("c1", Live)).ToString());
         }));
 
-        var history = await History(github, published: Live).GetAsync(Group(), "cursor-1", cancellationToken: TestContext.Current.CancellationToken);
+        var history = await History(github, published: Live).GetHistoryAsync(Group(), "cursor-1", cancellationToken: TestContext.Current.CancellationToken);
 
         github.AssertDone();
         Assert.Equal(["c4", "c3", "c2", "c1"], history!.Versions.Select(x => x.Sha));
@@ -70,7 +70,7 @@ public class GroupedPageHistoryTests
     {
         var github = new GitHubScript(("POST", "graphql", (_, _) => GitHubScript.Json(Answer(hasMore: false, ("c1", Live)).ToString())));
 
-        var history = await History(github, published: null).GetAsync(Group(), cancellationToken: TestContext.Current.CancellationToken);
+        var history = await History(github, published: null).GetHistoryAsync(Group(), cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.False(history!.Versions.Single().Published);
         Assert.False(history.HasMore);
@@ -106,7 +106,7 @@ public class GroupedPageHistoryTests
 
         await history.RecordAsync(Group(), Live, "Save", Alice(), null, TestContext.Current.CancellationToken);
 
-        Assert.Null(await history.GetAsync(Group(), cancellationToken: TestContext.Current.CancellationToken));
+        Assert.Null(await history.GetHistoryAsync(Group(), cancellationToken: TestContext.Current.CancellationToken));
         Assert.Equal(0, github.Requests);
     }
 
@@ -130,7 +130,7 @@ public class GroupedPageHistoryTests
 
         await history.RecordAsync(Group(), Live, "Save", Alice(), null, TestContext.Current.CancellationToken);
 
-        Assert.Null(await history.GetAsync(Group(), null, 20, TestContext.Current.CancellationToken));
+        Assert.Null(await history.GetHistoryAsync(Group(), null, 20, TestContext.Current.CancellationToken));
         Assert.Equal(0, github.Requests);
         Assert.Empty(ownership.Asked);
     }
@@ -193,7 +193,7 @@ public class GroupedPageHistoryTests
                                 ["messageHeadline"] = "Saved: \"Home\" (/home)",
                                 ["messageBody"] = "VC-User: alice",
                                 ["author"] = new JObject { ["name"] = "alice", ["email"] = "alice@acme.test" },
-                                ["file"] = new JObject { ["oid"] = GroupedPageHistory.BlobOid(commit.Content) },
+                                ["file"] = new JObject { ["oid"] = GitHubFileHistoryService.ComputeBlobOid(commit.Content) },
                             })),
                         },
                     },
@@ -216,12 +216,12 @@ public class GroupedPageHistoryTests
             ],
         };
         var options = Options.Create(new GitContentOptions());
-        var history = new GroupedPageHistory(null, null, null, new PageContents(), options, NullLogger<GroupedPageHistory>.Instance);
+        var history = new GroupedPageHistoryService(null, null, null, null, new PageContents(), options, NullLogger<GroupedPageHistoryService>.Instance);
 
-        Assert.Equal("content of newer", await history.LoadPublishedContentAsync(group, TestContext.Current.CancellationToken));
+        Assert.Equal("content of newer", await history.GetPublishedContentAsync(group, TestContext.Current.CancellationToken));
     }
 
-    private static GroupedPageHistory History(GitHubScript github, string published, bool enabled = true, string assignedRepository = null,
+    private static GroupedPageHistoryService History(GitHubScript github, string published, bool enabled = true, string assignedRepository = null,
         FakeGitContentOwnership ownership = null)
     {
         var options = Options.Create(new GitContentOptions
@@ -232,7 +232,7 @@ public class GroupedPageHistoryTests
             BaseBranch = "main",
             GraphQlUrl = new Uri("https://api.github.test/graphql"),
         });
-        var policy = new GitContentPolicy(options, new FakeSettingsManager(enabled, assignedRepository), ownership ?? new FakeGitContentOwnership());
+        var policy = GitHubConnections.Policy(options, new FakeSettingsManager(enabled, assignedRepository), ownership ?? new FakeGitContentOwnership());
         var repository = new GitHubContentRepository(github, new MemoryCache(new MemoryCacheOptions()), options);
         return new PublishedContent(policy, repository, github, options, published);
     }
@@ -254,9 +254,10 @@ public class GroupedPageHistoryTests
 
     /// <summary>The history with the page's live content given, rather than read from the database.</summary>
     private sealed class PublishedContent(IGitContentPolicy policy, IGitContentRepository repository, GitHubScript github, IOptions<GitContentOptions> options, string published)
-        : GroupedPageHistory(policy, repository, github, null, options, NullLogger<GroupedPageHistory>.Instance)
+        : GroupedPageHistoryService(policy, repository, new GitHubApiClient(github), GitHubConnections.Service(options.Value), null, options,
+            NullLogger<GroupedPageHistoryService>.Instance)
     {
-        public override Task<string> LoadPublishedContentAsync(GroupedPageBuilderPage group, CancellationToken cancellationToken = default) =>
+        public override Task<string> GetPublishedContentAsync(GroupedPageBuilderPage group, CancellationToken cancellationToken = default) =>
             Task.FromResult(published);
     }
 }

@@ -17,7 +17,7 @@ using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
 namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 
 /// <summary>
-/// A database page's version history (<see cref="GroupedPageHistory"/>): its changes, one change's content,
+/// A database page's version history (<see cref="IGroupedPageHistoryService"/>): its changes, one change's content,
 /// going back to a change, and throwing the unpublished changes away. 404 for a store without history.
 /// </summary>
 [Route("api/page-builder-pages/grouped/{groupId}/history")]
@@ -29,11 +29,11 @@ public class GroupedPageHistoryController(
     IPageBuilderPageService crudService,
     PageBuilderPageContentService pageContentService,
     IAuthorizationService authorizationService,
-    GroupedPageHistory pageHistory) : Controller
+    IGroupedPageHistoryService pageHistory) : Controller
 {
     [HttpGet("")]
     [Authorize(ModuleConstants.Security.Permissions.Read)]
-    public async Task<ActionResult<GroupedPageHistoryResult>> GetHistory([FromRoute] string groupId, [FromQuery] string after = null,
+    public async Task<ActionResult<GitFileHistoryResult>> GetHistory([FromRoute] string groupId, [FromQuery] string after = null,
         [FromQuery] int take = 20, CancellationToken cancellationToken = default)
     {
         var group = await AuthorizedGroupAsync(groupId);
@@ -44,7 +44,7 @@ public class GroupedPageHistoryController(
 
         try
         {
-            var history = await pageHistory.GetAsync(group, after, take, cancellationToken);
+            var history = await pageHistory.GetHistoryAsync(group, after, take, cancellationToken);
             return history == null ? NotFound() : Ok(history);
         }
         catch (Exception failure) when (GitHubFailure.Is(failure, cancellationToken))
@@ -64,7 +64,7 @@ public class GroupedPageHistoryController(
             return NotFound();
         }
 
-        var content = await pageHistory.ReadAsync(group, sha, cancellationToken);
+        var content = await pageHistory.ReadContentAsync(group, sha, cancellationToken);
         return content == null ? NotFound() : Content(content, "application/json");
     }
 
@@ -82,7 +82,7 @@ public class GroupedPageHistoryController(
             return NotFound();
         }
 
-        var content = await pageHistory.ReadAsync(group, sha, cancellationToken);
+        var content = await pageHistory.ReadContentAsync(group, sha, cancellationToken);
         if (content == null)
         {
             return NotFound();
@@ -124,7 +124,7 @@ public class GroupedPageHistoryController(
         if (drafts.Count > 0)
         {
             await crudService.DeleteAsync(drafts);
-            await pageHistory.RecordAsync(group, await pageHistory.LoadPublishedContentAsync(group, cancellationToken), "Discarded unpublished changes", User, SiteSave.Of(Request), cancellationToken);
+            await pageHistory.RecordAsync(group, await pageHistory.GetPublishedContentAsync(group, cancellationToken), "Discarded unpublished changes", User, SiteSave.Of(Request), cancellationToken);
         }
 
         return Ok();

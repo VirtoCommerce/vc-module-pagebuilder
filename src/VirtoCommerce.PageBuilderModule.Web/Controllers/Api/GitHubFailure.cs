@@ -14,5 +14,5 @@ internal static class GitHubFailure
 {
     public static bool Is(Exception failure, CancellationToken requestAborted) =>
         !requestAborted.IsCancellationRequested
-        && failure is HttpRequestException or OperationCanceledException or (InvalidOperationException and not GitRepositoryOwnershipException);
+        && failure is GitContentException or HttpRequestException or OperationCanceledException or (InvalidOperationException and not GitRepositoryOwnershipException);
 }

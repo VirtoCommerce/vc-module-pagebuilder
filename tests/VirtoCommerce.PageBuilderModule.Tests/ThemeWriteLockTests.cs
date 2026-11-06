@@ -111,7 +111,8 @@ public class ThemeWriteLockTests
             publishingService: _live,
             eventPublisher: _live,
             gitContentOptions: options,
-            gitContentPolicy: new GitContentPolicy(options, new FakeSettingsManager(false), new FakeGitContentOwnership()),
+            gitHubConnectionService: GitHubConnections.Service(options.Value),
+            gitContentPolicy: GitHubConnections.Policy(options, new FakeSettingsManager(false), new FakeGitContentOwnership()),
             gitContentRepository: null,
             gitContentHistory: null,
             gitContentPublisher: null,
@@ -133,7 +134,8 @@ public class ThemeWriteLockTests
             GraphQlUrl = new Uri("https://api.github.test/graphql"),
         });
         var repository = new GitHubContentRepository(github, new MemoryCache(new MemoryCacheOptions()), options);
-        var history = new ThemeFileHistory(new GitContentPolicy(options, new FakeSettingsManager(true), new FakeGitContentOwnership()), repository, github, options, NullLogger<ThemeFileHistory>.Instance);
+        var history = new ThemeFileHistoryService(GitHubConnections.Policy(options, new FakeSettingsManager(true), new FakeGitContentOwnership()), repository,
+            new GitHubApiClient(github), GitHubConnections.Service(options.Value), options, NullLogger<ThemeFileHistoryService>.Instance);
         return WithUser(new ThemeFileHistoryController(_live, _live, _live, _live, _lock, history, new FakeAuthorizationService(true), RequestValidators.ThemeFiles("s1")));
     }
 

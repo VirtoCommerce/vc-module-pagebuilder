@@ -1,36 +1,27 @@
 using System;
-using System.Buffers.Text;
+using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
 
 namespace VirtoCommerce.PageBuilderModule.Data.GitContent;
 
-/// <summary>
-/// Authenticates every request of the git content client.
-/// <para>
-/// With a token configured, that token. With a GitHub App, a token of the App's installation on the
-/// owner the request acts on — each site's repository belongs to an organization that installed the
-/// App, and its installation token is what may write there. Installation tokens are cached per owner and
-/// minted again shortly before they expire, or at once when GitHub refuses one.
-/// </para>
-/// </summary>
-public sealed class GitHubAuthHandler : DelegatingHandler
+/// <summary>Authenticates GitHub requests with a token or a GitHub App installation token.</summary>
+public class GitHubAuthHandler(IGitHubConnectionService gitHubConnectionService, IMemoryCache memoryCache, IOptions<GitContentOptions> options)
+    : DelegatingHandler
 {
-    /// <summary>
-    /// The owner a request acts on, for urls that name none — the GraphQL endpoint. Requests to
-    /// "repos/{owner}/..." and "orgs/{owner}..." carry it in their url.
-    /// </summary>
-    public static readonly HttpRequestOptionsKey<string> Owner = new("PageBuilderGitHubOwner");
+    /// <summary>Request option naming the owner for urls without one (GraphQL).</summary>
+    public static readonly HttpRequestOptionsKey<string> OwnerOptionKey = new("PageBuilderGitHubOwner");
+
+    private const string BearerScheme = "Bearer";
 
     private static readonly TimeSpan RefreshBeforeExpiry = TimeSpan.FromMinutes(5);
 
@@ -40,48 +31,40 @@ public sealed class GitHubAuthHandler : DelegatingHandler
     // GitHub refuses an App JWT that expires more than ten minutes ahead
     private static readonly TimeSpan JwtLifetime = TimeSpan.FromMinutes(9);
 
-    private readonly IMemoryCache _memoryCache;
-    private readonly IOptions<GitContentOptions> _options;
-
-    public GitHubAuthHandler(IMemoryCache memoryCache, IOptions<GitContentOptions> options)
-    {
-        _memoryCache = memoryCache;
-        _options = options;
-    }
+    private static readonly TimeSpan DefaultTokenLifetime = TimeSpan.FromHours(1);
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
-        // read per request, once: the client factory keeps a handler for minutes and the connection can change
-        // meanwhile, but one request must not sign with one App and cache under another
-        var connection = _options.Value;
+        // read once per request: the connection can change while the handler lives
+        var connection = await gitHubConnectionService.GetConnectionAsync(cancellationToken);
         if (!connection.UsesApp)
         {
             if (!string.IsNullOrWhiteSpace(connection.Token))
             {
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", connection.Token);
+                request.Headers.Authorization = new AuthenticationHeaderValue(BearerScheme, connection.Token);
             }
 
             return await base.SendAsync(request, cancellationToken);
         }
 
-        var owner = OwnerOf(request, connection);
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await GetTokenAsync(connection, owner, cancellationToken));
+        var owner = GetOwner(request, connection);
+        request.Headers.Authorization = new AuthenticationHeaderValue(BearerScheme, await GetTokenAsync(connection, owner, cancellationToken));
         var response = await base.SendAsync(request, cancellationToken);
         if (response.StatusCode != HttpStatusCode.Unauthorized)
         {
             return response;
         }
 
-        // the cached token was revoked or expired early: one fresh token, one more try
+        // revoked or expired early: retry once with a new token
         response.Dispose();
-        _memoryCache.Remove(TokenKey(connection.AppId, owner));
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await GetTokenAsync(connection, owner, cancellationToken));
+        memoryCache.Remove(GetTokenCacheKey(connection.AppId, owner));
+        request.Headers.Authorization = new AuthenticationHeaderValue(BearerScheme, await GetTokenAsync(connection, owner, cancellationToken));
         return await base.SendAsync(request, cancellationToken);
     }
 
-    private static string OwnerOf(HttpRequestMessage request, GitContentOptions connection)
+    protected virtual string GetOwner(HttpRequestMessage request, GitHubConnection connection)
     {
-        // "repos/{owner}/{name}/..." or "orgs/{owner}..." — also under a GitHub Enterprise "/api/v3/" prefix
+        // also under a GitHub Enterprise "/api/v3/" prefix
         var segments = request.RequestUri?.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries) ?? [];
         for (var i = 0; i < segments.Length - 1; i++)
         {
@@ -91,89 +74,94 @@ public sealed class GitHubAuthHandler : DelegatingHandler
             }
         }
 
-        if (request.Options.TryGetValue(Owner, out var owner) && !string.IsNullOrWhiteSpace(owner))
+        if (request.Options.TryGetValue(OwnerOptionKey, out var owner) && !string.IsNullOrWhiteSpace(owner))
         {
             return owner;
         }
 
         var fallback = connection.Organization ?? connection.Repository?.Split('/')[0];
         return string.IsNullOrWhiteSpace(fallback)
-            ? throw new InvalidOperationException($"Cannot tell which GitHub account the request to {request.RequestUri} acts on.")
+            ? throw new GitContentException($"Cannot tell which GitHub account the request to {request.RequestUri} acts on.")
             : fallback.Trim();
     }
 
-    private async Task<string> GetTokenAsync(GitContentOptions connection, string owner, CancellationToken cancellationToken)
+    protected virtual async Task<string> GetTokenAsync(GitHubConnection connection, string owner, CancellationToken cancellationToken)
     {
-        if (_memoryCache.TryGetValue<string>(TokenKey(connection.AppId, owner), out var cached))
+        var cacheKey = GetTokenCacheKey(connection.AppId, owner);
+        if (memoryCache.TryGetValue<string>(cacheKey, out var cached))
         {
             return cached;
         }
 
-        var jwt = AppJwt(connection.AppId, connection.PrivateKey, DateTimeOffset.UtcNow);
+        var jwt = CreateAppJwt(connection.AppId, connection.PrivateKey, DateTimeOffset.UtcNow);
+        var escapedOwner = Uri.EscapeDataString(owner);
 
-        // an organization's installation, else a user's — the App can be installed on either
-        var installation = await SendAsAppAsync(connection, HttpMethod.Get, $"orgs/{Uri.EscapeDataString(owner)}/installation", jwt, cancellationToken)
-                           ?? await SendAsAppAsync(connection, HttpMethod.Get, $"users/{Uri.EscapeDataString(owner)}/installation", jwt, cancellationToken)
-                           ?? throw new InvalidOperationException(
+        // organization installation, else user installation
+        var installation = await SendAsAppAsync<Installation>(HttpMethod.Get, $"orgs/{escapedOwner}/installation", jwt, cancellationToken)
+                           ?? await SendAsAppAsync<Installation>(HttpMethod.Get, $"users/{escapedOwner}/installation", jwt, cancellationToken)
+                           ?? throw new GitContentException(
                                $"The GitHub App {connection.AppId} is not installed on \"{owner}\". Install it there with access to all repositories.");
 
-        var minted = await SendAsAppAsync(connection, HttpMethod.Post, $"app/installations/{installation["id"]}/access_tokens", jwt, cancellationToken)
-                     ?? throw new InvalidOperationException($"GitHub did not issue a token for the App's installation on \"{owner}\".");
+        var accessToken = await SendAsAppAsync<InstallationToken>(HttpMethod.Post, $"app/installations/{installation.Id}/access_tokens", jwt, cancellationToken)
+                          ?? throw new GitContentException($"GitHub did not issue a token for the App's installation on \"{owner}\".");
 
-        var token = minted["token"]?.Value<string>();
-        var expiresAt = minted["expires_at"]?.Value<DateTime?>() is { } expires
+        var expiresAt = accessToken.ExpiresAt is { } expires
             ? new DateTimeOffset(DateTime.SpecifyKind(expires, DateTimeKind.Utc))
-            : DateTimeOffset.UtcNow.AddHours(1);
+            : DateTimeOffset.UtcNow.Add(DefaultTokenLifetime);
 
-        _memoryCache.Set(TokenKey(connection.AppId, owner), token, expiresAt - RefreshBeforeExpiry);
-        return token;
+        memoryCache.Set(cacheKey, accessToken.Token, expiresAt - RefreshBeforeExpiry);
+        return accessToken.Token;
     }
 
-    /// <summary>A request signed as the App itself; <c>null</c> on 404.</summary>
-    private async Task<JObject> SendAsAppAsync(GitContentOptions connection, HttpMethod method, string relativeUrl, string jwt, CancellationToken cancellationToken)
+    /// <summary>Sends a request signed as the App itself; <c>null</c> on 404.</summary>
+    private async Task<T> SendAsAppAsync<T>(HttpMethod method, string relativeUrl, string jwt, CancellationToken cancellationToken)
+        where T : class
     {
-        // built here, so the client's default headers do not apply: GitHub needs a User-Agent
-        using var request = new HttpRequestMessage(method, new Uri(new Uri(connection.ApiUrl.AbsoluteUri.TrimEnd('/') + "/"), relativeUrl));
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
-        request.Headers.Accept.ParseAdd("application/vnd.github+json");
-        request.Headers.UserAgent.ParseAdd("vc-pagebuilder-module");
-        request.Headers.Add("X-GitHub-Api-Version", "2022-11-28");
+        var operation = $"authenticate as the GitHub App ({method} {relativeUrl})";
+
+        // built here: the client's default headers do not apply
+        using var request = new HttpRequestMessage(method, new Uri(new Uri(options.Value.ApiUrl.AbsoluteUri.TrimEnd('/') + "/"), relativeUrl));
+        request.Headers.Authorization = new AuthenticationHeaderValue(BearerScheme, jwt);
+        GitHubApiClient.AddDefaultHeaders(request.Headers);
 
         using var response = await base.SendAsync(request, cancellationToken);
-        if (response.StatusCode == HttpStatusCode.NotFound)
-        {
-            return null;
-        }
-
-        var body = await response.Content.ReadAsStringAsync(cancellationToken);
-        if (!response.IsSuccessStatusCode)
-        {
-            throw new HttpRequestException(
-                $"GitHub App authentication failed ({method} {relativeUrl}): {(int)response.StatusCode} {response.ReasonPhrase}. {(body.Length > 300 ? body[..300] : body)}",
-                null, response.StatusCode);
-        }
-
-        return JObject.Parse(body);
+        return response.StatusCode == HttpStatusCode.NotFound
+            ? null
+            : await GitHubApiClient.ReadAsAsync<T>(response, operation, cancellationToken);
     }
 
-    // per App too: a new App connected in place of the old one must not use the old one's tokens
-    private static string TokenKey(string appId, string owner) => $"{nameof(GitHubAuthHandler)}:{appId}:{owner.ToLowerInvariant()}";
+    private static string GetTokenCacheKey(string appId, string owner) => $"{nameof(GitHubAuthHandler)}:{appId}:{owner.ToLowerInvariant()}";
 
-    /// <summary>The App's own credential: an RS256 JWT.</summary>
-    internal static string AppJwt(string appId, string privateKey, DateTimeOffset now)
+    /// <summary>Creates the App JWT (RS256).</summary>
+    internal static string CreateAppJwt(string appId, string privateKey, DateTimeOffset now)
     {
         using var rsa = RSA.Create();
         rsa.ImportFromPem(privateKey.Replace("\\n", "\n"));
 
-        var header = Base64Url.EncodeToString("{\"alg\":\"RS256\",\"typ\":\"JWT\"}"u8);
-        var payload = Base64Url.EncodeToString(Encoding.UTF8.GetBytes(new JObject
+        // a provider cached across calls would keep the RSA instance disposed here
+        var key = new RsaSecurityKey(rsa) { CryptoProviderFactory = new CryptoProviderFactory { CacheSignatureProviders = false } };
+        var payload = new JwtPayload
         {
-            ["iat"] = (now - JwtClockDrift).ToUnixTimeSeconds(),
-            ["exp"] = (now + JwtLifetime).ToUnixTimeSeconds(),
-            ["iss"] = appId,
-        }.ToString(Formatting.None)));
-        var signature = rsa.SignData(Encoding.ASCII.GetBytes($"{header}.{payload}"), HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+            { JwtRegisteredClaimNames.Iat, (now - JwtClockDrift).ToUnixTimeSeconds() },
+            { JwtRegisteredClaimNames.Exp, (now + JwtLifetime).ToUnixTimeSeconds() },
+            { JwtRegisteredClaimNames.Iss, appId },
+        };
 
-        return $"{header}.{payload}.{Base64Url.EncodeToString(signature)}";
+        return new JwtSecurityTokenHandler().WriteToken(new JwtSecurityToken(new JwtHeader(new SigningCredentials(key, SecurityAlgorithms.RsaSha256)), payload));
+    }
+
+    private sealed class Installation
+    {
+        [JsonProperty("id")]
+        public long Id { get; set; }
+    }
+
+    private sealed class InstallationToken
+    {
+        [JsonProperty("token")]
+        public string Token { get; set; }
+
+        [JsonProperty("expires_at")]
+        public DateTime? ExpiresAt { get; set; }
     }
 }

@@ -33,11 +33,11 @@ public class GitContentSetupControllerTests
     private readonly EphemeralDataProtectionProvider _keys = new();
 
     [Fact]
-    public void The_manifest_asks_for_what_site_repositories_need_and_comes_back_to_the_site()
+    public async Task The_manifest_asks_for_what_site_repositories_need_and_comes_back_to_the_site()
     {
         var controller = Controller();
-        var state = State(controller, "acme", "B2B store");
-        var (action, manifest) = Form(controller, state);
+        var state = await State(controller, "acme", "B2B store");
+        var (action, manifest) = await Form(controller, state);
 
         Assert.StartsWith("https://github.com/organizations/acme/settings/apps/new?state=", action);
         // the platform's pages may post forms only to themselves; this one also to GitHub
@@ -55,10 +55,10 @@ public class GitContentSetupControllerTests
     }
 
     [Fact]
-    public void A_long_organization_name_still_makes_an_App_name_GitHub_takes()
+    public async Task A_long_organization_name_still_makes_an_App_name_GitHub_takes()
     {
         var controller = Controller();
-        var (_, manifest) = Form(controller, State(controller, new string('a', 39), "s1"));
+        var (_, manifest) = await Form(controller, await State(controller, new string('a', 39), "s1"));
 
         Assert.True(manifest["name"]!.Value<string>()!.Length <= 34);
     }
@@ -67,42 +67,42 @@ public class GitContentSetupControllerTests
     [InlineData("")]
     [InlineData("acme/../settings")]
     [InlineData("-acme")]
-    public void What_is_not_an_organization_name_is_refused(string organization)
+    public async Task What_is_not_an_organization_name_is_refused(string organization)
     {
-        Assert.IsType<BadRequestObjectResult>(Controller().StartAppSetup(organization, "s1"));
+        Assert.IsType<BadRequestObjectResult>(await Controller().StartAppSetup(organization, "s1"));
     }
 
     [Fact]
     public async Task GitHubs_code_connects_the_App_and_goes_on_to_install_it()
     {
-        var github = GitContentConnectionTests.Conversion("acme");
-        var connection = GitContentConnectionTests.Connection(_settings, _keys, github);
+        var github = GitHubConnectionServiceTests.Conversion("acme");
+        var connection = GitHubConnectionServiceTests.Service(_settings, _keys, github);
         var controller = Controller(connection);
-        var result = await controller.AppCreated("c0de", State(controller, "acme", "s1"));
+        var result = await controller.AppCreated("c0de", await State(controller, "acme", "s1"));
 
         github.AssertDone();
         Assert.Equal("https://github.com/apps/page-builder-acme/installations/new", Assert.IsType<RedirectResult>(result).Url);
-        Assert.Equal("77", connection.App?.AppId);
+        Assert.Equal("77", (await connection.GetConnectionAsync(TestContext.Current.CancellationToken)).App?.AppId);
     }
 
     [Fact]
     public async Task A_forged_state_is_refused_before_GitHub_is_asked()
     {
-        var github = GitContentConnectionTests.Conversion("acme");
+        var github = GitHubConnectionServiceTests.Conversion("acme");
 
-        var result = await Controller(GitContentConnectionTests.Connection(_settings, _keys, github)).AppCreated("c0de", "forged");
+        var result = await Controller(GitHubConnectionServiceTests.Service(_settings, _keys, github)).AppCreated("c0de", "forged");
 
         Assert.Equal(400, Assert.IsType<ContentResult>(result).StatusCode);
-        Assert.Equal(400, Assert.IsType<ContentResult>(Controller().AppNew("forged")).StatusCode);
+        Assert.Equal(400, Assert.IsType<ContentResult>(await Controller().AppNew("forged")).StatusCode);
         Assert.Equal(0, github.Requests);
         Assert.Empty(_settings.Values);
     }
 
     [Fact]
-    public void After_the_installation_GitHub_sends_the_administrator_back_to_the_site()
+    public async Task After_the_installation_GitHub_sends_the_administrator_back_to_the_site()
     {
         var controller = Controller();
-        var state = State(controller, "acme", "B2B store");
+        var state = await State(controller, "acme", "B2B store");
 
         Assert.Equal("/apps/admin-shell/#/content/site/B2B%20store", Assert.IsType<RedirectResult>(controller.AppInstalled(state)).Url);
         Assert.Equal("/apps/admin-shell/#/content/site/B2B%20store", Assert.IsType<RedirectResult>(controller.AppInstalled($"{state}?installation_id=9")).Url);
@@ -120,12 +120,13 @@ public class GitContentSetupControllerTests
     [Fact]
     public async Task The_site_status_says_the_connection_is_the_setups_App_and_where_to_install_it()
     {
-        var connection = GitContentConnectionTests.Connection(_settings, _keys, GitContentConnectionTests.Conversion("acme"));
+        var connection = GitHubConnectionServiceTests.Service(_settings, _keys, GitHubConnectionServiceTests.Conversion("acme"));
         await connection.CreateAppAsync("c0de", "acme", TestContext.Current.CancellationToken);
 
         var status = Assert.IsType<GitContentSiteStatus>(Assert.IsType<OkObjectResult>((await Controller(connection).GetSite("s1")).Result).Value);
 
-        Assert.Equal("app", status.Source);
+        Assert.Equal(GitHubConnectionSource.App, status.Source);
+        Assert.Equal("app", JObject.FromObject(status)[nameof(GitContentSiteStatus.Source)]?.Value<string>());
         Assert.Equal("https://github.com/apps/page-builder-acme/installations/new", status.InstallUrl);
     }
 
@@ -140,7 +141,7 @@ public class GitContentSetupControllerTests
     [Fact]
     public async Task The_sites_panel_lists_the_stores_the_user_works_in()
     {
-        var connection = GitContentConnectionTests.Connection(_settings, _keys, configure: options =>
+        var connection = GitHubConnectionServiceTests.Service(_settings, _keys, configure: options =>
         {
             options.Enabled = true;
             options.Organization = "acme";
@@ -198,22 +199,22 @@ public class GitContentSetupControllerTests
     }
 
     [Fact]
-    public void With_the_configuration_in_charge_the_setup_is_not_offered()
+    public async Task With_the_configuration_in_charge_the_setup_is_not_offered()
     {
-        var connection = GitContentConnectionTests.Connection(_settings, _keys, configure: options =>
+        var connection = GitHubConnectionServiceTests.Service(_settings, _keys, configure: options =>
         {
             options.Organization = "env-org";
             options.Token = "t0ken";
             options.BaseBranch = "main";
         });
 
-        Assert.IsType<BadRequestObjectResult>(Controller(connection).StartAppSetup("acme", "s1"));
+        Assert.IsType<BadRequestObjectResult>(await Controller(connection).StartAppSetup("acme", "s1"));
     }
 
     // ── helpers ────────────────────────────────────────────────────────────────────────────────
 
-    private GitContentConnection ConfiguredConnection() =>
-        GitContentConnectionTests.Connection(_settings, _keys, configure: options =>
+    private GitHubConnectionService ConfiguredConnection() =>
+        GitHubConnectionServiceTests.Service(_settings, _keys, configure: options =>
         {
             options.Enabled = true;
             options.Organization = "acme";
@@ -221,14 +222,14 @@ public class GitContentSetupControllerTests
             options.BaseBranch = "main";
         });
 
-    private GitContentSetupController Controller(GitContentConnection connection = null, IAuthorizationService authorization = null,
+    private GitContentSetupController Controller(IGitHubConnectionService connection = null, IAuthorizationService authorization = null,
         IGitContentPolicy policy = null, IStoreSearchService stores = null, FakeGitContentProvisioner provisioner = null)
     {
         var http = new DefaultHttpContext();
         http.Request.Scheme = "https";
         http.Request.Host = new HostString("platform.test");
 
-        return new GitContentSetupController(provisioner ?? new FakeGitContentProvisioner(), connection ?? GitContentConnectionTests.Connection(_settings, _keys), _keys,
+        return new GitContentSetupController(provisioner ?? new FakeGitContentProvisioner(), connection ?? GitHubConnectionServiceTests.Service(_settings, _keys), _keys,
             authorization ?? new FakeAuthorizationService(true), policy ?? new SitePolicy(), stores ?? new Stores(),
             RequestValidators.Stores("s1", "s2"), RequestValidators.AppSetup)
         {
@@ -249,9 +250,13 @@ public class GitContentSetupControllerTests
     private sealed class SitePolicy : IGitContentPolicy
     {
         public Task<bool> IsEnabledForStoreAsync(string storeId, CancellationToken cancellationToken = default) => Task.FromResult(true);
+        public Task SetEnabledForStoreAsync(string storeId, bool enabled, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<string> GetRepositoryAsync(string storeId, CancellationToken cancellationToken = default) => Task.FromResult(Of(storeId).Name);
-        public Task<StoreRepository> GetStoreRepositoryAsync(string storeId, CancellationToken cancellationToken = default) => Task.FromResult(Of(storeId));
-        public Task<StoreRepository> ResolveRepositoryAsync(string storeId, CancellationToken cancellationToken = default) => Task.FromResult(Of(storeId));
+        public Task<StoreRepository> GetRepositoryInfoAsync(string storeId, CancellationToken cancellationToken = default) => Task.FromResult(Of(storeId));
+        public Task<StoreRepository> GetConfiguredRepositoryAsync(string storeId, CancellationToken cancellationToken = default) => Task.FromResult(Of(storeId));
+        public Task<StoreRepository> GetConfiguredRepositoryAsync(string storeId, string repositorySetting, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+        public Task<bool> IsInOrganizationAsync(string repository, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         private static StoreRepository Of(string storeId) => new($"acme/site-{storeId}", GitRepositorySource.Site);
     }
 
@@ -266,17 +271,17 @@ public class GitContentSetupControllerTests
     }
 
     /// <summary>The state the setup carries, from the address the panel opens.</summary>
-    private static string State(GitContentSetupController controller, string organization, string storeId)
+    private static async Task<string> State(GitContentSetupController controller, string organization, string storeId)
     {
-        var url = JObject.FromObject(Assert.IsType<OkObjectResult>(controller.StartAppSetup(organization, storeId)).Value!)["url"]!.Value<string>()!;
+        var url = JObject.FromObject(Assert.IsType<OkObjectResult>(await controller.StartAppSetup(organization, storeId)).Value!)["url"]!.Value<string>()!;
         Assert.StartsWith("/api/pagebuilder/git/app/new?state=", url);
         return HttpUtility.ParseQueryString(url[url.IndexOf('?')..])["state"];
     }
 
     /// <summary>Where the page that opens posts, and the manifest it posts.</summary>
-    private static (string Action, JObject Manifest) Form(GitContentSetupController controller, string state)
+    private static async Task<(string Action, JObject Manifest)> Form(GitContentSetupController controller, string state)
     {
-        var page = Assert.IsType<ContentResult>(controller.AppNew(state));
+        var page = Assert.IsType<ContentResult>(await controller.AppNew(state));
         Assert.StartsWith("text/html", page.ContentType);
         string Attribute(string pattern) => WebUtility.HtmlDecode(Regex.Match(page.Content!, pattern).Groups[1].Value);
         return (Attribute("action=\"([^\"]*)\""), JObject.Parse(Attribute("name=\"manifest\" value=\"([^\"]*)\"")));

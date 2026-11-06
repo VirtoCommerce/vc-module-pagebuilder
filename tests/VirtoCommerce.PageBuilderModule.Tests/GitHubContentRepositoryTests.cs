@@ -137,7 +137,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 ("GET", "repos/o/r/git/ref/heads/master", _ => RespondJson($$"""{ "object": { "sha": "{{Sha}}" } }""")),
                 ("POST", "repos/o/r/git/refs", _ => Respond422("Object does not exist")));
 
-            await Assert.ThrowsAsync<HttpRequestException>(() =>
+            await Assert.ThrowsAsync<GitContentException>(() =>
                 Create(handler).CreateBranchAsync("o/r", "designer/john/foo", "master", TestContext.Current.CancellationToken));
             handler.AssertDone();
         }
@@ -148,7 +148,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             var handler = new ScriptedHandler(
                 ("GET", "repos/o/r/git/ref/heads/nope", _ => Respond(HttpStatusCode.NotFound)));
 
-            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            await Assert.ThrowsAsync<GitContentException>(() =>
                 Create(handler).CreateBranchAsync("o/r", "designer/john/foo", "nope", TestContext.Current.CancellationToken));
         }
 
@@ -337,7 +337,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 ("GET", "repos/o/r/contents/pages/foo.page?ref=work", _ => Respond(HttpStatusCode.NotFound)),
                 ("PUT", "repos/o/r/contents/pages/foo.page", _ => Respond(HttpStatusCode.InternalServerError)));
 
-            await Assert.ThrowsAsync<HttpRequestException>(() =>
+            await Assert.ThrowsAsync<GitContentException>(() =>
                 Create(handler).CommitFileAsync("o/r", "pages/foo.page", "{}", "work", "msg", Author, TestContext.Current.CancellationToken));
         }
 
@@ -366,7 +366,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             var handler = new ScriptedHandler(
                 ("GET", "repos/o/r/contents/pages/foo.page?ref=work", _ => Respond(HttpStatusCode.NotFound)));
 
-            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            await Assert.ThrowsAsync<GitContentException>(() =>
                 Create(handler).DeleteFileAsync("o/r", "pages/foo.page", "work", "msg", Author, TestContext.Current.CancellationToken));
         }
 

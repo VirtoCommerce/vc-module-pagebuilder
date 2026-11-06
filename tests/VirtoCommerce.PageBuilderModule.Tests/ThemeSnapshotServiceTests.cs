@@ -406,11 +406,11 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
 
     /// <summary>Records which files a publication put in the history, and whether the store's theme lock was free then.</summary>
     private sealed class LockProbingHistory(InProcessDistributedLock distributedLock)
-        : ThemeFileHistory(null, null, null, Options.Create(new GitContentOptions()), NullLogger<ThemeFileHistory>.Instance)
+        : ThemeFileHistoryService(null, null, null, null, Options.Create(new GitContentOptions()), NullLogger<ThemeFileHistoryService>.Instance)
     {
         public List<(string Path, bool LockFree)> Recorded { get; } = [];
 
-        public override async Task RecordAsync(string storeId, string path, string content, string summary, ClaimsPrincipal user, string save,
+        public override async Task RecordAsync(string storeId, string path, string content, string summary, ClaimsPrincipal user, string saveId,
             CancellationToken cancellationToken = default)
         {
             await using var handle = await distributedLock.TryAcquireAsync(ThemeStorage.GetLockResource(storeId), TimeSpan.Zero, cancellationToken);

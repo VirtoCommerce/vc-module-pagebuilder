@@ -69,7 +69,8 @@ public class RepositoryOwnershipConflictAttributeTests
     {
         var live = new FakeLiveStorage();
         var controller = new ThemeFileHistoryController(live, live, live, live, new InProcessDistributedLock(),
-            new ThemeFileHistory(Policy(), Repository(), new GitHubScript(), Options(), NullLogger<ThemeFileHistory>.Instance),
+            new ThemeFileHistoryService(Policy(), Repository(), new GitHubApiClient(new GitHubScript()), GitHubConnections.Service(Options().Value), Options(),
+                NullLogger<ThemeFileHistoryService>.Instance),
             new FakeAuthorizationService(true), RequestValidators.ThemeFiles("s1"))
         {
             ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() },
@@ -94,7 +95,7 @@ public class RepositoryOwnershipConflictAttributeTests
     [Fact]
     public async Task Connecting_a_site_lets_a_conflict_through()
     {
-        var controller = new GitContentSetupController(new ConflictingProvisioner(), GitContentConnectionTests.Connection(new MemorySettingsManager()),
+        var controller = new GitContentSetupController(new ConflictingProvisioner(), GitHubConnectionServiceTests.Service(new MemorySettingsManager()),
             new EphemeralDataProtectionProvider(), new FakeAuthorizationService(true), Policy(), null,
             RequestValidators.Stores("s1"), RequestValidators.AppSetup)
         {
@@ -119,14 +120,15 @@ public class RepositoryOwnershipConflictAttributeTests
     });
 
     // the store's repository in the organization is another store's
-    private static GitContentPolicy Policy() => new(Options(), new FakeSettingsManager(true), new FakeGitContentOwnership("another-store"));
+    private static GitContentPolicy Policy() => GitHubConnections.Policy(Options(), new FakeSettingsManager(true), new FakeGitContentOwnership("another-store"));
 
     private static GitHubContentRepository Repository() => new(new GitHubScript(), new MemoryCache(new MemoryCacheOptions()), Options());
 
     private sealed class NothingPublished(IGitContentPolicy policy, IGitContentRepository repository, GitHubScript github, IOptions<GitContentOptions> options)
-        : GroupedPageHistory(policy, repository, github, null, options, NullLogger<GroupedPageHistory>.Instance)
+        : GroupedPageHistoryService(policy, repository, new GitHubApiClient(github), GitHubConnections.Service(options.Value), null, options,
+            NullLogger<GroupedPageHistoryService>.Instance)
     {
-        public override Task<string> LoadPublishedContentAsync(GroupedPageBuilderPage group, CancellationToken cancellationToken = default) =>
+        public override Task<string> GetPublishedContentAsync(GroupedPageBuilderPage group, CancellationToken cancellationToken = default) =>
             Task.FromResult<string>(null);
     }
 

@@ -14,10 +14,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using VirtoCommerce.ContentModule.Core.Model;
 using VirtoCommerce.PageBuilderModule.Core;
+using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Data.Authorization;
-using VirtoCommerce.PageBuilderModule.Data.GitContent;
 using VirtoCommerce.PageBuilderModule.Web.Services;
 using VirtoCommerce.Pages.Core.Search;
 using VirtoCommerce.Platform.Core.Common;
@@ -36,7 +36,7 @@ public class PageBuilderPageController : Controller
     private readonly IPageDocumentSearchService pageDocumentSearchService;
     private readonly PageBuilderPageContentService pageContentService;
     private readonly ILogger<PageBuilderPageController> logger;
-    private readonly GroupedPageHistory pageHistory;
+    private readonly IGroupedPageHistoryService pageHistory;
 
     public PageBuilderPageController(
         IPageBuilderPageService crudService,
@@ -46,7 +46,7 @@ public class PageBuilderPageController : Controller
         IPageDocumentSearchService pageDocumentSearchService,
         PageBuilderPageContentService pageContentService,
         ILogger<PageBuilderPageController> logger,
-        GroupedPageHistory pageHistory = null)
+        IGroupedPageHistoryService pageHistory = null)
     {
         this.crudService = crudService;
         this.groupedPageService = groupedPageService;

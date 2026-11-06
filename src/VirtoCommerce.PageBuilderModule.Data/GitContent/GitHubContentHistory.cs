@@ -1,9 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Net.Http;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
@@ -70,7 +68,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             ArgumentNullException.ThrowIfNull(query);
             ArgumentException.ThrowIfNullOrWhiteSpace(query.BaseBranch);
 
-            var (owner, name) = SplitRepository(repository);
+            var (owner, name) = GitHubApiClient.ParseRepository(repository);
             return GetHistoryCoreAsync(repository, owner, name, repoPath, query, cancellationToken);
         }
 
@@ -124,27 +122,22 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             };
 
             var client = _httpClientFactory.CreateClient(GitHubContentRepository.HttpClientName);
+            var operation = $"read the history of \"{repoPath}\"";
+            using var message = GitHubApiClient.CreateGraphQlRequest(_options.GraphQlUrl, owner, request);
+            using var response = await GitHubApiClient.SendRequestAsync(client, message, operation, cancellationToken);
 
-            // a GraphQL url names no repository: the owner tells the authentication which installation to use
-            using var message = new HttpRequestMessage(HttpMethod.Post, _options.GraphQlUrl)
-            {
-                Content = new StringContent(request.ToString(), Encoding.UTF8, "application/json"),
-            };
-            message.Options.Set(GitHubAuthHandler.Owner, owner);
-            using var response = await client.SendAsync(message, cancellationToken);
-
-            var content = await response.Content.ReadAsStringAsync(cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
+                var content = await response.Content.ReadAsStringAsync(cancellationToken);
                 throw Failed($"{(int)response.StatusCode} {response.ReasonPhrase}. {Trim(content)}", repoPath);
             }
 
-            var body = JObject.Parse(content);
+            var body = await GitHubApiClient.ReadAsAsync<JObject>(response, operation, cancellationToken);
 
             // GraphQL reports failures inside a 200 response. An empty version list and a failed query
             // look the same to a caller, and the difference matters: one means "no other versions", the
             // other means "we do not know".
-            var errors = body["errors"] as JArray;
+            var errors = body?["errors"] as JArray;
             if (errors?.Count > 0)
             {
                 var messages = string.Join("; ", errors.Select(error => error["message"]?.Value<string>()).Where(message => message != null));
@@ -229,7 +222,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
                 version = new Accumulated
                 {
                     Sha = sha,
-                    Date = ReadDate(Field(commit, "committedDate")),
+                    Date = GitHubApiClient.ReadDate(Field(commit, "committedDate")),
                     Message = Field(commit, "messageHeadline")?.Value<string>(),
                     AuthorName = Field(author, "name")?.Value<string>(),
                     AuthorEmail = Field(author, "email")?.Value<string>(),
@@ -245,31 +238,6 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             {
                 version.Branches.Add(branch);
             }
-        }
-
-        /// <summary>
-        /// Both shapes the timestamp can arrive in, and never through the host's culture: Newtonsoft turns
-        /// an ISO timestamp into a <see cref="DateTime"/> while parsing the response, and formatting that
-        /// back into a string to re-parse it reordered day and month on a machine that writes dates
-        /// day-first — "2026-08-11" came out as 8 November.
-        /// </summary>
-        private static DateTime? ReadDate(JToken value) => value switch
-        {
-            JValue { Value: DateTime dateTime } => dateTime.ToUniversalTime(),
-            JValue { Value: DateTimeOffset offset } => offset.UtcDateTime,
-            JValue { Value: string text } when DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var parsed) => parsed.UtcDateTime,
-            _ => null,
-        };
-
-        private static (string Owner, string Name) SplitRepository(string repository)
-        {
-            var separator = repository.IndexOf('/');
-            if (separator <= 0 || separator == repository.Length - 1)
-            {
-                throw new ArgumentException($"\"{repository}\" is not a repository in \"owner/name\" form.", nameof(repository));
-            }
-
-            return (repository[..separator], repository[(separator + 1)..]);
         }
 
         private string CacheKey(string repository, string repoPath, GitHistoryQuery query, int depth) =>
@@ -293,7 +261,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
         private static string Trim(string details) =>
             details?.Length > MaxErrorDetailsLength ? details[..MaxErrorDetailsLength] : details;
 
-        private static HttpRequestException Failed(string details, string repoPath) =>
+        private static GitContentException Failed(string details, string repoPath) =>
             new($"GitHub GraphQL request for the history of \"{repoPath}\" failed: {details}");
 
         /// <summary>One sha, and the branches it has been seen on so far.</summary>

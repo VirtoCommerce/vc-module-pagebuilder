@@ -361,6 +361,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 publishingService: null,
                 eventPublisher: null,
                 gitContentOptions: null,
+                gitHubConnectionService: null,
                 gitContentPolicy: new FakeGitContentPolicy(enabled: gitFlow),
                 gitContentRepository: null,
                 gitContentHistory: null,

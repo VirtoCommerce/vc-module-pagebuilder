@@ -20,7 +20,7 @@ public class GitHubContentOwnershipTests
     [Fact]
     public async Task A_repository_belongs_to_the_store_its_description_names_and_stays_so()
     {
-        var github = new GitHubScript(("GET", $"repos/{Repo}", (_, _) => Repository(GitHubContentOwnership.Marker + "s1")));
+        var github = new GitHubScript(("GET", $"repos/{Repo}", (_, _) => Repository(GitHubContentOwnership.DescriptionPrefix + "s1")));
         var ownership = Ownership(github);
 
         Assert.Equal("s1", await ownership.GetStoreIdAsync(Repo, TestContext.Current.CancellationToken));
@@ -43,7 +43,7 @@ public class GitHubContentOwnershipTests
     {
         var github = new GitHubScript(
             ("GET", $"repos/{Repo}", (_, _) => Repository("Our web site")),
-            ("GET", $"repos/{Repo}", (_, _) => Repository(GitHubContentOwnership.Marker + "s1")));
+            ("GET", $"repos/{Repo}", (_, _) => Repository(GitHubContentOwnership.DescriptionPrefix + "s1")));
         var clock = new TestClock();
         var ownership = Ownership(github, clock);
 
@@ -61,8 +61,8 @@ public class GitHubContentOwnershipTests
     public async Task A_repository_is_one_whatever_the_case_it_is_named_in()
     {
         var github = new GitHubScript(
-            ("GET", $"repos/{Repo}", (_, _) => Repository(GitHubContentOwnership.Marker + "s1")),
-            ("GET", $"repos/{Repo}", (_, _) => Repository(GitHubContentOwnership.Marker + "s1")));
+            ("GET", $"repos/{Repo}", (_, _) => Repository(GitHubContentOwnership.DescriptionPrefix + "s1")),
+            ("GET", $"repos/{Repo}", (_, _) => Repository(GitHubContentOwnership.DescriptionPrefix + "s1")));
         var ownership = Ownership(github);
 
         await ownership.GetStoreIdAsync(Repo, TestContext.Current.CancellationToken);
@@ -79,7 +79,7 @@ public class GitHubContentOwnershipTests
     {
         var github = new GitHubScript(
             ("GET", $"repos/{Repo}", (_, _) => GitHubScript.Status(HttpStatusCode.NotFound)),
-            ("GET", $"repos/{Repo}", (_, _) => Repository(GitHubContentOwnership.Marker + "s1")));
+            ("GET", $"repos/{Repo}", (_, _) => Repository(GitHubContentOwnership.DescriptionPrefix + "s1")));
         var ownership = Ownership(github);
 
         Assert.Null(await ownership.GetStoreIdAsync(Repo, TestContext.Current.CancellationToken));
@@ -93,11 +93,11 @@ public class GitHubContentOwnershipTests
     {
         var github = new GitHubScript(("GET", $"repos/{Repo}", (_, _) => GitHubScript.Status(HttpStatusCode.BadGateway)));
 
-        await Assert.ThrowsAsync<HttpRequestException>(() => Ownership(github).GetStoreIdAsync(Repo, TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<GitContentException>(() => Ownership(github).GetStoreIdAsync(Repo, TestContext.Current.CancellationToken));
     }
 
     private static GitHubContentOwnership Ownership(GitHubScript github, TestClock clock = null) =>
-        new(github, new MemoryCache(new MemoryCacheOptions { Clock = clock ?? new TestClock() }), Options.Create(new GitContentOptions
+        new(new GitHubApiClient(github), new MemoryCache(new MemoryCacheOptions { Clock = clock ?? new TestClock() }), Options.Create(new GitContentOptions
         {
             Enabled = true,
             Organization = "acme",

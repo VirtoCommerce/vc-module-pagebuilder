@@ -219,7 +219,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             var handler = new ScriptedHandler(
                 ("POST", "repos/o/r/pulls", _ => Respond(HttpStatusCode.InternalServerError)));
 
-            await Assert.ThrowsAsync<HttpRequestException>(() =>
+            await Assert.ThrowsAsync<GitContentException>(() =>
                 Create(handler).MergeBranchAsync("o/r", Branch, "publish foo", TestContext.Current.CancellationToken));
         }
 
@@ -232,7 +232,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             var handler = new ScriptedHandler(
                 ("POST", "repos/o/r/pulls", _ => Respond422("Base branch was modified. Review and try the merge again.")));
 
-            await Assert.ThrowsAsync<HttpRequestException>(() =>
+            await Assert.ThrowsAsync<GitContentException>(() =>
                 Create(handler).MergeBranchAsync("o/r", Branch, "publish foo", TestContext.Current.CancellationToken));
             handler.AssertDone();
         }
@@ -289,7 +289,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 BaseBranch = "master",
                 GraphQlUrl = new Uri("https://api.github.test/graphql"),
             });
-            return new GitHubContentPublisher(new FakeHttpClientFactory(handler), options);
+            return new GitHubContentPublisher(new FakeHttpClientFactory(handler), GitHubConnections.Service(options.Value), options);
         }
 
         private static string PullRequest(bool? mergeable = null, bool autoMerging = false)

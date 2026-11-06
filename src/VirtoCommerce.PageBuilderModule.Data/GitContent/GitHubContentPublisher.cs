@@ -2,7 +2,6 @@ using System;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
@@ -39,16 +38,21 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
         private static readonly TimeSpan MergeabilityDelay = TimeSpan.FromMilliseconds(300);
 
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IGitHubConnectionService _gitHubConnectionService;
         private readonly GitContentOptions _options;
 
-        public GitHubContentPublisher(IHttpClientFactory httpClientFactory, IOptions<GitContentOptions> options)
+        public GitHubContentPublisher(IHttpClientFactory httpClientFactory, IGitHubConnectionService gitHubConnectionService, IOptions<GitContentOptions> options)
         {
             _httpClientFactory = httpClientFactory;
+            _gitHubConnectionService = gitHubConnectionService;
             _options = options.Value;
         }
 
-        public virtual Task<GitPublishResult> MergeBranchAsync(string repository, string branch, string title, CancellationToken cancellationToken = default) =>
-            MergeBranchIntoAsync(repository, branch, title, _options.BaseBranch, cancellationToken);
+        public virtual async Task<GitPublishResult> MergeBranchAsync(string repository, string branch, string title, CancellationToken cancellationToken = default)
+        {
+            var connection = await _gitHubConnectionService.GetConnectionAsync(cancellationToken);
+            return await MergeBranchIntoAsync(repository, branch, title, connection.BaseBranch, cancellationToken);
+        }
 
         // Promotion differs from publishing in the target branch and in nothing else: the same pull
         // request, the same auto-merge, the same refusal to merge past a failing check.
@@ -108,10 +112,12 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
                 ["base"] = baseBranch,
             };
 
-            using var response = await client.PostAsync($"repos/{repository}/pulls", JsonContent(body), cancellationToken);
+            var operation = $"open a pull request from \"{branch}\"";
+            using var response = await GitHubApiClient.SendRequestAsync(client, HttpMethod.Post, $"repos/{repository}/pulls",
+                GitHubApiClient.CreateJsonContent(body), operation, cancellationToken);
             if (response.IsSuccessStatusCode)
             {
-                return JObject.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+                return await GitHubApiClient.ReadAsAsync<JObject>(response, operation, cancellationToken);
             }
 
             if (response.StatusCode == HttpStatusCode.UnprocessableEntity)
@@ -125,12 +131,12 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
                 var details = await response.Content.ReadAsStringAsync(cancellationToken);
                 if (!IsNothingToMerge(details) && !IsPullRequestAlreadyOpen(details))
                 {
-                    throw Failed(response, details, $"open a pull request from \"{branch}\"");
+                    throw GitHubApiClient.CreateException(response, details, operation);
                 }
             }
             else
             {
-                await ThrowIfFailedAsync(response, $"open a pull request from \"{branch}\"");
+                await GitHubApiClient.EnsureSuccessAsync(response, operation, cancellationToken);
             }
 
             return await FindOpenPullRequestAsync(client, repository, branch, cancellationToken);
@@ -148,14 +154,15 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
 
         private static async Task<JObject> FindOpenPullRequestAsync(HttpClient client, string repository, string branch, CancellationToken cancellationToken)
         {
-            var owner = repository.Split('/')[0];
+            var (owner, _) = GitHubApiClient.ParseRepository(repository);
             var head = Uri.EscapeDataString($"{owner}:{branch}");
 
-            using var response = await client.GetAsync($"repos/{repository}/pulls?state=open&head={head}", cancellationToken);
-            await ThrowIfFailedAsync(response, $"look for an open pull request from \"{branch}\"");
+            var operation = $"look for an open pull request from \"{branch}\"";
+            using var response = await GitHubApiClient.SendRequestAsync(client, HttpMethod.Get, $"repos/{repository}/pulls?state=open&head={head}", null,
+                operation, cancellationToken);
 
-            var found = JArray.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
-            return found.FirstOrDefault() as JObject;
+            var found = await GitHubApiClient.ReadAsAsync<JArray>(response, operation, cancellationToken);
+            return found?.FirstOrDefault() as JObject;
         }
 
         private async Task<GitPublishState> MergeAsync(HttpClient client, string repository, int number, string nodeId, CancellationToken cancellationToken)
@@ -209,9 +216,10 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
 
         private static async Task<JObject> GetPullRequestAsync(HttpClient client, string repository, int number, CancellationToken cancellationToken)
         {
-            using var response = await client.GetAsync($"repos/{repository}/pulls/{number}", cancellationToken);
-            await ThrowIfFailedAsync(response, $"read pull request #{number}");
-            return JObject.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+            var operation = $"read pull request #{number}";
+            using var response = await GitHubApiClient.SendRequestAsync(client, HttpMethod.Get, $"repos/{repository}/pulls/{number}", null, operation,
+                cancellationToken);
+            return await GitHubApiClient.ReadAsAsync<JObject>(response, operation, cancellationToken);
         }
 
         /// <summary>
@@ -231,25 +239,26 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
                 },
             };
 
-            // a GraphQL url names no repository: the owner tells the authentication which installation to use
-            using var request = new HttpRequestMessage(HttpMethod.Post, _options.GraphQlUrl) { Content = JsonContent(query) };
-            request.Options.Set(GitHubAuthHandler.Owner, repository.Split('/')[0]);
-            using var response = await client.SendAsync(request, cancellationToken);
+            const string operation = "enable auto-merge";
+            using var request = GitHubApiClient.CreateGraphQlRequest(_options.GraphQlUrl, GitHubApiClient.ParseRepository(repository).Owner, query);
+            using var response = await GitHubApiClient.SendRequestAsync(client, request, operation, cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
                 return false;
             }
 
             // GraphQL reports failures inside a 200 response
-            var body = JObject.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
-            return body["errors"] == null;
+            var body = await GitHubApiClient.ReadAsAsync<JObject>(response, operation, cancellationToken);
+            return body?["errors"] == null;
         }
 
         private static async Task<GitPublishState> TryMergeNowAsync(HttpClient client, string repository, int number, CancellationToken cancellationToken)
         {
             var body = new JObject { ["merge_method"] = MergeMethod.ToLowerInvariant() };
 
-            using var response = await client.PutAsync($"repos/{repository}/pulls/{number}/merge", JsonContent(body), cancellationToken);
+            var operation = $"merge pull request #{number}";
+            using var response = await GitHubApiClient.SendRequestAsync(client, HttpMethod.Put, $"repos/{repository}/pulls/{number}/merge",
+                GitHubApiClient.CreateJsonContent(body), operation, cancellationToken);
             if (response.IsSuccessStatusCode)
             {
                 return GitPublishState.Merged;
@@ -275,31 +284,8 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
                     : GitPublishState.AwaitingMerge;
             }
 
-            await ThrowIfFailedAsync(response, $"merge pull request #{number}");
+            await GitHubApiClient.EnsureSuccessAsync(response, operation, cancellationToken);
             return GitPublishState.AwaitingMerge;
-        }
-
-        private static StringContent JsonContent(JObject body) => new(body.ToString(), Encoding.UTF8, "application/json");
-
-        private static async Task ThrowIfFailedAsync(HttpResponseMessage response, string operation)
-        {
-            if (response.IsSuccessStatusCode)
-            {
-                return;
-            }
-
-            throw Failed(response, await response.Content.ReadAsStringAsync(), operation);
-        }
-
-        // For callers that had to read the body themselves to tell an expected failure from a real one.
-        private static HttpRequestException Failed(HttpResponseMessage response, string details, string operation)
-        {
-            if (details?.Length > 500)
-            {
-                details = details[..500];
-            }
-
-            return new HttpRequestException($"GitHub request to {operation} failed: {(int)response.StatusCode} {response.ReasonPhrase}. {details}");
         }
     }
 }

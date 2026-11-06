@@ -1,17 +1,11 @@
 using System;
-using System.Net;
-using System.Net.Http;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
-using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
-using VirtoCommerce.Platform.Caching;
-using VirtoCommerce.Platform.Core.Settings;
-using VirtoCommerce.StoreModule.Core.Model;
+using VirtoCommerce.Platform.Core.Common;
 
 namespace VirtoCommerce.PageBuilderModule.Data.GitContent;
 
@@ -21,91 +15,75 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent;
 ///   POST  /orgs/{org}/repos  — create a site's repository
 ///   PATCH /repos/{repo}      — archive / unarchive it
 ///   GET   /orgs/{org}        — is the organization there at all (the connection test)
-/// <para>
-/// A repository's description says which store it was created for. That is how the module tells its
-/// own repositories from anything else in the organization: it adopts or archives a repository only
-/// when the description names the same store.
-/// </para>
 /// </summary>
-public class GitHubContentProvisioner : IGitContentProvisioner
+public class GitHubContentProvisioner(
+    IGitHubApiClient gitHubApiClient,
+    IGitHubConnectionService gitHubConnectionService,
+    IGitContentRepository gitContentRepository,
+    IGitContentPolicy gitContentPolicy,
+    IGitContentOwnership gitContentOwnership,
+    IOptions<GitContentOptions> options,
+    ILogger<GitHubContentProvisioner> logger)
+    : IGitContentProvisioner
 {
     private const int BranchWaitAttempts = 10;
 
-    private readonly IHttpClientFactory _httpClientFactory;
-    private readonly IGitContentRepository _repository;
-    private readonly IGitContentPolicy _policy;
-    private readonly IGitContentOwnership _ownership;
-    private readonly ISettingsManager _settingsManager;
-    private readonly GitContentOptions _options;
-    private readonly ILogger<GitHubContentProvisioner> _logger;
-
-    public GitHubContentProvisioner(IHttpClientFactory httpClientFactory, IGitContentRepository repository, IGitContentPolicy policy,
-        IGitContentOwnership ownership, ISettingsManager settingsManager, IOptions<GitContentOptions> options, ILogger<GitHubContentProvisioner> logger)
-    {
-        _httpClientFactory = httpClientFactory;
-        _repository = repository;
-        _policy = policy;
-        _ownership = ownership;
-        _settingsManager = settingsManager;
-        _options = options.Value;
-        _logger = logger;
-    }
-
-    /// <summary>How long to wait between looks for the first commit of a repository GitHub has just created.</summary>
-    internal TimeSpan BranchWait { get; set; } = TimeSpan.FromSeconds(1);
+    private static readonly TimeSpan BranchWaitDelay = TimeSpan.FromSeconds(1);
 
     public virtual async Task<GitContentSiteStatus> GetStatusAsync(string storeId, CancellationToken cancellationToken = default)
     {
-        if (!_options.Enabled || !_options.IsConfigured)
+        var connection = await gitHubConnectionService.GetConnectionAsync(cancellationToken);
+
+        var status = AbstractTypeFactory<GitContentSiteStatus>.TryCreateInstance();
+        status.Organization = connection.Organization;
+        status.BaseBranch = connection.BaseBranch;
+        if (!connection.IsEnabled || !connection.IsConfigured)
         {
-            return new GitContentSiteStatus { Organization = _options.Organization, BaseBranch = _options.BaseBranch };
+            return status;
         }
 
-        string repository = null;
-        var enabled = false;
+        status.Configured = true;
         try
         {
-            var site = await _policy.ResolveRepositoryAsync(storeId, cancellationToken);
-            repository = site?.Name;
-            enabled = await _policy.IsEnabledForStoreAsync(storeId, cancellationToken);
+            var storeRepository = await gitContentPolicy.GetConfiguredRepositoryAsync(storeId, cancellationToken);
+            status.Repository = storeRepository?.Name;
+            status.Enabled = await gitContentPolicy.IsEnabledForStoreAsync(storeId, cancellationToken);
 
-            var found = await GetRepositoryInfoAsync(repository, cancellationToken);
-            if (found != null && _options.IsInOrganization(repository))
+            var repositoryInfo = status.Repository == null ? null : await gitHubApiClient.GetRepositoryAsync(status.Repository, cancellationToken);
+            if (repositoryInfo != null && await gitContentPolicy.IsInOrganizationAsync(status.Repository, cancellationToken))
             {
-                // what every git action of the store would answer
-                GitHubContentOwnership.EnsureOwnedBy(repository, GitHubContentOwnership.StoreOf(found), storeId);
-            }
-            if (found == null && site?.Source == GitRepositorySource.Site)
-            {
-                // the repository is simply not created yet; this proves the organization and the
-                // App's installation on it are there to create it in
-                await EnsureOrganizationReachableAsync(cancellationToken);
+                gitContentOwnership.EnsureOwnedBy(status.Repository, gitContentOwnership.GetStoreId(repositoryInfo.Description), storeId);
             }
 
-            return new GitContentSiteStatus
+            if (repositoryInfo == null && storeRepository?.Source == GitRepositorySource.Site)
             {
-                Configured = true,
-                Organization = _options.Organization,
-                Enabled = enabled,
-                Repository = repository,
-                BaseBranch = _options.BaseBranch,
-                Url = found?["html_url"]?.Value<string>(),
-                LastCommitSha = found == null ? null : await _repository.GetBranchHeadShaAsync(repository, _options.BaseBranch, cancellationToken),
-            };
+                // not created yet: check that the organization is reachable
+                await EnsureOrganizationReachableAsync(connection.Organization, cancellationToken);
+            }
+
+            status.Url = repositoryInfo?.HtmlUrl;
+            if (repositoryInfo != null)
+            {
+                status.LastCommitSha = await gitContentRepository.GetBranchHeadShaAsync(status.Repository, connection.BaseBranch, cancellationToken);
+            }
         }
-        // the status is also the connection test: whatever keeps GitHub from answering (an error, a timeout) is its
-        // answer, unless the caller gave up
-        catch (Exception failure) when (!cancellationToken.IsCancellationRequested)
+        catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
         {
-            return new GitContentSiteStatus
-            {
-                Configured = true,
-                Organization = _options.Organization,
-                Enabled = enabled,
-                Repository = repository,
-                BaseBranch = _options.BaseBranch,
-                Error = failure.Message,
-            };
+            logger.LogWarning(ex, "Git status of store {StoreId} failed.", storeId);
+            status.Url = null;
+            status.LastCommitSha = null;
+            status.Error = ex.Message;
+        }
+
+        return status;
+    }
+
+    public virtual async Task CheckOrganizationAsync(CancellationToken cancellationToken = default)
+    {
+        var connection = await gitHubConnectionService.GetConnectionAsync(cancellationToken);
+        if (!string.IsNullOrWhiteSpace(connection.Organization))
+        {
+            await EnsureOrganizationReachableAsync(connection.Organization, cancellationToken);
         }
     }
 
@@ -113,235 +91,166 @@ public class GitHubContentProvisioner : IGitContentProvisioner
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(storeId);
 
-        var site = await _policy.ResolveRepositoryAsync(storeId, cancellationToken)
-                   ?? throw new InvalidOperationException("Git content is not configured on this platform.");
-        var repository = site.Name;
-        // only the store's own repository in the organization is the module's to create, mark and bring back: one
-        // assigned by hand is used as it is
-        var own = site.Source == GitRepositorySource.Site;
+        var connection = await gitHubConnectionService.GetConnectionAsync(cancellationToken);
+        var storeRepository = await gitContentPolicy.GetConfiguredRepositoryAsync(storeId, cancellationToken)
+                              ?? throw new GitContentException("Git content is not configured on this platform.");
+        var repository = storeRepository.Name;
+        // only the module's own repository is created or changed
+        var isModuleRepository = storeRepository.Source == GitRepositorySource.Site;
 
-        var found = await GetRepositoryInfoAsync(repository, cancellationToken);
-        if (found == null)
+        var repositoryInfo = await gitHubApiClient.GetRepositoryAsync(repository, cancellationToken);
+        if (repositoryInfo == null)
         {
-            if (!own)
+            if (!isModuleRepository)
             {
-                throw new InvalidOperationException($"The GitHub repository \"{repository}\" does not exist, or the platform has no access to it.");
+                throw new GitContentException($"The GitHub repository \"{repository}\" does not exist, or the platform has no access to it.");
             }
 
-            found = await CreateRepositoryAsync(repository, storeId, cancellationToken);
+            repositoryInfo = await CreateRepositoryAsync(repository, storeId, cancellationToken);
         }
 
-        if (_options.IsInOrganization(repository))
+        if (await gitContentPolicy.IsInOrganizationAsync(repository, cancellationToken))
         {
-            GitHubContentOwnership.EnsureOwnedBy(repository, GitHubContentOwnership.StoreOf(found), storeId);
+            gitContentOwnership.EnsureOwnedBy(repository, gitContentOwnership.GetStoreId(repositoryInfo.Description), storeId);
         }
 
-        if (!own)
+        if (!isModuleRepository)
         {
-            // its deployment follows its own branches: a base branch cut here would take publications where none is deployed
-            if (await _repository.GetBranchHeadShaAsync(repository, _options.BaseBranch, cancellationToken) == null)
+            // a hand-assigned repository deploys from its own branches
+            if (await gitContentRepository.GetBranchHeadShaAsync(repository, connection.BaseBranch, cancellationToken) == null)
             {
-                throw new InvalidOperationException($"The GitHub repository \"{repository}\" has no branch \"{_options.BaseBranch}\" to publish to.");
+                throw new GitContentException($"The GitHub repository \"{repository}\" has no branch \"{connection.BaseBranch}\" to publish to.");
             }
 
             return;
         }
 
-        var patch = new JObject();
-        if (GitHubContentOwnership.StoreOf(found) == null)
-        {
-            // adopted: marked as the store's, so that no other store whose id names it works in it too
-            patch["description"] = GitHubContentOwnership.Marker + storeId;
-        }
-        if (found["archived"]?.Value<bool>() == true)
-        {
-            // the store was deleted and has come back under the same id: its history is all there
-            patch["archived"] = false;
-        }
-        if (patch.HasValues)
-        {
-            await PatchRepositoryAsync(repository, patch, cancellationToken);
-            _ownership.Invalidate(repository);
-        }
-
-        var defaultBranch = found["default_branch"]?.Value<string>() ?? _options.BaseBranch;
-        await WaitForBranchAsync(repository, defaultBranch, cancellationToken);
-
-        if (!string.Equals(defaultBranch, _options.BaseBranch, StringComparison.Ordinal))
-        {
-            await _repository.CreateBranchAsync(repository, _options.BaseBranch, defaultBranch, cancellationToken);
-        }
-
-        if (!string.IsNullOrWhiteSpace(_options.ReleaseBranch))
-        {
-            await _repository.CreateBranchAsync(repository, _options.ReleaseBranch, _options.BaseBranch, cancellationToken);
-        }
+        await AdoptRepositoryAsync(repository, repositoryInfo, storeId, cancellationToken);
+        await CreateBranchesAsync(repository, repositoryInfo.DefaultBranch ?? connection.BaseBranch, connection.BaseBranch, cancellationToken);
     }
 
     public virtual async Task ConnectAsync(string storeId, CancellationToken cancellationToken = default)
     {
         await EnsureRepositoryAsync(storeId, cancellationToken);
-        await SetEnabledAsync(storeId, true);
+        await gitContentPolicy.SetEnabledForStoreAsync(storeId, true, cancellationToken);
     }
 
     public virtual Task DisconnectAsync(string storeId, CancellationToken cancellationToken = default) =>
-        SetEnabledAsync(storeId, false);
+        gitContentPolicy.SetEnabledForStoreAsync(storeId, false, cancellationToken);
 
     public virtual async Task ArchiveRepositoryAsync(string storeId, string repository, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(repository) || !_options.IsInOrganization(repository))
+        if (string.IsNullOrWhiteSpace(repository) || !await gitContentPolicy.IsInOrganizationAsync(repository, cancellationToken))
         {
             return;
         }
 
-        var found = await GetRepositoryInfoAsync(repository, cancellationToken);
-        if (found == null || found["archived"]?.Value<bool>() == true)
+        var repositoryInfo = await gitHubApiClient.GetRepositoryAsync(repository, cancellationToken);
+        if (repositoryInfo == null || repositoryInfo.Archived)
         {
             return;
         }
 
-        if (!string.Equals(GitHubContentOwnership.StoreOf(found), storeId, StringComparison.Ordinal))
+        if (!string.Equals(gitContentOwnership.GetStoreId(repositoryInfo.Description), storeId, StringComparison.Ordinal))
         {
-            _logger.LogInformation("Store {StoreId} was deleted; repository {Repository} was not created for it and is left as it is.", storeId, repository);
+            logger.LogInformation("Store {StoreId} was deleted; repository {Repository} was not created for it and is left as it is.", storeId, repository);
             return;
         }
 
-        await PatchRepositoryAsync(repository, new JObject { ["archived"] = true }, cancellationToken);
-        _logger.LogInformation("Store {StoreId} was deleted; its repository {Repository} is archived.", storeId, repository);
+        await gitHubApiClient.UpdateRepositoryAsync(repository, new JObject { ["archived"] = true }, cancellationToken);
+        logger.LogInformation("Store {StoreId} was deleted; its repository {Repository} is archived.", storeId, repository);
     }
 
-    /// <summary>
-    /// Writes the switch straight to the store's settings rather than saving the store: a whole-store save
-    /// could overwrite an administrator's concurrent edit of the store, and would announce a store change
-    /// that did not happen. The store's cached copy is dropped so the change is seen at once.
-    /// </summary>
-    private async Task SetEnabledAsync(string storeId, bool enabled)
+    /// <summary>Creates the store repository: private, with a first commit, without issues, projects and wiki.</summary>
+    protected virtual async Task<GitHubRepositoryInfo> CreateRepositoryAsync(string repository, string storeId, CancellationToken cancellationToken)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(storeId);
-
-        await _settingsManager.SaveObjectSettingsAsync(
-        [
-            new ObjectSettingEntry(ModuleConstants.Settings.StoreLevelSettings.GitContentEnabled)
-            {
-                ObjectType = ModuleConstants.Settings.StoreSettingsObjectType,
-                ObjectId = storeId,
-                Value = enabled,
-            },
-        ]);
-
-        GenericCachingRegion<Store>.ExpireTokenForKey(storeId);
-        GenericSearchCachingRegion<Store>.ExpireRegion();
-    }
-
-    private async Task<JObject> CreateRepositoryAsync(string repository, string storeId, CancellationToken cancellationToken)
-    {
-        var separator = repository.IndexOf('/');
-        var body = new JObject
+        var settings = new JObject
         {
-            ["name"] = repository[(separator + 1)..],
-            ["description"] = GitHubContentOwnership.Marker + storeId,
+            ["name"] = GitHubApiClient.ParseRepository(repository).Name,
+            ["description"] = gitContentOwnership.GetDescription(storeId),
             ["private"] = true,
-            // a first commit, so there is a branch to cut every other one from
+            // initial commit, so the default branch exists
             ["auto_init"] = true,
             ["has_issues"] = false,
             ["has_projects"] = false,
             ["has_wiki"] = false,
         };
 
-        var client = _httpClientFactory.CreateClient(GitHubContentRepository.HttpClientName);
-        using var response = await client.PostAsync($"orgs/{repository[..separator]}/repos", JsonContent(body), cancellationToken);
-        var details = await response.Content.ReadAsStringAsync(cancellationToken);
-
-        if (response.IsSuccessStatusCode)
+        var repositoryInfo = await gitHubApiClient.CreateRepositoryAsync(repository, settings, cancellationToken);
+        if (repositoryInfo == null)
         {
-            _logger.LogInformation("Created repository {Repository} for store {StoreId}.", repository, storeId);
-            return JObject.Parse(details);
+            // created concurrently
+            return await gitHubApiClient.GetRepositoryAsync(repository, cancellationToken)
+                   ?? throw new GitContentException($"GitHub reports \"{repository}\" exists but does not show it.");
         }
 
-        // created a moment ago by a request racing with this one — the same store's first save and its
-        // "turn on" — which is the repository this one wanted
-        if (response.StatusCode == HttpStatusCode.UnprocessableEntity && details.Contains("already exists", StringComparison.OrdinalIgnoreCase))
-        {
-            return await GetRepositoryInfoAsync(repository, cancellationToken)
-                   ?? throw new InvalidOperationException($"GitHub reports \"{repository}\" exists but does not show it.");
-        }
-
-        throw Failed(response, details, $"create repository \"{repository}\"");
+        logger.LogInformation("Created repository {Repository} for store {StoreId}.", repository, storeId);
+        return repositoryInfo;
     }
 
-    /// <summary>
-    /// GitHub answers the create before the repository's first commit is readable; cutting a branch from
-    /// it in that moment fails. Waits for it, then gives up with an answer that says to try again.
-    /// </summary>
-    private async Task WaitForBranchAsync(string repository, string branch, CancellationToken cancellationToken)
+    /// <summary>Marks an existing repository as the store's and brings it back from the archive.</summary>
+    protected virtual async Task AdoptRepositoryAsync(string repository, GitHubRepositoryInfo repositoryInfo, string storeId, CancellationToken cancellationToken)
+    {
+        var changes = new JObject();
+        if (gitContentOwnership.GetStoreId(repositoryInfo.Description) == null)
+        {
+            changes["description"] = gitContentOwnership.GetDescription(storeId);
+        }
+
+        if (repositoryInfo.Archived)
+        {
+            changes["archived"] = false;
+        }
+
+        if (changes.HasValues)
+        {
+            await gitHubApiClient.UpdateRepositoryAsync(repository, changes, cancellationToken);
+            gitContentOwnership.Invalidate(repository);
+        }
+    }
+
+    /// <summary>Creates the base branch from the default one, and the release branch from the base one.</summary>
+    protected virtual async Task CreateBranchesAsync(string repository, string defaultBranch, string baseBranch, CancellationToken cancellationToken)
+    {
+        await WaitForBranchAsync(repository, defaultBranch, cancellationToken);
+
+        if (!string.Equals(defaultBranch, baseBranch, StringComparison.Ordinal))
+        {
+            await gitContentRepository.CreateBranchAsync(repository, baseBranch, defaultBranch, cancellationToken);
+        }
+
+        if (!string.IsNullOrWhiteSpace(options.Value.ReleaseBranch))
+        {
+            await gitContentRepository.CreateBranchAsync(repository, options.Value.ReleaseBranch, baseBranch, cancellationToken);
+        }
+    }
+
+    /// <summary>Waits for the first commit of a new repository.</summary>
+    protected virtual async Task WaitForBranchAsync(string repository, string branch, CancellationToken cancellationToken)
     {
         for (var attempt = 0; attempt < BranchWaitAttempts; attempt++)
         {
             if (attempt > 0)
             {
-                await Task.Delay(BranchWait, cancellationToken);
+                await DelayBeforeRetryAsync(cancellationToken);
             }
 
-            if (await _repository.GetBranchHeadShaAsync(repository, branch, cancellationToken) != null)
+            if (await gitContentRepository.GetBranchHeadShaAsync(repository, branch, cancellationToken) != null)
             {
                 return;
             }
         }
 
-        throw new InvalidOperationException($"The repository \"{repository}\" has no branch \"{branch}\" yet. Try again in a moment.");
+        throw new GitContentException($"The repository \"{repository}\" has no branch \"{branch}\" yet. Try again in a moment.");
     }
 
-    private async Task<JObject> GetRepositoryInfoAsync(string repository, CancellationToken cancellationToken)
+    protected virtual Task DelayBeforeRetryAsync(CancellationToken cancellationToken) => Task.Delay(BranchWaitDelay, cancellationToken);
+
+    protected virtual async Task EnsureOrganizationReachableAsync(string organization, CancellationToken cancellationToken)
     {
-        var client = _httpClientFactory.CreateClient(GitHubContentRepository.HttpClientName);
-        using var response = await client.GetAsync($"repos/{repository}", cancellationToken);
-        if (response.StatusCode == HttpStatusCode.NotFound)
+        if (!await gitHubApiClient.HasOrganizationAsync(organization, cancellationToken))
         {
-            return null;
+            throw new GitContentException($"The GitHub organization \"{organization}\" was not found, or the platform has no access to it.");
         }
-
-        var details = await response.Content.ReadAsStringAsync(cancellationToken);
-        return response.IsSuccessStatusCode ? JObject.Parse(details) : throw Failed(response, details, $"read repository \"{repository}\"");
-    }
-
-    public virtual Task CheckOrganizationAsync(CancellationToken cancellationToken = default) =>
-        string.IsNullOrWhiteSpace(_options.Organization) ? Task.CompletedTask : EnsureOrganizationReachableAsync(cancellationToken);
-
-    private async Task EnsureOrganizationReachableAsync(CancellationToken cancellationToken)
-    {
-        var client = _httpClientFactory.CreateClient(GitHubContentRepository.HttpClientName);
-        using var response = await client.GetAsync($"orgs/{_options.Organization.Trim()}", cancellationToken);
-        if (response.StatusCode == HttpStatusCode.NotFound)
-        {
-            throw new InvalidOperationException($"The GitHub organization \"{_options.Organization}\" was not found, or the platform has no access to it.");
-        }
-
-        if (!response.IsSuccessStatusCode)
-        {
-            throw Failed(response, await response.Content.ReadAsStringAsync(cancellationToken), $"read organization \"{_options.Organization}\"");
-        }
-    }
-
-    private async Task PatchRepositoryAsync(string repository, JObject changes, CancellationToken cancellationToken)
-    {
-        var client = _httpClientFactory.CreateClient(GitHubContentRepository.HttpClientName);
-        using var request = new HttpRequestMessage(HttpMethod.Patch, $"repos/{repository}") { Content = JsonContent(changes) };
-        using var response = await client.SendAsync(request, cancellationToken);
-        if (!response.IsSuccessStatusCode)
-        {
-            throw Failed(response, await response.Content.ReadAsStringAsync(cancellationToken), $"update repository \"{repository}\"");
-        }
-    }
-
-    private static StringContent JsonContent(JObject body) => new(body.ToString(), Encoding.UTF8, "application/json");
-
-    private static HttpRequestException Failed(HttpResponseMessage response, string details, string operation)
-    {
-        if (details?.Length > 500)
-        {
-            details = details[..500];
-        }
-
-        return new HttpRequestException($"GitHub request to {operation} failed: {(int)response.StatusCode} {response.ReasonPhrase}. {details}", null, response.StatusCode);
     }
 }

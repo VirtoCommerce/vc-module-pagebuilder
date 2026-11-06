@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
@@ -11,12 +12,21 @@ internal sealed class FakeGitContentPolicy(bool enabled = true, GitRepositorySou
     public Task<bool> IsEnabledForStoreAsync(string storeId, CancellationToken cancellationToken = default) =>
         Task.FromResult(enabled);
 
+    public Task SetEnabledForStoreAsync(string storeId, bool enabled, CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException();
+
     public Task<string> GetRepositoryAsync(string storeId, CancellationToken cancellationToken = default) =>
         Task.FromResult(enabled ? repository : null);
 
-    public Task<StoreRepository> GetStoreRepositoryAsync(string storeId, CancellationToken cancellationToken = default) =>
+    public Task<StoreRepository> GetRepositoryInfoAsync(string storeId, CancellationToken cancellationToken = default) =>
         Task.FromResult(enabled ? new StoreRepository(repository, source) : null);
 
-    public Task<StoreRepository> ResolveRepositoryAsync(string storeId, CancellationToken cancellationToken = default) =>
+    public Task<StoreRepository> GetConfiguredRepositoryAsync(string storeId, CancellationToken cancellationToken = default) =>
         Task.FromResult(new StoreRepository(repository, source));
+
+    public Task<StoreRepository> GetConfiguredRepositoryAsync(string storeId, string repositorySetting, CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException();
+
+    public Task<bool> IsInOrganizationAsync(string repository, CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException();
 }

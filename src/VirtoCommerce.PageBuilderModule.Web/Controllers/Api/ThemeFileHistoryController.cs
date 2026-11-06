@@ -22,7 +22,7 @@ using VirtoCommerce.Platform.Core.Events;
 namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 
 /// <summary>
-/// A theme file's version history (<see cref="ThemeFileHistory"/>) — a template, the template rules, a section
+/// A theme file's version history (<see cref="IThemeFileHistoryService"/>) — a template, the template rules, a section
 /// group: its changes, one change's content, and going back to a change. The file is named as the theme storage
 /// names it ("default/templates/product.json"). 404 for a store without history, 403 for a store the user does not
 /// work in; going back takes the permission that edits the file in the designer.
@@ -36,13 +36,13 @@ public class ThemeFileHistoryController(
     IPublishingService publishingService,
     IEventPublisher eventPublisher,
     IDistributedLock distributedLock,
-    ThemeFileHistory history,
+    IThemeFileHistoryService history,
     IAuthorizationService authorizationService,
     IValidator<ThemeFileRequest> requestValidator) : Controller
 {
     [HttpGet("")]
     [Authorize(ModuleConstants.Security.Permissions.Read)]
-    public async Task<ActionResult<GroupedPageHistoryResult>> GetHistory([FromQuery] string storeId, [FromQuery] string path, [FromQuery] string after = null,
+    public async Task<ActionResult<GitFileHistoryResult>> GetHistory([FromQuery] string storeId, [FromQuery] string path, [FromQuery] string after = null,
         [FromQuery] int take = 20, CancellationToken cancellationToken = default)
     {
         if (await CheckRequestAsync(storeId, path) is { } refused)
@@ -53,7 +53,7 @@ public class ThemeFileHistoryController(
         try
         {
             var published = await PageBuilderController.ReadTextAsync(Storage(storeId, path), publishingService.GetRelativeDraftUrl(path, false));
-            var versions = await history.GetAsync(storeId, path, published, after, take, cancellationToken);
+            var versions = await history.GetHistoryAsync(storeId, path, published, after, take, cancellationToken);
             return versions == null ? NotFound() : Ok(versions);
         }
         catch (Exception failure) when (GitHubFailure.Is(failure, cancellationToken))
@@ -72,7 +72,7 @@ public class ThemeFileHistoryController(
             return refused;
         }
 
-        var content = GitCommitSha.IsSha(sha) ? await history.ReadAsync(storeId, path, sha, cancellationToken) : null;
+        var content = GitCommitSha.IsSha(sha) ? await history.ReadContentAsync(storeId, path, sha, cancellationToken) : null;
         return content == null ? NotFound() : Content(content, "application/json");
     }
 
@@ -92,7 +92,7 @@ public class ThemeFileHistoryController(
             return Forbid();
         }
 
-        var content = GitCommitSha.IsSha(sha) ? await history.ReadAsync(storeId, path, sha, cancellationToken) : null;
+        var content = GitCommitSha.IsSha(sha) ? await history.ReadContentAsync(storeId, path, sha, cancellationToken) : null;
         if (content == null)
         {
             return NotFound();

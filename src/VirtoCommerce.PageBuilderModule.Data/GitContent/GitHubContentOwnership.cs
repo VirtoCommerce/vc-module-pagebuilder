@@ -1,63 +1,47 @@
 using System;
-using System.Net;
-using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
-using Newtonsoft.Json.Linq;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
 
 namespace VirtoCommerce.PageBuilderModule.Data.GitContent;
 
-/// <summary>
-/// IGitContentOwnership over GitHub: the description the module gives every repository it creates or adopts names
-/// the store after <see cref="Marker"/>. A store's mark stays, so it is kept for
-/// <see cref="GitContentOptions.ImmutableReadCacheExpiration"/>; "nobody's" lasts until the module adopts the
-/// repository, on any server, so it is kept for <see cref="GitContentOptions.ReadCacheExpiration"/> only.
-/// </summary>
-public class GitHubContentOwnership(IHttpClientFactory httpClientFactory, IMemoryCache memoryCache, IOptions<GitContentOptions> options)
+/// <summary>Reads repository ownership from the GitHub repository description.</summary>
+public class GitHubContentOwnership(IGitHubApiClient gitHubApiClient, IMemoryCache memoryCache, IOptions<GitContentOptions> options)
     : IGitContentOwnership
 {
-    /// <summary>The start of the description of every repository the module creates; the store id follows.</summary>
-    public const string Marker = "Page Builder content of store ";
+    /// <summary>Description prefix of module-created repositories.</summary>
+    public const string DescriptionPrefix = "Page Builder content of store ";
 
     public virtual async Task<string> GetStoreIdAsync(string repository, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(repository);
 
-        var cacheKey = CacheKey(repository);
+        var cacheKey = GetCacheKey(repository);
         if (memoryCache.TryGetValue<string>(cacheKey, out var cached))
         {
             return cached;
         }
 
-        var client = httpClientFactory.CreateClient(GitHubContentRepository.HttpClientName);
-        using var response = await client.GetAsync($"repos/{repository}", cancellationToken);
-        if (response.StatusCode == HttpStatusCode.NotFound)
+        var repositoryInfo = await gitHubApiClient.GetRepositoryAsync(repository, cancellationToken);
+        if (repositoryInfo == null)
         {
-            // not made yet: it may be made for a store any moment, so this is not kept
+            // not cached: the repository may be created any moment
             return null;
         }
 
-        var details = await response.Content.ReadAsStringAsync(cancellationToken);
-        if (!response.IsSuccessStatusCode)
-        {
-            throw GitHubContentRepository.Failed(response, details, $"read repository \"{repository}\"");
-        }
-
-        var storeId = StoreOf(JObject.Parse(details));
+        var storeId = GetStoreId(repositoryInfo.Description);
         memoryCache.Set(cacheKey, storeId, storeId == null ? options.Value.ReadCacheExpiration : options.Value.ImmutableReadCacheExpiration);
         return storeId;
     }
 
-    public virtual void Invalidate(string repository) => memoryCache.Remove(CacheKey(repository));
+    public virtual string GetStoreId(string description) =>
+        description?.StartsWith(DescriptionPrefix, StringComparison.Ordinal) == true ? description[DescriptionPrefix.Length..].Trim() : null;
 
-    /// <summary>
-    /// Refuses a repository the module created for another store: two stores whose ids name one repository
-    /// ("B2B Store", "b2b-store"), or a setting naming another store's, would publish over each other's pages.
-    /// </summary>
-    public static void EnsureOwnedBy(string repository, string owner, string storeId)
+    public virtual string GetDescription(string storeId) => DescriptionPrefix + storeId;
+
+    public virtual void EnsureOwnedBy(string repository, string owner, string storeId)
     {
         if (owner != null && !string.Equals(owner, storeId, StringComparison.Ordinal))
         {
@@ -65,13 +49,8 @@ public class GitHubContentOwnership(IHttpClientFactory httpClientFactory, IMemor
         }
     }
 
-    // GitHub names a repository the same whatever the case of its letters
-    private static string CacheKey(string repository) => $"{nameof(GitHubContentOwnership)}:{repository.ToLowerInvariant()}";
+    public virtual void Invalidate(string repository) => memoryCache.Remove(GetCacheKey(repository));
 
-    /// <summary>The store a repository's description names; <c>null</c> for one the module did not create.</summary>
-    public static string StoreOf(JObject repository)
-    {
-        var description = repository["description"]?.Value<string>();
-        return description?.StartsWith(Marker, StringComparison.Ordinal) == true ? description[Marker.Length..].Trim() : null;
-    }
+    // GitHub repository names are case-insensitive
+    protected virtual string GetCacheKey(string repository) => $"{nameof(GitHubContentOwnership)}:{repository.ToLowerInvariant()}";
 }

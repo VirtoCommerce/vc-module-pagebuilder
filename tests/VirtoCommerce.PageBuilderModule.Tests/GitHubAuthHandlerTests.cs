@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
@@ -32,7 +33,7 @@ public class GitHubAuthHandlerTests
             return GitHubScript.Json("{}");
         }));
 
-        await Client(github, new GitContentOptions { Token = "t0ken" }).GetAsync("repos/acme/site-a", TestContext.Current.CancellationToken);
+        await Client(github, new GitHubConnection { Token = "t0ken" }).GetAsync("repos/acme/site-a", TestContext.Current.CancellationToken);
 
         github.AssertDone();
     }
@@ -67,7 +68,7 @@ public class GitHubAuthHandlerTests
             ("POST", "graphql", (request, _) => Authorized(request, "ghs_other")));
 
         using var request = new HttpRequestMessage(HttpMethod.Post, "graphql") { Content = new StringContent("{}") };
-        request.Options.Set(GitHubAuthHandler.Owner, "other");
+        request.Options.Set(GitHubAuthHandler.OwnerOptionKey, "other");
         await Client(github, App()).SendAsync(request, TestContext.Current.CancellationToken);
 
         github.AssertDone();
@@ -97,7 +98,7 @@ public class GitHubAuthHandlerTests
             ("GET", "orgs/acme/installation", (_, _) => GitHubScript.Status(HttpStatusCode.NotFound)),
             ("GET", "users/acme/installation", (_, _) => GitHubScript.Status(HttpStatusCode.NotFound)));
 
-        var error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var error = await Assert.ThrowsAsync<GitContentException>(() =>
             Client(github, App()).GetAsync("repos/acme/site-a", TestContext.Current.CancellationToken));
 
         Assert.Contains("not installed on \"acme\"", error.Message);
@@ -114,16 +115,13 @@ public class GitHubAuthHandlerTests
             ("GET", "orgs/acme/installation", (_, _) => GitHubScript.Json("""{ "id": 43 }""")),
             ("POST", "app/installations/43/access_tokens", (_, _) => GitHubScript.Json("""{ "token": "ghs_new", "expires_at": "2099-01-01T00:00:00Z" }""", HttpStatusCode.Created)),
             ("GET", "repos/acme/site-a", (request, _) => Authorized(request, "ghs_new")));
-        var connection = new Switchable { Value = App() };
-        var client = new HttpClient(new GitHubAuthHandler(new MemoryCache(new MemoryCacheOptions()), connection) { InnerHandler = github })
-        {
-            BaseAddress = new Uri("https://api.github.test/"),
-        };
+        var connection = new Switchable { Connection = App() };
+        var client = Client(github, connection);
 
         await client.GetAsync("repos/acme/site-a", TestContext.Current.CancellationToken);
         var replaced = App();
         replaced.AppId = "67890";
-        connection.Value = replaced;
+        connection.Connection = replaced;
         await client.GetAsync("repos/acme/site-a", TestContext.Current.CancellationToken);
 
         github.AssertDone();
@@ -135,7 +133,7 @@ public class GitHubAuthHandlerTests
         var now = DateTimeOffset.FromUnixTimeSeconds(1_800_000_000);
 
         // as an environment variable holds it: one line, "\n" escapes
-        var jwt = GitHubAuthHandler.AppJwt("12345", Key.ExportPkcs8PrivateKeyPem().Replace("\n", "\\n"), now);
+        var jwt = GitHubAuthHandler.CreateAppJwt("12345", Key.ExportPkcs8PrivateKeyPem().Replace("\n", "\\n"), now);
 
         var parts = jwt.Split('.');
         Assert.True(Key.VerifyData(Encoding.ASCII.GetBytes($"{parts[0]}.{parts[1]}"), Base64Url.DecodeFromChars(parts[2]),
@@ -151,22 +149,34 @@ public class GitHubAuthHandlerTests
 
     // ── helpers ────────────────────────────────────────────────────────────────────────────────
 
-    private static GitContentOptions App() => new()
+    private static GitHubConnection App() => new()
     {
         AppId = "12345",
         PrivateKey = Key.ExportPkcs8PrivateKeyPem(),
-        ApiUrl = new Uri("https://api.github.test/"),
     };
 
-    private static HttpClient Client(GitHubScript github, GitContentOptions options) =>
-        new(new GitHubAuthHandler(new MemoryCache(new MemoryCacheOptions()), Options.Create(options)) { InnerHandler = github })
+    private static HttpClient Client(GitHubScript github, GitHubConnection connection) => Client(github, new Switchable { Connection = connection });
+
+    private static HttpClient Client(GitHubScript github, IGitHubConnectionService connection) =>
+        new(new GitHubAuthHandler(connection, new MemoryCache(new MemoryCacheOptions()), Options.Create(new GitContentOptions { ApiUrl = new Uri("https://api.github.test/") }))
+        {
+            InnerHandler = github,
+        })
         {
             BaseAddress = new Uri("https://api.github.test/"),
         };
 
-    private sealed class Switchable : IOptions<GitContentOptions>
+    /// <summary>The connection in effect, which the one-click setup can replace at any moment.</summary>
+    private sealed class Switchable : IGitHubConnectionService
     {
-        public GitContentOptions Value { get; set; }
+        public GitHubConnection Connection { get; set; }
+
+        public Task<GitHubConnection> GetConnectionAsync(CancellationToken cancellationToken = default) => Task.FromResult(Connection);
+
+        public Task<GitHubAppConnection> CreateAppAsync(string code, string organization, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public GitHubAppManifest CreateAppManifest(string organization, string url, string redirectUrl, string setupUrl) => throw new NotSupportedException();
     }
 
     private static HttpResponseMessage Authorized(HttpRequestMessage request, string token)

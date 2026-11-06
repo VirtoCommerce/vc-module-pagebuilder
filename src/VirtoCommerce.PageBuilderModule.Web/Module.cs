@@ -108,26 +108,21 @@ namespace VirtoCommerce.PageBuilderModule.Web
             // Fail fast: a half-configured flow must not boot, or publishing would silently keep writing
             // straight to production on an installation whose operator expects pull requests.
             gitContentSection.Get<GitContentOptions>()?.Validate();
-            // configuration wins; without a complete one, the GitHub App of the site panel's one-click setup
-            serviceCollection.AddSingleton<GitContentConnection>();
-            serviceCollection.AddSingleton<IOptions<GitContentOptions>>(provider => provider.GetRequiredService<GitContentConnection>());
+            serviceCollection.AddTransient<IGitHubConnectionService, GitHubConnectionService>();
+            serviceCollection.AddTransient<IGitHubApiClient, GitHubApiClient>();
             serviceCollection.AddTransient<GitHubAuthHandler>();
-            serviceCollection.AddHttpClient(GitHubContentRepository.HttpClientName)
+            serviceCollection.AddHttpClient(GitHubApiClient.HttpClientName)
                 .ConfigureHttpClient(ConfigureGitHubClient)
-                // per request: a GitHub App's token belongs to the organization the request acts on
                 .AddHttpMessageHandler<GitHubAuthHandler>();
-            // the setup's one call, which carries no credential
-            serviceCollection.AddHttpClient(GitContentConnection.HttpClientName).ConfigureHttpClient(ConfigureGitHubClient);
+            serviceCollection.AddHttpClient(GitHubApiClient.AnonymousHttpClientName).ConfigureHttpClient(ConfigureGitHubClient);
             serviceCollection.AddTransient<IGitContentRepository, GitHubContentRepository>();
             serviceCollection.AddTransient<IGitContentHistory, GitHubContentHistory>();
             serviceCollection.AddTransient<IGitContentPublisher, GitHubContentPublisher>();
             serviceCollection.AddTransient<IGitContentOwnership, GitHubContentOwnership>();
             serviceCollection.AddTransient<IGitContentPolicy, GitContentPolicy>();
             serviceCollection.AddTransient<IGitContentProvisioner, GitHubContentProvisioner>();
-            // a database page's version history, in the same site repository
-            serviceCollection.AddTransient<GroupedPageHistory>();
-            // and a theme file's: templates, template rules, section groups, theme settings
-            serviceCollection.AddTransient<ThemeFileHistory>();
+            serviceCollection.AddTransient<IGroupedPageHistoryService, GroupedPageHistoryService>();
+            serviceCollection.AddTransient<IThemeFileHistoryService, ThemeFileHistoryService>();
 
             serviceCollection.Configure<ThemeSnapshotOptions>(Configuration.GetSection(ThemeSnapshotOptions.SectionName));
             serviceCollection.AddTransient<IThemeStorageFactory, ThemeStorageFactory>();
@@ -153,14 +148,7 @@ namespace VirtoCommerce.PageBuilderModule.Web
 
         private static void ConfigureGitHubClient(IServiceProvider provider, HttpClient httpClient)
         {
-            var gitContentOptions = provider.GetRequiredService<IOptions<GitContentOptions>>().Value;
-            // Relative request uris are combined against BaseAddress, so it must end with '/'.
-            httpClient.BaseAddress = new Uri(gitContentOptions.ApiUrl.AbsoluteUri.TrimEnd('/') + "/");
-            httpClient.Timeout = gitContentOptions.RequestTimeout;
-            httpClient.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
-            httpClient.DefaultRequestHeaders.Add("X-GitHub-Api-Version", "2022-11-28");
-            // GitHub rejects requests without a User-Agent.
-            httpClient.DefaultRequestHeaders.Add("User-Agent", "vc-pagebuilder-module");
+            GitHubApiClient.ConfigureHttpClient(httpClient, provider.GetRequiredService<IOptions<GitContentOptions>>().Value);
         }
 
         public void PostInitialize(IApplicationBuilder appBuilder)

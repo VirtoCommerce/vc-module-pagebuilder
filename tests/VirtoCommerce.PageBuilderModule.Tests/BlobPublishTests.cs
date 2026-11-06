@@ -100,6 +100,7 @@ public class BlobPublishTests
             publishingService: publishing,
             eventPublisher: null,
             gitContentOptions: Options.Create(new GitContentOptions()),
+            gitHubConnectionService: GitHubConnections.Service(Options.Create(new GitContentOptions()).Value),
             gitContentPolicy: new FakeGitContentPolicy(enabled: false),
             gitContentRepository: null,
             gitContentHistory: null,
