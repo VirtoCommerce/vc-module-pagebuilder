@@ -15,6 +15,9 @@ import { storefrontPage } from "./preview";
 import { storeMenusUrl } from "./storeMenus";
 import { impersonateBody, previewUserIds, previewUsers, readToken, type PreviewToken, type PreviewUser } from "./previewUsers";
 import { parseThemeStatus, publishThemeUrl, type ThemeStatus } from "./themePublication";
+import { checkBody, checkPaletteUrl, generateBody, generatePaletteUrl, parseCheck, parseGenerated, type GeneratedPalettes, type PaletteCheck } from "./paletteContrast";
+import type { PaletteTokens } from "./previewMessages";
+import type { ThemeLook } from "./themeLook";
 import { getAuthHeaders } from "../page-builder/composables/usePageContentApi";
 
 // The designer's platform calls (the generated client types the content endpoints as void), as the shell user.
@@ -243,6 +246,26 @@ export async function uploadCatalog(storeId: string, catalog: object) {
     body: JSON.stringify(catalog),
   });
   if (!res.ok) throw new ApiError(res.status, await res.text().catch(() => ""));
+}
+
+/** Both palettes built from the brand colors over the storefront's tokens */
+export async function generatePalette(storeId: string, tokens: PaletteTokens, primary: string, secondary?: string | null): Promise<GeneratedPalettes> {
+  const res = await call(generatePaletteUrl(storeId), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(generateBody(tokens, primary, secondary)),
+  });
+  return parseGenerated(await res.json());
+}
+
+/** The text and background pairs the look's palettes fail */
+export async function checkPalette(storeId: string, tokens: PaletteTokens, look: ThemeLook): Promise<PaletteCheck> {
+  const res = await call(checkPaletteUrl(storeId), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(checkBody(tokens, look)),
+  });
+  return parseCheck(await res.json());
 }
 
 // ── theme files (section groups, templates, the template rules, the theme settings): saved as drafts ("-draft"), put

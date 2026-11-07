@@ -412,7 +412,22 @@
         "DARK_NEEDS_LIGHT": "I colori scuri valgono solo insieme a quelli chiari: imposta anche un colore chiaro.",
         "TOKENS_PENDING": "La palette arriva dall'anteprima dello storefront e compare quando è stata caricata.",
         "UNKNOWN_TOKEN": "non presente nella palette dello storefront",
-        "LOOK_LOAD_FAILED": "Impossibile caricare marchio e colori."
+        "LOOK_LOAD_FAILED": "Impossibile caricare marchio e colori.",
+        "GENERATE_TITLE": "Genera dai colori",
+        "GENERATE_HINT": "Crea i colori chiari e scuri, intestazione e piè di pagina compresi, da uno o due colori del marchio, con testo leggibile (WCAG AA). Sostituisce entrambe le palette; Annulla le ripristina.",
+        "GENERATE_PRIMARY": "Colore primario",
+        "GENERATE_SECONDARY": "Secondo colore (facoltativo)",
+        "GENERATE": "Genera",
+        "GENERATE_FAILED": "Impossibile generare i colori.",
+        "UNDO_COLORS": "Annulla",
+        "CONTRAST_TITLE": "Contrasto (WCAG AA)",
+        "CONTRAST_ON": "{text} su {background}",
+        "CONTRAST_RATIO": "{ratio}, serve {required}",
+        "CONTRAST_OK": "Ogni coppia verificata è leggibile.",
+        "CONTRAST_OTHER_LIGHT": "Coppie sotto AA nei colori chiari: {count}",
+        "CONTRAST_OTHER_DARK": "Coppie sotto AA nei colori scuri: {count}",
+        "CONTRAST_UNCHECKED": "Coppie non verificate, i loro colori sono lasciati al preset dello storefront: {count}",
+        "CONTRAST_FAILED": "Impossibile verificare il contrasto."
       },
       "CLIPBOARD": {
         "COPY": "Copia",

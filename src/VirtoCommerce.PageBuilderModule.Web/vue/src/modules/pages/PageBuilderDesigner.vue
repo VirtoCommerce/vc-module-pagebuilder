@@ -1833,7 +1833,9 @@ async function createTemplate() {
   const file = (k: string): FilePage => ({ storeId, theme: themeName.value!, type: "themes", path: templatePath(themeName.value!, k) });
   try {
     const base = await findFilePage(file(target.type));
-    const doc = startingTemplate(target.type, base, templateEntry(designer.schemas.value, target.type).entry);
+    const doc = startingTemplate(target.type, base, templateEntry(designer.schemas.value, target.type).entry, (main) =>
+      newItem(main, "section", designer.schemas.value),
+    );
     const content = filePageContent({ ...doc, settings: { ...doc.settings, name: target.name.trim() } });
     await saveDesigner(storeId, { themeFiles: [{ path: file(key).path, content }] }, designer.handshake.value?.hash);
   } catch (e) {

@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using VirtoCommerce.PageBuilderModule.Core.Theme;
+using VirtoCommerce.PageBuilderModule.Data.Validation;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using Xunit;
 
@@ -28,6 +29,9 @@ public class ThemeControllerTests
         Assert.IsType<ForbidResult>((await controller.GetStatus("s1", Ct)).Result);
         Assert.IsType<ForbidResult>((await controller.SaveCatalog("s1", Ct)).Result);
         Assert.IsType<ForbidResult>(await controller.GetCatalog("s1", null, Ct));
+        // before the body is looked at
+        Assert.IsType<ForbidResult>((await controller.GeneratePalette("s1", null, Ct)).Result);
+        Assert.IsType<ForbidResult>((await controller.CheckPalette("s1", null, Ct)).Result);
 
         Assert.Empty(_services.Calls);
     }
@@ -43,9 +47,75 @@ public class ThemeControllerTests
         Assert.IsType<BadRequestObjectResult>((await controller.GetStatus(storeId, Ct)).Result);
         Assert.IsType<BadRequestObjectResult>((await controller.SaveCatalog(storeId, Ct)).Result);
         Assert.IsType<BadRequestObjectResult>(await controller.GetCatalog(storeId, null, Ct));
+        Assert.IsType<BadRequestObjectResult>((await controller.GeneratePalette(storeId, GenerationRequest("#1b789b"), Ct)).Result);
+        Assert.IsType<BadRequestObjectResult>((await controller.CheckPalette(storeId, CheckRequest(), Ct)).Result);
 
         Assert.Empty(_services.Calls);
     }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("orange")]
+    [InlineData("#12345")]
+    public async Task GeneratePalette_NotAColor_ReturnsBadRequestWithoutGenerating(string primary)
+    {
+        var controller = Controller(new FakeAuthorizationService(true));
+
+        Assert.IsType<BadRequestObjectResult>((await controller.GeneratePalette("s1", GenerationRequest(primary), Ct)).Result);
+        Assert.IsType<BadRequestObjectResult>((await controller.GeneratePalette("s1", GenerationRequest("#1b789b", "teal"), Ct)).Result);
+
+        Assert.Empty(_services.Calls);
+    }
+
+    [Fact]
+    public async Task PaletteActions_NoBodyOrNoTokens_ReturnBadRequestWithoutCallingTheService()
+    {
+        var controller = Controller(new FakeAuthorizationService(true));
+        var noTokens = GenerationRequest("#1b789b");
+        noTokens.Tokens.Light = [];
+        var badToken = CheckRequest();
+        badToken.Tokens.Dark = ["color primary"];
+
+        Assert.IsType<BadRequestObjectResult>((await controller.GeneratePalette("s1", null, Ct)).Result);
+        Assert.IsType<BadRequestObjectResult>((await controller.GeneratePalette("s1", noTokens, Ct)).Result);
+        Assert.IsType<BadRequestObjectResult>((await controller.CheckPalette("s1", null, Ct)).Result);
+        Assert.IsType<BadRequestObjectResult>((await controller.CheckPalette("s1", new ThemePaletteCheckRequest { Tokens = new ThemePaletteTokens() }, Ct)).Result);
+        Assert.IsType<BadRequestObjectResult>((await controller.CheckPalette("s1", badToken, Ct)).Result);
+
+        Assert.Empty(_services.Calls);
+    }
+
+    [Fact]
+    public async Task PaletteActions_StoreUserWorksIn_CallTheService()
+    {
+        var controller = Controller(new FakeAuthorizationService(true));
+
+        Assert.IsType<OkObjectResult>((await controller.GeneratePalette("s1", GenerationRequest("#1b789b", "#f99e24"), Ct)).Result);
+        Assert.IsType<OkObjectResult>((await controller.CheckPalette("s1", CheckRequest(), Ct)).Result);
+
+        Assert.Equal(["generate #1b789b", "check"], _services.Calls);
+    }
+
+    [Fact]
+    public async Task CheckPalette_Checked_WritesTheFailuresJson()
+    {
+        var controller = Controller(new FakeAuthorizationService(true));
+
+        Assert.Equal(
+            """{"failures":[{"scheme":"light","pair":"link","text":"color_accent_600","background":"color_neutral_50","textColor":"#cccccc","backgroundColor":"#ffffff","ratio":1.6,"minimumRatio":4.5}],"unchecked":2}""",
+            PlatformJson.SerializeBody(await controller.CheckPalette("s1", CheckRequest(), Ct)));
+    }
+
+    private static ThemePaletteGenerationRequest GenerationRequest(string primary, string secondary = null) =>
+        new() { Primary = primary, Secondary = secondary, Tokens = new ThemePaletteTokens { Light = ["color_primary_500"], Dark = [] } };
+
+    private static ThemePaletteCheckRequest CheckRequest() =>
+        new()
+        {
+            Palette = new ThemePalette { Light = new Dictionary<string, string> { ["color_primary_500"] = "#1b789b" } },
+            Tokens = new ThemePaletteTokens { Light = ["color_primary_500"], Dark = [] },
+        };
 
     [Fact]
     public async Task SaveCatalog_StoreUserWorksIn_SavesCatalog()
@@ -86,13 +156,20 @@ public class ThemeControllerTests
     {
         var http = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Name, "alice")], "test")) };
         http.Request.Body = new MemoryStream(Encoding.UTF8.GetBytes(body));
-        return new ThemeController(_services, _services, authorization, RequestValidators.Stores("s1"))
+        return new ThemeController(
+            _services,
+            _services,
+            _services,
+            authorization,
+            RequestValidators.Stores("s1"),
+            new ThemePaletteGenerationRequestValidator(),
+            new ThemePaletteCheckRequestValidator())
         {
             ControllerContext = new ControllerContext { HttpContext = http },
         };
     }
 
-    private sealed class RecordingThemeServices : IThemePublisher, ISchemaCatalogService
+    private sealed class RecordingThemeServices : IThemePublisher, ISchemaCatalogService, IThemePaletteService
     {
         public List<string> Calls { get; } = [];
 
@@ -124,6 +201,35 @@ public class ThemeControllerTests
         {
             Calls.Add($"save {storeId}");
             return Task.FromResult("abcdefgh");
+        }
+
+        public ThemePaletteGenerationResult GeneratePalette(ThemePaletteGenerationRequest request)
+        {
+            Calls.Add($"generate {request.Primary}");
+            return new ThemePaletteGenerationResult();
+        }
+
+        public ThemePaletteCheckResult CheckPalette(ThemePaletteCheckRequest request)
+        {
+            Calls.Add("check");
+            return new ThemePaletteCheckResult
+            {
+                Failures =
+                [
+                    new PaletteContrastFailure
+                    {
+                        Scheme = "light",
+                        Pair = "link",
+                        Text = "color_accent_600",
+                        Background = "color_neutral_50",
+                        TextColor = "#cccccc",
+                        BackgroundColor = "#ffffff",
+                        Ratio = 1.6,
+                        MinimumRatio = 4.5,
+                    },
+                ],
+                Unchecked = 2,
+            };
         }
 
         public Task<string> GetAsync(string storeId, string hash, CancellationToken cancellationToken = default)

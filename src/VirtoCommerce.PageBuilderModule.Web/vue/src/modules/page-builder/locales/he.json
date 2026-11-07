@@ -412,7 +412,22 @@
         "DARK_NEEDS_LIGHT": "צבעים כהים חלים רק יחד עם בהירים: הגדירו גם צבע בהיר.",
         "TOKENS_PENDING": "הפלטה מגיעה מתצוגה המקדימה של החנות ומוצגת לאחר שנטענה.",
         "UNKNOWN_TOKEN": "לא בפלטה של החנות",
-        "LOOK_LOAD_FAILED": "לא ניתן היה לטעון את המותג והצבעים."
+        "LOOK_LOAD_FAILED": "לא ניתן היה לטעון את המותג והצבעים.",
+        "GENERATE_TITLE": "יצירה מצבעים",
+        "GENERATE_HINT": "יוצר את הצבעים הבהירים והכהים, כולל הכותרת העליונה והתחתונה, מצבע מותג אחד או שניים, עם טקסט קריא (WCAG AA). מחליף את שתי הפלטות; ביטול מחזיר אותן.",
+        "GENERATE_PRIMARY": "צבע ראשי",
+        "GENERATE_SECONDARY": "צבע שני (אופציונלי)",
+        "GENERATE": "יצירה",
+        "GENERATE_FAILED": "לא ניתן היה ליצור את הצבעים.",
+        "UNDO_COLORS": "ביטול",
+        "CONTRAST_TITLE": "ניגודיות (WCAG AA)",
+        "CONTRAST_ON": "{text} על {background}",
+        "CONTRAST_RATIO": "{ratio}, נדרש {required}",
+        "CONTRAST_OK": "כל זוג שנבדק קריא.",
+        "CONTRAST_OTHER_LIGHT": "זוגות מתחת ל-AA בצבעים הבהירים: {count}",
+        "CONTRAST_OTHER_DARK": "זוגות מתחת ל-AA בצבעים הכהים: {count}",
+        "CONTRAST_UNCHECKED": "זוגות שלא נבדקו, צבעיהם נשארים לפי הגדרת החנות: {count}",
+        "CONTRAST_FAILED": "לא ניתן היה לבדוק את הניגודיות."
       },
       "CLIPBOARD": {
         "COPY": "העתקה",

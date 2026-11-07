@@ -85,20 +85,18 @@ export function hidingLosesMain(content: Item[], type: PageType | undefined, id:
 
 /**
  * The document a template starts from: a copy of `base` (the default template, for "Create template"), else the
- * built-in one the storefront's descriptor carries (`default` as a document), else an empty one; a page template
- * always has the page's content in it.
+ * built-in one the storefront's descriptor carries (`default` as a document), else an empty one. It always has its
+ * page type's main section, after its own sections (`mainItem` makes it, else a bare one); a page template also has
+ * the full layout.
  */
-export function startingTemplate(type: PageType, base?: PageDocument, entry?: TemplateEntry): PageDocument {
+export function startingTemplate(type: PageType, base?: PageDocument, entry?: TemplateEntry, mainItem?: (type: string) => Item): PageDocument {
   const builtIn = entry?.default && typeof entry.default === "object" && Array.isArray((entry.default as PageDocument).content) ? toDocument(entry.default) : undefined;
   const doc = base ?? builtIn ?? { settings: {} as Item, content: [] };
   // never the legacy array form (version 1): the storefront reads a template's `content`
   const { version: _version, ...copy } = JSON.parse(JSON.stringify(doc)) as PageDocument;
-  if (type !== "page") return copy;
-  return {
-    ...copy,
-    settings: { layout: "full", ...copy.settings },
-    content: copy.content.some((x) => x.type === PAGE_CONTENT) ? copy.content : [...copy.content, { id: newId(PAGE_CONTENT), type: PAGE_CONTENT }],
-  };
+  const main = MAIN_SECTIONS[type];
+  const content = mainOf(copy.content, type).length ? copy.content : [...copy.content, mainItem?.(main) ?? { id: newId(main), type: main }];
+  return type === "page" ? { ...copy, settings: { layout: "full", ...copy.settings }, content } : { ...copy, content };
 }
 
 /** Where the preview shows a template: a product's or category's page by id, or a page's permalink */

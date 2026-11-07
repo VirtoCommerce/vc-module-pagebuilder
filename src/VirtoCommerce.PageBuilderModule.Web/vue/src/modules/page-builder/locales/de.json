@@ -412,7 +412,22 @@
         "DARK_NEEDS_LIGHT": "Dunkle Farben gelten nur zusammen mit hellen: legen Sie auch eine helle Farbe fest.",
         "TOKENS_PENDING": "Die Palette kommt aus der Storefront-Vorschau und erscheint, sobald diese geladen ist.",
         "UNKNOWN_TOKEN": "nicht in der Palette des Storefronts",
-        "LOOK_LOAD_FAILED": "Marke und Farben konnten nicht geladen werden."
+        "LOOK_LOAD_FAILED": "Marke und Farben konnten nicht geladen werden.",
+        "GENERATE_TITLE": "Aus Farben erzeugen",
+        "GENERATE_HINT": "Erzeugt die hellen und dunklen Farben, Kopf- und Fußzeile eingeschlossen, aus einer oder zwei Markenfarben, mit gut lesbarem Text (WCAG AA). Beide Paletten werden ersetzt; Rückgängig stellt sie wieder her.",
+        "GENERATE_PRIMARY": "Primärfarbe",
+        "GENERATE_SECONDARY": "Zweite Farbe (optional)",
+        "GENERATE": "Erzeugen",
+        "GENERATE_FAILED": "Die Farben konnten nicht erzeugt werden.",
+        "UNDO_COLORS": "Rückgängig",
+        "CONTRAST_TITLE": "Kontrast (WCAG AA)",
+        "CONTRAST_ON": "{text} auf {background}",
+        "CONTRAST_RATIO": "{ratio}, benötigt {required}",
+        "CONTRAST_OK": "Jedes geprüfte Paar ist gut lesbar.",
+        "CONTRAST_OTHER_LIGHT": "Paare unter AA in den hellen Farben: {count}",
+        "CONTRAST_OTHER_DARK": "Paare unter AA in den dunklen Farben: {count}",
+        "CONTRAST_UNCHECKED": "Nicht geprüfte Paare, ihre Farben kommen aus der Vorlage des Storefronts: {count}",
+        "CONTRAST_FAILED": "Der Kontrast konnte nicht geprüft werden."
       },
       "CLIPBOARD": {
         "COPY": "Kopieren",

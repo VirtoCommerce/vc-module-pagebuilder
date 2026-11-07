@@ -412,7 +412,22 @@
         "DARK_NEEDS_LIGHT": "Ciemne kolory działają tylko razem z jasnymi: ustaw też jasny kolor.",
         "TOKENS_PENDING": "Paleta pochodzi z podglądu sklepu i pojawi się po jego wczytaniu.",
         "UNKNOWN_TOKEN": "spoza palety sklepu",
-        "LOOK_LOAD_FAILED": "Nie udało się wczytać marki i kolorów."
+        "LOOK_LOAD_FAILED": "Nie udało się wczytać marki i kolorów.",
+        "GENERATE_TITLE": "Wygeneruj z kolorów",
+        "GENERATE_HINT": "Tworzy jasne i ciemne kolory, razem z nagłówkiem i stopką, z jednego lub dwóch kolorów marki, z czytelnym tekstem (WCAG AA). Zastępuje obie palety; Cofnij je przywraca.",
+        "GENERATE_PRIMARY": "Kolor główny",
+        "GENERATE_SECONDARY": "Drugi kolor (opcjonalnie)",
+        "GENERATE": "Wygeneruj",
+        "GENERATE_FAILED": "Nie udało się wygenerować kolorów.",
+        "UNDO_COLORS": "Cofnij",
+        "CONTRAST_TITLE": "Kontrast (WCAG AA)",
+        "CONTRAST_ON": "{text} na {background}",
+        "CONTRAST_RATIO": "{ratio}, wymagane {required}",
+        "CONTRAST_OK": "Każda sprawdzona para jest czytelna.",
+        "CONTRAST_OTHER_LIGHT": "Pary poniżej AA w jasnych kolorach: {count}",
+        "CONTRAST_OTHER_DARK": "Pary poniżej AA w ciemnych kolorach: {count}",
+        "CONTRAST_UNCHECKED": "Niesprawdzone pary, ich kolory pochodzą z ustawień sklepu: {count}",
+        "CONTRAST_FAILED": "Nie udało się sprawdzić kontrastu."
       },
       "CLIPBOARD": {
         "COPY": "Kopiuj",

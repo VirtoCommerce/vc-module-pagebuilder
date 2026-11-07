@@ -412,7 +412,22 @@
         "DARK_NEEDS_LIGHT": "Tummat värit ovat käytössä vain vaaleiden kanssa: aseta myös vaalea väri.",
         "TOKENS_PENDING": "Paletti tulee kauppasivuston esikatselusta ja näkyy, kun se on latautunut.",
         "UNKNOWN_TOKEN": "ei kauppasivuston paletissa",
-        "LOOK_LOAD_FAILED": "Brändiä ja värejä ei voitu ladata."
+        "LOOK_LOAD_FAILED": "Brändiä ja värejä ei voitu ladata.",
+        "GENERATE_TITLE": "Luo väreistä",
+        "GENERATE_HINT": "Luo vaaleat ja tummat värit, ylä- ja alatunniste mukaan lukien, yhdestä tai kahdesta brändiväristä niin, että teksti on luettavaa (WCAG AA). Korvaa molemmat paletit; Kumoa palauttaa ne.",
+        "GENERATE_PRIMARY": "Pääväri",
+        "GENERATE_SECONDARY": "Toinen väri (valinnainen)",
+        "GENERATE": "Luo",
+        "GENERATE_FAILED": "Värejä ei voitu luoda.",
+        "UNDO_COLORS": "Kumoa",
+        "CONTRAST_TITLE": "Kontrasti (WCAG AA)",
+        "CONTRAST_ON": "{text} taustalla {background}",
+        "CONTRAST_RATIO": "{ratio}, vaaditaan {required}",
+        "CONTRAST_OK": "Jokainen tarkistettu pari on luettava.",
+        "CONTRAST_OTHER_LIGHT": "AA-tason alittavia pareja vaaleissa väreissä: {count}",
+        "CONTRAST_OTHER_DARK": "AA-tason alittavia pareja tummissa väreissä: {count}",
+        "CONTRAST_UNCHECKED": "Tarkistamatta jääneitä pareja, niiden värit tulevat kaupan esiasetuksesta: {count}",
+        "CONTRAST_FAILED": "Kontrastia ei voitu tarkistaa."
       },
       "CLIPBOARD": {
         "COPY": "Kopioi",

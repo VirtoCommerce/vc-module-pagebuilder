@@ -6,6 +6,7 @@ import {
   alternateName,
   entityUrl,
   isTemplateKey,
+  mainSectionState,
   pageTypeOf,
   startingTemplate,
   templateEntry,
@@ -84,10 +85,35 @@ test("a new template starts from the default, else the storefront's built-in one
   assert.equal(base.content.length, 1);
 
   const builtIn = startingTemplate("product", undefined, { default: { settings: {}, content: [{ type: "related-products" }] } });
-  assert.equal(builtIn.content[0].type, "related-products");
-  assert.ok(builtIn.content[0].id);
+  assert.deepEqual(builtIn.content.map((x) => x.type), ["related-products", "product-info"]);
+  assert.ok(builtIn.content.every((x) => x.id));
   // `default: true` (the product descriptor today) isn't a document
-  assert.deepEqual(startingTemplate("category", undefined, { default: true }), { settings: {}, content: [] });
+  const category = startingTemplate("category", undefined, { default: true });
+  assert.deepEqual(category.settings, {});
+  assert.deepEqual(category.content.map((x) => x.type), ["category-listing"]);
+});
+
+test("a new product or category template starts with its main section, after its own sections", () => {
+  const made: string[] = [];
+  const mainItem = (type: string): Item => {
+    made.push(type);
+    return { id: `${type}-1`, type, blocks: [{ id: "b1", type: "description" }] };
+  };
+  // a default without one (copy of default)
+  const copy = startingTemplate("product", { settings: {} as Item, content: [{ id: "h", type: "hero" }] }, undefined, mainItem);
+  assert.deepEqual(copy.content.map((x) => x.id), ["h", "product-info-1"]);
+  assert.equal(copy.content[1].blocks?.length, 1);
+  assert.equal(mainSectionState(copy.content, "product"), "shown");
+  // the built-in one, with nothing of its own
+  const empty = startingTemplate("category", undefined, undefined, mainItem);
+  assert.equal(mainSectionState(empty.content, "category"), "shown");
+  // one the default has (shown or hidden) is kept as it is, no second one
+  const kept = startingTemplate("product", { settings: {} as Item, content: [{ id: "p", type: "product-info", hidden: true }] }, undefined, mainItem);
+  assert.deepEqual(kept.content.map((x) => x.id), ["p"]);
+  // a header section of the same type does not count
+  const grouped = startingTemplate("category", { settings: {} as Item, content: [{ id: "g", type: "category-listing", __group: "header" }] }, undefined, mainItem);
+  assert.deepEqual(grouped.content.map((x) => x.id), ["g", "category-listing-1"]);
+  assert.deepEqual(made, ["product-info", "category-listing", "category-listing"]);
 });
 
 test("a page template has the full layout and the page's content", () => {

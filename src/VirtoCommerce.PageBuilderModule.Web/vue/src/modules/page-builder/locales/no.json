@@ -412,7 +412,22 @@
         "DARK_NEEDS_LIGHT": "Mørke farger gjelder bare sammen med lyse: angi også en lys farge.",
         "TOKENS_PENDING": "Paletten kommer fra butikkens forhåndsvisning og vises når den er lastet inn.",
         "UNKNOWN_TOKEN": "finnes ikke i butikkens palett",
-        "LOOK_LOAD_FAILED": "Merkevaren og fargene kunne ikke lastes inn."
+        "LOOK_LOAD_FAILED": "Merkevaren og fargene kunne ikke lastes inn.",
+        "GENERATE_TITLE": "Lag fra farger",
+        "GENERATE_HINT": "Lager de lyse og mørke fargene, topptekst og bunntekst inkludert, fra én eller to merkefarger, med lesbar tekst (WCAG AA). Erstatter begge palettene; Angre henter dem tilbake.",
+        "GENERATE_PRIMARY": "Primærfarge",
+        "GENERATE_SECONDARY": "Andre farge (valgfri)",
+        "GENERATE": "Lag",
+        "GENERATE_FAILED": "Fargene kunne ikke lages.",
+        "UNDO_COLORS": "Angre",
+        "CONTRAST_TITLE": "Kontrast (WCAG AA)",
+        "CONTRAST_ON": "{text} på {background}",
+        "CONTRAST_RATIO": "{ratio}, krever {required}",
+        "CONTRAST_OK": "Alle kontrollerte par er lesbare.",
+        "CONTRAST_OTHER_LIGHT": "Par under AA i de lyse fargene: {count}",
+        "CONTRAST_OTHER_DARK": "Par under AA i de mørke fargene: {count}",
+        "CONTRAST_UNCHECKED": "Par som ikke er kontrollert, fargene deres er overlatt til butikkens forhåndsinnstilling: {count}",
+        "CONTRAST_FAILED": "Kontrasten kunne ikke kontrolleres."
       },
       "CLIPBOARD": {
         "COPY": "Kopier",

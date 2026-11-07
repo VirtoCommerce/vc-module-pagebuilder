@@ -412,7 +412,22 @@
         "DARK_NEEDS_LIGHT": "深色仅与浅色一起生效：请同时设置一个浅色。",
         "TOKENS_PENDING": "调色板来自店面预览，加载完成后显示。",
         "UNKNOWN_TOKEN": "不在店面的调色板中",
-        "LOOK_LOAD_FAILED": "无法加载品牌和颜色。"
+        "LOOK_LOAD_FAILED": "无法加载品牌和颜色。",
+        "GENERATE_TITLE": "从颜色生成",
+        "GENERATE_HINT": "根据一到两种品牌色生成浅色和深色配色（包括页眉和页脚），并保证文字清晰可读 (WCAG AA)。会替换两套配色；撤销可恢复。",
+        "GENERATE_PRIMARY": "主色",
+        "GENERATE_SECONDARY": "第二种颜色（可选）",
+        "GENERATE": "生成",
+        "GENERATE_FAILED": "无法生成颜色。",
+        "UNDO_COLORS": "撤销",
+        "CONTRAST_TITLE": "对比度 (WCAG AA)",
+        "CONTRAST_ON": "{background} 上的 {text}",
+        "CONTRAST_RATIO": "{ratio}，需要 {required}",
+        "CONTRAST_OK": "所有已检查的组合都清晰可读。",
+        "CONTRAST_OTHER_LIGHT": "浅色配色中低于 AA 的组合：{count}",
+        "CONTRAST_OTHER_DARK": "深色配色中低于 AA 的组合：{count}",
+        "CONTRAST_UNCHECKED": "未检查的组合（颜色沿用店面预设）：{count}",
+        "CONTRAST_FAILED": "无法检查对比度。"
       },
       "CLIPBOARD": {
         "COPY": "复制",

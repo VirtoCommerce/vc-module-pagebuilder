@@ -412,7 +412,22 @@
         "DARK_NEEDS_LIGHT": "Los colores oscuros solo se aplican junto con los claros: define también un color claro.",
         "TOKENS_PENDING": "La paleta llega de la vista previa de la tienda y aparece cuando esta se ha cargado.",
         "UNKNOWN_TOKEN": "no está en la paleta de la tienda",
-        "LOOK_LOAD_FAILED": "No se pudieron cargar la marca ni los colores."
+        "LOOK_LOAD_FAILED": "No se pudieron cargar la marca ni los colores.",
+        "GENERATE_TITLE": "Generar a partir de colores",
+        "GENERATE_HINT": "Crea los colores claros y oscuros, encabezado y pie incluidos, a partir de uno o dos colores de marca, con texto legible (WCAG AA). Sustituye ambas paletas; Deshacer las recupera.",
+        "GENERATE_PRIMARY": "Color principal",
+        "GENERATE_SECONDARY": "Segundo color (opcional)",
+        "GENERATE": "Generar",
+        "GENERATE_FAILED": "No se pudieron generar los colores.",
+        "UNDO_COLORS": "Deshacer",
+        "CONTRAST_TITLE": "Contraste (WCAG AA)",
+        "CONTRAST_ON": "{text} sobre {background}",
+        "CONTRAST_RATIO": "{ratio}, se necesita {required}",
+        "CONTRAST_OK": "Todos los pares comprobados son legibles.",
+        "CONTRAST_OTHER_LIGHT": "Pares por debajo de AA en los colores claros: {count}",
+        "CONTRAST_OTHER_DARK": "Pares por debajo de AA en los colores oscuros: {count}",
+        "CONTRAST_UNCHECKED": "Pares sin comprobar, sus colores quedan a cargo del preajuste de la tienda: {count}",
+        "CONTRAST_FAILED": "No se pudo comprobar el contraste."
       },
       "CLIPBOARD": {
         "COPY": "Copiar",

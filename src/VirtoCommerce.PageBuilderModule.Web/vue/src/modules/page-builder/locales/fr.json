@@ -412,7 +412,22 @@
         "DARK_NEEDS_LIGHT": "Les couleurs sombres ne s'appliquent qu'avec des couleurs claires : définissez aussi une couleur claire.",
         "TOKENS_PENDING": "La palette vient de l'aperçu de la boutique et s'affiche une fois celui-ci chargé.",
         "UNKNOWN_TOKEN": "absente de la palette de la boutique",
-        "LOOK_LOAD_FAILED": "Impossible de charger la marque et les couleurs."
+        "LOOK_LOAD_FAILED": "Impossible de charger la marque et les couleurs.",
+        "GENERATE_TITLE": "Générer à partir de couleurs",
+        "GENERATE_HINT": "Crée les couleurs claires et sombres, en-tête et pied de page compris, à partir d'une ou deux couleurs de marque, avec un texte lisible (WCAG AA). Remplace les deux palettes ; Annuler les rétablit.",
+        "GENERATE_PRIMARY": "Couleur principale",
+        "GENERATE_SECONDARY": "Deuxième couleur (facultative)",
+        "GENERATE": "Générer",
+        "GENERATE_FAILED": "Les couleurs n'ont pas pu être générées.",
+        "UNDO_COLORS": "Annuler",
+        "CONTRAST_TITLE": "Contraste (WCAG AA)",
+        "CONTRAST_ON": "{text} sur {background}",
+        "CONTRAST_RATIO": "{ratio}, il faut {required}",
+        "CONTRAST_OK": "Chaque paire vérifiée est lisible.",
+        "CONTRAST_OTHER_LIGHT": "Paires sous AA dans les couleurs claires : {count}",
+        "CONTRAST_OTHER_DARK": "Paires sous AA dans les couleurs sombres : {count}",
+        "CONTRAST_UNCHECKED": "Paires non vérifiées, leurs couleurs sont laissées au préréglage de la boutique : {count}",
+        "CONTRAST_FAILED": "Le contraste n'a pas pu être vérifié."
       },
       "CLIPBOARD": {
         "COPY": "Copier",

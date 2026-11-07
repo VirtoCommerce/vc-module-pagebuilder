@@ -33,6 +33,18 @@ namespace VirtoCommerce.PageBuilderModule.Core
             public const string FallbackLanguage = "en-US";
         }
 
+        public static class Palette
+        {
+            public const string Light = "light";
+            public const string Dark = "dark";
+
+            /// <summary>WCAG 2.2 AA minimum contrast of normal text.</summary>
+            public const double TextContrastRatio = 4.5;
+
+            /// <summary>WCAG 2.2 AA minimum contrast of large text, icons and UI components.</summary>
+            public const double NonTextContrastRatio = 3;
+        }
+
         public static class GitHistory
         {
             public const int DefaultPageSize = 20;

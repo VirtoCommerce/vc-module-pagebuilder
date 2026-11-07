@@ -412,7 +412,22 @@
         "DARK_NEEDS_LIGHT": "As cores escuras só se aplicam junto com as claras: defina também uma cor clara.",
         "TOKENS_PENDING": "A paleta vem da pré-visualização da loja e aparece quando ela carregar.",
         "UNKNOWN_TOKEN": "não está na paleta da loja",
-        "LOOK_LOAD_FAILED": "Não foi possível carregar a marca e as cores."
+        "LOOK_LOAD_FAILED": "Não foi possível carregar a marca e as cores.",
+        "GENERATE_TITLE": "Gerar a partir de cores",
+        "GENERATE_HINT": "Cria as cores claras e escuras, cabeçalho e rodapé incluídos, a partir de uma ou duas cores da marca, com texto legível (WCAG AA). Substitui as duas paletas; Desfazer as traz de volta.",
+        "GENERATE_PRIMARY": "Cor principal",
+        "GENERATE_SECONDARY": "Segunda cor (opcional)",
+        "GENERATE": "Gerar",
+        "GENERATE_FAILED": "Não foi possível gerar as cores.",
+        "UNDO_COLORS": "Desfazer",
+        "CONTRAST_TITLE": "Contraste (WCAG AA)",
+        "CONTRAST_ON": "{text} sobre {background}",
+        "CONTRAST_RATIO": "{ratio}, precisa de {required}",
+        "CONTRAST_OK": "Todos os pares verificados são legíveis.",
+        "CONTRAST_OTHER_LIGHT": "Pares abaixo de AA nas cores claras: {count}",
+        "CONTRAST_OTHER_DARK": "Pares abaixo de AA nas cores escuras: {count}",
+        "CONTRAST_UNCHECKED": "Pares não verificados, suas cores ficam com a predefinição da loja: {count}",
+        "CONTRAST_FAILED": "Não foi possível verificar o contraste."
       },
       "CLIPBOARD": {
         "COPY": "Copiar",

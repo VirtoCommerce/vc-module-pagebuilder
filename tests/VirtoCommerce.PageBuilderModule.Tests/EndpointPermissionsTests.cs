@@ -45,6 +45,8 @@ public class EndpointPermissionsTests
         [(typeof(ThemeController), nameof(ThemeController.GetStatus))] = Permissions.Read,
         [(typeof(ThemeController), nameof(ThemeController.SaveCatalog))] = Permissions.Theme,
         [(typeof(ThemeController), nameof(ThemeController.GetCatalog))] = Permissions.Read,
+        [(typeof(ThemeController), nameof(ThemeController.GeneratePalette))] = Permissions.Theme,
+        [(typeof(ThemeController), nameof(ThemeController.CheckPalette))] = Permissions.Theme,
     };
 
     public static TheoryData<Type, string, string> Actions()

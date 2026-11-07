@@ -133,9 +133,12 @@ namespace VirtoCommerce.PageBuilderModule.Web
             serviceCollection.AddTransient<IThemePublisher, ThemePublisher>();
             serviceCollection.AddTransient<IThemeDraftService, ThemeDraftService>();
             serviceCollection.AddTransient<IThemeSnapshotService, ThemeSnapshotService>();
+            serviceCollection.AddTransient<IThemePaletteService, ThemePaletteService>();
             serviceCollection.AddTransient<IValidator<PageBuilderStoreRequest>, PageBuilderStoreRequestValidator>();
             serviceCollection.AddTransient<IValidator<ContentHistoryRequest>, ContentHistoryRequestValidator>();
             serviceCollection.AddTransient<IValidator<GitHubAppSetupRequest>, GitHubAppSetupRequestValidator>();
+            serviceCollection.AddTransient<IValidator<ThemePaletteGenerationRequest>, ThemePaletteGenerationRequestValidator>();
+            serviceCollection.AddTransient<IValidator<ThemePaletteCheckRequest>, ThemePaletteCheckRequestValidator>();
             serviceCollection.AddTransient<GitContentStoreChangedEventHandler>();
             serviceCollection.AddBackgroundJob<GitContentRepositoryJob, GitContentRepositoryJobPayload>(triggerable: false);
 

@@ -412,7 +412,22 @@
         "DARK_NEEDS_LIGHT": "Mörka färger gäller bara tillsammans med ljusa: ange även en ljus färg.",
         "TOKENS_PENDING": "Paletten kommer från butikens förhandsvisning och visas när den har lästs in.",
         "UNKNOWN_TOKEN": "finns inte i butikens palett",
-        "LOOK_LOAD_FAILED": "Varumärket och färgerna kunde inte läsas in."
+        "LOOK_LOAD_FAILED": "Varumärket och färgerna kunde inte läsas in.",
+        "GENERATE_TITLE": "Skapa från färger",
+        "GENERATE_HINT": "Skapar de ljusa och mörka färgerna, sidhuvud och sidfot inräknade, från en eller två varumärkesfärger, med läsbar text (WCAG AA). Ersätter båda paletterna; Ångra tar tillbaka dem.",
+        "GENERATE_PRIMARY": "Primärfärg",
+        "GENERATE_SECONDARY": "Andra färg (valfri)",
+        "GENERATE": "Skapa",
+        "GENERATE_FAILED": "Färgerna kunde inte skapas.",
+        "UNDO_COLORS": "Ångra",
+        "CONTRAST_TITLE": "Kontrast (WCAG AA)",
+        "CONTRAST_ON": "{text} på {background}",
+        "CONTRAST_RATIO": "{ratio}, kräver {required}",
+        "CONTRAST_OK": "Varje kontrollerat par är läsbart.",
+        "CONTRAST_OTHER_LIGHT": "Par under AA i de ljusa färgerna: {count}",
+        "CONTRAST_OTHER_DARK": "Par under AA i de mörka färgerna: {count}",
+        "CONTRAST_UNCHECKED": "Par som inte kontrollerats, deras färger lämnas åt butikens förinställning: {count}",
+        "CONTRAST_FAILED": "Kontrasten kunde inte kontrolleras."
       },
       "CLIPBOARD": {
         "COPY": "Kopiera",

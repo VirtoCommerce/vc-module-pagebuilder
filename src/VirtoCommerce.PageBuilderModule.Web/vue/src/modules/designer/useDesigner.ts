@@ -541,11 +541,13 @@ export function useDesigner() {
   // once the preview's schemas say what that is; a page template always has the page's content in it. As the saved
   // baseline, like the seeding above.
   const templateIsNew = ref(false);
+  let templateSeeded = false;
+  const mainItem = (type: string) => newItem(type, "section", schemas.value);
   function seedTemplate() {
     const type = pageType.value;
-    if (!templateIsNew.value || !type || dirty.value || pageOnly(doc.value).content.length) return;
-    const start = startingTemplate(type, undefined, template.value.entry);
-    if (start.content.length) reset(start);
+    if (!templateIsNew.value || templateSeeded || !type || dirty.value || !Object.keys(schemas.value.sections).length) return;
+    templateSeeded = true;
+    reset(startingTemplate(type, undefined, template.value.entry, mainItem));
   }
   watch(schemas, seedTemplate);
 
@@ -559,6 +561,7 @@ export function useDesigner() {
     gitFlow.value = false;
     groupsLoaded.value = false;
     templateIsNew.value = false;
+    templateSeeded = false;
     selection.value = null;
     hovered.value = null;
     checked.value = [];
@@ -590,7 +593,7 @@ export function useDesigner() {
         // theme files are never in git, even when the store's pages are: they are saved, published and discarded as blobs
         gitFlow.value = git;
         templateIsNew.value = !page && !!templateKey.value;
-        reset(page ?? (pageType.value ? startingTemplate(pageType.value) : { settings: { type: "settings" } as Item, content: [] }), groups);
+        reset(page ?? (pageType.value ? startingTemplate(pageType.value, undefined, undefined, mainItem) : { settings: { type: "settings" } as Item, content: [] }), groups);
       }
       // the preview's schemas may be in already
       seedGroups();

@@ -412,7 +412,22 @@
         "DARK_NEEDS_LIGHT": "Dark colors apply only together with light ones: set a light color too.",
         "TOKENS_PENDING": "The palette comes from the storefront preview and shows once it has loaded.",
         "UNKNOWN_TOKEN": "not in the storefront's palette",
-        "LOOK_LOAD_FAILED": "The brand and colors couldn't be loaded."
+        "LOOK_LOAD_FAILED": "The brand and colors couldn't be loaded.",
+        "GENERATE_TITLE": "Generate from colors",
+        "GENERATE_HINT": "Builds the light and dark colors, header and footer included, from one or two brand colors, with readable text (WCAG AA). It replaces both palettes; Undo brings them back.",
+        "GENERATE_PRIMARY": "Primary color",
+        "GENERATE_SECONDARY": "Second color (optional)",
+        "GENERATE": "Generate",
+        "GENERATE_FAILED": "The colors couldn't be generated.",
+        "UNDO_COLORS": "Undo",
+        "CONTRAST_TITLE": "Contrast (WCAG AA)",
+        "CONTRAST_ON": "{text} on {background}",
+        "CONTRAST_RATIO": "{ratio}, needs {required}",
+        "CONTRAST_OK": "Every pair checked is readable.",
+        "CONTRAST_OTHER_LIGHT": "Pairs below AA in the light colors: {count}",
+        "CONTRAST_OTHER_DARK": "Pairs below AA in the dark colors: {count}",
+        "CONTRAST_UNCHECKED": "Pairs not checked, their colors are left to the storefront preset: {count}",
+        "CONTRAST_FAILED": "The contrast couldn't be checked."
       },
       "CLIPBOARD": {
         "COPY": "Copy",

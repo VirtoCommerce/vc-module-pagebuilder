@@ -412,7 +412,22 @@
         "DARK_NEEDS_LIGHT": "ダークカラーはライトカラーと一緒の場合のみ適用されます：ライトカラーも設定してください。",
         "TOKENS_PENDING": "パレットはストアフロントのプレビューから取得され、読み込まれると表示されます。",
         "UNKNOWN_TOKEN": "ストアフロントのパレットにありません",
-        "LOOK_LOAD_FAILED": "ブランドとカラーを読み込めませんでした。"
+        "LOOK_LOAD_FAILED": "ブランドとカラーを読み込めませんでした。",
+        "GENERATE_TITLE": "色から生成",
+        "GENERATE_HINT": "1～2 色のブランドカラーから、ヘッダーとフッターを含むライトとダークの色を、読みやすいテキスト (WCAG AA) で作成します。両方のパレットを置き換えます。元に戻すで戻せます。",
+        "GENERATE_PRIMARY": "メインカラー",
+        "GENERATE_SECONDARY": "2 番目の色 (任意)",
+        "GENERATE": "生成",
+        "GENERATE_FAILED": "色を生成できませんでした。",
+        "UNDO_COLORS": "元に戻す",
+        "CONTRAST_TITLE": "コントラスト (WCAG AA)",
+        "CONTRAST_ON": "{background} 上の {text}",
+        "CONTRAST_RATIO": "{ratio}、必要: {required}",
+        "CONTRAST_OK": "確認したすべての組み合わせが読みやすい状態です。",
+        "CONTRAST_OTHER_LIGHT": "ライトの色で AA を下回る組み合わせ: {count}",
+        "CONTRAST_OTHER_DARK": "ダークの色で AA を下回る組み合わせ: {count}",
+        "CONTRAST_UNCHECKED": "確認していない組み合わせ (色はストアフロントのプリセットのまま): {count}",
+        "CONTRAST_FAILED": "コントラストを確認できませんでした。"
       },
       "CLIPBOARD": {
         "COPY": "コピー",

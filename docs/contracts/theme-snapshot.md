@@ -362,6 +362,52 @@ the storefront's preset works as now.
 Section settings of the type `color-token` hold a palette token name, not a color, so that a section such as the
 announcement bar follows the light and dark theme.
 
+### Contrast pairs
+
+The server checks a palette against the pairs of colors the storefront puts on one another, by WCAG 2.2 relative
+luminance: text needs 4.5:1, icons and controls 3:1 (`ModuleConstants.Palette`). The list is
+`PaletteContrastPairs` (Core). Each side of a pair is a token and the token the storefront's stylesheets
+(`_colors.scss`, `_ui-kit-tokens.scss`) fall back to when the preset does not define it.
+
+| Pair | Text (fallback) | Background (fallback) | Ratio |
+|---|---|---|---|
+| `body-text` | `color_body_text` (`color_neutral_950`) | `color_body_bg` (`color_neutral_50`) | 4.5 |
+| `link`, `link-hover` | `color_link` (`color_accent_600`), `color_link_hover` (`color_accent_700`) | `color_body_bg` (`color_neutral_50`) | 4.5 |
+| `price` | `color_price` (`color_neutral_900`) | `color_additional_50` | 4.5 |
+| `shape-icon` | `color_shape_icon` (`color_additional_50`) | `color_shape_icon_bg` (`color_secondary_500`) | 3 |
+| `empty-list-icon` | `color_empty_list_icon` (`color_primary_500`) | `color_body_bg` (`color_neutral_50`) | 3 |
+| `header-top-{text,link,link-hover,link-active}` | `color_header_top_*` (`additional_50`, `accent_300`, `additional_50`, `accent_300`) | `color_header_top_bg` (`color_secondary_900`) | 4.5 |
+| `header-bottom-…` | `color_header_bottom_*` (`neutral_900`, `secondary_700`, `neutral_900`, `neutral_900`) | `color_header_bottom_bg` (`color_additional_50`) | 4.5 |
+| `footer-top-…` | `color_footer_top_*` (`additional_50`, `neutral_400`, `additional_50`, `additional_50`) | `color_footer_top_bg` (`color_secondary_900`) | 4.5 |
+| `footer-bottom-…` | `color_footer_bottom_*` (`additional_50`, `accent_300`, `additional_50`, `additional_50`) | `color_footer_bottom_bg` (`color_secondary_950`) | 4.5 |
+| `mobile-menu-{text,link,link-active,navigation}` | `color_mobile_menu_*` (`additional_50`, `secondary_200`, `additional_50`, `primary_400`) | `color_mobile_menu_bg` (`color_secondary_900`) | 4.5 |
+| `mobile-menu-{icon,icon-active,control}` | `color_mobile_menu_*` (`secondary_600`, `additional_50`, `primary_500`) | `color_mobile_menu_bg` (`color_secondary_900`) | 3 |
+| `button-solid-{c}` | `color_vc_text_solid_{c}` (`additional_50`; warning: `warning_900`) | `color_vc_background_solid_{c}` (`{c}_500`) | 4.5 |
+| `button-soft-{c}`, `button-tonal-{c}` | `color_vc_text_{soft,tonal}_{c}` (`{c}_800`) | `color_vc_background_{soft,tonal}_{c}` (`{c}_100`) | 4.5 |
+| `button-outline-{c}`, `button-surface-{c}` | `color_vc_text_{outline,surface}_{c}` (`{c}_500`; secondary: `secondary_600`; warning: `warning_700`) | `color_vc_background_{outline,surface}_{c}` (`additional_50`) | 4.5 |
+| `button-ghost-{c}` | `color_vc_text_ghost_{c}` (as outline) | `color_body_bg` (`color_neutral_50`) | 4.5 |
+
+`{c}` is each of primary, secondary, accent, neutral, success, warning, danger and info; fallbacks are token names
+without the `color_` prefix. Badges and chips use the button tokens.
+
+A side takes the palette's color for its token. When the palette leaves the token out, it takes the fallback's color
+only if the storefront did not announce the token (its preset does not define it, so the stylesheet falls back); a
+token the storefront announced and the palette leaves out keeps the preset's color, which the server does not know,
+and the pair is not checked. A value that is not `#rrggbb` or `#rgb` is not checked either. The light and the dark
+part are checked each with its own tokens; a part without colors is not checked.
+
+### Palette generation
+
+The generator builds both parts over every announced token from one or two colors: the primary, and an optional
+second color for the secondary and accent families. With one color the secondary is the primary's hue, muted, and the
+accent is the primary. Neutral, success, warning, danger and info start from the default preset's colors. Each family
+gets shades 50–950 around its color as 500; the dark shades invert unevenly, as the storefront's dark presets do.
+The other tokens take the shade the storefront's fallbacks name (light) or its default dark preset uses (dark); the text
+on a solid fill is white or near black, whichever contrasts more. Then shades move in lightness, towards black or white,
+until every pair passes; a move is kept only when the pairs fall short by less in total, and a color's own shade 500
+moves only when no other shade can. The white and black (`color_additional_50`, `color_additional_950`) never move.
+A token the generator has no rule for is left out and keeps the preset's color.
+
 ## Section schema catalog
 
 The catalog is the storefront's section, block, template and palette schemas, the `loaded` data of the
@@ -391,3 +437,9 @@ All take `storeId` and check the store as the other Page Builder endpoints do.
 | `POST api/pagebuilder/designer/discard?storeId` | see [Discard](history-api.md#discard) | the designer's Discard: the drafts of the page and the theme files go, all or nothing, one version |
 | `PUT api/pagebuilder/catalog?storeId`, the catalog as the body | `builder:theme` | `{ hash }`; 400 when it has no valid `hash` |
 | `GET api/pagebuilder/catalog?storeId&hash` | `builder:read` | the catalog with that hash, the current one without it; 404 when there is none |
+| `POST api/pagebuilder/theme/palette?storeId`, `{ primary, secondary?, tokens: { light, dark } }` as the body | `builder:theme` | `{ light, dark, failures }`: the generated palettes and the pairs they still fail (none so far); 400 when a color is not `#rrggbb`/`#rgb` or no light tokens are named |
+| `POST api/pagebuilder/theme/palette/check?storeId`, `{ palette: { light, dark? }, tokens: { light, dark } }` as the body | `builder:theme` | `{ failures, unchecked }`: the pairs the palette fails and how many pairs could not be checked; 400 without a palette or tokens |
+
+A failure is `{ scheme, pair, text, background, textColor, backgroundColor, ratio, minimumRatio }`: `text` and
+`background` are the tokens whose colors were compared (the pair's own or its fallback), `ratio` is rounded down to two
+decimals. `tokens` are the storefront's `paletteTokens` ([handshake](preview-protocol.md#handshake)).

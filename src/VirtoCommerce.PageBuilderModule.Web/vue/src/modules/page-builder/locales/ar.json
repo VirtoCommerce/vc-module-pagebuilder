@@ -412,7 +412,22 @@
         "DARK_NEEDS_LIGHT": "لا تُطبَّق الألوان الداكنة إلا مع الألوان الفاتحة: عيّن لونًا فاتحًا أيضًا.",
         "TOKENS_PENDING": "تأتي لوحة الألوان من معاينة واجهة المتجر وتظهر بعد تحميلها.",
         "UNKNOWN_TOKEN": "غير موجود في لوحة ألوان واجهة المتجر",
-        "LOOK_LOAD_FAILED": "تعذّر تحميل العلامة التجارية والألوان."
+        "LOOK_LOAD_FAILED": "تعذّر تحميل العلامة التجارية والألوان.",
+        "GENERATE_TITLE": "إنشاء من الألوان",
+        "GENERATE_HINT": "ينشئ الألوان الفاتحة والداكنة، بما فيها الترويسة والتذييل، من لون أو لونين للعلامة التجارية، مع نص مقروء (WCAG AA). يستبدل لوحتي الألوان كلتيهما؛ والتراجع يعيدهما.",
+        "GENERATE_PRIMARY": "اللون الأساسي",
+        "GENERATE_SECONDARY": "اللون الثاني (اختياري)",
+        "GENERATE": "إنشاء",
+        "GENERATE_FAILED": "تعذّر إنشاء الألوان.",
+        "UNDO_COLORS": "تراجع",
+        "CONTRAST_TITLE": "التباين (WCAG AA)",
+        "CONTRAST_ON": "{text} على {background}",
+        "CONTRAST_RATIO": "{ratio}، المطلوب {required}",
+        "CONTRAST_OK": "كل زوج تم فحصه مقروء.",
+        "CONTRAST_OTHER_LIGHT": "أزواج دون مستوى AA في الألوان الفاتحة: {count}",
+        "CONTRAST_OTHER_DARK": "أزواج دون مستوى AA في الألوان الداكنة: {count}",
+        "CONTRAST_UNCHECKED": "أزواج لم تُفحص، ألوانها متروكة للإعداد المسبق للمتجر: {count}",
+        "CONTRAST_FAILED": "تعذّر فحص التباين."
       },
       "CLIPBOARD": {
         "COPY": "نسخ",

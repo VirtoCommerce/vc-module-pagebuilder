@@ -21,8 +21,11 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 public class ThemeController(
     IThemePublisher themePublisher,
     ISchemaCatalogService schemaCatalogService,
+    IThemePaletteService themePaletteService,
     IAuthorizationService authorizationService,
-    IValidator<PageBuilderStoreRequest> storeRequestValidator) : Controller
+    IValidator<PageBuilderStoreRequest> storeRequestValidator,
+    IValidator<ThemePaletteGenerationRequest> paletteGenerationRequestValidator,
+    IValidator<ThemePaletteCheckRequest> paletteCheckRequestValidator) : Controller
 {
     /// <summary>Publish all theme drafts of the store</summary>
     [HttpPost("theme/publish")]
@@ -106,6 +109,36 @@ public class ThemeController(
         return catalog == null ? NotFound() : Content(catalog, MediaTypeNames.Application.Json);
     }
 
+    /// <summary>Generate light and dark palettes that meet WCAG AA contrast from one or two brand colors</summary>
+    [HttpPost("theme/palette")]
+    [Authorize(ModuleConstants.Security.Permissions.Theme)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<ThemePaletteGenerationResult>> GeneratePalette([FromQuery] string storeId, [FromBody] ThemePaletteGenerationRequest request, CancellationToken cancellationToken = default)
+    {
+        if ((await CheckRequestAsync(storeId, cancellationToken) ?? await ValidateBodyAsync(paletteGenerationRequestValidator, request, cancellationToken)) is { } refused)
+        {
+            return refused;
+        }
+
+        return Ok(themePaletteService.GeneratePalette(request));
+    }
+
+    /// <summary>Get the contrast pairs a palette fails</summary>
+    [HttpPost("theme/palette/check")]
+    [Authorize(ModuleConstants.Security.Permissions.Theme)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<ThemePaletteCheckResult>> CheckPalette([FromQuery] string storeId, [FromBody] ThemePaletteCheckRequest request, CancellationToken cancellationToken = default)
+    {
+        if ((await CheckRequestAsync(storeId, cancellationToken) ?? await ValidateBodyAsync(paletteCheckRequestValidator, request, cancellationToken)) is { } refused)
+        {
+            return refused;
+        }
+
+        return Ok(themePaletteService.CheckPalette(request));
+    }
+
     // access first, so a 400 does not reveal which stores exist
     private async Task<ActionResult> CheckRequestAsync(string storeId, CancellationToken cancellationToken)
     {
@@ -118,6 +151,19 @@ public class ThemeController(
     {
         var authorizationResult = await authorizationService.AuthorizeAsync(User, request, new PageBuilderAuthorizationRequirement());
         return authorizationResult.Succeeded ? null : Forbid();
+    }
+
+    private async Task<ActionResult> ValidateBodyAsync<T>(IValidator<T> validator, T request, CancellationToken cancellationToken)
+    {
+        if (request == null)
+        {
+            return BadRequest(new { error = "The request has no body." });
+        }
+
+        var validationResult = await validator.ValidateAsync(request, cancellationToken);
+        return validationResult.IsValid
+            ? null
+            : BadRequest(new { error = string.Join(" ", validationResult.Errors.Select(x => x.ErrorMessage)) });
     }
 
     private async Task<ActionResult> ValidateAsync(PageBuilderStoreRequest request, CancellationToken cancellationToken)
