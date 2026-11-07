@@ -1,5 +1,7 @@
 import type { DesignerSaveFile } from "./designerSave";
-import type { ColorScheme } from "./previewMessages";
+import { THEME_FILES, type ThemePart } from "./history";
+import { isRecord, isText } from "./json";
+import { humanize } from "./schema";
 
 // The theme's brand and palette (docs/contracts/theme-snapshot.md, "Brand" and "Palette"): config/brand.json and the light
 // and dark palette files, edited as drafts, saved with the designer's Save and published with the theme.
@@ -31,9 +33,12 @@ export interface ThemeLook {
   dark: Record<string, string>;
 }
 
-export const brandPath = (theme: string) => `${theme}/config/brand.json`;
+export type LookPart = keyof ThemeLook;
 
-export const palettePath = (theme: string, scheme: ColorScheme) => `${theme}/config/${scheme === "dark" ? "palette.dark" : "palette"}.json`;
+/** The theme part each part of the look is saved as */
+export const LOOK_FILES: Readonly<Record<LookPart, ThemePart>> = { brand: "brand", light: "palette", dark: "darkPalette" };
+
+const LOOK_PARTS = Object.keys(LOOK_FILES) as LookPart[];
 
 /** The theme settings that hold the logos before the theme has a brand file */
 const SETTINGS_LOGOS: Record<BrandField, string> = {
@@ -41,9 +46,6 @@ const SETTINGS_LOGOS: Record<BrandField, string> = {
   secondaryLogoUrl: "logo_inverted_image",
   faviconUrl: "favicon_image",
 };
-
-const isRecord = (value: unknown): value is Record<string, unknown> => !!value && typeof value === "object" && !Array.isArray(value);
-const isText = (value: unknown): value is string => typeof value === "string" && !!value.trim();
 
 /** The brand of the brand file; a theme without one starts from the logos of its settings */
 export function readBrand(file: unknown, settings: Record<string, unknown>): Brand {
@@ -53,7 +55,7 @@ export function readBrand(file: unknown, settings: Record<string, unknown>): Bra
   ) as Brand;
 }
 
-/** A palette file's colors, by token */
+/** A palette's colors, by token, as a palette file or the generator holds them */
 export const readColors = (file: unknown): Record<string, string> =>
   isRecord(file) ? (Object.fromEntries(Object.entries(file).filter(([, value]) => isText(value))) as Record<string, string>) : {};
 
@@ -63,24 +65,28 @@ export const brandFile = (brand: Brand): Brand =>
 
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
+/** A part as its file holds it: the brand without its empty fields, a palette as it is */
+const fileContent = (look: ThemeLook, part: LookPart) => (part === "brand" ? brandFile(look.brand) : look[part]);
+
 /** The files Save writes: those of the parts changed since `saved` */
-export function lookFiles(theme: string, look: ThemeLook, saved: ThemeLook): DesignerSaveFile[] {
-  const files: DesignerSaveFile[] = [];
-  if (!same(brandFile(look.brand), brandFile(saved.brand))) files.push({ path: brandPath(theme), content: brandFile(look.brand) });
-  if (!same(look.light, saved.light)) files.push({ path: palettePath(theme, "light"), content: look.light });
-  if (!same(look.dark, saved.dark)) files.push({ path: palettePath(theme, "dark"), content: look.dark });
-  return files;
+export function lookFiles(theme: string, look: ThemeLook, saved: ThemeLook): { part: LookPart; file: DesignerSaveFile }[] {
+  return LOOK_PARTS.filter((part) => !same(fileContent(look, part), fileContent(saved, part))).map((part) => ({
+    part,
+    file: { path: THEME_FILES[LOOK_FILES[part]](theme), content: fileContent(look, part) },
+  }));
 }
 
 /**
- * What the preview shows in place of the published brand and palette. A palette is sent only with light colors, as a
- * publication keeps one only then; a dark part only with dark colors.
+ * What the preview shows in place of the published brand and palette. An empty brand is left out, so the published one
+ * shows; a palette is sent only with light colors, as a publication keeps one only then; a dark part only with dark
+ * colors.
  */
-export function lookDraft(look: ThemeLook): { brand: Brand; palette?: Palette } {
+export function lookDraft(look: ThemeLook): { brand?: Brand; palette?: Palette } {
+  const brand = brandFile(look.brand);
   const hasLight = Object.keys(look.light).length > 0;
   const hasDark = Object.keys(look.dark).length > 0;
   return {
-    brand: brandFile(look.brand),
+    ...(Object.keys(brand).length ? { brand } : {}),
     ...(hasLight ? { palette: { light: look.light, ...(hasDark ? { dark: look.dark } : {}) } } : {}),
   };
 }
@@ -105,10 +111,7 @@ const SHADE = /_(\d+)$/;
 export const tokenFamily = (token: string) => (SHADE.test(token) ? token.replace(COLOR_PREFIX, "").replace(SHADE, "") : "");
 
 /** A token as people read it: "color_primary_500" → "Primary 500" */
-export function tokenLabel(token: string): string {
-  const words = token.replace(COLOR_PREFIX, "").replace(/_/g, " ").trim();
-  return words ? words[0].toUpperCase() + words.slice(1) : token;
-}
+export const tokenLabel = (token: string): string => humanize(token.replace(COLOR_PREFIX, "")) || token;
 
 /** The tokens the storefront announced, then those only the file has, in families, in the order they came */
 export function paletteFamilies(tokens: string[], values: Record<string, string>): PaletteFamily[] {

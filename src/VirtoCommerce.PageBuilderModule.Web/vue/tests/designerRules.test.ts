@@ -11,11 +11,22 @@ import {
   readRules,
   rulesFor,
   rulesOf,
+  unreadableRules,
   validateRules,
   withRules,
   type TemplateRules,
 } from "../src/modules/designer/rules";
-import { checkCondition, cleanWhen, conditionInput, conditionsFor, isEmptyValue, splitConditions, splitTexts } from "../src/modules/designer/ruleConditions";
+import {
+  BUILT_IN_CONDITIONS,
+  checkCondition,
+  cleanWhen,
+  conditionInput,
+  conditionsFor,
+  isEmptyValue,
+  optionLabel,
+  splitConditions,
+  splitTexts,
+} from "../src/modules/designer/ruleConditions";
 
 /** The storefront's built-in conditions as its handshake announces them (vc-frontend templates/conditions.ts) */
 const nameEquals = { type: "object", settings: [{ id: "name", type: "string", label: "Name" }, { id: "equals", type: "string", label: "Value" }] };
@@ -306,4 +317,39 @@ test("Applies to: the rules that pick a template, the defaults among them", () =
   assert.deepEqual(rulesFor(rules, "product"), []);
   assert.deepEqual(rulesFor(rules, "category.x"), []);
   assert.deepEqual(rulesFor(readRules(undefined), "product.b2c"), [0]);
+});
+
+test("a rules file's entries the designer can't read are counted: a save of the rules leaves them out", () => {
+  const file = {
+    version: 2,
+    product: [{ template: "product.a" }, { template: 4 }, "printers", { template: "product.b", when: [] }],
+    category: { template: "category.a" },
+    page: [{ template: "page.a", when: { path: "/a" } }],
+    other: "kept",
+  };
+  assert.equal(unreadableRules(file), 4);
+  // what is left is what the designer reads and writes back; a key it doesn't know stays
+  const read = readRules(file);
+  assert.deepEqual(rulesOf(read, "product").map((x) => x.template), ["product.a"]);
+  assert.equal(hasOwnRules(read, "category"), false);
+  assert.equal(read.other, "kept");
+  assert.equal(unreadableRules(undefined), 0);
+  assert.equal(unreadableRules(v1), 0);
+  assert.equal(unreadableRules(["not", "an", "object"]), 1);
+});
+
+test("a list condition needs at least one text, none of them blank", () => {
+  const productType = { name: "tiers", pageTypes: ["product"], value: { type: "list" } } as ConditionDescriptor;
+  assert.equal(checkCondition(productType, ["gold"]), undefined);
+  assert.deepEqual(checkCondition(productType, []), { code: "TEXT_LIST" });
+  assert.deepEqual(checkCondition(productType, ["gold", " "]), { code: "TEXT_LIST" });
+  assert.deepEqual(checkCondition(DESCRIPTORS[0], []), { code: "CATEGORY_IDS" });
+});
+
+test("the storefront's built-in conditions have their texts in the editor's language; any other goes by its own label", () => {
+  assert.deepEqual(Object.keys(BUILT_IN_CONDITIONS), DESCRIPTORS.map((x) => x.name));
+  const messages: Record<string, string> = { "PAGE_BUILDER.DESIGNER.RULES.SOURCES.PAGES": "Designer pages" };
+  const i18n = { t: (key: string) => messages[key] ?? key, te: (key: string) => key in messages };
+  assert.equal(optionLabel({ value: "Pages", label: "Page" }, i18n), "Designer pages");
+  assert.equal(optionLabel({ value: "Blog", label: "Blog post" }, i18n), "Blog post");
 });

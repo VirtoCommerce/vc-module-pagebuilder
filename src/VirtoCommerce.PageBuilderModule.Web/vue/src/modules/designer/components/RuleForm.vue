@@ -153,7 +153,18 @@ import { useI18n } from "vue-i18n";
 import { VcButton, VcIcon, VcInput, VcSelect } from "@vc-shell/framework/ui";
 import type { CatalogContext, ProductFacts } from "../api";
 import type { ConditionDescriptor } from "../previewMessages";
-import { CATEGORY_CONDITION, checkCondition, cleanWhen, conditionInput, conditionsFor, splitConditions, splitTexts, type ConditionProblem } from "../ruleConditions";
+import {
+  BUILT_IN_CONDITIONS,
+  CATEGORY_CONDITION,
+  checkCondition,
+  cleanWhen,
+  conditionInput,
+  conditionsFor,
+  optionLabel,
+  splitConditions,
+  splitTexts,
+  type ConditionProblem,
+} from "../ruleConditions";
 import type { TemplateRule } from "../rules";
 import { alternateName, type PageType } from "../templates";
 import type { Field } from "../types";
@@ -186,30 +197,16 @@ const templateOptions = computed(() =>
   })),
 );
 
-// the storefront's built-in conditions in the editor's language; any other by its own label
-const LABELS: Record<string, { label: string; hint?: string }> = {
-  inCategory: { label: "IN_CATEGORIES" },
-  productType: { label: "PRODUCT_TYPE" },
-  property: { label: "PROPERTY" },
-  path: { label: "PATH", hint: "PATH_HINT" },
-  language: { label: "LANGUAGE", hint: "LANGUAGE_HINT" },
-  source: { label: "SOURCE" },
-  setting: { label: "SETTING" },
-};
 const SUB_LABELS: Record<string, string> = { name: "NAME", equals: "VALUE" };
 const rulesText = (key: string) => t(`PAGE_BUILDER.DESIGNER.RULES.${key}`);
-const optionLabel = (option: { value: unknown; label: string }) => {
-  const key = `PAGE_BUILDER.DESIGNER.RULES.SOURCES.${String(option.value).toUpperCase()}`;
-  return te(key) ? t(key) : option.label;
-};
 
 function localized(field: Field, descriptor: ConditionDescriptor): Field {
-  const known = LABELS[descriptor.name];
+  const known = BUILT_IN_CONDITIONS[descriptor.name];
   return {
     ...field,
     label: known ? rulesText(known.label) : (descriptor.label ?? descriptor.name),
     ...(known?.hint ? { info: rulesText(known.hint) } : {}),
-    ...(field.options ? { options: field.options.map((x) => ({ ...x, label: optionLabel(x) })) } : {}),
+    ...(field.options ? { options: field.options.map((x) => ({ ...x, label: optionLabel(x, { t, te }) })) } : {}),
     ...(field.element ? { element: field.element.map((x) => ({ ...x, label: x.id && SUB_LABELS[x.id] ? rulesText(SUB_LABELS[x.id]) : x.label })) } : {}),
   };
 }
@@ -217,7 +214,7 @@ function localized(field: Field, descriptor: ConditionDescriptor): Field {
 const offered = computed(() =>
   conditionsFor(props.conditions, props.type).map((descriptor) => {
     const input = conditionInput(descriptor);
-    const known = LABELS[descriptor.name];
+    const known = BUILT_IN_CONDITIONS[descriptor.name];
     return {
       descriptor,
       label: known ? rulesText(known.label) : (descriptor.label ?? descriptor.name),

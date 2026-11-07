@@ -1,3 +1,4 @@
+import { clone } from "./json";
 import { evaluate, UnsupportedExpressionError } from "./safeExpression";
 import type { Field, Item, ItemSchema, Schemas } from "./types";
 import { displayText, isTranslations, withTranslation, type Translating } from "./translatable";
@@ -20,9 +21,6 @@ export function fieldsOf(schema: ItemSchema | undefined, kind: "section" | "bloc
     .sort((a, b) => (a.field.sort ?? 0) - (b.field.sort ?? 0) || a.i - b.i)
     .map((x) => x.field);
 }
-
-/** A deep copy of JSON data (also of reactive proxies, which structuredClone refuses) */
-export const clone = <T>(value: T): T => (value === undefined ? value : (JSON.parse(JSON.stringify(value)) as T));
 
 /** A field's starting value: its default, else an empty list, else an object of its elements' defaults. */
 export function defaultOf(field: Field): unknown {
@@ -62,20 +60,6 @@ export function copyItem(item: Item): Item {
   return copy;
 }
 
-/**
- * A copy of the value with the string at the path replaced, or undefined when there is no string there: the preview
- * edits texts it shows, never adds or retypes a setting.
- */
-export function withTextAt<T>(value: T, path: (string | number)[], text: string): T | undefined {
-  const [key, ...rest] = path;
-  if (key === undefined) return typeof value === "string" ? (text as T) : undefined;
-  if (!value || typeof value !== "object" || !Object.prototype.hasOwnProperty.call(value, key)) return undefined;
-  const child = withTextAt((value as Record<string | number, unknown>)[key], rest, text);
-  if (child === undefined) return undefined;
-  if (Array.isArray(value)) return value.map((x, i) => (i === key ? child : x)) as T;
-  return { ...value, [key]: child };
-}
-
 /** A copy of the value with what is at the path replaced, or undefined when the path isn't there. */
 export function withValueAt<T>(value: T, path: (string | number)[], next: unknown): T | undefined {
   const [key, ...rest] = path;
@@ -90,6 +74,13 @@ export function withValueAt<T>(value: T, path: (string | number)[], next: unknow
 /** What is at the path ("links", 0, "label") */
 export const valueAt = (value: unknown, path: (string | number)[]): unknown =>
   path.reduce<unknown>((current, key) => (current && typeof current === "object" ? (current as Record<string | number, unknown>)[key] : undefined), value);
+
+/**
+ * A copy of the value with the string at the path replaced, or undefined when there is no string there: the preview
+ * edits texts it shows, never adds or retypes a setting.
+ */
+export const withTextAt = <T>(value: T, path: (string | number)[], text: string): T | undefined =>
+  typeof valueAt(value, path) === "string" ? withValueAt(value, path, text) : undefined;
 
 /** The field of the setting at the path among these fields: a list's row (an index) and an object hold `element` fields. */
 export function fieldAt(fields: Field[], [key, ...rest]: (string | number)[]): Field | undefined {
@@ -110,10 +101,9 @@ export function isTextEdit(fields: Field[], path: (string | number)[], value: un
  * preview named the language), a translatable setting takes the text as that language's.
  */
 export function withTextEdit<T>(item: T, fields: Field[], path: (string | number)[], text: string, at?: Translating): T | undefined {
-  const field = fieldAt(fields, path);
-  if (field?.type !== "string") return undefined;
+  if (!isTextEdit(fields, path, text)) return undefined;
   const current = valueAt(item, path);
-  if (at && (field.translatable || isTranslations(current)) && (typeof current === "string" || isTranslations(current))) {
+  if (at && (fieldAt(fields, path)?.translatable || isTranslations(current)) && (typeof current === "string" || isTranslations(current))) {
     return withValueAt(item, path, withTranslation(current, at, text));
   }
   return withTextAt(item, path, text);

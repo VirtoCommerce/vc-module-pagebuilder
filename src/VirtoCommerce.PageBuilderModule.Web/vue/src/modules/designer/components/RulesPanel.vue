@@ -137,10 +137,24 @@
             </button>
           </h4>
           <p
-            v-if="readOnly"
+            v-if="!conditions"
             class="pd-rules__note"
           >
             {{ $t("PAGE_BUILDER.DESIGNER.RULES.NO_HANDSHAKE") }}
+          </p>
+          <p
+            v-else-if="readonly"
+            class="pd-rules__note"
+          >
+            {{ $t("PAGE_BUILDER.DESIGNER.RULES.NO_PERMISSION") }}
+          </p>
+          <!-- what a save of the rules would leave out of the file, said before it does -->
+          <p
+            v-if="rules.unreadable.value"
+            class="pd-rules__note pd-rules__note--warning"
+            role="status"
+          >
+            {{ $t("PAGE_BUILDER.DESIGNER.RULES.UNREADABLE", { count: rules.unreadable.value }) }}
           </p>
           <p class="pd-rules__note">{{ $t(list.length ? "PAGE_BUILDER.DESIGNER.RULES.FIRST_MATCH" : "PAGE_BUILDER.DESIGNER.RULES.EMPTY") }}</p>
           <p
@@ -317,7 +331,7 @@ import { notification, usePopup } from "@vc-shell/framework";
 import { VcButton, VcIcon, VcPopup, VcSwitch, VcTextarea } from "@vc-shell/framework/ui";
 import { productFacts, searchCategories, type CatalogContext, type NamedEntity, type ProductFacts } from "../api";
 import { rulesPath } from "../history";
-import { CATEGORY_CONDITION, conditionsFor } from "../ruleConditions";
+import { BUILT_IN_CONDITIONS, CATEGORY_CONDITION, conditionsFor, optionLabel } from "../ruleConditions";
 import { formatRules, hasOwnRules, moveItem, newRuleId, parseRules, rulesFor, rulesOf, withRules, type RuleError, type TemplateRule } from "../rules";
 import { alternateName, pageTypeOf, type PageType } from "../templates";
 import type { ConditionDescriptor, ResolvedRule } from "../previewMessages";
@@ -337,6 +351,8 @@ const props = defineProps<{
   resolved?: ResolvedRule;
   /** the conditions the storefront announced; none yet: the rules are shown only */
   conditions?: ConditionDescriptor[];
+  /** the editor may not change the rules (builder:templates): they are shown only */
+  readonly?: boolean;
 }>();
 const emit = defineEmits<{ close: [] }>();
 
@@ -352,7 +368,7 @@ const rulesFile = computed(() => rulesPath(props.theme));
 
 const list = computed(() => rulesOf(props.rules.rules.value, props.type));
 const ownList = computed(() => hasOwnRules(props.rules.rules.value, props.type));
-const readOnly = computed(() => !props.conditions);
+const readOnly = computed(() => !props.conditions || props.readonly);
 const offered = computed(() => new Map(conditionsFor(props.conditions ?? [], props.type).map((x) => [x.name, x])));
 const setList = (next: TemplateRule[]) => (props.rules.rules.value = withRules(props.rules.rules.value, props.type, next));
 const isAlternate = computed(() => props.templateKey.includes("."));
@@ -380,25 +396,13 @@ watch(
 
 /** a piece of a rule's description; `unknown`: the condition the storefront didn't announce */
 type Part = { text: string; strong?: boolean; unknown?: string };
-const CONDITION_KEYS: Record<string, string> = {
-  inCategory: "IS.IN_CATEGORY",
-  productType: "IS.PRODUCT_TYPE",
-  property: "IS.PROPERTY",
-  path: "IS.PATH",
-  language: "IS.LANGUAGE",
-  source: "IS.SOURCE",
-  setting: "IS.SETTING",
-};
 const SUBJECTS: Record<PageType, string> = { product: "SUBJECT_PRODUCT", category: "SUBJECT_CATEGORY", page: "SUBJECT_PAGE" };
 const ALWAYS: Record<PageType, string> = { product: "ALWAYS_PRODUCT", category: "ALWAYS_CATEGORY", page: "ALWAYS_PAGE" };
 
 function valueText(name: string, value: unknown, descriptor?: ConditionDescriptor): string {
   if (name === CATEGORY_CONDITION) return (Array.isArray(value) ? value : [value]).map((id) => names.get(String(id)) ?? String(id)).join(", ");
   const option = descriptor?.value.options?.find((x) => x.value === value);
-  if (option) {
-    const key = `PAGE_BUILDER.DESIGNER.RULES.SOURCES.${String(value).toUpperCase()}`;
-    return te(key) ? t(key) : option.label;
-  }
+  if (option) return optionLabel(option, { t, te });
   if (Array.isArray(value)) return value.map(String).join(", ");
   if (value && typeof value === "object") {
     const named = value as { name?: unknown; equals?: unknown };
@@ -420,9 +424,10 @@ function withValue(key: string, value: string): Part[] {
 function describe(rule: TemplateRule): Part[] {
   const conditions = Object.entries(rule.when ?? {}).map(([name, value]): Part[] => {
     const descriptor = offered.value.get(name);
-    if (!descriptor && !readOnly.value) return [{ text: `${name}: ` }, { text: JSON.stringify(value), strong: true }, { text: "", unknown: name }];
+    if (!descriptor && props.conditions) return [{ text: `${name}: ` }, { text: JSON.stringify(value), strong: true }, { text: "", unknown: name }];
     const text = valueText(name, value, descriptor);
-    if (CONDITION_KEYS[name]) return withValue(CONDITION_KEYS[name], text);
+    const known = BUILT_IN_CONDITIONS[name];
+    if (known) return withValue(known.is, text);
     return [{ text: `${descriptor?.label ?? name}: ` }, { text, strong: true }];
   });
   if (!conditions.length) return [{ text: t(`PAGE_BUILDER.DESIGNER.RULES.${ALWAYS[props.type]}`) }];
@@ -623,6 +628,10 @@ function applyJson() {
     margin: 0 0 8px;
     color: var(--neutrals-500);
     line-height: 18px;
+
+    &--warning {
+      color: var(--warning-700);
+    }
   }
 
   &__list {

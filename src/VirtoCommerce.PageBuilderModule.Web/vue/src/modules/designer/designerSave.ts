@@ -1,3 +1,5 @@
+import type { DesignerDiscardRequest, DesignerSaveRequest } from "../../api_client/virtocommerce.pagebuildermodule";
+
 // One designer Save is one request (docs/contracts/history-api.md, "Save"): the page and the theme files, written as
 // drafts all or nothing, and one version of the site's history. A Discard is one request too.
 
@@ -21,7 +23,7 @@ export function designerSaveUrl(storeId: string, catalogHash?: string) {
 const text = (content: unknown) => JSON.stringify(content, null, 2);
 
 /** The request body: every content as the JSON text the server saves */
-export function designerSaveBody(save: { page?: DesignerSavePage; themeFiles: DesignerSaveFile[] }) {
+export function designerSaveBody(save: { page?: DesignerSavePage; themeFiles: DesignerSaveFile[] }): DesignerSaveRequest {
   return {
     page: save.page && { ...save.page, content: text(save.page.content) },
     themeFiles: save.themeFiles.map((x) => ({ path: x.path, content: text(x.content) })),
@@ -34,6 +36,6 @@ export type DesignerDiscardPage = { groupId: string } | { path: string; type: st
 export const designerDiscardUrl = (storeId: string) => `/api/pagebuilder/designer/discard?${new URLSearchParams({ storeId })}`;
 
 /** The request body: the page and the theme files whose drafts go, by their path with the theme folder */
-export function designerDiscardBody(discard: { page?: DesignerDiscardPage; themeFiles: string[] }) {
+export function designerDiscardBody(discard: { page?: DesignerDiscardPage; themeFiles: string[] }): DesignerDiscardRequest {
   return { ...(discard.page ? { page: discard.page } : {}), themeFiles: [...new Set(discard.themeFiles)] };
 }

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { copyItem, fieldsOf, fill, isTextEdit, isVisible, itemTitle, newItem, schemaRequest, withTextAt } from "../src/modules/designer/schema";
+import { copyItem, fieldsOf, fill, isTextEdit, isVisible, itemTitle, newItem, schemaRequest, withTextAt, withTextEdit, withValueAt } from "../src/modules/designer/schema";
 import type { Schemas } from "../src/modules/designer/types";
 
 const schemas: Schemas = {
@@ -110,6 +110,23 @@ test("the preview edits only plain-text settings the item's schema declares, wit
   assert.equal(isTextEdit(fields, ["buttons", "label"], "x"), false);
   assert.equal(isTextEdit(fields, ["buttons", 0], "x"), false);
   assert.equal(isTextEdit(fields, ["link", 0, "label"], "x"), false);
+
+  // the preview's edit goes through this guard: a text the item holds where the guard refuses is left alone
+  const item = { id: "c1", type: "call-to-action", title: "Sale", body: "<b>rich</b>", buttons: [{ label: "Shop" }], link: { label: "Go", image: "/x.png" } };
+  for (const path of [["title"], ["buttons", 0, "label"], ["link", "label"], ["body"], ["link", "image"], ["missing"]] as (string | number)[][])
+    assert.equal(withTextEdit(item, fields, path, "New") !== undefined, isTextEdit(fields, path, "New"), path.join("."));
+});
+
+test("a value at a path is replaced in a copy; a text only where a text is", () => {
+  const item = { title: "Sale", count: 3, links: [{ label: "A" }] };
+  assert.deepEqual(withValueAt(item, ["count"], 4), { ...item, count: 4 });
+  assert.deepEqual(withValueAt(item, ["links", 0], { label: "B" }), { ...item, links: [{ label: "B" }] });
+  assert.equal(withValueAt(item, ["links", 2, "label"], "x"), undefined);
+  assert.equal(withTextAt(item, ["count"], "4"), undefined);
+  assert.equal(withTextAt(item, ["links"], "x"), undefined);
+  // what an object inherits is not its own
+  assert.equal(withTextAt(item, ["constructor", "name"], "x"), undefined);
+  assert.equal(item.count, 3);
 });
 
 test("a schema request goes over http(s) only, and to the platform only with the token", () => {

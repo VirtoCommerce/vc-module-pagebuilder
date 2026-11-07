@@ -50,7 +50,7 @@ beforeEach(() => {
     .install();
 });
 
-async function mountPanel(props: { conditions?: ConditionDescriptor[]; resolved?: ResolvedRule; templateKey?: string; file?: unknown } = {}) {
+async function mountPanel(props: { conditions?: ConditionDescriptor[]; resolved?: ResolvedRule; templateKey?: string; file?: unknown; readonly?: boolean } = {}) {
   if (props.file) platform.on("GET", "/api/pagebuilder/template", JSON.stringify(props.file));
   const rules = useTemplateRules();
   await rules.load("B2B-store", "default");
@@ -66,6 +66,7 @@ async function mountPanel(props: { conditions?: ConditionDescriptor[]; resolved?
       theme: "default",
       resolved: props.resolved,
       conditions: "conditions" in props ? props.conditions : CONDITIONS,
+      readonly: props.readonly,
     },
   });
   await flushPromises();
@@ -230,6 +231,38 @@ describe("RulesPanel", () => {
     await rows(wrapper)[0].find(".pd-rules__text").trigger("click");
     expect(wrapper.find(".pd-rule-form").exists()).toBe(false);
     expect(rules.dirty.value).toBe(false);
+  });
+
+  it("only shows the rules to an editor who may not change templates, and says why", async () => {
+    const { wrapper } = await mountPanel({ readonly: true });
+
+    expect(wrapper.text()).toContain("You can view the rules but not change them");
+    expect(wrapper.text()).not.toContain("The rules can be edited once the preview has loaded");
+    expect(wrapper.findAll("button").some((x) => x.text() === "Add rule" || x.text() === "Edit as JSON")).toBe(false);
+    expect(wrapper.find(".pd-rules__handle").exists()).toBe(false);
+    expect(rows(wrapper).every((x) => (x.find("input[role=switch]").element as HTMLInputElement).disabled)).toBe(true);
+    // the storefront has announced its conditions: one it doesn't know is still marked
+    expect(wrapper.find(".pd-rules__badge").exists()).toBe(true);
+  });
+
+  it("says how many entries of the file it can't read, which a save of the rules leaves out, until the rules are saved", async () => {
+    const { wrapper, rules } = await mountPanel({
+      file: { ...RULES_FILE, product: [...RULES_FILE.product, { template: 4 }, "printers"], category: { template: "category.a" } },
+    });
+
+    const warning = wrapper.find(".pd-rules__note--warning");
+    expect(warning.text()).toBe("Entries of the rules file that can't be read here: 3. Saving the rules leaves them out.");
+    expect(rows(wrapper)).toHaveLength(3);
+
+    await rows(wrapper)[1].find("input[role=switch]").setValue(true);
+    rules.pending()!.saved();
+    await nextTick();
+    expect(wrapper.find(".pd-rules__note--warning").exists()).toBe(false);
+  });
+
+  it("says nothing of unreadable entries for a file it reads whole", async () => {
+    const { wrapper } = await mountPanel();
+    expect(wrapper.find(".pd-rules__note--warning").exists()).toBe(false);
   });
 
   it("lights up the rule the preview says chose the template", async () => {

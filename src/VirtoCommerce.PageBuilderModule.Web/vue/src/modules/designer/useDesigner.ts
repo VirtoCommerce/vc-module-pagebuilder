@@ -7,7 +7,7 @@ import { fromDocument, isComponentRef, resolveRefs } from "./document";
 import type { ClipboardItem } from "./clipboard";
 import * as api from "./api";
 import { GROUPS, groupItems, groupOf, pageOnly, withGroups } from "./groups";
-import { groupPath } from "./history";
+import { THEME_FILES, THEME_PARTS, type HistoryFile, type ThemePart } from "./history";
 import {
   MAIN_SECTIONS,
   PAGE_CONTENT,
@@ -92,6 +92,10 @@ export function useDesigner() {
       : {};
   // what couldn't be opened has no edits: its document is still the one open before, or none
   const dirty = computed(() => !loadError.value && (pageDirty.value || Object.keys(changedGroups()).length > 0));
+  /** what a Save would write of the document: the page or template, the header, the footer */
+  const changedParts = computed<HistoryFile[]>(() =>
+    loadError.value ? [] : [...(pageDirty.value ? (["page"] as const) : []), ...(Object.keys(changedGroups()) as SectionGroup[])],
+  );
 
   // ── schemas ────────────────────────────────────────────────────────────────
 
@@ -243,6 +247,7 @@ export function useDesigner() {
    */
   function setText(itemId: string, path: (string | number)[], text: string, cultureName?: string): Selection | undefined {
     for (const section of doc.value.content) {
+      if (isLocked(section.id) && (section.id === itemId || section.blocks?.some((b) => b.id === itemId))) return undefined;
       if (section.id === itemId) {
         const changed = textEdited(section, "section", section, path, text, cultureName);
         if (!changed) return undefined;
@@ -483,8 +488,17 @@ export function useDesigner() {
     ),
   );
 
-  /** The tree has the Header and Footer: the page has them, and the storefront renders them */
-  const groupsShown = computed(() => groupsLoaded.value && can("groups"));
+  /**
+   * Whether the editor may change the header and footer (builder:theme): without it they show in the preview as saved,
+   * and are not in the tree, selected or edited in the preview
+   */
+  const groupsEditable = ref(true);
+
+  /** The tree has the Header and Footer: the page has them, the storefront renders them, and the editor may change them */
+  const groupsShown = computed(() => groupsLoaded.value && can("groups") && groupsEditable.value);
+
+  /** A section of the header or footer the editor may not change */
+  const isLocked = (sectionId: string) => !groupsEditable.value && doc.value.content.some((x) => x.id === sectionId && !!groupOf(x));
 
   /** The section groups as the preview shows them (none: the page has no Header and Footer) */
   const groupsPreview = computed(() => (groupsLoaded.value ? { header: groupItems(doc.value, "header"), footer: groupItems(doc.value, "footer") } : undefined));
@@ -542,6 +556,7 @@ export function useDesigner() {
   // baseline, like the seeding above.
   const templateIsNew = ref(false);
   let templateSeeded = false;
+  /** A new main section of a template, built as Add section builds one */
   const mainItem = (type: string) => newItem(type, "section", schemas.value);
   function seedTemplate() {
     const type = pageType.value;
@@ -567,7 +582,6 @@ export function useDesigner() {
     checked.value = [];
     components.clear();
     status.value = {};
-    discardable.value = { page: false, groups: [] };
     storeId.value = source.storeId;
     busy.value = "loading";
     loadError.value = undefined;
@@ -611,10 +625,14 @@ export function useDesigner() {
   /** a template or another theme file: published with the theme, not on its own */
   const themeFileOpen = computed(() => file.value?.type === "themes");
   /**
-   * The saved drafts Discard throws away: the page's (a page's when it has a published version to go back to) and the
-   * header's and footer's. A theme file's draft never published is its only copy, and stays.
+   * The saved drafts Discard can throw away: the page's (a page's when it has a published version to go back to) and the
+   * theme parts' with a draft. A theme file's draft never published is its only copy, and stays.
    */
-  const discardable = ref<{ page: boolean; groups: SectionGroup[] }>({ page: false, groups: [] });
+  const discardable = computed<{ page: boolean; theme: ThemePart[] }>(() => ({
+    page: !!status.value.hasChanges && (themeFileOpen.value || !!status.value.published),
+    theme:
+      theme.value && !shared.value ? THEME_PARTS.filter((part) => hasThemeDraft(themeStatus.value, theme.value!, THEME_FILES[part](theme.value!))) : [],
+  }));
 
   async function refreshThemeStatus() {
     if (!storeId.value || shared.value) return;
@@ -631,22 +649,19 @@ export function useDesigner() {
       groupId.value ? api.publishStatus(groupId.value).catch(() => fallback) : themeFileOpen.value ? undefined : api.filePublishStatus(page!).catch(() => fallback),
     ]);
     status.value = own ?? templateStatus(themeStatus.value, page!.theme, page!.path);
-    discardable.value = {
-      page: !!status.value.hasChanges && (themeFileOpen.value || !!status.value.published),
-      groups: theme.value ? GROUPS.filter((g) => hasThemeDraft(themeStatus.value, theme.value!, groupPath(theme.value!, g))) : [],
-    };
   }
 
   /**
-   * Throws the discardable drafts away in one request, one version of the history: the page's or template's, its header's
-   * and footer's, and the theme files given; what is published is current again
+   * Throws the drafts chosen away in one request, one version of the history: the page's or template's (`page`) and the
+   * theme parts' given, those of them that are discardable; what is published is current again
    */
-  async function discardDrafts(themeFiles: string[] = []) {
+  async function discardDrafts(choice: { page: boolean; theme: ThemePart[] }) {
     if (busy.value || !storeId.value) return;
     const page = file.value;
-    const files = [...themeFiles, ...(theme.value ? discardable.value.groups.map((g) => groupPath(theme.value!, g)) : [])];
+    const themeName = theme.value;
+    const files = themeName ? discardable.value.theme.filter((part) => choice.theme.includes(part)).map((part) => THEME_FILES[part](themeName)) : [];
     let pagePart: DesignerDiscardPage | undefined;
-    if (discardable.value.page) {
+    if (choice.page && discardable.value.page) {
       if (groupId.value) pagePart = { groupId: groupId.value };
       else if (page && themeFileOpen.value) files.push(page.path);
       else if (page) pagePart = { path: page.path, type: page.type };
@@ -788,11 +803,14 @@ export function useDesigner() {
     selection,
     groupsLoaded,
     groupsShown,
+    groupsEditable,
+    isLocked,
     groupsPreview,
     groupSectionTypes,
     hovered,
     sectionLabels,
     dirty,
+    changedParts,
     canUndo,
     canRedo,
     undo,
@@ -811,6 +829,7 @@ export function useDesigner() {
     language,
     translating,
     mainSection,
+    mainItem,
     isMainKept,
     isMainShown,
     restoreMainSection,

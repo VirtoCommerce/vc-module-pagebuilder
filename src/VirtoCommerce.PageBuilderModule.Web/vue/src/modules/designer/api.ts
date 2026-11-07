@@ -55,6 +55,22 @@ export class ApiError extends Error {
   }
 }
 
+/** `call` for what may not exist: undefined on 404 */
+async function find(url: string): Promise<Response | undefined> {
+  try {
+    return await call(url);
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 404) return undefined;
+    throw e;
+  }
+}
+
+/** A JSON body, or undefined when it is empty */
+const jsonOf = async (res: Response): Promise<unknown> => {
+  const text = await res.text();
+  return text.trim() ? JSON.parse(text) : undefined;
+};
+
 const groupUrl = (groupId: string) => `/api/page-builder-pages/grouped/${encodeURIComponent(groupId)}`;
 
 /** A page's content (draft, else published) and its version. 404/403 throw: an unknown page isn't an empty one. */
@@ -232,20 +248,12 @@ const catalogUrl = (query: Record<string, string>) => `/api/pagebuilder/catalog?
 
 /** Whether the server has the store's catalog with that hash */
 export async function hasCatalog(storeId: string, hash: string): Promise<boolean> {
-  const res = await fetch(catalogUrl({ storeId, hash }), { headers: await getAuthHeaders() });
-  if (res.status === 404) return false;
-  if (!res.ok) throw new ApiError(res.status, await res.text().catch(() => ""));
-  return true;
+  return !!(await find(catalogUrl({ storeId, hash })));
 }
 
-/** Uploads the catalog of the storefront the designer previews (needs builder:theme; 403 without it) */
+/** Uploads the catalog of the storefront the designer previews (needs builder:update; 403 without it) */
 export async function uploadCatalog(storeId: string, catalog: object) {
-  const res = await fetch(catalogUrl({ storeId }), {
-    method: "PUT",
-    headers: { ...(await getAuthHeaders()), "Content-Type": "application/json" },
-    body: JSON.stringify(catalog),
-  });
-  if (!res.ok) throw new ApiError(res.status, await res.text().catch(() => ""));
+  await call(catalogUrl({ storeId }), { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(catalog) });
 }
 
 /** Both palettes built from the brand colors over the storefront's tokens */
@@ -273,12 +281,8 @@ export async function checkPalette(storeId: string, tokens: PaletteTokens, look:
 
 /** A theme file's JSON as last saved (its draft, else what is live), or undefined when the theme has none */
 export async function loadThemeFile(storeId: string, theme: string, path: string): Promise<unknown> {
-  const query = new URLSearchParams({ storeId, theme, type: "themes", path, draft: "true" });
-  const res = await fetch(`/api/pagebuilder/template?${query}`, { headers: await getAuthHeaders() });
-  if (res.status === 404) return undefined;
-  if (!res.ok) throw new ApiError(res.status, await res.text().catch(() => ""));
-  const text = await res.text();
-  return text.trim() ? JSON.parse(text) : undefined;
+  const res = await find(`/api/pagebuilder/template?${new URLSearchParams({ storeId, theme, type: "themes", path, draft: "true" })}`);
+  return res && jsonOf(res);
 }
 
 /** The theme's current publication and the theme files with a draft the next one puts live */
@@ -374,10 +378,8 @@ export async function loadFilePage(page: FilePage): Promise<PageDocument> {
 
 /** A file page as loadFilePage reads it, or undefined when there is no such file */
 export async function findFilePage(page: FilePage): Promise<PageDocument | undefined> {
-  const res = await fetch(`/api/pagebuilder/template?${fileArgs(page, { theme: page.theme, draft: "true" })}`, { headers: await getAuthHeaders() });
-  if (res.status === 404) return undefined;
-  if (!res.ok) throw new ApiError(res.status, await res.text().catch(() => ""));
-  return toDocument(await res.text());
+  const res = await find(`/api/pagebuilder/template?${fileArgs(page, { theme: page.theme, draft: "true" })}`);
+  return res && toDocument(await res.text());
 }
 
 /** A file page's JSON as saved: git validates the envelope, whose settings item is typed "settings" */
@@ -441,10 +443,8 @@ export async function contentHistory(storeId: string, items: string[], cursor?: 
 
 /** An item as of a version (its JSON); undefined when it did not exist then */
 export async function contentVersion(storeId: string, versionId: string, item: string): Promise<unknown> {
-  const res = await fetch(versionUrl(storeId, versionId, item), { headers: await getAuthHeaders() });
-  if (res.status === 404) return undefined;
-  if (!res.ok) throw new ApiError(res.status, await res.text().catch(() => ""));
-  return JSON.parse(await res.text());
+  const res = await find(versionUrl(storeId, versionId, item));
+  return res && JSON.parse(await res.text());
 }
 
 /** Makes the items as of a version their drafts again, as one save; Publish puts them live */

@@ -1,3 +1,4 @@
+import { clone, isRecord, isText } from "./json";
 import type { ConditionDescriptor } from "./previewMessages";
 import { checkCondition, conditionsFor } from "./ruleConditions";
 import { PAGE_TYPES, pageTypeOf, type PageType } from "./templates";
@@ -42,13 +43,9 @@ export interface RuleError {
   params?: Record<string, string>;
 }
 
-const isObject = (value: unknown): value is Record<string, unknown> => !!value && typeof value === "object" && !Array.isArray(value);
-const isText = (value: unknown): value is string => typeof value === "string" && !!value.trim();
-const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
-
 /** A rule the storefront reads; it skips any other entry of a list */
 const isRuleLike = (value: unknown): value is Record<string, unknown> & { template: string } =>
-  isObject(value) && typeof value.template === "string" && (value.when === undefined || isObject(value.when));
+  isRecord(value) && typeof value.template === "string" && (value.when === undefined || isRecord(value.when));
 
 /**
  * A page type's rules with their ids: a rule's own, else `{pageType}-{index}` counting the rules the storefront reads,
@@ -85,7 +82,7 @@ function toFile(rules: Record<string, unknown>): TemplateRules {
 
 /** The rules a file holds, version 1 or 2; no file has no lists, so every page type has its defaults */
 export function readRules(value: unknown): TemplateRules {
-  const file: Record<string, unknown> = isObject(value) ? clone(value) : {};
+  const file: Record<string, unknown> = isRecord(value) ? clone(value) : {};
   for (const type of PAGE_TYPES) {
     if (Array.isArray(file[type])) file[type] = withIds(file[type] as unknown[], type);
     // the storefront reads a list that isn't one as none
@@ -94,9 +91,23 @@ export function readRules(value: unknown): TemplateRules {
   return toFile(file);
 }
 
+/**
+ * How many entries of a rules file the designer can't read, which a save of the rules leaves out: a page type's value
+ * that isn't a list, an entry of a list that isn't a rule; a file that isn't an object counts as one
+ */
+export function unreadableRules(value: unknown): number {
+  if (value === undefined) return 0;
+  if (!isRecord(value)) return 1;
+  return PAGE_TYPES.reduce((count, type) => {
+    const list = value[type];
+    if (list === undefined) return count;
+    return count + (Array.isArray(list) ? list.filter((rule) => !isRuleLike(rule)).length : 1);
+  }, 0);
+}
+
 /** What is wrong with a rules file, each at its path; a condition the storefront didn't announce is never wrong */
 export function validateRules(value: unknown, descriptors: ConditionDescriptor[] = []): RuleError[] {
-  if (!isObject(value)) return [{ path: "", code: "NOT_OBJECT" }];
+  if (!isRecord(value)) return [{ path: "", code: "NOT_OBJECT" }];
   const errors: RuleError[] = [];
   if (value.version !== undefined && value.version !== 1 && value.version !== RULES_VERSION) errors.push({ path: "version", code: "VERSION" });
   if (value.conditions !== undefined && !(Array.isArray(value.conditions) && value.conditions.every((x) => typeof x === "string")))
@@ -112,7 +123,7 @@ export function validateRules(value: unknown, descriptors: ConditionDescriptor[]
     const offered = new Map(conditionsFor(descriptors, type).map((x) => [x.name, x]));
     list.forEach((rule: unknown, i) => {
       const at = `${type}[${i}]`;
-      if (!isObject(rule)) return errors.push({ path: at, code: "NOT_OBJECT" });
+      if (!isRecord(rule)) return errors.push({ path: at, code: "NOT_OBJECT" });
       if (rule.id !== undefined) {
         if (!isText(rule.id)) errors.push({ path: `${at}.id`, code: "ID" });
         else if (ids.has(rule.id)) errors.push({ path: `${at}.id`, code: "DUPLICATE_ID", params: { id: rule.id } });
@@ -121,7 +132,7 @@ export function validateRules(value: unknown, descriptors: ConditionDescriptor[]
       if (typeof rule.template !== "string" || pageTypeOf(rule.template.trim()) !== type) errors.push({ path: `${at}.template`, code: "TEMPLATE", params: { type } });
       if (rule.disabled !== undefined && typeof rule.disabled !== "boolean") errors.push({ path: `${at}.disabled`, code: "BOOLEAN" });
       if (rule.when === undefined) return;
-      if (!isObject(rule.when)) return errors.push({ path: `${at}.when`, code: "NOT_OBJECT" });
+      if (!isRecord(rule.when)) return errors.push({ path: `${at}.when`, code: "NOT_OBJECT" });
       for (const [name, condition] of Object.entries(rule.when)) {
         const descriptor = offered.get(name);
         const problem = descriptor && checkCondition(descriptor, condition);

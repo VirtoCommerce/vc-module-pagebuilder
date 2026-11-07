@@ -1,12 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  LOOK_FILES,
   brandFile,
-  brandPath,
   lookDraft,
   lookFiles,
   paletteFamilies,
-  palettePath,
   readBrand,
   readColors,
   tokenFamily,
@@ -43,25 +42,30 @@ test("Save writes the files of the parts changed: the brand without its empty fi
 
   const edited = look({ brand: { logoUrl: "/b.svg", faviconUrl: "/f.ico" }, light: saved.light, dark: { color_primary_500: "#222222" } });
   assert.deepEqual(lookFiles("default", edited, saved), [
-    { path: "default/config/brand.json", content: { logoUrl: "/b.svg", faviconUrl: "/f.ico" } },
-    { path: "default/config/palette.dark.json", content: { color_primary_500: "#222222" } },
+    { part: "brand", file: { path: "default/config/brand.json", content: { logoUrl: "/b.svg", faviconUrl: "/f.ico" } } },
+    { part: "dark", file: { path: "default/config/palette.dark.json", content: { color_primary_500: "#222222" } } },
   ]);
   // clearing every light color writes an empty palette: the theme then has none
-  assert.deepEqual(lookFiles("default", look({ brand: saved.brand }), saved), [{ path: "default/config/palette.json", content: {} }]);
-  assert.equal(brandPath("default"), "default/config/brand.json");
-  assert.equal(palettePath("default", "light"), "default/config/palette.json");
+  assert.deepEqual(lookFiles("default", look({ brand: saved.brand }), saved), [{ part: "light", file: { path: "default/config/palette.json", content: {} } }]);
+  // each part is saved as its theme part, which the history and Discard name
+  assert.deepEqual(LOOK_FILES, { brand: "brand", light: "palette", dark: "darkPalette" });
   assert.deepEqual(brandFile({ logoUrl: "", secondaryLogoUrl: " /d.svg" }), { secondaryLogoUrl: "/d.svg" });
 });
 
-test("the preview gets the brand always, a palette only with light colors, its dark part only with dark ones", () => {
+test("the preview gets a brand with a logo, a palette only with light colors, its dark part only with dark ones", () => {
   assert.deepEqual(lookDraft(look({ brand: { logoUrl: "/a.svg", faviconUrl: "" } })), { brand: { logoUrl: "/a.svg" } });
-  assert.deepEqual(lookDraft(look({ light: { a: "#111111" } })), { brand: {}, palette: { light: { a: "#111111" } } });
+  assert.deepEqual(lookDraft(look({ light: { a: "#111111" } })), { palette: { light: { a: "#111111" } } });
   assert.deepEqual(lookDraft(look({ light: { a: "#111111" }, dark: { a: "#222222" } })), {
-    brand: {},
     palette: { light: { a: "#111111" }, dark: { a: "#222222" } },
   });
   // a dark palette without a light one is not published, so the preview does not show it either
-  assert.deepEqual(lookDraft(look({ dark: { a: "#222222" } })), { brand: {} });
+  assert.deepEqual(lookDraft(look({ dark: { a: "#222222" } })), {});
+});
+
+test("a theme without a brand or a palette leaves the published ones in the preview", () => {
+  // a store without white-labeling then keeps its published logo: an empty brand would hide it
+  assert.deepEqual(lookDraft(look()), {});
+  assert.deepEqual(lookDraft(look({ brand: { logoUrl: " ", secondaryLogoUrl: "" } })), {});
 });
 
 // ── palette tokens ───────────────────────────────────────────────────────────

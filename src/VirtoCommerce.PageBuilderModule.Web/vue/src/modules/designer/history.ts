@@ -1,28 +1,58 @@
 import type { PageVersion } from "./api";
 import type { SectionGroup } from "./types";
-import { brandPath, palettePath } from "./themeLook";
 
 // The site's history (docs/contracts/history-api.md): one version per save, listing the items it changed — the page or
 // template open, the rules, the header and footer, the theme settings, the brand and the palettes. A file page in git keeps
 // its own history instead.
 
-/** What the history shows a version changed: the page or template open, or a theme file it is shown with */
-export type HistoryFile = "page" | "rules" | "settings" | "brand" | "palette" | "darkPalette" | SectionGroup;
+/** A theme file the designer saves with the page or template: its rules, header and footer, settings, brand and palettes */
+export type ThemePart = "rules" | SectionGroup | "settings" | "brand" | "palette" | "darkPalette";
+
+/** What the history shows a version changed, and what Discard throws away: the page or template open, or a theme file */
+export type HistoryFile = "page" | ThemePart;
+
+/** A section group's file (Shopify's sections/header-group.json) */
+export const groupPath = (theme: string, group: SectionGroup) => `${theme}/sections/${group}-group.json`;
+
+/** Each theme part's file in the store's theme folder, in the order the designer lists them */
+export const THEME_FILES: Readonly<Record<ThemePart, (theme: string) => string>> = {
+  rules: (theme) => `${theme}/config/template_rules.json`,
+  header: (theme) => groupPath(theme, "header"),
+  footer: (theme) => groupPath(theme, "footer"),
+  settings: (theme) => `${theme}/config/settings_data.json`,
+  brand: (theme) => `${theme}/config/brand.json`,
+  palette: (theme) => `${theme}/config/palette.json`,
+  darkPalette: (theme) => `${theme}/config/palette.dark.json`,
+};
+
+export const THEME_PARTS = Object.keys(THEME_FILES) as ThemePart[];
 
 /** The theme files a version is restored, not previewed, for: the preview shows them as they are now */
-export const THEME_ONLY_FILES: HistoryFile[] = ["rules", "settings", "brand", "palette", "darkPalette"];
+export const THEME_ONLY_FILES: HistoryFile[] = THEME_PARTS.filter((part) => part !== "header" && part !== "footer");
 
 /** enabled: history is kept; setupRequired: the GitHub App or the store's repository is missing; unavailable: none is kept */
 export type HistoryStatus = "enabled" | "setupRequired" | "unavailable";
 
 /** The store's template rules file */
-export const rulesPath = (theme: string) => `${theme}/config/template_rules.json`;
-
-/** A section group's file (Shopify's sections/header-group.json) */
-export const groupPath = (theme: string, group: SectionGroup) => `${theme}/sections/${group}-group.json`;
+export const rulesPath = THEME_FILES.rules;
 
 /** The theme's settings file */
-export const settingsPath = (theme: string) => `${theme}/config/settings_data.json`;
+export const settingsPath = THEME_FILES.settings;
+
+/** A part's name as the history, Discard and a refused Save show it */
+export const PART_LABELS: Readonly<Record<HistoryFile, string>> = {
+  page: "PAGE_BUILDER.DESIGNER.HISTORY.PAGE",
+  rules: "PAGE_BUILDER.DESIGNER.HISTORY.RULES",
+  header: "PAGE_BUILDER.DESIGNER.GROUPS.HEADER",
+  footer: "PAGE_BUILDER.DESIGNER.GROUPS.FOOTER",
+  settings: "PAGE_BUILDER.DESIGNER.THEME.TITLE",
+  brand: "PAGE_BUILDER.DESIGNER.THEME.BRAND",
+  palette: "PAGE_BUILDER.DESIGNER.THEME.LIGHT_COLORS",
+  darkPalette: "PAGE_BUILDER.DESIGNER.THEME.DARK_COLORS",
+};
+
+/** A part's label key; the page part of an open template is the template */
+export const partLabel = (part: HistoryFile, template: boolean) => (part === "page" && template ? "PAGE_BUILDER.DESIGNER.GROUPS.TEMPLATE" : PART_LABELS[part]);
 
 export const pageItem = (groupId: string) => `page:${groupId}`;
 export const themeItem = (path: string) => `theme:${path}`;
@@ -44,31 +74,21 @@ export interface HistoryVersion {
 }
 
 /**
- * The items a Save of what is open writes, so the history covers: the database page or the template, a template's
- * rules, the header and footer it shows with, the theme settings, the brand and the palettes
+ * The items a Save of what is open writes, so the history covers: the database page or the template, and the theme
+ * parts it shows with (a template's rules, the header and footer, the theme settings, the brand and the palettes)
  */
 export function historyItems(open: {
   groupId?: string;
   templatePath?: string;
   theme?: string;
-  rules: boolean;
-  groups: boolean;
-  settings: boolean;
-  look?: boolean;
+  /** the theme parts shown */
+  parts: ThemePart[];
 }): { file: HistoryFile; item: string }[] {
   const page = open.groupId ? pageItem(open.groupId) : open.templatePath ? themeItem(open.templatePath) : undefined;
   const items: { file: HistoryFile; item: string }[] = page ? [{ file: "page", item: page }] : [];
-  if (!open.theme) return items;
-  if (open.rules) items.push({ file: "rules", item: themeItem(rulesPath(open.theme)) });
-  if (open.groups) items.push(...(["header", "footer"] as const).map((g) => ({ file: g, item: themeItem(groupPath(open.theme!, g)) })));
-  if (open.settings) items.push({ file: "settings", item: themeItem(settingsPath(open.theme)) });
-  if (open.look)
-    items.push(
-      { file: "brand", item: themeItem(brandPath(open.theme)) },
-      { file: "palette", item: themeItem(palettePath(open.theme, "light")) },
-      { file: "darkPalette", item: themeItem(palettePath(open.theme, "dark")) },
-    );
-  return items;
+  const theme = open.theme;
+  if (!theme) return items;
+  return [...items, ...THEME_PARTS.filter((part) => open.parts.includes(part)).map((part) => ({ file: part, item: themeItem(THEME_FILES[part](theme)) }))];
 }
 
 const historyApi = "/api/pagebuilder/history";

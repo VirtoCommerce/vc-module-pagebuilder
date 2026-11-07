@@ -1,4 +1,5 @@
 import type { Field } from "./types";
+import { isRecord, isText, isTextList } from "./json";
 import type { ConditionDescriptor } from "./previewMessages";
 import type { PageType } from "./templates";
 
@@ -17,9 +18,28 @@ export interface ConditionProblem {
 /** The condition whose value is a list of category ids, picked in the category tree */
 export const CATEGORY_CONDITION = "inCategory";
 
-const isObject = (value: unknown): value is Record<string, unknown> => !!value && typeof value === "object" && !Array.isArray(value);
-const isText = (value: unknown): value is string => typeof value === "string" && !!value.trim();
-const isTextList = (value: unknown): value is string[] => Array.isArray(value) && value.length > 0 && value.every(isText);
+/**
+ * The storefront's built-in conditions, in the editor's language: their messages under PAGE_BUILDER.DESIGNER.RULES —
+ * the form's label and hint, and the plain-language description's "is …". Any other condition goes by its own label.
+ */
+export const BUILT_IN_CONDITIONS: Readonly<Record<string, { label: string; hint?: string; is: string }>> = {
+  [CATEGORY_CONDITION]: { label: "IN_CATEGORIES", is: "IS.IN_CATEGORY" },
+  productType: { label: "PRODUCT_TYPE", is: "IS.PRODUCT_TYPE" },
+  property: { label: "PROPERTY", is: "IS.PROPERTY" },
+  path: { label: "PATH", hint: "PATH_HINT", is: "IS.PATH" },
+  language: { label: "LANGUAGE", hint: "LANGUAGE_HINT", is: "IS.LANGUAGE" },
+  source: { label: "SOURCE", is: "IS.SOURCE" },
+  setting: { label: "SETTING", is: "IS.SETTING" },
+};
+
+/** An option's label in the editor's language when it has one (the `source` condition's), else the storefront's */
+export function optionLabel(option: { value: unknown; label: string }, i18n: { t: (key: string) => string; te: (key: string) => boolean }): string {
+  const key = `PAGE_BUILDER.DESIGNER.RULES.SOURCES.${String(option.value).toUpperCase()}`;
+  return i18n.te(key) ? i18n.t(key) : option.label;
+}
+
+/** A value of a list condition: at least one text, none of them blank */
+const isFilledTextList = (value: unknown): value is string[] => isTextList(value) && value.length > 0 && value.every(isText);
 
 /** The conditions the storefront announced for a page type, in its order */
 export const conditionsFor = (descriptors: ConditionDescriptor[], type: PageType) => descriptors.filter((x) => x.pageTypes.includes(type));
@@ -45,15 +65,15 @@ export function isEmptyValue(value: unknown): boolean {
   if (value === undefined || value === null) return true;
   if (typeof value === "string") return !value.trim();
   if (Array.isArray(value)) return !value.length;
-  if (isObject(value)) return Object.values(value).every(isEmptyValue);
+  if (isRecord(value)) return Object.values(value).every(isEmptyValue);
   return false;
 }
 
 /** What is wrong with a condition's value, as its descriptor describes it; undefined when nothing is */
 export function checkCondition(descriptor: ConditionDescriptor, value: unknown): ConditionProblem | undefined {
   const input = conditionInput(descriptor);
-  if (input.kind === "categories") return isTextList(value) ? undefined : { code: "CATEGORY_IDS" };
-  if (input.kind === "texts") return isTextList(value) ? undefined : { code: "TEXT_LIST" };
+  if (input.kind === "categories") return isFilledTextList(value) ? undefined : { code: "CATEGORY_IDS" };
+  if (input.kind === "texts") return isFilledTextList(value) ? undefined : { code: "TEXT_LIST" };
   return checkField(input.field, value);
 }
 
@@ -69,7 +89,7 @@ function checkField(field: Field, value: unknown): ConditionProblem | undefined 
     case "checkbox":
       return typeof value === "boolean" ? undefined : { code: "BOOLEAN" };
     case "object": {
-      if (!isObject(value)) return { code: "NOT_OBJECT" };
+      if (!isRecord(value)) return { code: "NOT_OBJECT" };
       const ids = subFields(field).flatMap((x) => (x.id ? [x.id] : []));
       const missing = ids.some((id) => isEmptyValue(value[id]) || typeof value[id] === "object");
       return missing ? { code: "FIELDS", params: { fields: ids.join(", ") } } : undefined;

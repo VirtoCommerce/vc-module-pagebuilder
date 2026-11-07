@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { evaluate, isSupportedExpression, UnsupportedExpressionError } from "../src/modules/designer/safeExpression";
+import { evaluate, UnsupportedExpressionError } from "../src/modules/designer/safeExpression";
 
 // the visibility expressions of vc-frontend's section schemas, as they ship
 const VC_FRONTEND_VISIBILITY = [
@@ -14,7 +14,7 @@ const VC_FRONTEND_VISIBILITY = [
 const unsupported = (expression: string, context: unknown = {}) => assert.throws(() => evaluate(expression, context), UnsupportedExpressionError);
 
 test("every visibility expression the storefront's schemas ship is supported", () => {
-  assert.deepEqual(VC_FRONTEND_VISIBILITY.filter((x) => !isSupportedExpression(x)), []);
+  for (const expression of VC_FRONTEND_VISIBILITY) assert.doesNotThrow(() => evaluate(expression, { model: {}, item: undefined }), expression);
 });
 
 test("expressions read the context through this", () => {
@@ -30,8 +30,7 @@ test("arithmetic, logic and conditionals are evaluated", () => {
   assert.equal(evaluate("this.value ?? 5", { value: 0 }), 0);
 });
 
-test("the helpers given and plain string and array methods can be called", () => {
-  assert.equal(evaluate("join(this.url, '/designer-preview')", { url: "https://store" }, { join: (a: string, b: string) => a + b }), "https://store/designer-preview");
+test("the built-in helpers and plain string and array methods can be called", () => {
   assert.equal(evaluate("(this.permissions || []).indexOf('builder:theme') === -1", { permissions: ["builder:theme"] }), false);
   assert.equal(evaluate("encodeURIComponent(this.folder)", { folder: "a b" }), "a%20b");
   assert.equal(evaluate("JSON.stringify(this.content, null, 2)", { content: { a: 1 } }), '{\n  "a": 1\n}');

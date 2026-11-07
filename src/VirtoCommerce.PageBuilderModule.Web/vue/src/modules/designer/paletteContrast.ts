@@ -1,5 +1,8 @@
+import type { ThemePaletteCheckRequest, ThemePaletteGenerationRequest } from "../../api_client/virtocommerce.pagebuildermodule";
+import { isRecord } from "./json";
 import type { ColorScheme, PaletteTokens } from "./previewMessages";
-import { tokenLabel, type ThemeLook } from "./themeLook";
+import { humanize } from "./schema";
+import { readColors, tokenLabel, type ThemeLook } from "./themeLook";
 
 // The palette generator and the contrast check (docs/contracts/theme-snapshot.md, "Contrast pairs" and "Palette
 // generation"): the server builds both palettes from one or two colors and names the text and background pairs a
@@ -23,10 +26,12 @@ export interface PaletteCheck {
   unchecked: number;
 }
 
-export interface GeneratedPalettes {
-  light: Record<string, string>;
-  dark: Record<string, string>;
-  failures: PaletteFailure[];
+/** The palettes as they were before a change, for its undo */
+export type PaletteStep = Pick<ThemeLook, "light" | "dark">;
+
+/** Both palettes from the generator, with the check of them it made */
+export interface GeneratedPalettes extends PaletteStep {
+  check: PaletteCheck;
 }
 
 /** The wait after the last color edit before the palette is checked */
@@ -38,19 +43,13 @@ export const generatePaletteUrl = (storeId: string) => `${paletteApi}?${new URLS
 
 export const checkPaletteUrl = (storeId: string) => `${paletteApi}/check?${new URLSearchParams({ storeId })}`;
 
-export const generateBody = (tokens: PaletteTokens, primary: string, secondary?: string | null) => ({
+export const generateBody = (tokens: PaletteTokens, primary: string, secondary?: string | null): ThemePaletteGenerationRequest => ({
   primary,
   ...(secondary ? { secondary } : {}),
   tokens,
 });
 
-export const checkBody = (tokens: PaletteTokens, look: ThemeLook) => ({ palette: { light: look.light, dark: look.dark }, tokens });
-
-/** The palettes as they were before a change, for its undo */
-export interface PaletteStep {
-  light: Record<string, string>;
-  dark: Record<string, string>;
-}
+export const checkBody = (tokens: PaletteTokens, look: ThemeLook): ThemePaletteCheckRequest => ({ palette: { light: look.light, dark: look.dark }, tokens });
 
 const MAX_STEPS = 50;
 
@@ -70,12 +69,6 @@ export function undoStep(look: ThemeLook, steps: PaletteStep[]): { look: ThemeLo
 
 /** "4.5:1", "2.11:1" */
 export const formatRatio = (ratio: number) => `${Number(ratio.toFixed(2))}:1`;
-
-/** "button-solid-primary" → "Button solid primary" */
-export function pairLabel(pair: string): string {
-  const words = pair.replace(/-/g, " ").trim();
-  return words ? words[0].toUpperCase() + words.slice(1) : pair;
-}
 
 /** A pair of tokens below AA, as the palette shows it: one row however many of the storefront's pairs use it */
 export interface FailureRow {
@@ -97,8 +90,8 @@ export function failureRows(failures: PaletteFailure[], scheme: ColorScheme): Fa
     const row = rows.get(key);
     if (row) {
       row.required = Math.max(row.required, failure.minimumRatio);
-      row.pairs.push(pairLabel(failure.pair));
-    } else rows.set(key, { failure, required: failure.minimumRatio, pairs: [pairLabel(failure.pair)] });
+      row.pairs.push(humanize(failure.pair));
+    } else rows.set(key, { failure, required: failure.minimumRatio, pairs: [humanize(failure.pair)] });
   }
   return [...rows]
     .sort(([, a], [, b]) => a.failure.ratio - b.failure.ratio)
@@ -117,19 +110,15 @@ export function failureRows(failures: PaletteFailure[], scheme: ColorScheme): Fa
 /** The failures of a scheme */
 export const failureCount = (failures: PaletteFailure[], scheme: ColorScheme) => failures.filter((x) => x.scheme === scheme).length;
 
-const isRecord = (value: unknown): value is Record<string, unknown> => !!value && typeof value === "object" && !Array.isArray(value);
-
 const readFailures = (value: unknown): PaletteFailure[] => (Array.isArray(value) ? (value.filter(isRecord) as unknown as PaletteFailure[]) : []);
-
-const readColors = (value: unknown): Record<string, string> =>
-  isRecord(value) ? (Object.fromEntries(Object.entries(value).filter(([, color]) => typeof color === "string")) as Record<string, string>) : {};
-
-export function parseGenerated(body: unknown): GeneratedPalettes {
-  const source = isRecord(body) ? body : {};
-  return { light: readColors(source.light), dark: readColors(source.dark), failures: readFailures(source.failures) };
-}
 
 export function parseCheck(body: unknown): PaletteCheck {
   const source = isRecord(body) ? body : {};
   return { failures: readFailures(source.failures), unchecked: typeof source.unchecked === "number" ? source.unchecked : 0 };
+}
+
+/** The generator's answer: the palettes, and the pairs they fail as a check answers them */
+export function parseGenerated(body: unknown): GeneratedPalettes {
+  const source = isRecord(body) ? body : {};
+  return { light: readColors(source.light), dark: readColors(source.dark), check: parseCheck(body) };
 }

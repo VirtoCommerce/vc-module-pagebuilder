@@ -3,6 +3,7 @@ import test from "node:test";
 import { createPreviewChannel } from "../src/modules/designer/preview";
 import {
   ANONYMOUS,
+  COLOR_SCHEMES,
   authMessage,
   draftMessage,
   ensureCatalog,
@@ -12,6 +13,7 @@ import {
   renderMessage,
   ruleIndex,
   selectionFrom,
+  storefrontPath,
   storefrontRoute,
   type Catalog,
   type DesignerMessage,
@@ -181,6 +183,29 @@ test("a selected shared component is outlined by its first section: the placemen
   assert.deepEqual(render.selection, { sectionId: "lc70s0", scroll: true });
 });
 
+test("a storefront path keeps only the path, query and hash: the host never changes", () => {
+  for (const path of ["//evil.example/x?a=1#h", "https://evil.example/x?a=1#h", "\\\\evil.example/x?a=1#h"]) {
+    const url = storefrontPath(path);
+    assert.equal(url.host, "storefront.invalid", path);
+    assert.equal(url.search + url.hash, "?a=1#h", path);
+  }
+  assert.equal(storefrontPath("product/1").pathname, "/product/1");
+});
+
+test("the light and dark switch is one definition for the canvas bar and the Theme tab", () => {
+  assert.deepEqual(
+    COLOR_SCHEMES.map((x) => x.id),
+    ["light", "dark"],
+  );
+});
+
+test("a loaded with no capabilities and no dark tokens is a storefront's, not a malformed one", () => {
+  const loaded = parseLoaded(loadedData({ capabilities: [], paletteTokens: { light: ["color-primary-500"], dark: [] } }));
+  assert.ok(loaded && loaded !== "unsupported");
+  assert.deepEqual(loaded.capabilities, []);
+  assert.deepEqual(loaded.paletteTokens.dark, []);
+});
+
 test("a render's route never leaves the storefront", () => {
   for (const path of ["//evil.example/x", "https://evil.example/x", "\\\\evil.example"]) assert.ok(storefrontRoute(path)?.startsWith("/"), path);
   assert.equal(storefrontRoute("//evil.example/x"), "/evil.example/x");
@@ -211,8 +236,9 @@ test("the draft carries the brand and the palette the Theme tab has, whatever th
   const brand = { logoUrl: "/logo.svg" };
   const palette = { light: { color_primary_500: "#f99e24" } };
   assert.deepEqual(draftMessage({ look: { brand, palette }, capabilities: [] }), { type: "draft", theme: { brand, palette } });
-  // no palette: the published one, or the storefront's preset
-  assert.deepEqual(draftMessage({ look: { brand: {} }, capabilities: [] }), { type: "draft", theme: { brand: {} } });
+  // no palette: the published one, or the storefront's preset; no brand: the published one, so its logo still shows
+  assert.deepEqual(draftMessage({ look: { brand }, capabilities: [] }), { type: "draft", theme: { brand } });
+  assert.deepEqual(draftMessage({ look: {}, capabilities: [] }), { type: "draft", theme: {} });
 });
 
 test("after loaded: who the preview renders as, the inspector, light or dark, the draft, the render", () => {
@@ -323,7 +349,7 @@ test("a catalog the server lacks is uploaded with its hash, once per store", asy
   assert.equal("protocol" in (sent ?? {}), false);
 });
 
-test("a failed upload is logged and tried again; an editor without builder:theme skips it quietly", async () => {
+test("a failed upload is logged and tried again; an editor who may not upload it skips it quietly", async () => {
   const known = new Map<string, Set<string>>();
   const failing = fakeServer(() => false, () => status(500));
   const logged = await warnings(async () => {

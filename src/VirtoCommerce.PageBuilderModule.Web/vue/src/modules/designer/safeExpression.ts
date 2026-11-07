@@ -48,7 +48,7 @@ const LITERALS: Record<string, unknown> = { true: true, false: false, null: null
 
 const hasOwn = (object: object, key: string) => Object.prototype.hasOwnProperty.call(object, key);
 
-export type ExpressionFunctions = Record<string, (...args: any[]) => unknown>;
+type ExpressionFunctions = Record<string, (...args: any[]) => unknown>;
 
 const BUILT_IN_FUNCTIONS: ExpressionFunctions = {
   encodeURIComponent: (value: unknown) => encodeURIComponent(String(value ?? "")),
@@ -59,18 +59,8 @@ const BUILT_IN_FUNCTIONS: ExpressionFunctions = {
 };
 
 /** The expression's value with `this` = the context; throws UnsupportedExpressionError for what the language lacks. */
-export function evaluate(expression: string, context: unknown, functions: ExpressionFunctions = {}): unknown {
-  return evaluateNode(parse(expression), context, { ...BUILT_IN_FUNCTIONS, ...functions });
-}
-
-export function isSupportedExpression(expression: string): boolean {
-  try {
-    parse(expression);
-    return true;
-  } catch (e) {
-    if (e instanceof UnsupportedExpressionError) return false;
-    throw e;
-  }
+export function evaluate(expression: string, context: unknown): unknown {
+  return evaluateNode(parse(expression), context, BUILT_IN_FUNCTIONS);
 }
 
 function tokenize(source: string): Token[] {

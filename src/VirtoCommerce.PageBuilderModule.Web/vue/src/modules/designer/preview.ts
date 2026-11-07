@@ -2,6 +2,7 @@ import { onBeforeUnmount, ref, shallowRef, type Ref } from "vue";
 import {
   PREVIEW_PROTOCOL,
   parsePreviewMessage,
+  storefrontPath,
   type Capability,
   type DesignerMessage,
   type Loaded,
@@ -137,8 +138,7 @@ export function storefrontPage(storefrontUrl: string | undefined, path: string):
   try {
     const url = new URL(storefrontUrl);
     if (url.protocol !== "http:" && url.protocol !== "https:") return undefined;
-    // only its path, query and hash are taken, so "//evil.example" or "https://evil.example" can't change the host
-    const page = new URL(`/${path.replace(/^[/\\]+/, "")}`, "http://storefront.invalid");
+    const page = storefrontPath(path);
     url.pathname = url.pathname.replace(/\/+$/, "") + page.pathname;
     url.search = page.search;
     url.hash = page.hash;

@@ -1,5 +1,6 @@
 import type { Item, PageDocument } from "./types";
-import { clone, newId } from "./schema";
+import { clone } from "./json";
+import { newId } from "./schema";
 
 /** Any stored shape as a document: JSON text, the legacy array [settings, ...sections], a PageModel; missing ids added. */
 export function toDocument(raw: unknown): PageDocument {

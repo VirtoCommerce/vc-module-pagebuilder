@@ -78,7 +78,7 @@
             class="pd-theme__schemes"
           >
             <button
-              v-for="s in SCHEMES"
+              v-for="s in COLOR_SCHEMES"
               :key="s.id"
               type="button"
               role="tab"
@@ -293,7 +293,7 @@ import * as api from "../api";
 import { PALETTE_CHECK_DEBOUNCE_MS, failureCount, failureRows, type PaletteCheck } from "../paletteContrast";
 import type { ThemeSettings, ThemeSettingsGroup } from "../themeSettings";
 import type { ThemeLookState } from "../useThemeLook";
-import type { ColorScheme, PaletteTokens } from "../previewMessages";
+import { COLOR_SCHEMES, type ColorScheme, type PaletteTokens } from "../previewMessages";
 import type { Schemas } from "../types";
 import { iconOf } from "../schema";
 import { BRAND_FIELDS, paletteFamilies, tokenLabel, type BrandField } from "../themeLook";
@@ -318,10 +318,6 @@ const BRAND_LABELS: Record<BrandField, { label: string; hint: string }> = {
   faviconUrl: { label: "PAGE_BUILDER.DESIGNER.THEME.FAVICON", hint: "PAGE_BUILDER.DESIGNER.THEME.FAVICON_HINT" },
 };
 
-const SCHEMES = [
-  { id: "light", icon: "lucide-sun", label: "PAGE_BUILDER.DESIGNER.LIGHT" },
-  { id: "dark", icon: "lucide-moon", label: "PAGE_BUILDER.DESIGNER.DARK" },
-] as const;
 const scheme = ref<ColorScheme>("light");
 const tokens = computed(() => props.paletteTokens?.[scheme.value] ?? []);
 const families = computed(() => (tokens.value.length ? paletteFamilies(tokens.value, props.look.look.value[scheme.value]) : []));
@@ -335,6 +331,40 @@ function toggleFamily(family: string, open: boolean) {
   openFamilies.value = next;
 }
 watch(scheme, () => (openFamilies.value = new Set()));
+
+// the pairs below WCAG AA, checked by the server a moment after the colors change; a later check wins
+const contrast = ref<PaletteCheck>();
+const contrastFailed = ref(false);
+let checkRun = 0;
+// what `contrast` is the check of: palettes checked already (the generator's) are not checked again
+const checkKey = () => JSON.stringify([props.storeId, props.paletteTokens, props.look.look.value.light, props.look.look.value.dark]);
+let checkedKey: string | undefined;
+async function checkContrast() {
+  const { storeId, paletteTokens } = props;
+  if (!storeId || !paletteTokens || !props.look.loaded.value) return;
+  const key = checkKey();
+  if (key === checkedKey) return;
+  const run = ++checkRun;
+  try {
+    const result = await api.checkPalette(storeId, paletteTokens, props.look.look.value);
+    if (run !== checkRun) return;
+    contrast.value = result;
+    contrastFailed.value = false;
+    checkedKey = key;
+  } catch {
+    if (run !== checkRun) return;
+    contrast.value = undefined;
+    contrastFailed.value = true;
+    checkedKey = undefined;
+  }
+}
+const scheduleCheck = debounce(checkContrast, PALETTE_CHECK_DEBOUNCE_MS);
+watch(() => [props.look.look.value.light, props.look.look.value.dark, props.paletteTokens, props.look.loaded.value, props.storeId], () => scheduleCheck(), {
+  immediate: true,
+});
+onBeforeUnmount(() => scheduleCheck.cancel());
+const failingRows = computed(() => failureRows(contrast.value?.failures ?? [], scheme.value));
+const otherFailing = computed(() => failureCount(contrast.value?.failures ?? [], scheme.value === "light" ? "dark" : "light"));
 
 // "Generate from colors": both palettes from one or two brand colors, one change to undo
 const brandColors = ref<{ primary: string | null; secondary: string | null }>({ primary: null, secondary: null });
@@ -355,39 +385,17 @@ async function generate() {
   try {
     const generated = await api.generatePalette(props.storeId, props.paletteTokens, primary, secondary);
     props.look.applyGenerated(generated);
+    // the generator checked what it generated: no check of its own follows
+    checkRun++;
+    contrast.value = generated.check;
+    contrastFailed.value = false;
+    checkedKey = checkKey();
   } catch {
     generateFailed.value = true;
   } finally {
     generating.value = false;
   }
 }
-
-// the pairs below WCAG AA, checked by the server a moment after the colors change; a later check wins
-const contrast = ref<PaletteCheck>();
-const contrastFailed = ref(false);
-let checkRun = 0;
-async function checkContrast() {
-  const { storeId, paletteTokens } = props;
-  if (!storeId || !paletteTokens || !props.look.loaded.value) return;
-  const run = ++checkRun;
-  try {
-    const result = await api.checkPalette(storeId, paletteTokens, props.look.look.value);
-    if (run !== checkRun) return;
-    contrast.value = result;
-    contrastFailed.value = false;
-  } catch {
-    if (run !== checkRun) return;
-    contrast.value = undefined;
-    contrastFailed.value = true;
-  }
-}
-const scheduleCheck = debounce(checkContrast, PALETTE_CHECK_DEBOUNCE_MS);
-watch(() => [props.look.look.value.light, props.look.look.value.dark, props.paletteTokens, props.look.loaded.value, props.storeId], () => scheduleCheck(), {
-  immediate: true,
-});
-onBeforeUnmount(() => scheduleCheck.cancel());
-const failingRows = computed(() => failureRows(contrast.value?.failures ?? [], scheme.value));
-const otherFailing = computed(() => failureCount(contrast.value?.failures ?? [], scheme.value === "light" ? "dark" : "light"));
 
 // the storefront's schema (its 'loaded' message) wins over the theme folder's, as in the Angular designer
 const groups = computed<ThemeSettingsGroup[]>(() => {

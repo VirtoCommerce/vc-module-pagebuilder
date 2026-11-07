@@ -1,5 +1,6 @@
 import type { Field, Item, PageDocument, Schemas, SectionGroup, Selection } from "./types";
 import type { SharedBoundary } from "./document";
+import { isRecord, isText, isTextList } from "./json";
 import { rulesOf, type TemplateRules } from "./rules";
 import { PAGE_TYPES, type PageType } from "./templates";
 import type { Brand, Palette } from "./themeLook";
@@ -41,6 +42,12 @@ export interface Loaded extends Handshake {
 }
 
 export type ColorScheme = "light" | "dark";
+
+/** The light and dark switch, as the canvas bar and the Theme tab's palettes show it */
+export const COLOR_SCHEMES: readonly { id: ColorScheme; icon: string; label: string }[] = [
+  { id: "light", icon: "lucide-sun", label: "PAGE_BUILDER.DESIGNER.LIGHT" },
+  { id: "dark", icon: "lucide-moon", label: "PAGE_BUILDER.DESIGNER.DARK" },
+];
 
 /** The theme as the designer has it, saved or not; a part left out comes from the published snapshot */
 export interface ThemeDraft {
@@ -84,7 +91,7 @@ export type DesignerMessage =
   | DraftMessage
   | RenderMessage
   | { type: "hover"; sectionId: string | null }
-  // the theme settings (settings_data.json), which the snapshot does not carry: the storefront applies them in both protocols
+  // the theme settings (settings_data.json), which the snapshot does not carry
   | { type: "settings"; settings: Record<string, unknown> };
 
 /** The template the storefront rendered for the page it shows, and the rule that chose it */
@@ -114,10 +121,6 @@ export type PreviewEvent =
   | { type: "hover"; sectionId: string | null }
   | ({ type: "edit" } & TextEdit)
   | { type: "resolved"; resolved: Resolved };
-
-const isRecord = (value: unknown): value is Record<string, unknown> => !!value && typeof value === "object" && !Array.isArray(value);
-const isText = (value: unknown): value is string => typeof value === "string" && !!value.trim();
-const isTextList = (value: unknown): value is string[] => Array.isArray(value) && value.every((x) => typeof x === "string");
 
 const SCHEMA_KINDS = ["sections", "blocks", "shared", "objects"] as const;
 
@@ -194,10 +197,16 @@ export function parsePreviewMessage(message: unknown): PreviewEvent | undefined 
   return event;
 }
 
+/**
+ * A path on the storefront, on a placeholder host: only the path, query and hash of `path` are taken, so
+ * "//evil.example" or "https://evil.example" can't change the host. Throws when the path can't be a URL's.
+ */
+export const storefrontPath = (path: string): URL => new URL(`/${path.replace(/^[/\\]+/, "")}`, "http://storefront.invalid");
+
 /** A storefront route as the preview takes it (from its root): only the path, query and hash of `path` */
 export function storefrontRoute(path: string): string | undefined {
   try {
-    const url = new URL(`/${path.replace(/^[/\\]+/, "")}`, "http://storefront.invalid");
+    const url = storefrontPath(path);
     return url.pathname + url.search + url.hash;
   } catch {
     return undefined;
@@ -257,7 +266,7 @@ export interface DraftInput {
   groups?: Partial<Record<SectionGroup, Item[]>>;
   templates?: Record<string, PageDocument>;
   /** the brand and palette as the Theme tab has them; none: not loaded */
-  look?: { brand: Brand; palette?: Palette };
+  look?: { brand?: Brand; palette?: Palette };
   capabilities: string[];
 }
 
@@ -271,7 +280,7 @@ export function draftMessage(input: DraftInput): DraftMessage {
       ...(input.templates ? { templates: input.templates } : {}),
       ...(groups?.header ? { header: { content: groups.header } } : {}),
       ...(groups?.footer ? { footer: { content: groups.footer } } : {}),
-      ...(input.look ? { brand: input.look.brand } : {}),
+      ...(input.look?.brand ? { brand: input.look.brand } : {}),
       ...(input.look?.palette ? { palette: input.look.palette } : {}),
     },
   };
@@ -335,7 +344,7 @@ export async function ensureCatalog(storeId: string, catalog: Catalog, api: Cata
     if (!(await api.has(storeId, catalog.hash))) await api.upload(storeId, catalog);
     hashes.add(catalog.hash);
   } catch (e) {
-    // an editor without builder:theme leaves the upload to one who has it
+    // an editor who may not upload it (without builder:update) leaves it to one who may
     if ((e as { status?: unknown } | undefined)?.status === 403) hashes.add(catalog.hash);
     else console.warn("[page-builder] The storefront's schema catalog was not uploaded; it is tried again when the preview reloads", e);
   }

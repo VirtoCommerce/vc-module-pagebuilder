@@ -1,7 +1,8 @@
 import { computed, ref } from "vue";
 import type { Field } from "./types";
-import { getAuthHeaders } from "../page-builder/composables/usePageContentApi";
-import { clone, valuesOf } from "./schema";
+import * as api from "./api";
+import { clone } from "./json";
+import { valuesOf } from "./schema";
 import { settingsPath } from "./history";
 
 /**
@@ -28,16 +29,6 @@ const presetValues = (preset: unknown): Record<string, unknown> => {
 export function currentSettings(data: ThemeSettingsData): Record<string, unknown> {
   if (typeof data.current === "string") return presetValues(data.presets?.[data.current]);
   return clone(data.current ?? {});
-}
-
-/** A theme config file as last saved: its draft, else what is live */
-async function template(storeId: string, theme: string, path: string): Promise<unknown> {
-  const query = new URLSearchParams({ storeId, theme, type: "themes", path: `${theme}/config/${path}`, draft: "true" });
-  const res = await fetch(`/api/pagebuilder/template?${query}`, { headers: await getAuthHeaders() });
-  if (res.status === 404) return undefined;
-  if (!res.ok) throw new Error(`${res.status}`);
-  const text = await res.text();
-  return text.trim() ? JSON.parse(text) : undefined;
 }
 
 /**
@@ -67,8 +58,8 @@ export function useThemeSettings() {
     try {
       // a theme without the file starts from no settings; a file that can't be read is not a theme without one
       const [settingsData, schema] = await Promise.all([
-        template(storeId, theme, "settings_data.json"),
-        template(storeId, theme, "settings_schema.json").catch(() => undefined),
+        api.loadThemeFile(storeId, theme, settingsPath(theme)),
+        api.loadThemeFile(storeId, theme, `${theme}/config/settings_schema.json`).catch(() => undefined),
       ]);
       data.value = (settingsData as ThemeSettingsData) ?? { current: {}, presets: {} };
       serverGroups.value = Array.isArray(schema) ? (schema as ThemeSettingsGroup[]) : [];
@@ -99,11 +90,12 @@ export function useThemeSettings() {
   }
 
   /** What Save writes: the theme's settings file with the current settings, and how to mark it saved once it is */
-  function pending(): { file: { path: string; content: ThemeSettingsData }; saved: () => void } | undefined {
+  function pending(): { part: "settings"; file: { path: string; content: ThemeSettingsData }; saved: () => void } | undefined {
     if (!store.value || !dirty.value) return undefined;
     const current = clone(settings.value);
     const next: ThemeSettingsData = { ...data.value, current };
     return {
+      part: "settings",
       file: { path: settingsPath(store.value.theme), content: next },
       saved: () => {
         data.value = next;

@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { effectScope, nextTick } from "vue";
 import { useDesigner, type Designer } from "../../src/modules/designer/useDesigner";
+import * as api from "../../src/modules/designer/api";
 import { ApiError, type FilePage } from "../../src/modules/designer/api";
+import { useThemeSettings } from "../../src/modules/designer/themeSettings";
 import { themePublishButton } from "../../src/modules/designer/themePublication";
 import type { Handshake } from "../../src/modules/designer/previewMessages";
 import type { Item, Schemas } from "../../src/modules/designer/types";
@@ -220,31 +222,72 @@ describe("useDesigner: editing and saving", () => {
     expect(saves()).toHaveLength(0);
   });
 
-  it("discards the page's and the header's drafts and the theme files given in one request", async () => {
-    pageStatus = { published: true, hasChanges: true };
-    themeStatus = { publication: 3, drafts: ["sections/header-group.json", "config/template_rules.json"] };
+  it("names the parts a Save would write: the page, the header, the footer", async () => {
     await openDatabasePage();
-    expect(designer.discardable.value).toEqual({ page: true, groups: ["header"] });
+    expect(designer.changedParts.value).toEqual([]);
+    designer.selection.value = { kind: "section", id: "header-1" };
+    designer.setField("announcement", "Free returns");
+    expect(designer.changedParts.value).toEqual(["header"]);
+    designer.selection.value = { kind: "section", id: "hero-1" };
+    designer.setField("title", "Hello there");
+    expect(designer.changedParts.value).toEqual(["page", "header"]);
+  });
 
-    await designer.discardDrafts(["default/config/template_rules.json"]);
+  it("offers every theme part with a draft to discard, and discards only the page and the parts chosen, in one request", async () => {
+    pageStatus = { published: true, hasChanges: true };
+    themeStatus = { publication: 3, drafts: ["sections/header-group.json", "config/template_rules.json", "config/brand.json"] };
+    await openDatabasePage();
+    expect(designer.discardable.value).toEqual({ page: true, theme: ["rules", "header", "brand"] });
+
+    // the footer has no draft: it is not sent
+    await designer.discardDrafts({ page: true, theme: ["header", "footer"] });
 
     const discards = platform.to("/api/pagebuilder/designer/discard", "POST");
     expect(discards).toHaveLength(1);
     expect(discards[0].query).toEqual({ storeId: STORE });
-    expect(discards[0].body).toEqual({ page: { groupId: "g1" }, themeFiles: ["default/config/template_rules.json", "default/sections/header-group.json"] });
+    expect(discards[0].body).toEqual({ page: { groupId: "g1" }, themeFiles: ["default/sections/header-group.json"] });
+  });
+
+  it("never discards a theme draft not chosen: a page alone leaves the store's theme drafts", async () => {
+    pageStatus = { published: true, hasChanges: true };
+    themeStatus = { publication: 3, drafts: ["sections/header-group.json", "config/settings_data.json"] };
+    await openDatabasePage();
+
+    await designer.discardDrafts({ page: true, theme: [] });
+    expect(platform.to("/api/pagebuilder/designer/discard")[0].body).toEqual({ page: { groupId: "g1" }, themeFiles: [] });
+
+    // nothing chosen: nothing is sent
+    await designer.discardDrafts({ page: false, theme: [] });
+    expect(platform.to("/api/pagebuilder/designer/discard")).toHaveLength(1);
   });
 
   it("discards a template's draft as a theme file; a page never published keeps its only copy", async () => {
     themeStatus = { publication: 3, drafts: ["templates/product.json"] };
     await openTemplate();
-    await designer.discardDrafts();
+    await designer.discardDrafts({ page: true, theme: [] });
     expect(platform.to("/api/pagebuilder/designer/discard")[0].body).toEqual({ themeFiles: ["default/templates/product.json"] });
 
     pageStatus = { published: false, hasChanges: true };
     themeStatus = { publication: 3, drafts: [] };
     await openDatabasePage();
-    await designer.discardDrafts();
+    await designer.discardDrafts({ page: true, theme: [] });
     expect(platform.to("/api/pagebuilder/designer/discard")).toHaveLength(1);
+  });
+
+  it("keeps the header and footer as saved for an editor who may not change the theme", async () => {
+    designer.groupsEditable.value = false;
+    await openDatabasePage();
+
+    // in the preview, not in the tree; their texts are not edited from the preview
+    expect(designer.groupsPreview.value?.header).toEqual(HEADER.content);
+    expect(designer.groupsShown.value).toBe(false);
+    expect(designer.isLocked("header-1")).toBe(true);
+    expect(designer.isLocked("hero-1")).toBe(false);
+    expect(designer.setText("header-1", ["announcement"], "Free returns")).toBeUndefined();
+    expect(section("header-1").announcement).toBe("Free shipping");
+    // the page's own still are
+    expect(designer.setText("hero-1", ["title"], "Hello there")).toEqual({ kind: "section", id: "hero-1" });
+    expect(designer.changedParts.value).toEqual(["page"]);
   });
 });
 
@@ -342,5 +385,31 @@ describe("useDesigner: translatable settings and the main section", () => {
     expect(designer.remove({ kind: "section", id: "info-1" })).toBeUndefined();
     expect(designer.remove({ kind: "section", id: "info-2" })).toBe(LOCKED);
     expect(designer.mainSection.value).toEqual({ type: "product-info", state: "shown" });
+  });
+});
+
+describe("api: theme files and what may not exist", () => {
+  it("reads a theme file the theme lacks as none, and keeps any other failure's status and body", async () => {
+    expect(await api.loadThemeFile(STORE, "default", "default/config/brand.json")).toBeUndefined();
+    expect(await api.loadThemeFile(STORE, "default", "default/sections/header-group.json")).toEqual(HEADER);
+    platform.on("GET", "/api/pagebuilder/catalog", status(404));
+    expect(await api.hasCatalog(STORE, "catalog-hash-1")).toBe(false);
+
+    platform.on("GET", "/api/pagebuilder/template", status(403, "Forbidden"));
+    await expect(api.loadThemeFile(STORE, "default", "default/config/brand.json")).rejects.toMatchObject({ status: 403, body: "Forbidden" });
+  });
+
+  it("reads the theme settings through the same loader: a refusal is the server's, not a theme without settings", async () => {
+    themeFiles["default/config/settings_data.json"] = { current: { logo_image: "/l.svg" } };
+    const settings = scope.run(() => useThemeSettings())!;
+    await settings.load(STORE, "default");
+    expect(settings.settings.value).toEqual({ logo_image: "/l.svg" });
+    expect(platform.to("/api/pagebuilder/template").map((x) => x.query.path)).toContain("default/config/settings_data.json");
+
+    platform.on("GET", "/api/pagebuilder/template", status(403, "Forbidden"));
+    await settings.load(STORE, "default");
+    expect(settings.loaded.value).toBe(false);
+    expect(settings.loadError.value).toBeInstanceOf(ApiError);
+    expect((settings.loadError.value as ApiError).status).toBe(403);
   });
 });

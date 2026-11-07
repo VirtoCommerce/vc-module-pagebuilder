@@ -1,3 +1,5 @@
+import { isText } from "./json";
+
 // A `menu` setting holds the name of one of the store's link lists (docs/contracts/theme-snapshot.md, "Menus"): the
 // designer offers the lists the Content module keeps for the store, the ones its Menus blade edits.
 
@@ -11,8 +13,6 @@ export interface MenuOption {
   /** a name the store has no list of: kept so that it shows, to be replaced */
   unknown?: boolean;
 }
-
-const isText = (value: unknown): value is string => typeof value === "string" && !!value.trim();
 
 /**
  * The options of a `menu` setting: each list name once (the storefront matches names ignoring case, and a list has one

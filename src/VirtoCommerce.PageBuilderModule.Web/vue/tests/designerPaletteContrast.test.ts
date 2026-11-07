@@ -8,7 +8,6 @@ import {
   formatRatio,
   generateBody,
   generatePaletteUrl,
-  pairLabel,
   parseCheck,
   parseGenerated,
   undoStep,
@@ -16,6 +15,7 @@ import {
   withStep,
   type PaletteFailure,
 } from "../src/modules/designer/paletteContrast";
+import { humanize } from "../src/modules/designer/schema";
 import type { ThemeLook } from "../src/modules/designer/themeLook";
 
 const look: ThemeLook = {
@@ -37,7 +37,7 @@ const failure = (over: Partial<PaletteFailure>): PaletteFailure => ({
 });
 
 test("generated palettes replace both palettes at once and one undo brings both back", () => {
-  const generated = { light: { color_primary_500: "#a25c27", color_neutral_50: "#f7f7f7" }, dark: { color_primary_500: "#f99e24" }, failures: [] };
+  const generated = { light: { color_primary_500: "#a25c27", color_neutral_50: "#f7f7f7" }, dark: { color_primary_500: "#f99e24" }, check: { failures: [], unchecked: 0 } };
 
   const applied = withGenerated(look, [], generated);
   assert.deepEqual(applied.look.light, generated.light);
@@ -100,7 +100,7 @@ test("ratios read as people write them", () => {
   assert.equal(formatRatio(3), "3:1");
   assert.equal(formatRatio(2.11), "2.11:1");
   assert.equal(formatRatio(4.499), "4.5:1");
-  assert.equal(pairLabel("mobile-menu-link-active"), "Mobile menu link active");
+  assert.equal(humanize("mobile-menu-link-active"), "Mobile menu link active");
 });
 
 test("the requests carry the storefront's tokens; a second color only when there is one", () => {
@@ -113,8 +113,14 @@ test("the requests carry the storefront's tokens; a second color only when there
 });
 
 test("answers are read defensively", () => {
-  assert.deepEqual(parseGenerated({ light: { a: "#fff", b: 1 }, failures: [failure({})] }), { light: { a: "#fff" }, dark: {}, failures: [failure({})] });
-  assert.deepEqual(parseGenerated(null), { light: {}, dark: {}, failures: [] });
+  // the generator's colors are read as a palette file's, its failures as a check's
+  assert.deepEqual(parseGenerated({ light: { a: "#fff", b: 1, c: " " }, failures: [failure({})] }), {
+    light: { a: "#fff" },
+    dark: {},
+    check: { failures: [failure({})], unchecked: 0 },
+  });
+  assert.deepEqual(parseGenerated({ light: {}, failures: [], unchecked: 2 }).check, { failures: [], unchecked: 2 });
+  assert.deepEqual(parseGenerated(null), { light: {}, dark: {}, check: { failures: [], unchecked: 0 } });
   assert.deepEqual(parseCheck({ failures: [failure({}), "x"], unchecked: 3 }), { failures: [failure({})], unchecked: 3 });
   assert.deepEqual(parseCheck({ unchecked: "3" }), { failures: [], unchecked: 0 });
 });
