@@ -388,6 +388,7 @@
         "DISCARD_UNSAVED": "Tus cambios sin guardar también se descartan.",
         "DISCARD_NOT_ALLOWED": "No tienes permiso para cambiar esto.",
         "DISCARD_CONFIRM": "Descartar",
+        "DISCARD_CANCEL": "Cancelar",
         "DISCARDED": "Cambios no publicados descartados",
         "DISCARD_FAILED": "No se pudieron descartar los cambios.",
         "PREVIEW_FAILED": "No se pudo mostrar esta versión.",

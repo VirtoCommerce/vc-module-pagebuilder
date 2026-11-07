@@ -388,6 +388,7 @@
         "DISCARD_UNSAVED": "Ihre ungespeicherten Änderungen werden ebenfalls verworfen.",
         "DISCARD_NOT_ALLOWED": "Sie haben keine Berechtigung, dies zu ändern.",
         "DISCARD_CONFIRM": "Verwerfen",
+        "DISCARD_CANCEL": "Abbrechen",
         "DISCARDED": "Unveröffentlichte Änderungen verworfen",
         "DISCARD_FAILED": "Die Änderungen konnten nicht verworfen werden.",
         "PREVIEW_FAILED": "Diese Version konnte nicht angezeigt werden.",

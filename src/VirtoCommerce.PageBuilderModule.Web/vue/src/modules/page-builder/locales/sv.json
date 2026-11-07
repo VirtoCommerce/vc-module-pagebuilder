@@ -388,6 +388,7 @@
         "DISCARD_UNSAVED": "Dina osparade ändringar ignoreras också.",
         "DISCARD_NOT_ALLOWED": "Du har inte behörighet att ändra detta.",
         "DISCARD_CONFIRM": "Ignorera",
+        "DISCARD_CANCEL": "Avbryt",
         "DISCARDED": "Opublicerade ändringar ignorerade",
         "DISCARD_FAILED": "Ändringarna kunde inte ignoreras.",
         "PREVIEW_FAILED": "Den här versionen kunde inte visas.",

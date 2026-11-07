@@ -388,6 +388,7 @@
         "DISCARD_UNSAVED": "保存していない変更も破棄されます。",
         "DISCARD_NOT_ALLOWED": "これを変更する権限がありません。",
         "DISCARD_CONFIRM": "破棄",
+        "DISCARD_CANCEL": "キャンセル",
         "DISCARDED": "未公開の変更を破棄しました",
         "DISCARD_FAILED": "変更を破棄できませんでした。",
         "PREVIEW_FAILED": "このバージョンを表示できませんでした。",

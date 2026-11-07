@@ -388,6 +388,7 @@
         "DISCARD_UNSAVED": "未保存的更改也会被放弃。",
         "DISCARD_NOT_ALLOWED": "您没有更改此项的权限。",
         "DISCARD_CONFIRM": "放弃",
+        "DISCARD_CANCEL": "取消",
         "DISCARDED": "已放弃未发布的更改",
         "DISCARD_FAILED": "无法放弃更改。",
         "PREVIEW_FAILED": "无法显示此版本。",

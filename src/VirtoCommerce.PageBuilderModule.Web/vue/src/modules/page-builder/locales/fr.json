@@ -388,6 +388,7 @@
         "DISCARD_UNSAVED": "Vos modifications non enregistrées sont aussi abandonnées.",
         "DISCARD_NOT_ALLOWED": "Vous n'avez pas l'autorisation de modifier ceci.",
         "DISCARD_CONFIRM": "Abandonner",
+        "DISCARD_CANCEL": "Annuler",
         "DISCARDED": "Modifications non publiées abandonnées",
         "DISCARD_FAILED": "Les modifications n'ont pas pu être abandonnées.",
         "PREVIEW_FAILED": "Cette version n'a pas pu être affichée.",

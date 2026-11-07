@@ -388,6 +388,7 @@
         "DISCARD_UNSAVED": "Your unsaved changes are discarded too.",
         "DISCARD_NOT_ALLOWED": "You don't have permission to change this.",
         "DISCARD_CONFIRM": "Discard",
+        "DISCARD_CANCEL": "Cancel",
         "DISCARDED": "Unpublished changes discarded",
         "DISCARD_FAILED": "The changes couldn't be discarded.",
         "PREVIEW_FAILED": "This version couldn't be shown.",

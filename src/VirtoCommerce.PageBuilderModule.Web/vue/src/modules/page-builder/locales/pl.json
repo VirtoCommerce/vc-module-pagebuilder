@@ -388,6 +388,7 @@
         "DISCARD_UNSAVED": "Niezapisane zmiany również zostaną odrzucone.",
         "DISCARD_NOT_ALLOWED": "Nie masz uprawnień do zmiany tego elementu.",
         "DISCARD_CONFIRM": "Odrzuć",
+        "DISCARD_CANCEL": "Anuluj",
         "DISCARDED": "Nieopublikowane zmiany odrzucone",
         "DISCARD_FAILED": "Nie udało się odrzucić zmian.",
         "PREVIEW_FAILED": "Nie udało się wyświetlić tej wersji.",

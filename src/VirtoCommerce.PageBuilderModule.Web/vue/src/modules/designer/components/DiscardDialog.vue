@@ -29,6 +29,17 @@
         </ul>
         <p v-if="options.some((x) => x.part !== 'page')">{{ $t("PAGE_BUILDER.DESIGNER.HISTORY.DISCARD_THEME") }}</p>
         <p v-if="unsaved">{{ $t("PAGE_BUILDER.DESIGNER.HISTORY.DISCARD_UNSAVED") }}</p>
+      </div>
+    </template>
+
+    <template #footer>
+      <div class="tw-flex tw-flex-wrap tw-justify-end tw-gap-3">
+        <VcButton
+          variant="secondary"
+          @click="emit('close')"
+        >
+          {{ $t("PAGE_BUILDER.DESIGNER.HISTORY.DISCARD_CANCEL") }}
+        </VcButton>
         <VcButton
           :disabled="!unsaved && !choice.page && !choice.theme.length"
           @click="emit('discard', choice)"
@@ -67,7 +78,6 @@ const choice = computed(() => discardChoice(props.options, ticked.value));
   display: flex;
   flex-direction: column;
   gap: 12px;
-  width: min(480px, 80vw);
 
   p {
     margin: 0;
@@ -97,10 +107,6 @@ const choice = computed(() => discardChoice(props.options, ticked.value));
       color: var(--neutrals-400);
       cursor: not-allowed;
     }
-  }
-
-  > :last-child {
-    align-self: flex-end;
   }
 }
 </style>

@@ -388,6 +388,7 @@
         "DISCARD_UNSAVED": "تُتجاهل تغييراتك غير المحفوظة أيضًا.",
         "DISCARD_NOT_ALLOWED": "ليس لديك إذن بتغيير هذا.",
         "DISCARD_CONFIRM": "تجاهل",
+        "DISCARD_CANCEL": "إلغاء",
         "DISCARDED": "تم تجاهل التغييرات غير المنشورة",
         "DISCARD_FAILED": "تعذّر تجاهل التغييرات.",
         "PREVIEW_FAILED": "تعذّر عرض هذا الإصدار.",

@@ -102,6 +102,7 @@ export const VcPopup = defineComponent({
     h("div", { role: "dialog", "aria-label": props.title }, [
       h("h2", props.title),
       slots.content?.(),
+      slots.footer?.(),
       h("button", { type: "button", class: "vc-popup-close", onClick: () => emit("close") }, "close"),
     ]),
 });

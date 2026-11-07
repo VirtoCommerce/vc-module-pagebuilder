@@ -388,6 +388,7 @@
         "DISCARD_UNSAVED": "Endringene du ikke har lagret, forkastes også.",
         "DISCARD_NOT_ALLOWED": "Du har ikke tilgang til å endre dette.",
         "DISCARD_CONFIRM": "Forkast",
+        "DISCARD_CANCEL": "Avbryt",
         "DISCARDED": "Upubliserte endringer forkastet",
         "DISCARD_FAILED": "Endringene kunne ikke forkastes.",
         "PREVIEW_FAILED": "Denne versjonen kunne ikke vises.",

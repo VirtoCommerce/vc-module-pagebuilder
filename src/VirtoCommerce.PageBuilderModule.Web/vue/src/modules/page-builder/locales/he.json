@@ -388,6 +388,7 @@
         "DISCARD_UNSAVED": "גם השינויים שלא נשמרו יבוטלו.",
         "DISCARD_NOT_ALLOWED": "אין לך הרשאה לשנות את זה.",
         "DISCARD_CONFIRM": "ביטול",
+        "DISCARD_CANCEL": "ביטול",
         "DISCARDED": "השינויים שלא פורסמו בוטלו",
         "DISCARD_FAILED": "לא ניתן היה לבטל את השינויים.",
         "PREVIEW_FAILED": "לא ניתן היה להציג גרסה זו.",

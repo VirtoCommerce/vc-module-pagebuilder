@@ -388,6 +388,7 @@
         "DISCARD_UNSAVED": "Anche le modifiche non salvate vengono annullate.",
         "DISCARD_NOT_ALLOWED": "Non hai l'autorizzazione per modificare questo elemento.",
         "DISCARD_CONFIRM": "Annulla",
+        "DISCARD_CANCEL": "Annulla",
         "DISCARDED": "Modifiche non pubblicate annullate",
         "DISCARD_FAILED": "Non è stato possibile annullare le modifiche.",
         "PREVIEW_FAILED": "Non è stato possibile mostrare questa versione.",

@@ -388,6 +388,7 @@
         "DISCARD_UNSAVED": "Myös tallentamattomat muutoksesi hylätään.",
         "DISCARD_NOT_ALLOWED": "Sinulla ei ole oikeutta muuttaa tätä.",
         "DISCARD_CONFIRM": "Hylkää",
+        "DISCARD_CANCEL": "Peruuta",
         "DISCARDED": "Julkaisemattomat muutokset hylätty",
         "DISCARD_FAILED": "Muutoksia ei voitu hylätä.",
         "PREVIEW_FAILED": "Tätä versiota ei voitu näyttää.",
