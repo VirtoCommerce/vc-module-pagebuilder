@@ -13,6 +13,7 @@ import {
 } from "./designerSave";
 import { storefrontPage } from "./preview";
 import { storeMenusUrl } from "./storeMenus";
+import { impersonateBody, previewUserIds, previewUsers, readToken, type PreviewToken, type PreviewUser } from "./previewUsers";
 import { parseThemeStatus, publishThemeUrl, type ThemeStatus } from "./themePublication";
 import { getAuthHeaders } from "../page-builder/composables/usePageContentApi";
 
@@ -155,6 +156,7 @@ export async function loadStorefront(storeId: string) {
     name?: string;
     defaultLanguage?: string;
     defaultCurrency?: string;
+    languages?: string[];
   };
   const [fallbackUrl, previewPath] = await Promise.all([
     store.url || store.secureUrl ? undefined : setting("VirtoCommerce.PageBuilderModule.General.StoreUrl"),
@@ -165,7 +167,37 @@ export async function loadStorefront(storeId: string) {
     previewPath: previewPath || "/designer-preview",
     // what the catalog lookups (products, categories) ask in
     catalog: { storeId, cultureName: store.defaultLanguage || "en-US", currencyCode: store.defaultCurrency || "USD" } as CatalogContext,
+    languages: Array.isArray(store.languages) ? store.languages.filter((x): x is string => typeof x === "string") : [],
   };
+}
+
+/**
+ * The accounts the store lists to preview as (its PreviewUserIds setting), named as the platform knows them; an
+ * editor who may not search users sees their ids
+ */
+export async function loadPreviewUsers(storeId: string): Promise<PreviewUser[]> {
+  const ids = previewUserIds(await (await call(`/api/stores/${encodeURIComponent(storeId)}`)).json());
+  if (!ids.length) return [];
+  const found = await call("/api/platform/security/users/search", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ objectIds: ids, take: ids.length }),
+  })
+    .then(async (res) => ((await res.json()) as { results?: { id?: string; userName?: string; email?: string }[] }).results ?? [])
+    .catch(() => []);
+  return previewUsers(ids, found);
+}
+
+/** An access token to preview as the user, by the platform's impersonate grant (login on behalf); never a refresh token */
+export async function impersonate(userId: string): Promise<PreviewToken> {
+  const res = await call("/connect/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: impersonateBody(userId),
+  });
+  const token = readToken(userId, await res.json(), Date.now());
+  if (!token) throw new ApiError(res.status, "The impersonate grant gave no access token");
+  return token;
 }
 
 // ── pages kept as files (a site's Files › Pages, *.page): blob storage, or git when the store is on the git flow ──

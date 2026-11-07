@@ -581,7 +581,31 @@
       "MENU_PLACEHOLDER": "Valitse kaupan valikko",
       "MENUS_FAILED": "Kaupan valikoita ei voitu ladata.",
       "TOKEN_PLACEHOLDER": "Valitse paletin väri",
-      "WHITE_LABELING": "White-labeling määrittää tämän tälle vierailijalle: muutos tässä ei näy."
+      "WHITE_LABELING": "White-labeling määrittää tämän tälle vierailijalle: muutos tässä ei näy.",
+      "TRANSLATION": {
+        "LANGUAGE": "Tekstien kieli",
+        "FALLBACK": "Kielellä {language} ei ole vielä tekstiä: kävijät näkevät tekstin kielellä {fallback}.",
+        "SAME_EVERYWHERE": "Sama teksti kaikilla kielillä, kunnes kieli saa oman.",
+        "OTHER_LANGUAGES": "Käännetty myös: {languages}"
+      },
+      "MAIN_SECTION": {
+        "LOCKED": "Jokainen malli säilyttää pääosionsa: sitä ei voi poistaa eikä piilottaa.",
+        "MISSING": "Tästä mallista puuttuu osio {name}: verkkokauppa lisää omansa muiden osioiden jälkeen.",
+        "HIDDEN": "Osio {name} on piilotettu: tämän tyypin sivut eivät näytä sitä.",
+        "ADD": "Lisää se",
+        "SHOW": "Näytä se"
+      },
+      "SEARCH": {
+        "BUTTON": "Hae",
+        "NO_DATA": "Mitään ei löytynyt.",
+        "FAILED": "Haku epäonnistui."
+      },
+      "PREVIEW_AS": {
+        "TITLE": "Esikatsele käyttäjänä",
+        "ANONYMOUS": "Anonyymi kävijä",
+        "FAILED": "Esikatselua ei voitu näyttää käyttäjänä {name}: se näyttää anonyymin kävijän.",
+        "CLICKS_BLOCKED": "Esikatselu asiakkaana: esikatselu ei ota vastaan napsautuksia, ei edes tarkastimen ollessa pois päältä."
+      }
     },
     "WIDGETS": {
       "STORE": "Page Builder"

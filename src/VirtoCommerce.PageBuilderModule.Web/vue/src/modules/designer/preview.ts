@@ -20,7 +20,7 @@ export interface PreviewChannelOptions {
   handshake: () => DesignerMessage[];
   onSelect?: (event: { sectionId: string; blockId?: string }) => void;
   onHover?: (sectionId: string | null) => void;
-  /** a text edited on the page: the string at the path of that section or block */
+  /** a text edited on the page: the string at the path of that section or block, in `cultureName` for a translatable one */
   onEdit?: (edit: TextEdit) => void;
   onResolved?: (resolved: Resolved) => void;
 }
@@ -40,7 +40,6 @@ export function createPreviewChannel(options: PreviewChannelOptions) {
   const loaded = shallowRef<Loaded>();
   // a newer frame load or `loaded` makes an unfinished handshake stale
   let generation = 0;
-  let translatableWarned = false;
 
   const can = (capability: Capability) => !!loaded.value?.capabilities.includes(capability);
 
@@ -78,16 +77,6 @@ export function createPreviewChannel(options: PreviewChannelOptions) {
     connected.value = true;
   }
 
-  function editAccepted(edit: TextEdit) {
-    if (!can("inline-edit")) return false;
-    if (edit.cultureName === undefined) return true;
-    if (!translatableWarned) {
-      translatableWarned = true;
-      console.warn("[page-builder] An edit of a translatable text in the preview was ignored: the designer doesn't edit translations yet", edit.itemId, edit.path);
-    }
-    return false;
-  }
-
   /** A message from the preview's window */
   async function receive(data: unknown) {
     const event = parsePreviewMessage(data);
@@ -98,7 +87,7 @@ export function createPreviewChannel(options: PreviewChannelOptions) {
     else if (event.type === "hover") options.onHover?.(event.sectionId);
     else if (event.type === "edit") {
       const { type: _type, ...edit } = event;
-      if (editAccepted(edit)) options.onEdit?.(edit);
+      if (can("inline-edit")) options.onEdit?.(edit);
     } else options.onResolved?.(event.resolved);
   }
 

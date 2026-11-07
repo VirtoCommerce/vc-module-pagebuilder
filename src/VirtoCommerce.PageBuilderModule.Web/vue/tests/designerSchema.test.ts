@@ -33,6 +33,11 @@ test("new items get defaults, an id from the type, and a blocks list when they h
   assert.equal(cta.anchor, null);
   assert.equal(cta.blocks, undefined);
   assert.deepEqual(newItem("slider", "section", schemas).blocks, []);
+  // a default model's blocks come with it, with ids of their own
+  const withBlocks = newItem("slider", "section", { ...schemas, sections: { slider: { blocks: ["text"], default: { blocks: [{ id: "b1", type: "text" }] } } } });
+  assert.equal(withBlocks.blocks?.length, 1);
+  assert.equal(withBlocks.blocks?.[0].type, "text");
+  assert.notEqual(withBlocks.blocks?.[0].id, "b1");
   assert.equal(newItem("text", "block", schemas).text, "Hi");
 });
 

@@ -207,6 +207,65 @@
             >{{ $t(`PAGE_BUILDER.DESIGNER.STATUS.${statusKind.toUpperCase()}`) }}</span
           >
           <span class="pd__spacer" />
+          <!-- the language the theme's translatable texts are edited and shown in -->
+          <VcDropdown
+            v-if="languageSwitch"
+            :model-value="menu === 'language'"
+            :items="storeLanguages"
+            :item-text="(x: string) => x"
+            :is-item-active="(x: string) => x === editLanguage"
+            floating
+            placement="bottom-end"
+            @update:model-value="(open: boolean) => (menu = open ? 'language' : undefined)"
+            @item-click="pickLanguage"
+          >
+            <template #trigger="{ isActive, toggle }">
+              <button
+                type="button"
+                class="pd__inspector pd__picker"
+                :aria-expanded="isActive"
+                :title="$t('PAGE_BUILDER.DESIGNER.TRANSLATION.LANGUAGE')"
+                :aria-label="$t('PAGE_BUILDER.DESIGNER.TRANSLATION.LANGUAGE')"
+                @click="toggle"
+              >
+                <VcIcon
+                  icon="lucide-languages"
+                  size="s"
+                />
+                {{ editLanguage }}
+              </button>
+            </template>
+          </VcDropdown>
+          <!-- whom the preview renders as: an anonymous visitor or an account the store lists (login on behalf) -->
+          <VcDropdown
+            v-if="previewAs.allowed.value && previewAs.users.value.length"
+            :model-value="menu === 'user'"
+            :items="[{ id: null, name: $t('PAGE_BUILDER.DESIGNER.PREVIEW_AS.ANONYMOUS') }, ...previewAs.users.value]"
+            :item-text="(x: { name: string }) => x.name"
+            :is-item-active="(x: { id: string | null }) => x.id === previewAs.userId.value"
+            floating
+            placement="bottom-end"
+            @update:model-value="(open: boolean) => (menu = open ? 'user' : undefined)"
+            @item-click="(x: { id: string | null }) => previewUser(x.id)"
+          >
+            <template #trigger="{ isActive, toggle }">
+              <button
+                type="button"
+                class="pd__inspector pd__picker"
+                :class="{ 'pd__inspector--on': !!previewAs.userId.value }"
+                :aria-expanded="isActive"
+                :title="previewAs.userId.value ? $t('PAGE_BUILDER.DESIGNER.PREVIEW_AS.CLICKS_BLOCKED') : $t('PAGE_BUILDER.DESIGNER.PREVIEW_AS.TITLE')"
+                :aria-label="$t('PAGE_BUILDER.DESIGNER.PREVIEW_AS.TITLE')"
+                @click="toggle"
+              >
+                <VcIcon
+                  :icon="previewAs.userId.value ? 'lucide-user-round-check' : 'lucide-user-round'"
+                  size="s"
+                />
+                <span class="pd__picker-name">{{ previewAs.user.value?.name ?? $t("PAGE_BUILDER.DESIGNER.PREVIEW_AS.ANONYMOUS") }}</span>
+              </button>
+            </template>
+          </VcDropdown>
           <button
             type="button"
             class="pd__inspector"
@@ -530,7 +589,7 @@ import {
   type BladeDescriptor,
   type IBladeToolbar,
 } from "@vc-shell/framework";
-import { VcBlade, VcButton, VcIcon, VcInput, VcPopup, VcTextarea } from "@vc-shell/framework/ui";
+import { VcBlade, VcButton, VcDropdown, VcIcon, VcInput, VcPopup, VcTextarea } from "@vc-shell/framework/ui";
 import { fromClipboard, toClipboard } from "../designer/clipboard";
 import { PageBuilderPageClient, type GroupedPageBuilderPage } from "../../api_client/virtocommerce.pagebuildermodule";
 import VersionHistory from "../designer/components/VersionHistory.vue";
@@ -604,6 +663,7 @@ import SharedPanel from "../designer/components/SharedPanel.vue";
 import { useSharedComponentDesigner } from "../page-builder/composables/usePageDesigner";
 import { useThemeSettings } from "../designer/themeSettings";
 import { useThemeLook } from "../designer/useThemeLook";
+import { usePreviewUser } from "../designer/usePreviewUser";
 import { brandPath, palettePath } from "../designer/themeLook";
 
 // The page designer, a native blade in the spirit of Shopify's theme editor: the page's sections on the left, the
@@ -727,8 +787,25 @@ const url = ref<string>();
 const storefront = ref<{ url?: string; previewPath: string }>();
 const storefrontChecked = ref(false);
 
-/** the page's language; a template, a file page or a shared component shows in the store's own */
-const previewCulture = computed(() => cultureName.value || catalog.value?.cultureName || "en-US");
+// the language the theme's translatable texts are edited in and the preview shows: a page with a language of its own
+// shows in it; a template, a page for every language, a file page in the store's default until another is picked
+const storeLanguages = ref<string[]>([]);
+const pickedLanguage = ref<string>();
+const languageLocked = computed(() => !!cultureName.value && !designer.templateKey.value);
+const editLanguage = computed(() => (languageLocked.value ? cultureName.value : pickedLanguage.value) || cultureName.value || catalog.value?.cultureName || "en-US");
+const languageSwitch = computed(
+  () => storeLanguages.value.length > 1 && !languageLocked.value && !designer.shared.value && (!!designer.templateKey.value || designer.groupsShown.value),
+);
+/** the canvas bar's open menu */
+const menu = ref<"language" | "user">();
+function pickLanguage(language: string) {
+  menu.value = undefined;
+  pickedLanguage.value = language;
+}
+function previewUser(id: string | null) {
+  menu.value = undefined;
+  void previewAs.pick(id);
+}
 /** what a content page's rules see: a database page's permalink, else a file page's own */
 const pageSubject = computed<PageSubject | undefined>(() => {
   if (designer.templateKey.value || designer.shared.value) return undefined;
@@ -747,7 +824,7 @@ function render(options: { scroll?: boolean; model?: Item; preview?: RenderInput
   const templateKey = designer.templateKey.value;
   return renderMessage({
     preview: options.preview ?? designer.preview.value,
-    cultureName: previewCulture.value,
+    cultureName: editLanguage.value,
     templateKey,
     url: templateKey ? previewUrlOf.value : undefined,
     page: pageSubject.value,
@@ -778,6 +855,12 @@ const colorScheme = ref<ColorScheme>("light");
 /** a version from the history the preview shows in place of the page: its theme and its page, look-only */
 let versionView: { draft: DraftMessage; render: RenderMessage } | undefined;
 
+// whom the preview renders as; a reloaded frame gets it first, after its token is renewed if need be
+const previewAs = usePreviewUser({
+  send: (message) => bridge.send(message),
+  onFailed: (user) => notification.error(t("PAGE_BUILDER.DESIGNER.PREVIEW_AS.FAILED", { name: user?.name ?? "" })),
+});
+
 const bridge = usePreviewBridge({
   frame,
   url,
@@ -792,10 +875,16 @@ const bridge = usePreviewBridge({
     };
   },
   // saves, publications and agents check the theme against the catalog of the storefront previewed
-  prepare: (loaded) => (designer.storeId.value ? ensureCatalog(designer.storeId.value, loaded.catalog, { has: hasCatalog, upload: uploadCatalog }) : Promise.resolve()),
+  prepare: async (loaded) => {
+    await Promise.all([
+      designer.storeId.value ? ensureCatalog(designer.storeId.value, loaded.catalog, { has: hasCatalog, upload: uploadCatalog }) : undefined,
+      previewAs.refresh(),
+    ]);
+  },
   // a reloaded frame has lost everything: whom it renders as, the inspector, light or dark, the theme, the page
   handshake: () => [
     ...handshakeMessages({
+      auth: previewAs.message(),
       inspector: !versionView && inspector.value,
       colorScheme: colorScheme.value,
       draft: versionView?.draft ?? draft(),
@@ -814,9 +903,10 @@ const bridge = usePreviewBridge({
   onHover: (id) => (designer.hovered.value = id),
   // the template the storefront rendered for the page shown, and which of the designer's rules chose it
   onResolved: (value) => (reported.value = value),
-  // a text edited on the page: the setting changes, and its section or block is selected (the preview stays put)
-  onEdit: ({ itemId, path, value }) => {
-    const target = designer.setText(itemId, path, value);
+  // a text edited on the page: the setting changes (a translatable one in the language edited), and its section or
+  // block is selected (the preview stays put)
+  onEdit: ({ itemId, path, value, cultureName: language }) => {
+    const target = designer.setText(itemId, path, value, language);
     if (!target || JSON.stringify(target) === JSON.stringify(designer.selection.value)) return;
     selectedInPreview = true;
     designer.selection.value = target;
@@ -1121,7 +1211,9 @@ function pasteFrom(text: string): boolean {
 
 async function removeChecked() {
   const count = designer.checked.value.length;
-  if (await showConfirmation(t("PAGE_BUILDER.DESIGNER.SELECT_MODE.CONFIRM_DELETE", { count }))) designer.removeChecked();
+  if (!(await showConfirmation(t("PAGE_BUILDER.DESIGNER.SELECT_MODE.CONFIRM_DELETE", { count })))) return;
+  const problem = designer.removeChecked();
+  if (problem) notification.warning(t(problem));
 }
 
 const sharedName = ref<string>();
@@ -1571,6 +1663,7 @@ onMounted(async () => {
   }
   // the assets library (the picker) works on this store
   useUrlParams().setStoreId(storeId);
+  void previewAs.load(storeId);
   await Promise.all([
     open,
     storeTheme(storeId).then((name) => {
@@ -1587,6 +1680,7 @@ onMounted(async () => {
     loadStorefront(storeId).then((x) => {
       storefront.value = x;
       catalog.value = x.catalog;
+      storeLanguages.value = x.languages;
       url.value = previewUrl(x.url, x.previewPath);
       storefrontChecked.value = true;
     }),
@@ -1626,6 +1720,16 @@ let home: { groupId: string; storeId: string } | FilePage | undefined;
 const themeName = ref<string>();
 const templateKeyList = ref<string[]>([]);
 const catalog = ref<CatalogContext>();
+// what the settings panel edits translatable texts in
+watchEffect(() => {
+  designer.language.value = editLanguage.value;
+  designer.languages.value = { all: storeLanguages.value, default: catalog.value?.cultureName };
+});
+// another language: the preview shows the page in it
+watch(editLanguage, () => {
+  sendRender.cancel();
+  if (!versionView) bridge.send(render());
+});
 const rulesOpen = ref(false);
 const switcherShown = computed(() => !designer.shared.value && !!themeName.value);
 /** the template the storefront rendered for what the preview shows, as the preview reports it */
@@ -2104,6 +2208,21 @@ watchEffect(() => {
 
   &__schemes {
     margin-right: 8px;
+  }
+
+  // the language and whom the preview renders as: what is picked, by its name
+  &__picker {
+    align-items: center;
+    gap: 6px;
+    font: inherit;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  &__picker-name {
+    max-width: 10rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   &__devices {

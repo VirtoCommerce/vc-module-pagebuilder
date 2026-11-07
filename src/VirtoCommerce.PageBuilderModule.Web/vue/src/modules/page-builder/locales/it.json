@@ -581,7 +581,31 @@
       "MENU_PLACEHOLDER": "Scegli un menu del negozio",
       "MENUS_FAILED": "Impossibile caricare i menu del negozio.",
       "TOKEN_PLACEHOLDER": "Scegli un colore della palette",
-      "WHITE_LABELING": "Impostato dal white-labeling per questo visitatore: una modifica qui non si vede."
+      "WHITE_LABELING": "Impostato dal white-labeling per questo visitatore: una modifica qui non si vede.",
+      "TRANSLATION": {
+        "LANGUAGE": "Lingua dei testi",
+        "FALLBACK": "Nessun testo in {language}: i visitatori vedono il testo in {fallback}.",
+        "SAME_EVERYWHERE": "Lo stesso testo in tutte le lingue finché una lingua non ha il proprio.",
+        "OTHER_LANGUAGES": "Tradotto anche in: {languages}"
+      },
+      "MAIN_SECTION": {
+        "LOCKED": "Ogni modello mantiene la sua sezione principale: non può essere rimossa né nascosta.",
+        "MISSING": "Questo modello non ha la sezione {name}: lo storefront aggiunge la propria dopo le altre sezioni.",
+        "HIDDEN": "La sezione {name} è nascosta: le pagine di questo tipo non la mostrano.",
+        "ADD": "Aggiungila",
+        "SHOW": "Mostrala"
+      },
+      "SEARCH": {
+        "BUTTON": "Cerca",
+        "NO_DATA": "Nessun risultato.",
+        "FAILED": "La ricerca non è riuscita."
+      },
+      "PREVIEW_AS": {
+        "TITLE": "Anteprima come",
+        "ANONYMOUS": "Visitatore anonimo",
+        "FAILED": "Impossibile mostrare l'anteprima come {name}: mostra un visitatore anonimo.",
+        "CLICKS_BLOCKED": "Anteprima come cliente: l'anteprima non accetta clic, nemmeno con l'ispettore disattivato."
+      }
     },
     "WIDGETS": {
       "STORE": "Page Builder"

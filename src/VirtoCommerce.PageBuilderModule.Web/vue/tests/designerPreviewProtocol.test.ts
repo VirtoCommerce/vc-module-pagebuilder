@@ -3,6 +3,7 @@ import test from "node:test";
 import { createPreviewChannel } from "../src/modules/designer/preview";
 import {
   ANONYMOUS,
+  authMessage,
   draftMessage,
   ensureCatalog,
   handshakeMessages,
@@ -224,6 +225,12 @@ test("after loaded: who the preview renders as, the inspector, light or dark, th
     draft,
     render,
   ]);
+  // as a customer: the access token alone
+  assert.deepEqual(handshakeMessages({ auth: authMessage("u1", "jwt"), inspector: false, colorScheme: "light", draft, render })[0], {
+    type: "auth",
+    token: { access_token: "jwt" },
+    userId: "u1",
+  });
 });
 
 // ── what the preview reports ─────────────────────────────────────────────────
@@ -429,7 +436,7 @@ test("select, hover and resolved reach the designer once the storefront announce
   ]);
 });
 
-test("an edit counts only from a storefront with inline-edit, and not for a translatable text", async () => {
+test("an edit counts only from a storefront with inline-edit; a translatable text's keeps its language", async () => {
   const withoutInline = channel();
   await withoutInline.receive(fromPreview(loadedData({ capabilities: ["groups"] })));
   await withoutInline.receive(fromPreview({ itemId: "s1", path: ["title"], value: "Hi" }, "edit"));
@@ -437,11 +444,10 @@ test("an edit counts only from a storefront with inline-edit, and not for a tran
 
   const preview = channel();
   await preview.receive(fromPreview(loadedData()));
-  const calls = await warnings(async () => {
-    await preview.receive(fromPreview({ itemId: "s1", path: ["title"], value: "Hallo", cultureName: "de-DE" }, "edit"));
-    await preview.receive(fromPreview({ itemId: "s1", path: ["title"], value: "Hej", cultureName: "sv-SE" }, "edit"));
-  });
-  assert.equal(calls.length, 1);
+  await preview.receive(fromPreview({ itemId: "s1", path: ["title"], value: "Hallo", cultureName: "de-DE" }, "edit"));
   await preview.receive(fromPreview({ itemId: "s1", path: ["title"], value: "Hi" }, "edit"));
-  assert.deepEqual(preview.events, [["edit", { itemId: "s1", path: ["title"], value: "Hi" }]]);
+  assert.deepEqual(preview.events, [
+    ["edit", { itemId: "s1", path: ["title"], value: "Hallo", cultureName: "de-DE" }],
+    ["edit", { itemId: "s1", path: ["title"], value: "Hi" }],
+  ]);
 });

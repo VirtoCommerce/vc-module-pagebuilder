@@ -70,6 +70,26 @@
         </button>
       </div>
 
+      <!-- a template without its main section shown: the storefront adds a missing one itself, a hidden one stays hidden -->
+      <div
+        v-if="mainMissing"
+        class="pd-tree__main-missing"
+        role="status"
+      >
+        <VcIcon
+          icon="lucide-triangle-alert"
+          size="s"
+        />
+        <span>{{ $t(`PAGE_BUILDER.DESIGNER.MAIN_SECTION.${mainMissing.state === "hidden" ? "HIDDEN" : "MISSING"}`, { name: mainMissing.name }) }}</span>
+        <VcButton
+          size="sm"
+          variant="secondary"
+          @click="designer.restoreMainSection()"
+        >
+          {{ $t(mainMissing.state === "hidden" ? "PAGE_BUILDER.DESIGNER.MAIN_SECTION.SHOW" : "PAGE_BUILDER.DESIGNER.MAIN_SECTION.ADD") }}
+        </VcButton>
+      </div>
+
       <SectionRows
         :designer="designer"
         :sections="pageSections"
@@ -178,7 +198,7 @@ import { useI18n } from "vue-i18n";
 import { VcButton, VcIcon } from "@vc-shell/framework/ui";
 import type { SectionGroup, Selection } from "../types";
 import type { Designer, PageRow } from "../useDesigner";
-import { iconOf } from "../schema";
+import { humanize, iconOf } from "../schema";
 import AddSection from "./AddSection.vue";
 import SectionRows from "./SectionRows.vue";
 
@@ -204,6 +224,12 @@ function toggleSelectMode() {
 const headerSections = computed(() => props.designer.doc.value.content.filter((x) => x.__group === "header"));
 const pageSections = computed(() => props.designer.doc.value.content.filter((x) => !x.__group));
 const footerSections = computed(() => props.designer.doc.value.content.filter((x) => x.__group === "footer"));
+
+const mainMissing = computed(() => {
+  const main = props.designer.mainSection.value;
+  if (!main || main.state === "shown") return undefined;
+  return { state: main.state, name: props.designer.sectionSchema(main.type)?.name ?? humanize(main.type) };
+});
 
 const topRows = computed(() => props.designer.pageRows.value.filter((x) => x.position === "top"));
 const bottomRows = computed(() => props.designer.pageRows.value.filter((x) => x.position === "bottom"));
@@ -292,6 +318,23 @@ function select(sel: Selection) {
 
   &__danger {
     color: var(--danger-500);
+  }
+
+  &__main-missing {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 8px;
+    margin: 4px 0;
+    padding: 8px;
+    border-radius: 8px;
+    background: var(--warning-50);
+    color: var(--warning-700);
+
+    > span {
+      flex: 1;
+      min-width: 0;
+    }
   }
 
   &__list,
@@ -388,6 +431,11 @@ function select(sel: Selection) {
     color: var(--neutrals-500);
     cursor: pointer;
     opacity: 0;
+
+    &:disabled {
+      cursor: not-allowed;
+      color: var(--neutrals-300);
+    }
   }
 
   &__row:hover &__eye,

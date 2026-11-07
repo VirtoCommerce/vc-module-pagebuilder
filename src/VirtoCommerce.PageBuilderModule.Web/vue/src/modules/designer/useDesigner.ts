@@ -2,13 +2,24 @@ import { computed, reactive, ref, shallowRef, watch } from "vue";
 import { useManualRefHistory } from "@vueuse/core";
 import { debounce } from "lodash-es";
 import type { Field, Item, ItemSchema, PageDocument, Schemas, SectionGroup, Selection } from "./types";
-import { copyItem, fieldsOf, isTextEdit, itemTitle, newId, newItem, withTextAt } from "./schema";
+import { copyItem, fieldsOf, itemTitle, newId, newItem, withTextEdit } from "./schema";
 import { fromDocument, isComponentRef, resolveRefs } from "./document";
 import type { ClipboardItem } from "./clipboard";
 import * as api from "./api";
 import { GROUPS, groupItems, groupOf, pageOnly, withGroups } from "./groups";
 import { groupPath } from "./history";
-import { PAGE_CONTENT, pageTypeOf, startingTemplate, templateEntry, templateKeyOf } from "./templates";
+import {
+  MAIN_SECTIONS,
+  PAGE_CONTENT,
+  hidingLosesMain,
+  keptMainSection,
+  mainSectionState,
+  pageTypeOf,
+  startingTemplate,
+  templateEntry,
+  templateKeyOf,
+} from "./templates";
+import type { Translating } from "./translatable";
 import type { Capability, Handshake } from "./previewMessages";
 import { hasThemeDraft, templateStatus, type ThemeStatus } from "./themePublication";
 import type { DesignerDiscardPage, DesignerSaveFile, DesignerSavePage } from "./designerSave";
@@ -93,6 +104,30 @@ export function useDesigner() {
   const pageType = computed(() => (templateKey.value ? pageTypeOf(templateKey.value) : undefined));
   /** Shared components go on pages only: a shared component holds none, and the storefront reads a template as it is */
   const canPlaceShared = computed(() => !shared.value && !templateKey.value);
+
+  /** the store's languages and its default; the language translatable settings are edited and previewed in */
+  const languages = ref<{ all: string[]; default?: string }>({ all: [] });
+  const language = ref<string>();
+  /** A template's items and the header's and footer's are theme files: their translatable settings hold a text per language */
+  const translates = (section?: Item) => !shared.value && (!!templateKey.value || !!section?.__group);
+  /** How the item's translatable settings are edited now; none: as plain text (a page has its own language) */
+  function translating(section?: Item, edited = language.value): Translating | undefined {
+    const defaultLanguage = languages.value.default;
+    return translates(section) && edited && defaultLanguage ? { language: edited, defaultLanguage, languages: languages.value.all } : undefined;
+  }
+
+  /** The open template's main section: there and shown, hidden, or missing; none when no template is open */
+  const mainSection = computed(() => {
+    const type = pageType.value;
+    const state = mainSectionState(doc.value.content, type);
+    return type && state ? { type: MAIN_SECTIONS[type], state } : undefined;
+  });
+  /** what the editor is told when a change would take the template's main section */
+  const MAIN_LOCKED = "PAGE_BUILDER.DESIGNER.MAIN_SECTION.LOCKED";
+  /** The section can't go: it is the open template's last main section */
+  const isMainKept = (id: string) => !!keptMainSection(doc.value.content, pageType.value, [id]);
+  /** The section can't be hidden: it is the open template's last shown main section */
+  const isMainShown = (id: string) => hidingLosesMain(doc.value.content, pageType.value, id);
 
   /**
    * The template entry of what is open (a page, or a product, category or page template): its key restricts section
@@ -187,33 +222,36 @@ export function useDesigner() {
   }
 
   let textEditRefused = false;
-  /** Whether the item's schema declares the setting at the path as plain text; an edit of anything else is reported once */
-  function takesTextEdit(item: Item, kind: "section" | "block", path: (string | number)[], text: unknown): boolean {
+  /**
+   * The item with the text, when its schema declares a plain-text setting at the path; a translatable one of a theme
+   * file takes it as the language's. Anything else is refused, and reported once.
+   */
+  function textEdited(item: Item, kind: "section" | "block", section: Item, path: (string | number)[], text: string, cultureName?: string): Item | undefined {
     const fields = fieldsOf(kind === "section" ? sectionSchema(item.type) : blockSchema(item.type), kind, schemas.value);
-    if (isTextEdit(fields, path, text)) return true;
-    if (!textEditRefused) {
+    const changed = withTextEdit(item, fields, path, text, cultureName ? translating(section, cultureName) : undefined);
+    if (!changed && !textEditRefused) {
       textEditRefused = true;
       console.warn("A text edited in the preview was ignored: its schema has no text setting there", item.type, path);
     }
-    return false;
+    return changed;
   }
 
   /**
    * A text edited on the page (the preview's inline editing): the string at the path of that section or block, when
-   * its schema declares a text setting there. Returns what to select, or undefined when the item or the text isn't
-   * there (nothing changes then).
+   * its schema declares a text setting there; `cultureName`, a translatable setting's language. Returns what to
+   * select, or undefined when the item or the text isn't there (nothing changes then).
    */
-  function setText(itemId: string, path: (string | number)[], text: string): Selection | undefined {
+  function setText(itemId: string, path: (string | number)[], text: string, cultureName?: string): Selection | undefined {
     for (const section of doc.value.content) {
       if (section.id === itemId) {
-        const changed = takesTextEdit(section, "section", path, text) ? withTextAt(section, path, text) : undefined;
+        const changed = textEdited(section, "section", section, path, text, cultureName);
         if (!changed) return undefined;
         updateSection(section.id, () => changed);
         return { kind: "section", id: section.id };
       }
       const block = section.blocks?.find((b) => b.id === itemId);
       if (block) {
-        const changed = takesTextEdit(block, "block", path, text) ? withTextAt(block, path, text) : undefined;
+        const changed = textEdited(block, "block", section, path, text, cultureName);
         if (!changed) return undefined;
         updateSection(section.id, (x) => ({ ...x, blocks: x.blocks?.map((b) => (b.id === itemId ? changed : b)) }));
         return { kind: "block", sectionId: section.id, id: itemId };
@@ -271,8 +309,10 @@ export function useDesigner() {
     }
   }
 
-  function remove(sel: Selection) {
-    if (sel.kind === "page") return;
+  /** Removes a section or block; the open template's last main section stays, and why is returned as a message key */
+  function remove(sel: Selection): string | undefined {
+    if (sel.kind === "page") return undefined;
+    if (sel.kind === "section" && isMainKept(sel.id)) return MAIN_LOCKED;
     if (sel.kind === "section") setContent(doc.value.content.filter((x) => x.id !== sel.id));
     else updateSection(sel.sectionId, (x) => ({ ...x, blocks: x.blocks?.filter((b) => b.id !== sel.id) }));
     // the selection was the removed item or inside it: a removed block selects its section, a removed section nothing
@@ -280,6 +320,18 @@ export function useDesigner() {
     if (current && current.kind !== "page" && (current.id === sel.id || (current.kind === "block" && current.sectionId === sel.id))) {
       selection.value = sel.kind === "block" ? { kind: "section", id: sel.sectionId } : null;
     }
+    return undefined;
+  }
+
+  /** Puts the open template's main section back: shows a hidden one, else adds it after the other sections, as a storefront would */
+  function restoreMainSection() {
+    const main = mainSection.value;
+    if (!main || main.state === "shown") return;
+    const hidden = doc.value.content.find((x) => !x.__group && x.type === main.type);
+    if (hidden) {
+      updateSection(hidden.id, (x) => ({ ...x, hidden: false }));
+      selection.value = { kind: "section", id: hidden.id };
+    } else addSection(main.type);
   }
 
   /**
@@ -326,12 +378,15 @@ export function useDesigner() {
     checked.value = checked.value.includes(id) ? checked.value.filter((x) => x !== id) : [...checked.value, id];
   }
 
-  function removeChecked() {
-    const ids = new Set(checked.value);
+  /** Removes the checked sections but the open template's last main section, and says so as a message key */
+  function removeChecked(): string | undefined {
+    const kept = keptMainSection(doc.value.content, pageType.value, checked.value);
+    const ids = new Set(checked.value.filter((id) => id !== kept));
     setContent(doc.value.content.filter((x) => !ids.has(x.id)));
     const sel = selection.value;
     if (sel && sel.kind !== "page" && ids.has(sel.kind === "block" ? sel.sectionId : sel.id)) selection.value = null;
     checked.value = [];
+    return kept ? MAIN_LOCKED : undefined;
   }
 
   /**
@@ -355,9 +410,12 @@ export function useDesigner() {
     return undefined;
   }
 
-  function toggleHidden(sel: Selection) {
+  /** Hides or shows a section or block; the open template's last shown main section stays shown (a message key says why) */
+  function toggleHidden(sel: Selection): string | undefined {
+    if (sel.kind === "section" && isMainShown(sel.id)) return MAIN_LOCKED;
     if (sel.kind === "section") updateSection(sel.id, (x) => (isComponentRef(x) ? x : { ...x, hidden: !x.hidden }));
     else if (sel.kind === "block") updateSection(sel.sectionId, (x) => ({ ...x, blocks: x.blocks?.map((b) => (b.id === sel.id ? { ...b, hidden: !b.hidden } : b)) }));
+    return undefined;
   }
 
   // ── shared components ──────────────────────────────────────────────────────
@@ -746,6 +804,13 @@ export function useDesigner() {
     templateKey,
     pageType,
     canPlaceShared,
+    languages,
+    language,
+    translating,
+    mainSection,
+    isMainKept,
+    isMainShown,
+    restoreMainSection,
     templateIsNew,
     extraPageFields,
     sectionSchema,

@@ -581,7 +581,31 @@
       "MENU_PLACEHOLDER": "ストアのメニューを選択",
       "MENUS_FAILED": "ストアのメニューを読み込めませんでした。",
       "TOKEN_PLACEHOLDER": "パレットの色を選択",
-      "WHITE_LABELING": "この訪問者にはホワイトラベリングの設定が適用されます。ここでの変更は表示されません。"
+      "WHITE_LABELING": "この訪問者にはホワイトラベリングの設定が適用されます。ここでの変更は表示されません。",
+      "TRANSLATION": {
+        "LANGUAGE": "テキストの言語",
+        "FALLBACK": "{language} のテキストはまだありません: 訪問者には {fallback} のテキストが表示されます。",
+        "SAME_EVERYWHERE": "言語ごとのテキストができるまで、すべての言語で同じテキストです。",
+        "OTHER_LANGUAGES": "翻訳済み: {languages}"
+      },
+      "MAIN_SECTION": {
+        "LOCKED": "各テンプレートはメインセクションを保持します: 削除も非表示もできません。",
+        "MISSING": "このテンプレートには {name} セクションがありません: ストアフロントが他のセクションの後に独自のものを追加します。",
+        "HIDDEN": "{name} セクションは非表示です: この種類のページには表示されません。",
+        "ADD": "追加する",
+        "SHOW": "表示する"
+      },
+      "SEARCH": {
+        "BUTTON": "検索",
+        "NO_DATA": "見つかりませんでした。",
+        "FAILED": "検索に失敗しました。"
+      },
+      "PREVIEW_AS": {
+        "TITLE": "プレビューするユーザー",
+        "ANONYMOUS": "匿名の訪問者",
+        "FAILED": "{name} としてプレビューできませんでした: 匿名の訪問者として表示しています。",
+        "CLICKS_BLOCKED": "顧客としてプレビュー中: インスペクターがオフでもプレビューはクリックを受け付けません。"
+      }
     },
     "WIDGETS": {
       "STORE": "Page Builder"

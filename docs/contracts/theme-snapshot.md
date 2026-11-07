@@ -229,7 +229,8 @@ A template key is the page type, optionally followed by a dot and a name: `produ
 - A product template states how variations load: `variationsLayout` is `b2b` or `b2c` on its `product-info` section.
 - Every template holds its main section: `product-info`, `category-listing` or `page-content`. The designer does not
   let it be removed or hidden; a storefront that gets a template without it renders the main section after the other
-  sections itself.
+  sections itself. The designer does not add a missing one on its own: it says so and offers to add it (or to show a
+  hidden one).
 
 ### Template rules
 
@@ -319,6 +320,8 @@ same in every language, or a dictionary from language to text:
 ```
 
 A dictionary is an object whose keys are all language names with a subtag (`en-US`) and whose values are all texts.
+The designer keeps a plain string until a language other than the store default gets a text of its own; an emptied
+text removes that language's entry, and a dictionary left with the default language's text alone is a string again.
 The publication resolves every dictionary: in the snapshot of a language it is a string, the text of that language,
 else the text of the store default language, else the first text of the dictionary. A snapshot never holds one.
 

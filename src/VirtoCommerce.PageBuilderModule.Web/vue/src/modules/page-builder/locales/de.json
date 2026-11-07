@@ -581,7 +581,31 @@
       "MENU_PLACEHOLDER": "Shop-Menü auswählen",
       "MENUS_FAILED": "Die Menüs des Shops konnten nicht geladen werden.",
       "TOKEN_PLACEHOLDER": "Palettenfarbe auswählen",
-      "WHITE_LABELING": "Für diesen Besucher durch White-Labeling festgelegt: eine Änderung hier ist nicht sichtbar."
+      "WHITE_LABELING": "Für diesen Besucher durch White-Labeling festgelegt: eine Änderung hier ist nicht sichtbar.",
+      "TRANSLATION": {
+        "LANGUAGE": "Sprache der Texte",
+        "FALLBACK": "Noch kein Text auf {language}: Besucher sehen den Text auf {fallback}.",
+        "SAME_EVERYWHERE": "Derselbe Text in allen Sprachen, bis eine Sprache einen eigenen erhält.",
+        "OTHER_LANGUAGES": "Auch übersetzt: {languages}"
+      },
+      "MAIN_SECTION": {
+        "LOCKED": "Jede Vorlage behält ihren Hauptabschnitt: Er kann nicht entfernt oder ausgeblendet werden.",
+        "MISSING": "Diese Vorlage hat keinen Abschnitt {name}: Der Storefront fügt seinen eigenen nach den anderen Abschnitten hinzu.",
+        "HIDDEN": "Der Abschnitt {name} ist ausgeblendet: Seiten dieses Typs zeigen keinen.",
+        "ADD": "Hinzufügen",
+        "SHOW": "Einblenden"
+      },
+      "SEARCH": {
+        "BUTTON": "Suchen",
+        "NO_DATA": "Nichts gefunden.",
+        "FAILED": "Die Suche ist fehlgeschlagen."
+      },
+      "PREVIEW_AS": {
+        "TITLE": "Vorschau als",
+        "ANONYMOUS": "Anonymer Besucher",
+        "FAILED": "Die Vorschau konnte nicht als {name} angezeigt werden: Sie zeigt einen anonymen Besucher.",
+        "CLICKS_BLOCKED": "Vorschau als Kunde: Die Vorschau nimmt keine Klicks an, auch nicht bei ausgeschaltetem Inspektor."
+      }
     },
     "WIDGETS": {
       "STORE": "Page Builder"

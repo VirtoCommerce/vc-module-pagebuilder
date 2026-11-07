@@ -49,6 +49,8 @@ export interface Field {
   request?: RemoteRequest;
   equalKey?: string;
   searchable?: boolean;
+  /** in the theme's files, a text per language (translatable.ts) */
+  translatable?: boolean;
   [key: string]: unknown;
 }
 

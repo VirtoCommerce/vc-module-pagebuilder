@@ -581,7 +581,31 @@
       "MENU_PLACEHOLDER": "Välj en butiksmeny",
       "MENUS_FAILED": "Butikens menyer kunde inte läsas in.",
       "TOKEN_PLACEHOLDER": "Välj en färg i paletten",
-      "WHITE_LABELING": "Satt av white-labeling för den här besökaren: en ändring här syns inte."
+      "WHITE_LABELING": "Satt av white-labeling för den här besökaren: en ändring här syns inte.",
+      "TRANSLATION": {
+        "LANGUAGE": "Textens språk",
+        "FALLBACK": "Ingen text på {language} än: besökare ser texten på {fallback}.",
+        "SAME_EVERYWHERE": "Samma text på alla språk tills ett språk får en egen.",
+        "OTHER_LANGUAGES": "Även översatt: {languages}"
+      },
+      "MAIN_SECTION": {
+        "LOCKED": "Varje mall behåller sin huvudsektion: den kan inte tas bort eller döljas.",
+        "MISSING": "Den här mallen saknar sektionen {name}: butiken lägger till sin egen efter de andra sektionerna.",
+        "HIDDEN": "Sektionen {name} är dold: sidor av den här typen visar ingen.",
+        "ADD": "Lägg till den",
+        "SHOW": "Visa den"
+      },
+      "SEARCH": {
+        "BUTTON": "Sök",
+        "NO_DATA": "Inget hittades.",
+        "FAILED": "Sökningen misslyckades."
+      },
+      "PREVIEW_AS": {
+        "TITLE": "Förhandsgranska som",
+        "ANONYMOUS": "Anonym besökare",
+        "FAILED": "Förhandsgranskningen kunde inte visas som {name}: den visar en anonym besökare.",
+        "CLICKS_BLOCKED": "Förhandsgranskning som kund: förhandsgranskningen tar inte emot klick, inte ens med inspektören avstängd."
+      }
     },
     "WIDGETS": {
       "STORE": "Page Builder"

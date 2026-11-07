@@ -67,12 +67,14 @@
           :class="{ 'pd-tree__badge--missing': designer.components.get(section.componentRef) === null }"
           >{{ $t(designer.components.get(section.componentRef) === null ? "PAGE_BUILDER.DESIGNER.MISSING" : "PAGE_BUILDER.DESIGNER.SHARED") }}</span
         >
+        <!-- the open template's main section stays shown -->
         <button
           v-else
           type="button"
           class="pd-tree__eye"
+          :disabled="designer.isMainShown(section.id)"
           :aria-label="$t(section.hidden ? 'PAGE_BUILDER.DESIGNER.SHOW' : 'PAGE_BUILDER.DESIGNER.HIDE')"
-          :title="$t(section.hidden ? 'PAGE_BUILDER.DESIGNER.SHOW' : 'PAGE_BUILDER.DESIGNER.HIDE')"
+          :title="$t(designer.isMainShown(section.id) ? 'PAGE_BUILDER.DESIGNER.MAIN_SECTION.LOCKED' : section.hidden ? 'PAGE_BUILDER.DESIGNER.SHOW' : 'PAGE_BUILDER.DESIGNER.HIDE')"
           @click.stop="designer.toggleHidden({ kind: 'section', id: section.id })"
         >
           <VcIcon

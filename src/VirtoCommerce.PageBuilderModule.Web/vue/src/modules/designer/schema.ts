@@ -1,5 +1,6 @@
 import { evaluate, UnsupportedExpressionError } from "./safeExpression";
 import type { Field, Item, ItemSchema, Schemas } from "./types";
+import { displayText, isTranslations, withTranslation, type Translating } from "./translatable";
 
 /**
  * A section's or block's fields, as the Angular designer assembled them: its own settings, plus the shared fields
@@ -44,11 +45,11 @@ export function newId(type: string): string {
   return type.replace(/[^a-zA-Z0-9]/g, "") + suffix;
 }
 
-/** A new section or block of a type: the schema's default model, then each field's default. */
+/** A new section or block of a type: the schema's default model (its blocks with new ids), then each field's default. */
 export function newItem(type: string, kind: "section" | "block", schemas: Schemas): Item {
   const schema = (kind === "section" ? schemas.sections : schemas.blocks)[type];
   const item: Item = { ...valuesOf(fieldsOf(schema, kind, schemas)), ...clone(schema?.default ?? {}), type, id: newId(type) };
-  if (schema?.blocks) item.blocks = [];
+  if (schema?.blocks) item.blocks = Array.isArray(item.blocks) ? item.blocks.map(copyItem) : [];
   return item;
 }
 
@@ -75,8 +76,23 @@ export function withTextAt<T>(value: T, path: (string | number)[], text: string)
   return { ...value, [key]: child };
 }
 
+/** A copy of the value with what is at the path replaced, or undefined when the path isn't there. */
+export function withValueAt<T>(value: T, path: (string | number)[], next: unknown): T | undefined {
+  const [key, ...rest] = path;
+  if (key === undefined) return next as T;
+  if (!value || typeof value !== "object" || !Object.prototype.hasOwnProperty.call(value, key)) return undefined;
+  const child = withValueAt((value as Record<string | number, unknown>)[key], rest, next);
+  if (child === undefined) return undefined;
+  if (Array.isArray(value)) return value.map((x, i) => (i === key ? child : x)) as T;
+  return { ...value, [key]: child };
+}
+
+/** What is at the path ("links", 0, "label") */
+export const valueAt = (value: unknown, path: (string | number)[]): unknown =>
+  path.reduce<unknown>((current, key) => (current && typeof current === "object" ? (current as Record<string | number, unknown>)[key] : undefined), value);
+
 /** The field of the setting at the path among these fields: a list's row (an index) and an object hold `element` fields. */
-function fieldAt(fields: Field[], [key, ...rest]: (string | number)[]): Field | undefined {
+export function fieldAt(fields: Field[], [key, ...rest]: (string | number)[]): Field | undefined {
   const field = typeof key === "string" ? fields.find((x) => x.id === key) : undefined;
   if (!field || !rest.length) return field;
   if (field.type === "list") return typeof rest[0] === "number" && rest.length > 1 ? fieldAt(field.element ?? [], rest.slice(1)) : undefined;
@@ -86,6 +102,21 @@ function fieldAt(fields: Field[], [key, ...rest]: (string | number)[]): Field | 
 /** Whether the preview's inline edit may set the value at the path: a string, for a plain-text ("string") setting. */
 export function isTextEdit(fields: Field[], path: (string | number)[], value: unknown): boolean {
   return typeof value === "string" && fieldAt(fields, path)?.type === "string";
+}
+
+/**
+ * The item with a text the preview edited in place, or undefined when nothing changes: the schema declares no plain
+ * text setting at the path, or the item holds no text there. With `at` (the item is edited per language and the
+ * preview named the language), a translatable setting takes the text as that language's.
+ */
+export function withTextEdit<T>(item: T, fields: Field[], path: (string | number)[], text: string, at?: Translating): T | undefined {
+  const field = fieldAt(fields, path);
+  if (field?.type !== "string") return undefined;
+  const current = valueAt(item, path);
+  if (at && (field.translatable || isTranslations(current)) && (typeof current === "string" || isTranslations(current))) {
+    return withValueAt(item, path, withTranslation(current, at, text));
+  }
+  return withTextAt(item, path, text);
 }
 
 /** The value at a dotted path ("product.name"). */
@@ -99,8 +130,8 @@ export const humanize = (type: string) => type.replace(/[-_]+/g, " ").trim().rep
 /** The item's label in the lists: its displayField value (a "default" display field = the schema name), else the schema name. */
 export function itemTitle(item: Item, schema: ItemSchema | undefined): string {
   const field = schema?.displayField;
-  const value = field && field !== "default" ? pick(item, field) : undefined;
-  return (typeof value === "string" && value.trim()) || schema?.name || humanize(item.type);
+  const value = field && field !== "default" ? displayText(pick(item, field)) : undefined;
+  return value?.trim() || schema?.name || humanize(item.type);
 }
 
 const reportedExpressions = new Set<string>();

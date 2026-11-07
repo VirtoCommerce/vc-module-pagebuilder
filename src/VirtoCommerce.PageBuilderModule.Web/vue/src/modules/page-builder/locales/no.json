@@ -581,7 +581,31 @@
       "MENU_PLACEHOLDER": "Velg en butikkmeny",
       "MENUS_FAILED": "Butikkens menyer kunne ikke lastes inn.",
       "TOKEN_PLACEHOLDER": "Velg en farge fra paletten",
-      "WHITE_LABELING": "Satt av white-labeling for denne besøkende: en endring her vises ikke."
+      "WHITE_LABELING": "Satt av white-labeling for denne besøkende: en endring her vises ikke.",
+      "TRANSLATION": {
+        "LANGUAGE": "Tekstenes språk",
+        "FALLBACK": "Ingen tekst på {language} ennå: besøkende ser teksten på {fallback}.",
+        "SAME_EVERYWHERE": "Samme tekst på alle språk til et språk får sin egen.",
+        "OTHER_LANGUAGES": "Også oversatt: {languages}"
+      },
+      "MAIN_SECTION": {
+        "LOCKED": "Hver mal beholder hovedseksjonen sin: den kan ikke fjernes eller skjules.",
+        "MISSING": "Denne malen mangler seksjonen {name}: butikken legger til sin egen etter de andre seksjonene.",
+        "HIDDEN": "Seksjonen {name} er skjult: sider av denne typen viser ingen.",
+        "ADD": "Legg den til",
+        "SHOW": "Vis den"
+      },
+      "SEARCH": {
+        "BUTTON": "Søk",
+        "NO_DATA": "Ingenting funnet.",
+        "FAILED": "Søket mislyktes."
+      },
+      "PREVIEW_AS": {
+        "TITLE": "Forhåndsvis som",
+        "ANONYMOUS": "Anonym besøkende",
+        "FAILED": "Forhåndsvisningen kunne ikke vises som {name}: den viser en anonym besøkende.",
+        "CLICKS_BLOCKED": "Forhåndsvisning som kunde: forhåndsvisningen tar ikke imot klikk, heller ikke med inspektøren slått av."
+      }
     },
     "WIDGETS": {
       "STORE": "Page Builder"

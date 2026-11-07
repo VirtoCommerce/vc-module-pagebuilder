@@ -581,7 +581,31 @@
       "MENU_PLACEHOLDER": "Choisir un menu de la boutique",
       "MENUS_FAILED": "Impossible de charger les menus de la boutique.",
       "TOKEN_PLACEHOLDER": "Choisir une couleur de la palette",
-      "WHITE_LABELING": "Défini par la marque blanche pour ce visiteur : une modification ici ne s'affiche pas."
+      "WHITE_LABELING": "Défini par la marque blanche pour ce visiteur : une modification ici ne s'affiche pas.",
+      "TRANSLATION": {
+        "LANGUAGE": "Langue des textes",
+        "FALLBACK": "Pas encore de texte en {language} : les visiteurs voient le texte en {fallback}.",
+        "SAME_EVERYWHERE": "Le même texte dans toutes les langues jusqu'à ce qu'une langue ait le sien.",
+        "OTHER_LANGUAGES": "Également traduit : {languages}"
+      },
+      "MAIN_SECTION": {
+        "LOCKED": "Chaque modèle garde sa section principale : elle ne peut être ni supprimée ni masquée.",
+        "MISSING": "Ce modèle n'a pas de section {name} : la boutique ajoute la sienne après les autres sections.",
+        "HIDDEN": "La section {name} est masquée : les pages de ce type n'en affichent aucune.",
+        "ADD": "L'ajouter",
+        "SHOW": "L'afficher"
+      },
+      "SEARCH": {
+        "BUTTON": "Rechercher",
+        "NO_DATA": "Aucun résultat.",
+        "FAILED": "La recherche a échoué."
+      },
+      "PREVIEW_AS": {
+        "TITLE": "Aperçu en tant que",
+        "ANONYMOUS": "Visiteur anonyme",
+        "FAILED": "L'aperçu n'a pas pu s'afficher en tant que {name} : il montre un visiteur anonyme.",
+        "CLICKS_BLOCKED": "Aperçu en tant que client : l'aperçu n'accepte aucun clic, même avec l'inspecteur désactivé."
+      }
     },
     "WIDGETS": {
       "STORE": "Page Builder"

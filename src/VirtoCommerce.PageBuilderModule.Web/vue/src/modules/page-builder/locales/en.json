@@ -581,7 +581,31 @@
       "MENU_PLACEHOLDER": "Choose a store menu",
       "MENUS_FAILED": "The store's menus couldn't be loaded.",
       "TOKEN_PLACEHOLDER": "Choose a palette color",
-      "WHITE_LABELING": "Set by white-labeling for this visitor: a change here doesn't show."
+      "WHITE_LABELING": "Set by white-labeling for this visitor: a change here doesn't show.",
+      "TRANSLATION": {
+        "LANGUAGE": "Language of the texts",
+        "FALLBACK": "No {language} text yet: visitors see the {fallback} text.",
+        "SAME_EVERYWHERE": "The same text in every language until a language gets its own.",
+        "OTHER_LANGUAGES": "Also translated: {languages}"
+      },
+      "MAIN_SECTION": {
+        "LOCKED": "Every template keeps its main section: it can't be removed or hidden.",
+        "MISSING": "This template has no {name} section: the storefront adds its own after the other sections.",
+        "HIDDEN": "The {name} section is hidden: pages of this type show none.",
+        "ADD": "Add it",
+        "SHOW": "Show it"
+      },
+      "SEARCH": {
+        "BUTTON": "Search",
+        "NO_DATA": "Nothing found.",
+        "FAILED": "The search failed."
+      },
+      "PREVIEW_AS": {
+        "TITLE": "Preview as",
+        "ANONYMOUS": "Anonymous visitor",
+        "FAILED": "The preview couldn't be shown as {name}: it shows an anonymous visitor.",
+        "CLICKS_BLOCKED": "Previewing as a customer: the preview takes no clicks, even with the inspector off."
+      }
     },
     "WIDGETS": {
       "STORE": "Page Builder"

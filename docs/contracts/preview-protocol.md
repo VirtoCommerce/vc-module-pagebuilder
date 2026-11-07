@@ -175,7 +175,10 @@ at `url`; a content page shows on the designer's preview route, and its rules se
 | `auth` | `{ token: { access_token: string } \| null, userId: string \| null }` | renders as that user; `null` renders as an anonymous visitor |
 
 `auth` carries the access token only, never a refresh token. The storefront keeps it in memory and sends it only to
-its own `/graphql` and `/api`.
+its own `/graphql` and `/api`. The designer offers the accounts of the store setting
+`VirtoCommerce.PageBuilderModule.Store.PreviewUserIds` to an editor with `platform:security:loginOnBehalf`, gets the
+token from the platform's `/connect/token` `impersonate` grant (without `offline_access`), and sends it again, renewed,
+before it expires.
 
 ## Preview to designer
 
@@ -251,3 +254,6 @@ Schemas are data, never code.
 - Field types added for the theme:
   - `menu`: the name of a store link list; the designer lists the store's menus;
   - `color-token`: a palette token; the designer lists `paletteTokens`.
+- `search`, as in the Angular designer: a typed query (or a `button`) runs the field's `request`, or its `requests` in
+  turn, with the query as `__searchQuery`; the value is `{ __nodata, __searchQuery, value }` (with `requests`, an
+  answer per key) and `displayInfo` lists what of it to show. The origin rule of `request` applies.

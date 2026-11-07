@@ -581,7 +581,31 @@
       "MENU_PLACEHOLDER": "选择商店菜单",
       "MENUS_FAILED": "无法加载商店的菜单。",
       "TOKEN_PLACEHOLDER": "选择调色板颜色",
-      "WHITE_LABELING": "该访客的此项由白标设置：此处的更改不会显示。"
+      "WHITE_LABELING": "该访客的此项由白标设置：此处的更改不会显示。",
+      "TRANSLATION": {
+        "LANGUAGE": "文本语言",
+        "FALLBACK": "尚无 {language} 文本：访客看到的是 {fallback} 文本。",
+        "SAME_EVERYWHERE": "在某种语言有自己的文本之前，所有语言使用相同的文本。",
+        "OTHER_LANGUAGES": "已翻译：{languages}"
+      },
+      "MAIN_SECTION": {
+        "LOCKED": "每个模板都保留其主要部分：不能删除或隐藏。",
+        "MISSING": "此模板没有 {name} 部分：店面会在其他部分之后添加自己的部分。",
+        "HIDDEN": "{name} 部分已隐藏：此类页面不会显示它。",
+        "ADD": "添加",
+        "SHOW": "显示"
+      },
+      "SEARCH": {
+        "BUTTON": "搜索",
+        "NO_DATA": "未找到任何内容。",
+        "FAILED": "搜索失败。"
+      },
+      "PREVIEW_AS": {
+        "TITLE": "预览身份",
+        "ANONYMOUS": "匿名访客",
+        "FAILED": "无法以 {name} 的身份预览：当前显示匿名访客。",
+        "CLICKS_BLOCKED": "正在以客户身份预览：即使关闭检查器，预览也不接受点击。"
+      }
     },
     "WIDGETS": {
       "STORE": "Page Builder"

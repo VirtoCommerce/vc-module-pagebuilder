@@ -581,7 +581,31 @@
       "MENU_PLACEHOLDER": "Elige un menú de la tienda",
       "MENUS_FAILED": "No se pudieron cargar los menús de la tienda.",
       "TOKEN_PLACEHOLDER": "Elige un color de la paleta",
-      "WHITE_LABELING": "Lo define la marca blanca para este visitante: un cambio aquí no se ve."
+      "WHITE_LABELING": "Lo define la marca blanca para este visitante: un cambio aquí no se ve.",
+      "TRANSLATION": {
+        "LANGUAGE": "Idioma de los textos",
+        "FALLBACK": "Aún no hay texto en {language}: los visitantes ven el texto en {fallback}.",
+        "SAME_EVERYWHERE": "El mismo texto en todos los idiomas hasta que un idioma tenga el suyo.",
+        "OTHER_LANGUAGES": "También traducido: {languages}"
+      },
+      "MAIN_SECTION": {
+        "LOCKED": "Cada plantilla conserva su sección principal: no se puede eliminar ni ocultar.",
+        "MISSING": "Esta plantilla no tiene la sección {name}: la tienda añade la suya después de las demás secciones.",
+        "HIDDEN": "La sección {name} está oculta: las páginas de este tipo no la muestran.",
+        "ADD": "Añadirla",
+        "SHOW": "Mostrarla"
+      },
+      "SEARCH": {
+        "BUTTON": "Buscar",
+        "NO_DATA": "No se encontró nada.",
+        "FAILED": "La búsqueda ha fallado."
+      },
+      "PREVIEW_AS": {
+        "TITLE": "Vista previa como",
+        "ANONYMOUS": "Visitante anónimo",
+        "FAILED": "No se pudo mostrar la vista previa como {name}: muestra un visitante anónimo.",
+        "CLICKS_BLOCKED": "Vista previa como cliente: la vista previa no acepta clics, ni siquiera con el inspector desactivado."
+      }
     },
     "WIDGETS": {
       "STORE": "Page Builder"

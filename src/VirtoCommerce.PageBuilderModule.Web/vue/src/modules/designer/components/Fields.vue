@@ -20,22 +20,22 @@
       <VcTextarea
         v-else-if="(field.type === 'string' && field.multiline) || field.type === 'markdown'"
         :model-value="text(field)"
-        :label="field.label"
-        :placeholder="field.placeholder"
+        :label="label(field)"
+        :placeholder="placeholder(field)"
         :hint="field.info"
         :required="field.required"
         :class="{ 'pd-fields__code': field.type === 'markdown' }"
-        @update:model-value="set(field, $event)"
+        @update:model-value="setText(field, $event)"
       />
       <VcEditor
         v-else-if="field.type === 'text'"
         :toolbar="['bold', 'italic', 'underline', 'link', 'bulletList', 'orderedList']"
         :custom-buttons="anchorPicker"
         :model-value="text(field)"
-        :label="field.label"
-        :placeholder="field.placeholder"
+        :label="label(field)"
+        :placeholder="placeholder(field)"
         :hint="field.info"
-        @update:model-value="set(field, $event)"
+        @update:model-value="setText(field, $event)"
       />
       <VcInput
         v-else-if="field.type === 'number' || field.type === 'slider'"
@@ -159,6 +159,7 @@
           :fields="field.element ?? []"
           :values="objectOf(field)"
           :group="group"
+          :translation="translation"
           :context="{ ...context, item: objectOf(field), parent: context }"
           @update="(id, value) => set(field, { ...objectOf(field), [id]: value })"
         />
@@ -222,6 +223,7 @@
             v-if="openRow === `${field.id}:${index}`"
             class="pd-fields__row-body"
             :group="group"
+            :translation="translation"
             :fields="field.element ?? []"
             :values="rowOf(row)"
             :context="{ ...context, item: listOf(field), index, element: row, parent: context }"
@@ -230,13 +232,80 @@
         </details>
       </div>
 
+      <!-- the Angular designer's search: a query (or a button) runs the field's request; its answer is the setting's value -->
+      <div
+        v-else-if="field.type === 'search'"
+        class="pd-fields__select"
+      >
+        <VcButton
+          v-if="(field as SearchField).button"
+          variant="secondary"
+          size="sm"
+          icon="lucide-search"
+          :loading="searching.has(field)"
+          @click="search(field as SearchField, null)"
+        >
+          {{ (field as SearchField).button === true ? $t("PAGE_BUILDER.DESIGNER.SEARCH.BUTTON") : (field as SearchField).button }}
+        </VcButton>
+        <VcInput
+          v-else
+          :model-value="searchQuery(field)"
+          :label="field.label"
+          :placeholder="field.placeholder"
+          :loading="searching.has(field)"
+          clearable
+          @update:model-value="typed(field as SearchField, $event)"
+        />
+        <VcHint v-if="field.info">{{ field.info }}</VcHint>
+        <VcHint v-if="searchFailed.has(field)">{{ $t("PAGE_BUILDER.DESIGNER.SEARCH.FAILED") }}</VcHint>
+        <p
+          v-else-if="searchValue(field)?.__nodata"
+          class="pd-fields__note"
+        >
+          {{ (field as SearchField).nodataText ?? $t("PAGE_BUILDER.DESIGNER.SEARCH.NO_DATA") }}
+        </p>
+        <dl
+          v-else-if="searchValue(field) && (field as SearchField).displayInfo?.length"
+          class="pd-fields__found"
+        >
+          <template
+            v-for="row in (field as SearchField).displayInfo"
+            :key="row.label"
+          >
+            <dt>{{ row.label }}</dt>
+            <dd>
+              <img
+                v-if="row.type === 'image' && typeof searchDisplayValue(values[field.id!], row) === 'string'"
+                :src="String(searchDisplayValue(values[field.id!], row))"
+                alt=""
+              />
+              <template v-else>{{ shownValue(searchDisplayValue(values[field.id!], row)) }}</template>
+            </dd>
+          </template>
+        </dl>
+        <pre
+          v-else-if="searchValue(field)"
+          class="pd-fields__found pd-fields__code"
+          >{{ JSON.stringify(searchValue(field)?.value ?? null, null, 2) }}</pre
+        >
+      </div>
+
       <VcInput
         v-else
         :model-value="text(field)"
-        :label="field.label"
+        :label="label(field)"
+        :placeholder="placeholder(field)"
         :hint="field.info"
-        @update:model-value="set(field, $event)"
+        @update:model-value="setText(field, $event)"
       />
+
+      <!-- a translatable text: which language it is, and the others' -->
+      <p
+        v-if="translationNote(field)"
+        class="pd-fields__translation"
+      >
+        {{ translationNote(field) }}
+      </p>
     </template>
   </div>
 </template>
@@ -244,14 +313,16 @@
 <script setup lang="ts">
 // A schema's fields as form controls (the Angular designer's control registry), editing `values`; nested objects
 // and lists render this component again. Changes go up as update(id, value): nothing is mutated here.
-import { computed, inject, onMounted, ref } from "vue";
+import { computed, inject, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { VcButton, VcColorInput, VcEditor, VcHint, VcIcon, VcInput, VcSelect, VcSwitch, VcTextarea, type CustomToolbarButton, type CustomToolbarItem } from "@vc-shell/framework/ui";
-import { PageAnchorsKey, PaletteTokensKey, StoreMenusKey, WhiteLabelingKey, type Field, type SectionGroup } from "../types";
+import { PageAnchorsKey, PaletteTokensKey, StoreMenusKey, WhiteLabelingKey, type Field, type RemoteRequest, type SectionGroup } from "../types";
 import { menuOptions } from "../storeMenus";
 import { tokenOptions, type TokenOption } from "../themeLook";
 import { isOverridden, menuField } from "../whiteLabeling";
 import { fill, isVisible, pick, schemaRequest, valuesOf } from "../schema";
+import { translationOf, withTranslation, type Translating } from "../translatable";
+import { SEARCH_DEBOUNCE_MS, requestResult, runSearch, searchDisplayValue, type SearchField, type SearchValue } from "../search";
 import ImageField from "./ImageField.vue";
 import { getAuthHeaders } from "../../page-builder/composables/usePageContentApi";
 
@@ -262,6 +333,8 @@ const props = defineProps<{
   context: Record<string, unknown>;
   /** the section group of the item edited: its `menu` settings are white-labeling's to replace */
   group?: SectionGroup;
+  /** the item is a theme file's: its translatable texts are edited in this language */
+  translation?: Translating;
 }>();
 
 /** the rich-text editor (tiptap) the toolbar items act on */
@@ -319,17 +392,49 @@ onMounted(async () => {
 const shown = computed(() => props.fields.filter((field) => isVisible(field, props.context)));
 
 const set = (field: Field, value: unknown) => field.id && emit("update", field.id, value);
+
+// a translatable text of a theme file: its own text in the language edited, the others' kept
+const TEXT_TYPES = ["string", "markdown", "text"];
+const translated = (field: Field) => (props.translation && field.translatable && TEXT_TYPES.includes(field.type) ? props.translation : undefined);
 const text = (field: Field) => {
   const value = props.values[field.id!];
+  const at = translated(field);
+  if (at) return translationOf(value, at).own ?? "";
   return value == null ? "" : String(value);
 };
+function setText(field: Field, value: unknown) {
+  const at = translated(field);
+  set(field, at ? withTranslation(props.values[field.id!], at, String(value ?? "")) : value);
+}
+// the language shows only where the store has several
+const manyLanguages = computed(() => (props.translation?.languages?.length ?? 0) > 1);
+const label = (field: Field) => (translated(field) && manyLanguages.value && field.label ? `${field.label} · ${props.translation!.language}` : field.label);
+/** a language without its own text shows the text it falls back to */
+const placeholder = (field: Field) => {
+  const at = translated(field);
+  return (at && translationOf(props.values[field.id!], at).fallback?.text) || field.placeholder;
+};
+function translationNote(field: Field): string | undefined {
+  const at = translated(field);
+  if (!at || !manyLanguages.value) return undefined;
+  const state = translationOf(props.values[field.id!], at);
+  if (state.fallback?.language) return t("PAGE_BUILDER.DESIGNER.TRANSLATION.FALLBACK", { language: at.language, fallback: state.fallback.language });
+  if (state.fallback) return t("PAGE_BUILDER.DESIGNER.TRANSLATION.SAME_EVERYWHERE");
+  const others = state.languages.filter((x) => x.toLowerCase() !== at.language.toLowerCase());
+  return others.length ? t("PAGE_BUILDER.DESIGNER.TRANSLATION.OTHER_LANGUAGES", { languages: others.join(", ") }) : t("PAGE_BUILDER.DESIGNER.TRANSLATION.SAME_EVERYWHERE");
+}
 const objectOf = (field: Field) => ({ ...valuesOf(field.element ?? []), ...((props.values[field.id!] as object) ?? {}) }) as Record<string, unknown>;
 const listOf = (field: Field) => (Array.isArray(props.values[field.id!]) ? (props.values[field.id!] as unknown[]) : []);
 const rowOf = (row: unknown) => (row && typeof row === "object" ? (row as Record<string, unknown>) : {});
 
+// a translatable label shows in the language edited
+const shownText = (value: unknown) => (props.translation && value && typeof value === "object" ? translationOf(value, props.translation).own ?? translationOf(value, props.translation).fallback?.text : value);
 function rowTitle(field: Field, row: unknown, index: number) {
-  const byField = field.displayField ? pick(row, field.displayField) : undefined;
-  const first = (field.element ?? []).filter((x) => x.type === "string").map((x) => pick(row, x.id!)).find((x) => typeof x === "string" && x.trim());
+  const byField = field.displayField ? shownText(pick(row, field.displayField)) : undefined;
+  const first = (field.element ?? [])
+    .filter((x) => x.type === "string")
+    .map((x) => shownText(pick(row, x.id!)))
+    .find((x) => typeof x === "string" && x.trim());
   return String(byField || first || t("PAGE_BUILDER.DESIGNER.ITEM", { number: index + 1 }));
 }
 
@@ -359,25 +464,80 @@ function remoteOptions(field: Field) {
   if (!loaders.has(field)) loaders.set(field, createLoader(field));
   return loaders.get(field)!;
 }
+/** A schema's request with the context filled in; none when its URL isn't http(s) */
+async function schemaFetch(request: RemoteRequest, context: Record<string, unknown>): Promise<Response | undefined> {
+  const target = schemaRequest(fill(request.url, context), window.location);
+  if (!target) return undefined;
+  const body = fill(request.body, context);
+  return fetch(target.url, {
+    method: (request.method ?? "get").toUpperCase(),
+    // the platform's API wants the user's token (a store's link lists, say); the theme's requests elsewhere go without it
+    headers: { ...(target.platform ? await getAuthHeaders() : {}), ...(body ? { "Content-Type": "application/json" } : {}) },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+}
+
 function createLoader(field: Field) {
   return async (keyword?: string, _skip?: number, ids?: string[]) => {
     const request = field.request!;
-    const target = schemaRequest(fill(request.url, props.context), window.location);
-    if (!target) return { results: [], totalCount: 0 };
-    const body = fill(request.body, { ...props.context, __searchQuery: keyword ?? "" });
-    const res = await fetch(target.url, {
-      method: (request.method ?? "get").toUpperCase(),
-      // the platform's API wants the user's token (a store's link lists, say); the theme's requests elsewhere go without it
-      headers: { ...(target.platform ? await getAuthHeaders() : {}), ...(body ? { "Content-Type": "application/json" } : {}) },
-      body: body ? JSON.stringify(body) : undefined,
-    });
+    const res = await schemaFetch(request, { ...props.context, __searchQuery: keyword ?? "" });
+    if (!res) return { results: [], totalCount: 0 };
     const json = res.ok ? await res.json() : undefined;
-    let results = (request.response?.result ? pick(json, request.response.result) : json) as Record<string, unknown>[] | undefined;
+    let results = requestResult(request, json) as Record<string, unknown>[] | undefined;
     results = Array.isArray(results) ? results : [];
     if (ids?.length) results = results.filter((x) => ids.includes(String(x[request.value ?? "value"])));
     // rows keyed by request.label / request.value (option-label / option-value say which)
     return { results: results as unknown as NonNullable<Field["options"]>, totalCount: results.length };
   };
+}
+
+// a `search` field: its query runs once typing pauses; a later query wins over an answer still on its way
+const searching = reactive(new Set<Field>());
+const searchFailed = reactive(new Set<Field>());
+const searchRuns = new Map<Field, number>();
+const pendingQueries = new Map<Field, ReturnType<typeof setTimeout>>();
+const typedQueries = reactive(new Map<Field, string>());
+onBeforeUnmount(() => pendingQueries.forEach(clearTimeout));
+
+const searchValue = (field: Field) => {
+  const value = props.values[field.id!];
+  return value && typeof value === "object" ? (value as SearchValue) : undefined;
+};
+const searchQuery = (field: Field) => typedQueries.get(field) ?? searchValue(field)?.__searchQuery ?? "";
+const shownValue = (value: unknown) => (value == null ? "" : typeof value === "object" ? JSON.stringify(value) : String(value));
+
+function typed(field: SearchField, query: unknown) {
+  const text = query == null ? "" : String(query);
+  typedQueries.set(field, text);
+  clearTimeout(pendingQueries.get(field));
+  pendingQueries.set(
+    field,
+    setTimeout(() => search(field, text), field.debounceTime || SEARCH_DEBOUNCE_MS),
+  );
+}
+
+async function search(field: SearchField, query: string | null) {
+  const run = (searchRuns.get(field) ?? 0) + 1;
+  searchRuns.set(field, run);
+  searching.add(field);
+  searchFailed.delete(field);
+  try {
+    const value = await runSearch(field, props.context, query, async (request, context) => {
+      const res = await schemaFetch(request, context);
+      if (!res?.ok) throw new Error(`The search request failed: ${res?.status ?? "not an http(s) URL"}`);
+      return requestResult(request, await res.json());
+    });
+    if (searchRuns.get(field) === run) set(field, value);
+  } catch (e) {
+    if (searchRuns.get(field) !== run) return;
+    console.warn("[page-builder] A search field's request failed", e);
+    searchFailed.add(field);
+    set(field, null);
+  } finally {
+    if (searchRuns.get(field) === run) searching.delete(field);
+    // the query typed shows until the answer to it is in
+    if (query !== null && typedQueries.get(field) === query) typedQueries.delete(field);
+  }
 }
 </script>
 
@@ -455,6 +615,38 @@ function createLoader(field: Field) {
 
   &__overridden {
     color: var(--warning-600);
+  }
+
+  // under its control: the gap between fields is the next field's
+  &__translation {
+    margin: -10px 0 0;
+    font-size: 12px;
+    color: var(--neutrals-500);
+  }
+
+  // what a search found
+  &__found {
+    margin: 0;
+    padding: 8px;
+    border: 1px solid var(--neutrals-200);
+    border-radius: 6px;
+    font-size: 12px;
+    white-space: pre-wrap;
+    word-break: break-word;
+
+    dt {
+      color: var(--neutrals-500);
+    }
+
+    dd {
+      margin: 0 0 6px;
+      color: var(--neutrals-900);
+    }
+
+    img {
+      max-width: 100%;
+      max-height: 120px;
+    }
   }
 
   &__note {

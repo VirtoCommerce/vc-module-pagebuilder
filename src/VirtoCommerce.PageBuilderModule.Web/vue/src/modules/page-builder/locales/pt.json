@@ -581,7 +581,31 @@
       "MENU_PLACEHOLDER": "Escolha um menu da loja",
       "MENUS_FAILED": "Não foi possível carregar os menus da loja.",
       "TOKEN_PLACEHOLDER": "Escolha uma cor da paleta",
-      "WHITE_LABELING": "Definido pelo white-labeling para este visitante: uma alteração aqui não aparece."
+      "WHITE_LABELING": "Definido pelo white-labeling para este visitante: uma alteração aqui não aparece.",
+      "TRANSLATION": {
+        "LANGUAGE": "Idioma dos textos",
+        "FALLBACK": "Ainda não há texto em {language}: os visitantes veem o texto em {fallback}.",
+        "SAME_EVERYWHERE": "O mesmo texto em todos os idiomas até que um idioma tenha o seu.",
+        "OTHER_LANGUAGES": "Também traduzido: {languages}"
+      },
+      "MAIN_SECTION": {
+        "LOCKED": "Cada modelo mantém sua seção principal: ela não pode ser removida nem ocultada.",
+        "MISSING": "Este modelo não tem a seção {name}: a loja adiciona a sua depois das outras seções.",
+        "HIDDEN": "A seção {name} está oculta: as páginas deste tipo não a mostram.",
+        "ADD": "Adicioná-la",
+        "SHOW": "Mostrá-la"
+      },
+      "SEARCH": {
+        "BUTTON": "Pesquisar",
+        "NO_DATA": "Nada encontrado.",
+        "FAILED": "A pesquisa falhou."
+      },
+      "PREVIEW_AS": {
+        "TITLE": "Visualizar como",
+        "ANONYMOUS": "Visitante anônimo",
+        "FAILED": "Não foi possível visualizar como {name}: a visualização mostra um visitante anônimo.",
+        "CLICKS_BLOCKED": "Visualizando como cliente: a visualização não aceita cliques, mesmo com o inspetor desligado."
+      }
     },
     "WIDGETS": {
       "STORE": "Page Builder"

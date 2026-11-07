@@ -102,6 +102,7 @@
         :values="values"
         :context="context"
         :group="sel.kind === 'page' ? undefined : designer.selectedSection.value?.__group"
+        :translation="designer.translating(sel.kind === 'page' ? undefined : designer.selectedSection.value)"
         @update="designer.setField"
       />
       <p
@@ -120,10 +121,12 @@
         variant="ghost"
         icon="lucide-trash-2"
         class="pd-settings__remove"
+        :disabled="isMain"
         @click="confirmRemove"
       >
         {{ $t(sel.kind === "block" ? "PAGE_BUILDER.DESIGNER.REMOVE_BLOCK" : "PAGE_BUILDER.DESIGNER.REMOVE_SECTION") }}
       </VcButton>
+      <VcHint v-if="isMain">{{ $t("PAGE_BUILDER.DESIGNER.MAIN_SECTION.LOCKED") }}</VcHint>
     </footer>
   </aside>
 </template>
@@ -189,9 +192,14 @@ const context = computed(() => {
   };
 });
 
+// the open template's main section stays, shown
+const isMain = computed(() => sel.value.kind === "section" && props.designer.isMainKept(sel.value.id));
+const hideLocked = computed(() => sel.value.kind === "section" && props.designer.isMainShown(sel.value.id));
+
 const { showConfirmation } = usePopup();
 async function confirmRemove() {
   const current = sel.value;
+  if (isMain.value) return;
   if (await showConfirmation(t("PAGE_BUILDER.DESIGNER.CONFIRM_REMOVE", { name: title.value }))) props.designer.remove(current);
 }
 
@@ -204,12 +212,12 @@ const actions = computed(() => {
       : [{ title: t("PAGE_BUILDER.DESIGNER.DUPLICATE"), icon: "lucide-copy-plus", run: () => props.designer.duplicate(current) }]),
     { title: t("PAGE_BUILDER.DESIGNER.CLIPBOARD.COPY"), icon: "lucide-copy", run: () => emit("copy") },
     { title: t("PAGE_BUILDER.DESIGNER.CLIPBOARD.PASTE"), icon: "lucide-clipboard-paste", run: () => emit("paste") },
-    ...(placed.value ? [] : [{
+    ...(placed.value || hideLocked.value ? [] : [{
       title: t(item.value?.hidden ? "PAGE_BUILDER.DESIGNER.SHOW" : "PAGE_BUILDER.DESIGNER.HIDE"),
       icon: item.value?.hidden ? "lucide-eye" : "lucide-eye-off",
       run: () => props.designer.toggleHidden(current),
     }]),
-    { title: t("PAGE_BUILDER.DESIGNER.REMOVE"), icon: "lucide-trash-2", danger: true, run: confirmRemove },
+    ...(isMain.value ? [] : [{ title: t("PAGE_BUILDER.DESIGNER.REMOVE"), icon: "lucide-trash-2", danger: true, run: confirmRemove }]),
   ];
 });
 </script>
@@ -304,6 +312,10 @@ const actions = computed(() => {
   }
 
   &__foot {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
     padding: 8px 12px;
     border-top: 1px solid var(--neutrals-200);
   }

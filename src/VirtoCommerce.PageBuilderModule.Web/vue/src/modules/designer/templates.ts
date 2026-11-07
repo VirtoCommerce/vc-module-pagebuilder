@@ -56,6 +56,33 @@ export function templateEntry(schemas: Schemas, type?: PageType): { key: string;
 /** What a new page template holds: the full layout, and where the page's own sections go */
 export const PAGE_CONTENT = "page-content";
 
+/** The section every template of a page type holds (the storefront's built-in.ts): it is never removed or hidden */
+export const MAIN_SECTIONS: Record<PageType, string> = { product: "product-info", category: "category-listing", page: PAGE_CONTENT };
+
+const mainOf = (content: Item[], type: PageType) => content.filter((x) => !x.__group && x.type === MAIN_SECTIONS[type]);
+
+/** Whether the template's main section is there and shown; a storefront adds a missing one itself, and shows none for a hidden one */
+export function mainSectionState(content: Item[], type: PageType | undefined): "shown" | "hidden" | "missing" | undefined {
+  if (!type) return undefined;
+  const main = mainOf(content, type);
+  if (!main.length) return "missing";
+  return main.some((x) => !x.hidden) ? "shown" : "hidden";
+}
+
+/** The main section a removal of these sections must leave in the template, if it would take the last one */
+export function keptMainSection(content: Item[], type: PageType | undefined, ids: string[]): string | undefined {
+  if (!type) return undefined;
+  const main = mainOf(content, type);
+  return main.length && main.every((x) => ids.includes(x.id)) ? main[0].id : undefined;
+}
+
+/** Whether hiding the section hides the template's last shown main section */
+export function hidingLosesMain(content: Item[], type: PageType | undefined, id: string): boolean {
+  if (!type) return false;
+  const shown = mainOf(content, type).filter((x) => !x.hidden);
+  return shown.length === 1 && shown[0].id === id;
+}
+
 /**
  * The document a template starts from: a copy of `base` (the default template, for "Create template"), else the
  * built-in one the storefront's descriptor carries (`default` as a document), else an empty one; a page template

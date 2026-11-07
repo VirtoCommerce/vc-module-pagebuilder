@@ -277,12 +277,23 @@ export function draftMessage(input: DraftInput): DraftMessage {
   };
 }
 
+export type AuthMessage = Extract<DesignerMessage, { type: "auth" }>;
+
 /** The preview renders as an anonymous visitor */
-export const ANONYMOUS: DesignerMessage = { type: "auth", token: null, userId: null };
+export const ANONYMOUS: AuthMessage = { type: "auth", token: null, userId: null };
+
+/** The preview renders as the user: the access token only, never a refresh token */
+export const authMessage = (userId: string, accessToken: string): AuthMessage => ({ type: "auth", token: { access_token: accessToken }, userId });
 
 /** What goes out after every `loaded`, in this order: a reloaded frame has lost all of it */
-export function handshakeMessages(state: { inspector: boolean; colorScheme: ColorScheme; draft: DraftMessage; render: RenderMessage }): DesignerMessage[] {
-  return [ANONYMOUS, { type: "inspector", enabled: state.inspector }, { type: "colorScheme", scheme: state.colorScheme }, state.draft, state.render];
+export function handshakeMessages(state: {
+  auth?: AuthMessage;
+  inspector: boolean;
+  colorScheme: ColorScheme;
+  draft: DraftMessage;
+  render: RenderMessage;
+}): DesignerMessage[] {
+  return [state.auth ?? ANONYMOUS, { type: "inspector", enabled: state.inspector }, { type: "colorScheme", scheme: state.colorScheme }, state.draft, state.render];
 }
 
 /** What a click in the preview selects: the block when it names one the page has, else the section */

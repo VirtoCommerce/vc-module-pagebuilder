@@ -581,7 +581,31 @@
       "MENU_PLACEHOLDER": "Wybierz menu sklepu",
       "MENUS_FAILED": "Nie udało się wczytać menu sklepu.",
       "TOKEN_PLACEHOLDER": "Wybierz kolor z palety",
-      "WHITE_LABELING": "Ustawione przez white-labeling dla tego odwiedzającego: zmiana tutaj nie będzie widoczna."
+      "WHITE_LABELING": "Ustawione przez white-labeling dla tego odwiedzającego: zmiana tutaj nie będzie widoczna.",
+      "TRANSLATION": {
+        "LANGUAGE": "Język tekstów",
+        "FALLBACK": "Brak tekstu w {language}: odwiedzający widzą tekst w {fallback}.",
+        "SAME_EVERYWHERE": "Ten sam tekst we wszystkich językach, dopóki język nie otrzyma własnego.",
+        "OTHER_LANGUAGES": "Przetłumaczono także: {languages}"
+      },
+      "MAIN_SECTION": {
+        "LOCKED": "Każdy szablon zachowuje sekcję główną: nie można jej usunąć ani ukryć.",
+        "MISSING": "Ten szablon nie ma sekcji {name}: sklep dodaje własną po pozostałych sekcjach.",
+        "HIDDEN": "Sekcja {name} jest ukryta: strony tego typu jej nie pokazują.",
+        "ADD": "Dodaj ją",
+        "SHOW": "Pokaż ją"
+      },
+      "SEARCH": {
+        "BUTTON": "Szukaj",
+        "NO_DATA": "Nic nie znaleziono.",
+        "FAILED": "Wyszukiwanie nie powiodło się."
+      },
+      "PREVIEW_AS": {
+        "TITLE": "Podgląd jako",
+        "ANONYMOUS": "Anonimowy odwiedzający",
+        "FAILED": "Nie udało się pokazać podglądu jako {name}: podgląd pokazuje anonimowego odwiedzającego.",
+        "CLICKS_BLOCKED": "Podgląd jako klient: podgląd nie przyjmuje kliknięć, nawet przy wyłączonym inspektorze."
+      }
     },
     "WIDGETS": {
       "STORE": "Page Builder"
