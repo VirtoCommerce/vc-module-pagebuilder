@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using VirtoCommerce.PageBuilderModule.Core;
+using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Core.History;
 using VirtoCommerce.PageBuilderModule.Core.Theme;
@@ -279,6 +280,43 @@ public class PageBuilderControllerThemeFilesTests
         Assert.Equal([($"theme:{Path}", "published")], record.Entries.Select(x => (x.Item.ToString(), x.Content)));
     }
 
+    [Fact]
+    public async Task DiscardDraft_ThemeFileNeverPublished_ReturnsConflictAndKeepsTheDraft()
+    {
+        var history = new RecordingContentHistory();
+        _live.Files[$"{Path}-draft"] = "{}";
+
+        var result = await Builder(history: history).DiscardDraft("s1", Path, "themes", "default");
+
+        Assert.IsType<ConflictObjectResult>(result);
+        Assert.True(_live.Files.ContainsKey($"{Path}-draft"));
+        Assert.Empty(history.Records);
+    }
+
+    [Fact]
+    public async Task DiscardDraft_ThemeFileWithoutDraft_ReturnsNoContentAndRecordsNothing()
+    {
+        var history = new RecordingContentHistory();
+        _live.Files[Path] = "published";
+
+        var result = await Builder(history: history).DiscardDraft("s1", Path, "themes", "default");
+
+        Assert.IsType<NoContentResult>(result);
+        Assert.Empty(history.Records);
+        Assert.Empty(_live.Events.OfType<PageBuilderContentChangedEvent>());
+    }
+
+    [Theory]
+    [InlineData("default/snapshots/current.json")]
+    [InlineData("default/catalogs/abc12345.json")]
+    public async Task SaveTemplates_SnapshotOrCatalog_ReturnsBadRequestAndWritesNothing(string path)
+    {
+        var result = await Builder().SaveTemplates("s1", "default", ThemeFile(path), draft: false);
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Empty(_live.Files);
+    }
+
     private Task<string> SaveCatalogAsync() =>
         new SchemaCatalogService(_themeStorageFactory).SaveAsync("s1",
             $$"""{ "hash": "{{Catalog}}", "sections": { "site-header": {}, "product-info": {}, "text": {} }, "blocks": {}, "shared": {} }""", Ct);
@@ -305,6 +343,7 @@ public class PageBuilderControllerThemeFilesTests
         var options = Options.Create(new GitContentOptions { Enabled = true, Organization = "acme", Token = "t0ken", BaseBranch = "main" });
         var themePublisher = new ThemePublisher(_themeStorageFactory, new ThemeSnapshotBuilder(), _live.StoreService, new SchemaCatalogService(_themeStorageFactory),
             _lock, _live, new NoContentHistory(), Options.Create(new ThemeSnapshotOptions()), NullLogger<ThemePublisher>.Instance);
+        var filePageDrafts = TestServices.FilePageDrafts(_live, options, GitHubConnections.CreateService(options.Value), GitHubConnections.CreatePolicy(options, new FakeSettingsManager(true), _ownership), null, null, new FakeGitContentProvisioner());
         var controller = new PageBuilderController(
             storeService: _live.StoreService,
             pathResolver: _live,
@@ -317,20 +356,19 @@ public class PageBuilderControllerThemeFilesTests
             gitContentRepository: null,
             gitContentHistory: null,
             gitContentPublisher: null,
-            gitContentProvisioner: new FakeGitContentProvisioner(),
             gitLivePageService: null,
             settingsManager: null,
             authorizationService: authorization ?? new FakeAuthorizationService(true),
             distributedLock: _lock,
             requestValidator: RequestValidators.Content("s1"),
             contentHistory: history ?? new NoContentHistory(),
-            themePublisher: themePublisher,
-            themeSnapshotService: new ThemeSnapshotService(_live.StoreService, _settings, _themeStorageFactory, themePublisher, null,
-                Options.Create(new ThemeSnapshotOptions())),
-            themeDraftService: null,
+            themeDraftService: new ThemeDraftService(_themeStorageFactory, _lock, eventPublisher ?? _live, NullLogger<ThemeDraftService>.Instance),
             groupedPageService: null,
-            pageContentService: null,
-                sharedComponentPlacementValidator: null);
+            sharedComponentPlacementValidator: null,
+            designerContentService: TestServices.Designer(history ?? new NoContentHistory(), filePageDrafts, null, null, eventPublisher ?? _live, themePublisher, new ThemeSnapshotService(_live.StoreService, _settings, _themeStorageFactory, themePublisher, null,
+                Options.Create(new ThemeSnapshotOptions()))),
+            contentPermissionService: TestServices.Permissions(authorization ?? new FakeAuthorizationService(true)),
+            filePageDraftService: filePageDrafts);
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Name, "alice")], "test")) },

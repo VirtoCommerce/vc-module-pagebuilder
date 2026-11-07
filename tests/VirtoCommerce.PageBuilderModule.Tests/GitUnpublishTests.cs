@@ -224,6 +224,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             // without a merge the live storage stays null: an unpublish waiting for its merge must not reach for it
             var connection = GitHubConnections.CreateService(options.Value);
             var gitHistory = new FakeGitContentHistory(history);
+            var filePageDrafts = TestServices.FilePageDrafts(live, options, connection, new FakeGitContentPolicy(source: source), repository, gitHistory, new FakeGitContentProvisioner());
             var controller = new PageBuilderController(
                 storeService: live?.StoreService,
                 pathResolver: live,
@@ -236,19 +237,18 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 gitContentRepository: repository,
                 gitContentHistory: gitHistory,
                 gitContentPublisher: publisher,
-                gitContentProvisioner: new FakeGitContentProvisioner(),
                 gitLivePageService: new GitLivePageService(repository, gitHistory, connection, live, live, live, live),
                 settingsManager: null,
                 authorizationService: new FakeAuthorizationService(true),
                 distributedLock: new InProcessDistributedLock(),
                 requestValidator: RequestValidators.Content("s1", "vccom"),
                 contentHistory: new NoContentHistory(),
-                themePublisher: null,
-                themeSnapshotService: null,
                 themeDraftService: null,
                 groupedPageService: null,
-                pageContentService: null,
-                sharedComponentPlacementValidator: null);
+                sharedComponentPlacementValidator: null,
+                designerContentService: TestServices.Designer(new NoContentHistory(), filePageDrafts, null, null, live, null, null),
+                contentPermissionService: TestServices.Permissions(new FakeAuthorizationService(true)),
+                filePageDraftService: filePageDrafts);
 
             var identity = new ClaimsIdentity([new Claim(ClaimTypes.Name, Login)], "test");
             controller.ControllerContext = new ControllerContext

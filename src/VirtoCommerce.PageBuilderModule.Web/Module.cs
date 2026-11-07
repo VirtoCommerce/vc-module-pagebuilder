@@ -83,6 +83,7 @@ namespace VirtoCommerce.PageBuilderModule.Web
                 IPageBuilderSharedComponentAssetReferenceIndexService,
                 PageBuilderSharedComponentAssetReferenceIndexService>();
             serviceCollection.AddTransient<PageBuilderPageContentService>();
+            serviceCollection.AddTransient<IGroupedPageContentWriter, GroupedPageContentWriter>();
 
             serviceCollection.AddTransient<GroupedPageBuilderPageChangedEventHandler>();
             serviceCollection.AddTransient<PageBuilderSharedComponentContentChangedEventHandler>();
@@ -132,10 +133,14 @@ namespace VirtoCommerce.PageBuilderModule.Web
             serviceCollection.AddTransient<ISchemaCatalogService, SchemaCatalogService>();
             serviceCollection.AddTransient<IThemePublisher, ThemePublisher>();
             serviceCollection.AddTransient<IThemeDraftService, ThemeDraftService>();
+            serviceCollection.AddTransient<IFilePageDraftService, FilePageDraftService>();
+            serviceCollection.AddTransient<IDesignerContentService, DesignerContentService>();
+            serviceCollection.AddTransient<IContentPermissionService, ContentPermissionService>();
             serviceCollection.AddTransient<IThemeSnapshotService, ThemeSnapshotService>();
             serviceCollection.AddTransient<IThemePaletteService, ThemePaletteService>();
             serviceCollection.AddTransient<IValidator<PageBuilderStoreRequest>, PageBuilderStoreRequestValidator>();
             serviceCollection.AddTransient<IValidator<ContentHistoryRequest>, ContentHistoryRequestValidator>();
+            serviceCollection.AddTransient<IValidator<ContentHistoryRestoreRequest>, ContentHistoryRestoreRequestValidator>();
             serviceCollection.AddTransient<IValidator<GitHubAppSetupRequest>, GitHubAppSetupRequestValidator>();
             serviceCollection.AddTransient<IValidator<ThemePaletteGenerationRequest>, ThemePaletteGenerationRequestValidator>();
             serviceCollection.AddTransient<IValidator<ThemePaletteCheckRequest>, ThemePaletteCheckRequestValidator>();

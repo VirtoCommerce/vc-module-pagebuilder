@@ -43,7 +43,7 @@ public class EndpointPermissionsTests
         [(typeof(PageBuilderPageController), nameof(PageBuilderPageController.DiscardGroupDraft))] = Permissions.Update,
         [(typeof(ThemeController), nameof(ThemeController.Publish))] = Permissions.Publish,
         [(typeof(ThemeController), nameof(ThemeController.GetStatus))] = Permissions.Read,
-        [(typeof(ThemeController), nameof(ThemeController.SaveCatalog))] = Permissions.Theme,
+        [(typeof(ThemeController), nameof(ThemeController.SaveCatalog))] = Permissions.Update,
         [(typeof(ThemeController), nameof(ThemeController.GetCatalog))] = Permissions.Read,
         [(typeof(ThemeController), nameof(ThemeController.GeneratePalette))] = Permissions.Theme,
         [(typeof(ThemeController), nameof(ThemeController.CheckPalette))] = Permissions.Theme,

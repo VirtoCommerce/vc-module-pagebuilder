@@ -79,24 +79,15 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         [InlineData("themes", "default/Config/builder_settings.json", false)]
         [InlineData("themes", "default/config/schemas/settings_data.json", false)]
         [InlineData("themes", "settings_data.json", false)]
+        [InlineData("themes", "default/snapshots/current.json", false)]
+        [InlineData("themes", "default/snapshots/3/en-US.json", false)]
+        [InlineData("themes", "default/catalogs/abc12345.json", false)]
+        [InlineData("themes", "default/catalogs/current.json", false)]
         public void OnlyTheFilesTheDesignerWrites_AreWritable(string type, string path, bool expected)
         {
             var file = new PageBuilderContentFile { ContentType = type, Path = path, Content = JToken.Parse("{\"settings\":{\"type\":\"settings\"},\"content\":[]}") };
 
             Assert.Equal(expected, new PageBuilderContentFileValidator().Validate(file).IsValid);
         }
-
-        [Theory]
-        [InlineData("default/templates/product.json", true)]
-        [InlineData("/default/templates/product.json", true)]
-        [InlineData("default/config/template_rules.json", true)]
-        [InlineData("default/Config/Template_Rules.json", true)]
-        [InlineData("default/config/settings_data.json", false)]
-        [InlineData("default/sections/header-group.json", false)]
-        [InlineData("default/content/templates/product.json", false)]
-        [InlineData("templates/product.json", false)]
-        [InlineData(null, false)]
-        public void IsTemplateFile_ThemePath_TellsTemplatesAndRulesApart(string path, bool expected) =>
-            Assert.Equal(expected, PageBuilderContentPaths.IsTemplateFile(path));
     }
 }

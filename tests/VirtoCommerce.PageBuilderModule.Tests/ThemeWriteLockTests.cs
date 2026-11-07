@@ -96,6 +96,7 @@ public class ThemeWriteLockTests
     private PageBuilderController Builder()
     {
         var options = Options.Create(new GitContentOptions());
+        var filePageDrafts = TestServices.FilePageDrafts(_live, options, GitHubConnections.CreateService(options.Value), GitHubConnections.CreatePolicy(options, new FakeSettingsManager(false), new FakeGitContentOwnership()), null, null, new FakeGitContentProvisioner());
         return WithUser(new PageBuilderController(
             storeService: _live.StoreService,
             pathResolver: _live,
@@ -108,25 +109,29 @@ public class ThemeWriteLockTests
             gitContentRepository: null,
             gitContentHistory: null,
             gitContentPublisher: null,
-            gitContentProvisioner: new FakeGitContentProvisioner(),
             gitLivePageService: null,
             settingsManager: null,
             authorizationService: new FakeAuthorizationService(true),
             distributedLock: _lock,
             requestValidator: RequestValidators.Content("s1"),
             contentHistory: new NoContentHistory(),
-            themePublisher: null,
-            themeSnapshotService: null,
-            themeDraftService: null,
+            themeDraftService: ThemeDrafts(),
             groupedPageService: null,
-            pageContentService: null,
-                sharedComponentPlacementValidator: null));
+            sharedComponentPlacementValidator: null,
+            designerContentService: TestServices.Designer(new NoContentHistory(), filePageDrafts, null, null, _live, null, null),
+            contentPermissionService: TestServices.Permissions(new FakeAuthorizationService(true)),
+            filePageDraftService: filePageDrafts));
     }
 
-    private HistoryController HistoryController(RecordingContentHistory history) =>
-        WithUser(new HistoryController(history, null, null,
-            new ThemeDraftService(new ThemeStorageFactory(_live.StoreService, _live, _live, _live), _lock, _live, NullLogger<ThemeDraftService>.Instance),
-            new FakeAuthorizationService(true), RequestValidators.Stores("s1"), RequestValidators.History("s1")));
+    private HistoryController HistoryController(RecordingContentHistory history)
+    {
+        var authorization = new FakeAuthorizationService(true);
+        return WithUser(new HistoryController(history, null, TestServices.Designer(history, themeDrafts: ThemeDrafts()), TestServices.Permissions(authorization), null,
+            authorization, RequestValidators.Stores("s1"), RequestValidators.History("s1"), RequestValidators.Restore("s1")));
+    }
+
+    private ThemeDraftService ThemeDrafts() =>
+        new(new ThemeStorageFactory(_live.StoreService, _live, _live, _live), _lock, _live, NullLogger<ThemeDraftService>.Instance);
 
     private static T WithUser<T>(T controller) where T : ControllerBase
     {

@@ -25,7 +25,7 @@ public class ThemeSnapshotService(
 
     public virtual async Task<ThemeSnapshot> GetPublishedAsync(string storeId, string cultureName, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrEmpty(storeId) || !await IsNewPageBuilderEnabledAsync(storeId))
+        if (string.IsNullOrEmpty(storeId) || !await IsNewPageBuilderEnabledAsync(storeId, cancellationToken))
         {
             return null;
         }
@@ -48,7 +48,7 @@ public class ThemeSnapshotService(
         });
     }
 
-    public virtual async Task<bool> IsNewPageBuilderEnabledAsync(string storeId)
+    public virtual async Task<bool> IsNewPageBuilderEnabledAsync(string storeId, CancellationToken cancellationToken = default)
     {
         var descriptor = ModuleConstants.Settings.StoreLevelSettings.NewPageBuilder;
         var settings = await settingsManager.GetObjectSettingsAsync([descriptor.Name], ModuleConstants.Settings.StoreSettingsObjectType, storeId);

@@ -65,8 +65,9 @@ public class RepositoryOwnershipConflictAttributeTests
         pages.SeedGroup(new GroupedPageBuilderPage { Id = "g1", StoreId = "s1", Name = "Home", Permalink = "/home" });
         var history = SiteHistories.Create(new GitHubScript(), new ThemeStorageFactory(live.StoreService, live, live, live), pages,
             ownership: new FakeGitContentOwnership("another-store"));
-        var controller = new HistoryController(history, pages, null, null, new FakeAuthorizationService(true), RequestValidators.Stores("s1"),
-            RequestValidators.History("s1"))
+        var authorization = new FakeAuthorizationService(true);
+        var controller = new HistoryController(history, pages, null, TestServices.Permissions(authorization), null, authorization, RequestValidators.Stores("s1"),
+            RequestValidators.History("s1"), RequestValidators.Restore("s1"))
         {
             ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity()) } },
         };

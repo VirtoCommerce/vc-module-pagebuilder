@@ -25,7 +25,9 @@ store's `DefaultThemeName` property, `default` when it is empty. Paths below are
 | `snapshots/current.json` | the pointer to the current publication: `{ "publication": 12 }` |
 | `catalogs/{hash}.json`, `catalogs/current.json` | the storefront schema catalogs, by hash, and the latest one's hash |
 
-Every file except the snapshots has a draft next to it, `{file}-draft`. The designer and the agents write drafts only:
+Every file except the snapshots and the catalogs has a draft next to it, `{file}-draft`. Only a publication writes
+`snapshots/` and only a catalog upload writes `catalogs/`: a save or a restore naming either is refused with 400.
+The designer and the agents write drafts only:
 on a store with New Page Builder on, the builder's save refuses a live write of a theme file (`draft=false`) with 400.
 The designer saves the page and the theme files it changed in one request, all or nothing
 ([Save](history-api.md#save)).
@@ -366,7 +368,7 @@ announcement bar follows the light and dark theme.
 
 The server checks a palette against the pairs of colors the storefront puts on one another, by WCAG 2.2 relative
 luminance: text needs 4.5:1, icons and controls 3:1 (`ModuleConstants.Palette`). The list is
-`PaletteContrastPairs` (Core). Each side of a pair is a token and the token the storefront's stylesheets
+`ThemePaletteService.GetContrastPairs` (Data), which a module can override with the token rules. Each side of a pair is a token and the token the storefront's stylesheets
 (`_colors.scss`, `_ui-kit-tokens.scss`) fall back to when the preset does not define it.
 
 | Pair | Text (fallback) | Background (fallback) | Ratio |
@@ -414,7 +416,8 @@ The catalog is the storefront's section, block, template and palette schemas, th
 [preview protocol](preview-protocol.md#handshake), named by its `hash`.
 
 - The designer uploads the catalog of the storefront it previews when the server does not have that hash. Uploading
-  takes `builder:theme`. The server keeps every catalog by its hash and never changes one; the latest upload is the
+  takes `builder:update`, the designer's own permission, so an editor of templates or a publisher is not blocked by a
+  new storefront. The server keeps every catalog by its hash and never changes one; the latest upload is the
   store's current catalog, which agents read.
 - A save and a publication name the hash of the catalog the designer previewed. The server validates the theme files
   against that catalog with the same rules (every section and block type is one the storefront has, and a theme file
@@ -432,10 +435,10 @@ All take `storeId` and check the store as the other Page Builder endpoints do.
 |---|---|---|
 | `POST api/pagebuilder/theme/publish?storeId&catalogHash` | `builder:publish` | `{ publication }`; 400 `{ error, errors }` when it names no catalog or the theme does not fit it |
 | `GET api/pagebuilder/theme/status?storeId` | `builder:read` | `{ publication, drafts }`: the current publication, left out before the first, and the theme files with a draft by their path in the theme (`templates/product.json`, `config/template_rules.json`) |
-| `POST api/pagebuilder/save?storeId&theme&draft&catalogHash`, the files as the body | `builder:update`; `builder:templates` or `builder:theme` by theme file | 200; 400 `{ error, errors }` when a theme file does not fit the catalog it names; 400 `{ error }` for a live theme write on a New Page Builder store |
+| `POST api/pagebuilder/save?storeId&theme&draft&catalogHash`, the files as the body | `builder:update`; `builder:templates` or `builder:theme` by theme file | 200; 400 `{ error, errors }` when a theme file does not fit the catalog it names; 400 `{ error }` for a live theme write on a New Page Builder store, or for a file under `snapshots/` or `catalogs/` |
 | `POST api/pagebuilder/designer/save?storeId&catalogHash` | see [Save](history-api.md#save) | the designer's Save: the page and the theme files as drafts, all or nothing, one version |
 | `POST api/pagebuilder/designer/discard?storeId` | see [Discard](history-api.md#discard) | the designer's Discard: the drafts of the page and the theme files go, all or nothing, one version |
-| `PUT api/pagebuilder/catalog?storeId`, the catalog as the body | `builder:theme` | `{ hash }`; 400 when it has no valid `hash` |
+| `PUT api/pagebuilder/catalog?storeId`, the catalog as the body | `builder:update` | `{ hash }`; 400 when it has no valid `hash` |
 | `GET api/pagebuilder/catalog?storeId&hash` | `builder:read` | the catalog with that hash, the current one without it; 404 when there is none |
 | `POST api/pagebuilder/theme/palette?storeId`, `{ primary, secondary?, tokens: { light, dark } }` as the body | `builder:theme` | `{ light, dark, failures }`: the generated palettes and the pairs they still fail (none so far); 400 when a color is not `#rrggbb`/`#rgb` or no light tokens are named |
 | `POST api/pagebuilder/theme/palette/check?storeId`, `{ palette: { light, dark? }, tokens: { light, dark } }` as the body | `builder:theme` | `{ failures, unchecked }`: the pairs the palette fails and how many pairs could not be checked; 400 without a palette or tokens |

@@ -183,7 +183,6 @@ public class PageBuilderPermalinkTests
         var pageContentService = new PageBuilderPageContentService(
             pageService,
             service,
-            new NoopSharedComponentReferenceIndexService(),
             new PublishedRenameContentPreservationTests.NoopEventPublisher(),
             NullLogger<PageBuilderPageContentService>.Instance);
         var controller = new PageBuilderPageController(
@@ -194,7 +193,8 @@ public class PageBuilderPermalinkTests
             new PublishedRenameContentPreservationTests.NoopPageDocumentSearchService(),
             pageContentService,
             NullLogger<PageBuilderPageController>.Instance, new NoContentHistory(),
-            new PageBuilderSharedComponentPlacementValidator(new NoopSharedComponentReferenceIndexService(), new PublishedRenameContentPreservationTests.AllowAllAuthorizationService()));
+            new PageBuilderSharedComponentPlacementValidator(new NoopSharedComponentReferenceIndexService(), new PublishedRenameContentPreservationTests.AllowAllAuthorizationService()),
+            TestServices.Designer(new NoContentHistory()));
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity()) },

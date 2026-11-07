@@ -8,6 +8,8 @@ namespace VirtoCommerce.PageBuilderModule.Tests;
 
 public class ThemePaletteServiceTests
 {
+    private static readonly IList<PaletteContrastPair> DefaultPairs = new DefaultPairsPaletteService().Pairs;
+
     private readonly ThemePaletteService _service = new();
 
     [Theory]
@@ -188,7 +190,7 @@ public class ThemePaletteServiceTests
         Assert.Equal(4.5, solid.MinimumRatio);
         Assert.Contains(result.Failures, x => x.Pair == "button-outline-primary" && x.Text == "color_primary_500" && x.Background == "color_additional_50");
         // the rest of the pairs need colors the palette leaves to the preset
-        Assert.Equal(PaletteContrastPairs.All.Count - 3, result.Unchecked);
+        Assert.Equal(DefaultPairs.Count - 3, result.Unchecked);
     }
 
     [Theory]
@@ -239,7 +241,7 @@ public class ThemePaletteServiceTests
         });
 
         Assert.Empty(result.Failures);
-        Assert.Equal(PaletteContrastPairs.All.Count, result.Unchecked);
+        Assert.Equal(DefaultPairs.Count, result.Unchecked);
     }
 
     [Fact]
@@ -285,7 +287,7 @@ public class ThemePaletteServiceTests
     {
         var known = StorefrontPaletteTokens.Dark.Concat(StorefrontPaletteTokens.Light).ToHashSet();
 
-        Assert.All(PaletteContrastPairs.All, pair =>
+        Assert.All(DefaultPairs, pair =>
         {
             Assert.True(pair.MinimumRatio is 4.5 or 3, pair.Name);
             foreach (var reference in new[] { pair.Text, pair.Background })
@@ -294,7 +296,7 @@ public class ThemePaletteServiceTests
                 Assert.True(known.Contains(reference.Token) || reference.Token.StartsWith("color_vc_background_"), reference.Token);
             }
         });
-        Assert.Equal(PaletteContrastPairs.All.Count, PaletteContrastPairs.All.Select(x => x.Name).Distinct().Count());
+        Assert.Equal(DefaultPairs.Count, DefaultPairs.Select(x => x.Name).Distinct().Count());
     }
 
     [Fact]
@@ -321,6 +323,14 @@ public class ThemePaletteServiceTests
         Assert.Empty(result.Failures);
     }
 
+    [Fact]
+    public void GeneratePalette_FixedBaseColorOverridden_BuildsTheScaleFromIt()
+    {
+        var result = new NavyInfoPaletteService().GeneratePalette(Request("#6a6a6a", "#6a6a6a"));
+
+        Assert.Equal("#000080", result.Light["color_info_500"]);
+    }
+
     private static PaletteContrastPair Pair(string text, string background) =>
         new()
         {
@@ -333,6 +343,21 @@ public class ThemePaletteServiceTests
     private sealed class OnePairPaletteService(PaletteContrastPair pair) : ThemePaletteService
     {
         protected override IList<PaletteContrastPair> GetContrastPairs() => [pair];
+    }
+
+    private sealed class NavyInfoPaletteService : ThemePaletteService
+    {
+        protected override IDictionary<string, PaletteColor> GetFixedBaseColors()
+        {
+            var colors = base.GetFixedBaseColors();
+            colors["info"] = new PaletteColor(0x00, 0x00, 0x80);
+            return colors;
+        }
+    }
+
+    private sealed class DefaultPairsPaletteService : ThemePaletteService
+    {
+        public IList<PaletteContrastPair> Pairs => GetContrastPairs();
     }
 
     private static ThemePaletteGenerationRequest Request(string primary, string secondary) =>

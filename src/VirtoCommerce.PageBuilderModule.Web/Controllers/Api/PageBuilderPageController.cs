@@ -39,6 +39,7 @@ public class PageBuilderPageController : Controller
     private readonly ILogger<PageBuilderPageController> logger;
     private readonly IContentHistory contentHistory;
     private readonly IPageBuilderSharedComponentPlacementValidator sharedComponentPlacementValidator;
+    private readonly IDesignerContentService designerContentService;
 
     public PageBuilderPageController(
         IPageBuilderPageService crudService,
@@ -49,7 +50,8 @@ public class PageBuilderPageController : Controller
         PageBuilderPageContentService pageContentService,
         ILogger<PageBuilderPageController> logger,
         IContentHistory contentHistory,
-        IPageBuilderSharedComponentPlacementValidator sharedComponentPlacementValidator)
+        IPageBuilderSharedComponentPlacementValidator sharedComponentPlacementValidator,
+        IDesignerContentService designerContentService)
     {
         this.crudService = crudService;
         this.groupedPageService = groupedPageService;
@@ -60,6 +62,7 @@ public class PageBuilderPageController : Controller
         this.logger = logger;
         this.contentHistory = contentHistory;
         this.sharedComponentPlacementValidator = sharedComponentPlacementValidator;
+        this.designerContentService = designerContentService;
     }
 
     [HttpPost("search")]
@@ -300,7 +303,7 @@ public class PageBuilderPageController : Controller
             return BadRequest(PageBuilderPageName.InvalidMessage);
         }
 
-        if (!TryValidatePageContentEnvelope(model.Content, out var envelopeError))
+        if (!PageContentEnvelope.TryValidate(model.Content, out var envelopeError))
         {
             return BadRequest(envelopeError);
         }
@@ -350,62 +353,6 @@ public class PageBuilderPageController : Controller
         }
 
         return Ok(groupedPage);
-    }
-
-    internal static bool TryValidatePageContentEnvelope(string content, out string error)
-    {
-        JsonNode node;
-        try
-        {
-            node = JsonNode.Parse(content);
-        }
-        catch (System.Text.Json.JsonException ex)
-        {
-            error = $"Content is not valid JSON: {ex.Message}";
-            return false;
-        }
-
-        if (node is not JsonObject root)
-        {
-            error = "Content root must be a JSON object with `settings` and `content` keys.";
-            return false;
-        }
-
-        if (root["settings"] is not JsonObject)
-        {
-            error = "`settings` must be a JSON object.";
-            return false;
-        }
-
-        if (root["content"] is not JsonArray contentArray)
-        {
-            error = "`content` must be a JSON array of section objects.";
-            return false;
-        }
-
-        for (var i = 0; i < contentArray.Count; i++)
-        {
-            if (contentArray[i] is not JsonObject section)
-            {
-                error = $"`content[{i}]` must be a JSON object.";
-                return false;
-            }
-
-            string sectionType = null;
-            if (section["type"] is JsonValue typeValue)
-            {
-                typeValue.TryGetValue<string>(out sectionType);
-            }
-
-            if (string.IsNullOrWhiteSpace(sectionType))
-            {
-                error = $"`content[{i}].type` is required (non-empty string matching a section key from the schema catalog).";
-                return false;
-            }
-        }
-
-        error = null;
-        return true;
     }
 
     [HttpPost("grouped/archive")]
@@ -513,19 +460,17 @@ public class PageBuilderPageController : Controller
             return Forbidden;
         }
 
-        string publishedContent;
+        var command = AbstractTypeFactory<DesignerDiscardCommand>.TryCreateInstance();
+        command.StoreId = groupedPage.StoreId;
+        command.SaveId = Request.GetSaveId();
+        command.Group = groupedPage;
         try
         {
-            publishedContent = await pageContentService.DiscardDraftsAsync(groupedPage, cancellationToken);
+            await designerContentService.DiscardAsync(command, User, cancellationToken);
         }
         catch (InvalidDataException ex)
         {
             return BadRequest(new { error = ex.Message });
-        }
-
-        if (publishedContent != null)
-        {
-            await RecordHistoryAsync(groupedPage, publishedContent, ModuleConstants.GitHistory.DiscardedSummary, cancellationToken);
         }
 
         return Ok();
@@ -728,7 +673,7 @@ public class PageBuilderPageController : Controller
             return BadRequest("Content is required.");
         }
 
-        if (!TryValidatePageContentEnvelope(model.Content, out var envelopeError))
+        if (!PageContentEnvelope.TryValidate(model.Content, out var envelopeError))
         {
             return BadRequest(envelopeError);
         }
@@ -1006,9 +951,7 @@ public class PageBuilderPageController : Controller
 
     private Task RecordHistoryAsync(GroupedPageBuilderPage group, string content, string description, CancellationToken cancellationToken)
     {
-        var record = AbstractTypeFactory<ContentHistoryRecord>.TryCreateInstance().WithUser(User);
-        record.Description = description;
-        record.SaveId = Request.GetSaveId();
+        var record = ContentHistoryRecord.Create(description, Request.GetSaveId(), User);
         record.AddEntry(new HistoryItem(HistoryItemType.Page, group.Id), content);
 
         return contentHistory.RecordAsync(group.StoreId, record, cancellationToken);

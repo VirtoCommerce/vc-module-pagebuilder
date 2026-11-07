@@ -329,6 +329,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
             // Only the git dependencies take part in these paths; the rest are left null on purpose, so a
             // change that starts reaching for blob storage or the publisher fails loudly here.
+            var filePageDrafts = TestServices.FilePageDrafts(options, GitHubConnections.CreateService(options.Value), new FakeGitContentPolicy(gitFlow), repository, history, new FakeGitContentProvisioner(), new FakeStoreService(store ?? new Store { Id = "vccom" }), null, null, null, null);
             var controller = new PageBuilderController(
                 storeService: new FakeStoreService(store ?? new Store { Id = "vccom" }),
                 pathResolver: null,
@@ -341,19 +342,18 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 gitContentRepository: repository,
                 gitContentHistory: history,
                 gitContentPublisher: null,
-                gitContentProvisioner: new FakeGitContentProvisioner(),
                 gitLivePageService: null,
                 settingsManager: new PerNameSettings(configuredStoreUrl),
                 authorizationService: new FakeAuthorizationService(true),
                 distributedLock: new InProcessDistributedLock(),
                 requestValidator: new PageBuilderContentRequestValidator(new PageBuilderStoreRequestValidator(new FakeStoreService(store ?? new Store { Id = "vccom" })), new PageBuilderContentFileValidator()),
                 contentHistory: new NoContentHistory(),
-                themePublisher: null,
-                themeSnapshotService: null,
                 themeDraftService: null,
                 groupedPageService: null,
-                pageContentService: null,
-                sharedComponentPlacementValidator: null);
+                sharedComponentPlacementValidator: null,
+                designerContentService: TestServices.Designer(new NoContentHistory(), filePageDrafts, null, null, null, null, null),
+                contentPermissionService: TestServices.Permissions(new FakeAuthorizationService(true)),
+                filePageDraftService: filePageDrafts);
 
             var identity = new ClaimsIdentity([new Claim(ClaimTypes.Name, Login)], "test");
             controller.ControllerContext = new ControllerContext

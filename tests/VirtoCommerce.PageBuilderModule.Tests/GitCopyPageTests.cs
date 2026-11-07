@@ -178,6 +178,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
             // Only the git dependencies take part; the rest stay null on purpose, so a change that starts
             // reaching for blob storage fails loudly here instead of quietly writing a draft blob again.
+            var filePageDrafts = TestServices.FilePageDrafts(options, GitHubConnections.CreateService(options.Value), new FakeGitContentPolicy(gitFlow), repository, new FakeGitContentHistory(), new FakeGitContentProvisioner(), new FakeStoreService(new Store { Id = "vccom" }), null, null, null, null);
             var controller = new PageBuilderController(
                 storeService: new FakeStoreService(new Store { Id = "vccom" }),
                 pathResolver: null,
@@ -190,19 +191,18 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 gitContentRepository: repository,
                 gitContentHistory: new FakeGitContentHistory(),
                 gitContentPublisher: null,
-                gitContentProvisioner: new FakeGitContentProvisioner(),
                 gitLivePageService: null,
                 settingsManager: null,
                 authorizationService: new FakeAuthorizationService(allowed),
                 distributedLock: new InProcessDistributedLock(),
                 requestValidator: RequestValidators.Content("s1", "vccom"),
                 contentHistory: new NoContentHistory(),
-                themePublisher: null,
-                themeSnapshotService: null,
                 themeDraftService: null,
                 groupedPageService: null,
-                pageContentService: null,
-                sharedComponentPlacementValidator: null);
+                sharedComponentPlacementValidator: null,
+                designerContentService: TestServices.Designer(new NoContentHistory(), filePageDrafts, null, null, null, null, null),
+                contentPermissionService: TestServices.Permissions(new FakeAuthorizationService(allowed)),
+                filePageDraftService: filePageDrafts);
 
             var identity = new ClaimsIdentity([new Claim(ClaimTypes.Name, Login)], "test");
             controller.ControllerContext = new ControllerContext

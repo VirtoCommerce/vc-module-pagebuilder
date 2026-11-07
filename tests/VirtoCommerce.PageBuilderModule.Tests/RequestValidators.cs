@@ -17,6 +17,9 @@ internal static class RequestValidators
     public static IValidator<ContentHistoryRequest> History(params string[] storeIds) =>
         new ContentHistoryRequestValidator(Stores(storeIds));
 
+    public static IValidator<ContentHistoryRestoreRequest> Restore(params string[] storeIds) =>
+        new ContentHistoryRestoreRequestValidator(History(storeIds));
+
     public static IValidator<PageBuilderContentRequest> Content(params string[] storeIds) =>
         new PageBuilderContentRequestValidator(Stores(storeIds), new PageBuilderContentFileValidator());
 }

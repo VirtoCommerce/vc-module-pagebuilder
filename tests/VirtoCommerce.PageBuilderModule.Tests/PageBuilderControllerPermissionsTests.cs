@@ -25,9 +25,9 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             { nameof(PageBuilderController.GetSchemaByKey), [Permissions.Read] },
             { nameof(PageBuilderController.Search), [Permissions.Read] },
             { nameof(PageBuilderController.SaveTemplates), [Permissions.Update] },
-            // and the permission that edits each part, in the action
-            { nameof(PageBuilderController.SaveDesignerChanges), [Permissions.Read] },
-            { nameof(PageBuilderController.DiscardDesignerChanges), [Permissions.Read] },
+            // and the permission that edits each theme file, in the action
+            { nameof(PageBuilderController.SaveDesignerChanges), [Permissions.Update] },
+            { nameof(PageBuilderController.DiscardDesignerChanges), [Permissions.Update] },
             { nameof(PageBuilderController.GitPublish), [Permissions.Publish] },
             { nameof(PageBuilderController.GitPromote), [Permissions.Promote] },
             { nameof(PageBuilderController.GitUnpublish), [Permissions.Publish] },

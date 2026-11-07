@@ -320,7 +320,8 @@ public class MultilanguagePageControllerTests
             null!,
             null!,
             NullLogger<PageBuilderPageController>.Instance, new NoContentHistory(),
-            new PageBuilderSharedComponentPlacementValidator(new NoopSharedComponentReferenceIndexService(), new PredicateAuthorizationService(_ => true)))
+            new PageBuilderSharedComponentPlacementValidator(new NoopSharedComponentReferenceIndexService(), new PredicateAuthorizationService(_ => true)),
+            TestServices.Designer(new NoContentHistory()))
         {
             ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() },
         };

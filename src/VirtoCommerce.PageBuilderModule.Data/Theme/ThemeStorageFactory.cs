@@ -26,7 +26,7 @@ public class ThemeStorageFactory(
         return CreateStorage(blobContentStorageProviderFactory.CreateProvider(basePath), themeName);
     }
 
-    protected virtual async Task<string> GetThemeNameAsync(string storeId)
+    public virtual async Task<string> GetThemeNameAsync(string storeId)
     {
         var store = await storeService.GetNoCloneAsync(storeId, StoreResponseGroup.DynamicProperties.ToString());
         var themeName = store?.DynamicProperties?

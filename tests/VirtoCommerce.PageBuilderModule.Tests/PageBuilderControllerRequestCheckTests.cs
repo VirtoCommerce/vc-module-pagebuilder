@@ -353,6 +353,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         private static PageBuilderController Controller(bool storeAccess = true, string[] granted = null, IAuthorizationService authorizationService = null, bool gitFlow = false)
         {
             // Nothing past the check is wired up, so an action that reaches storage first fails here.
+            var filePageDrafts = TestServices.FilePageDrafts(null, null, new FakeGitContentPolicy(enabled: gitFlow), null, null, new FakeGitContentProvisioner(), new FakeStoreService(new Store { Id = Store }), null, null, null, null);
             var controller = new PageBuilderController(
                 storeService: new FakeStoreService(new Store { Id = Store }),
                 pathResolver: null,
@@ -365,19 +366,18 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 gitContentRepository: null,
                 gitContentHistory: null,
                 gitContentPublisher: null,
-                gitContentProvisioner: new FakeGitContentProvisioner(),
                 gitLivePageService: null,
                 settingsManager: null,
                 authorizationService: authorizationService ?? new ScopedAuthorizationService(storeAccess, granted),
                 distributedLock: new InProcessDistributedLock(),
                 requestValidator: new PageBuilderContentRequestValidator(new PageBuilderStoreRequestValidator(new FakeStoreService(new Store { Id = Store })), new PageBuilderContentFileValidator()),
                 contentHistory: new NoContentHistory(),
-                themePublisher: null,
-                themeSnapshotService: null,
                 themeDraftService: null,
                 groupedPageService: null,
-                pageContentService: null,
-                sharedComponentPlacementValidator: null);
+                sharedComponentPlacementValidator: null,
+                designerContentService: TestServices.Designer(new NoContentHistory(), filePageDrafts, null, null, null, null, null),
+                contentPermissionService: TestServices.Permissions(authorizationService ?? new ScopedAuthorizationService(storeAccess, granted)),
+                filePageDraftService: filePageDrafts);
 
             controller.ControllerContext = new ControllerContext
             {

@@ -196,8 +196,7 @@ public class PageContentSaveFailureControllerTests
     }
 
     private PageBuilderPageContentService ContentService() =>
-        new(new Fakes.FakePageBuilderPageService(_pages), _pages, new NoopSharedComponentReferenceIndexService(), new Fakes.NoopEventPublisher(),
-            NullLogger<PageBuilderPageContentService>.Instance);
+        new(new Fakes.FakePageBuilderPageService(_pages), _pages, new Fakes.NoopEventPublisher(), NullLogger<PageBuilderPageContentService>.Instance);
 
     private PageBuilderPageController PageController() =>
         WithUser(new PageBuilderPageController(
@@ -209,15 +208,22 @@ public class PageContentSaveFailureControllerTests
             pageContentService: ContentService(),
             logger: NullLogger<PageBuilderPageController>.Instance,
             contentHistory: _history,
-            sharedComponentPlacementValidator: new PageBuilderSharedComponentPlacementValidator(new NoopSharedComponentReferenceIndexService(), new Fakes.AllowAllAuthorizationService())));
+            sharedComponentPlacementValidator: new PageBuilderSharedComponentPlacementValidator(new NoopSharedComponentReferenceIndexService(), new Fakes.AllowAllAuthorizationService()),
+            designerContentService: TestServices.Designer(_history, themeDrafts: ThemeDrafts(), pages: _pages)));
 
     private HistoryController HistoryController()
     {
+        var authorization = new Fakes.AllowAllAuthorizationService();
+        return WithUser(new HistoryController(_history, _pages, TestServices.Designer(_history, themeDrafts: ThemeDrafts(), pages: _pages),
+            TestServices.Permissions(authorization), new PageBuilderSharedComponentPlacementValidator(new NoopSharedComponentReferenceIndexService(), authorization),
+            authorization, RequestValidators.Stores("store"), RequestValidators.History("store"), RequestValidators.Restore("store")));
+    }
+
+    private static ThemeDraftService ThemeDrafts()
+    {
         var live = new FakeBlobStorage();
-        var drafts = new ThemeDraftService(new ThemeStorageFactory(live.StoreService, live, live, live), new InProcessDistributedLock(), live,
+        return new ThemeDraftService(new ThemeStorageFactory(live.StoreService, live, live, live), new InProcessDistributedLock(), live,
             NullLogger<ThemeDraftService>.Instance);
-        return WithUser(new HistoryController(_history, _pages, ContentService(), drafts, new Fakes.AllowAllAuthorizationService(),
-            RequestValidators.Stores("store"), RequestValidators.History("store")));
     }
 
     private static T WithUser<T>(T controller) where T : ControllerBase

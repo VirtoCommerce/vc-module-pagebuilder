@@ -63,7 +63,10 @@ a page of that store, or `theme:{path}`, a theme file outside `snapshots/`; it m
 Restore writes the items as of the version as their drafts, in one save under the theme lock, all or nothing, and
 records it as one version, "Restored {the first 7 characters of the versionId}". It names at most one page, and needs
 `builder:update` for the page, `builder:templates` for templates and the rules, and `builder:theme` for the other
-theme files. The editor then publishes as usual. To preview a version, the designer reads the page and the theme files
+theme files. A theme item must be a file the builder saves: not under `catalogs/`, and in `config/` only the builder's
+own files. The order of the checks: the store (403), the items (400), the permission of every item (403), the page
+(404, or 403 for another store's), the items as of the version (404), and the page's shared components as a save
+checks them (403 without `builder:shared-components:read`, 400). The editor then publishes as usual. To preview a version, the designer reads the page and the theme files
 it shows as of it.
 
 ```ts
@@ -97,7 +100,7 @@ interface ContentVersion {
 
 | Status | When |
 |---|---|
-| 400 | `item` is missing or malformed, or names a path outside the theme or under `snapshots/`; a `cursor` the list did not return; a restore naming two pages |
+| 400 | `item` is missing or malformed, or names a path outside the theme or under `snapshots/`; a `cursor` the list did not return; a restore naming two pages, or a theme file the builder does not save |
 | 403 | no permission, or no access to the store or the page, or the page is another store's |
 | 404 | the page does not exist, or the item did not exist as of the version |
 | 412 | restore: the page was saved by someone else while it was being restored |
@@ -116,7 +119,7 @@ A designer Save is one request and one version: the page and the theme files it 
 
 | Method and route | Permission | Returns |
 |---|---|---|
-| `POST api/pagebuilder/designer/save?storeId&catalogHash`, `DesignerSave` as the body | `builder:read`, and per part: `builder:update` for the page, `builder:templates` for templates and the rules, `builder:theme` for the other theme files | `{ saveId, eTag }` |
+| `POST api/pagebuilder/designer/save?storeId&catalogHash`, `DesignerSave` as the body | `builder:update`, and per theme file: `builder:templates` for templates and the rules, `builder:theme` for the other theme files | `{ saveId, eTag }` |
 
 ```ts
 interface DesignerSave {
@@ -128,8 +131,8 @@ interface DesignerSave {
 ```
 
 - Contents are JSON text, saved as they are: the history tells the published version by these bytes.
-- Everything is checked before anything is written: the store and each part's permission (403), the paths and the
-  JSON (400), the page's envelope and shared components as `grouped/{groupId}/content` checks them (400; 403 without
+- Everything is checked before anything is written: the store and each part's permission (403), the database page
+  (404, or 403 for another store's), the paths and the JSON (400), the page's envelope and shared components as `grouped/{groupId}/content` checks them (400; 403 without
   `builder:shared-components:read`), its version (428 without one; 412 when the page was saved since it was read), and
   the theme files against the catalog named (400 `{ error, errors }`; not checked without `catalogHash`).
 - Under the store's theme lock the theme drafts are written first and the page last. When the page is refused (412) or
@@ -150,7 +153,7 @@ is published is current again.
 
 | Method and route | Permission | Returns |
 |---|---|---|
-| `POST api/pagebuilder/designer/discard?storeId`, `DesignerDiscard` as the body | `builder:read`, and per part as for [Save](#save) | `{ saveId }` |
+| `POST api/pagebuilder/designer/discard?storeId`, `DesignerDiscard` as the body | `builder:update`, and per theme file as for [Save](#save) | `{ saveId }` |
 
 ```ts
 interface DesignerDiscard {
@@ -161,7 +164,8 @@ interface DesignerDiscard {
 }
 ```
 
-- The store, each part's permission (403) and the paths (400) are checked before anything is deleted.
+- The store, each part's permission (403), the database page (404, or 403 for another store's) and the paths (400) are
+  checked before anything is deleted.
 - Under the store's theme lock the theme drafts are deleted first and the page's last. A theme file never published
   keeps its draft, which is its only copy. A database page never published is refused (400) and the theme drafts are
   put back. A file page's draft is its work branch on the git flow, else its blob draft.

@@ -102,6 +102,7 @@ public class BlobPublishTests
     private static PageBuilderController Controller(RecordingPublishingService publishing, bool allowed = true)
     {
         // The git dependencies are left null on purpose: a store off the git flow must not reach them.
+        var filePageDrafts = TestServices.FilePageDrafts(Options.Create(new GitContentOptions()), GitHubConnections.CreateService(Options.Create(new GitContentOptions()).Value), new FakeGitContentPolicy(enabled: false), null, null, new FakeGitContentProvisioner(), new FakeStoreService(new Store { Id = "vccom" }), null, null, publishing, null);
         var controller = new PageBuilderController(
             storeService: new FakeStoreService(new Store { Id = "vccom" }),
             pathResolver: null,
@@ -114,19 +115,18 @@ public class BlobPublishTests
             gitContentRepository: null,
             gitContentHistory: null,
             gitContentPublisher: null,
-            gitContentProvisioner: new FakeGitContentProvisioner(),
             gitLivePageService: null,
             settingsManager: null,
             authorizationService: new FakeAuthorizationService(allowed),
             distributedLock: new InProcessDistributedLock(),
             requestValidator: new PageBuilderContentRequestValidator(new PageBuilderStoreRequestValidator(new FakeStoreService(new Store { Id = "vccom" })), new PageBuilderContentFileValidator()),
             contentHistory: new NoContentHistory(),
-            themePublisher: null,
-            themeSnapshotService: null,
             themeDraftService: null,
             groupedPageService: null,
-            pageContentService: null,
-                sharedComponentPlacementValidator: null);
+            sharedComponentPlacementValidator: null,
+            designerContentService: TestServices.Designer(new NoContentHistory(), filePageDrafts, null, null, null, null, null),
+            contentPermissionService: TestServices.Permissions(new FakeAuthorizationService(allowed)),
+            filePageDraftService: filePageDrafts);
 
         controller.ControllerContext = new ControllerContext
         {

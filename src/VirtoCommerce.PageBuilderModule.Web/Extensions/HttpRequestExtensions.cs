@@ -16,4 +16,7 @@ public static class HttpRequestExtensions
         var value = request?.Headers[ModuleConstants.Headers.SaveId].ToString();
         return !string.IsNullOrEmpty(value) && SaveIdRegex.IsMatch(value) ? value : null;
     }
+
+    /// <summary>Gets the id of the designer save the request belongs to, or a new one.</summary>
+    public static string GetOrCreateSaveId(this HttpRequest request) => request.GetSaveId() ?? Guid.NewGuid().ToString("N");
 }

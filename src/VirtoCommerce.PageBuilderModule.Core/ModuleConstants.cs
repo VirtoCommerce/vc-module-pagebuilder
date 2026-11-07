@@ -53,6 +53,9 @@ namespace VirtoCommerce.PageBuilderModule.Core
             public const string PublishedSummary = "Published";
             public const string DiscardedSummary = "Discarded unpublished changes";
             public const string RestoredSummary = "Restored";
+
+            /// <summary>Characters of the version id a restored version is named by.</summary>
+            public const int RestoredVersionLength = 7;
         }
 
         public static class Headers

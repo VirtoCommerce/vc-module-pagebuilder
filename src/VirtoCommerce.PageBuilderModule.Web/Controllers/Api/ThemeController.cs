@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Linq;
 using System.Net.Mime;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,6 +11,7 @@ using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Theme;
 using VirtoCommerce.PageBuilderModule.Data.Authorization;
+using VirtoCommerce.PageBuilderModule.Web.Extensions;
 using VirtoCommerce.Platform.Core.Common;
 
 namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
@@ -68,7 +68,7 @@ public class ThemeController(
 
     /// <summary>Save storefront schema catalog</summary>
     [HttpPut("catalog")]
-    [Authorize(ModuleConstants.Security.Permissions.Theme)]
+    [Authorize(ModuleConstants.Security.Permissions.Update)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<SchemaCatalogPointer>> SaveCatalog([FromQuery] string storeId, CancellationToken cancellationToken = default)
@@ -144,7 +144,7 @@ public class ThemeController(
     {
         var request = new PageBuilderStoreRequest { StoreId = storeId };
 
-        return await CheckStoreAccessAsync(request) ?? await ValidateAsync(request, cancellationToken);
+        return await CheckStoreAccessAsync(request) ?? await storeRequestValidator.ValidateRequestAsync(request, cancellationToken);
     }
 
     private async Task<ActionResult> CheckStoreAccessAsync(PageBuilderStoreRequest request)
@@ -153,24 +153,13 @@ public class ThemeController(
         return authorizationResult.Succeeded ? null : Forbid();
     }
 
-    private async Task<ActionResult> ValidateBodyAsync<T>(IValidator<T> validator, T request, CancellationToken cancellationToken)
+    private static async Task<ActionResult> ValidateBodyAsync<T>(IValidator<T> validator, T request, CancellationToken cancellationToken)
     {
         if (request == null)
         {
-            return BadRequest(new { error = "The request has no body." });
+            return new BadRequestObjectResult(new { error = "The request has no body." });
         }
 
-        var validationResult = await validator.ValidateAsync(request, cancellationToken);
-        return validationResult.IsValid
-            ? null
-            : BadRequest(new { error = string.Join(" ", validationResult.Errors.Select(x => x.ErrorMessage)) });
-    }
-
-    private async Task<ActionResult> ValidateAsync(PageBuilderStoreRequest request, CancellationToken cancellationToken)
-    {
-        var validationResult = await storeRequestValidator.ValidateAsync(request, cancellationToken);
-        return validationResult.IsValid
-            ? null
-            : BadRequest(new { error = string.Join(" ", validationResult.Errors.Select(x => x.ErrorMessage)) });
+        return await validator.ValidateRequestAsync(request, cancellationToken);
     }
 }

@@ -58,7 +58,7 @@ public class PageBuilderPageControllerSharedComponentPreflightTests
         service.ConcurrentContentBeforeSaveFailure = "{ \"concurrent\": true }";
         service.SaveContentException = new InvalidDataException("Shared Component 'deleted' was not found.");
         var writer = new PageBuilderPageContentService(new PublishedRenameContentPreservationTests.FakePageBuilderPageService(service),
-            service, new NoopSharedComponentReferenceIndexService(), new PublishedRenameContentPreservationTests.NoopEventPublisher(),
+            service, new PublishedRenameContentPreservationTests.NoopEventPublisher(),
             NullLogger<PageBuilderPageContentService>.Instance);
 
         var result = await writer.SaveContentAsync("group", await service.GetByIdAsync("group"), ComponentReferenceContent, TestContext.Current.CancellationToken);
@@ -78,7 +78,7 @@ public class PageBuilderPageControllerSharedComponentPreflightTests
         service.ReplaceNewDraftAfterSaveWithPageId = "concurrent-draft";
         service.SaveContentException = new InvalidDataException("Shared Component 'deleted' was not found.");
         var writer = new PageBuilderPageContentService(new PublishedRenameContentPreservationTests.FakePageBuilderPageService(service),
-            service, new NoopSharedComponentReferenceIndexService(), new PublishedRenameContentPreservationTests.NoopEventPublisher(),
+            service, new PublishedRenameContentPreservationTests.NoopEventPublisher(),
             NullLogger<PageBuilderPageContentService>.Instance);
 
         var result = await writer.SaveContentAsync("group", await service.GetByIdAsync("group"), ComponentReferenceContent, TestContext.Current.CancellationToken);
@@ -246,7 +246,6 @@ public class PageBuilderPageControllerSharedComponentPreflightTests
         var pageContentService = new PageBuilderPageContentService(
             pageService,
             service,
-            referenceIndex,
             eventPublisher,
             NullLogger<PageBuilderPageContentService>.Instance);
         authorizationService ??= new PublishedRenameContentPreservationTests.AllowAllAuthorizationService();
@@ -258,7 +257,8 @@ public class PageBuilderPageControllerSharedComponentPreflightTests
             new PublishedRenameContentPreservationTests.NoopPageDocumentSearchService(),
             pageContentService,
             NullLogger<PageBuilderPageController>.Instance, new NoContentHistory(),
-            new PageBuilderSharedComponentPlacementValidator(referenceIndex, authorizationService));
+            new PageBuilderSharedComponentPlacementValidator(referenceIndex, authorizationService),
+            TestServices.Designer(new NoContentHistory()));
         var httpContext = new DefaultHttpContext
         {
             User = new ClaimsPrincipal(new ClaimsIdentity()),

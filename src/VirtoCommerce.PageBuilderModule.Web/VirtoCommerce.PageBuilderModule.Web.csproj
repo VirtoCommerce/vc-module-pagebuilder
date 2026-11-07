@@ -54,6 +54,7 @@
     <Exec Command="corepack enable" ContinueOnError="true" />
     <Exec Command="yarn install --immutable" WorkingDirectory="$(MSBuildProjectDirectory)\vue" />
     <Exec Command="yarn type-check" WorkingDirectory="$(MSBuildProjectDirectory)\vue" />
+    <Exec Command="yarn test" WorkingDirectory="$(MSBuildProjectDirectory)\vue" />
     <Exec Command="yarn build" WorkingDirectory="$(MSBuildProjectDirectory)\vue" />
   </Target>
   <!-- The platform probes {moduleRoot}/plugins/, but publish goes to {moduleRoot}/bin. The files are listed here, after the

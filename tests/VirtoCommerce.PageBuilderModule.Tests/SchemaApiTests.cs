@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json.Linq;
+using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Data.Validation;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using Xunit;
@@ -356,7 +357,7 @@ public class MergeStaticSectionsIntoTemplateTests
 public class TryValidatePageContentEnvelopeTests
 {
     private static bool Validate(string content, out string error) =>
-        PageBuilderPageController.TryValidatePageContentEnvelope(content, out error);
+        PageContentEnvelope.TryValidate(content, out error);
 
     [Fact]
     public void Accepts_minimal_valid_envelope()

@@ -8,7 +8,6 @@ using Microsoft.Extensions.Logging;
 using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
-using VirtoCommerce.PageBuilderModule.Data.Services;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Events;
 using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
@@ -19,7 +18,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Services;
 public sealed class PageBuilderPageContentService(
     IPageBuilderPageService pageService,
     IGroupedPageService groupedPageService,
-    IPageBuilderSharedComponentReferenceIndexService sharedComponentReferenceIndexService,
     IEventPublisher eventPublisher,
     ILogger<PageBuilderPageContentService> logger,
     IGroupedPageContentService versionedContent)
@@ -27,28 +25,10 @@ public sealed class PageBuilderPageContentService(
     public PageBuilderPageContentService(
         IPageBuilderPageService pageService,
         IGroupedPageService groupedPageService,
-        IPageBuilderSharedComponentReferenceIndexService sharedComponentReferenceIndexService,
         IEventPublisher eventPublisher,
         ILogger<PageBuilderPageContentService> logger)
-        : this(pageService, groupedPageService, sharedComponentReferenceIndexService, eventPublisher, logger,
-            groupedPageService as IGroupedPageContentService)
+        : this(pageService, groupedPageService, eventPublisher, logger, groupedPageService as IGroupedPageContentService)
     {
-    }
-
-    public bool HasSharedComponentReferences(string content)
-    {
-        return PageBuilderSharedComponentReferenceMatcher.HasReferences(content);
-    }
-
-    public Task ValidateReferencesForStoreAsync(
-        string storeId,
-        string content,
-        CancellationToken cancellationToken)
-    {
-        return sharedComponentReferenceIndexService.ValidateReferencesForStoreAsync(
-            storeId,
-            [content],
-            cancellationToken);
     }
 
     private IGroupedPageContentService VersionedContent => versionedContent
@@ -118,27 +98,6 @@ public sealed class PageBuilderPageContentService(
             await RaisePageContentChangedAsync(result.PageId, cancellationToken);
         }
         return result;
-    }
-
-    /// <summary>
-    /// Deletes the drafts of a published page, so that the published version is current again. Returns the published content,
-    /// or null when the page had no draft.
-    /// </summary>
-    /// <exception cref="InvalidDataException">The page has never been published.</exception>
-    public async Task<string> DiscardDraftsAsync(GroupedPageBuilderPage group, CancellationToken cancellationToken)
-    {
-        var publishedPage = PageBuilderPageSelection.Order(group.Pages).FirstOrDefault(x => x.Status == Published)
-            ?? throw new InvalidDataException("This page has never been published, so there is no published version to go back to.");
-
-        var draftIds = group.Pages.Where(x => x.Status == Draft).Select(x => x.Id).ToList();
-        if (draftIds.Count == 0)
-        {
-            return null;
-        }
-
-        await pageService.DeleteAsync(draftIds);
-
-        return await groupedPageService.LoadContent(publishedPage.Id, cancellationToken);
     }
 
     public async Task<PageBuilderPageContentWriteResult> CopyContentAsync(

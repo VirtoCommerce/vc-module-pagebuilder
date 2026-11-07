@@ -68,7 +68,7 @@ public static class PageBuilderContentPaths
 
     /// <summary>A theme file the history keeps: any but a published snapshot.</summary>
     public static bool IsHistoryThemeFile(string path) =>
-        IsThemeFilePath(path) && !GetPathInTheme(path).StartsWith(ThemeStorage.SnapshotsFolder + "/", StringComparison.OrdinalIgnoreCase);
+        IsThemeFilePath(path) && !IsInFolder(GetPathInTheme(path), ThemeStorage.SnapshotsFolder);
 
     public static bool IsFolderName(string name) =>
         IsRelativePath(name) && !name.Contains('/');
@@ -80,26 +80,24 @@ public static class PageBuilderContentPaths
 
     public static bool IsInsideAThemeFolder(string path) => path.TrimStart('/').Contains('/');
 
-    /// <summary>No theme folder check: the file rules check that first.</summary>
+    /// <summary>Not a snapshot or a catalog, and in config/ only the builder's own files; the file rules check the theme folder.</summary>
     public static bool CanSaveThemeFile(string path)
     {
         var pathInTheme = GetPathInTheme(path);
 
-        return !pathInTheme.StartsWith(ThemeConfigFolder + "/", StringComparison.OrdinalIgnoreCase) || BuilderConfigFiles.Contains(pathInTheme);
+        return !IsInFolder(pathInTheme, ThemeStorage.SnapshotsFolder) &&
+               !IsInFolder(pathInTheme, ThemeStorage.CatalogsFolder) &&
+               (!IsInFolder(pathInTheme, ThemeConfigFolder) || BuilderConfigFiles.Contains(pathInTheme));
     }
 
-    /// <summary>A template or the template rules: the files the templates permission edits.</summary>
-    public static bool IsTemplateFile(string path)
+    /// <summary>Gets the theme folder: "default" for "default/templates/product.json".</summary>
+    public static string GetThemeName(string path)
     {
-        var pathInTheme = GetPathInTheme(path);
+        var relativePath = (path ?? string.Empty).TrimStart('/');
+        var separator = relativePath.IndexOf('/');
 
-        return pathInTheme.StartsWith(ThemeStorage.TemplatesFolder + "/", StringComparison.OrdinalIgnoreCase) ||
-               pathInTheme.Equals(ThemeStorage.TemplateRulesFile, StringComparison.OrdinalIgnoreCase);
+        return separator < 0 ? string.Empty : relativePath[..separator];
     }
-
-    /// <summary>Gets the permission that edits the theme file: templates for a template or the rules, theme for any other.</summary>
-    public static string GetThemeFileEditPermission(string path) =>
-        IsTemplateFile(path) ? ModuleConstants.Security.Permissions.Templates : ModuleConstants.Security.Permissions.Theme;
 
     /// <summary>Gets the path after the theme folder: "templates/product.json" for "default/templates/product.json".</summary>
     public static string GetPathInTheme(string path)
@@ -108,6 +106,9 @@ public static class PageBuilderContentPaths
 
         return relativePath[(relativePath.IndexOf('/') + 1)..];
     }
+
+    public static bool IsInFolder(string path, string folder) =>
+        path != null && path.StartsWith(folder + "/", StringComparison.OrdinalIgnoreCase);
 
     public static bool IsLegacyDraft(string path) => path.EndsWith(ModuleConstants.DraftSuffix, StringComparison.OrdinalIgnoreCase);
 

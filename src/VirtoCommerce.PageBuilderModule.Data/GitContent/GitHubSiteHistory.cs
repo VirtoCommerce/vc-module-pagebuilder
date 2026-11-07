@@ -259,8 +259,7 @@ public class GitHubSiteHistory(
             return page == null ? null : await groupedPageService.LoadContent(page.Id, cancellationToken);
         }
 
-        var separator = item.Key.IndexOf('/');
-        return await themeStorageFactory.Open(storeId, item.Key[..separator]).ReadAsync(item.Key[(separator + 1)..]);
+        return await themeStorageFactory.Open(storeId, PageBuilderContentPaths.GetThemeName(item.Key)).ReadAsync(PageBuilderContentPaths.GetPathInTheme(item.Key));
     }
 
     /// <summary>Reads the histories of the files in one request.</summary>

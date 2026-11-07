@@ -3,6 +3,7 @@ using VirtoCommerce.ContentModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Theme;
+using VirtoCommerce.PageBuilderModule.Data.Validation;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.DistributedLock;
 using VirtoCommerce.Platform.Core.Events;
@@ -32,7 +33,7 @@ public class ThemeDraftService(
         return result;
     }
 
-    public virtual async Task<IList<PublishedThemeFile>> DiscardDraftsAsync(string storeId, IList<string> paths, Func<CancellationToken, Task> discardOthersAsync,
+    public virtual async Task<IList<DiscardedThemeDraft>> DiscardDraftsAsync(string storeId, IList<string> paths, Func<CancellationToken, Task> discardOthersAsync,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(paths);
@@ -43,7 +44,7 @@ public class ThemeDraftService(
             _ => DiscardUnderLockAsync(storeId, paths, discardOthersAsync, cancellationToken),
             cancellationToken: cancellationToken);
 
-        await PublishChangedEventAsync(result.Select(x => x.Path), cancellationToken);
+        await PublishChangedEventAsync(result.Where(x => x.Status == DraftDiscardStatus.Discarded).Select(x => x.Path), cancellationToken);
 
         return result;
     }
@@ -70,29 +71,27 @@ public class ThemeDraftService(
         }
     }
 
-    protected virtual async Task<IList<PublishedThemeFile>> DiscardUnderLockAsync(string storeId, IList<string> paths, Func<CancellationToken, Task> discardOthersAsync,
+    protected virtual async Task<IList<DiscardedThemeDraft>> DiscardUnderLockAsync(string storeId, IList<string> paths, Func<CancellationToken, Task> discardOthersAsync,
         CancellationToken cancellationToken)
     {
         var removedDrafts = new List<ThemeDraft>();
-        var result = new List<PublishedThemeFile>();
+        var result = new List<DiscardedThemeDraft>();
         try
         {
             foreach (var path in paths)
             {
                 var draft = await ReadDraftAsync(storeId, path);
-                var publishedContent = draft.Content == null ? null : await draft.Storage.ReadAsync(draft.Storage.GetLivePath(draft.File));
-                if (publishedContent == null)
+                var discarded = AbstractTypeFactory<DiscardedThemeDraft>.TryCreateInstance();
+                discarded.Path = path;
+                discarded.PublishedContent = draft.Content == null ? null : await draft.Storage.ReadAsync(draft.Storage.GetLivePath(draft.File));
+                discarded.Status = GetDiscardStatus(draft, discarded.PublishedContent);
+                result.Add(discarded);
+
+                if (discarded.Status == DraftDiscardStatus.Discarded)
                 {
-                    continue;
+                    await draft.Storage.RemoveAsync([draft.File]);
+                    removedDrafts.Add(draft);
                 }
-
-                await draft.Storage.RemoveAsync([draft.File]);
-                removedDrafts.Add(draft);
-
-                var file = AbstractTypeFactory<PublishedThemeFile>.TryCreateInstance();
-                file.Path = path;
-                file.Content = publishedContent;
-                result.Add(file);
             }
 
             await discardOthersAsync(cancellationToken);
@@ -108,11 +107,21 @@ public class ThemeDraftService(
 
     protected virtual async Task<ThemeDraft> ReadDraftAsync(string storeId, string path)
     {
-        var separator = path.IndexOf('/');
-        var storage = themeStorageFactory.Open(storeId, path[..separator]);
-        var file = storage.GetDraftPath(path[(separator + 1)..]);
+        var storage = themeStorageFactory.Open(storeId, PageBuilderContentPaths.GetThemeName(path));
+        var file = storage.GetDraftPath(PageBuilderContentPaths.GetPathInTheme(path));
 
         return new ThemeDraft(storage, file, await storage.ReadAsync(file));
+    }
+
+    /// <summary>A draft of a file never published is its only copy and stays.</summary>
+    protected virtual DraftDiscardStatus GetDiscardStatus(ThemeDraft draft, string publishedContent)
+    {
+        if (draft.Content == null)
+        {
+            return DraftDiscardStatus.NoDraft;
+        }
+
+        return publishedContent == null ? DraftDiscardStatus.OnlyCopy : DraftDiscardStatus.Discarded;
     }
 
     /// <summary>Puts the drafts back as they were, the last changed first.</summary>

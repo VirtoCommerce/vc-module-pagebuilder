@@ -14,11 +14,8 @@ using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Core.History;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
-using VirtoCommerce.PageBuilderModule.Core.Theme;
 using VirtoCommerce.PageBuilderModule.Data.Authorization;
-using VirtoCommerce.PageBuilderModule.Data.Validation;
 using VirtoCommerce.PageBuilderModule.Web.Extensions;
-using VirtoCommerce.PageBuilderModule.Web.Services;
 using VirtoCommerce.Platform.Core.Common;
 
 namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
@@ -29,22 +26,21 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 public class HistoryController(
     IContentHistory contentHistory,
     IGroupedPageService groupedPageService,
-    PageBuilderPageContentService pageContentService,
-    IThemeDraftService themeDraftService,
+    IDesignerContentService designerContentService,
+    IContentPermissionService contentPermissionService,
+    IPageBuilderSharedComponentPlacementValidator sharedComponentPlacementValidator,
     IAuthorizationService authorizationService,
     IValidator<PageBuilderStoreRequest> storeRequestValidator,
-    IValidator<ContentHistoryRequest> requestValidator) : Controller
+    IValidator<ContentHistoryRequest> requestValidator,
+    IValidator<ContentHistoryRestoreRequest> restoreRequestValidator) : Controller
 {
-    // the part of a version id a restored version is named by
-    private const int VersionLabelLength = 7;
-
     /// <summary>Get whether the store keeps history</summary>
     [HttpGet("status")]
     [Authorize(ModuleConstants.Security.Permissions.Read)]
     public async Task<ActionResult<ContentHistoryStatusResult>> GetStatus([FromQuery] string storeId, CancellationToken cancellationToken = default)
     {
         var request = new PageBuilderStoreRequest { StoreId = storeId };
-        if ((await CheckStoreAccessAsync(request) ?? await ValidateAsync(storeRequestValidator, request, cancellationToken)) is { } refused)
+        if ((await CheckStoreAccessAsync(request) ?? await storeRequestValidator.ValidateRequestAsync(request, cancellationToken)) is { } refused)
         {
             return refused;
         }
@@ -106,19 +102,27 @@ public class HistoryController(
     /// <summary>Restore the items as of the version as their drafts, in one save</summary>
     [HttpPost("{versionId}/restore")]
     [Authorize(ModuleConstants.Security.Permissions.Read)]
-    public async Task<ActionResult<ContentHistoryRestoreResult>> Restore([FromRoute] string versionId, [FromQuery] string storeId,
+    public async Task<ActionResult<ContentSaveResult>> Restore([FromRoute] string versionId, [FromQuery] string storeId,
         [FromQuery(Name = "item")] string[] items, CancellationToken cancellationToken = default)
     {
-        var request = new ContentHistoryRequest { StoreId = storeId, Items = items ?? [], VersionId = versionId };
-        if (await CheckRequestAsync(request, cancellationToken) is { } refused)
+        var request = new ContentHistoryRestoreRequest { StoreId = storeId, Items = items ?? [], VersionId = versionId };
+        if ((await CheckStoreAccessAsync(request) ?? await restoreRequestValidator.ValidateRequestAsync(request, cancellationToken)) is { } refused)
         {
             return refused;
         }
 
+        // the edit permissions first, so a 404 does not reveal which pages exist
         var historyItems = ParseItems(request);
-        if (await CheckEditPermissionsAsync(historyItems) is { } forbidden)
+        if (!await contentPermissionService.HasPermissionsAsync(User, historyItems.Select(contentPermissionService.GetEditPermission)))
         {
-            return forbidden;
+            return Forbid();
+        }
+
+        var pageItem = historyItems.SingleOrDefault(x => x.Type == HistoryItemType.Page);
+        var group = pageItem == null ? null : await groupedPageService.GetByIdAsync(pageItem.Key);
+        if (pageItem != null && await CheckPageAccessAsync(storeId, group) is { } refusedPage)
+        {
+            return refusedPage;
         }
 
         var contents = new Dictionary<HistoryItem, string>();
@@ -140,11 +144,21 @@ public class HistoryController(
             return StatusCode(StatusCodes.Status502BadGateway, new { error = ex.Message });
         }
 
+        if (pageItem != null &&
+            (await sharedComponentPlacementValidator.ValidateAsync(User, storeId, contents[pageItem], cancellationToken)).ToActionResult() is { } refusedContent)
+        {
+            return refusedContent;
+        }
+
+        var command = AbstractTypeFactory<ContentRestoreCommand>.TryCreateInstance();
+        command.StoreId = storeId;
+        command.VersionId = versionId;
+        command.SaveId = Request.GetOrCreateSaveId();
+        command.Group = group;
+        command.Contents = contents;
         try
         {
-            var themeFiles = contents.Where(x => x.Key.Type == HistoryItemType.Theme).ToDictionary(x => x.Key.Key, x => x.Value);
-            var page = contents.SingleOrDefault(x => x.Key.Type == HistoryItemType.Page);
-            await themeDraftService.SaveDraftsAsync(storeId, themeFiles, token => RestorePageAsync(page.Key?.Key, page.Value, token), cancellationToken);
+            return Ok(await designerContentService.RestoreAsync(command, User, cancellationToken));
         }
         catch (PageBuilderContentConflictException ex)
         {
@@ -158,43 +172,14 @@ public class HistoryController(
         {
             return BadRequest(new { error = ex.Message });
         }
-
-        var result = AbstractTypeFactory<ContentHistoryRestoreResult>.TryCreateInstance();
-        result.SaveId = Request.GetSaveId() ?? Guid.NewGuid().ToString("N");
-
-        var record = AbstractTypeFactory<ContentHistoryRecord>.TryCreateInstance().WithUser(User);
-        record.Description = $"{ModuleConstants.GitHistory.RestoredSummary} {versionId[..VersionLabelLength]}";
-        record.SaveId = result.SaveId;
-        foreach (var (historyItem, content) in contents)
-        {
-            record.AddEntry(historyItem, content);
-        }
-
-        await contentHistory.RecordAsync(storeId, record, cancellationToken);
-
-        return Ok(result);
-    }
-
-    private async Task<bool> RestorePageAsync(string groupId, string content, CancellationToken cancellationToken)
-    {
-        if (groupId == null)
-        {
-            return false;
-        }
-
-        var group = await groupedPageService.GetByIdAsync(groupId) ?? throw new KeyNotFoundException();
-        var current = await pageContentService.LoadGroupContentAsync(group, draft: true, cancellationToken);
-        await pageContentService.SaveConditionalContentAsync(group, content, current.ETag, cancellationToken);
-
-        return true;
     }
 
     // store access first, so a 400 does not reveal which stores exist
     private async Task<ActionResult> CheckRequestAsync(ContentHistoryRequest request, CancellationToken cancellationToken)
     {
         return await CheckStoreAccessAsync(request)
-               ?? await ValidateAsync(requestValidator, request, cancellationToken)
-               ?? await CheckPageAccessAsync(request.StoreId, ParseItems(request));
+               ?? await requestValidator.ValidateRequestAsync(request, cancellationToken)
+               ?? await CheckPagesAccessAsync(request.StoreId, ParseItems(request));
     }
 
     private async Task<ActionResult> CheckStoreAccessAsync(PageBuilderStoreRequest request)
@@ -203,48 +188,27 @@ public class HistoryController(
         return authorizationResult.Succeeded ? null : Forbid();
     }
 
-    private async Task<ActionResult> CheckPageAccessAsync(string storeId, IEnumerable<HistoryItem> items)
+    private async Task<ActionResult> CheckPagesAccessAsync(string storeId, IEnumerable<HistoryItem> items)
     {
         foreach (var item in items.Where(x => x.Type == HistoryItemType.Page))
         {
-            var group = await groupedPageService.GetByIdAsync(item.Key);
-            if (group == null)
+            if (await CheckPageAccessAsync(storeId, await groupedPageService.GetByIdAsync(item.Key)) is { } refused)
             {
-                return NotFound();
-            }
-
-            var authorizationResult = await authorizationService.AuthorizeAsync(User, group, new PageBuilderAuthorizationRequirement());
-            if (!authorizationResult.Succeeded || !group.StoreId.EqualsIgnoreCase(storeId))
-            {
-                return Forbid();
+                return refused;
             }
         }
 
         return null;
     }
 
-    private async Task<ActionResult> CheckEditPermissionsAsync(IEnumerable<HistoryItem> items)
+    private async Task<ActionResult> CheckPageAccessAsync(string storeId, GroupedPageBuilderPage group)
     {
-        var permissions = items
-            .Select(x => x.Type == HistoryItemType.Page ? ModuleConstants.Security.Permissions.Update : PageBuilderContentPaths.GetThemeFileEditPermission(x.Key))
-            .Distinct();
-        foreach (var permission in permissions)
+        if (group == null)
         {
-            if (!(await authorizationService.AuthorizeAsync(User, null, permission)).Succeeded)
-            {
-                return Forbid();
-            }
+            return NotFound();
         }
 
-        return null;
-    }
-
-    private static async Task<ActionResult> ValidateAsync<T>(IValidator<T> validator, T request, CancellationToken cancellationToken)
-    {
-        var validationResult = await validator.ValidateAsync(request, cancellationToken);
-        return validationResult.IsValid
-            ? null
-            : new BadRequestObjectResult(new { error = string.Join(" ", validationResult.Errors.Select(x => x.ErrorMessage)) });
+        return await contentPermissionService.CanAccessPageAsync(User, group, storeId) ? null : Forbid();
     }
 
     private static IList<HistoryItem> ParseItems(ContentHistoryRequest request) =>

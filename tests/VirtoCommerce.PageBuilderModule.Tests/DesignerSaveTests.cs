@@ -18,7 +18,6 @@ using VirtoCommerce.PageBuilderModule.Core.Theme;
 using VirtoCommerce.PageBuilderModule.Data.Services;
 using VirtoCommerce.PageBuilderModule.Data.Theme;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
-using VirtoCommerce.PageBuilderModule.Web.Services;
 using VirtoCommerce.Platform.Core.Common;
 using Xunit;
 using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
@@ -191,6 +190,57 @@ public class DesignerSaveTests
         var result = await Builder(new FakeAuthorizationService("s2", Permissions.Read, Permissions.Update)).SaveDesignerChanges("s1", new DesignerSaveRequest());
 
         Assert.IsType<ForbidResult>(result.Result);
+    }
+
+    [Fact]
+    public async Task SaveDesignerChanges_PageOfAnotherStore_ReturnsForbidBeforeBadRequest()
+    {
+        _pages.SeedGroup(new GroupedPageBuilderPage { Id = "other", StoreId = "s2", Pages = [] });
+        var page = new DesignerSavePage { GroupId = "other", ETag = "\"x\"", Content = Edited };
+
+        var result = await Builder().SaveDesignerChanges("s1", Save(page, ("default/../x.json", "{}")));
+
+        Assert.IsType<ForbidResult>(result.Result);
+        AssertNothingWritten();
+    }
+
+    [Fact]
+    public async Task SaveDesignerChanges_UnknownPage_ReturnsNotFound()
+    {
+        var page = new DesignerSavePage { GroupId = "gone", ETag = "\"x\"", Content = Edited };
+
+        Assert.IsType<NotFoundResult>((await Builder().SaveDesignerChanges("s1", Save(page, (Header, HeaderFile)))).Result);
+        AssertNothingWritten();
+    }
+
+    [Fact]
+    public async Task SaveDesignerChanges_SnapshotOrCatalog_ReturnsBadRequestAndWritesNothing()
+    {
+        var result = await Builder().SaveDesignerChanges("s1", Save(null, ("default/snapshots/current.json", "{}"), ("default/catalogs/x.json", "{}")));
+
+        Assert.IsType<BadRequestObjectResult>(result.Result);
+        AssertNothingWritten();
+    }
+
+    [Fact]
+    public async Task DiscardDesignerChanges_PageOfAnotherStore_ReturnsForbidBeforeBadRequest()
+    {
+        _pages.SeedGroup(new GroupedPageBuilderPage { Id = "other", StoreId = "s2", Pages = [] });
+
+        var result = await Builder().DiscardDesignerChanges("s1", Discard(new DesignerSavePage { GroupId = "other" }, "default/../x.json"));
+
+        Assert.IsType<ForbidResult>(result.Result);
+    }
+
+    [Fact]
+    public async Task DiscardDesignerChanges_Discarded_AnswersTheSaveIdOnly()
+    {
+        _live.Files[Header] = "live header";
+        _live.Files[$"{Header}-draft"] = HeaderFile;
+
+        var result = await Builder().DiscardDesignerChanges("s1", Discard(null, Header));
+
+        Assert.Equal(["saveId"], PlatformJson.ParseBody(result.Result).Properties().Select(x => x.Name));
     }
 
     [Fact]
@@ -472,8 +522,7 @@ public class DesignerSaveTests
     {
         authorization ??= new FakeAuthorizationService(true);
         var options = Options.Create(new GitContentOptions());
-        var content = new PageBuilderPageContentService(new Fakes.FakePageBuilderPageService(_pages), _pages, new NoopSharedComponentReferenceIndexService(),
-            _live, NullLogger<PageBuilderPageContentService>.Instance);
+        var filePageDrafts = TestServices.FilePageDrafts(_live, options, GitHubConnections.CreateService(options.Value), GitHubConnections.CreatePolicy(options, new FakeSettingsManager(false), new FakeGitContentOwnership()), null, null, new FakeGitContentProvisioner());
         var controller = new PageBuilderController(
             storeService: _live.StoreService,
             pathResolver: _live,
@@ -486,19 +535,18 @@ public class DesignerSaveTests
             gitContentRepository: null,
             gitContentHistory: null,
             gitContentPublisher: null,
-            gitContentProvisioner: new FakeGitContentProvisioner(),
             gitLivePageService: null,
             settingsManager: null,
             authorizationService: authorization,
             distributedLock: _lock,
             requestValidator: RequestValidators.Content("s1"),
             contentHistory: history ?? _history,
-            themePublisher: ThemePublisher(),
-            themeSnapshotService: null,
             themeDraftService: new ThemeDraftService(_themes, _lock, _live, NullLogger<ThemeDraftService>.Instance),
             groupedPageService: _pages,
-            pageContentService: content,
-            sharedComponentPlacementValidator: new PageBuilderSharedComponentPlacementValidator(new NoopSharedComponentReferenceIndexService(), authorization));
+            sharedComponentPlacementValidator: new PageBuilderSharedComponentPlacementValidator(new NoopSharedComponentReferenceIndexService(), authorization),
+            designerContentService: TestServices.Designer(history ?? _history, filePageDrafts, new ThemeDraftService(_themes, _lock, _live, NullLogger<ThemeDraftService>.Instance), _pages, _live, ThemePublisher(), null),
+            contentPermissionService: TestServices.Permissions(authorization),
+            filePageDraftService: filePageDrafts);
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext
