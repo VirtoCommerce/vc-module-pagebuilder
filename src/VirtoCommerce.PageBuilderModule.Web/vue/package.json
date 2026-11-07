@@ -8,7 +8,7 @@
     "build:standalone": "cross-env APP_ENV=production vite build --config vite.standalone.config.mts",
     "build:types": "vue-tsc --declaration --emitDeclarationOnly --outDir dist/types",
     "type-check": "vue-tsc --noEmit",
-    "test": "tsx --test \"tests/**/*.test.ts\"",
+    "test": "tsx --test \"tests/**/*.test.ts\" && vitest run",
     "generate-api-client": "cross-env api-client-generator --APP_PLATFORM_MODULES='[VirtoCommerce.PageBuilderModule,VirtoCommerce.Assets]' --APP_API_CLIENT_DIRECTORY=./src/api_client/ --APP_OUT_DIR=dist --APP_PACKAGE_NAME=api --APP_PACKAGE_VERSION=$npm_package_version --APP_TYPE_STYLE=Interface"
   },
   "devDependencies": {
@@ -17,14 +17,18 @@
     "@types/sortablejs": "^1",
     "@vc-shell/api-client-generator": "2.7.0",
     "@vc-shell/ts-config": "2.7.0",
+    "@vitejs/plugin-vue": "^5.2.3",
+    "@vue/test-utils": "^2.4.11",
     "autoprefixer": "^10.4.27",
     "cross-env": "^7.0.3",
+    "jsdom": "^29.1.1",
     "postcss": "^8.5.13",
     "sass": "^1.87.0",
     "tailwindcss": "^3.4.19",
     "tsx": "^4.21.0",
     "typescript": "^5.8.3",
     "vite": "^6.3.3",
+    "vitest": "^3.2.7",
     "vue-tsc": "^3.2.5"
   },
   "dependencies": {
