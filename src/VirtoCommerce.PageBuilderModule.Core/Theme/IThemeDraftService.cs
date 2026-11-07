@@ -9,4 +9,12 @@ public interface IThemeDraftService
     /// </summary>
     Task<T> SaveDraftsAsync<T>(string storeId, IDictionary<string, string> files, Func<CancellationToken, Task<T>> saveOthersAsync,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Under the store's theme lock, deletes the drafts of the published files and then runs <paramref name="discardOthersAsync"/>;
+    /// when it fails, puts the drafts back. A draft of a file never published is its only copy and stays. Returns the published
+    /// files whose draft was deleted.
+    /// </summary>
+    Task<IList<PublishedThemeFile>> DiscardDraftsAsync(string storeId, IList<string> paths, Func<CancellationToken, Task> discardOthersAsync,
+        CancellationToken cancellationToken = default);
 }

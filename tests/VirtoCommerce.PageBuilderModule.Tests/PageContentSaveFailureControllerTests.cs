@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Newtonsoft.Json;
 using VirtoCommerce.PageBuilderModule.Core.History;
 using VirtoCommerce.PageBuilderModule.Core.Models;
+using VirtoCommerce.PageBuilderModule.Data.Services;
 using VirtoCommerce.PageBuilderModule.Data.Theme;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using VirtoCommerce.PageBuilderModule.Web.Services;
@@ -207,7 +208,8 @@ public class PageContentSaveFailureControllerTests
             pageDocumentSearchService: new Fakes.NoopPageDocumentSearchService(),
             pageContentService: ContentService(),
             logger: NullLogger<PageBuilderPageController>.Instance,
-            contentHistory: _history));
+            contentHistory: _history,
+            sharedComponentPlacementValidator: new PageBuilderSharedComponentPlacementValidator(new NoopSharedComponentReferenceIndexService(), new Fakes.AllowAllAuthorizationService())));
 
     private HistoryController HistoryController()
     {

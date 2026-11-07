@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
+using VirtoCommerce.PageBuilderModule.Data.Services;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using VirtoCommerce.PageBuilderModule.Web.Services;
 using VirtoCommerce.Pages.Core.Models;
@@ -145,7 +146,8 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 authorizationService: new AllowAllAuthorizationService(),
                 pageDocumentSearchService: new NoopPageDocumentSearchService(),
                 pageContentService: pageContentService,
-                logger: NullLogger<PageBuilderPageController>.Instance, contentHistory: new NoContentHistory());
+                logger: NullLogger<PageBuilderPageController>.Instance, contentHistory: new NoContentHistory(),
+                sharedComponentPlacementValidator: new PageBuilderSharedComponentPlacementValidator(new NoopSharedComponentReferenceIndexService(), new PublishedRenameContentPreservationTests.AllowAllAuthorizationService()));
 
             var httpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity()) };
             httpContext.Response.Body = new MemoryStream();

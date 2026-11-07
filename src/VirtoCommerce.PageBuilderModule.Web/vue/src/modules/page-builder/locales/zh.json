@@ -395,7 +395,24 @@
         "PRESET_PLACEHOLDER": "选择预设",
         "APPLY": "应用",
         "EMPTY": "此主题没有可编辑的设置。",
-        "LOAD_FAILED": "无法加载主题设置。"
+        "LOAD_FAILED": "无法加载主题设置。",
+        "BRAND": "品牌",
+        "LOGO": "标志",
+        "LOGO_HINT": "用于浅色背景：浅色主题中的页眉。",
+        "SECONDARY_LOGO": "深色背景上的标志",
+        "SECONDARY_LOGO_HINT": "页脚，以及深色主题中的页眉。",
+        "FAVICON": "网站图标",
+        "FAVICON_HINT": "浏览器标签页中的图标。",
+        "COLORS": "颜色",
+        "LIGHT_COLORS": "浅色",
+        "DARK_COLORS": "深色",
+        "OTHER_COLORS": "其他颜色",
+        "PALETTE_HINT": "留空的颜色保持店面自身的颜色。",
+        "NO_DARK": "没有深色：店面没有深色主题。设置一个颜色即可添加。",
+        "DARK_NEEDS_LIGHT": "深色仅与浅色一起生效：请同时设置一个浅色。",
+        "TOKENS_PENDING": "调色板来自店面预览，加载完成后显示。",
+        "UNKNOWN_TOKEN": "不在店面的调色板中",
+        "LOOK_LOAD_FAILED": "无法加载品牌和颜色。"
       },
       "CLIPBOARD": {
         "COPY": "复制",
@@ -560,7 +577,11 @@
         "NO_CONDITIONS": "无条件：此规则匹配所有内容。",
         "SAVE": "保存规则",
         "CANCEL": "取消"
-      }
+      },
+      "MENU_PLACEHOLDER": "选择商店菜单",
+      "MENUS_FAILED": "无法加载商店的菜单。",
+      "TOKEN_PLACEHOLDER": "选择调色板颜色",
+      "WHITE_LABELING": "该访客的此项由白标设置：此处的更改不会显示。"
     },
     "WIDGETS": {
       "STORE": "Page Builder"

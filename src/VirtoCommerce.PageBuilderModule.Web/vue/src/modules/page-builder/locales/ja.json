@@ -395,7 +395,24 @@
         "PRESET_PLACEHOLDER": "プリセットを選択",
         "APPLY": "適用",
         "EMPTY": "このテーマには編集できる設定がありません。",
-        "LOAD_FAILED": "テーマ設定を読み込めませんでした。"
+        "LOAD_FAILED": "テーマ設定を読み込めませんでした。",
+        "BRAND": "ブランド",
+        "LOGO": "ロゴ",
+        "LOGO_HINT": "明るい背景用：ライトテーマのヘッダー。",
+        "SECONDARY_LOGO": "暗い背景用のロゴ",
+        "SECONDARY_LOGO_HINT": "フッター、およびダークテーマのヘッダー。",
+        "FAVICON": "ファビコン",
+        "FAVICON_HINT": "ブラウザのタブに表示されるアイコン。",
+        "COLORS": "カラー",
+        "LIGHT_COLORS": "ライトカラー",
+        "DARK_COLORS": "ダークカラー",
+        "OTHER_COLORS": "その他のカラー",
+        "PALETTE_HINT": "空の色はストアフロント独自の色のままになります。",
+        "NO_DARK": "ダークカラーがありません：ストアフロントにダークテーマはありません。色を設定すると追加されます。",
+        "DARK_NEEDS_LIGHT": "ダークカラーはライトカラーと一緒の場合のみ適用されます：ライトカラーも設定してください。",
+        "TOKENS_PENDING": "パレットはストアフロントのプレビューから取得され、読み込まれると表示されます。",
+        "UNKNOWN_TOKEN": "ストアフロントのパレットにありません",
+        "LOOK_LOAD_FAILED": "ブランドとカラーを読み込めませんでした。"
       },
       "CLIPBOARD": {
         "COPY": "コピー",
@@ -560,7 +577,11 @@
         "NO_CONDITIONS": "条件なし: このルールはすべてに一致します。",
         "SAVE": "ルールを保存",
         "CANCEL": "キャンセル"
-      }
+      },
+      "MENU_PLACEHOLDER": "ストアのメニューを選択",
+      "MENUS_FAILED": "ストアのメニューを読み込めませんでした。",
+      "TOKEN_PLACEHOLDER": "パレットの色を選択",
+      "WHITE_LABELING": "この訪問者にはホワイトラベリングの設定が適用されます。ここでの変更は表示されません。"
     },
     "WIDGETS": {
       "STORE": "Page Builder"

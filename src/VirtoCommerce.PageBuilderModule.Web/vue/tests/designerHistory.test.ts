@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  THEME_ONLY_FILES,
   fromGitVersion,
   groupPath,
   historyItems,
@@ -31,6 +32,19 @@ test("a database page's history covers what its Save writes: the page, the heade
     { file: "footer", item: "theme:default/sections/footer-group.json" },
     { file: "settings", item: "theme:default/config/settings_data.json" },
   ]);
+});
+
+test("with the Theme tab loaded, the history covers the brand and both palettes, which a version restores, not previews", () => {
+  assert.deepEqual(
+    historyItems({ groupId: "g1", theme: "default", rules: false, groups: false, settings: false, look: true }).map((x) => [x.file, x.item]),
+    [
+      ["page", "page:g1"],
+      ["brand", "theme:default/config/brand.json"],
+      ["palette", "theme:default/config/palette.json"],
+      ["darkPalette", "theme:default/config/palette.dark.json"],
+    ],
+  );
+  assert.deepEqual(THEME_ONLY_FILES, ["rules", "settings", "brand", "palette", "darkPalette"]);
 });
 
 test("a template is a theme file of the history, with its rules", () => {

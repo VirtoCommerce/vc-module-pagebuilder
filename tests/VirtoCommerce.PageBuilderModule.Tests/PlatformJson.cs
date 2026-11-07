@@ -20,6 +20,19 @@ internal static class PlatformJson
 
     public static string Serialize(object value) => JsonConvert.SerializeObject(value, Settings);
 
+    /// <summary>As a platform with <c>IncludeOutputNullValues</c> on writes the body.</summary>
+    public static string SerializeBodyWithNulls(object result)
+    {
+        var actionResult = result is IConvertToActionResult typed ? typed.Convert() : result;
+        var settings = new JsonSerializerSettings
+        {
+            ContractResolver = Settings.ContractResolver,
+            Converters = Settings.Converters,
+            NullValueHandling = NullValueHandling.Include,
+        };
+        return JsonConvert.SerializeObject(Assert.IsAssignableFrom<ObjectResult>(actionResult).Value, settings);
+    }
+
     public static string SerializeBody(object result)
     {
         var actionResult = result is IConvertToActionResult typed ? typed.Convert() : result;

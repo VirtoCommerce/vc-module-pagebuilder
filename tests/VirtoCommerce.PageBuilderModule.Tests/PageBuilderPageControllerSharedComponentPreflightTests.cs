@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
 using VirtoCommerce.PageBuilderModule.Core.Models;
+using VirtoCommerce.PageBuilderModule.Data.Services;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using VirtoCommerce.PageBuilderModule.Web.Services;
 using VirtoCommerce.Platform.Core.Common;
@@ -248,14 +249,16 @@ public class PageBuilderPageControllerSharedComponentPreflightTests
             referenceIndex,
             eventPublisher,
             NullLogger<PageBuilderPageContentService>.Instance);
+        authorizationService ??= new PublishedRenameContentPreservationTests.AllowAllAuthorizationService();
         var controller = new PageBuilderPageController(
             pageService,
             service,
             new PublishedRenameContentPreservationTests.FakeGroupedPageSearchService(),
-            authorizationService ?? new PublishedRenameContentPreservationTests.AllowAllAuthorizationService(),
+            authorizationService,
             new PublishedRenameContentPreservationTests.NoopPageDocumentSearchService(),
             pageContentService,
-            NullLogger<PageBuilderPageController>.Instance, new NoContentHistory());
+            NullLogger<PageBuilderPageController>.Instance, new NoContentHistory(),
+            new PageBuilderSharedComponentPlacementValidator(referenceIndex, authorizationService));
         var httpContext = new DefaultHttpContext
         {
             User = new ClaimsPrincipal(new ClaimsIdentity()),

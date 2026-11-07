@@ -395,7 +395,24 @@
         "PRESET_PLACEHOLDER": "Choisir un préréglage",
         "APPLY": "Appliquer",
         "EMPTY": "Ce thème n'a aucun paramètre à modifier.",
-        "LOAD_FAILED": "Les paramètres du thème n'ont pas pu être chargés."
+        "LOAD_FAILED": "Les paramètres du thème n'ont pas pu être chargés.",
+        "BRAND": "Marque",
+        "LOGO": "Logo",
+        "LOGO_HINT": "Sur fond clair : l'en-tête du thème clair.",
+        "SECONDARY_LOGO": "Logo sur fond sombre",
+        "SECONDARY_LOGO_HINT": "Le pied de page, et l'en-tête du thème sombre.",
+        "FAVICON": "Favicon",
+        "FAVICON_HINT": "L'icône de l'onglet du navigateur.",
+        "COLORS": "Couleurs",
+        "LIGHT_COLORS": "Couleurs claires",
+        "DARK_COLORS": "Couleurs sombres",
+        "OTHER_COLORS": "Autres couleurs",
+        "PALETTE_HINT": "Une couleur vide garde celle de la boutique.",
+        "NO_DARK": "Aucune couleur sombre : la boutique n'a pas de thème sombre. Définissez une couleur pour en ajouter un.",
+        "DARK_NEEDS_LIGHT": "Les couleurs sombres ne s'appliquent qu'avec des couleurs claires : définissez aussi une couleur claire.",
+        "TOKENS_PENDING": "La palette vient de l'aperçu de la boutique et s'affiche une fois celui-ci chargé.",
+        "UNKNOWN_TOKEN": "absente de la palette de la boutique",
+        "LOOK_LOAD_FAILED": "Impossible de charger la marque et les couleurs."
       },
       "CLIPBOARD": {
         "COPY": "Copier",
@@ -560,7 +577,11 @@
         "NO_CONDITIONS": "Aucune condition : la règle correspond à tout.",
         "SAVE": "Enregistrer la règle",
         "CANCEL": "Annuler"
-      }
+      },
+      "MENU_PLACEHOLDER": "Choisir un menu de la boutique",
+      "MENUS_FAILED": "Impossible de charger les menus de la boutique.",
+      "TOKEN_PLACEHOLDER": "Choisir une couleur de la palette",
+      "WHITE_LABELING": "Défini par la marque blanche pour ce visiteur : une modification ici ne s'affiche pas."
     },
     "WIDGETS": {
       "STORE": "Page Builder"

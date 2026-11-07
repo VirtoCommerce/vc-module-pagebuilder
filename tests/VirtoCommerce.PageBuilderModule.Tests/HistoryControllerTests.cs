@@ -60,6 +60,14 @@ public class HistoryControllerTests
         Assert.Equal("""{"status":"enabled","versions":[]}""", PlatformJson.SerializeBody(result.Result));
     }
 
+    [Fact]
+    public async Task GetHistory_NoMoreVersions_LeavesTheCursorOutEvenWhereNullsAreWritten()
+    {
+        var result = await Controller().GetHistory("s1", ["page:g1"], cancellationToken: Ct);
+
+        Assert.Equal("""{"status":"enabled","versions":[]}""", PlatformJson.SerializeBodyWithNulls(result.Result));
+    }
+
     [Theory]
     [InlineData]
     [InlineData("page:")]

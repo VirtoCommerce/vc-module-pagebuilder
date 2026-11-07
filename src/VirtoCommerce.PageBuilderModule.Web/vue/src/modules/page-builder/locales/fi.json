@@ -395,7 +395,24 @@
         "PRESET_PLACEHOLDER": "Valitse esiasetus",
         "APPLY": "Käytä",
         "EMPTY": "Tässä teemassa ei ole muokattavia asetuksia.",
-        "LOAD_FAILED": "Teeman asetuksia ei voitu ladata."
+        "LOAD_FAILED": "Teeman asetuksia ei voitu ladata.",
+        "BRAND": "Brändi",
+        "LOGO": "Logo",
+        "LOGO_HINT": "Vaalealla taustalla: ylätunniste vaaleassa teemassa.",
+        "SECONDARY_LOGO": "Logo tummalla taustalla",
+        "SECONDARY_LOGO_HINT": "Alatunniste sekä ylätunniste tummassa teemassa.",
+        "FAVICON": "Favicon",
+        "FAVICON_HINT": "Selaimen välilehden kuvake.",
+        "COLORS": "Värit",
+        "LIGHT_COLORS": "Vaaleat värit",
+        "DARK_COLORS": "Tummat värit",
+        "OTHER_COLORS": "Muut värit",
+        "PALETTE_HINT": "Tyhjä väri säilyttää kauppasivuston oman värin.",
+        "NO_DARK": "Ei tummia värejä: kauppasivustolla ei ole tummaa teemaa. Lisää se asettamalla väri.",
+        "DARK_NEEDS_LIGHT": "Tummat värit ovat käytössä vain vaaleiden kanssa: aseta myös vaalea väri.",
+        "TOKENS_PENDING": "Paletti tulee kauppasivuston esikatselusta ja näkyy, kun se on latautunut.",
+        "UNKNOWN_TOKEN": "ei kauppasivuston paletissa",
+        "LOOK_LOAD_FAILED": "Brändiä ja värejä ei voitu ladata."
       },
       "CLIPBOARD": {
         "COPY": "Kopioi",
@@ -560,7 +577,11 @@
         "NO_CONDITIONS": "Ei ehtoja: sääntö täsmää kaikkeen.",
         "SAVE": "Tallenna sääntö",
         "CANCEL": "Peruuta"
-      }
+      },
+      "MENU_PLACEHOLDER": "Valitse kaupan valikko",
+      "MENUS_FAILED": "Kaupan valikoita ei voitu ladata.",
+      "TOKEN_PLACEHOLDER": "Valitse paletin väri",
+      "WHITE_LABELING": "White-labeling määrittää tämän tälle vierailijalle: muutos tässä ei näy."
     },
     "WIDGETS": {
       "STORE": "Page Builder"

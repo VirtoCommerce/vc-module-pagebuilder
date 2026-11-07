@@ -68,7 +68,8 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             IThemeSnapshotService themeSnapshotService,
             IThemeDraftService themeDraftService,
             IGroupedPageService groupedPageService,
-            PageBuilderPageContentService pageContentService
+            PageBuilderPageContentService pageContentService,
+            IPageBuilderSharedComponentPlacementValidator sharedComponentPlacementValidator
             )
         : Controller
     {
@@ -100,6 +101,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         // this many copies is a naming problem, not a paging problem.
         private const int MaxCopyIndex = 100;
         private const string PageConflictError = "The page was saved by someone else since it was read.";
+        private const string ThemeFileNamingError = "Name each theme file once, by its path.";
 
 
         [HttpGet]
@@ -750,7 +752,12 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 return forbiddenFile;
             }
 
-            if (GetDesignerSaveError(page, themeFiles) is { } error)
+            if (themeFiles.Any(x => x == null))
+            {
+                return BadRequest(new { error = ThemeFileNamingError });
+            }
+
+            if (GetDesignerRequestError(page, themeFiles.Select(x => x.Path).ToList()) is { } error)
             {
                 return BadRequest(new { error });
             }
@@ -823,17 +830,16 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             return Ok(result);
         }
 
-        private static string GetDesignerSaveError(DesignerSavePage page, IList<DesignerSaveFile> themeFiles)
+        private static string GetDesignerRequestError(DesignerSavePage page, IList<string> themePaths)
         {
-            if (page == null && themeFiles.Count == 0)
+            if (page == null && themePaths.Count == 0)
             {
-                return "Name the page or a theme file to save.";
+                return "Name the page or a theme file.";
             }
 
-            if (themeFiles.Any(x => x == null || string.IsNullOrEmpty(x.Path)) ||
-                themeFiles.Select(x => x.Path).Distinct(StringComparer.OrdinalIgnoreCase).Count() != themeFiles.Count)
+            if (themePaths.Any(string.IsNullOrEmpty) || themePaths.Distinct(StringComparer.OrdinalIgnoreCase).Count() != themePaths.Count)
             {
-                return "Name each theme file once, by its path.";
+                return ThemeFileNamingError;
             }
 
             if (page != null && string.IsNullOrEmpty(page.GroupId) == string.IsNullOrEmpty(page.Path))
@@ -894,8 +900,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             }
         }
 
-        /// <summary>Checks a database page as its own save does: access, its envelope, its version and its shared components.</summary>
-        private async Task<ActionResult> CheckDesignerPageAsync(string storeId, GroupedPageBuilderPage group, DesignerSavePage page, CancellationToken cancellationToken)
+        private async Task<ActionResult> CheckDesignerGroupAccessAsync(string storeId, GroupedPageBuilderPage group)
         {
             if (group == null)
             {
@@ -903,9 +908,15 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             }
 
             var authorizationResult = await authorizationService.AuthorizeAsync(User, group, new PageBuilderAuthorizationRequirement());
-            if (!authorizationResult.Succeeded || !group.StoreId.EqualsIgnoreCase(storeId))
+            return authorizationResult.Succeeded && group.StoreId.EqualsIgnoreCase(storeId) ? null : Forbid();
+        }
+
+        /// <summary>Checks a database page as its own save does: access, its envelope, its version and its shared components.</summary>
+        private async Task<ActionResult> CheckDesignerPageAsync(string storeId, GroupedPageBuilderPage group, DesignerSavePage page, CancellationToken cancellationToken)
+        {
+            if (await CheckDesignerGroupAccessAsync(storeId, group) is { } refusedAccess)
             {
-                return Forbid();
+                return refusedAccess;
             }
 
             if (string.IsNullOrWhiteSpace(page.Content))
@@ -943,20 +954,13 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
         private async Task<ActionResult> ValidateSharedComponentsAsync(string storeId, string content, CancellationToken cancellationToken)
         {
-            try
+            var validation = await sharedComponentPlacementValidator.ValidateAsync(User, storeId, content, cancellationToken);
+            if (validation.IsForbidden)
             {
-                if (pageContentService.HasSharedComponentReferences(content) && !await HasPermissionAsync(ModuleConstants.Security.Permissions.SharedComponentsRead))
-                {
-                    return Forbid();
-                }
+                return Forbid();
+            }
 
-                await pageContentService.ValidateReferencesForStoreAsync(storeId, content, cancellationToken);
-                return null;
-            }
-            catch (InvalidDataException ex)
-            {
-                return BadRequest(new { error = ex.Message });
-            }
+            return validation.Error != null ? BadRequest(new { error = validation.Error }) : null;
         }
 
         /// <summary>Writes the page last, so that a refused page leaves the theme drafts to be put back.</summary>
@@ -981,6 +985,132 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             else
             {
                 await SaveFilesTo(storeId, theme: null, [filePage], draft: true, cancellationToken);
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Discard the drafts of what the designer shows, the page and the theme files, so that what is published is current again:
+        /// all or nothing, one version of the history
+        /// </summary>
+        [HttpPost]
+        [Authorize(ModuleConstants.Security.Permissions.Read)]
+        [Route("designer/discard")]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public async Task<ActionResult<DesignerSaveResult>> DiscardDesignerChanges([FromQuery] string storeId, [FromBody] DesignerDiscardRequest value)
+        {
+            var cancellationToken = HttpContext.RequestAborted;
+            var request = new PageBuilderContentRequest { StoreId = storeId };
+            if (await CheckStoreAccessAsync(request) is { } forbidden)
+            {
+                return forbidden;
+            }
+
+            var page = value?.Page;
+            var themePaths = value?.ThemeFiles ?? [];
+            if (page != null && !await HasPermissionAsync(ModuleConstants.Security.Permissions.Update))
+            {
+                return Forbid();
+            }
+
+            if (await CheckThemeFileAccessAsync(themePaths) is { } forbiddenFile)
+            {
+                return forbiddenFile;
+            }
+
+            if (GetDesignerRequestError(page, themePaths) is { } error)
+            {
+                return BadRequest(new { error });
+            }
+
+            request.Files = themePaths.Select(x => new PageBuilderContentFile { ContentType = Themes, Path = x }).ToList();
+            if (!string.IsNullOrEmpty(page?.Path))
+            {
+                request.ContentType = page.Type.ToLowerInvariant();
+                request.Pages = [page.Path];
+            }
+
+            if (await ValidateAsync(request) is { } invalid)
+            {
+                return invalid;
+            }
+
+            GroupedPageBuilderPage group = null;
+            if (!string.IsNullOrEmpty(page?.GroupId))
+            {
+                group = await groupedPageService.GetByIdAsync(page.GroupId);
+                if (await CheckDesignerGroupAccessAsync(storeId, group) is { } refusedPage)
+                {
+                    return refusedPage;
+                }
+            }
+
+            var result = AbstractTypeFactory<DesignerSaveResult>.TryCreateInstance();
+            result.SaveId = Request.GetSaveId() ?? Guid.NewGuid().ToString("N");
+            string publishedPageContent = null;
+            IList<PublishedThemeFile> publishedThemeFiles;
+            try
+            {
+                publishedThemeFiles = await themeDraftService.DiscardDraftsAsync(
+                    storeId,
+                    themePaths,
+                    async token => publishedPageContent = await DiscardDesignerPageAsync(storeId, group, page, token),
+                    cancellationToken);
+            }
+            catch (InvalidDataException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+
+            var record = CreateHistoryRecord(ModuleConstants.GitHistory.DiscardedSummary, result.SaveId);
+            if (publishedPageContent != null)
+            {
+                record.AddEntry(new HistoryItem(HistoryItemType.Page, group.Id), publishedPageContent);
+            }
+
+            foreach (var file in publishedThemeFiles)
+            {
+                record.AddEntry(new HistoryItem(HistoryItemType.Theme, file.Path), file.Content);
+            }
+
+            if (record.Entries.Count > 0)
+            {
+                await contentHistory.RecordAsync(storeId, record, cancellationToken);
+            }
+
+            return Ok(result);
+        }
+
+        /// <summary>Discards the page's draft last, so that a page refused leaves the theme drafts to be put back.</summary>
+        private async Task<string> DiscardDesignerPageAsync(string storeId, GroupedPageBuilderPage group, DesignerSavePage page, CancellationToken cancellationToken)
+        {
+            if (group != null)
+            {
+                return await pageContentService.DiscardDraftsAsync(group, cancellationToken);
+            }
+
+            if (string.IsNullOrEmpty(page?.Path))
+            {
+                return null;
+            }
+
+            var contentType = page.Type.ToLowerInvariant();
+            if (await gitContentPolicy.IsEnabledForStoreAsync(storeId, cancellationToken))
+            {
+                var location = GitLocation(await gitContentPolicy.GetRepositoryAsync(storeId, cancellationToken), contentType, page.Path);
+                await gitContentRepository.DeleteBranchAsync(location.Repository, location.Branch, location.RepoPath, cancellationToken);
+                gitContentHistory.Invalidate(location.Repository, location.RepoPath);
+                return null;
+            }
+
+            var storageProvider = blobContentStorageProviderFactory.CreateProvider(
+                GetContentBasePath(storeId, contentType, await GetCurrentThemeName(storeId, null)));
+            if (await RemoveDraftAsync(storageProvider, page.Path) == DraftRemoval.Removed)
+            {
+                await eventPublisher.Publish(new PageBuilderContentChangedEvent(contentType,
+                    [CreateChangedEntry(page.Path, contentType, EntryState.Modified)]), cancellationToken);
             }
 
             return null;

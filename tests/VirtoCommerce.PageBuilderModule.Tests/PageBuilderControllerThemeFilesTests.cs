@@ -329,7 +329,8 @@ public class PageBuilderControllerThemeFilesTests
                 Options.Create(new ThemeSnapshotOptions())),
             themeDraftService: null,
             groupedPageService: null,
-            pageContentService: null);
+            pageContentService: null,
+                sharedComponentPlacementValidator: null);
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Name, "alice")], "test")) },

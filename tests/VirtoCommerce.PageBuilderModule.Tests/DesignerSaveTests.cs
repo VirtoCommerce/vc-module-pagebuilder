@@ -15,6 +15,7 @@ using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Core.History;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Theme;
+using VirtoCommerce.PageBuilderModule.Data.Services;
 using VirtoCommerce.PageBuilderModule.Data.Theme;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using VirtoCommerce.PageBuilderModule.Web.Services;
@@ -245,6 +246,175 @@ public class DesignerSaveTests
         Assert.IsType<BadRequestObjectResult>((await Builder().SaveDesignerChanges("s1", Save(page))).Result);
     }
 
+    [Fact]
+    public async Task SaveDesignerChanges_BrandPaletteAndGroups_ArePublishedInTheSnapshot()
+    {
+        await new SchemaCatalogService(_themes).SaveAsync("s1", $$"""
+            {
+              "hash": "{{Catalog}}",
+              "sections": {
+                "site-header": { "settings": [ { "id": "catalog_menu", "type": "menu" }, { "id": "icons_menu", "type": "menu" } ] },
+                "announcement-bar": { "settings": [ { "id": "background", "type": "color-token" } ] },
+                "site-footer": { "blocks": [ "footer-menu" ] }
+              },
+              "blocks": { "footer-menu": { "settings": [ { "id": "menu", "type": "menu" } ] } },
+              "shared": {}
+            }
+            """, Ct);
+        const string brand = """{ "logoUrl": "/logo.svg", "secondaryLogoUrl": "/logo-dark.svg", "faviconUrl": "/favicon.ico" }""";
+        const string header = """
+            { "content": [
+              { "id": "h", "type": "site-header", "catalog_menu": "Main menu", "icons_menu": "icons" },
+              { "id": "a", "type": "announcement-bar", "background": "color_primary_500" }
+            ] }
+            """;
+        const string footer = """{ "content": [ { "id": "f", "type": "site-footer", "blocks": [ { "id": "m", "type": "footer-menu", "menu": "footer-links" } ] } ] }""";
+
+        var saved = await Builder().SaveDesignerChanges("s1", Save(null,
+            ("default/config/brand.json", brand),
+            ("default/config/palette.json", """{ "color_primary_500": "#f99e24" }"""),
+            ("default/config/palette.dark.json", """{ "color_primary_500": "#ffbb5b" }"""),
+            (Header, header),
+            ("default/sections/footer-group.json", footer)), Catalog);
+        var publication = await ThemePublisher().PublishAsync("s1", Catalog, null, Ct);
+
+        Assert.IsType<OkObjectResult>(saved.Result);
+        var snapshot = JObject.Parse(_live.Files[Assert.Single(_live.Files.Keys, x => x.StartsWith($"default/snapshots/{publication}/") && !x.EndsWith("/publication.json"))]);
+        Assert.Equal(JObject.Parse(brand), snapshot["brand"], JToken.EqualityComparer);
+        Assert.Equal(JObject.Parse("""{ "light": { "color_primary_500": "#f99e24" }, "dark": { "color_primary_500": "#ffbb5b" } }"""), snapshot["palette"], JToken.EqualityComparer);
+        Assert.Equal(["h", "a"], snapshot["header"]!["content"]!.Select(x => x.Value<string>("id")));
+        Assert.Equal("color_primary_500", snapshot["header"]!["content"]![1]!.Value<string>("background"));
+        Assert.Equal("m", snapshot["footer"]!["content"]![0]!["blocks"]![0]!.Value<string>("id"));
+        Assert.Equal(["footer-links", "icons", "Main menu"], snapshot["menus"]!.Values<string>());
+        Assert.DoesNotContain(_live.Files.Keys, x => x.EndsWith("-draft"));
+    }
+
+    [Fact]
+    public async Task DiscardDesignerChanges_PageAndThemeFiles_DiscardsThemAsOneVersion()
+    {
+        SeedPageDraft();
+        _live.Files[Header] = "live header";
+        _live.Files[$"{Header}-draft"] = HeaderFile;
+        _live.Files[Rules] = "live rules";
+        _live.Files[$"{Rules}-draft"] = RulesFile;
+        var controller = Builder();
+        controller.HttpContext.Request.Headers[ModuleConstants.Headers.SaveId] = "discard-0001";
+
+        var result = await controller.DiscardDesignerChanges("s1", Discard(new DesignerSavePage { GroupId = "g1" }, Header, Rules));
+
+        Assert.Equal("discard-0001", (string)PlatformJson.ParseBody(result.Result)["saveId"]);
+        Assert.Equal(["p1"], (await _pages.GetByIdAsync("g1")).Pages.Select(x => x.Id));
+        Assert.DoesNotContain(_live.Files.Keys, x => x.EndsWith("-draft"));
+        Assert.Equal([Header, Rules], _live.Events.OfType<PageBuilderContentChangedEvent>().Single().ChangedEntries.Select(x => x.NewEntry.Path));
+        var (storeId, record) = Assert.Single(_history.Records);
+        Assert.Equal("s1", storeId);
+        Assert.Equal(ModuleConstants.GitHistory.DiscardedSummary, record.Description);
+        Assert.Equal("discard-0001", record.SaveId);
+        Assert.Equal([("page:g1", Published), ($"theme:{Header}", "live header"), ($"theme:{Rules}", "live rules")],
+            record.Entries.Select(x => (x.Item.ToString(), x.Content)));
+    }
+
+    [Fact]
+    public async Task DiscardDesignerChanges_ThemeFileNeverPublished_KeepsItsDraft()
+    {
+        _live.Files[Header] = "live header";
+        _live.Files[$"{Header}-draft"] = HeaderFile;
+        _live.Files[$"{Rules}-draft"] = RulesFile;
+
+        var result = await Builder().DiscardDesignerChanges("s1", Discard(null, Header, Rules));
+
+        Assert.IsType<OkObjectResult>(result.Result);
+        Assert.False(_live.Files.ContainsKey($"{Header}-draft"));
+        Assert.Equal(RulesFile, _live.Files[$"{Rules}-draft"]);
+        Assert.Equal([$"theme:{Header}"], Assert.Single(_history.Records).Record.Entries.Select(x => x.Item.ToString()));
+    }
+
+    [Fact]
+    public async Task DiscardDesignerChanges_NoDraft_RecordsNothing()
+    {
+        _live.Files[Header] = "live header";
+
+        var result = await Builder().DiscardDesignerChanges("s1", Discard(new DesignerSavePage { GroupId = "g1" }, Header));
+
+        Assert.IsType<OkObjectResult>(result.Result);
+        Assert.Empty(_history.Records);
+        Assert.Empty(_live.Events.OfType<PageBuilderContentChangedEvent>());
+    }
+
+    [Fact]
+    public async Task DiscardDesignerChanges_PageNeverPublished_ReturnsBadRequestAndPutsTheThemeDraftsBack()
+    {
+        _pages.SeedGroup(new GroupedPageBuilderPage { Id = "new", StoreId = "s1", Pages = [new PageBuilderPage { Id = "d1", StoreId = "s1", Status = Draft }] });
+        _live.Files[Header] = "live header";
+        _live.Files[$"{Header}-draft"] = HeaderFile;
+
+        var result = await Builder().DiscardDesignerChanges("s1", Discard(new DesignerSavePage { GroupId = "new" }, Header));
+
+        Assert.IsType<BadRequestObjectResult>(result.Result);
+        Assert.Equal(HeaderFile, _live.Files[$"{Header}-draft"]);
+        Assert.Single((await _pages.GetByIdAsync("new")).Pages);
+        Assert.Empty(_live.Events.OfType<PageBuilderContentChangedEvent>());
+        Assert.Empty(_history.Records);
+    }
+
+    [Theory]
+    [InlineData("page", Permissions.Update)]
+    [InlineData(Rules, Permissions.Templates)]
+    [InlineData(Header, Permissions.Theme)]
+    public async Task DiscardDesignerChanges_Part_RequiresThePermissionThatEditsIt(string part, string permission)
+    {
+        SeedPageDraft();
+        _live.Files[part == "page" ? Header : part] = "live";
+        _live.Files[$"{(part == "page" ? Header : part)}-draft"] = "draft";
+        var request = part == "page" ? Discard(new DesignerSavePage { GroupId = "g1" }) : Discard(null, part);
+        var others = new[] { Permissions.Read, Permissions.Update, Permissions.Templates, Permissions.Theme }.Where(x => x != permission).ToArray();
+
+        var refused = await Builder(new FakeAuthorizationService("s1", others)).DiscardDesignerChanges("s1", request);
+
+        Assert.IsType<ForbidResult>(refused.Result);
+        Assert.Equal(2, (await _pages.GetByIdAsync("g1")).Pages.Count);
+        Assert.Contains(_live.Files.Keys, x => x.EndsWith("-draft"));
+
+        var discarded = await Builder(new FakeAuthorizationService("s1", Permissions.Read, permission)).DiscardDesignerChanges("s1", request);
+
+        Assert.IsType<OkObjectResult>(discarded.Result);
+    }
+
+    [Fact]
+    public async Task DiscardDesignerChanges_StoreUserDoesNotWorkIn_ReturnsForbidBeforeBadRequest()
+    {
+        var result = await Builder(new FakeAuthorizationService("s2", Permissions.Read, Permissions.Update)).DiscardDesignerChanges("s1", new DesignerDiscardRequest());
+
+        Assert.IsType<ForbidResult>(result.Result);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("default/../x.json")]
+    [InlineData("default/config/other.json")]
+    public async Task DiscardDesignerChanges_NothingOrAPathTheBuilderDoesNotSave_ReturnsBadRequest(string path)
+    {
+        var request = path == null ? new DesignerDiscardRequest() : Discard(null, Header, path);
+
+        Assert.IsType<BadRequestObjectResult>((await Builder().DiscardDesignerChanges("s1", request)).Result);
+    }
+
+    [Fact]
+    public async Task DiscardDesignerChanges_FilePageOfAStoreWithoutGit_RemovesItsDraftWithTheThemeFiles()
+    {
+        _live.Files["about.page"] = "live about";
+        _live.Files["about.page-draft"] = "draft about";
+        _live.Files[Header] = "live header";
+        _live.Files[$"{Header}-draft"] = HeaderFile;
+
+        var result = await Builder().DiscardDesignerChanges("s1", Discard(new DesignerSavePage { Path = "about.page", Type = "pages" }, Header));
+
+        Assert.IsType<OkObjectResult>(result.Result);
+        Assert.DoesNotContain(_live.Files.Keys, x => x.EndsWith("-draft"));
+        // the page's history is the git flow's
+        Assert.Equal([$"theme:{Header}"], Assert.Single(_history.Records).Record.Entries.Select(x => x.Item.ToString()));
+    }
+
     // ── helpers ────────────────────────────────────────────────────────────────────────────────
 
     private void AssertNothingWritten()
@@ -255,6 +425,27 @@ public class DesignerSaveTests
     }
 
     private async Task<string> DraftAsync() => (await _pages.LoadGroupContentAsync(await _pages.GetByIdAsync("g1"), cancellationToken: Ct)).Content;
+
+    private void SeedPageDraft()
+    {
+        _pages.SeedGroup(new GroupedPageBuilderPage
+        {
+            Id = "g1",
+            StoreId = "s1",
+            Pages =
+            [
+                new PageBuilderPage { Id = "p1", StoreId = "s1", Status = ModuleConstants.PageStatuses.Published },
+                new PageBuilderPage { Id = "p2", StoreId = "s1", Status = Draft },
+            ],
+        });
+        _pages.SeedContent("p2", Edited);
+    }
+
+    private static DesignerDiscardRequest Discard(DesignerSavePage page, params string[] themeFiles) => new()
+    {
+        Page = page,
+        ThemeFiles = themeFiles,
+    };
 
     private DesignerSavePage DatabasePage() => new()
     {
@@ -273,11 +464,14 @@ public class DesignerSaveTests
         new SchemaCatalogService(_themes).SaveAsync("s1",
             $$"""{ "hash": "{{Catalog}}", "sections": { "site-header": {}, "product-info": {}, "text": {} }, "blocks": {}, "shared": {} }""", Ct);
 
+    private ThemePublisher ThemePublisher() =>
+        new(_themes, new ThemeSnapshotBuilder(), _live.StoreService, new SchemaCatalogService(_themes),
+            _lock, _live, new NoContentHistory(), Options.Create(new ThemeSnapshotOptions()), NullLogger<ThemePublisher>.Instance);
+
     private PageBuilderController Builder(IAuthorizationService authorization = null, IContentHistory history = null)
     {
+        authorization ??= new FakeAuthorizationService(true);
         var options = Options.Create(new GitContentOptions());
-        var themePublisher = new ThemePublisher(_themes, new ThemeSnapshotBuilder(), _live.StoreService, new SchemaCatalogService(_themes),
-            _lock, _live, new NoContentHistory(), Options.Create(new ThemeSnapshotOptions()), NullLogger<ThemePublisher>.Instance);
         var content = new PageBuilderPageContentService(new Fakes.FakePageBuilderPageService(_pages), _pages, new NoopSharedComponentReferenceIndexService(),
             _live, NullLogger<PageBuilderPageContentService>.Instance);
         var controller = new PageBuilderController(
@@ -295,15 +489,16 @@ public class DesignerSaveTests
             gitContentProvisioner: new FakeGitContentProvisioner(),
             gitLivePageService: null,
             settingsManager: null,
-            authorizationService: authorization ?? new FakeAuthorizationService(true),
+            authorizationService: authorization,
             distributedLock: _lock,
             requestValidator: RequestValidators.Content("s1"),
             contentHistory: history ?? _history,
-            themePublisher: themePublisher,
+            themePublisher: ThemePublisher(),
             themeSnapshotService: null,
             themeDraftService: new ThemeDraftService(_themes, _lock, _live, NullLogger<ThemeDraftService>.Instance),
             groupedPageService: _pages,
-            pageContentService: content);
+            pageContentService: content,
+            sharedComponentPlacementValidator: new PageBuilderSharedComponentPlacementValidator(new NoopSharedComponentReferenceIndexService(), authorization));
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext

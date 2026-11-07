@@ -2,8 +2,17 @@ import type { Item, PageDocument, SectionGroup } from "./types";
 import { fromDocument, toDocument } from "./document";
 import { templateKeyOf } from "./templates";
 import { groupPath, historyStatusUrl, historyUrl, parseHistoryPage, parseHistoryStatus, restoreUrl, versionUrl, type HistoryStatus } from "./history";
-import { designerSaveBody, designerSaveUrl, type DesignerSaveFile, type DesignerSavePage } from "./designerSave";
+import {
+  designerDiscardBody,
+  designerDiscardUrl,
+  designerSaveBody,
+  designerSaveUrl,
+  type DesignerDiscardPage,
+  type DesignerSaveFile,
+  type DesignerSavePage,
+} from "./designerSave";
 import { storefrontPage } from "./preview";
+import { storeMenusUrl } from "./storeMenus";
 import { parseThemeStatus, publishThemeUrl, type ThemeStatus } from "./themePublication";
 import { getAuthHeaders } from "../page-builder/composables/usePageContentApi";
 
@@ -267,21 +276,22 @@ export async function saveDesigner(
 }
 
 /**
- * Throws a draft kept as a "-draft" file away (a page of a store without git, a theme file such as a section group):
- * the file is what is published again. 409 when nothing is published (the draft is the only copy).
+ * One designer Discard: the drafts of the page and of the theme files go, all or nothing, one version of the site's
+ * history. A file never published keeps its draft, its only copy. 400: the page was never published.
  */
-export async function discardBlobDraft(storeId: string, type: string, path: string, theme?: string) {
-  await call(`/api/pagebuilder/discard-draft?${new URLSearchParams({ storeId, type, path, ...(theme ? { theme } : {}) })}`, { method: "POST" });
+export async function discardDesigner(storeId: string, discard: { page?: DesignerDiscardPage; themeFiles: string[] }) {
+  await call(designerDiscardUrl(storeId), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(designerDiscardBody(discard)),
+  });
 }
 
-/** Throws a theme file's draft away; a file never published keeps it, as the draft is its only copy */
-export async function discardThemeDraft(storeId: string, theme: string, path: string) {
-  await discardBlobDraft(storeId, "themes", path, theme).catch((e) => (e instanceof ApiError && e.status === 409 ? undefined : Promise.reject(e)));
-}
-
-/** Throws section group drafts away: the site keeps the header and footer it shows */
-export async function discardSectionGroupDrafts(storeId: string, theme: string, groups: SectionGroup[]) {
-  await Promise.all(groups.map((group) => discardThemeDraft(storeId, theme, groupPath(theme, group))));
+/** The store's link lists (menuOptions reads them); an empty answer is a store without lists */
+export async function storeMenus(storeId: string): Promise<unknown[]> {
+  const text = await (await call(storeMenusUrl(storeId))).text();
+  const lists: unknown = text.trim() ? JSON.parse(text) : [];
+  return Array.isArray(lists) ? lists : [];
 }
 
 /** The theme's templates, by key ("product", "product.printer", …): its templates/ folder, drafts included */
@@ -362,16 +372,6 @@ export interface PageHistory {
 export async function fileHistory(page: FilePage, after?: string): Promise<PageHistory> {
   const res = await call(`/api/pagebuilder/git/history?${fileArgs(page, after ? { after } : {})}`);
   return ((await res.json()) ?? { versions: [] }) as PageHistory;
-}
-
-/** git: throws this editor's draft away; the page is what is published again */
-export async function discardFileDraft(page: FilePage) {
-  await call(`/api/pagebuilder/git/discard-draft?${fileArgs(page)}`, { method: "POST" });
-}
-
-/** Throws the database page's unpublished changes away; 400 when it was never published */
-export async function discardGroupDraft(groupId: string) {
-  await call(`${groupUrl(groupId)}/discard`, { method: "POST" });
 }
 
 /** Whether the store keeps the history of its database pages and theme files */

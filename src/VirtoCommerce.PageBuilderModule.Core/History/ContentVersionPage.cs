@@ -13,6 +13,7 @@ public class ContentVersionPage
 
     public IList<ContentVersion> Versions { get; set; } = [];
 
-    /// <summary>Continues the list with older versions; <c>null</c> when there are no more.</summary>
+    /// <summary>Continues the list with older versions; absent when there are no more.</summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public string Cursor { get; set; }
 }

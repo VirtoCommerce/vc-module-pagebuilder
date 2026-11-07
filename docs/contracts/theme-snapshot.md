@@ -349,8 +349,8 @@ interface Palette {
 ```
 
 The keys are the tokens of the storefront's built-in presets (`client-app/assets/presets/{name}.json` and
-`{name}.dark.json`); the storefront lists them in the handshake (`paletteTokens`). A palette has every token the list
-names for its part. The storefront applies it in place of the preset, as it applies a preset, in
+`{name}.dark.json`); the storefront lists them in the handshake (`paletteTokens`). A token a palette leaves out keeps
+the color of the preset; a publication keeps a palette only when its light part has a color. The storefront applies it in place of the preset, as it applies a preset, in
 `<style id="vc-theme-variables">`: the light part under `:root:not(.dark)`, the dark part under `html.dark`.
 
 A white-labeling preset (`themePresetName`) replaces the whole palette; the two are never mixed. Without a palette
@@ -385,5 +385,6 @@ All take `storeId` and check the store as the other Page Builder endpoints do.
 | `GET api/pagebuilder/theme/status?storeId` | `builder:read` | `{ publication, drafts }`: the current publication, left out before the first, and the theme files with a draft by their path in the theme (`templates/product.json`, `config/template_rules.json`) |
 | `POST api/pagebuilder/save?storeId&theme&draft&catalogHash`, the files as the body | `builder:update`; `builder:templates` or `builder:theme` by theme file | 200; 400 `{ error, errors }` when a theme file does not fit the catalog it names; 400 `{ error }` for a live theme write on a New Page Builder store |
 | `POST api/pagebuilder/designer/save?storeId&catalogHash` | see [Save](history-api.md#save) | the designer's Save: the page and the theme files as drafts, all or nothing, one version |
+| `POST api/pagebuilder/designer/discard?storeId` | see [Discard](history-api.md#discard) | the designer's Discard: the drafts of the page and the theme files go, all or nothing, one version |
 | `PUT api/pagebuilder/catalog?storeId`, the catalog as the body | `builder:theme` | `{ hash }`; 400 when it has no valid `hash` |
 | `GET api/pagebuilder/catalog?storeId&hash` | `builder:read` | the catalog with that hash, the current one without it; 404 when there is none |

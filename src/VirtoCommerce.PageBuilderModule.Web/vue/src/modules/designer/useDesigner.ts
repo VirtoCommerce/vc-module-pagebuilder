@@ -11,7 +11,7 @@ import { groupPath } from "./history";
 import { PAGE_CONTENT, pageTypeOf, startingTemplate, templateEntry, templateKeyOf } from "./templates";
 import type { Capability, Handshake } from "./previewMessages";
 import { hasThemeDraft, templateStatus, type ThemeStatus } from "./themePublication";
-import type { DesignerSaveFile, DesignerSavePage } from "./designerSave";
+import type { DesignerDiscardPage, DesignerSaveFile, DesignerSavePage } from "./designerSave";
 
 const EMPTY_SCHEMAS: Schemas = { sections: {}, blocks: {}, shared: {}, objects: {} };
 /** A page-level row of the tree: the page template's own fields, or a static section's (Page Header: SEO). */
@@ -576,19 +576,24 @@ export function useDesigner() {
     };
   }
 
-  /** Throws the discardable drafts away, the page's and its header's and footer's, so what is published is current again */
-  async function discardDrafts() {
-    if (busy.value) return;
+  /**
+   * Throws the discardable drafts away in one request, one version of the history: the page's or template's, its header's
+   * and footer's, and the theme files given; what is published is current again
+   */
+  async function discardDrafts(themeFiles: string[] = []) {
+    if (busy.value || !storeId.value) return;
+    const page = file.value;
+    const files = [...themeFiles, ...(theme.value ? discardable.value.groups.map((g) => groupPath(theme.value!, g)) : [])];
+    let pagePart: DesignerDiscardPage | undefined;
+    if (discardable.value.page) {
+      if (groupId.value) pagePart = { groupId: groupId.value };
+      else if (page && themeFileOpen.value) files.push(page.path);
+      else if (page) pagePart = { path: page.path, type: page.type };
+    }
+    if (!pagePart && !files.length) return;
     busy.value = "restoring";
     try {
-      if (discardable.value.page) {
-        const page = file.value;
-        if (groupId.value) await api.discardGroupDraft(groupId.value);
-        else if (page && themeFileOpen.value) await api.discardThemeDraft(page.storeId, page.theme, page.path);
-        else if (page) await (gitFlow.value ? api.discardFileDraft(page) : api.discardBlobDraft(page.storeId, page.type, page.path, page.theme));
-      }
-      const groups = discardable.value.groups;
-      if (groups.length && storeId.value && theme.value) await api.discardSectionGroupDrafts(storeId.value, theme.value, groups);
+      await api.discardDesigner(storeId.value, { page: pagePart, themeFiles: files });
     } finally {
       busy.value = undefined;
     }

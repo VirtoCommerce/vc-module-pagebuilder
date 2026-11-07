@@ -77,6 +77,7 @@ namespace VirtoCommerce.PageBuilderModule.Web
             serviceCollection.AddTransient<IPageBuilderSharedComponentContentService, PageBuilderSharedComponentContentService>();
             serviceCollection.AddTransient<IPageBuilderSharedComponentResolver, PageBuilderSharedComponentResolver>();
             serviceCollection.AddTransient<IPageBuilderSharedComponentReferenceIndexService, PageBuilderSharedComponentReferenceIndexService>();
+            serviceCollection.AddTransient<IPageBuilderSharedComponentPlacementValidator, PageBuilderSharedComponentPlacementValidator>();
             serviceCollection.AddTransient<IPageBuilderSharedComponentUsageService, PageBuilderSharedComponentUsageService>();
             serviceCollection.AddTransient<
                 IPageBuilderSharedComponentAssetReferenceIndexService,

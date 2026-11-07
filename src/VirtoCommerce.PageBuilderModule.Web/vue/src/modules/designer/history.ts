@@ -1,11 +1,16 @@
 import type { PageVersion } from "./api";
 import type { SectionGroup } from "./types";
+import { brandPath, palettePath } from "./themeLook";
 
 // The site's history (docs/contracts/history-api.md): one version per save, listing the items it changed — the page or
-// template open, the rules, the header and footer, the theme settings. A file page in git keeps its own history instead.
+// template open, the rules, the header and footer, the theme settings, the brand and the palettes. A file page in git keeps
+// its own history instead.
 
 /** What the history shows a version changed: the page or template open, or a theme file it is shown with */
-export type HistoryFile = "page" | "rules" | "settings" | SectionGroup;
+export type HistoryFile = "page" | "rules" | "settings" | "brand" | "palette" | "darkPalette" | SectionGroup;
+
+/** The theme files a version is restored, not previewed, for: the preview shows them as they are now */
+export const THEME_ONLY_FILES: HistoryFile[] = ["rules", "settings", "brand", "palette", "darkPalette"];
 
 /** enabled: history is kept; setupRequired: the GitHub App or the store's repository is missing; unavailable: none is kept */
 export type HistoryStatus = "enabled" | "setupRequired" | "unavailable";
@@ -40,7 +45,7 @@ export interface HistoryVersion {
 
 /**
  * The items a Save of what is open writes, so the history covers: the database page or the template, a template's
- * rules, the header and footer it shows with, the theme settings
+ * rules, the header and footer it shows with, the theme settings, the brand and the palettes
  */
 export function historyItems(open: {
   groupId?: string;
@@ -49,6 +54,7 @@ export function historyItems(open: {
   rules: boolean;
   groups: boolean;
   settings: boolean;
+  look?: boolean;
 }): { file: HistoryFile; item: string }[] {
   const page = open.groupId ? pageItem(open.groupId) : open.templatePath ? themeItem(open.templatePath) : undefined;
   const items: { file: HistoryFile; item: string }[] = page ? [{ file: "page", item: page }] : [];
@@ -56,6 +62,12 @@ export function historyItems(open: {
   if (open.rules) items.push({ file: "rules", item: themeItem(rulesPath(open.theme)) });
   if (open.groups) items.push(...(["header", "footer"] as const).map((g) => ({ file: g, item: themeItem(groupPath(open.theme!, g)) })));
   if (open.settings) items.push({ file: "settings", item: themeItem(settingsPath(open.theme)) });
+  if (open.look)
+    items.push(
+      { file: "brand", item: themeItem(brandPath(open.theme)) },
+      { file: "palette", item: themeItem(palettePath(open.theme, "light")) },
+      { file: "darkPalette", item: themeItem(palettePath(open.theme, "dark")) },
+    );
   return items;
 }
 

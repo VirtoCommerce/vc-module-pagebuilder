@@ -395,7 +395,24 @@
         "PRESET_PLACEHOLDER": "Scegli una preimpostazione",
         "APPLY": "Applica",
         "EMPTY": "Questo tema non ha impostazioni da modificare.",
-        "LOAD_FAILED": "Impossibile caricare le impostazioni del tema."
+        "LOAD_FAILED": "Impossibile caricare le impostazioni del tema.",
+        "BRAND": "Marchio",
+        "LOGO": "Logo",
+        "LOGO_HINT": "Su sfondi chiari: l'intestazione nel tema chiaro.",
+        "SECONDARY_LOGO": "Logo su sfondi scuri",
+        "SECONDARY_LOGO_HINT": "Il piè di pagina e l'intestazione nel tema scuro.",
+        "FAVICON": "Favicon",
+        "FAVICON_HINT": "L'icona nella scheda del browser.",
+        "COLORS": "Colori",
+        "LIGHT_COLORS": "Colori chiari",
+        "DARK_COLORS": "Colori scuri",
+        "OTHER_COLORS": "Altri colori",
+        "PALETTE_HINT": "Un colore vuoto mantiene quello dello storefront.",
+        "NO_DARK": "Nessun colore scuro: lo storefront non ha un tema scuro. Imposta un colore per aggiungerlo.",
+        "DARK_NEEDS_LIGHT": "I colori scuri valgono solo insieme a quelli chiari: imposta anche un colore chiaro.",
+        "TOKENS_PENDING": "La palette arriva dall'anteprima dello storefront e compare quando è stata caricata.",
+        "UNKNOWN_TOKEN": "non presente nella palette dello storefront",
+        "LOOK_LOAD_FAILED": "Impossibile caricare marchio e colori."
       },
       "CLIPBOARD": {
         "COPY": "Copia",
@@ -560,7 +577,11 @@
         "NO_CONDITIONS": "Nessuna condizione: la regola corrisponde a tutto.",
         "SAVE": "Salva regola",
         "CANCEL": "Annulla"
-      }
+      },
+      "MENU_PLACEHOLDER": "Scegli un menu del negozio",
+      "MENUS_FAILED": "Impossibile caricare i menu del negozio.",
+      "TOKEN_PLACEHOLDER": "Scegli un colore della palette",
+      "WHITE_LABELING": "Impostato dal white-labeling per questo visitatore: una modifica qui non si vede."
     },
     "WIDGETS": {
       "STORE": "Page Builder"

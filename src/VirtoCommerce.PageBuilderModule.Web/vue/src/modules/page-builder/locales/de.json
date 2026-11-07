@@ -395,7 +395,24 @@
         "PRESET_PLACEHOLDER": "Voreinstellung auswählen",
         "APPLY": "Anwenden",
         "EMPTY": "Dieses Theme hat keine bearbeitbaren Einstellungen.",
-        "LOAD_FAILED": "Die Theme-Einstellungen konnten nicht geladen werden."
+        "LOAD_FAILED": "Die Theme-Einstellungen konnten nicht geladen werden.",
+        "BRAND": "Marke",
+        "LOGO": "Logo",
+        "LOGO_HINT": "Auf hellem Hintergrund: der Header im hellen Theme.",
+        "SECONDARY_LOGO": "Logo auf dunklem Hintergrund",
+        "SECONDARY_LOGO_HINT": "Der Footer und der Header im dunklen Theme.",
+        "FAVICON": "Favicon",
+        "FAVICON_HINT": "Das Symbol im Browser-Tab.",
+        "COLORS": "Farben",
+        "LIGHT_COLORS": "Helle Farben",
+        "DARK_COLORS": "Dunkle Farben",
+        "OTHER_COLORS": "Weitere Farben",
+        "PALETTE_HINT": "Eine leere Farbe behält die des Storefronts.",
+        "NO_DARK": "Keine dunklen Farben: der Storefront hat kein dunkles Theme. Legen Sie eine Farbe fest, um eines hinzuzufügen.",
+        "DARK_NEEDS_LIGHT": "Dunkle Farben gelten nur zusammen mit hellen: legen Sie auch eine helle Farbe fest.",
+        "TOKENS_PENDING": "Die Palette kommt aus der Storefront-Vorschau und erscheint, sobald diese geladen ist.",
+        "UNKNOWN_TOKEN": "nicht in der Palette des Storefronts",
+        "LOOK_LOAD_FAILED": "Marke und Farben konnten nicht geladen werden."
       },
       "CLIPBOARD": {
         "COPY": "Kopieren",
@@ -560,7 +577,11 @@
         "NO_CONDITIONS": "Keine Bedingungen: Die Regel passt immer.",
         "SAVE": "Regel speichern",
         "CANCEL": "Abbrechen"
-      }
+      },
+      "MENU_PLACEHOLDER": "Shop-Menü auswählen",
+      "MENUS_FAILED": "Die Menüs des Shops konnten nicht geladen werden.",
+      "TOKEN_PLACEHOLDER": "Palettenfarbe auswählen",
+      "WHITE_LABELING": "Für diesen Besucher durch White-Labeling festgelegt: eine Änderung hier ist nicht sichtbar."
     },
     "WIDGETS": {
       "STORE": "Page Builder"

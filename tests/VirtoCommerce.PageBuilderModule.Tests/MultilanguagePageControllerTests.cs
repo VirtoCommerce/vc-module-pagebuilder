@@ -12,6 +12,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
+using VirtoCommerce.PageBuilderModule.Data.Services;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.GenericCrud;
@@ -318,7 +319,8 @@ public class MultilanguagePageControllerTests
             new PredicateAuthorizationService(_ => true),
             null!,
             null!,
-            NullLogger<PageBuilderPageController>.Instance, new NoContentHistory())
+            NullLogger<PageBuilderPageController>.Instance, new NoContentHistory(),
+            new PageBuilderSharedComponentPlacementValidator(new NoopSharedComponentReferenceIndexService(), new PredicateAuthorizationService(_ => true)))
         {
             ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() },
         };

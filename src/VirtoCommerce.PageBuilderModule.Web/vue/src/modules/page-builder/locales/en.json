@@ -395,7 +395,24 @@
         "PRESET_PLACEHOLDER": "Choose a preset",
         "APPLY": "Apply",
         "EMPTY": "This theme has no settings to edit.",
-        "LOAD_FAILED": "The theme settings couldn't be loaded."
+        "LOAD_FAILED": "The theme settings couldn't be loaded.",
+        "BRAND": "Brand",
+        "LOGO": "Logo",
+        "LOGO_HINT": "On light backgrounds: the header in the light theme.",
+        "SECONDARY_LOGO": "Logo on dark backgrounds",
+        "SECONDARY_LOGO_HINT": "The footer, and the header in the dark theme.",
+        "FAVICON": "Favicon",
+        "FAVICON_HINT": "The icon in the browser tab.",
+        "COLORS": "Colors",
+        "LIGHT_COLORS": "Light colors",
+        "DARK_COLORS": "Dark colors",
+        "OTHER_COLORS": "Other colors",
+        "PALETTE_HINT": "An empty color keeps the storefront's own.",
+        "NO_DARK": "No dark colors: the storefront has no dark theme. Set a color to add one.",
+        "DARK_NEEDS_LIGHT": "Dark colors apply only together with light ones: set a light color too.",
+        "TOKENS_PENDING": "The palette comes from the storefront preview and shows once it has loaded.",
+        "UNKNOWN_TOKEN": "not in the storefront's palette",
+        "LOOK_LOAD_FAILED": "The brand and colors couldn't be loaded."
       },
       "CLIPBOARD": {
         "COPY": "Copy",
@@ -560,7 +577,11 @@
         "NO_CONDITIONS": "No conditions: the rule matches everything.",
         "SAVE": "Save rule",
         "CANCEL": "Cancel"
-      }
+      },
+      "MENU_PLACEHOLDER": "Choose a store menu",
+      "MENUS_FAILED": "The store's menus couldn't be loaded.",
+      "TOKEN_PLACEHOLDER": "Choose a palette color",
+      "WHITE_LABELING": "Set by white-labeling for this visitor: a change here doesn't show."
     },
     "WIDGETS": {
       "STORE": "Page Builder"

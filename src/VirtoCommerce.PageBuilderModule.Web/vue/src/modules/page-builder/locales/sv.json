@@ -395,7 +395,24 @@
         "PRESET_PLACEHOLDER": "Välj en förinställning",
         "APPLY": "Tillämpa",
         "EMPTY": "Det här temat har inga inställningar att redigera.",
-        "LOAD_FAILED": "Temainställningarna kunde inte läsas in."
+        "LOAD_FAILED": "Temainställningarna kunde inte läsas in.",
+        "BRAND": "Varumärke",
+        "LOGO": "Logotyp",
+        "LOGO_HINT": "På ljus bakgrund: sidhuvudet i det ljusa temat.",
+        "SECONDARY_LOGO": "Logotyp på mörk bakgrund",
+        "SECONDARY_LOGO_HINT": "Sidfoten, och sidhuvudet i det mörka temat.",
+        "FAVICON": "Favicon",
+        "FAVICON_HINT": "Ikonen i webbläsarfliken.",
+        "COLORS": "Färger",
+        "LIGHT_COLORS": "Ljusa färger",
+        "DARK_COLORS": "Mörka färger",
+        "OTHER_COLORS": "Övriga färger",
+        "PALETTE_HINT": "En tom färg behåller butikens egen.",
+        "NO_DARK": "Inga mörka färger: butiken har inget mörkt tema. Ange en färg för att lägga till ett.",
+        "DARK_NEEDS_LIGHT": "Mörka färger gäller bara tillsammans med ljusa: ange även en ljus färg.",
+        "TOKENS_PENDING": "Paletten kommer från butikens förhandsvisning och visas när den har lästs in.",
+        "UNKNOWN_TOKEN": "finns inte i butikens palett",
+        "LOOK_LOAD_FAILED": "Varumärket och färgerna kunde inte läsas in."
       },
       "CLIPBOARD": {
         "COPY": "Kopiera",
@@ -560,7 +577,11 @@
         "NO_CONDITIONS": "Inga villkor: regeln matchar allt.",
         "SAVE": "Spara regel",
         "CANCEL": "Avbryt"
-      }
+      },
+      "MENU_PLACEHOLDER": "Välj en butiksmeny",
+      "MENUS_FAILED": "Butikens menyer kunde inte läsas in.",
+      "TOKEN_PLACEHOLDER": "Välj en färg i paletten",
+      "WHITE_LABELING": "Satt av white-labeling för den här besökaren: en ändring här syns inte."
     },
     "WIDGETS": {
       "STORE": "Page Builder"

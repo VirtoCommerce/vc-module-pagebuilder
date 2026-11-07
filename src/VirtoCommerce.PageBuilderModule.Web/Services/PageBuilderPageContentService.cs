@@ -120,6 +120,27 @@ public sealed class PageBuilderPageContentService(
         return result;
     }
 
+    /// <summary>
+    /// Deletes the drafts of a published page, so that the published version is current again. Returns the published content,
+    /// or null when the page had no draft.
+    /// </summary>
+    /// <exception cref="InvalidDataException">The page has never been published.</exception>
+    public async Task<string> DiscardDraftsAsync(GroupedPageBuilderPage group, CancellationToken cancellationToken)
+    {
+        var publishedPage = PageBuilderPageSelection.Order(group.Pages).FirstOrDefault(x => x.Status == Published)
+            ?? throw new InvalidDataException("This page has never been published, so there is no published version to go back to.");
+
+        var draftIds = group.Pages.Where(x => x.Status == Draft).Select(x => x.Id).ToList();
+        if (draftIds.Count == 0)
+        {
+            return null;
+        }
+
+        await pageService.DeleteAsync(draftIds);
+
+        return await groupedPageService.LoadContent(publishedPage.Id, cancellationToken);
+    }
+
     public async Task<PageBuilderPageContentWriteResult> CopyContentAsync(
         string targetGroupId,
         GroupedPageBuilderPage targetGroup,

@@ -2,6 +2,7 @@ import type { Field, Item, PageDocument, Schemas, SectionGroup, Selection } from
 import type { SharedBoundary } from "./document";
 import { rulesOf, type TemplateRules } from "./rules";
 import { PAGE_TYPES, type PageType } from "./templates";
+import type { Brand, Palette } from "./themeLook";
 
 // Preview protocol 2 (docs/contracts/preview-protocol.md) as the storefront speaks it (vc-frontend
 // plugins/builder-preview): what the designer sends its preview and what it takes from it, built and checked here.
@@ -47,6 +48,8 @@ export interface ThemeDraft {
   templates?: Record<string, PageDocument>;
   header?: { content: Item[] };
   footer?: { content: Item[] };
+  brand?: Brand;
+  palette?: Palette;
 }
 
 export interface DraftMessage {
@@ -81,7 +84,7 @@ export type DesignerMessage =
   | DraftMessage
   | RenderMessage
   | { type: "hover"; sectionId: string | null }
-  // the theme settings until the draft carries brand and palette: the storefront applies it in both protocols
+  // the theme settings (settings_data.json), which the snapshot does not carry: the storefront applies them in both protocols
   | { type: "settings"; settings: Record<string, unknown> };
 
 /** The template the storefront rendered for the page it shows, and the rule that chose it */
@@ -253,6 +256,8 @@ export interface DraftInput {
   /** the header's and footer's sections; none: the page has no Header and Footer */
   groups?: Partial<Record<SectionGroup, Item[]>>;
   templates?: Record<string, PageDocument>;
+  /** the brand and palette as the Theme tab has them; none: not loaded */
+  look?: { brand: Brand; palette?: Palette };
   capabilities: string[];
 }
 
@@ -266,6 +271,8 @@ export function draftMessage(input: DraftInput): DraftMessage {
       ...(input.templates ? { templates: input.templates } : {}),
       ...(groups?.header ? { header: { content: groups.header } } : {}),
       ...(groups?.footer ? { footer: { content: groups.footer } } : {}),
+      ...(input.look ? { brand: input.look.brand } : {}),
+      ...(input.look?.palette ? { palette: input.look.palette } : {}),
     },
   };
 }

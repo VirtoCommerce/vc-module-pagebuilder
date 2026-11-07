@@ -376,7 +376,8 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 themeSnapshotService: null,
                 themeDraftService: null,
                 groupedPageService: null,
-                pageContentService: null);
+                pageContentService: null,
+                sharedComponentPlacementValidator: null);
 
             controller.ControllerContext = new ControllerContext
             {

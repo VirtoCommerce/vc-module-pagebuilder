@@ -105,9 +105,10 @@ interface ContentVersion {
 
 Restore and `GET` of a version take the `versionId` the list returned; any other value is 404.
 
-A database page's unpublished changes are discarded with `POST api/page-builder-pages/grouped/{groupId}/discard`
-(`builder:update`; 400 for a page never published), which records the published content as one version, "Discarded
-unpublished changes". A theme file's draft is discarded with `POST api/pagebuilder/discard-draft`, recorded the same way.
+The designer discards what it shows in one request ([Discard](#discard)). A database page's unpublished changes alone
+are discarded with `POST api/page-builder-pages/grouped/{groupId}/discard` (`builder:update`; 400 for a page never
+published), which records the published content as one version, "Discarded unpublished changes". A theme file's draft
+alone is discarded with `POST api/pagebuilder/discard-draft`, recorded the same way.
 
 ## Save
 
@@ -141,3 +142,28 @@ interface DesignerSave {
 
 The per-file endpoints (`api/pagebuilder/save`, `grouped/{groupId}/content`) keep working for the Angular designer and
 agents; a call of `api/pagebuilder/save` is one version as well.
+
+## Discard
+
+A designer Discard is one request and one version: the drafts of the page and of the theme files it shows go, and what
+is published is current again.
+
+| Method and route | Permission | Returns |
+|---|---|---|
+| `POST api/pagebuilder/designer/discard?storeId`, `DesignerDiscard` as the body | `builder:read`, and per part as for [Save](#save) | `{ saveId }` |
+
+```ts
+interface DesignerDiscard {
+  /** a database page by its group, or a page kept as a file */
+  page?: { groupId: string } | { path: string; type: "pages" | "blogs" };
+  /** the theme files, by their path with the theme folder */
+  themeFiles?: string[];
+}
+```
+
+- The store, each part's permission (403) and the paths (400) are checked before anything is deleted.
+- Under the store's theme lock the theme drafts are deleted first and the page's last. A theme file never published
+  keeps its draft, which is its only copy. A database page never published is refused (400) and the theme drafts are
+  put back. A file page's draft is its work branch on the git flow, else its blob draft.
+- After the lock, one version, "Discarded unpublished changes", records the published content of the database page and
+  of each theme file whose draft went, named as a Save is; nothing is recorded when no draft went.

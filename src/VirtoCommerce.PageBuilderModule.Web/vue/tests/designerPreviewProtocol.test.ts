@@ -206,6 +206,14 @@ test("the draft: the rules and the header and footer, to a storefront that rende
   assert.deepEqual(draftMessage({ capabilities: ["groups"] }), { type: "draft", theme: {} });
 });
 
+test("the draft carries the brand and the palette the Theme tab has, whatever the storefront renders of the groups", () => {
+  const brand = { logoUrl: "/logo.svg" };
+  const palette = { light: { color_primary_500: "#f99e24" } };
+  assert.deepEqual(draftMessage({ look: { brand, palette }, capabilities: [] }), { type: "draft", theme: { brand, palette } });
+  // no palette: the published one, or the storefront's preset
+  assert.deepEqual(draftMessage({ look: { brand: {} }, capabilities: [] }), { type: "draft", theme: { brand: {} } });
+});
+
 test("after loaded: who the preview renders as, the inspector, light or dark, the draft, the render", () => {
   const draft = draftMessage({ capabilities: [] });
   const render = renderMessage({ preview: { template: doc([]), sharedComponentBoundaries: [] }, cultureName: "en-US" });

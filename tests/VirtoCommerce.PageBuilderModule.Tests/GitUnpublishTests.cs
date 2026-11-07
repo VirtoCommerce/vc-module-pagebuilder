@@ -247,7 +247,8 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 themeSnapshotService: null,
                 themeDraftService: null,
                 groupedPageService: null,
-                pageContentService: null);
+                pageContentService: null,
+                sharedComponentPlacementValidator: null);
 
             var identity = new ClaimsIdentity([new Claim(ClaimTypes.Name, Login)], "test");
             controller.ControllerContext = new ControllerContext

@@ -80,8 +80,11 @@
         <ThemePanel
           v-if="mode === 'theme'"
           :theme="theme"
+          :look="look"
           :schemas="designer.schemas.value"
           :store-id="designer.storeId.value"
+          :palette-tokens="designer.handshake.value?.paletteTokens"
+          :overridden="whiteLabeled"
         />
         <SharedPanel
           v-if="mode === 'shared'"
@@ -533,7 +536,7 @@ import { PageBuilderPageClient, type GroupedPageBuilderPage } from "../../api_cl
 import VersionHistory from "../designer/components/VersionHistory.vue";
 import { notifyPagesChanged, useUrlParams } from "../page-builder/composables";
 import AssetsLibraryContent from "../asset-library/components/AssetsLibraryContent.vue";
-import { PageAnchorsKey, PickAssetKey } from "../designer/types";
+import { PageAnchorsKey, PaletteTokensKey, PickAssetKey, StoreMenusKey, WhiteLabelingKey } from "../designer/types";
 import { pageAnchors } from "../designer/anchors";
 import { useDesigner } from "../designer/useDesigner";
 import { resolveRefs, toDocument } from "../designer/document";
@@ -566,6 +569,8 @@ import {
   contentVersion,
   restoreContentVersion,
   saveDesigner,
+  discardDesigner,
+  storeMenus,
   filePageContent,
   asOneSave,
   hasCatalog,
@@ -577,6 +582,7 @@ import { PAGE_CONTENT, alternateKey, alternateName, entityUrl, pageTypeOf, start
 import { rulesFor } from "../designer/rules";
 import { useTemplateRules } from "../designer/templateRules";
 import {
+  THEME_ONLY_FILES,
   fromGitVersion,
   historyItems,
   historyOffer,
@@ -597,6 +603,8 @@ import ThemePanel from "../designer/components/ThemePanel.vue";
 import SharedPanel from "../designer/components/SharedPanel.vue";
 import { useSharedComponentDesigner } from "../page-builder/composables/usePageDesigner";
 import { useThemeSettings } from "../designer/themeSettings";
+import { useThemeLook } from "../designer/useThemeLook";
+import { brandPath, palettePath } from "../designer/themeLook";
 
 // The page designer, a native blade in the spirit of Shopify's theme editor: the page's sections on the left, the
 // storefront's own preview in the middle, the selected item's settings on the right. It opens a database page
@@ -613,6 +621,8 @@ const { showConfirmation } = usePopup();
 const designer = useDesigner();
 // Shopify's left rail: the page's sections, the theme's settings, or the site's shared components
 const theme = useThemeSettings();
+// the theme's brand and palettes, on the same tab
+const look = useThemeLook();
 const modes = [
   { id: "sections", icon: "lucide-layout-list", label: "PAGE_BUILDER.DESIGNER.SECTIONS" },
   { id: "theme", icon: "lucide-palette", label: "PAGE_BUILDER.DESIGNER.THEME.TITLE" },
@@ -625,7 +635,7 @@ const shownModes = computed(() => (designer.shared.value ? modes.filter((m) => m
 const rules = useTemplateRules();
 const rulesActive = computed(() => !!designer.templateKey.value && rules.loaded.value);
 /** unsaved page, theme or rules edits */
-const unsaved = computed(() => designer.dirty.value || theme.dirty.value || rules.dirty.value);
+const unsaved = computed(() => designer.dirty.value || theme.dirty.value || look.dirty.value || rules.dirty.value);
 /** a theme file has a saved draft the theme's next publication puts live */
 const themeDraft = (path: (theme: string) => string) => !!themeName.value && hasThemeDraft(designer.themeStatus.value, themeName.value, path(themeName.value));
 const rulesDraft = computed(() => themeDraft(rulesPath));
@@ -748,10 +758,15 @@ function render(options: { scroll?: boolean; model?: Item; preview?: RenderInput
   });
 }
 
-// the theme as the designer has it: the rules, the header and footer. The open template goes in the render, which wins
+// the theme as the designer has it: the rules, the header and footer, the brand and palettes. The open template goes in the render, which wins
 // over the draft's; a draft's templates replace all the published ones, and the designer has only the open one.
 function draft(groups = designer.groupsPreview.value): DraftMessage {
-  return draftMessage({ rules: rules.loaded.value ? rules.rules.value : undefined, groups, capabilities: designer.handshake.value?.capabilities ?? [] });
+  return draftMessage({
+    rules: rules.loaded.value ? rules.rules.value : undefined,
+    groups,
+    look: look.draft.value,
+    capabilities: designer.handshake.value?.capabilities ?? [],
+  });
 }
 
 const colorSchemes = [
@@ -933,6 +948,25 @@ provide(
     pageAnchors(designer.doc.value.content, (item, kind) => (kind === "block" ? designer.blockSchema(item.type) : designer.sectionSchema(item.type))),
   ),
 );
+// `menu` settings pick one of the store's link lists, read once per store; `color-token` settings a token of the
+// storefront's light palette
+let menusOf: { storeId: string; lists: Promise<unknown[]> } | undefined;
+provide(StoreMenusKey, () => {
+  const storeId = designer.storeId.value;
+  if (!storeId) return Promise.resolve([]);
+  if (menusOf?.storeId !== storeId) menusOf = { storeId, lists: storeMenus(storeId) };
+  const lists = menusOf.lists;
+  // a failed read is tried again next time
+  lists.catch(() => (menusOf = undefined));
+  return lists;
+});
+provide(
+  PaletteTokensKey,
+  computed(() => ({ tokens: designer.handshake.value?.paletteTokens.light ?? [], colors: look.look.value.light })),
+);
+// what white-labeling sets for the visitor the preview shows: the theme's change to it does not show
+const whiteLabeled = computed(() => reported.value?.overriddenByWhiteLabeling ?? []);
+provide(WhiteLabelingKey, whiteLabeled);
 provide(PickAssetKey, () => {
   resolvePick?.(undefined);
   picking.value = true;
@@ -963,8 +997,8 @@ function notifyFailure(title: string, e: unknown) {
 }
 
 async function saveChanges() {
-  // with the page: the theme settings and the rules, in the same Save
-  const parts = [theme.pending(), rules.pending()].filter((x) => !!x);
+  // with the page: the theme settings, the brand and palettes and the rules, in the same Save
+  const parts = [theme.pending(), rules.pending(), ...look.pending()].filter((x) => !!x);
   if (!designer.dirty.value && !parts.length) return;
   const pageChanged = designer.dirty.value;
   try {
@@ -1135,6 +1169,7 @@ const shownItems = computed(() =>
     rules: rulesActive.value,
     groups: !!designer.groupsPreview.value,
     settings: theme.loaded.value,
+    look: look.loaded.value,
   }),
 );
 const itemOf = (file: HistoryFile) => shownItems.value.find((x) => x.file === file)?.item;
@@ -1145,6 +1180,9 @@ const FILE_LABELS: Record<HistoryFile, string> = {
   header: "PAGE_BUILDER.DESIGNER.GROUPS.HEADER",
   footer: "PAGE_BUILDER.DESIGNER.GROUPS.FOOTER",
   settings: "PAGE_BUILDER.DESIGNER.THEME.TITLE",
+  brand: "PAGE_BUILDER.DESIGNER.THEME.BRAND",
+  palette: "PAGE_BUILDER.DESIGNER.THEME.LIGHT_COLORS",
+  darkPalette: "PAGE_BUILDER.DESIGNER.THEME.DARK_COLORS",
 };
 const filesOf = (version: HistoryVersion) =>
   shownItems.value.filter((x) => version.items?.includes(x.item)).map((x) => x.file);
@@ -1154,8 +1192,8 @@ const describeVersion = (version: HistoryVersion) =>
   filesOf(version)
     .map((file) => t(file === "page" && designer.templateKey.value ? "PAGE_BUILDER.DESIGNER.GROUPS.TEMPLATE" : FILE_LABELS[file]))
     .join(", ");
-/** A version that changed only the rules or the settings shows nothing else in the preview: it is restored, not previewed */
-const previewableVersion = (version: HistoryVersion) => !version.items || filesOf(version).some((x) => x !== "rules" && x !== "settings");
+/** A version that changed only theme files the preview shows as they are now is restored, not previewed */
+const previewableVersion = (version: HistoryVersion) => !version.items || filesOf(version).some((x) => !THEME_ONLY_FILES.includes(x));
 
 /** A file page in git: its own history. Else the Saves of what is open, merged by the server. */
 async function historySource(cursor?: string) {
@@ -1287,9 +1325,9 @@ async function restoreVersion(version: HistoryVersion) {
       // what that Save changed, back as their drafts in one save: one version on top, named after the one picked
       await restoreContentVersion(storeId, version.id, items);
       if (files.includes("rules")) await rules.load(storeId, themeName.value!);
-      if (files.includes("settings")) await theme.load(storeId, themeName.value!);
+      if (files.includes("settings") || files.some((x) => x === "brand" || x === "palette" || x === "darkPalette")) await loadTheme(storeId);
       // the page or template, the header or footer: the designer opens them again from their new drafts
-      if (files.some((x) => x !== "rules" && x !== "settings")) await reopen();
+      if (files.some((x) => !THEME_ONLY_FILES.includes(x))) await reopen();
       else await Promise.all([versionHistory.value?.reload(), designer.refreshThemeStatus()]);
     }
     notification.success(t("PAGE_BUILDER.DESIGNER.HISTORY.RESTORED"));
@@ -1300,24 +1338,42 @@ async function restoreVersion(version: HistoryVersion) {
 
 // saved drafts to throw away, those with a published version to go back to (one never published is the only copy);
 // else only the unsaved edits go, back to the last save
-const hasDraft = computed(
-  () => designer.discardable.value.page || designer.discardable.value.groups.length > 0 || (rulesActive.value && rulesDraft.value),
+/** the theme files besides the page's, header and footer, whose drafts Discard throws away */
+const themeDraftFiles = computed(() =>
+  themeName.value
+    ? [
+        ...(rulesActive.value ? [rulesPath] : []),
+        settingsPath,
+        brandPath,
+        (name: string) => palettePath(name, "light"),
+        (name: string) => palettePath(name, "dark"),
+      ].filter((path) => themeDraft(path)).map((path) => path(themeName.value!))
+    : [],
 );
+const hasDraft = computed(() => designer.discardable.value.page || designer.discardable.value.groups.length > 0 || themeDraftFiles.value.length > 0);
+
+/** The theme settings, then the brand (its file, else the logos of the settings) and the palettes, as last saved */
+async function loadTheme(storeId: string) {
+  await theme.load(storeId, themeName.value!);
+  await look.load(storeId, themeName.value!, theme.settings.value);
+}
 
 async function discardChanges() {
   const drafts = hasDraft.value;
   if (!(await showConfirmation(t(drafts ? "PAGE_BUILDER.DESIGNER.HISTORY.CONFIRM_DISCARD" : "PAGE_BUILDER.DESIGNER.CONFIRM_DISCARD_UNSAVED")))) return;
   let failed = false;
   try {
-    await asOneSave(async () => {
-      if (drafts) await designer.discardDrafts();
-      if (rulesActive.value) await rules.discard(rulesDraft.value);
-    });
+    // the page's, the header's and footer's and the theme files' drafts: one request, one version
+    if (drafts) await asOneSave(() => designer.discardDrafts(themeDraftFiles.value));
   } catch {
     failed = true;
   }
-  // what the server holds now, also after a failure: a draft may be gone already
-  theme.revert();
+  // what the server holds now, also after a failure
+  const storeId = designer.storeId.value;
+  await Promise.all([
+    storeId && themeName.value ? loadTheme(storeId).catch(() => undefined) : theme.revert(),
+    rules.loaded.value ? rules.reload().catch(() => undefined) : undefined,
+  ]);
   await reopen();
   if (failed) notification.error(t("PAGE_BUILDER.DESIGNER.HISTORY.DISCARD_FAILED"));
   else if (drafts) notification.success(t("PAGE_BUILDER.DESIGNER.HISTORY.DISCARDED"));
@@ -1520,7 +1576,7 @@ onMounted(async () => {
     storeTheme(storeId).then((name) => {
       themeName.value = name;
       return Promise.all([
-        theme.load(storeId, name),
+        loadTheme(storeId),
         // whether the site keeps versions: a page's, a template's and its header's and footer's
         query.value?.sharedComponentId ? undefined : loadSiteHistory(storeId),
         query.value?.sharedComponentId ? undefined : loadTemplateKeys(),
@@ -1647,6 +1703,7 @@ async function switchTo(key: string | null) {
   if (!storeId || !themeName.value || (key === null && !home)) return;
   if (unsaved.value && !(await showConfirmation(t("PAGE_BUILDER.DESIGNER.TEMPLATES.CONFIRM_SWITCH")))) return;
   theme.revert();
+  look.revert();
   if (rules.dirty.value) await rules.load(storeId, themeName.value).catch(() => undefined);
   historyOpen.value = false;
   endVersionPreview();
@@ -1683,6 +1740,7 @@ async function createTemplate() {
   templateKeyList.value = [...new Set([...templateKeyList.value, key])].sort();
   // the new one opens as it is saved: nothing unsaved to ask about
   theme.revert();
+  look.revert();
   if (rules.dirty.value) await rules.load(storeId, themeName.value).catch(() => undefined);
   await designer.open(file(key));
   await enterTemplate();

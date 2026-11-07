@@ -29,14 +29,12 @@ export function useTemplateRules() {
     return { file: { path: rulesPath(at.theme), content: JSON.parse(sent) }, saved: () => (savedJson.value = sent) };
   }
 
-  /** Throws the unsaved edits away and, with `draft`, the saved draft (a never-published file keeps it: it is the only copy) */
-  async function discard(draft: boolean) {
-    if (!at) return;
-    if (draft) await api.discardThemeDraft(at.storeId, at.theme, rulesPath(at.theme));
-    await load(at.storeId, at.theme);
+  /** Reads the rules again: the unsaved edits go */
+  async function reload() {
+    if (at) await load(at.storeId, at.theme);
   }
 
-  return { rules, dirty, loaded, load, pending, discard };
+  return { rules, dirty, loaded, load, pending, reload };
 }
 
 export type TemplateRulesState = ReturnType<typeof useTemplateRules>;

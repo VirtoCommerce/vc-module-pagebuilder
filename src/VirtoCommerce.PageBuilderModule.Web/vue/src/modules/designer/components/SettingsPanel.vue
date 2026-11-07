@@ -101,6 +101,7 @@
         :fields="tabFields"
         :values="values"
         :context="context"
+        :group="sel.kind === 'page' ? undefined : designer.selectedSection.value?.__group"
         @update="designer.setField"
       />
       <p

@@ -74,6 +74,59 @@
         />
         <VcHint v-if="field.info">{{ field.info }}</VcHint>
       </div>
+      <!-- a store link list, by its name -->
+      <div
+        v-else-if="field.type === 'menu'"
+        class="pd-fields__select"
+      >
+        <VcSelect
+          :model-value="values[field.id!]"
+          :label="field.label"
+          :placeholder="$t('PAGE_BUILDER.DESIGNER.MENU_PLACEHOLDER')"
+          :options="menuOptions(storeMenus ?? [], values[field.id!])"
+          :loading="storeMenus === undefined"
+          option-value="value"
+          option-label="label"
+          searchable
+          clearable
+          emit-value
+          @update:model-value="set(field, $event ?? null)"
+        />
+        <VcHint v-if="field.info">{{ field.info }}</VcHint>
+        <VcHint v-if="menuFailed">{{ $t("PAGE_BUILDER.DESIGNER.MENUS_FAILED") }}</VcHint>
+        <VcHint
+          v-if="isOverridden(overridden, menuField(group))"
+          class="pd-fields__overridden"
+        >
+          {{ $t("PAGE_BUILDER.DESIGNER.WHITE_LABELING") }}
+        </VcHint>
+      </div>
+      <!-- a palette token, so that the color follows the light and dark theme; no color of its own -->
+      <div
+        v-else-if="field.type === 'color-token'"
+        class="pd-fields__select"
+      >
+        <div class="pd-fields__token">
+          <span
+            class="pd-fields__swatch"
+            :style="{ background: palette?.colors[String(values[field.id!])] }"
+          />
+          <VcSelect
+            :model-value="values[field.id!]"
+            :label="field.label"
+            :placeholder="$t('PAGE_BUILDER.DESIGNER.TOKEN_PLACEHOLDER')"
+            :options="tokenOptions(palette?.tokens ?? [], palette?.colors ?? {}, values[field.id!])"
+            :option-value="(x: TokenOption) => x.value"
+            :option-label="(x: TokenOption) => (x.unknown ? `${x.label} · ${$t('PAGE_BUILDER.DESIGNER.THEME.UNKNOWN_TOKEN')}` : x.label)"
+            searchable
+            :clearable="!field.required"
+            emit-value
+            @update:model-value="set(field, $event ?? null)"
+          />
+        </div>
+        <VcHint v-if="field.info">{{ field.info }}</VcHint>
+        <VcHint v-if="!palette?.tokens.length">{{ $t("PAGE_BUILDER.DESIGNER.THEME.TOKENS_PENDING") }}</VcHint>
+      </div>
       <VcColorInput
         v-else-if="field.type === 'color'"
         :model-value="values[field.id!] as string | null"
@@ -105,6 +158,7 @@
         <Fields
           :fields="field.element ?? []"
           :values="objectOf(field)"
+          :group="group"
           :context="{ ...context, item: objectOf(field), parent: context }"
           @update="(id, value) => set(field, { ...objectOf(field), [id]: value })"
         />
@@ -167,6 +221,7 @@
           <Fields
             v-if="openRow === `${field.id}:${index}`"
             class="pd-fields__row-body"
+            :group="group"
             :fields="field.element ?? []"
             :values="rowOf(row)"
             :context="{ ...context, item: listOf(field), index, element: row, parent: context }"
@@ -189,10 +244,13 @@
 <script setup lang="ts">
 // A schema's fields as form controls (the Angular designer's control registry), editing `values`; nested objects
 // and lists render this component again. Changes go up as update(id, value): nothing is mutated here.
-import { computed, inject, ref } from "vue";
+import { computed, inject, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { VcButton, VcColorInput, VcEditor, VcHint, VcIcon, VcInput, VcSelect, VcSwitch, VcTextarea, type CustomToolbarButton, type CustomToolbarItem } from "@vc-shell/framework/ui";
-import { PageAnchorsKey, type Field } from "../types";
+import { PageAnchorsKey, PaletteTokensKey, StoreMenusKey, WhiteLabelingKey, type Field, type SectionGroup } from "../types";
+import { menuOptions } from "../storeMenus";
+import { tokenOptions, type TokenOption } from "../themeLook";
+import { isOverridden, menuField } from "../whiteLabeling";
 import { fill, isVisible, pick, schemaRequest, valuesOf } from "../schema";
 import ImageField from "./ImageField.vue";
 import { getAuthHeaders } from "../../page-builder/composables/usePageContentApi";
@@ -202,6 +260,8 @@ const props = defineProps<{
   values: Record<string, unknown>;
   /** what visibility expressions see as `this` */
   context: Record<string, unknown>;
+  /** the section group of the item edited: its `menu` settings are white-labeling's to replace */
+  group?: SectionGroup;
 }>();
 
 /** the rich-text editor (tiptap) the toolbar items act on */
@@ -238,6 +298,23 @@ const emit = defineEmits<{ update: [id: string, value: unknown] }>();
 
 const { t } = useI18n({ useScope: "global" });
 const openRow = ref<string>();
+
+const palette = inject(PaletteTokensKey, undefined);
+const overridden = inject(WhiteLabelingKey, undefined);
+
+// the store's link lists, read once the fields show a `menu` setting
+const loadStoreMenus = inject(StoreMenusKey, undefined);
+const storeMenus = ref<unknown[]>();
+const menuFailed = ref(false);
+onMounted(async () => {
+  if (!props.fields.some((x) => x.type === "menu")) return;
+  try {
+    storeMenus.value = loadStoreMenus ? await loadStoreMenus() : [];
+  } catch {
+    storeMenus.value = [];
+    menuFailed.value = true;
+  }
+});
 
 const shown = computed(() => props.fields.filter((field) => isVisible(field, props.context)));
 
@@ -351,6 +428,33 @@ function createLoader(field: Field) {
     font-weight: 600;
     letter-spacing: 0.04em;
     text-transform: uppercase;
+  }
+
+  &__token {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+
+    > :last-child {
+      flex: 1;
+      min-width: 0;
+    }
+  }
+
+  // the token's color in the theme's light palette; empty when the palette leaves it to the storefront's preset
+  &__swatch {
+    flex: none;
+    width: 28px;
+    height: 28px;
+    margin-bottom: 4px;
+    border: 1px solid var(--neutrals-300);
+    border-radius: 6px;
+    background-image: linear-gradient(45deg, var(--neutrals-100) 25%, transparent 25%, transparent 75%, var(--neutrals-100) 75%);
+    background-size: 8px 8px;
+  }
+
+  &__overridden {
+    color: var(--warning-600);
   }
 
   &__note {

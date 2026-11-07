@@ -395,7 +395,24 @@
         "PRESET_PLACEHOLDER": "Velg en forhåndsinnstilling",
         "APPLY": "Bruk",
         "EMPTY": "Dette temaet har ingen innstillinger å redigere.",
-        "LOAD_FAILED": "Temainnstillingene kunne ikke lastes inn."
+        "LOAD_FAILED": "Temainnstillingene kunne ikke lastes inn.",
+        "BRAND": "Merkevare",
+        "LOGO": "Logo",
+        "LOGO_HINT": "På lys bakgrunn: toppteksten i det lyse temaet.",
+        "SECONDARY_LOGO": "Logo på mørk bakgrunn",
+        "SECONDARY_LOGO_HINT": "Bunnteksten, og toppteksten i det mørke temaet.",
+        "FAVICON": "Favicon",
+        "FAVICON_HINT": "Ikonet i nettleserfanen.",
+        "COLORS": "Farger",
+        "LIGHT_COLORS": "Lyse farger",
+        "DARK_COLORS": "Mørke farger",
+        "OTHER_COLORS": "Andre farger",
+        "PALETTE_HINT": "En tom farge beholder butikkens egen.",
+        "NO_DARK": "Ingen mørke farger: butikken har ikke noe mørkt tema. Angi en farge for å legge til ett.",
+        "DARK_NEEDS_LIGHT": "Mørke farger gjelder bare sammen med lyse: angi også en lys farge.",
+        "TOKENS_PENDING": "Paletten kommer fra butikkens forhåndsvisning og vises når den er lastet inn.",
+        "UNKNOWN_TOKEN": "finnes ikke i butikkens palett",
+        "LOOK_LOAD_FAILED": "Merkevaren og fargene kunne ikke lastes inn."
       },
       "CLIPBOARD": {
         "COPY": "Kopier",
@@ -560,7 +577,11 @@
         "NO_CONDITIONS": "Ingen betingelser: regelen passer til alt.",
         "SAVE": "Lagre regel",
         "CANCEL": "Avbryt"
-      }
+      },
+      "MENU_PLACEHOLDER": "Velg en butikkmeny",
+      "MENUS_FAILED": "Butikkens menyer kunne ikke lastes inn.",
+      "TOKEN_PLACEHOLDER": "Velg en farge fra paletten",
+      "WHITE_LABELING": "Satt av white-labeling for denne besøkende: en endring her vises ikke."
     },
     "WIDGETS": {
       "STORE": "Page Builder"

@@ -38,6 +38,7 @@ public class PageBuilderPageController : Controller
     private readonly PageBuilderPageContentService pageContentService;
     private readonly ILogger<PageBuilderPageController> logger;
     private readonly IContentHistory contentHistory;
+    private readonly IPageBuilderSharedComponentPlacementValidator sharedComponentPlacementValidator;
 
     public PageBuilderPageController(
         IPageBuilderPageService crudService,
@@ -47,7 +48,8 @@ public class PageBuilderPageController : Controller
         IPageDocumentSearchService pageDocumentSearchService,
         PageBuilderPageContentService pageContentService,
         ILogger<PageBuilderPageController> logger,
-        IContentHistory contentHistory)
+        IContentHistory contentHistory,
+        IPageBuilderSharedComponentPlacementValidator sharedComponentPlacementValidator)
     {
         this.crudService = crudService;
         this.groupedPageService = groupedPageService;
@@ -57,6 +59,7 @@ public class PageBuilderPageController : Controller
         this.pageContentService = pageContentService;
         this.logger = logger;
         this.contentHistory = contentHistory;
+        this.sharedComponentPlacementValidator = sharedComponentPlacementValidator;
     }
 
     [HttpPost("search")]
@@ -510,17 +513,18 @@ public class PageBuilderPageController : Controller
             return Forbidden;
         }
 
-        var publishedPage = PageBuilderPageSelection.Order(groupedPage.Pages).FirstOrDefault(x => x.Status == Published);
-        if (publishedPage == null)
+        string publishedContent;
+        try
         {
-            return BadRequest(new { error = "This page has never been published, so there is no published version to go back to." });
+            publishedContent = await pageContentService.DiscardDraftsAsync(groupedPage, cancellationToken);
+        }
+        catch (InvalidDataException ex)
+        {
+            return BadRequest(new { error = ex.Message });
         }
 
-        var draftIds = groupedPage.Pages.Where(x => x.Status == Draft).Select(x => x.Id).ToList();
-        if (draftIds.Count > 0)
+        if (publishedContent != null)
         {
-            await crudService.DeleteAsync(draftIds);
-            var publishedContent = await groupedPageService.LoadContent(publishedPage.Id, cancellationToken);
             await RecordHistoryAsync(groupedPage, publishedContent, ModuleConstants.GitHistory.DiscardedSummary, cancellationToken);
         }
 
@@ -899,40 +903,13 @@ public class PageBuilderPageController : Controller
         string content,
         CancellationToken cancellationToken)
     {
-        bool hasSharedComponents;
-        try
+        var validation = await sharedComponentPlacementValidator.ValidateAsync(User, storeId, content, cancellationToken);
+        if (validation.IsForbidden)
         {
-            hasSharedComponents = pageContentService.HasSharedComponentReferences(content);
-        }
-        catch (InvalidDataException ex)
-        {
-            return BadRequest(ex.Message);
+            return Forbidden;
         }
 
-        if (hasSharedComponents)
-        {
-            var authorizationResult = await authorizationService.AuthorizeAsync(
-                User,
-                null,
-                ModuleConstants.Security.Permissions.SharedComponentsRead);
-            if (!authorizationResult.Succeeded)
-            {
-                return Forbidden;
-            }
-        }
-
-        try
-        {
-            await pageContentService.ValidateReferencesForStoreAsync(
-                storeId,
-                content,
-                cancellationToken);
-            return null;
-        }
-        catch (InvalidDataException ex)
-        {
-            return BadRequest(ex.Message);
-        }
+        return validation.Error != null ? BadRequest(validation.Error) : null;
     }
 
     private async Task<string> ReadRequestContentAsync(CancellationToken cancellationToken)

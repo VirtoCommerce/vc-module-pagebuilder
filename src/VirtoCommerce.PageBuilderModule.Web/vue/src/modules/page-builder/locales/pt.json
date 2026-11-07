@@ -395,7 +395,24 @@
         "PRESET_PLACEHOLDER": "Escolha uma predefinição",
         "APPLY": "Aplicar",
         "EMPTY": "Este tema não tem configurações para editar.",
-        "LOAD_FAILED": "Não foi possível carregar as configurações do tema."
+        "LOAD_FAILED": "Não foi possível carregar as configurações do tema.",
+        "BRAND": "Marca",
+        "LOGO": "Logotipo",
+        "LOGO_HINT": "Em fundos claros: o cabeçalho no tema claro.",
+        "SECONDARY_LOGO": "Logotipo em fundos escuros",
+        "SECONDARY_LOGO_HINT": "O rodapé e o cabeçalho no tema escuro.",
+        "FAVICON": "Favicon",
+        "FAVICON_HINT": "O ícone na aba do navegador.",
+        "COLORS": "Cores",
+        "LIGHT_COLORS": "Cores claras",
+        "DARK_COLORS": "Cores escuras",
+        "OTHER_COLORS": "Outras cores",
+        "PALETTE_HINT": "Uma cor vazia mantém a da loja.",
+        "NO_DARK": "Sem cores escuras: a loja não tem tema escuro. Defina uma cor para adicionar um.",
+        "DARK_NEEDS_LIGHT": "As cores escuras só se aplicam junto com as claras: defina também uma cor clara.",
+        "TOKENS_PENDING": "A paleta vem da pré-visualização da loja e aparece quando ela carregar.",
+        "UNKNOWN_TOKEN": "não está na paleta da loja",
+        "LOOK_LOAD_FAILED": "Não foi possível carregar a marca e as cores."
       },
       "CLIPBOARD": {
         "COPY": "Copiar",
@@ -560,7 +577,11 @@
         "NO_CONDITIONS": "Sem condições: a regra corresponde a tudo.",
         "SAVE": "Salvar regra",
         "CANCEL": "Cancelar"
-      }
+      },
+      "MENU_PLACEHOLDER": "Escolha um menu da loja",
+      "MENUS_FAILED": "Não foi possível carregar os menus da loja.",
+      "TOKEN_PLACEHOLDER": "Escolha uma cor da paleta",
+      "WHITE_LABELING": "Definido pelo white-labeling para este visitante: uma alteração aqui não aparece."
     },
     "WIDGETS": {
       "STORE": "Page Builder"

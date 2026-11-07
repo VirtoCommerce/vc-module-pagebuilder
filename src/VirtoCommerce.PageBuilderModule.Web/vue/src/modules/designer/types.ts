@@ -122,3 +122,9 @@ export interface TemplateEntry {
 export const PickAssetKey: InjectionKey<() => Promise<string | undefined>> = Symbol("PickAsset");
 /** the page's anchors, for links in rich text */
 export const PageAnchorsKey: InjectionKey<Ref<PageAnchor[]>> = Symbol("PageAnchors");
+/** What `menu` settings pick from: the store's link lists, read once */
+export const StoreMenusKey: InjectionKey<() => Promise<unknown[]>> = Symbol("StoreMenus");
+/** What `color-token` settings pick from: the storefront's light palette tokens, and the colors the theme gives them */
+export const PaletteTokensKey: InjectionKey<Ref<{ tokens: string[]; colors: Record<string, string> }>> = Symbol("PaletteTokens");
+/** The theme fields white-labeling sets for the visitor the preview shows */
+export const WhiteLabelingKey: InjectionKey<Ref<string[]>> = Symbol("WhiteLabeling");

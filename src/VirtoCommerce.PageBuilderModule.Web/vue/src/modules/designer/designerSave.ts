@@ -1,5 +1,5 @@
 // One designer Save is one request (docs/contracts/history-api.md, "Save"): the page and the theme files, written as
-// drafts all or nothing, and one version of the site's history.
+// drafts all or nothing, and one version of the site's history. A Discard is one request too.
 
 /** The page part of a Save: a database page by its group and version, or a page kept as a file */
 export type DesignerSavePage = { groupId: string; eTag: string; content: unknown } | { path: string; type: string; content: unknown };
@@ -26,4 +26,14 @@ export function designerSaveBody(save: { page?: DesignerSavePage; themeFiles: De
     page: save.page && { ...save.page, content: text(save.page.content) },
     themeFiles: save.themeFiles.map((x) => ({ path: x.path, content: text(x.content) })),
   };
+}
+
+/** The page part of a Discard: a database page by its group, or a page kept as a file */
+export type DesignerDiscardPage = { groupId: string } | { path: string; type: string };
+
+export const designerDiscardUrl = (storeId: string) => `/api/pagebuilder/designer/discard?${new URLSearchParams({ storeId })}`;
+
+/** The request body: the page and the theme files whose drafts go, by their path with the theme folder */
+export function designerDiscardBody(discard: { page?: DesignerDiscardPage; themeFiles: string[] }) {
+  return { ...(discard.page ? { page: discard.page } : {}), themeFiles: [...new Set(discard.themeFiles)] };
 }

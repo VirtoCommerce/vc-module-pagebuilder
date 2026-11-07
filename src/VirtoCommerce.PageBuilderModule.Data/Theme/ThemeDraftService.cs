@@ -27,11 +27,23 @@ public class ThemeDraftService(
             _ => SaveUnderLockAsync(storeId, files, saveOthersAsync, cancellationToken),
             cancellationToken: cancellationToken);
 
-        if (files.Count > 0)
-        {
-            var entries = files.Keys.Select(CreateChangedEntry).ToList();
-            await eventPublisher.Publish(new PageBuilderContentChangedEvent(ContentConstants.ContentTypes.Themes, entries), cancellationToken);
-        }
+        await PublishChangedEventAsync(files.Keys, cancellationToken);
+
+        return result;
+    }
+
+    public virtual async Task<IList<PublishedThemeFile>> DiscardDraftsAsync(string storeId, IList<string> paths, Func<CancellationToken, Task> discardOthersAsync,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(paths);
+        ArgumentNullException.ThrowIfNull(discardOthersAsync);
+
+        var result = await distributedLock.ExecuteAsync(
+            ThemeStorage.GetLockResource(storeId),
+            _ => DiscardUnderLockAsync(storeId, paths, discardOthersAsync, cancellationToken),
+            cancellationToken: cancellationToken);
+
+        await PublishChangedEventAsync(result.Select(x => x.Path), cancellationToken);
 
         return result;
     }
@@ -58,6 +70,42 @@ public class ThemeDraftService(
         }
     }
 
+    protected virtual async Task<IList<PublishedThemeFile>> DiscardUnderLockAsync(string storeId, IList<string> paths, Func<CancellationToken, Task> discardOthersAsync,
+        CancellationToken cancellationToken)
+    {
+        var removedDrafts = new List<ThemeDraft>();
+        var result = new List<PublishedThemeFile>();
+        try
+        {
+            foreach (var path in paths)
+            {
+                var draft = await ReadDraftAsync(storeId, path);
+                var publishedContent = draft.Content == null ? null : await draft.Storage.ReadAsync(draft.Storage.GetLivePath(draft.File));
+                if (publishedContent == null)
+                {
+                    continue;
+                }
+
+                await draft.Storage.RemoveAsync([draft.File]);
+                removedDrafts.Add(draft);
+
+                var file = AbstractTypeFactory<PublishedThemeFile>.TryCreateInstance();
+                file.Path = path;
+                file.Content = publishedContent;
+                result.Add(file);
+            }
+
+            await discardOthersAsync(cancellationToken);
+
+            return result;
+        }
+        catch
+        {
+            await RestoreDraftsAsync(storeId, removedDrafts);
+            throw;
+        }
+    }
+
     protected virtual async Task<ThemeDraft> ReadDraftAsync(string storeId, string path)
     {
         var separator = path.IndexOf('/');
@@ -67,7 +115,7 @@ public class ThemeDraftService(
         return new ThemeDraft(storage, file, await storage.ReadAsync(file));
     }
 
-    /// <summary>Puts the drafts back as they were, the last written first.</summary>
+    /// <summary>Puts the drafts back as they were, the last changed first.</summary>
     protected virtual async Task RestoreDraftsAsync(string storeId, IList<ThemeDraft> drafts)
     {
         foreach (var draft in drafts.Reverse())
@@ -85,9 +133,18 @@ public class ThemeDraftService(
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Could not put back the draft {File} of theme {Theme} (store {StoreId}) after a failed save.",
+                logger.LogError(ex, "Could not put back the draft {File} of theme {Theme} (store {StoreId}) after a failed save or discard.",
                     draft.File, draft.Storage.ThemeName, storeId);
             }
+        }
+    }
+
+    protected virtual async Task PublishChangedEventAsync(IEnumerable<string> paths, CancellationToken cancellationToken)
+    {
+        var entries = paths.Select(CreateChangedEntry).ToList();
+        if (entries.Count > 0)
+        {
+            await eventPublisher.Publish(new PageBuilderContentChangedEvent(ContentConstants.ContentTypes.Themes, entries), cancellationToken);
         }
     }
 

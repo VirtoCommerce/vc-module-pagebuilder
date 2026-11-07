@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { designerSaveBody, designerSaveUrl } from "../src/modules/designer/designerSave";
+import { designerDiscardBody, designerDiscardUrl, designerSaveBody, designerSaveUrl } from "../src/modules/designer/designerSave";
 
 const query = (url: string) => Object.fromEntries(new URL(url, "https://admin.example").searchParams);
 
@@ -38,4 +38,20 @@ test("a file page is named by its path and type; without a page only the theme f
   const themeOnly = designerSaveBody({ themeFiles: [{ path: "default/templates/product.json", content: { content: [] } }] });
   assert.equal(themeOnly.page, undefined);
   assert.equal(JSON.stringify(themeOnly).includes('"page"'), false);
+});
+
+test("a Discard is one request naming the page and the theme files whose drafts go, each file once", () => {
+  assert.equal(designerDiscardUrl("B2B store"), "/api/pagebuilder/designer/discard?storeId=B2B+store");
+  assert.deepEqual(
+    designerDiscardBody({
+      page: { groupId: "g1" },
+      themeFiles: ["default/sections/header-group.json", "default/config/brand.json", "default/sections/header-group.json"],
+    }),
+    { page: { groupId: "g1" }, themeFiles: ["default/sections/header-group.json", "default/config/brand.json"] },
+  );
+  assert.deepEqual(designerDiscardBody({ page: { path: "about.page", type: "pages" }, themeFiles: [] }), {
+    page: { path: "about.page", type: "pages" },
+    themeFiles: [],
+  });
+  assert.equal(JSON.stringify(designerDiscardBody({ themeFiles: ["default/templates/product.json"] })).includes('"page"'), false);
 });

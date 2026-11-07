@@ -27,6 +27,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             { nameof(PageBuilderController.SaveTemplates), [Permissions.Update] },
             // and the permission that edits each part, in the action
             { nameof(PageBuilderController.SaveDesignerChanges), [Permissions.Read] },
+            { nameof(PageBuilderController.DiscardDesignerChanges), [Permissions.Read] },
             { nameof(PageBuilderController.GitPublish), [Permissions.Publish] },
             { nameof(PageBuilderController.GitPromote), [Permissions.Promote] },
             { nameof(PageBuilderController.GitUnpublish), [Permissions.Publish] },

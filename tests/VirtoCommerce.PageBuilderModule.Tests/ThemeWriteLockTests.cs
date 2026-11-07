@@ -119,7 +119,8 @@ public class ThemeWriteLockTests
             themeSnapshotService: null,
             themeDraftService: null,
             groupedPageService: null,
-            pageContentService: null));
+            pageContentService: null,
+                sharedComponentPlacementValidator: null));
     }
 
     private HistoryController HistoryController(RecordingContentHistory history) =>
