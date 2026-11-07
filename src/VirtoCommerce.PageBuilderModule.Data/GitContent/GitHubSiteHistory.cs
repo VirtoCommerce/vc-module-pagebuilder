@@ -1,0 +1,471 @@
+using System;
+using System.Buffers.Text;
+using System.Collections.Generic;
+using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using VirtoCommerce.PageBuilderModule.Core.GitContent;
+using VirtoCommerce.PageBuilderModule.Core.History;
+using VirtoCommerce.PageBuilderModule.Core.Models;
+using VirtoCommerce.PageBuilderModule.Core.Services;
+using VirtoCommerce.PageBuilderModule.Core.Theme;
+using VirtoCommerce.PageBuilderModule.Data.Validation;
+using VirtoCommerce.Platform.Core.Common;
+using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
+
+namespace VirtoCommerce.PageBuilderModule.Data.GitContent;
+
+/// <summary>History of database pages and theme files in the repository the module created for the store: a version is a commit.</summary>
+public class GitHubSiteHistory(
+    IGitContentPolicy gitContentPolicy,
+    IGitContentRepository gitContentRepository,
+    IGitHubApiClient gitHubApiClient,
+    IGitHubConnectionService gitHubConnectionService,
+    IGroupedPageService groupedPageService,
+    IThemeStorageFactory themeStorageFactory,
+    IOptions<GitContentOptions> options,
+    ILogger<GitHubSiteHistory> logger) : IContentHistory
+{
+    public const string PagesFolder = "database-pages";
+    public const string ThemeFolder = "theme";
+
+    // GitHub's limit on a GraphQL page
+    private const int MaxPageSize = 100;
+
+    // another save may move the branch between reading its head and moving it
+    private const int MaxCommitAttempts = 3;
+
+    private const int CommitShaBytes = 20;
+
+    public virtual async Task<ContentHistoryStatus> GetStatusAsync(string storeId, CancellationToken cancellationToken = default)
+    {
+        StoreRepository repository;
+        try
+        {
+            repository = await gitContentPolicy.GetConfiguredRepositoryAsync(storeId, cancellationToken);
+        }
+        catch (GitContentException)
+        {
+            // a malformed repository setting is still a repository assigned by hand
+            return ContentHistoryStatus.Unavailable;
+        }
+
+        if (repository == null)
+        {
+            return ContentHistoryStatus.SetupRequired;
+        }
+
+        if (!repository.IsPlatformManaged)
+        {
+            return ContentHistoryStatus.Unavailable;
+        }
+
+        return await gitContentPolicy.IsEnabledForStoreAsync(storeId, cancellationToken) ? ContentHistoryStatus.Enabled : ContentHistoryStatus.SetupRequired;
+    }
+
+    public virtual async Task RecordAsync(string storeId, ContentHistoryRecord record, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(record);
+
+        var files = GetCommitFiles(record);
+        if (files.Count == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            var repository = await GetHistoryRepositoryAsync(storeId, cancellationToken);
+            if (repository == null)
+            {
+                return;
+            }
+
+            var connection = await gitHubConnectionService.GetConnectionAsync(cancellationToken);
+            await CommitFilesAsync(repository, connection.BaseBranch, files, GetCommitMessage(record, files.Keys), CreateAuthor(record), cancellationToken);
+        }
+        // best effort: the save stands without its version
+        catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
+        {
+            logger.LogWarning(ex, "The history of store {StoreId} missed a version: {Description}.", storeId, record.Description);
+        }
+    }
+
+    public virtual async Task<ContentVersionPage> ListAsync(string storeId, IList<HistoryItem> items, string cursor, int take,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(items);
+
+        var positions = ReadCursor(cursor);
+        var result = AbstractTypeFactory<ContentVersionPage>.TryCreateInstance();
+        result.Status = await GetStatusAsync(storeId, cancellationToken);
+        if (result.Status != ContentHistoryStatus.Enabled)
+        {
+            return result;
+        }
+
+        var sources = items
+            .Select(item => (Item: item, Path: GetFilePath(item)))
+            .Where(x => x.Path != null)
+            .DistinctBy(x => x.Path, StringComparer.Ordinal)
+            .Select(x => new HistorySource(x.Item, x.Path, positions.TryGetValue(x.Path, out var position) ? position : null))
+            .Where(x => !x.Position.Done)
+            .ToList();
+        if (sources.Count == 0)
+        {
+            return result;
+        }
+
+        take = Math.Clamp(take, 1, MaxPageSize);
+        var repository = await gitContentPolicy.GetRepositoryAsync(storeId, cancellationToken);
+        var connection = await gitHubConnectionService.GetConnectionAsync(cancellationToken);
+        var answer = await QueryHistoriesAsync(repository, connection.BaseBranch, sources, take, cancellationToken);
+        if (answer?.SelectToken("data.repository") is not JObject)
+        {
+            result.Status = ContentHistoryStatus.SetupRequired;
+            return result;
+        }
+
+        for (var i = 0; i < sources.Count; i++)
+        {
+            var history = answer.SelectToken($"data.repository.ref.target.h{i}");
+            var source = sources[i];
+            source.Nodes = (history?["nodes"] as JArray ?? []).Skip(source.Position.Skip).ToList();
+            source.HasMore = history?.SelectToken("pageInfo.hasNextPage")?.Value<bool>() == true;
+            source.EndCursor = history?.SelectToken("pageInfo.endCursor")?.Value<string>();
+            source.LiveOid = source.Position.LiveFound ? null : ComputeBlobOid(await GetLiveContentAsync(storeId, source.Item, cancellationToken));
+        }
+
+        result.Versions = MergeVersions(sources, take);
+        result.Cursor = WriteCursor(positions, sources);
+
+        return result;
+    }
+
+    public virtual async Task<string> ReadAsync(string storeId, HistoryItem item, string versionId, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+
+        var path = GetFilePath(item);
+        var sha = GetCommitSha(versionId);
+        if (path == null || sha == null)
+        {
+            return null;
+        }
+
+        var repository = await GetHistoryRepositoryAsync(storeId, cancellationToken);
+        return repository == null ? null : await gitContentRepository.ReadFileAsync(repository, path, sha, cancellationToken);
+    }
+
+    /// <summary>Computes the git blob id of the content.</summary>
+    public static string ComputeBlobOid(string content)
+    {
+        if (content == null)
+        {
+            return null;
+        }
+
+        var bytes = PageJson.Encoding.GetBytes(content);
+        var header = Encoding.ASCII.GetBytes($"blob {bytes.Length}\0");
+#pragma warning disable CA5350 // git names blobs by SHA-1; this is an identity, not a security check
+        return Convert.ToHexStringLower(SHA1.HashData([.. header, .. bytes]));
+#pragma warning restore CA5350
+    }
+
+    /// <summary>Gets the store repository when it keeps the history.</summary>
+    protected virtual async Task<string> GetHistoryRepositoryAsync(string storeId, CancellationToken cancellationToken)
+    {
+        return await GetStatusAsync(storeId, cancellationToken) == ContentHistoryStatus.Enabled
+            ? await gitContentPolicy.GetRepositoryAsync(storeId, cancellationToken)
+            : null;
+    }
+
+    /// <summary>Gets the file of the item in the repository; <c>null</c> for an item the history does not keep.</summary>
+    protected virtual string GetFilePath(HistoryItem item) => item?.Type switch
+    {
+        HistoryItemType.Page when PageBuilderContentPaths.IsFolderName(item.Key) => $"{PagesFolder}/{item.Key}.json",
+        HistoryItemType.Theme when PageBuilderContentPaths.IsHistoryThemeFile(item.Key) => $"{ThemeFolder}/{item.Key}",
+        _ => null,
+    };
+
+    protected virtual IDictionary<string, string> GetCommitFiles(ContentHistoryRecord record)
+    {
+        var files = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var entry in record.Entries.Where(x => x?.Content != null))
+        {
+            if (GetFilePath(entry.Item) is { } path)
+            {
+                files[path] = entry.Content;
+            }
+        }
+
+        return files;
+    }
+
+    /// <summary>Commits the files to the branch as one commit. Returns its sha; <c>null</c> when no file changed.</summary>
+    protected virtual async Task<string> CommitFilesAsync(string repository, string branch, IDictionary<string, string> files, string message,
+        GitCommitAuthor author, CancellationToken cancellationToken)
+    {
+        for (var attempt = 0; attempt < MaxCommitAttempts; attempt++)
+        {
+            var head = await gitContentRepository.GetBranchHeadShaAsync(repository, branch, cancellationToken)
+                ?? throw new GitContentException($"Branch \"{branch}\" of \"{repository}\" does not exist.");
+            var baseTree = await gitHubApiClient.GetCommitTreeAsync(repository, head, cancellationToken);
+            var tree = await gitHubApiClient.CreateTreeAsync(repository, baseTree, files, cancellationToken);
+            if (tree == baseTree)
+            {
+                return null;
+            }
+
+            var commit = await gitHubApiClient.CreateCommitAsync(repository, tree, head, message, author, cancellationToken);
+            if (await gitHubApiClient.FastForwardBranchAsync(repository, branch, commit, cancellationToken))
+            {
+                return commit;
+            }
+        }
+
+        throw new GitContentException($"Branch \"{branch}\" of \"{repository}\" kept moving: the version was not recorded.");
+    }
+
+    protected virtual string GetCommitMessage(ContentHistoryRecord record, IEnumerable<string> files)
+    {
+        var message = $"{record.Description}\n\n{string.Join("\n", files.Order(StringComparer.Ordinal))}";
+
+        return GitCommitMessage.WithTrailer(GitCommitMessage.WithVcUser(message, record.UserName), GitCommitMessage.VcSaveTrailer, record.SaveId);
+    }
+
+    protected virtual GitCommitAuthor CreateAuthor(ContentHistoryRecord record)
+    {
+        return new GitCommitAuthor
+        {
+            Name = string.IsNullOrEmpty(record.UserName) ? options.Value.FallbackAuthorName : record.UserName,
+            Email = record.UserEmail ?? options.Value.FallbackAuthorEmail,
+        };
+    }
+
+    /// <summary>Gets the content the site shows: the published page, the live theme file.</summary>
+    protected virtual async Task<string> GetLiveContentAsync(string storeId, HistoryItem item, CancellationToken cancellationToken)
+    {
+        if (item.Type == HistoryItemType.Page)
+        {
+            var group = await groupedPageService.GetByIdAsync(item.Key);
+            var page = group == null ? null : PageBuilderPageSelection.Order(group.Pages ?? []).FirstOrDefault(x => x.Status == Published);
+            return page == null ? null : await groupedPageService.LoadContent(page.Id, cancellationToken);
+        }
+
+        return await themeStorageFactory.Open(storeId, PageBuilderContentPaths.GetThemeName(item.Key)).ReadAsync(PageBuilderContentPaths.GetPathInTheme(item.Key));
+    }
+
+    /// <summary>Reads the histories of the files in one request.</summary>
+    protected virtual Task<JObject> QueryHistoriesAsync(string repository, string branch, IList<HistorySource> sources, int take,
+        CancellationToken cancellationToken)
+    {
+        var (owner, name) = GitHubApiClient.ParseRepository(repository);
+        var variables = new JObject
+        {
+            ["owner"] = owner,
+            ["name"] = name,
+            ["branch"] = $"refs/heads/{branch}",
+        };
+        var parameters = new StringBuilder("$owner:String!,$name:String!,$branch:String!");
+        var histories = new StringBuilder();
+        for (var i = 0; i < sources.Count; i++)
+        {
+            var position = sources[i].Position;
+            variables[$"p{i}"] = sources[i].Path;
+            variables[$"t{i}"] = Math.Min(position.Skip + take, MaxPageSize);
+            variables[$"a{i}"] = position.After;
+            parameters.Append($",$p{i}:String!,$t{i}:Int!,$a{i}:String");
+            histories.Append($" h{i}: history(path:$p{i}, first:$t{i}, after:$a{i}){{ pageInfo{{ hasNextPage endCursor }} nodes{{ oid committedDate messageHeadline messageBody author{{ name email user{{ login }} }} file(path:$p{i}){{ oid }} }} }}");
+        }
+
+        var request = new JObject
+        {
+            ["query"] = $"query({parameters}){{ repository(owner:$owner,name:$name){{ ref(qualifiedName:$branch){{ target{{ ... on Commit{{{histories} }} }} }} }} }}",
+            ["variables"] = variables,
+        };
+
+        return gitHubApiClient.PostGraphQlAsync(options.Value.GraphQlUrl, owner, request, $"read the history of \"{repository}\"", cancellationToken);
+    }
+
+    /// <summary>
+    /// Merges the files' histories into versions, newest first: a commit is one version listing the files it changed. Stops where a
+    /// file has older changes not read yet.
+    /// </summary>
+    protected virtual IList<ContentVersion> MergeVersions(IList<HistorySource> sources, int take)
+    {
+        var versions = new List<ContentVersion>();
+        var byOid = new Dictionary<string, ContentVersion>(StringComparer.Ordinal);
+        while (true)
+        {
+            foreach (var source in sources)
+            {
+                while (source.Head is { } head && byOid.TryGetValue(GetOid(head), out var listed))
+                {
+                    AddItem(listed, source);
+                }
+            }
+
+            if (versions.Count >= take || sources.Any(x => x.Head == null && x.HasMore))
+            {
+                break;
+            }
+
+            var newest = sources
+                .Where(x => x.Head != null)
+                .Select(x => x.Head)
+                .OrderByDescending(x => GitHubApiClient.ReadDate(x["committedDate"]))
+                .ThenBy(GetOid, StringComparer.Ordinal)
+                .FirstOrDefault();
+            if (newest == null)
+            {
+                break;
+            }
+
+            var version = CreateVersion(newest);
+            versions.Add(version);
+            byOid[GetOid(newest)] = version;
+        }
+
+        return versions;
+    }
+
+    protected virtual ContentVersion CreateVersion(JToken node)
+    {
+        var messageBody = node["messageBody"]?.Value<string>();
+
+        var author = AbstractTypeFactory<ContentVersionAuthor>.TryCreateInstance();
+        author.Name = GitCommitMessage.ReadTrailer(messageBody, GitCommitMessage.VcUserTrailer) ?? node.SelectToken("author.name")?.Value<string>();
+        author.Email = node.SelectToken("author.email")?.Value<string>();
+        author.Login = node.SelectToken("author.user.login")?.Value<string>();
+
+        var version = AbstractTypeFactory<ContentVersion>.TryCreateInstance();
+        version.VersionId = GetVersionId(GetOid(node));
+        version.Date = GitHubApiClient.ReadDate(node["committedDate"]);
+        version.Author = author;
+        version.Description = node["messageHeadline"]?.Value<string>();
+        version.SaveId = GitCommitMessage.ReadTrailer(messageBody, GitCommitMessage.VcSaveTrailer);
+        version.Published = true;
+
+        return version;
+    }
+
+    protected virtual string GetVersionId(string sha) => Base64Url.EncodeToString(Convert.FromHexString(sha));
+
+    /// <summary>Gets the commit a version id names; <c>null</c> for anything but a version id.</summary>
+    protected virtual string GetCommitSha(string versionId)
+    {
+        if (string.IsNullOrEmpty(versionId) || versionId.Length != Base64Url.GetEncodedLength(CommitShaBytes))
+        {
+            return null;
+        }
+
+        try
+        {
+            var bytes = Base64Url.DecodeFromChars(versionId);
+            return bytes.Length == CommitShaBytes ? Convert.ToHexStringLower(bytes) : null;
+        }
+        catch (FormatException)
+        {
+            return null;
+        }
+    }
+
+    /// <exception cref="ArgumentException">The cursor is not one this history wrote.</exception>
+    protected virtual IDictionary<string, HistoryPosition> ReadCursor(string cursor)
+    {
+        if (string.IsNullOrEmpty(cursor))
+        {
+            return new Dictionary<string, HistoryPosition>(StringComparer.Ordinal);
+        }
+
+        try
+        {
+            var positions = JsonConvert.DeserializeObject<Dictionary<string, HistoryPosition>>(Encoding.UTF8.GetString(Base64Url.DecodeFromChars(cursor)));
+            return new Dictionary<string, HistoryPosition>(positions ?? [], StringComparer.Ordinal);
+        }
+        catch (Exception ex) when (ex is FormatException or JsonException)
+        {
+            throw new ArgumentException("The cursor is not one the history returned.", nameof(cursor), ex);
+        }
+    }
+
+    /// <summary>Writes where each file's history continues; <c>null</c> when every one is read to the end.</summary>
+    protected virtual string WriteCursor(IDictionary<string, HistoryPosition> positions, IList<HistorySource> sources)
+    {
+        foreach (var source in sources)
+        {
+            var read = source.Read == source.Nodes.Count;
+            positions[source.Path] = new HistoryPosition
+            {
+                After = read ? source.EndCursor : source.Position.After,
+                Skip = read ? 0 : source.Position.Skip + source.Read,
+                LiveFound = source.Position.LiveFound || source.LiveFound,
+                Done = read && !source.HasMore,
+            };
+        }
+
+        return positions.Values.All(x => x.Done)
+            ? null
+            : Base64Url.EncodeToString(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(positions)));
+    }
+
+    private static string GetOid(JToken node) => node["oid"]?.Value<string>();
+
+    // only the newest change with the live content is live
+    private static void AddItem(ContentVersion version, HistorySource source)
+    {
+        var isLive = !source.LiveFound && source.LiveOid != null &&
+                     string.Equals(source.Head.SelectToken("file.oid")?.Value<string>(), source.LiveOid, StringComparison.Ordinal);
+        source.LiveFound |= isLive;
+        version.Published &= isLive;
+        version.Items.Add(source.Item.ToString());
+        source.Read++;
+    }
+
+    /// <summary>Where a file's history continues.</summary>
+    protected class HistoryPosition
+    {
+        [JsonProperty("a")]
+        public string After { get; set; }
+
+        [JsonProperty("s")]
+        public int Skip { get; set; }
+
+        [JsonProperty("l")]
+        public bool LiveFound { get; set; }
+
+        [JsonProperty("d")]
+        public bool Done { get; set; }
+    }
+
+    /// <summary>A file's history as far as it is read.</summary>
+    protected class HistorySource(HistoryItem item, string path, HistoryPosition position)
+    {
+        public HistoryItem Item { get; } = item;
+
+        public string Path { get; } = path;
+
+        public HistoryPosition Position { get; } = position ?? new HistoryPosition();
+
+        public IList<JToken> Nodes { get; set; } = [];
+
+        public int Read { get; set; }
+
+        public bool HasMore { get; set; }
+
+        public string EndCursor { get; set; }
+
+        public string LiveOid { get; set; }
+
+        public bool LiveFound { get; set; }
+
+        public JToken Head => Read < Nodes.Count ? Nodes[Read] : null;
+    }
+}

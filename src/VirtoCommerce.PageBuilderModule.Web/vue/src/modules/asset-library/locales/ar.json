@@ -1,0 +1,129 @@
+{
+  "ASSET_LIBRARY": {
+    "PAGINATION": {
+      "PAGE_SIZE": "العناصر في الصفحة"
+    },
+    "SORT": {
+      "LABEL": "الترتيب حسب",
+      "NAME_ASC": "الاسم (أ-ي)",
+      "NAME_DESC": "الاسم (ي-أ)",
+      "MODIFIED": "المعدّلة مؤخرًا",
+      "SIZE": "الأكبر أولًا"
+    },
+    "MENU": {
+      "TITLE": "مكتبة الأصول"
+    },
+    "TITLE": "مكتبة الأصول",
+    "COUNTER": "الأصول: {count}",
+    "BREADCRUMBS": {
+      "ROOT": "Page Builder"
+    },
+    "BADGES": {
+      "FOLDER": "مجلد",
+      "REFERENCES": "المراجع: {count}"
+    },
+    "TABLE": {
+      "NAME": "الاسم",
+      "TYPE": "النوع",
+      "SIZE": "الحجم",
+      "REFERENCES": "المراجع",
+      "MODIFIED": "تاريخ التعديل"
+    },
+    "VIEW": {
+      "GRID": "عرض الشبكة",
+      "TABLE": "عرض الجدول"
+    },
+    "TOOLBAR": {
+      "REFRESH": "تحديث",
+      "UPLOAD": "رفع",
+      "CREATE_FOLDER": "إنشاء مجلد",
+      "DELETE": "حذف",
+      "SEARCH_PLACEHOLDER": "البحث في الأصول…"
+    },
+    "ACTIONS": {
+      "COPY_URL": "نسخ عنوان URL",
+      "DELETE": "حذف"
+    },
+    "DROP": {
+      "UPLOAD_HERE": "أفلت الملفات هنا لرفعها"
+    },
+    "DETAILS": {
+      "EMPTY": "اختر ملفًا لمعاينة تفاصيله.",
+      "FILE_DETAILS": "تفاصيل الملف",
+      "CLOSE": "إغلاق",
+      "SIZE": "الحجم",
+      "DIMENSIONS": "الأبعاد",
+      "TYPE": "النوع",
+      "MODIFIED": "تاريخ التعديل",
+      "UPLOADED": "تاريخ الرفع",
+      "PATH": "المسار",
+      "USED_ON": "مستخدم في ({count})",
+      "PAGES": "الصفحات",
+      "SHARED_COMPONENTS": "المكونات المشتركة",
+      "NO_REFERENCES": "غير مستخدم في أي صفحات أو مكونات مشتركة في Page Builder.",
+      "URL": "عنوان URL",
+      "COPY_URL": "نسخ عنوان URL",
+      "REPLACE": "استبدال",
+      "DELETE": "حذف",
+      "NOT_AVAILABLE": "غير متاح"
+    },
+    "EMPTY": {
+      "TITLE": "لا توجد أصول في هذا المجلد بعد",
+      "DESCRIPTION": "ارفع ملفات أو أنشئ مجلدًا داخل منطقة أصول المتجر في Page Builder.",
+      "NO_STORE": "سياق المتجر غير موجود"
+    },
+    "CREATE_FOLDER": {
+      "TITLE": "إنشاء مجلد",
+      "NAME_LABEL": "اسم المجلد",
+      "NAME_PLACEHOLDER": "أدخل اسم المجلد",
+      "CANCEL": "إلغاء",
+      "CREATE": "إنشاء",
+      "VALIDATION": {
+        "DASH_CONSECUTIVE": "يجب ألا يحتوي اسم المجلد على شرطات متتالية.",
+        "DASH_END": "يجب ألا ينتهي اسم المجلد بشرطة.",
+        "DASH_START": "يجب ألا يبدأ اسم المجلد بشرطة.",
+        "INVALID_CHARACTERS": "يجب أن يحتوي اسم المجلد على أحرف لاتينية صغيرة وأرقام ومسافات وشرطات مفردة فقط.",
+        "MAX_LENGTH": "يجب ألا يزيد اسم المجلد على 63 حرفًا. عدد الأحرف التي أدخلتها: {count}.",
+        "MIN_LENGTH": "يجب ألا يقل اسم المجلد عن 3 أحرف. عدد الأحرف التي أدخلتها: {count}."
+      }
+    },
+    "CONFIRM": {
+      "DELETE_SINGLE": "هل تريد حذف {name}؟",
+      "DELETE_USED_ONE": "هل تريد حذف {name}؟ إنه مستخدم في عنصر واحد في Page Builder.",
+      "DELETE_USED_MANY": "هل تريد حذف {name}؟ إنه مستخدم في عناصر Page Builder ({count}).",
+      "DELETE_SELECTED": "هل تريد حذف الأصول المحددة ({count})؟"
+    },
+    "OVERWRITE": {
+      "TITLE": "تعارض في اسم الملف",
+      "MESSAGE_UNUSED": "{name} غير مستخدم في أي صفحات في Page Builder. سيؤدي استبداله إلى تحديث الملف الموجود.",
+      "MESSAGE_USED_ONE": "{name} مستخدم في صفحة واحدة في Page Builder. سيؤدي استبداله إلى تغيير الأصل في تلك الصفحة.",
+      "MESSAGE_USED_MANY": "{name} مستخدم في صفحات Page Builder ({count}). سيؤدي استبداله إلى تغيير الأصل فيها جميعًا.",
+      "MESSAGE_BATCH_DUPLICATE": "يوجد ملف آخر في عملية الرفع هذه باسم {name}. إذا أبقيت الاسم نفسه فسيُرفع الملف الأخير فقط.",
+      "MESSAGE_USAGE_UNKNOWN": "تعذّر تحديد ما إذا كان {name} مستخدمًا في صفحات Page Builder. قد يؤدي استبداله إلى تغيير الصفحات التي تستخدم هذا الأصل.",
+      "AFFECTED_PAGES": "صفحات Page Builder المتأثرة",
+      "UPLOAD_AS_LABEL": "الرفع باسم",
+      "UPLOAD_AS": "الرفع باسم",
+      "REPLACE": "استبدال",
+      "CANCEL": "إلغاء",
+      "VALIDATION": {
+        "REQUIRED": "اسم الملف مطلوب.",
+        "INVALID": "يجب ألا يحتوي اسم الملف على فواصل المسار.",
+        "COLLISION": "{name} موجود بالفعل في هذا المجلد. أدخل اسم ملف مختلفًا."
+      }
+    },
+    "NOTIFICATIONS": {
+      "FOLDER_CREATED": "تم إنشاء المجلد بنجاح",
+      "UPLOADED": "تم رفع الأصول بنجاح",
+      "UPLOAD_CANCELED": "تم إلغاء الرفع. لم يُرفع أي ملف.",
+      "REPLACED": "تم استبدال الأصل بنجاح",
+      "DELETED": "تم حذف الأصول بنجاح",
+      "URL_COPIED": "تم نسخ عنوان URL للأصل بنجاح",
+      "COPY_FAILED": "تعذّر نسخ عنوان URL إلى الحافظة",
+      "ERROR_GENERIC": "فشلت العملية على الأصل"
+    },
+    "PICK": {
+      "HINT": "اختر ملفًا أو ارفع ملفًا",
+      "SELECT": "اختيار"
+    }
+  }
+}

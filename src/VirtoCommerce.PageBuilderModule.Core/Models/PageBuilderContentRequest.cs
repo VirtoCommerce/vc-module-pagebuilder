@@ -1,9 +1,7 @@
 namespace VirtoCommerce.PageBuilderModule.Core.Models;
 
-public class PageBuilderContentRequest : IHasStoreId
+public class PageBuilderContentRequest : PageBuilderStoreRequest
 {
-    public string StoreId { get; set; }
-
     public string ContentType { get; set; }
 
     public string Theme { get; set; }

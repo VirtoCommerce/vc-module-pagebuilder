@@ -1,0 +1,36 @@
+{
+  "name": "api",
+  "version": "0.0.0",
+  "files": [
+    "dist",
+    "package.json"
+  ],
+  "exports": {
+    "./pagebuildermodule": {
+      "import": "./dist/virtocommerce.pagebuildermodule.js",
+      "types": "./dist/types/virtocommerce.pagebuildermodule.d.ts"
+    },
+    "./virtocommerce.pagebuildermodule": {
+      "import": "./dist/virtocommerce.pagebuildermodule.js",
+      "types": "./dist/types/virtocommerce.pagebuildermodule.d.ts"
+    },
+    "./assets": {
+      "import": "./dist/virtocommerce.assets.js",
+      "types": "./dist/types/virtocommerce.assets.d.ts"
+    },
+    "./virtocommerce.assets": {
+      "import": "./dist/virtocommerce.assets.js",
+      "types": "./dist/types/virtocommerce.assets.d.ts"
+    },
+    ".": {
+      "import": "./dist/virtocommerce.pagebuildermodule.js",
+      "types": "./dist/types/virtocommerce.pagebuildermodule.d.ts"
+    }
+  },
+  "apiClientGenerator": {
+    "version": "2.0.0",
+    "generatedAt": "2026-11-07T01:27:49.821Z"
+  },
+  "module": "./dist/virtocommerce.pagebuildermodule.js",
+  "types": "./dist/types/virtocommerce.pagebuildermodule.d.ts"
+}

@@ -1,0 +1,67 @@
+{
+  "SHARED_COMPONENTS": {
+    "MENU": {
+      "TITLE": "רכיבים משותפים"
+    },
+    "TITLE": "רכיבים משותפים",
+    "SEARCH": {
+      "PLACEHOLDER": "חיפוש רכיבים משותפים..."
+    },
+    "TABLE": {
+      "NAME": "שם",
+      "USAGE": "בשימוש בדפים",
+      "MODIFIED": "שינוי אחרון",
+      "MODIFIED_BY": "שונה על ידי"
+    },
+    "TOOLBAR": {
+      "REFRESH": "רענון"
+    },
+    "ACTIONS": {
+      "EDIT_CONTENT": "עריכה במעצב",
+      "RENAME": "שינוי שם",
+      "DELETE": "מחיקה",
+      "DELETE_BLOCKED": "רכיב זה נמצא בשימוש ולא ניתן למחוק אותו",
+      "CLOSE": "סגירה"
+    },
+    "DETAILS": {
+      "COMPONENT_DETAILS": "פרטי הרכיב",
+      "STORE": "חנות",
+      "MODIFIED": "שינוי אחרון",
+      "MODIFIED_BY": "שונה על ידי",
+      "USED_ON_ONE": "בשימוש (דף 1)",
+      "USED_ON_MANY": "בשימוש (דפים: {count})",
+      "LOADING_USAGE": "השימוש בדפים נטען...",
+      "NO_USAGE": "לא בשימוש באף דף של Page Builder.",
+      "DELETE_BLOCKED_ONE": "יש להסיר רכיב זה מהדף לפני מחיקתו.",
+      "DELETE_BLOCKED_MANY": "יש להסיר רכיב זה מכל הדפים ({count}) לפני מחיקתו.",
+      "NOT_AVAILABLE": "לא זמין",
+      "OPEN_UNAVAILABLE_PERMISSION": "אין הרשאה לפתוח דף זה במעצב.",
+      "OPEN_UNAVAILABLE_ARCHIVED": "לא ניתן לפתוח במעצב דפים שבארכיון.",
+      "OPEN_UNAVAILABLE_IDENTITY": "לא ניתן לפתוח דף זה כי המזהה שלו אינו זמין."
+    },
+    "EMPTY": {
+      "TITLE": "עדיין אין רכיבים משותפים",
+      "DESCRIPTION": "אפשר ליצור רכיב משותף ממקטעים שנבחרו במעצב של Page Builder.",
+      "NOT_FOUND_TITLE": "לא נמצאו רכיבים משותפים",
+      "NOT_FOUND_DESCRIPTION": "יש לנסות ביטוי חיפוש אחר."
+    },
+    "RENAME": {
+      "TITLE": "שינוי שם של רכיב משותף",
+      "NAME_LABEL": "שם",
+      "NAME_PLACEHOLDER": "יש להזין שם רכיב",
+      "CANCEL": "ביטול",
+      "SAVE": "שמירה"
+    },
+    "CONFIRM": {
+      "DELETE": "האם למחוק את {name}? לא ניתן לבטל פעולה זו."
+    },
+    "NOTIFICATIONS": {
+      "RENAMED": "שם הרכיב המשותף שונה",
+      "DELETED": "הרכיב המשותף נמחק",
+      "DELETE_BLOCKED_ONE": "רכיב זה נמצא בשימוש בדף 1 ולא ניתן למחוק אותו.",
+      "DELETE_BLOCKED_MANY": "רכיב זה נמצא בשימוש בדפים ({count}) ולא ניתן למחוק אותו.",
+      "DELETE_CONFLICT": "הרכיב נמצא כעת בשימוש ולא ניתן למחוק אותו. יש לרענן את הרשימה כדי לראות היכן הוא בשימוש.",
+      "ERROR_GENERIC": "הפעולה על הרכיב המשותף נכשלה"
+    }
+  }
+}

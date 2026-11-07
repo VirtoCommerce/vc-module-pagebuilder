@@ -14,7 +14,6 @@ using Newtonsoft.Json.Linq;
 using VirtoCommerce.AssetsModule.Core.Assets;
 using VirtoCommerce.ContentModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
-using VirtoCommerce.PageBuilderModule.Data.Validation;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using VirtoCommerce.PageBuilderModule.Web.Models;
 using VirtoCommerce.StoreModule.Core.Model;
@@ -399,6 +398,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 PagesRoot = "pages",
             });
 
+            var filePageDrafts = TestServices.FilePageDrafts(options, GitHubConnections.CreateService(options.Value), new FakeGitContentPolicy(gitFlow), git ?? new FakeGitRepository(), null, new FakeGitContentProvisioner(), new FakeStoreService(new Store { Id = "vccom" }), new FakePathResolver(), new FakeStorageFactory(storage), null, null);
             var controller = new PageBuilderController(
                 storeService: new FakeStoreService(new Store { Id = "vccom" }),
                 pathResolver: new FakePathResolver(),
@@ -406,13 +406,23 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 publishingService: null,
                 eventPublisher: null,
                 gitContentOptions: options,
-                gitContentPolicy: new FakePolicy(gitFlow),
+                gitHubConnectionService: GitHubConnections.CreateService(options.Value),
+                gitContentPolicy: new FakeGitContentPolicy(gitFlow),
                 gitContentRepository: git ?? new FakeGitRepository(),
                 gitContentHistory: null,
                 gitContentPublisher: null,
+                gitLivePageService: null,
                 settingsManager: null,
                 authorizationService: new FakeAuthorizationService(allowed),
-                requestValidator: new PageBuilderContentRequestValidator(new FakeStoreService(new Store { Id = "vccom" }), new PageBuilderContentFileValidator()));
+                distributedLock: new InProcessDistributedLock(),
+                requestValidator: RequestValidators.Content("s1", "vccom"),
+                contentHistory: new NoContentHistory(),
+                themeDraftService: null,
+                groupedPageService: null,
+                sharedComponentPlacementValidator: null,
+                designerContentService: TestServices.Designer(new NoContentHistory(), filePageDrafts, null, null, null, null, null),
+                contentPermissionService: TestServices.Permissions(new FakeAuthorizationService(allowed)),
+                filePageDraftService: filePageDrafts);
 
             var identity = new ClaimsIdentity([new Claim(ClaimTypes.Name, "john")], "test");
             controller.ControllerContext = new ControllerContext
@@ -504,36 +514,30 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         {
             public Dictionary<string, string> Files { get; } = [];
 
-            public Task<string> ReadFileAsync(string path, string gitRef, CancellationToken cancellationToken = default) =>
+            public Task<string> ReadFileAsync(string repository, string path, string gitRef, CancellationToken cancellationToken = default) =>
                 Task.FromResult(Files.GetValueOrDefault(path));
 
-            public Task<string> GetBranchHeadShaAsync(string branch, CancellationToken cancellationToken = default) =>
+            public Task<string> GetBranchHeadShaAsync(string repository, string branch, CancellationToken cancellationToken = default) =>
                 throw new NotSupportedException();
 
-            public Task CreateBranchAsync(string branch, string fromRef, CancellationToken cancellationToken = default) =>
+            public Task CreateBranchAsync(string repository, string branch, string fromRef, CancellationToken cancellationToken = default) =>
                 throw new NotSupportedException();
 
-            public Task SetBranchAsync(string branch, string sha, string pagePath, CancellationToken cancellationToken = default) =>
+            public Task SetBranchAsync(string repository, string branch, string sha, string pagePath, CancellationToken cancellationToken = default) =>
                 throw new NotSupportedException();
 
-            public Task DeleteBranchAsync(string branch, string pagePath, CancellationToken cancellationToken = default) =>
+            public Task DeleteBranchAsync(string repository, string branch, string pagePath, CancellationToken cancellationToken = default) =>
                 throw new NotSupportedException();
 
-            public void InvalidateRead(string path, string gitRef) => throw new NotSupportedException();
+            public void InvalidateRead(string repository, string path, string gitRef) => throw new NotSupportedException();
 
-            public Task<string> CommitFileAsync(string path, string content, string branch, string message,
+            public Task<string> CommitFileAsync(string repository, string path, string content, string branch, string message,
                 GitCommitAuthor author, CancellationToken cancellationToken = default) =>
                 throw new NotSupportedException();
 
-            public Task<string> DeleteFileAsync(string path, string branch, string message, GitCommitAuthor author,
+            public Task<string> DeleteFileAsync(string repository, string path, string branch, string message, GitCommitAuthor author,
                 CancellationToken cancellationToken = default) =>
                 throw new NotSupportedException();
-        }
-
-        private sealed class FakePolicy(bool enabled) : IGitContentPolicy
-        {
-            public Task<bool> IsEnabledForStoreAsync(string storeId, CancellationToken cancellationToken = default) =>
-                Task.FromResult(enabled);
         }
 
     }

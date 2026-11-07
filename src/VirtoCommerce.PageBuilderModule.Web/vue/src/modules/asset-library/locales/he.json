@@ -1,0 +1,129 @@
+{
+  "ASSET_LIBRARY": {
+    "PAGINATION": {
+      "PAGE_SIZE": "פריטים בעמוד"
+    },
+    "SORT": {
+      "LABEL": "מיון לפי",
+      "NAME_ASC": "שם (A-Z)",
+      "NAME_DESC": "שם (Z-A)",
+      "MODIFIED": "שונו לאחרונה",
+      "SIZE": "הגדולים ביותר תחילה"
+    },
+    "MENU": {
+      "TITLE": "ספריית נכסים"
+    },
+    "TITLE": "ספריית נכסים",
+    "COUNTER": "נכסים: {count}",
+    "BREADCRUMBS": {
+      "ROOT": "Page Builder"
+    },
+    "BADGES": {
+      "FOLDER": "תיקייה",
+      "REFERENCES": "הפניות: {count}"
+    },
+    "TABLE": {
+      "NAME": "שם",
+      "TYPE": "סוג",
+      "SIZE": "גודל",
+      "REFERENCES": "הפניות",
+      "MODIFIED": "שינוי אחרון"
+    },
+    "VIEW": {
+      "GRID": "תצוגת רשת",
+      "TABLE": "תצוגת טבלה"
+    },
+    "TOOLBAR": {
+      "REFRESH": "רענון",
+      "UPLOAD": "העלאה",
+      "CREATE_FOLDER": "יצירת תיקייה",
+      "DELETE": "מחיקה",
+      "SEARCH_PLACEHOLDER": "חיפוש נכסים..."
+    },
+    "ACTIONS": {
+      "COPY_URL": "העתקת כתובת URL",
+      "DELETE": "מחיקה"
+    },
+    "DROP": {
+      "UPLOAD_HERE": "יש לשחרר כאן קבצים כדי להעלות אותם"
+    },
+    "DETAILS": {
+      "EMPTY": "יש לבחור קובץ כדי לראות את פרטיו.",
+      "FILE_DETAILS": "פרטי הקובץ",
+      "CLOSE": "סגירה",
+      "SIZE": "גודל",
+      "DIMENSIONS": "ממדים",
+      "TYPE": "סוג",
+      "MODIFIED": "שינוי אחרון",
+      "UPLOADED": "הועלה",
+      "PATH": "נתיב",
+      "USED_ON": "בשימוש ({count})",
+      "PAGES": "דפים",
+      "SHARED_COMPONENTS": "רכיבים משותפים",
+      "NO_REFERENCES": "לא בשימוש באף דף או רכיב משותף של Page Builder.",
+      "URL": "URL",
+      "COPY_URL": "העתקת כתובת URL",
+      "REPLACE": "החלפה",
+      "DELETE": "מחיקה",
+      "NOT_AVAILABLE": "לא זמין"
+    },
+    "EMPTY": {
+      "TITLE": "עדיין אין נכסים בתיקייה זו",
+      "DESCRIPTION": "אפשר להעלות קבצים או ליצור תיקייה באזור הנכסים של החנות ב-Page Builder.",
+      "NO_STORE": "חסר הקשר של חנות"
+    },
+    "CREATE_FOLDER": {
+      "TITLE": "יצירת תיקייה",
+      "NAME_LABEL": "שם התיקייה",
+      "NAME_PLACEHOLDER": "יש להזין שם תיקייה",
+      "CANCEL": "ביטול",
+      "CREATE": "יצירה",
+      "VALIDATION": {
+        "DASH_CONSECUTIVE": "שם התיקייה לא יכול להכיל מקפים רצופים.",
+        "DASH_END": "שם התיקייה לא יכול להסתיים במקף.",
+        "DASH_START": "שם התיקייה לא יכול להתחיל במקף.",
+        "INVALID_CHARACTERS": "שם התיקייה יכול להכיל רק אותיות לטיניות קטנות, ספרות, רווחים ומקפים בודדים.",
+        "MAX_LENGTH": "שם התיקייה יכול להכיל 63 תווים לכל היותר. מספר התווים שהוזנו: {count}.",
+        "MIN_LENGTH": "שם התיקייה חייב להכיל 3 תווים לפחות. מספר התווים שהוזנו: {count}."
+      }
+    },
+    "CONFIRM": {
+      "DELETE_SINGLE": "האם למחוק את {name}?",
+      "DELETE_USED_ONE": "האם למחוק את {name}? הוא בשימוש בפריט 1 של Page Builder.",
+      "DELETE_USED_MANY": "האם למחוק את {name}? הוא בשימוש בפריטים של Page Builder ({count}).",
+      "DELETE_SELECTED": "האם למחוק את הנכסים שנבחרו ({count})?"
+    },
+    "OVERWRITE": {
+      "TITLE": "התנגשות בשם הקובץ",
+      "MESSAGE_UNUSED": "{name} אינו בשימוש באף דף של Page Builder. החלפתו תעדכן את הקובץ הקיים.",
+      "MESSAGE_USED_ONE": "{name} נמצא בשימוש בדף 1 של Page Builder. החלפתו תשנה את הנכס בדף זה.",
+      "MESSAGE_USED_MANY": "{name} נמצא בשימוש בדפים של Page Builder ({count}). החלפתו תשנה את הנכס בכולם.",
+      "MESSAGE_BATCH_DUPLICATE": "לקובץ אחר בהעלאה זו כבר יש את השם {name}. אם יישמר אותו שם, רק הקובץ האחרון יועלה.",
+      "MESSAGE_USAGE_UNKNOWN": "לא ניתן היה לקבוע אם {name} נמצא בשימוש בדפים של Page Builder. החלפתו עשויה לשנות דפים שמשתמשים בנכס זה.",
+      "AFFECTED_PAGES": "דפי Page Builder המושפעים",
+      "UPLOAD_AS_LABEL": "העלאה בשם",
+      "UPLOAD_AS": "העלאה בשם",
+      "REPLACE": "החלפה",
+      "CANCEL": "ביטול",
+      "VALIDATION": {
+        "REQUIRED": "יש להזין שם קובץ.",
+        "INVALID": "שם הקובץ לא יכול להכיל מפרידי נתיב.",
+        "COLLISION": "{name} כבר קיים בתיקייה זו. יש להזין שם קובץ אחר."
+      }
+    },
+    "NOTIFICATIONS": {
+      "FOLDER_CREATED": "התיקייה נוצרה",
+      "UPLOADED": "הנכסים הועלו",
+      "UPLOAD_CANCELED": "ההעלאה בוטלה. לא הועלו קבצים.",
+      "REPLACED": "הנכס הוחלף",
+      "DELETED": "הנכסים נמחקו",
+      "URL_COPIED": "כתובת ה-URL של הנכס הועתקה",
+      "COPY_FAILED": "לא ניתן היה להעתיק את כתובת ה-URL ללוח",
+      "ERROR_GENERIC": "הפעולה על הנכס נכשלה"
+    },
+    "PICK": {
+      "HINT": "יש לבחור קובץ או להעלות קובץ",
+      "SELECT": "בחירה"
+    }
+  }
+}

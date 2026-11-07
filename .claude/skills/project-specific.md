@@ -82,7 +82,9 @@ Handlers in `Data/Handlers/` react to page save/delete to sync content.
 - `PageBuilderAuthorizationHandler` validates `PageBuilderAuthorizationRequirement`
 - Permissions defined in `ModuleConstants.Security`
 
-## Angular 20 Designer App
+## Page designer (Vue)
+
+The page designer is the full-screen `PageBuilderDesigner` blade (`vue/src/modules/pages/PageBuilderDesigner.vue`); its state, schema, document and preview code live in `vue/src/modules/designer/`. It edits database pages (param = page group id) and pages kept as files (query: storeId, path, type), with the git version history when the store keeps its pages in git. The preview is the storefront's `/designer-preview` page in an iframe, driven over postMessage (`designer/preview.ts`). The standalone app opens it from `/apps/page-builder-shell/?storeId=…&designGroup=…` or `&designPath=…&designType=…`, which is what the classic admin's page blade links to.
 
 ### Platform Integration Architecture
 
@@ -175,11 +177,7 @@ yarn type-check      # Vue-tsc
 
 ## Build & Deployment
 
-- Build output: `dist/template-builder/` — deployed as part of the .NET module
-- Budget: 1500KB initial warning, 2MB error
 - CI: `.github/workflows/module-ci.yml` (Node 20, builds + packages as NuGet)
-- The Angular app lives inside the C# Web project at `Apps/page-builder-designer/`
-- `dist/template-builder/` gets bundled into the NuGet package and served by ASP.NET Core static files
 
 ## Known Issues / sonar-inspect.md
 

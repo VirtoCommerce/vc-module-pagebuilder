@@ -8,7 +8,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
-using VirtoCommerce.PageBuilderModule.Data.Validation;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using VirtoCommerce.StoreModule.Core.Model;
 using Xunit;
@@ -183,13 +182,13 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             return repository;
         }
 
-        private static RecordingPublisher Publisher(GitPublishState state = GitPublishState.Pending, int? openPullRequest = null) =>
-            new(state, openPullRequest);
+        private static FakeGitContentPublisher Publisher(GitPublishState state = GitPublishState.Pending, int? openPullRequest = null) =>
+            new(state, openPullRequest == null ? null : new GitPendingPublish { Number = openPullRequest.Value, AutoMerging = true });
 
         private static string Value(object body, string property) =>
             body.GetType().GetProperty(property)!.GetValue(body) as string;
 
-        private static PageBuilderController Controller(RecordingRepository repository, RecordingPublisher publisher,
+        private static PageBuilderController Controller(RecordingRepository repository, FakeGitContentPublisher publisher,
             bool gitFlow = true, bool allowed = true, string releaseBranch = "production")
         {
             var options = Options.Create(new GitContentOptions
@@ -203,6 +202,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
             // Only the git dependencies take part in this path; the rest are left null on purpose, so a
             // change that starts reaching for blob storage fails loudly here.
+            var filePageDrafts = TestServices.FilePageDrafts(options, GitHubConnections.CreateService(options.Value), new FakeGitContentPolicy(gitFlow), repository, new FakeGitContentHistory(), new FakeGitContentProvisioner(), new FakeStoreService(new Store { Id = "vccom" }), null, null, null, null);
             var controller = new PageBuilderController(
                 storeService: new FakeStoreService(new Store { Id = "vccom" }),
                 pathResolver: null,
@@ -210,13 +210,23 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 publishingService: null,
                 eventPublisher: null,
                 gitContentOptions: options,
-                gitContentPolicy: new FakePolicy(gitFlow),
+                gitHubConnectionService: GitHubConnections.CreateService(options.Value),
+                gitContentPolicy: new FakeGitContentPolicy(gitFlow),
                 gitContentRepository: repository,
-                gitContentHistory: new SilentHistory(),
+                gitContentHistory: new FakeGitContentHistory(),
                 gitContentPublisher: publisher,
+                gitLivePageService: null,
                 settingsManager: null,
                 authorizationService: new FakeAuthorizationService(allowed),
-                requestValidator: new PageBuilderContentRequestValidator(new FakeStoreService(new Store { Id = "vccom" }), new PageBuilderContentFileValidator()));
+                distributedLock: new InProcessDistributedLock(),
+                requestValidator: RequestValidators.Content("s1", "vccom"),
+                contentHistory: new NoContentHistory(),
+                themeDraftService: null,
+                groupedPageService: null,
+                sharedComponentPlacementValidator: null,
+                designerContentService: TestServices.Designer(new NoContentHistory(), filePageDrafts, null, null, null, null, null),
+                contentPermissionService: TestServices.Permissions(new FakeAuthorizationService(allowed)),
+                filePageDraftService: filePageDrafts);
 
             var identity = new ClaimsIdentity([new Claim(ClaimTypes.Name, Login)], "test");
             controller.ControllerContext = new ControllerContext
@@ -225,40 +235,6 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             };
 
             return controller;
-        }
-
-        private sealed class FakePolicy(bool enabled) : IGitContentPolicy
-        {
-            public Task<bool> IsEnabledForStoreAsync(string storeId, CancellationToken cancellationToken = default) =>
-                Task.FromResult(enabled);
-        }
-
-
-        private sealed class SilentHistory : IGitContentHistory
-        {
-            public Task<GitPageHistory> GetHistoryAsync(string repoPath, GitHistoryQuery query, CancellationToken cancellationToken = default) =>
-                Task.FromResult(new GitPageHistory());
-
-            public void Invalidate(string repoPath) { }
-        }
-
-        private sealed class RecordingPublisher(GitPublishState state, int? openPullRequest) : IGitContentPublisher
-        {
-            public List<(string Branch, string Into)> Merges { get; } = [];
-
-            public Task<GitPublishResult> MergeBranchAsync(string branch, string title, CancellationToken cancellationToken = default) =>
-                MergeBranchIntoAsync(branch, title, "master", cancellationToken);
-
-            public Task<GitPublishResult> MergeBranchIntoAsync(string branch, string title, string baseBranch, CancellationToken cancellationToken = default)
-            {
-                Merges.Add((branch, baseBranch));
-                return Task.FromResult(new GitPublishResult { State = state, PullRequestNumber = 7 });
-            }
-
-            public Task<GitPendingPublish> GetOpenPullRequestAsync(string branch, CancellationToken cancellationToken = default) =>
-                Task.FromResult(openPullRequest == null
-                    ? null
-                    : new GitPendingPublish { Number = openPullRequest.Value, AutoMerging = true });
         }
 
         private sealed class RecordingRepository : IGitContentRepository
@@ -272,41 +248,41 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             public List<(string Branch, string FromRef)> CreatedBranches { get; } = [];
             public List<string> DeletedBranches { get; } = [];
 
-            public Task<string> ReadFileAsync(string path, string gitRef, CancellationToken cancellationToken = default) =>
+            public Task<string> ReadFileAsync(string repository, string path, string gitRef, CancellationToken cancellationToken = default) =>
                 Task.FromResult(Files.GetValueOrDefault((path, gitRef)));
 
-            public Task<string> GetBranchHeadShaAsync(string branch, CancellationToken cancellationToken = default) =>
+            public Task<string> GetBranchHeadShaAsync(string repository, string branch, CancellationToken cancellationToken = default) =>
                 Task.FromResult(BranchHeads.GetValueOrDefault(branch));
 
-            public Task CreateBranchAsync(string branch, string fromRef, CancellationToken cancellationToken = default)
+            public Task CreateBranchAsync(string repository, string branch, string fromRef, CancellationToken cancellationToken = default)
             {
                 CreatedBranches.Add((branch, fromRef));
                 BranchHeads[branch] = BranchHeads.GetValueOrDefault(fromRef, NewCommitSha);
                 return Task.CompletedTask;
             }
 
-            public Task SetBranchAsync(string branch, string sha, string pagePath, CancellationToken cancellationToken = default)
+            public Task SetBranchAsync(string repository, string branch, string sha, string pagePath, CancellationToken cancellationToken = default)
             {
                 BranchHeads[branch] = sha;
                 return Task.CompletedTask;
             }
 
-            public Task DeleteBranchAsync(string branch, string pagePath, CancellationToken cancellationToken = default)
+            public Task DeleteBranchAsync(string repository, string branch, string pagePath, CancellationToken cancellationToken = default)
             {
                 DeletedBranches.Add(branch);
                 BranchHeads.Remove(branch);
                 return Task.CompletedTask;
             }
 
-            public void InvalidateRead(string path, string gitRef) { }
+            public void InvalidateRead(string repository, string path, string gitRef) { }
 
-            public Task<string> CommitFileAsync(string path, string content, string branch, string message, GitCommitAuthor author, CancellationToken cancellationToken = default)
+            public Task<string> CommitFileAsync(string repository, string path, string content, string branch, string message, GitCommitAuthor author, CancellationToken cancellationToken = default)
             {
                 Commits.Add((path, content, branch, message, author));
                 return Task.FromResult(NewCommitSha);
             }
 
-            public Task<string> DeleteFileAsync(string path, string branch, string message, GitCommitAuthor author, CancellationToken cancellationToken = default) =>
+            public Task<string> DeleteFileAsync(string repository, string path, string branch, string message, GitCommitAuthor author, CancellationToken cancellationToken = default) =>
                 throw new NotSupportedException();
         }
     }

@@ -282,3 +282,5 @@ builder/
 settings.local.json
 # Superpowers session artifacts (specs/plans)
 docs/superpowers/
+# Admin Shell plugin build output (built from src/VirtoCommerce.PageBuilderModule.Web/vue)
+src/VirtoCommerce.PageBuilderModule.Web/plugins/

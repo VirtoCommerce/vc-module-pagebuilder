@@ -2,14 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
-using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using VirtoCommerce.PageBuilderModule.Core;
-using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Data.Authorization;
 using VirtoCommerce.PageBuilderModule.Data.Validation;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
@@ -32,11 +30,12 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             ["git/publish"] = (c, store, type, path) => c.GitPublish(store, path, type),
             ["git/promote"] = (c, store, type, path) => c.GitPromote(store, path, type),
             ["git/unpublish"] = (c, store, type, path) => c.GitUnpublish(store, path, type),
-            ["git/publish-status"] = (c, store, type, path) => c.GitPublishStatus(store, path, type),
+            ["git/publish-status"] = async (c, store, type, path) => (await c.GitPublishStatus(store, path, type)).Result,
             ["git/history"] = (c, store, type, path) => c.GitHistory(store, path, type),
             ["git/restore-version"] = (c, store, type, path) => c.GitRestoreVersion(store, path, type, new string('a', 40)),
             ["git/preview"] = (c, store, type, path) => c.GitPreview(store, path, type),
             ["git/discard-draft"] = (c, store, type, path) => c.GitDiscardDraft(store, path, type),
+            ["discard-draft"] = (c, store, type, path) => c.DiscardDraft(store, path, type),
             ["git/copy"] = (c, store, type, path) => c.GitCopyPage(store, type, path, null),
             ["git/legacy-draft"] = (c, store, type, path) => c.GetLegacyDraft(store, type, path, null),
             ["git/legacy-drafts/delete"] = (c, store, type, path) =>
@@ -354,6 +353,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         private static PageBuilderController Controller(bool storeAccess = true, string[] granted = null, IAuthorizationService authorizationService = null, bool gitFlow = false)
         {
             // Nothing past the check is wired up, so an action that reaches storage first fails here.
+            var filePageDrafts = TestServices.FilePageDrafts(null, null, new FakeGitContentPolicy(enabled: gitFlow), null, null, new FakeGitContentProvisioner(), new FakeStoreService(new Store { Id = Store }), null, null, null, null);
             var controller = new PageBuilderController(
                 storeService: new FakeStoreService(new Store { Id = Store }),
                 pathResolver: null,
@@ -361,13 +361,23 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 publishingService: null,
                 eventPublisher: null,
                 gitContentOptions: null,
-                gitContentPolicy: new FixedGitContentPolicy(enabled: gitFlow),
+                gitHubConnectionService: null,
+                gitContentPolicy: new FakeGitContentPolicy(enabled: gitFlow),
                 gitContentRepository: null,
                 gitContentHistory: null,
                 gitContentPublisher: null,
+                gitLivePageService: null,
                 settingsManager: null,
                 authorizationService: authorizationService ?? new ScopedAuthorizationService(storeAccess, granted),
-                requestValidator: new PageBuilderContentRequestValidator(new FakeStoreService(new Store { Id = Store }), new PageBuilderContentFileValidator()));
+                distributedLock: new InProcessDistributedLock(),
+                requestValidator: new PageBuilderContentRequestValidator(new PageBuilderStoreRequestValidator(new FakeStoreService(new Store { Id = Store })), new PageBuilderContentFileValidator()),
+                contentHistory: new NoContentHistory(),
+                themeDraftService: null,
+                groupedPageService: null,
+                sharedComponentPlacementValidator: null,
+                designerContentService: TestServices.Designer(new NoContentHistory(), filePageDrafts, null, null, null, null, null),
+                contentPermissionService: TestServices.Permissions(authorizationService ?? new ScopedAuthorizationService(storeAccess, granted)),
+                filePageDraftService: filePageDrafts);
 
             controller.ControllerContext = new ControllerContext
             {
@@ -375,11 +385,6 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             };
 
             return controller;
-        }
-
-        private sealed class FixedGitContentPolicy(bool enabled) : IGitContentPolicy
-        {
-            public Task<bool> IsEnabledForStoreAsync(string storeId, CancellationToken cancellationToken = default) => Task.FromResult(enabled);
         }
 
         private sealed class ScopedAuthorizationService(bool storeAccess, string[] granted) : IAuthorizationService

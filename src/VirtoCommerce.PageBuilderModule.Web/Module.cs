@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentValidation;
@@ -15,8 +16,10 @@ using VirtoCommerce.ContentModule.Core.Search;
 using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
+using VirtoCommerce.PageBuilderModule.Core.History;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
+using VirtoCommerce.PageBuilderModule.Core.Theme;
 using VirtoCommerce.PageBuilderModule.Data.Authorization;
 using VirtoCommerce.PageBuilderModule.Data.BackgroundJobs;
 using VirtoCommerce.PageBuilderModule.Data.ContentProviders;
@@ -26,6 +29,7 @@ using VirtoCommerce.PageBuilderModule.Data.Handlers;
 using VirtoCommerce.PageBuilderModule.Data.Repositories;
 using VirtoCommerce.PageBuilderModule.Data.Search;
 using VirtoCommerce.PageBuilderModule.Data.Services;
+using VirtoCommerce.PageBuilderModule.Data.Theme;
 using VirtoCommerce.PageBuilderModule.Data.Validation;
 using VirtoCommerce.PageBuilderModule.Web.Services;
 using VirtoCommerce.Pages.Core.ContentProviders;
@@ -35,6 +39,7 @@ using VirtoCommerce.Platform.Core.Jobs;
 using VirtoCommerce.Platform.Core.Modularity;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.Platform.Core.Settings;
+using VirtoCommerce.StoreModule.Core.Events;
 
 namespace VirtoCommerce.PageBuilderModule.Web
 {
@@ -72,11 +77,13 @@ namespace VirtoCommerce.PageBuilderModule.Web
             serviceCollection.AddTransient<IPageBuilderSharedComponentContentService, PageBuilderSharedComponentContentService>();
             serviceCollection.AddTransient<IPageBuilderSharedComponentResolver, PageBuilderSharedComponentResolver>();
             serviceCollection.AddTransient<IPageBuilderSharedComponentReferenceIndexService, PageBuilderSharedComponentReferenceIndexService>();
+            serviceCollection.AddTransient<IPageBuilderSharedComponentPlacementValidator, PageBuilderSharedComponentPlacementValidator>();
             serviceCollection.AddTransient<IPageBuilderSharedComponentUsageService, PageBuilderSharedComponentUsageService>();
             serviceCollection.AddTransient<
                 IPageBuilderSharedComponentAssetReferenceIndexService,
                 PageBuilderSharedComponentAssetReferenceIndexService>();
             serviceCollection.AddTransient<PageBuilderPageContentService>();
+            serviceCollection.AddTransient<IGroupedPageContentWriter, GroupedPageContentWriter>();
 
             serviceCollection.AddTransient<GroupedPageBuilderPageChangedEventHandler>();
             serviceCollection.AddTransient<PageBuilderSharedComponentContentChangedEventHandler>();
@@ -97,33 +104,48 @@ namespace VirtoCommerce.PageBuilderModule.Web
             serviceCollection.AddTransient<MultilanguagePageExportImport>();
             serviceCollection.AddTransient<PageBuilderExportImport>();
 
-            // Git content flow (disabled until PageBuilder:GitContent:Enabled is set AND a store opts in
-            // — see IGitContentPolicy, GitContentOptions and vc-content/.github/git-flow-setup.md).
+            // Git content flow: off until a connection is configured and a store opts in
             var gitContentSection = Configuration.GetSection(GitContentOptions.SectionName);
             serviceCollection.Configure<GitContentOptions>(gitContentSection);
             // Fail fast: a half-configured flow must not boot, or publishing would silently keep writing
             // straight to production on an installation whose operator expects pull requests.
             gitContentSection.Get<GitContentOptions>()?.Validate();
-            serviceCollection.AddHttpClient(GitHubContentRepository.HttpClientName)
-                .ConfigureHttpClient((provider, httpClient) =>
-                {
-                    var gitContentOptions = provider.GetRequiredService<IOptions<GitContentOptions>>().Value;
-                    // Relative request uris are combined against BaseAddress, so it must end with '/'.
-                    httpClient.BaseAddress = new Uri(gitContentOptions.ApiUrl.AbsoluteUri.TrimEnd('/') + "/");
-                    httpClient.Timeout = gitContentOptions.RequestTimeout;
-                    httpClient.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
-                    httpClient.DefaultRequestHeaders.Add("X-GitHub-Api-Version", "2022-11-28");
-                    // GitHub rejects requests without a User-Agent.
-                    httpClient.DefaultRequestHeaders.Add("User-Agent", "vc-pagebuilder-module");
-                    if (!string.IsNullOrEmpty(gitContentOptions.Token))
-                    {
-                        httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + gitContentOptions.Token);
-                    }
-                });
+            serviceCollection.AddTransient<IGitHubConnectionService, GitHubConnectionService>();
+            serviceCollection.AddTransient<IGitHubApiClient, GitHubApiClient>();
+            serviceCollection.AddTransient<GitHubAuthHandler>();
+            serviceCollection.AddHttpClient(GitHubApiClient.HttpClientName)
+                .ConfigureHttpClient(ConfigureGitHubClient)
+                .AddHttpMessageHandler<GitHubAuthHandler>();
+            serviceCollection.AddHttpClient(GitHubApiClient.AnonymousHttpClientName).ConfigureHttpClient(ConfigureGitHubClient);
             serviceCollection.AddTransient<IGitContentRepository, GitHubContentRepository>();
             serviceCollection.AddTransient<IGitContentHistory, GitHubContentHistory>();
             serviceCollection.AddTransient<IGitContentPublisher, GitHubContentPublisher>();
+            serviceCollection.AddTransient<IGitContentOwnership, GitHubContentOwnership>();
             serviceCollection.AddTransient<IGitContentPolicy, GitContentPolicy>();
+            serviceCollection.AddTransient<IGitContentProvisioner, GitHubContentProvisioner>();
+            serviceCollection.AddTransient<IGitContentSetupService, GitContentSetupService>();
+            serviceCollection.AddTransient<IGitLivePageService, GitLivePageService>();
+            serviceCollection.AddTransient<IContentHistory, GitHubSiteHistory>();
+
+            serviceCollection.Configure<ThemeSnapshotOptions>(Configuration.GetSection(ThemeSnapshotOptions.SectionName));
+            serviceCollection.AddTransient<IThemeStorageFactory, ThemeStorageFactory>();
+            serviceCollection.AddTransient<IThemeSnapshotBuilder, ThemeSnapshotBuilder>();
+            serviceCollection.AddTransient<ISchemaCatalogService, SchemaCatalogService>();
+            serviceCollection.AddTransient<IThemePublisher, ThemePublisher>();
+            serviceCollection.AddTransient<IThemeDraftService, ThemeDraftService>();
+            serviceCollection.AddTransient<IFilePageDraftService, FilePageDraftService>();
+            serviceCollection.AddTransient<IDesignerContentService, DesignerContentService>();
+            serviceCollection.AddTransient<IContentPermissionService, ContentPermissionService>();
+            serviceCollection.AddTransient<IThemeSnapshotService, ThemeSnapshotService>();
+            serviceCollection.AddTransient<IThemePaletteService, ThemePaletteService>();
+            serviceCollection.AddTransient<IValidator<PageBuilderStoreRequest>, PageBuilderStoreRequestValidator>();
+            serviceCollection.AddTransient<IValidator<ContentHistoryRequest>, ContentHistoryRequestValidator>();
+            serviceCollection.AddTransient<IValidator<ContentHistoryRestoreRequest>, ContentHistoryRestoreRequestValidator>();
+            serviceCollection.AddTransient<IValidator<GitHubAppSetupRequest>, GitHubAppSetupRequestValidator>();
+            serviceCollection.AddTransient<IValidator<ThemePaletteGenerationRequest>, ThemePaletteGenerationRequestValidator>();
+            serviceCollection.AddTransient<IValidator<ThemePaletteCheckRequest>, ThemePaletteCheckRequestValidator>();
+            serviceCollection.AddTransient<GitContentStoreChangedEventHandler>();
+            serviceCollection.AddBackgroundJob<GitContentRepositoryJob, GitContentRepositoryJobPayload>(triggerable: false);
 
             var isFullTextSearchEnabled = Configuration.IsContentFullTextSearchEnabled();
 
@@ -132,6 +154,11 @@ namespace VirtoCommerce.PageBuilderModule.Web
                 serviceCollection.AddTransient<PageBuilderContentItemBuilder>();
             }
 
+        }
+
+        private static void ConfigureGitHubClient(IServiceProvider provider, HttpClient httpClient)
+        {
+            GitHubApiClient.ConfigureHttpClient(httpClient, provider.GetRequiredService<IOptions<GitContentOptions>>().Value);
         }
 
         public void PostInitialize(IApplicationBuilder appBuilder)
@@ -157,6 +184,7 @@ namespace VirtoCommerce.PageBuilderModule.Web
             appBuilder.RegisterEventHandler<PageBuilderPageChangedEvent, PageBuilderPageChangedEventHandler>();
             appBuilder.RegisterEventHandler<GroupedPageBuilderPageChangedEvent, GroupedPageBuilderPageChangedEventHandler>();
             appBuilder.RegisterEventHandler<PageBuilderSharedComponentContentChangedEvent, PageBuilderSharedComponentContentChangedEventHandler>();
+            appBuilder.RegisterEventHandler<StoreChangedEvent, GitContentStoreChangedEventHandler>();
 
             // Apply migrations
             using var serviceScope = serviceProvider.CreateScope();

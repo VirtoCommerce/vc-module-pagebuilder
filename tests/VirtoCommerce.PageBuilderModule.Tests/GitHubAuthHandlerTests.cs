@@ -1,0 +1,181 @@
+using System;
+using System.Buffers.Text;
+using System.Net;
+using System.Net.Http;
+using System.Security.Cryptography;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Options;
+using Newtonsoft.Json.Linq;
+using VirtoCommerce.PageBuilderModule.Core.GitContent;
+using VirtoCommerce.PageBuilderModule.Data.GitContent;
+using Xunit;
+
+namespace VirtoCommerce.PageBuilderModule.Tests;
+
+public class GitHubAuthHandlerTests
+{
+    private static readonly RSA Key = RSA.Create(2048);
+
+    [Fact]
+    public async Task SendAsync_Token_AddsBearerToken()
+    {
+        var github = new GitHubScript(("GET", "repos/acme/site-a", (request, _) =>
+        {
+            Assert.Equal("Bearer t0ken", request.Headers.Authorization?.ToString());
+            return GitHubScript.Json("{}");
+        }));
+
+        await Client(github, new GitHubConnection { Token = "t0ken" }).GetAsync("repos/acme/site-a", TestContext.Current.CancellationToken);
+
+        github.AssertDone();
+    }
+
+    [Fact]
+    public async Task SendAsync_App_MintsInstallationTokenOnceAndReusesIt()
+    {
+        var github = new GitHubScript(
+            ("GET", "orgs/acme/installation", (request, _) =>
+            {
+                Assert.Equal(3, request.Headers.Authorization!.Parameter!.Split('.').Length); // the App's own JWT
+                return GitHubScript.Json("""{ "id": 42 }""");
+            }),
+            ("POST", "app/installations/42/access_tokens", (_, _) => GitHubScript.Json("""{ "token": "ghs_one", "expires_at": "2099-01-01T00:00:00Z" }""", HttpStatusCode.Created)),
+            ("GET", "repos/acme/site-a", (request, _) => Authorized(request, "ghs_one")),
+            ("GET", "repos/acme/site-b/contents/pages/x.page?ref=main", (request, _) => Authorized(request, "ghs_one")));
+        var client = Client(github, App());
+
+        await client.GetAsync("repos/acme/site-a", TestContext.Current.CancellationToken);
+        await client.GetAsync("repos/acme/site-b/contents/pages/x.page?ref=main", TestContext.Current.CancellationToken);
+
+        github.AssertDone();
+    }
+
+    [Fact]
+    public async Task SendAsync_AppGraphQlRequest_UsesInstallationOfNamedOwner()
+    {
+        var github = new GitHubScript(
+            ("GET", "orgs/other/installation", (_, _) => GitHubScript.Json("""{ "id": 7 }""")),
+            ("POST", "app/installations/7/access_tokens", (_, _) => GitHubScript.Json("""{ "token": "ghs_other", "expires_at": "2099-01-01T00:00:00Z" }""", HttpStatusCode.Created)),
+            ("POST", "graphql", (request, _) => Authorized(request, "ghs_other")));
+
+        // a GraphQL url names no repository
+        using var request = new HttpRequestMessage(HttpMethod.Post, "graphql") { Content = new StringContent("{}") };
+        request.Options.Set(GitHubAuthHandler.OwnerOptionKey, "other");
+        await Client(github, App()).SendAsync(request, TestContext.Current.CancellationToken);
+
+        github.AssertDone();
+    }
+
+    [Fact]
+    public async Task SendAsync_AppTokenRefused_MintsNewTokenOnce()
+    {
+        var github = new GitHubScript(
+            ("GET", "orgs/acme/installation", (_, _) => GitHubScript.Json("""{ "id": 42 }""")),
+            ("POST", "app/installations/42/access_tokens", (_, _) => GitHubScript.Json("""{ "token": "ghs_revoked", "expires_at": "2099-01-01T00:00:00Z" }""", HttpStatusCode.Created)),
+            ("GET", "repos/acme/site-a", (_, _) => GitHubScript.Status(HttpStatusCode.Unauthorized)),
+            ("GET", "orgs/acme/installation", (_, _) => GitHubScript.Json("""{ "id": 42 }""")),
+            ("POST", "app/installations/42/access_tokens", (_, _) => GitHubScript.Json("""{ "token": "ghs_fresh", "expires_at": "2099-01-01T00:00:00Z" }""", HttpStatusCode.Created)),
+            ("GET", "repos/acme/site-a", (request, _) => Authorized(request, "ghs_fresh")));
+
+        var response = await Client(github, App()).GetAsync("repos/acme/site-a", TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        github.AssertDone();
+    }
+
+    [Fact]
+    public async Task SendAsync_AppNotInstalledOnOwner_ThrowsGitContentException()
+    {
+        var github = new GitHubScript(
+            ("GET", "orgs/acme/installation", (_, _) => GitHubScript.Status(HttpStatusCode.NotFound)),
+            ("GET", "users/acme/installation", (_, _) => GitHubScript.Status(HttpStatusCode.NotFound)));
+
+        var error = await Assert.ThrowsAsync<GitContentException>(() =>
+            Client(github, App()).GetAsync("repos/acme/site-a", TestContext.Current.CancellationToken));
+
+        Assert.Contains("not installed on \"acme\"", error.Message);
+    }
+
+    [Fact]
+    public async Task SendAsync_AppReplaced_UsesNewAppToken()
+    {
+        // the client factory keeps the handler alive when the setup replaces the App
+        var github = new GitHubScript(
+            ("GET", "orgs/acme/installation", (_, _) => GitHubScript.Json("""{ "id": 42 }""")),
+            ("POST", "app/installations/42/access_tokens", (_, _) => GitHubScript.Json("""{ "token": "ghs_old", "expires_at": "2099-01-01T00:00:00Z" }""", HttpStatusCode.Created)),
+            ("GET", "repos/acme/site-a", (request, _) => Authorized(request, "ghs_old")),
+            ("GET", "orgs/acme/installation", (_, _) => GitHubScript.Json("""{ "id": 43 }""")),
+            ("POST", "app/installations/43/access_tokens", (_, _) => GitHubScript.Json("""{ "token": "ghs_new", "expires_at": "2099-01-01T00:00:00Z" }""", HttpStatusCode.Created)),
+            ("GET", "repos/acme/site-a", (request, _) => Authorized(request, "ghs_new")));
+        var connection = new FakeGitHubConnectionService { Connection = App() };
+        var client = Client(github, connection);
+
+        await client.GetAsync("repos/acme/site-a", TestContext.Current.CancellationToken);
+        var replaced = App();
+        replaced.AppId = "67890";
+        connection.Connection = replaced;
+        await client.GetAsync("repos/acme/site-a", TestContext.Current.CancellationToken);
+
+        github.AssertDone();
+    }
+
+    [Fact]
+    public void CreateAppJwt_PrivateKeyWithEscapedNewLines_ReturnsSignedRs256Jwt()
+    {
+        var now = DateTimeOffset.FromUnixTimeSeconds(1_800_000_000);
+
+        // as an environment variable holds it: one line with "\n" escapes
+        var jwt = GitHubAuthHandler.CreateAppJwt("12345", Key.ExportPkcs8PrivateKeyPem().Replace("\n", "\\n"), now);
+
+        var parts = jwt.Split('.');
+        Assert.True(Key.VerifyData(Encoding.ASCII.GetBytes($"{parts[0]}.{parts[1]}"), Base64Url.DecodeFromChars(parts[2]),
+            HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1));
+
+        var header = JObject.Parse(Encoding.UTF8.GetString(Base64Url.DecodeFromChars(parts[0])));
+        var payload = JObject.Parse(Encoding.UTF8.GetString(Base64Url.DecodeFromChars(parts[1])));
+        Assert.Equal("RS256", header["alg"]?.Value<string>());
+        Assert.Equal("12345", payload["iss"]?.Value<string>());
+        Assert.Equal(now.ToUnixTimeSeconds() - 60, payload["iat"]?.Value<long>());
+        Assert.Equal(now.ToUnixTimeSeconds() + 540, payload["exp"]?.Value<long>());
+    }
+
+    // ── helpers ────────────────────────────────────────────────────────────────────────────────
+
+    private static GitHubConnection App() => new()
+    {
+        AppId = "12345",
+        PrivateKey = Key.ExportPkcs8PrivateKeyPem(),
+    };
+
+    private static HttpClient Client(GitHubScript github, GitHubConnection connection) => Client(github, new FakeGitHubConnectionService { Connection = connection });
+
+    private static HttpClient Client(GitHubScript github, IGitHubConnectionService connection) =>
+        new(new GitHubAuthHandler(connection, new MemoryCache(new MemoryCacheOptions()), Options.Create(new GitContentOptions { ApiUrl = new Uri("https://api.github.test/") }))
+        {
+            InnerHandler = github,
+        })
+        {
+            BaseAddress = new Uri("https://api.github.test/"),
+        };
+
+    private sealed class FakeGitHubConnectionService : IGitHubConnectionService
+    {
+        public GitHubConnection Connection { get; set; }
+
+        public Task<GitHubConnection> GetConnectionAsync(CancellationToken cancellationToken = default) => Task.FromResult(Connection);
+
+        public Task<GitHubAppConnection> CreateAppAsync(string code, string organization, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public GitHubAppManifest CreateAppManifest(string organization, string url, string redirectUrl, string setupUrl) => throw new NotSupportedException();
+    }
+
+    private static HttpResponseMessage Authorized(HttpRequestMessage request, string token)
+    {
+        Assert.Equal($"Bearer {token}", request.Headers.Authorization?.ToString());
+        return GitHubScript.Json("{}");
+    }
+}

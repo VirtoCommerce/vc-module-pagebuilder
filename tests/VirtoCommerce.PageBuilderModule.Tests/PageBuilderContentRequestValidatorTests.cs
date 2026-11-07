@@ -111,13 +111,13 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         {
             var storeService = new FakeStoreService(new Store { Id = Store });
 
-            await new PageBuilderContentRequestValidator(storeService, new PageBuilderContentFileValidator()).ValidateAsync(Request(paths: ["../appsettings.json"]), TestContext.Current.CancellationToken);
+            await new PageBuilderContentRequestValidator(new PageBuilderStoreRequestValidator(storeService), new PageBuilderContentFileValidator()).ValidateAsync(Request(paths: ["../appsettings.json"]), TestContext.Current.CancellationToken);
 
             Assert.Null(storeService.LastRequestedId);
         }
 
         private static PageBuilderContentRequestValidator Validator() =>
-            new(new FakeStoreService(new Store { Id = Store }), new PageBuilderContentFileValidator());
+            new(new PageBuilderStoreRequestValidator(new FakeStoreService(new Store { Id = Store })), new PageBuilderContentFileValidator());
 
         private static PageBuilderContentRequest Request(string storeId = Store, string type = "pages", string theme = null,
             string[] paths = null, PageBuilderContentFile[] files = null) =>

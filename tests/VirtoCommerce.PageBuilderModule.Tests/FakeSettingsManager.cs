@@ -1,20 +1,24 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using VirtoCommerce.Platform.Core.Settings;
 
 namespace VirtoCommerce.PageBuilderModule.Tests
 {
-    /// <summary>
-    /// Records the lookup the policy performs and returns one canned value. Only
-    /// <see cref="GetObjectSettingAsync"/> is exercised; everything else throws, so a change that starts
-    /// calling the settings store some other way fails loudly instead of passing silently.
-    /// </summary>
-    public class FakeSettingsManager : ISettingsManager
+    /// <summary>Records the last lookup; answers <c>value</c>, <c>repository</c> for the repository setting, or what <see cref="Values"/> holds.</summary>
+    internal sealed class FakeSettingsManager : ISettingsManager
     {
         private readonly object _value;
+        private readonly string _repository;
 
-        public FakeSettingsManager(object value) => _value = value;
+        public FakeSettingsManager(object value = null, string repository = null)
+        {
+            _value = value;
+            _repository = repository;
+        }
+
+        public Dictionary<string, object> Values { get; } = [];
 
         public string AskedName { get; private set; }
         public string AskedObjectType { get; private set; }
@@ -26,14 +30,30 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             AskedObjectType = objectType;
             AskedObjectId = objectId;
 
-            return Task.FromResult(new ObjectSettingEntry { Name = name, Value = _value });
+            return Task.FromResult(new ObjectSettingEntry { Name = name, Value = GetValue(name) });
         }
 
-        public Task<IEnumerable<ObjectSettingEntry>> GetObjectSettingsAsync(IEnumerable<string> names, string objectType = null, string objectId = null) =>
-            throw new NotSupportedException();
+        public Task<IEnumerable<ObjectSettingEntry>> GetObjectSettingsAsync(IEnumerable<string> names, string objectType = null, string objectId = null)
+        {
+            var asked = names.ToList();
+            AskedName = asked.FirstOrDefault();
+            AskedObjectType = objectType;
+            AskedObjectId = objectId;
 
-        public Task SaveObjectSettingsAsync(IEnumerable<ObjectSettingEntry> objectSettings) =>
-            throw new NotSupportedException();
+            return Task.FromResult<IEnumerable<ObjectSettingEntry>>(asked
+                .Select(name => new ObjectSettingEntry { Name = name, Value = GetValue(name) })
+                .ToList());
+        }
+
+        public Task SaveObjectSettingsAsync(IEnumerable<ObjectSettingEntry> objectSettings)
+        {
+            foreach (var setting in objectSettings)
+            {
+                Values[setting.Name] = setting.Value;
+            }
+
+            return Task.CompletedTask;
+        }
 
         public Task RemoveObjectSettingsAsync(IEnumerable<ObjectSettingEntry> objectSettings) =>
             throw new NotSupportedException();
@@ -51,5 +71,15 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
         public void RegisterSettingsForType(IEnumerable<SettingDescriptor> settings, string typeName) =>
             throw new NotSupportedException();
+
+        private object GetValue(string name)
+        {
+            if (Values.TryGetValue(name, out var value))
+            {
+                return value;
+            }
+
+            return name == Core.ModuleConstants.Settings.StoreLevelSettings.GitContentRepository.Name ? _repository : _value;
+        }
     }
 }

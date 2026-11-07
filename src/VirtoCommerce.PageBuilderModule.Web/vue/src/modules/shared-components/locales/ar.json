@@ -1,0 +1,67 @@
+{
+  "SHARED_COMPONENTS": {
+    "MENU": {
+      "TITLE": "المكونات المشتركة"
+    },
+    "TITLE": "المكونات المشتركة",
+    "SEARCH": {
+      "PLACEHOLDER": "البحث في المكونات المشتركة…"
+    },
+    "TABLE": {
+      "NAME": "الاسم",
+      "USAGE": "مستخدم في",
+      "MODIFIED": "تاريخ التعديل",
+      "MODIFIED_BY": "عُدّل بواسطة"
+    },
+    "TOOLBAR": {
+      "REFRESH": "تحديث"
+    },
+    "ACTIONS": {
+      "EDIT_CONTENT": "التحرير في المصمم",
+      "RENAME": "إعادة تسمية",
+      "DELETE": "حذف",
+      "DELETE_BLOCKED": "هذا المكون قيد الاستخدام ولا يمكن حذفه",
+      "CLOSE": "إغلاق"
+    },
+    "DETAILS": {
+      "COMPONENT_DETAILS": "تفاصيل المكون",
+      "STORE": "المتجر",
+      "MODIFIED": "تاريخ التعديل",
+      "MODIFIED_BY": "عُدّل بواسطة",
+      "USED_ON_ONE": "مستخدم في (صفحة واحدة)",
+      "USED_ON_MANY": "مستخدم في الصفحات ({count})",
+      "LOADING_USAGE": "جارٍ تحميل استخدام الصفحات…",
+      "NO_USAGE": "غير مستخدم في أي صفحات في Page Builder.",
+      "DELETE_BLOCKED_ONE": "أزل هذا المكون من الصفحة قبل حذفه.",
+      "DELETE_BLOCKED_MANY": "أزل هذا المكون من كل الصفحات ({count}) قبل حذفه.",
+      "NOT_AVAILABLE": "غير متاح",
+      "OPEN_UNAVAILABLE_PERMISSION": "ليست لديك صلاحية لفتح هذه الصفحة في المصمم.",
+      "OPEN_UNAVAILABLE_ARCHIVED": "لا يمكن فتح الصفحات المؤرشفة في المصمم.",
+      "OPEN_UNAVAILABLE_IDENTITY": "لا يمكن فتح هذه الصفحة لأن معرّفها غير متاح."
+    },
+    "EMPTY": {
+      "TITLE": "لا توجد مكونات مشتركة بعد",
+      "DESCRIPTION": "أنشئ مكونًا مشتركًا من أقسام محددة في مصمم Page Builder.",
+      "NOT_FOUND_TITLE": "لم يتم العثور على مكونات مشتركة",
+      "NOT_FOUND_DESCRIPTION": "جرّب عبارة بحث مختلفة."
+    },
+    "RENAME": {
+      "TITLE": "إعادة تسمية المكون المشترك",
+      "NAME_LABEL": "الاسم",
+      "NAME_PLACEHOLDER": "أدخل اسم المكون",
+      "CANCEL": "إلغاء",
+      "SAVE": "حفظ"
+    },
+    "CONFIRM": {
+      "DELETE": "هل تريد حذف {name}؟ لا يمكن التراجع عن هذا الإجراء."
+    },
+    "NOTIFICATIONS": {
+      "RENAMED": "تمت إعادة تسمية المكون المشترك بنجاح",
+      "DELETED": "تم حذف المكون المشترك بنجاح",
+      "DELETE_BLOCKED_ONE": "هذا المكون مستخدم في صفحة واحدة ولا يمكن حذفه.",
+      "DELETE_BLOCKED_MANY": "هذا المكون مستخدم في الصفحات ({count}) ولا يمكن حذفه.",
+      "DELETE_CONFLICT": "أصبح المكون قيد الاستخدام الآن ولا يمكن حذفه. حدّث القائمة لرؤية مواضع استخدامه.",
+      "ERROR_GENERIC": "فشلت العملية على المكون المشترك"
+    }
+  }
+}

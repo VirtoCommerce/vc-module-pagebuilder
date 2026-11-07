@@ -1,0 +1,17 @@
+/* The Sites panel's history button: a green dot on its clock while version history is on */
+.pb-sites-history {
+  position: relative;
+  display: inline-flex;
+}
+
+.pb-sites-history__dot {
+  position: absolute;
+  top: 10px;
+  left: calc(50% + 5px);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success-500);
+  box-shadow: 0 0 0 2px var(--additional-50);
+  pointer-events: none;
+}

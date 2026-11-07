@@ -2,8 +2,6 @@ using FluentValidation;
 using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Core.Models;
-using VirtoCommerce.Platform.Core.Common;
-using VirtoCommerce.StoreModule.Core.Services;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Validation;
 
@@ -12,7 +10,7 @@ public class PageBuilderContentRequestValidator : AbstractValidator<PageBuilderC
     // GitHub's GraphQL connections return at most this many nodes.
     private const int MaxHistoryTake = 100;
 
-    public PageBuilderContentRequestValidator(IStoreService storeService, IValidator<PageBuilderContentFile> fileValidator)
+    public PageBuilderContentRequestValidator(IValidator<PageBuilderStoreRequest> storeRequestValidator, IValidator<PageBuilderContentFile> fileValidator)
     {
         ClassLevelCascadeMode = CascadeMode.Stop;
         RuleLevelCascadeMode = CascadeMode.Stop;
@@ -80,9 +78,6 @@ public class PageBuilderContentRequestValidator : AbstractValidator<PageBuilderC
             .When(x => x.SchemaKind != null || x.SchemaKey != null)
             .WithMessage("\"{PropertyValue}\" is not a schema name.");
 
-        RuleFor(x => x.StoreId)
-            .NotEmpty()
-            .MustAsync(async (storeId, _) => await storeService.GetNoCloneAsync(storeId) != null)
-            .WithMessage("Store \"{PropertyValue}\" does not exist.");
+        Include(storeRequestValidator);
     }
 }

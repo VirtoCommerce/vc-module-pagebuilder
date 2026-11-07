@@ -1,0 +1,98 @@
+import { computed, ref } from "vue";
+import * as api from "./api";
+import type { DesignerSaveFile } from "./designerSave";
+import { THEME_FILES, type ThemePart } from "./history";
+import { clone } from "./json";
+import type { ColorScheme } from "./previewMessages";
+import { LOOK_FILES, lookDraft, lookFiles, readBrand, readColors, type BrandField, type ThemeLook } from "./themeLook";
+import { undoStep, withGenerated, withStep, type GeneratedPalettes, type PaletteStep } from "./paletteContrast";
+
+const emptyLook = (): ThemeLook => ({ brand: {}, light: {}, dark: {} });
+
+/** The theme's brand and palettes being edited: what applies in the preview and what Save writes as drafts */
+export function useThemeLook() {
+  let at: { storeId: string; theme: string } | undefined;
+  const look = ref<ThemeLook>(emptyLook());
+  const saved = ref<ThemeLook>(emptyLook());
+  const loaded = ref(false);
+  const loadError = ref<unknown>();
+  // the palettes before each color change, for its undo
+  const steps = ref<PaletteStep[]>([]);
+  const canUndoColors = computed(() => steps.value.length > 0);
+  // typing a color edits one token many times: one step to undo
+  let lastEdited: string | undefined;
+  const dirty = computed(() => loaded.value && !!at && lookFiles(at.theme, look.value, saved.value).length > 0);
+  const draft = computed(() => (loaded.value ? lookDraft(look.value) : undefined));
+
+  /** The brand file and the palettes as last saved; `settings` are the theme settings, the brand of a theme without its file */
+  async function load(storeId: string, theme: string, settings: Record<string, unknown>) {
+    at = { storeId, theme };
+    loaded.value = false;
+    loadError.value = undefined;
+    try {
+      const [brand, light, dark] = await Promise.all(
+        [LOOK_FILES.brand, LOOK_FILES.light, LOOK_FILES.dark].map((part) => api.loadThemeFile(storeId, theme, THEME_FILES[part](theme))),
+      );
+      saved.value = { brand: readBrand(brand, settings), light: readColors(light), dark: readColors(dark) };
+      look.value = clone(saved.value);
+      steps.value = [];
+      lastEdited = undefined;
+      loaded.value = true;
+    } catch (e) {
+      loadError.value = e;
+    }
+  }
+
+  function setBrand(field: BrandField, url: string | null) {
+    look.value = { ...look.value, brand: { ...look.value.brand, [field]: url || undefined } };
+  }
+
+  /** Sets a token's color; none: the storefront preset's color */
+  function setColor(scheme: ColorScheme, token: string, color: string | null) {
+    if ((look.value[scheme][token] ?? null) === (color || null)) return;
+    if (lastEdited !== `${scheme}:${token}`) steps.value = withStep(steps.value, look.value);
+    lastEdited = `${scheme}:${token}`;
+    const colors = { ...look.value[scheme] };
+    if (color) colors[token] = color;
+    else delete colors[token];
+    look.value = { ...look.value, [scheme]: colors };
+  }
+
+  /** Both palettes from the generator, one change to undo */
+  function applyGenerated(generated: GeneratedPalettes) {
+    const next = withGenerated(look.value, steps.value, generated);
+    look.value = next.look;
+    steps.value = next.steps;
+    lastEdited = undefined;
+  }
+
+  function undoColors() {
+    const previous = undoStep(look.value, steps.value);
+    if (!previous) return;
+    look.value = previous.look;
+    steps.value = previous.steps;
+    lastEdited = undefined;
+  }
+
+  function revert() {
+    look.value = clone(saved.value);
+    steps.value = [];
+    lastEdited = undefined;
+  }
+
+  /** What Save writes: a file per changed part, and how to mark it saved once it is */
+  function pending(): { part: ThemePart; file: DesignerSaveFile; saved: () => void }[] {
+    if (!at || !loaded.value) return [];
+    const sent = clone(look.value);
+    return lookFiles(at.theme, sent, saved.value).map(({ part, file }) => ({
+      part: LOOK_FILES[part],
+      file,
+      // what was sent, part by part: an edit made while it was on its way stays unsaved
+      saved: () => (saved.value = { ...saved.value, [part]: sent[part] }),
+    }));
+  }
+
+  return { look, loaded, loadError, dirty, draft, load, setBrand, setColor, applyGenerated, canUndoColors, undoColors, revert, pending };
+}
+
+export type ThemeLookState = ReturnType<typeof useThemeLook>;

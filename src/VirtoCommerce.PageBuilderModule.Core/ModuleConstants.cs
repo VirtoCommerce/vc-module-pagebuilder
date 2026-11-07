@@ -26,6 +26,44 @@ namespace VirtoCommerce.PageBuilderModule.Core
             public const int NameMaxLength = 128;
         }
 
+        public static class Theme
+        {
+            public const string DefaultThemeName = "default";
+            public const string ThemeNamePropertyName = "DefaultThemeName";
+            public const string FallbackLanguage = "en-US";
+        }
+
+        public static class Palette
+        {
+            public const string Light = "light";
+            public const string Dark = "dark";
+
+            /// <summary>WCAG 2.2 AA minimum contrast of normal text.</summary>
+            public const double TextContrastRatio = 4.5;
+
+            /// <summary>WCAG 2.2 AA minimum contrast of large text, icons and UI components.</summary>
+            public const double NonTextContrastRatio = 3;
+        }
+
+        public static class GitHistory
+        {
+            public const int DefaultPageSize = 20;
+
+            public const string SavedSummary = "Saved";
+            public const string PublishedSummary = "Published";
+            public const string DiscardedSummary = "Discarded unpublished changes";
+            public const string RestoredSummary = "Restored";
+
+            /// <summary>Characters of the version id a restored version is named by.</summary>
+            public const int RestoredVersionLength = 7;
+        }
+
+        public static class Headers
+        {
+            /// <summary>Id of the designer save a request belongs to.</summary>
+            public const string SaveId = "X-PageBuilder-Save";
+        }
+
         public static class PageStatuses
         {
             public const string Draft = "Draft";
@@ -209,12 +247,57 @@ namespace VirtoCommerce.PageBuilderModule.Core
                     DefaultValue = false,
                 };
 
+                public static SettingDescriptor GitContentRepository { get; } = new()
+                {
+                    Name = "VirtoCommerce.PageBuilderModule.Store.GitContentRepository",
+                    GroupName = "CMS|Page builder",
+                    ValueType = SettingValueType.ShortText,
+                    DefaultValue = "",
+                };
+
+                /// <summary>
+                /// Moves the store to the new Page Builder: its pages open in the Vue designer and the storefront reads
+                /// the published theme snapshot. Off by default: the store keeps the Angular designer and the storefront
+                /// works as before. Public, so the storefront sees it in the store's module settings.
+                /// </summary>
+                public static SettingDescriptor NewPageBuilder { get; } = new()
+                {
+                    Name = "VirtoCommerce.PageBuilderModule.Store.NewPageBuilder",
+                    GroupName = "CMS|Page builder",
+                    ValueType = SettingValueType.Boolean,
+                    DefaultValue = false,
+                    IsPublic = true,
+                };
+
                 public static IEnumerable<SettingDescriptor> AllStoreLevelSettings
                 {
                     get
                     {
                         yield return PreviewUserIds;
+                        yield return NewPageBuilder;
                         yield return GitContentEnabled;
+                        yield return GitContentRepository;
+                    }
+                }
+            }
+
+            public static class GitHub
+            {
+                /// <summary>GitHub App of the one-click setup, encrypted with the data protection keys.</summary>
+                public static SettingDescriptor AppConnection { get; } = new()
+                {
+                    Name = "VirtoCommerce.PageBuilderModule.GitHub.AppConnection",
+                    GroupName = "CMS|Page builder",
+                    ValueType = SettingValueType.LongText,
+                    DefaultValue = "",
+                    IsHidden = true,
+                };
+
+                public static IEnumerable<SettingDescriptor> AllGitHubSettings
+                {
+                    get
+                    {
+                        yield return AppConnection;
                     }
                 }
             }
@@ -222,6 +305,7 @@ namespace VirtoCommerce.PageBuilderModule.Core
             public static IEnumerable<SettingDescriptor> AllSettings =>
                 General.AllGeneralSettings
                     .Union(Migration.AllMigrationSettings)
+                    .Union(GitHub.AllGitHubSettings)
                     .Union(StoreLevelSettings.AllStoreLevelSettings);
         }
     }

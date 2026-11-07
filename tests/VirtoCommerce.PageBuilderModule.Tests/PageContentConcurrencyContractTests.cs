@@ -16,6 +16,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Models;
+using VirtoCommerce.PageBuilderModule.Data.Services;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using VirtoCommerce.PageBuilderModule.Web.Services;
 using VirtoCommerce.Platform.Core.Common;
@@ -243,13 +244,15 @@ public class PageContentConcurrencyContractTests
     private static PageBuilderPageController CreateController(PublishedRenameContentPreservationTests.FakeGroupedPageService service)
     {
         var pageService = new PublishedRenameContentPreservationTests.FakePageBuilderPageService(service);
-        var contentService = new PageBuilderPageContentService(pageService, service, new NoopSharedComponentReferenceIndexService(),
+        var contentService = new PageBuilderPageContentService(pageService, service,
             new PublishedRenameContentPreservationTests.NoopEventPublisher(), NullLogger<PageBuilderPageContentService>.Instance);
         return new PageBuilderPageController(pageService, service,
             new PublishedRenameContentPreservationTests.FakeGroupedPageSearchService(),
             new PublishedRenameContentPreservationTests.AllowAllAuthorizationService(),
             new PublishedRenameContentPreservationTests.NoopPageDocumentSearchService(), contentService,
-            NullLogger<PageBuilderPageController>.Instance)
+            NullLogger<PageBuilderPageController>.Instance, new NoContentHistory(),
+            new PageBuilderSharedComponentPlacementValidator(new NoopSharedComponentReferenceIndexService(), new PublishedRenameContentPreservationTests.AllowAllAuthorizationService()),
+            TestServices.Designer(new NoContentHistory()))
         {
             ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext { Response = { Body = new MemoryStream() } } },
         };

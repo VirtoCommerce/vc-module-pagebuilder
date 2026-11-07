@@ -14,9 +14,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using VirtoCommerce.ContentModule.Core.Model;
 using VirtoCommerce.PageBuilderModule.Core;
+using VirtoCommerce.PageBuilderModule.Core.History;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Data.Authorization;
+using VirtoCommerce.PageBuilderModule.Web.Extensions;
 using VirtoCommerce.PageBuilderModule.Web.Services;
 using VirtoCommerce.Pages.Core.Search;
 using VirtoCommerce.Platform.Core.Common;
@@ -35,6 +37,9 @@ public class PageBuilderPageController : Controller
     private readonly IPageDocumentSearchService pageDocumentSearchService;
     private readonly PageBuilderPageContentService pageContentService;
     private readonly ILogger<PageBuilderPageController> logger;
+    private readonly IContentHistory contentHistory;
+    private readonly IPageBuilderSharedComponentPlacementValidator sharedComponentPlacementValidator;
+    private readonly IDesignerContentService designerContentService;
 
     public PageBuilderPageController(
         IPageBuilderPageService crudService,
@@ -43,7 +48,10 @@ public class PageBuilderPageController : Controller
         IAuthorizationService authorizationService,
         IPageDocumentSearchService pageDocumentSearchService,
         PageBuilderPageContentService pageContentService,
-        ILogger<PageBuilderPageController> logger)
+        ILogger<PageBuilderPageController> logger,
+        IContentHistory contentHistory,
+        IPageBuilderSharedComponentPlacementValidator sharedComponentPlacementValidator,
+        IDesignerContentService designerContentService)
     {
         this.crudService = crudService;
         this.groupedPageService = groupedPageService;
@@ -52,6 +60,9 @@ public class PageBuilderPageController : Controller
         this.pageDocumentSearchService = pageDocumentSearchService;
         this.pageContentService = pageContentService;
         this.logger = logger;
+        this.contentHistory = contentHistory;
+        this.sharedComponentPlacementValidator = sharedComponentPlacementValidator;
+        this.designerContentService = designerContentService;
     }
 
     [HttpPost("search")]
@@ -292,7 +303,7 @@ public class PageBuilderPageController : Controller
             return BadRequest(PageBuilderPageName.InvalidMessage);
         }
 
-        if (!TryValidatePageContentEnvelope(model.Content, out var envelopeError))
+        if (!PageContentEnvelope.TryValidate(model.Content, out var envelopeError))
         {
             return BadRequest(envelopeError);
         }
@@ -344,62 +355,6 @@ public class PageBuilderPageController : Controller
         return Ok(groupedPage);
     }
 
-    internal static bool TryValidatePageContentEnvelope(string content, out string error)
-    {
-        JsonNode node;
-        try
-        {
-            node = JsonNode.Parse(content);
-        }
-        catch (System.Text.Json.JsonException ex)
-        {
-            error = $"Content is not valid JSON: {ex.Message}";
-            return false;
-        }
-
-        if (node is not JsonObject root)
-        {
-            error = "Content root must be a JSON object with `settings` and `content` keys.";
-            return false;
-        }
-
-        if (root["settings"] is not JsonObject)
-        {
-            error = "`settings` must be a JSON object.";
-            return false;
-        }
-
-        if (root["content"] is not JsonArray contentArray)
-        {
-            error = "`content` must be a JSON array of section objects.";
-            return false;
-        }
-
-        for (var i = 0; i < contentArray.Count; i++)
-        {
-            if (contentArray[i] is not JsonObject section)
-            {
-                error = $"`content[{i}]` must be a JSON object.";
-                return false;
-            }
-
-            string sectionType = null;
-            if (section["type"] is JsonValue typeValue)
-            {
-                typeValue.TryGetValue<string>(out sectionType);
-            }
-
-            if (string.IsNullOrWhiteSpace(sectionType))
-            {
-                error = $"`content[{i}].type` is required (non-empty string matching a section key from the schema catalog).";
-                return false;
-            }
-        }
-
-        error = null;
-        return true;
-    }
-
     [HttpPost("grouped/archive")]
     [Authorize(ModuleConstants.Security.Permissions.Delete)]
     [ProducesResponseType(typeof(void), StatusCodes.Status204NoContent)]
@@ -445,6 +400,7 @@ public class PageBuilderPageController : Controller
         }
 
         List<string> pagesToDelete;
+        string publishedPageId = null;
 
         if (publish)
         {
@@ -454,6 +410,7 @@ public class PageBuilderPageController : Controller
             }
 
             pagesToDelete = obsoletePageIds.ToList();
+            publishedPageId = groupedPage.Pages.Single(x => !obsoletePageIds.Contains(x.Id)).Id;
         }
         else
         {
@@ -475,6 +432,46 @@ public class PageBuilderPageController : Controller
 
         await groupedPageService.SaveChangesAsync([groupedPage]);
         await crudService.DeleteAsync(pagesToDelete);
+
+        if (publishedPageId != null)
+        {
+            // load by id: the group still lists the published row deleted above
+            var publishedContent = await groupedPageService.LoadContent(publishedPageId, cancellationToken);
+            await RecordHistoryAsync(groupedPage, publishedContent, ModuleConstants.GitHistory.PublishedSummary, cancellationToken);
+        }
+
+        return Ok();
+    }
+
+    /// <summary>Discard unpublished changes of the page</summary>
+    [HttpPost("grouped/{groupId}/discard")]
+    [Authorize(ModuleConstants.Security.Permissions.Update)]
+    public async Task<ActionResult> DiscardGroupDraft([FromRoute] string groupId, CancellationToken cancellationToken = default)
+    {
+        var groupedPage = await groupedPageService.GetByIdAsync(groupId);
+        if (groupedPage == null)
+        {
+            return NotFound();
+        }
+
+        var authorizationResult = await authorizationService.AuthorizeAsync(User, groupedPage, new PageBuilderAuthorizationRequirement());
+        if (!authorizationResult.Succeeded)
+        {
+            return Forbidden;
+        }
+
+        var command = AbstractTypeFactory<DesignerDiscardCommand>.TryCreateInstance();
+        command.StoreId = groupedPage.StoreId;
+        command.SaveId = Request.GetSaveId();
+        command.Group = groupedPage;
+        try
+        {
+            await designerContentService.DiscardAsync(command, User, cancellationToken);
+        }
+        catch (InvalidDataException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
 
         return Ok();
     }
@@ -676,7 +673,7 @@ public class PageBuilderPageController : Controller
             return BadRequest("Content is required.");
         }
 
-        if (!TryValidatePageContentEnvelope(model.Content, out var envelopeError))
+        if (!PageContentEnvelope.TryValidate(model.Content, out var envelopeError))
         {
             return BadRequest(envelopeError);
         }
@@ -737,6 +734,11 @@ public class PageBuilderPageController : Controller
         try
         {
             var result = await pageContentService.SaveConditionalContentAsync(group, content, expectedETag, cancellationToken);
+            if (result.ContentWritten)
+            {
+                await RecordHistoryAsync(group, content, ModuleConstants.GitHistory.SavedSummary, cancellationToken);
+            }
+
             Response.Headers.ETag = result.ETag;
             return includeVersion ? Ok(new { eTag = result.ETag }) : NoContent();
         }
@@ -846,40 +848,13 @@ public class PageBuilderPageController : Controller
         string content,
         CancellationToken cancellationToken)
     {
-        bool hasSharedComponents;
-        try
+        var validation = await sharedComponentPlacementValidator.ValidateAsync(User, storeId, content, cancellationToken);
+        if (validation.IsForbidden)
         {
-            hasSharedComponents = pageContentService.HasSharedComponentReferences(content);
-        }
-        catch (InvalidDataException ex)
-        {
-            return BadRequest(ex.Message);
+            return Forbidden;
         }
 
-        if (hasSharedComponents)
-        {
-            var authorizationResult = await authorizationService.AuthorizeAsync(
-                User,
-                null,
-                ModuleConstants.Security.Permissions.SharedComponentsRead);
-            if (!authorizationResult.Succeeded)
-            {
-                return Forbidden;
-            }
-        }
-
-        try
-        {
-            await pageContentService.ValidateReferencesForStoreAsync(
-                storeId,
-                content,
-                cancellationToken);
-            return null;
-        }
-        catch (InvalidDataException ex)
-        {
-            return BadRequest(ex.Message);
-        }
+        return validation.Error != null ? BadRequest(validation.Error) : null;
     }
 
     private async Task<string> ReadRequestContentAsync(CancellationToken cancellationToken)
@@ -972,6 +947,14 @@ public class PageBuilderPageController : Controller
             .ThenBy(x => x.Id, StringComparer.Ordinal)
             .Select(x => x.Id)
             .FirstOrDefault();
+    }
+
+    private Task RecordHistoryAsync(GroupedPageBuilderPage group, string content, string description, CancellationToken cancellationToken)
+    {
+        var record = ContentHistoryRecord.Create(description, Request.GetSaveId(), User);
+        record.AddEntry(new HistoryItem(HistoryItemType.Page, group.Id), content);
+
+        return contentHistory.RecordAsync(group.StoreId, record, cancellationToken);
     }
 
     private static ActionResult Forbidden => new ObjectResult(new { })

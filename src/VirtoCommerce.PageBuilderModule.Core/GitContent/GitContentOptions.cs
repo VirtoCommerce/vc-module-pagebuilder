@@ -1,10 +1,9 @@
 namespace VirtoCommerce.PageBuilderModule.Core.GitContent
 {
     /// <summary>
-    /// Connection to the content repository for the git content flow: when it is on, a page save is a
+    /// Connection to the content repositories for the git content flow: when it is on, a page save is a
     /// commit on a work branch (git is the source of truth) and publishing is a merge into
-    /// <see cref="BaseBranch"/>, performed by CI. Direct live writes are restricted to callers holding
-    /// the publish permission (the CI deploy).
+    /// <see cref="BaseBranch"/>. Direct live writes are restricted to callers holding the publish permission.
     /// <para>
     /// <see cref="Enabled"/> is a global kill switch, not the whole answer: a store also has to opt in
     /// through its own setting. Ask <see cref="IGitContentPolicy"/> rather than reading this flag.
@@ -16,10 +15,23 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
 
         public bool Enabled { get; set; }
 
-        /// <summary>
-        /// Content repository in "owner/name" form, e.g. "VirtoCommerce/vc-content".
-        /// </summary>
+        /// <summary>Shared repository ("owner/name") for all stores. Mutually exclusive with <see cref="Organization"/>.</summary>
         public string Repository { get; set; }
+
+        /// <summary>GitHub organization that holds one repository per store.</summary>
+        public string Organization { get; set; }
+
+        /// <summary>Prefix of a store repository name.</summary>
+        public string RepositoryPrefix { get; set; } = "site-";
+
+        /// <summary>Creates a repository for every new store. Requires <see cref="Organization"/>.</summary>
+        public bool AutoCreateRepositories { get; set; }
+
+        /// <summary>GitHub App id. With <see cref="PrivateKey"/>, replaces <see cref="Token"/>.</summary>
+        public string AppId { get; set; }
+
+        /// <summary>GitHub App private key (PEM); "\n" escapes are accepted. Keep it in secret storage.</summary>
+        public string PrivateKey { get; set; }
 
         /// <summary>
         /// Base url of the GitHub REST API. Override for GitHub Enterprise.
@@ -39,10 +51,7 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
         /// </summary>
         public Uri GraphQlUrl { get; set; } = new("https://api.github.com/graphql");
 
-        /// <summary>
-        /// Token with contents and pull-request read/write access to the repository (fine-grained PAT or
-        /// GitHub App installation token). A platform secret — keep it in environment/secret storage.
-        /// </summary>
+        /// <summary>Personal access token, used without a GitHub App. Keep it in secret storage.</summary>
         public string Token { get; set; }
 
         /// <summary>
@@ -113,13 +122,11 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
         /// How long a page read by branch name is cached. Every template the designer opens is a GitHub
         /// call, so the cache is what keeps the flow inside the API rate limit. A branch moves, hence
         /// the short life; a write through this module drops the entry it invalidated straight away.
+        /// Also how long an unowned repository is cached.
         /// </summary>
         public TimeSpan ReadCacheExpiration { get; set; } = TimeSpan.FromMinutes(1);
 
-        /// <summary>
-        /// How long a page read by commit sha is cached. A sha is immutable, so the only reason to
-        /// expire it at all is to bound memory.
-        /// </summary>
+        /// <summary>How long a page read by commit sha, or a repository owner, is cached.</summary>
         public TimeSpan ImmutableReadCacheExpiration { get; set; } = TimeSpan.FromHours(1);
 
         /// <summary>
@@ -160,8 +167,8 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
         /// True when the connection is filled in well enough to talk to GitHub at all.
         /// </summary>
         public bool IsConfigured =>
-            !string.IsNullOrWhiteSpace(Repository) &&
-            !string.IsNullOrWhiteSpace(Token) &&
+            (!string.IsNullOrWhiteSpace(Repository) || !string.IsNullOrWhiteSpace(Organization)) &&
+            (!string.IsNullOrWhiteSpace(Token) || HasApp()) &&
             !string.IsNullOrWhiteSpace(BaseBranch);
 
         /// <summary>
@@ -174,6 +181,14 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
             if (!Enabled)
             {
                 return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(Repository) && !string.IsNullOrWhiteSpace(Organization))
+            {
+                throw new InvalidOperationException(
+                    $"{SectionName}:{nameof(Repository)} and {SectionName}:{nameof(Organization)} are both set. " +
+                    $"Use {nameof(Organization)} for one repository per site; to keep a store on the shared repository, " +
+                    $"set it as that store's Git repository, then remove {nameof(Repository)}.");
             }
 
             if (IsConfigured)
@@ -195,13 +210,13 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
             }
 
             var missing = new List<string>();
-            if (string.IsNullOrWhiteSpace(Repository))
+            if (string.IsNullOrWhiteSpace(Repository) && string.IsNullOrWhiteSpace(Organization))
             {
-                missing.Add(nameof(Repository));
+                missing.Add($"{nameof(Organization)} (or {nameof(Repository)})");
             }
-            if (string.IsNullOrWhiteSpace(Token))
+            if (string.IsNullOrWhiteSpace(Token) && !HasApp())
             {
-                missing.Add(nameof(Token));
+                missing.Add($"{nameof(AppId)} and {nameof(PrivateKey)} (or {nameof(Token)})");
             }
             if (string.IsNullOrWhiteSpace(BaseBranch))
             {
@@ -212,5 +227,7 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
                 $"{SectionName}:Enabled is set but the connection is incomplete — missing: {string.Join(", ", missing)}. " +
                 $"Fill them in, or set {SectionName}:Enabled to false.");
         }
+
+        private bool HasApp() => !string.IsNullOrWhiteSpace(AppId) && !string.IsNullOrWhiteSpace(PrivateKey);
     }
 }

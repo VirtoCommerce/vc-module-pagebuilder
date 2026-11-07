@@ -29,14 +29,6 @@ Analyze provided files and report findings with context-aware assessment of whet
 
 ## Assessment guidelines by file type
 
-### TypeScript / Angular 20 (`page-builder-designer`)
-- Empty methods (`queue`, `processQueue`, `_focusActiveCell`) — check for comment explaining no-op intent. Usually intentional contract implementation.
-- Angular animation API deprecated — known issue, deferred to future refactoring.
-- Shadowed variables — real issue, flag it.
-- `inject()` instead of constructor DI — this is the correct pattern, don't flag.
-- `@if`/`@for` — correct. Flag if old `*ngIf`/`*ngFor` is used.
-- Effects with `inject()` fields after `createEffect()` fields — real bug risk due to `useDefineForClassFields: false`.
-
 ### C# (`.cs` files)
 - `Task.Result` / `.Wait()` — BLOCKER, real deadlock risk.
 - Empty catch blocks — real issue.

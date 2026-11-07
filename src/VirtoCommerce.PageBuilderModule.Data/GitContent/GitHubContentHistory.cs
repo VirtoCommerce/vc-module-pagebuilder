@@ -1,9 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Net.Http;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
@@ -63,21 +61,22 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
 
         // The arguments are checked here rather than in the async part below, so a call that cannot work
         // throws where it was made instead of when its task is finally awaited.
-        public Task<GitPageHistory> GetHistoryAsync(string repoPath, GitHistoryQuery query, CancellationToken cancellationToken = default)
+        public virtual Task<GitPageHistory> GetHistoryAsync(string repository, string repoPath, GitHistoryQuery query, CancellationToken cancellationToken = default)
         {
+            ArgumentException.ThrowIfNullOrWhiteSpace(repository);
             ArgumentException.ThrowIfNullOrWhiteSpace(repoPath);
             ArgumentNullException.ThrowIfNull(query);
             ArgumentException.ThrowIfNullOrWhiteSpace(query.BaseBranch);
 
-            return GetHistoryCoreAsync(repoPath, query, cancellationToken);
+            var (owner, name) = GitHubApiClient.ParseRepository(repository);
+            return GetHistoryCoreAsync(repository, owner, name, repoPath, query, cancellationToken);
         }
 
-        private async Task<GitPageHistory> GetHistoryCoreAsync(string repoPath, GitHistoryQuery query, CancellationToken cancellationToken)
+        private async Task<GitPageHistory> GetHistoryCoreAsync(string repository, string owner, string name, string repoPath, GitHistoryQuery query, CancellationToken cancellationToken)
         {
-            var (owner, name) = SplitRepository();
             var depth = query.PublishedDepth ?? _options.PublishedHistoryDepth;
 
-            var cacheKey = CacheKey(repoPath, query, depth);
+            var cacheKey = CacheKey(repository, repoPath, query, depth);
             if (_memoryCache.TryGetValue<GitPageHistory>(cacheKey, out var cached))
             {
                 return cached;
@@ -91,9 +90,9 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             return history;
         }
 
-        public void Invalidate(string repoPath)
+        public virtual void Invalidate(string repository, string repoPath)
         {
-            if (string.IsNullOrWhiteSpace(repoPath))
+            if (string.IsNullOrWhiteSpace(repository) || string.IsNullOrWhiteSpace(repoPath))
             {
                 return;
             }
@@ -101,7 +100,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             // The list is cached per base branch, depth and cursor, and IMemoryCache cannot drop a family
             // of keys — so the keys carry a generation number for the page and this moves it on. Bumping
             // a counter leaves the stale entries to expire on their own instead of being read again.
-            _memoryCache.Set(GenerationKey(repoPath), Generation(repoPath) + 1, NeverEvict);
+            _memoryCache.Set(GenerationKey(repository, repoPath), Generation(repository, repoPath) + 1, NeverEvict);
         }
 
         private async Task<JObject> PostQueryAsync(string owner, string name, string repoPath, GitHistoryQuery query, int depth, CancellationToken cancellationToken)
@@ -123,21 +122,22 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             };
 
             var client = _httpClientFactory.CreateClient(GitHubContentRepository.HttpClientName);
-            using var response = await client.PostAsync(_options.GraphQlUrl,
-                new StringContent(request.ToString(), Encoding.UTF8, "application/json"), cancellationToken);
+            var operation = $"read the history of \"{repoPath}\"";
+            using var message = GitHubApiClient.CreateGraphQlRequest(_options.GraphQlUrl, owner, request);
+            using var response = await GitHubApiClient.SendRequestAsync(client, message, operation, cancellationToken);
 
-            var content = await response.Content.ReadAsStringAsync(cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
+                var content = await response.Content.ReadAsStringAsync(cancellationToken);
                 throw Failed($"{(int)response.StatusCode} {response.ReasonPhrase}. {Trim(content)}", repoPath);
             }
 
-            var body = JObject.Parse(content);
+            var body = await GitHubApiClient.ReadAsAsync<JObject>(response, operation, cancellationToken);
 
             // GraphQL reports failures inside a 200 response. An empty version list and a failed query
             // look the same to a caller, and the difference matters: one means "no other versions", the
             // other means "we do not know".
-            var errors = body["errors"] as JArray;
+            var errors = body?["errors"] as JArray;
             if (errors?.Count > 0)
             {
                 var messages = string.Join("; ", errors.Select(error => error["message"]?.Value<string>()).Where(message => message != null));
@@ -222,7 +222,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
                 version = new Accumulated
                 {
                     Sha = sha,
-                    Date = ReadDate(Field(commit, "committedDate")),
+                    Date = GitHubApiClient.ReadDate(Field(commit, "committedDate")),
                     Message = Field(commit, "messageHeadline")?.Value<string>(),
                     AuthorName = Field(author, "name")?.Value<string>(),
                     AuthorEmail = Field(author, "email")?.Value<string>(),
@@ -240,39 +240,12 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             }
         }
 
-        /// <summary>
-        /// Both shapes the timestamp can arrive in, and never through the host's culture: Newtonsoft turns
-        /// an ISO timestamp into a <see cref="DateTime"/> while parsing the response, and formatting that
-        /// back into a string to re-parse it reordered day and month on a machine that writes dates
-        /// day-first — "2026-08-11" came out as 8 November.
-        /// </summary>
-        private static DateTime? ReadDate(JToken value) => value switch
-        {
-            JValue { Value: DateTime dateTime } => dateTime.ToUniversalTime(),
-            JValue { Value: DateTimeOffset offset } => offset.UtcDateTime,
-            JValue { Value: string text } when DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var parsed) => parsed.UtcDateTime,
-            _ => null,
-        };
+        private string CacheKey(string repository, string repoPath, GitHistoryQuery query, int depth) =>
+            $"{nameof(GitHubContentHistory)}:{repository}:{Generation(repository, repoPath)}:{query.BaseBranch}:{depth}:{query.After}:{repoPath}";
 
-        private (string Owner, string Name) SplitRepository()
-        {
-            var repository = _options.Repository;
-            var separator = repository?.IndexOf('/') ?? -1;
-            if (separator <= 0 || separator == repository.Length - 1)
-            {
-                throw new InvalidOperationException(
-                    $"Git content is not configured: set {GitContentOptions.SectionName}:Repository to \"owner/name\".");
-            }
+        private static string GenerationKey(string repository, string repoPath) => $"{nameof(GitHubContentHistory)}:generation:{repository}:{repoPath}";
 
-            return (repository[..separator], repository[(separator + 1)..]);
-        }
-
-        private string CacheKey(string repoPath, GitHistoryQuery query, int depth) =>
-            $"{nameof(GitHubContentHistory)}:{_options.Repository}:{Generation(repoPath)}:{query.BaseBranch}:{depth}:{query.After}:{repoPath}";
-
-        private string GenerationKey(string repoPath) => $"{nameof(GitHubContentHistory)}:generation:{_options.Repository}:{repoPath}";
-
-        private long Generation(string repoPath) => _memoryCache.GetOrCreate(GenerationKey(repoPath), entry =>
+        private long Generation(string repository, string repoPath) => _memoryCache.GetOrCreate(GenerationKey(repository, repoPath), entry =>
         {
             entry.SetOptions(NeverEvict);
             return 0L;
@@ -288,7 +261,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
         private static string Trim(string details) =>
             details?.Length > MaxErrorDetailsLength ? details[..MaxErrorDetailsLength] : details;
 
-        private static HttpRequestException Failed(string details, string repoPath) =>
+        private static GitContentException Failed(string details, string repoPath) =>
             new($"GitHub GraphQL request for the history of \"{repoPath}\" failed: {details}");
 
         /// <summary>One sha, and the branches it has been seen on so far.</summary>

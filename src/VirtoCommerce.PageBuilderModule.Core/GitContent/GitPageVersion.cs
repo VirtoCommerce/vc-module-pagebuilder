@@ -15,12 +15,10 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
     /// </summary>
     public sealed class GitPageVersion
     {
-        private const int ShortShaLength = 7;
-
         /// <summary>The commit sha — what a preview link and a restore are addressed by.</summary>
         public string Sha { get; init; }
 
-        public string ShortSha => Sha != null && Sha.Length > ShortShaLength ? Sha[..ShortShaLength] : Sha;
+        public string ShortSha => Sha != null && Sha.Length > GitCommitSha.ShortShaLength ? Sha[..GitCommitSha.ShortShaLength] : Sha;
 
         public DateTime? Date { get; init; }
 

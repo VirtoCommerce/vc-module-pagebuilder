@@ -1,0 +1,90 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
+import { effectScope } from "vue";
+import ThemePanel from "../../src/modules/designer/components/ThemePanel.vue";
+import { PALETTE_CHECK_DEBOUNCE_MS, type PaletteFailure } from "../../src/modules/designer/paletteContrast";
+import { useThemeSettings } from "../../src/modules/designer/themeSettings";
+import { useThemeLook } from "../../src/modules/designer/useThemeLook";
+import { fakePlatform, status, type FakePlatform, type Request } from "./support/fakePlatform";
+
+const STORE = "B2B-store";
+const TOKENS = { light: ["color_primary_500", "color_neutral_50"], dark: ["color_primary_500"] };
+
+const failure = (text: string): PaletteFailure => ({
+  scheme: "light",
+  pair: "button-solid-primary",
+  text,
+  background: "color_primary_500",
+  textColor: "#ffffff",
+  backgroundColor: "#f99e24",
+  ratio: 2.11,
+  minimumRatio: 4.5,
+});
+
+let platform: FakePlatform;
+let scope: ReturnType<typeof effectScope>;
+
+beforeEach(() => {
+  vi.useFakeTimers();
+  platform = fakePlatform()
+    .on("GET", "/api/pagebuilder/template", (request: Request) =>
+      request.query.path === "default/config/palette.json" ? JSON.stringify({ color_primary_500: "#f99e24" }) : status(404),
+    )
+    .on("POST", "/api/pagebuilder/theme/palette/check", { failures: [failure("color_neutral_50")], unchecked: 1 })
+    .on("POST", "/api/pagebuilder/theme/palette", {
+      light: { color_primary_500: "#a25c27", color_neutral_50: "#f7f7f7" },
+      dark: { color_primary_500: "#f99e24" },
+      failures: [failure("color_vc_text_solid_primary")],
+    })
+    .install();
+  scope = effectScope();
+});
+
+afterEach(() => {
+  scope.stop();
+  vi.useRealTimers();
+});
+
+async function mountPanel() {
+  const { theme, look } = scope.run(() => ({ theme: useThemeSettings(), look: useThemeLook() }))!;
+  await theme.load(STORE, "default");
+  await look.load(STORE, "default", theme.settings.value);
+  const wrapper = mount(ThemePanel, { props: { theme, look, schemas: { sections: {}, blocks: {}, shared: {}, objects: {} }, storeId: STORE, paletteTokens: TOKENS } });
+  await settle();
+  return { wrapper, look };
+}
+
+/** the check's wait passes and its answer is in */
+async function settle() {
+  await vi.advanceTimersByTimeAsync(PALETTE_CHECK_DEBOUNCE_MS + 10);
+  await flushPromises();
+}
+
+const checks = () => platform.to("/api/pagebuilder/theme/palette/check", "POST");
+const failingTexts = (wrapper: VueWrapper) => wrapper.findAll(".pd-theme__pair-text > span:first-child").map((x) => x.text());
+
+describe("ThemePanel: palette contrast", () => {
+  it("checks the palettes once they are loaded", async () => {
+    const { wrapper } = await mountPanel();
+
+    expect(checks()).toHaveLength(1);
+    expect(failingTexts(wrapper)).toEqual(["Neutral 50 on Primary 500"]);
+  });
+
+  it("shows what the generator found right away, without a check of its own; an edit after it is checked", async () => {
+    const { wrapper, look } = await mountPanel();
+
+    await wrapper.findAll("button").find((x) => x.text() === "Generate")!.trigger("click");
+    await settle();
+
+    expect(platform.to("/api/pagebuilder/theme/palette", "POST")).toHaveLength(1);
+    expect(look.look.value.light.color_primary_500).toBe("#a25c27");
+    expect(checks()).toHaveLength(1);
+    expect(failingTexts(wrapper)).toEqual(["Vc text solid primary on Primary 500"]);
+
+    look.setColor("light", "color_neutral_50", "#ffffff");
+    await settle();
+    expect(checks()).toHaveLength(2);
+    expect(failingTexts(wrapper)).toEqual(["Neutral 50 on Primary 500"]);
+  });
+});

@@ -15,7 +15,7 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
         /// open one if the editor already asked), and lets it merge as soon as the required checks pass.
         /// Never merges past a failing check, and never resolves a conflict on the editor's behalf.
         /// </summary>
-        Task<GitPublishResult> MergeBranchAsync(string branch, string title, CancellationToken cancellationToken = default);
+        Task<GitPublishResult> MergeBranchAsync(string repository, string branch, string title, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// The same shipping operation into a branch the caller names — promotion targets the release
@@ -27,7 +27,7 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
         /// branch it means.
         /// </para>
         /// </summary>
-        Task<GitPublishResult> MergeBranchIntoAsync(string branch, string title, string baseBranch,
+        Task<GitPublishResult> MergeBranchIntoAsync(string repository, string branch, string title, string baseBranch,
             CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -35,6 +35,6 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
         /// page with one is on its way to production and must not be reported as published yet — and
         /// whether it will get there by itself is what <see cref="GitPendingPublish.AutoMerging"/> says.
         /// </summary>
-        Task<GitPendingPublish> GetOpenPullRequestAsync(string branch, CancellationToken cancellationToken = default);
+        Task<GitPendingPublish> GetOpenPullRequestAsync(string repository, string branch, CancellationToken cancellationToken = default);
     }
 }

@@ -123,6 +123,14 @@
           "GitContentEnabled": {
             "title": "Publish pages through Git",
             "description": "When enabled, saving a page commits it to a work branch in the configured content repository and publishing opens and merges a pull request, instead of writing to blob storage directly. Requires the Git content connection to be configured on the server (PageBuilder:GitContent)."
+          },
+          "GitContentRepository": {
+            "title": "Git repository",
+            "description": "An existing GitHub repository (owner/name) for this store's pages. Leave empty to use the store's own repository, which Page Builder creates in the configured organization."
+          },
+          "NewPageBuilder": {
+            "title": "New Page Builder",
+            "description": "Opens the store's pages in the new Page Builder designer, and the storefront shows the theme published from it. When off, pages open in the classic designer and the storefront works as before."
           }
         },
         "Migration": {

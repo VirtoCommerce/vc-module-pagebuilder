@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
 using VirtoCommerce.PageBuilderModule.Core.Models;
+using VirtoCommerce.PageBuilderModule.Data.Services;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using VirtoCommerce.PageBuilderModule.Web.Services;
 using VirtoCommerce.Platform.Core.Common;
@@ -57,7 +58,7 @@ public class PageBuilderPageControllerSharedComponentPreflightTests
         service.ConcurrentContentBeforeSaveFailure = "{ \"concurrent\": true }";
         service.SaveContentException = new InvalidDataException("Shared Component 'deleted' was not found.");
         var writer = new PageBuilderPageContentService(new PublishedRenameContentPreservationTests.FakePageBuilderPageService(service),
-            service, new NoopSharedComponentReferenceIndexService(), new PublishedRenameContentPreservationTests.NoopEventPublisher(),
+            service, new PublishedRenameContentPreservationTests.NoopEventPublisher(),
             NullLogger<PageBuilderPageContentService>.Instance);
 
         var result = await writer.SaveContentAsync("group", await service.GetByIdAsync("group"), ComponentReferenceContent, TestContext.Current.CancellationToken);
@@ -77,7 +78,7 @@ public class PageBuilderPageControllerSharedComponentPreflightTests
         service.ReplaceNewDraftAfterSaveWithPageId = "concurrent-draft";
         service.SaveContentException = new InvalidDataException("Shared Component 'deleted' was not found.");
         var writer = new PageBuilderPageContentService(new PublishedRenameContentPreservationTests.FakePageBuilderPageService(service),
-            service, new NoopSharedComponentReferenceIndexService(), new PublishedRenameContentPreservationTests.NoopEventPublisher(),
+            service, new PublishedRenameContentPreservationTests.NoopEventPublisher(),
             NullLogger<PageBuilderPageContentService>.Instance);
 
         var result = await writer.SaveContentAsync("group", await service.GetByIdAsync("group"), ComponentReferenceContent, TestContext.Current.CancellationToken);
@@ -245,17 +246,19 @@ public class PageBuilderPageControllerSharedComponentPreflightTests
         var pageContentService = new PageBuilderPageContentService(
             pageService,
             service,
-            referenceIndex,
             eventPublisher,
             NullLogger<PageBuilderPageContentService>.Instance);
+        authorizationService ??= new PublishedRenameContentPreservationTests.AllowAllAuthorizationService();
         var controller = new PageBuilderPageController(
             pageService,
             service,
             new PublishedRenameContentPreservationTests.FakeGroupedPageSearchService(),
-            authorizationService ?? new PublishedRenameContentPreservationTests.AllowAllAuthorizationService(),
+            authorizationService,
             new PublishedRenameContentPreservationTests.NoopPageDocumentSearchService(),
             pageContentService,
-            NullLogger<PageBuilderPageController>.Instance);
+            NullLogger<PageBuilderPageController>.Instance, new NoContentHistory(),
+            new PageBuilderSharedComponentPlacementValidator(referenceIndex, authorizationService),
+            TestServices.Designer(new NoContentHistory()));
         var httpContext = new DefaultHttpContext
         {
             User = new ClaimsPrincipal(new ClaimsIdentity()),

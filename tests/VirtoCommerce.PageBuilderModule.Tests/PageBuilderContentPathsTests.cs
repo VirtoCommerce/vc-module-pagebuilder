@@ -70,10 +70,19 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         [InlineData("themes", "/default/config/settings_data.json", true)]
         [InlineData("themes", "default/config/builder_settings.json", false)]
         [InlineData("themes", "default/config/settings_schema.json", false)]
+        [InlineData("themes", "default/config/template_rules.json", true)]
+        [InlineData("themes", "default/config/brand.json", true)]
+        [InlineData("themes", "default/config/palette.json", true)]
+        [InlineData("themes", "default/config/palette.dark.json", true)]
+        [InlineData("themes", "default/config/palette.light.json", false)]
         [InlineData("themes", "default/config/schemas/sections/banner.json", false)]
         [InlineData("themes", "default/Config/builder_settings.json", false)]
         [InlineData("themes", "default/config/schemas/settings_data.json", false)]
         [InlineData("themes", "settings_data.json", false)]
+        [InlineData("themes", "default/snapshots/current.json", false)]
+        [InlineData("themes", "default/snapshots/3/en-US.json", false)]
+        [InlineData("themes", "default/catalogs/abc12345.json", false)]
+        [InlineData("themes", "default/catalogs/current.json", false)]
         public void OnlyTheFilesTheDesignerWrites_AreWritable(string type, string path, bool expected)
         {
             var file = new PageBuilderContentFile { ContentType = type, Path = path, Content = JToken.Parse("{\"settings\":{\"type\":\"settings\"},\"content\":[]}") };

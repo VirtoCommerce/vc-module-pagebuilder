@@ -8,7 +8,6 @@ using Microsoft.Extensions.Logging;
 using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
-using VirtoCommerce.PageBuilderModule.Data.Services;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Events;
 using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.PageStatuses;
@@ -19,7 +18,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Services;
 public sealed class PageBuilderPageContentService(
     IPageBuilderPageService pageService,
     IGroupedPageService groupedPageService,
-    IPageBuilderSharedComponentReferenceIndexService sharedComponentReferenceIndexService,
     IEventPublisher eventPublisher,
     ILogger<PageBuilderPageContentService> logger,
     IGroupedPageContentService versionedContent)
@@ -27,28 +25,10 @@ public sealed class PageBuilderPageContentService(
     public PageBuilderPageContentService(
         IPageBuilderPageService pageService,
         IGroupedPageService groupedPageService,
-        IPageBuilderSharedComponentReferenceIndexService sharedComponentReferenceIndexService,
         IEventPublisher eventPublisher,
         ILogger<PageBuilderPageContentService> logger)
-        : this(pageService, groupedPageService, sharedComponentReferenceIndexService, eventPublisher, logger,
-            groupedPageService as IGroupedPageContentService)
+        : this(pageService, groupedPageService, eventPublisher, logger, groupedPageService as IGroupedPageContentService)
     {
-    }
-
-    public bool HasSharedComponentReferences(string content)
-    {
-        return PageBuilderSharedComponentReferenceMatcher.HasReferences(content);
-    }
-
-    public Task ValidateReferencesForStoreAsync(
-        string storeId,
-        string content,
-        CancellationToken cancellationToken)
-    {
-        return sharedComponentReferenceIndexService.ValidateReferencesForStoreAsync(
-            storeId,
-            [content],
-            cancellationToken);
     }
 
     private IGroupedPageContentService VersionedContent => versionedContent

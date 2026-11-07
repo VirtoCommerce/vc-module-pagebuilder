@@ -21,5 +21,27 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
         /// A missing or unreadable store setting means "off".
         /// </summary>
         Task<bool> IsEnabledForStoreAsync(string storeId, CancellationToken cancellationToken = default);
+
+        /// <summary>Switches git content on or off for the store.</summary>
+        Task SetEnabledForStoreAsync(string storeId, bool enabled, CancellationToken cancellationToken = default);
+
+        /// <summary>Gets the store repository ("owner/name"); <c>null</c> when git content is off for the store.</summary>
+        /// <exception cref="GitRepositoryOwnershipException">The repository was created for another store.</exception>
+        Task<string> GetRepositoryAsync(string storeId, CancellationToken cancellationToken = default);
+
+        /// <summary>Gets the store repository with its source; <c>null</c> when git content is off for the store.</summary>
+        /// <exception cref="GitRepositoryOwnershipException">The repository was created for another store.</exception>
+        Task<StoreRepository> GetRepositoryInfoAsync(string storeId, CancellationToken cancellationToken = default);
+
+        /// <summary>Gets the store repository from settings, whether or not git content is on for the store.</summary>
+        /// <exception cref="GitContentException">The store setting is not a repository in "owner/name" form.</exception>
+        Task<StoreRepository> GetConfiguredRepositoryAsync(string storeId, CancellationToken cancellationToken = default);
+
+        /// <summary>Gets the repository of a store with the given repository setting, whether or not git content is on for the store.</summary>
+        /// <exception cref="GitContentException">The setting is not a repository in "owner/name" form.</exception>
+        Task<StoreRepository> GetConfiguredRepositoryAsync(string storeId, string repositorySetting, CancellationToken cancellationToken = default);
+
+        /// <summary>Checks whether the repository is in the configured organization.</summary>
+        Task<bool> IsInOrganizationAsync(string repository, CancellationToken cancellationToken = default);
     }
 }

@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Security.Claims;
-using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -50,12 +49,22 @@ public class BlobPublishTests
     {
         var publishing = new RecordingPublishingService { Status = new FilePublishStatus { Published = true, HasChanges = true } };
 
-        var result = Assert.IsType<OkObjectResult>(await Controller(publishing).GitPublishStatus("vccom", Page, "pages"));
+        var result = await Controller(publishing).GitPublishStatus("vccom", Page, "pages");
 
-        var status = JObject.FromObject(result.Value);
+        var status = PlatformJson.ParseBody(result);
         Assert.True(status.Value<bool>("published"));
         Assert.True(status.Value<bool>("hasChanges"));
         Assert.Equal("blob", status.Value<string>("flow"));
+    }
+
+    [Fact]
+    public async Task GitPublishStatus_BlobFlow_WritesTheStatusJson()
+    {
+        var publishing = new RecordingPublishingService { Status = new FilePublishStatus { Published = true, HasChanges = true } };
+
+        var result = await Controller(publishing).GitPublishStatus("vccom", Page, "pages");
+
+        Assert.Equal("""{"published":true,"hasChanges":true,"pending":false,"awaitingMerge":false,"flow":"blob","liveBehind":false}""", PlatformJson.SerializeBody(result));
     }
 
     [Fact]
@@ -93,6 +102,7 @@ public class BlobPublishTests
     private static PageBuilderController Controller(RecordingPublishingService publishing, bool allowed = true)
     {
         // The git dependencies are left null on purpose: a store off the git flow must not reach them.
+        var filePageDrafts = TestServices.FilePageDrafts(Options.Create(new GitContentOptions()), GitHubConnections.CreateService(Options.Create(new GitContentOptions()).Value), new FakeGitContentPolicy(enabled: false), null, null, new FakeGitContentProvisioner(), new FakeStoreService(new Store { Id = "vccom" }), null, null, publishing, null);
         var controller = new PageBuilderController(
             storeService: new FakeStoreService(new Store { Id = "vccom" }),
             pathResolver: null,
@@ -100,13 +110,23 @@ public class BlobPublishTests
             publishingService: publishing,
             eventPublisher: null,
             gitContentOptions: Options.Create(new GitContentOptions()),
-            gitContentPolicy: new BlobOnlyPolicy(),
+            gitHubConnectionService: GitHubConnections.CreateService(Options.Create(new GitContentOptions()).Value),
+            gitContentPolicy: new FakeGitContentPolicy(enabled: false),
             gitContentRepository: null,
             gitContentHistory: null,
             gitContentPublisher: null,
+            gitLivePageService: null,
             settingsManager: null,
             authorizationService: new FakeAuthorizationService(allowed),
-            requestValidator: new PageBuilderContentRequestValidator(new FakeStoreService(new Store { Id = "vccom" }), new PageBuilderContentFileValidator()));
+            distributedLock: new InProcessDistributedLock(),
+            requestValidator: new PageBuilderContentRequestValidator(new PageBuilderStoreRequestValidator(new FakeStoreService(new Store { Id = "vccom" })), new PageBuilderContentFileValidator()),
+            contentHistory: new NoContentHistory(),
+            themeDraftService: null,
+            groupedPageService: null,
+            sharedComponentPlacementValidator: null,
+            designerContentService: TestServices.Designer(new NoContentHistory(), filePageDrafts, null, null, null, null, null),
+            contentPermissionService: TestServices.Permissions(new FakeAuthorizationService(allowed)),
+            filePageDraftService: filePageDrafts);
 
         controller.ControllerContext = new ControllerContext
         {
@@ -114,12 +134,6 @@ public class BlobPublishTests
         };
 
         return controller;
-    }
-
-    private sealed class BlobOnlyPolicy : IGitContentPolicy
-    {
-        public Task<bool> IsEnabledForStoreAsync(string storeId, CancellationToken cancellationToken = default) =>
-            Task.FromResult(false);
     }
 
     private sealed class RecordingPublishingService : IPublishingService

@@ -84,5 +84,26 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
 
             return string.Equals(Canonicalize(left), Canonicalize(right), StringComparison.Ordinal);
         }
+
+        /// <summary>
+        /// True when two page documents hold the same JSON, whatever their formatting. A document that does not parse
+        /// differs from any other; a null only equals another null.
+        /// </summary>
+        public static bool AreSameDocuments(string left, string right)
+        {
+            if (left == null || right == null)
+            {
+                return left == null && right == null;
+            }
+
+            try
+            {
+                return JToken.DeepEquals(JToken.Parse(left), JToken.Parse(right));
+            }
+            catch (JsonReaderException)
+            {
+                return false;
+            }
+        }
     }
 }
