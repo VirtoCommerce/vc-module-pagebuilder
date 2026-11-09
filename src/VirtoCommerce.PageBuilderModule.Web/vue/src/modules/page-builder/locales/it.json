@@ -399,11 +399,6 @@
       },
       "THEME": {
         "TITLE": "Tema",
-        "PRESET": "Preimpostazione",
-        "PRESET_PLACEHOLDER": "Scegli una preimpostazione",
-        "APPLY": "Applica",
-        "EMPTY": "Questo tema non ha impostazioni da modificare.",
-        "LOAD_FAILED": "Impossibile caricare le impostazioni del tema.",
         "BRAND": "Marchio",
         "LOGO": "Logo",
         "LOGO_HINT": "Su sfondi chiari: l'intestazione nel tema chiaro.",

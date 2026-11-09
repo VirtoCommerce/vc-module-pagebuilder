@@ -12,6 +12,7 @@ import {
   tokenLabel,
   tokenOptions,
   type ThemeLook,
+  currentSettings,
 } from "../src/modules/designer/themeLook";
 import { menuOptions, storeMenusUrl } from "../src/modules/designer/storeMenus";
 import { brandField, isOverridden, menuField } from "../src/modules/designer/whiteLabeling";
@@ -20,13 +21,22 @@ const look = (part: Partial<ThemeLook> = {}): ThemeLook => ({ brand: {}, light: 
 
 // ── brand and palette files ──────────────────────────────────────────────────
 
-test("the brand is the brand file's; a theme without one starts from the logos of its settings", () => {
-  const settings = { logo_image: "/l.svg", logo_inverted_image: "/d.svg", favicon_image: " ", other: "x" };
-  assert.deepEqual(readBrand({ logoUrl: "/a.svg", secondaryLogoUrl: "", faviconUrl: "/f.ico", extra: 1 }, settings), { logoUrl: "/a.svg", faviconUrl: "/f.ico" });
-  assert.deepEqual(readBrand(undefined, settings), { logoUrl: "/l.svg", secondaryLogoUrl: "/d.svg" });
+test("the brand is the brand file's; a theme without one starts from the logos of its settings file", () => {
+  const logos = { logo_image: "/l.svg", logo_inverted_image: "/d.svg", favicon_image: " ", other: "x" };
+  const settingsData = { current: logos };
+  assert.deepEqual(readBrand({ logoUrl: "/a.svg", secondaryLogoUrl: "", faviconUrl: "/f.ico", extra: 1 }, settingsData), { logoUrl: "/a.svg", faviconUrl: "/f.ico" });
+  assert.deepEqual(readBrand(undefined, settingsData), { logoUrl: "/l.svg", secondaryLogoUrl: "/d.svg" });
   // an empty brand file is a brand without logos, not a missing one
-  assert.deepEqual(readBrand({}, settings), {});
-  assert.deepEqual(readBrand([], {}), {});
+  assert.deepEqual(readBrand({}, settingsData), {});
+  assert.deepEqual(readBrand([], undefined), {});
+});
+
+test("the settings a theme settings file applies: current, or the preset it names, as a publication reads them", () => {
+  assert.deepEqual(currentSettings({ current: { logo_image: "/l.svg" } }), { logo_image: "/l.svg" });
+  assert.deepEqual(currentSettings({ current: "Dark", presets: { Dark: { settings: { logo_image: "/d.svg" } } } }), { logo_image: "/d.svg" });
+  assert.deepEqual(currentSettings({ current: "Flat", presets: { Flat: { logo_image: "/f.svg" } } }), { logo_image: "/f.svg" });
+  assert.deepEqual(currentSettings({ current: "Gone", presets: {} }), {});
+  assert.deepEqual(currentSettings(undefined), {});
 });
 
 test("a palette file's colors are its texts by token", () => {

@@ -399,11 +399,6 @@
       },
       "THEME": {
         "TITLE": "Tema",
-        "PRESET": "Preajuste",
-        "PRESET_PLACEHOLDER": "Elegir un preajuste",
-        "APPLY": "Aplicar",
-        "EMPTY": "Este tema no tiene configuración que editar.",
-        "LOAD_FAILED": "No se pudo cargar la configuración del tema.",
         "BRAND": "Marca",
         "LOGO": "Logotipo",
         "LOGO_HINT": "Sobre fondos claros: el encabezado en el tema claro.",

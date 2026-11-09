@@ -399,11 +399,6 @@
       },
       "THEME": {
         "TITLE": "Theme",
-        "PRESET": "Voreinstellung",
-        "PRESET_PLACEHOLDER": "Voreinstellung auswählen",
-        "APPLY": "Anwenden",
-        "EMPTY": "Dieses Theme hat keine bearbeitbaren Einstellungen.",
-        "LOAD_FAILED": "Die Theme-Einstellungen konnten nicht geladen werden.",
         "BRAND": "Marke",
         "LOGO": "Logo",
         "LOGO_HINT": "Auf hellem Hintergrund: der Header im hellen Theme.",

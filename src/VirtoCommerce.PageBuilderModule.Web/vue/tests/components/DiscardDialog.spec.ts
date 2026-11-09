@@ -13,7 +13,7 @@ function mountDialog(props: { page?: boolean; theme?: Parameters<typeof discardO
   const template = props.template ?? false;
   const options = discardOptions({
     page: props.page ?? true,
-    theme: props.theme ?? ["rules", "header", "settings"],
+    theme: props.theme ?? ["rules", "header", "brand"],
     template,
     hasAccess: only(...(props.granted ?? [PERMISSIONS.update, PERMISSIONS.theme])),
   });
@@ -32,9 +32,9 @@ describe("DiscardDialog", () => {
   it("lists the page's draft ticked and each theme part's unticked, saying theme drafts are shared by every page", () => {
     const wrapper = mountDialog();
 
-    expect(wrapper.findAll("label.pd-discard__option").map((x) => x.text())).toEqual(["Page", "Rules", "Header", "Theme"]);
+    expect(wrapper.findAll("label.pd-discard__option").map((x) => x.text())).toEqual(["Page", "Rules", "Header", "Brand"]);
     expect(box(wrapper, "Page").checked).toBe(true);
-    expect(["Rules", "Header", "Theme"].map((x) => box(wrapper, x).checked)).toEqual([false, false, false]);
+    expect(["Rules", "Header", "Brand"].map((x) => box(wrapper, x).checked)).toEqual([false, false, false]);
     expect(wrapper.text()).toContain("Theme drafts are shared by every page");
   });
 

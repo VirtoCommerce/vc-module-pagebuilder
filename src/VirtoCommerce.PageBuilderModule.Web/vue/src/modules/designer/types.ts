@@ -93,7 +93,6 @@ export interface Schemas {
   shared: Record<string, ItemSchema>;
   objects: Record<string, ItemSchema>;
   templates?: Record<string, TemplateEntry>;
-  settingsSchema?: { settings_schema?: { name: string; icon?: string; settings: Field[] }[] };
 }
 
 /**

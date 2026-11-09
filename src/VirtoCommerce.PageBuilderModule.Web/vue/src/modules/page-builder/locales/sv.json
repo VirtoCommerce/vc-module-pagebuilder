@@ -399,11 +399,6 @@
       },
       "THEME": {
         "TITLE": "Tema",
-        "PRESET": "Förinställning",
-        "PRESET_PLACEHOLDER": "Välj en förinställning",
-        "APPLY": "Tillämpa",
-        "EMPTY": "Det här temat har inga inställningar att redigera.",
-        "LOAD_FAILED": "Temainställningarna kunde inte läsas in.",
         "BRAND": "Varumärke",
         "LOGO": "Logotyp",
         "LOGO_HINT": "På ljus bakgrund: sidhuvudet i det ljusa temat.",

@@ -2,9 +2,9 @@ import { computed, ref } from "vue";
 import * as api from "./api";
 import type { DesignerSaveFile } from "./designerSave";
 import { THEME_FILES, type ThemePart } from "./history";
-import { clone } from "./json";
+import { clone, isRecord } from "./json";
 import type { ColorScheme } from "./previewMessages";
-import { LOOK_FILES, lookDraft, lookFiles, readBrand, readColors, type BrandField, type ThemeLook } from "./themeLook";
+import { LOOK_FILES, lookDraft, lookFiles, readBrand, readColors, settingsDataPath, type BrandField, type ThemeLook } from "./themeLook";
 import { undoStep, withGenerated, withStep, type GeneratedPalettes, type PaletteStep } from "./paletteContrast";
 
 const emptyLook = (): ThemeLook => ({ brand: {}, light: {}, dark: {} });
@@ -24,8 +24,8 @@ export function useThemeLook() {
   const dirty = computed(() => loaded.value && !!at && lookFiles(at.theme, look.value, saved.value).length > 0);
   const draft = computed(() => (loaded.value ? lookDraft(look.value) : undefined));
 
-  /** The brand file and the palettes as last saved; `settings` are the theme settings, the brand of a theme without its file */
-  async function load(storeId: string, theme: string, settings: Record<string, unknown>) {
+  /** The brand file and the palettes as last saved; a theme without a brand file starts from the logos of its settings file */
+  async function load(storeId: string, theme: string) {
     at = { storeId, theme };
     loaded.value = false;
     loadError.value = undefined;
@@ -33,7 +33,8 @@ export function useThemeLook() {
       const [brand, light, dark] = await Promise.all(
         [LOOK_FILES.brand, LOOK_FILES.light, LOOK_FILES.dark].map((part) => api.loadThemeFile(storeId, theme, THEME_FILES[part](theme))),
       );
-      saved.value = { brand: readBrand(brand, settings), light: readColors(light), dark: readColors(dark) };
+      const settingsData = isRecord(brand) ? undefined : await api.loadThemeFile(storeId, theme, settingsDataPath(theme));
+      saved.value = { brand: readBrand(brand, settingsData), light: readColors(light), dark: readColors(dark) };
       look.value = clone(saved.value);
       steps.value = [];
       lastEdited = undefined;

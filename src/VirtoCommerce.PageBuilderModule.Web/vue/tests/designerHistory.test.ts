@@ -15,7 +15,6 @@ import {
   parseHistoryStatus,
   restoreUrl,
   rulesPath,
-  settingsPath,
   versionUrl,
 } from "../src/modules/designer/history";
 import { templatePath } from "../src/modules/designer/templates";
@@ -25,7 +24,6 @@ const url = (value: string) => new URL(value, "https://admin.example");
 test("the theme files of the history are named with their theme folder", () => {
   assert.equal(rulesPath("dark"), "dark/config/template_rules.json");
   assert.equal(groupPath("dark", "header"), "dark/sections/header-group.json");
-  assert.equal(settingsPath("dark"), "dark/config/settings_data.json");
 });
 
 test("one table names every theme part's file, in the order the history, Discard and the Theme tab list them", () => {
@@ -35,7 +33,6 @@ test("one table names every theme part's file, in the order the history, Discard
       ["rules", "dark/config/template_rules.json"],
       ["header", "dark/sections/header-group.json"],
       ["footer", "dark/sections/footer-group.json"],
-      ["settings", "dark/config/settings_data.json"],
       ["brand", "dark/config/brand.json"],
       ["palette", "dark/config/palette.json"],
       ["darkPalette", "dark/config/palette.dark.json"],
@@ -46,12 +43,11 @@ test("one table names every theme part's file, in the order the history, Discard
   assert.equal(partLabel("darkPalette", true), "PAGE_BUILDER.DESIGNER.THEME.DARK_COLORS");
 });
 
-test("a database page's history covers what its Save writes: the page, the header and footer, the theme settings", () => {
-  assert.deepEqual(historyItems({ groupId: "g1", theme: "default", parts: ["settings", "header", "footer"] }), [
+test("a database page's history covers what its Save writes: the page, the header and footer", () => {
+  assert.deepEqual(historyItems({ groupId: "g1", theme: "default", parts: ["header", "footer"] }), [
     { file: "page", item: "page:g1" },
     { file: "header", item: "theme:default/sections/header-group.json" },
     { file: "footer", item: "theme:default/sections/footer-group.json" },
-    { file: "settings", item: "theme:default/config/settings_data.json" },
   ]);
 });
 
@@ -65,7 +61,7 @@ test("with the Theme tab loaded, the history covers the brand and both palettes,
       ["darkPalette", "theme:default/config/palette.dark.json"],
     ],
   );
-  assert.deepEqual(THEME_ONLY_FILES, ["rules", "settings", "brand", "palette", "darkPalette"]);
+  assert.deepEqual(THEME_ONLY_FILES, ["rules", "brand", "palette", "darkPalette"]);
 });
 
 test("a template is a theme file of the history, with its rules", () => {
@@ -75,7 +71,7 @@ test("a template is a theme file of the history, with its rules", () => {
     { file: "rules", item: "theme:default/config/template_rules.json" },
   ]);
   // without the theme known, only the page's own
-  assert.deepEqual(historyItems({ groupId: "g1", parts: ["rules", "header", "settings"] }), [{ file: "page", item: "page:g1" }]);
+  assert.deepEqual(historyItems({ groupId: "g1", parts: ["rules", "header", "brand"] }), [{ file: "page", item: "page:g1" }]);
 });
 
 test("the history is asked for by store and items; a version by its id, restored for the items it changed", () => {

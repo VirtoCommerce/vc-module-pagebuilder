@@ -399,11 +399,6 @@
       },
       "THEME": {
         "TITLE": "Teema",
-        "PRESET": "Esiasetus",
-        "PRESET_PLACEHOLDER": "Valitse esiasetus",
-        "APPLY": "Käytä",
-        "EMPTY": "Tässä teemassa ei ole muokattavia asetuksia.",
-        "LOAD_FAILED": "Teeman asetuksia ei voitu ladata.",
         "BRAND": "Brändi",
         "LOGO": "Logo",
         "LOGO_HINT": "Vaalealla taustalla: ylätunniste vaaleassa teemassa.",

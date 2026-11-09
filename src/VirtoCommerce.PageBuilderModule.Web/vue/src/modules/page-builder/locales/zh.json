@@ -399,11 +399,6 @@
       },
       "THEME": {
         "TITLE": "主题",
-        "PRESET": "预设",
-        "PRESET_PLACEHOLDER": "选择预设",
-        "APPLY": "应用",
-        "EMPTY": "此主题没有可编辑的设置。",
-        "LOAD_FAILED": "无法加载主题设置。",
         "BRAND": "品牌",
         "LOGO": "标志",
         "LOGO_HINT": "用于浅色背景：浅色主题中的页眉。",

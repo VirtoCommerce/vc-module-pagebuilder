@@ -40,6 +40,9 @@ export const LOOK_FILES: Readonly<Record<LookPart, ThemePart>> = { brand: "brand
 
 const LOOK_PARTS = Object.keys(LOOK_FILES) as LookPart[];
 
+/** The old designer's theme settings: read only for the logos of a theme without a brand file, never written */
+export const settingsDataPath = (theme: string) => `${theme}/config/settings_data.json`;
+
 /** The theme settings that hold the logos before the theme has a brand file */
 const SETTINGS_LOGOS: Record<BrandField, string> = {
   logoUrl: "logo_image",
@@ -47,9 +50,18 @@ const SETTINGS_LOGOS: Record<BrandField, string> = {
   faviconUrl: "favicon_image",
 };
 
-/** The brand of the brand file; a theme without one starts from the logos of its settings */
-export function readBrand(file: unknown, settings: Record<string, unknown>): Brand {
+/** The settings a theme settings file applies: `current`, or the preset `current` names (its `settings`, else itself) */
+export function currentSettings(data: unknown): Record<string, unknown> {
+  if (!isRecord(data)) return {};
+  const current = typeof data.current === "string" && isRecord(data.presets) ? data.presets[data.current] : data.current;
+  if (!isRecord(current)) return {};
+  return typeof data.current === "string" && isRecord(current.settings) ? current.settings : current;
+}
+
+/** The brand of the brand file; a theme without one starts from the logos of its settings file, as a publication does */
+export function readBrand(file: unknown, settingsData?: unknown): Brand {
   const source = isRecord(file) ? file : undefined;
+  const settings = source ? {} : currentSettings(settingsData);
   return Object.fromEntries(
     BRAND_FIELDS.map((field) => [field, source ? source[field] : settings[SETTINGS_LOGOS[field]]]).filter(([, value]) => isText(value)),
   ) as Brand;

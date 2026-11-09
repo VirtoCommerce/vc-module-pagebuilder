@@ -90,9 +90,7 @@ export type DesignerMessage =
   | { type: "colorScheme"; scheme: ColorScheme }
   | DraftMessage
   | RenderMessage
-  | { type: "hover"; sectionId: string | null }
-  // the theme settings (settings_data.json), which the snapshot does not carry
-  | { type: "settings"; settings: Record<string, unknown> };
+  | { type: "hover"; sectionId: string | null };
 
 /** A template and the rule that chose it; null: no rule did */
 export interface TemplateChoice {

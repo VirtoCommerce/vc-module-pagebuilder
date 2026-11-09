@@ -3,7 +3,6 @@ import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import { effectScope } from "vue";
 import ThemePanel from "../../src/modules/designer/components/ThemePanel.vue";
 import { PALETTE_CHECK_DEBOUNCE_MS, type PaletteFailure } from "../../src/modules/designer/paletteContrast";
-import { useThemeSettings } from "../../src/modules/designer/themeSettings";
 import { useThemeLook } from "../../src/modules/designer/useThemeLook";
 import { fakePlatform, status, type FakePlatform, type Request } from "./support/fakePlatform";
 
@@ -46,10 +45,9 @@ afterEach(() => {
 });
 
 async function mountPanel() {
-  const { theme, look } = scope.run(() => ({ theme: useThemeSettings(), look: useThemeLook() }))!;
-  await theme.load(STORE, "default");
-  await look.load(STORE, "default", theme.settings.value);
-  const wrapper = mount(ThemePanel, { props: { theme, look, schemas: { sections: {}, blocks: {}, shared: {}, objects: {} }, storeId: STORE, paletteTokens: TOKENS } });
+  const look = scope.run(() => useThemeLook())!;
+  await look.load(STORE, "default");
+  const wrapper = mount(ThemePanel, { props: { look, storeId: STORE, paletteTokens: TOKENS } });
   await settle();
   return { wrapper, look };
 }

@@ -399,11 +399,6 @@
       },
       "THEME": {
         "TITLE": "Tema",
-        "PRESET": "Forhåndsinnstilling",
-        "PRESET_PLACEHOLDER": "Velg en forhåndsinnstilling",
-        "APPLY": "Bruk",
-        "EMPTY": "Dette temaet har ingen innstillinger å redigere.",
-        "LOAD_FAILED": "Temainnstillingene kunne ikke lastes inn.",
         "BRAND": "Merkevare",
         "LOGO": "Logo",
         "LOGO_HINT": "På lys bakgrunn: toppteksten i det lyse temaet.",

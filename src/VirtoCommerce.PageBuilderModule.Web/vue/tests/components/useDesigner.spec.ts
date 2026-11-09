@@ -3,7 +3,7 @@ import { effectScope, nextTick } from "vue";
 import { useDesigner, type Designer } from "../../src/modules/designer/useDesigner";
 import * as api from "../../src/modules/designer/api";
 import { ApiError, type FilePage } from "../../src/modules/designer/api";
-import { useThemeSettings } from "../../src/modules/designer/themeSettings";
+import { useThemeLook } from "../../src/modules/designer/useThemeLook";
 import { themePublishButton } from "../../src/modules/designer/themePublication";
 import type { Handshake } from "../../src/modules/designer/previewMessages";
 import type { Item, Schemas } from "../../src/modules/designer/types";
@@ -238,8 +238,9 @@ describe("useDesigner: editing and saving", () => {
 
   it("offers every theme part with a draft to discard, and discards only the page and the parts chosen, in one request", async () => {
     pageStatus = { published: true, hasChanges: true };
-    themeStatus = { publication: 3, drafts: ["sections/header-group.json", "config/template_rules.json", "config/brand.json"] };
+    themeStatus = { publication: 3, drafts: ["sections/header-group.json", "config/template_rules.json", "config/brand.json", "config/settings_data.json"] };
     await openDatabasePage();
+    // the old designer's theme settings are not the Vue designer's to discard
     expect(designer.discardable.value).toEqual({ page: true, theme: ["rules", "header", "brand"] });
 
     // the footer has no draft: it is not sent
@@ -420,17 +421,29 @@ describe("api: theme files and what may not exist", () => {
     await expect(api.loadThemeFile(STORE, "default", "default/config/brand.json")).rejects.toMatchObject({ status: 403, body: "Forbidden" });
   });
 
-  it("reads the theme settings through the same loader: a refusal is the server's, not a theme without settings", async () => {
+  it("starts the brand of a theme without a brand file from the logos of its settings file, which it never writes", async () => {
+    themeFiles["default/config/settings_data.json"] = { current: { logo_image: "/l.svg", favicon_image: "/f.ico" } };
+    const look = scope.run(() => useThemeLook())!;
+    await look.load(STORE, "default");
+    expect(look.look.value.brand).toEqual({ logoUrl: "/l.svg", faviconUrl: "/f.ico" });
+    expect(look.dirty.value).toBe(false);
+
+    look.setBrand("logoUrl", "/new.svg");
+    expect(look.pending().map((x) => x.file.path)).toEqual(["default/config/brand.json"]);
+  });
+
+  it("reads no settings file for a theme with a brand file; a refusal is the server's, not a theme without a brand", async () => {
+    themeFiles["default/config/brand.json"] = { logoUrl: "/b.svg" };
     themeFiles["default/config/settings_data.json"] = { current: { logo_image: "/l.svg" } };
-    const settings = scope.run(() => useThemeSettings())!;
-    await settings.load(STORE, "default");
-    expect(settings.settings.value).toEqual({ logo_image: "/l.svg" });
-    expect(platform.to("/api/pagebuilder/template").map((x) => x.query.path)).toContain("default/config/settings_data.json");
+    const look = scope.run(() => useThemeLook())!;
+    await look.load(STORE, "default");
+    expect(look.look.value.brand).toEqual({ logoUrl: "/b.svg" });
+    expect(platform.to("/api/pagebuilder/template").map((x) => x.query.path)).not.toContain("default/config/settings_data.json");
 
     platform.on("GET", "/api/pagebuilder/template", status(403, "Forbidden"));
-    await settings.load(STORE, "default");
-    expect(settings.loaded.value).toBe(false);
-    expect(settings.loadError.value).toBeInstanceOf(ApiError);
-    expect((settings.loadError.value as ApiError).status).toBe(403);
+    await look.load(STORE, "default");
+    expect(look.loaded.value).toBe(false);
+    expect(look.loadError.value).toBeInstanceOf(ApiError);
+    expect((look.loadError.value as ApiError).status).toBe(403);
   });
 });

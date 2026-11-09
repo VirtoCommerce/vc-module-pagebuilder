@@ -2,11 +2,11 @@ import type { PageVersion } from "./api";
 import type { SectionGroup } from "./types";
 
 // The site's history (docs/contracts/history-api.md): one version per save, listing the items it changed — the page or
-// template open, the rules, the header and footer, the theme settings, the brand and the palettes. A file page in git keeps
+// template open, the rules, the header and footer, the brand and the palettes. A file page in git keeps
 // its own history instead.
 
-/** A theme file the designer saves with the page or template: its rules, header and footer, settings, brand and palettes */
-export type ThemePart = "rules" | SectionGroup | "settings" | "brand" | "palette" | "darkPalette";
+/** A theme file the designer saves with the page or template: its rules, header and footer, brand and palettes */
+export type ThemePart = "rules" | SectionGroup | "brand" | "palette" | "darkPalette";
 
 /** What the history shows a version changed, and what Discard throws away: the page or template open, or a theme file */
 export type HistoryFile = "page" | ThemePart;
@@ -19,7 +19,6 @@ export const THEME_FILES: Readonly<Record<ThemePart, (theme: string) => string>>
   rules: (theme) => `${theme}/config/template_rules.json`,
   header: (theme) => groupPath(theme, "header"),
   footer: (theme) => groupPath(theme, "footer"),
-  settings: (theme) => `${theme}/config/settings_data.json`,
   brand: (theme) => `${theme}/config/brand.json`,
   palette: (theme) => `${theme}/config/palette.json`,
   darkPalette: (theme) => `${theme}/config/palette.dark.json`,
@@ -36,16 +35,12 @@ export type HistoryStatus = "enabled" | "setupRequired" | "unavailable";
 /** The store's template rules file */
 export const rulesPath = THEME_FILES.rules;
 
-/** The theme's settings file */
-export const settingsPath = THEME_FILES.settings;
-
 /** A part's name as the history, Discard and a refused Save show it */
 export const PART_LABELS: Readonly<Record<HistoryFile, string>> = {
   page: "PAGE_BUILDER.DESIGNER.HISTORY.PAGE",
   rules: "PAGE_BUILDER.DESIGNER.HISTORY.RULES",
   header: "PAGE_BUILDER.DESIGNER.GROUPS.HEADER",
   footer: "PAGE_BUILDER.DESIGNER.GROUPS.FOOTER",
-  settings: "PAGE_BUILDER.DESIGNER.THEME.TITLE",
   brand: "PAGE_BUILDER.DESIGNER.THEME.BRAND",
   palette: "PAGE_BUILDER.DESIGNER.THEME.LIGHT_COLORS",
   darkPalette: "PAGE_BUILDER.DESIGNER.THEME.DARK_COLORS",

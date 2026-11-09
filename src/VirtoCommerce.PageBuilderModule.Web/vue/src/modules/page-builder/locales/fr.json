@@ -399,11 +399,6 @@
       },
       "THEME": {
         "TITLE": "Thème",
-        "PRESET": "Préréglage",
-        "PRESET_PLACEHOLDER": "Choisir un préréglage",
-        "APPLY": "Appliquer",
-        "EMPTY": "Ce thème n'a aucun paramètre à modifier.",
-        "LOAD_FAILED": "Les paramètres du thème n'ont pas pu être chargés.",
         "BRAND": "Marque",
         "LOGO": "Logo",
         "LOGO_HINT": "Sur fond clair : l'en-tête du thème clair.",

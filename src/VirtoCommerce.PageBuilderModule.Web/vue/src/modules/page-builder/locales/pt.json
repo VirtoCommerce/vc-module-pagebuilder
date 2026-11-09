@@ -399,11 +399,6 @@
       },
       "THEME": {
         "TITLE": "Tema",
-        "PRESET": "Predefinição",
-        "PRESET_PLACEHOLDER": "Escolha uma predefinição",
-        "APPLY": "Aplicar",
-        "EMPTY": "Este tema não tem configurações para editar.",
-        "LOAD_FAILED": "Não foi possível carregar as configurações do tema.",
         "BRAND": "Marca",
         "LOGO": "Logotipo",
         "LOGO_HINT": "Em fundos claros: o cabeçalho no tema claro.",

@@ -399,11 +399,6 @@
       },
       "THEME": {
         "TITLE": "Motyw",
-        "PRESET": "Ustawienie wstępne",
-        "PRESET_PLACEHOLDER": "Wybierz ustawienie wstępne",
-        "APPLY": "Zastosuj",
-        "EMPTY": "Ten motyw nie ma ustawień do edycji.",
-        "LOAD_FAILED": "Nie udało się wczytać ustawień motywu.",
         "BRAND": "Marka",
         "LOGO": "Logo",
         "LOGO_HINT": "Na jasnym tle: nagłówek w jasnym motywie.",

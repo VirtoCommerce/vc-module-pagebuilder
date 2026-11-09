@@ -12,11 +12,11 @@ test("each part is saved and discarded with the permission the server checks for
   assert.equal(partPermission("page", false), PERMISSIONS.update);
   assert.equal(partPermission("page", true), PERMISSIONS.templates);
   assert.equal(partPermission("rules", false), PERMISSIONS.templates);
-  for (const part of ["header", "footer", "settings", "brand", "palette", "darkPalette"] as const) assert.equal(partPermission(part, false), PERMISSIONS.theme);
+  for (const part of ["header", "footer", "brand", "palette", "darkPalette"] as const) assert.equal(partPermission(part, false), PERMISSIONS.theme);
 });
 
 test("a refused Save names the parts the editor may not save, once each", () => {
-  assert.deepEqual(refusedParts(["page", "header", "rules", "header", "settings"], false, only(PERMISSIONS.update)), ["header", "rules", "settings"]);
+  assert.deepEqual(refusedParts(["page", "header", "rules", "header", "brand"], false, only(PERMISSIONS.update)), ["header", "rules", "brand"]);
   assert.deepEqual(refusedParts(["page", "rules"], true, only(PERMISSIONS.update, PERMISSIONS.theme)), ["page", "rules"]);
   // a refusal for a reason the parts don't explain names none
   assert.deepEqual(refusedParts(["page"], false, only(PERMISSIONS.update)), []);
