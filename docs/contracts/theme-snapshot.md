@@ -95,7 +95,7 @@ fetch("/graphql", {
   body: JSON.stringify({
     operationName: "ThemeSnapshot",
     query: THEME_SNAPSHOT_QUERY,
-    variables: { domain, cultureName },
+    variables: { domain, cultureName, permalink },
   }),
 });
 ```
@@ -103,11 +103,13 @@ fetch("/graphql", {
 - `domain` is the value the storefront passes to `pageContext` as `domain`, in development too.
 - `cultureName` is the language prefix of the URL when there is one, else the pinned locale (`localStorage`
   `pinnedLocale`), else it is left out.
+- `permalink` is the path without its language prefix, its segments decoded and joined with `/` without empty ones
+  (`/` for none), as the storefront's slug route looks it up. It is left out on the designer preview route.
 - The request carries no token: the snapshot is the same for every visitor.
 
 ```graphql
-query ThemeSnapshot($domain: String, $storeId: String, $cultureName: String) {
-  themeSnapshot(domain: $domain, storeId: $storeId, cultureName: $cultureName) {
+query ThemeSnapshot($domain: String, $storeId: String, $cultureName: String, $permalink: String) {
+  themeSnapshot(domain: $domain, storeId: $storeId, cultureName: $cultureName, permalink: $permalink) {
     storeId
     cultureName
     publication
@@ -125,6 +127,15 @@ query ThemeSnapshot($domain: String, $storeId: String, $cultureName: String) {
         }
       }
     }
+    slug {
+      objectType
+      objectId
+      page {
+        source
+        permalink
+        settings
+      }
+    }
   }
 }
 ```
@@ -136,6 +147,7 @@ The field is part of the x-cms schema: `/graphql` reaches the platform on every 
 | `domain` | the store is found by domain, as for `pageContext` |
 | `storeId` | the store by id; wins over `domain` |
 | `cultureName` | the language asked for; optional |
+| `permalink` | the page the visitor landed on; optional, see [Landing page](#landing-page) |
 
 | Field | Meaning |
 |---|---|
@@ -144,6 +156,7 @@ The field is part of the x-cms schema: `/graphql` reaches the platform on every 
 | `publication` | the number of the publication |
 | `content` | the snapshot JSON, [described below](#snapshot), as a string |
 | `menus` | the link lists the header and footer name, with their links |
+| `slug` | what is at `permalink`, see [Landing page](#landing-page); `null` without one |
 
 The field is `null` when the store has the New Page Builder setting off. A storage failure is a GraphQL error; the
 storefront then renders its built-in templates and asks again on the next navigation inside the site.
@@ -171,6 +184,42 @@ Section settings of the type `menu` hold the name of a store link list. The snap
 each of them the response carries the list as the x-cms `menu` query returns it for the served language, under the
 name the setting holds. The storefront matches a setting to `menus[].name` ignoring case. Menus are read on every
 request and are not part of the cached snapshot, so a menu edited in Content shows without a new publication.
+
+### Landing page
+
+The storefront knows the layout of the page a visitor lands on before the page loads, as it knows its template: from
+the snapshot request, which asks for the landing `permalink`. The server looks it up with the xAPI `slugInfo` query for
+an anonymous visitor, in the store found and the `cultureName` asked for, while it reads the snapshot. For a content
+page it then reads the page once, as the storefront's queries do: `pageDocument` for `Pages`, `page` and its file for
+`ContentFile`. Like `menus`, `slug` is read on every request and is not part of the cached snapshot.
+
+```ts
+interface ThemeSnapshotSlug {
+  /** the slug's objectType: Pages, ContentFile, CatalogProduct, Category… */
+  objectType: string;
+  objectId: string;
+  /** a content page (Pages, ContentFile) as it was read; null for other types and a page not read */
+  page: {
+    /** Pages: the document's source (page-builder, builder.io); null for a file page */
+    source: string | null;
+    permalink: string | null;
+    /** a JSON object of the page's own settings named below; null when its content is not a JSON object with a settings object */
+    settings: string | null;
+  } | null;
+}
+```
+
+`settings` holds only the settings that choose the page's template and layout: `layout`, `template` and the setting
+names the snapshot's `page` rules give their `setting` condition, those the page has. The server reads the rules for
+those names and never applies them. `slug` is `null` without `permalink`, with nothing at it (or a redirect), when the
+store has no snapshot, and when the lookup fails; a failed lookup never fails the request.
+
+The storefront chooses the layout from `slug` with its own template rules only when it describes the landing page: the
+response asked for the permalink the landing route looks up, and the visitor's own `slugInfo` (in `pageContext`) names
+the same `objectType` and `objectId`. A content page then gets its template and layout from `settings` as it does once
+it loads; any other object type, and a `Pages` document of another source, gets `full`. Otherwise (no `slug`, a page
+not read, no `settings`, a snapshot that arrived after the first render) the page sets its layout once it loads. A
+store without a theme (`themeSnapshot` is `null`) gets `full` at once.
 
 ### Cache
 
