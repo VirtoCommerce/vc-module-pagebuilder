@@ -126,7 +126,9 @@ public class BlobPublishTests
             sharedComponentPlacementValidator: null,
             designerContentService: TestServices.Designer(new NoContentHistory(), filePageDrafts, null, null, null, null, null),
             contentPermissionService: TestServices.Permissions(new FakeAuthorizationService(allowed)),
-            filePageDraftService: filePageDrafts);
+            filePageDraftService: filePageDrafts,
+            designerSaveValidator: RequestValidators.DesignerSave,
+            designerDiscardValidator: RequestValidators.DesignerDiscard);
 
         controller.ControllerContext = new ControllerContext
         {

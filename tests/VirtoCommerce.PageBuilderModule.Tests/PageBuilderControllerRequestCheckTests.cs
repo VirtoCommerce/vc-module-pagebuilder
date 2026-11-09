@@ -377,7 +377,9 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 sharedComponentPlacementValidator: null,
                 designerContentService: TestServices.Designer(new NoContentHistory(), filePageDrafts, null, null, null, null, null),
                 contentPermissionService: TestServices.Permissions(authorizationService ?? new ScopedAuthorizationService(storeAccess, granted)),
-                filePageDraftService: filePageDrafts);
+                filePageDraftService: filePageDrafts,
+            designerSaveValidator: RequestValidators.DesignerSave,
+            designerDiscardValidator: RequestValidators.DesignerDiscard);
 
             controller.ControllerContext = new ControllerContext
             {

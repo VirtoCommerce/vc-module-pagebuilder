@@ -353,7 +353,9 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 sharedComponentPlacementValidator: null,
                 designerContentService: TestServices.Designer(new NoContentHistory(), filePageDrafts, null, null, null, null, null),
                 contentPermissionService: TestServices.Permissions(new FakeAuthorizationService(true)),
-                filePageDraftService: filePageDrafts);
+                filePageDraftService: filePageDrafts,
+            designerSaveValidator: RequestValidators.DesignerSave,
+            designerDiscardValidator: RequestValidators.DesignerDiscard);
 
             var identity = new ClaimsIdentity([new Claim(ClaimTypes.Name, Login)], "test");
             controller.ControllerContext = new ControllerContext

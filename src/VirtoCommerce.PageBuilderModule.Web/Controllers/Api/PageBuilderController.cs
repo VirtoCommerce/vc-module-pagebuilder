@@ -65,7 +65,9 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             IPageBuilderSharedComponentPlacementValidator sharedComponentPlacementValidator,
             IDesignerContentService designerContentService,
             IContentPermissionService contentPermissionService,
-            IFilePageDraftService filePageDraftService
+            IFilePageDraftService filePageDraftService,
+            IValidator<DesignerSaveRequest> designerSaveValidator,
+            IValidator<DesignerDiscardRequest> designerDiscardValidator
             )
         : Controller
     {
@@ -97,7 +99,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         // this many copies is a naming problem, not a paging problem.
         private const int MaxCopyIndex = 100;
         private const string OnlyCopyError = "Nothing is published: the draft is the only copy.";
-        private const string ThemeFileNamingError = "Name each theme file once, by its path.";
         private const string CatalogRequiredError = "Theme files are checked against the storefront's schema catalog: name it with catalogHash (preview the storefront first).";
         private const string SaveAction = "save";
 
@@ -715,20 +716,15 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 return forbidden;
             }
 
+            if (await designerSaveValidator.ValidateRequestAsync(value ?? new DesignerSaveRequest(), cancellationToken) is { } invalidRequest)
+            {
+                return invalidRequest;
+            }
+
             var group = string.IsNullOrEmpty(page?.GroupId) ? null : await groupedPageService.GetByIdAsync(page.GroupId);
             if (!string.IsNullOrEmpty(page?.GroupId) && await CheckDesignerGroupAccessAsync(storeId, group) is { } refusedGroup)
             {
                 return refusedGroup;
-            }
-
-            if (themeFiles.Any(x => x == null))
-            {
-                return BadRequest(new { error = ThemeFileNamingError });
-            }
-
-            if (GetDesignerRequestError(page, themeFiles.Select(x => x.Path).ToList()) is { } error)
-            {
-                return BadRequest(new { error });
             }
 
             if (!TryParseDesignerFiles(page, themeFiles, out var files, out var parseError))
@@ -747,9 +743,9 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 return refusedPage;
             }
 
-            if (CheckDesignerThemeFileVersions(themeFiles) is { } refusedVersions)
+            if (themeFiles.Any(x => string.IsNullOrWhiteSpace(x.ETag)))
             {
-                return refusedVersions;
+                return StatusCode(StatusCodes.Status428PreconditionRequired, "Read each theme file with designer/theme-file and send its ETag before saving.");
             }
 
             var themeSaveFiles = files.Where(IsThemeFile).ToList();
@@ -805,15 +801,15 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 return forbidden;
             }
 
+            if (await designerDiscardValidator.ValidateRequestAsync(value ?? new DesignerDiscardRequest(), HttpContext.RequestAborted) is { } invalidRequest)
+            {
+                return invalidRequest;
+            }
+
             var group = string.IsNullOrEmpty(page?.GroupId) ? null : await groupedPageService.GetByIdAsync(page.GroupId);
             if (!string.IsNullOrEmpty(page?.GroupId) && await CheckDesignerGroupAccessAsync(storeId, group) is { } refusedGroup)
             {
                 return refusedGroup;
-            }
-
-            if (GetDesignerRequestError(page, themePaths) is { } error)
-            {
-                return BadRequest(new { error });
             }
 
             request.Files = themePaths.Select(x => new PageBuilderContentFile { ContentType = Themes, Path = x }).ToList();
@@ -842,31 +838,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             {
                 return BadRequest(new { error = ex.Message });
             }
-        }
-
-        private static string GetDesignerRequestError(DesignerSavePage page, IList<string> themePaths)
-        {
-            if (page == null && themePaths.Count == 0)
-            {
-                return "Name the page or a theme file.";
-            }
-
-            if (themePaths.Any(string.IsNullOrEmpty) || themePaths.Distinct(StringComparer.OrdinalIgnoreCase).Count() != themePaths.Count)
-            {
-                return ThemeFileNamingError;
-            }
-
-            if (page != null && string.IsNullOrEmpty(page.GroupId) == string.IsNullOrEmpty(page.Path))
-            {
-                return "Name the page by its groupId (a database page) or by its path and type (a file page).";
-            }
-
-            if (page != null && string.IsNullOrEmpty(page.GroupId) && !GitPageLocation.IsPageContent(page.Type))
-            {
-                return "A file page is a page or a blog article: a theme file goes with the theme files.";
-            }
-
-            return null;
         }
 
         /// <summary>Reads the JSON of the file page and the theme files as they are, dates included.</summary>
@@ -938,47 +909,15 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             return await contentPermissionService.CanAccessPageAsync(User, group, storeId) ? null : Forbid();
         }
 
-        /// <summary>Checks a database page as its own save does: its envelope, its version and its shared components.</summary>
+        /// <summary>Checks a database page as its own save does: its version and its shared components.</summary>
         private async Task<ActionResult> CheckDesignerPageAsync(string storeId, DesignerSavePage page, CancellationToken cancellationToken)
         {
-            if (string.IsNullOrWhiteSpace(page.Content))
-            {
-                return BadRequest(new { error = "Content is required." });
-            }
-
-            if (!PageContentEnvelope.TryValidate(page.Content, out var envelopeError))
-            {
-                return BadRequest(new { error = envelopeError });
-            }
-
-            var eTag = page.ETag?.Trim();
-            if (string.IsNullOrEmpty(eTag))
+            if (string.IsNullOrWhiteSpace(page.ETag))
             {
                 return StatusCode(StatusCodes.Status428PreconditionRequired, "Read the page content and send its ETag before saving.");
             }
 
-            if (!PageBuilderContentVersion.IsWellFormed(eTag))
-            {
-                return BadRequest(new { error = "The ETag must be the single strong ETag returned by the content GET." });
-            }
-
             return (await sharedComponentPlacementValidator.ValidateAsync(User, storeId, page.Content, cancellationToken)).ToActionResult();
-        }
-
-        /// <summary>Each theme file goes with the version designer/theme-file read it at, as a database page goes with its own.</summary>
-        private ObjectResult CheckDesignerThemeFileVersions(IList<DesignerSaveFile> themeFiles)
-        {
-            if (themeFiles.Any(x => string.IsNullOrWhiteSpace(x.ETag)))
-            {
-                return StatusCode(StatusCodes.Status428PreconditionRequired, "Read each theme file with designer/theme-file and send its ETag before saving.");
-            }
-
-            if (!themeFiles.All(x => PageBuilderContentVersion.IsWellFormed(x.ETag)))
-            {
-                return BadRequest(new { error = "A theme file's ETag must be the one designer/theme-file returned." });
-            }
-
-            return null;
         }
 
         /// <summary>

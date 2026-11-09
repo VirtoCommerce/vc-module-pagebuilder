@@ -120,7 +120,9 @@ public class ThemeWriteLockTests
             sharedComponentPlacementValidator: null,
             designerContentService: TestServices.Designer(new NoContentHistory(), filePageDrafts, null, null, _live, null, null),
             contentPermissionService: TestServices.Permissions(new FakeAuthorizationService(true)),
-            filePageDraftService: filePageDrafts));
+            filePageDraftService: filePageDrafts,
+            designerSaveValidator: RequestValidators.DesignerSave,
+            designerDiscardValidator: RequestValidators.DesignerDiscard));
     }
 
     private HistoryController HistoryController(RecordingContentHistory history)

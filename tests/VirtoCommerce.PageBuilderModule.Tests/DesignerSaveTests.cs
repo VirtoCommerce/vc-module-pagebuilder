@@ -441,7 +441,7 @@ public class DesignerSaveTests
     public async Task SaveDesignerChanges_PageOfAnotherStore_ReturnsForbidBeforeBadRequest()
     {
         _pages.SeedGroup(new GroupedPageBuilderPage { Id = "other", StoreId = "s2", Pages = [] });
-        var page = new DesignerSavePage { GroupId = "other", ETag = "\"x\"", Content = Edited };
+        var page = new DesignerSavePage { GroupId = "other", ETag = DatabasePage().ETag, Content = Edited };
 
         var result = await Builder().SaveDesignerChanges("s1", Save(page, ("default/../x.json", "{}")));
 
@@ -452,7 +452,7 @@ public class DesignerSaveTests
     [Fact]
     public async Task SaveDesignerChanges_UnknownPage_ReturnsNotFound()
     {
-        var page = new DesignerSavePage { GroupId = "gone", ETag = "\"x\"", Content = Edited };
+        var page = new DesignerSavePage { GroupId = "gone", ETag = DatabasePage().ETag, Content = Edited };
 
         Assert.IsType<NotFoundResult>((await Builder().SaveDesignerChanges("s1", Save(page, (Header, HeaderFile)))).Result);
         AssertNothingWritten();
@@ -818,7 +818,9 @@ public class DesignerSaveTests
             sharedComponentPlacementValidator: new PageBuilderSharedComponentPlacementValidator(new NoopSharedComponentReferenceIndexService(), authorization),
             designerContentService: TestServices.Designer(history ?? _history, filePageDrafts, new ThemeDraftService(_themes, _lock, _live, NullLogger<ThemeDraftService>.Instance), _pages, _live, ThemePublisher(), null),
             contentPermissionService: TestServices.Permissions(authorization),
-            filePageDraftService: filePageDrafts);
+            filePageDraftService: filePageDrafts,
+            designerSaveValidator: RequestValidators.DesignerSave,
+            designerDiscardValidator: RequestValidators.DesignerDiscard);
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext

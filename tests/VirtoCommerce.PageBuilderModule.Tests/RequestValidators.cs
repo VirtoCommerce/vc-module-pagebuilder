@@ -22,4 +22,8 @@ internal static class RequestValidators
 
     public static IValidator<PageBuilderContentRequest> Content(params string[] storeIds) =>
         new PageBuilderContentRequestValidator(Stores(storeIds), new PageBuilderContentFileValidator());
+
+    public static IValidator<DesignerSaveRequest> DesignerSave { get; } = new DesignerSaveRequestValidator(new DesignerPageValidator());
+
+    public static IValidator<DesignerDiscardRequest> DesignerDiscard { get; } = new DesignerDiscardRequestValidator(new DesignerPageValidator());
 }

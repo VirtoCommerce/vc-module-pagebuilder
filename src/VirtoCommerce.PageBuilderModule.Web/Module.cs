@@ -93,6 +93,9 @@ namespace VirtoCommerce.PageBuilderModule.Web
             serviceCollection.AddTransient<IAuthorizationHandler, PageBuilderAuthorizationHandler>();
             serviceCollection.AddTransient<IValidator<PageBuilderContentFile>, PageBuilderContentFileValidator>();
             serviceCollection.AddTransient<IValidator<PageBuilderContentRequest>, PageBuilderContentRequestValidator>();
+            serviceCollection.AddTransient<IValidator<DesignerSavePage>, DesignerPageValidator>();
+            serviceCollection.AddTransient<IValidator<DesignerSaveRequest>, DesignerSaveRequestValidator>();
+            serviceCollection.AddTransient<IValidator<DesignerDiscardRequest>, DesignerDiscardRequestValidator>();
             serviceCollection.AddTransient<IPageContentProvider, PageBuilderContentProvider>();
             serviceCollection.AddTransient<IPagesMigrationService, PagesMigrationService>();
             serviceCollection.AddTransient<IPageBuilderAssetReferenceMigrationService, PageBuilderAssetReferenceMigrationService>();

@@ -368,7 +368,9 @@ public class PageBuilderControllerThemeFilesTests
             designerContentService: TestServices.Designer(history ?? new NoContentHistory(), filePageDrafts, null, null, eventPublisher ?? _live, themePublisher, new ThemeSnapshotService(_live.StoreService, _settings, _themeStorageFactory, themePublisher, null,
                 Options.Create(new ThemeSnapshotOptions()))),
             contentPermissionService: TestServices.Permissions(authorization ?? new FakeAuthorizationService(true)),
-            filePageDraftService: filePageDrafts);
+            filePageDraftService: filePageDrafts,
+            designerSaveValidator: RequestValidators.DesignerSave,
+            designerDiscardValidator: RequestValidators.DesignerDiscard);
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Name, "alice")], "test")) },

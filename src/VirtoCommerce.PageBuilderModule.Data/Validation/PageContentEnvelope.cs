@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace VirtoCommerce.PageBuilderModule.Core.Models;
+namespace VirtoCommerce.PageBuilderModule.Data.Validation;
 
 /// <summary>The shape of a database page's content: a <c>settings</c> object and a <c>content</c> array of typed sections.</summary>
 public static class PageContentEnvelope
