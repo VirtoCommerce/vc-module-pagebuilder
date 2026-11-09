@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Data.GitContent;
@@ -92,6 +93,21 @@ public class GitContentSetupControllerTests
 
         Assert.Equal(400, Assert.IsType<ContentResult>(result).StatusCode);
         Assert.Equal(400, Assert.IsType<ContentResult>(await Controller().AppNew("forged", Ct)).StatusCode);
+        Assert.Equal(0, github.Requests);
+        Assert.Empty(_settings.Values);
+    }
+
+    [Fact]
+    public async Task AppCreated_ExpiredState_ReturnsBadRequestWithoutCallingGitHub()
+    {
+        // the anonymous callbacks are bound by the state's lifetime alone
+        var github = GitHubConnections.CreateManifestConversion("acme");
+        var expired = _keys.CreateProtector("VirtoCommerce.PageBuilderModule.GitHubAppSetup").ToTimeLimitedDataProtector()
+            .Protect(JsonConvert.SerializeObject(new GitHubAppSetupRequest { Organization = "acme", StoreId = "s1" }), DateTimeOffset.UtcNow.AddMinutes(-1));
+
+        var result = await Controller(GitHubConnections.CreateService(_settings, _keys, github)).AppCreated("c0de", expired, Ct);
+
+        Assert.Equal(400, Assert.IsType<ContentResult>(result).StatusCode);
         Assert.Equal(0, github.Requests);
         Assert.Empty(_settings.Values);
     }
