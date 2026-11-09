@@ -12,6 +12,7 @@ using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
 using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
+using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Data.Validation;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using VirtoCommerce.Platform.Core.Security;
@@ -296,6 +297,33 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.Contains("has no storefront url", error);
         }
 
+        [Theory]
+        [InlineData(null, "/designer-preview")]
+        [InlineData("", "/designer-preview")]
+        [InlineData("/preview", "/preview")]
+        public async Task DesignerStorefront_Store_AnswersItsUrlAndPreviewPath(string previewPathSetting, string expectedPath)
+        {
+            var store = new Store { Id = "vccom", Url = "http://vccom.example", SecureUrl = "https://vccom.example" };
+            var controller = Controller(new RecordingRepository(), new RecordingHistory(), configuredStoreUrl: null, store: store, previewPath: previewPathSetting);
+
+            var result = await controller.GetDesignerStorefront("vccom");
+
+            var storefront = Assert.IsType<DesignerStorefront>(Assert.IsType<OkObjectResult>(result.Result).Value);
+            Assert.Equal("https://vccom.example", storefront.Url);
+            Assert.Equal(expectedPath, storefront.PreviewPath);
+        }
+
+        [Fact]
+        public async Task DesignerStorefront_ModuleSetting_WinsOverTheStoresUrl()
+        {
+            var store = new Store { Id = "vccom", Url = "https://vccom.example" };
+            var controller = Controller(new RecordingRepository(), new RecordingHistory(), configuredStoreUrl: "https://tunnel.test", store: store);
+
+            var result = await controller.GetDesignerStorefront("vccom");
+
+            Assert.Equal("https://tunnel.test", Assert.IsType<DesignerStorefront>(Assert.IsType<OkObjectResult>(result.Result).Value).Url);
+        }
+
         // ── helpers ────────────────────────────────────────────────────────────────────────────────
 
         private static RecordingRepository Repository(string contentAtSha)
@@ -317,7 +345,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             body.GetType().GetProperty(property)!.GetValue(body) as string;
 
         private static PageBuilderController Controller(RecordingRepository repository, RecordingHistory history, bool gitFlow = true,
-            string configuredStoreUrl = "https://store.test", Store store = null)
+            string configuredStoreUrl = "https://store.test", Store store = null, string previewPath = null)
         {
             var options = Options.Create(new GitContentOptions
             {
@@ -343,7 +371,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
                 gitContentHistory: history,
                 gitContentPublisher: null,
                 gitLivePageService: null,
-                settingsManager: new PerNameSettings(configuredStoreUrl),
+                settingsManager: new PerNameSettings(configuredStoreUrl, previewPath),
                 authorizationService: new FakeAuthorizationService(true),
                 distributedLock: new InProcessDistributedLock(),
                 requestValidator: new PageBuilderContentRequestValidator(new PageBuilderStoreRequestValidator(new FakeStoreService(store ?? new Store { Id = "vccom" })), new PageBuilderContentFileValidator()),
@@ -435,11 +463,11 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         /// Answers per setting name, unlike the shared fake which returns one value for every lookup —
         /// the preview url is assembled from two settings, and a fake that conflates them hides that.
         /// </summary>
-        private sealed class PerNameSettings(string storeUrl) : ISettingsManager
+        private sealed class PerNameSettings(string storeUrl, string previewPath) : ISettingsManager
         {
             public Task<ObjectSettingEntry> GetObjectSettingAsync(string name, string objectType = null, string objectId = null)
             {
-                var value = name == ModuleConstants.Settings.General.StoreUrl.Name ? storeUrl : null;
+                var value = name == ModuleConstants.Settings.General.StoreUrl.Name ? storeUrl : previewPath;
                 return Task.FromResult(new ObjectSettingEntry { Name = name, Value = value });
             }
 

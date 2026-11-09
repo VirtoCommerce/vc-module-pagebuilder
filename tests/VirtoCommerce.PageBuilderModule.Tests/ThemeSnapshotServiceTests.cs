@@ -669,7 +669,7 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     }
 
     private ThemePublisher Publisher(IContentHistory history) =>
-        new(_storageFactory, new ThemeSnapshotBuilder(), _stores, _catalogs, _lock, _storage, history,
+        new(_storageFactory, new ThemeSnapshotBuilder(), new ThemeValidator(), _stores, _catalogs, _lock, _storage, history,
             Options.Create(new ThemeSnapshotOptions()), NullLogger<ThemePublisher>.Instance);
 
     private TestThemeSnapshotService Snapshots(TestPlatformMemoryCache cache) =>

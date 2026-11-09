@@ -117,12 +117,15 @@ export default () => {
     return store?.defaultLanguage ?? undefined;
   }
 
-  /** Read on every call: the store's settings may change while the shell is open. */
-  async function isNewPageBuilder(id: string | null = storeId.value): Promise<boolean> {
+  /** Read on every call: the store's settings may change while the shell is open. `undefined`: the store couldn't be read. */
+  async function isNewPageBuilder(id: string | null = storeId.value): Promise<boolean | undefined> {
     if (!id) {
       return false;
     }
     const response = await requestStore(id);
+    if (response.status === "error") {
+      return undefined;
+    }
     return (
       response.status === "ready" &&
       response.store.settings?.find((x) => x.name === newPageBuilderSetting)?.value === true

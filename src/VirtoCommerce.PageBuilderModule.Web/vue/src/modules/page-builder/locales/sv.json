@@ -321,6 +321,7 @@
       "PREVIEW_SLOW": "Webbplatsen tar lång tid att läsa in. Kontrollera att butiken på {url} körs och läs sedan in igen.",
       "RELOAD_PREVIEW": "Läs in igen",
       "NO_STOREFRONT": "Ingen förhandsgranskning: webbplatsen saknar butiks-URL. Ange den i webbplatsens inställningar och öppna sidan igen.",
+      "STORE_READ_FAILED": "Webbplatsen kunde inte läsas, så designern öppnades inte. Försök igen.",
       "PREVIEW_UNSUPPORTED": "Den här butiken stöder inte den nya Page Builder-designern.",
       "LOAD_FAILED": "Sidan kunde inte läsas in. Den kan ha tagits bort, eller så saknar du åtkomst till den.",
       "SAVE": "Spara",

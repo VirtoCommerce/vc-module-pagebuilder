@@ -321,6 +321,7 @@
       "PREVIEW_SLOW": "O site está demorando para carregar. Verifique se a loja em {url} está em execução e recarregue.",
       "RELOAD_PREVIEW": "Recarregar",
       "NO_STOREFRONT": "Sem visualização: o site não tem URL da loja virtual. Defina-a nas Configurações do site e reabra a página.",
+      "STORE_READ_FAILED": "Não foi possível ler o site, por isso o designer não foi aberto. Tente novamente.",
       "PREVIEW_UNSUPPORTED": "Esta loja não é compatível com o novo designer do Page Builder.",
       "LOAD_FAILED": "Não foi possível carregar a página. Ela pode ter sido excluída, ou você pode não ter acesso a ela.",
       "SAVE": "Salvar",

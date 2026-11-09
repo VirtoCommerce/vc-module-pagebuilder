@@ -27,8 +27,6 @@ public interface IThemeStorage
 
     Task<IList<string>> ListFilesAsync(string folder);
 
-    Task<IList<string>> ListFoldersAsync(string folder);
-
     /// <summary>Falls back to the latest complete publication when the pointer cannot be read. Returns null when there is none.</summary>
     Task<int?> GetCurrentPublicationAsync();
 

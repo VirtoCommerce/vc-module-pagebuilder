@@ -139,6 +139,22 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         [Fact]
+        public async Task DesignerStorefront_WithoutAccessToTheStore_IsForbidden()
+        {
+            var result = await Controller(storeAccess: false).GetDesignerStorefront(Store);
+
+            Assert.IsType<ForbidResult>(result.Result);
+        }
+
+        [Fact]
+        public async Task DesignerStorefront_ForAnUnknownStore_IsBadRequest()
+        {
+            var result = await Controller().GetDesignerStorefront("other-store");
+
+            Assert.IsType<BadRequestObjectResult>(result.Result);
+        }
+
+        [Fact]
         public async Task SchemaKeyWithAPath_IsBadRequest()
         {
             var result = await Controller().GetSchemaByKey(Store, "default", "sections", "../../secrets");

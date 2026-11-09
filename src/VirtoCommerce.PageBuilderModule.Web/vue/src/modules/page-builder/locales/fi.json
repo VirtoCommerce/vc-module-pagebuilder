@@ -321,6 +321,7 @@
       "PREVIEW_SLOW": "Sivuston lataus kestää. Tarkista, että verkkokauppa osoitteessa {url} on käynnissä, ja lataa sitten uudelleen.",
       "RELOAD_PREVIEW": "Lataa uudelleen",
       "NO_STOREFRONT": "Ei esikatselua: sivustolla ei ole kaupan URL-osoitetta. Määritä se sivuston asetuksissa ja avaa sivu uudelleen.",
+      "STORE_READ_FAILED": "Sivustoa ei voitu lukea, joten suunnittelija ei avautunut. Yritä uudelleen.",
       "PREVIEW_UNSUPPORTED": "Tämä verkkokauppa ei tue uutta Page Builder -suunnittelijaa.",
       "LOAD_FAILED": "Sivua ei voitu ladata. Se on saatettu poistaa, tai sinulla ei ole siihen käyttöoikeutta.",
       "SAVE": "Tallenna",

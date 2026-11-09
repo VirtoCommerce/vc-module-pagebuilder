@@ -185,7 +185,7 @@ const canOpenDesigner = computed(
   () => hasAccess("builder:read") && isStoreContextReady.value && Boolean(storeId.value),
 );
 // A component's content is edited in the Vue designer, which a store without the New Page Builder switch doesn't use.
-const canEditContent = computedAsync(async () => canOpenDesigner.value && (await isNewPageBuilder(storeId.value)), false);
+const canEditContent = computedAsync(async () => canOpenDesigner.value && (await isNewPageBuilder(storeId.value)) === true, false);
 const storeContextTitle = computed(() =>
   storeContextStatus.value === "missing"
     ? t("COMMON.STORE_CONTEXT.MISSING_TITLE")

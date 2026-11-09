@@ -321,6 +321,7 @@
       "PREVIEW_SLOW": "Witryna długo się ładuje. Sprawdź, czy sklep pod adresem {url} działa, a następnie odśwież.",
       "RELOAD_PREVIEW": "Odśwież",
       "NO_STOREFRONT": "Brak podglądu: witryna nie ma adresu URL sklepu. Ustaw go w ustawieniach witryny, a następnie otwórz stronę ponownie.",
+      "STORE_READ_FAILED": "Nie udało się odczytać witryny, więc projektant nie został otwarty. Spróbuj ponownie.",
       "PREVIEW_UNSUPPORTED": "Ten sklep nie obsługuje nowego projektanta Page Builder.",
       "LOAD_FAILED": "Nie udało się wczytać strony. Mogła zostać usunięta lub możesz nie mieć do niej dostępu.",
       "SAVE": "Zapisz",

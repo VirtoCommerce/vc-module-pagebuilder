@@ -29,21 +29,12 @@ angular.module('virtoCommerce.pageBuilderModule')
             var flowResolved = false;
 
             var newPageBuilderSetting = 'VirtoCommerce.PageBuilderModule.Store.NewPageBuilder';
-            var designerReady = $q.resolve();
+            var designerReady = $q.resolve(false);
 
             blade.initialize = function () {
                 channel = broadcastChannelFactory(blade);
-                var pathname = window.location.pathname === '/' ? '' : window.location.pathname;
-                var platformUrl = window.location.origin + pathname;
                 blade.newPageBuilder = false;
-                blade.designerUrl = `${platformUrl}/Modules/$(VirtoCommerce.PageBuilderModule)/Content/page-builder-designer/index.html`;
-                designerReady = stores.get({ id: blade.storeId }).$promise.then(function (store) {
-                    var setting = _.find(store.settings || [], function (x) { return x.name === newPageBuilderSetting; });
-                    if (setting && setting.value === true) {
-                        blade.newPageBuilder = true;
-                        blade.designerUrl = `${platformUrl}/apps/page-builder-shell/`;
-                    }
-                }, angular.noop);
+                designerReady = loadDesigner();
                 loadPublishStatus();
                 if (blade.isNew) {
                     blade.isLoading = false;
@@ -87,6 +78,24 @@ angular.module('virtoCommerce.pageBuilderModule')
                 loadSearchIndex();
                 loadLegacyDraft();
             };
+
+            // Which designer this store's pages open in. Without an answer neither opens: not opening
+            // is recoverable, editing the page in the wrong designer is not.
+            function loadDesigner() {
+                var pathname = window.location.pathname === '/' ? '' : window.location.pathname;
+                var platformUrl = window.location.origin + pathname;
+                return stores.get({ id: blade.storeId }).$promise.then(function (store) {
+                    var setting = _.find(store.settings || [], function (x) { return x.name === newPageBuilderSetting; });
+                    blade.newPageBuilder = !!setting && setting.value === true;
+                    blade.designerUrl = blade.newPageBuilder
+                        ? `${platformUrl}/apps/page-builder-shell/`
+                        : `${platformUrl}/Modules/$(VirtoCommerce.PageBuilderModule)/Content/page-builder-designer/index.html`;
+                    return true;
+                }, function (error) {
+                    bladeNavigationService.setError('Error ' + error.status, $scope.blade);
+                    return false;
+                });
+            }
 
             // Which flow this store is on, and the page's real publish state. The list one blade back
             // derives both from blob file names, which says nothing about a page whose drafts are
@@ -599,7 +608,18 @@ angular.module('virtoCommerce.pageBuilderModule')
             }
 
             function runDesigner() {
-                designerReady.then(openDesigner);
+                designerReady.then(function (resolved) {
+                    if (resolved) {
+                        openDesigner();
+                        return;
+                    }
+                    designerReady = loadDesigner();
+                    designerReady.then(function (loaded) {
+                        if (loaded) {
+                            openDesigner();
+                        }
+                    });
+                });
             }
 
             function openDesigner() {

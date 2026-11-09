@@ -83,7 +83,13 @@ test("isNewPageBuilder reads the switch anew, as the store's settings change it"
   assert.equal(await storeContext.isNewPageBuilder("switching-store"), true);
 });
 
-test("isNewPageBuilder leaves the store context as it is when the store cannot be read", async () => {
+test("isNewPageBuilder answers false for a store that does not exist", async () => {
+  globalThis.fetch = async () => ({ ok: false, status: 404 }) as Response;
+
+  assert.equal(await useUrlParams().isNewPageBuilder("deleted-store"), false);
+});
+
+test("isNewPageBuilder answers nothing when the store cannot be read, and leaves the store context as it is", async () => {
   setStoreSearch("context-store");
   globalThis.fetch = async () => ({
     ok: true,
@@ -96,7 +102,7 @@ test("isNewPageBuilder leaves the store context as it is when the store cannot b
 
   globalThis.fetch = async () => ({ ok: false, status: 500 }) as Response;
 
-  assert.equal(await storeContext.isNewPageBuilder(), false);
+  assert.equal(await storeContext.isNewPageBuilder(), undefined);
   assert.equal(storeContext.storeContextStatus.value, "ready");
 });
 

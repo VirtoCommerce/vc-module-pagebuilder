@@ -361,6 +361,38 @@ public class GitHubSiteHistoryTests
     }
 
     [Fact]
+    public async Task ListAsync_CursorOfAnotherStore_ThrowsArgumentException()
+    {
+        var page = await History(new GitHubScript(("POST", "graphql", (_, _) => Answer((true, "e0", [(Sha('9'), 50, "{}"), (Sha('2'), 20, "{}")]))))).ListAsync("s1", [Page], null, 1, Ct);
+        var github = new GitHubScript();
+
+        await Assert.ThrowsAsync<ArgumentException>(() => History(github).ListAsync("s2", [Page], page.Cursor, 1, Ct));
+
+        Assert.Equal(0, github.Requests);
+    }
+
+    [Fact]
+    public async Task ListAsync_CursorsCommitIsGone_ThrowsArgumentException()
+    {
+        var page = await History(new GitHubScript(("POST", "graphql", (_, _) => Answer((true, "e0", [(Sha('9'), 50, "{}"), (Sha('2'), 20, "{}")]))))).ListAsync("s1", [Page], null, 1, Ct);
+        var github = new GitHubScript(("POST", "graphql", (_, _) => GitHubScript.Json("""{ "data": { "repository": { "object": null } } }""")));
+
+        await Assert.ThrowsAsync<ArgumentException>(() => History(github).ListAsync("s1", [Page], page.Cursor, 1, Ct));
+    }
+
+    [Fact]
+    public async Task ListAsync_RepositoryWithoutCommits_ReturnsNoVersions()
+    {
+        var github = new GitHubScript(("POST", "graphql", (_, _) => GitHubScript.Json("""{ "data": { "repository": { "ref": null } } }""")));
+
+        var page = await History(github).ListAsync("s1", [Page], null, 20, Ct);
+
+        Assert.Equal(ContentHistoryStatus.Enabled, page.Status);
+        Assert.Empty(page.Versions);
+        Assert.Null(page.Cursor);
+    }
+
+    [Fact]
     public async Task ReadAsync_VersionId_ReadsTheItemAtItsCommit()
     {
         var github = new GitHubScript(($"GET", $"repos/acme/site-s1/contents/theme/{Header}?ref={Sha('4')}", (_, _) => GitHubScript.Json(Contents(LiveHeader))));

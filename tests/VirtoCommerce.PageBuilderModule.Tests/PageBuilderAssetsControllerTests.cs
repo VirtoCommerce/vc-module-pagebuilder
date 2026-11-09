@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
+using VirtoCommerce.PageBuilderModule.Data.Authorization;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using Xunit;
 
@@ -54,6 +56,19 @@ public class PageBuilderAssetsControllerTests
         Assert.Equal(1, reference.SharedComponentReferencesCount);
         Assert.Equal("component-1", component.Id);
         Assert.Equal("Shared hero", component.Name);
+    }
+
+    [Fact]
+    public async Task SearchReferences_PermissionInAnotherStore_HidesSharedComponentMetadata()
+    {
+        var controller = CreateController(CreateSearchResult(), canReadSharedComponents: true);
+
+        var response = await controller.SearchReferences(
+            new PageBuilderAssetReferencesSearchCriteria { StoreId = "other-store" },
+            TestContext.Current.CancellationToken);
+
+        var payload = Assert.IsType<PageBuilderAssetReferencesSearchResult>(Assert.IsType<OkObjectResult>(response.Result).Value);
+        Assert.Empty(Assert.Single(payload.Results).SharedComponents);
     }
 
     private static PageBuilderAssetsController CreateController(
@@ -118,17 +133,19 @@ public class PageBuilderAssetsControllerTests
             object resource,
             IEnumerable<IAuthorizationRequirement> requirements)
         {
-            return Task.FromResult(AuthorizationResult.Success());
+            var authorized = requirements.OfType<PageBuilderAuthorizationRequirement>().All(x =>
+                x.Permission != ModuleConstants.Security.Permissions.SharedComponentsRead ||
+                (canReadSharedComponents && resource is IHasStoreId { StoreId: "store" }));
+            return Task.FromResult(authorized ? AuthorizationResult.Success() : AuthorizationResult.Failed());
         }
 
+        // A role scoped to a store holds no global permission, so a check made without the store fails.
         public Task<AuthorizationResult> AuthorizeAsync(
             ClaimsPrincipal user,
             object resource,
             string policyName)
         {
-            var authorized = policyName != ModuleConstants.Security.Permissions.SharedComponentsRead ||
-                             canReadSharedComponents;
-            return Task.FromResult(authorized ? AuthorizationResult.Success() : AuthorizationResult.Failed());
+            return Task.FromResult(AuthorizationResult.Failed());
         }
     }
 }

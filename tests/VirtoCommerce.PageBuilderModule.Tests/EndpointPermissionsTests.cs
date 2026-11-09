@@ -64,6 +64,7 @@ public class EndpointPermissionsTests
         [(typeof(MultilanguagePageController), nameof(MultilanguagePageController.ArchiveAll))] = Permissions.Delete,
         [(typeof(PageBuilderAssetsController), nameof(PageBuilderAssetsController.Search))] = PlatformPermissions.AssetRead,
         [(typeof(PageBuilderAssetsController), nameof(PageBuilderAssetsController.SearchReferences))] = InTheAction,
+        [(typeof(PageBuilderController), nameof(PageBuilderController.GetDesignerStorefront))] = InTheAction,
         [(typeof(PageBuilderPageController), nameof(PageBuilderPageController.SearchGroups))] = InTheAction,
         [(typeof(PageBuilderPageController), nameof(PageBuilderPageController.SearchList))] = InTheAction,
         [(typeof(PageBuilderPageController), nameof(PageBuilderPageController.FindPermalinkUsage))] = InTheAction,

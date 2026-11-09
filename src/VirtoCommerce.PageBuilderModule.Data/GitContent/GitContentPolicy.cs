@@ -9,7 +9,6 @@ using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Settings;
-using VirtoCommerce.StoreModule.Core.Services;
 using StoreLevelSettings = VirtoCommerce.PageBuilderModule.Core.ModuleConstants.Settings.StoreLevelSettings;
 
 namespace VirtoCommerce.PageBuilderModule.Data.GitContent
@@ -30,20 +29,17 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
         private readonly IGitHubConnectionService _gitHubConnectionService;
         private readonly GitContentOptions _options;
         private readonly ISettingsManager _settingsManager;
-        private readonly IStoreService _storeService;
         private readonly IGitContentOwnership _ownership;
 
         public GitContentPolicy(
             IGitHubConnectionService gitHubConnectionService,
             IOptions<GitContentOptions> options,
             ISettingsManager settingsManager,
-            IStoreService storeService,
             IGitContentOwnership ownership)
         {
             _gitHubConnectionService = gitHubConnectionService;
             _options = options.Value;
             _settingsManager = settingsManager;
-            _storeService = storeService;
             _ownership = ownership;
         }
 
@@ -53,28 +49,6 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             var settings = await GetStoreSettingsAsync(connection, storeId);
 
             return settings is { IsEnabled: true } && GetStoreRepository(connection, storeId, settings.Repository) != null;
-        }
-
-        public virtual async Task SetEnabledForStoreAsync(string storeId, bool enabled, CancellationToken cancellationToken = default)
-        {
-            ArgumentException.ThrowIfNullOrWhiteSpace(storeId);
-
-            var store = await _storeService.GetByIdAsync(storeId);
-            if (store == null)
-            {
-                return;
-            }
-
-            store.Settings ??= [];
-            var setting = store.Settings.FirstOrDefault(x => x.Name.EqualsIgnoreCase(StoreLevelSettings.GitContentEnabled.Name));
-            if (setting == null)
-            {
-                setting = new ObjectSettingEntry(StoreLevelSettings.GitContentEnabled);
-                store.Settings.Add(setting);
-            }
-
-            setting.Value = enabled;
-            await _storeService.SaveChangesAsync([store]);
         }
 
         public virtual async Task<string> GetRepositoryAsync(string storeId, CancellationToken cancellationToken = default)
@@ -92,7 +66,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             }
 
             var repository = GetStoreRepository(connection, storeId, settings.Repository);
-            if (repository != null && IsInOrganization(connection, repository.Name))
+            if (repository != null && connection.IsInOrganization(repository.Name))
             {
                 var owner = await _ownership.GetStoreIdAsync(repository.Name, cancellationToken);
                 _ownership.EnsureOwnedBy(repository.Name, owner, storeId);
@@ -116,12 +90,6 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
             return IsAvailable(connection) ? GetStoreRepository(connection, storeId, repositorySetting) : null;
         }
 
-        public virtual async Task<bool> IsInOrganizationAsync(string repository, CancellationToken cancellationToken = default)
-        {
-            var connection = await _gitHubConnectionService.GetConnectionAsync(cancellationToken);
-            return IsInOrganization(connection, repository);
-        }
-
         protected virtual StoreRepository GetStoreRepository(GitHubConnection connection, string storeId, string repositorySetting)
         {
             if (!string.IsNullOrWhiteSpace(repositorySetting))
@@ -132,6 +100,11 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
                 if (!RepositoryPattern.IsMatch(repository) || name is "." or "..")
                 {
                     throw new GitContentException($"\"{repositorySetting}\" is not a GitHub repository in \"owner/name\" form.");
+                }
+
+                if (!IsAllowedRepository(connection, repository))
+                {
+                    throw new GitContentException($"\"{repository}\" is not a repository this platform may use. List it in {GitContentOptions.SectionName}:{nameof(GitContentOptions.AllowedRepositories)}.");
                 }
 
                 return new StoreRepository(repository, GitRepositorySource.StoreSetting);
@@ -156,9 +129,8 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
                 : name;
         }
 
-        protected virtual bool IsInOrganization(GitHubConnection connection, string repository) =>
-            !string.IsNullOrWhiteSpace(connection.Organization) &&
-            repository?.StartsWith($"{connection.Organization.Trim()}/", StringComparison.OrdinalIgnoreCase) == true;
+        protected virtual bool IsAllowedRepository(GitHubConnection connection, string repository) =>
+            string.Equals(repository, connection.Repository?.Trim(), StringComparison.OrdinalIgnoreCase) || _options.IsRepositoryAllowed(repository);
 
         private static bool IsAvailable(GitHubConnection connection) => connection.IsEnabled && connection.IsConfigured;
 

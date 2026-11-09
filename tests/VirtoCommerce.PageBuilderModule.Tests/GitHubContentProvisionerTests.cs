@@ -10,6 +10,7 @@ using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Data.GitContent;
 using VirtoCommerce.StoreModule.Core.Model;
+using VirtoCommerce.StoreModule.Core.Services;
 using Xunit;
 
 namespace VirtoCommerce.PageBuilderModule.Tests;
@@ -198,6 +199,17 @@ public class GitHubContentProvisionerTests
     }
 
     [Fact]
+    public async Task DisconnectAsync_StoreOn_SwitchesStoreOff()
+    {
+        var setting = new VirtoCommerce.Platform.Core.Settings.ObjectSettingEntry(ModuleConstants.Settings.StoreLevelSettings.GitContentEnabled) { Value = true };
+        var stores = new FakeStoreService(new Store { Id = "s1", Settings = [setting] });
+
+        await Provisioner(new GitHubScript(), stores: stores).DisconnectAsync("s1", TestContext.Current.CancellationToken);
+
+        Assert.Equal(false, Assert.Single(Assert.Single(stores.Saved).Settings).Value);
+    }
+
+    [Fact]
     public async Task ArchiveRepositoryAsync_RepositoryOfStore_ArchivesIt()
     {
         var github = new GitHubScript(
@@ -309,6 +321,7 @@ public class GitHubContentProvisionerTests
             Organization = "acme",
             Token = "t0ken",
             BaseBranch = "main",
+            AllowedRepositories = ["acme/website", "other/website"],
         };
         configure?.Invoke(options);
         var wrapped = Options.Create(options);
@@ -318,13 +331,13 @@ public class GitHubContentProvisionerTests
 
         ownership ??= new FakeGitContentOwnership();
         var connection = GitHubConnections.CreateService(options);
-        var policy = new GitContentPolicy(connection, wrapped, settings, stores ?? new FakeStoreService(), ownership);
-        return new NoWaitProvisioner(new GitHubApiClient(github), connection, gitRepository, policy, ownership, wrapped);
+        var policy = new GitContentPolicy(connection, wrapped, settings, ownership);
+        return new NoWaitProvisioner(new GitHubApiClient(github), connection, gitRepository, policy, ownership, stores ?? new FakeStoreService(), wrapped);
     }
 
     private sealed class NoWaitProvisioner(IGitHubApiClient gitHubApiClient, IGitHubConnectionService gitHubConnectionService, IGitContentRepository gitContentRepository,
-        IGitContentPolicy gitContentPolicy, IGitContentOwnership gitContentOwnership, IOptions<GitContentOptions> options)
-        : GitHubContentProvisioner(gitHubApiClient, gitHubConnectionService, gitContentRepository, gitContentPolicy, gitContentOwnership, options,
+        IGitContentPolicy gitContentPolicy, IGitContentOwnership gitContentOwnership, IStoreService storeService, IOptions<GitContentOptions> options)
+        : GitHubContentProvisioner(gitHubApiClient, gitHubConnectionService, gitContentRepository, gitContentPolicy, gitContentOwnership, storeService, options,
             NullLogger<GitHubContentProvisioner>.Instance)
     {
         protected override Task DelayBeforeRetryAsync(CancellationToken cancellationToken) => Task.CompletedTask;

@@ -5,6 +5,7 @@ using Newtonsoft.Json.Linq;
 using VirtoCommerce.PageBuilderModule.Core.Theme;
 using VirtoCommerce.PageBuilderModule.Data.Theme;
 using Xunit;
+using static VirtoCommerce.PageBuilderModule.Tests.ThemeSources;
 
 namespace VirtoCommerce.PageBuilderModule.Tests;
 
@@ -203,92 +204,6 @@ public class ThemeSnapshotBuilderTests
     }
 
     [Fact]
-    public void Validate_TypeMissingFromCatalog_ReturnsErrors()
-    {
-        var catalog = JObject.Parse("""{ "sections": { "banner": {} }, "blocks": {}, "shared": {} }""");
-        var source = Source(
-            templates: new()
-            {
-                ["page"] = JObject.Parse("""{ "settings": {}, "content": [ { "id": "a", "type": "banner" }, { "id": "p", "type": "page-content" } ] }"""),
-                ["product.big"] = JObject.Parse("""{ "settings": {}, "content": [ { "id": "b", "type": "carousel" }, { "type": "banner" } ] }"""),
-            },
-            header: JObject.Parse("""{ "content": [ { "id": "h", "type": "banner", "blocks": [ { "id": "x", "type": "nope" } ] } ] }"""));
-
-        var errors = _builder.Validate(source, catalog);
-
-        Assert.Equal(
-            [
-                "templates/product.big.json: 'b' has a type the storefront does not have, 'carousel'",
-                "templates/product.big.json: an item without an id or a type",
-                "sections/header-group.json: 'x' has a type the storefront does not have, 'nope'",
-            ],
-            errors);
-        Assert.Single(_builder.Validate(source, null));
-    }
-
-    [Fact]
-    public void Validate_ValuesOfClosedSets_ReturnsAnErrorForEachValueTheCatalogLacks()
-    {
-        var catalog = JObject.Parse("""
-            {
-              "sections": {
-                "banner": {
-                  "settings": [
-                    { "id": "tone", "type": "color-token" },
-                    { "id": "size", "type": "select", "options": [ { "value": "s" }, { "value": 2 } ] },
-                    { "id": "sizes", "type": "select", "multiple": true, "options": [ { "value": "s" }, { "value": "m" } ] },
-                    { "id": "level", "type": "select", "required": true, "options": [ { "value": "h2" } ] },
-                    { "id": "remote", "type": "select", "request": { "url": "/x" } },
-                    { "id": "items", "type": "list", "element": [ { "id": "size", "type": "select", "options": [ { "value": "s" } ] } ] }
-                  ]
-                }
-              },
-              "shared": { "_sections": { "settings": [ { "id": "background", "type": "color-token" } ] } },
-              "paletteTokens": { "light": [ "color_primary_500" ], "dark": [ "color_dark_only" ] }
-            }
-            """);
-        var header = JObject.Parse("""
-            { "content": [
-              { "id": "ok", "type": "banner", "tone": "color_dark_only", "size": 2, "sizes": [ "s", "m" ], "level": "h2", "remote": "anything", "items": [ { "size": "s" } ], "background": "" },
-              { "id": "bad", "type": "banner", "tone": "#ff0000", "size": "2", "sizes": [ "s", "xl" ], "remote": "anything", "items": [ { "size": "s" }, { "size": { "a": 1 } } ], "background": [ "x" ] }
-            ] }
-            """);
-
-        var errors = _builder.Validate(Source(header: header), catalog);
-
-        Assert.Equal(
-            [
-                "sections/header-group.json: 'bad' has a value in 'tone' the storefront does not have, '#ff0000'",
-                "sections/header-group.json: 'bad' has a value in 'size' the storefront does not have, '2'",
-                "sections/header-group.json: 'bad' has a value in 'sizes' the storefront does not have, 'xl'",
-                "sections/header-group.json: 'bad' has no value in 'level', which the storefront requires",
-                "sections/header-group.json: 'bad' has a value in 'items[1].size' the storefront does not have, an object",
-                "sections/header-group.json: 'bad' has a value in 'background' the storefront does not have, a list",
-            ],
-            errors);
-        Assert.Empty(_builder.Validate(Source(header: header), null));
-    }
-
-    [Fact]
-    public void Validate_CatalogWithoutPaletteTokens_DoesNotCheckColorTokens()
-    {
-        var catalog = JObject.Parse("""{ "sections": { "banner": { "settings": [ { "id": "tone", "type": "color-token", "required": true, "default": "color_primary_500" } ] } } }""");
-        var header = JObject.Parse("""{ "content": [ { "id": "a", "type": "banner", "tone": "#ff0000" }, { "id": "b", "type": "banner" } ] }""");
-
-        Assert.Empty(_builder.Validate(Source(header: header), catalog));
-    }
-
-    [Fact]
-    public void Validate_NonTextIdOrType_ReturnsErrors()
-    {
-        var source = Source(header: JObject.Parse("""{ "content": [ { "id": {}, "type": "banner" }, { "id": "b", "type": ["banner"] } ] }"""));
-
-        Assert.Equal(
-            ["sections/header-group.json: an item without an id or a type", "sections/header-group.json: an item without an id or a type"],
-            _builder.Validate(source, JObject.Parse("""{ "sections": { "banner": {} } }""")));
-    }
-
-    [Fact]
     public void Build_UnexpectedFileShapes_StillBuildsSnapshot()
     {
         var source = new ThemeSource
@@ -313,33 +228,11 @@ public class ThemeSnapshotBuilderTests
     }
 
     [Fact]
-    public void Validate_BlocksNotAList_ReturnsError()
-    {
-        var source = Source(header: JObject.Parse("""{ "content": [ { "id": "h", "type": "banner", "blocks": { "id": "x", "type": "nope" } } ] }"""));
-
-        Assert.Equal(["sections/header-group.json: 'h' has blocks that are not a list"], _builder.Validate(source, null));
-    }
-
-    [Fact]
-    public void Validate_SharedComponentInThemeFile_ReturnsErrors()
-    {
-        // A snapshot is read as it is, so the placement would reach the storefront unresolved.
-        var catalog = JObject.Parse("""{ "sections": { "product-info": {} } }""");
-
-        Assert.Equal(
-        [
-            "templates/product.json: 'ref1' places a shared component, which only a page can hold",
-            "sections/footer-group.json: 'ref1' places a shared component, which only a page can hold",
-        ], _builder.Validate(WithSharedComponent(), catalog));
-    }
-
-    [Fact]
     public void Build_SharedComponentWithoutCatalog_LeavesItOut()
     {
         // Live files may predate the check.
         var source = WithSharedComponent();
 
-        Assert.Empty(_builder.Validate(source, null));
         var snapshot = JObject.Parse(_builder.Build(source, null, null, ["en-US"], "en-US", 1, DateTime.UtcNow).Files["en-US"]);
         Assert.Equal(["product-info"], snapshot["templates"]!["product"]!["content"]!.Select(x => x.Value<string>("type")));
         Assert.Empty((JArray)snapshot["footer"]!["content"]!);
@@ -379,58 +272,6 @@ public class ThemeSnapshotBuilderTests
             set.Files["en-US"]);
     }
 
-    [Theory]
-    [InlineData("product.json", "product")]
-    [InlineData("product.b2c.json", "product.b2c")]
-    [InlineData("page.big-sale.json", "page.big-sale")]
-    [InlineData("blog.json", null)]
-    [InlineData("product.B2C.json", null)]
-    [InlineData("product.json-draft", null)]
-    public void GetTemplateKey_FileName_ReturnsKey(string fileName, string key)
-    {
-        Assert.Equal(key, _builder.GetTemplateKey(fileName));
-    }
-
-    private static ThemeSource WithSharedComponent()
-    {
-        var placement = JObject.Parse("""{ "id": "ref1", "type": "componentRef", "componentRef": "c1" }""");
-        return Source(
-            templates: new Dictionary<string, JToken>
-            {
-                ["product"] = new JObject { ["content"] = new JArray(new JObject { ["id"] = "s0", ["type"] = "product-info" }, placement) },
-            },
-            footer: new JObject { ["content"] = new JArray(placement.DeepClone()) });
-    }
-
-    private static readonly JObject CatalogWithBlockAsSection = JObject.Parse("""
-        {
-          "sections": {
-            "site-header": { "settings": [], "blocks": ["banner"] },
-            "banner": { "settings": [ { "id": "size", "type": "select", "options": [ { "value": "s" } ] }, { "id": "menu", "type": "menu" } ] }
-          },
-          "blocks": {},
-          "shared": {}
-        }
-        """);
-
-    [Fact]
-    public void Validate_BlockWithItsSchemaInSections_IsAccepted()
-    {
-        var header = JObject.Parse("""{ "content": [ { "id": "h", "type": "site-header", "blocks": [ { "id": "b", "type": "banner", "size": "s" } ] } ] }""");
-
-        Assert.Empty(_builder.Validate(Source(header: header), CatalogWithBlockAsSection));
-    }
-
-    [Fact]
-    public void Validate_BlockWithItsSchemaInSections_ChecksItsValues()
-    {
-        var header = JObject.Parse("""{ "content": [ { "id": "h", "type": "site-header", "blocks": [ { "id": "b", "type": "banner", "size": "xl" } ] } ] }""");
-
-        Assert.Equal(
-            ["sections/header-group.json: 'b' has a value in 'size' the storefront does not have, 'xl'"],
-            _builder.Validate(Source(header: header), CatalogWithBlockAsSection));
-    }
-
     [Fact]
     public void Build_BlockWithItsSchemaInSections_CollectsItsMenus()
     {
@@ -440,27 +281,6 @@ public class ThemeSnapshotBuilderTests
 
         Assert.Equal(["main-menu"], set.Menus);
     }
-
-    private static ThemeSource Source(
-        Dictionary<string, JToken> templates = null,
-        JToken header = null,
-        JToken footer = null,
-        JToken brand = null,
-        JToken settingsData = null,
-        JToken palette = null,
-        JToken paletteDark = null,
-        JToken rules = null) => new()
-        {
-            ThemeName = "default",
-            Templates = templates ?? new Dictionary<string, JToken>(),
-            Header = header,
-            Footer = footer,
-            Brand = brand,
-            SettingsData = settingsData,
-            Palette = palette,
-            PaletteDark = paletteDark,
-            Rules = rules,
-        };
 
     private JObject Snapshot(ThemeSource source) =>
         JObject.Parse(_builder.Build(source, null, null, [], "en-US", 1, Published).Files["en-US"]);

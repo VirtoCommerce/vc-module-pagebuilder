@@ -321,6 +321,7 @@
       "PREVIEW_SLOW": "Il sito impiega molto a caricarsi. Verifica che lo storefront su {url} sia in esecuzione, poi ricarica.",
       "RELOAD_PREVIEW": "Ricarica",
       "NO_STOREFRONT": "Nessuna anteprima: il sito non ha un URL dello storefront. Impostalo nelle Impostazioni del sito, poi riapri la pagina.",
+      "STORE_READ_FAILED": "Impossibile leggere il sito, quindi il designer non si è aperto. Riprova.",
       "PREVIEW_UNSUPPORTED": "Questo storefront non supporta il nuovo designer di Page Builder.",
       "LOAD_FAILED": "Impossibile caricare la pagina. Potrebbe essere stata eliminata o potresti non avere accesso.",
       "SAVE": "Salva",

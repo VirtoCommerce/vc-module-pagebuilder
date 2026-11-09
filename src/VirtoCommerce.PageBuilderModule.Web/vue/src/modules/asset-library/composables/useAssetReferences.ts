@@ -79,7 +79,19 @@ export function useAssetReferences(storeId: Ref<string | null | undefined>) {
       return false;
     }
 
-    const references = await searchAssetReferences(currentStoreId, [assetUrl], true);
+    let references: Awaited<ReturnType<typeof searchAssetReferences>>;
+
+    try {
+      references = await searchAssetReferences(currentStoreId, [assetUrl], true);
+    } catch {
+      if (!isCurrent()) {
+        return false;
+      }
+
+      unavailableReferenceUrls.value = new Set([...unavailableReferenceUrls.value, ...getAssetUrls(entry)]);
+      return true;
+    }
+
     if (!isCurrent()) {
       return false;
     }

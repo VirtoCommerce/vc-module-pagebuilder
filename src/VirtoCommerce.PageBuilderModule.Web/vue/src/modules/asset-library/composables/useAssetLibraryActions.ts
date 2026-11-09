@@ -66,7 +66,7 @@ export function useAssetLibraryActions(options: UseAssetLibraryActionsOptions) {
         return false;
       }
 
-      await options.uploadFiles(preparedFiles, folderUrl);
+      await options.uploadFiles(preparedFiles, targetFolderUrl);
       notification.success(options.t("ASSET_LIBRARY.NOTIFICATIONS.UPLOADED"));
       return true;
     } catch (error) {

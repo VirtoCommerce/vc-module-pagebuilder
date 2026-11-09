@@ -9,7 +9,6 @@ using Newtonsoft.Json.Linq;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Data.GitContent;
 using VirtoCommerce.Platform.Core.Settings;
-using VirtoCommerce.StoreModule.Core.Services;
 
 namespace VirtoCommerce.PageBuilderModule.Tests;
 
@@ -30,9 +29,8 @@ internal static class GitHubConnections
         return CreateService(options, settings, keys, github, configuration);
     }
 
-    public static GitContentPolicy CreatePolicy(IOptions<GitContentOptions> options, ISettingsManager settings, IGitContentOwnership ownership = null,
-        IStoreService stores = null) =>
-        new(CreateService(options.Value), options, settings, stores, ownership ?? new FakeGitContentOwnership());
+    public static GitContentPolicy CreatePolicy(IOptions<GitContentOptions> options, ISettingsManager settings, IGitContentOwnership ownership = null) =>
+        new(CreateService(options.Value), options, settings, ownership ?? new FakeGitContentOwnership());
 
     public static GitHubScript CreateManifestConversion(string owner) => new(("POST", "app-manifests/c0de/conversions", (_, _) =>
         GitHubScript.Json(new JObject

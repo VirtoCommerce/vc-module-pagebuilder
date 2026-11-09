@@ -23,7 +23,7 @@ test("there is no storefront page without an http(s) storefront", () => {
 
 test("the preview page carries the designer's origin as ep", () => {
   globalThis.window = { location: { origin: "https://platform.test" } } as Window & typeof globalThis;
-  assert.equal(previewUrl("https://shop.test/b2b/", "/designer-preview?ep=https://evil.example"), "https://shop.test/b2b/designer-preview?ep=https%3A%2F%2Fplatform.test");
-  assert.equal(previewUrl("https://shop.test"), "https://shop.test/designer-preview?ep=https%3A%2F%2Fplatform.test");
+  assert.equal(previewUrl("https://shop.test/b2b/", "/designer-preview?ep=https://evil.example"), "https://shop.test/b2b/designer-preview?ep=https%3A%2F%2Fplatform.test&protocol=2");
+  assert.equal(previewUrl("https://shop.test"), "https://shop.test/designer-preview?ep=https%3A%2F%2Fplatform.test&protocol=2");
   assert.equal(previewUrl(undefined), undefined);
 });

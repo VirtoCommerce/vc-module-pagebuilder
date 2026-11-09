@@ -1,6 +1,6 @@
 import { clone } from "./json";
 import { evaluate, UnsupportedExpressionError } from "./safeExpression";
-import type { Field, Item, ItemSchema, Schemas } from "./types";
+import type { Field, Item, ItemSchema, RemoteRequest, Schemas } from "./types";
 import { displayText, isTranslations, withTranslation, type Translating } from "./translatable";
 
 export function fieldsOf(schema: ItemSchema | undefined, kind: "section" | "block", schemas: Schemas): Field[] {
@@ -130,12 +130,34 @@ export function fill<T>(template: T, context: Record<string, unknown>): T {
   return template;
 }
 
+type SchemaRequest = Pick<RemoteRequest, "url" | "method" | "body">;
+
+// A comment may hold a lone quote, so comments are consumed together with the strings.
+const GRAPHQL_STRINGS_AND_COMMENTS = /"""(?:\\"""|[\s\S])*?"""|"(?:\\.|[^"\\\r\n])*"|#[^\r\n]*/g;
+
+function isGraphqlRead(body: unknown): boolean {
+  const query = (body as { query?: unknown } | null | undefined)?.query;
+  return typeof query === "string" && !/\b(mutation|subscription)\b/.test(query.replace(GRAPHQL_STRINGS_AND_COMMENTS, " "));
+}
+
+function isAllowedOnPlatform(target: URL, request: SchemaRequest): boolean {
+  const method = (request.method ?? "GET").toUpperCase();
+  if (method === "GET") return target.pathname === "/api/pagebuilder/search";
+  // GraphQL.NET's server can read the query from the URL, where it overrides the body.
+  return method === "POST" && target.pathname === "/graphql" && !target.search && isGraphqlRead(request.body);
+}
+
 /** `platform` means the designer's own origin, the only place the user's token may go. */
-export function schemaRequest(url: string, location: Pick<Location, "href" | "origin">): { url: string; platform: boolean } | undefined {
+export function schemaRequest(request: SchemaRequest, location: Pick<Location, "href" | "origin">): { url: string; platform: boolean } | undefined {
   try {
-    const target = new URL(url, location.href);
+    const target = new URL(request.url, location.href);
     if (target.protocol !== "http:" && target.protocol !== "https:") return undefined;
-    return { url: target.href, platform: target.origin === location.origin };
+    const platform = target.origin === location.origin;
+    if (platform && !isAllowedOnPlatform(target, request)) {
+      console.warn("[page-builder] Refused a schema's request to the platform", request.method ?? "GET", target.pathname);
+      return undefined;
+    }
+    return { url: target.href, platform };
   } catch {
     return undefined;
   }

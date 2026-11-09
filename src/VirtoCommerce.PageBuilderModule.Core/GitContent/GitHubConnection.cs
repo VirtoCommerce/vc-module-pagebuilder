@@ -35,4 +35,8 @@ public class GitHubConnection
         (!string.IsNullOrWhiteSpace(Repository) || !string.IsNullOrWhiteSpace(Organization)) &&
         (!string.IsNullOrWhiteSpace(Token) || UsesApp) &&
         !string.IsNullOrWhiteSpace(BaseBranch);
+
+    public bool IsInOrganization(string repository) =>
+        !string.IsNullOrWhiteSpace(Organization) &&
+        repository?.StartsWith($"{Organization.Trim()}/", StringComparison.OrdinalIgnoreCase) == true;
 }

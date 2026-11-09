@@ -37,10 +37,10 @@ public class GitHubSiteHistory(
     public const string PagesFolder = "database-pages";
     public const string ThemeFolder = "theme";
 
-    // the cursor goes to the client and back: protected, so only positions this history wrote reach GitHub
+    // the cursor goes to the client and back: protected, so only positions this history wrote for this store reach GitHub
     private const string CursorProtectionPurpose = "VirtoCommerce.PageBuilderModule.ContentHistoryCursor";
 
-    private readonly IDataProtector _cursorProtector = dataProtectionProvider.CreateProtector(CursorProtectionPurpose);
+    private const string InvalidCursorError = "The cursor is not one the history returned.";
 
     // GitHub's limit on a GraphQL page
     private const int MaxPageSize = 100;
@@ -111,7 +111,7 @@ public class GitHubSiteHistory(
     {
         ArgumentNullException.ThrowIfNull(items);
 
-        var continuation = ReadCursor(cursor);
+        var continuation = ReadCursor(storeId, cursor);
         var positions = continuation.Positions;
         var result = AbstractTypeFactory<ContentVersionPage>.TryCreateInstance();
         result.Status = await GetStatusAsync(storeId, cancellationToken);
@@ -143,6 +143,12 @@ public class GitHubSiteHistory(
         }
 
         var head = answer.SelectToken("data.repository.ref.target") ?? answer.SelectToken("data.repository.object");
+        // GraphQL answers null for a commit that no longer exists
+        if (continuation.Head != null && head is not JObject)
+        {
+            throw new ArgumentException(InvalidCursorError, nameof(cursor));
+        }
+
         for (var i = 0; i < sources.Count; i++)
         {
             var history = head?[$"h{i}"];
@@ -155,7 +161,7 @@ public class GitHubSiteHistory(
 
         result.Versions = MergeVersions(sources, take);
         // later pages read the commit this page read, so a save made meanwhile does not shift them
-        result.Cursor = WriteCursor(continuation.Head ?? head?["oid"]?.Value<string>(), positions, sources);
+        result.Cursor = WriteCursor(storeId, continuation.Head ?? head?["oid"]?.Value<string>(), positions, sources);
 
         return result;
     }
@@ -398,7 +404,9 @@ public class GitHubSiteHistory(
         }
     }
 
-    protected virtual HistoryCursor ReadCursor(string cursor)
+    protected virtual IDataProtector CreateCursorProtector(string storeId) => dataProtectionProvider.CreateProtector(CursorProtectionPurpose, storeId);
+
+    protected virtual HistoryCursor ReadCursor(string storeId, string cursor)
     {
         if (string.IsNullOrEmpty(cursor))
         {
@@ -407,15 +415,15 @@ public class GitHubSiteHistory(
 
         try
         {
-            return JsonConvert.DeserializeObject<HistoryCursor>(_cursorProtector.Unprotect(cursor)) ?? new HistoryCursor();
+            return JsonConvert.DeserializeObject<HistoryCursor>(CreateCursorProtector(storeId).Unprotect(cursor)) ?? new HistoryCursor();
         }
         catch (Exception ex) when (ex is CryptographicException or FormatException or JsonException)
         {
-            throw new ArgumentException("The cursor is not one the history returned.", nameof(cursor), ex);
+            throw new ArgumentException(InvalidCursorError, nameof(cursor), ex);
         }
     }
 
-    protected virtual string WriteCursor(string head, IDictionary<string, HistoryPosition> positions, IList<HistorySource> sources)
+    protected virtual string WriteCursor(string storeId, string head, IDictionary<string, HistoryPosition> positions, IList<HistorySource> sources)
     {
         foreach (var source in sources)
         {
@@ -431,7 +439,7 @@ public class GitHubSiteHistory(
 
         return positions.Values.All(x => x.Done)
             ? null
-            : _cursorProtector.Protect(JsonConvert.SerializeObject(new HistoryCursor { Head = head, Positions = new Dictionary<string, HistoryPosition>(positions, StringComparer.Ordinal) }));
+            : CreateCursorProtector(storeId).Protect(JsonConvert.SerializeObject(new HistoryCursor { Head = head, Positions = new Dictionary<string, HistoryPosition>(positions, StringComparer.Ordinal) }));
     }
 
     /// <summary>A short hash of the path, so the cursor's length does not grow with the paths: the request validator caps it.</summary>

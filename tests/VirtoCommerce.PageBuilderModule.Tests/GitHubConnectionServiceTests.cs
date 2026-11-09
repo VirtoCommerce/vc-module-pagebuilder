@@ -68,7 +68,7 @@ public class GitHubConnectionServiceTests
         Assert.Equal(AppPrivateKey, connection.PrivateKey);
         Assert.Equal("main", connection.BaseBranch);
         Assert.True(connection.AutoCreateRepositories);
-        var policy = new GitContentPolicy(service, Options.Create(options), settingsManager: null, storeService: null, new FakeGitContentOwnership());
+        var policy = new GitContentPolicy(service, Options.Create(options), settingsManager: null, new FakeGitContentOwnership());
         Assert.Equal("Acme/web-b2b", (await policy.GetConfiguredRepositoryAsync("b2b", string.Empty, TestContext.Current.CancellationToken))!.Name);
     }
 

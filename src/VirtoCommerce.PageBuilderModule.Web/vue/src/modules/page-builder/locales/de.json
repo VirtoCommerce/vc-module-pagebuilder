@@ -321,6 +321,7 @@
       "PREVIEW_SLOW": "Die Website lädt ungewöhnlich lange. Prüfen Sie, ob der Storefront unter {url} läuft, und laden Sie dann neu.",
       "RELOAD_PREVIEW": "Neu laden",
       "NO_STOREFRONT": "Keine Vorschau: Die Website hat keine Storefront-URL. Legen Sie sie in den Einstellungen der Website fest und öffnen Sie die Seite erneut.",
+      "STORE_READ_FAILED": "Die Website konnte nicht gelesen werden, daher wurde der Designer nicht geöffnet. Versuchen Sie es erneut.",
       "PREVIEW_UNSUPPORTED": "Dieser Storefront unterstützt den neuen Page Builder-Designer nicht.",
       "LOAD_FAILED": "Die Seite konnte nicht geladen werden. Sie wurde möglicherweise gelöscht, oder Sie haben keinen Zugriff darauf.",
       "SAVE": "Speichern",

@@ -6,6 +6,9 @@ using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.Platform.Core.Common;
+using VirtoCommerce.Platform.Core.Settings;
+using VirtoCommerce.StoreModule.Core.Services;
+using StoreLevelSettings = VirtoCommerce.PageBuilderModule.Core.ModuleConstants.Settings.StoreLevelSettings;
 
 namespace VirtoCommerce.PageBuilderModule.Data.GitContent;
 
@@ -15,6 +18,7 @@ public class GitHubContentProvisioner(
     IGitContentRepository gitContentRepository,
     IGitContentPolicy gitContentPolicy,
     IGitContentOwnership gitContentOwnership,
+    IStoreService storeService,
     IOptions<GitContentOptions> options,
     ILogger<GitHubContentProvisioner> logger)
     : IGitContentProvisioner
@@ -43,7 +47,7 @@ public class GitHubContentProvisioner(
             status.Enabled = await gitContentPolicy.IsEnabledForStoreAsync(storeId, cancellationToken);
 
             var repositoryInfo = status.Repository == null ? null : await gitHubApiClient.GetRepositoryAsync(status.Repository, cancellationToken);
-            if (repositoryInfo != null && await gitContentPolicy.IsInOrganizationAsync(status.Repository, cancellationToken))
+            if (repositoryInfo != null && connection.IsInOrganization(status.Repository))
             {
                 gitContentOwnership.EnsureOwnedBy(status.Repository, gitContentOwnership.GetStoreId(repositoryInfo.Description), storeId);
             }
@@ -101,7 +105,7 @@ public class GitHubContentProvisioner(
             repositoryInfo = await CreateRepositoryAsync(repository, storeId, cancellationToken);
         }
 
-        if (await gitContentPolicy.IsInOrganizationAsync(repository, cancellationToken))
+        if (connection.IsInOrganization(repository))
         {
             gitContentOwnership.EnsureOwnedBy(repository, gitContentOwnership.GetStoreId(repositoryInfo.Description), storeId);
         }
@@ -124,15 +128,16 @@ public class GitHubContentProvisioner(
     public virtual async Task ConnectAsync(string storeId, CancellationToken cancellationToken = default)
     {
         await EnsureRepositoryAsync(storeId, cancellationToken);
-        await gitContentPolicy.SetEnabledForStoreAsync(storeId, true, cancellationToken);
+        await SetEnabledForStoreAsync(storeId, true, cancellationToken);
     }
 
     public virtual Task DisconnectAsync(string storeId, CancellationToken cancellationToken = default) =>
-        gitContentPolicy.SetEnabledForStoreAsync(storeId, false, cancellationToken);
+        SetEnabledForStoreAsync(storeId, false, cancellationToken);
 
     public virtual async Task ArchiveRepositoryAsync(string storeId, string repository, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(repository) || !await gitContentPolicy.IsInOrganizationAsync(repository, cancellationToken))
+        var connection = await gitHubConnectionService.GetConnectionAsync(cancellationToken);
+        if (string.IsNullOrWhiteSpace(repository) || !connection.IsInOrganization(repository))
         {
             return;
         }
@@ -151,6 +156,28 @@ public class GitHubContentProvisioner(
 
         await gitHubApiClient.UpdateRepositoryAsync(repository, new JObject { ["archived"] = true }, cancellationToken);
         logger.LogInformation("Store {StoreId} was deleted; its repository {Repository} is archived.", storeId, repository);
+    }
+
+    protected virtual async Task SetEnabledForStoreAsync(string storeId, bool enabled, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(storeId);
+
+        var store = await storeService.GetByIdAsync(storeId);
+        if (store == null)
+        {
+            return;
+        }
+
+        store.Settings ??= [];
+        var setting = store.Settings.FirstOrDefault(x => x.Name.EqualsIgnoreCase(StoreLevelSettings.GitContentEnabled.Name));
+        if (setting == null)
+        {
+            setting = new ObjectSettingEntry(StoreLevelSettings.GitContentEnabled);
+            store.Settings.Add(setting);
+        }
+
+        setting.Value = enabled;
+        await storeService.SaveChangesAsync([store]);
     }
 
     protected virtual async Task<GitHubRepositoryInfo> CreateRepositoryAsync(string repository, string storeId, CancellationToken cancellationToken)

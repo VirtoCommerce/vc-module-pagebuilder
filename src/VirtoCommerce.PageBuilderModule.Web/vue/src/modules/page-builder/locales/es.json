@@ -321,6 +321,7 @@
       "PREVIEW_SLOW": "El sitio está tardando en cargar. Compruebe que la tienda en {url} esté en funcionamiento y vuelva a cargar.",
       "RELOAD_PREVIEW": "Volver a cargar",
       "NO_STOREFRONT": "Sin vista previa: el sitio no tiene una URL de tienda. Defínala en la configuración del sitio y vuelva a abrir la página.",
+      "STORE_READ_FAILED": "No se pudo leer el sitio, por lo que el diseñador no se abrió. Inténtelo de nuevo.",
       "PREVIEW_UNSUPPORTED": "Esta tienda no es compatible con el nuevo diseñador de Page Builder.",
       "LOAD_FAILED": "No se pudo cargar la página. Puede que se haya eliminado o que no tenga acceso a ella.",
       "SAVE": "Guardar",

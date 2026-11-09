@@ -478,9 +478,9 @@ function remoteOptions(field: Field) {
   return loaders.get(field)!;
 }
 async function schemaFetch(request: RemoteRequest, context: Record<string, unknown>): Promise<Response | undefined> {
-  const target = schemaRequest(fill(request.url, context), window.location);
-  if (!target) return undefined;
   const body = fill(request.body, context);
+  const target = schemaRequest({ url: fill(request.url, context), method: request.method, body }, window.location);
+  if (!target) return undefined;
   return fetch(target.url, {
     method: (request.method ?? "get").toUpperCase(),
     // Only the platform's API gets the user's token; the theme's requests elsewhere go without it.
@@ -535,7 +535,7 @@ async function search(field: SearchField, query: string | null) {
   try {
     const value = await runSearch(field, props.context, query, async (request, context) => {
       const res = await schemaFetch(request, context);
-      if (!res?.ok) throw new Error(`The search request failed: ${res?.status ?? "not an http(s) URL"}`);
+      if (!res?.ok) throw new Error(`The search request failed: ${res?.status ?? "the request is not allowed"}`);
       return requestResult(request, await res.json());
     });
     if (searchRuns.get(field) === run) set(field, value);

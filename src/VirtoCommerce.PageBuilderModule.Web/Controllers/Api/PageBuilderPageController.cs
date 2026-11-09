@@ -516,6 +516,10 @@ public class PageBuilderPageController : Controller
     public async Task<ActionResult<FilePublishStatus>> PublishStatus([FromRoute] string groupId)
     {
         var groupedPage = await groupedPageService.GetNoCloneAsync(groupId);
+        if (groupedPage == null)
+        {
+            return NotFound();
+        }
 
         var authorizationResult = await authorizationService.AuthorizeAsync(User, groupedPage, new PageBuilderAuthorizationRequirement());
         if (!authorizationResult.Succeeded)

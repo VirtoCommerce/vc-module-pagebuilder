@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+
 namespace VirtoCommerce.PageBuilderModule.Core.GitContent
 {
     /// <summary>
@@ -13,12 +15,23 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
     {
         public const string SectionName = "PageBuilder:GitContent";
 
+        private const string AnyRepositoryOfOwner = "/*";
+
+        private static readonly Regex AllowedRepositoryPattern = new(@"^[A-Za-z0-9-]+/(?:\*|(?!\.{1,2}$)[A-Za-z0-9._-]+)$", RegexOptions.None, TimeSpan.FromSeconds(1));
+
         public bool Enabled { get; set; }
 
         /// <summary>Mutually exclusive with <see cref="Organization"/>.</summary>
         public string Repository { get; set; }
 
         public string Organization { get; set; }
+
+        /// <summary>
+        /// What a store's own repository setting may name besides <see cref="Repository"/>: "owner/name" or
+        /// "owner/*", ignoring case. Empty allows nothing else, because whoever edits a store's settings would
+        /// otherwise reach every repository the platform's credentials can write to.
+        /// </summary>
+        public IList<string> AllowedRepositories { get; set; } = [];
 
         public string RepositoryPrefix { get; set; } = "site-";
 
@@ -169,6 +182,11 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
             (!string.IsNullOrWhiteSpace(Token) || HasApp()) &&
             !string.IsNullOrWhiteSpace(BaseBranch);
 
+        public bool IsRepositoryAllowed(string repository) => AllowedRepositories.Any(entry =>
+            entry.EndsWith(AnyRepositoryOfOwner, StringComparison.Ordinal)
+                ? repository.StartsWith(entry[..^1], StringComparison.OrdinalIgnoreCase)
+                : string.Equals(entry, repository, StringComparison.OrdinalIgnoreCase));
+
         /// <summary>
         /// Fail fast at start-up: a half-configured git flow must not boot. Silently falling back to the
         /// blob flow would mean publishing writes straight to production on an installation whose
@@ -176,6 +194,9 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
         /// </summary>
         public void Validate()
         {
+            // before the switch: a connection made through the one-click setup leaves Enabled unset
+            ValidateAllowedRepositories();
+
             if (!Enabled)
             {
                 return;
@@ -186,7 +207,7 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
                 throw new InvalidOperationException(
                     $"{SectionName}:{nameof(Repository)} and {SectionName}:{nameof(Organization)} are both set. " +
                     $"Use {nameof(Organization)} for one repository per site; to keep a store on the shared repository, " +
-                    $"set it as that store's Git repository, then remove {nameof(Repository)}.");
+                    $"set it as that store's Git repository and list it in {nameof(AllowedRepositories)}, then remove {nameof(Repository)}.");
             }
 
             if (IsConfigured)
@@ -224,6 +245,17 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
             throw new InvalidOperationException(
                 $"{SectionName}:Enabled is set but the connection is incomplete — missing: {string.Join(", ", missing)}. " +
                 $"Fill them in, or set {SectionName}:Enabled to false.");
+        }
+
+        private void ValidateAllowedRepositories()
+        {
+            var malformed = AllowedRepositories.Where(x => x == null || !AllowedRepositoryPattern.IsMatch(x)).ToList();
+            if (malformed.Count > 0)
+            {
+                throw new InvalidOperationException(
+                    $"{SectionName}:{nameof(AllowedRepositories)} has entries that are neither \"owner/name\" nor \"owner/*\": " +
+                    $"{string.Join(", ", malformed.Select(x => $"\"{x}\""))}.");
+            }
         }
 
         private bool HasApp() => !string.IsNullOrWhiteSpace(AppId) && !string.IsNullOrWhiteSpace(PrivateKey);

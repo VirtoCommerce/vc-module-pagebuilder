@@ -85,7 +85,7 @@ public class PageBuilderSharedComponentsController(
 
         await EnrichUsageAsync(
             [component],
-            includePages: await CanReadPagesAsync(),
+            includePages: await CanReadPagesAsync(component),
             cancellationToken);
         return Ok(component);
     }
@@ -185,7 +185,7 @@ public class PageBuilderSharedComponentsController(
 
         await EnrichUsageAsync(
             [component],
-            includePages: await CanReadPagesAsync(),
+            includePages: await CanReadPagesAsync(component),
             cancellationToken);
 
         return Ok(component);
@@ -210,7 +210,7 @@ public class PageBuilderSharedComponentsController(
             return Forbidden;
         }
 
-        var includeUsagePages = await CanReadPagesAsync();
+        var includeUsagePages = await CanReadPagesAsync(component);
         await EnrichUsageAsync([component], includeUsagePages, cancellationToken);
         if (component.UsageCount > 0)
         {
@@ -338,12 +338,9 @@ public class PageBuilderSharedComponentsController(
         return result.Succeeded;
     }
 
-    private async Task<bool> CanReadPagesAsync()
+    private async Task<bool> CanReadPagesAsync(object resource)
     {
-        var result = await authorizationService.AuthorizeAsync(
-            User,
-            null,
-            ModuleConstants.Security.Permissions.Read);
+        var result = await authorizationService.AuthorizeAsync(User, resource, new PageBuilderAuthorizationRequirement());
         return result.Succeeded;
     }
 

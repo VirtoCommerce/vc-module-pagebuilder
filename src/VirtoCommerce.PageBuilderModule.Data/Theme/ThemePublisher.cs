@@ -22,6 +22,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Theme;
 public class ThemePublisher(
     IThemeStorageFactory themeStorageFactory,
     IThemeSnapshotBuilder themeSnapshotBuilder,
+    IThemeValidator themeValidator,
     IStoreService storeService,
     ISchemaCatalogService schemaCatalogService,
     IDistributedLock distributedLock,
@@ -30,8 +31,6 @@ public class ThemePublisher(
     IOptions<ThemeSnapshotOptions> options,
     ILogger<ThemePublisher> logger) : IThemePublisher
 {
-    private const string JsonExtension = ".json";
-
     private static readonly Dictionary<string, Action<ThemeSource, JToken>> ThemeParts = new(StringComparer.OrdinalIgnoreCase)
     {
         [ThemeStorage.TemplateRulesFile] = (source, content) => source.Rules = content,
@@ -100,7 +99,7 @@ public class ThemePublisher(
             AddThemeFile(source, file, content);
         }
 
-        var errors = themeSnapshotBuilder.Validate(source, catalog);
+        var errors = themeValidator.Validate(source, catalog);
         if (errors.Count > 0)
         {
             throw new ThemeValidationException([.. errors]);
@@ -116,7 +115,7 @@ public class ThemePublisher(
         var storage = await themeStorageFactory.OpenAsync(storeId);
 
         var source = await GetThemeSourceAsync(storage, includeDrafts);
-        var errors = themeSnapshotBuilder.Validate(source, catalogHash == null ? null : catalog);
+        var errors = themeValidator.Validate(source, catalogHash == null ? null : catalog);
         if (errors.Count > 0)
         {
             throw new ThemeValidationException([.. errors]);
@@ -198,7 +197,7 @@ public class ThemePublisher(
     {
         var templateKeys = await GetTemplateKeysAsync(storage);
 
-        return ThemeParts.Keys.Concat(templateKeys.Select(x => $"{ThemeStorage.TemplatesFolder}/{x}{JsonExtension}")).ToList();
+        return ThemeParts.Keys.Concat(templateKeys.Select(ThemeStorage.GetTemplateFile)).ToList();
     }
 
     protected virtual void AddThemeFile(ThemeSource source, string file, JToken content)
@@ -217,7 +216,7 @@ public class ThemePublisher(
     {
         var folder = ThemeStorage.TemplatesFolder + "/";
 
-        return file.StartsWith(folder, StringComparison.OrdinalIgnoreCase) ? themeSnapshotBuilder.GetTemplateKey(file[folder.Length..]) : null;
+        return file.StartsWith(folder, StringComparison.OrdinalIgnoreCase) ? ThemeStorage.GetTemplateKey(file[folder.Length..]) : null;
     }
 
     protected virtual async Task<IList<string>> GetDraftsAsync(IThemeStorage storage)
@@ -278,7 +277,7 @@ public class ThemePublisher(
         var fileNames = await storage.ListFilesAsync(ThemeStorage.TemplatesFolder);
 
         return fileNames
-            .Select(x => themeSnapshotBuilder.GetTemplateKey(storage.GetLivePath(x)))
+            .Select(x => ThemeStorage.GetTemplateKey(storage.GetLivePath(x)))
             .Where(x => x != null)
             .Distinct(StringComparer.Ordinal)
             .ToList();

@@ -156,30 +156,14 @@ export async function saveSharedComponentContent(id: string, doc: PageDocument) 
   });
 }
 
-async function setting(name: string): Promise<string | undefined> {
-  const res = await fetch(`/api/platform/settings/${encodeURIComponent(name)}`, { headers: await getAuthHeaders() });
-  if (!res.ok) return undefined;
-  const value = (await res.json()) as { value?: unknown; defaultValue?: unknown };
-  return (value.value ?? value.defaultValue ?? undefined) as string | undefined;
-}
-
-/** Resolved as the server's preview links are, https first because an http frame in the https admin is blocked. */
 export async function loadStorefront(storeId: string) {
-  const store = (await (await call(`/api/stores/${encodeURIComponent(storeId)}`)).json()) as {
-    url?: string;
-    secureUrl?: string;
-    name?: string;
-    defaultLanguage?: string;
-    defaultCurrency?: string;
-    languages?: string[];
-  };
-  const [configuredUrl, previewPath] = await Promise.all([
-    setting("VirtoCommerce.PageBuilderModule.General.StoreUrl"),
-    setting("VirtoCommerce.PageBuilderModule.General.StorePreviewPath"),
-  ]);
+  const [store, storefront] = (await Promise.all([
+    call(`/api/stores/${encodeURIComponent(storeId)}`).then((res) => res.json()),
+    call(`/api/pagebuilder/designer/storefront?${new URLSearchParams({ storeId })}`).then((res) => res.json()),
+  ])) as [{ defaultLanguage?: string; defaultCurrency?: string; languages?: string[] }, { url?: string; previewPath: string }];
   return {
-    url: configuredUrl?.trim() || store.secureUrl?.trim() || store.url?.trim() || undefined,
-    previewPath: previewPath || "/designer-preview",
+    url: storefront.url || undefined,
+    previewPath: storefront.previewPath,
     catalog: { storeId, cultureName: store.defaultLanguage || "en-US", currencyCode: store.defaultCurrency || "USD" } as CatalogContext,
     languages: Array.isArray(store.languages) ? store.languages.filter((x): x is string => typeof x === "string") : [],
   };

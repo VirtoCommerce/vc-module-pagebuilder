@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using VirtoCommerce.ContentModule.Core.Services;
@@ -24,6 +25,9 @@ public class ThemeStorage(IBlobContentStorageProvider provider, IPublishingServi
     public const string CurrentCatalogFile = CatalogsFolder + "/current.json";
 
     private const string FolderType = "folder";
+    private const string JsonExtension = ".json";
+
+    private static readonly Regex TemplateKeyPattern = new("^(product|category|page)(\\.[a-z0-9]+(?:-[a-z0-9]+)*)?$", RegexOptions.None, TimeSpan.FromSeconds(1));
 
     private static readonly JsonSerializerSettings SerializerSettings = new()
     {
@@ -37,6 +41,23 @@ public class ThemeStorage(IBlobContentStorageProvider provider, IPublishingServi
     /// <summary>The lock's token is cancelled by either a lost lock or a cancelled request.</summary>
     public static bool IsLockLost(CancellationToken lockToken, CancellationToken requestToken) =>
         lockToken.IsCancellationRequested && !requestToken.IsCancellationRequested;
+
+    public static bool IsTemplateKey(string key) => TemplateKeyPattern.IsMatch(key);
+
+    public static string GetTemplateFile(string key) => $"{TemplatesFolder}/{key}{JsonExtension}";
+
+    /// <summary>Returns null for a file name that does not name a template.</summary>
+    public static string GetTemplateKey(string fileName)
+    {
+        if (!fileName.EndsWith(JsonExtension, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var key = fileName[..^JsonExtension.Length];
+
+        return IsTemplateKey(key) ? key : null;
+    }
 
     public virtual string GetPath(string file) => $"{ThemeName}/{file}";
 
@@ -89,13 +110,6 @@ public class ThemeStorage(IBlobContentStorageProvider provider, IPublishingServi
         var result = await provider.SearchAsync(GetPath(folder), null);
 
         return result.Results.Where(x => x.Type != FolderType).Select(x => x.Name).ToList();
-    }
-
-    public virtual async Task<IList<string>> ListFoldersAsync(string folder)
-    {
-        var result = await provider.SearchAsync(GetPath(folder), null);
-
-        return result.Results.Where(x => x.Type == FolderType).Select(x => x.Name).ToList();
     }
 
     public virtual async Task<int?> GetCurrentPublicationAsync()
@@ -166,6 +180,13 @@ public class ThemeStorage(IBlobContentStorageProvider provider, IPublishingServi
     protected virtual string GetSnapshotPath(int publication, string language) => $"{GetPublicationFolder(publication)}/{language}.json";
 
     protected virtual string GetPublicationRecordPath(int publication) => $"{GetPublicationFolder(publication)}/{PublicationRecordFileName}";
+
+    protected virtual async Task<IList<string>> ListFoldersAsync(string folder)
+    {
+        var result = await provider.SearchAsync(GetPath(folder), null);
+
+        return result.Results.Where(x => x.Type == FolderType).Select(x => x.Name).ToList();
+    }
 
     protected virtual async Task<IList<int>> GetPublicationsAsync()
     {

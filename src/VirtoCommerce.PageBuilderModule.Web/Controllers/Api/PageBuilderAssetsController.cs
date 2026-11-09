@@ -64,7 +64,7 @@ public class PageBuilderAssetsController(
 
         var result = await assetReferenceService.SearchReferencesAsync(criteria, cancellationToken);
 
-        if (!await CanReadSharedComponentsAsync())
+        if (!await CanReadSharedComponentsAsync(criteria))
         {
             foreach (var reference in result.Results)
             {
@@ -78,12 +78,12 @@ public class PageBuilderAssetsController(
         return Ok(result);
     }
 
-    private async Task<bool> CanReadSharedComponentsAsync()
+    private async Task<bool> CanReadSharedComponentsAsync(object resource)
     {
         var result = await authorizationService.AuthorizeAsync(
             User,
-            null,
-            ModuleConstants.Security.Permissions.SharedComponentsRead);
+            resource,
+            new PageBuilderAuthorizationRequirement(ModuleConstants.Security.Permissions.SharedComponentsRead));
         return result.Succeeded;
     }
 

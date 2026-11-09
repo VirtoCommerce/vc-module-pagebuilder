@@ -27,6 +27,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             { nameof(PageBuilderController.Search), [] },
             { nameof(PageBuilderController.SaveTemplates), [Permissions.Update] },
             { nameof(PageBuilderController.GetDesignerThemeFile), [] },
+            { nameof(PageBuilderController.GetDesignerStorefront), [] },
             { nameof(PageBuilderController.SaveDesignerChanges), [Permissions.Update] },
             { nameof(PageBuilderController.DiscardDesignerChanges), [Permissions.Update] },
             { nameof(PageBuilderController.GitPublish), [Permissions.Publish] },

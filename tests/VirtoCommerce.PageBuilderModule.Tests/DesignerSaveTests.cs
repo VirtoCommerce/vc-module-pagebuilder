@@ -835,7 +835,7 @@ public class DesignerSaveTests
             """, Ct);
 
     private ThemePublisher ThemePublisher() =>
-        new(_themes, new ThemeSnapshotBuilder(), _live.StoreService, new SchemaCatalogService(_themes),
+        new(_themes, new ThemeSnapshotBuilder(), new ThemeValidator(), _live.StoreService, new SchemaCatalogService(_themes),
             _lock, _live, new NoContentHistory(), Options.Create(new ThemeSnapshotOptions()), NullLogger<ThemePublisher>.Instance);
 
     private PageBuilderController Builder(IAuthorizationService authorization = null, IContentHistory history = null)

@@ -321,6 +321,7 @@
       "PREVIEW_SLOW": "Nettstedet bruker lang tid på å laste. Sjekk at nettbutikken på {url} kjører, og last inn på nytt.",
       "RELOAD_PREVIEW": "Last inn på nytt",
       "NO_STOREFRONT": "Ingen forhåndsvisning: nettstedet har ingen nettbutikk-URL. Angi den i nettstedets innstillinger, og åpne siden på nytt.",
+      "STORE_READ_FAILED": "Kunne ikke lese nettstedet, så designeren ble ikke åpnet. Prøv igjen.",
       "PREVIEW_UNSUPPORTED": "Denne nettbutikken støtter ikke den nye Page Builder-designeren.",
       "LOAD_FAILED": "Siden kunne ikke lastes inn. Den kan ha blitt slettet, eller du har kanskje ikke tilgang til den.",
       "SAVE": "Lagre",

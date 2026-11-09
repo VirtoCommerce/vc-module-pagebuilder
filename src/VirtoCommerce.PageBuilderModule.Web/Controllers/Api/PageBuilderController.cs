@@ -696,6 +696,26 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             return Ok(await themeDraftService.ReadAsync(storeId, path, HttpContext.RequestAborted));
         }
 
+        /// <summary>Where the designer previews a store's pages</summary>
+        [HttpGet]
+        [Route("designer/storefront")]
+        [ProducesResponseType(typeof(DesignerStorefront), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public async Task<ActionResult<DesignerStorefront>> GetDesignerStorefront([FromQuery] string storeId)
+        {
+            if (await CheckRequestAsync(storeId, Themes, theme: null) is { } refused)
+            {
+                return refused;
+            }
+
+            var storefront = AbstractTypeFactory<DesignerStorefront>.TryCreateInstance();
+            storefront.Url = await GetStorefrontUrlAsync(storeId);
+            storefront.PreviewPath = await GetPreviewPathAsync();
+
+            return Ok(storefront);
+        }
+
         /// <summary>Save designer changes as drafts</summary>
         [HttpPost]
         [Authorize(ModuleConstants.Security.Permissions.Update)]
@@ -1461,7 +1481,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 });
             }
 
-            var previewPath = await GetSettingAsync(ModuleConstants.Settings.General.StorePreviewPath) ?? DefaultPreviewPath;
+            var previewPath = await GetPreviewPathAsync();
             var pageId = EncodePageId(storeId, type, path);
 
             return Redirect($"{storeUrl.TrimEnd('/')}{previewPath}?pageId={Uri.EscapeDataString(pageId)}&ref={Uri.EscapeDataString(gitRef)}");
@@ -2107,6 +2127,9 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
             return fromStore?.Trim();
         }
+
+        private async Task<string> GetPreviewPathAsync() =>
+            FirstFilled(await GetSettingAsync(ModuleConstants.Settings.General.StorePreviewPath), DefaultPreviewPath);
 
         private static string FirstFilled(params string[] values) =>
             values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));

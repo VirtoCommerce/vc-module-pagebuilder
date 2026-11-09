@@ -6,9 +6,10 @@ unsaved theme; one render message; inline text editing; and the light and dark s
 
 The same storefront serves both designers: a store with the New Page Builder setting off previews in the Angular
 designer, which speaks version 1. The storefront keeps every version 1 message (`page`, `changed`, `update`, `remove`,
-`add`, `reload`, `swap`, `preview`, `navigate`, `select`, `hover`, `settings`, `auth`) and answers both designers with
-the same `loaded`. The Vue designer never sends `settings`: it does not edit the theme settings
-([theme snapshot](theme-snapshot.md#theme-settings)). A storefront whose `loaded` has no `protocol` (an older
+`add`, `reload`, `swap`, `preview`, `navigate`, `select`, `hover`, `settings`, `auth`), and tells the designers apart
+by the `protocol` of the preview URL ([Handshake](#handshake)). The Vue designer never sends `settings`: it does not
+edit the theme settings ([theme snapshot](theme-snapshot.md#theme-settings)). A storefront whose `loaded` has no
+`protocol` (an older
 vc-frontend, or a fork that did not update) does not work with the Vue designer: the designer says so and does not
 render, and the store stays on the Angular designer.
 
@@ -16,9 +17,9 @@ render, and the store stays on the Angular designer.
 
 - The preview URL is the storefront URL with `previewPath` joined to its own path: the storefront URL's path without
   its trailing `/`, then the path of `previewPath`, whose query and hash take the place of the storefront URL's; then
-  `searchParams.set("ep", designerOrigin)`. A storefront at a sub-path keeps it: `https://shop.example/b2b` previews at
-  `https://shop.example/b2b/designer-preview?ep=…`. Only the path, query and hash of `previewPath` are taken, so it
-  never names another host. A storefront URL that is not `http:` or `https:` has no preview. `previewPath` is the
+  `searchParams.set("ep", designerOrigin)` and `searchParams.set("protocol", 2)`. A storefront at a sub-path keeps it:
+  `https://shop.example/b2b` previews at `https://shop.example/b2b/designer-preview?ep=…&protocol=2`. Only the path,
+  query and hash of `previewPath` are taken, so it never names another host. A storefront URL that is not `http:` or `https:` has no preview. `previewPath` is the
   platform setting `StorePreviewPath`, `/designer-preview` by default.
 - The iframe is `credentialless`: the preview has no cookies or storage of the admin's browser.
 - The storefront takes `ep` only when it runs in a frame, keeps only its origin and accepts messages only when
@@ -42,6 +43,10 @@ Designer to preview: `{ source: "builder", type, ...payload }`. Preview to desig
    `inspector`, `colorScheme`, `draft` and `render`, in that order: after a reload the frame has lost them all.
 5. The storefront shows the page after the first `render`; until then the frame stays blank. Until told otherwise
    it is anonymous, light, with the inspector off: no outlines, clicks blocked.
+
+The storefront decides what `loaded` carries from the `protocol` of the preview URL, not from `connect`: its unasked
+`loaded` can go first. A page opened without `protocol=2`, as the Angular designer opens it, gets the schemas as the
+Angular designer knows them, with none of the additions below.
 
 ```ts
 // designer → preview
@@ -100,8 +105,8 @@ interface Catalog {
 ```
 
 `Field`, `ItemSchema` and `TemplateEntry` are the schema types the storefront ships today (`schemas/**/*.json`), with
-the additions in [Schemas](#schemas). The Angular designer reads the schema keys of `loaded.data` and ignores the
-others. The Vue designer offers only the conditions in `conditions`, builds their forms from `value`, and never
+the additions in [Schemas](#schemas). The Vue designer offers only the conditions in `conditions`, builds their forms
+from `value`, and never
 evaluates rules itself: the storefront reports what it chose in `resolved`. A descriptor's `value` is a schema field
 like any other: an `object` value (`property`, `setting`: `{ name, equals }`) describes its fields under `element`.
 
@@ -272,8 +277,11 @@ Schemas are data, never code.
   comparisons, `&&`, `||`, `??`, `?:`, array literals and the evaluator's helper functions; or one of its known forms,
   matched as written. An expression that is none of these, or that fails, hides the field, as in the Angular designer.
 - A field with `request` fetches options; `request.response.result` is a dotted path to the rows, not an expression.
-  A URL on the platform's origin is requested with the admin token; a URL on any other origin is requested without
-  the `Authorization` header, and a 401 from it does not end the designer's session. Expression keys only the Angular designer reads (`selector`, `optionsSelector`, `previewRule`) are
+  On the platform's origin only two requests are made, with the admin token: `GET /api/pagebuilder/search`, and
+  `POST /graphql` without a query string, whose filled `body.query` is a string with no `mutation` or `subscription`
+  keyword outside its string literals and comments. Any other request to the platform is refused: nothing is sent, the
+  field gets no options and the console has a warning. A URL on any other origin is requested without the
+  `Authorization` header, and a 401 from it does not end the designer's session. Expression keys only the Angular designer reads (`selector`, `optionsSelector`, `previewRule`) are
   ignored by the Vue designer.
 - A field may be `"translatable": true` ([theme snapshot](theme-snapshot.md#translatable-fields)).
 - An `object` field and a row of a `list` field hold the fields under `element`; a `list` field without `element` is a

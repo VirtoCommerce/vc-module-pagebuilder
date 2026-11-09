@@ -1,13 +1,20 @@
-import { getBladeConfig, useBlade } from "@vc-shell/framework";
+import { getBladeConfig, notification, useBlade } from "@vc-shell/framework";
+import { useI18n } from "vue-i18n";
 import { canOpenPageDesigner, openPageDesigner, type PageDesignerContext } from "../../../../utilities/pageDesigner";
 import useUrlParams from "../useStoreParams";
 
 export function usePageDesigner() {
+  const { t } = useI18n({ useScope: "global" });
   const { openBlade } = useBlade();
   const { isNewPageBuilder } = useUrlParams();
 
   return async (context: PageDesignerContext, onClose?: () => void) => {
-    if (!(await isNewPageBuilder(context.storeId))) {
+    const newPageBuilder = await isNewPageBuilder(context.storeId);
+    if (newPageBuilder === undefined) {
+      notification.error(t("PAGE_BUILDER.DESIGNER.STORE_READ_FAILED"));
+      return;
+    }
+    if (!newPageBuilder) {
       openPageDesigner(context, true);
       return;
     }

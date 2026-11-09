@@ -31,6 +31,7 @@ public class GitContentStoreChangedEventHandlerTests
         Token = "t0ken",
         BaseBranch = "main",
         AutoCreateRepositories = autoCreate,
+        AllowedRepositories = ["other/website", "acme/website"],
     };
 
     [Fact]
@@ -145,7 +146,7 @@ public class GitContentStoreChangedEventHandlerTests
     private static GitContentStoreChangedEventHandler Handler(GitContentOptions options)
     {
         var connection = GitHubConnections.CreateService(options);
-        return new GitContentStoreChangedEventHandler(connection, new GitContentPolicy(connection, Options.Create(options), settingsManager: null, storeService: null,
+        return new GitContentStoreChangedEventHandler(connection, new GitContentPolicy(connection, Options.Create(options), settingsManager: null,
             new FakeGitContentOwnership()), NullLogger<GitContentStoreChangedEventHandler>.Instance);
     }
 
@@ -198,7 +199,7 @@ public class GitContentStoreChangedEventHandlerTests
     {
         var wrapped = Options.Create(options);
         var connection = GitHubConnections.CreateService(options);
-        var handler = new TestGitContentStoreChangedEventHandler(connection, new GitContentPolicy(connection, wrapped, settingsManager: null, storeService: null, new FakeGitContentOwnership()));
+        var handler = new TestGitContentStoreChangedEventHandler(connection, new GitContentPolicy(connection, wrapped, settingsManager: null, new FakeGitContentOwnership()));
         return handler.GetJobPayloadsAsync(new StoreChangedEvent(changes));
     }
 

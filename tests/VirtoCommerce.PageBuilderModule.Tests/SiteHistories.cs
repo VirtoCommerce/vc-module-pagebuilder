@@ -23,6 +23,7 @@ internal static class SiteHistories
         Token = "t0ken",
         BaseBranch = "main",
         GraphQlUrl = new Uri("https://api.github.test/graphql"),
+        AllowedRepositories = ["acme/website"],
     });
 
     public static GitHubSiteHistory Create(GitHubScript github, IThemeStorageFactory themes = null, IGroupedPageService pages = null,

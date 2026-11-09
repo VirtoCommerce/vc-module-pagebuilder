@@ -12,9 +12,6 @@ internal sealed class FakeGitContentPolicy(bool enabled = true, GitRepositorySou
     public Task<bool> IsEnabledForStoreAsync(string storeId, CancellationToken cancellationToken = default) =>
         Task.FromResult(enabled);
 
-    public Task SetEnabledForStoreAsync(string storeId, bool enabled, CancellationToken cancellationToken = default) =>
-        throw new NotSupportedException();
-
     public Task<string> GetRepositoryAsync(string storeId, CancellationToken cancellationToken = default) =>
         Task.FromResult(enabled ? GetRepositoryName(storeId) : null);
 
@@ -25,9 +22,6 @@ internal sealed class FakeGitContentPolicy(bool enabled = true, GitRepositorySou
         Task.FromResult(CreateStoreRepository(storeId));
 
     public Task<StoreRepository> GetConfiguredRepositoryAsync(string storeId, string repositorySetting, CancellationToken cancellationToken = default) =>
-        throw new NotSupportedException();
-
-    public Task<bool> IsInOrganizationAsync(string repository, CancellationToken cancellationToken = default) =>
         throw new NotSupportedException();
 
     private string GetRepositoryName(string storeId) => string.Format(CultureInfo.InvariantCulture, repositoryFormat, storeId);

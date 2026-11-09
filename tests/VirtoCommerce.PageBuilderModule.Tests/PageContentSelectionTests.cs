@@ -237,6 +237,14 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.Equal(string.Empty, body);
         }
 
+        [Fact]
+        public async Task PublishStatus_of_an_unknown_group_is_not_found()
+        {
+            var result = await CreateController(new PublishedRenameContentPreservationTests.FakeGroupedPageService()).PublishStatus("no-such-group");
+
+            Assert.IsType<NotFoundResult>(result.Result);
+        }
+
         private static PageBuilderPageController CreateController(
             PublishedRenameContentPreservationTests.FakeGroupedPageService service)
         {

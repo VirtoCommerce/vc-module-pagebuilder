@@ -37,10 +37,10 @@
           'asset-card--drop-target': item.dropTarget,
         }"
         @click.stop="$emit('entry-click', item.entry)"
-        @dragenter.prevent.stop="item.dropFolderUrl ? $emit('folder-drag', item.entry, $event) : undefined"
-        @dragover.prevent.stop="item.dropFolderUrl ? $emit('folder-drag', item.entry, $event) : undefined"
-        @dragleave.stop="item.dropFolderUrl ? $emit('folder-drag-leave', item.entry, $event) : undefined"
-        @drop.prevent.stop="item.dropFolderUrl ? $emit('folder-drop', item.entry, $event) : undefined"
+        @dragenter.prevent="claimDrag(item, $event) && $emit('folder-drag', item.entry, $event)"
+        @dragover.prevent="claimDrag(item, $event) && $emit('folder-drag', item.entry, $event)"
+        @dragleave="claimDrag(item, $event) && $emit('folder-drag-leave', item.entry, $event)"
+        @drop.prevent="claimDrag(item, $event) && $emit('folder-drop', item.entry, $event)"
       >
         <div class="asset-card__actions">
           <button
@@ -139,6 +139,15 @@ defineEmits<Emits>();
 
 const skeletonCount = 8;
 const showSkeleton = computed(() => !!props.loading);
+
+function claimDrag(item: AssetLibraryEntryViewModel, event: DragEvent): boolean {
+  if (!item.dropFolderUrl) {
+    return false;
+  }
+
+  event.stopPropagation();
+  return true;
+}
 </script>
 
 <style lang="scss" scoped>

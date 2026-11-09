@@ -106,6 +106,18 @@ Without a `BaseBranch` in configuration, the one-click setup uses `main`.
 A site can use an existing repository instead: set the store setting **Git repository** to `owner/name`. The module
 uses it but never creates, adopts or archives it. With the App, the App must be installed on that owner too.
 
+The platform accepts only a repository listed in `AllowedRepositories`, or the shared `Repository`:
+
+```
+PageBuilder__GitContent__AllowedRepositories__0=acme/website
+PageBuilder__GitContent__AllowedRepositories__1=acme-content/*
+```
+
+An entry is `owner/name` or `owner/*`, and case does not matter. `owner/*` trusts every repository of that owner,
+including ones nothing marks as a site's. The list is empty by default, so nothing beyond the shared repository is
+allowed. A site with the switch on that names anything else gets an error on save and publish until the setting or the
+list is corrected; its pages do not fall back to the platform's storage.
+
 Such a repository keeps the git flow of earlier installations, as the shared one does: the merge to its base branch is
 what its own deployment takes live, so the platform writes no live pages for it, and it holds no history of database
 pages or theme files. A repository the module created for another store is refused, whichever way a site names it.
@@ -114,7 +126,8 @@ pages or theme files. A repository the module created for another store is refus
 
 Setting `Repository` (instead of `Organization`) keeps the earlier model: one repository for every store, with a token
 (`Token`) or the App. To move to one repository per site, first set each git-enabled store's **Git repository** to the
-shared repository, then replace `Repository` with `Organization`. The two cannot be set together.
+shared repository, then replace `Repository` with `Organization` and list the shared repository in
+`AllowedRepositories`. `Repository` and `Organization` cannot be set together.
 
 ## Good to know
 

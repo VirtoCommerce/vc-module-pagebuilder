@@ -133,6 +133,7 @@ namespace VirtoCommerce.PageBuilderModule.Web
             serviceCollection.Configure<ThemeSnapshotOptions>(Configuration.GetSection(ThemeSnapshotOptions.SectionName));
             serviceCollection.AddTransient<IThemeStorageFactory, ThemeStorageFactory>();
             serviceCollection.AddTransient<IThemeSnapshotBuilder, ThemeSnapshotBuilder>();
+            serviceCollection.AddTransient<IThemeValidator, ThemeValidator>();
             serviceCollection.AddTransient<ISchemaCatalogService, SchemaCatalogService>();
             serviceCollection.AddTransient<IThemePublisher, ThemePublisher>();
             serviceCollection.AddTransient<IThemeDraftService, ThemeDraftService>();

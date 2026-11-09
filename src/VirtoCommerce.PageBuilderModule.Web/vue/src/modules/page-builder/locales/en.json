@@ -321,6 +321,7 @@
       "PREVIEW_SLOW": "The site is taking a while to load. Check that the storefront at {url} is running, then reload.",
       "RELOAD_PREVIEW": "Reload",
       "NO_STOREFRONT": "No preview: the site has no storefront URL. Set it in the site's Settings, then reopen the page.",
+      "STORE_READ_FAILED": "The site couldn't be read, so the designer didn't open. Try again.",
       "PREVIEW_UNSUPPORTED": "This storefront does not support the new Page Builder designer.",
       "LOAD_FAILED": "The page couldn't be loaded. It may have been deleted, or you may not have access to it.",
       "SAVE": "Save",

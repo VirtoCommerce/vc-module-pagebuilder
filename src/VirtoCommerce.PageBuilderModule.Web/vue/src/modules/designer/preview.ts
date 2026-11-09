@@ -132,5 +132,6 @@ export function storefrontPage(storefrontUrl: string | undefined, path: string):
 export function previewUrl(storefrontUrl: string | undefined, previewPath = "/designer-preview"): string | undefined {
   const url = storefrontPage(storefrontUrl, previewPath);
   url?.searchParams.set("ep", window.location.origin);
+  url?.searchParams.set("protocol", String(PREVIEW_PROTOCOL));
   return url?.toString();
 }
