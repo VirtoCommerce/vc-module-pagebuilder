@@ -183,6 +183,19 @@ describe("useDesigner: editing and saving", () => {
     expect((saves()[1].body as { page: { eTag: string } }).page.eTag).toBe('"v2"');
   });
 
+  it("saves an old page's settings as they were: its header and hideBreadcrumbs", async () => {
+    const settings = { type: "settings", name: "About", header: "About us", hideBreadcrumbs: true };
+    platform.on("GET", "/api/page-builder-pages/grouped/g1/content", { content: JSON.stringify({ ...PAGE, settings }), eTag: '"v1"' });
+    await openDatabasePage();
+    designer.selection.value = { kind: "section", id: "hero-1" };
+    designer.setField("title", "Hello there");
+
+    await designer.save();
+
+    const body = saves()[0].body as { page: { content: string } };
+    expect(JSON.parse(body.page.content).settings).toEqual(settings);
+  });
+
   it("saves only what changed: an edited header alone sends no page", async () => {
     await openDatabasePage();
     designer.selection.value = { kind: "section", id: "header-1" };

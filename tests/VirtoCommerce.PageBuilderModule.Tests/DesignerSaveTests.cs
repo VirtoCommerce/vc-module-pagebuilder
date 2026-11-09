@@ -90,6 +90,18 @@ public class DesignerSaveTests
     }
 
     [Fact]
+    public async Task SaveDesignerChanges_OldPage_KeepsItsSettingsAsSent()
+    {
+        const string oldPage = """{"settings":{"type":"settings","name":"About","header":"About us","hideBreadcrumbs":true},"content":[{"id":"a","type":"text"}]}""";
+        var page = DatabasePage();
+        page.Content = oldPage;
+
+        await Builder().SaveDesignerChanges("s1", Save(page));
+
+        Assert.Equal(oldPage, await DraftAsync());
+    }
+
+    [Fact]
     public async Task SaveDesignerChanges_Saved_RecordsOneVersionWithEveryPart()
     {
         await Builder().SaveDesignerChanges("s1", Save(DatabasePage(), (Header, HeaderFile)));

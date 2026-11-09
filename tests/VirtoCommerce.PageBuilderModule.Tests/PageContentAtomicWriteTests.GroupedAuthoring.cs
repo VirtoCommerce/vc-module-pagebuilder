@@ -279,6 +279,19 @@ public partial class PageContentAtomicWriteTests
         Assert.Equal([AssetAUrl], await LoadAssetUrlsAsync(database.ConnectionString));
     }
 
+    [Fact]
+    public void GroupSettings_OldPage_KeepsItsHeaderAndHideBreadcrumbs()
+    {
+        var group = new GroupedPageBuilderPage { Name = "Renamed", Permalink = "about", CultureName = "en-US" };
+        const string content = """{"settings":{"type":"settings","name":"About","permalink":"about","cultureName":"en-US","header":"About us","hideBreadcrumbs":true},"content":[]}""";
+
+        var updated = JsonNode.Parse(PageBuilderContentSettings.Synchronize(content, group));
+
+        Assert.Equal("Renamed", updated["settings"]["name"].GetValue<string>());
+        Assert.Equal("About us", updated["settings"]["header"].GetValue<string>());
+        Assert.True(updated["settings"]["hideBreadcrumbs"].GetValue<bool>());
+    }
+
     [Theory]
     [InlineData("42")]
     [InlineData("true")]

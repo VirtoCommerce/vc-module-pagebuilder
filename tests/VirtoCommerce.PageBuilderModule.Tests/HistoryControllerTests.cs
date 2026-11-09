@@ -54,6 +54,14 @@ public class HistoryControllerTests
     }
 
     [Fact]
+    public async Task GetStatus_StoreUserDoesNotWorkIn_ReturnsForbid()
+    {
+        var result = await Controller(new FakeAuthorizationService("s2", Permissions.Read)).GetStatus("s1", Ct);
+
+        Assert.IsType<ForbidResult>(result.Result);
+    }
+
+    [Fact]
     public async Task GetHistory_Items_ReturnsTheVersionPage()
     {
         var result = await Controller().GetHistory("s1", ["page:g1", $"theme:{Header}"], cancellationToken: Ct);

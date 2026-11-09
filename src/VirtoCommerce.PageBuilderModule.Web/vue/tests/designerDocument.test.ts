@@ -14,6 +14,15 @@ test("documents load from every stored shape", () => {
   assert.equal(toDocument({ pageContent: '{"settings":{},"content":[{"id":"x","type":"text"}]}' }).content[0].id, "x");
 });
 
+test("an old page's settings come back as they were: its header and hideBreadcrumbs too", () => {
+  const settings = { type: "settings", name: "About", header: "About us", hideBreadcrumbs: true, seoInfo: { pageTitle: "About" } };
+  const page = { settings, content: [{ id: "t1", type: "text" }] };
+  assert.deepEqual(fromDocument(toDocument(JSON.stringify(page))), page);
+  // the legacy array form keeps its settings item too
+  const legacy = [settings, { id: "t1", type: "text" }];
+  assert.deepEqual(fromDocument(toDocument(legacy)), legacy);
+});
+
 test("items without an id get one, blocks too", () => {
   const doc = toDocument({ settings: {}, content: [{ type: "slider", blocks: [{ type: "text" }] }] });
   assert.match(doc.content[0].id, /^slider/);
