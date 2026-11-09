@@ -77,10 +77,10 @@ public class GitContentSetupController(
     /// <summary>Enable git content for the store</summary>
     [HttpPost]
     [Route("site/connect")]
-    [Authorize(StorePermissions.Update)]
     public async Task<ActionResult<GitContentSiteStatus>> ConnectSite(string storeId, CancellationToken cancellationToken = default)
     {
-        if (await CheckRequestAsync(storeId, cancellationToken) is { } refused)
+        // store:update can be scoped to stores, which [Authorize] does not see
+        if (await CheckRequestAsync(storeId, cancellationToken, StorePermissions.Update) is { } refused)
         {
             return refused;
         }
@@ -100,10 +100,10 @@ public class GitContentSetupController(
     /// <summary>Disable git content for the store</summary>
     [HttpPost]
     [Route("site/disconnect")]
-    [Authorize(StorePermissions.Update)]
     public async Task<ActionResult<GitContentSiteStatus>> DisconnectSite(string storeId, CancellationToken cancellationToken = default)
     {
-        if (await CheckRequestAsync(storeId, cancellationToken) is { } refused)
+        // store:update can be scoped to stores, which [Authorize] does not see
+        if (await CheckRequestAsync(storeId, cancellationToken, StorePermissions.Update) is { } refused)
         {
             return refused;
         }
@@ -244,7 +244,7 @@ public class GitContentSetupController(
             var searchResult = await storeSearchService.SearchAsync(criteria);
             foreach (var store in searchResult.Results)
             {
-                if (stores.Count < MaxSites && await CheckStoreAccessAsync(new PageBuilderStoreRequest { StoreId = store.Id }) == null)
+                if (stores.Count < MaxSites && await CheckStoreAccessAsync(store) == null)
                 {
                     stores.Add(store);
                 }
@@ -261,16 +261,18 @@ public class GitContentSetupController(
     }
 
     // access first, so a 400 does not reveal which stores exist
-    private async Task<ActionResult> CheckRequestAsync(string storeId, CancellationToken cancellationToken)
+    private async Task<ActionResult> CheckRequestAsync(string storeId, CancellationToken cancellationToken, string permission = null)
     {
         var request = new PageBuilderStoreRequest { StoreId = storeId };
 
-        return await CheckStoreAccessAsync(request) ?? await ValidateAsync(storeRequestValidator, request, cancellationToken);
+        return (permission == null ? null : await CheckStoreAccessAsync(request, permission))
+               ?? await CheckStoreAccessAsync(request)
+               ?? await ValidateAsync(storeRequestValidator, request, cancellationToken);
     }
 
-    private async Task<ActionResult> CheckStoreAccessAsync(PageBuilderStoreRequest request)
+    private async Task<ActionResult> CheckStoreAccessAsync(object resource, string permission = ModuleConstants.Security.Permissions.Read)
     {
-        var authorizationResult = await authorizationService.AuthorizeAsync(User, request, new PageBuilderAuthorizationRequirement());
+        var authorizationResult = await authorizationService.AuthorizeAsync(User, resource, new PageBuilderAuthorizationRequirement(permission));
         return authorizationResult.Succeeded ? null : Forbid();
     }
 

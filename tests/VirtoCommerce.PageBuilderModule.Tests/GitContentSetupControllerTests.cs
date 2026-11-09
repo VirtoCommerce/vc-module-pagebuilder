@@ -17,6 +17,7 @@ using VirtoCommerce.StoreModule.Core.Model;
 using VirtoCommerce.StoreModule.Core.Model.Search;
 using VirtoCommerce.StoreModule.Core.Services;
 using Xunit;
+using StorePermissions = VirtoCommerce.StoreModule.Core.ModuleConstants.Security.Permissions;
 
 namespace VirtoCommerce.PageBuilderModule.Tests;
 
@@ -191,10 +192,32 @@ public class GitContentSetupControllerTests
     {
         var provisioner = new FakeGitContentProvisioner();
 
-        var result = await Controller(authorization: new FakeAuthorizationService("s2"), provisioner: provisioner).ConnectSite("s1", Ct);
+        var result = await Controller(authorization: new FakeAuthorizationService("s2", StorePermissions.Update), provisioner: provisioner).ConnectSite("s1", Ct);
 
         Assert.IsType<ForbidResult>(result.Result);
         Assert.Empty(provisioner.Connected);
+    }
+
+    [Fact]
+    public async Task ConnectAndDisconnectSite_NoStoreUpdateInTheStore_ReturnForbid()
+    {
+        var provisioner = new FakeGitContentProvisioner();
+        var controller = Controller(authorization: new FakeAuthorizationService("s1"), provisioner: provisioner);
+
+        Assert.IsType<ForbidResult>((await controller.ConnectSite("s1", Ct)).Result);
+        Assert.IsType<ForbidResult>((await controller.DisconnectSite("s1", Ct)).Result);
+        Assert.Empty(provisioner.Connected);
+    }
+
+    [Fact]
+    public async Task ConnectSite_StoreUpdateInTheStore_Connects()
+    {
+        var provisioner = new FakeGitContentProvisioner();
+
+        var result = await Controller(authorization: new FakeAuthorizationService("s1", StorePermissions.Update), provisioner: provisioner).ConnectSite("s1", Ct);
+
+        Assert.IsType<OkObjectResult>(result.Result);
+        Assert.Equal(["s1"], provisioner.Connected);
     }
 
     [Fact]

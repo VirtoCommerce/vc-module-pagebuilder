@@ -7,6 +7,7 @@ using VirtoCommerce.Platform.Core;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.Platform.Security.Authorization;
+using VirtoCommerce.StoreModule.Core.Model;
 using VirtoCommerce.StoreModule.Core.Security;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Authorization
@@ -50,6 +51,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Authorization
         /// <summary>The stores the resource belongs to; <c>null</c> for a resource that names none.</summary>
         private static IList<string> GetStoreIds(object resource) => resource switch
         {
+            Store store => [store.Id],
             IHasStoreId hasStoreId => [hasStoreId.StoreId],
             IEnumerable<IHasStoreId> hasStoreIds => hasStoreIds.Select(x => x.StoreId).ToList(),
             _ => null,

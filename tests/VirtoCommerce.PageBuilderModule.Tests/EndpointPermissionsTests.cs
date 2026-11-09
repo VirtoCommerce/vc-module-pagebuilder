@@ -8,7 +8,6 @@ using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using Xunit;
 using static VirtoCommerce.PageBuilderModule.Core.ModuleConstants.Security;
 using PlatformPermissions = VirtoCommerce.Platform.Core.PlatformConstants.Security.Permissions;
-using StorePermissions = VirtoCommerce.StoreModule.Core.ModuleConstants.Security.Permissions;
 
 namespace VirtoCommerce.PageBuilderModule.Tests;
 
@@ -36,8 +35,9 @@ public class EndpointPermissionsTests
     private static readonly Dictionary<(Type Controller, string Action), string> Expected = new()
     {
         [(typeof(GitContentSetupController), nameof(GitContentSetupController.GetSite))] = InTheAction,
-        [(typeof(GitContentSetupController), nameof(GitContentSetupController.ConnectSite))] = StorePermissions.Update,
-        [(typeof(GitContentSetupController), nameof(GitContentSetupController.DisconnectSite))] = StorePermissions.Update,
+        // store:update in the store, which its scope can limit
+        [(typeof(GitContentSetupController), nameof(GitContentSetupController.ConnectSite))] = InTheAction,
+        [(typeof(GitContentSetupController), nameof(GitContentSetupController.DisconnectSite))] = InTheAction,
         [(typeof(GitContentSetupController), nameof(GitContentSetupController.GetConnection))] = Permissions.Read,
         [(typeof(GitContentSetupController), nameof(GitContentSetupController.StartAppSetup))] = PlatformPermissions.SettingUpdate,
         [(typeof(GitContentSetupController), nameof(GitContentSetupController.AppNew))] = Anonymous,
