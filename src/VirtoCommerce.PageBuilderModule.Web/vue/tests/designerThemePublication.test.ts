@@ -63,13 +63,13 @@ test("Publish theme counts the theme files waiting and is enabled only with some
   assert.equal(themePublishButton({ status: undefined, unsaved: false, busy: false }).disabled, true);
 });
 
-test("publishActions: a page publishes itself, a template only with the theme, a shared component neither", () => {
-  assert.deepEqual(publishActions({ template: false, shared: false, mayPublishTheme: true }), { page: true, theme: true });
-  assert.deepEqual(publishActions({ template: false, shared: false, mayPublishTheme: false }), { page: true, theme: false });
+test("publishActions: a page publishes itself, a template only with the theme, a shared component neither; nothing without builder:publish", () => {
+  assert.deepEqual(publishActions({ template: false, shared: false, mayPublish: true }), { page: true, theme: true });
+  assert.deepEqual(publishActions({ template: false, shared: false, mayPublish: false }), { page: false, theme: false });
   // a template's Publish is the theme's; it has no Unpublish
-  assert.deepEqual(publishActions({ template: true, shared: false, mayPublishTheme: true }), { page: false, theme: true });
-  assert.deepEqual(publishActions({ template: true, shared: false, mayPublishTheme: false }), { page: false, theme: false });
-  assert.deepEqual(publishActions({ template: false, shared: true, mayPublishTheme: true }), { page: false, theme: false });
+  assert.deepEqual(publishActions({ template: true, shared: false, mayPublish: true }), { page: false, theme: true });
+  assert.deepEqual(publishActions({ template: true, shared: false, mayPublish: false }), { page: false, theme: false });
+  assert.deepEqual(publishActions({ template: false, shared: true, mayPublish: true }), { page: false, theme: false });
 });
 
 test("the theme's publication names the catalog previewed", () => {

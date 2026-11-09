@@ -32,6 +32,7 @@
     "vue-tsc": "^3.2.5"
   },
   "dependencies": {
+    "@tiptap/core": "^3.4.2",
     "@vc-shell/config-generator": "2.7.0",
     "@vc-shell/framework": "2.7.0",
     "@vc-shell/mf-module": "2.7.0",

@@ -82,10 +82,24 @@ export function useDesigner() {
   function undo() {
     record.flush();
     history.undo();
+    settleSelection();
   }
   function redo() {
     record.flush();
     history.redo();
+    settleSelection();
+  }
+  /**
+   * The document went a step back or forward: a selected block it no longer has selects its section, a section it no
+   * longer has nothing; the ticked sections it no longer has are unticked
+   */
+  function settleSelection() {
+    checked.value = checked.value.filter((id) => !!findSection(id));
+    const sel = selection.value;
+    if (!sel || sel.kind === "page") return;
+    const section = findSection(sel.kind === "block" ? sel.sectionId : sel.id);
+    if (!section) selection.value = null;
+    else if (sel.kind === "block" && !section.blocks?.some((b) => b.id === sel.id)) selection.value = { kind: "section", id: section.id };
   }
   const pageDirty = computed(() => JSON.stringify(pageOnly(doc.value)) !== savedJson.value);
   const changedGroups = (): Partial<Record<SectionGroup, Item[]>> =>
@@ -310,6 +324,7 @@ export function useDesigner() {
   function duplicate(sel: Selection) {
     if (sel.kind === "section") {
       const index = doc.value.content.findIndex((x) => x.id === sel.id);
+      if (index < 0) return;
       const original = doc.value.content[index];
       if (isComponentRef(original) && !canPlaceShared.value) return;
       // a reference is copied as another placement of the same component
@@ -321,6 +336,7 @@ export function useDesigner() {
     } else if (sel.kind === "block") {
       const blocks = findSection(sel.sectionId)?.blocks ?? [];
       const index = blocks.findIndex((b) => b.id === sel.id);
+      if (index < 0) return;
       const copy = copyItem(blocks[index]);
       updateSection(sel.sectionId, (x) => ({ ...x, blocks: [...blocks.slice(0, index + 1), copy, ...blocks.slice(index + 1)] }));
       selection.value = { kind: "block", sectionId: sel.sectionId, id: copy.id };

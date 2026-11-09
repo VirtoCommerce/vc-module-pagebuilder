@@ -6101,6 +6101,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "pagebuilder-admin@workspace:."
   dependencies:
+    "@tiptap/core": "npm:^3.4.2"
     "@types/lodash-es": "npm:^4.17.12"
     "@types/node": "npm:^20.10.5"
     "@types/sortablejs": "npm:^1"

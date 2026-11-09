@@ -522,6 +522,8 @@
         "DEFAULTS": "To są reguły domyślne: obowiązują, dopóki motyw nie ma własnej listy. Zmiana tutaj zapisuje listę z motywem.",
         "NO_HANDSHAKE": "Reguły można edytować po załadowaniu podglądu: witryna podaje, jakie warunki zna.",
         "NO_PERMISSION": "Możesz przeglądać reguły, ale nie możesz ich zmieniać: wymaga to uprawnienia do edycji szablonów.",
+        "LOAD_FAILED": "Nie udało się odczytać reguł, więc nie można ich tu zmienić.",
+        "RETRY": "Spróbuj ponownie",
         "UNREADABLE": "Wpisy pliku reguł, których nie da się tu odczytać: {count}. Zapisanie reguł je pominie.",
         "JSON": "Edytuj jako JSON",
         "NO_TEMPLATE": "Brak w motywie",

@@ -522,6 +522,8 @@
         "DEFAULTS": "Estas são as regras padrão: valem enquanto o tema não tiver uma lista própria. Uma alteração aqui salva a lista com o tema.",
         "NO_HANDSHAKE": "As regras podem ser editadas depois que a pré-visualização carregar: o site informa quais condições conhece.",
         "NO_PERMISSION": "Você pode ver as regras, mas não alterá-las: isso exige permissão para editar modelos.",
+        "LOAD_FAILED": "Não foi possível ler as regras, por isso não podem ser alteradas aqui.",
+        "RETRY": "Tentar novamente",
         "UNREADABLE": "Entradas do arquivo de regras que não podem ser lidas aqui: {count}. Salvar as regras as deixa de fora.",
         "JSON": "Editar como JSON",
         "NO_TEMPLATE": "Não está no tema",

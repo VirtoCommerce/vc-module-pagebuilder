@@ -522,6 +522,8 @@
         "DEFAULTS": "Nämä ovat oletussäännöt: ne ovat voimassa, kunnes teemalla on oma luettelo. Muutos tässä tallentaa luettelon teemaan.",
         "NO_HANDSHAKE": "Sääntöjä voi muokata, kun esikatselu on latautunut: sivusto kertoo, mitkä ehdot se tuntee.",
         "NO_PERMISSION": "Voit tarkastella sääntöjä mutta et muuttaa niitä: siihen tarvitaan oikeus muokata malleja.",
+        "LOAD_FAILED": "Sääntöjä ei voitu lukea, joten niitä ei voi muuttaa täällä.",
+        "RETRY": "Yritä uudelleen",
         "UNREADABLE": "Sääntötiedoston merkinnät, joita ei voi lukea täällä: {count}. Sääntöjen tallennus jättää ne pois.",
         "JSON": "Muokkaa JSON-muodossa",
         "NO_TEMPLATE": "Ei teemassa",

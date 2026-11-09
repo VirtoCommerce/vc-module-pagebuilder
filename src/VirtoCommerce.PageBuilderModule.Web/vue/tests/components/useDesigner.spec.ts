@@ -156,6 +156,29 @@ describe("useDesigner: editing and saving", () => {
     expect(designer.dirty.value).toBe(false);
   });
 
+  it("deselects a section an undo takes away; a Duplicate of it does nothing", async () => {
+    await openDatabasePage();
+    const before = designer.doc.value.content.length;
+    designer.addSection("hero");
+    const added = designer.selection.value!;
+    expect(added).toMatchObject({ kind: "section" });
+
+    designer.undo();
+    expect(designer.doc.value.content).toHaveLength(before);
+    expect(designer.selection.value).toBeNull();
+    designer.duplicate(added);
+    expect(designer.doc.value.content).toHaveLength(before);
+  });
+
+  it("selects a block's section once an undo takes the block away", async () => {
+    await openDatabasePage();
+    designer.addBlock("hero-1", "hero");
+    expect(designer.selection.value).toMatchObject({ kind: "block", sectionId: "hero-1" });
+
+    designer.undo();
+    expect(designer.selection.value).toEqual({ kind: "section", id: "hero-1" });
+  });
+
   it("saves the page, the header and the theme files given in one request naming the catalog previewed", async () => {
     await openDatabasePage();
     designer.selection.value = { kind: "section", id: "hero-1" };

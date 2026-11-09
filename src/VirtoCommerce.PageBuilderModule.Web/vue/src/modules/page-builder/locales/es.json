@@ -522,6 +522,8 @@
         "DEFAULTS": "Estas son las reglas predeterminadas: se aplican mientras el tema no tenga una lista propia. Un cambio aquí guarda la lista con el tema.",
         "NO_HANDSHAKE": "Las reglas se pueden editar cuando la vista previa se haya cargado: el sitio indica qué condiciones conoce.",
         "NO_PERMISSION": "Puedes ver las reglas, pero no cambiarlas: para eso necesitas permiso para editar plantillas.",
+        "LOAD_FAILED": "No se pudieron leer las reglas, así que no se pueden cambiar aquí.",
+        "RETRY": "Reintentar",
         "UNREADABLE": "Entradas del archivo de reglas que no se pueden leer aquí: {count}. Al guardar las reglas se omiten.",
         "JSON": "Editar como JSON",
         "NO_TEMPLATE": "No está en el tema",

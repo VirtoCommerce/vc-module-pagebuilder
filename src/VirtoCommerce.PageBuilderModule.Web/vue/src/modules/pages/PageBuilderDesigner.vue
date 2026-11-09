@@ -6,7 +6,7 @@
     :subtitle="subtitle"
     :toolbar-items="toolbar"
     :modified="unsaved"
-    :loading="(!!param && !group) || designer.busy.value === 'loading'"
+    :loading="(!!param && !group) || designer.busy.value === 'loading' || designer.busy.value === 'restoring'"
   >
     <div
       v-if="designer.loadError.value || archived"
@@ -929,6 +929,8 @@ const bridge = usePreviewBridge({
   // a text edited on the page: the setting changes (a translatable one in the language edited), and its section or
   // block is selected (the preview stays put)
   onEdit: ({ itemId, path, value, cultureName: language }) => {
+    // a version shown is look-only: what is typed there is not the page's
+    if (versionView) return;
     const target = designer.setText(itemId, path, value, language);
     if (!target || JSON.stringify(target) === JSON.stringify(designer.selection.value)) return;
     selectedInPreview = true;
@@ -968,13 +970,14 @@ const sendRender = debounce(() => {
 watch(renderJson, sendRender);
 
 // the inspector: on, the preview outlines sections and a click selects one; off, it works like the live page.
-// A page left while it was off (a link that reloads) comes back when it is turned on again.
+// A page left while it was off (a link that reloads) comes back when it is turned on again. A version shown stays
+// look-only: the switch takes effect once the page shows again.
 const inspector = ref(true);
 function toggleInspector() {
   inspector.value = !inspector.value;
   designer.hovered.value = null;
   if (inspector.value && !bridge.connected.value && frame.value && url.value) frame.value.src = url.value;
-  bridge.send({ type: "inspector", enabled: inspector.value });
+  bridge.send({ type: "inspector", enabled: !versionView && inspector.value });
 }
 
 watch(colorScheme, (scheme) => bridge.send({ type: "colorScheme", scheme }));
@@ -1032,6 +1035,7 @@ watch(
 
 // the Add section list: the hovered type shows at the end of the page until the pointer leaves
 function previewSection(type: string | null) {
+  if (versionView) return;
   sendRender.cancel();
   if (type) bridge.send(render({ model: newItem(type, "section", designer.schemas.value) }));
   else sendRender();
@@ -1429,23 +1433,35 @@ async function reopen() {
 
 async function restoreVersion(version: HistoryVersion) {
   if (!(await showConfirmation(t("PAGE_BUILDER.DESIGNER.HISTORY.CONFIRM", { version: version.label })))) return;
+  if (designer.busy.value) return;
   try {
-    const items = version.items;
-    if (!items) await designer.restore(version.id);
-    else {
-      const storeId = designer.storeId.value!;
-      const files = filesOf(version);
-      // what that Save changed, back as their drafts in one save: one version on top, named after the one picked
-      await restoreContentVersion(storeId, version.id, items);
-      if (files.includes("rules")) await rules.load(storeId, themeName.value!);
-      if (files.some((x) => Object.values<HistoryFile>(LOOK_FILES).includes(x))) await loadTheme(storeId);
-      // the page or template, the header or footer: the designer opens them again from their new drafts
-      if (files.some((x) => !THEME_ONLY_FILES.includes(x))) await reopen();
-      else await Promise.all([versionHistory.value?.reload(), designer.refreshThemeStatus()]);
-    }
+    if (version.items) await restoreSiteVersion(version, version.items);
+    else await designer.restore(version.id);
     notification.success(t("PAGE_BUILDER.DESIGNER.HISTORY.RESTORED"));
   } catch {
     notification.error(t("PAGE_BUILDER.DESIGNER.HISTORY.RESTORE_FAILED"));
+  }
+}
+
+/**
+ * What a Save changed, back as their drafts in one save (one version on top, named after the one picked), then read
+ * again; the designer's actions wait meanwhile. A read that fails after the restore leaves it done.
+ */
+async function restoreSiteVersion(version: HistoryVersion, items: string[]) {
+  const storeId = designer.storeId.value!;
+  const files = filesOf(version);
+  designer.busy.value = "restoring";
+  try {
+    await restoreContentVersion(storeId, version.id, items);
+    await Promise.all([
+      files.includes("rules") ? rules.load(storeId, themeName.value!).catch(() => undefined) : undefined,
+      files.some((x) => Object.values<HistoryFile>(LOOK_FILES).includes(x)) ? loadTheme(storeId).catch(() => undefined) : undefined,
+    ]);
+    // the page or template, the header or footer: the designer opens them again from their new drafts
+    if (files.some((x) => !THEME_ONLY_FILES.includes(x))) await reopen().catch(() => undefined);
+    else await Promise.all([versionHistory.value?.reload(), designer.refreshThemeStatus()]).catch(() => undefined);
+  } finally {
+    designer.busy.value = undefined;
   }
 }
 
@@ -1497,7 +1513,7 @@ async function discardDrafts(choice: { page: boolean; theme: ThemePart[] }) {
 
 // a template has no Publish of its own: it goes live with the theme, by Publish theme (users with builder:publish)
 const publishShown = computed(() =>
-  publishActions({ template: designer.themeFileOpen.value, shared: !!designer.shared.value, mayPublishTheme: hasAccess(PERMISSIONS.publish) }),
+  publishActions({ template: designer.themeFileOpen.value, shared: !!designer.shared.value, mayPublish: hasAccess(PERMISSIONS.publish) }),
 );
 const themePublish = computed(() =>
   themePublishButton({ status: designer.themeStatus.value, unsaved: unsaved.value, busy: !!designer.busy.value }),
@@ -1601,7 +1617,7 @@ const toolbar = computed<IBladeToolbar[]>(() => [
     title: t("PAGE_BUILDER.DESIGNER.PROMOTE"),
     icon: "lucide-rocket",
     // only with a production branch configured (git)
-    isVisible: !!designer.status.value.production,
+    isVisible: !!designer.status.value.production && hasAccess(PERMISSIONS.promote),
     disabled: !designer.canPromote.value,
     clickHandler: promote,
   },
@@ -1819,7 +1835,9 @@ watch(previewUrlOf, (to) => {
   if (!to || !designer.templateKey.value) return;
   reported.value = undefined;
   sendRender.cancel();
-  bridge.send(render());
+  // a version shown goes there too
+  if (previewing.value) void previewVersion(previewing.value);
+  else bridge.send(render());
 });
 
 /** a template opened: something to preview it with, and the rules */

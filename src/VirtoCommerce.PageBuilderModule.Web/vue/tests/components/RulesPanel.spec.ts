@@ -241,6 +241,28 @@ describe("RulesPanel", () => {
     expect(rules.dirty.value).toBe(false);
   });
 
+  it("keeps the rules from edits while the file can't be read, and reads it again on Try again", async () => {
+    platform.on("GET", "/api/pagebuilder/designer/theme-file", { content: "{ not json", eTag: '"broken"' });
+    const rules = useTemplateRules();
+    await expect(rules.load("B2B-store", "default")).rejects.toThrow();
+    const wrapper = mount(RulesPanel, {
+      attachTo: document.body,
+      props: { rules, type: "product", templateKey: "product.printer", keys: ["product", "product.printer"], catalog: CATALOG, theme: "default", conditions: CONDITIONS },
+    });
+    await flushPromises();
+
+    expect(wrapper.text()).toContain("The rules couldn't be read");
+    expect(wrapper.findAll("button").some((x) => x.text() === "Add rule" || x.text() === "Edit as JSON")).toBe(false);
+    expect(rows(wrapper).every((x) => (x.find("input[role=switch]").element as HTMLInputElement).disabled)).toBe(true);
+
+    platform.on("GET", "/api/pagebuilder/designer/theme-file", themeFileAnswer({ "default/config/template_rules.json": RULES_FILE }));
+    await button(wrapper, "Try again").trigger("click");
+    await flushPromises();
+    expect(wrapper.text()).not.toContain("The rules couldn't be read");
+    expect(rules.loaded.value).toBe(true);
+    expect(wrapper.findAll("button").some((x) => x.text() === "Add rule")).toBe(true);
+  });
+
   it("only shows the rules to an editor who may not change templates, and says why", async () => {
     const { wrapper } = await mountPanel({ readonly: true });
 

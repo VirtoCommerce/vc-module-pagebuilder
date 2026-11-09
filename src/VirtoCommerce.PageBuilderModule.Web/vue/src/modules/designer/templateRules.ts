@@ -13,6 +13,8 @@ export function useTemplateRules() {
   const rules = ref<TemplateRules>(readRules(undefined));
   const savedJson = ref(formatRules(rules.value));
   const loaded = ref(false);
+  /** the last read of the file failed: until one succeeds the rules are not edited, as what is shown isn't the file */
+  const failed = ref(false);
   /** the entries of the file as last read that the designer can't read: the next save of the rules leaves them out */
   const unreadable = ref(0);
   let at: { storeId: string; theme: string } | undefined;
@@ -22,7 +24,14 @@ export function useTemplateRules() {
 
   async function load(storeId: string, theme: string) {
     at = { storeId, theme };
-    const file = await api.loadThemeFile(storeId, rulesPath(theme));
+    let file: Awaited<ReturnType<typeof api.loadThemeFile>>;
+    try {
+      file = await api.loadThemeFile(storeId, rulesPath(theme));
+    } catch (e) {
+      failed.value = !loaded.value;
+      throw e;
+    }
+    failed.value = false;
     eTag = file.eTag;
     rules.value = readRules(file.content);
     unreadable.value = unreadableRules(file.content);
@@ -50,7 +59,7 @@ export function useTemplateRules() {
     if (at) await load(at.storeId, at.theme);
   }
 
-  return { rules, dirty, loaded, unreadable, load, pending, reload };
+  return { rules, dirty, loaded, failed, unreadable, load, pending, reload };
 }
 
 export type TemplateRulesState = ReturnType<typeof useTemplateRules>;

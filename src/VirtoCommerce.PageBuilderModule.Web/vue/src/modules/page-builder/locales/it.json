@@ -522,6 +522,8 @@
         "DEFAULTS": "Queste sono le regole predefinite: valgono finché il tema non ha un elenco proprio. Una modifica qui salva l'elenco con il tema.",
         "NO_HANDSHAKE": "Le regole si possono modificare quando l'anteprima è caricata: il sito indica quali condizioni conosce.",
         "NO_PERMISSION": "Puoi vedere le regole ma non modificarle: serve l'autorizzazione a modificare i modelli.",
+        "LOAD_FAILED": "Impossibile leggere le regole, quindi non possono essere modificate qui.",
+        "RETRY": "Riprova",
         "UNREADABLE": "Voci del file delle regole che qui non si possono leggere: {count}. Salvando le regole vengono omesse.",
         "JSON": "Modifica come JSON",
         "NO_TEMPLATE": "Non nel tema",

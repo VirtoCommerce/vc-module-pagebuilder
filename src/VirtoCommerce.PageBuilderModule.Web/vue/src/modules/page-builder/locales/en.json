@@ -522,6 +522,8 @@
         "DEFAULTS": "These are the default rules: they apply while the theme has no list of its own. A change here saves the list with the theme.",
         "NO_HANDSHAKE": "The rules can be edited once the preview has loaded: the site tells which conditions it knows.",
         "NO_PERMISSION": "You can view the rules but not change them: that needs permission to edit templates.",
+        "LOAD_FAILED": "The rules couldn't be read, so they can't be changed here.",
+        "RETRY": "Try again",
         "UNREADABLE": "Entries of the rules file that can't be read here: {count}. Saving the rules leaves them out.",
         "JSON": "Edit as JSON",
         "NO_TEMPLATE": "Not in the theme",

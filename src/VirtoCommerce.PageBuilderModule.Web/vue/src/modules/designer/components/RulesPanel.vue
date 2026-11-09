@@ -137,7 +137,21 @@
             </button>
           </h4>
           <p
-            v-if="!conditions"
+            v-if="rules.failed.value"
+            class="pd-rules__note pd-rules__note--warning"
+            role="alert"
+          >
+            {{ $t("PAGE_BUILDER.DESIGNER.RULES.LOAD_FAILED") }}
+            <button
+              type="button"
+              class="pd-rules__link"
+              @click="retryLoad"
+            >
+              {{ $t("PAGE_BUILDER.DESIGNER.RULES.RETRY") }}
+            </button>
+          </p>
+          <p
+            v-else-if="!conditions"
             class="pd-rules__note"
           >
             {{ $t("PAGE_BUILDER.DESIGNER.RULES.NO_HANDSHAKE") }}
@@ -369,9 +383,11 @@ const rulesFile = computed(() => rulesPath(props.theme));
 
 const list = computed(() => rulesOf(props.rules.rules.value, props.type));
 const ownList = computed(() => hasOwnRules(props.rules.rules.value, props.type));
-const readOnly = computed(() => !props.conditions || props.readonly);
+// rules not read (yet) aren't the file's: an edit of them would be neither saved nor previewed
+const readOnly = computed(() => !props.conditions || props.readonly || !props.rules.loaded.value);
 const offered = computed(() => new Map(conditionsFor(props.conditions ?? [], props.type).map((x) => [x.name, x])));
 const setList = (next: TemplateRule[]) => (props.rules.rules.value = withRules(props.rules.rules.value, props.type, next));
+const retryLoad = () => props.rules.reload().catch(() => undefined);
 const isAlternate = computed(() => props.templateKey.includes("."));
 const mine = computed(() => rulesFor(props.rules.rules.value, props.templateKey));
 const pickedHere = computed(() => !!props.picked && props.picked.pageType === props.type);

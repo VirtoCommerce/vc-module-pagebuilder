@@ -2,13 +2,14 @@ import type { HistoryFile } from "./history";
 
 // What the designer offers each editor, by the permissions the server checks on a designer Save and Discard
 // (docs/contracts/history-api.md, "Save"): the page needs builder:update, a template or the rules builder:templates, the
-// other theme files builder:theme; Publish theme needs builder:publish.
+// other theme files builder:theme; Publish, Unpublish and Publish theme need builder:publish, Promote builder:promote.
 
 export const PERMISSIONS = {
   update: "builder:update",
   templates: "builder:templates",
   theme: "builder:theme",
   publish: "builder:publish",
+  promote: "builder:promote",
 } as const;
 
 /** The permission a part's save or discard needs; the page part of an open template is the template */

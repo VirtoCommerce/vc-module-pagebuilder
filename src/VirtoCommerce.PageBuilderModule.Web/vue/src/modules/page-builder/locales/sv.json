@@ -522,6 +522,8 @@
         "DEFAULTS": "Det här är standardreglerna: de gäller så länge temat inte har en egen lista. En ändring här sparar listan med temat.",
         "NO_HANDSHAKE": "Reglerna kan redigeras när förhandsvisningen har laddats: webbplatsen talar om vilka villkor den känner till.",
         "NO_PERMISSION": "Du kan visa reglerna men inte ändra dem: det kräver behörighet att redigera mallar.",
+        "LOAD_FAILED": "Reglerna kunde inte läsas, så de kan inte ändras här.",
+        "RETRY": "Försök igen",
         "UNREADABLE": "Poster i regelfilen som inte kan läsas här: {count}. När reglerna sparas utelämnas de.",
         "JSON": "Redigera som JSON",
         "NO_TEMPLATE": "Finns inte i temat",

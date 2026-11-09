@@ -522,6 +522,8 @@
         "DEFAULTS": "Voici les règles par défaut : elles s'appliquent tant que le thème n'a pas sa propre liste. Une modification ici enregistre la liste avec le thème.",
         "NO_HANDSHAKE": "Les règles sont modifiables une fois l'aperçu chargé : le site indique les conditions qu'il connaît.",
         "NO_PERMISSION": "Vous pouvez consulter les règles, mais pas les modifier : il faut pour cela l'autorisation de modifier les modèles.",
+        "LOAD_FAILED": "Les règles n'ont pas pu être lues : elles ne peuvent donc pas être modifiées ici.",
+        "RETRY": "Réessayer",
         "UNREADABLE": "Entrées du fichier de règles illisibles ici : {count}. L'enregistrement des règles les omet.",
         "JSON": "Modifier en JSON",
         "NO_TEMPLATE": "Absent du thème",

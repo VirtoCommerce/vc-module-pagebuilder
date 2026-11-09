@@ -37,11 +37,12 @@
         v-else-if="field.type === 'text'"
         :toolbar="['bold', 'italic', 'underline', 'link', 'bulletList', 'orderedList']"
         :custom-buttons="anchorPicker"
+        :extensions="htmlOnly"
         :model-value="text(field)"
         :label="label(field)"
         :placeholder="placeholder(field)"
         :hint="field.info"
-        @update:model-value="setText(field, $event)"
+        @update:model-value="setText(field, richText($event))"
       />
       <VcInput
         v-else-if="field.type === 'number' || field.type === 'slider'"
@@ -319,6 +320,7 @@
 // and lists render this component again. Changes go up as update(id, value): nothing is mutated here.
 import { computed, inject, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { useI18n } from "vue-i18n";
+import { Extension } from "@tiptap/core";
 import { VcButton, VcColorInput, VcEditor, VcHint, VcIcon, VcInput, VcSelect, VcSwitch, VcTextarea, type CustomToolbarButton, type CustomToolbarItem } from "@vc-shell/framework/ui";
 import { PageAnchorsKey, PaletteTokensKey, StoreMenusKey, WhiteLabelingKey, type Field, type RemoteRequest } from "../types";
 import { menuOptions } from "../storeMenus";
@@ -343,6 +345,13 @@ const props = defineProps<{
 
 /** the rich-text editor (tiptap) the toolbar items act on */
 type Editor = Parameters<CustomToolbarButton["action"]>[0];
+
+// rich text is HTML, which the storefront renders as such. VcEditor writes Markdown while its "markdown" extension is
+// loaded and the text doesn't look like HTML (an empty or plain one never does): an empty extension of that name
+// takes its place, and the editor writes HTML.
+const htmlOnly = [Extension.create({ name: "markdown" })];
+/** an editor left without text ("<p></p>") is an empty text: a translation falls back again */
+const richText = (value: unknown) => (typeof value === "string" && /^(\s*<p>(\s|&nbsp;|<br\s*\/?>)*<\/p>)*\s*$/i.test(value) ? "" : value);
 
 // rich text: a link to a place on the page (a section, a block, an anchor in some text), as #anchor; same tab (the
 // editor's links open a new one by default)

@@ -34,11 +34,12 @@ export function publishThemeUrl(storeId: string, catalogHash?: string) {
 }
 
 /**
- * The toolbar's publish actions: a page has its own Publish and Unpublish; a template has none of its own, Publish
- * theme takes their place (a template goes live with the rest of the theme). A shared component has neither.
+ * The toolbar's publish actions, for editors with builder:publish: a page has its own Publish and Unpublish; a template
+ * has none of its own, Publish theme takes their place (a template goes live with the rest of the theme). A shared
+ * component has neither.
  */
-export function publishActions(open: { template: boolean; shared: boolean; mayPublishTheme: boolean }): { page: boolean; theme: boolean } {
-  return { page: !open.shared && !open.template, theme: !open.shared && open.mayPublishTheme };
+export function publishActions(open: { template: boolean; shared: boolean; mayPublish: boolean }): { page: boolean; theme: boolean } {
+  return { page: !open.shared && !open.template && open.mayPublish, theme: !open.shared && open.mayPublish };
 }
 
 /** Publish theme: its label counts the theme files waiting; enabled while some wait, nothing is unsaved and nothing runs */

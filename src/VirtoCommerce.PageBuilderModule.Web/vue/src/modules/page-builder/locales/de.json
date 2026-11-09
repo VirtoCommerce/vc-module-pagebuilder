@@ -522,6 +522,8 @@
         "DEFAULTS": "Dies sind die Standardregeln: Sie gelten, solange das Theme keine eigene Liste hat. Eine Änderung hier speichert die Liste mit dem Theme.",
         "NO_HANDSHAKE": "Die Regeln lassen sich bearbeiten, sobald die Vorschau geladen ist: Die Website teilt mit, welche Bedingungen sie kennt.",
         "NO_PERMISSION": "Sie können die Regeln ansehen, aber nicht ändern: Dafür ist die Berechtigung zum Bearbeiten von Vorlagen nötig.",
+        "LOAD_FAILED": "Die Regeln konnten nicht gelesen werden und lassen sich hier daher nicht ändern.",
+        "RETRY": "Erneut versuchen",
         "UNREADABLE": "Einträge der Regeldatei, die hier nicht gelesen werden können: {count}. Beim Speichern der Regeln fallen sie weg.",
         "JSON": "Als JSON bearbeiten",
         "NO_TEMPLATE": "Nicht im Theme",

@@ -522,6 +522,8 @@
         "DEFAULTS": "Dette er standardreglene: de gjelder så lenge temaet ikke har en egen liste. En endring her lagrer listen med temaet.",
         "NO_HANDSHAKE": "Reglene kan redigeres når forhåndsvisningen er lastet: nettstedet forteller hvilke betingelser det kjenner.",
         "NO_PERMISSION": "Du kan se reglene, men ikke endre dem: det krever tilgang til å redigere maler.",
+        "LOAD_FAILED": "Reglene kunne ikke leses, så de kan ikke endres her.",
+        "RETRY": "Prøv igjen",
         "UNREADABLE": "Oppføringer i regelfilen som ikke kan leses her: {count}. Når reglene lagres, utelates de.",
         "JSON": "Rediger som JSON",
         "NO_TEMPLATE": "Ikke i temaet",
