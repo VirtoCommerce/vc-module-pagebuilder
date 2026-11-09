@@ -222,7 +222,7 @@ interface Resolved {
 
 type WhiteLabelingField =
   | "brand.logoUrl"
-  /** white-labeling sets the logo for dark backgrounds, or the light logo (the header then never shows the theme's dark logo) */
+  /** white-labeling sets the light logo, so the header and footer never show the theme's dark logo */
   | "brand.secondaryLogoUrl"
   | "brand.faviconUrl"
   | "palette"

@@ -391,14 +391,13 @@ names are the white-labeling ones.
 
 - `logoUrl`, the header's logo, goes field by field: the storefront takes the theme's only when white-labeling left it
   empty. The theme's `faviconUrl` shows when white-labeling has no favicons.
-- The header's logo for dark backgrounds (the header in the dark theme) comes from the source of the light logo:
-  white-labeling's `secondaryLogoUrl` when white-labeling sets `logoUrl`, else the theme's when the theme sets
+- The logo for dark backgrounds, in the header in the dark theme and in the footer, comes from the source of the light
+  logo: white-labeling's `secondaryLogoUrl` when white-labeling sets `logoUrl`, else the theme's when the theme sets
   `logoUrl`, else the bundled `logo_inverted_image`. A light logo of one source is never paired with a dark logo of
-  another: when white-labeling sets `logoUrl`, the header never shows the theme's `secondaryLogoUrl`. When that source
-  has no dark logo, or white-labeling's `logoUrl` is the organization's (its `secondaryLogoUrl` may be the store's),
-  the header shows the light logo in the dark theme too.
-- The footer's logo goes field by field: white-labeling's `secondaryLogoUrl`, else the theme's, else the bundled
-  `logo_inverted_image`.
+  another: when white-labeling sets `logoUrl`, the theme's `secondaryLogoUrl` never shows, and a white-labeling
+  `secondaryLogoUrl` without a white-labeling `logoUrl` never shows either. When that source has no dark logo, or
+  white-labeling's `logoUrl` is the organization's (its `secondaryLogoUrl` may be the store's), the light logo shows
+  on dark backgrounds too.
 
 ### Palette
 
