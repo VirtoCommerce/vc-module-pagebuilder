@@ -136,6 +136,16 @@ public class ThemeControllerTests
     }
 
     [Fact]
+    public async Task GeneratePalette_BodyThatDidNotBind_ReturnsBadRequest()
+    {
+        var controller = Controller(new FakeAuthorizationService(true));
+        controller.ModelState.AddModelError("request", "The JSON value could not be converted.");
+
+        Assert.IsType<BadRequestObjectResult>((await controller.GeneratePalette("s1", null, Ct)).Result);
+        Assert.Empty(_services.Calls);
+    }
+
+    [Fact]
     public async Task GetStatus_StoreUserWorksIn_WritesThePublicationAndDraftsJson()
     {
         var controller = Controller(new FakeAuthorizationService(true));

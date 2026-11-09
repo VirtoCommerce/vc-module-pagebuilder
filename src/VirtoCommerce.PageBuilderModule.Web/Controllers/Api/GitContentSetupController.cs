@@ -142,7 +142,7 @@ public class GitContentSetupController(
         }
 
         var setup = new GitHubAppSetupRequest { Organization = organization?.Trim(), StoreId = storeId };
-        if (await appSetupRequestValidator.ValidateRequestAsync(setup, cancellationToken) is { } invalid)
+        if (await appSetupRequestValidator.ValidateRequestAsync(setup, ModelState, cancellationToken) is { } invalid)
         {
             return invalid;
         }
@@ -266,7 +266,7 @@ public class GitContentSetupController(
 
         return (permission == null ? null : await CheckStoreAccessAsync(request, permission))
                ?? await CheckStoreAccessAsync(request)
-               ?? await storeRequestValidator.ValidateRequestAsync(request, cancellationToken);
+               ?? await storeRequestValidator.ValidateRequestAsync(request, ModelState, cancellationToken);
     }
 
     private async Task<ActionResult> CheckStoreAccessAsync(object resource, string permission = ModuleConstants.Security.Permissions.Read)

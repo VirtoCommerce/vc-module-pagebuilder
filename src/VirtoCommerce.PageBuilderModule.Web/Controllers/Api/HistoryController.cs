@@ -39,7 +39,7 @@ public class HistoryController(
     public async Task<ActionResult<ContentHistoryStatusResult>> GetStatus([FromQuery] string storeId, CancellationToken cancellationToken = default)
     {
         var request = new PageBuilderStoreRequest { StoreId = storeId };
-        if ((await CheckStoreAccessAsync(request) ?? await storeRequestValidator.ValidateRequestAsync(request, cancellationToken)) is { } refused)
+        if ((await CheckStoreAccessAsync(request) ?? await storeRequestValidator.ValidateRequestAsync(request, ModelState, cancellationToken)) is { } refused)
         {
             return refused;
         }
@@ -103,7 +103,7 @@ public class HistoryController(
         [FromQuery(Name = "item")] string[] items, CancellationToken cancellationToken = default)
     {
         var request = new ContentHistoryRestoreRequest { StoreId = storeId, Items = items ?? [], VersionId = versionId };
-        if ((await CheckStoreAccessAsync(request) ?? await restoreRequestValidator.ValidateRequestAsync(request, cancellationToken)) is { } refused)
+        if ((await CheckStoreAccessAsync(request) ?? await restoreRequestValidator.ValidateRequestAsync(request, ModelState, cancellationToken)) is { } refused)
         {
             return refused;
         }
@@ -175,7 +175,7 @@ public class HistoryController(
     private async Task<ActionResult> CheckRequestAsync(ContentHistoryRequest request, CancellationToken cancellationToken)
     {
         return await CheckStoreAccessAsync(request)
-               ?? await requestValidator.ValidateRequestAsync(request, cancellationToken)
+               ?? await requestValidator.ValidateRequestAsync(request, ModelState, cancellationToken)
                ?? await CheckPagesAccessAsync(request.StoreId, ParseItems(request));
     }
 

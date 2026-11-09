@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace VirtoCommerce.PageBuilderModule.Web.Extensions;
 
@@ -16,5 +17,22 @@ public static class ValidatorExtensions
         return validationResult.IsValid
             ? null
             : new BadRequestObjectResult(new { error = string.Join(" ", validationResult.Errors.Select(x => x.ErrorMessage)) });
+    }
+
+    /// <summary>
+    /// Validates the request after what MVC could not bind, a malformed body or a parameter of the wrong type: that is the caller's
+    /// mistake too, where MVC would pass the parameter's default on.
+    /// </summary>
+    public static Task<BadRequestObjectResult> ValidateRequestAsync<T>(this IValidator<T> validator, T request, ModelStateDictionary modelState,
+        CancellationToken cancellationToken)
+    {
+        var bindingErrors = modelState?.Values
+            .SelectMany(entry => entry.Errors)
+            .Select(error => string.IsNullOrEmpty(error.ErrorMessage) ? "The request could not be read." : error.ErrorMessage)
+            .ToList() ?? [];
+
+        return bindingErrors.Count > 0
+            ? Task.FromResult(new BadRequestObjectResult(new { error = string.Join(" ", bindingErrors) }))
+            : validator.ValidateRequestAsync(request, cancellationToken);
     }
 }

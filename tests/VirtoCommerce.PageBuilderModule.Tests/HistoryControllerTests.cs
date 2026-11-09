@@ -91,6 +91,19 @@ public class HistoryControllerTests
     }
 
     [Fact]
+    public async Task GetHistory_TakeThatDidNotBind_ReturnsBadRequest()
+    {
+        // MVC passes the parameter's default on: take=abc must not list a page of 20
+        var controller = Controller();
+        controller.ModelState.AddModelError("take", "The value 'abc' is not valid for take.");
+
+        var result = await controller.GetHistory("s1", ["page:g1"], cancellationToken: Ct);
+
+        Assert.Contains("abc", PlatformJson.ParseBody(Assert.IsType<BadRequestObjectResult>(result.Result)).Value<string>("error"));
+        Assert.Empty(_history.Records);
+    }
+
+    [Fact]
     public async Task GetHistory_StoreUserDoesNotWorkIn_ReturnsForbidBeforeBadRequest()
     {
         var controller = Controller(new FakeAuthorizationService("s2", Permissions.Read));

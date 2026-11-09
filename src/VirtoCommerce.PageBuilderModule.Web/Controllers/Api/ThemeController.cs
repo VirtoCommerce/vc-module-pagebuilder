@@ -142,7 +142,7 @@ public class ThemeController(
     {
         var request = new PageBuilderStoreRequest { StoreId = storeId, CatalogHash = catalogHash };
 
-        return await CheckStoreAccessAsync(request) ?? await storeRequestValidator.ValidateRequestAsync(request, cancellationToken);
+        return await CheckStoreAccessAsync(request) ?? await storeRequestValidator.ValidateRequestAsync(request, ModelState, cancellationToken);
     }
 
     private async Task<ActionResult> CheckStoreAccessAsync(PageBuilderStoreRequest request)
@@ -151,13 +151,13 @@ public class ThemeController(
         return authorizationResult.Succeeded ? null : Forbid();
     }
 
-    private static async Task<ActionResult> ValidateBodyAsync<T>(IValidator<T> validator, T request, CancellationToken cancellationToken)
+    private async Task<ActionResult> ValidateBodyAsync<T>(IValidator<T> validator, T request, CancellationToken cancellationToken)
     {
         if (request == null)
         {
             return new BadRequestObjectResult(new { error = "The request has no body." });
         }
 
-        return await validator.ValidateRequestAsync(request, cancellationToken);
+        return await validator.ValidateRequestAsync(request, ModelState, cancellationToken);
     }
 }

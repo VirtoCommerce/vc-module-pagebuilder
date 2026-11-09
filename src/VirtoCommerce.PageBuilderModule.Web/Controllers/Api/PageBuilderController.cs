@@ -2002,17 +2002,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
         private async Task<ActionResult> ValidateAsync(PageBuilderContentRequest request)
         {
-            // What did not bind, a malformed body or a missing required value, is the caller's mistake too.
-            var bindingErrors = ModelState.Values
-                .SelectMany(entry => entry.Errors)
-                .Select(error => string.IsNullOrEmpty(error.ErrorMessage) ? "The request could not be read." : error.ErrorMessage)
-                .ToList();
-            if (bindingErrors.Count > 0)
-            {
-                return BadRequest(new { error = string.Join(" ", bindingErrors) });
-            }
-
-            return await requestValidator.ValidateRequestAsync(request, HttpContext.RequestAborted);
+            return await requestValidator.ValidateRequestAsync(request, ModelState, HttpContext.RequestAborted);
         }
 
         private async Task<ActionResult> RespondToPublishAsync(GitPublishResult result, GitPageFileLocation location, string path,
