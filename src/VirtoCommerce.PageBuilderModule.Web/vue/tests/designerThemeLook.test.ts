@@ -63,21 +63,21 @@ test("Save writes the files of the parts changed: the brand without its empty fi
 });
 
 test("the preview gets a brand with a logo, a palette only with light colors, its dark part only with dark ones", () => {
-  assert.deepEqual(lookDraft(look({ brand: { logoUrl: "/a.svg", faviconUrl: "" } })), { brand: { logoUrl: "/a.svg" } });
+  assert.deepEqual(lookDraft(look({ brand: { logoUrl: "/a.svg", faviconUrl: "" } })), { brand: { logoUrl: "/a.svg" }, palette: null });
   assert.deepEqual(lookDraft(look({ light: { a: "#111111" } })), { palette: { light: { a: "#111111" } } });
   assert.deepEqual(lookDraft(look({ light: { a: "#111111" }, dark: { a: "#222222" } })), {
     palette: { light: { a: "#111111" }, dark: { a: "#222222" } },
   });
-  // a dark palette without a light one is not published, so the preview does not show it either
-  assert.deepEqual(lookDraft(look({ dark: { a: "#222222" } })), {});
+  // a dark palette without a light one is not published, so the preview shows none either
+  assert.deepEqual(lookDraft(look({ dark: { a: "#222222" } })), { palette: null });
 });
 
-test("a theme without a brand or a palette leaves the published ones in the preview", () => {
+test("a theme without a brand leaves the published one in the preview; without light colors it has no palette", () => {
   // a store without white-labeling then keeps its published logo: an empty brand would hide it
-  assert.deepEqual(lookDraft(look()), {});
-  assert.deepEqual(lookDraft(look({ brand: { logoUrl: " ", secondaryLogoUrl: "" } })), {});
+  assert.deepEqual(lookDraft(look()), { palette: null });
+  assert.deepEqual(lookDraft(look({ brand: { logoUrl: " ", secondaryLogoUrl: "" } })), { palette: null });
   // the theme's own empty brand (a brand file, or logos cleared): no logos, not the published ones
-  assert.deepEqual(lookDraft(look(), true), { brand: {} });
+  assert.deepEqual(lookDraft(look(), true), { brand: {}, palette: null });
 });
 
 // ── palette tokens ───────────────────────────────────────────────────────────

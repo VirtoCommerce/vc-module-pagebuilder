@@ -56,7 +56,8 @@ export interface ThemeDraft {
   header?: { content: Item[] };
   footer?: { content: Item[] };
   brand?: Brand;
-  palette?: Palette;
+  /** null: the theme has no palette, the storefront's preset shows */
+  palette?: Palette | null;
 }
 
 export interface DraftMessage {
@@ -279,7 +280,7 @@ export interface DraftInput {
   /** every template of the theme as the designer has it; none: the published ones */
   templates?: Record<string, PageDocument>;
   /** the brand and palette as the Theme tab has them; none: not loaded */
-  look?: { brand?: Brand; palette?: Palette };
+  look?: { brand?: Brand; palette?: Palette | null };
   capabilities: string[];
 }
 
@@ -295,7 +296,7 @@ export function draftMessage(input: DraftInput): DraftMessage {
       ...(groups?.header ? { header: { content: groups.header } } : {}),
       ...(groups?.footer ? { footer: { content: groups.footer } } : {}),
       ...(input.look?.brand ? { brand: input.look.brand } : {}),
-      ...(input.look?.palette ? { palette: input.look.palette } : {}),
+      ...(input.look?.palette !== undefined ? { palette: input.look.palette } : {}),
     },
   };
 }

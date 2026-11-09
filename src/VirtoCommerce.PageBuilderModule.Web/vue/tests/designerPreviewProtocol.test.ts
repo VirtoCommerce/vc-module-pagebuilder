@@ -280,7 +280,9 @@ test("the draft carries the brand and the palette the Theme tab has, whatever th
   const brand = { logoUrl: "/logo.svg" };
   const palette = { light: { color_primary_500: "#f99e24" } };
   assert.deepEqual(draftMessage({ look: { brand, palette }, capabilities: [] }), { type: "draft", theme: { brand, palette } });
-  // no palette: the published one, or the storefront's preset; no brand: the published one, so its logo still shows
+  // a null palette: the theme has none, the storefront's preset shows
+  assert.deepEqual(draftMessage({ look: { brand, palette: null }, capabilities: [] }), { type: "draft", theme: { brand, palette: null } });
+  // left out (the Theme tab not loaded): the published palette; no brand: the published one, so its logo still shows
   assert.deepEqual(draftMessage({ look: { brand }, capabilities: [] }), { type: "draft", theme: { brand } });
   assert.deepEqual(draftMessage({ look: {}, capabilities: [] }), { type: "draft", theme: {} });
 });

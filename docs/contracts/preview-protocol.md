@@ -111,7 +111,8 @@ like any other: an `object` value (`property`, `setting`: `{ name, equals }`) de
 
 The unsaved theme, whole: every template, the rules, the groups, the brand and the palette as the designer has them,
 saved or not. The storefront shows it in place of the published snapshot; a part the draft leaves out comes from the
-snapshot. Each `draft` replaces the previous one entirely.
+snapshot. `palette: null` says the theme has no palette (its light part has no color): the storefront's preset shows,
+as it will once the theme is published. Each `draft` replaces the previous one entirely.
 
 `templates` holds every template of the theme, or is left out: the storefront takes it in place of all the published
 templates. Each is the template as last saved, its draft, else its live file; the open template is as the designer
@@ -128,7 +129,7 @@ interface Draft {
     header?: SectionGroup;
     footer?: SectionGroup;
     brand?: Brand;
-    palette?: Palette;
+    palette?: Palette | null;
   };
 }
 ```

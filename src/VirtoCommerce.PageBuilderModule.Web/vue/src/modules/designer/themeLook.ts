@@ -90,16 +90,17 @@ export function lookFiles(theme: string, look: ThemeLook, saved: ThemeLook): { p
 
 /**
  * What the preview shows in place of the published brand and palette. An empty brand is left out, so the published one
- * shows, unless `emptyBrand` says it is the theme's own (a brand file, or logos the editor cleared); a palette is sent
- * only with light colors, as a publication keeps one only then; a dark part only with dark colors.
+ * shows, unless `emptyBrand` says it is the theme's own (a brand file, or logos the editor cleared). A palette goes with
+ * its light colors (a dark part only with dark colors); without light colors it is null, as a publication then keeps
+ * none: the storefront's preset shows.
  */
-export function lookDraft(look: ThemeLook, emptyBrand = false): { brand?: Brand; palette?: Palette } {
+export function lookDraft(look: ThemeLook, emptyBrand = false): { brand?: Brand; palette: Palette | null } {
   const brand = brandFile(look.brand);
   const hasLight = Object.keys(look.light).length > 0;
   const hasDark = Object.keys(look.dark).length > 0;
   return {
     ...(Object.keys(brand).length || emptyBrand ? { brand } : {}),
-    ...(hasLight ? { palette: { light: look.light, ...(hasDark ? { dark: look.dark } : {}) } } : {}),
+    palette: hasLight ? { light: look.light, ...(hasDark ? { dark: look.dark } : {}) } : null,
   };
 }
 
