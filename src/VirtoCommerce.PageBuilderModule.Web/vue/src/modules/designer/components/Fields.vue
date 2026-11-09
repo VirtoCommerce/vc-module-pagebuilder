@@ -140,6 +140,14 @@
         :label="field.label"
         @update:model-value="set(field, $event)"
       />
+      <ImageListField
+        v-else-if="(field.type === 'images' || field.type === 'files') && field.multiple"
+        :model-value="values[field.id!]"
+        :label="field.label"
+        :hint="field.info"
+        :image="field.type === 'images'"
+        @update:model-value="set(field, $event)"
+      />
       <ImageField
         v-else-if="field.type === 'images' || field.type === 'files'"
         :model-value="values[field.id!] as string | undefined"
@@ -330,6 +338,7 @@ import { fill, isVisible, pick, schemaRequest, valuesOf } from "../schema";
 import { isTranslations, translationOf, withTranslation, type Translating } from "../translatable";
 import { SEARCH_DEBOUNCE_MS, requestResult, runSearch, searchDisplayValue, type SearchField, type SearchValue } from "../search";
 import ImageField from "./ImageField.vue";
+import ImageListField from "./ImageListField.vue";
 import { getAuthHeaders } from "../../page-builder/composables/usePageContentApi";
 
 const props = defineProps<{

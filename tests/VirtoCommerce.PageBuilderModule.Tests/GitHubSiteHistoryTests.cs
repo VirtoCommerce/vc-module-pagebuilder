@@ -127,6 +127,24 @@ public class GitHubSiteHistoryTests
         github.AssertDone();
     }
 
+    [Fact]
+    public async Task RecordAsync_RepositoryNotCreatedYet_CreatesItAndRecordsTheVersion()
+    {
+        var provisioner = new FakeGitContentProvisioner();
+        var github = new GitHubScript(
+            ("GET", "repos/acme/site-s1/git/ref/heads/main", (_, _) => GitHubScript.Json("""{ "message": "Not Found" }""", HttpStatusCode.NotFound)),
+            HeadOfMain("1111111111111111111111111111111111111111"),
+            ("GET", "repos/acme/site-s1/git/commits/1111111111111111111111111111111111111111", (_, _) => GitHubScript.Json("""{ "tree": { "sha": "t0" } }""")),
+            ("POST", "repos/acme/site-s1/git/trees", (_, _) => GitHubScript.Json("""{ "sha": "t1" }""", HttpStatusCode.Created)),
+            ("POST", "repos/acme/site-s1/git/commits", (_, _) => GitHubScript.Json("""{ "sha": "c1" }""", HttpStatusCode.Created)),
+            ("PATCH", "repos/acme/site-s1/git/refs/heads/main", (_, _) => GitHubScript.Json("""{ "object": { "sha": "c1" } }""")));
+
+        await History(github, provisioner: provisioner).RecordAsync("s1", Record(($"theme:{Header}", LiveHeader)), Ct);
+
+        Assert.Equal(["s1"], provisioner.Ensured);
+        github.AssertDone();
+    }
+
     [Theory]
     [InlineData("theme:default/snapshots/1/en-US.json")]
     [InlineData("theme:../x.json")]
@@ -290,7 +308,17 @@ public class GitHubSiteHistoryTests
     [Fact]
     public async Task ListAsync_RepositoryNotCreatedYet_ReturnsSetupRequired()
     {
-        var github = new GitHubScript(("POST", "graphql", (_, _) => GitHubScript.Json("""{ "data": { "repository": null } }""")));
+        var github = new GitHubScript(("POST", "graphql", (_, _) => GitHubScript.Json("""
+            {
+              "data": { "repository": null },
+              "errors": [{
+                "type": "NOT_FOUND",
+                "path": ["repository"],
+                "locations": [{ "line": 1, "column": 2 }],
+                "message": "Could not resolve to a Repository with the name 'acme/site-s1'."
+              }]
+            }
+            """)));
 
         var page = await History(github).ListAsync("s1", [Page], null, 20, Ct);
 
@@ -364,8 +392,8 @@ public class GitHubSiteHistoryTests
     // ── helpers ────────────────────────────────────────────────────────────────────────────────
 
     private GitHubSiteHistory History(GitHubScript github, FakeSettingsManager settings = null,
-        Microsoft.Extensions.Options.IOptions<GitContentOptions> options = null) =>
-        SiteHistories.Create(github, new ThemeStorageFactory(_live.StoreService, _live, _live, _live), _pages, settings, options: options);
+        Microsoft.Extensions.Options.IOptions<GitContentOptions> options = null, IGitContentProvisioner provisioner = null) =>
+        SiteHistories.Create(github, new ThemeStorageFactory(_live.StoreService, _live, _live, _live), _pages, settings, options: options, provisioner: provisioner);
 
     private static string Sha(char digit) => new(digit, 40);
 

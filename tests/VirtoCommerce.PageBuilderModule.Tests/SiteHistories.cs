@@ -27,13 +27,13 @@ internal static class SiteHistories
     });
 
     public static GitHubSiteHistory Create(GitHubScript github, IThemeStorageFactory themes = null, IGroupedPageService pages = null,
-        ISettingsManager settings = null, IGitContentOwnership ownership = null, IOptions<GitContentOptions> options = null)
+        ISettingsManager settings = null, IGitContentOwnership ownership = null, IOptions<GitContentOptions> options = null, IGitContentProvisioner provisioner = null)
     {
         options ??= Options();
         var policy = GitHubConnections.CreatePolicy(options, settings ?? new FakeSettingsManager(true), ownership ?? new FakeGitContentOwnership());
         var repository = new GitHubContentRepository(github, new MemoryCache(new MemoryCacheOptions()), options);
 
-        return new GitHubSiteHistory(policy, repository, new GitHubApiClient(github), GitHubConnections.CreateService(options.Value), pages, themes, options,
-            Keys, NullLogger<GitHubSiteHistory>.Instance);
+        return new GitHubSiteHistory(policy, repository, new GitHubApiClient(github), GitHubConnections.CreateService(options.Value), pages, themes,
+            provisioner ?? new FakeGitContentProvisioner(), options, Keys, NullLogger<GitHubSiteHistory>.Instance);
     }
 }

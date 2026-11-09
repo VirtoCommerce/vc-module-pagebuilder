@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Security.Claims;
 using System.Text;
 using System.Threading;
@@ -9,7 +10,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
+using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Models;
+using VirtoCommerce.PageBuilderModule.Data.Authorization;
 using VirtoCommerce.PageBuilderModule.Data.Services;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
 using VirtoCommerce.PageBuilderModule.Web.Services;
@@ -98,7 +101,7 @@ public class PageBuilderPageControllerSharedComponentPreflightTests
             service,
             preflight,
             ComponentReferenceContent,
-            new DenyPolicyAuthorizationService());
+            new DenySharedComponentsReadAuthorizationService());
 
         var result = await controller.SavePageContent("group", TestContext.Current.CancellationToken);
 
@@ -303,18 +306,20 @@ public class PageBuilderPageControllerSharedComponentPreflightTests
             string policyName) => Task.FromResult(AuthorizationResult.Success());
     }
 
-    private sealed class DenyPolicyAuthorizationService : IAuthorizationService
+    private sealed class DenySharedComponentsReadAuthorizationService : IAuthorizationService
     {
         public Task<AuthorizationResult> AuthorizeAsync(
             ClaimsPrincipal user,
             object resource,
             IEnumerable<IAuthorizationRequirement> requirements) =>
-            Task.FromResult(AuthorizationResult.Success());
+            Task.FromResult(requirements.OfType<PageBuilderAuthorizationRequirement>().Any(x => x.Permission == ModuleConstants.Security.Permissions.SharedComponentsRead)
+                ? AuthorizationResult.Failed()
+                : AuthorizationResult.Success());
 
         public Task<AuthorizationResult> AuthorizeAsync(
             ClaimsPrincipal user,
             object resource,
-            string policyName) => Task.FromResult(AuthorizationResult.Failed());
+            string policyName) => Task.FromResult(AuthorizationResult.Success());
     }
 
     private const string StoreId = "store";

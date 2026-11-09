@@ -3,7 +3,9 @@ using Microsoft.AspNetCore.Authorization;
 using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Core.Services;
+using VirtoCommerce.PageBuilderModule.Data.Authorization;
 using VirtoCommerce.Platform.Core.Common;
+using VirtoCommerce.StoreModule.Core.Model;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Services;
 
@@ -20,7 +22,7 @@ public class PageBuilderSharedComponentPlacementValidator(
         try
         {
             // a user who may not read shared components learns nothing about the store's ones
-            if (PageBuilderSharedComponentReferenceMatcher.HasReferences(content) && !await CanReadSharedComponentsAsync(user))
+            if (PageBuilderSharedComponentReferenceMatcher.HasReferences(content) && !await CanReadSharedComponentsAsync(user, storeId))
             {
                 result.IsForbidden = true;
                 return result;
@@ -36,9 +38,13 @@ public class PageBuilderSharedComponentPlacementValidator(
         return result;
     }
 
-    protected virtual async Task<bool> CanReadSharedComponentsAsync(ClaimsPrincipal user)
+    protected virtual async Task<bool> CanReadSharedComponentsAsync(ClaimsPrincipal user, string storeId)
     {
-        var authorizationResult = await authorizationService.AuthorizeAsync(user, null, ModuleConstants.Security.Permissions.SharedComponentsRead);
+        var store = AbstractTypeFactory<Store>.TryCreateInstance();
+        store.Id = storeId;
+
+        var authorizationResult = await authorizationService.AuthorizeAsync(user, store,
+            new PageBuilderAuthorizationRequirement(ModuleConstants.Security.Permissions.SharedComponentsRead));
         return authorizationResult.Succeeded;
     }
 }

@@ -3,6 +3,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using VirtoCommerce.ContentModule.Core.Events;
+using VirtoCommerce.ContentModule.Core.Model;
 using VirtoCommerce.ContentModule.Core.Services;
 using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
@@ -94,12 +96,26 @@ public class GitLivePageService(
         }
 
         await eventPublisher.Publish(new PageBuilderContentChangedEvent(type, [CreateChangedEntry(path, contentType, EntryState.Modified)]), cancellationToken);
+        await PublishLiveFileChangedAsync(storeId, type, new GenericChangedEntry<ContentFile>(CreateLiveFile(path), null, EntryState.Modified), cancellationToken);
     }
 
     protected virtual async Task RemoveLivePageAsync(string storeId, string contentType, string path, CancellationToken cancellationToken)
     {
         await GetStorageProvider(storeId, contentType).RemoveAsync([GetLivePath(path)]);
         await eventPublisher.Publish(new PageBuilderContentChangedEvent(contentType, [CreateChangedEntry(path, contentType, EntryState.Deleted)]), cancellationToken);
+        await PublishLiveFileChangedAsync(storeId, contentType.ToLowerInvariant(), new GenericChangedEntry<ContentFile>(null, CreateLiveFile(path), EntryState.Deleted), cancellationToken);
+    }
+
+    /// <summary>The live file was written past the Content module, whose full-text index follows this event.</summary>
+    protected virtual Task PublishLiveFileChangedAsync(string storeId, string contentType, GenericChangedEntry<ContentFile> entry, CancellationToken cancellationToken) =>
+        eventPublisher.Publish(new ContentFileChangedEvent(contentType, storeId, [entry]), cancellationToken);
+
+    protected virtual ContentFile CreateLiveFile(string path)
+    {
+        var file = AbstractTypeFactory<ContentFile>.TryCreateInstance();
+        file.RelativeUrl = GetLivePath(path);
+
+        return file;
     }
 
     protected virtual IBlobContentStorageProvider GetStorageProvider(string storeId, string contentType) =>

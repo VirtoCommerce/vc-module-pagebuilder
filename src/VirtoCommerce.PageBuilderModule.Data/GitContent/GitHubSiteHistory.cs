@@ -30,6 +30,7 @@ public class GitHubSiteHistory(
     IGitHubConnectionService gitHubConnectionService,
     IGroupedPageService groupedPageService,
     IThemeStorageFactory themeStorageFactory,
+    IGitContentProvisioner gitContentProvisioner,
     IOptions<GitContentOptions> options,
     IDataProtectionProvider dataProtectionProvider,
     ILogger<GitHubSiteHistory> logger) : IContentHistory
@@ -97,7 +98,7 @@ public class GitHubSiteHistory(
             }
 
             var connection = await gitHubConnectionService.GetConnectionAsync(cancellationToken);
-            await CommitFilesAsync(repository, connection.BaseBranch, files, GetCommitMessage(record, files.Keys), CreateAuthor(record), cancellationToken);
+            await CommitFilesAsync(storeId, repository, connection.BaseBranch, files, GetCommitMessage(record, files.Keys), CreateAuthor(record), cancellationToken);
         }
         // best effort: the save stands without its version
         catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
@@ -221,13 +222,20 @@ public class GitHubSiteHistory(
     }
 
     /// <summary>Commits the files to the branch as one commit. Returns its sha; <c>null</c> when no file changed.</summary>
-    protected virtual async Task<string> CommitFilesAsync(string repository, string branch, IDictionary<string, string> files, string message,
+    protected virtual async Task<string> CommitFilesAsync(string storeId, string repository, string branch, IDictionary<string, string> files, string message,
         GitCommitAuthor author, CancellationToken cancellationToken)
     {
         for (var attempt = 0; attempt < MaxCommitAttempts; attempt++)
         {
-            var head = await gitContentRepository.GetBranchHeadShaAsync(repository, branch, cancellationToken)
-                ?? throw new GitContentException($"Branch \"{branch}\" of \"{repository}\" does not exist.");
+            var head = await gitContentRepository.GetBranchHeadShaAsync(repository, branch, cancellationToken);
+            if (head == null)
+            {
+                // the store was enabled before its repository was created
+                await gitContentProvisioner.EnsureRepositoryAsync(storeId, cancellationToken);
+                head = await gitContentRepository.GetBranchHeadShaAsync(repository, branch, cancellationToken)
+                    ?? throw new GitContentException($"Branch \"{branch}\" of \"{repository}\" does not exist.");
+            }
+
             var baseTree = await gitHubApiClient.GetCommitTreeAsync(repository, head, cancellationToken);
             var tree = await gitHubApiClient.CreateTreeAsync(repository, baseTree, files, cancellationToken);
             if (tree == baseTree)

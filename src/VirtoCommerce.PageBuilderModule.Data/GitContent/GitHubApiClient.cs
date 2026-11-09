@@ -33,6 +33,10 @@ public class GitHubApiClient(IHttpClientFactory httpClientFactory) : IGitHubApiC
 
     private const string AlreadyExistsError = "already exists";
 
+    private const string GraphQlNotFoundError = "NOT_FOUND";
+
+    private const string GraphQlRepositoryField = "repository";
+
     private const string BlobMode = "100644";
 
     private const string BlobType = "blob";
@@ -108,14 +112,17 @@ public class GitHubApiClient(IHttpClientFactory httpClientFactory) : IGitHubApiC
         using var response = await SendAsync(message, operation, cancellationToken);
         var body = await ReadAsAsync<JObject>(response, operation, cancellationToken);
 
-        // GraphQL reports failures inside a successful response
-        if (body?["errors"] is JArray { Count: > 0 } errors)
+        // GraphQL reports failures inside a successful response; a repository that does not exist is an answer: data.repository is null
+        if (body?["errors"] is JArray { Count: > 0 } errors && !errors.All(IsRepositoryNotFound))
         {
             throw new GitContentException($"GitHub request to {operation} failed: {errors[0]?["message"]}");
         }
 
         return body;
     }
+
+    private static bool IsRepositoryNotFound(JToken error) =>
+        error.Value<string>("type") == GraphQlNotFoundError && error["path"] is JArray { Count: 1 } path && path[0].Value<string>() == GraphQlRepositoryField;
 
     public virtual async Task<string> GetCommitTreeAsync(string repository, string commitSha, CancellationToken cancellationToken = default)
     {

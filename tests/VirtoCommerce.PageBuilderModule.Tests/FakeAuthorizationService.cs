@@ -11,12 +11,10 @@ using Permissions = VirtoCommerce.PageBuilderModule.Core.ModuleConstants.Securit
 namespace VirtoCommerce.PageBuilderModule.Tests;
 
 /// <summary>
-/// Either allows or refuses everything, or a user who works in one store with its read permissions and the permissions listed.
+/// Either allows or refuses everything, or a user who works in one store with builder:read and the permissions listed.
 /// </summary>
 internal sealed class FakeAuthorizationService(bool allowed) : IAuthorizationService
 {
-    private static readonly string[] StoreReadPermissions = [Permissions.Read, Permissions.SharedComponentsRead];
-
     private readonly string _storeId;
     private readonly string[] _permissions = [];
 
@@ -42,7 +40,7 @@ internal sealed class FakeAuthorizationService(bool allowed) : IAuthorizationSer
 
     private bool IsGranted(IAuthorizationRequirement requirement) =>
         requirement is not PageBuilderAuthorizationRequirement storeRequirement ||
-        StoreReadPermissions.Contains(storeRequirement.Permission) ||
+        storeRequirement.Permission == Permissions.Read ||
         _permissions.Contains(storeRequirement.Permission);
 
     private static Task<AuthorizationResult> CreateResult(bool succeeded) =>

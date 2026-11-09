@@ -170,6 +170,30 @@ public class GitContentSetupControllerTests
     }
 
     [Fact]
+    public async Task GetConnection_ReadScopedToAStore_Answers()
+    {
+        var controller = Controller(authorization: new FakeAuthorizationService("s1"), stores: new FakeStoreSearchService("s1"));
+
+        Assert.IsType<OkObjectResult>((await controller.GetConnection(live: false, Ct)).Result);
+    }
+
+    [Fact]
+    public async Task GetConnection_ReadEverywhere_AnswersWithoutAnyStore()
+    {
+        var controller = Controller(authorization: new FakeAuthorizationService(true));
+
+        Assert.IsType<OkObjectResult>((await controller.GetConnection(live: false, Ct)).Result);
+    }
+
+    [Fact]
+    public async Task GetConnection_NoStoreToWorkIn_IsForbidden()
+    {
+        var controller = Controller(authorization: new FakeAuthorizationService("s9"), stores: new FakeStoreSearchService("s1"));
+
+        Assert.IsType<ForbidResult>((await controller.GetConnection(live: false, Ct)).Result);
+    }
+
+    [Fact]
     public async Task GetConnection_StoreBeyondFirstPage_ListsIt()
     {
         var controller = Controller(ConfiguredConnection(), new FakeAuthorizationService("s150"), stores: new FakeStoreSearchService(Enumerable.Range(1, 250).Select(x => $"s{x:000}").ToArray()));

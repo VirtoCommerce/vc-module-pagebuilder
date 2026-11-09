@@ -10,6 +10,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
+using VirtoCommerce.ContentModule.Core.Events;
+using VirtoCommerce.PageBuilderModule.Core.Events;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Data.GitContent;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
@@ -192,7 +194,11 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             await Controller(repository, Publisher(GitPublishState.Merged), live: live).GitPublish("s1", Page, "pages");
 
             Assert.True(JToken.DeepEquals(JToken.Parse(Published), JToken.Parse(live.Files[Page])));
-            Assert.Single(live.Events);
+            Assert.Single(live.Events.OfType<PageBuilderContentChangedEvent>());
+            var indexed = Assert.Single(live.Events.OfType<ContentFileChangedEvent>());
+            Assert.Equal(("pages", "s1"), (indexed.ContentType, indexed.StoreId));
+            var entry = Assert.Single(indexed.ChangedEntries);
+            Assert.Equal(Page, entry.NewEntry.RelativeUrl);
             Assert.Equal(["o/r"], repository.Repositories);
         }
 

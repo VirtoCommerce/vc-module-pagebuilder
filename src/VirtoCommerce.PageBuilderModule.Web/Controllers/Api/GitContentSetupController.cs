@@ -118,13 +118,20 @@ public class GitContentSetupController(
     /// <param name="live">Check the connection on GitHub and list the sites</param>
     [HttpGet]
     [Route("connection")]
-    [Authorize(ModuleConstants.Security.Permissions.Read)]
     public async Task<ActionResult<GitContentConnectionStatus>> GetConnection([FromQuery] bool live = true, CancellationToken cancellationToken = default)
     {
+        // builder:read can be scoped to stores, which [Authorize] does not see
+        var readsEverywhere = (await authorizationService.AuthorizeAsync(User, null, ModuleConstants.Security.Permissions.Read)).Succeeded;
+        var stores = readsEverywhere ? null : await GetAccessibleStoresAsync();
+        if (stores is { Count: 0 })
+        {
+            return Forbid();
+        }
+
         var status = await gitContentSetupService.GetConnectionStatusAsync(live, cancellationToken);
         if (live && status.Configured)
         {
-            status.Sites = await gitContentSetupService.GetSitesAsync(await GetAccessibleStoresAsync(), cancellationToken);
+            status.Sites = await gitContentSetupService.GetSitesAsync(stores ?? await GetAccessibleStoresAsync(), cancellationToken);
         }
 
         return Ok(status);

@@ -13,6 +13,7 @@ using VirtoCommerce.Platform.Core;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.JsonConverters;
 using VirtoCommerce.Platform.Core.Security;
+using VirtoCommerce.Platform.Security.Authorization;
 using VirtoCommerce.StoreModule.Core.Security;
 using Xunit;
 using Permissions = VirtoCommerce.PageBuilderModule.Core.ModuleConstants.Security.Permissions;
@@ -84,6 +85,14 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.True(await IsAuthorizedAsync(user, "S1", Read()));
             Assert.False(await IsAuthorizedAsync(user, "s2", Read()));
             Assert.False(await IsAuthorizedAsync(user, "s2", Read("s2")));
+        }
+
+        [Fact]
+        public async Task UserBoundToAStore_PlatformDefaultHandlerRunsToo_AnotherStoreStaysRefused()
+        {
+            var user = new ApplicationUser { StoreId = "s1" };
+
+            Assert.False(await IsAuthorizedAsync(user, "s2", Read(), extraHandler: new DefaultPermissionAuthorizationHandler()));
         }
 
         [Fact]

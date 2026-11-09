@@ -6,14 +6,13 @@ using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.Platform.Core;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Security;
-using VirtoCommerce.Platform.Security.Authorization;
 using VirtoCommerce.StoreModule.Core.Model;
 using VirtoCommerce.StoreModule.Core.Security;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Authorization
 {
     public sealed class PageBuilderAuthorizationHandler(Func<UserManager<ApplicationUser>> userManagerFactory, IOptions<MvcNewtonsoftJsonOptions> jsonOptions)
-        : PermissionAuthorizationHandlerBase<PageBuilderAuthorizationRequirement>
+        : AuthorizationHandler<PageBuilderAuthorizationRequirement>
     {
         // A refusal stays silent: failing here would override any other handler registered for this requirement.
         protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, PageBuilderAuthorizationRequirement requirement)
@@ -32,8 +31,13 @@ namespace VirtoCommerce.PageBuilderModule.Data.Authorization
                 return;
             }
 
-            await base.HandleRequirementAsync(context, requirement);
-            if (context.HasSucceeded || storeIds == null)
+            if (context.User.HasGlobalPermission(requirement.Permission))
+            {
+                context.Succeed(requirement);
+                return;
+            }
+
+            if (storeIds == null)
             {
                 return;
             }

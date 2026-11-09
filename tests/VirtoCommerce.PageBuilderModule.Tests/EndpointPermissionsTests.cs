@@ -38,7 +38,7 @@ public class EndpointPermissionsTests
         // store:update in the store, which its scope can limit
         [(typeof(GitContentSetupController), nameof(GitContentSetupController.ConnectSite))] = InTheAction,
         [(typeof(GitContentSetupController), nameof(GitContentSetupController.DisconnectSite))] = InTheAction,
-        [(typeof(GitContentSetupController), nameof(GitContentSetupController.GetConnection))] = Permissions.Read,
+        [(typeof(GitContentSetupController), nameof(GitContentSetupController.GetConnection))] = InTheAction,
         [(typeof(GitContentSetupController), nameof(GitContentSetupController.StartAppSetup))] = PlatformPermissions.SettingUpdate,
         [(typeof(GitContentSetupController), nameof(GitContentSetupController.AppNew))] = Anonymous,
         [(typeof(GitContentSetupController), nameof(GitContentSetupController.AppCreated))] = Anonymous,

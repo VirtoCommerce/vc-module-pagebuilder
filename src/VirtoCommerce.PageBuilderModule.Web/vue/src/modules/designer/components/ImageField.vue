@@ -28,7 +28,7 @@
           {{ $t("PAGE_BUILDER.DESIGNER.SELECT_ASSET") }}
         </VcButton>
         <VcButton
-          v-if="modelValue"
+          v-if="modelValue && !noRemove"
           size="sm"
           variant="ghost"
           @click="emit('update:modelValue', null)"
@@ -53,7 +53,7 @@ import { inject } from "vue";
 import { VcButton, VcIcon, VcInput } from "@vc-shell/framework/ui";
 import { PickAssetKey } from "../types";
 
-defineProps<{ modelValue?: string | null; label?: string; hint?: string; image?: boolean }>();
+defineProps<{ modelValue?: string | null; label?: string; hint?: string; image?: boolean; noRemove?: boolean }>();
 const emit = defineEmits<{ "update:modelValue": [value: string | null] }>();
 
 const pickAsset = inject(PickAssetKey, undefined);
