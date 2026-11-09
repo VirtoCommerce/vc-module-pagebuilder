@@ -80,8 +80,8 @@ const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
 /** A part as its file holds it: the brand without its empty fields, a palette as it is */
 const fileContent = (look: ThemeLook, part: LookPart) => (part === "brand" ? brandFile(look.brand) : look[part]);
 
-/** The files Save writes: those of the parts changed since `saved` */
-export function lookFiles(theme: string, look: ThemeLook, saved: ThemeLook): { part: LookPart; file: DesignerSaveFile }[] {
+/** The files Save writes: those of the parts changed since `saved` (Save adds the version each was read at) */
+export function lookFiles(theme: string, look: ThemeLook, saved: ThemeLook): { part: LookPart; file: Omit<DesignerSaveFile, "eTag"> }[] {
   return LOOK_PARTS.filter((part) => !same(fileContent(look, part), fileContent(saved, part))).map((part) => ({
     part,
     file: { path: THEME_FILES[LOOK_FILES[part]](theme), content: fileContent(look, part) },

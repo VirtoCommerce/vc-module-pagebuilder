@@ -76,3 +76,12 @@ export function fakePlatform() {
 export const status = (code: number, body: unknown = "") => new Response(typeof body === "string" ? body : JSON.stringify(body), { status: code });
 
 export type FakePlatform = ReturnType<typeof fakePlatform>;
+
+/** A theme file's version as the fake platform gives it: it names the file, and a file the theme lacks has its own */
+export const themeETag = (path: string, exists = true) => `"${exists ? "" : "none:"}${path}"`;
+
+/** The designer's theme-file read over the files a test has, by their path with the theme folder */
+export const themeFileAnswer = (files: Record<string, unknown>) => (request: Request) =>
+  request.query.path in files
+    ? { path: request.query.path, content: JSON.stringify(files[request.query.path]), eTag: themeETag(request.query.path) }
+    : { path: request.query.path, eTag: themeETag(request.query.path, false) };

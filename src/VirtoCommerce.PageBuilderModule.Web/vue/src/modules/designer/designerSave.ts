@@ -9,6 +9,8 @@ export type DesignerSavePage = { groupId: string; eTag: string; content: unknown
 export interface DesignerSaveFile {
   /** the theme folder and the file path: "default/sections/header-group.json" */
   path: string;
+  /** the version the file was read at (loadThemeFile): 412 when someone saved it since */
+  eTag: string;
   content: unknown;
 }
 
@@ -26,7 +28,7 @@ const text = (content: unknown) => JSON.stringify(content, null, 2);
 export function designerSaveBody(save: { page?: DesignerSavePage; themeFiles: DesignerSaveFile[] }): DesignerSaveRequest {
   return {
     page: save.page && { ...save.page, content: text(save.page.content) },
-    themeFiles: save.themeFiles.map((x) => ({ path: x.path, content: text(x.content) })),
+    themeFiles: save.themeFiles.map((x) => ({ path: x.path, eTag: x.eTag, content: text(x.content) })),
   };
 }
 

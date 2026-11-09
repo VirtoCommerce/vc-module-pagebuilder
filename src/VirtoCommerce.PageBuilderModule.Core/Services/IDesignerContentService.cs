@@ -14,7 +14,7 @@ public interface IDesignerContentService
     Task ValidateThemeFilesAsync(string storeId, IDictionary<string, JToken> files, bool draft, string catalogHash,
         CancellationToken cancellationToken = default);
 
-    /// <exception cref="PageBuilderContentConflictException">The page was saved by someone else since it was read.</exception>
+    /// <exception cref="PageBuilderContentConflictException">The page or a theme file was saved by someone else since it was read: nothing is written.</exception>
     Task<DesignerSaveResult> SaveAsync(DesignerSaveCommand command, ClaimsPrincipal user, CancellationToken cancellationToken = default);
 
     /// <summary>Discards the drafts; a theme file never published keeps its draft.</summary>

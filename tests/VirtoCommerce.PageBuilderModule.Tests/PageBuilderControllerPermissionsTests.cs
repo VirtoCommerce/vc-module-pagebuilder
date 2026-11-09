@@ -26,6 +26,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             { nameof(PageBuilderController.Search), [Permissions.Read] },
             { nameof(PageBuilderController.SaveTemplates), [Permissions.Update] },
             // and the permission that edits each theme file, in the action
+            { nameof(PageBuilderController.GetDesignerThemeFile), [Permissions.Read] },
             { nameof(PageBuilderController.SaveDesignerChanges), [Permissions.Update] },
             { nameof(PageBuilderController.DiscardDesignerChanges), [Permissions.Update] },
             { nameof(PageBuilderController.GitPublish), [Permissions.Publish] },

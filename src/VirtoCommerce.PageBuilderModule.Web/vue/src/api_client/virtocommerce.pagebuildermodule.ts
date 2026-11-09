@@ -4946,6 +4946,7 @@ export interface DesignerDiscardRequest {
 export interface DesignerSaveFile {
     path?: string | undefined;
     content?: string | undefined;
+    eTag?: string | undefined;
 }
 
 export interface DesignerSavePage {

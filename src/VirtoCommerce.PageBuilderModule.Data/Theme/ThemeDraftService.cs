@@ -16,16 +16,26 @@ public class ThemeDraftService(
     IEventPublisher eventPublisher,
     ILogger<ThemeDraftService> logger) : IThemeDraftService
 {
-    public virtual async Task<T> SaveDraftsAsync<T>(string storeId, IDictionary<string, string> files, Func<CancellationToken, Task<T>> saveOthersAsync,
-        CancellationToken cancellationToken = default)
+    public virtual async Task<ThemeFileContent> ReadAsync(string storeId, string path, CancellationToken cancellationToken = default)
+    {
+        var result = AbstractTypeFactory<ThemeFileContent>.TryCreateInstance();
+        result.Path = path;
+        result.Content = await ReadEditedAsync(await ReadDraftAsync(storeId, path));
+        result.ETag = PageBuilderContentVersion.CreateForThemeFile(storeId, path, result.Content);
+
+        return result;
+    }
+
+    public virtual async Task<T> SaveDraftsAsync<T>(string storeId, IDictionary<string, string> files, IDictionary<string, string> eTags,
+        Func<CancellationToken, Task<T>> saveOthersAsync, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(files);
         ArgumentNullException.ThrowIfNull(saveOthersAsync);
 
-        // a theme publication reads and deletes the drafts under the same lock
+        // a theme publication and the builder's other theme writes take the same lock: a version checked here stays current until written
         var result = await distributedLock.ExecuteAsync(
             ThemeStorage.GetLockResource(storeId),
-            _ => SaveUnderLockAsync(storeId, files, saveOthersAsync, cancellationToken),
+            _ => SaveUnderLockAsync(storeId, files, eTags, saveOthersAsync, cancellationToken),
             cancellationToken: cancellationToken);
 
         await PublishChangedEventAsync(files.Keys, cancellationToken);
@@ -49,15 +59,27 @@ public class ThemeDraftService(
         return result;
     }
 
-    protected virtual async Task<T> SaveUnderLockAsync<T>(string storeId, IDictionary<string, string> files, Func<CancellationToken, Task<T>> saveOthersAsync,
-        CancellationToken cancellationToken)
+    protected virtual async Task<T> SaveUnderLockAsync<T>(string storeId, IDictionary<string, string> files, IDictionary<string, string> eTags,
+        Func<CancellationToken, Task<T>> saveOthersAsync, CancellationToken cancellationToken)
     {
+        // every version is checked before anything is written
+        var drafts = new List<(ThemeDraft Draft, string Content)>();
+        foreach (var (path, content) in files)
+        {
+            var draft = await ReadDraftAsync(storeId, path);
+            if (eTags != null)
+            {
+                await CheckVersionAsync(storeId, path, draft, content, eTags.TryGetValue(path, out var eTag) ? eTag : null);
+            }
+
+            drafts.Add((draft, content));
+        }
+
         var previousDrafts = new List<ThemeDraft>();
         try
         {
-            foreach (var (path, content) in files)
+            foreach (var (draft, content) in drafts)
             {
-                var draft = await ReadDraftAsync(storeId, path);
                 previousDrafts.Add(draft);
                 await draft.Storage.WriteAsync(draft.File, content);
             }
@@ -111,6 +133,21 @@ public class ThemeDraftService(
         var file = storage.GetDraftPath(PageBuilderContentPaths.GetPathInTheme(path));
 
         return new ThemeDraft(storage, file, await storage.ReadAsync(file));
+    }
+
+    /// <summary>The content the designer edits: the draft, else what is live; null when neither exists.</summary>
+    protected virtual async Task<string> ReadEditedAsync(ThemeDraft draft) =>
+        draft.Content ?? await draft.Storage.ReadAsync(draft.Storage.GetLivePath(draft.File));
+
+    /// <summary>Refuses a file saved by someone else since it was read. The content sent being there already is a retried save, and passes.</summary>
+    protected virtual async Task CheckVersionAsync(string storeId, string path, ThemeDraft draft, string content, string eTag)
+    {
+        var current = await ReadEditedAsync(draft);
+        if (!string.Equals(PageBuilderContentVersion.CreateForThemeFile(storeId, path, current), eTag, StringComparison.Ordinal) &&
+            !string.Equals(current, content, StringComparison.Ordinal))
+        {
+            throw new PageBuilderContentConflictException(PageBuilderContentConflictException.ThemeFileMessage);
+        }
     }
 
     /// <summary>A draft of a file never published is its only copy and stays.</summary>

@@ -4,7 +4,7 @@ import { effectScope } from "vue";
 import ThemePanel from "../../src/modules/designer/components/ThemePanel.vue";
 import { PALETTE_CHECK_DEBOUNCE_MS, type PaletteFailure } from "../../src/modules/designer/paletteContrast";
 import { useThemeLook } from "../../src/modules/designer/useThemeLook";
-import { fakePlatform, status, type FakePlatform, type Request } from "./support/fakePlatform";
+import { fakePlatform, themeFileAnswer, type FakePlatform } from "./support/fakePlatform";
 
 const STORE = "B2B-store";
 const TOKENS = { light: ["color_primary_500", "color_neutral_50"], dark: ["color_primary_500"] };
@@ -26,9 +26,7 @@ let scope: ReturnType<typeof effectScope>;
 beforeEach(() => {
   vi.useFakeTimers();
   platform = fakePlatform()
-    .on("GET", "/api/pagebuilder/template", (request: Request) =>
-      request.query.path === "default/config/palette.json" ? JSON.stringify({ color_primary_500: "#f99e24" }) : status(404),
-    )
+    .on("GET", "/api/pagebuilder/designer/theme-file", themeFileAnswer({ "default/config/palette.json": { color_primary_500: "#f99e24" } }))
     .on("POST", "/api/pagebuilder/theme/palette/check", { failures: [failure("color_neutral_50")], unchecked: 1 })
     .on("POST", "/api/pagebuilder/theme/palette", {
       light: { color_primary_500: "#a25c27", color_neutral_50: "#f7f7f7" },

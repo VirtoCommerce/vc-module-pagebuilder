@@ -6,7 +6,7 @@ import { useTemplateRules } from "../../src/modules/designer/templateRules";
 import type { ConditionDescriptor, RulesPick } from "../../src/modules/designer/previewMessages";
 import type { TemplateRule } from "../../src/modules/designer/rules";
 import type { NamedEntity } from "../../src/modules/designer/api";
-import { fakePlatform, type FakePlatform, type Request } from "./support/fakePlatform";
+import { fakePlatform, themeETag, themeFileAnswer, type FakePlatform } from "./support/fakePlatform";
 import { popup } from "./support/vcShell";
 
 // Sortable.js needs a real pointer drag: the panel's drop handler is called as Sortable calls it
@@ -43,7 +43,7 @@ let platform: FakePlatform;
 
 beforeEach(() => {
   platform = fakePlatform()
-    .on("GET", "/api/pagebuilder/template", (request: Request) => (request.query.path === "default/config/template_rules.json" ? JSON.stringify(RULES_FILE) : new Response("", { status: 404 })))
+    .on("GET", "/api/pagebuilder/designer/theme-file", themeFileAnswer({ "default/config/template_rules.json": RULES_FILE }))
     .graphql("categories(", { data: { categories: { items: [{ id: "cat-printers", name: "Printers" }, { id: "cat-ink", name: "Ink" }] } } })
     .graphql("childCategories(", {
       data: { childCategories: { childCategories: [{ id: "cat-printers", name: "Printers" }, { id: "cat-ink", name: "Ink" }] } },
@@ -54,7 +54,7 @@ beforeEach(() => {
 async function mountPanel(
   props: { conditions?: ConditionDescriptor[]; picked?: RulesPick; previewed?: NamedEntity; templateKey?: string; file?: unknown; readonly?: boolean } = {},
 ) {
-  if (props.file) platform.on("GET", "/api/pagebuilder/template", JSON.stringify(props.file));
+  if (props.file) platform.on("GET", "/api/pagebuilder/designer/theme-file", themeFileAnswer({ "default/config/template_rules.json": props.file }));
   const rules = useTemplateRules();
   await rules.load("B2B-store", "default");
   const templateKey = props.templateKey ?? "product.printer";
@@ -130,7 +130,11 @@ describe("RulesPanel", () => {
     expect(added.id).toMatch(/^[a-z0-9]{8}$/);
     expect(products().slice(0, 3).map((x) => x.id)).toEqual(["r-printers", "r-bundle", "r-stock"]);
     expect(rules.dirty.value).toBe(true);
-    expect(rules.pending()?.file).toEqual({ path: "default/config/template_rules.json", content: expect.objectContaining({ version: 2 }) });
+    expect(rules.pending()?.file).toEqual({
+      path: "default/config/template_rules.json",
+      eTag: themeETag("default/config/template_rules.json"),
+      content: expect.objectContaining({ version: 2 }),
+    });
   });
 
   it("edits a rule in place: its id and its place stay, a condition the site doesn't know is kept", async () => {
@@ -262,6 +266,16 @@ describe("RulesPanel", () => {
     rules.pending()!.saved();
     await nextTick();
     expect(wrapper.find(".pd-rules__note--warning").exists()).toBe(false);
+  });
+
+  it("sends the rules with the version they were read at, and after a save with the version it returned", async () => {
+    const { wrapper, rules } = await mountPanel();
+    await rows(wrapper)[1].find("input[role=switch]").setValue(true);
+    expect(rules.pending()!.file.eTag).toBe(themeETag("default/config/template_rules.json"));
+
+    rules.pending()!.saved('"rules-v2"');
+    await rows(wrapper)[1].find("input[role=switch]").setValue(false);
+    expect(rules.pending()!.file.eTag).toBe('"rules-v2"');
   });
 
   it("says nothing of unreadable entries for a file it reads whole", async () => {

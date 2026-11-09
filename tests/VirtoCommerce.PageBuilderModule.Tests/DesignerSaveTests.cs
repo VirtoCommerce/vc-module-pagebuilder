@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Security.Claims;
@@ -110,6 +111,158 @@ public class DesignerSaveTests
 
         Assert.Equal(StatusCodes.Status412PreconditionFailed, Assert.IsType<ObjectResult>(result.Result).StatusCode);
         AssertNothingWritten();
+    }
+
+    [Fact]
+    public async Task SaveDesignerChanges_ThemeFileSavedSinceRead_ReturnsPreconditionFailedAndWritesNothing()
+    {
+        _live.Files[Rules] = RulesFile;
+        var request = Save(DatabasePage(), (Header, HeaderFile), (Rules, """{ "version": 2, "conditions": [ { "mine": true } ] }"""));
+        // someone else saves the rules after this editor read them
+        _live.Files[$"{Rules}-draft"] = """{ "version": 2, "conditions": [ { "theirs": true } ] }""";
+
+        var result = await Builder().SaveDesignerChanges("s1", request);
+
+        Assert.Equal(StatusCodes.Status412PreconditionFailed, Assert.IsType<ObjectResult>(result.Result).StatusCode);
+        Assert.Equal("""{ "version": 2, "conditions": [ { "theirs": true } ] }""", _live.Files[$"{Rules}-draft"]);
+        Assert.False(_live.Files.ContainsKey($"{Header}-draft"));
+        Assert.Equal(Published, await DraftAsync());
+        Assert.Empty(_live.Events.OfType<PageBuilderContentChangedEvent>());
+        Assert.Empty(_history.Records);
+    }
+
+    [Fact]
+    public async Task SaveDesignerChanges_ThemeFileWithoutVersion_ReturnsPreconditionRequiredAndWritesNothing()
+    {
+        var request = Save(DatabasePage(), (Header, HeaderFile), (Rules, RulesFile));
+        request.ThemeFiles[1].ETag = null;
+
+        var result = await Builder().SaveDesignerChanges("s1", request);
+
+        Assert.Equal(StatusCodes.Status428PreconditionRequired, Assert.IsType<ObjectResult>(result.Result).StatusCode);
+        AssertNothingWritten();
+    }
+
+    [Fact]
+    public async Task SaveDesignerChanges_ThemeFileVersionNotOneTheServerGives_ReturnsBadRequest()
+    {
+        var request = Save(null, (Header, HeaderFile));
+        request.ThemeFiles[0].ETag = "\"v1\"";
+
+        Assert.IsType<BadRequestObjectResult>((await Builder().SaveDesignerChanges("s1", request)).Result);
+        AssertNothingWritten();
+    }
+
+    [Fact]
+    public async Task SaveDesignerChanges_ThemeFilesAtTheirVersions_SavesThemAndReturnsTheirNewVersions()
+    {
+        _live.Files[Header] = "live header";
+        _live.Files[$"{Rules}-draft"] = "rules draft";
+
+        var result = await Builder().SaveDesignerChanges("s1", Save(null, (Header, HeaderFile), (Rules, RulesFile)));
+
+        Assert.Equal(HeaderFile, _live.Files[$"{Header}-draft"]);
+        Assert.Equal(RulesFile, _live.Files[$"{Rules}-draft"]);
+        var versions = PlatformJson.ParseBody(result.Result)["themeFiles"]!.Select(x => (x.Value<string>("path"), x.Value<string>("eTag")));
+        Assert.Equal([(Header, ETagOf(Header)), (Rules, ETagOf(Rules))], versions);
+
+        // the next Save from the same tab goes with the versions returned
+        var again = await Builder().SaveDesignerChanges("s1", new DesignerSaveRequest
+        {
+            ThemeFiles = [new DesignerSaveFile { Path = Header, Content = "{ \"content\": [] }", ETag = versions.First().Item2 }],
+        });
+
+        Assert.IsType<OkObjectResult>(again.Result);
+        Assert.Equal("{ \"content\": [] }", _live.Files[$"{Header}-draft"]);
+    }
+
+    [Fact]
+    public async Task SaveDesignerChanges_NewThemeFile_IsSavedAtTheVersionOfAFileThatDoesNotExist()
+    {
+        const string template = """{ "settings": {}, "content": [] }""";
+        var absent = (string)PlatformJson.ParseBody((await Builder().GetDesignerThemeFile("s1", Template)).Result)["eTag"];
+
+        var created = await Builder().SaveDesignerChanges("s1", new DesignerSaveRequest
+        {
+            ThemeFiles = [new DesignerSaveFile { Path = Template, Content = template, ETag = absent }],
+        });
+
+        Assert.IsType<OkObjectResult>(created.Result);
+        Assert.Equal(template, _live.Files[$"{Template}-draft"]);
+
+        // a second editor creating it from the same absent version is refused
+        var second = await Builder().SaveDesignerChanges("s1", new DesignerSaveRequest
+        {
+            ThemeFiles = [new DesignerSaveFile { Path = Template, Content = """{ "settings": { "name": "Other" }, "content": [] }""", ETag = absent }],
+        });
+
+        Assert.Equal(StatusCodes.Status412PreconditionFailed, Assert.IsType<ObjectResult>(second.Result).StatusCode);
+        Assert.Equal(template, _live.Files[$"{Template}-draft"]);
+    }
+
+    [Fact]
+    public async Task SaveDesignerChanges_SameContentRetriedAfterItWasSaved_IsNotAConflict()
+    {
+        var request = Save(null, (Header, HeaderFile));
+        await Builder().SaveDesignerChanges("s1", request);
+
+        // the response was lost: the same request again
+        var retried = await Builder().SaveDesignerChanges("s1", request);
+
+        Assert.IsType<OkObjectResult>(retried.Result);
+        Assert.Equal(HeaderFile, _live.Files[$"{Header}-draft"]);
+    }
+
+    [Fact]
+    public async Task RestoreVersion_WritesTheThemeFilesWhateverTheyHoldNow()
+    {
+        _live.Files[$"{Header}-draft"] = "edited since";
+
+        await TestServices.Designer(_history, themeDrafts: new ThemeDraftService(_themes, _lock, _live, NullLogger<ThemeDraftService>.Instance), pages: _pages)
+            .RestoreAsync(new ContentRestoreCommand
+            {
+                StoreId = "s1",
+                SaveId = "restore-0001",
+                VersionId = "1234567",
+                Contents = new Dictionary<HistoryItem, string> { [new HistoryItem(HistoryItemType.Theme, Header)] = HeaderFile },
+            }, new ClaimsPrincipal(new ClaimsIdentity()), Ct);
+
+        Assert.Equal(HeaderFile, _live.Files[$"{Header}-draft"]);
+    }
+
+    [Fact]
+    public async Task GetDesignerThemeFile_ReadsTheDraftElseWhatIsLiveWithTheVersionItsSaveSends()
+    {
+        _live.Files[Header] = "live header";
+        _live.Files[Rules] = "live rules";
+        _live.Files[$"{Rules}-draft"] = RulesFile;
+
+        var header = PlatformJson.ParseBody((await Builder().GetDesignerThemeFile("s1", Header)).Result);
+        var rules = PlatformJson.ParseBody((await Builder().GetDesignerThemeFile("s1", Rules)).Result);
+        var none = PlatformJson.ParseBody((await Builder().GetDesignerThemeFile("s1", Template)).Result);
+
+        Assert.Equal(("live header", ETagOf(Header)), ((string)header["content"], (string)header["eTag"]));
+        Assert.Equal((RulesFile, ETagOf(Rules)), ((string)rules["content"], (string)rules["eTag"]));
+        Assert.Null(none["content"]);
+        Assert.True(PageBuilderContentVersion.IsWellFormed((string)none["eTag"]));
+        Assert.NotEqual(PageBuilderContentVersion.CreateForThemeFile("s1", Template, ""), (string)none["eTag"]);
+    }
+
+    [Fact]
+    public async Task GetDesignerThemeFile_StoreUserDoesNotWorkIn_ReturnsForbidBeforeBadRequest()
+    {
+        var result = await Builder(new FakeAuthorizationService("s2", Permissions.Read)).GetDesignerThemeFile("s1", "default/../x.json");
+
+        Assert.IsType<ForbidResult>(result.Result);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("default/../x.json")]
+    [InlineData("default/snapshots/current.json")]
+    public async Task GetDesignerThemeFile_PathTheBuilderDoesNotSave_ReturnsBadRequest(string path)
+    {
+        Assert.IsType<BadRequestObjectResult>((await Builder().GetDesignerThemeFile("s1", path)).Result);
     }
 
     [Fact]
@@ -504,11 +657,15 @@ public class DesignerSaveTests
         Content = Edited,
     };
 
-    private static DesignerSaveRequest Save(DesignerSavePage page, params (string Path, string Content)[] themeFiles) => new()
+    /// <summary>Each theme file goes with the version it holds now, as the designer read it.</summary>
+    private DesignerSaveRequest Save(DesignerSavePage page, params (string Path, string Content)[] themeFiles) => new()
     {
         Page = page,
-        ThemeFiles = themeFiles.Select(x => new DesignerSaveFile { Path = x.Path, Content = x.Content }).ToList(),
+        ThemeFiles = themeFiles.Select(x => new DesignerSaveFile { Path = x.Path, Content = x.Content, ETag = ETagOf(x.Path) }).ToList(),
     };
+
+    private string ETagOf(string path) =>
+        PageBuilderContentVersion.CreateForThemeFile("s1", path, _live.Files.GetValueOrDefault($"{path}-draft") ?? _live.Files.GetValueOrDefault(path));
 
     private Task<string> SaveCatalogAsync() =>
         new SchemaCatalogService(_themes).SaveAsync("s1",

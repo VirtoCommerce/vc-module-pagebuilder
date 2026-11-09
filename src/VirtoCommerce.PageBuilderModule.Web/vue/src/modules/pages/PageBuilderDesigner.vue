@@ -643,7 +643,16 @@ import {
   uploadCatalog,
   ApiError, type FilePage, type SharedComponent } from "../designer/api";
 import { newItem } from "../designer/schema";
-import { searchCategories, searchPages, searchProducts, templateKeys, findFilePage, type CatalogContext, type NamedEntity } from "../designer/api";
+import {
+  searchCategories,
+  searchPages,
+  searchProducts,
+  templateKeys,
+  findFilePage,
+  loadThemeFile,
+  type CatalogContext,
+  type NamedEntity,
+} from "../designer/api";
 import { PAGE_CONTENT, alternateKey, alternateName, entityUrl, pageTypeOf, startingTemplate, templateEntry, templatePath, type PageType } from "../designer/templates";
 import { rulesFor } from "../designer/rules";
 import { useTemplateRules } from "../designer/templateRules";
@@ -1089,8 +1098,9 @@ async function saveChanges() {
   const pageChanged = designer.dirty.value;
   const changed: HistoryFile[] = [...designer.changedParts.value, ...parts.map((x) => x.part)];
   try {
-    if (!(await designer.save(parts.map((x) => x.file)))) return;
-    for (const part of parts) part.saved();
+    const versions = await designer.save(parts.map((x) => x.file));
+    if (!versions) return;
+    for (const part of parts) part.saved(versions[part.file.path]);
     if (pageChanged) notifyPagesChanged();
   } catch (e) {
     if (e instanceof ApiError && e.status === 403) return notifyForbidden(changed);
@@ -1829,10 +1839,15 @@ async function createTemplate() {
   if (unsaved.value && !(await showConfirmation(t("PAGE_BUILDER.DESIGNER.TEMPLATES.CONFIRM_SWITCH")))) return;
   const file = (k: string): FilePage => ({ storeId, theme: themeName.value!, type: "themes", path: templatePath(themeName.value!, k) });
   try {
-    const base = await findFilePage(file(target.type));
+    const [base, created] = await Promise.all([findFilePage(file(target.type)), loadThemeFile(storeId, file(key).path)]);
+    // someone created it meanwhile: the name is taken
+    if (created.content !== undefined) {
+      templateKeyList.value = [...new Set([...templateKeyList.value, key])].sort();
+      return;
+    }
     const doc = startingTemplate(target.type, base, templateEntry(designer.schemas.value, target.type).entry, designer.mainItem);
     const content = filePageContent({ ...doc, settings: { ...doc.settings, name: target.name.trim() } });
-    await saveDesigner(storeId, { themeFiles: [{ path: file(key).path, content }] }, designer.handshake.value?.hash);
+    await saveDesigner(storeId, { themeFiles: [{ path: file(key).path, eTag: created.eTag, content }] }, designer.handshake.value?.hash);
   } catch (e) {
     notifyFailure(t("PAGE_BUILDER.DESIGNER.TEMPLATES.CREATE_FAILED"), e);
     return;

@@ -7,7 +7,7 @@ import { fromDocument, isComponentRef, resolveRefs } from "./document";
 import type { ClipboardItem } from "./clipboard";
 import * as api from "./api";
 import { GROUPS, groupItems, groupOf, pageOnly, withGroups } from "./groups";
-import { THEME_FILES, THEME_PARTS, type HistoryFile, type ThemePart } from "./history";
+import { THEME_FILES, THEME_PARTS, groupPath, type HistoryFile, type ThemePart } from "./history";
 import {
   MAIN_SECTIONS,
   PAGE_CONTENT,
@@ -63,6 +63,8 @@ export function useDesigner() {
 
   // persistence state
   const eTag = ref<string>();
+  /** the version of each theme file open (the header and footer, a template) as last read or saved, by its path */
+  const themeETags = ref<Record<string, string>>({});
   const savedJson = ref("");
   const status = ref<api.PublishStatus>({});
   const busy = ref<"loading" | "saving" | "publishing" | "restoring">();
@@ -514,9 +516,11 @@ export function useDesigner() {
       theme.value = themeName ?? (await api.storeTheme(store));
       const [header, footer] = await Promise.all(GROUPS.map((g) => api.loadSectionGroup(store, theme.value!, g)));
       groupsLoaded.value = true;
-      if (!header) unseeded.add("header");
-      if (!footer) unseeded.add("footer");
-      return { header: header ?? [], footer: footer ?? [] };
+      for (const [g, file] of [["header", header], ["footer", footer]] as const) {
+        themeETags.value[groupPath(theme.value!, g)] = file.eTag;
+        if (!file.items) unseeded.add(g);
+      }
+      return { header: header.items ?? [], footer: footer.items ?? [] };
     } catch {
       groupsLoaded.value = false;
       return undefined;
@@ -573,6 +577,7 @@ export function useDesigner() {
     file.value = undefined;
     shared.value = undefined;
     eTag.value = undefined;
+    themeETags.value = {};
     gitFlow.value = false;
     groupsLoaded.value = false;
     templateIsNew.value = false;
@@ -599,13 +604,14 @@ export function useDesigner() {
         file.value = source;
         const themeFile = source.type === "themes";
         // a template shows with the theme's header and footer, as a page does (another theme file has none)
-        const [git, page, groups] = await Promise.all([
+        const [git, { doc: page, eTag: fileETag }, groups] = await Promise.all([
           themeFile ? false : api.gitFlowOf(source.storeId, source.theme).then((x) => x.on),
-          api.findFilePage(source),
+          themeFile ? api.findTemplate(source) : api.findFilePage(source).then((doc) => ({ doc, eTag: undefined })),
           themeFile && !templateKey.value ? undefined : loadGroups(source.storeId, source.theme),
         ]);
         // theme files are never in git, even when the store's pages are: they are saved, published and discarded as blobs
         gitFlow.value = git;
+        if (fileETag !== undefined) themeETags.value[source.path] = fileETag;
         templateIsNew.value = !page && !!templateKey.value;
         reset(page ?? (pageType.value ? startingTemplate(pageType.value, undefined, undefined, mainItem) : { settings: { type: "settings" } as Item, content: [] }), groups);
       }
@@ -677,37 +683,44 @@ export function useDesigner() {
 
   /**
    * Saves the drafts as one Save, in one request: the page or template, the header and footer, and the theme files
-   * given (the rules, the theme settings). A shared component is saved on its own. A database page throws ApiError 412
-   * when someone else saved it meanwhile, 428 without its version; edits made while saving stay unsaved. Returns false
-   * when nothing could be saved: nothing is open, it couldn't be opened, or another action runs.
+   * given (the rules, the brand and palettes), each with the version it was read at. A shared component is saved on its
+   * own. Throws ApiError 412 when someone else saved the page or a theme file meanwhile, 428 without the page's version;
+   * edits made while saving stay unsaved. Returns the theme files' new versions by path, or false when nothing could be
+   * saved: nothing is open, it couldn't be opened, or another action runs.
    */
-  async function save(themeFiles: DesignerSaveFile[] = []): Promise<boolean> {
+  async function save(themeFiles: DesignerSaveFile[] = []): Promise<Record<string, string> | false> {
     if ((!groupId.value && !file.value && !shared.value) || busy.value || loadError.value) return false;
     const sent = pageOnly(doc.value);
     const pageChanged = JSON.stringify(sent) !== savedJson.value;
     const groups = changedGroups();
     if (pageChanged && groupId.value && !eTag.value) throw new api.ApiError(428, "");
-    const files = [...themeFiles, ...(theme.value ? api.sectionGroupFiles(theme.value, groups) : [])];
+    const files = [...themeFiles, ...(theme.value ? api.sectionGroupFiles(theme.value, groups, themeETags.value) : [])];
     let page: DesignerSavePage | undefined;
     if (pageChanged && !shared.value) {
-      // a template is a theme file; a database page goes with the version it was read at
+      // a database page and a template (a theme file) go with the version they were read at
       if (groupId.value) page = { groupId: groupId.value, eTag: eTag.value!, content: fromDocument(sent) };
-      else if (themeFileOpen.value) files.unshift({ path: file.value!.path, content: api.filePageContent(sent) });
-      else page = { path: file.value!.path, type: file.value!.type, content: api.filePageContent(sent) };
+      else if (themeFileOpen.value) {
+        const path = file.value!.path;
+        files.unshift({ path, eTag: themeETags.value[path] ?? "", content: api.filePageContent(sent) });
+      } else page = { path: file.value!.path, type: file.value!.type, content: api.filePageContent(sent) };
     }
     busy.value = "saving";
     try {
+      const versions: Record<string, string> = {};
       if (pageChanged && shared.value) await api.saveSharedComponentContent(shared.value.id, sent);
       if (page || files.length) {
         // theme files name the catalog of the storefront previewed: the server checks them against it
         const saved = await api.saveDesigner(storeId.value!, { page, themeFiles: files }, handshake.value?.hash);
         if (groupId.value) eTag.value = saved.eTag ?? eTag.value;
+        for (const x of saved.themeFiles ?? []) versions[x.path] = x.eTag;
+        // the next Save from this tab goes with them; the rules', brand's and palettes' are kept by their own state
+        for (const path of Object.keys(themeETags.value)) if (versions[path]) themeETags.value[path] = versions[path];
       }
       if (pageChanged && themeFileOpen.value) templateIsNew.value = false;
       savedJson.value = JSON.stringify(sent);
       for (const [g, items] of Object.entries(groups)) savedGroupsJson.value[g as SectionGroup] = JSON.stringify(items);
       await Promise.all([refreshStatus(), loadComponents(true)]);
-      return true;
+      return versions;
     } finally {
       busy.value = undefined;
     }

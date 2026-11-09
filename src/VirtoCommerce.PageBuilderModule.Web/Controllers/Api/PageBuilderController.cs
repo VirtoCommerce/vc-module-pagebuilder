@@ -685,6 +685,23 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             return Ok(new { pages = saved });
         }
 
+        /// <summary>A theme file as the designer edits it: its draft, else what is live, with the version its save sends back</summary>
+        [HttpGet]
+        [Authorize(ModuleConstants.Security.Permissions.Read)]
+        [Route("designer/theme-file")]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public async Task<ActionResult<ThemeFileContent>> GetDesignerThemeFile([FromQuery] string storeId, [FromQuery] string path)
+        {
+            var request = new PageBuilderContentRequest { StoreId = storeId, Files = [new PageBuilderContentFile { ContentType = Themes, Path = path }] };
+            if (await CheckRequestAsync(request) is { } refused)
+            {
+                return refused;
+            }
+
+            return Ok(await themeDraftService.ReadAsync(storeId, path, HttpContext.RequestAborted));
+        }
+
         /// <summary>Save designer changes as drafts</summary>
         [HttpPost]
         [Authorize(ModuleConstants.Security.Permissions.Update)]
@@ -692,6 +709,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status412PreconditionFailed)]
+        [ProducesResponseType(StatusCodes.Status428PreconditionRequired)]
         public async Task<ActionResult<DesignerSaveResult>> SaveDesignerChanges([FromQuery] string storeId, [FromBody] DesignerSaveRequest value,
             [FromQuery] string catalogHash = null)
         {
@@ -734,6 +752,11 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             if (group != null && await CheckDesignerPageAsync(storeId, page, cancellationToken) is { } refusedPage)
             {
                 return refusedPage;
+            }
+
+            if (CheckDesignerThemeFileVersions(themeFiles) is { } refusedVersions)
+            {
+                return refusedVersions;
             }
 
             var themeSaveFiles = files.Where(IsThemeFile).ToList();
@@ -939,6 +962,22 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             }
 
             return (await sharedComponentPlacementValidator.ValidateAsync(User, storeId, page.Content, cancellationToken)).ToActionResult();
+        }
+
+        /// <summary>Each theme file goes with the version designer/theme-file read it at, as a database page goes with its own.</summary>
+        private ObjectResult CheckDesignerThemeFileVersions(IList<DesignerSaveFile> themeFiles)
+        {
+            if (themeFiles.Any(x => string.IsNullOrWhiteSpace(x.ETag)))
+            {
+                return StatusCode(StatusCodes.Status428PreconditionRequired, "Read each theme file with designer/theme-file and send its ETag before saving.");
+            }
+
+            if (!themeFiles.All(x => PageBuilderContentVersion.IsWellFormed(x.ETag)))
+            {
+                return BadRequest(new { error = "A theme file's ETag must be the one designer/theme-file returned." });
+            }
+
+            return null;
         }
 
         /// <summary>

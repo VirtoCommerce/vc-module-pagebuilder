@@ -56,8 +56,10 @@ public class DesignerContentService(
         result.ETag = await themeDraftService.SaveDraftsAsync(
             command.StoreId,
             command.ThemeFiles.ToDictionary(x => x.Path, x => x.Content),
+            command.ThemeFiles.ToDictionary(x => x.Path, x => x.ETag),
             token => SavePageAsync(command, user, token),
             cancellationToken);
+        result.ThemeFiles = command.ThemeFiles.Select(x => CreateThemeFileVersion(command.StoreId, x)).ToList();
 
         var record = CreateHistoryRecord(ModuleConstants.GitHistory.SavedSummary, command.SaveId, user);
         if (command.Group != null)
@@ -114,7 +116,8 @@ public class DesignerContentService(
 
         var themeFiles = command.Contents.Where(x => x.Key.Type == HistoryItemType.Theme).ToDictionary(x => x.Key.Key, x => x.Value);
         var pageContent = command.Contents.Where(x => x.Key.Type == HistoryItemType.Page).Select(x => x.Value).SingleOrDefault();
-        await themeDraftService.SaveDraftsAsync(command.StoreId, themeFiles, token => RestorePageAsync(command.Group, pageContent, token), cancellationToken);
+        // a version restored replaces the drafts as they are now, as the page's restore does
+        await themeDraftService.SaveDraftsAsync(command.StoreId, themeFiles, eTags: null, token => RestorePageAsync(command.Group, pageContent, token), cancellationToken);
 
         var record = CreateHistoryRecord(GetRestoredDescription(command.VersionId), command.SaveId, user);
         foreach (var (item, content) in command.Contents)
@@ -192,6 +195,15 @@ public class DesignerContentService(
         await groupedPageContentWriter.SaveContentAsync(group, content, current.ETag, cancellationToken);
 
         return true;
+    }
+
+    protected virtual ThemeFileVersion CreateThemeFileVersion(string storeId, DesignerSaveFile file)
+    {
+        var version = AbstractTypeFactory<ThemeFileVersion>.TryCreateInstance();
+        version.Path = file.Path;
+        version.ETag = PageBuilderContentVersion.CreateForThemeFile(storeId, file.Path, file.Content);
+
+        return version;
     }
 
     protected virtual string GetRestoredDescription(string versionId) =>

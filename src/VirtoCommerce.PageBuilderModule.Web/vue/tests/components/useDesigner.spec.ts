@@ -7,7 +7,7 @@ import { useThemeLook } from "../../src/modules/designer/useThemeLook";
 import { themePublishButton } from "../../src/modules/designer/themePublication";
 import type { Handshake } from "../../src/modules/designer/previewMessages";
 import type { Item, Schemas } from "../../src/modules/designer/types";
-import { fakePlatform, status, type FakePlatform, type Request } from "./support/fakePlatform";
+import { fakePlatform, status, themeETag, themeFileAnswer, type FakePlatform, type Request } from "./support/fakePlatform";
 import { TEST_TOKEN } from "./support/vcShell";
 
 const STORE = "B2B-store";
@@ -62,6 +62,7 @@ beforeEach(() => {
     .on("GET", "/api/pagebuilder/template", (request: Request) =>
       request.query.path in themeFiles ? JSON.stringify(themeFiles[request.query.path]) : status(404),
     )
+    .on("GET", "/api/pagebuilder/designer/theme-file", (request: Request) => themeFileAnswer(themeFiles)(request))
     .on("GET", "/api/pagebuilder/theme/status", () => themeStatus)
     .on("POST", "/api/pagebuilder/designer/save", { eTag: '"v2"' })
     .on("POST", "/api/pagebuilder/designer/discard", {})
@@ -160,9 +161,9 @@ describe("useDesigner: editing and saving", () => {
     designer.setField("title", "Hello there");
     designer.selection.value = { kind: "section", id: "header-1" };
     designer.setField("announcement", "Free returns");
-    const rules = { path: "default/config/template_rules.json", content: { version: 2, conditions: [] } };
+    const rules = { path: "default/config/template_rules.json", eTag: '"r1"', content: { version: 2, conditions: [] } };
 
-    expect(await designer.save([rules])).toBe(true);
+    expect(await designer.save([rules])).toEqual({});
 
     expect(saves()).toHaveLength(1);
     const [save] = saves();
@@ -211,8 +212,76 @@ describe("useDesigner: editing and saving", () => {
 
     // the next Save still goes with the version the page was read at
     platform.on("POST", "/api/pagebuilder/designer/save", { eTag: '"v9"' });
-    expect(await designer.save()).toBe(true);
+    expect(await designer.save()).toEqual({});
     expect((saves()[1].body as { page: { eTag: string } }).page.eTag).toBe('"v1"');
+  });
+
+  it("sends each theme file with the version it was read at, and the next Save with the version returned", async () => {
+    const header = "default/sections/header-group.json";
+    const footer = "default/sections/footer-group.json";
+    await openDatabasePage();
+    designer.selection.value = { kind: "section", id: "header-1" };
+    designer.setField("announcement", "Free returns");
+    platform.on("POST", "/api/pagebuilder/designer/save", { themeFiles: [{ path: header, eTag: '"h2"' }] });
+    const rules = { path: "default/config/template_rules.json", eTag: '"r1"', content: { version: 2, conditions: [] } };
+
+    expect(await designer.save([rules])).toEqual({ [header]: '"h2"' });
+
+    const sent = (n: number) => (saves()[n].body as { themeFiles: { path: string; eTag: string }[] }).themeFiles.map((x) => [x.path, x.eTag]);
+    expect(sent(0)).toEqual([
+      ["default/config/template_rules.json", '"r1"'],
+      [header, themeETag(header)],
+    ]);
+
+    // a footer the theme lacks goes with the version of none
+    const footerId = designer.doc.value.content.find((x) => x.__group === "footer")!.id;
+    designer.selection.value = { kind: "section", id: "header-1" };
+    designer.setField("announcement", "Free returns, always");
+    designer.doc.value = { ...designer.doc.value, content: designer.doc.value.content.filter((x) => x.id !== footerId) };
+    await designer.save();
+    expect(sent(1)).toEqual([
+      [header, '"h2"'],
+      [footer, themeETag(footer, false)],
+    ]);
+  });
+
+  it("keeps the theme files' versions when someone else saved one meanwhile (412): opening again reads them anew", async () => {
+    const header = "default/sections/header-group.json";
+    await openDatabasePage();
+    platform.on("POST", "/api/pagebuilder/designer/save", status(412, "A theme file was saved by someone else since it was read."));
+    designer.selection.value = { kind: "section", id: "header-1" };
+    designer.setField("announcement", "Mine");
+
+    await expect(designer.save()).rejects.toMatchObject({ status: 412 });
+    expect(designer.dirty.value).toBe(true);
+
+    // someone else's save; the editor opens the page again (as Discard does)
+    themeFiles[header] = { ...HEADER, content: [{ ...HEADER.content[0], announcement: "Theirs" }] };
+    platform.on("GET", "/api/pagebuilder/designer/theme-file", (request: Request) =>
+      request.query.path === header ? { content: JSON.stringify(themeFiles[header]), eTag: '"theirs"' } : themeFileAnswer(themeFiles)(request),
+    );
+    platform.on("POST", "/api/pagebuilder/designer/save", {});
+    await openDatabasePage();
+    expect(section("header-1").announcement).toBe("Theirs");
+    designer.selection.value = { kind: "section", id: "header-1" };
+    designer.setField("announcement", "Mine again");
+    await designer.save();
+    expect((saves()[1].body as { themeFiles: { eTag: string }[] }).themeFiles.map((x) => x.eTag)).toEqual(['"theirs"']);
+  });
+
+  it("sends a template with the version it was read at; a template the theme lacks with the version of none", async () => {
+    const template = "default/templates/product.json";
+    await openTemplate();
+    designer.selection.value = { kind: "section", id: "hero-t" };
+    designer.setField("title", "Hi");
+    await designer.save();
+    expect((saves()[0].body as { themeFiles: { path: string; eTag: string }[] }).themeFiles[0]).toMatchObject({ path: template, eTag: themeETag(template) });
+
+    delete themeFiles[template];
+    await openTemplate();
+    designer.doc.value = { ...designer.doc.value, content: [...designer.doc.value.content, { id: "hero-new", type: "hero", title: "New" }] };
+    await designer.save();
+    expect((saves()[1].body as { themeFiles: { path: string; eTag: string }[] }).themeFiles[0]).toMatchObject({ path: template, eTag: themeETag(template, false) });
   });
 
   it("refuses to save a database page read without its version (428), sending nothing", async () => {
@@ -411,14 +480,33 @@ describe("useDesigner: translatable settings and the main section", () => {
 });
 
 describe("api: theme files and what may not exist", () => {
-  it("reads a theme file the theme lacks as none, and keeps any other failure's status and body", async () => {
-    expect(await api.loadThemeFile(STORE, "default", "default/config/brand.json")).toBeUndefined();
-    expect(await api.loadThemeFile(STORE, "default", "default/sections/header-group.json")).toEqual(HEADER);
+  it("reads a theme file with its version, one the theme lacks as none, and keeps any failure's status and body", async () => {
+    expect(await api.loadThemeFile(STORE, "default/config/brand.json")).toEqual({ content: undefined, eTag: themeETag("default/config/brand.json", false) });
+    expect(await api.loadThemeFile(STORE, "default/sections/header-group.json")).toEqual({ content: HEADER, eTag: themeETag("default/sections/header-group.json") });
+    expect(platform.to("/api/pagebuilder/designer/theme-file")[0].query).toEqual({ storeId: STORE, path: "default/config/brand.json" });
     platform.on("GET", "/api/pagebuilder/catalog", status(404));
     expect(await api.hasCatalog(STORE, "catalog-hash-1")).toBe(false);
 
-    platform.on("GET", "/api/pagebuilder/template", status(403, "Forbidden"));
-    await expect(api.loadThemeFile(STORE, "default", "default/config/brand.json")).rejects.toMatchObject({ status: 403, body: "Forbidden" });
+    platform.on("GET", "/api/pagebuilder/designer/theme-file", status(403, "Forbidden"));
+    await expect(api.loadThemeFile(STORE, "default/config/brand.json")).rejects.toMatchObject({ status: 403, body: "Forbidden" });
+  });
+
+  it("sends the brand and palettes with the versions they were read at, and after a save with the versions it returned", async () => {
+    themeFiles["default/config/brand.json"] = { logoUrl: "/b.svg" };
+    const look = scope.run(() => useThemeLook())!;
+    await look.load(STORE, "default");
+    look.setBrand("logoUrl", "/new.svg");
+    look.setColor("light", "color_primary_500", "#000000");
+
+    const pending = look.pending();
+    expect(pending.map((x) => [x.file.path, x.file.eTag])).toEqual([
+      ["default/config/brand.json", themeETag("default/config/brand.json")],
+      ["default/config/palette.json", themeETag("default/config/palette.json", false)],
+    ]);
+
+    for (const part of pending) part.saved(`"${part.part}-v2"`);
+    look.setBrand("logoUrl", "/newer.svg");
+    expect(look.pending().map((x) => x.file.eTag)).toEqual(['"brand-v2"']);
   });
 
   it("starts the brand of a theme without a brand file from the logos of its settings file, which it never writes", async () => {
@@ -438,9 +526,9 @@ describe("api: theme files and what may not exist", () => {
     const look = scope.run(() => useThemeLook())!;
     await look.load(STORE, "default");
     expect(look.look.value.brand).toEqual({ logoUrl: "/b.svg" });
-    expect(platform.to("/api/pagebuilder/template").map((x) => x.query.path)).not.toContain("default/config/settings_data.json");
+    expect(platform.to("/api/pagebuilder/designer/theme-file").map((x) => x.query.path)).not.toContain("default/config/settings_data.json");
 
-    platform.on("GET", "/api/pagebuilder/template", status(403, "Forbidden"));
+    platform.on("GET", "/api/pagebuilder/designer/theme-file", status(403, "Forbidden"));
     await look.load(STORE, "default");
     expect(look.loaded.value).toBe(false);
     expect(look.loadError.value).toBeInstanceOf(ApiError);

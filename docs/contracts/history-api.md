@@ -66,7 +66,8 @@ records it as one version, "Restored {the first 7 characters of the versionId}".
 theme files. A theme item must be a file the builder saves: not under `catalogs/`, and in `config/` only the builder's
 own files. The order of the checks: the store (403), the items (400), the permission of every item (403), the page
 (404, or 403 for another store's), the items as of the version (404), and the page's shared components as a save
-checks them (403 without `builder:shared-components:read`, 400). The editor then publishes as usual. To preview a version, the designer reads the page and the theme files
+checks them (403 without `builder:shared-components:read`, 400). Restore takes no versions: it replaces the items as
+they are now, and the designer reads them again. The editor then publishes as usual. To preview a version, the designer reads the page and the theme files
 it shows as of it.
 
 ```ts
@@ -115,29 +116,43 @@ alone is discarded with `POST api/pagebuilder/discard-draft`, recorded the same 
 
 ## Save
 
-A designer Save is one request and one version: the page and the theme files it changed, written as drafts.
+A designer Save is one request and one version: the page and the theme files it changed, written as drafts. A database
+page and each theme file go with the version they were read at, so a Save never overwrites what someone else saved to
+them meanwhile.
 
 | Method and route | Permission | Returns |
 |---|---|---|
-| `POST api/pagebuilder/designer/save?storeId&catalogHash`, `DesignerSave` as the body | `builder:update`, and per theme file: `builder:templates` for templates and the rules, `builder:theme` for the other theme files | `{ saveId, eTag }` |
+| `GET api/pagebuilder/designer/theme-file?storeId&path` | `builder:read` | `{ path, content?, eTag }`: the theme file as the designer edits it, its draft else what is live, as text; `content` is left out when the file does not exist |
+| `POST api/pagebuilder/designer/save?storeId&catalogHash`, `DesignerSave` as the body | `builder:update`, and per theme file: `builder:templates` for templates and the rules, `builder:theme` for the other theme files | `{ saveId, eTag, themeFiles: { path, eTag }[] }`: the new versions of the database page and of each theme file |
 
 ```ts
 interface DesignerSave {
   /** a database page by its group and the version it was read at, or a page kept as a file */
   page?: { groupId: string; eTag: string; content: string } | { path: string; type: "pages" | "blogs"; content: string };
   /** a template is a theme file, as are the rules, the header and footer groups, the brand and the palettes */
-  themeFiles?: { path: string; content: string }[];
+  themeFiles?: { path: string; eTag: string; content: string }[];
 }
 ```
 
 - Contents are JSON text, saved as they are: the history tells the published version by these bytes.
+- A theme file's `eTag` is the one `designer/theme-file` returned, or the one the last Save returned for it. It is the
+  page's version format over the store, the path and the content; a file that does not exist has a version of its own,
+  so creating a file is checked as well. A theme publication moves the bytes live unchanged, and keeps the version.
 - Everything is checked before anything is written: the store and each part's permission (403), the database page
   (404, or 403 for another store's), the paths and the JSON (400), the page's envelope and shared components as `grouped/{groupId}/content` checks them (400; 403 without
-  `builder:shared-components:read`), its version (428 without one; 412 when the page was saved since it was read), and
-  the theme files against the catalog named (400 `{ error, errors }`; not checked without `catalogHash`).
-- Under the store's theme lock the theme drafts are written first and the page last. When the page is refused (412) or
+  `builder:shared-components:read`), its version (428 without one; 412 when the page was saved since it was read), each
+  theme file's version (428 without one, 400 when it is not one the server gives), and the theme files against the
+  catalog named (400 `{ error, errors }`; not checked without `catalogHash`).
+- Under the store's theme lock every theme file's version is compared with its draft, else what is live; when one
+  differs, the Save is refused (412) and nothing is written. Sending the content a file already holds passes: a Save
+  retried after a lost response. Then the theme drafts are written and the page last. When the page is refused (412) or
   fails, the theme drafts are put back as they were: a draft that existed gets its content back, a new one is removed.
-  Nothing else sees them meanwhile: a theme publication takes the same lock.
+  Nothing else sees them meanwhile: a theme publication and the builder's other theme writes (Discard, restore,
+  `api/pagebuilder/save`, `api/pagebuilder/discard-draft`) take the same lock. A write through the content module's own
+  endpoints does not.
+- Theme files stay in blob storage when the store's pages are in git; the site's history records the Save after the
+  lock. The check is what keeps a stale Save out of the drafts and so out of the history: the history's commit moves
+  the branch only from the head it was built on, so it never loses a version, but it records whatever the Save wrote.
 - The page keeps its own semantics: a database page is saved as `grouped/{groupId}/content` saves it and raises the same
   page events; a file page is a commit on the editor's work branch on a store on the git flow, else a blob draft.
 - After the lock, one version records the database page and the theme files, named by the request's
@@ -165,7 +180,8 @@ interface DesignerDiscard {
 ```
 
 - The store, each part's permission (403), the database page (404, or 403 for another store's) and the paths (400) are
-  checked before anything is deleted.
+  checked before anything is deleted. A Discard takes no versions: it is how the designer gets past a 412, reading the
+  files again afterwards.
 - Under the store's theme lock the theme drafts are deleted first and the page's last. A theme file never published
   keeps its draft, which is its only copy. A database page never published is refused (400) and the theme drafts are
   put back. A file page's draft is its work branch on the git flow, else its blob draft.

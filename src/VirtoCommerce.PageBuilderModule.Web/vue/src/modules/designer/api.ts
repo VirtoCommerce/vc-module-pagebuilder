@@ -279,10 +279,18 @@ export async function checkPalette(storeId: string, tokens: PaletteTokens, look:
 // ── theme files (section groups, templates, the template rules, the theme settings): saved as drafts ("-draft"), put
 // live together by the theme's publication ──
 
-/** A theme file's JSON as last saved (its draft, else what is live), or undefined when the theme has none */
-export async function loadThemeFile(storeId: string, theme: string, path: string): Promise<unknown> {
-  const res = await find(`/api/pagebuilder/template?${new URLSearchParams({ storeId, theme, type: "themes", path, draft: "true" })}`);
-  return res && jsonOf(res);
+/** A theme file as last saved: its JSON (its draft, else what is live; undefined when the theme has none) and its version */
+export interface ThemeFile {
+  content: unknown;
+  /** what Save sends back with the file (412 when someone saved it since); a file the theme lacks has one too */
+  eTag: string;
+}
+
+/** A theme file as the designer edits it, by its path with the theme folder */
+export async function loadThemeFile(storeId: string, path: string): Promise<ThemeFile> {
+  const res = await call(`/api/pagebuilder/designer/theme-file?${new URLSearchParams({ storeId, path })}`);
+  const body = ((await jsonOf(res)) ?? {}) as { content?: string | null; eTag?: string };
+  return { content: body.content?.trim() ? JSON.parse(body.content) : undefined, eTag: body.eTag ?? "" };
 }
 
 /** The theme's current publication and the theme files with a draft the next one puts live */
@@ -301,37 +309,43 @@ export async function publishTheme(storeId: string, catalogHash?: string): Promi
 
 /**
  * A theme's section group (Shopify's sections/header-group.json): its sections as last saved (the draft, else what is
- * live), or undefined when the theme has none
+ * live; undefined when the theme has none) and the file's version
  */
-export async function loadSectionGroup(storeId: string, theme: string, group: SectionGroup): Promise<Item[] | undefined> {
-  const file = (await loadThemeFile(storeId, theme, groupPath(theme, group))) as { content?: unknown } | undefined;
-  if (file === undefined) return undefined;
-  return Array.isArray(file?.content) ? (file.content as Item[]) : [];
+export async function loadSectionGroup(storeId: string, theme: string, group: SectionGroup): Promise<{ items?: Item[]; eTag: string }> {
+  const file = await loadThemeFile(storeId, groupPath(theme, group));
+  const content = file.content as { content?: unknown } | undefined;
+  if (content === undefined) return { eTag: file.eTag };
+  return { items: Array.isArray(content?.content) ? (content.content as Item[]) : [], eTag: file.eTag };
 }
 
-/** The theme files of section groups (Shopify's sections/header-group.json) */
-export const sectionGroupFiles = (theme: string, groups: Partial<Record<SectionGroup, Item[]>>): DesignerSaveFile[] =>
-  Object.entries(groups).map(([group, content]) => ({
-    path: groupPath(theme, group as SectionGroup),
-    content: { type: group, name: group === "header" ? "Header" : "Footer", content },
-  }));
+/** The theme files of section groups (Shopify's sections/header-group.json), each with the version it was read at */
+export const sectionGroupFiles = (
+  theme: string,
+  groups: Partial<Record<SectionGroup, Item[]>>,
+  eTags: Readonly<Record<string, string>>,
+): DesignerSaveFile[] =>
+  Object.entries(groups).map(([group, content]) => {
+    const path = groupPath(theme, group as SectionGroup);
+    return { path, eTag: eTags[path] ?? "", content: { type: group, name: group === "header" ? "Header" : "Footer", content } };
+  });
 
 /**
  * One designer Save: the page and the theme files as drafts, all or nothing, one version of the site's history. 412: the
- * page was saved by someone else since it was read; 400 `{ error, errors }`: a file doesn't fit the catalog named; 403:
- * a part needs a permission the user lacks. Returns the page's new version (a database page).
+ * page or a theme file was saved by someone else since it was read; 428: one went without its version; 400 `{ error,
+ * errors }`: a file doesn't fit the catalog named; 403: a part needs a permission the user lacks. Returns the new
+ * versions: the page's (a database page) and each theme file's.
  */
 export async function saveDesigner(
   storeId: string,
   save: { page?: DesignerSavePage; themeFiles: DesignerSaveFile[] },
   catalogHash?: string,
-): Promise<{ saveId?: string; eTag?: string }> {
+): Promise<{ saveId?: string; eTag?: string; themeFiles?: { path: string; eTag: string }[] }> {
   const res = await call(designerSaveUrl(storeId, catalogHash), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(designerSaveBody(save)),
   });
-  return ((await res.json().catch(() => ({}))) ?? {}) as { saveId?: string; eTag?: string };
+  return ((await res.json().catch(() => ({}))) ?? {}) as { saveId?: string; eTag?: string; themeFiles?: { path: string; eTag: string }[] };
 }
 
 /**
@@ -380,6 +394,12 @@ export async function loadFilePage(page: FilePage): Promise<PageDocument> {
 export async function findFilePage(page: FilePage): Promise<PageDocument | undefined> {
   const res = await find(`/api/pagebuilder/template?${fileArgs(page, { theme: page.theme, draft: "true" })}`);
   return res && toDocument(await res.text());
+}
+
+/** A theme template (a file page of type "themes") as the designer edits it, undefined when the theme has none, and its version */
+export async function findTemplate(page: FilePage): Promise<{ doc?: PageDocument; eTag: string }> {
+  const file = await loadThemeFile(page.storeId, page.path);
+  return { doc: file.content === undefined ? undefined : toDocument(file.content), eTag: file.eTag };
 }
 
 /** A file page's JSON as saved: git validates the envelope, whose settings item is typed "settings" */

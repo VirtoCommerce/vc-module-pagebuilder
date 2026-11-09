@@ -7,4 +7,7 @@ public class DesignerSaveFile
 
     /// <summary>The file JSON, saved as it is.</summary>
     public string Content { get; set; }
+
+    /// <summary>The version the file was read at, as designer/theme-file returned it.</summary>
+    public string ETag { get; set; }
 }

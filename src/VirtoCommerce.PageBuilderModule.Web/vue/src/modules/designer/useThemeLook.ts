@@ -16,6 +16,8 @@ export function useThemeLook() {
   const saved = ref<ThemeLook>(emptyLook());
   const loaded = ref(false);
   const loadError = ref<unknown>();
+  /** the version of each file as last read or saved, by its path: Save sends it back */
+  let eTags: Record<string, string> = {};
   // the palettes before each color change, for its undo
   const steps = ref<PaletteStep[]>([]);
   const canUndoColors = computed(() => steps.value.length > 0);
@@ -30,10 +32,11 @@ export function useThemeLook() {
     loaded.value = false;
     loadError.value = undefined;
     try {
-      const [brand, light, dark] = await Promise.all(
-        [LOOK_FILES.brand, LOOK_FILES.light, LOOK_FILES.dark].map((part) => api.loadThemeFile(storeId, theme, THEME_FILES[part](theme))),
-      );
-      const settingsData = isRecord(brand) ? undefined : await api.loadThemeFile(storeId, theme, settingsDataPath(theme));
+      const paths = [LOOK_FILES.brand, LOOK_FILES.light, LOOK_FILES.dark].map((part) => THEME_FILES[part](theme));
+      const files = await Promise.all(paths.map((path) => api.loadThemeFile(storeId, path)));
+      const [brand, light, dark] = files.map((x) => x.content);
+      const settingsData = isRecord(brand) ? undefined : (await api.loadThemeFile(storeId, settingsDataPath(theme))).content;
+      eTags = Object.fromEntries(paths.map((path, i) => [path, files[i].eTag]));
       saved.value = { brand: readBrand(brand, settingsData), light: readColors(light), dark: readColors(dark) };
       look.value = clone(saved.value);
       steps.value = [];
@@ -81,15 +84,18 @@ export function useThemeLook() {
     lastEdited = undefined;
   }
 
-  /** What Save writes: a file per changed part, and how to mark it saved once it is */
-  function pending(): { part: ThemePart; file: DesignerSaveFile; saved: () => void }[] {
+  /** What Save writes: a file per changed part with the version it was read at, and how to mark it saved at its new version */
+  function pending(): { part: ThemePart; file: DesignerSaveFile; saved: (eTag?: string) => void }[] {
     if (!at || !loaded.value) return [];
     const sent = clone(look.value);
     return lookFiles(at.theme, sent, saved.value).map(({ part, file }) => ({
       part: LOOK_FILES[part],
-      file,
+      file: { ...file, eTag: eTags[file.path] ?? "" },
       // what was sent, part by part: an edit made while it was on its way stays unsaved
-      saved: () => (saved.value = { ...saved.value, [part]: sent[part] }),
+      saved: (eTag?: string) => {
+        saved.value = { ...saved.value, [part]: sent[part] };
+        if (eTag) eTags[file.path] = eTag;
+      },
     }));
   }
 
