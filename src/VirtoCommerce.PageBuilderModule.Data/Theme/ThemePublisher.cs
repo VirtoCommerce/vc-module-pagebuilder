@@ -70,7 +70,7 @@ public class ThemePublisher(
 
                 // Live files may predate the storefront schemas, so only their shape is validated.
                 var currentCatalog = await schemaCatalogService.GetAsync(storeId, hash: null, lockToken);
-                var catalog = currentCatalog == null ? null : JObject.Parse(currentCatalog);
+                var catalog = currentCatalog == null ? null : ThemeJson.ParseObject(currentCatalog);
                 var result = await PublishUnderLockAsync(storeId, catalog, catalogHash: null, includeDrafts: false, lockToken);
 
                 return result.Publication;
@@ -171,7 +171,7 @@ public class ThemePublisher(
         var catalog = await schemaCatalogService.GetAsync(storeId, catalogHash, cancellationToken)
             ?? throw new ThemeValidationException([$"there is no schema catalog '{catalogHash}': preview the storefront first"]);
 
-        return JObject.Parse(catalog);
+        return ThemeJson.ParseObject(catalog);
     }
 
     protected virtual async Task<ThemeSource> GetThemeSourceAsync(IThemeStorage storage, bool includeDrafts)
@@ -247,7 +247,7 @@ public class ThemePublisher(
 
         try
         {
-            return JToken.Parse(content);
+            return ThemeJson.Parse(content);
         }
         catch (JsonReaderException)
         {

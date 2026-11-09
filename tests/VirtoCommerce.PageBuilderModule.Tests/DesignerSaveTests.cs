@@ -368,6 +368,21 @@ public class DesignerSaveTests
     }
 
     [Fact]
+    public async Task SaveDesignerChanges_OptionThatLooksLikeADate_IsTheValueBothSidesHold()
+    {
+        const string ends = "2026-12-31T23:59:59+02:00";
+        var catalogs = new SchemaCatalogService(_themes);
+        await catalogs.SaveAsync("s1", $$"""
+            { "hash": "{{Catalog}}", "sections": { "announcement-bar": { "settings": [ { "id": "ends", "type": "select", "options": [ { "value": "{{ends}}" } ] } ] } }, "blocks": {}, "shared": {} }
+            """, Ct);
+
+        var result = await Builder().SaveDesignerChanges("s1", Save(DatabasePage(), (Header, $$"""{ "content": [ { "id": "a", "type": "announcement-bar", "ends": "{{ends}}" } ] }""")), Catalog);
+
+        Assert.IsType<OkObjectResult>(result.Result);
+        Assert.Contains(ends, await catalogs.GetAsync("s1", Catalog, Ct));
+    }
+
+    [Fact]
     public async Task SaveDesignerChanges_ValuesTheCatalogHas_SavesThem()
     {
         await SaveValueCatalogAsync();

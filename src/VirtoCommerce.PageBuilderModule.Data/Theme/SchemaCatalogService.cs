@@ -58,7 +58,7 @@ public class SchemaCatalogService(IThemeStorageFactory themeStorageFactory) : IS
         JObject catalog;
         try
         {
-            catalog = JObject.Parse(catalogJson ?? string.Empty);
+            catalog = ThemeJson.ParseObject(catalogJson ?? string.Empty);
         }
         catch (JsonReaderException)
         {
