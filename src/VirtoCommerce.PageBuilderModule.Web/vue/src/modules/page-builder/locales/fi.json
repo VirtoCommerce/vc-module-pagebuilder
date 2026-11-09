@@ -553,7 +553,7 @@
         "TEST_RULE": "sääntö {number}",
         "TEST_DEFAULT": "mikään sääntö ei täsmää",
         "TEST_WAITING": "Valitse esikatselun kohde: esikatselu kertoo sitten, minkä mallin säännöt sille antavat.",
-        "TEST_HINT": "Sivuston julkaistut säännöt ratkaisevat. Tallenna ja julkaise testataksesi muutoksiasi.",
+        "TEST_HINT": "Säännöt päättävät sellaisina kuin ne ovat tässä, tallennettuina tai ei.",
         "JSON_TITLE": "Mallisäännöt JSON-muodossa",
         "JSON_HINT": "Teematiedosto {path}. Käytä tarkistaa sen ja palaa luetteloon.",
         "FORMAT": "Muotoile",

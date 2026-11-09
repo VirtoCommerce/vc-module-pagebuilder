@@ -553,7 +553,7 @@
         "TEST_RULE": "规则 {number}",
         "TEST_DEFAULT": "没有匹配的规则",
         "TEST_WAITING": "请选择预览对象：预览随后会显示规则为其分配的模板。",
-        "TEST_HINT": "以站点已发布的规则为准。保存并发布后即可测试你的更改。",
+        "TEST_HINT": "无论是否保存，均按此处的规则判定。",
         "JSON_TITLE": "模板规则（JSON）",
         "JSON_HINT": "主题文件 {path}。应用时会进行检查并返回列表。",
         "FORMAT": "格式化",

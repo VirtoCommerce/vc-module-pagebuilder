@@ -553,7 +553,7 @@
         "TEST_RULE": "regla {number}",
         "TEST_DEFAULT": "ninguna regla coincide",
         "TEST_WAITING": "Elige con qué ver la vista previa: entonces indica qué plantilla le asignan las reglas.",
-        "TEST_HINT": "Deciden las reglas publicadas del sitio. Guarda y publica para probar tus cambios.",
+        "TEST_HINT": "Deciden las reglas tal como están aquí, guardadas o no.",
         "JSON_TITLE": "Reglas de plantillas en JSON",
         "JSON_HINT": "El archivo del tema {path}. Aplicar lo comprueba y vuelve a la lista.",
         "FORMAT": "Formatear",

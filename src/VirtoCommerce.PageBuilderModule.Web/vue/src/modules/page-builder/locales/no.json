@@ -553,7 +553,7 @@
         "TEST_RULE": "regel {number}",
         "TEST_DEFAULT": "ingen regel passer",
         "TEST_WAITING": "Velg hva forhåndsvisningen skal vise: den forteller da hvilken mal reglene gir.",
-        "TEST_HINT": "Nettstedets publiserte regler avgjør. Lagre og publiser for å teste endringene.",
+        "TEST_HINT": "Reglene slik de er her avgjør, lagret eller ikke.",
         "JSON_TITLE": "Malregler som JSON",
         "JSON_HINT": "Temafilen {path}. Bruk kontrollerer den og går tilbake til listen.",
         "FORMAT": "Formater",

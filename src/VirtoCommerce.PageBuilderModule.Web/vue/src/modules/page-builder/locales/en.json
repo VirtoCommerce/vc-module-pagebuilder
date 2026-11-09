@@ -553,7 +553,7 @@
         "TEST_RULE": "rule {number}",
         "TEST_DEFAULT": "no rule matches",
         "TEST_WAITING": "Pick what to preview with: the preview then tells which template the rules give it.",
-        "TEST_HINT": "The site's published rules decide. Save and publish to test your changes.",
+        "TEST_HINT": "The rules as you have them here decide, saved or not.",
         "JSON_TITLE": "Template rules as JSON",
         "JSON_HINT": "The theme file {path}. Apply checks it and goes back to the list.",
         "FORMAT": "Format",

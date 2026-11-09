@@ -553,7 +553,7 @@
         "TEST_RULE": "regel {number}",
         "TEST_DEFAULT": "ingen regel matchar",
         "TEST_WAITING": "Välj vad förhandsgranskningen ska visa: den talar då om vilken mall reglerna ger.",
-        "TEST_HINT": "Webbplatsens publicerade regler avgör. Spara och publicera för att testa dina ändringar.",
+        "TEST_HINT": "Reglerna som de ser ut här avgör, sparade eller inte.",
         "JSON_TITLE": "Mallregler som JSON",
         "JSON_HINT": "Temafilen {path}. Verkställ kontrollerar den och går tillbaka till listan.",
         "FORMAT": "Formatera",

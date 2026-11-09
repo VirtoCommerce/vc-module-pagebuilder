@@ -553,7 +553,7 @@
         "TEST_RULE": "regola {number}",
         "TEST_DEFAULT": "nessuna regola corrisponde",
         "TEST_WAITING": "Scegli con cosa mostrare l'anteprima: indicherà quale modello le regole le assegnano.",
-        "TEST_HINT": "Decidono le regole pubblicate del sito. Salva e pubblica per provare le modifiche.",
+        "TEST_HINT": "Decidono le regole così come sono qui, salvate o no.",
         "JSON_TITLE": "Regole dei modelli in JSON",
         "JSON_HINT": "Il file del tema {path}. Applica lo verifica e torna all'elenco.",
         "FORMAT": "Formatta",

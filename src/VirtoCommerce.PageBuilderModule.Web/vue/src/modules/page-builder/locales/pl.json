@@ -553,7 +553,7 @@
         "TEST_RULE": "reguła {number}",
         "TEST_DEFAULT": "żadna reguła nie pasuje",
         "TEST_WAITING": "Wybierz, z czym pokazać podgląd: podgląd poda wtedy, jaki szablon przydzielają reguły.",
-        "TEST_HINT": "Decydują opublikowane reguły witryny. Zapisz i opublikuj, aby przetestować zmiany.",
+        "TEST_HINT": "Decydują reguły w obecnej postaci, zapisane lub nie.",
         "JSON_TITLE": "Reguły szablonów jako JSON",
         "JSON_HINT": "Plik motywu {path}. Zastosuj sprawdza go i wraca do listy.",
         "FORMAT": "Formatuj",

@@ -553,7 +553,7 @@
         "TEST_RULE": "Regel {number}",
         "TEST_DEFAULT": "keine Regel passt",
         "TEST_WAITING": "Wählen Sie aus, womit die Vorschau gezeigt wird: Die Vorschau meldet dann, welche Vorlage die Regeln vergeben.",
-        "TEST_HINT": "Es gelten die veröffentlichten Regeln der Website. Speichern und veröffentlichen Sie, um Ihre Änderungen zu testen.",
+        "TEST_HINT": "Es gelten die Regeln, wie sie hier stehen, ob gespeichert oder nicht.",
         "JSON_TITLE": "Vorlagenregeln als JSON",
         "JSON_HINT": "Die Theme-Datei {path}. Übernehmen prüft sie und kehrt zur Liste zurück.",
         "FORMAT": "Formatieren",
