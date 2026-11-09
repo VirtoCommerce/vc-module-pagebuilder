@@ -142,7 +142,10 @@ interface DesignerSave {
   (404, or 403 for another store's), the paths and the JSON (400), the page's envelope and shared components as `grouped/{groupId}/content` checks them (400; 403 without
   `builder:shared-components:read`), its version (428 without one; 412 when the page was saved since it was read), each
   theme file's version (428 without one, 400 when it is not one the server gives), and the theme files against the
-  catalog named (400 `{ error, errors }`; not checked without `catalogHash`).
+  catalog named: their section and block types and the values of fields with a closed set of values, a `color-token`'s
+  palette token and a `select`'s option (400 `{ error, errors }`, each naming the file, the item and the field; see
+  [Section schema catalog](theme-snapshot.md#section-schema-catalog)). Theme files need `catalogHash`: a Save with
+  theme files that names none is refused (400 `{ error }`); a Save of the page alone needs none.
 - Under the store's theme lock every theme file's version is compared with its draft, else what is live; when one
   differs, the Save is refused (412) and nothing is written. Sending the content a file already holds passes: a Save
   retried after a lost response. Then the theme drafts are written and the page last. When the page is refused (412) or

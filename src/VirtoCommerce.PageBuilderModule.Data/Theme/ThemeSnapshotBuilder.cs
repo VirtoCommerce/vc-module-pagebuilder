@@ -13,6 +13,9 @@ public class ThemeSnapshotBuilder : IThemeSnapshotBuilder
     private const int SnapshotFormat = 1;
     private const int TemplateRulesVersion = 2;
     private const string MenuFieldType = "menu";
+    private const string ColorTokenFieldType = "color-token";
+    private const string SelectFieldType = "select";
+    private const string PaletteTokensKey = "paletteTokens";
     private const string JsonExtension = ".json";
 
     private const string ProductPageType = "product";
@@ -438,6 +441,11 @@ public class ThemeSnapshotBuilder : IThemeSnapshotBuilder
                 errors.Add($"{file}: '{id}' has a type the storefront does not have, '{type}'");
             }
 
+            if (catalog != null)
+            {
+                ValidateValues(item, GetFields(GetSchema(catalog, kind, type), kind, catalog), $"{file}: '{id}'", catalog, errors);
+            }
+
             switch (item["blocks"])
             {
                 case null:
@@ -450,6 +458,54 @@ public class ThemeSnapshotBuilder : IThemeSnapshotBuilder
                     break;
             }
         }
+    }
+
+    protected virtual void ValidateValues(JObject item, IList<JObject> fields, string itemName, JObject catalog, IList<string> errors)
+    {
+        VisitValues(item, fields, path: null, (field, value, path) =>
+        {
+            if (GetValueError(field, value, path, catalog) is { } error)
+            {
+                errors.Add($"{itemName} {error}");
+            }
+        });
+    }
+
+    /// <summary>
+    /// Why the storefront can't use the value of a field with a closed set of values: a <c>color-token</c> holds a palette
+    /// token the catalog announces, a <c>select</c> one of its options (each of them, when <c>multiple</c>). Null when it can.
+    /// </summary>
+    protected virtual string GetValueError(JObject field, JToken value, string path, JObject catalog)
+    {
+        var type = GetString(field, "type");
+        if (type is not (ColorTokenFieldType or SelectFieldType))
+        {
+            return null;
+        }
+
+        var chosen = value is JArray list && IsSet(field, "multiple") ? list.ToList() : [value];
+        if (chosen.TrueForAll(IsEmptyValue))
+        {
+            // an absent value is the field's default
+            var missing = IsSet(field, "required") && (value != null || IsEmptyValue(field["default"]));
+            return missing ? $"has no value in '{path}', which the storefront requires" : null;
+        }
+
+        var allowed = type == ColorTokenFieldType ? GetPaletteTokens(catalog) : GetOptions(field);
+        var bad = allowed == null ? null : chosen.Find(x => !IsEmptyValue(x) && !allowed.Any(option => JToken.DeepEquals(option, x)));
+
+        return bad == null ? null : $"has a value in '{path}' the storefront does not have, {DescribeValue(bad)}";
+    }
+
+    /// <summary>The palette tokens the catalog announces, light and dark; null when it announces none.</summary>
+    protected virtual IList<JToken> GetPaletteTokens(JObject catalog)
+    {
+        if (catalog?[PaletteTokensKey] is not JObject tokens)
+        {
+            return null;
+        }
+
+        return GetStrings(tokens["light"]).Concat(GetStrings(tokens["dark"])).Distinct(StringComparer.Ordinal).Select(x => (JToken)x).ToList();
     }
 
     protected virtual IList<string> GetMenus(JObject catalog, params JObject[] sectionGroups)
@@ -506,23 +562,68 @@ public class ThemeSnapshotBuilder : IThemeSnapshotBuilder
 
     private static void CollectMenus(JObject values, IList<JObject> fields, ISet<string> menus)
     {
-        foreach (var field in fields)
+        VisitValues(values, fields, path: null, (field, value, _) =>
         {
-            var value = values[GetString(field, "id") ?? string.Empty];
             if (GetString(field, "type") == MenuFieldType && value is JValue { Type: JTokenType.String } name && !string.IsNullOrWhiteSpace(name.Value<string>()))
             {
                 menus.Add(name.Value<string>());
             }
-            else if (field["element"] is JArray element)
+        });
+    }
+
+    /// <summary>Visits each field's value, and the fields of a list's rows or of an object; the path names the field, a row by its index.</summary>
+    private static void VisitValues(JObject values, IList<JObject> fields, string path, Action<JObject, JToken, string> visit)
+    {
+        foreach (var field in fields)
+        {
+            if (GetString(field, "id") is not { } id)
             {
-                var elementFields = element.OfType<JObject>().ToList();
-                foreach (var row in (value as JArray)?.OfType<JObject>() ?? (value is JObject single ? [single] : []))
+                continue;
+            }
+
+            var value = values[id];
+            var fieldPath = path == null ? id : $"{path}.{id}";
+            visit(field, value, fieldPath);
+
+            if (field["element"] is not JArray element)
+            {
+                continue;
+            }
+
+            var elementFields = element.OfType<JObject>().ToList();
+            if (value is JObject single)
+            {
+                VisitValues(single, elementFields, fieldPath, visit);
+            }
+
+            var rows = value as JArray ?? [];
+            for (var i = 0; i < rows.Count; i++)
+            {
+                if (rows[i] is JObject row)
                 {
-                    CollectMenus(row, elementFields, menus);
+                    VisitValues(row, elementFields, $"{fieldPath}[{i}]", visit);
                 }
             }
         }
     }
+
+    // a select with remote options has no list to check against
+    private static List<JToken> GetOptions(JObject field) =>
+        field["request"] != null ? null : (field["options"] as JArray)?.OfType<JObject>().Select(x => x["value"]).Where(x => x != null).ToList();
+
+    private static bool IsSet(JObject field, string name) => field[name] is JValue { Type: JTokenType.Boolean } flag && (bool)flag;
+
+    private static bool IsEmptyValue(JToken value) =>
+        value == null || value.Type == JTokenType.Null || (value is JValue { Type: JTokenType.String } text && string.IsNullOrEmpty((string)text)) || value is JArray { Count: 0 };
+
+    // a scalar as it is, a list or an object by its kind, so that no content beyond the value goes into the error
+    private static string DescribeValue(JToken value) => value switch
+    {
+        JValue { Type: JTokenType.String } text => $"'{(string)text}'",
+        JValue scalar => scalar.ToString(Formatting.None),
+        JArray => "a list",
+        _ => "an object",
+    };
 
     private static Dictionary<string, string> GetColorTokens(JToken token)
     {

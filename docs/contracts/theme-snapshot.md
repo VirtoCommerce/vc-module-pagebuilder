@@ -476,11 +476,18 @@ The catalog is the storefront's section, block, template and palette schemas, th
   new storefront. The server keeps every catalog by its hash and never changes one; the latest upload is the
   store's current catalog, which agents read.
 - A save and a publication name the hash of the catalog the designer previewed. The server validates the theme files
-  against that catalog with the same rules (every section and block type is one the storefront has, and a theme file
-  places no shared component) and answers 400 `{ error, errors }` when one does not fit or the hash is unknown.
-  A publication records the hash in the snapshot; one that names none is refused. A save that names none is not
-  checked (agents, the Angular designer). The first publication, from the live files, names none and checks the shape
-  only; it finds the menus through the store's current catalog, when there is one.
+  against that catalog with the same rules (every section and block type is one the storefront has, a theme file
+  places no shared component, and every value of a field with a closed set of values is one of them) and answers 400
+  `{ error, errors }` when one does not fit or the hash is unknown; each error names the file, the item and the field.
+  A publication records the hash in the snapshot; one that names none is refused. A designer Save with theme files
+  that names none is refused (400 `{ error }`); `api/pagebuilder/save` that names none is not checked (the Angular
+  designer). The first publication, from the live files, names none and checks the shape only; it finds the menus
+  through the store's current catalog, when there is one.
+- The fields with a closed set of values, checked in sections and blocks and in the rows of their `list` and `object`
+  fields: a `color-token` holds a token of the catalog's `paletteTokens` (light or dark; not checked when the catalog
+  has none), a `select` one of its `options` values, each of them when it is `multiple` (one with a `request` has
+  remote options and is not checked). An empty value (none, `null`, `""`, `[]`) passes unless the field is `required`;
+  a required field left out passes when it has a `default`.
 - A schema is data: see [Schemas](preview-protocol.md#schemas).
 
 ## Endpoints
@@ -493,7 +500,7 @@ All take `storeId` and check the store as the other Page Builder endpoints do.
 | `GET api/pagebuilder/theme/status?storeId` | `builder:read` | `{ publication, drafts }`: the current publication, left out before the first, and the theme files with a draft by their path in the theme (`templates/product.json`, `config/template_rules.json`) |
 | `POST api/pagebuilder/save?storeId&theme&draft&catalogHash`, the files as the body | `builder:update`; `builder:templates` or `builder:theme` by theme file | 200; 400 `{ error, errors }` when a theme file does not fit the catalog it names; 400 `{ error }` for a live theme write on a New Page Builder store, or for a file under `snapshots/` or `catalogs/` |
 | `GET api/pagebuilder/designer/theme-file?storeId&path` | `builder:read` | `{ path, content?, eTag }`: a theme file as the designer edits it and its version, see [Save](history-api.md#save) |
-| `POST api/pagebuilder/designer/save?storeId&catalogHash` | see [Save](history-api.md#save) | the designer's Save: the page and the theme files as drafts, all or nothing, one version; 412 when one was saved by someone else since it was read |
+| `POST api/pagebuilder/designer/save?storeId&catalogHash` | see [Save](history-api.md#save) | the designer's Save: the page and the theme files as drafts, all or nothing, one version; 400 when theme files go without `catalogHash`; 412 when one was saved by someone else since it was read |
 | `POST api/pagebuilder/designer/discard?storeId` | see [Discard](history-api.md#discard) | the designer's Discard: the drafts of the page and the theme files go, all or nothing, one version |
 | `PUT api/pagebuilder/catalog?storeId`, the catalog as the body | `builder:update` | `{ hash }`; 400 when it has no valid `hash` |
 | `GET api/pagebuilder/catalog?storeId&hash` | `builder:read` | the catalog with that hash, the current one without it; 404 when there is none |

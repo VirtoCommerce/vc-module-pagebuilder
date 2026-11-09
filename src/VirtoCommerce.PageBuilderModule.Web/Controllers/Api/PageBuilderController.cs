@@ -97,6 +97,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         private const int MaxCopyIndex = 100;
         private const string OnlyCopyError = "Nothing is published: the draft is the only copy.";
         private const string ThemeFileNamingError = "Name each theme file once, by its path.";
+        private const string CatalogRequiredError = "Theme files are checked against the storefront's schema catalog: name it with catalogHash (preview the storefront first).";
         private const string SaveAction = "save";
 
 
@@ -760,6 +761,11 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             }
 
             var themeSaveFiles = files.Where(IsThemeFile).ToList();
+            if (themeSaveFiles.Count > 0 && string.IsNullOrEmpty(catalogHash))
+            {
+                return BadRequest(new { error = CatalogRequiredError });
+            }
+
             if (themeSaveFiles.Count > 0 && await ValidateThemeFilesAsync(storeId, themeSaveFiles, draft: true, catalogHash) is { } refusedThemeFiles)
             {
                 return refusedThemeFiles;

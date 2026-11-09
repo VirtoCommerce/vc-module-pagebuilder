@@ -293,6 +293,26 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task PublishAsync_DraftWithValueTheCatalogLacks_ThrowsAndWritesNothing()
+    {
+        await _catalogs.SaveAsync("s1", """
+            {
+              "hash": "abc12345",
+              "sections": { "product-info": { "settings": [ { "id": "background", "type": "color-token" } ] } },
+              "paletteTokens": { "light": [ "color_primary_500" ], "dark": [] }
+            }
+            """, Ct);
+        _storage.Files[Product + "-draft"] = """{ "content": [ { "id": "s0", "type": "product-info", "background": "#ff0000" } ] }""";
+        _storage.Written.Clear();
+
+        var failure = await Assert.ThrowsAsync<ThemeValidationException>(() => _publisher.PublishAsync("s1", "abc12345", null, Ct));
+
+        Assert.Equal("templates/product.json: 's0' has a value in 'background' the storefront does not have, '#ff0000'", failure.Errors.Single());
+        Assert.Empty(_storage.Written);
+        Assert.True(_storage.Files.ContainsKey(Product + "-draft"));
+    }
+
+    [Fact]
     public async Task PublishAsync_NoCatalogHash_ThrowsAndWritesNothing()
     {
         _storage.Files[Product + "-draft"] = Template("product-info");
