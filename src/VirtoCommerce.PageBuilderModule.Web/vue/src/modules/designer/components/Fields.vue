@@ -52,7 +52,7 @@
         :placeholder="field.placeholder"
         :hint="field.info"
         :required="field.required"
-        @update:model-value="set(field, $event === '' || $event == null ? null : Number($event))"
+        @update:model-value="set(field, $event === '' || $event == null ? undefined : Number($event))"
       />
       <VcSwitch
         v-else-if="field.type === 'checkbox'"
@@ -77,7 +77,7 @@
           :searchable="!!field.searchable || !!field.request"
           :clearable="!field.required"
           emit-value
-          @update:model-value="set(field, $event ?? null)"
+          @update:model-value="set(field, $event ?? undefined)"
         />
         <VcHint v-if="field.info">{{ field.info }}</VcHint>
       </div>

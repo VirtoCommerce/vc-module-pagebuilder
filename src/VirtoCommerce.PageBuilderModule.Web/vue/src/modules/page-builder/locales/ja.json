@@ -379,6 +379,7 @@
         "CONFIRM": "バージョン {version} を下書きにしますか？その後に公開すると反映されます。",
         "RESTORED": "このバージョンがあなたの下書きになりました",
         "RESTORE_FAILED": "バージョンを復元できませんでした。",
+        "RESTORE_FORBIDDEN": "次を復元する権限がありません: {parts}。",
         "CLOSE": "閉じる",
         "LATEST": "最新",
         "PREVIEWING": "プレビュー中",

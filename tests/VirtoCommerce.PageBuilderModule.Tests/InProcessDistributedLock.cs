@@ -10,6 +10,7 @@ namespace VirtoCommerce.PageBuilderModule.Tests;
 internal sealed class InProcessDistributedLock : IDistributedLock
 {
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _semaphores = new(StringComparer.Ordinal);
+    private readonly CancellationTokenSource _lost = new();
     private TaskCompletionSource _gate;
 
     /// <summary>Makes callers wait as if another holder had the lock, until <see cref="Release"/>.</summary>
@@ -29,6 +30,9 @@ internal sealed class InProcessDistributedLock : IDistributedLock
     /// <summary>Hands out locks already lost, as a Redis lock whose renewal failed.</summary>
     public bool LoseLocks { get; set; }
 
+    /// <summary>Loses every lock held now and handed out later, as when another server took over.</summary>
+    public void LoseHeldLocks() => _lost.Cancel();
+
     /// <summary>Completes with the resource of the first caller that has to wait for another holder of it.</summary>
     public TaskCompletionSource<string> Blocked { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -46,22 +50,24 @@ internal sealed class InProcessDistributedLock : IDistributedLock
             Blocked.TrySetResult(resource);
         }
         await semaphore.WaitAsync(cancellationToken);
-        return new Handle(resource, semaphore, LoseLocks);
+        return new Handle(resource, semaphore, LostToken);
     }
 
     public async Task<IDistributedLockHandle> TryAcquireAsync(string resource, TimeSpan timeout = default, CancellationToken cancellationToken = default)
     {
         var semaphore = _semaphores.GetOrAdd(resource, _ => new SemaphoreSlim(1, 1));
-        return await semaphore.WaitAsync(timeout, cancellationToken) ? new Handle(resource, semaphore, LoseLocks) : null;
+        return await semaphore.WaitAsync(timeout, cancellationToken) ? new Handle(resource, semaphore, LostToken) : null;
     }
 
-    private sealed class Handle(string resource, SemaphoreSlim semaphore, bool lost) : IDistributedLockHandle
+    private CancellationToken LostToken => LoseLocks ? new CancellationToken(true) : _lost.Token;
+
+    private sealed class Handle(string resource, SemaphoreSlim semaphore, CancellationToken lost) : IDistributedLockHandle
     {
         private int _released;
 
         public string Resource { get; } = resource;
 
-        public CancellationToken HandleLostToken { get; } = new(lost);
+        public CancellationToken HandleLostToken { get; } = lost;
 
         public void Dispose()
         {

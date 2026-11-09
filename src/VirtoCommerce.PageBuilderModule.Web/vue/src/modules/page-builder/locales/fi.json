@@ -379,6 +379,7 @@
         "CONFIRM": "Tehdäänkö versiosta {version} luonnoksesi? Julkaise se sen jälkeen ottaaksesi sen käyttöön.",
         "RESTORED": "Versio on nyt luonnoksesi",
         "RESTORE_FAILED": "Versiota ei voitu palauttaa.",
+        "RESTORE_FORBIDDEN": "Sinulla ei ole oikeutta palauttaa: {parts}.",
         "CLOSE": "Sulje",
         "LATEST": "Uusin",
         "PREVIEWING": "Esikatselussa",

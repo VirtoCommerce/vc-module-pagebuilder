@@ -379,6 +379,7 @@
         "CONFIRM": "Definir a versão {version} como seu rascunho? Publique-a depois para colocá-la no ar.",
         "RESTORED": "A versão agora é o seu rascunho",
         "RESTORE_FAILED": "A versão não pôde ser restaurada.",
+        "RESTORE_FORBIDDEN": "Você não tem permissão para restaurar: {parts}.",
         "CLOSE": "Fechar",
         "LATEST": "Mais recente",
         "PREVIEWING": "Em visualização",

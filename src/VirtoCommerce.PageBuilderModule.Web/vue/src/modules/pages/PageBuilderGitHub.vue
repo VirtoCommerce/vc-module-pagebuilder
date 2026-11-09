@@ -154,6 +154,17 @@
         {{ actionError }}
       </VcBanner>
     </div>
+    <div
+      v-else-if="actionError"
+      class="pb-gh"
+    >
+      <VcBanner
+        variant="danger"
+        icon="lucide-triangle-alert"
+      >
+        {{ actionError }}
+      </VcBanner>
+    </div>
   </VcBlade>
 </template>
 
@@ -182,6 +193,8 @@ const busy = ref(false);
 const actionError = ref<string>();
 const settingUp = ref(false);
 const organization = ref("");
+/** a Create went on to GitHub's form in another tab */
+let appCreationOpen = false;
 
 async function request<T>(url: string): Promise<T> {
   const response = await fetch(url, { headers: await getAuthHeaders() });
@@ -190,9 +203,13 @@ async function request<T>(url: string): Promise<T> {
   return body as T;
 }
 
-async function refresh() {
-  busy.value = true;
+const refresh = () => {
   actionError.value = undefined;
+  return loadConnection();
+};
+
+async function loadConnection() {
+  busy.value = true;
   try {
     connection.value = await request<GitHubConnection>(gitHubConnectionUrl);
   } catch (error) {
@@ -218,6 +235,7 @@ async function createApp() {
     const { url } = await request<{ url: string }>(gitHubAppSetupUrl(organization.value));
     if (tab) tab.location.href = url;
     else window.open(url, "_blank", "noopener");
+    appCreationOpen = true;
   } catch (error) {
     tab?.close();
     actionError.value = error instanceof Error ? error.message : String(error);
@@ -228,11 +246,13 @@ async function createApp() {
 
 const openTab = (url?: string) => url && window.open(url, "_blank", "noopener");
 
-// back from GitHub's tab: show where the setup got to
+// back in this window: show where the setup got to, keeping the reason of a Create that failed; the form closes only
+// after a Create went to GitHub, not when the editor comes back from another tab
 useEventListener(window, "focus", () => {
   if (!busy.value && (!connection.value?.configured || connection.value.error || settingUp.value)) {
-    settingUp.value = false;
-    refresh();
+    if (appCreationOpen) settingUp.value = false;
+    appCreationOpen = false;
+    loadConnection();
   }
 });
 

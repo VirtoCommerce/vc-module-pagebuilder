@@ -21,7 +21,7 @@ import {
 } from "./templates";
 import { resolveTranslations, type Translating } from "./translatable";
 import type { Capability, Handshake } from "./previewMessages";
-import { hasThemeDraft, templateStatus, type ThemeStatus } from "./themePublication";
+import { hasThemeDraft, isNewThemeDraft, templateStatus, type ThemeStatus } from "./themePublication";
 import { CatalogPendingError, type DesignerDiscardPage, type DesignerSaveFile, type DesignerSavePage } from "./designerSave";
 
 const EMPTY_SCHEMAS: Schemas = { sections: {}, blocks: {}, shared: {}, objects: {} };
@@ -669,9 +669,14 @@ export function useDesigner() {
    * theme parts' with a draft. A theme file's draft never published is its only copy, and stays.
    */
   const discardable = computed<{ page: boolean; theme: ThemePart[] }>(() => ({
-    page: !!status.value.hasChanges && (themeFileOpen.value || !!status.value.published),
+    page: !!status.value.hasChanges && (themeFileOpen.value ? !isNewThemeDraft(themeStatus.value, file.value!.theme, file.value!.path) : !!status.value.published),
     theme:
-      theme.value && !shared.value ? THEME_PARTS.filter((part) => hasThemeDraft(themeStatus.value, theme.value!, THEME_FILES[part](theme.value!))) : [],
+      theme.value && !shared.value
+        ? THEME_PARTS.filter((part) => {
+            const path = THEME_FILES[part](theme.value!);
+            return hasThemeDraft(themeStatus.value, theme.value!, path) && !isNewThemeDraft(themeStatus.value, theme.value!, path);
+          })
+        : [],
   }));
 
   async function refreshThemeStatus() {

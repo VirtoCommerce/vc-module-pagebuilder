@@ -21,6 +21,20 @@ export const VcButton = defineComponent({
 
 export const VcHint = defineComponent({ name: "VcHint", setup: (_, { slots }) => () => h("small", slots.default?.()) });
 
+export const VcBlade = defineComponent({
+  name: "VcBlade",
+  props: { loading: Boolean, title: String, subtitle: String, toolbarItems: Array, modified: Boolean, width: String },
+  setup: (props, { slots }) => () => h("section", { "data-loading": String(props.loading) }, slots.default?.()),
+});
+
+export const VcBanner = defineComponent({
+  name: "VcBanner",
+  props: { variant: String, icon: String },
+  setup: (_, { slots }) => () => h("div", { role: "alert" }, slots.default?.()),
+});
+
+export const VcStatus = defineComponent({ name: "VcStatus", props: { variant: String }, setup: (_, { slots }) => () => h("span", slots.default?.()) });
+
 export const VcSwitch = defineComponent({
   name: "VcSwitch",
   props: { modelValue: Boolean, disabled: Boolean, label: String, hint: String },

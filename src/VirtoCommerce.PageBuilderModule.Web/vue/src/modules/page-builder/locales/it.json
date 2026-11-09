@@ -379,6 +379,7 @@
         "CONFIRM": "Impostare la versione {version} come tua bozza? Poi pubblicala per metterla online.",
         "RESTORED": "La versione è ora la tua bozza",
         "RESTORE_FAILED": "Impossibile ripristinare la versione.",
+        "RESTORE_FORBIDDEN": "Non hai l'autorizzazione per ripristinare: {parts}.",
         "CLOSE": "Chiudi",
         "LATEST": "Più recente",
         "PREVIEWING": "In anteprima",

@@ -105,6 +105,17 @@
         {{ actionError }}
       </VcBanner>
     </div>
+    <div
+      v-else-if="actionError"
+      class="pb-git"
+    >
+      <VcBanner
+        variant="danger"
+        icon="lucide-triangle-alert"
+      >
+        {{ actionError }}
+      </VcBanner>
+    </div>
   </VcBlade>
 </template>
 

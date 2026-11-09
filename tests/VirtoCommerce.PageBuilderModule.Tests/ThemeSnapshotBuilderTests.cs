@@ -406,6 +406,45 @@ public class ThemeSnapshotBuilderTests
             footer: new JObject { ["content"] = new JArray(placement.DeepClone()) });
     }
 
+    private static readonly JObject CatalogWithBlockAsSection = JObject.Parse("""
+        {
+          "sections": {
+            "site-header": { "settings": [], "blocks": ["banner"] },
+            "banner": { "settings": [ { "id": "size", "type": "select", "options": [ { "value": "s" } ] }, { "id": "menu", "type": "menu" } ] }
+          },
+          "blocks": {},
+          "shared": {}
+        }
+        """);
+
+    [Fact]
+    public void Validate_BlockWithItsSchemaInSections_IsAccepted()
+    {
+        var header = JObject.Parse("""{ "content": [ { "id": "h", "type": "site-header", "blocks": [ { "id": "b", "type": "banner", "size": "s" } ] } ] }""");
+
+        Assert.Empty(_builder.Validate(Source(header: header), CatalogWithBlockAsSection));
+    }
+
+    [Fact]
+    public void Validate_BlockWithItsSchemaInSections_ChecksItsValues()
+    {
+        var header = JObject.Parse("""{ "content": [ { "id": "h", "type": "site-header", "blocks": [ { "id": "b", "type": "banner", "size": "xl" } ] } ] }""");
+
+        Assert.Equal(
+            ["sections/header-group.json: 'b' has a value in 'size' the storefront does not have, 'xl'"],
+            _builder.Validate(Source(header: header), CatalogWithBlockAsSection));
+    }
+
+    [Fact]
+    public void Build_BlockWithItsSchemaInSections_CollectsItsMenus()
+    {
+        var header = JObject.Parse("""{ "content": [ { "id": "h", "type": "site-header", "blocks": [ { "id": "b", "type": "banner", "menu": "main-menu" } ] } ] }""");
+
+        var set = _builder.Build(Source(header: header), CatalogWithBlockAsSection, "abc12345", [], "en-US", 1, Published);
+
+        Assert.Equal(["main-menu"], set.Menus);
+    }
+
     private static ThemeSource Source(
         Dictionary<string, JToken> templates = null,
         JToken header = null,

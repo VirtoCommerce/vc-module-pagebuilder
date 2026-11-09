@@ -379,6 +379,7 @@
         "CONFIRM": "将版本 {version} 设为您的草稿吗？之后请发布它以使其上线。",
         "RESTORED": "该版本现已成为您的草稿",
         "RESTORE_FAILED": "无法恢复该版本。",
+        "RESTORE_FORBIDDEN": "您没有权限恢复：{parts}。",
         "CLOSE": "关闭",
         "LATEST": "最新",
         "PREVIEWING": "预览中",

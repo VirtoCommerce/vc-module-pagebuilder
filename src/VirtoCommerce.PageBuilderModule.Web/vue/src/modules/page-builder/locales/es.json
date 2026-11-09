@@ -379,6 +379,7 @@
         "CONFIRM": "¿Convertir la versión {version} en su borrador? Publíquela después para ponerla en vivo.",
         "RESTORED": "La versión es ahora su borrador",
         "RESTORE_FAILED": "No se pudo restaurar la versión.",
+        "RESTORE_FORBIDDEN": "No tienes permiso para restaurar: {parts}.",
         "CLOSE": "Cerrar",
         "LATEST": "Más reciente",
         "PREVIEWING": "Vista previa",

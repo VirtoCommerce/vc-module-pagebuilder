@@ -150,7 +150,7 @@ public class ThemeControllerTests
     {
         var controller = Controller(new FakeAuthorizationService(true));
 
-        Assert.Equal("""{"publication":3,"drafts":["sections/header-group.json"]}""", PlatformJson.SerializeBody(await controller.GetStatus("s1", Ct)));
+        Assert.Equal("""{"publication":3,"drafts":["sections/header-group.json"],"newDrafts":[]}""", PlatformJson.SerializeBody(await controller.GetStatus("s1", Ct)));
         Assert.Equal(["status s1"], _services.Calls);
     }
 

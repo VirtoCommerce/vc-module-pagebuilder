@@ -15,15 +15,16 @@ const query = (url: string) => Object.fromEntries(new URL(url, "https://admin.ex
 
 const status = (drafts: string[], publication?: number): ThemeStatus => ({ publication, drafts });
 
-test("parseThemeStatus reads the publication and the drafts, and nothing else", () => {
-  assert.deepEqual(parseThemeStatus({ publication: 3, drafts: ["templates/product.json", "sections/header-group.json"] }), {
+test("parseThemeStatus reads the publication, the drafts and the new ones, and nothing else", () => {
+  assert.deepEqual(parseThemeStatus({ publication: 3, drafts: ["templates/product.json", "sections/header-group.json"], newDrafts: ["templates/product.json"] }), {
     publication: 3,
     drafts: ["templates/product.json", "sections/header-group.json"],
+    newDrafts: ["templates/product.json"],
   });
   // the platform leaves out a null publication: before the first one
-  assert.deepEqual(parseThemeStatus({ drafts: [] }), { publication: undefined, drafts: [] });
-  assert.deepEqual(parseThemeStatus({ publication: "3", drafts: ["config/brand.json", 7, null] }), { publication: undefined, drafts: ["config/brand.json"] });
-  assert.deepEqual(parseThemeStatus(null), { publication: undefined, drafts: [] });
+  assert.deepEqual(parseThemeStatus({ drafts: [] }), { publication: undefined, drafts: [], newDrafts: [] });
+  assert.deepEqual(parseThemeStatus({ publication: "3", drafts: ["config/brand.json", 7, null] }), { publication: undefined, drafts: ["config/brand.json"], newDrafts: [] });
+  assert.deepEqual(parseThemeStatus(null), { publication: undefined, drafts: [], newDrafts: [] });
 });
 
 test("hasThemeDraft matches a file as saves name it to the status's path in the theme", () => {

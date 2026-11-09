@@ -35,6 +35,10 @@ public class ThemeStorage(IBlobContentStorageProvider provider, IPublishingServi
     /// <summary>Also taken by theme file saves.</summary>
     public static string GetLockResource(string storeId) => $"PageBuilder:Theme:{storeId}";
 
+    /// <summary>Whether the theme lock was lost, rather than the request cancelled: the lock's token is cancelled by either.</summary>
+    public static bool IsLockLost(CancellationToken lockToken, CancellationToken requestToken) =>
+        lockToken.IsCancellationRequested && !requestToken.IsCancellationRequested;
+
     public virtual string GetPath(string file) => $"{ThemeName}/{file}";
 
     public virtual string GetDraftPath(string file) => publishingService.GetRelativeDraftUrl(file, true);

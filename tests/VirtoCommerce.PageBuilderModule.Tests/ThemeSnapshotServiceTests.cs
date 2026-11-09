@@ -576,6 +576,75 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
             ["sections"] = new JObject(sections.Select(x => new JProperty(x, new JObject()))),
         }.ToString(), Ct);
 
+    [Fact]
+    public async Task PublishAsync_LockLostWhileWritingLiveFiles_StopsAndPutsNothingBack()
+    {
+        var catalog = await PublishedWithDraftsAsync();
+        var publisher = Publisher(new RecordingContentHistory());
+        var liveWrites = new List<string>();
+        _storage.BeforeWrite = file =>
+        {
+            if (IsLiveFile(file))
+            {
+                liveWrites.Add(file);
+                _lock.LoseHeldLocks();
+            }
+        };
+
+        await Assert.ThrowsAnyAsync<Exception>(() => publisher.PublishAsync("s1", catalog, null, Ct));
+
+        var written = Assert.Single(liveWrites);
+        Assert.Equal(_storage.Files[written + "-draft"], _storage.Files[written]);
+        var status = await publisher.GetStatusAsync("s1", Ct);
+        Assert.Equal(1, status.Publication);
+        Assert.Equal(2, status.Drafts.Count);
+    }
+
+    [Fact]
+    public async Task PublishAsync_RequestAbortedWhileWritingLiveFiles_PutsThemBack()
+    {
+        var catalog = await PublishedWithDraftsAsync();
+        var publisher = Publisher(new RecordingContentHistory());
+        using var request = new CancellationTokenSource();
+        _storage.BeforeWrite = file =>
+        {
+            if (IsLiveFile(file))
+            {
+                request.Cancel();
+            }
+        };
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => publisher.PublishAsync("s1", catalog, null, request.Token));
+
+        Assert.Equal(Template("product-info"), _storage.Files[Header]);
+        Assert.Equal(Template("product-info"), _storage.Files[Product]);
+    }
+
+    [Fact]
+    public async Task GetStatusAsync_DraftWithNothingLive_IsListedAsNew()
+    {
+        await PublishedWithDraftsAsync();
+        _storage.Files["default/templates/product.sale.json-draft"] = Template("product-info");
+
+        var status = await _publisher.GetStatusAsync("s1", Ct);
+
+        Assert.Equal(3, status.Drafts.Count);
+        Assert.Equal(["templates/product.sale.json"], status.NewDrafts);
+    }
+
+    [Fact]
+    public async Task GetPublishedAsync_CacheLifetimeZero_StillAnswers()
+    {
+        _storage.Files[Product] = Template("product-info");
+        var snapshots = new TestThemeSnapshotService(_stores, _settings, _storageFactory, _publisher, _cache,
+            Options.Create(new ThemeSnapshotOptions { CacheAbsoluteExpiration = TimeSpan.Zero }));
+
+        Assert.NotNull(await snapshots.GetPublishedAsync("s1", null, Ct));
+    }
+
+    private static bool IsLiveFile(string file) =>
+        string.Equals(file, Header, StringComparison.OrdinalIgnoreCase) || string.Equals(file, Product, StringComparison.OrdinalIgnoreCase);
+
     /// <summary>Publishes the live product template and header, then gives both a draft.</summary>
     private async Task<string> PublishedWithDraftsAsync()
     {

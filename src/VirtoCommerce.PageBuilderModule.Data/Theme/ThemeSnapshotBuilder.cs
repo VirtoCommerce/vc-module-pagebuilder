@@ -434,7 +434,7 @@ public class ThemeSnapshotBuilder : IThemeSnapshotBuilder
             }
 
             var isKnown = catalog == null
-                || GetSchema(catalog, kind, type) != null
+                || GetItemSchema(catalog, kind, type) != null
                 || (allowPageContent && kind == ModuleConstants.SchemaKinds.Sections && type == PageContentSection);
             if (!isKnown)
             {
@@ -443,7 +443,7 @@ public class ThemeSnapshotBuilder : IThemeSnapshotBuilder
 
             if (catalog != null)
             {
-                ValidateValues(item, GetFields(GetSchema(catalog, kind, type), kind, catalog), $"{file}: '{id}'", catalog, errors);
+                ValidateValues(item, GetFields(GetItemSchema(catalog, kind, type), kind, catalog), $"{file}: '{id}'", catalog, errors);
             }
 
             switch (item["blocks"])
@@ -554,7 +554,7 @@ public class ThemeSnapshotBuilder : IThemeSnapshotBuilder
     {
         foreach (var item in items?.OfType<JObject>() ?? [])
         {
-            var fields = GetFields(GetSchema(catalog, kind, GetString(item, "type")), kind, catalog);
+            var fields = GetFields(GetItemSchema(catalog, kind, GetString(item, "type")), kind, catalog);
             CollectMenus(item, fields, menus);
             CollectMenus(item["blocks"] as JArray, ModuleConstants.SchemaKinds.Blocks, catalog, menus);
         }
@@ -645,4 +645,8 @@ public class ThemeSnapshotBuilder : IThemeSnapshotBuilder
 
     private static JObject GetSchema(JObject catalog, string kind, string type) =>
         type == null ? null : (catalog?[kind] as JObject)?[type] as JObject;
+
+    // a block's schema is looked up in blocks, then sections, as the designer does
+    private static JObject GetItemSchema(JObject catalog, string kind, string type) =>
+        GetSchema(catalog, kind, type) ?? (kind == ModuleConstants.SchemaKinds.Blocks ? GetSchema(catalog, ModuleConstants.SchemaKinds.Sections, type) : null);
 }

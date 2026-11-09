@@ -48,7 +48,7 @@ public class ThemePublisher(
         var catalog = await GetCatalogAsync(storeId, catalogHash, cancellationToken);
         var result = await distributedLock.ExecuteAsync(
             ThemeStorage.GetLockResource(storeId),
-            lockToken => PublishUnderLockAsync(storeId, catalog, catalogHash, includeDrafts: true, lockToken),
+            lockToken => PublishUnderLockAsync(storeId, catalog, catalogHash, includeDrafts: true, lockToken, cancellationToken),
             cancellationToken: cancellationToken);
 
         await AfterPublishAsync(storeId, result.PublishedFiles, user, cancellationToken);
@@ -71,7 +71,7 @@ public class ThemePublisher(
                 // Live files may predate the storefront schemas, so only their shape is validated.
                 var currentCatalog = await schemaCatalogService.GetAsync(storeId, hash: null, lockToken);
                 var catalog = currentCatalog == null ? null : ThemeJson.ParseObject(currentCatalog);
-                var result = await PublishUnderLockAsync(storeId, catalog, catalogHash: null, includeDrafts: false, lockToken);
+                var result = await PublishUnderLockAsync(storeId, catalog, catalogHash: null, includeDrafts: false, lockToken, cancellationToken);
 
                 return result.Publication;
             },
@@ -85,6 +85,7 @@ public class ThemePublisher(
         var result = AbstractTypeFactory<ThemeStatus>.TryCreateInstance();
         result.Publication = await storage.GetCurrentPublicationAsync();
         result.Drafts = await GetDraftsAsync(storage);
+        result.NewDrafts = await GetNewDraftsAsync(storage, result.Drafts);
 
         return result;
     }
@@ -107,8 +108,9 @@ public class ThemePublisher(
     }
 
     /// <param name="cancellationToken">Cancelled when the theme lock is lost: another server may hold it, so nothing more is written.</param>
+    /// <param name="requestToken">The request's own token: cancelled with it the lock is still held, so the live files go back.</param>
     protected virtual async Task<ThemePublishResult> PublishUnderLockAsync(string storeId, JObject catalog, string catalogHash, bool includeDrafts,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, CancellationToken requestToken)
     {
         var store = await storeService.GetNoCloneAsync(storeId) ?? throw new KeyNotFoundException($"Store '{storeId}' not found.");
         var storage = await themeStorageFactory.OpenAsync(storeId);
@@ -139,7 +141,7 @@ public class ThemePublisher(
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
-            await WriteLiveFilesAsync(storage, source.Drafts, replaced);
+            await WriteLiveFilesAsync(storage, source.Drafts, replaced, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             await storage.WritePublicationRecordAsync(publication, record);
             cancellationToken.ThrowIfCancellationRequested();
@@ -147,7 +149,12 @@ public class ThemePublisher(
         }
         catch
         {
-            await RestoreLiveFilesAsync(storeId, storage, replaced);
+            // with the lock lost the live files may be another server's by now; the drafts are intact, and the next publication puts them live
+            if (!ThemeStorage.IsLockLost(cancellationToken, requestToken))
+            {
+                await RestoreLiveFilesAsync(storeId, storage, replaced);
+            }
+
             throw;
         }
 
@@ -230,6 +237,21 @@ public class ThemePublisher(
         return drafts;
     }
 
+    /// <summary>The drafts with no live file.</summary>
+    protected virtual async Task<IList<string>> GetNewDraftsAsync(IThemeStorage storage, IEnumerable<string> drafts)
+    {
+        var newDrafts = new List<string>();
+        foreach (var file in drafts)
+        {
+            if (!await storage.ExistsAsync(file))
+            {
+                newDrafts.Add(file);
+            }
+        }
+
+        return newDrafts;
+    }
+
     /// <summary>Reads the draft when there is one, otherwise the live file.</summary>
     protected virtual async Task<JToken> ReadThemeFileAsync(IThemeStorage storage, ThemeSource source, string file, bool includeDrafts)
     {
@@ -268,10 +290,11 @@ public class ThemePublisher(
     }
 
     /// <summary>Writes each draft over its live file, adding the live file as it was to <paramref name="replaced"/> before writing it.</summary>
-    protected virtual async Task WriteLiveFilesAsync(IThemeStorage storage, IDictionary<string, string> drafts, IList<LiveFile> replaced)
+    protected virtual async Task WriteLiveFilesAsync(IThemeStorage storage, IDictionary<string, string> drafts, IList<LiveFile> replaced, CancellationToken cancellationToken)
     {
         foreach (var (file, content) in drafts)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             replaced.Add(new LiveFile(file, await storage.ReadAsync(file)));
             await storage.WriteAsync(file, content);
         }

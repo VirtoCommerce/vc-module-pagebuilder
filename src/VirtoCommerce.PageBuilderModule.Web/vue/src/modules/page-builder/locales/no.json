@@ -379,6 +379,7 @@
         "CONFIRM": "Gjøre versjon {version} til ditt utkast? Publiser den etterpå for å gjøre den live.",
         "RESTORED": "Versjonen er nå ditt utkast",
         "RESTORE_FAILED": "Versjonen kunne ikke gjenopprettes.",
+        "RESTORE_FORBIDDEN": "Du har ikke tillatelse til å gjenopprette: {parts}.",
         "CLOSE": "Lukk",
         "LATEST": "Nyeste",
         "PREVIEWING": "Forhåndsviser",

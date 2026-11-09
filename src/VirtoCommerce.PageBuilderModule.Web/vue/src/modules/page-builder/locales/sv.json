@@ -379,6 +379,7 @@
         "CONFIRM": "Vill du göra version {version} till ditt utkast? Publicera den sedan för att göra den live.",
         "RESTORED": "Versionen är nu ditt utkast",
         "RESTORE_FAILED": "Versionen kunde inte återställas.",
+        "RESTORE_FORBIDDEN": "Du har inte behörighet att återställa: {parts}.",
         "CLOSE": "Stäng",
         "LATEST": "Senaste",
         "PREVIEWING": "Förhandsgranskas",

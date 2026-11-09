@@ -129,7 +129,8 @@ public class ThemeSnapshotService(
     protected virtual void ConfigureCache(MemoryCacheEntryOptions cacheOptions, string storeId)
     {
         // Absolute expiration: without Redis, other nodes do not receive the publication's cache reset.
-        var lifetime = options.Value.CacheAbsoluteExpiration;
+        // the cache takes only a positive lifetime: zero turns it off in effect
+        var lifetime = options.Value.CacheAbsoluteExpiration > TimeSpan.Zero ? options.Value.CacheAbsoluteExpiration : TimeSpan.FromTicks(1);
         cacheOptions.SlidingExpiration = null;
         if (cacheOptions.AbsoluteExpirationRelativeToNow is not { } configured || configured > lifetime)
         {

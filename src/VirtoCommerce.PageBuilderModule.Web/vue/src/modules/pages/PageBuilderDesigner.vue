@@ -6,10 +6,10 @@
     :subtitle="subtitle"
     :toolbar-items="toolbar"
     :modified="unsaved"
-    :loading="(!!param && !group) || designer.busy.value === 'loading' || designer.busy.value === 'restoring'"
+    :loading="(!!param && !group && !openFailed) || designer.busy.value === 'loading' || designer.busy.value === 'restoring'"
   >
     <div
-      v-if="designer.loadError.value || archived"
+      v-if="designer.loadError.value || archived || openFailed"
       class="pd-message"
     >
       <VcIcon
@@ -425,6 +425,7 @@
           :source="historySource"
           :describe="describeVersion"
           :previewable="previewableVersion"
+          :restore-refused="restoreRefused"
           :previewing="previewing?.id"
           :dirty="unsaved"
           :busy="!!designer.busy.value"
@@ -808,6 +809,8 @@ const frame = ref<HTMLIFrameElement>();
 const url = ref<string>();
 const storefront = ref<{ url?: string; previewPath: string }>();
 const storefrontChecked = ref(false);
+/** what was asked to open could not be read: the page's group, or the store of a file page */
+const openFailed = ref(false);
 
 // the language the theme's translatable texts are edited in and the preview shows: a page with a language of its own
 // shows in it; a template, a page for every language, a file page in the store's default until another is picked
@@ -1332,6 +1335,12 @@ const describeVersion = (version: HistoryVersion) =>
     .join(", ");
 /** A version that changed only theme files the preview shows as they are now is restored, not previewed */
 const previewableVersion = (version: HistoryVersion) => !version.items || filesOf(version).some((x) => !THEME_ONLY_FILES.includes(x));
+/** Restore needs the permission that edits every part the version changed */
+function restoreRefused(version: HistoryVersion) {
+  const template = designer.themeFileOpen.value;
+  const refused = refusedParts(filesOf(version), template, hasAccess);
+  return refused.length ? t("PAGE_BUILDER.DESIGNER.HISTORY.RESTORE_FORBIDDEN", { parts: refused.map((part) => t(partLabel(part, template))).join(", ") }) : undefined;
+}
 
 /** A file page in git: its own history. Else the Saves of what is open, merged by the server. */
 async function historySource(cursor?: string) {
@@ -1433,7 +1442,7 @@ async function previewVersion(version: HistoryVersion | null) {
     if (request === versionPreviews) notification.error(t("PAGE_BUILDER.DESIGNER.HISTORY.PREVIEW_FAILED"));
   }
 }
-// an edit shows the page again (its render follows the edit), and the preview takes clicks again
+// a change of what is open shows the page again, also when the page itself is as it was, and the preview takes clicks again
 watch(
   () => designer.preview.value,
   () => {
@@ -1441,6 +1450,8 @@ watch(
     endVersionPreview();
     if (!shown) return;
     bridge.send(draft());
+    sendRender.cancel();
+    bridge.send(render());
     bridge.send({ type: "inspector", enabled: inspector.value });
   },
 );
@@ -1708,21 +1719,26 @@ const { getApiClient } = useApiClient(PageBuilderPageClient);
 onMounted(async () => {
   let storeId: string;
   let open: Promise<void>;
-  if (param.value) {
-    group.value = await (await getApiClient()).getGroup(param.value);
-    if (archived.value) return;
-    storeId = group.value.storeId!;
-    home = { groupId: param.value, storeId };
-    open = designer.open(home);
-  } else if (query.value?.storeId && query.value.sharedComponentId) {
-    storeId = query.value.storeId;
-    open = designer.open({ sharedComponentId: query.value.sharedComponentId, storeId });
-  } else if (query.value?.storeId && query.value.path) {
-    storeId = query.value.storeId;
-    const page: FilePage = { storeId, path: query.value.path, type: query.value.type || "pages", theme: await storeTheme(storeId) };
-    if (page.type !== "themes") home = page;
-    open = designer.open(page);
-  } else {
+  try {
+    if (param.value) {
+      group.value = await (await getApiClient()).getGroup(param.value);
+      if (archived.value) return;
+      storeId = group.value.storeId!;
+      home = { groupId: param.value, storeId };
+      open = designer.open(home);
+    } else if (query.value?.storeId && query.value.sharedComponentId) {
+      storeId = query.value.storeId;
+      open = designer.open({ sharedComponentId: query.value.sharedComponentId, storeId });
+    } else if (query.value?.storeId && query.value.path) {
+      storeId = query.value.storeId;
+      const page: FilePage = { storeId, path: query.value.path, type: query.value.type || "pages", theme: await storeTheme(storeId) };
+      if (page.type !== "themes") home = page;
+      open = designer.open(page);
+    } else {
+      return;
+    }
+  } catch {
+    openFailed.value = true;
     return;
   }
   // the assets library (the picker) works on this store
@@ -1740,14 +1756,17 @@ onMounted(async () => {
         // the preview gets the rules with the theme: they choose a content page's template too
         query.value?.sharedComponentId || rules.loaded.value ? undefined : rules.load(storeId, name).catch(() => undefined),
       ]);
-    }),
-    loadStorefront(storeId).then((x) => {
-      storefront.value = x;
-      catalog.value = x.catalog;
-      storeLanguages.value = x.languages;
-      url.value = previewUrl(x.url, x.previewPath);
-      storefrontChecked.value = true;
-    }),
+    }).catch(() => undefined),
+    // a store that can't be read leaves the preview without a storefront, which the canvas says
+    loadStorefront(storeId)
+      .then((x) => {
+        storefront.value = x;
+        catalog.value = x.catalog;
+        storeLanguages.value = x.languages;
+        url.value = previewUrl(x.url, x.previewPath);
+      })
+      .catch(() => undefined)
+      .finally(() => (storefrontChecked.value = true)),
   ]);
   homeTitle.value = home && !designer.templateKey.value ? title.value : undefined;
   // the template that was open when the page was reloaded (the URL keeps it), else a template opened directly; a shared

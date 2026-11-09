@@ -379,6 +379,7 @@
         "CONFIRM": "Make version {version} your draft? Publish it afterwards to put it live.",
         "RESTORED": "The version is now your draft",
         "RESTORE_FAILED": "The version couldn't be restored.",
+        "RESTORE_FORBIDDEN": "You don't have permission to restore: {parts}.",
         "CLOSE": "Close",
         "LATEST": "Latest",
         "PREVIEWING": "Previewing",

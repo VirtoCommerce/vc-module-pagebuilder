@@ -1,24 +1,35 @@
 // The theme's publication (docs/contracts/theme-snapshot.md): every theme file is saved as a draft, and one Publish
 // theme puts all the drafts live at once, as a new snapshot the storefront reads.
 
-/** theme/status: the current publication (none before the first) and the theme files with a draft, by their path in the theme */
+/**
+ * theme/status: the current publication (none before the first), the theme files with a draft by their path in the
+ * theme, and those of them with no live file
+ */
 export interface ThemeStatus {
   publication?: number;
   drafts: string[];
+  newDrafts?: string[];
 }
+
+const paths = (value: unknown) => (Array.isArray(value) ? value.filter((x): x is string => typeof x === "string") : []);
 
 /** theme/status as the server answers it; what isn't a list of paths reads as no drafts */
 export function parseThemeStatus(body: unknown): ThemeStatus {
-  const value = (body ?? {}) as { publication?: unknown; drafts?: unknown };
+  const value = (body ?? {}) as { publication?: unknown; drafts?: unknown; newDrafts?: unknown };
   return {
     publication: typeof value.publication === "number" ? value.publication : undefined,
-    drafts: Array.isArray(value.drafts) ? value.drafts.filter((x): x is string => typeof x === "string") : [],
+    drafts: paths(value.drafts),
+    newDrafts: paths(value.newDrafts),
   };
 }
 
 /** Whether a theme file, named as saves name it ("default/sections/header-group.json"), has a draft */
 export const hasThemeDraft = (status: ThemeStatus | undefined, theme: string, path: string) =>
   !!status?.drafts.some((x) => `${theme}/${x}` === path);
+
+/** Whether a theme file's draft has no live file: it is the file's only copy, and a Discard keeps it */
+export const isNewThemeDraft = (status: ThemeStatus | undefined, theme: string, path: string) =>
+  !!status?.newDrafts?.some((x) => `${theme}/${x}` === path);
 
 /** A template's state: changed while it has a draft; nothing is published before the theme's first publication */
 export function templateStatus(status: ThemeStatus | undefined, theme: string, path: string): { published: boolean; hasChanges: boolean } {

@@ -190,7 +190,7 @@ request and are not part of the cached snapshot, so a menu edited in Content sho
 
 The storefront knows the layout of the page a visitor lands on before the page loads, as it knows its template: from
 the snapshot request, which asks for the landing `permalink`. The server looks it up with the xAPI `slugInfo` query for
-an anonymous visitor, in the store found and the `cultureName` asked for, while it reads the snapshot. For a content
+an anonymous visitor, in the store found and the language served, once it has read the snapshot. For a content
 page it then reads the page once, as the storefront's queries do: `pageDocument` for `Pages`, `page` and its file for
 `ContentFile`. Like `menus`, `slug` is read on every request and is not part of the cached snapshot.
 
@@ -547,7 +547,7 @@ All take `storeId` and check the store as the other Page Builder endpoints do.
 | Method and route | Permission | Returns |
 |---|---|---|
 | `POST api/pagebuilder/theme/publish?storeId&catalogHash` | `builder:publish` | `{ publication }`; 400 `{ error, errors }` when it names no catalog or the theme does not fit it |
-| `GET api/pagebuilder/theme/status?storeId` | `builder:read` | `{ publication, drafts }`: the current publication, left out before the first, and the theme files with a draft by their path in the theme (`templates/product.json`, `config/template_rules.json`) |
+| `GET api/pagebuilder/theme/status?storeId` | `builder:read` | `{ publication, drafts, newDrafts }`: the current publication, left out before the first, the theme files with a draft by their path in the theme (`templates/product.json`, `config/template_rules.json`), and those of them with no live file, which a Discard keeps |
 | `POST api/pagebuilder/save?storeId&theme&draft&catalogHash`, the files as the body | `builder:update`; `builder:templates` or `builder:theme` by theme file | 200; 400 `{ error, errors }` when a theme file does not fit the catalog it names; 400 `{ error }` for a live theme write on a New Page Builder store, or for a file under `snapshots/` or `catalogs/` |
 | `GET api/pagebuilder/designer/theme-file?storeId&path` | `builder:read` | `{ path, content?, eTag }`: a theme file as the designer edits it and its version, see [Save](history-api.md#save) |
 | `POST api/pagebuilder/designer/save?storeId&catalogHash` | see [Save](history-api.md#save) | the designer's Save: the page and the theme files as drafts, all or nothing, one version; 400 when theme files go without `catalogHash`; 412 when one was saved by someone else since it was read |

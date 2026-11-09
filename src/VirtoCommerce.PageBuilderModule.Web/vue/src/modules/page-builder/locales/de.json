@@ -379,6 +379,7 @@
         "CONFIRM": "Version {version} zu Ihrem Entwurf machen? Veröffentlichen Sie sie anschließend, um sie live zu schalten.",
         "RESTORED": "Die Version ist jetzt Ihr Entwurf",
         "RESTORE_FAILED": "Die Version konnte nicht wiederhergestellt werden.",
+        "RESTORE_FORBIDDEN": "Sie sind nicht berechtigt, Folgendes wiederherzustellen: {parts}.",
         "CLOSE": "Schließen",
         "LATEST": "Neueste",
         "PREVIEWING": "Vorschau",

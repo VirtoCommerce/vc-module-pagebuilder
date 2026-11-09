@@ -41,7 +41,7 @@ public class ThemeDraftService(
         // a theme publication and the builder's other theme writes take the same lock: a version checked here stays current until written
         var result = await distributedLock.ExecuteAsync(
             ThemeStorage.GetLockResource(storeId),
-            lockToken => SaveUnderLockAsync(storeId, files, eTags, saveOthersAsync, lockToken),
+            lockToken => SaveUnderLockAsync(storeId, files, eTags, saveOthersAsync, lockToken, cancellationToken),
             cancellationToken: cancellationToken);
 
         await PublishChangedEventAsync(files.Keys, cancellationToken);
@@ -63,7 +63,7 @@ public class ThemeDraftService(
 
         var result = await distributedLock.ExecuteAsync(
             ThemeStorage.GetLockResource(storeId),
-            lockToken => DiscardUnderLockAsync(storeId, paths, discardOthersAsync, lockToken),
+            lockToken => DiscardUnderLockAsync(storeId, paths, discardOthersAsync, lockToken, cancellationToken),
             cancellationToken: cancellationToken);
 
         await PublishChangedEventAsync(result.Where(x => x.Status == DraftDiscardStatus.Discarded).Select(x => x.Path), cancellationToken);
@@ -72,7 +72,7 @@ public class ThemeDraftService(
     }
 
     protected virtual async Task<T> SaveUnderLockAsync<T>(string storeId, IDictionary<string, string> files, IDictionary<string, string> eTags,
-        Func<CancellationToken, Task<T>> saveOthersAsync, CancellationToken cancellationToken)
+        Func<CancellationToken, Task<T>> saveOthersAsync, CancellationToken cancellationToken, CancellationToken requestToken)
     {
         // every version is checked before anything is written
         var drafts = new List<(ThemeDraft Draft, string Content)>();
@@ -101,13 +101,18 @@ public class ThemeDraftService(
         }
         catch
         {
-            await RestoreDraftsAsync(storeId, previousDrafts);
+            // with the lock lost the drafts may be another server's by now
+            if (!ThemeStorage.IsLockLost(cancellationToken, requestToken))
+            {
+                await RestoreDraftsAsync(storeId, previousDrafts);
+            }
+
             throw;
         }
     }
 
     protected virtual async Task<IList<DiscardedThemeDraft>> DiscardUnderLockAsync(string storeId, IList<string> paths, Func<CancellationToken, Task> discardOthersAsync,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, CancellationToken requestToken)
     {
         var removedDrafts = new List<ThemeDraft>();
         var result = new List<DiscardedThemeDraft>();
@@ -136,7 +141,12 @@ public class ThemeDraftService(
         }
         catch
         {
-            await RestoreDraftsAsync(storeId, removedDrafts);
+            // with the lock lost the drafts may be another server's by now
+            if (!ThemeStorage.IsLockLost(cancellationToken, requestToken))
+            {
+                await RestoreDraftsAsync(storeId, removedDrafts);
+            }
+
             throw;
         }
     }

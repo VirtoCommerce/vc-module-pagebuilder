@@ -379,6 +379,7 @@
         "CONFIRM": "Ustawić wersję {version} jako Twój szkic? Opublikuj ją potem, aby była aktywna.",
         "RESTORED": "Wersja jest teraz Twoim szkicem",
         "RESTORE_FAILED": "Nie udało się przywrócić wersji.",
+        "RESTORE_FORBIDDEN": "Nie masz uprawnień do przywrócenia: {parts}.",
         "CLOSE": "Zamknij",
         "LATEST": "Najnowsza",
         "PREVIEWING": "Podgląd",

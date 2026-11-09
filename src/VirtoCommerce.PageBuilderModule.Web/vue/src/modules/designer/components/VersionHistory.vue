@@ -109,8 +109,8 @@
             v-if="index > 0"
             type="button"
             class="vh__action vh__action--restore"
-            :disabled="dirty || busy"
-            :title="dirty ? $t('PAGE_BUILDER.DESIGNER.HISTORY.SAVE_FIRST') : undefined"
+            :disabled="dirty || busy || !!restoreRefused?.(version)"
+            :title="dirty ? $t('PAGE_BUILDER.DESIGNER.HISTORY.SAVE_FIRST') : restoreRefused?.(version)"
             @click="emit('restore', version)"
           >
             <VcIcon
@@ -180,6 +180,8 @@ const props = defineProps<{
   describe?: (version: HistoryVersion) => string | undefined;
   /** whether a version can be shown in the preview (all can, without it) */
   previewable?: (version: HistoryVersion) => boolean;
+  /** why the editor may not restore a version; undefined when they may */
+  restoreRefused?: (version: HistoryVersion) => string | undefined;
 }>();
 const emit = defineEmits<{ close: []; preview: [version: HistoryVersion | null]; restore: [version: HistoryVersion]; discard: [] }>();
 

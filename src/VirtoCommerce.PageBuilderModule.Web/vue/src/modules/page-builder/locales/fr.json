@@ -379,6 +379,7 @@
         "CONFIRM": "Faire de la version {version} votre brouillon ? Publiez-la ensuite pour la mettre en ligne.",
         "RESTORED": "La version est maintenant votre brouillon",
         "RESTORE_FAILED": "La version n'a pas pu être restaurée.",
+        "RESTORE_FORBIDDEN": "Vous n'êtes pas autorisé à restaurer : {parts}.",
         "CLOSE": "Fermer",
         "LATEST": "Dernière",
         "PREVIEWING": "Aperçu en cours",

@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Security.Claims;
 using System.Text;
@@ -98,6 +100,35 @@ public class ThemeWriteLockTests
         Assert.IsType<OkObjectResult>((await restore).Result);
         Assert.Equal("{\"content\":[]}", _live.Files[$"{Path}-draft"]);
         Assert.Single(history.Records);
+    }
+
+    [Fact]
+    public async Task SaveDrafts_LockLostAndThePageFails_LeavesTheDraftsAsTheyAre()
+    {
+        _live.Files[$"{Path}-draft"] = "{\"old\":true}";
+
+        await Assert.ThrowsAnyAsync<Exception>(() => ThemeDrafts().SaveDraftsAsync<bool>("s1", new Dictionary<string, string> { [Path] = "{\"new\":true}" }, eTags: null, _ =>
+        {
+            _lock.LoseHeldLocks();
+            throw new IOException("the page could not be saved");
+        }, Ct));
+
+        Assert.Equal("{\"new\":true}", _live.Files[$"{Path}-draft"]);
+    }
+
+    [Fact]
+    public async Task DiscardDrafts_LockLostAndThePageFails_LeavesTheDraftsAsTheyAre()
+    {
+        _live.Files[Path] = "{}";
+        _live.Files[$"{Path}-draft"] = "{\"old\":true}";
+
+        await Assert.ThrowsAnyAsync<Exception>(() => ThemeDrafts().DiscardDraftsAsync("s1", [Path], _ =>
+        {
+            _lock.LoseHeldLocks();
+            throw new IOException("the page could not be discarded");
+        }, Ct));
+
+        Assert.False(_live.Files.ContainsKey($"{Path}-draft"));
     }
 
     // ── helpers ────────────────────────────────────────────────────────────────────────────────

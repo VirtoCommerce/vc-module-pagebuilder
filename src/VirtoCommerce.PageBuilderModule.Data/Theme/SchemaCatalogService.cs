@@ -26,7 +26,7 @@ public class SchemaCatalogService(IThemeStorageFactory themeStorageFactory) : IS
         var hash = GetHash(catalog);
 
         var storage = await themeStorageFactory.OpenAsync(storeId);
-        if (await storage.ReadAsync(GetCatalogPath(hash)) == null)
+        if (await ReadCatalogAsync(storage, hash) == null)
         {
             await storage.WriteAsync(GetCatalogPath(hash), catalog.ToString(Formatting.None));
         }
@@ -46,7 +46,27 @@ public class SchemaCatalogService(IThemeStorageFactory themeStorageFactory) : IS
             hash = (await storage.ReadJsonAsync<SchemaCatalogPointer>(ThemeStorage.CurrentCatalogFile))?.Hash;
         }
 
-        return IsValidHash(hash) ? await storage.ReadAsync(GetCatalogPath(hash)) : null;
+        return IsValidHash(hash) ? await ReadCatalogAsync(storage, hash) : null;
+    }
+
+    /// <summary>The stored catalog; null for none and for a file cut off mid-write, which the next upload of the hash then replaces.</summary>
+    protected virtual async Task<string> ReadCatalogAsync(IThemeStorage storage, string hash)
+    {
+        var catalog = await storage.ReadAsync(GetCatalogPath(hash));
+        if (catalog == null)
+        {
+            return null;
+        }
+
+        try
+        {
+            ThemeJson.ParseObject(catalog);
+            return catalog;
+        }
+        catch (JsonReaderException)
+        {
+            return null;
+        }
     }
 
     protected virtual bool IsValidHash(string hash) => PageBuilderContentPaths.IsCatalogHash(hash);

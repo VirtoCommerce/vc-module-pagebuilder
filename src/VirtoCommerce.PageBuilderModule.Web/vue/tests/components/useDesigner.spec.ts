@@ -44,7 +44,7 @@ const PRODUCT_TEMPLATE = {
 
 /** the theme files the fake platform has, by their path with the theme folder */
 let themeFiles: Record<string, unknown>;
-let themeStatus: { publication?: number; drafts: string[] };
+let themeStatus: { publication?: number; drafts: string[]; newDrafts?: string[] };
 let pageStatus: { published?: boolean; hasChanges?: boolean };
 let platform: FakePlatform;
 let designer: Designer;
@@ -113,7 +113,7 @@ describe("useDesigner: opening", () => {
     ]);
     expect(designer.dirty.value).toBe(false);
     expect(designer.status.value).toEqual({ published: true, hasChanges: false });
-    expect(designer.themeStatus.value).toEqual({ publication: 3, drafts: [] });
+    expect(designer.themeStatus.value).toEqual({ publication: 3, drafts: [], newDrafts: [] });
     const read = platform.to("/api/page-builder-pages/grouped/g1/content")[0];
     expect(read.query).toEqual({ includeVersion: "true" });
     expect(read.headers.authorization).toBe(`Bearer ${TEST_TOKEN}`);
@@ -380,6 +380,29 @@ describe("useDesigner: editing and saving", () => {
     expect(discards).toHaveLength(1);
     expect(discards[0].query).toEqual({ storeId: STORE });
     expect(discards[0].body).toEqual({ page: { groupId: "g1" }, themeFiles: ["default/sections/header-group.json"] });
+  });
+
+  it("does not offer a theme draft with nothing live: it is the file's only copy", async () => {
+    pageStatus = { published: true, hasChanges: true };
+    themeStatus = { publication: 3, drafts: ["sections/header-group.json", "config/brand.json"], newDrafts: ["config/brand.json"] };
+    await openDatabasePage();
+
+    expect(designer.discardable.value).toEqual({ page: true, theme: ["header"] });
+  });
+
+  it("does not offer a template with nothing live to go back to", async () => {
+    themeStatus = { publication: 3, drafts: ["templates/product.json"], newDrafts: ["templates/product.json"] };
+    await openTemplate();
+
+    expect(designer.status.value.hasChanges).toBe(true);
+    expect(designer.discardable.value.page).toBe(false);
+  });
+
+  it("offers a template with a live version to go back to", async () => {
+    themeStatus = { publication: 3, drafts: ["templates/product.json"], newDrafts: [] };
+    await openTemplate();
+
+    expect(designer.discardable.value.page).toBe(true);
   });
 
   it("never discards a theme draft not chosen: a page alone leaves the store's theme drafts", async () => {
