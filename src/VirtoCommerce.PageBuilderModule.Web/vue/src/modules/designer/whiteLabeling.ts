@@ -1,7 +1,7 @@
 import type { SectionGroup } from "./types";
 import type { BrandField } from "./themeLook";
 
-// White-labeling wins over the theme field by field (docs/contracts/preview-protocol.md, `resolved`): the preview reports
+// White-labeling wins over the theme (docs/contracts/theme-snapshot.md, Brand; preview-protocol.md, `resolved`): the preview reports
 // the fields it set for the visitor, and the designer marks them, so that the editor sees why a change does not show.
 
 export type WhiteLabelingField = `brand.${BrandField}` | "palette" | "menus.header" | "menus.footer";

@@ -222,6 +222,7 @@ interface Resolved {
 
 type WhiteLabelingField =
   | "brand.logoUrl"
+  /** white-labeling sets the logo for dark backgrounds, or the light logo (the header then never shows the theme's dark logo) */
   | "brand.secondaryLogoUrl"
   | "brand.faviconUrl"
   | "palette"
@@ -236,7 +237,9 @@ type WhiteLabelingField =
 when no rule chose it. Every `resolved` carries it; with no template open it equals `template` and `ruleId`. The
 designer's "Site uses … (rule N)" chip, a content page's Template hint and the rules panel's Test read `rules`.
 
-The designer marks the fields in `overriddenByWhiteLabeling`, so the editor sees why a change to them does not show:
+Which logo shows where is in [Brand](theme-snapshot.md#brand): the header pairs its light and dark logos from one
+source, the footer's logo goes field by field. The designer marks the fields in `overriddenByWhiteLabeling`, so the
+editor sees why a change to them does not show:
 the brand fields and the palette on the Theme tab, `menus.header` on the `catalog_menu` setting of `site-header`,
 `menus.footer` on each of the footer's `footer-menu` blocks, which the footer links replace whole (heading, menu and
 links). White-labeling replaces no other menu: the header's icons menu is the theme's. The Angular designer drops `resolved`.
