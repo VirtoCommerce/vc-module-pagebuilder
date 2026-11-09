@@ -1,6 +1,6 @@
 namespace VirtoCommerce.PageBuilderModule.Core.Theme;
 
-/// <summary>Files of a store's active theme, by their path inside the theme folder.</summary>
+/// <summary>Files of one of a store's themes, by their path inside the theme folder.</summary>
 public interface IThemeStorage
 {
     string ThemeName { get; }

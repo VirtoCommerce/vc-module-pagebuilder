@@ -97,7 +97,8 @@ Without a `BaseBranch` in configuration, the one-click setup uses `main`.
   live page from what the base branch now holds. Publishing or unpublishing again repairs a live write that failed
   after its merge.
 - **Turn off history**: pages are saved to the platform's storage again; the repository and its history stay.
-- **Site deleted**: its repository is archived — only when the module created it for that site. Restoring the site
+- **Site deleted**: its repository is archived — only a repository marked as that site's, one the module created or
+  took over for it. Restoring the site
   under the same id brings the repository back.
 
 ## A site with its own repository

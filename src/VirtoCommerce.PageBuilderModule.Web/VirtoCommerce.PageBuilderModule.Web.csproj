@@ -49,7 +49,7 @@
     </SonarQubeSetting>
   </ItemGroup>
   <!-- Admin Shell plugin: built from vue/ into plugins/admin-shell/ before publish, so vc-build Compress (locally and in CI)
-       packs it, as VirtoCommerce.SalesRep builds its storefront plugin. SkipAdminShellPlugin=true leaves it out. -->
+       packs it. SkipAdminShellPlugin=true leaves it out. -->
   <Target Name="BuildAdminShellPlugin" BeforeTargets="Publish" Condition="'$(SkipAdminShellPlugin)' != 'true' AND Exists('$(MSBuildProjectDirectory)\vue\package.json')">
     <Exec Command="corepack enable" ContinueOnError="true" />
     <Exec Command="yarn install --immutable" WorkingDirectory="$(MSBuildProjectDirectory)\vue" />

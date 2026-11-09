@@ -73,7 +73,8 @@ public class GitHubConnectionService(
         GitHubAppConnection app;
         try
         {
-            app = JsonConvert.DeserializeObject<GitHubAppConnection>(_protector.Unprotect(stored));
+            app = AbstractTypeFactory<GitHubAppConnection>.TryCreateInstance();
+            JsonConvert.PopulateObject(_protector.Unprotect(stored), app);
         }
         catch (Exception ex) when (ex is CryptographicException or JsonException)
         {

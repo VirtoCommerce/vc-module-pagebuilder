@@ -21,6 +21,6 @@ public interface IGitContentProvisioner
     /// <summary>Disables git content for the store. The repository is kept.</summary>
     Task DisconnectAsync(string storeId, CancellationToken cancellationToken = default);
 
-    /// <summary>Archives the repository of a deleted store if the module created it for that store.</summary>
+    /// <summary>Archives the repository of a deleted store if it is marked as that store's: one the module created or took over for it.</summary>
     Task ArchiveRepositoryAsync(string storeId, string repository, CancellationToken cancellationToken = default);
 }

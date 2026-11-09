@@ -606,6 +606,8 @@ public class PageBuilderPageController : Controller
 
     [HttpPost("grouped/{groupId}/content")]
     [Authorize(ModuleConstants.Security.Permissions.Update)]
+    [ProducesResponseType(typeof(UpdatePageContentResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> SavePageContent([FromRoute] string groupId,
         [FromHeader(Name = "If-Match")] string ifMatch = null, [FromQuery] bool includeVersion = false,
         CancellationToken cancellationToken = default)
@@ -655,6 +657,8 @@ public class PageBuilderPageController : Controller
     /// </summary>
     [HttpPost("grouped/{groupId}/content-json")]
     [Authorize(ModuleConstants.Security.Permissions.Update)]
+    [ProducesResponseType(typeof(UpdatePageContentResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> SavePageContentJson(
         [FromRoute] string groupId,
         [FromBody] UpdatePageContentRequest model,
@@ -734,7 +738,14 @@ public class PageBuilderPageController : Controller
             }
 
             Response.Headers.ETag = result.ETag;
-            return includeVersion ? Ok(new { eTag = result.ETag }) : NoContent();
+            if (!includeVersion)
+            {
+                return NoContent();
+            }
+
+            var version = AbstractTypeFactory<UpdatePageContentResult>.TryCreateInstance();
+            version.ETag = result.ETag;
+            return Ok(version);
         }
         catch (PageBuilderContentConflictException ex)
         {

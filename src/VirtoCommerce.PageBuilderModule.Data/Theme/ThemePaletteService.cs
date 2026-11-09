@@ -61,7 +61,7 @@ public class ThemePaletteService : IThemePaletteService
         ["info"] = new PaletteColor(0x2b, 0x7e, 0xa8),
     };
 
-    // "{0}" is the color; light text and icons on white take 700, darker than the storefront's fallback, to reach AA
+    // "{0}" is the color; light text and icons on white take a darker shade than the fill, to reach AA
     private static readonly Dictionary<string, string> DefaultLightButtonRoles = new()
     {
         ["background_solid"] = "color_{0}_500",

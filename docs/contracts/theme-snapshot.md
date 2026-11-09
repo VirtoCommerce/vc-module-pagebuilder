@@ -5,8 +5,9 @@ template rules, every template, the header and footer groups, the brand and the 
 The storefront does not read theme files from `/cms-content`.
 
 The snapshot exists for stores with the store setting **New Page Builder** on. For any other store the request returns
-`null`, and the storefront renders its built-in templates. Turning the setting on publishes a first snapshot from the
-theme's live files, so a store with the setting on always has one.
+`null`, and the storefront renders its built-in templates. The first read of a store with the setting on publishes a
+first snapshot from the theme's live files; when they fail the shape check, there is none, and the read fails with the
+validation errors until a publication succeeds.
 
 ## Theme files
 

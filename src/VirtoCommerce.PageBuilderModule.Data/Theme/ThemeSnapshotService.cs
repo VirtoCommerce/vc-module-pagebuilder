@@ -120,7 +120,7 @@ public class ThemeSnapshotService(
         }
         catch (ThemeValidationException exception)
         {
-            // Cache the failure until the next publication, so reads do not retry under the theme lock.
+            // Cache the failure as a publication is cached, so reads do not retry under the theme lock.
             platformMemoryCache.Set(cacheKey, exception.Errors, cacheOptions);
             throw;
         }

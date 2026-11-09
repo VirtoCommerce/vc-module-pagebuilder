@@ -178,7 +178,7 @@ public class ThemeSnapshotBuilder : IThemeSnapshotBuilder
         return result;
     }
 
-    /// <summary>Normalizes the template rules: assigns missing rule ids and adds the default rules.</summary>
+    /// <summary>Normalizes the template rules: assigns missing rule ids, and takes the default rules of a page type the file does not list.</summary>
     protected virtual ThemeTemplateRules GetTemplateRules(JToken rules)
     {
         var source = rules as JObject ?? new JObject();

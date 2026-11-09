@@ -9,13 +9,7 @@ using VirtoCommerce.Platform.Core.Common;
 
 namespace VirtoCommerce.PageBuilderModule.Data.GitContent;
 
-/// <summary>
-/// IGitContentProvisioner over the GitHub REST API:
-///   GET   /repos/{repo}      — does it exist, is it archived, whose is it
-///   POST  /orgs/{org}/repos  — create a site's repository
-///   PATCH /repos/{repo}      — archive / unarchive it
-///   GET   /orgs/{org}        — is the organization there at all (the connection test)
-/// </summary>
+/// <summary>Creates, takes over, archives and unarchives the repositories of the sites in the organization, over the GitHub API.</summary>
 public class GitHubContentProvisioner(
     IGitHubApiClient gitHubApiClient,
     IGitHubConnectionService gitHubConnectionService,
