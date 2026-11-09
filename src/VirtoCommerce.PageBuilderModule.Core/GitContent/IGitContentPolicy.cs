@@ -16,10 +16,13 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
     public interface IGitContentPolicy
     {
         /// <summary>
-        /// True when <c>PageBuilder:GitContent:Enabled</c> is set, the connection is configured, and the
-        /// store opted in via the <c>VirtoCommerce.PageBuilderModule.Store.GitContentEnabled</c> setting.
-        /// A missing or unreadable store setting means "off".
+        /// True when a GitHub connection is in effect and not switched off, and the store opted in via the
+        /// <c>VirtoCommerce.PageBuilderModule.Store.GitContentEnabled</c> setting. A missing or unreadable opt-in means "off".
         /// </summary>
+        /// <exception cref="GitContentException">
+        /// The store opted in, but its repository setting is not "owner/name" or the saved GitHub App cannot be read: git content
+        /// is neither on nor safely off for it.
+        /// </exception>
         Task<bool> IsEnabledForStoreAsync(string storeId, CancellationToken cancellationToken = default);
 
         /// <summary>Switches git content on or off for the store.</summary>
@@ -27,10 +30,12 @@ namespace VirtoCommerce.PageBuilderModule.Core.GitContent
 
         /// <summary>Gets the store repository ("owner/name"); <c>null</c> when git content is off for the store.</summary>
         /// <exception cref="GitRepositoryOwnershipException">The repository was created for another store.</exception>
+        /// <exception cref="GitContentException">As <see cref="IsEnabledForStoreAsync"/>.</exception>
         Task<string> GetRepositoryAsync(string storeId, CancellationToken cancellationToken = default);
 
         /// <summary>Gets the store repository with its source; <c>null</c> when git content is off for the store.</summary>
         /// <exception cref="GitRepositoryOwnershipException">The repository was created for another store.</exception>
+        /// <exception cref="GitContentException">As <see cref="IsEnabledForStoreAsync"/>.</exception>
         Task<StoreRepository> GetRepositoryInfoAsync(string storeId, CancellationToken cancellationToken = default);
 
         /// <summary>Gets the store repository from settings, whether or not git content is on for the store.</summary>

@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
@@ -216,6 +218,57 @@ namespace VirtoCommerce.PageBuilderModule.Tests
             Assert.Null(await policy.GetRepositoryAsync("b2b-store", TestContext.Current.CancellationToken));
             Assert.False(await policy.IsEnabledForStoreAsync("b2b-store", TestContext.Current.CancellationToken));
             await Assert.ThrowsAsync<GitContentException>(() => policy.GetConfiguredRepositoryAsync("b2b-store", TestContext.Current.CancellationToken));
+        }
+
+        [Fact]
+        public async Task IsEnabledForStoreAsync_StoreOnWithMalformedSetting_Throws()
+        {
+            // treating it as off would send the store's publications straight to production
+            var policy = Policy(PerSite(), new FakeSettingsManager(value: true, repository: "https://github.com/acme/website"));
+
+            await Assert.ThrowsAsync<GitContentException>(() => policy.IsEnabledForStoreAsync("b2b-store", TestContext.Current.CancellationToken));
+            await Assert.ThrowsAsync<GitContentException>(() => policy.GetRepositoryAsync("b2b-store", TestContext.Current.CancellationToken));
+        }
+
+        [Fact]
+        public async Task IsEnabledForStoreAsync_SavedAppUnreadableAndStoreOn_Throws()
+        {
+            var policy = AppPolicy(storeSettings: new FakeSettingsManager(value: true));
+
+            var exception = await Assert.ThrowsAsync<GitContentException>(() => policy.IsEnabledForStoreAsync("b2b-store", TestContext.Current.CancellationToken));
+            Assert.Contains("could not be read", exception.Message);
+            await Assert.ThrowsAsync<GitContentException>(() => policy.GetRepositoryInfoAsync("b2b-store", TestContext.Current.CancellationToken));
+        }
+
+        [Fact]
+        public async Task IsEnabledForStoreAsync_SavedAppUnreadableAndStoreOff_IsOff()
+        {
+            var policy = AppPolicy(storeSettings: new FakeSettingsManager(value: false));
+
+            Assert.False(await policy.IsEnabledForStoreAsync("b2b-store", TestContext.Current.CancellationToken));
+            Assert.Null(await policy.GetRepositoryAsync("b2b-store", TestContext.Current.CancellationToken));
+        }
+
+        [Fact]
+        public async Task IsEnabledForStoreAsync_SavedAppUnreadableAndSwitchedOff_IsOffWithoutReadingTheStore()
+        {
+            var configuration = new ConfigurationBuilder()
+                .AddInMemoryCollection(new Dictionary<string, string> { [$"{GitContentOptions.SectionName}:Enabled"] = "false" })
+                .Build();
+            // a null settings manager would throw if the policy consulted it
+            var policy = AppPolicy(storeSettings: null, configuration);
+
+            Assert.False(await policy.IsEnabledForStoreAsync("b2b-store", TestContext.Current.CancellationToken));
+        }
+
+        // the one-click App connection, whose saved setting the database does not return
+        private static GitContentPolicy AppPolicy(ISettingsManager storeSettings, IConfiguration configuration = null)
+        {
+            var options = new GitContentOptions();
+            var connection = GitHubConnections.CreateService(options, new FakeSettingsManager { ReadFailure = new TimeoutException("the database did not answer") },
+                configuration: configuration);
+
+            return new GitContentPolicy(connection, Options.Create(options), storeSettings, storeService: null, new FakeGitContentOwnership());
         }
 
         [Fact]

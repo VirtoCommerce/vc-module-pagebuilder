@@ -62,8 +62,7 @@ public class GitHubConnectionService(
         catch (Exception ex)
         {
             logger.LogWarning(ex, "The saved GitHub connection could not be read.");
-            connection.Error = "The saved GitHub connection could not be read. Try again in a moment.";
-            return connection;
+            return SetError(connection, "The saved GitHub connection could not be read. Try again in a moment.");
         }
 
         if (string.IsNullOrWhiteSpace(stored))
@@ -79,9 +78,8 @@ public class GitHubConnectionService(
         catch (Exception ex) when (ex is CryptographicException or JsonException)
         {
             logger.LogWarning(ex, "The saved GitHub connection cannot be decrypted on this server.");
-            connection.Error = "The saved GitHub connection cannot be read on this server: it was made on another one, or this server's " +
-                               "data protection keys have changed. Set it up again.";
-            return connection;
+            return SetError(connection, "The saved GitHub connection cannot be read on this server: it was made on another one, or this server's " +
+                                        "data protection keys have changed. Set it up again.");
         }
 
         ApplyApp(connection, app);
@@ -181,6 +179,17 @@ public class GitHubConnectionService(
         connection.AutoCreateRepositories = true;
         connection.Source = GitHubConnectionSource.App;
         connection.App = app;
+    }
+
+    /// <summary>
+    /// Marks the connection as a saved App that cannot be used, enabled unless the configuration switches git content off, so a
+    /// store that opted in refuses git operations instead of falling back to the blob flow.
+    /// </summary>
+    protected virtual GitHubConnection SetError(GitHubConnection connection, string error)
+    {
+        connection.IsEnabled = !_isSwitchedOff;
+        connection.Error = error;
+        return connection;
     }
 
     /// <summary>Gets the GitHub web site of the API: github.com, or the GitHub Enterprise server itself.</summary>

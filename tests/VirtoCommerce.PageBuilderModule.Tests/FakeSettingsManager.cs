@@ -20,12 +20,20 @@ namespace VirtoCommerce.PageBuilderModule.Tests
 
         public Dictionary<string, object> Values { get; } = [];
 
+        /// <summary>Thrown by every single-setting read, as a database that does not answer.</summary>
+        public Exception ReadFailure { get; init; }
+
         public string AskedName { get; private set; }
         public string AskedObjectType { get; private set; }
         public string AskedObjectId { get; private set; }
 
         public Task<ObjectSettingEntry> GetObjectSettingAsync(string name, string objectType = null, string objectId = null)
         {
+            if (ReadFailure != null)
+            {
+                return Task.FromException<ObjectSettingEntry>(ReadFailure);
+            }
+
             AskedName = name;
             AskedObjectType = objectType;
             AskedObjectId = objectId;

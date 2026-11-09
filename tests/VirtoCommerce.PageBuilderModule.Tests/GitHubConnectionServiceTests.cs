@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
@@ -118,7 +119,7 @@ public class GitHubConnectionServiceTests
     }
 
     [Fact]
-    public async Task GetConnectionAsync_SavedAppOtherServerKeys_LeavesGitOffWithError()
+    public async Task GetConnectionAsync_SavedAppOtherServerKeys_ReportsErrorWithoutApp()
     {
         var settings = new FakeSettingsManager();
         await CreateService(settings, new EphemeralDataProtectionProvider(), CreateManifestConversion("Acme")).CreateAppAsync("c0de", "acme", TestContext.Current.CancellationToken);
@@ -127,7 +128,35 @@ public class GitHubConnectionServiceTests
         var connection = await CreateService(settings, new EphemeralDataProtectionProvider()).GetConnectionAsync(TestContext.Current.CancellationToken);
 
         Assert.False(connection.IsConfigured);
+        Assert.True(connection.IsEnabled);
         Assert.Null(connection.App);
         Assert.Contains("cannot be read on this server", connection.Error);
+    }
+
+    [Fact]
+    public async Task GetConnectionAsync_SettingsUnreadable_ReportsErrorWithoutApp()
+    {
+        var settings = new FakeSettingsManager { ReadFailure = new TimeoutException("the database did not answer") };
+
+        var connection = await CreateService(settings).GetConnectionAsync(TestContext.Current.CancellationToken);
+
+        Assert.False(connection.IsConfigured);
+        Assert.True(connection.IsEnabled);
+        Assert.Null(connection.App);
+        Assert.Contains("could not be read", connection.Error);
+    }
+
+    [Fact]
+    public async Task GetConnectionAsync_SettingsUnreadableAndEnabledFalseInConfiguration_StaysSwitchedOff()
+    {
+        var settings = new FakeSettingsManager { ReadFailure = new TimeoutException("the database did not answer") };
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string> { [$"{GitContentOptions.SectionName}:Enabled"] = "false" })
+            .Build();
+
+        var connection = await CreateService(settings, configuration: configuration).GetConnectionAsync(TestContext.Current.CancellationToken);
+
+        Assert.False(connection.IsEnabled);
+        Assert.NotNull(connection.Error);
     }
 }

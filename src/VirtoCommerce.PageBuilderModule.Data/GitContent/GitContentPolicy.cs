@@ -16,7 +16,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
 {
     /// <summary>
     /// Three independent switches must all be on: the global kill switch, a usable connection, and the
-    /// store's own opt-in. The store settings are read last because they are the only part that costs a query.
+    /// store's own opt-in.
     /// </summary>
     public class GitContentPolicy : IGitContentPolicy
     {
@@ -166,13 +166,30 @@ namespace VirtoCommerce.PageBuilderModule.Data.GitContent
         private static bool IsAvailable(GitHubConnection connection) => connection.IsEnabled && connection.IsConfigured;
 
         /// <summary>Reads the store git settings; <c>null</c> when git content is off globally.</summary>
+        /// <exception cref="GitContentException">The store opted in, but the saved GitHub App cannot be read.</exception>
         private async Task<StoreGitSettings> GetStoreSettingsAsync(GitHubConnection connection, string storeId)
         {
-            if (!IsAvailable(connection) || string.IsNullOrEmpty(storeId))
+            if (string.IsNullOrEmpty(storeId))
             {
                 return null;
             }
 
+            if (IsAvailable(connection))
+            {
+                return await ReadStoreSettingsAsync(storeId);
+            }
+
+            // the blob flow would publish an opted-in store's pages straight to production
+            if (connection.IsEnabled && !string.IsNullOrEmpty(connection.Error) && (await ReadStoreSettingsAsync(storeId)).IsEnabled)
+            {
+                throw new GitContentException(connection.Error);
+            }
+
+            return null;
+        }
+
+        private async Task<StoreGitSettings> ReadStoreSettingsAsync(string storeId)
+        {
             var settings = (await _settingsManager.GetObjectSettingsAsync(
                 [StoreLevelSettings.GitContentEnabled.Name, StoreLevelSettings.GitContentRepository.Name],
                 ModuleConstants.Settings.StoreSettingsObjectType,

@@ -42,6 +42,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
     [Route("api/pagebuilder")]
     [Authorize]
     [RepositoryOwnershipConflict]
+    [GitContentFailure]
     public class PageBuilderController(IStoreService storeService,
             IContentPathResolver pathResolver,
             IBlobContentStorageProviderFactory blobContentStorageProviderFactory,
