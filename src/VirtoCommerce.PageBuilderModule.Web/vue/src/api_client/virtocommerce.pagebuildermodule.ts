@@ -641,7 +641,7 @@ export class HistoryClient extends AuthApiBase {
      * @param item (optional) 
      * @return OK
      */
-    restore(versionId: string, storeId?: string | undefined, item?: string[] | undefined): Promise<ContentHistoryRestoreResult> {
+    restore(versionId: string, storeId?: string | undefined, item?: string[] | undefined): Promise<ContentSaveResult> {
         let url_ = this.baseUrl + "/api/pagebuilder/history/{versionId}/restore?";
         if (versionId === undefined || versionId === null)
             throw new globalThis.Error("The parameter 'versionId' must be defined.");
@@ -670,13 +670,13 @@ export class HistoryClient extends AuthApiBase {
         });
     }
 
-    protected processRestore(response: Response): Promise<ContentHistoryRestoreResult> {
+    protected processRestore(response: Response): Promise<ContentSaveResult> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
         if (status === 200) {
             return response.text().then((_responseText) => {
             let result200: any = null;
-            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ContentHistoryRestoreResult;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ContentSaveResult;
             return result200;
             });
         } else if (status === 401) {
@@ -692,7 +692,7 @@ export class HistoryClient extends AuthApiBase {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<ContentHistoryRestoreResult>(null as any);
+        return Promise.resolve<ContentSaveResult>(null as any);
     }
 }
 
@@ -2125,6 +2125,54 @@ export class PageBuilderClient extends AuthApiBase {
         return Promise.resolve<void>(null as any);
     }
 
+    getDesignerThemeFile(storeId?: string | undefined, path?: string | undefined): Promise<void> {
+        let url_ = this.baseUrl + "/api/pagebuilder/designer/theme-file?";
+        if (storeId === null)
+            throw new globalThis.Error("The parameter 'storeId' cannot be null.");
+        else if (storeId !== undefined)
+            url_ += "storeId=" + encodeURIComponent("" + storeId) + "&";
+        if (path === null)
+            throw new globalThis.Error("The parameter 'path' cannot be null.");
+        else if (path !== undefined)
+            url_ += "path=" + encodeURIComponent("" + path) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+            }
+        };
+
+        return this.transformOptions(options_).then(transformedOptions_ => {
+            return this.http.fetch(url_, transformedOptions_);
+        }).then((_response: Response) => {
+            return this.processGetDesignerThemeFile(_response);
+        });
+    }
+
+    protected processGetDesignerThemeFile(response: Response): Promise<void> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 400) {
+            return response.text().then((_responseText) => {
+            return throwException("Bad Request", status, _responseText, _headers);
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            return throwException("Unauthorized", status, _responseText, _headers);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            return throwException("Forbidden", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
     saveDesignerChanges(storeId?: string | undefined, catalogHash?: string | undefined, body?: DesignerSaveRequest | undefined): Promise<void> {
         let url_ = this.baseUrl + "/api/pagebuilder/designer/save?";
         if (storeId === null)
@@ -2172,6 +2220,10 @@ export class PageBuilderClient extends AuthApiBase {
         } else if (status === 412) {
             return response.text().then((_responseText) => {
             return throwException("Precondition Failed", status, _responseText, _headers);
+            });
+        } else if (status === 428) {
+            return response.text().then((_responseText) => {
+            return throwException("Precondition Required", status, _responseText, _headers);
             });
         } else if (status !== 200 && status !== 204) {
             return response.text().then((_responseText) => {
@@ -4864,18 +4916,18 @@ export interface BlobEntry {
     id?: string | undefined;
 }
 
-export interface ContentHistoryRestoreResult {
-    saveId?: string | undefined;
-}
-
 export enum ContentHistoryStatus {
-    Enabled = "Enabled",
-    SetupRequired = "SetupRequired",
-    Unavailable = "Unavailable",
+    Enabled = "enabled",
+    SetupRequired = "setupRequired",
+    Unavailable = "unavailable",
 }
 
 export interface ContentHistoryStatusResult {
     status?: ContentHistoryStatus;
+}
+
+export interface ContentSaveResult {
+    saveId?: string | undefined;
 }
 
 export interface ContentVersion {
