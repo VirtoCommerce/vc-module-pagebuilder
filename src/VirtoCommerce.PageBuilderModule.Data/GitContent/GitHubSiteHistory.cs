@@ -252,11 +252,10 @@ public class GitHubSiteHistory(
 
     protected virtual GitCommitAuthor CreateAuthor(ContentHistoryRecord record)
     {
-        return new GitCommitAuthor
-        {
-            Name = string.IsNullOrEmpty(record.UserName) ? options.Value.FallbackAuthorName : record.UserName,
-            Email = record.UserEmail ?? options.Value.FallbackAuthorEmail,
-        };
+        var author = AbstractTypeFactory<GitCommitAuthor>.TryCreateInstance();
+        author.Name = string.IsNullOrEmpty(record.UserName) ? options.Value.FallbackAuthorName : record.UserName;
+        author.Email = record.UserEmail ?? options.Value.FallbackAuthorEmail;
+        return author;
     }
 
     /// <summary>Gets the content the site shows: the published page, the live theme file.</summary>

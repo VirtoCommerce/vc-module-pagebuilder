@@ -6,7 +6,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Validation;
 
 public class ThemePaletteGenerationRequestValidator : AbstractValidator<ThemePaletteGenerationRequest>
 {
-    public ThemePaletteGenerationRequestValidator()
+    public ThemePaletteGenerationRequestValidator(IValidator<ThemePaletteTokens> tokensValidator)
     {
         ClassLevelCascadeMode = CascadeMode.Stop;
         RuleLevelCascadeMode = CascadeMode.Stop;
@@ -23,7 +23,7 @@ public class ThemePaletteGenerationRequestValidator : AbstractValidator<ThemePal
         RuleFor(x => x.Tokens)
             .NotNull()
             .WithMessage("Name the palette tokens the storefront announced.")
-            .SetValidator(new ThemePaletteTokensValidator());
+            .SetValidator(tokensValidator);
 
         RuleFor(x => x.Tokens.Light)
             .NotEmpty()

@@ -315,6 +315,19 @@ public class DesignerSaveTests
         AssertNothingWritten();
     }
 
+    [Fact]
+    public async Task SaveDesignerChanges_SameFileInTwoThemes_ChecksEachAgainstTheCatalog()
+    {
+        await SaveCatalogAsync();
+        const string carousel = """{ "content": [ { "id": "c", "type": "carousel" } ] }""";
+
+        var result = await Builder().SaveDesignerChanges("s1",
+            Save(DatabasePage(), (Header, carousel), ("other/sections/header-group.json", HeaderFile)), Catalog);
+
+        Assert.IsType<BadRequestObjectResult>(result.Result);
+        AssertNothingWritten();
+    }
+
     [Theory]
     [InlineData(" x")]
     [InlineData(" {}")]

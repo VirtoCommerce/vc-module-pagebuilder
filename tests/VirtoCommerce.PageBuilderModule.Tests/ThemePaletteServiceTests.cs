@@ -172,6 +172,16 @@ public class ThemePaletteServiceTests
     }
 
     [Fact]
+    public void GetContrastPairs_ChangedByAnOverride_LeavesTheNextCallsPairsAlone()
+    {
+        var service = new DefaultPairsPaletteService();
+
+        service.Pairs[0].MinimumRatio += 1;
+
+        Assert.Equal(DefaultPairs[0].MinimumRatio, service.Pairs[0].MinimumRatio);
+    }
+
+    [Fact]
     public void GeneratePalette_ShadeBeyondAnyNumber_LeavesItOut()
     {
         var request = Request("#1b789b", null);

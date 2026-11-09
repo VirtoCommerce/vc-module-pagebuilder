@@ -162,8 +162,8 @@ public class ThemeControllerTests
             _services,
             authorization,
             RequestValidators.Stores("s1"),
-            new ThemePaletteGenerationRequestValidator(),
-            new ThemePaletteCheckRequestValidator())
+            new ThemePaletteGenerationRequestValidator(new ThemePaletteTokensValidator()),
+            new ThemePaletteCheckRequestValidator(new ThemePaletteTokensValidator()))
         {
             ControllerContext = new ControllerContext { HttpContext = http },
         };

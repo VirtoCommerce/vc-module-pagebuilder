@@ -14,6 +14,7 @@ using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
 using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Data.Authorization;
+using VirtoCommerce.PageBuilderModule.Web.Extensions;
 using VirtoCommerce.Platform.Core;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.StoreModule.Core.Model;
@@ -141,15 +142,13 @@ public class GitContentSetupController(
         }
 
         var setup = new GitHubAppSetupRequest { Organization = organization?.Trim(), StoreId = storeId };
-        if (await ValidateAsync(appSetupRequestValidator, setup, cancellationToken) is { } invalid)
+        if (await appSetupRequestValidator.ValidateRequestAsync(setup, cancellationToken) is { } invalid)
         {
             return invalid;
         }
 
-        var result = new GitHubAppSetupResult
-        {
-            Url = Url.Action(nameof(AppNew), new { state = gitContentSetupService.CreateSetupState(setup) }),
-        };
+        var result = AbstractTypeFactory<GitHubAppSetupResult>.TryCreateInstance();
+        result.Url = Url.Action(nameof(AppNew), new { state = gitContentSetupService.CreateSetupState(setup) });
 
         return Ok(result);
     }
@@ -267,21 +266,13 @@ public class GitContentSetupController(
 
         return (permission == null ? null : await CheckStoreAccessAsync(request, permission))
                ?? await CheckStoreAccessAsync(request)
-               ?? await ValidateAsync(storeRequestValidator, request, cancellationToken);
+               ?? await storeRequestValidator.ValidateRequestAsync(request, cancellationToken);
     }
 
     private async Task<ActionResult> CheckStoreAccessAsync(object resource, string permission = ModuleConstants.Security.Permissions.Read)
     {
         var authorizationResult = await authorizationService.AuthorizeAsync(User, resource, new PageBuilderAuthorizationRequirement(permission));
         return authorizationResult.Succeeded ? null : Forbid();
-    }
-
-    private async Task<ActionResult> ValidateAsync<TRequest>(IValidator<TRequest> validator, TRequest request, CancellationToken cancellationToken)
-    {
-        var validationResult = await validator.ValidateAsync(request, cancellationToken);
-        return validationResult.IsValid
-            ? null
-            : BadRequest(new { error = string.Join(" ", validationResult.Errors.Select(x => x.ErrorMessage)) });
     }
 
     private static ContentResult CreateSetupErrorResult(string message) => new()

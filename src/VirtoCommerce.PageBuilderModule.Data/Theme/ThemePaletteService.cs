@@ -49,7 +49,6 @@ public class ThemePaletteService : IThemePaletteService
 
     private static readonly string[] DefaultColorFamilies = ["primary", "secondary", "accent", "neutral", "success", "warning", "danger", "info"];
 
-    private static readonly PaletteContrastPair[] DefaultContrastPairs = [.. CreateContrastPairs()];
 
     // the default preset's neutral and status colors
     private static readonly Dictionary<string, PaletteColor> DefaultFixedBaseColors = new()
@@ -187,7 +186,7 @@ public class ThemePaletteService : IThemePaletteService
     }
 
     /// <summary>The colors the storefront puts on one another, with the fallbacks of its stylesheets.</summary>
-    protected virtual IList<PaletteContrastPair> GetContrastPairs() => [.. DefaultContrastPairs];
+    protected virtual IList<PaletteContrastPair> GetContrastPairs() => [.. CreateContrastPairs()];
 
     protected virtual IList<string> GetColorFamilies() => [.. DefaultColorFamilies];
 
@@ -613,8 +612,15 @@ public class ThemePaletteService : IThemePaletteService
         yield return CreatePair($"button-tonal-{family}", CreateVcTokenReference("text_tonal", family, $"{family}_800"), CreateVcTokenReference("background_tonal", family, $"{family}_100"), TextContrastRatio);
     }
 
-    private static PaletteContrastPair CreatePair(string name, PaletteTokenReference text, PaletteTokenReference background, double minimumRatio) =>
-        new() { Name = name, Text = text, Background = background, MinimumRatio = minimumRatio };
+    private static PaletteContrastPair CreatePair(string name, PaletteTokenReference text, PaletteTokenReference background, double minimumRatio)
+    {
+        var pair = AbstractTypeFactory<PaletteContrastPair>.TryCreateInstance();
+        pair.Name = name;
+        pair.Text = text;
+        pair.Background = background;
+        pair.MinimumRatio = minimumRatio;
+        return pair;
+    }
 
     private static PaletteTokenReference CreateTokenReference(string name, string fallback) => CreateReference($"color_{name}", $"color_{fallback}");
 
@@ -622,7 +628,13 @@ public class ThemePaletteService : IThemePaletteService
 
     private static PaletteTokenReference CreateBodyReference() => CreateReference(BodyBackground, "color_neutral_50");
 
-    private static PaletteTokenReference CreateReference(string token, string fallback) => new() { Token = token, Fallback = fallback };
+    private static PaletteTokenReference CreateReference(string token, string fallback)
+    {
+        var reference = AbstractTypeFactory<PaletteTokenReference>.TryCreateInstance();
+        reference.Token = token;
+        reference.Fallback = fallback;
+        return reference;
+    }
 
     private sealed record PairEvaluation(string TextToken, PaletteColor TextColor, string BackgroundToken, PaletteColor BackgroundColor, double Ratio, bool Passes);
 }

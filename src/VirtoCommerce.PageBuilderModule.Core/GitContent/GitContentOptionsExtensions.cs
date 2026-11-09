@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using VirtoCommerce.Platform.Core.Common;
 
 namespace VirtoCommerce.PageBuilderModule.Core.GitContent;
 
@@ -11,11 +12,10 @@ public static class GitContentOptionsExtensions
 
         var userName = user?.Identity?.Name;
 
-        return new GitCommitAuthor
-        {
-            Name = string.IsNullOrEmpty(userName) ? options.FallbackAuthorName : userName,
-            Email = user?.FindFirstValue(ClaimTypes.Email) ?? options.FallbackAuthorEmail,
-        };
+        var author = AbstractTypeFactory<GitCommitAuthor>.TryCreateInstance();
+        author.Name = string.IsNullOrEmpty(userName) ? options.FallbackAuthorName : userName;
+        author.Email = user?.FindFirstValue(ClaimTypes.Email) ?? options.FallbackAuthorEmail;
+        return author;
     }
 
     /// <summary>

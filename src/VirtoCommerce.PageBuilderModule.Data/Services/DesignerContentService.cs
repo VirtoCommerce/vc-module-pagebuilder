@@ -38,13 +38,12 @@ public class DesignerContentService(
             return;
         }
 
-        var contents = new Dictionary<string, JToken>(StringComparer.OrdinalIgnoreCase);
-        foreach (var (path, content) in files)
+        // each theme folder on its own: two themes may hold a file of the same name
+        foreach (var theme in files.GroupBy(x => PageBuilderContentPaths.GetThemeName(x.Key), StringComparer.OrdinalIgnoreCase))
         {
-            contents[PageBuilderContentPaths.GetPathInTheme(path)] = content;
+            var contents = theme.ToDictionary(x => PageBuilderContentPaths.GetPathInTheme(x.Key), x => x.Value, StringComparer.OrdinalIgnoreCase);
+            await themePublisher.ValidateFilesAsync(storeId, catalogHash, contents, cancellationToken);
         }
-
-        await themePublisher.ValidateFilesAsync(storeId, catalogHash, contents, cancellationToken);
     }
 
     public virtual async Task<DesignerSaveResult> SaveAsync(DesignerSaveCommand command, ClaimsPrincipal user, CancellationToken cancellationToken = default)

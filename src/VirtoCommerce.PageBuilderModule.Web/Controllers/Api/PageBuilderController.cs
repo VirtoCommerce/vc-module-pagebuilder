@@ -1276,30 +1276,31 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             var onRelease = await gitContentRepository.ReadFileAsync(repository, repoPath, options.ReleaseBranch, HttpContext.RequestAborted);
             var pending = await gitContentPublisher.GetOpenPullRequestAsync(repository, PromoteBranch(type, path), HttpContext.RequestAborted);
 
-            return new PageProductionStatus
-            {
-                Published = onRelease != null,
-                // Behind only means something once the page is on the base branch at all: a page that has
-                // never been published is not "missing from production", it simply has not started.
-                Behind = onBase != null && !PageJson.AreSame(onBase, onRelease),
-                Pending = pending != null,
-                AwaitingMerge = pending is { AutoMerging: false },
-            };
+            var production = AbstractTypeFactory<PageProductionStatus>.TryCreateInstance();
+            production.Published = onRelease != null;
+            // Behind only means something once the page is on the base branch at all: a page that has
+            // never been published is not "missing from production", it simply has not started.
+            production.Behind = onBase != null && !PageJson.AreSame(onBase, onRelease);
+            production.Pending = pending != null;
+            production.AwaitingMerge = pending is { AutoMerging: false };
+            return production;
         }
 
         private static PagePublishStatus PublishStatus(bool published, bool hasChanges, bool pending, bool gitFlow,
-            bool awaitingMerge = false, PageProductionStatus production = null, bool liveBehind = false) => new()
+            bool awaitingMerge = false, PageProductionStatus production = null, bool liveBehind = false)
         {
-            Published = published,
-            HasChanges = hasChanges,
-            Pending = pending,
+            var status = AbstractTypeFactory<PagePublishStatus>.TryCreateInstance();
+            status.Published = published;
+            status.HasChanges = hasChanges;
+            status.Pending = pending;
             // Told apart from pending on purpose: both mean "a pull request is open", but only this one
             // means the merge is not going to happen unless somebody asks for it again.
-            AwaitingMerge = awaitingMerge,
-            Flow = gitFlow ? GitFlow : BlobFlow,
-            Production = production,
-            LiveBehind = liveBehind,
-        };
+            status.AwaitingMerge = awaitingMerge;
+            status.Flow = gitFlow ? GitFlow : BlobFlow;
+            status.Production = production;
+            status.LiveBehind = liveBehind;
+            return status;
+        }
 
         /// <summary>
         /// The versions of a page: commits on the production branch, and commits on any other branch that
