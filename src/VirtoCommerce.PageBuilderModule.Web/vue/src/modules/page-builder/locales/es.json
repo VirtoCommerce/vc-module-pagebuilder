@@ -259,7 +259,8 @@
       "GROUPS": {
         "HEADER": "Encabezado",
         "TEMPLATE": "Plantilla",
-        "FOOTER": "Pie de página"
+        "FOOTER": "Pie de página",
+        "LOCKED": "El encabezado y el pie de página forman parte del tema: para cambiarlos se necesita permiso para editar el tema."
       },
       "PAGE_SETTINGS": "Configuración de la página",
       "BLOCKS": "Bloques",
@@ -442,7 +443,8 @@
         "PASTE_HINT": "El navegador no permitió que la página leyera el portapapeles: pegue aquí el contenido copiado.",
         "INVALID": "El portapapeles no contiene ninguna sección ni bloque copiados.",
         "BLOCK_NEEDS_SECTION": "Seleccione una sección en la que pegar el bloque.",
-        "BLOCK_NOT_ALLOWED": "La sección seleccionada no admite este bloque."
+        "BLOCK_NOT_ALLOWED": "La sección seleccionada no admite este bloque.",
+        "GROUP_ONLY": "Esta sección solo va en el encabezado o el pie de página: seleccione una de sus secciones para pegarla allí."
       },
       "SELECT_MODE": {
         "SELECT": "Seleccionar",
@@ -474,6 +476,7 @@
         "EXISTS": "Ya existe una plantilla con este nombre.",
         "CREATE_BUTTON": "Crear",
         "CREATE_FAILED": "No se pudo crear la plantilla.",
+        "OPEN_FAILED": "No se pudo abrir la plantilla, así que se ha vuelto a abrir la página.",
         "CONFIRM_SWITCH": "Tienes cambios sin guardar. ¿Cambiar de todos modos? Se perderán.",
         "PRODUCT_TITLE": "Plantilla de producto: {name}",
         "CATEGORY_TITLE": "Plantilla de categoría: {name}",

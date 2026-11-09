@@ -168,7 +168,11 @@ async function setting(name: string): Promise<string | undefined> {
   return (value.value ?? value.defaultValue ?? undefined) as string | undefined;
 }
 
-/** Where the store's storefront runs (the store's URL, else the module's StoreUrl setting) and its preview path. */
+/**
+ * Where the store's storefront runs and its preview path: the module's StoreUrl setting, else the store's secure URL,
+ * else its URL, as the server's preview links resolve it (https first: the admin is served over https, and an http
+ * frame in it is blocked).
+ */
 export async function loadStorefront(storeId: string) {
   const store = (await (await call(`/api/stores/${encodeURIComponent(storeId)}`)).json()) as {
     url?: string;
@@ -178,12 +182,12 @@ export async function loadStorefront(storeId: string) {
     defaultCurrency?: string;
     languages?: string[];
   };
-  const [fallbackUrl, previewPath] = await Promise.all([
-    store.url || store.secureUrl ? undefined : setting("VirtoCommerce.PageBuilderModule.General.StoreUrl"),
+  const [configuredUrl, previewPath] = await Promise.all([
+    setting("VirtoCommerce.PageBuilderModule.General.StoreUrl"),
     setting("VirtoCommerce.PageBuilderModule.General.StorePreviewPath"),
   ]);
   return {
-    url: store.url || store.secureUrl || fallbackUrl,
+    url: configuredUrl?.trim() || store.secureUrl?.trim() || store.url?.trim() || undefined,
     previewPath: previewPath || "/designer-preview",
     // what the catalog lookups (products, categories) ask in
     catalog: { storeId, cultureName: store.defaultLanguage || "en-US", currencyCode: store.defaultCurrency || "USD" } as CatalogContext,
@@ -485,8 +489,11 @@ export function filePreviewUrl(page: FilePage, git: boolean, storefront?: { url?
   if (git) return `/api/pagebuilder/git/preview?${fileArgs(page, sha ? { ref: sha } : {})}`;
   const url = storefront && storefrontPage(storefront.url, storefront.previewPath);
   if (!url) return undefined;
-  // the content module's document id of the file (its draft blob while there is one)
-  const id = btoa(`${page.storeId}::${page.type}::${page.path}${draft && !page.path.endsWith("-draft") ? "-draft" : ""}`).replace(/=/g, "-");
+  // the content module's document id of the file (its draft blob while there is one): base64 of its UTF-8 bytes, as the
+  // server encodes it
+  const path = page.path.replace(/\\/g, "/").replace(/^\/+/, "");
+  const raw = `${page.storeId}::${page.type || "pages"}::${path}${draft && !path.endsWith("-draft") ? "-draft" : ""}`;
+  const id = btoa(Array.from(new TextEncoder().encode(raw), (byte) => String.fromCharCode(byte)).join("")).replace(/=/g, "-");
   url.searchParams.set("pageId", id);
   return url.toString();
 }

@@ -27,7 +27,13 @@ export function usePreviewUser(options: { send: (message: AuthMessage) => void; 
   let message: AuthMessage = ANONYMOUS;
   let requests = 0;
   let renewal: ReturnType<typeof setTimeout> | undefined;
-  onBeforeUnmount(() => clearTimeout(renewal));
+  /** the designer closed: a grant still under way is dropped, and nothing is renewed or asked for any more */
+  let disposed = false;
+  onBeforeUnmount(() => {
+    disposed = true;
+    requests++;
+    clearTimeout(renewal);
+  });
 
   async function load(store: string) {
     storeId = store;
@@ -40,6 +46,7 @@ export function usePreviewUser(options: { send: (message: AuthMessage) => void; 
 
   /** Makes `message` the one for the user picked, with a token valid for a while yet; true when it is still the latest */
   async function refresh(): Promise<boolean> {
+    if (disposed) return false;
     const request = ++requests;
     const id = userId.value;
     clearTimeout(renewal);

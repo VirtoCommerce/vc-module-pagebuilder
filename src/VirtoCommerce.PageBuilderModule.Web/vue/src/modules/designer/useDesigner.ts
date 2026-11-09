@@ -382,7 +382,10 @@ export function useDesigner() {
       if (sel?.kind === "block") target = findSection(sel.sectionId);
       else if (sel?.kind === "section") target = findSection(sel.id);
       const group = target && groupOf(target);
-      const fits = !group || !!sectionSchema(copy.type)?.groups?.includes(group);
+      const groups = sectionSchema(copy.type)?.groups;
+      const fits = !group || !!groups?.includes(group);
+      // a section for the header or footer only never goes among the page's own
+      if (!(group && fits) && groups?.length) return "PAGE_BUILDER.DESIGNER.CLIPBOARD.GROUP_ONLY";
       if (group && fits) copy.__group = group;
       else delete copy.__group;
       const item = settled(copy);
@@ -680,10 +683,11 @@ export function useDesigner() {
   async function refreshStatus() {
     const page = file.value;
     if (!groupId.value && !page) return;
-    const fallback = { published: true, hasChanges: false };
+    // a state that can't be read stays as last read (none after opening): the publish actions then wait for one
+    const known = () => status.value;
     const [, own] = await Promise.all([
       refreshThemeStatus(),
-      groupId.value ? api.publishStatus(groupId.value).catch(() => fallback) : themeFileOpen.value ? undefined : api.filePublishStatus(page!).catch(() => fallback),
+      groupId.value ? api.publishStatus(groupId.value).catch(known) : themeFileOpen.value ? undefined : api.filePublishStatus(page!).catch(known),
     ]);
     status.value = own ?? templateStatus(themeStatus.value, page!.theme, page!.path);
   }
@@ -771,8 +775,9 @@ export function useDesigner() {
       if (groupId.value) await api.setPublished(groupId.value, live);
       else if (file.value) await api.setFilePublished(file.value, live, rebase);
     } finally {
-      busy.value = undefined;
+      // the actions stay off until the state after it is read
       await refreshStatus();
+      busy.value = undefined;
     }
   }
 
@@ -786,8 +791,8 @@ export function useDesigner() {
     try {
       return await api.publishTheme(storeId.value, handshake.value?.hash);
     } finally {
-      busy.value = undefined;
       await refreshStatus();
+      busy.value = undefined;
     }
   }
 
@@ -797,8 +802,8 @@ export function useDesigner() {
     try {
       await api.promoteFilePage(file.value);
     } finally {
-      busy.value = undefined;
       await refreshStatus();
+      busy.value = undefined;
     }
   }
 

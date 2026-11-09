@@ -122,10 +122,13 @@ test("a template's main section is shown, hidden or missing; the header's sectio
   assert.equal(mainSectionState([section("m", "category-listing")], undefined), undefined);
 });
 
-test("removing the last main section is refused; one of two may go, and so may the other sections", () => {
+test("removing the last (shown) main section is refused; one of two may go, and so may the other sections", () => {
   const content = [section("t", "text"), section("m", "category-listing"), section("h", "category-listing", { hidden: true })];
   assert.equal(keptMainSection(content, "category", ["t"]), undefined);
-  assert.equal(keptMainSection(content, "category", ["m"]), undefined);
+  // the hidden one left would show none
+  assert.equal(keptMainSection(content, "category", ["m"]), "m");
+  assert.equal(keptMainSection(content, "category", ["h"]), undefined);
+  assert.equal(keptMainSection([...content, section("m2", "category-listing")], "category", ["m"]), undefined);
   assert.equal(keptMainSection(content, "category", ["m", "h", "t"]), "m");
   assert.equal(keptMainSection([section("m", "category-listing", { hidden: true })], "category", ["m"]), "m");
   // a page is not a template

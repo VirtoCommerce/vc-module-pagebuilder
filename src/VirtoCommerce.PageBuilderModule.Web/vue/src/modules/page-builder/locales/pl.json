@@ -259,7 +259,8 @@
       "GROUPS": {
         "HEADER": "Nagłówek",
         "TEMPLATE": "Szablon",
-        "FOOTER": "Stopka"
+        "FOOTER": "Stopka",
+        "LOCKED": "Nagłówek i stopka należą do motywu: ich zmiana wymaga uprawnienia do edycji motywu."
       },
       "PAGE_SETTINGS": "Ustawienia strony",
       "BLOCKS": "Bloki",
@@ -442,7 +443,8 @@
         "PASTE_HINT": "Przeglądarka nie pozwoliła stronie odczytać schowka: wklej tutaj skopiowaną treść.",
         "INVALID": "Schowek nie zawiera skopiowanej sekcji ani bloku.",
         "BLOCK_NEEDS_SECTION": "Zaznacz sekcję, do której chcesz wkleić blok.",
-        "BLOCK_NOT_ALLOWED": "Wybrana sekcja nie może zawierać tego bloku."
+        "BLOCK_NOT_ALLOWED": "Wybrana sekcja nie może zawierać tego bloku.",
+        "GROUP_ONLY": "Ta sekcja może być tylko w nagłówku lub stopce: zaznacz jedną z ich sekcji, aby ją tam wkleić."
       },
       "SELECT_MODE": {
         "SELECT": "Zaznacz",
@@ -474,6 +476,7 @@
         "EXISTS": "Szablon o tej nazwie już istnieje.",
         "CREATE_BUTTON": "Utwórz",
         "CREATE_FAILED": "Nie udało się utworzyć szablonu.",
+        "OPEN_FAILED": "Nie udało się otworzyć szablonu, więc ponownie otwarto stronę.",
         "CONFIRM_SWITCH": "Masz niezapisane zmiany. Przełączyć mimo to? Zostaną utracone.",
         "PRODUCT_TITLE": "Szablon produktu: {name}",
         "CATEGORY_TITLE": "Szablon kategorii: {name}",

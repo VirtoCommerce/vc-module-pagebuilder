@@ -259,7 +259,8 @@
       "GROUPS": {
         "HEADER": "Intestazione",
         "TEMPLATE": "Modello",
-        "FOOTER": "Piè di pagina"
+        "FOOTER": "Piè di pagina",
+        "LOCKED": "Intestazione e piè di pagina fanno parte del tema: per modificarli serve il permesso di modificare il tema."
       },
       "PAGE_SETTINGS": "Impostazioni pagina",
       "BLOCKS": "Blocchi",
@@ -442,7 +443,8 @@
         "PASTE_HINT": "Il browser non ha consentito alla pagina di leggere gli appunti: incolla qui il contenuto copiato.",
         "INVALID": "Gli appunti non contengono una sezione o un blocco copiati.",
         "BLOCK_NEEDS_SECTION": "Seleziona una sezione in cui incollare il blocco.",
-        "BLOCK_NOT_ALLOWED": "La sezione selezionata non può contenere questo blocco."
+        "BLOCK_NOT_ALLOWED": "La sezione selezionata non può contenere questo blocco.",
+        "GROUP_ONLY": "Questa sezione va solo nell'intestazione o nel piè di pagina: seleziona una delle loro sezioni per incollarla lì."
       },
       "SELECT_MODE": {
         "SELECT": "Seleziona",
@@ -474,6 +476,7 @@
         "EXISTS": "Esiste già un modello con questo nome.",
         "CREATE_BUTTON": "Crea",
         "CREATE_FAILED": "Impossibile creare il modello.",
+        "OPEN_FAILED": "Impossibile aprire il modello, quindi è stata riaperta la pagina.",
         "CONFIRM_SWITCH": "Hai modifiche non salvate. Cambiare comunque? Andranno perse.",
         "PRODUCT_TITLE": "Modello di prodotto: {name}",
         "CATEGORY_TITLE": "Modello di categoria: {name}",

@@ -318,7 +318,7 @@
 <script setup lang="ts">
 // A schema's fields as form controls (the Angular designer's control registry), editing `values`; nested objects
 // and lists render this component again. Changes go up as update(id, value): nothing is mutated here.
-import { computed, inject, onBeforeUnmount, onMounted, reactive, ref } from "vue";
+import { computed, inject, onBeforeUnmount, reactive, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { Extension } from "@tiptap/core";
 import { VcButton, VcColorInput, VcEditor, VcHint, VcIcon, VcInput, VcSelect, VcSwitch, VcTextarea, type CustomToolbarButton, type CustomToolbarItem } from "@vc-shell/framework/ui";
@@ -327,7 +327,7 @@ import { menuOptions } from "../storeMenus";
 import { tokenOptions, type TokenOption } from "../themeLook";
 import { isOverridden, itemField, menuField, type GroupItem } from "../whiteLabeling";
 import { fill, isVisible, pick, schemaRequest, valuesOf } from "../schema";
-import { translationOf, withTranslation, type Translating } from "../translatable";
+import { isTranslations, translationOf, withTranslation, type Translating } from "../translatable";
 import { SEARCH_DEBOUNCE_MS, requestResult, runSearch, searchDisplayValue, type SearchField, type SearchValue } from "../search";
 import ImageField from "./ImageField.vue";
 import { getAuthHeaders } from "../../page-builder/composables/usePageContentApi";
@@ -388,19 +388,28 @@ const openRow = ref<string>();
 const palette = inject(PaletteTokensKey, undefined);
 const overridden = inject(WhiteLabelingKey, undefined);
 
-// the store's link lists, read once the fields show a `menu` setting
+// the store's link lists, read once the fields show a `menu` setting (another tab's fields may be the first to)
 const loadStoreMenus = inject(StoreMenusKey, undefined);
 const storeMenus = ref<unknown[]>();
 const menuFailed = ref(false);
-onMounted(async () => {
-  if (!props.fields.some((x) => x.type === "menu")) return;
+let menusAsked = false;
+watch(
+  () => props.fields.some((x) => x.type === "menu"),
+  (hasMenu) => {
+    if (!hasMenu || menusAsked) return;
+    menusAsked = true;
+    void readStoreMenus();
+  },
+  { immediate: true },
+);
+async function readStoreMenus() {
   try {
     storeMenus.value = loadStoreMenus ? await loadStoreMenus() : [];
   } catch {
     storeMenus.value = [];
     menuFailed.value = true;
   }
-});
+}
 
 const shown = computed(() => props.fields.filter((field) => isVisible(field, props.context)));
 
@@ -408,7 +417,9 @@ const set = (field: Field, value: unknown) => field.id && emit("update", field.i
 
 // a translatable text of a theme file: its own text in the language edited, the others' kept
 const TEXT_TYPES = ["string", "markdown", "text"];
-const translated = (field: Field) => (props.translation && field.translatable && TEXT_TYPES.includes(field.type) ? props.translation : undefined);
+// a text that holds a text per language is edited per language even where the schema doesn't say it is translatable
+const translated = (field: Field) =>
+  props.translation && TEXT_TYPES.includes(field.type) && (field.translatable || isTranslations(props.values[field.id!])) ? props.translation : undefined;
 const text = (field: Field) => {
   const value = props.values[field.id!];
   const at = translated(field);

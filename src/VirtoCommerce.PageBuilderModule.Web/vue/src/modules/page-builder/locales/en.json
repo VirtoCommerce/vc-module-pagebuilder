@@ -259,7 +259,8 @@
       "GROUPS": {
         "HEADER": "Header",
         "TEMPLATE": "Template",
-        "FOOTER": "Footer"
+        "FOOTER": "Footer",
+        "LOCKED": "The header and footer belong to the theme: changing them needs permission to edit the theme."
       },
       "PAGE_SETTINGS": "Page settings",
       "BLOCKS": "Blocks",
@@ -442,7 +443,8 @@
         "PASTE_HINT": "The browser didn't let the page read the clipboard: paste the copied content here.",
         "INVALID": "The clipboard doesn't hold a copied section or block.",
         "BLOCK_NEEDS_SECTION": "Select a section to paste a block into.",
-        "BLOCK_NOT_ALLOWED": "The selected section can't hold this block."
+        "BLOCK_NOT_ALLOWED": "The selected section can't hold this block.",
+        "GROUP_ONLY": "This section goes in the header or footer only: select one of their sections to paste it there."
       },
       "SELECT_MODE": {
         "SELECT": "Select",
@@ -474,6 +476,7 @@
         "EXISTS": "There's already a template with this name.",
         "CREATE_BUTTON": "Create",
         "CREATE_FAILED": "The template couldn't be created.",
+        "OPEN_FAILED": "The template couldn't be opened, so the page is open again.",
         "CONFIRM_SWITCH": "You have unsaved changes. Switch anyway? They'll be lost.",
         "PRODUCT_TITLE": "Product template: {name}",
         "CATEGORY_TITLE": "Category template: {name}",

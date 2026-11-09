@@ -112,9 +112,10 @@ export function validateRules(value: unknown, descriptors: ConditionDescriptor[]
   if (value.version !== undefined && value.version !== 1 && value.version !== RULES_VERSION) errors.push({ path: "version", code: "VERSION" });
   if (value.conditions !== undefined && !(Array.isArray(value.conditions) && value.conditions.every((x) => typeof x === "string")))
     errors.push({ path: "conditions", code: "TEXT_LIST" });
-  const ids = new Set<string>();
   for (const type of PAGE_TYPES) {
     const list = value[type];
+    // an id is unique within its page type's list
+    const ids = new Set<string>();
     if (list === undefined) continue;
     if (!Array.isArray(list)) {
       errors.push({ path: type, code: "NOT_LIST" });

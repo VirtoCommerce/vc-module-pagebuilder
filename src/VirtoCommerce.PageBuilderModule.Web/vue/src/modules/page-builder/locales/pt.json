@@ -259,7 +259,8 @@
       "GROUPS": {
         "HEADER": "Cabeçalho",
         "TEMPLATE": "Modelo",
-        "FOOTER": "Rodapé"
+        "FOOTER": "Rodapé",
+        "LOCKED": "O cabeçalho e o rodapé fazem parte do tema: alterá-los requer permissão para editar o tema."
       },
       "PAGE_SETTINGS": "Configurações da página",
       "BLOCKS": "Blocos",
@@ -442,7 +443,8 @@
         "PASTE_HINT": "O navegador não permitiu que a página lesse a área de transferência: cole aqui o conteúdo copiado.",
         "INVALID": "A área de transferência não contém uma seção ou bloco copiado.",
         "BLOCK_NEEDS_SECTION": "Selecione uma seção para colar o bloco.",
-        "BLOCK_NOT_ALLOWED": "A seção selecionada não pode conter este bloco."
+        "BLOCK_NOT_ALLOWED": "A seção selecionada não pode conter este bloco.",
+        "GROUP_ONLY": "Esta secção só pode ir no cabeçalho ou no rodapé: selecione uma das suas secções para a colar lá."
       },
       "SELECT_MODE": {
         "SELECT": "Selecionar",
@@ -474,6 +476,7 @@
         "EXISTS": "Já existe um modelo com este nome.",
         "CREATE_BUTTON": "Criar",
         "CREATE_FAILED": "Não foi possível criar o modelo.",
+        "OPEN_FAILED": "Não foi possível abrir o modelo, por isso a página foi aberta novamente.",
         "CONFIRM_SWITCH": "Você tem alterações não salvas. Trocar mesmo assim? Elas serão perdidas.",
         "PRODUCT_TITLE": "Modelo de produto: {name}",
         "CATEGORY_TITLE": "Modelo de categoria: {name}",

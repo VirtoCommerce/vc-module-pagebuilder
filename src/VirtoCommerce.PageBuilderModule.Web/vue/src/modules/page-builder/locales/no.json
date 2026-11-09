@@ -259,7 +259,8 @@
       "GROUPS": {
         "HEADER": "Topptekst",
         "TEMPLATE": "Mal",
-        "FOOTER": "Bunntekst"
+        "FOOTER": "Bunntekst",
+        "LOCKED": "Topp- og bunnteksten hører til temaet: å endre dem krever tillatelse til å redigere temaet."
       },
       "PAGE_SETTINGS": "Sideinnstillinger",
       "BLOCKS": "Blokker",
@@ -442,7 +443,8 @@
         "PASTE_HINT": "Nettleseren lot ikke siden lese utklippstavlen: lim inn det kopierte innholdet her.",
         "INVALID": "Utklippstavlen inneholder ingen kopiert seksjon eller blokk.",
         "BLOCK_NEEDS_SECTION": "Velg en seksjon å lime blokken inn i.",
-        "BLOCK_NOT_ALLOWED": "Den valgte seksjonen kan ikke inneholde denne blokken."
+        "BLOCK_NOT_ALLOWED": "Den valgte seksjonen kan ikke inneholde denne blokken.",
+        "GROUP_ONLY": "Denne seksjonen hører bare hjemme i topp- eller bunnteksten: velg en av seksjonene deres for å lime den inn der."
       },
       "SELECT_MODE": {
         "SELECT": "Velg",
@@ -474,6 +476,7 @@
         "EXISTS": "Det finnes allerede en mal med dette navnet.",
         "CREATE_BUTTON": "Opprett",
         "CREATE_FAILED": "Malen kunne ikke opprettes.",
+        "OPEN_FAILED": "Malen kunne ikke åpnes, så siden er åpnet igjen.",
         "CONFIRM_SWITCH": "Du har endringer som ikke er lagret. Bytte likevel? De går tapt.",
         "PRODUCT_TITLE": "Produktmal: {name}",
         "CATEGORY_TITLE": "Kategorimal: {name}",

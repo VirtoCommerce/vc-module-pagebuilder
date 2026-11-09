@@ -41,6 +41,12 @@ export function optionLabel(option: { value: unknown; label: string }, i18n: { t
 /** A value of a list condition: at least one text, none of them blank */
 const isFilledTextList = (value: unknown): value is string[] => isTextList(value) && value.length > 0 && value.every(isText);
 
+/** The category ids of an `inCategory` value: a list, or a string of ids separated by commas, read as that list */
+export function categoryIds(value: unknown): string[] {
+  if (Array.isArray(value)) return value.filter((x): x is string => typeof x === "string");
+  return typeof value === "string" ? value.split(",").map((x) => x.trim()).filter(Boolean) : [];
+}
+
 /** The conditions the storefront announced for a page type, in its order */
 export const conditionsFor = (descriptors: ConditionDescriptor[], type: PageType) => descriptors.filter((x) => x.pageTypes.includes(type));
 
@@ -69,7 +75,7 @@ export function isEmptyValue(value: unknown): boolean {
 /** What is wrong with a condition's value, as its descriptor describes it; undefined when nothing is */
 export function checkCondition(descriptor: ConditionDescriptor, value: unknown): ConditionProblem | undefined {
   const input = conditionInput(descriptor);
-  if (input.kind === "categories") return isFilledTextList(value) ? undefined : { code: "CATEGORY_IDS" };
+  if (input.kind === "categories") return isFilledTextList(typeof value === "string" ? categoryIds(value) : value) ? undefined : { code: "CATEGORY_IDS" };
   if (input.kind === "texts") return isFilledTextList(value) ? undefined : { code: "TEXT_LIST" };
   return checkField(input.field, value);
 }

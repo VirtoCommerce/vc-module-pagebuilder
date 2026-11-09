@@ -527,6 +527,15 @@ describe("useDesigner: translatable settings and the main section", () => {
     expect(designer.selectedItem.value).toMatchObject({ title: HELLO });
   });
 
+  it("never pastes a section for the header or footer only among the page's own", async () => {
+    await openDatabasePage();
+    designer.selection.value = { kind: "section", id: "hero-1" };
+    const before = designer.doc.value.content.length;
+
+    expect(designer.paste({ type: "section", content: { id: "h2", type: "site-header" } })).toBe("PAGE_BUILDER.DESIGNER.CLIPBOARD.GROUP_ONLY");
+    expect(designer.doc.value.content).toHaveLength(before);
+  });
+
   it("pastes a header section the header does not take into the page's own sections with the language's text", async () => {
     await openDatabasePage();
     designer.selection.value = { kind: "section", id: "header-1" };
@@ -615,6 +624,21 @@ describe("useDesigner: translatable settings and the main section", () => {
     expect(designer.doc.value.content.filter((x) => !x.__group)).toEqual([expect.objectContaining({ type: "product-info", variationsLayout: "b2b" })]);
   });
 
+  it("keeps the last shown main section: a hidden one left would show none", async () => {
+    themeFiles["default/templates/product.json"] = {
+      ...PRODUCT_TEMPLATE,
+      content: [...PRODUCT_TEMPLATE.content.map((x) => (x.id === "info-1" ? { ...x, hidden: true } : x)), { id: "info-2", type: "product-info" }],
+    };
+    await openTemplate();
+
+    expect(designer.isMainKept("info-2")).toBe(true);
+    expect(designer.remove({ kind: "section", id: "info-2" })).toBe(LOCKED);
+    designer.checked.value = ["info-2"];
+    expect(designer.removeChecked()).toBe(LOCKED);
+    expect(designer.remove({ kind: "section", id: "info-1" })).toBeUndefined();
+    expect(designer.mainSection.value).toEqual({ type: "product-info", state: "shown" });
+  });
+
   it("lets one of two main sections go", async () => {
     themeFiles["default/templates/product.json"] = { ...PRODUCT_TEMPLATE, content: [...PRODUCT_TEMPLATE.content, { id: "info-2", type: "product-info" }] };
     await openTemplate();
@@ -679,5 +703,18 @@ describe("api: theme files and what may not exist", () => {
     expect(look.loaded.value).toBe(false);
     expect(look.loadError.value).toBeInstanceOf(ApiError);
     expect((look.loadError.value as ApiError).status).toBe(403);
+  });
+});
+
+describe("api: a file page's preview link", () => {
+  it("names the page by the UTF-8 bytes of its id, as the server encodes it", () => {
+    const storefront = { url: "https://shop.test", previewPath: "/designer-preview" };
+    const id = (path: string, draft = false) =>
+      new URL(api.filePreviewUrl({ storeId: STORE, theme: "default", type: "pages", path }, false, storefront, draft)!).searchParams.get("pageId");
+    const server = (raw: string) => Buffer.from(raw, "utf8").toString("base64").replace(/=/g, "-");
+
+    expect(id("о-нас.page")).toBe(server(`${STORE}::pages::о-нас.page`));
+    expect(id("über-uns.page", true)).toBe(server(`${STORE}::pages::über-uns.page-draft`));
+    expect(id("/blog\\post.page")).toBe(server(`${STORE}::pages::blog/post.page`));
   });
 });

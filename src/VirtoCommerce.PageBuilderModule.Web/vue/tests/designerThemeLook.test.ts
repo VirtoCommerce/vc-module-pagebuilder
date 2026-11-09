@@ -76,6 +76,8 @@ test("a theme without a brand or a palette leaves the published ones in the prev
   // a store without white-labeling then keeps its published logo: an empty brand would hide it
   assert.deepEqual(lookDraft(look()), {});
   assert.deepEqual(lookDraft(look({ brand: { logoUrl: " ", secondaryLogoUrl: "" } })), {});
+  // the theme's own empty brand (a brand file, or logos cleared): no logos, not the published ones
+  assert.deepEqual(lookDraft(look(), true), { brand: {} });
 });
 
 // ── palette tokens ───────────────────────────────────────────────────────────

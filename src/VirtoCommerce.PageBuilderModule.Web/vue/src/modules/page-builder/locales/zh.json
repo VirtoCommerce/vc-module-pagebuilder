@@ -259,7 +259,8 @@
       "GROUPS": {
         "HEADER": "页眉",
         "TEMPLATE": "模板",
-        "FOOTER": "页脚"
+        "FOOTER": "页脚",
+        "LOCKED": "页眉和页脚属于主题：更改它们需要编辑主题的权限。"
       },
       "PAGE_SETTINGS": "页面设置",
       "BLOCKS": "内容块",
@@ -442,7 +443,8 @@
         "PASTE_HINT": "浏览器不允许页面读取剪贴板：请在此粘贴复制的内容。",
         "INVALID": "剪贴板中没有复制的区块或内容块。",
         "BLOCK_NEEDS_SECTION": "请选择要粘贴内容块的区块。",
-        "BLOCK_NOT_ALLOWED": "所选区块无法容纳此内容块。"
+        "BLOCK_NOT_ALLOWED": "所选区块无法容纳此内容块。",
+        "GROUP_ONLY": "此区块只能放在页眉或页脚中：请选择其中的某个区块以粘贴到那里。"
       },
       "SELECT_MODE": {
         "SELECT": "选择",
@@ -474,6 +476,7 @@
         "EXISTS": "已存在同名模板。",
         "CREATE_BUTTON": "创建",
         "CREATE_FAILED": "无法创建模板。",
+        "OPEN_FAILED": "无法打开模板，因此已重新打开页面。",
         "CONFIRM_SWITCH": "有未保存的更改。仍要切换吗？更改将丢失。",
         "PRODUCT_TITLE": "商品模板：{name}",
         "CATEGORY_TITLE": "分类模板：{name}",

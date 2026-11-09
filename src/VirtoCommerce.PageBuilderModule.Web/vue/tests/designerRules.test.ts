@@ -18,6 +18,7 @@ import {
 } from "../src/modules/designer/rules";
 import {
   BUILT_IN_CONDITIONS,
+  categoryIds,
   checkCondition,
   cleanWhen,
   conditionInput,
@@ -231,8 +232,7 @@ test("errors point at their JSON path", () => {
       "product[2].disabled: BOOLEAN",
       'product[2].when.property: FIELDS {"fields":"name, equals"}',
       "product[3]: NOT_OBJECT",
-      // the contract's list of ids, though the storefront also reads a comma-separated text
-      "product[4].when.inCategory: CATEGORY_IDS",
+      // "c1,c2" is the list the contract reads it as; only the product type is wrong there
       "product[4].when.productType: TEXT",
       "category: NOT_LIST",
       'page[0].when.source: OPTION {"options":"Pages, ContentFile"}',
@@ -243,9 +243,18 @@ test("errors point at their JSON path", () => {
   assert.deepEqual(validateRules([]), [{ path: "", code: "NOT_OBJECT" }]);
 });
 
-test("ids are unique within the file, across page types", () => {
-  const errors = validateRules({ product: [{ id: "x", template: "product" }], page: [{ id: "x", template: "page" }] });
-  assert.deepEqual(errors, [{ path: "page[0].id", code: "DUPLICATE_ID", params: { id: "x" } }]);
+test("an inCategory text is read as its comma-separated ids, as the contract and the storefront read it", () => {
+  assert.deepEqual(categoryIds("c1, c2,,c3 "), ["c1", "c2", "c3"]);
+  assert.deepEqual(categoryIds(["c1", 5, "c2"]), ["c1", "c2"]);
+  assert.deepEqual(categoryIds(undefined), []);
+  assert.deepEqual(validateRules({ product: [{ template: "product.x", when: { inCategory: "c1,c2" } }] }, DESCRIPTORS), []);
+  assert.equal(validateRules({ product: [{ template: "product.x", when: { inCategory: " , " } }] }, DESCRIPTORS)[0]?.code, "CATEGORY_IDS");
+});
+
+test("ids are unique within a page type's list; two lists may use the same one", () => {
+  assert.deepEqual(validateRules({ product: [{ id: "x", template: "product" }], page: [{ id: "x", template: "page" }] }), []);
+  const errors = validateRules({ product: [{ id: "x", template: "product" }, { id: "x", template: "product" }] });
+  assert.deepEqual(errors, [{ path: "product[1].id", code: "DUPLICATE_ID", params: { id: "x" } }]);
 });
 
 test("a condition the storefront didn't announce for the page type is never an error", () => {

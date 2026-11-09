@@ -259,7 +259,8 @@
       "GROUPS": {
         "HEADER": "Ylätunniste",
         "TEMPLATE": "Malli",
-        "FOOTER": "Alatunniste"
+        "FOOTER": "Alatunniste",
+        "LOCKED": "Ylä- ja alatunniste kuuluvat teemaan: niiden muuttaminen vaatii teeman muokkausoikeuden."
       },
       "PAGE_SETTINGS": "Sivun asetukset",
       "BLOCKS": "Lohkot",
@@ -442,7 +443,8 @@
         "PASTE_HINT": "Selain ei sallinut sivun lukea leikepöytää: liitä kopioitu sisältö tähän.",
         "INVALID": "Leikepöydällä ei ole kopioitua osiota tai lohkoa.",
         "BLOCK_NEEDS_SECTION": "Valitse osio, johon lohko liitetään.",
-        "BLOCK_NOT_ALLOWED": "Valittuun osioon ei voi lisätä tätä lohkoa."
+        "BLOCK_NOT_ALLOWED": "Valittuun osioon ei voi lisätä tätä lohkoa.",
+        "GROUP_ONLY": "Tämä osio kuuluu vain ylä- tai alatunnisteeseen: valitse jokin niiden osioista liittääksesi sen sinne."
       },
       "SELECT_MODE": {
         "SELECT": "Valitse",
@@ -474,6 +476,7 @@
         "EXISTS": "Tämän niminen malli on jo olemassa.",
         "CREATE_BUTTON": "Luo",
         "CREATE_FAILED": "Mallia ei voitu luoda.",
+        "OPEN_FAILED": "Mallipohjaa ei voitu avata, joten sivu on taas auki.",
         "CONFIRM_SWITCH": "Sinulla on tallentamattomia muutoksia. Vaihdetaanko silti? Ne menetetään.",
         "PRODUCT_TITLE": "Tuotemalli: {name}",
         "CATEGORY_TITLE": "Kategoriamalli: {name}",

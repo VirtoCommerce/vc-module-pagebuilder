@@ -156,6 +156,7 @@ import type { ConditionDescriptor } from "../previewMessages";
 import {
   BUILT_IN_CONDITIONS,
   CATEGORY_CONDITION,
+  categoryIds,
   checkCondition,
   cleanWhen,
   conditionInput,
@@ -224,7 +225,7 @@ const offered = computed(() =>
 );
 const unknown = computed(() => splitConditions(when.value, props.conditions, props.type).unknown);
 
-const categories = computed(() => (Array.isArray(when.value[CATEGORY_CONDITION]) ? (when.value[CATEGORY_CONDITION] as string[]) : []));
+const categories = computed(() => categoryIds(when.value[CATEGORY_CONDITION]));
 const set = (name: string, value: unknown) => (when.value = { ...when.value, [name]: value });
 const drop = (name: string) => (when.value = Object.fromEntries(Object.entries(when.value).filter(([key]) => key !== name)));
 

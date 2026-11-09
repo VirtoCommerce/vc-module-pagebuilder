@@ -546,7 +546,7 @@
             @keydown.enter="createTemplate"
           />
           <VcButton
-            :disabled="!newKey || newKeyTaken || !!designer.busy.value"
+            :disabled="!newKey || newKeyTaken || creatingNow || !!designer.busy.value"
             @click="createTemplate"
           >
             {{ $t("PAGE_BUILDER.DESIGNER.TEMPLATES.CREATE_BUTTON") }}
@@ -714,8 +714,9 @@ const modes = [
   { id: "shared", icon: "lucide-link", label: "PAGE_BUILDER.DESIGNER.MODE_SHARED" },
 ] as const;
 const mode = ref<(typeof modes)[number]["id"]>("sections");
-// a shared component can't hold another one; the theme's tab is for editors who may change it
-const shownModes = computed(() => modes.filter((m) => (m.id !== "shared" || !designer.shared.value) && (m.id !== "theme" || mayEditTheme)));
+// a shared component can't hold another one, nor the theme (its Save is the component's alone); the theme's tab is
+// for editors who may change it
+const shownModes = computed(() => modes.filter((m) => (m.id !== "shared" && m.id !== "theme") || (!designer.shared.value && (m.id !== "theme" || mayEditTheme))));
 // the store's template rules, edited while a template is open: saved with Save, put live with the theme
 const rules = useTemplateRules();
 const rulesActive = computed(() => !!designer.templateKey.value && rules.loaded.value);
@@ -917,7 +918,7 @@ const bridge = usePreviewBridge({
   // a click on a section, a block or a shared-component placement in the preview selects it; hovering lights its row
   onSelect: (event) => {
     // the header and footer of an editor who may not change them stay as they are
-    if (designer.isLocked(event.sectionId)) return;
+    if (designer.isLocked(event.sectionId)) return refuseLocked();
     const next = selectionFrom(designer.doc.value, event);
     if (JSON.stringify(next) === JSON.stringify(designer.selection.value)) return;
     selectedInPreview = true;
@@ -931,12 +932,26 @@ const bridge = usePreviewBridge({
   onEdit: ({ itemId, path, value, cultureName: language }) => {
     // a version shown is look-only: what is typed there is not the page's
     if (versionView) return;
+    if (lockedItem(itemId)) return refuseLocked();
     const target = designer.setText(itemId, path, value, language);
     if (!target || JSON.stringify(target) === JSON.stringify(designer.selection.value)) return;
     selectedInPreview = true;
     designer.selection.value = target;
   },
 });
+
+/** a section of the header or footer (or a block in one) the editor may not change */
+const lockedItem = (itemId: string) =>
+  designer.doc.value.content.some((x) => (x.id === itemId || !!x.blocks?.some((b) => b.id === itemId)) && designer.isLocked(x.id));
+let lockedSaid = false;
+/** Clicked or typed into in the preview: it shows the theme's again (once editing ends there), and the editor is told why, once */
+function refuseLocked() {
+  sendDraft();
+  sendRender();
+  if (lockedSaid) return;
+  lockedSaid = true;
+  notification.warning(t("PAGE_BUILDER.DESIGNER.GROUPS.LOCKED"));
+}
 
 // the theme goes out whole whenever it changes (debounced while typing)
 const draftJson = computed(() => JSON.stringify(draft().theme));
@@ -1090,10 +1105,13 @@ const save = () =>
     try {
       await saveChanges();
     } finally {
-      // what the theme's next publication puts live, whichever of its files were saved
-      await designer.refreshThemeStatus();
+      // what the theme's next publication puts live, whichever of its files were saved; the version it made
+      await Promise.all([designer.refreshThemeStatus(), reloadHistory()]);
     }
   });
+
+/** the open history panel lists what an action just recorded */
+const reloadHistory = () => versionHistory.value?.reload().catch(() => undefined);
 
 // the toast is rendered by the shell, outside this blade's scoped styles
 const ERROR_LIST_STYLE = { margin: "4px 0 0", paddingLeft: "18px", listStyle: "disc" };
@@ -1143,12 +1161,14 @@ async function publishTheme() {
   } catch (e) {
     notifyFailure(t("PAGE_BUILDER.DESIGNER.PUBLISH_THEME_FAILED"), e);
   }
+  await reloadHistory();
 }
 
 async function publish(live: boolean, rebase = false) {
   try {
     await designer.publish(live, rebase);
     notifyPagesChanged();
+    await reloadHistory();
   } catch (e) {
     // git: someone published another version meanwhile; publishing ours over it is the editor's call
     const conflict = e instanceof ApiError && e.status === 409 ? (JSON.parse(e.body || "{}") as { canRebase?: boolean }) : undefined;
@@ -1164,6 +1184,7 @@ async function publish(live: boolean, rebase = false) {
 async function promote() {
   try {
     await designer.promote();
+    await reloadHistory();
   } catch {
     notification.error(t("PAGE_BUILDER.DESIGNER.PROMOTE_FAILED"));
   }
@@ -1436,7 +1457,10 @@ async function restoreVersion(version: HistoryVersion) {
   if (designer.busy.value) return;
   try {
     if (version.items) await restoreSiteVersion(version, version.items);
-    else await designer.restore(version.id);
+    else {
+      await designer.restore(version.id);
+      await reloadHistory();
+    }
     notification.success(t("PAGE_BUILDER.DESIGNER.HISTORY.RESTORED"));
   } catch {
     notification.error(t("PAGE_BUILDER.DESIGNER.HISTORY.RESTORE_FAILED"));
@@ -1547,7 +1571,8 @@ function enableHistory() {
       sitePanel.value = false;
       if (maximized) maximized.value = true;
       const [{ on }] = await Promise.all([gitFlowOf(storeId, file?.theme ?? (await storeTheme(storeId))), loadSiteHistory(storeId)]);
-      if (!on || !file || file.type === "themes") return;
+      // what is open now may be another page or a template: it is left as it is
+      if (!on || !file || file.type === "themes" || designer.file.value?.path !== file.path) return;
       // unsaved edits stay on screen; their save goes to git now, and so does publishing
       if (unsaved.value) designer.gitFlow.value = true;
       else await designer.open(file);
@@ -1872,11 +1897,25 @@ async function switchTo(key: string | null) {
   historyOpen.value = false;
   endVersionPreview();
   reported.value = undefined;
-  await designer.open(key ? { storeId, theme: themeName.value, type: "themes", path: templatePath(themeName.value, key) } : home!);
-  if (key) await enterTemplate();
+  const opened = key ? await openTemplate({ storeId, theme: themeName.value, type: "themes", path: templatePath(themeName.value, key) }) : await openHome();
+  if (opened === "template") await enterTemplate();
   else rulesOpen.value = false;
   // a new page in the preview: the template's entity page, or the preview's own for a page
   reloadPreview();
+}
+
+async function openHome(): Promise<"page"> {
+  await designer.open(home!);
+  return "page";
+}
+
+/** Opens a template; one that can't be opened sends the designer back to the page it was opened with, and says so */
+async function openTemplate(source: FilePage): Promise<"template" | "page" | "failed"> {
+  await designer.open(source);
+  if (!designer.loadError.value) return "template";
+  if (!home) return "failed";
+  notification.error(t("PAGE_BUILDER.DESIGNER.TEMPLATES.OPEN_FAILED"));
+  return openHome();
 }
 
 // Create template (copy of default): a named alternate, saved as a draft from the type's default template
@@ -1884,7 +1923,18 @@ const creating = ref<{ type: PageType; name: string }>();
 const newKey = computed(() => (creating.value ? alternateKey(creating.value.type, creating.value.name) : undefined));
 const newKeyTaken = computed(() => !!newKey.value && templateKeyList.value.includes(newKey.value));
 const startCreate = (type: PageType) => (creating.value = { type, name: "" });
+/** a Create under way: Enter or the button again does nothing meanwhile */
+const creatingNow = ref(false);
 async function createTemplate() {
+  if (creatingNow.value) return;
+  creatingNow.value = true;
+  try {
+    await createAndOpenTemplate();
+  } finally {
+    creatingNow.value = false;
+  }
+}
+async function createAndOpenTemplate() {
   const key = newKey.value;
   const storeId = designer.storeId.value;
   const target = creating.value;
@@ -1910,8 +1960,8 @@ async function createTemplate() {
   // the new one opens as it is saved: nothing unsaved to ask about
   look.revert();
   if (rules.dirty.value) await rules.load(storeId, themeName.value).catch(() => undefined);
-  await designer.open(file(key));
-  await enterTemplate();
+  if ((await openTemplate(file(key))) === "template") await enterTemplate();
+  else rulesOpen.value = false;
   reloadPreview();
 }
 

@@ -345,7 +345,7 @@ import { notification, usePopup } from "@vc-shell/framework";
 import { VcButton, VcIcon, VcPopup, VcSwitch, VcTextarea } from "@vc-shell/framework/ui";
 import { productFacts, searchCategories, type CatalogContext, type NamedEntity, type ProductFacts } from "../api";
 import { rulesPath } from "../history";
-import { BUILT_IN_CONDITIONS, CATEGORY_CONDITION, conditionsFor, optionLabel } from "../ruleConditions";
+import { BUILT_IN_CONDITIONS, CATEGORY_CONDITION, categoryIds, conditionsFor, optionLabel } from "../ruleConditions";
 import { formatRules, hasOwnRules, moveItem, newRuleId, parseRules, rulesFor, rulesOf, withRules, type RuleError, type TemplateRule } from "../rules";
 import { alternateName, pageTypeOf, type PageType } from "../templates";
 import type { ConditionDescriptor, RulesPick } from "../previewMessages";
@@ -402,9 +402,7 @@ const names = reactive(new Map<string, string>());
 watch(
   list,
   async (rules) => {
-    const ids = [...new Set(rules.flatMap((x) => (Array.isArray(x.when?.[CATEGORY_CONDITION]) ? (x.when[CATEGORY_CONDITION] as unknown[]) : [])))].filter(
-      (id): id is string => typeof id === "string" && !names.has(id),
-    );
+    const ids = [...new Set(rules.flatMap((x) => categoryIds(x.when?.[CATEGORY_CONDITION])))].filter((id) => !names.has(id));
     if (!ids.length) return;
     for (const category of await searchCategories(props.catalog, undefined, ids).catch(() => [])) names.set(category.id, category.name);
   },
@@ -417,7 +415,7 @@ const SUBJECTS: Record<PageType, string> = { product: "SUBJECT_PRODUCT", categor
 const ALWAYS: Record<PageType, string> = { product: "ALWAYS_PRODUCT", category: "ALWAYS_CATEGORY", page: "ALWAYS_PAGE" };
 
 function valueText(name: string, value: unknown, descriptor?: ConditionDescriptor): string {
-  if (name === CATEGORY_CONDITION) return (Array.isArray(value) ? value : [value]).map((id) => names.get(String(id)) ?? String(id)).join(", ");
+  if (name === CATEGORY_CONDITION) return categoryIds(value).map((id) => names.get(id) ?? id).join(", ");
   const option = descriptor?.value.options?.find((x) => x.value === value);
   if (option) return optionLabel(option, { t, te });
   if (Array.isArray(value)) return value.map(String).join(", ");
@@ -537,7 +535,7 @@ const allSuggestions = computed<{ label: string; when: Record<string, unknown> }
 
 /** a rule for the open template, first: it is about this very product, so nothing broader before it may win */
 function useFor(when: Record<string, unknown>) {
-  for (const id of Array.isArray(when[CATEGORY_CONDITION]) ? when[CATEGORY_CONDITION] : []) {
+  for (const id of categoryIds(when[CATEGORY_CONDITION])) {
     const category = facts.value?.categories.find((x) => x.id === id) ?? (props.previewed?.id === id ? props.previewed : undefined);
     if (category) names.set(category.id, category.name);
   }

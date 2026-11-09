@@ -259,7 +259,8 @@
       "GROUPS": {
         "HEADER": "Sidhuvud",
         "TEMPLATE": "Mall",
-        "FOOTER": "Sidfot"
+        "FOOTER": "Sidfot",
+        "LOCKED": "Sidhuvud och sidfot hör till temat: för att ändra dem krävs behörighet att redigera temat."
       },
       "PAGE_SETTINGS": "Sidinställningar",
       "BLOCKS": "Block",
@@ -442,7 +443,8 @@
         "PASTE_HINT": "Webbläsaren lät inte sidan läsa urklipp: klistra in det kopierade innehållet här.",
         "INVALID": "Urklipp innehåller ingen kopierad sektion eller något kopierat block.",
         "BLOCK_NEEDS_SECTION": "Välj en sektion att klistra in blocket i.",
-        "BLOCK_NOT_ALLOWED": "Den valda sektionen kan inte innehålla det här blocket."
+        "BLOCK_NOT_ALLOWED": "Den valda sektionen kan inte innehålla det här blocket.",
+        "GROUP_ONLY": "Den här sektionen hör bara hemma i sidhuvudet eller sidfoten: markera en av deras sektioner för att klistra in den där."
       },
       "SELECT_MODE": {
         "SELECT": "Välj",
@@ -474,6 +476,7 @@
         "EXISTS": "Det finns redan en mall med det här namnet.",
         "CREATE_BUTTON": "Skapa",
         "CREATE_FAILED": "Mallen kunde inte skapas.",
+        "OPEN_FAILED": "Mallen kunde inte öppnas, så sidan är öppen igen.",
         "CONFIRM_SWITCH": "Du har osparade ändringar. Byta ändå? De går förlorade.",
         "PRODUCT_TITLE": "Produktmall: {name}",
         "CATEGORY_TITLE": "Kategorimall: {name}",

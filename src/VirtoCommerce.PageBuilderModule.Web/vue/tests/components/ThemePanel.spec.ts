@@ -67,20 +67,23 @@ describe("ThemePanel: palette contrast", () => {
     expect(failingTexts(wrapper)).toEqual(["Neutral 50 on Primary 500"]);
   });
 
-  it("shows what the generator found right away, without a check of its own; an edit after it is checked", async () => {
+  it("shows what the generator found right away, then checks the generated palettes for the pairs it can't; an edit after it is checked", async () => {
     const { wrapper, look } = await mountPanel();
 
     await wrapper.findAll("button").find((x) => x.text() === "Generate")!.trigger("click");
-    await settle();
-
+    await flushPromises();
     expect(platform.to("/api/pagebuilder/theme/palette", "POST")).toHaveLength(1);
     expect(look.look.value.light.color_primary_500).toBe("#a25c27");
     expect(checks()).toHaveLength(1);
     expect(failingTexts(wrapper)).toEqual(["Vc text solid primary on Primary 500"]);
 
-    look.setColor("light", "color_neutral_50", "#ffffff");
+    // the generator's answer counts no pairs left unchecked: the check of what it generated does
     await settle();
     expect(checks()).toHaveLength(2);
     expect(failingTexts(wrapper)).toEqual(["Neutral 50 on Primary 500"]);
+
+    look.setColor("light", "color_neutral_50", "#ffffff");
+    await settle();
+    expect(checks()).toHaveLength(3);
   });
 });

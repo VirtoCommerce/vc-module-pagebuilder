@@ -259,7 +259,8 @@
       "GROUPS": {
         "HEADER": "Kopfzeile",
         "TEMPLATE": "Vorlage",
-        "FOOTER": "Fußzeile"
+        "FOOTER": "Fußzeile",
+        "LOCKED": "Kopf- und Fußzeile gehören zum Theme: Um sie zu ändern, ist die Berechtigung zum Bearbeiten des Themes nötig."
       },
       "PAGE_SETTINGS": "Seiteneinstellungen",
       "BLOCKS": "Blöcke",
@@ -442,7 +443,8 @@
         "PASTE_HINT": "Der Browser hat der Seite das Lesen der Zwischenablage nicht erlaubt: Fügen Sie den kopierten Inhalt hier ein.",
         "INVALID": "Die Zwischenablage enthält keinen kopierten Abschnitt oder Block.",
         "BLOCK_NEEDS_SECTION": "Wählen Sie einen Abschnitt aus, in den der Block eingefügt werden soll.",
-        "BLOCK_NOT_ALLOWED": "Der ausgewählte Abschnitt kann diesen Block nicht aufnehmen."
+        "BLOCK_NOT_ALLOWED": "Der ausgewählte Abschnitt kann diesen Block nicht aufnehmen.",
+        "GROUP_ONLY": "Dieser Abschnitt gehört nur in Kopf- oder Fußzeile: Wählen Sie dort einen Abschnitt, um ihn einzufügen."
       },
       "SELECT_MODE": {
         "SELECT": "Auswählen",
@@ -474,6 +476,7 @@
         "EXISTS": "Es gibt bereits eine Vorlage mit diesem Namen.",
         "CREATE_BUTTON": "Erstellen",
         "CREATE_FAILED": "Die Vorlage konnte nicht erstellt werden.",
+        "OPEN_FAILED": "Die Vorlage konnte nicht geöffnet werden; die Seite ist wieder geöffnet.",
         "CONFIRM_SWITCH": "Sie haben ungespeicherte Änderungen. Trotzdem wechseln? Sie gehen verloren.",
         "PRODUCT_TITLE": "Produktvorlage: {name}",
         "CATEGORY_TITLE": "Kategorievorlage: {name}",

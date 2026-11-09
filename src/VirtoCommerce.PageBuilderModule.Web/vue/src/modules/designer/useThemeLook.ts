@@ -4,7 +4,7 @@ import type { DesignerSaveFile } from "./designerSave";
 import { THEME_FILES, type ThemePart } from "./history";
 import { clone, isRecord } from "./json";
 import type { ColorScheme } from "./previewMessages";
-import { LOOK_FILES, lookDraft, lookFiles, readBrand, readColors, settingsDataPath, type BrandField, type ThemeLook } from "./themeLook";
+import { LOOK_FILES, brandFile, lookDraft, lookFiles, readBrand, readColors, settingsDataPath, type BrandField, type ThemeLook } from "./themeLook";
 import { undoStep, withGenerated, withStep, type GeneratedPalettes, type PaletteStep } from "./paletteContrast";
 
 const emptyLook = (): ThemeLook => ({ brand: {}, light: {}, dark: {} });
@@ -24,7 +24,11 @@ export function useThemeLook() {
   // typing a color edits one token many times: one step to undo
   let lastEdited: string | undefined;
   const dirty = computed(() => loaded.value && !!at && lookFiles(at.theme, look.value, saved.value).length > 0);
-  const draft = computed(() => (loaded.value ? lookDraft(look.value) : undefined));
+  /** the theme has a brand file (read or saved): an empty brand there is no logos, not the published ones */
+  const hasBrandFile = ref(false);
+  const draft = computed(() =>
+    loaded.value ? lookDraft(look.value, hasBrandFile.value || JSON.stringify(brandFile(look.value.brand)) !== JSON.stringify(brandFile(saved.value.brand))) : undefined,
+  );
 
   /** The brand file and the palettes as last saved; a theme without a brand file starts from the logos of its settings file */
   async function load(storeId: string, theme: string) {
@@ -35,7 +39,8 @@ export function useThemeLook() {
       const paths = [LOOK_FILES.brand, LOOK_FILES.light, LOOK_FILES.dark].map((part) => THEME_FILES[part](theme));
       const files = await Promise.all(paths.map((path) => api.loadThemeFile(storeId, path)));
       const [brand, light, dark] = files.map((x) => x.content);
-      const settingsData = isRecord(brand) ? undefined : (await api.loadThemeFile(storeId, settingsDataPath(theme))).content;
+      hasBrandFile.value = isRecord(brand);
+      const settingsData = hasBrandFile.value ? undefined : (await api.loadThemeFile(storeId, settingsDataPath(theme))).content;
       eTags = Object.fromEntries(paths.map((path, i) => [path, files[i].eTag]));
       saved.value = { brand: readBrand(brand, settingsData), light: readColors(light), dark: readColors(dark) };
       look.value = clone(saved.value);
@@ -94,6 +99,7 @@ export function useThemeLook() {
       // what was sent, part by part: an edit made while it was on its way stays unsaved
       saved: (eTag?: string) => {
         saved.value = { ...saved.value, [part]: sent[part] };
+        if (part === "brand") hasBrandFile.value = true;
         if (eTag) eTags[file.path] = eTag;
       },
     }));

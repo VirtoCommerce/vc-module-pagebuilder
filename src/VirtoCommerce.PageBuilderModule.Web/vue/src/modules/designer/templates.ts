@@ -69,11 +69,17 @@ export function mainSectionState(content: Item[], type: PageType | undefined): "
   return main.some((x) => !x.hidden) ? "shown" : "hidden";
 }
 
-/** The main section a removal of these sections must leave in the template, if it would take the last one */
+/**
+ * The main section a removal of these sections must leave in the template, if it would take the last one, or the last
+ * shown one (a hidden one left shows nothing)
+ */
 export function keptMainSection(content: Item[], type: PageType | undefined, ids: string[]): string | undefined {
   if (!type) return undefined;
   const main = mainOf(content, type);
-  return main.length && main.every((x) => ids.includes(x.id)) ? main[0].id : undefined;
+  const left = main.filter((x) => !ids.includes(x.id));
+  const shown = main.filter((x) => !x.hidden);
+  if (left.some((x) => !x.hidden) || (!shown.length && left.length)) return undefined;
+  return main.length ? (shown.find((x) => ids.includes(x.id)) ?? main[0]).id : undefined;
 }
 
 /** Whether hiding the section hides the template's last shown main section */

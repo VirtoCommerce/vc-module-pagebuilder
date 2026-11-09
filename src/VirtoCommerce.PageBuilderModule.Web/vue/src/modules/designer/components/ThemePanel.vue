@@ -265,7 +265,7 @@ watch(scheme, () => (openFamilies.value = new Set()));
 const contrast = ref<PaletteCheck>();
 const contrastFailed = ref(false);
 let checkRun = 0;
-// what `contrast` is the check of: palettes checked already (the generator's) are not checked again
+// what `contrast` is the check of: palettes checked already are not checked again
 const checkKey = () => JSON.stringify([props.storeId, props.paletteTokens, props.look.look.value.light, props.look.look.value.dark]);
 let checkedKey: string | undefined;
 async function checkContrast() {
@@ -314,11 +314,11 @@ async function generate() {
   try {
     const generated = await api.generatePalette(props.storeId, props.paletteTokens, primary, secondary);
     props.look.applyGenerated(generated);
-    // the generator checked what it generated: no check of its own follows
+    // the generator's own failures show at once; the check that follows adds the pairs it couldn't check (tokens the
+    // generator leaves out)
     checkRun++;
     contrast.value = generated.check;
     contrastFailed.value = false;
-    checkedKey = checkKey();
   } catch {
     generateFailed.value = true;
   } finally {

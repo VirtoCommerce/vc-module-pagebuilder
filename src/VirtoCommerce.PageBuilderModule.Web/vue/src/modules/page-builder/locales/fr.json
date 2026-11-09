@@ -259,7 +259,8 @@
       "GROUPS": {
         "HEADER": "En-tête",
         "TEMPLATE": "Modèle",
-        "FOOTER": "Pied de page"
+        "FOOTER": "Pied de page",
+        "LOCKED": "L'en-tête et le pied de page font partie du thème : les modifier nécessite l'autorisation de modifier le thème."
       },
       "PAGE_SETTINGS": "Paramètres de la page",
       "BLOCKS": "Blocs",
@@ -442,7 +443,8 @@
         "PASTE_HINT": "Le navigateur n'a pas autorisé la page à lire le presse-papiers : collez ici le contenu copié.",
         "INVALID": "Le presse-papiers ne contient ni section ni bloc copiés.",
         "BLOCK_NEEDS_SECTION": "Sélectionnez une section dans laquelle coller le bloc.",
-        "BLOCK_NOT_ALLOWED": "La section sélectionnée ne peut pas contenir ce bloc."
+        "BLOCK_NOT_ALLOWED": "La section sélectionnée ne peut pas contenir ce bloc.",
+        "GROUP_ONLY": "Cette section va uniquement dans l'en-tête ou le pied de page : sélectionnez l'une de leurs sections pour l'y coller."
       },
       "SELECT_MODE": {
         "SELECT": "Sélectionner",
@@ -474,6 +476,7 @@
         "EXISTS": "Un modèle porte déjà ce nom.",
         "CREATE_BUTTON": "Créer",
         "CREATE_FAILED": "Le modèle n'a pas pu être créé.",
+        "OPEN_FAILED": "Le modèle n'a pas pu être ouvert : la page est de nouveau ouverte.",
         "CONFIRM_SWITCH": "Vous avez des modifications non enregistrées. Changer quand même ? Elles seront perdues.",
         "PRODUCT_TITLE": "Modèle de produit : {name}",
         "CATEGORY_TITLE": "Modèle de catégorie : {name}",
