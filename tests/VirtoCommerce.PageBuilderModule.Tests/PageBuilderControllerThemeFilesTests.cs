@@ -267,6 +267,22 @@ public class PageBuilderControllerThemeFilesTests
     }
 
     [Fact]
+    public async Task SaveTemplates_ThemeFileNamedFromTheRoot_RecordsItAsTheHistoryNamesIt()
+    {
+        // the admin may name a theme file with a leading "/"
+        var history = new RecordingContentHistory();
+        var files = new PageBuilderController.SaveFilesModel
+        {
+            Files = JsonConvert.SerializeObject(new object[] { new { path = $"/{Path}", type = "themes", content = Group("site-header") } }),
+        };
+
+        await Builder(history: history).SaveTemplates("s1", "default", files, draft: true);
+
+        var (_, record) = Assert.Single(history.Records);
+        Assert.Equal([$"theme:{Path}"], record.Entries.Select(x => x.Item.ToString()));
+    }
+
+    [Fact]
     public async Task DiscardDraft_ThemeFile_RecordsThePublishedFile()
     {
         var history = new RecordingContentHistory();

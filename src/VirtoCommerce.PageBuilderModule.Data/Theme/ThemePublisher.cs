@@ -342,7 +342,7 @@ public class ThemePublisher(
         var record = ContentHistoryRecord.Create(ModuleConstants.GitHistory.PublishedSummary, saveId: null, user);
         foreach (var file in files)
         {
-            record.AddEntry(new HistoryItem(HistoryItemType.Theme, file.Path), file.Content);
+            record.AddEntry(HistoryItem.ForThemeFile(file.Path), file.Content);
         }
 
         await contentHistory.RecordAsync(storeId, record, cancellationToken);

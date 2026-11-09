@@ -1516,7 +1516,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             if (draft.Status == DraftDiscardStatus.Discarded)
             {
                 var record = ContentHistoryRecord.Create(ModuleConstants.GitHistory.DiscardedSummary, Request.GetSaveId(), User);
-                record.AddEntry(new HistoryItem(HistoryItemType.Theme, path), draft.PublishedContent);
+                record.AddEntry(HistoryItem.ForThemeFile(path), draft.PublishedContent);
                 await contentHistory.RecordAsync(storeId, record, HttpContext.RequestAborted);
             }
 
@@ -2200,7 +2200,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
                 var record = ContentHistoryRecord.Create(draft ? ModuleConstants.GitHistory.SavedSummary : ModuleConstants.GitHistory.PublishedSummary, Request.GetSaveId(), User);
                 foreach (var (path, content) in themeFiles)
                 {
-                    record.AddEntry(new HistoryItem(HistoryItemType.Theme, path), content);
+                    record.AddEntry(HistoryItem.ForThemeFile(path), content);
                 }
 
                 await contentHistory.RecordAsync(storeId, record, cancellationToken);

@@ -6,6 +6,9 @@ public sealed record HistoryItem(HistoryItemType Type, string Key)
     public const string PagePrefix = "page:";
     public const string ThemePrefix = "theme:";
 
+    /// <summary>A theme file by its theme folder and path, without the leading "/" the admin may send: the history names it once.</summary>
+    public static HistoryItem ForThemeFile(string path) => new(HistoryItemType.Theme, path?.TrimStart('/'));
+
     public static bool TryParse(string value, out HistoryItem item)
     {
         item = null;

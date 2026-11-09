@@ -236,6 +236,7 @@ public class HistoryControllerTests
     [InlineData("theme:default/catalogs/abc12345.json")]
     [InlineData("theme:default/catalogs/current.json")]
     [InlineData("theme:default/config/settings_schema.json")]
+    [InlineData("theme:default/layout/theme.liquid")]
     public async Task Restore_ThemeFileTheBuilderDoesNotSave_ReturnsBadRequestAndWritesNothing(string item)
     {
         _history.Versions[(VersionId, item)] = "{}";

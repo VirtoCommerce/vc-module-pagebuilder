@@ -18,5 +18,5 @@ public class ContentHistoryRestoreRequestValidator : AbstractValidator<ContentHi
     }
 
     private static bool IsSavedItem(string value) =>
-        HistoryItem.TryParse(value, out var item) && (item.Type == HistoryItemType.Page || PageBuilderContentPaths.CanSaveThemeFile(item.Key));
+        HistoryItem.TryParse(value, out var item) && (item.Type == HistoryItemType.Page || PageBuilderContentPaths.IsWritableThemeFile(item.Key));
 }

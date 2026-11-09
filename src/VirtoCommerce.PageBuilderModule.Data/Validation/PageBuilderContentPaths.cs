@@ -80,6 +80,9 @@ public static class PageBuilderContentPaths
 
     public static bool IsInsideAThemeFolder(string path) => path.TrimStart('/').Contains('/');
 
+    /// <summary>A theme file the builder writes: the rules of a theme file in a save, as one check.</summary>
+    public static bool IsWritableThemeFile(string path) => IsJsonFile(path) && IsInsideAThemeFolder(path) && CanSaveThemeFile(path);
+
     /// <summary>Not a snapshot or a catalog, and in config/ only the builder's own files; the file rules check the theme folder.</summary>
     public static bool CanSaveThemeFile(string path)
     {

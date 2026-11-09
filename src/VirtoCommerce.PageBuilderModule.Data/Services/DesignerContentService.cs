@@ -69,7 +69,7 @@ public class DesignerContentService(
 
         foreach (var file in command.ThemeFiles)
         {
-            record.AddEntry(new HistoryItem(HistoryItemType.Theme, file.Path), file.Content);
+            record.AddEntry(HistoryItem.ForThemeFile(file.Path), file.Content);
         }
 
         await contentHistory.RecordAsync(command.StoreId, record, cancellationToken);
@@ -96,7 +96,7 @@ public class DesignerContentService(
 
         foreach (var draft in themeDrafts.Where(x => x.Status == DraftDiscardStatus.Discarded))
         {
-            record.AddEntry(new HistoryItem(HistoryItemType.Theme, draft.Path), draft.PublishedContent);
+            record.AddEntry(HistoryItem.ForThemeFile(draft.Path), draft.PublishedContent);
         }
 
         if (record.Entries.Count > 0)
