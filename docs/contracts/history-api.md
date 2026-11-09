@@ -125,7 +125,7 @@ A designer Save is one request and one version: the page and the theme files it 
 interface DesignerSave {
   /** a database page by its group and the version it was read at, or a page kept as a file */
   page?: { groupId: string; eTag: string; content: string } | { path: string; type: "pages" | "blogs"; content: string };
-  /** a template is a theme file, as are the rules, the header and footer groups, the theme settings, the brand and the palette */
+  /** a template is a theme file, as are the rules, the header and footer groups, the brand and the palettes */
   themeFiles?: { path: string; content: string }[];
 }
 ```

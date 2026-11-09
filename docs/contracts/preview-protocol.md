@@ -7,9 +7,10 @@ unsaved theme; one render message; inline text editing; and the light and dark s
 The same storefront serves both designers: a store with the New Page Builder setting off previews in the Angular
 designer, which speaks version 1. The storefront keeps every version 1 message (`page`, `changed`, `update`, `remove`,
 `add`, `reload`, `swap`, `preview`, `navigate`, `select`, `hover`, `settings`, `auth`) and answers both designers with
-the same `loaded`. A storefront whose `loaded` has no `protocol` (an older vc-frontend, or a fork that did not update)
-does not work with the Vue designer: the designer says so and does not render, and the store stays on the Angular
-designer.
+the same `loaded`. The Vue designer never sends `settings`: it does not edit the theme settings
+([theme snapshot](theme-snapshot.md#theme-settings)). A storefront whose `loaded` has no `protocol` (an older
+vc-frontend, or a fork that did not update) does not work with the Vue designer: the designer says so and does not
+render, and the store stays on the Angular designer.
 
 ## Frame and channel
 
@@ -88,6 +89,7 @@ interface Catalog {
   shared: Record<string, ItemSchema>;
   objects: Record<string, ItemSchema>;
   templates: Record<string, TemplateEntry>;
+  /** the theme settings' schema, which only the Angular designer reads */
   settingsSchema?: { settings_schema?: { name: string; icon?: string; settings: Field[] }[] };
   /** the token names a palette has, from the storefront's built-in presets */
   paletteTokens: { light: string[]; dark: string[] };
@@ -97,7 +99,8 @@ interface Catalog {
 `Field`, `ItemSchema` and `TemplateEntry` are the schema types the storefront ships today (`schemas/**/*.json`), with
 the additions in [Schemas](#schemas). The Angular designer reads the schema keys of `loaded.data` and ignores the
 others. The Vue designer offers only the conditions in `conditions`, builds their forms from `value`, and never
-evaluates rules itself: the storefront reports what it chose in `resolved`.
+evaluates rules itself: the storefront reports what it chose in `resolved`. A descriptor's `value` is a schema field
+like any other: an `object` value (`property`, `setting`: `{ name, equals }`) describes its fields under `element`.
 
 ## Designer to preview
 
@@ -197,10 +200,12 @@ interface Resolved {
     /** the route the choice was made for */
     url: string;
     pageType: "product" | "category" | "page";
-    /** the template key the storefront rendered */
+    /** the template key the storefront rendered: while a template is open, that template */
     template: string;
-    /** the rule that chose it; null for the page's own template, the page type's template or a built-in one */
+    /** the rule that chose it; null for an open template, the page's own, the page type's or a built-in one */
     ruleId: string | null;
+    /** what the store's rules pick for the page at `url`, the open template aside */
+    rules: { template: string; ruleId: string | null };
     /** the theme fields white-labeling set for this visitor, which the theme does not change */
     overriddenByWhiteLabeling: WhiteLabelingField[];
   };
@@ -211,14 +216,21 @@ type WhiteLabelingField =
   | "brand.secondaryLogoUrl"
   | "brand.faviconUrl"
   | "palette"
-  /** the white-labeling main menu replaced the header's menus */
+  /** the white-labeling main menu replaced the header's category menu (`catalog_menu` of `site-header`) */
   | "menus.header"
-  /** the white-labeling footer links replaced the footer's menus */
+  /** the white-labeling footer links replaced the footer's columns (the `footer-menu` blocks of `site-footer`) */
   | "menus.footer";
 ```
 
-The designer marks the fields in `overriddenByWhiteLabeling`, so the editor sees why a change to them does not show.
-The Angular designer drops `resolved`.
+`rules` is the template the store's rules, as in the current draft, else the snapshot, pick for the page at `url`
+(steps 1–4 of [Template rules](theme-snapshot.md#template-rules)), whichever template is open; its `ruleId` is null
+when no rule chose it. Every `resolved` carries it; with no template open it equals `template` and `ruleId`. The
+designer's "Site uses … (rule N)" chip, a content page's Template hint and the rules panel's Test read `rules`.
+
+The designer marks the fields in `overriddenByWhiteLabeling`, so the editor sees why a change to them does not show:
+the brand fields and the palette on the Theme tab, `menus.header` on the `catalog_menu` setting of `site-header`,
+`menus.footer` on the `menu` setting of the footer's `footer-menu` blocks. White-labeling replaces no other menu: the
+header's icons menu is the theme's. The Angular designer drops `resolved`.
 
 ## Inline editing
 
@@ -251,6 +263,8 @@ Schemas are data, never code.
   requested. Expression keys only the Angular designer reads (`selector`, `optionsSelector`, `previewRule`) are
   ignored by the Vue designer.
 - A field may be `"translatable": true` ([theme snapshot](theme-snapshot.md#translatable-fields)).
+- An `object` field and a row of a `list` field hold the fields under `element`; a `list` field without `element` is a
+  list of strings.
 - Field types added for the theme:
   - `menu`: the name of a store link list; the designer lists the store's menus;
   - `color-token`: a palette token; the designer lists `paletteTokens`.

@@ -20,6 +20,7 @@ store's `DefaultThemeName` property, `default` when it is empty. Paths below are
 | `sections/header-group.json`, `sections/footer-group.json` | the header and footer groups |
 | `config/brand.json` | the logos and the favicon |
 | `config/palette.json`, `config/palette.dark.json` | the light and the dark palette |
+| `config/settings_data.json` | the theme settings of the Angular designer; see [Theme settings](#theme-settings) |
 | `snapshots/{publication}/{cultureName}.json` | a published snapshot in one language, never changed after it is written |
 | `snapshots/{publication}/publication.json` | the publication's record, `{ "defaultLanguage": "en-US" }`: the store default language it was written with |
 | `snapshots/current.json` | the pointer to the current publication: `{ "publication": 12 }` |
@@ -31,8 +32,16 @@ The designer and the agents write drafts only:
 on a store with New Page Builder on, the builder's save refuses a live write of a theme file (`draft=false`) with 400.
 The designer saves the page and the theme files it changed in one request, all or nothing
 ([Save](history-api.md#save)).
-When `config/brand.json` does not exist yet, the designer starts the brand from `config/settings_data.json`:
-`logo_image`, `logo_inverted_image` and `favicon_image`.
+When `config/brand.json` does not exist yet, the designer and a publication take the brand from the current settings
+of `config/settings_data.json`: `logo_image`, `logo_inverted_image` and `favicon_image`.
+
+### Theme settings
+
+The storefront built for the New Page Builder never reads the store theme's `config/settings_data.json`: it reads its
+bundled `config/settings_data.json` only, and takes the brand and the palette from `config/brand.json` and
+`config/palette*.json` through the snapshot. The Vue designer therefore does not edit `config/settings_data.json`: it
+neither shows, saves, discards nor restores it. The Angular designer and `api/pagebuilder/save` keep editing it for
+stores on the old designer, and a publication reads it only for the brand of a theme without `config/brand.json`.
 
 ## Publishing
 
@@ -65,8 +74,8 @@ page does not publish the theme.
 
 `index.html` sends the request with an inline script before the application JavaScript loads, so the snapshot is
 usually there before the first render. The script is in `index.html` only when the storefront is built with the Page
-Builder flag of `settings_data.json`; it is marked `data-cfasync="false"` so that Cloudflare Rocket Loader does not
-defer it.
+Builder flag of its bundled `config/settings_data.json`; it is marked `data-cfasync="false"` so that Cloudflare Rocket
+Loader does not defer it.
 
 ```js
 fetch("/graphql", {
@@ -229,10 +238,14 @@ A template key is the page type, optionally followed by a dot and a name: `produ
   (nothing). A page may set its own `settings.layout`, which wins. Product, category, cart, checkout and account
   pages keep the layout of their route.
 - A product template states how variations load: `variationsLayout` is `b2b` or `b2c` on its `product-info` section.
+  The storefront's `product-info` schema declares its default, the value of the storefront's built-in product
+  template, so a product template the designer starts states it.
 - Every template holds its main section: `product-info`, `category-listing` or `page-content`. The designer does not
   let it be removed or hidden; a storefront that gets a template without it renders the main section after the other
   sections itself. The designer does not add a missing one on its own: it says so and offers to add it (or to show a
   hidden one).
+- A main section the designer adds, to a template it starts or one that misses it, gets the defaults its schema
+  declares, as any section added.
 
 ### Template rules
 
@@ -240,15 +253,15 @@ A template key is the page type, optionally followed by a dot and a name: `produ
 interface TemplateRules {
   /** the rules format */
   version: 2;
-  /** the condition names the rules use: the designer and the agents warn when a storefront does not know one */
-  conditions: string[];
+  /** the condition names the rules use, sorted; see below */
+  conditions?: string[];
   product?: TemplateRule[];
   category?: TemplateRule[];
   page?: TemplateRule[];
 }
 
 interface TemplateRule {
-  /** stable: kept when the rule changes or moves */
+  /** unique within the page type's list; stable: kept when the rule changes or moves */
   id: string;
   /** a template key of the same page type */
   template: string;
@@ -257,6 +270,17 @@ interface TemplateRule {
   disabled?: boolean;
 }
 ```
+
+Writers (the designer, the agents, a publication) always write `conditions`. Readers never depend on it: the
+designer and the agents warn when a storefront does not know a condition the rules use, which they read from the rules
+themselves, so a file without `conditions` is valid.
+
+Rule ids are unique within a page type's list; writers never write two alike. A reader gives each rule it reads (one
+whose `template` is a string and whose `when` is an object or absent) its id this way: a rule whose `id` is not a
+string, is empty or is the id of an earlier rule of the list gets `{pageType}-{index}`, `index` being its position
+among the rules read, from 0; when that id is taken too, `{pageType}-{index}-{n}` with the first `n` from 2 that is
+free. The server's snapshot builder and the storefront read a list the same way, so `resolved.ruleId`
+([preview protocol](preview-protocol.md#preview-to-designer)) names the same rule on both sides.
 
 The storefront picks a page's template synchronously, from the snapshot in memory:
 
@@ -285,8 +309,8 @@ default rules are:
 }
 ```
 
-A rules file of `version` 1 has no ids and no `conditions`; the storefront reads it with `"{pageType}-{index}"` as the
-ids, and the designer writes it as `version` 2 on its next save.
+A rules file of `version` 1 has no ids and no `conditions`; it is read the same way, so its rules get
+`"{pageType}-{index}"` as their ids, and the designer writes it as `version` 2 on its next save.
 
 ### Conditions
 
@@ -295,13 +319,16 @@ it in the preview handshake ([preview protocol](preview-protocol.md#handshake)).
 
 | Name | Page types | Value | Holds when |
 |---|---|---|---|
-| `inCategory` | product, category | category ids, `string[]` | one of the ids is the category itself or a segment of one of the subject's outlines |
+| `inCategory` | product, category | category ids, `string[]`; a string of ids separated by commas is read as that list | one of the ids is the category itself or a segment of one of the subject's outlines |
 | `productType` | product | `string` | the product type equals it |
 | `property` | product | `{ name, equals }` | a property with that name has the value `equals`; for a multi-value property, one of its values |
 | `path` | page | `string`, `*` matches any characters | the page's permalink matches; case and the leading and trailing `/` are ignored |
 | `language` | page | `string` | the page language equals it, or its language part does |
 | `source` | page | `string` | the page's slug `objectType` equals it (`Pages`, `ContentFile`) |
 | `setting` | page | `{ name, equals }` | the page's setting with that name has the value `equals` |
+
+The descriptor of `inCategory` declares its value as a list of strings: a `list` field without `element`
+([Schemas](preview-protocol.md#schemas)).
 
 Values are compared exactly, case and spaces included, except for `path`: a product whose `VirtoFrontend_UI_Layout`
 is `b2c` or `B2C ` does not match the default rule, as in production today.
@@ -321,11 +348,15 @@ same in every language, or a dictionary from language to text:
 { "text": { "en-US": "Free shipping", "de-DE": "Kostenloser Versand" } }
 ```
 
-A dictionary is an object whose keys are all language names with a subtag (`en-US`) and whose values are all texts.
+The keys of a dictionary are culture names as the store's languages list them (`en-US`, `sr-Latn-RS`). A reader takes
+an object for a dictionary when its keys are all culture names of BCP-47 shape, `^[a-z]{2,3}(-[a-z0-9]{2,8})*$`
+ignoring case, one of them with a subtag, and its values are all texts: a row such as `{ "sku": "X1" }` stays a row.
 The designer keeps a plain string until a language other than the store default gets a text of its own; an emptied
 text removes that language's entry, and a dictionary left with the default language's text alone is a string again.
 The publication resolves every dictionary: in the snapshot of a language it is a string, the text of that language,
-else the text of the store default language, else the first text of the dictionary. A snapshot never holds one.
+else of its language part (`de` for `de-AT`), else of a culture of the same language (`de-DE`), else of the store
+default language, else the first text of the dictionary; culture names are compared ignoring case. A snapshot never
+holds one.
 
 ### Brand
 
@@ -340,8 +371,8 @@ interface Brand {
 ```
 
 White-labeling wins over the theme, field by field: the organization's white-labeling, then the store's, then the
-theme, then the storefront's `settings_data.json`. The field names are the white-labeling ones, so the storefront
-takes a theme field only when white-labeling left it empty.
+theme, then the storefront's bundled `config/settings_data.json`. The field names are the white-labeling ones, so the
+storefront takes a theme field only when white-labeling left it empty.
 
 ### Palette
 
