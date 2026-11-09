@@ -109,7 +109,8 @@ public class GitHubSiteHistory(
     {
         ArgumentNullException.ThrowIfNull(items);
 
-        var positions = ReadCursor(cursor);
+        var continuation = ReadCursor(cursor);
+        var positions = continuation.Positions;
         var result = AbstractTypeFactory<ContentVersionPage>.TryCreateInstance();
         result.Status = await GetStatusAsync(storeId, cancellationToken);
         if (result.Status != ContentHistoryStatus.Enabled)
@@ -132,16 +133,17 @@ public class GitHubSiteHistory(
         take = Math.Clamp(take, 1, MaxPageSize);
         var repository = await gitContentPolicy.GetRepositoryAsync(storeId, cancellationToken);
         var connection = await gitHubConnectionService.GetConnectionAsync(cancellationToken);
-        var answer = await QueryHistoriesAsync(repository, connection.BaseBranch, sources, take, cancellationToken);
+        var answer = await QueryHistoriesAsync(repository, connection.BaseBranch, continuation.Head, sources, take, cancellationToken);
         if (answer?.SelectToken("data.repository") is not JObject)
         {
             result.Status = ContentHistoryStatus.SetupRequired;
             return result;
         }
 
+        var head = answer.SelectToken("data.repository.ref.target") ?? answer.SelectToken("data.repository.object");
         for (var i = 0; i < sources.Count; i++)
         {
-            var history = answer.SelectToken($"data.repository.ref.target.h{i}");
+            var history = head?[$"h{i}"];
             var source = sources[i];
             source.Nodes = (history?["nodes"] as JArray ?? []).Skip(source.Position.Skip).ToList();
             source.HasMore = history?.SelectToken("pageInfo.hasNextPage")?.Value<bool>() == true;
@@ -150,7 +152,8 @@ public class GitHubSiteHistory(
         }
 
         result.Versions = MergeVersions(sources, take);
-        result.Cursor = WriteCursor(positions, sources);
+        // later pages read the commit this page read, so a save made meanwhile does not shift them
+        result.Cursor = WriteCursor(continuation.Head ?? head?["oid"]?.Value<string>(), positions, sources);
 
         return result;
     }
@@ -269,8 +272,8 @@ public class GitHubSiteHistory(
         return await themeStorageFactory.Open(storeId, PageBuilderContentPaths.GetThemeName(item.Key)).ReadAsync(PageBuilderContentPaths.GetPathInTheme(item.Key));
     }
 
-    /// <summary>Reads the histories of the files in one request.</summary>
-    protected virtual Task<JObject> QueryHistoriesAsync(string repository, string branch, IList<HistorySource> sources, int take,
+    /// <summary>Reads the histories of the files in one request, from the head of the branch or from the commit a first page read.</summary>
+    protected virtual Task<JObject> QueryHistoriesAsync(string repository, string branch, string head, IList<HistorySource> sources, int take,
         CancellationToken cancellationToken)
     {
         var (owner, name) = GitHubApiClient.ParseRepository(repository);
@@ -278,9 +281,19 @@ public class GitHubSiteHistory(
         {
             ["owner"] = owner,
             ["name"] = name,
-            ["branch"] = $"refs/heads/{branch}",
         };
-        var parameters = new StringBuilder("$owner:String!,$name:String!,$branch:String!");
+        var parameters = new StringBuilder("$owner:String!,$name:String!");
+        if (head == null)
+        {
+            variables["branch"] = $"refs/heads/{branch}";
+            parameters.Append(",$branch:String!");
+        }
+        else
+        {
+            variables["head"] = head;
+            parameters.Append(",$head:GitObjectID!");
+        }
+
         var histories = new StringBuilder();
         for (var i = 0; i < sources.Count; i++)
         {
@@ -294,7 +307,9 @@ public class GitHubSiteHistory(
 
         var request = new JObject
         {
-            ["query"] = $"query({parameters}){{ repository(owner:$owner,name:$name){{ ref(qualifiedName:$branch){{ target{{ ... on Commit{{{histories} }} }} }} }} }}",
+            ["query"] = head == null
+                ? $"query({parameters}){{ repository(owner:$owner,name:$name){{ ref(qualifiedName:$branch){{ target{{ ... on Commit{{ oid{histories} }} }} }} }} }}"
+                : $"query({parameters}){{ repository(owner:$owner,name:$name){{ object(oid:$head){{ ... on Commit{{ oid{histories} }} }} }} }}",
             ["variables"] = variables,
         };
 
@@ -385,17 +400,16 @@ public class GitHubSiteHistory(
     }
 
     /// <exception cref="ArgumentException">The cursor is not one this history wrote.</exception>
-    protected virtual IDictionary<string, HistoryPosition> ReadCursor(string cursor)
+    protected virtual HistoryCursor ReadCursor(string cursor)
     {
         if (string.IsNullOrEmpty(cursor))
         {
-            return new Dictionary<string, HistoryPosition>(StringComparer.Ordinal);
+            return new HistoryCursor();
         }
 
         try
         {
-            var positions = JsonConvert.DeserializeObject<Dictionary<string, HistoryPosition>>(_cursorProtector.Unprotect(cursor));
-            return new Dictionary<string, HistoryPosition>(positions ?? [], StringComparer.Ordinal);
+            return JsonConvert.DeserializeObject<HistoryCursor>(_cursorProtector.Unprotect(cursor)) ?? new HistoryCursor();
         }
         catch (Exception ex) when (ex is CryptographicException or FormatException or JsonException)
         {
@@ -404,7 +418,7 @@ public class GitHubSiteHistory(
     }
 
     /// <summary>Writes where each file's history continues; <c>null</c> when every one is read to the end.</summary>
-    protected virtual string WriteCursor(IDictionary<string, HistoryPosition> positions, IList<HistorySource> sources)
+    protected virtual string WriteCursor(string head, IDictionary<string, HistoryPosition> positions, IList<HistorySource> sources)
     {
         foreach (var source in sources)
         {
@@ -420,7 +434,7 @@ public class GitHubSiteHistory(
 
         return positions.Values.All(x => x.Done)
             ? null
-            : _cursorProtector.Protect(JsonConvert.SerializeObject(positions));
+            : _cursorProtector.Protect(JsonConvert.SerializeObject(new HistoryCursor { Head = head, Positions = new Dictionary<string, HistoryPosition>(positions, StringComparer.Ordinal) }));
     }
 
     private static string GetOid(JToken node) => node["oid"]?.Value<string>();
@@ -434,6 +448,16 @@ public class GitHubSiteHistory(
         version.Published &= isLive;
         version.Items.Add(source.Item.ToString());
         source.Read++;
+    }
+
+    /// <summary>Where the listing continues: the commit its first page read, and each file's position in that commit's history.</summary>
+    protected class HistoryCursor
+    {
+        [JsonProperty("h")]
+        public string Head { get; set; }
+
+        [JsonProperty("p")]
+        public Dictionary<string, HistoryPosition> Positions { get; set; } = new(StringComparer.Ordinal);
     }
 
     /// <summary>Where a file's history continues.</summary>

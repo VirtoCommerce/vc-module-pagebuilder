@@ -251,12 +251,17 @@ public class GitHubSiteHistoryTests
 
         var second = new GitHubScript(("POST", "graphql", (_, body) =>
         {
-            var variables = JObject.Parse(body!)["variables"]!;
+            var request = JObject.Parse(body!);
+            var variables = request["variables"]!;
+            // the commit the first page read, not the branch: a save made since must not shift the positions
+            Assert.Contains("object(oid:$head)", request.Value<string>("query"));
+            Assert.Equal(FirstPageHead, variables["head"]?.Value<string>());
+            Assert.Null(variables["branch"]);
             // each file read one of the two: the next request skips it
             Assert.Equal(3, variables["t0"]?.Value<int>());
             Assert.Equal(3, variables["t1"]?.Value<int>());
             Assert.Equal(JTokenType.Null, variables["a0"]?.Type);
-            return Answer(
+            return AnchoredAnswer(
                 (false, "e0", [(Sha('9'), 50, "{}"), (Sha('2'), 20, "{}"), (Sha('1'), 10, "{}")]),
                 (false, "e1", [(Sha('8'), 40, "{}"), (Sha('7'), 35, "{}"), (Sha('6'), 30, "{}")]));
         }));
@@ -272,7 +277,8 @@ public class GitHubSiteHistoryTests
             Assert.Equal("database-pages/g1.json", variables["p0"]?.Value<string>());
             Assert.Null(variables["p1"]);
             Assert.Equal(3, variables["t0"]?.Value<int>());
-            return Answer((false, "e0", [(Sha('9'), 50, "{}"), (Sha('2'), 20, "{}"), (Sha('1'), 10, "{}")]));
+            Assert.Equal(FirstPageHead, variables["head"]?.Value<string>());
+            return AnchoredAnswer((false, "e0", [(Sha('9'), 50, "{}"), (Sha('2'), 20, "{}"), (Sha('1'), 10, "{}")]));
         }));
 
         var last = await History(third).ListAsync("s1", [Page, HeaderItem], next.Cursor, 2, Ct);
@@ -363,9 +369,19 @@ public class GitHubSiteHistoryTests
     private static string Contents(string content) =>
         new JObject { ["sha"] = "b0", ["content"] = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(content)) }.ToString();
 
-    private static System.Net.Http.HttpResponseMessage Answer(params (bool HasMore, string EndCursor, (string Oid, int Minute, string Content)[] Nodes)[] histories)
+    private const string FirstPageHead = "f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0";
+
+    // the branch head, as a first page reads it
+    private static System.Net.Http.HttpResponseMessage Answer(params (bool HasMore, string EndCursor, (string Oid, int Minute, string Content)[] Nodes)[] histories) =>
+        GitHubScript.Json(new JObject { ["data"] = new JObject { ["repository"] = new JObject { ["ref"] = new JObject { ["target"] = Commit(histories) } } } }.ToString());
+
+    // the commit a first page read, as the next pages read it
+    private static System.Net.Http.HttpResponseMessage AnchoredAnswer(params (bool HasMore, string EndCursor, (string Oid, int Minute, string Content)[] Nodes)[] histories) =>
+        GitHubScript.Json(new JObject { ["data"] = new JObject { ["repository"] = new JObject { ["object"] = Commit(histories) } } }.ToString());
+
+    private static JObject Commit((bool HasMore, string EndCursor, (string Oid, int Minute, string Content)[] Nodes)[] histories)
     {
-        var target = new JObject();
+        var target = new JObject { ["oid"] = FirstPageHead };
         for (var i = 0; i < histories.Length; i++)
         {
             var (hasMore, endCursor, nodes) = histories[i];
@@ -384,6 +400,6 @@ public class GitHubSiteHistoryTests
             };
         }
 
-        return GitHubScript.Json(new JObject { ["data"] = new JObject { ["repository"] = new JObject { ["ref"] = new JObject { ["target"] = target } } } }.ToString());
+        return target;
     }
 }
