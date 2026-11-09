@@ -1,8 +1,8 @@
-using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using VirtoCommerce.PageBuilderModule.Core;
 using VirtoCommerce.PageBuilderModule.Core.Theme;
+using VirtoCommerce.PageBuilderModule.Data.Validation;
 using VirtoCommerce.Platform.Core.Common;
 
 namespace VirtoCommerce.PageBuilderModule.Data.Theme;
@@ -12,7 +12,6 @@ public class SchemaCatalogService(IThemeStorageFactory themeStorageFactory) : IS
     private const string HashProperty = "hash";
 
     // The hash is used as a file name.
-    private static readonly Regex HashPattern = new("^[A-Za-z0-9_-]{8,128}$", RegexOptions.None, TimeSpan.FromSeconds(1));
 
     private static readonly string[] SchemaKinds =
     [
@@ -50,7 +49,7 @@ public class SchemaCatalogService(IThemeStorageFactory themeStorageFactory) : IS
         return IsValidHash(hash) ? await storage.ReadAsync(GetCatalogPath(hash)) : null;
     }
 
-    protected virtual bool IsValidHash(string hash) => !string.IsNullOrEmpty(hash) && HashPattern.IsMatch(hash);
+    protected virtual bool IsValidHash(string hash) => PageBuilderContentPaths.IsCatalogHash(hash);
 
     /// <summary>Throws <see cref="ArgumentException"/> for a catalog without a valid hash or with a malformed schema map.</summary>
     protected virtual JObject ParseCatalog(string catalogJson)

@@ -384,7 +384,7 @@ public class GitHubSiteHistory(
     /// <summary>Gets the commit a version id names; <c>null</c> for anything but a version id.</summary>
     protected virtual string GetCommitSha(string versionId)
     {
-        if (string.IsNullOrEmpty(versionId) || versionId.Length != Base64Url.GetEncodedLength(CommitShaBytes))
+        if (!PageBuilderContentPaths.IsHistoryVersionId(versionId))
         {
             return null;
         }

@@ -554,7 +554,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         public async Task<ActionResult> SaveTemplates(string storeId, string theme, [FromBody] SaveFilesModel value, [FromQuery] bool draft = false,
             [FromQuery] string catalogHash = null)
         {
-            var request = new PageBuilderContentRequest { StoreId = storeId, Theme = theme };
+            var request = new PageBuilderContentRequest { StoreId = storeId, Theme = theme, CatalogHash = catalogHash };
             if (await CheckStoreAccessAsync(request) is { } forbidden)
             {
                 return forbidden;
@@ -710,7 +710,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             var cancellationToken = HttpContext.RequestAborted;
             var page = value?.Page;
             var themeFiles = value?.ThemeFiles ?? [];
-            var request = new PageBuilderContentRequest { StoreId = storeId };
+            var request = new PageBuilderContentRequest { StoreId = storeId, CatalogHash = catalogHash };
             if ((await CheckStoreAccessAsync(request) ?? await CheckThemeFilesAccessAsync(themeFiles.Select(x => x?.Path))) is { } forbidden)
             {
                 return forbidden;

@@ -9,7 +9,13 @@ public class PageBuilderStoreRequestValidator : AbstractValidator<PageBuilderSto
 {
     public PageBuilderStoreRequestValidator(IStoreService storeService)
     {
+        ClassLevelCascadeMode = CascadeMode.Stop;
         RuleLevelCascadeMode = CascadeMode.Stop;
+
+        RuleFor(x => x.CatalogHash)
+            .Must(PageBuilderContentPaths.IsCatalogHash)
+            .When(x => x.CatalogHash != null)
+            .WithMessage("\"{PropertyValue}\" is not a catalog hash.");
 
         RuleFor(x => x.StoreId)
             .NotEmpty()

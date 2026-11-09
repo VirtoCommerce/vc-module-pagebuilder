@@ -13,6 +13,9 @@ public class RequestValidatorRulesTests
 {
     private const string Page = "page:g1";
 
+    // a commit sha in base64url
+    private const string Version = "AAAAAAAAAAAAAAAAAAAAAAAAAAA";
+
     [Theory]
     [InlineData(0, false)]
     [InlineData(1, true)]
@@ -46,8 +49,28 @@ public class RequestValidatorRulesTests
     [Fact]
     public async Task History_Version_NamesOnePageAtMost()
     {
-        Assert.False(await IsValidAsync(new ContentHistoryRequest { StoreId = "s1", Items = [Page, "page:g2"], VersionId = "v" }));
-        Assert.True(await IsValidAsync(new ContentHistoryRequest { StoreId = "s1", Items = [Page, "theme:default/templates/product.json"], VersionId = "v" }));
+        Assert.False(await IsValidAsync(new ContentHistoryRequest { StoreId = "s1", Items = [Page, "page:g2"], VersionId = Version }));
+        Assert.True(await IsValidAsync(new ContentHistoryRequest { StoreId = "s1", Items = [Page, "theme:default/templates/product.json"], VersionId = Version }));
+    }
+
+    [Theory]
+    [InlineData("AAAAAAAAAAAAAAAAAAAAAAAAAAA", true)]
+    [InlineData("AAAAAAAAAAAAAAAAAAAAAAAAAA", false)]
+    [InlineData("AAAAAAAAAAAAAAAAAAAAAAAAAA+", false)]
+    public async Task History_VersionId_IsACommitShaInBase64Url(string versionId, bool valid)
+    {
+        Assert.Equal(valid, await IsValidAsync(new ContentHistoryRequest { StoreId = "s1", Items = [Page], VersionId = versionId }));
+    }
+
+    [Theory]
+    [InlineData("abc12345", true)]
+    [InlineData("abc1234", false)]
+    [InlineData("../x1234567", false)]
+    public async Task Store_CatalogHash_IsTheCatalogsFileName(string catalogHash, bool valid)
+    {
+        var result = await RequestValidators.Stores("s1").ValidateAsync(new PageBuilderStoreRequest { StoreId = "s1", CatalogHash = catalogHash }, TestContext.Current.CancellationToken);
+
+        Assert.Equal(valid, result.IsValid);
     }
 
     [Theory]

@@ -34,7 +34,7 @@ public class ThemeController(
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<ThemePublicationPointer>> Publish([FromQuery] string storeId, [FromQuery] string catalogHash, CancellationToken cancellationToken = default)
     {
-        if (await CheckRequestAsync(storeId, cancellationToken) is { } refused)
+        if (await CheckRequestAsync(storeId, cancellationToken, catalogHash) is { } refused)
         {
             return refused;
         }
@@ -98,7 +98,7 @@ public class ThemeController(
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult> GetCatalog([FromQuery] string storeId, [FromQuery] string hash, CancellationToken cancellationToken = default)
     {
-        if (await CheckRequestAsync(storeId, cancellationToken) is { } refused)
+        if (await CheckRequestAsync(storeId, cancellationToken, hash) is { } refused)
         {
             return refused;
         }
@@ -138,9 +138,9 @@ public class ThemeController(
     }
 
     // access first, so a 400 does not reveal which stores exist
-    private async Task<ActionResult> CheckRequestAsync(string storeId, CancellationToken cancellationToken)
+    private async Task<ActionResult> CheckRequestAsync(string storeId, CancellationToken cancellationToken, string catalogHash = null)
     {
-        var request = new PageBuilderStoreRequest { StoreId = storeId };
+        var request = new PageBuilderStoreRequest { StoreId = storeId, CatalogHash = catalogHash };
 
         return await CheckStoreAccessAsync(request) ?? await storeRequestValidator.ValidateRequestAsync(request, cancellationToken);
     }

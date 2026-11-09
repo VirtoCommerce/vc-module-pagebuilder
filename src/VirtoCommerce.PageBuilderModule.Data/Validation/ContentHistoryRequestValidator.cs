@@ -37,6 +37,11 @@ public class ContentHistoryRequestValidator : AbstractValidator<ContentHistoryRe
             .When(x => x.Take.HasValue)
             .WithMessage($"take must be between 1 and {MaxTake}.");
 
+        RuleFor(x => x.VersionId)
+            .Must(PageBuilderContentPaths.IsHistoryVersionId)
+            .When(x => x.VersionId != null)
+            .WithMessage("\"{PropertyValue}\" is not a version id.");
+
         RuleFor(x => x.Cursor)
             .Must(PageBuilderContentPaths.IsContentHistoryCursor)
             .When(x => x.Cursor != null)

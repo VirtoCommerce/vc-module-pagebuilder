@@ -40,6 +40,22 @@ public static class PageBuilderContentPaths
     // base64url: a position in each file's history
     private static readonly Regex ContentHistoryCursorPattern = new("^[A-Za-z0-9_-]{1,4096}$", RegexOptions.None, TimeSpan.FromSeconds(1));
 
+    // the catalog's file name in the theme, as the storefront names it
+    private static readonly Regex CatalogHashPattern = new("^[A-Za-z0-9_-]{8,128}$", RegexOptions.None, TimeSpan.FromSeconds(1));
+
+    // base64url of a commit sha's 20 bytes
+    private static readonly Regex HistoryVersionIdPattern = new("^[A-Za-z0-9_-]{27}$", RegexOptions.None, TimeSpan.FromSeconds(1));
+
+    // the id goes into a commit trailer
+    private static readonly Regex SaveIdPattern = new("^[A-Za-z0-9-]{8,64}$", RegexOptions.None, TimeSpan.FromSeconds(1));
+
+    public static bool IsCatalogHash(string hash) => !string.IsNullOrEmpty(hash) && CatalogHashPattern.IsMatch(hash);
+
+    public static bool IsHistoryVersionId(string versionId) => !string.IsNullOrEmpty(versionId) && HistoryVersionIdPattern.IsMatch(versionId);
+
+    /// <summary>The id of a designer save, named by the <c>X-PageBuilder-Save</c> header.</summary>
+    public static bool IsSaveId(string saveId) => !string.IsNullOrEmpty(saveId) && SaveIdPattern.IsMatch(saveId);
+
     public static bool IsContentType(string type) => type != null && ContentTypes.Contains(type);
 
     public static bool IsPageContentType(string type) => GitPageLocation.IsPageContent(type);

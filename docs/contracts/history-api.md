@@ -159,7 +159,8 @@ interface DesignerSave {
 - The page keeps its own semantics: a database page is saved as `grouped/{groupId}/content` saves it and raises the same
   page events; a file page is a commit on the editor's work branch on a store on the git flow, else a blob draft.
 - After the lock, one version records the database page and the theme files, named by the request's
-  `X-PageBuilder-Save` id (a new one without it), which `saveId` returns. A file page's history stays the git flow's.
+  `X-PageBuilder-Save` id, 8 to 64 letters, digits or `-` (a new one without it, or instead of one in another form), which
+  `saveId` returns. A file page's history stays the git flow's.
 
 The per-file endpoints (`api/pagebuilder/save`, `grouped/{groupId}/content`) keep working for the Angular designer and
 agents; a call of `api/pagebuilder/save` is one version as well.
