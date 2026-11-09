@@ -710,7 +710,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             var page = value?.Page;
             var themeFiles = value?.ThemeFiles ?? [];
             var request = new PageBuilderContentRequest { StoreId = storeId };
-            if ((await CheckStoreAccessAsync(request) ?? await CheckDesignerPartsAccessAsync(page, themeFiles.Select(x => x?.Path))) is { } forbidden)
+            if ((await CheckStoreAccessAsync(request) ?? await CheckThemeFilesAccessAsync(themeFiles.Select(x => x?.Path))) is { } forbidden)
             {
                 return forbidden;
             }
@@ -800,7 +800,7 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             var page = value?.Page;
             var themePaths = value?.ThemeFiles ?? [];
             var request = new PageBuilderContentRequest { StoreId = storeId };
-            if ((await CheckStoreAccessAsync(request) ?? await CheckDesignerPartsAccessAsync(page, themePaths)) is { } forbidden)
+            if ((await CheckStoreAccessAsync(request) ?? await CheckThemeFilesAccessAsync(themePaths)) is { } forbidden)
             {
                 return forbidden;
             }
@@ -905,7 +905,14 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             try
             {
                 using var reader = new JsonTextReader(new StringReader(content)) { DateParseHandling = DateParseHandling.None };
-                token = JToken.ReadFrom(reader);
+                var parsed = JToken.ReadFrom(reader);
+                // a theme file is saved as sent, so nothing may follow the document that was checked
+                if (reader.Read())
+                {
+                    return false;
+                }
+
+                token = parsed;
                 return true;
             }
             catch (JsonException)
@@ -914,13 +921,9 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
             }
         }
 
-        private async Task<ActionResult> CheckDesignerPartsAccessAsync(DesignerSavePage page, IEnumerable<string> themePaths)
+        private async Task<ActionResult> CheckThemeFilesAccessAsync(IEnumerable<string> themePaths)
         {
             var permissions = themePaths.Select(contentPermissionService.GetThemeFileEditPermission).ToList();
-            if (page != null)
-            {
-                permissions.Add(ModuleConstants.Security.Permissions.Update);
-            }
 
             return await HasPermissionsAsync(permissions) ? null : Forbid();
         }

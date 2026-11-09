@@ -314,6 +314,19 @@ public class DesignerSaveTests
         AssertNothingWritten();
     }
 
+    [Theory]
+    [InlineData(" x")]
+    [InlineData(" {}")]
+    public async Task SaveDesignerChanges_ThemeFileWithTextAfterTheDocument_ReturnsBadRequestAndWritesNothing(string tail)
+    {
+        await SaveCatalogAsync();
+
+        var result = await Builder().SaveDesignerChanges("s1", Save(DatabasePage(), (Header, HeaderFile + tail)), Catalog);
+
+        Assert.IsType<BadRequestObjectResult>(result.Result);
+        AssertNothingWritten();
+    }
+
     [Fact]
     public async Task SaveDesignerChanges_ThemeFilesWithoutCatalogHash_ReturnsBadRequestAndWritesNothing()
     {
@@ -395,15 +408,15 @@ public class DesignerSaveTests
         AssertNothingWritten();
     }
 
+    // builder:update, which every designer save takes, is the action's attribute
     [Theory]
-    [InlineData("page", Permissions.Update)]
     [InlineData(Template, Permissions.Templates)]
     [InlineData(Rules, Permissions.Templates)]
     [InlineData(Header, Permissions.Theme)]
-    public async Task SaveDesignerChanges_Part_RequiresThePermissionThatEditsIt(string part, string permission)
+    public async Task SaveDesignerChanges_ThemeFile_RequiresThePermissionThatEditsIt(string part, string permission)
     {
         await SaveCatalogAsync();
-        var request = part == "page" ? Save(DatabasePage()) : Save(null, (part, """{ "content": [] }"""));
+        var request = Save(null, (part, """{ "content": [] }"""));
         var others = new[] { Permissions.Read, Permissions.Update, Permissions.Templates, Permissions.Theme }.Where(x => x != permission).ToArray();
 
         var refused = await Builder(new FakeAuthorizationService("s1", others)).SaveDesignerChanges("s1", request, Catalog);
@@ -640,16 +653,16 @@ public class DesignerSaveTests
         Assert.Empty(_history.Records);
     }
 
+    // builder:update, which every designer discard takes, is the action's attribute
     [Theory]
-    [InlineData("page", Permissions.Update)]
     [InlineData(Rules, Permissions.Templates)]
     [InlineData(Header, Permissions.Theme)]
-    public async Task DiscardDesignerChanges_Part_RequiresThePermissionThatEditsIt(string part, string permission)
+    public async Task DiscardDesignerChanges_ThemeFile_RequiresThePermissionThatEditsIt(string part, string permission)
     {
         SeedPageDraft();
-        _live.Files[part == "page" ? Header : part] = "live";
-        _live.Files[$"{(part == "page" ? Header : part)}-draft"] = "draft";
-        var request = part == "page" ? Discard(new DesignerSavePage { GroupId = "g1" }) : Discard(null, part);
+        _live.Files[part] = "live";
+        _live.Files[$"{part}-draft"] = "draft";
+        var request = Discard(null, part);
         var others = new[] { Permissions.Read, Permissions.Update, Permissions.Templates, Permissions.Theme }.Where(x => x != permission).ToArray();
 
         var refused = await Builder(new FakeAuthorizationService("s1", others)).DiscardDesignerChanges("s1", request);

@@ -238,6 +238,21 @@ namespace VirtoCommerce.PageBuilderModule.Tests
         }
 
         [Fact]
+        public async Task Publish_BaseBranchPageNotJson_ThrowsGitContentExceptionAndLeavesTheLivePageAlone()
+        {
+            // a commit made on GitHub broke the file
+            var repository = Repository(withDraft: false);
+            repository.Files[(RepoPath, "master")] = "{ \"settings\": ";
+            var live = new FakeBlobStorage();
+            live.Files[Page] = LastWeek;
+
+            await Assert.ThrowsAsync<GitContentException>(() =>
+                Controller(repository, Publisher(GitPublishState.Merged), live: live).GitPublish("s1", Page, "pages"));
+
+            Assert.Equal(LastWeek, live.Files[Page]);
+        }
+
+        [Fact]
         public async Task Publish_OfADraftTheBaseBranchAlreadyHas_WritesTheLivePageFromTheBaseBranch()
         {
             // a pull request merged on GitHub writes nothing live

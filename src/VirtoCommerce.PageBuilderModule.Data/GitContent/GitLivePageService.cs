@@ -76,10 +76,21 @@ public class GitLivePageService(
         var type = contentType.ToLowerInvariant();
         var storageProvider = GetStorageProvider(storeId, type);
 
+        // parsed before the live file is opened, which would empty it
+        JToken page;
+        try
+        {
+            page = JToken.Parse(content);
+        }
+        catch (JsonReaderException ex)
+        {
+            throw new GitContentException($"\"{path}\" on the base branch is not valid JSON, so the live page stays as it is. Fix the file in the repository.", ex);
+        }
+
         await using (var stream = await storageProvider.OpenWriteAsync(GetLivePath(path)))
         await using (var writer = new StreamWriter(stream))
         {
-            await writer.WriteAsync(JsonConvert.SerializeObject(JToken.Parse(content), PageSerializerSettings));
+            await writer.WriteAsync(JsonConvert.SerializeObject(page, PageSerializerSettings));
         }
 
         await eventPublisher.Publish(new PageBuilderContentChangedEvent(type, [CreateChangedEntry(path, contentType, EntryState.Modified)]), cancellationToken);

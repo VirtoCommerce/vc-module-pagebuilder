@@ -1,4 +1,5 @@
 using System;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -13,6 +14,9 @@ namespace VirtoCommerce.PageBuilderModule.Tests;
 /// <summary>The site history over a scripted GitHub: organization "acme", base branch "main".</summary>
 internal static class SiteHistories
 {
+    // one server's keys: a cursor one history wrote is read by the next
+    private static readonly IDataProtectionProvider Keys = new EphemeralDataProtectionProvider();
+
     public static IOptions<GitContentOptions> Options() => Microsoft.Extensions.Options.Options.Create(new GitContentOptions
     {
         Enabled = true,
@@ -30,6 +34,6 @@ internal static class SiteHistories
         var repository = new GitHubContentRepository(github, new MemoryCache(new MemoryCacheOptions()), options);
 
         return new GitHubSiteHistory(policy, repository, new GitHubApiClient(github), GitHubConnections.CreateService(options.Value), pages, themes, options,
-            NullLogger<GitHubSiteHistory>.Instance);
+            Keys, NullLogger<GitHubSiteHistory>.Instance);
     }
 }

@@ -136,7 +136,15 @@ public class GitHubAuthHandler(IGitHubConnectionService gitHubConnectionService,
     internal static string CreateAppJwt(string appId, string privateKey, DateTimeOffset now)
     {
         using var rsa = RSA.Create();
-        rsa.ImportFromPem(privateKey.Replace("\\n", "\n"));
+        try
+        {
+            rsa.ImportFromPem(privateKey.Replace("\\n", "\n"));
+        }
+        catch (Exception ex) when (ex is ArgumentException or CryptographicException)
+        {
+            throw new GitContentException(
+                $"The private key of the GitHub App {appId} is not a PEM private key. Check PageBuilder:GitContent:PrivateKey, or set the App up again.", ex);
+        }
 
         // a provider cached across calls would keep the RSA instance disposed here
         var key = new RsaSecurityKey(rsa) { CryptoProviderFactory = new CryptoProviderFactory { CacheSignatureProviders = false } };

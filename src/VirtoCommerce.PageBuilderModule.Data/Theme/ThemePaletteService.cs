@@ -281,7 +281,8 @@ public class ThemePaletteService : IThemePaletteService
         if (shadeMatch.Success)
         {
             return scales.TryGetValue(shadeMatch.Groups[1].Value, out var scale)
-                   && scale.TryGetValue(int.Parse(shadeMatch.Groups[2].Value, CultureInfo.InvariantCulture), out var color)
+                   && int.TryParse(shadeMatch.Groups[2].Value, NumberStyles.None, CultureInfo.InvariantCulture, out var shade)
+                   && scale.TryGetValue(shade, out var color)
                 ? color
                 : null;
         }

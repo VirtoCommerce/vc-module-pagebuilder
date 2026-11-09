@@ -172,6 +172,17 @@ public class ThemePaletteServiceTests
     }
 
     [Fact]
+    public void GeneratePalette_ShadeBeyondAnyNumber_LeavesItOut()
+    {
+        var request = Request("#1b789b", null);
+        request.Tokens.Light = [.. StorefrontPaletteTokens.Light, "color_primary_99999999999"];
+
+        var result = _service.GeneratePalette(request);
+
+        Assert.DoesNotContain("color_primary_99999999999", result.Light.Keys);
+    }
+
+    [Fact]
     public void CheckPalette_PresetPrimaryUnderWhite_ReturnsTheFailingPairsWithTheTokensShown()
     {
         var result = _service.CheckPalette(Check(new Dictionary<string, string>

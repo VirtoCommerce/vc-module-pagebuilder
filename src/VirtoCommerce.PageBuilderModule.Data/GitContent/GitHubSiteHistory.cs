@@ -6,6 +6,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
@@ -30,10 +31,16 @@ public class GitHubSiteHistory(
     IGroupedPageService groupedPageService,
     IThemeStorageFactory themeStorageFactory,
     IOptions<GitContentOptions> options,
+    IDataProtectionProvider dataProtectionProvider,
     ILogger<GitHubSiteHistory> logger) : IContentHistory
 {
     public const string PagesFolder = "database-pages";
     public const string ThemeFolder = "theme";
+
+    // the cursor goes to the client and back: protected, so only positions this history wrote reach GitHub
+    private const string CursorProtectionPurpose = "VirtoCommerce.PageBuilderModule.ContentHistoryCursor";
+
+    private readonly IDataProtector _cursorProtector = dataProtectionProvider.CreateProtector(CursorProtectionPurpose);
 
     // GitHub's limit on a GraphQL page
     private const int MaxPageSize = 100;
@@ -387,10 +394,10 @@ public class GitHubSiteHistory(
 
         try
         {
-            var positions = JsonConvert.DeserializeObject<Dictionary<string, HistoryPosition>>(Encoding.UTF8.GetString(Base64Url.DecodeFromChars(cursor)));
+            var positions = JsonConvert.DeserializeObject<Dictionary<string, HistoryPosition>>(_cursorProtector.Unprotect(cursor));
             return new Dictionary<string, HistoryPosition>(positions ?? [], StringComparer.Ordinal);
         }
-        catch (Exception ex) when (ex is FormatException or JsonException)
+        catch (Exception ex) when (ex is CryptographicException or FormatException or JsonException)
         {
             throw new ArgumentException("The cursor is not one the history returned.", nameof(cursor), ex);
         }
@@ -413,7 +420,7 @@ public class GitHubSiteHistory(
 
         return positions.Values.All(x => x.Done)
             ? null
-            : Base64Url.EncodeToString(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(positions)));
+            : _cursorProtector.Protect(JsonConvert.SerializeObject(positions));
     }
 
     private static string GetOid(JToken node) => node["oid"]?.Value<string>();

@@ -122,6 +122,16 @@ public class GitHubAuthHandlerTests
         github.AssertDone();
     }
 
+    [Theory]
+    [InlineData("MIIEowIBAAKCAQEA")]
+    [InlineData("-----BEGIN PRIVATE KEY-----\\nnot base64\\n-----END PRIVATE KEY-----")]
+    public void CreateAppJwt_NotAPemPrivateKey_ThrowsGitContentException(string privateKey)
+    {
+        var exception = Assert.Throws<GitContentException>(() => GitHubAuthHandler.CreateAppJwt("12345", privateKey, DateTimeOffset.UtcNow));
+
+        Assert.Contains("PEM", exception.Message);
+    }
+
     [Fact]
     public void CreateAppJwt_PrivateKeyWithEscapedNewLines_ReturnsSignedRs256Jwt()
     {
