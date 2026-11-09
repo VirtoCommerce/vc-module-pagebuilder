@@ -14,9 +14,12 @@ render, and the store stays on the Angular designer.
 
 ## Frame and channel
 
-- The preview URL is built with `URL`: `new URL(previewPath, storefrontUrl)`, then
-  `searchParams.set("ep", designerOrigin)`. `previewPath` is the platform setting `StorePreviewPath`,
-  `/designer-preview` by default.
+- The preview URL is the storefront URL with `previewPath` joined to its own path: the storefront URL's path without
+  its trailing `/`, then the path of `previewPath`, whose query and hash take the place of the storefront URL's; then
+  `searchParams.set("ep", designerOrigin)`. A storefront at a sub-path keeps it: `https://shop.example/b2b` previews at
+  `https://shop.example/b2b/designer-preview?ep=…`. Only the path, query and hash of `previewPath` are taken, so it
+  never names another host. A storefront URL that is not `http:` or `https:` has no preview. `previewPath` is the
+  platform setting `StorePreviewPath`, `/designer-preview` by default.
 - The iframe is `credentialless`: the preview has no cookies or storage of the admin's browser.
 - The storefront takes `ep` only when it runs in a frame, keeps only its origin and accepts messages only when
   `event.source` is `window.parent` and `event.origin` is that origin. It posts to that origin only.
@@ -263,7 +266,7 @@ Schemas are data, never code.
 - `visibility` is the only expression a schema runs. It is an expression of the designer's expression language
   (the `safe-expression` evaluator, the same in both designers): literals, `this.…` members, `!`, arithmetic,
   comparisons, `&&`, `||`, `??`, `?:`, array literals and the evaluator's helper functions; or one of its known forms,
-  matched as written. Anything else is not evaluated, and the field shows.
+  matched as written. An expression that is none of these, or that fails, hides the field, as in the Angular designer.
 - A field with `request` fetches options; `request.response.result` is a dotted path to the rows, not an expression.
   A URL on the platform's origin is requested with the admin token; a URL on any other origin is requested without
   the `Authorization` header, and a 401 from it does not end the designer's session. Expression keys only the Angular designer reads (`selector`, `optionsSelector`, `previewRule`) are
