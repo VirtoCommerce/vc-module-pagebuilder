@@ -188,6 +188,31 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task PublishAsync_PutBackFailsForOneFile_PutsBackTheOthersAndThrowsTheFirstFailure()
+    {
+        var catalog = await PublishedWithDraftsAsync();
+        var publisher = Publisher(new RecordingContentHistory());
+        var writes = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        _storage.BeforeWrite = file =>
+        {
+            writes[file] = writes.GetValueOrDefault(file) + 1;
+            ThrowOn(file, Pointer);
+            // its second write is the put-back
+            if (string.Equals(file, Product, StringComparison.OrdinalIgnoreCase) && writes[file] == 2)
+            {
+                throw new IOException("the put-back is refused too");
+            }
+        };
+
+        var exception = await Assert.ThrowsAsync<IOException>(() => publisher.PublishAsync("s1", catalog, null, Ct));
+
+        Assert.Contains(Pointer, exception.Message);
+        Assert.Equal(Template("product-info"), _storage.Files[Header]);
+        Assert.Equal(Template("product-info", "related-products"), _storage.Files[Product]);
+        Assert.Equal(1, (await publisher.GetStatusAsync("s1", Ct)).Publication);
+    }
+
+    [Fact]
     public async Task PublishAsync_LockLost_KeepsPreviousPublicationAndDraftsAndRecordsNothing()
     {
         var catalog = await PublishedWithDraftsAsync();

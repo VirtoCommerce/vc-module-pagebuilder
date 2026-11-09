@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Security.Claims;
@@ -741,6 +742,24 @@ public class DesignerSaveTests
     }
 
     // ── helpers ────────────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task SaveDesignerChanges_SecondThemeFileWriteFails_PutsTheFirstBack()
+    {
+        await SaveCatalogAsync();
+        _live.BeforeWrite = file =>
+        {
+            if (file == $"{Rules}-draft")
+            {
+                throw new IOException($"{file} cannot be changed");
+            }
+        };
+
+        await Assert.ThrowsAsync<IOException>(() => Builder().SaveDesignerChanges("s1", Save(DatabasePage(), (Header, HeaderFile), (Rules, RulesFile)), Catalog));
+
+        _live.BeforeWrite = null;
+        AssertNothingWritten();
+    }
 
     private void AssertNothingWritten()
     {

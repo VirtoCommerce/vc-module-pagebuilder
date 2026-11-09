@@ -54,6 +54,26 @@ public class GitHubAuthHandlerTests
     }
 
     [Fact]
+    public async Task SendAsync_AppTokenAboutToExpire_MintsANewOneForTheNextRequest()
+    {
+        // a token GitHub lets expire within the refresh margin is not kept
+        var soon = DateTimeOffset.UtcNow.AddMinutes(3).ToString("yyyy-MM-ddTHH:mm:ssZ", System.Globalization.CultureInfo.InvariantCulture);
+        var github = new GitHubScript(
+            ("GET", "orgs/acme/installation", (_, _) => GitHubScript.Json("""{ "id": 42 }""")),
+            ("POST", "app/installations/42/access_tokens", (_, _) => GitHubScript.Json($$"""{ "token": "ghs_soon", "expires_at": "{{soon}}" }""", HttpStatusCode.Created)),
+            ("GET", "repos/acme/site-a", (request, _) => Authorized(request, "ghs_soon")),
+            ("GET", "orgs/acme/installation", (_, _) => GitHubScript.Json("""{ "id": 42 }""")),
+            ("POST", "app/installations/42/access_tokens", (_, _) => GitHubScript.Json("""{ "token": "ghs_next", "expires_at": "2099-01-01T00:00:00Z" }""", HttpStatusCode.Created)),
+            ("GET", "repos/acme/site-b", (request, _) => Authorized(request, "ghs_next")));
+        var client = Client(github, App());
+
+        await client.GetAsync("repos/acme/site-a", TestContext.Current.CancellationToken);
+        await client.GetAsync("repos/acme/site-b", TestContext.Current.CancellationToken);
+
+        github.AssertDone();
+    }
+
+    [Fact]
     public async Task SendAsync_AppGraphQlRequest_UsesInstallationOfNamedOwner()
     {
         var github = new GitHubScript(

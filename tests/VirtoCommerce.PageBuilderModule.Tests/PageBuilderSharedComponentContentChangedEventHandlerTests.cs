@@ -15,6 +15,7 @@ using Xunit;
 
 namespace VirtoCommerce.PageBuilderModule.Tests;
 
+[Collection(StaticBackgroundJobCollection.Name)]
 public class PageBuilderSharedComponentContentChangedEventHandlerTests
 {
     [Fact]
