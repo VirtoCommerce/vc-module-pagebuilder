@@ -214,7 +214,7 @@ export function parsePreviewMessage(message: unknown): PreviewEvent | undefined 
  * A path on the storefront, on a placeholder host: only the path, query and hash of `path` are taken, so
  * "//evil.example" or "https://evil.example" can't change the host. Throws when the path can't be a URL's.
  */
-export const storefrontPath = (path: string): URL => new URL(`/${path.replace(/^[/\\]+/, "")}`, "http://storefront.invalid");
+export const storefrontPath = (path: string): URL => new URL(`/${path.replace(/^[/\\]+/, "")}`, "https://storefront.invalid");
 
 /** A storefront route as the preview takes it (from its root): only the path, query and hash of `path` */
 export function storefrontRoute(path: string): string | undefined {

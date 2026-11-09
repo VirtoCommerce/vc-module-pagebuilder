@@ -26,8 +26,10 @@ import { getAuthHeaders } from "../page-builder/composables/usePageContentApi";
 /** The designer action the calls being made are part of (asOneSave); the version the site's history records names it */
 let currentSave: string | undefined;
 
-// a plain-http host has no crypto.randomUUID, and a Save must not fail for want of an id
-const newSaveId = () => globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+// a plain-http host has no crypto.randomUUID, but getRandomValues works there too
+const newSaveId = () =>
+  globalThis.crypto.randomUUID?.() ??
+  Array.from(globalThis.crypto.getRandomValues(new Uint8Array(16)), (byte) => byte.toString(16).padStart(2, "0")).join("");
 
 /** Names the calls `action` makes as one designer action */
 export async function asOneSave<T>(action: () => Promise<T>): Promise<T> {
