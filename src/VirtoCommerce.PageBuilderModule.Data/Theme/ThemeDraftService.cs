@@ -32,10 +32,16 @@ public class ThemeDraftService(
         ArgumentNullException.ThrowIfNull(files);
         ArgumentNullException.ThrowIfNull(saveOthersAsync);
 
+        if (files.Count == 0)
+        {
+            // nothing of the theme is written, so the theme's writers need not wait
+            return await saveOthersAsync(cancellationToken);
+        }
+
         // a theme publication and the builder's other theme writes take the same lock: a version checked here stays current until written
         var result = await distributedLock.ExecuteAsync(
             ThemeStorage.GetLockResource(storeId),
-            _ => SaveUnderLockAsync(storeId, files, eTags, saveOthersAsync, cancellationToken),
+            lockToken => SaveUnderLockAsync(storeId, files, eTags, saveOthersAsync, lockToken),
             cancellationToken: cancellationToken);
 
         await PublishChangedEventAsync(files.Keys, cancellationToken);
@@ -49,9 +55,15 @@ public class ThemeDraftService(
         ArgumentNullException.ThrowIfNull(paths);
         ArgumentNullException.ThrowIfNull(discardOthersAsync);
 
+        if (paths.Count == 0)
+        {
+            await discardOthersAsync(cancellationToken);
+            return [];
+        }
+
         var result = await distributedLock.ExecuteAsync(
             ThemeStorage.GetLockResource(storeId),
-            _ => DiscardUnderLockAsync(storeId, paths, discardOthersAsync, cancellationToken),
+            lockToken => DiscardUnderLockAsync(storeId, paths, discardOthersAsync, lockToken),
             cancellationToken: cancellationToken);
 
         await PublishChangedEventAsync(result.Where(x => x.Status == DraftDiscardStatus.Discarded).Select(x => x.Path), cancellationToken);
@@ -80,6 +92,7 @@ public class ThemeDraftService(
         {
             foreach (var (draft, content) in drafts)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 previousDrafts.Add(draft);
                 await draft.Storage.WriteAsync(draft.File, content);
             }
@@ -111,6 +124,7 @@ public class ThemeDraftService(
 
                 if (discarded.Status == DraftDiscardStatus.Discarded)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     await draft.Storage.RemoveAsync([draft.File]);
                     removedDrafts.Add(draft);
                 }

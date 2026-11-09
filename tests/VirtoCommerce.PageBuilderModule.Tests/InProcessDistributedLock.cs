@@ -26,6 +26,9 @@ internal sealed class InProcessDistributedLock : IDistributedLock
     /// <summary>Completes when a caller is waiting at the gate.</summary>
     public TaskCompletionSource Waiting { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
+    /// <summary>Hands out locks already lost, as a Redis lock whose renewal failed.</summary>
+    public bool LoseLocks { get; set; }
+
     /// <summary>Completes with the resource of the first caller that has to wait for another holder of it.</summary>
     public TaskCompletionSource<string> Blocked { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -43,22 +46,22 @@ internal sealed class InProcessDistributedLock : IDistributedLock
             Blocked.TrySetResult(resource);
         }
         await semaphore.WaitAsync(cancellationToken);
-        return new Handle(resource, semaphore);
+        return new Handle(resource, semaphore, LoseLocks);
     }
 
     public async Task<IDistributedLockHandle> TryAcquireAsync(string resource, TimeSpan timeout = default, CancellationToken cancellationToken = default)
     {
         var semaphore = _semaphores.GetOrAdd(resource, _ => new SemaphoreSlim(1, 1));
-        return await semaphore.WaitAsync(timeout, cancellationToken) ? new Handle(resource, semaphore) : null;
+        return await semaphore.WaitAsync(timeout, cancellationToken) ? new Handle(resource, semaphore, LoseLocks) : null;
     }
 
-    private sealed class Handle(string resource, SemaphoreSlim semaphore) : IDistributedLockHandle
+    private sealed class Handle(string resource, SemaphoreSlim semaphore, bool lost) : IDistributedLockHandle
     {
         private int _released;
 
         public string Resource { get; } = resource;
 
-        public CancellationToken HandleLostToken => CancellationToken.None;
+        public CancellationToken HandleLostToken { get; } = new(lost);
 
         public void Dispose()
         {

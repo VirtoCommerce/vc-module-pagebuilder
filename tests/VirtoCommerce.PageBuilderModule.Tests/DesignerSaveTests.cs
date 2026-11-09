@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -721,6 +722,17 @@ public class DesignerSaveTests
     }
 
     private async Task<string> DraftAsync() => (await _pages.LoadGroupContentAsync(await _pages.GetByIdAsync("g1"), cancellationToken: Ct)).Content;
+
+    [Fact]
+    public async Task DiscardDesignerChanges_PublishedContentUnreadable_KeepsThePageDrafts()
+    {
+        SeedPageDraft();
+        _pages.LoadContentException = new OperationCanceledException();
+
+        await Assert.ThrowsAsync<OperationCanceledException>(() => Builder().DiscardDesignerChanges("s1", Discard(new DesignerSavePage { GroupId = "g1" })));
+
+        Assert.Equal(2, (await _pages.GetByIdAsync("g1")).Pages.Count);
+    }
 
     private void SeedPageDraft()
     {

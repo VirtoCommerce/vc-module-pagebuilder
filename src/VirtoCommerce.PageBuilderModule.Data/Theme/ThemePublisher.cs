@@ -48,7 +48,7 @@ public class ThemePublisher(
         var catalog = await GetCatalogAsync(storeId, catalogHash, cancellationToken);
         var result = await distributedLock.ExecuteAsync(
             ThemeStorage.GetLockResource(storeId),
-            _ => PublishUnderLockAsync(storeId, catalog, catalogHash, includeDrafts: true),
+            lockToken => PublishUnderLockAsync(storeId, catalog, catalogHash, includeDrafts: true, lockToken),
             cancellationToken: cancellationToken);
 
         await AfterPublishAsync(storeId, result.PublishedFiles, user, cancellationToken);
@@ -60,7 +60,7 @@ public class ThemePublisher(
     {
         return distributedLock.ExecuteAsync(
             ThemeStorage.GetLockResource(storeId),
-            async _ =>
+            async lockToken =>
             {
                 var storage = await themeStorageFactory.OpenAsync(storeId);
                 if (await storage.GetCurrentPublicationAsync() is { } publication)
@@ -69,9 +69,9 @@ public class ThemePublisher(
                 }
 
                 // Live files may predate the storefront schemas, so only their shape is validated.
-                var currentCatalog = await schemaCatalogService.GetAsync(storeId, hash: null, cancellationToken);
+                var currentCatalog = await schemaCatalogService.GetAsync(storeId, hash: null, lockToken);
                 var catalog = currentCatalog == null ? null : JObject.Parse(currentCatalog);
-                var result = await PublishUnderLockAsync(storeId, catalog, catalogHash: null, includeDrafts: false);
+                var result = await PublishUnderLockAsync(storeId, catalog, catalogHash: null, includeDrafts: false, lockToken);
 
                 return result.Publication;
             },
@@ -106,7 +106,9 @@ public class ThemePublisher(
         }
     }
 
-    protected virtual async Task<ThemePublishResult> PublishUnderLockAsync(string storeId, JObject catalog, string catalogHash, bool includeDrafts)
+    /// <param name="cancellationToken">Cancelled when the theme lock is lost: another server may hold it, so nothing more is written.</param>
+    protected virtual async Task<ThemePublishResult> PublishUnderLockAsync(string storeId, JObject catalog, string catalogHash, bool includeDrafts,
+        CancellationToken cancellationToken)
     {
         var store = await storeService.GetNoCloneAsync(storeId) ?? throw new KeyNotFoundException($"Store '{storeId}' not found.");
         var storage = await themeStorageFactory.OpenAsync(storeId);
@@ -136,8 +138,11 @@ public class ThemePublisher(
         var replaced = new List<LiveFile>();
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
             await WriteLiveFilesAsync(storage, source.Drafts, replaced);
+            cancellationToken.ThrowIfCancellationRequested();
             await storage.WritePublicationRecordAsync(publication, record);
+            cancellationToken.ThrowIfCancellationRequested();
             await storage.SetCurrentPublicationAsync(publication);
         }
         catch

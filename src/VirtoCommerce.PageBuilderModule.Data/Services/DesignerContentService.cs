@@ -179,9 +179,11 @@ public class DesignerContentService(
             return null;
         }
 
+        // read first: the history entry needs it, and nothing may fail once the drafts are gone
+        var publishedContent = await groupedPageService.LoadContent(publishedPage.Id, cancellationToken);
         await pageService.DeleteAsync(draftIds);
 
-        return await groupedPageService.LoadContent(publishedPage.Id, cancellationToken);
+        return publishedContent;
     }
 
     protected virtual async Task<bool> RestorePageAsync(GroupedPageBuilderPage group, string content, CancellationToken cancellationToken)

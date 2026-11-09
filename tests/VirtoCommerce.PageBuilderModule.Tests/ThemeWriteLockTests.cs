@@ -12,6 +12,7 @@ using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using VirtoCommerce.PageBuilderModule.Core.GitContent;
+using VirtoCommerce.PageBuilderModule.Core.Models;
 using VirtoCommerce.PageBuilderModule.Data.GitContent;
 using VirtoCommerce.PageBuilderModule.Data.Theme;
 using VirtoCommerce.PageBuilderModule.Web.Controllers.Api;
@@ -50,6 +51,17 @@ public class ThemeWriteLockTests
         await using var publication = await _lock.AcquireAsync(ThemeStorage.GetLockResource("s1"), cancellationToken: Ct);
 
         await Builder().SaveTemplates("s1", "default", Files("pages", "home.page"), draft: true).WaitAsync(Patience, Ct);
+
+        Assert.True(_live.Files.ContainsKey("home.page-draft"));
+    }
+
+    [Fact]
+    public async Task SaveDesignerChanges_PageOnlyWhileThemePublicationRuns_DoesNotWait()
+    {
+        await using var publication = await _lock.AcquireAsync(ThemeStorage.GetLockResource("s1"), cancellationToken: Ct);
+        var page = new DesignerSavePage { Path = "home.page", Type = "pages", Content = "{\"settings\":{\"type\":\"settings\"},\"content\":[]}" };
+
+        await Builder().SaveDesignerChanges("s1", new DesignerSaveRequest { Page = page }).WaitAsync(Patience, Ct);
 
         Assert.True(_live.Files.ContainsKey("home.page-draft"));
     }
@@ -118,7 +130,7 @@ public class ThemeWriteLockTests
             themeDraftService: ThemeDrafts(),
             groupedPageService: null,
             sharedComponentPlacementValidator: null,
-            designerContentService: TestServices.Designer(new NoContentHistory(), filePageDrafts, null, null, _live, null, null),
+            designerContentService: TestServices.Designer(new NoContentHistory(), filePageDrafts, ThemeDrafts(), null, _live, null, null),
             contentPermissionService: TestServices.Permissions(new FakeAuthorizationService(true)),
             filePageDraftService: filePageDrafts,
             designerSaveValidator: RequestValidators.DesignerSave,

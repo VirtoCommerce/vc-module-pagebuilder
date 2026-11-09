@@ -15,6 +15,7 @@ using VirtoCommerce.PageBuilderModule.Core.Theme;
 using VirtoCommerce.PageBuilderModule.Data.GitContent;
 using VirtoCommerce.PageBuilderModule.Data.Theme;
 using VirtoCommerce.Platform.Core.Caching;
+using VirtoCommerce.Platform.Core.DistributedLock;
 using VirtoCommerce.Platform.Core.Settings;
 using VirtoCommerce.StoreModule.Core.Model;
 using VirtoCommerce.StoreModule.Core.Services;
@@ -184,6 +185,25 @@ public sealed class ThemeSnapshotServiceTests : IDisposable
         Assert.Equal(Template("product-info", "related-products"), _storage.Files[Product]);
         Assert.Equal(2, Assert.Single(history.Records).Record.Entries.Count);
         Assert.Equal(versions, await ReadVersionsAsync());
+    }
+
+    [Fact]
+    public async Task PublishAsync_LockLost_KeepsPreviousPublicationAndDraftsAndRecordsNothing()
+    {
+        var catalog = await PublishedWithDraftsAsync();
+        var history = new RecordingContentHistory();
+        var publisher = Publisher(history);
+        // another server may hold the lock now
+        _lock.LoseLocks = true;
+
+        await Assert.ThrowsAsync<DistributedLockLostException>(() => publisher.PublishAsync("s1", catalog, null, Ct));
+
+        var status = await publisher.GetStatusAsync("s1", Ct);
+        Assert.Equal(1, status.Publication);
+        Assert.Equal(["sections/header-group.json", "templates/product.json"], status.Drafts.Order());
+        Assert.Equal(Template("product-info"), _storage.Files[Header]);
+        Assert.Equal(Template("product-info"), _storage.Files[Product]);
+        Assert.Empty(history.Records);
     }
 
     [Fact]
