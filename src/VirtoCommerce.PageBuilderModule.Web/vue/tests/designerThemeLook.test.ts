@@ -15,7 +15,7 @@ import {
   currentSettings,
 } from "../src/modules/designer/themeLook";
 import { menuOptions, storeMenusUrl } from "../src/modules/designer/storeMenus";
-import { brandField, isOverridden, menuField } from "../src/modules/designer/whiteLabeling";
+import { brandField, isOverridden, itemField, menuField } from "../src/modules/designer/whiteLabeling";
 
 const look = (part: Partial<ThemeLook> = {}): ThemeLook => ({ brand: {}, light: {}, dark: {}, ...part });
 
@@ -146,15 +146,19 @@ test("a field white-labeling sets for the visitor is marked: the logos, the pale
   assert.equal(isOverridden(overridden, brandField("logoUrl")), true);
   assert.equal(isOverridden(overridden, brandField("faviconUrl")), false);
   assert.equal(isOverridden(overridden, "palette"), true);
-  assert.equal(isOverridden(overridden, menuField(footerMenu, "menu")), true);
+  // the footer links replace a footer-menu block whole, not only its menu
+  assert.equal(isOverridden(overridden, itemField(footerMenu)), true);
+  assert.equal(isOverridden(overridden, menuField(footerMenu, "menu")), false);
   assert.equal(isOverridden(overridden, menuField(header, "catalog_menu")), false);
   // the main menu replaces the header's category menu only: the icons menu stays the theme's
   assert.equal(isOverridden(["menus.header"], menuField(header, "catalog_menu")), true);
   assert.equal(isOverridden(["menus.header"], menuField(header, "icons_menu")), false);
   // another section of the header, or a menu of a footer section of its own, is the theme's
   assert.equal(isOverridden(["menus.header"], menuField({ ...header, type: "announcement-bar" }, "catalog_menu")), false);
-  assert.equal(isOverridden(["menus.footer"], menuField({ ...footerMenu, kind: "section" }, "menu")), false);
+  assert.equal(isOverridden(["menus.footer"], itemField({ ...footerMenu, kind: "section" })), false);
+  assert.equal(isOverridden(["menus.header"], itemField(header)), false);
   // a page's own section has no group: white-labeling does not replace its menus
   assert.equal(isOverridden([...overridden, "menus.header"], menuField(undefined, "catalog_menu")), false);
+  assert.equal(isOverridden(overridden, itemField(undefined)), false);
   assert.equal(isOverridden(undefined, "palette"), false);
 });

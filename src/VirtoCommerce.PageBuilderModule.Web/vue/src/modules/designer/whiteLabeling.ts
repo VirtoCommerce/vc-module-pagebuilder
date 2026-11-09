@@ -15,18 +15,25 @@ export interface GroupItem {
   kind: "section" | "block";
 }
 
-/**
- * The menu settings white-labeling replaces: its main menu the header's category menu (not the icons menu), its footer
- * links the footer's columns
- */
+const same = (a: GroupItem, b: GroupItem) => a.group === b.group && a.kind === b.kind && a.type === b.type;
+
+/** The menu settings white-labeling replaces: its main menu the header's category menu, not the icons menu */
 const MENU_FIELDS: readonly (GroupItem & { field: string; overriddenBy: WhiteLabelingField })[] = [
   { group: "header", kind: "section", type: "site-header", field: "catalog_menu", overriddenBy: "menus.header" },
-  { group: "footer", kind: "block", type: "footer-menu", field: "menu", overriddenBy: "menus.footer" },
+];
+
+/** The items white-labeling replaces whole: its footer links are the footer's columns, heading and links included */
+const REPLACED_ITEMS: readonly (GroupItem & { overriddenBy: WhiteLabelingField })[] = [
+  { group: "footer", kind: "block", type: "footer-menu", overriddenBy: "menus.footer" },
 ];
 
 /** The white-labeling field a `menu` setting of the item is, when white-labeling replaces it */
 export const menuField = (item: GroupItem | undefined, field: string | undefined): WhiteLabelingField | undefined =>
-  item && MENU_FIELDS.find((x) => x.group === item.group && x.kind === item.kind && x.type === item.type && x.field === field)?.overriddenBy;
+  item && MENU_FIELDS.find((x) => same(x, item) && x.field === field)?.overriddenBy;
+
+/** The white-labeling field the whole item is, when white-labeling replaces it */
+export const itemField = (item: GroupItem | undefined): WhiteLabelingField | undefined =>
+  item && REPLACED_ITEMS.find((x) => same(x, item))?.overriddenBy;
 
 /** Whether white-labeling set the field for the visitor the preview shows */
 export const isOverridden = (overridden: readonly string[] | undefined, field: WhiteLabelingField | undefined) =>

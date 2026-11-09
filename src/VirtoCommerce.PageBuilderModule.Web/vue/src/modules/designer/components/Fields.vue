@@ -1,5 +1,11 @@
 <template>
   <div class="pd-fields">
+    <VcHint
+      v-if="isOverridden(overridden, itemField(groupItem))"
+      class="pd-fields__overridden"
+    >
+      {{ $t("PAGE_BUILDER.DESIGNER.WHITE_LABELING") }}
+    </VcHint>
     <template
       v-for="field in shown"
       :key="field.id ?? field.label"
@@ -317,7 +323,7 @@ import { VcButton, VcColorInput, VcEditor, VcHint, VcIcon, VcInput, VcSelect, Vc
 import { PageAnchorsKey, PaletteTokensKey, StoreMenusKey, WhiteLabelingKey, type Field, type RemoteRequest } from "../types";
 import { menuOptions } from "../storeMenus";
 import { tokenOptions, type TokenOption } from "../themeLook";
-import { isOverridden, menuField, type GroupItem } from "../whiteLabeling";
+import { isOverridden, itemField, menuField, type GroupItem } from "../whiteLabeling";
 import { fill, isVisible, pick, schemaRequest, valuesOf } from "../schema";
 import { translationOf, withTranslation, type Translating } from "../translatable";
 import { SEARCH_DEBOUNCE_MS, requestResult, runSearch, searchDisplayValue, type SearchField, type SearchValue } from "../search";
@@ -329,7 +335,7 @@ const props = defineProps<{
   values: Record<string, unknown>;
   /** what visibility expressions see as `this` */
   context: Record<string, unknown>;
-  /** the item edited, when it is a header's or footer's: white-labeling may replace some of its `menu` settings */
+  /** the item edited, when it is a header's or footer's: white-labeling may replace it or some of its `menu` settings */
   groupItem?: GroupItem;
   /** the item is a theme file's: its translatable texts are edited in this language */
   translation?: Translating;

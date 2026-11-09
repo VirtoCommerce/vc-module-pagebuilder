@@ -229,8 +229,8 @@ designer's "Site uses … (rule N)" chip, a content page's Template hint and the
 
 The designer marks the fields in `overriddenByWhiteLabeling`, so the editor sees why a change to them does not show:
 the brand fields and the palette on the Theme tab, `menus.header` on the `catalog_menu` setting of `site-header`,
-`menus.footer` on the `menu` setting of the footer's `footer-menu` blocks. White-labeling replaces no other menu: the
-header's icons menu is the theme's. The Angular designer drops `resolved`.
+`menus.footer` on each of the footer's `footer-menu` blocks, which the footer links replace whole (heading, menu and
+links). White-labeling replaces no other menu: the header's icons menu is the theme's. The Angular designer drops `resolved`.
 
 ## Inline editing
 
