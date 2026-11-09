@@ -19,7 +19,10 @@ const title = { id: "title", type: "string", label: "Title", translatable: true 
 const SCHEMAS: Schemas = {
   sections: {
     hero: { name: "Hero", settings: [title] },
-    "product-info": { name: "Product info", settings: [] },
+    "product-info": {
+      name: "Product info",
+      settings: [{ id: "variationsLayout", type: "select", default: "b2b", options: [{ value: "b2b", label: "B2B" }, { value: "b2c", label: "B2C" }] }],
+    },
     "site-header": { name: "Header", groups: ["header"], settings: [{ id: "announcement", type: "string", translatable: true }] },
     "site-footer": { name: "Footer", groups: ["footer"], settings: [] },
   },
@@ -376,6 +379,24 @@ describe("useDesigner: translatable settings and the main section", () => {
     designer.checked.value = ["hero-t", "info-1"];
     expect(designer.removeChecked()).toBe(LOCKED);
     expect(designer.doc.value.content.filter((x) => !x.__group).map((x) => x.id)).toEqual(["info-1"]);
+  });
+
+  it("puts a missing main section back with the defaults its schema declares", async () => {
+    themeFiles["default/templates/product.json"] = { ...PRODUCT_TEMPLATE, content: [PRODUCT_TEMPLATE.content[0]] };
+    await openTemplate();
+    expect(designer.mainSection.value).toEqual({ type: "product-info", state: "missing" });
+
+    designer.restoreMainSection();
+    const main = designer.doc.value.content.find((x) => x.type === "product-info");
+    expect(main).toMatchObject({ type: "product-info", variationsLayout: "b2b" });
+    expect(designer.mainSection.value).toEqual({ type: "product-info", state: "shown" });
+  });
+
+  it("starts a template without a file from its main section, with the defaults its schema declares", async () => {
+    delete themeFiles["default/templates/product.json"];
+    await openTemplate();
+
+    expect(designer.doc.value.content.filter((x) => !x.__group)).toEqual([expect.objectContaining({ type: "product-info", variationsLayout: "b2b" })]);
   });
 
   it("lets one of two main sections go", async () => {

@@ -174,7 +174,7 @@
               :class="{
                 'pd-rules__rule--off': rule.disabled,
                 'pd-rules__rule--mine': rule.template?.trim() === templateKey,
-                'pd-rules__rule--hit': resolvedHere && resolved?.ruleId === rule.id,
+                'pd-rules__rule--hit': pickedHere && picked?.ruleId === rule.id,
               }"
             >
               <span
@@ -236,11 +236,11 @@
           </ul>
         </section>
 
-        <!-- the storefront is the only evaluator: the preview says which template it picked, by which rule -->
+        <!-- the storefront is the only evaluator: the preview says which template the rules pick, by which rule -->
         <section class="pd-rules__section">
           <h4 class="pd-rules__heading">{{ $t("PAGE_BUILDER.DESIGNER.RULES.TEST") }}</h4>
           <p
-            v-if="resolvedHere && previewed"
+            v-if="pickedHere && previewed"
             class="pd-rules__test"
           >
             <VcIcon
@@ -251,11 +251,11 @@
               {{
                 $t("PAGE_BUILDER.DESIGNER.RULES.TEST_RESULT", {
                   name: previewed.name,
-                  template: templateName(resolved!.template),
+                  template: templateName(picked!.template),
                   why:
-                    resolved!.rule === null
+                    picked!.rule === null
                       ? $t("PAGE_BUILDER.DESIGNER.RULES.TEST_DEFAULT")
-                      : $t("PAGE_BUILDER.DESIGNER.RULES.TEST_RULE", { number: resolved!.rule === undefined ? resolved!.ruleId : resolved!.rule + 1 }),
+                      : $t("PAGE_BUILDER.DESIGNER.RULES.TEST_RULE", { number: picked!.rule === undefined ? picked!.ruleId : picked!.rule + 1 }),
                 })
               }}
             </span>
@@ -334,7 +334,7 @@ import { rulesPath } from "../history";
 import { BUILT_IN_CONDITIONS, CATEGORY_CONDITION, conditionsFor, optionLabel } from "../ruleConditions";
 import { formatRules, hasOwnRules, moveItem, newRuleId, parseRules, rulesFor, rulesOf, withRules, type RuleError, type TemplateRule } from "../rules";
 import { alternateName, pageTypeOf, type PageType } from "../templates";
-import type { ConditionDescriptor, ResolvedRule } from "../previewMessages";
+import type { ConditionDescriptor, RulesPick } from "../previewMessages";
 import type { TemplateRulesState } from "../templateRules";
 import RuleForm from "./RuleForm.vue";
 
@@ -348,7 +348,8 @@ const props = defineProps<{
   theme: string;
   /** what the preview shows the template on: a product's or category's id and name, a page's permalink */
   previewed?: NamedEntity;
-  resolved?: ResolvedRule;
+  /** what the store's rules pick for what the preview shows, as the storefront reports it */
+  picked?: RulesPick;
   /** the conditions the storefront announced; none yet: the rules are shown only */
   conditions?: ConditionDescriptor[];
   /** the editor may not change the rules (builder:templates): they are shown only */
@@ -373,7 +374,7 @@ const offered = computed(() => new Map(conditionsFor(props.conditions ?? [], pro
 const setList = (next: TemplateRule[]) => (props.rules.rules.value = withRules(props.rules.rules.value, props.type, next));
 const isAlternate = computed(() => props.templateKey.includes("."));
 const mine = computed(() => rulesFor(props.rules.rules.value, props.templateKey));
-const resolvedHere = computed(() => !!props.resolved && props.resolved.pageType === props.type);
+const pickedHere = computed(() => !!props.picked && props.picked.pageType === props.type);
 
 const templateName = (key: string) => (key.includes(".") ? alternateName(key) : t("PAGE_BUILDER.DESIGNER.TEMPLATES.DEFAULT"));
 const templateExists = (key?: string) => !!key && (!key.trim().includes(".") || props.keys.includes(key.trim()));

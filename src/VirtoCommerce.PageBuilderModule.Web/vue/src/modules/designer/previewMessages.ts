@@ -94,18 +94,33 @@ export type DesignerMessage =
   // the theme settings (settings_data.json), which the snapshot does not carry
   | { type: "settings"; settings: Record<string, unknown> };
 
-/** The template the storefront rendered for the page it shows, and the rule that chose it */
-export interface Resolved {
-  url: string;
-  pageType: string;
+/** A template and the rule that chose it; null: no rule did */
+export interface TemplateChoice {
   template: string;
   ruleId: string | null;
+}
+
+/**
+ * The template the storefront rendered for the page it shows and the rule that chose it (an open template: that
+ * template, no rule), and in `rules` the template the store's rules pick for the page, the open template aside.
+ */
+export interface Resolved extends TemplateChoice {
+  url: string;
+  pageType: string;
+  rules: TemplateChoice;
   /** the theme fields white-labeling set for the visitor, which the theme does not change */
   overriddenByWhiteLabeling: string[];
 }
 
-/** `resolved` with the rule as the designer lists it: its index; null: no rule chose; undefined: one it doesn't have */
-export type ResolvedRule = Resolved & { rule: number | null | undefined };
+/**
+ * What the store's rules pick for the page the preview shows, with the rule as the designer lists it: its index; null:
+ * no rule chose (the page type's default); undefined: a rule the designer doesn't have
+ */
+export interface RulesPick extends TemplateChoice {
+  url: string;
+  pageType: string;
+  rule: number | null | undefined;
+}
 
 export interface TextEdit {
   itemId: string;
@@ -153,6 +168,9 @@ export function parseLoaded(data: unknown): Loaded | "unsupported" | undefined {
   return { catalog: catalog as Catalog, hash: catalog.hash, capabilities, conditions: known, paletteTokens: { light: tokens.light, dark: tokens.dark } };
 }
 
+const templateChoice = (data: Record<string, unknown>): TemplateChoice | undefined =>
+  isText(data.template) && (data.ruleId === null || isText(data.ruleId)) ? { template: data.template, ruleId: data.ruleId } : undefined;
+
 function parseEvent(type: unknown, data: unknown): PreviewEvent | undefined {
   switch (type) {
     case "loaded": {
@@ -172,18 +190,14 @@ function parseEvent(type: unknown, data: unknown): PreviewEvent | undefined {
       if (data.cultureName !== undefined && typeof data.cultureName !== "string") return undefined;
       return { type, itemId: data.itemId, path, value: data.value, ...(data.cultureName !== undefined ? { cultureName: data.cultureName } : {}) };
     }
-    case "resolved":
-      return isRecord(data) &&
-        typeof data.url === "string" &&
-        typeof data.pageType === "string" &&
-        isText(data.template) &&
-        (data.ruleId === null || isText(data.ruleId)) &&
-        isTextList(data.overriddenByWhiteLabeling)
-        ? {
-            type,
-            resolved: { url: data.url, pageType: data.pageType, template: data.template, ruleId: data.ruleId, overriddenByWhiteLabeling: data.overriddenByWhiteLabeling },
-          }
+    case "resolved": {
+      if (!isRecord(data) || typeof data.url !== "string" || typeof data.pageType !== "string" || !isTextList(data.overriddenByWhiteLabeling)) return undefined;
+      const rendered = templateChoice(data);
+      const rules = isRecord(data.rules) ? templateChoice(data.rules) : undefined;
+      return rendered && rules
+        ? { type, resolved: { url: data.url, pageType: data.pageType, ...rendered, rules, overriddenByWhiteLabeling: data.overriddenByWhiteLabeling } }
         : undefined;
+    }
     default:
       return undefined;
   }
@@ -321,6 +335,13 @@ export function ruleIndex(rules: TemplateRules | undefined, pageType: string, ru
   if (!rules || !(PAGE_TYPES as string[]).includes(pageType)) return undefined;
   const index = rulesOf(rules, pageType as PageType).findIndex((rule) => rule.id === ruleId);
   return index < 0 ? undefined : index;
+}
+
+/** The rules' pick `resolved` reports, with the designer's rule that made it; the rendered template is not it while a template is open */
+export function rulesPick(resolved: Resolved, rules: TemplateRules | undefined): RulesPick {
+  const { url, pageType } = resolved;
+  const { template, ruleId } = resolved.rules;
+  return { url, pageType, template, ruleId, rule: ruleIndex(rules, pageType, ruleId) };
 }
 
 export interface CatalogApi {

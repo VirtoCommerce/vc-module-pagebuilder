@@ -129,14 +129,22 @@ test("a menu setting offers each store link list once by its name, with its lang
 
 // ── white-labeling ───────────────────────────────────────────────────────────
 
-test("a field white-labeling sets for the visitor is marked: the logos, the palette, the menus of the group", () => {
+test("a field white-labeling sets for the visitor is marked: the logos, the palette, the menus it replaces", () => {
   const overridden = ["brand.logoUrl", "palette", "menus.footer"];
+  const header = { group: "header", kind: "section", type: "site-header" } as const;
+  const footerMenu = { group: "footer", kind: "block", type: "footer-menu" } as const;
   assert.equal(isOverridden(overridden, brandField("logoUrl")), true);
   assert.equal(isOverridden(overridden, brandField("faviconUrl")), false);
   assert.equal(isOverridden(overridden, "palette"), true);
-  assert.equal(isOverridden(overridden, menuField("footer")), true);
-  assert.equal(isOverridden(overridden, menuField("header")), false);
+  assert.equal(isOverridden(overridden, menuField(footerMenu, "menu")), true);
+  assert.equal(isOverridden(overridden, menuField(header, "catalog_menu")), false);
+  // the main menu replaces the header's category menu only: the icons menu stays the theme's
+  assert.equal(isOverridden(["menus.header"], menuField(header, "catalog_menu")), true);
+  assert.equal(isOverridden(["menus.header"], menuField(header, "icons_menu")), false);
+  // another section of the header, or a menu of a footer section of its own, is the theme's
+  assert.equal(isOverridden(["menus.header"], menuField({ ...header, type: "announcement-bar" }, "catalog_menu")), false);
+  assert.equal(isOverridden(["menus.footer"], menuField({ ...footerMenu, kind: "section" }, "menu")), false);
   // a page's own section has no group: white-labeling does not replace its menus
-  assert.equal(isOverridden([...overridden, "menus.header"], menuField(undefined)), false);
+  assert.equal(isOverridden([...overridden, "menus.header"], menuField(undefined, "catalog_menu")), false);
   assert.equal(isOverridden(undefined, "palette"), false);
 });

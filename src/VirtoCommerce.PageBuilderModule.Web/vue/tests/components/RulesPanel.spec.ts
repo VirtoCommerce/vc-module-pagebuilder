@@ -3,8 +3,9 @@ import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import { nextTick } from "vue";
 import RulesPanel from "../../src/modules/designer/components/RulesPanel.vue";
 import { useTemplateRules } from "../../src/modules/designer/templateRules";
-import type { ConditionDescriptor, ResolvedRule } from "../../src/modules/designer/previewMessages";
+import type { ConditionDescriptor, RulesPick } from "../../src/modules/designer/previewMessages";
 import type { TemplateRule } from "../../src/modules/designer/rules";
+import type { NamedEntity } from "../../src/modules/designer/api";
 import { fakePlatform, type FakePlatform, type Request } from "./support/fakePlatform";
 import { popup } from "./support/vcShell";
 
@@ -16,10 +17,10 @@ vi.mock("@vueuse/integrations/useSortable", () => ({
   },
 }));
 
-const nameEquals = { type: "object", settings: [{ id: "name", type: "string", label: "Name" }, { id: "equals", type: "string", label: "Value" }] };
+const nameEquals = { type: "object", element: [{ id: "name", type: "string", label: "Name" }, { id: "equals", type: "string", label: "Value" }] };
 /** the conditions a storefront announces in its handshake */
 const CONDITIONS: ConditionDescriptor[] = [
-  { name: "inCategory", pageTypes: ["product", "category"], label: "In category", value: { type: "string" } },
+  { name: "inCategory", pageTypes: ["product", "category"], label: "In category", value: { type: "list" } },
   { name: "productType", pageTypes: ["product"], label: "Product type", value: { type: "string" } },
   { name: "property", pageTypes: ["product"], label: "Property", value: nameEquals },
   { name: "path", pageTypes: ["page"], label: "Path", value: { type: "string" } },
@@ -50,7 +51,9 @@ beforeEach(() => {
     .install();
 });
 
-async function mountPanel(props: { conditions?: ConditionDescriptor[]; resolved?: ResolvedRule; templateKey?: string; file?: unknown; readonly?: boolean } = {}) {
+async function mountPanel(
+  props: { conditions?: ConditionDescriptor[]; picked?: RulesPick; previewed?: NamedEntity; templateKey?: string; file?: unknown; readonly?: boolean } = {},
+) {
   if (props.file) platform.on("GET", "/api/pagebuilder/template", JSON.stringify(props.file));
   const rules = useTemplateRules();
   await rules.load("B2B-store", "default");
@@ -64,7 +67,8 @@ async function mountPanel(props: { conditions?: ConditionDescriptor[]; resolved?
       keys: ["product", "product.printer", "product.bundle"],
       catalog: CATALOG,
       theme: "default",
-      resolved: props.resolved,
+      picked: props.picked,
+      previewed: props.previewed,
       conditions: "conditions" in props ? props.conditions : CONDITIONS,
       readonly: props.readonly,
     },
@@ -265,16 +269,18 @@ describe("RulesPanel", () => {
     expect(wrapper.find(".pd-rules__note--warning").exists()).toBe(false);
   });
 
-  it("lights up the rule the preview says chose the template", async () => {
-    const resolved: ResolvedRule = { url: "/printer-x", pageType: "product", template: "product.bundle", ruleId: "r-bundle", rule: 1, overriddenByWhiteLabeling: [] };
-    const { wrapper } = await mountPanel({ resolved });
+  it("lights up the rule the preview says the rules pick, and names its template in Test", async () => {
+    const picked: RulesPick = { url: "/printer-x", pageType: "product", template: "product.bundle", ruleId: "r-bundle", rule: 1 };
+    const { wrapper } = await mountPanel({ picked, previewed: { id: "printer-x", name: "Printer X" } });
 
     expect(rows(wrapper).map((x) => x.classes().includes("pd-rules__rule--hit"))).toEqual([false, true, false]);
+    expect(wrapper.find(".pd-rules__test").text()).toContain("Bundle");
+    expect(wrapper.find(".pd-rules__test").text()).toContain("2");
   });
 
   it("lights up no rule for a verdict about another page type", async () => {
-    const resolved: ResolvedRule = { url: "/printers", pageType: "category", template: "category", ruleId: "r-bundle", rule: 1, overriddenByWhiteLabeling: [] };
-    const { wrapper } = await mountPanel({ resolved });
+    const picked: RulesPick = { url: "/printers", pageType: "category", template: "category", ruleId: "r-bundle", rule: 1 };
+    const { wrapper } = await mountPanel({ picked });
 
     expect(wrapper.find(".pd-rules__rule--hit").exists()).toBe(false);
   });

@@ -44,11 +44,8 @@ const isFilledTextList = (value: unknown): value is string[] => isTextList(value
 /** The conditions the storefront announced for a page type, in its order */
 export const conditionsFor = (descriptors: ConditionDescriptor[], type: PageType) => descriptors.filter((x) => x.pageTypes.includes(type));
 
-/** An object field's own fields: `element` in the storefront's section schemas, `settings` in its condition descriptors */
-const subFields = (field: Field): Field[] => {
-  const list = field.element ?? field.settings;
-  return Array.isArray(list) ? (list as Field[]) : [];
-};
+/** An object field's own fields, under `element` as in the storefront's section schemas */
+const subFields = (field: Field): Field[] => (Array.isArray(field.element) ? field.element : []);
 
 const isTextListField = (field: Field) => (field.type === "list" && !subFields(field).length) || (field.type === "string" && !!field.multiple);
 

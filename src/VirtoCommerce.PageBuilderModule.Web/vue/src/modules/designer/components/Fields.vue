@@ -95,7 +95,7 @@
         <VcHint v-if="field.info">{{ field.info }}</VcHint>
         <VcHint v-if="menuFailed">{{ $t("PAGE_BUILDER.DESIGNER.MENUS_FAILED") }}</VcHint>
         <VcHint
-          v-if="isOverridden(overridden, menuField(group))"
+          v-if="isOverridden(overridden, menuField(groupItem, field.id))"
           class="pd-fields__overridden"
         >
           {{ $t("PAGE_BUILDER.DESIGNER.WHITE_LABELING") }}
@@ -158,7 +158,6 @@
         <Fields
           :fields="field.element ?? []"
           :values="objectOf(field)"
-          :group="group"
           :translation="translation"
           :context="{ ...context, item: objectOf(field), parent: context }"
           @update="(id, value) => set(field, { ...objectOf(field), [id]: value })"
@@ -222,7 +221,6 @@
           <Fields
             v-if="openRow === `${field.id}:${index}`"
             class="pd-fields__row-body"
-            :group="group"
             :translation="translation"
             :fields="field.element ?? []"
             :values="rowOf(row)"
@@ -316,10 +314,10 @@
 import { computed, inject, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { VcButton, VcColorInput, VcEditor, VcHint, VcIcon, VcInput, VcSelect, VcSwitch, VcTextarea, type CustomToolbarButton, type CustomToolbarItem } from "@vc-shell/framework/ui";
-import { PageAnchorsKey, PaletteTokensKey, StoreMenusKey, WhiteLabelingKey, type Field, type RemoteRequest, type SectionGroup } from "../types";
+import { PageAnchorsKey, PaletteTokensKey, StoreMenusKey, WhiteLabelingKey, type Field, type RemoteRequest } from "../types";
 import { menuOptions } from "../storeMenus";
 import { tokenOptions, type TokenOption } from "../themeLook";
-import { isOverridden, menuField } from "../whiteLabeling";
+import { isOverridden, menuField, type GroupItem } from "../whiteLabeling";
 import { fill, isVisible, pick, schemaRequest, valuesOf } from "../schema";
 import { translationOf, withTranslation, type Translating } from "../translatable";
 import { SEARCH_DEBOUNCE_MS, requestResult, runSearch, searchDisplayValue, type SearchField, type SearchValue } from "../search";
@@ -331,8 +329,8 @@ const props = defineProps<{
   values: Record<string, unknown>;
   /** what visibility expressions see as `this` */
   context: Record<string, unknown>;
-  /** the section group of the item edited: its `menu` settings are white-labeling's to replace */
-  group?: SectionGroup;
+  /** the item edited, when it is a header's or footer's: white-labeling may replace some of its `menu` settings */
+  groupItem?: GroupItem;
   /** the item is a theme file's: its translatable texts are edited in this language */
   translation?: Translating;
 }>();

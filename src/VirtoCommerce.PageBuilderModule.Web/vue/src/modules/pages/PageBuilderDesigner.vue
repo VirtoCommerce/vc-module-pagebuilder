@@ -449,7 +449,7 @@
           :catalog="catalog"
           :theme="themeName"
           :previewed="previewed"
-          :resolved="resolved"
+          :picked="rulesChoice"
           :conditions="designer.handshake.value?.conditions"
           :readonly="!mayEditTemplates"
           @close="rulesOpen = false"
@@ -617,7 +617,7 @@ import {
   ensureCatalog,
   handshakeMessages,
   renderMessage,
-  ruleIndex,
+  rulesPick,
   selectionFrom,
   type ColorScheme,
   type DesignerMessage,
@@ -626,7 +626,7 @@ import {
   type RenderInput,
   type RenderMessage,
   type Resolved,
-  type ResolvedRule,
+  type RulesPick,
 } from "../designer/previewMessages";
 import {
   loadStorefront,
@@ -1756,12 +1756,10 @@ const rulesOpen = ref(false);
 const switcherShown = computed(() => !designer.shared.value && !!themeName.value && mayEditTemplates);
 /** the template the storefront rendered for what the preview shows, as the preview reports it */
 const reported = ref<Resolved>();
-/** with the designer's rule the storefront names, by its id: the rules may have changed since */
-const resolved = computed<ResolvedRule | undefined>(
-  () => reported.value && { ...reported.value, rule: ruleIndex(rules.loaded.value ? rules.rules.value : undefined, reported.value.pageType, reported.value.ruleId) },
-);
+/** what the store's rules pick for that page, an open template aside, with the designer's rule by its id: the rules may have changed since */
+const rulesChoice = computed<RulesPick | undefined>(() => reported.value && rulesPick(reported.value, rules.loaded.value ? rules.rules.value : undefined));
 /** why: the designer's rule that chose it, or none */
-const whyOf = (r: ResolvedRule) =>
+const whyOf = (r: RulesPick) =>
   r.rule === null
     ? t("PAGE_BUILDER.DESIGNER.RULES.TEST_DEFAULT")
     : t("PAGE_BUILDER.DESIGNER.RULES.TEST_RULE", { number: r.rule === undefined ? (r.ruleId ?? "") : r.rule + 1 });
@@ -1876,7 +1874,7 @@ async function createTemplate() {
 /** "Rules pick: Printer · rule 2" for the entity the preview shows (the site's choice, not the template edited) */
 const inEffect = computed(() => {
   const key = designer.templateKey.value;
-  const r = resolved.value;
+  const r = rulesChoice.value;
   if (!key || !r || r.pageType !== designer.pageType.value) return undefined;
   const why = whyOf(r);
   const other = r.template !== key;
@@ -1904,7 +1902,7 @@ watchEffect(() => {
     });
   } else if (page) {
     const chosen = designer.doc.value.settings.template;
-    const r = resolved.value?.pageType === "page" ? resolved.value : undefined;
+    const r = rulesChoice.value?.pageType === "page" ? rulesChoice.value : undefined;
     let info = t("PAGE_BUILDER.DESIGNER.TEMPLATES.TEMPLATE_HINT");
     if (typeof chosen === "string" && chosen) info = t("PAGE_BUILDER.DESIGNER.TEMPLATES.TEMPLATE_CHOSEN", { name: templateName(chosen) });
     else if (r)

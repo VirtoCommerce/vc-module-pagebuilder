@@ -12,6 +12,7 @@ import {
   parsePreviewMessage,
   renderMessage,
   ruleIndex,
+  rulesPick,
   selectionFrom,
   storefrontPath,
   storefrontRoute,
@@ -92,10 +93,45 @@ test("select names a section, or a block and its section", () => {
   assert.deepEqual(parsePreviewMessage(fromPreview({ sectionId: "s1", blockId: "b1" }, "select")), { type: "select", sectionId: "s1", blockId: "b1" });
 });
 
-test("resolved carries the url, the template, the rule's id and what white-labeling overrides", () => {
-  const data = { url: "/product/p1", pageType: "product", template: "product.b2c", ruleId: "product-0", overriddenByWhiteLabeling: ["palette", "brand.logoUrl"] };
+test("resolved carries the url, the template rendered, the rules' pick and what white-labeling overrides", () => {
+  const data = {
+    url: "/product/p1",
+    pageType: "product",
+    template: "product.b2c",
+    ruleId: "product-0",
+    rules: { template: "product.b2c", ruleId: "product-0" },
+    overriddenByWhiteLabeling: ["palette", "brand.logoUrl"],
+  };
   assert.deepEqual(parsePreviewMessage(fromPreview(data, "resolved")), { type: "resolved", resolved: data });
-  assert.deepEqual(parsePreviewMessage(fromPreview({ ...data, ruleId: null }, "resolved")), { type: "resolved", resolved: { ...data, ruleId: null } });
+  // an open template is rendered by no rule; the rules' own pick comes apart
+  const open = { ...data, template: "product.printer", ruleId: null, rules: { template: "product", ruleId: null } };
+  assert.deepEqual(parsePreviewMessage(fromPreview(open, "resolved")), { type: "resolved", resolved: open });
+});
+
+test("a resolved without the rules' pick, or with one of another shape, is dropped", async () => {
+  const data = { url: "/product/p1", pageType: "product", template: "product", ruleId: null, overriddenByWhiteLabeling: [] };
+  const calls = await warnings(() => {
+    assert.equal(parsePreviewMessage(fromPreview(data, "resolved")), undefined);
+    assert.equal(parsePreviewMessage(fromPreview({ ...data, rules: { template: "", ruleId: null } }, "resolved")), undefined);
+    assert.equal(parsePreviewMessage(fromPreview({ ...data, rules: { template: "product", ruleId: 3 } }, "resolved")), undefined);
+  });
+  assert.equal(calls.length, 3);
+});
+
+test("the rules' pick names the designer's rule by its index; the template rendered does not count", () => {
+  const rules = readRules({ product: [{ id: "r-a", template: "product.a" }, { id: "r-b", template: "product.b" }] });
+  const resolved = {
+    url: "/product/p1",
+    pageType: "product",
+    template: "product.printer",
+    ruleId: null,
+    rules: { template: "product.b", ruleId: "r-b" },
+    overriddenByWhiteLabeling: [],
+  };
+  assert.deepEqual(rulesPick(resolved, rules), { url: "/product/p1", pageType: "product", template: "product.b", ruleId: "r-b", rule: 1 });
+  assert.equal(rulesPick({ ...resolved, rules: { template: "product", ruleId: null } }, rules).rule, null);
+  assert.equal(rulesPick({ ...resolved, rules: { template: "product.c", ruleId: "r-gone" } }, rules).rule, undefined);
+  assert.equal(rulesPick(resolved, undefined).rule, undefined);
 });
 
 test("edit keeps the language of a translatable text", () => {
@@ -451,7 +487,7 @@ test("select, hover and resolved reach the designer once the storefront announce
   await preview.receive(fromPreview({ sectionId: "s1" }, "select"));
   assert.deepEqual(preview.events, []);
   await preview.receive(fromPreview(loadedData()));
-  const resolved = { url: "/product/p1", pageType: "product", template: "product", ruleId: null, overriddenByWhiteLabeling: [] };
+  const resolved = { url: "/product/p1", pageType: "product", template: "product", ruleId: null, rules: { template: "product", ruleId: null }, overriddenByWhiteLabeling: [] };
   await preview.receive(fromPreview({ sectionId: "s1", blockId: "b1" }, "select"));
   await preview.receive(fromPreview({ sectionId: null }, "hover"));
   await preview.receive(fromPreview(resolved, "resolved"));

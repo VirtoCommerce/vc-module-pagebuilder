@@ -101,7 +101,7 @@
         :fields="tabFields"
         :values="values"
         :context="context"
-        :group="sel.kind === 'page' ? undefined : designer.selectedSection.value?.__group"
+        :group-item="groupItem"
         :translation="designer.translating(sel.kind === 'page' ? undefined : designer.selectedSection.value)"
         @update="designer.setField"
       />
@@ -142,6 +142,7 @@ import type { Designer } from "../useDesigner";
 import type { Selection } from "../types";
 import { iconOf, itemTitle } from "../schema";
 import { isComponentRef } from "../document";
+import type { GroupItem } from "../whiteLabeling";
 import Fields from "./Fields.vue";
 
 const props = defineProps<{ designer: Designer; selection: Selection }>();
@@ -150,6 +151,12 @@ const emit = defineEmits<{ copy: []; paste: []; close: []; "edit-shared": [compo
 const { t } = useI18n({ useScope: "global" });
 const sel = computed(() => props.selection);
 const item = computed(() => props.designer.selectedItem.value);
+/** the header's or footer's section or block edited */
+const groupItem = computed<GroupItem | undefined>(() => {
+  const kind = sel.value.kind;
+  const group = props.designer.selectedSection.value?.__group;
+  return kind !== "page" && group && item.value ? { group, type: item.value.type, kind } : undefined;
+});
 const schema = computed(() => (sel.value.kind === "block" ? props.designer.blockSchema(item.value?.type) : props.designer.sectionSchema(item.value?.type)));
 
 // a placed shared component: no fields here (it is edited as the component), only its info and Detach

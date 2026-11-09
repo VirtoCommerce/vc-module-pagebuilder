@@ -2,8 +2,10 @@
 // schema field has `"translatable": true` holds a string, the same in every language, or a dictionary from language
 // to text. The publication resolves the dictionaries; the preview's draft shows the text of its language.
 
-/** A language name with a subtag ("en-US"), as the server reads the keys of a dictionary */
-const LANGUAGE = /^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})+$/;
+/** A culture name of BCP-47 shape ("en", "en-US", "sr-Latn-RS"), as the server reads the keys of a dictionary */
+const LANGUAGE = /^[a-z]{2,3}(-[a-z0-9]{2,8})*$/i;
+/** One with a subtag: a dictionary has one, so that a row such as `{ "sku": "X1" }` is not taken for one */
+const LANGUAGE_WITH_SUBTAG = /^[a-z]{2,3}(-[a-z0-9]{2,8})+$/i;
 
 export type Translations = Record<string, string>;
 
@@ -14,15 +16,27 @@ export interface Translating {
   languages?: string[];
 }
 
-/** A dictionary: every key a language name, every value a text */
+/** A dictionary: every key a culture name, one of them with a subtag, every value a text */
 export function isTranslations(value: unknown): value is Translations {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const entries = Object.entries(value);
-  return entries.length > 0 && entries.every(([key, text]) => LANGUAGE.test(key) && typeof text === "string");
+  return entries.some(([key]) => LANGUAGE_WITH_SUBTAG.test(key)) && entries.every(([key, text]) => LANGUAGE.test(key) && typeof text === "string");
 }
 
 const keyOf = (translations: Translations, language: string) =>
   language in translations ? language : Object.keys(translations).find((x) => x.toLowerCase() === language.toLowerCase());
+
+const languagePart = (language: string) => language.split("-")[0].toLowerCase();
+
+/**
+ * The key whose text a language shows without its own, as the publication picks it: its language part ("de" for
+ * "de-AT"), else a culture of that language ("de-DE"), else the store default language, else the first
+ */
+function fallbackKeyOf(translations: Translations, language: string, defaultLanguage: string): string {
+  const part = languagePart(language);
+  const keys = Object.keys(translations);
+  return keyOf(translations, part) ?? keys.find((x) => languagePart(x) === part) ?? keyOf(translations, defaultLanguage) ?? keys[0];
+}
 
 export interface Translation {
   /** the language's own text; none: it shows `fallback` */
@@ -35,12 +49,12 @@ export interface Translation {
 
 /**
  * A translatable setting as the language sees it. A plain string is the default language's text and every other
- * language's fallback; a dictionary falls back to the default language's text, else its first, as the publication does.
+ * language's fallback; a dictionary falls back as the publication picks the text (`fallbackKeyOf`).
  */
 export function translationOf(value: unknown, at: Translating): Translation {
   if (isTranslations(value)) {
     const own = keyOf(value, at.language);
-    const fallbackKey = keyOf(value, at.defaultLanguage) ?? Object.keys(value)[0];
+    const fallbackKey = fallbackKeyOf(value, at.language, at.defaultLanguage);
     return {
       ...(own ? { own: value[own] } : {}),
       ...(!own ? { fallback: { text: value[fallbackKey], language: fallbackKey } } : {}),

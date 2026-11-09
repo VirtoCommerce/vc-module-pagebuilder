@@ -19,9 +19,13 @@ const de: Translating = { language: "de-DE", defaultLanguage: "en-US" };
 
 // ── translatable settings ─────────────────────────────────────────────────────
 
-test("a dictionary is language names with a subtag to texts, as the server reads it", () => {
+test("a dictionary is culture names to texts, one of them with a subtag, as the server reads it", () => {
   assert.equal(isTranslations({ "en-US": "Hi", "de-DE": "Hallo" }), true);
+  assert.equal(isTranslations({ "en-US": "Hi", "sr-Latn-RS": "Zdravo", de: "Hallo", "EN-gb": "Hello" }), true);
+  // without a culture name with a subtag, a row such as a list's { sku } stays a row
   assert.equal(isTranslations({ en: "Hi" }), false);
+  assert.equal(isTranslations({ sku: "X1" }), false);
+  assert.equal(isTranslations({ "en-US": "Hi", title: "Hi" }), false);
   assert.equal(isTranslations({ "en-US": 1 }), false);
   assert.equal(isTranslations({}), false);
   assert.equal(isTranslations(["en-US"]), false);
@@ -39,6 +43,10 @@ test("a language sees its own text, else the default language's, else the first;
   assert.deepEqual(translationOf({ "de-DE": "Hallo" }, { ...de, language: "fr-FR" }).fallback, { text: "Hallo", language: "de-DE" });
   // the language is matched ignoring case, as the publication does
   assert.equal(translationOf({ "de-de": "Hallo" }, de).own, "Hallo");
+  // without its own: its language part, else a culture of its language, before the default language
+  const austrian = { ...de, language: "de-AT" };
+  assert.deepEqual(translationOf({ "en-US": "Hi", "de-DE": "Hallo", de: "Servus" }, austrian).fallback, { text: "Servus", language: "de" });
+  assert.deepEqual(translationOf({ "en-US": "Hi", "de-DE": "Hallo" }, austrian).fallback, { text: "Hallo", language: "de-DE" });
   assert.deepEqual(translationOf("Free shipping", en), { own: "Free shipping", languages: ["en-US"] });
   assert.deepEqual(translationOf("Free shipping", de), { fallback: { text: "Free shipping" }, languages: [] });
   assert.deepEqual(translationOf(undefined, de), { languages: [] });

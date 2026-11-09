@@ -29,9 +29,9 @@ import {
 } from "../src/modules/designer/ruleConditions";
 
 /** The storefront's built-in conditions as its handshake announces them (vc-frontend templates/conditions.ts) */
-const nameEquals = { type: "object", settings: [{ id: "name", type: "string", label: "Name" }, { id: "equals", type: "string", label: "Value" }] };
+const nameEquals = { type: "object", element: [{ id: "name", type: "string", label: "Name" }, { id: "equals", type: "string", label: "Value" }] };
 const DESCRIPTORS: ConditionDescriptor[] = [
-  { name: "inCategory", pageTypes: ["product", "category"], label: "In category", value: { type: "string", label: "Category ids, comma-separated" } },
+  { name: "inCategory", pageTypes: ["product", "category"], label: "In category", value: { type: "list", label: "Category ids" } },
   { name: "productType", pageTypes: ["product"], label: "Product type", value: { type: "string" } },
   { name: "property", pageTypes: ["product"], label: "Property", value: nameEquals },
   { name: "path", pageTypes: ["page"], label: "Path", value: { type: "string", label: "Path, * matches any characters" } },
@@ -271,8 +271,11 @@ test("each condition's form comes from its value schema; inCategory is the categ
   assert.deepEqual(input("inCategory"), { kind: "categories" });
   assert.deepEqual(input("path"), { kind: "field", field: { type: "string", label: "Path, * matches any characters", id: "path" } });
   assert.deepEqual(input("source"), { kind: "field", field: { ...DESCRIPTORS[5].value, id: "source" } });
-  // `settings` of a descriptor are the object's fields, as `element` in a section schema
-  assert.deepEqual(input("property"), { kind: "field", field: { ...nameEquals, id: "property", element: nameEquals.settings } });
+  // an object's fields are its `element`, as in a section schema; `settings` are not read
+  assert.deepEqual(input("property"), { kind: "field", field: { ...nameEquals, id: "property" } });
+  const bySettings: ConditionDescriptor = { name: "property", pageTypes: ["product"], value: { type: "object", settings: nameEquals.element } };
+  assert.deepEqual(conditionInput(bySettings), { kind: "field", field: { ...bySettings.value, id: "property" } });
+  assert.equal(checkCondition(bySettings, { name: "x" }), undefined);
   // a plugin's list of texts
   const tiers: ConditionDescriptor = { name: "loyalty.tier", pageTypes: ["product"], value: { type: "list" } };
   assert.deepEqual(conditionInput(tiers), { kind: "texts" });
