@@ -276,20 +276,22 @@ export interface DraftInput {
   rules?: TemplateRules;
   /** the header's and footer's sections; none: the page has no Header and Footer */
   groups?: Partial<Record<SectionGroup, Item[]>>;
+  /** every template of the theme as the designer has it; none: the published ones */
   templates?: Record<string, PageDocument>;
   /** the brand and palette as the Theme tab has them; none: not loaded */
   look?: { brand?: Brand; palette?: Palette };
   capabilities: string[];
 }
 
-/** The theme the preview shows in place of the published one; the groups only to a storefront that renders them */
+/** The theme the preview shows in place of the published one; the templates and the groups only to a storefront that renders them */
 export function draftMessage(input: DraftInput): DraftMessage {
   const groups = input.capabilities.includes("groups") ? input.groups : undefined;
+  const templates = input.capabilities.includes("templates") ? input.templates : undefined;
   return {
     type: "draft",
     theme: {
       ...(input.rules ? { rules: input.rules } : {}),
-      ...(input.templates ? { templates: input.templates } : {}),
+      ...(templates ? { templates } : {}),
       ...(groups?.header ? { header: { content: groups.header } } : {}),
       ...(groups?.footer ? { footer: { content: groups.footer } } : {}),
       ...(input.look?.brand ? { brand: input.look.brand } : {}),

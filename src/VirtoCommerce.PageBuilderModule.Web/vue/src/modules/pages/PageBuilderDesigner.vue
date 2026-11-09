@@ -577,7 +577,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, h, inject, onBeforeUnmount, onMounted, provide, ref, watch, watchEffect } from "vue";
+import { computed, h, inject, onBeforeUnmount, onMounted, provide, ref, shallowRef, watch, watchEffect } from "vue";
 import { useEventListener, useLocalStorage, useMediaQuery } from "@vueuse/core";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
@@ -649,6 +649,7 @@ import {
   searchProducts,
   templateKeys,
   findFilePage,
+  findTemplate,
   loadThemeFile,
   type CatalogContext,
   type NamedEntity,
@@ -668,7 +669,8 @@ import {
   type ThemePart,
 } from "../designer/history";
 import { publishActions, themeErrors, themePublishButton } from "../designer/themePublication";
-import type { Field, Item, SectionGroup, Selection } from "../designer/types";
+import type { Field, Item, PageDocument, SectionGroup, Selection } from "../designer/types";
+import { draftTemplates, savedTemplatesReader } from "../designer/templateDrafts";
 import TemplateSwitcher from "../designer/components/TemplateSwitcher.vue";
 import EntityPicker from "../designer/components/EntityPicker.vue";
 import RulesPanel from "../designer/components/RulesPanel.vue";
@@ -853,16 +855,23 @@ function render(options: { scroll?: boolean; model?: Item; preview?: RenderInput
   });
 }
 
-// the theme as the designer has it: the rules, the header and footer, the brand and palettes. The open template goes in the render, which wins
-// over the draft's; a draft's templates replace all the published ones, and the designer has only the open one.
+// the theme as the designer has it: the rules, the templates, the header and footer, the brand and palettes. The open
+// template is in it as edited, and in the render, which wins over the draft's.
 function draft(groups = designer.groupsPreview.value): DraftMessage {
+  const templateKey = designer.templateKey.value;
   return draftMessage({
     rules: rules.loaded.value ? rules.rules.value : undefined,
+    templates: designer.shared.value
+      ? undefined
+      : draftTemplates(savedTemplates.value, templateKey ? { key: templateKey, document: designer.preview.value.template } : undefined),
     groups,
     look: look.draft.value,
     capabilities: designer.handshake.value?.capabilities ?? [],
   });
 }
+
+// the theme's templates as last saved; none while none has a draft
+const savedTemplates = shallowRef<Record<string, PageDocument>>();
 
 const colorScheme = ref<ColorScheme>("light");
 
@@ -1728,6 +1737,27 @@ watch(designer.templateKey, (key) => {
 let home: { groupId: string; storeId: string } | FilePage | undefined;
 const themeName = ref<string>();
 const templateKeyList = ref<string[]>([]);
+// the saved templates are read again whenever the theme's drafts are: after a save, a discard, a restore, a publication
+// or a new template
+const readSavedTemplates = savedTemplatesReader();
+let templatesRead = 0;
+watch([() => designer.themeStatus.value, themeName], async ([status, theme]) => {
+  const request = ++templatesRead;
+  const storeId = designer.storeId.value;
+  if (!status || !theme || !storeId) {
+    savedTemplates.value = undefined;
+    return;
+  }
+  try {
+    const templates = await readSavedTemplates(`${storeId}/${theme}`, status, {
+      keys: () => templateKeys(storeId, theme),
+      read: async (key) => (await findTemplate({ storeId, theme, type: "themes", path: templatePath(theme, key) })).doc,
+    });
+    if (request === templatesRead) savedTemplates.value = templates;
+  } catch {
+    // the templates read before stay
+  }
+});
 const catalog = ref<CatalogContext>();
 // what the settings panel edits translatable texts in
 watchEffect(() => {

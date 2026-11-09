@@ -110,6 +110,12 @@ The unsaved theme, whole: every template, the rules, the groups, the brand and t
 saved or not. The storefront shows it in place of the published snapshot; a part the draft leaves out comes from the
 snapshot. Each `draft` replaces the previous one entirely.
 
+`templates` holds every template of the theme, or is left out: the storefront takes it in place of all the published
+templates. Each is the template as last saved, its draft, else its live file; the open template is as the designer
+has it, saved or not, and is in `render` too. The designer leaves `templates` out while no template has a saved draft
+(the snapshot then holds them as they are live, and `render` carries the open one) and for a storefront without the
+`templates` capability.
+
 ```ts
 interface Draft {
   type: "draft";

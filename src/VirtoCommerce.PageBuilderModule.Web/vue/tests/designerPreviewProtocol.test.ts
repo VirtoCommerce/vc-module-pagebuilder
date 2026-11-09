@@ -268,6 +268,14 @@ test("the draft: the rules and the header and footer, to a storefront that rende
   assert.deepEqual(draftMessage({ capabilities: ["groups"] }), { type: "draft", theme: {} });
 });
 
+test("the draft carries the templates to a storefront that renders them from the draft", () => {
+  const templates = { product: { settings: {} as Item, content: [{ id: "p1", type: "product-info" }] } };
+  assert.deepEqual(draftMessage({ templates, capabilities: ["templates"] }), { type: "draft", theme: { templates } });
+  assert.deepEqual(draftMessage({ templates, capabilities: ["groups"] }), { type: "draft", theme: {} });
+  // none: the published ones
+  assert.deepEqual(draftMessage({ capabilities: ["templates"] }), { type: "draft", theme: {} });
+});
+
 test("the draft carries the brand and the palette the Theme tab has, whatever the storefront renders of the groups", () => {
   const brand = { logoUrl: "/logo.svg" };
   const palette = { light: { color_primary_500: "#f99e24" } };

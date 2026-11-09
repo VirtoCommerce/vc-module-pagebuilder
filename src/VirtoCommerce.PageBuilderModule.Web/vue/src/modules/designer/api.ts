@@ -367,11 +367,11 @@ export async function storeMenus(storeId: string): Promise<unknown[]> {
   return Array.isArray(lists) ? lists : [];
 }
 
-/** The theme's templates, by key ("product", "product.printer", …): its templates/ folder, drafts included */
+/** The theme's templates, by key ("product", "product.printer", …): its templates/ folder, drafts included; 404: none */
 export async function templateKeys(storeId: string, theme: string): Promise<string[]> {
   const query = new URLSearchParams({ folderUrl: `${theme}/templates` });
-  const res = await fetch(`/api/content/themes/${encodeURIComponent(storeId)}/search?${query}`, { headers: await getAuthHeaders() });
-  if (!res.ok) return [];
+  const res = await find(`/api/content/themes/${encodeURIComponent(storeId)}/search?${query}`);
+  if (!res) return [];
   const items = ((await res.json()) ?? []) as { name?: string }[];
   // a template saved only as a draft is listed as name.json-draft
   return [...new Set(items.map((x) => templateKeyOf(`templates/${x.name ?? ""}`)).filter((x): x is string => !!x))].sort();
