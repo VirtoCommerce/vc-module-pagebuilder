@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { displayText, isTranslations, translationOf, withTranslation, type Translating } from "../src/modules/designer/translatable";
+import { displayText, isTranslations, resolveTranslations, translationOf, withTranslation, type Translating } from "../src/modules/designer/translatable";
 import { itemTitle, withTextEdit } from "../src/modules/designer/schema";
 import { hidingLosesMain, keptMainSection, mainSectionState, MAIN_SECTIONS } from "../src/modules/designer/templates";
 import { runSearch, searchDisplayValue, requestResult, type SearchField } from "../src/modules/designer/search";
@@ -212,4 +212,26 @@ test("a token is used again for its user until a minute before it expires", () =
   assert.equal(usableToken(token, "u1", 540_001), undefined);
   assert.equal(usableToken(token, "u2", 0), undefined);
   assert.equal(usableToken(undefined, "u1", 0), undefined);
+});
+
+test("resolveTranslations: every dictionary, however deep, as one language's text, picked as the publication picks it", () => {
+  const item = {
+    id: "hero-1",
+    type: "hero",
+    title: { "en-US": "Hello", "de-DE": "Hallo", "de-AT": "Servus" },
+    links: [{ label: { "en-US": "Shop", "de-DE": "Laden" }, url: "/shop" }],
+    // a row is not a dictionary
+    row: { sku: "X1" },
+    count: 3,
+  };
+  assert.deepEqual(resolveTranslations(item, "de-AT", "en-US"), {
+    ...item,
+    title: "Servus",
+    links: [{ label: "Laden", url: "/shop" }],
+  });
+  // a language without its own text: a culture of its language, else the store default
+  assert.equal(resolveTranslations(item.links[0].label, "de-AT", "en-US"), "Laden");
+  assert.equal(resolveTranslations(item.title, "fr-FR", "en-US"), "Hello");
+  assert.equal(resolveTranslations(item.title, "", ""), "Hello");
+  assert.equal(resolveTranslations("plain", "de-DE", "en-US"), "plain");
 });

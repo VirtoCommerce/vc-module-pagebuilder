@@ -87,6 +87,20 @@ export function withTranslation(value: unknown, at: Translating, text: string): 
   return translations;
 }
 
+/**
+ * The value with every dictionary in it, however deep, as one language's text, picked as the publication picks it:
+ * the language's own, else its fallback (`fallbackKeyOf`). For what goes into a document whose texts are not kept per
+ * language.
+ */
+export function resolveTranslations<T>(value: T, language: string, defaultLanguage: string): T {
+  if (isTranslations(value)) return value[keyOf(value, language) ?? fallbackKeyOf(value, language, defaultLanguage)] as T;
+  if (Array.isArray(value)) return value.map((x) => resolveTranslations(x, language, defaultLanguage)) as T;
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value).map(([key, x]) => [key, resolveTranslations(x, language, defaultLanguage)])) as T;
+  }
+  return value;
+}
+
 /** A label's text: a plain string, else a dictionary's default language text, else its first */
 export function displayText(value: unknown, defaultLanguage?: string): string | undefined {
   if (typeof value === "string") return value;

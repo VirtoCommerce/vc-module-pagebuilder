@@ -452,6 +452,91 @@ describe("useDesigner: translatable settings and the main section", () => {
     expect(section("hero-1").title).toBe("Willkommen");
   });
 
+  const HELLO = { "en-US": "Hello", "de-DE": "Hallo" };
+  const copiedHero = { type: "section" as const, content: { id: "hero-t", type: "hero", title: HELLO, blocks: [{ id: "b1", type: "link", label: HELLO }] } };
+
+  it("pastes a template's section into a page with the text of the language edited, not the dictionary", async () => {
+    await openDatabasePage();
+    designer.selection.value = { kind: "section", id: "hero-1" };
+
+    expect(designer.paste(copiedHero)).toBeUndefined();
+
+    const pasted = designer.selectedItem.value!;
+    expect(pasted.__group).toBeUndefined();
+    expect(pasted).toMatchObject({ type: "hero", title: "Hallo", blocks: [{ type: "link", label: "Hallo" }] });
+  });
+
+  it("keeps the dictionary of a section pasted into a template or the header, which keep texts per language", async () => {
+    await openDatabasePage();
+    designer.selection.value = { kind: "section", id: "header-1" };
+    const announcement = { type: "section" as const, content: { id: "a1", type: "site-header", announcement: HELLO } };
+    designer.paste(announcement);
+    expect(designer.selectedItem.value).toMatchObject({ __group: "header", announcement: HELLO });
+
+    await openTemplate();
+    designer.selection.value = { kind: "section", id: "hero-t" };
+    designer.paste(copiedHero);
+    expect(designer.selectedItem.value).toMatchObject({ title: HELLO });
+  });
+
+  it("pastes a header section the header does not take into the page's own sections with the language's text", async () => {
+    await openDatabasePage();
+    designer.selection.value = { kind: "section", id: "header-1" };
+
+    designer.paste(copiedHero);
+
+    expect(designer.selectedItem.value).toMatchObject({ type: "hero", title: "Hallo" });
+    expect(designer.selectedItem.value!.__group).toBeUndefined();
+  });
+
+  it("pastes a block into a page's section with the language's text, and into the header's with the dictionary", async () => {
+    await openDatabasePage();
+    designer.schemas.value = { ...SCHEMAS, sections: { ...SCHEMAS.sections, hero: { ...SCHEMAS.sections.hero, blocks: ["link"] }, "site-header": { ...SCHEMAS.sections["site-header"], blocks: ["link"] } } };
+    const link = { type: "block" as const, content: { id: "b1", type: "link", label: HELLO } };
+
+    designer.selection.value = { kind: "section", id: "hero-1" };
+    designer.paste(link);
+    expect(designer.selectedItem.value).toMatchObject({ type: "link", label: "Hallo" });
+
+    designer.selection.value = { kind: "section", id: "header-1" };
+    designer.paste(link);
+    expect(designer.selectedItem.value).toMatchObject({ type: "link", label: HELLO });
+  });
+
+  it("pastes into a shared component with the language's text", async () => {
+    platform
+      .on("GET", "/api/page-builder-shared-components/c1", { id: "c1", name: "Promo" })
+      .on("GET", "/api/page-builder-shared-components/c1/content", { settings: { type: "settings" }, content: [{ id: "s1", type: "hero", title: "Promo" }] });
+    await designer.open({ sharedComponentId: "c1", storeId: STORE });
+    previewLoaded();
+    designer.selection.value = { kind: "section", id: "s1" };
+
+    designer.paste(copiedHero);
+
+    expect(designer.selectedItem.value).toMatchObject({ title: "Hallo" });
+  });
+
+  it("makes a shared component and detaches one with the language's texts, never a dictionary", async () => {
+    platform
+      .on("POST", "/api/page-builder-shared-components", { id: "c2", name: "Saved" })
+      .on("GET", "/api/page-builder-shared-components/c2", { id: "c2", name: "Saved" })
+      .on("GET", "/api/page-builder-shared-components/c2/content", { settings: { type: "settings" }, content: [{ id: "s1", type: "hero", title: HELLO }] });
+    platform.on("GET", "/api/page-builder-pages/grouped/g1/content", {
+      content: JSON.stringify({ ...PAGE, content: [{ id: "hero-1", type: "hero", title: HELLO }] }),
+      eTag: '"v1"',
+    });
+    await openDatabasePage();
+    designer.checked.value = ["hero-1"];
+
+    expect(await designer.saveCheckedAsShared("Saved")).toBeUndefined();
+    const created = platform.to("/api/page-builder-shared-components", "POST")[0].body as { content: { content: Item[] } };
+    expect(created.content.content).toEqual([{ id: "hero-1", type: "hero", title: "Hallo" }]);
+
+    // a component that holds a dictionary anyway (an older one, an agent's) comes into the page as the language's text
+    await designer.detach(designer.selection.value!.kind === "section" ? designer.selection.value!.id : "");
+    expect(designer.selectedItem.value).toMatchObject({ type: "hero", title: "Hallo" });
+  });
+
   it("keeps a template's last main section: it can't be removed or hidden, alone or among others", async () => {
     await openTemplate();
 

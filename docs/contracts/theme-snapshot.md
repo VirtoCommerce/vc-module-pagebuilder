@@ -369,6 +369,10 @@ else of its language part (`de` for `de-AT`), else of a culture of the same lang
 default language, else the first text of the dictionary; culture names are compared ignoring case. A snapshot never
 holds one.
 
+Only templates and the header and footer groups keep texts per language. A section or block the designer puts into a
+page's own sections or a shared component (a paste, Save as shared component, Detach) has each dictionary in it
+replaced by the text of the language being edited, picked as the publication picks it.
+
 ### Brand
 
 ```ts

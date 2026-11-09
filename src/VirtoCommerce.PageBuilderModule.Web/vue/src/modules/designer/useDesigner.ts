@@ -19,7 +19,7 @@ import {
   templateEntry,
   templateKeyOf,
 } from "./templates";
-import type { Translating } from "./translatable";
+import { resolveTranslations, type Translating } from "./translatable";
 import type { Capability, Handshake } from "./previewMessages";
 import { hasThemeDraft, templateStatus, type ThemeStatus } from "./themePublication";
 import type { DesignerDiscardPage, DesignerSaveFile, DesignerSavePage } from "./designerSave";
@@ -120,6 +120,17 @@ export function useDesigner() {
   function translating(section?: Item, edited = language.value): Translating | undefined {
     const defaultLanguage = languages.value.default;
     return translates(section) && edited && defaultLanguage ? { language: edited, defaultLanguage, languages: languages.value.all } : undefined;
+  }
+
+  /**
+   * An item copied or moved into the document, in `section` (the item itself when it is a section): a document that
+   * does not keep its texts per language (a page's own sections, a shared component) gets each dictionary as the text
+   * of the language edited, as the publication would pick it
+   */
+  function settled(item: Item, section: Item = item): Item {
+    if (translates(section)) return item;
+    const defaultLanguage = languages.value.default ?? "";
+    return resolveTranslations(item, language.value ?? defaultLanguage, defaultLanguage);
   }
 
   /** The open template's main section: there and shown, hidden, or missing; none when no template is open */
@@ -349,15 +360,16 @@ export function useDesigner() {
     const sel = selection.value;
     if (copied.type === "section") {
       if (isComponentRef(copied.content) && !canPlaceShared.value) return "PAGE_BUILDER.DESIGNER.SHARED_ON_PAGES_ONLY";
-      const item: Item = isComponentRef(copied.content) ? { ...copied.content, id: newId("componentRef") + newId("") } : copyItem(copied.content);
+      const copy: Item = isComponentRef(copied.content) ? { ...copied.content, id: newId("componentRef") + newId("") } : copyItem(copied.content);
       // after the selected section; into its group only if the section is for that group, else at the page's end
       let target: Item | undefined;
       if (sel?.kind === "block") target = findSection(sel.sectionId);
       else if (sel?.kind === "section") target = findSection(sel.id);
       const group = target && groupOf(target);
-      const fits = !group || !!sectionSchema(item.type)?.groups?.includes(group);
-      if (group && fits) item.__group = group;
-      else delete item.__group;
+      const fits = !group || !!sectionSchema(copy.type)?.groups?.includes(group);
+      if (group && fits) copy.__group = group;
+      else delete copy.__group;
+      const item = settled(copy);
       const at = target && fits ? doc.value.content.indexOf(target) + 1 : pageEnd();
       const content = [...doc.value.content];
       content.splice(at, 0, item);
@@ -370,7 +382,7 @@ export function useDesigner() {
     const sectionId = sel.kind === "block" ? sel.sectionId : sel.id;
     const section = findSection(sectionId);
     if (!section || !sectionSchema(section.type)?.blocks?.includes(copied.content.type)) return "PAGE_BUILDER.DESIGNER.CLIPBOARD.BLOCK_NOT_ALLOWED";
-    const block = copyItem(copied.content);
+    const block = settled(copyItem(copied.content), section);
     const blocks = [...(section.blocks ?? [])];
     blocks.splice(sel.kind === "block" ? blocks.findIndex((b) => b.id === sel.id) + 1 : blocks.length, 0, block);
     updateSection(sectionId, (x) => ({ ...x, blocks }));
@@ -406,11 +418,14 @@ export function useDesigner() {
     const sections = indexes.map((i) => doc.value.content[i]);
     if (!sections.length || indexes.some((i, n) => i < 0 || (n > 0 && i !== indexes[n - 1] + 1))) return "PAGE_BUILDER.DESIGNER.SELECT_MODE.NOT_ADJACENT";
     if (sections.some(isComponentRef)) return "PAGE_BUILDER.DESIGNER.SELECT_MODE.HAS_SHARED";
-    const component = await api.createSharedComponent(storeId.value!, name, { settings: { type: "settings" } as Item, content: sections.map((x) => ({ ...x })) });
+    // a shared component keeps no texts per language
+    const defaultLanguage = languages.value.default ?? "";
+    const content = resolveTranslations(sections, language.value ?? defaultLanguage, defaultLanguage);
+    const component = await api.createSharedComponent(storeId.value!, name, { settings: { type: "settings" } as Item, content });
     const placement: Item = { id: newId("componentRef") + newId(""), type: "componentRef", componentRef: component.id };
-    const content = doc.value.content.filter((x) => !checked.value.includes(x.id));
-    content.splice(indexes[0], 0, placement);
-    setContent(content);
+    const rest = doc.value.content.filter((x) => !checked.value.includes(x.id));
+    rest.splice(indexes[0], 0, placement);
+    setContent(rest);
     checked.value = [];
     selection.value = { kind: "section", id: placement.id };
     await loadComponents();
@@ -461,7 +476,7 @@ export function useDesigner() {
   async function detach(id: string) {
     const placement = findSection(id);
     if (!placement || !isComponentRef(placement)) return;
-    const content = (await api.sharedComponentContent(placement.componentRef)).content.map(copyItem);
+    const content = (await api.sharedComponentContent(placement.componentRef)).content.map((x) => settled(copyItem(x)));
     const index = doc.value.content.findIndex((x) => x.id === id);
     if (index < 0) return;
     const next = [...doc.value.content];
