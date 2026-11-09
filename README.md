@@ -38,6 +38,10 @@ The page is created in the builder as a list of blocks with specific settings ap
 * Permissions.
 * Platform Backup & Restore support.
 
+## Store access
+
+A role can hold `builder:read` and `builder:shared-components:read` for selected stores only (the **Only for selected stores** scope). Every Page Builder endpoint checks the store it addresses: besides its own permission, the user needs the read permission in that store, for every store or through the scope. An account bound to a store reaches that store only.
+
 ## Shared Component creation
 
 `POST /api/page-builder-shared-components` requires an existing store. An authorized request with an unknown `storeId` returns `400` naming that store, before any component, content, or asset references are written. Store-scoped authorization runs first; requests outside the user's store return `403`.

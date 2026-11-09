@@ -64,7 +64,6 @@ public class GitContentSetupController(
     /// <summary>Get git content status of the store</summary>
     [HttpGet]
     [Route("site")]
-    [Authorize(ModuleConstants.Security.Permissions.Read)]
     public async Task<ActionResult<GitContentSiteStatus>> GetSite(string storeId, CancellationToken cancellationToken = default)
     {
         if (await CheckRequestAsync(storeId, cancellationToken) is { } refused)

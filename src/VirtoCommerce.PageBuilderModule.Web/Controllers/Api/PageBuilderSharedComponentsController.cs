@@ -47,7 +47,6 @@ public class PageBuilderSharedComponentsController(
     }
 
     [HttpPost("search")]
-    [Authorize(ModuleConstants.Security.Permissions.SharedComponentsRead)]
     public async Task<ActionResult<PageBuilderSharedComponentSearchResult>> Search(
         [FromBody] PageBuilderSharedComponentSearchCriteria criteria,
         CancellationToken cancellationToken = default)
@@ -69,7 +68,6 @@ public class PageBuilderSharedComponentsController(
     }
 
     [HttpGet("{id}")]
-    [Authorize(ModuleConstants.Security.Permissions.SharedComponentsRead)]
     public async Task<ActionResult<PageBuilderSharedComponent>> Get(
         [FromRoute] string id,
         CancellationToken cancellationToken = default)
@@ -241,7 +239,6 @@ public class PageBuilderSharedComponentsController(
     }
 
     [HttpGet("{id}/content")]
-    [Authorize(ModuleConstants.Security.Permissions.SharedComponentsRead)]
     [ProducesResponseType(typeof(JObject), StatusCodes.Status200OK)]
     public async Task<ActionResult> GetContent(
         [FromRoute] string id,
@@ -337,7 +334,7 @@ public class PageBuilderSharedComponentsController(
         var result = await authorizationService.AuthorizeAsync(
             User,
             resource,
-            new PageBuilderAuthorizationRequirement());
+            new PageBuilderAuthorizationRequirement(ModuleConstants.Security.Permissions.SharedComponentsRead));
         return result.Succeeded;
     }
 

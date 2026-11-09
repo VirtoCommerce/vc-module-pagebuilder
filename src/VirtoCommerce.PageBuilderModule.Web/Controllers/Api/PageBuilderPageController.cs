@@ -66,7 +66,6 @@ public class PageBuilderPageController : Controller
     }
 
     [HttpPost("search")]
-    [Authorize(ModuleConstants.Security.Permissions.Read)]
     public async Task<ActionResult<GroupedPageBuilderPageSearchResult>> SearchGroups([FromBody] PageBuilderPageSearchCriteria criteria)
     {
         var authorizationResult = await authorizationService.AuthorizeAsync(User, criteria, new PageBuilderAuthorizationRequirement());
@@ -84,7 +83,6 @@ public class PageBuilderPageController : Controller
     /// Pages list where a Multilanguage Page is a single row with its language statuses.
     /// </summary>
     [HttpPost("list")]
-    [Authorize(ModuleConstants.Security.Permissions.Read)]
     public async Task<ActionResult<PageBuilderPageListSearchResult>> SearchList(
         [FromBody] PageBuilderPageSearchCriteria criteria,
         [FromServices] IPageBuilderPageListService pageListService,
@@ -108,7 +106,6 @@ public class PageBuilderPageController : Controller
     /// Pages that already serve the permalink in the given languages; shown as a warning before saving.
     /// </summary>
     [HttpPost("permalink-usage")]
-    [Authorize(ModuleConstants.Security.Permissions.Read)]
     public async Task<ActionResult<IList<PermalinkUsage>>> FindPermalinkUsage(
         [FromBody] PermalinkUsageRequest request,
         [FromServices] IPageBuilderPageListService pageListService,
@@ -133,7 +130,6 @@ public class PageBuilderPageController : Controller
     /// Name and permalink for a copy of the page that no page of the store uses yet; Clone saves the copy with them.
     /// </summary>
     [HttpGet("grouped/{groupId}/copy-name")]
-    [Authorize(ModuleConstants.Security.Permissions.Read)]
     public async Task<ActionResult<PageCopyName>> GetCopyName(
         [FromRoute] string groupId,
         [FromServices] IPageBuilderPageListService pageListService,
@@ -155,7 +151,6 @@ public class PageBuilderPageController : Controller
     }
 
     [HttpGet("grouped/{groupId}")]
-    [Authorize(ModuleConstants.Security.Permissions.Read)]
     public async Task<ActionResult<GroupedPageBuilderPage>> GetGroup([FromRoute] string groupId, [FromQuery] string responseGroup = null)
     {
         var groupedPage = await groupedPageService.GetNoCloneAsync(groupId, responseGroup);
@@ -518,7 +513,6 @@ public class PageBuilderPageController : Controller
 
     [HttpGet]
     [Route("grouped/publish-status/{groupId}")]
-    [Authorize(ModuleConstants.Security.Permissions.Read)]
     public async Task<ActionResult<FilePublishStatus>> PublishStatus([FromRoute] string groupId)
     {
         var groupedPage = await groupedPageService.GetNoCloneAsync(groupId);
@@ -546,7 +540,6 @@ public class PageBuilderPageController : Controller
     }
 
     [HttpGet("grouped/{groupId}/content")]
-    [Authorize(ModuleConstants.Security.Permissions.Read)]
     public async Task GetPageContent([FromRoute] string groupId, [FromQuery] bool draft = true,
         [FromQuery] bool includeVersion = false, CancellationToken cancellationToken = default)
     {

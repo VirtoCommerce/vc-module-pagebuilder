@@ -40,6 +40,7 @@ using VirtoCommerce.Platform.Core.Modularity;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.Platform.Core.Settings;
 using VirtoCommerce.StoreModule.Core.Events;
+using VirtoCommerce.StoreModule.Core.Security;
 
 namespace VirtoCommerce.PageBuilderModule.Web
 {
@@ -172,6 +173,10 @@ namespace VirtoCommerce.PageBuilderModule.Web
 
             var permissionsProvider = serviceProvider.GetRequiredService<IPermissionsRegistrar>();
             permissionsProvider.RegisterPermissions(ModuleInfo.Id, "Page builder", ModuleConstants.Security.Permissions.AllPermissions);
+            // the read permissions decide which stores a role works in; PageBuilderAuthorizationRequirement checks them in each action
+            permissionsProvider.WithAvailabeScopesForPermissions(
+                [ModuleConstants.Security.Permissions.Read, ModuleConstants.Security.Permissions.SharedComponentsRead],
+                new StoreSelectedScope());
 
             var isFullTextSearchEnabled = Configuration.IsContentFullTextSearchEnabled();
 

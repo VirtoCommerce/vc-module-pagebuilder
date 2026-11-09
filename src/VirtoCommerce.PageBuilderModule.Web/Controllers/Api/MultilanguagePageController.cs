@@ -31,7 +31,6 @@ public class MultilanguagePageController(
     private const string ConcurrentChangeMessage = "The multilanguage page was changed by another request. Reload it and try again.";
 
     [HttpPost("search")]
-    [Authorize(ModuleConstants.Security.Permissions.Read)]
     public async Task<ActionResult<MultilanguagePageSearchResult>> Search([FromBody] MultilanguagePageSearchCriteria criteria)
     {
         if (criteria == null)
@@ -48,7 +47,6 @@ public class MultilanguagePageController(
     }
 
     [HttpGet("{id}")]
-    [Authorize(ModuleConstants.Security.Permissions.Read)]
     public async Task<ActionResult<MultilanguagePage>> Get([FromRoute] string id)
     {
         var page = await multilanguagePageService.GetNoCloneAsync(id);
@@ -179,7 +177,6 @@ public class MultilanguagePageController(
     }
 
     [HttpGet("{id}/languages")]
-    [Authorize(ModuleConstants.Security.Permissions.Read)]
     public Task<ActionResult<IList<MultilanguagePageLanguage>>> GetLanguages([FromRoute] string id, CancellationToken cancellationToken = default)
     {
         return ExecuteForRootAsync(id, () => multilanguagePageService.GetLanguagesAsync(id, cancellationToken));

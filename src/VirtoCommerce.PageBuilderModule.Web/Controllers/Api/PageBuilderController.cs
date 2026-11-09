@@ -103,7 +103,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
 
         [HttpGet]
-        [Authorize(ModuleConstants.Security.Permissions.Read)]
         [Route("template")]
         public async Task<ActionResult> GetTemplate(string storeId, string theme, string path, string type, bool draft = false, [FromQuery(Name = "ref")] string gitRef = null)
         {
@@ -205,7 +204,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         private ContentResult PageContent(string json) => Content(json, JsonContentType);
 
         [HttpGet]
-        [Authorize(ModuleConstants.Security.Permissions.Read)]
         [Route("settings")]
         public async Task<ActionResult> GetSettings(string storeId, string theme)
         {
@@ -314,7 +312,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         }
 
         [HttpGet]
-        [Authorize(ModuleConstants.Security.Permissions.Read)]
         [Route("templates")]
         public async Task<ActionResult> GetTemplates(string storeId, string theme)
         {
@@ -328,7 +325,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         }
 
         [HttpGet]
-        [Authorize(ModuleConstants.Security.Permissions.Read)]
         [Route("objects")]
         public async Task<ActionResult> GetObjects(string storeId, string theme)
         {
@@ -342,7 +338,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         }
 
         [HttpGet]
-        [Authorize(ModuleConstants.Security.Permissions.Read)]
         [Route("sections")]
         public async Task<ActionResult> GetSectionsSettings(string storeId, string theme)
         {
@@ -359,7 +354,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         }
 
         [HttpGet]
-        [Authorize(ModuleConstants.Security.Permissions.Read)]
         [Route("schemas")]
         public async Task<ActionResult> GetSchemasCatalog(string storeId, string theme)
         {
@@ -380,7 +374,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         }
 
         [HttpGet]
-        [Authorize(ModuleConstants.Security.Permissions.Read)]
         [Route("schemas/{kind}/{key}")]
         public async Task<ActionResult> GetSchemaByKey(string storeId, string theme, string kind, string key)
         {
@@ -530,7 +523,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         }
 
         [HttpGet]
-        [Authorize(ModuleConstants.Security.Permissions.Read)]
         [Route("search")]
         public async Task<ActionResult<string>> Search(string storeId, string theme, string type, string folder, string pattern = null, string keyword = null)
         {
@@ -689,7 +681,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
 
         /// <summary>A theme file as the designer edits it: its draft, else what is live, with the version its save sends back</summary>
         [HttpGet]
-        [Authorize(ModuleConstants.Security.Permissions.Read)]
         [Route("designer/theme-file")]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -1280,7 +1271,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         /// </para>
         /// </summary>
         [HttpGet]
-        [Authorize(ModuleConstants.Security.Permissions.Read)]
         [Route("git/publish-status")]
         public async Task<ActionResult<PagePublishStatus>> GitPublishStatus(string storeId, string path, string type)
         {
@@ -1384,7 +1374,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         /// </para>
         /// </summary>
         [HttpGet]
-        [Authorize(ModuleConstants.Security.Permissions.Read)]
         [Route("git/history")]
         public async Task<ActionResult> GitHistory(string storeId, string path, string type, int? take = null, string after = null)
         {
@@ -1499,7 +1488,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         /// showing what it showed when it was made.
         /// </summary>
         [HttpGet]
-        [Authorize(ModuleConstants.Security.Permissions.Read)]
         [Route("git/preview")]
         public async Task<ActionResult> GitPreview(string storeId, string path, string type, [FromQuery(Name = "ref")] string requestedRef = null)
         {
@@ -1636,7 +1624,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         /// </para>
         /// </summary>
         [HttpGet]
-        [Authorize(ModuleConstants.Security.Permissions.Read)]
         [Route("git/legacy-drafts")]
         public async Task<ActionResult> GetLegacyDrafts(string storeId, string type, string theme, int skip = 0, int take = 50)
         {
@@ -1893,7 +1880,6 @@ namespace VirtoCommerce.PageBuilderModule.Web.Controllers.Api
         /// </para>
         /// </summary>
         [HttpGet]
-        [Authorize(ModuleConstants.Security.Permissions.Read)]
         [Route("git/legacy-draft")]
         public async Task<ActionResult> GetLegacyDraft(string storeId, string type, string path, string theme)
         {

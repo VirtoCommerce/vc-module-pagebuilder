@@ -53,7 +53,6 @@ public class ThemeController(
 
     /// <summary>Get the current theme publication and the theme files with a draft</summary>
     [HttpGet("theme/status")]
-    [Authorize(ModuleConstants.Security.Permissions.Read)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<ThemeStatus>> GetStatus([FromQuery] string storeId, CancellationToken cancellationToken = default)
@@ -95,7 +94,6 @@ public class ThemeController(
 
     /// <summary>Get schema catalog by hash, or the current one</summary>
     [HttpGet("catalog")]
-    [Authorize(ModuleConstants.Security.Permissions.Read)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult> GetCatalog([FromQuery] string storeId, [FromQuery] string hash, CancellationToken cancellationToken = default)

@@ -14,34 +14,35 @@ namespace VirtoCommerce.PageBuilderModule.Tests
     /// </summary>
     public class PageBuilderControllerPermissionsTests
     {
+        // no policy: builder:read, which can be scoped to stores, is checked in the action with the store
         private static readonly Dictionary<string, string[]> Expected = new()
         {
-            { nameof(PageBuilderController.GetTemplate), [Permissions.Read] },
-            { nameof(PageBuilderController.GetSettings), [Permissions.Read] },
-            { nameof(PageBuilderController.GetTemplates), [Permissions.Read] },
-            { nameof(PageBuilderController.GetObjects), [Permissions.Read] },
-            { nameof(PageBuilderController.GetSectionsSettings), [Permissions.Read] },
-            { nameof(PageBuilderController.GetSchemasCatalog), [Permissions.Read] },
-            { nameof(PageBuilderController.GetSchemaByKey), [Permissions.Read] },
-            { nameof(PageBuilderController.Search), [Permissions.Read] },
-            { nameof(PageBuilderController.SaveTemplates), [Permissions.Update] },
+            { nameof(PageBuilderController.GetTemplate), [] },
+            { nameof(PageBuilderController.GetSettings), [] },
+            { nameof(PageBuilderController.GetTemplates), [] },
+            { nameof(PageBuilderController.GetObjects), [] },
+            { nameof(PageBuilderController.GetSectionsSettings), [] },
+            { nameof(PageBuilderController.GetSchemasCatalog), [] },
+            { nameof(PageBuilderController.GetSchemaByKey), [] },
+            { nameof(PageBuilderController.Search), [] },
             // and the permission that edits each theme file, in the action
-            { nameof(PageBuilderController.GetDesignerThemeFile), [Permissions.Read] },
+            { nameof(PageBuilderController.SaveTemplates), [Permissions.Update] },
+            { nameof(PageBuilderController.GetDesignerThemeFile), [] },
             { nameof(PageBuilderController.SaveDesignerChanges), [Permissions.Update] },
             { nameof(PageBuilderController.DiscardDesignerChanges), [Permissions.Update] },
             { nameof(PageBuilderController.GitPublish), [Permissions.Publish] },
             { nameof(PageBuilderController.GitPromote), [Permissions.Promote] },
             { nameof(PageBuilderController.GitUnpublish), [Permissions.Publish] },
-            { nameof(PageBuilderController.GitPublishStatus), [Permissions.Read] },
-            { nameof(PageBuilderController.GitHistory), [Permissions.Read] },
+            { nameof(PageBuilderController.GitPublishStatus), [] },
+            { nameof(PageBuilderController.GitHistory), [] },
             { nameof(PageBuilderController.GitRestoreVersion), [Permissions.Update] },
-            { nameof(PageBuilderController.GitPreview), [Permissions.Read] },
+            { nameof(PageBuilderController.GitPreview), [] },
             { nameof(PageBuilderController.DiscardDraft), [Permissions.Update] },
             { nameof(PageBuilderController.GitDiscardDraft), [Permissions.Update] },
-            { nameof(PageBuilderController.GetLegacyDrafts), [Permissions.Read] },
+            { nameof(PageBuilderController.GetLegacyDrafts), [] },
             { nameof(PageBuilderController.DeleteLegacyDrafts), [Permissions.Delete] },
             { nameof(PageBuilderController.GitCopyPage), [Permissions.Create] },
-            { nameof(PageBuilderController.GetLegacyDraft), [Permissions.Read] },
+            { nameof(PageBuilderController.GetLegacyDraft), [] },
         };
 
         public static TheoryData<string, string[]> ActionPermissions =>

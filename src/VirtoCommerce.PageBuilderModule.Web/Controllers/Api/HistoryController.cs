@@ -36,7 +36,6 @@ public class HistoryController(
 {
     /// <summary>Get whether the store keeps history</summary>
     [HttpGet("status")]
-    [Authorize(ModuleConstants.Security.Permissions.Read)]
     public async Task<ActionResult<ContentHistoryStatusResult>> GetStatus([FromQuery] string storeId, CancellationToken cancellationToken = default)
     {
         var request = new PageBuilderStoreRequest { StoreId = storeId };
@@ -52,7 +51,6 @@ public class HistoryController(
 
     /// <summary>Get versions that changed any of the items, newest first</summary>
     [HttpGet]
-    [Authorize(ModuleConstants.Security.Permissions.Read)]
     public async Task<ActionResult<ContentVersionPage>> GetHistory([FromQuery] string storeId, [FromQuery(Name = "item")] string[] items,
         [FromQuery] string cursor = null, [FromQuery] int take = ModuleConstants.GitHistory.DefaultPageSize, CancellationToken cancellationToken = default)
     {
@@ -78,7 +76,6 @@ public class HistoryController(
 
     /// <summary>Get the item as of the version</summary>
     [HttpGet("{versionId}")]
-    [Authorize(ModuleConstants.Security.Permissions.Read)]
     public async Task<ActionResult> GetVersion([FromRoute] string versionId, [FromQuery] string storeId, [FromQuery] string item,
         CancellationToken cancellationToken = default)
     {
@@ -101,7 +98,7 @@ public class HistoryController(
 
     /// <summary>Restore the items as of the version as their drafts, in one save</summary>
     [HttpPost("{versionId}/restore")]
-    [Authorize(ModuleConstants.Security.Permissions.Read)]
+    [Authorize(ModuleConstants.Security.Permissions.Update)]
     public async Task<ActionResult<ContentSaveResult>> Restore([FromRoute] string versionId, [FromQuery] string storeId,
         [FromQuery(Name = "item")] string[] items, CancellationToken cancellationToken = default)
     {

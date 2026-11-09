@@ -58,11 +58,11 @@ a page of that store, or `theme:{path}`, a theme file outside `snapshots/`; it m
 | `GET api/pagebuilder/history/status?storeId` | `builder:read` | `{ status }`, without asking GitHub |
 | `GET api/pagebuilder/history?storeId&item&cursor&take` | `builder:read` | `HistoryPage` |
 | `GET api/pagebuilder/history/{versionId}?storeId&item` | `builder:read` | the item as of the version, `application/json` |
-| `POST api/pagebuilder/history/{versionId}/restore?storeId&item` | see below | `{ saveId }` |
+| `POST api/pagebuilder/history/{versionId}/restore?storeId&item` | `builder:update`, and see below | `{ saveId }` |
 
 Restore writes the items as of the version as their drafts, in one save under the theme lock, all or nothing, and
 records it as one version, "Restored {the first 7 characters of the versionId}". It names at most one page, and needs
-`builder:update` for the page, `builder:templates` for templates and the rules, and `builder:theme` for the other
+`builder:templates` for templates and the rules, and `builder:theme` for the other
 theme files. A theme item must be a file the builder saves: not under `catalogs/`, and in `config/` only the builder's
 own files. The order of the checks: the store (403), the items (400), the permission of every item (403), the page
 (404, or 403 for another store's), the items as of the version (404), and the page's shared components as a save

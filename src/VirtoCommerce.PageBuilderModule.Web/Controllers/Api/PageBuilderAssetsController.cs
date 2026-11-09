@@ -47,7 +47,6 @@ public class PageBuilderAssetsController(
     }
 
     [HttpPost("references")]
-    [Authorize(ModuleConstants.Security.Permissions.Read)]
     public async Task<ActionResult<PageBuilderAssetReferencesSearchResult>> SearchReferences(
         [FromBody] PageBuilderAssetReferencesSearchCriteria criteria,
         CancellationToken cancellationToken = default)
