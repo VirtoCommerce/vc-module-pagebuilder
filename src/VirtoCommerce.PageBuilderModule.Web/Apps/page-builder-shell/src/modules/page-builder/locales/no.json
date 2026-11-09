@@ -88,6 +88,9 @@
           "USER_GROUPS": "Brukergrupper",
           "ORGANIZATION": "Organisasjon"
         },
+        "WARNINGS": {
+          "PERMALINK_USED": "Andre sider bruker denne permalinken: {pages}. Det er tillatt for andre besøkende eller perioder; publisering sjekker for konflikter."
+        },
         "VALIDATION": {
           "PERMALINK": "Permalinken kan være på høyst 2048 tegn og kan ikke inneholde mellomrom eller usynlige tegn, tegnene ? # & % \\ \" < > {'{'} {'}'} {'|'} ^ `, doble skråstreker eller segmentene . og .."
         },
@@ -116,6 +119,10 @@
           "MESSAGE": "Er du sikker på at du vil arkivere {count} valgte sider?",
           "ALL": "alle {totalCount}"
         },
+        "PUBLISH_CONFLICT": "Allerede publisert med denne permalinken for de samme besøkende: {pages}. Avpublisere dem og publisere denne siden?",
+        "PUBLISH_CONFLICT_HAS_CHANGES": "Allerede publisert med denne permalinken for de samme besøkende: {pages}. De har upubliserte endringer; publiser eller forkast dem først.",
+        "PUBLISH_POSSIBLE_CONFLICT": "Også publisert med denne permalinken for noen av de samme besøkende eller datoene: {pages}. Der begge gjelder, vises den sist publiserte. Publisere likevel?",
+        "PUBLISH_CONFLICT_CHANGED": "Publiseringen ble avvist: disse sidene er allerede publisert med denne permalinken for de samme besøkende: {pages}. Publiser på nytt for å løse konflikten.",
         "UNPUBLISH_WITH_DRAFT": "Kan ikke avpublisere en side som har endringer.",
         "DOWNLOAD_SUCCESS": "Innhold lagret til fil",
         "CLONE_SUCCESS": "Siden ble klonet",

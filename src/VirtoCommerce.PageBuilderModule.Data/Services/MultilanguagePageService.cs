@@ -28,6 +28,7 @@ public class MultilanguagePageService(
     IStoreService storeService,
     IPageBuilderPageService pageService,
     IDistributedLock distributedLock,
+    IPageBuilderPublishConflictService publishConflictService,
     ILogger<MultilanguagePageService> logger)
     : CrudService<MultilanguagePage, MultilanguagePageEntity, MultilanguagePageChangingEvent, MultilanguagePageChangedEvent>(
         repositoryFactory, platformMemoryCache, eventPublisher),
@@ -444,41 +445,65 @@ public class MultilanguagePageService(
         var groups = (await GetLanguageVersionsAsync(root.Id))
             .OrderByDescending(x => string.Equals(x.CultureName, root.DefaultCultureName, StringComparison.OrdinalIgnoreCase));
 
-        foreach (var group in groups)
+        foreach (var version in groups)
         {
-            if (!GroupedPagePublishing.TryPublishDraft(group, out var obsoletePageIds))
+            var skipReason = await publishConflictService.ExecuteExclusiveAsync(version, () => PublishLanguageVersionAsync(root, version.Id));
+            if (skipReason == null)
             {
-                result.Skipped.Add(new MultilanguagePageBatchSkip { CultureName = group.CultureName, Reason = MultilanguagePageBatchResult.NoDraftReason });
-                continue;
+                result.ProcessedCultureNames.Add(version.CultureName);
             }
-
-            var published = false;
-            try
+            else
             {
-                await groupedPageService.SaveChangesAsync([group]);
-                published = true;
-                await pageService.DeleteAsync(obsoletePageIds);
+                result.Skipped.Add(new MultilanguagePageBatchSkip { CultureName = version.CultureName, Reason = skipReason });
             }
-            catch (Exception ex) when (ex is not OperationCanceledException)
-            {
-                // One failing language does not stop the others; the summary reports it.
-                logger.LogError(ex, "Publishing the {CultureName} version '{GroupId}' of multilanguage page '{MultilanguagePageId}' failed.",
-                    group.CultureName, group.Id, root.Id);
-                // The publish changed a shared cached copy of the version, so the cache must not serve it.
-                GenericCachingRegion<GroupedPageBuilderPage>.ExpireTokenForKey(group.Id);
-                GenericSearchCachingRegion<GroupedPageBuilderPage>.ExpireRegion();
-                if (!published)
-                {
-                    result.Skipped.Add(new MultilanguagePageBatchSkip { CultureName = group.CultureName, Reason = MultilanguagePageBatchResult.FailedReason });
-                    continue;
-                }
-            }
-
-            // A version whose obsolete pages were not removed is still published; they are cleaned up on its next publish.
-            result.ProcessedCultureNames.Add(group.CultureName);
         }
 
         return result;
+    }
+
+    // Publishes the draft of a language version and returns null, or the reason it was skipped. Runs under the lock on
+    // the permalink of the version, so the version is reloaded: a single-page publish may have changed it meanwhile.
+    // A version that would replace another published page is skipped: unpublishing that page is a choice the author
+    // makes when publishing the version alone.
+    private async Task<string> PublishLanguageVersionAsync(MultilanguagePage root, string groupId)
+    {
+        var group = await groupedPageService.GetByIdAsync(groupId);
+        if (group == null || !group.Pages.Any(x => x.Status == ModuleConstants.PageStatuses.Draft))
+        {
+            return MultilanguagePageBatchResult.NoDraftReason;
+        }
+
+        var (conflicts, _) = await publishConflictService.FindBlockingConflictsAsync(group);
+        if (conflicts.Count > 0)
+        {
+            return MultilanguagePageBatchResult.PermalinkConflictReason;
+        }
+
+        GroupedPagePublishing.TryPublishDraft(group, out var obsoletePageIds);
+
+        var published = false;
+        try
+        {
+            await groupedPageService.SaveChangesAsync([group]);
+            published = true;
+            await pageService.DeleteAsync(obsoletePageIds);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // One failing language does not stop the others; the summary reports it.
+            logger.LogError(ex, "Publishing the {CultureName} version '{GroupId}' of multilanguage page '{MultilanguagePageId}' failed.",
+                group.CultureName, group.Id, root.Id);
+            // The publish changed a shared cached copy of the version, so the cache must not serve it.
+            GenericCachingRegion<GroupedPageBuilderPage>.ExpireTokenForKey(group.Id);
+            GenericSearchCachingRegion<GroupedPageBuilderPage>.ExpireRegion();
+            if (!published)
+            {
+                return MultilanguagePageBatchResult.FailedReason;
+            }
+        }
+
+        // A version whose obsolete pages were not removed is still published; they are cleaned up on its next publish.
+        return null;
     }
 
     public virtual async Task<MultilanguagePageBatchResult> ArchiveAllAsync(string multilanguagePageId, CancellationToken cancellationToken = default)

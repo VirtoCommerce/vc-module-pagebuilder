@@ -47,6 +47,7 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
 #pragma warning restore CA1862
             }
 
+            query = ApplyPermalinkFilter(query, criteria.Permalink);
             query = ApplyStatusFilter(query, criteria);
             query = ApplyActiveOnFilter(query, criteria);
             query = ApplyLifecycleFilter(query, criteria);
@@ -62,6 +63,20 @@ namespace VirtoCommerce.PageBuilderModule.Data.Services
             }
 
             return query;
+        }
+
+        // Permalinks are stored as entered, with or without the leading slash and in any case.
+        internal static IQueryable<GroupedPageBuilderPageEntity> ApplyPermalinkFilter(IQueryable<GroupedPageBuilderPageEntity> query, string permalink)
+        {
+            var normalized = PageBuilderPermalinkConflicts.Normalize(permalink);
+            if (normalized == null)
+            {
+                return query;
+            }
+
+            var withoutSlash = normalized[1..];
+            return query.Where(x => x.Permalink != null &&
+                (x.Permalink.ToLower() == normalized || x.Permalink.ToLower() == withoutSlash));
         }
 
         protected virtual IQueryable<GroupedPageBuilderPageEntity> ApplyStatusFilter(IQueryable<GroupedPageBuilderPageEntity> query, PageBuilderPageSearchCriteria criteria)

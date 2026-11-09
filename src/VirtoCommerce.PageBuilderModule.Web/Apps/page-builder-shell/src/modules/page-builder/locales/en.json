@@ -94,6 +94,9 @@
           "USER_GROUPS": "User groups",
           "ORGANIZATION": "Organization"
         },
+        "WARNINGS": {
+          "PERMALINK_USED": "Other pages use this permalink: {pages}. This is fine for other visitors or dates; publishing checks for conflicts."
+        },
         "VALIDATION": {
           "PERMALINK": "Permalink must be at most 2048 characters and cannot contain spaces or invisible characters, the characters ? # & % \\ \" < > {'{'} {'}'} {'|'} ^ `, double slashes, or . and .. segments"
         },
@@ -127,6 +130,10 @@
           "MESSAGE": "Are you sure you want to archive {count} selected pages?",
           "ALL": "all {totalCount}"
         },
+        "PUBLISH_CONFLICT": "Already published at this permalink for the same visitors: {pages}. Unpublish them and publish this page?",
+        "PUBLISH_CONFLICT_HAS_CHANGES": "Already published at this permalink for the same visitors: {pages}. They have unpublished changes, so publish or discard those changes first.",
+        "PUBLISH_POSSIBLE_CONFLICT": "Also published at this permalink for some of the same visitors or dates: {pages}. Where both pages apply, the one published last is shown. Publish anyway?",
+        "PUBLISH_CONFLICT_CHANGED": "Publishing was refused: these pages are already published at this permalink for the same visitors: {pages}. Publish again to resolve the conflict.",
         "UNPUBLISH_WITH_DRAFT": "Can't unpublish a page that has changes.",
         "DOWNLOAD_SUCCESS": "Content saved to file successfully",
         "CLONE_SUCCESS": "Page cloned successfully",
@@ -137,7 +144,7 @@
         "DELETE_SUCCESS": "Page archived successfully",
         "CONVERT_CONFIRMATION": "Convert this page to a Multilanguage Page? It becomes the version in its language and stays unchanged on the storefront.",
         "CONVERT_SUCCESS": "Page converted to a Multilanguage Page",
-        "PERMALINK_IN_USE": "{permalink} is already used by: {pages}. The storefront shows only one page per permalink and language. Save anyway?"
+        "PERMALINK_IN_USE": "{permalink} is already used by: {pages}. This is fine for other visitors or dates; publishing checks for conflicts. Save anyway?"
       },
       "ADD_POPUP": {
         "TITLE": "Add page",
@@ -201,6 +208,7 @@
       "ALERTS": {
         "PUBLISH_ALL_RESULT": "Published: {processed}. Skipped (no draft): {skipped}.",
         "BATCH_FAILED": "Failed: {failed}. Try these languages again.",
+        "BATCH_PERMALINK_CONFLICT": "Not published: {conflicted}. Another page is published at this permalink for the same visitors. Publish these languages one by one to replace it.",
         "ARCHIVE_ALL_RESULT": "Archived: {processed}. Already archived: {skipped}.",
         "ARCHIVE_ALL": "Archive every language version of this page?",
         "DELETE": "Delete this multilanguage page? It has no language versions.",
